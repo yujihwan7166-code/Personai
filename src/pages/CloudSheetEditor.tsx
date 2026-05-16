@@ -10,7 +10,7 @@ import {
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
   Hash, Square as SquareIcon,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
-  Upload, Download,
+  Upload, Download, Sparkles,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { evalCell } from '@/lib/cloudSheet/formula';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
+import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -351,6 +352,55 @@ export default function CloudSheetEditor() {
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
 
+  // ─── AI 액션 ───
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+
+  const runAi = useCallback(async (label: string, fn: () => Promise<string>) => {
+    setAiBusy(label);
+    setAiResult(null);
+    try {
+      const out = await fn();
+      setAiResult(out);
+      toast({ title: `${label} 완료`, description: '결과 확인 모달이 떴어요.' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: `${label} 실패`, description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, []);
+
+  const aiSummarizeAll = useCallback(() => {
+    const csv = cellsToCsv(cells, { displayValues });
+    if (!csv) {
+      toast({ title: '데이터가 없어요', description: '먼저 셀에 값을 입력하세요.' });
+      return;
+    }
+    if (csv.length > 8000) {
+      toast({ title: '데이터가 큽니다', description: '8000자로 잘려서 분석됩니다.' });
+    }
+    void runAi('데이터 요약', () => sheetSummarize(csv.slice(0, 8000)));
+  }, [cells, displayValues, runAi]);
+
+  const aiSuggestFormulaForCurrent = useCallback(async () => {
+    const csv = cellsToCsv(cells, { displayValues });
+    const goal = window.prompt('원하는 결과를 짧게 설명해주세요 (예: A열 합계, B열 평균, C열의 100 초과 개수)');
+    if (!goal || !goal.trim()) return;
+    void runAi('수식 추천', () => sheetSuggestFormula(csv.slice(0, 8000), goal.trim()));
+  }, [cells, displayValues, runAi]);
+
+  const aiExplainSelected = useCallback(() => {
+    // 현재 선택 셀 한 개만 — 추후 범위 선택 추가
+    const ref = selectedRef;
+    const raw = cells[ref];
+    if (!raw) {
+      toast({ title: '선택 셀이 비어있어요' });
+      return;
+    }
+    void runAi('셀 설명', () => sheetExplainSelection(`${ref}: ${raw}`));
+  }, [selectedRef, cells, runAi]);
+
   // ─── .xlsx import: 파일 선택 → 모든 시트 우리 파일에 추가 ───
   const importXlsx = useCallback(() => {
     const input = document.createElement('input');
@@ -587,7 +637,20 @@ export default function CloudSheetEditor() {
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuContent align="end" className="min-w-[200px]">
+                <DropdownMenuItem onSelect={aiSummarizeAll} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  데이터 요약 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={aiSuggestFormulaForCurrent} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  수식 추천 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={aiExplainSelected} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  선택 셀 설명 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={importXlsx}>
                   <Upload className="w-4 h-4 mr-2" />
                   .xlsx 가져오기
@@ -789,6 +852,41 @@ export default function CloudSheetEditor() {
       </footer>
 
       <SheetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* AI 결과 모달 */}
+      <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle className="text-base flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-500" />
+            AI 결과
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            데이터 분석 결과입니다. 셀 자동 반영은 안 됩니다 (수동 복붙).
+          </DialogDescription>
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm border border-border rounded p-3 bg-muted/30">
+            {aiResult}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (aiResult) navigator.clipboard.writeText(aiResult);
+                toast({ title: '복사됨' });
+              }}
+              className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
+            >
+              복사
+            </button>
+            <button
+              type="button"
+              onClick={() => setAiResult(null)}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
+            >
+              닫기
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,10 +6,10 @@
  * 긴 생성·재구성 = 상위 모델 (필요 시)
  */
 
-const QUICK_MODEL = 'google/gemini-2.5-flash-lite';
-const QUALITY_MODEL = 'google/gemini-2.5-flash';
+export const QUICK_MODEL = 'google/gemini-2.5-flash-lite';
+export const QUALITY_MODEL = 'google/gemini-2.5-flash';
 
-async function quickAi(system: string, user: string, opts: { model?: string; maxTokens?: number; temperature?: number } = {}): Promise<string> {
+export async function quickAi(system: string, user: string, opts: { model?: string; maxTokens?: number; temperature?: number } = {}): Promise<string> {
   const res = await fetch('/api/cloud-ai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -11,6 +11,7 @@ import {
   Square as SquareIcon, Circle as CircleIcon, Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
+  Sparkles,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,10 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { importPptxFile, exportPptxFile } from '@/lib/cloudSlide/pptx';
+import {
+  aiNextSlide, aiImproveSlide, aiOutlinePresentation,
+  slideToText, slidesToOutline, parseAiSlideContent,
+} from '@/lib/cloudSlide/ai';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -455,6 +460,158 @@ export default function CloudSlideEditor() {
     window.addEventListener('pointerup', onUp);
   }, [editingElId, updateEl]);
 
+  // ─── AI 액션 ───
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+
+  /** AI 가 만든 텍스트로 새 슬라이드 추가 (제목 = 큰 폰트, 본문 = 작은 폰트 줄별). */
+  const addAiSlide = useCallback((text: string) => {
+    const { title, body } = parseAiSlideContent(text);
+    const newSlide: Slide = {
+      id: newId('s'),
+      elements: [],
+    };
+    if (title) {
+      newSlide.elements.push({
+        id: newId('el'),
+        type: 'text',
+        xPct: 8, yPct: 8, wPct: 84, hPct: 14,
+        content: title,
+        fontSizeRem: 2.6,
+        bold: true,
+      });
+    }
+    if (body.length > 0) {
+      const joined = body.join('\n');
+      newSlide.elements.push({
+        id: newId('el'),
+        type: 'text',
+        xPct: 8, yPct: 28, wPct: 84, hPct: 64,
+        content: joined,
+        fontSizeRem: 1.4,
+      });
+    }
+    const nextSlides = [...slides.slice(0, currentIdx + 1), newSlide, ...slides.slice(currentIdx + 1)];
+    setSlides(nextSlides);
+    setCurrentIdx(currentIdx + 1);
+    setSelectedElId(null);
+    queueSave(nextSlides, currentIdx + 1);
+  }, [slides, currentIdx, queueSave]);
+
+  const runAiAndAddSlide = useCallback(async (label: string, fn: () => Promise<string>) => {
+    setAiBusy(label);
+    try {
+      const out = await fn();
+      if (out) addAiSlide(out);
+      toast({ title: `${label} 완료`, description: '새 슬라이드가 추가됐어요.' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: `${label} 실패`, description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, [addAiSlide]);
+
+  const aiActionNext = useCallback(() => {
+    const current = slides[currentIdx];
+    const currentText = current ? slideToText(current) : '';
+    const outline = slidesToOutline(slides);
+    void runAiAndAddSlide('다음 슬라이드', () => aiNextSlide(currentText || '(빈 슬라이드)', outline));
+  }, [slides, currentIdx, runAiAndAddSlide]);
+
+  const aiActionImprove = useCallback(async () => {
+    const current = slides[currentIdx];
+    if (!current) return;
+    const text = slideToText(current);
+    if (!text) {
+      toast({ title: '슬라이드에 텍스트가 없어요', description: '먼저 텍스트박스를 추가해주세요.' });
+      return;
+    }
+    setAiBusy('슬라이드 개선');
+    try {
+      const out = await aiImproveSlide(text);
+      if (out) {
+        // 기존 텍스트박스를 새 내용으로 교체 (첫 텍스트박스만 — 단순화)
+        const lines = out.trim().split('\n');
+        const newElements = current.elements.filter((e) => e.type !== 'text');
+        if (lines[0]) {
+          newElements.push({
+            id: newId('el'),
+            type: 'text',
+            xPct: 8, yPct: 8, wPct: 84, hPct: 14,
+            content: lines[0],
+            fontSizeRem: 2.6, bold: true,
+          });
+        }
+        if (lines.length > 1) {
+          newElements.push({
+            id: newId('el'),
+            type: 'text',
+            xPct: 8, yPct: 28, wPct: 84, hPct: 64,
+            content: lines.slice(1).join('\n'),
+            fontSizeRem: 1.4,
+          });
+        }
+        const nextSlides = slides.map((s, i) => (i === currentIdx ? { ...s, elements: newElements } : s));
+        setSlides(nextSlides);
+        queueSave(nextSlides, currentIdx);
+      }
+      toast({ title: '슬라이드 개선 완료', description: '본문이 교체됐어요.' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '슬라이드 개선 실패', description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, [slides, currentIdx, queueSave]);
+
+  const aiActionOutline = useCallback(async () => {
+    const topic = window.prompt('프레젠테이션 주제를 짧게 입력하세요\n(예: "AI 도입 효과", "신제품 기획안")');
+    if (!topic || !topic.trim()) return;
+    setAiBusy('5장 개요');
+    try {
+      const out = await aiOutlinePresentation(topic.trim());
+      // [슬라이드 N] 블록으로 분할
+      const blocks = out.split(/\n\s*\n+/).map((b) => b.replace(/^\[슬라이드\s*\d+\]\s*\n?/i, '').trim()).filter(Boolean);
+      if (blocks.length === 0) {
+        toast({ title: '결과를 파싱할 수 없어요', description: '다시 시도해주세요.' });
+        return;
+      }
+      const newSlides: Slide[] = blocks.slice(0, 6).map((block) => {
+        const { title, body } = parseAiSlideContent(block);
+        const elements: SlideElement[] = [];
+        if (title) {
+          elements.push({
+            id: newId('el'),
+            type: 'text',
+            xPct: 8, yPct: 8, wPct: 84, hPct: 14,
+            content: title,
+            fontSizeRem: 2.6, bold: true,
+          });
+        }
+        if (body.length > 0) {
+          elements.push({
+            id: newId('el'),
+            type: 'text',
+            xPct: 8, yPct: 28, wPct: 84, hPct: 64,
+            content: body.join('\n'),
+            fontSizeRem: 1.4,
+          });
+        }
+        return { id: newId('s'), elements };
+      });
+      const nextSlides = [...slides, ...newSlides];
+      setSlides(nextSlides);
+      setCurrentIdx(slides.length);
+      queueSave(nextSlides, slides.length);
+      toast({ title: '5장 개요 완료', description: `${newSlides.length}장 추가됨` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '5장 개요 실패', description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, [slides, queueSave]);
+
   // ─── Import / Export .pptx ───
   const importPptx = useCallback(() => {
     const input = document.createElement('input');
@@ -655,11 +812,23 @@ export default function CloudSlideEditor() {
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuContent align="end" className="min-w-[200px]">
+                <DropdownMenuItem onSelect={aiActionNext} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  다음 슬라이드 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={aiActionImprove} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  이 슬라이드 개선 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={aiActionOutline} disabled={!!aiBusy}>
+                  <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
+                  주제로 5장 개요 (AI)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={importPptx}>
                   📥 .pptx 가져오기
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={exportPptx}>
                   📤 .pptx 내보내기
                 </DropdownMenuItem>
