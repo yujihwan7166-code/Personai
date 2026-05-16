@@ -19,6 +19,8 @@ import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import Superscript from '@tiptap/extension-superscript';
+import Subscript from '@tiptap/extension-subscript';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
@@ -26,7 +28,9 @@ import {
   Undo2, Redo2, Keyboard,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Link as LinkIcon, Link2Off,
-  Table as TableIcon, Image as ImageIcon, ImagePlus,
+  Table as TableIcon, ImagePlus,
+  Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
+  IndentIncrease, IndentDecrease,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -149,6 +153,8 @@ export default function CloudDocEditor() {
       TableRow,
       TableHeader,
       TableCell,
+      Superscript,
+      Subscript,
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
@@ -523,7 +529,112 @@ function DocToolbar({ editor }: { editor: Editor }) {
       >
         <ImagePlus className="w-4 h-4" />
       </ToolBtn>
+      <Sep />
+
+      {/* 글꼴 크기 */}
+      <FontSizeSelect editor={editor} />
+      {/* 글꼴 종류 */}
+      <FontFamilySelect editor={editor} />
+      <Sep />
+
+      {/* 첨자 */}
+      <ToolBtn
+        onClick={() => editor.chain().focus().toggleSuperscript().run()}
+        active={editor.isActive('superscript')}
+        title="위 첨자 (Ctrl+.)"
+      >
+        <SuperscriptIcon className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => editor.chain().focus().toggleSubscript().run()}
+        active={editor.isActive('subscript')}
+        title="아래 첨자 (Ctrl+,)"
+      >
+        <SubscriptIcon className="w-4 h-4" />
+      </ToolBtn>
+      <Sep />
+
+      {/* 들여쓰기 (리스트 항목 한정) */}
+      <ToolBtn
+        onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+        disabled={!editor.can().sinkListItem('listItem')}
+        title="들여쓰기 (Tab, 리스트에서)"
+      >
+        <IndentIncrease className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+        disabled={!editor.can().liftListItem('listItem')}
+        title="내어쓰기 (Shift+Tab, 리스트에서)"
+      >
+        <IndentDecrease className="w-4 h-4" />
+      </ToolBtn>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 글꼴 크기·종류 select (도구바 inline)
+// ─────────────────────────────────────────────
+
+const FONT_SIZES = ['10', '12', '14', '16', '18', '20', '24', '28', '32', '40', '48'];
+
+function FontSizeSelect({ editor }: { editor: Editor }) {
+  const current = (editor.getAttributes('textStyle').fontSize as string | undefined) ?? '';
+  const numeric = current ? current.replace('px', '') : '';
+  return (
+    <select
+      value={numeric}
+      onChange={(e) => {
+        const v = e.target.value;
+        if (!v) {
+          editor.chain().focus().setMark('textStyle', { fontSize: null }).run();
+        } else {
+          editor.chain().focus().setMark('textStyle', { fontSize: `${v}px` }).run();
+        }
+      }}
+      className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[58px]"
+      title="글꼴 크기"
+      aria-label="글꼴 크기"
+    >
+      <option value="">크기</option>
+      {FONT_SIZES.map((s) => (
+        <option key={s} value={s}>{s}px</option>
+      ))}
+    </select>
+  );
+}
+
+const FONT_FAMILIES: Array<{ label: string; value: string }> = [
+  { label: '기본',  value: '' },
+  { label: 'Sans',  value: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif' },
+  { label: 'Serif', value: 'Georgia, "Times New Roman", serif' },
+  { label: 'Mono',  value: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' },
+  { label: '돋움',  value: '"Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif' },
+  { label: '바탕',  value: '"Apple Myungjo", "Batang", "바탕", serif' },
+];
+
+function FontFamilySelect({ editor }: { editor: Editor }) {
+  const current = (editor.getAttributes('textStyle').fontFamily as string | undefined) ?? '';
+  return (
+    <select
+      value={current}
+      onChange={(e) => {
+        const v = e.target.value;
+        if (!v) {
+          editor.chain().focus().setMark('textStyle', { fontFamily: null }).run();
+        } else {
+          editor.chain().focus().setMark('textStyle', { fontFamily: v }).run();
+        }
+      }}
+      className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[64px]"
+      title="글꼴 종류"
+      aria-label="글꼴 종류"
+    >
+      {FONT_FAMILIES.map((f) => (
+        <option key={f.label} value={f.value}>{f.label}</option>
+      ))}
+    </select>
   );
 }
 
@@ -723,6 +834,15 @@ function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => vo
           <HelpSection title="표·이미지">
             <HelpRow keys={['표']} label="도구바 표 버튼 → 3×3 삽입. 표 안에선 +행/+열/−행/−열/표✕ 노출." />
             <HelpRow keys={['이미지']} label="도구바 이미지+ → 파일 선택 → base64 인라인 (2MB 이하 권장)." />
+          </HelpSection>
+
+          <HelpSection title="글꼴·첨자·들여쓰기">
+            <HelpRow keys={['크기']} label="도구바 select → 10~48px" />
+            <HelpRow keys={['종류']} label="도구바 select → 기본/Sans/Serif/Mono/돋움/바탕" />
+            <HelpRow keys={['Ctrl', '.']} label="위 첨자 (x²)" />
+            <HelpRow keys={['Ctrl', ',']} label="아래 첨자 (x₂)" />
+            <HelpRow keys={['Tab']} label="리스트 들여쓰기" />
+            <HelpRow keys={['Shift', 'Tab']} label="리스트 내어쓰기" />
           </HelpSection>
         </div>
 
