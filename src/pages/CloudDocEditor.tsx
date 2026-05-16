@@ -10,11 +10,17 @@ import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
+import { TextStyleKit } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code2, Minus,
   Undo2, Redo2, Keyboard,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Palette, Highlighter, Link as LinkIcon, Link2Off,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -114,6 +120,18 @@ export default function CloudDocEditor() {
         heading: { levels: [1, 2, 3] },
       }),
       Underline,
+      TextStyleKit,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline underline-offset-2 hover:text-blue-700',
+          rel: 'noopener noreferrer',
+          target: '_blank',
+        },
+      }),
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
@@ -374,8 +392,127 @@ function DocToolbar({ editor }: { editor: Editor }) {
       >
         <Minus className="w-4 h-4" />
       </ToolBtn>
+      <Sep />
+
+      {/* 정렬 4종 */}
+      <ToolBtn
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        active={editor.isActive({ textAlign: 'left' })}
+        title="왼쪽 정렬 (Ctrl+Shift+L)"
+      >
+        <AlignLeft className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        active={editor.isActive({ textAlign: 'center' })}
+        title="가운데 정렬 (Ctrl+Shift+E)"
+      >
+        <AlignCenter className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        active={editor.isActive({ textAlign: 'right' })}
+        title="오른쪽 정렬 (Ctrl+Shift+R)"
+      >
+        <AlignRight className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+        active={editor.isActive({ textAlign: 'justify' })}
+        title="양쪽 정렬 (Ctrl+Shift+J)"
+      >
+        <AlignJustify className="w-4 h-4" />
+      </ToolBtn>
+      <Sep />
+
+      {/* 글자색 */}
+      <ColorPickBtn
+        icon={<Palette className="w-4 h-4" />}
+        value={editor.getAttributes('textStyle').color ?? '#222222'}
+        onChange={(c) => editor.chain().focus().setColor(c).run()}
+        onClear={() => editor.chain().focus().unsetColor().run()}
+        title="글자색"
+      />
+      {/* 형광펜 (배경색) */}
+      <ColorPickBtn
+        icon={<Highlighter className="w-4 h-4" />}
+        value={editor.getAttributes('highlight').color ?? '#fff59d'}
+        onChange={(c) => editor.chain().focus().toggleHighlight({ color: c }).run()}
+        onClear={() => editor.chain().focus().unsetHighlight().run()}
+        title="형광펜"
+      />
+      <Sep />
+
+      {/* 링크 */}
+      <ToolBtn
+        onClick={() => {
+          const prev = editor.getAttributes('link').href as string | undefined;
+          const url = window.prompt('링크 URL', prev ?? 'https://');
+          if (url === null) return;
+          if (url === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+          } else {
+            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+          }
+        }}
+        active={editor.isActive('link')}
+        title="링크 추가/수정"
+      >
+        <LinkIcon className="w-4 h-4" />
+      </ToolBtn>
+      {editor.isActive('link') && (
+        <ToolBtn
+          onClick={() => editor.chain().focus().unsetLink().run()}
+          title="링크 제거"
+        >
+          <Link2Off className="w-4 h-4" />
+        </ToolBtn>
+      )}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────
+// 색 picker (도구바 inline)
+// ─────────────────────────────────────────────
+
+interface ColorPickBtnProps {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (color: string) => void;
+  onClear: () => void;
+  title?: string;
+}
+
+function ColorPickBtn({ icon, value, onChange, onClear, title }: ColorPickBtnProps) {
+  return (
+    <label
+      className="relative flex items-center gap-0.5 px-1.5 py-1.5 rounded hover:bg-muted cursor-pointer"
+      title={title}
+      aria-label={title}
+    >
+      {icon}
+      <span
+        className="block w-3 h-3 rounded-sm border border-border"
+        style={{ backgroundColor: value }}
+        aria-hidden
+      />
+      <input
+        type="color"
+        value={toHex(value)}
+        onChange={(e) => onChange(e.target.value)}
+        onDoubleClick={onClear}
+        className="absolute inset-0 opacity-0 cursor-pointer"
+        aria-label={title}
+      />
+    </label>
+  );
+}
+
+function toHex(color: string): string {
+  if (!color) return '#000000';
+  if (color.startsWith('#') && (color.length === 4 || color.length === 7)) return color;
+  return '#000000';
 }
 
 interface ToolBtnProps {
@@ -477,11 +614,24 @@ function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => vo
             <HelpRow keys={['---']} label="구분선" />
           </HelpSection>
 
+          <HelpSection title="정렬">
+            <HelpRow keys={['Ctrl', 'Shift', 'L']} label="왼쪽" />
+            <HelpRow keys={['Ctrl', 'Shift', 'E']} label="가운데" />
+            <HelpRow keys={['Ctrl', 'Shift', 'R']} label="오른쪽" />
+            <HelpRow keys={['Ctrl', 'Shift', 'J']} label="양쪽 (justify)" />
+          </HelpSection>
+
           <HelpSection title="동작">
             <HelpRow keys={['Ctrl', 'Z']} label="실행 취소" />
             <HelpRow keys={['Ctrl', 'Shift', 'Z']} label="다시 실행" />
             <HelpRow keys={['?']} label="이 도움말" />
             <HelpRow keys={['Esc']} label="닫기 / 도움말 닫기" />
+          </HelpSection>
+
+          <HelpSection title="색·링크">
+            <HelpRow keys={['글자색']} label="도구바 색 picker 클릭 → 색 선택. 더블클릭으로 해제." />
+            <HelpRow keys={['형광펜']} label="도구바 형광펜 → 색 선택. 더블클릭으로 해제." />
+            <HelpRow keys={['🔗']} label="도구바 링크 → URL 입력. 빈 값 입력 시 제거." />
           </HelpSection>
         </div>
 
