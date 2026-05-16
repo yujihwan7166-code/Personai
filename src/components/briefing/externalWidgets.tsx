@@ -107,6 +107,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
         icon={<Cloud className="h-3.5 w-3.5" />}
         title={result?.data.city ?? coords?.city ?? '날씨'}
         stale={result?.stale}
+        loading={loading}
         onRefresh={refresh}
         kind="weather"
       />
@@ -218,6 +219,7 @@ export function ForexWidget({ widget }: WidgetProps) {
         icon={<DollarSign className="h-3.5 w-3.5" />}
         title="환율"
         stale={result?.stale}
+        loading={loading}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
         kind="forex"
@@ -277,7 +279,7 @@ function ForexPicker({ codes, onChange, onClose }: { codes: string[]; onChange: 
     setSelected(next);
   };
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="wb-briefing-scroll flex-1 overflow-y-auto">
       <div className="text-[9.5px] text-muted-foreground mb-1.5">최대 5개</div>
       <ul className="grid grid-cols-2 gap-0.5">
         {ALL_FOREX_CODES.map((code) => {
@@ -341,6 +343,7 @@ export function NewsWidget({ widget }: WidgetProps) {
         icon={<Newspaper className="h-3.5 w-3.5" />}
         title="뉴스"
         stale={result?.stale}
+        loading={loading}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
         kind="news"
@@ -370,7 +373,7 @@ export function NewsWidget({ widget }: WidgetProps) {
             </div>
           )}
           {result?.data && result.data.length > 0 && (
-            <ul className="mt-1.5 space-y-2 flex-1 overflow-y-auto">
+            <ul className="wb-briefing-scroll mt-1.5 space-y-2 flex-1 overflow-y-auto">
               {result.data.map((n, i) => (
                 <li key={i}>
                   <a
@@ -441,7 +444,7 @@ function NewsPicker({ config, onChange, onClose }: {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto text-[10.5px]">
+    <div className="wb-briefing-scroll flex-1 overflow-y-auto text-[10.5px]">
       <div className="font-semibold text-foreground/80 mb-1">매체</div>
       <ul className="grid grid-cols-2 gap-0.5 mb-2">
         {sourceKeys.map((sk) => {
@@ -531,6 +534,7 @@ export function StockWidget({ widget }: WidgetProps) {
         icon={<TrendingUp className="h-3.5 w-3.5" />}
         title="코인"
         stale={result?.stale}
+        loading={loading}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
         kind="stock"
@@ -599,7 +603,7 @@ function CoinPicker({ ids, onChange, onClose }: { ids: string[]; onChange: (ids:
   const removeCoin = (id: string) => setSelected(selected.filter((s) => s !== id));
 
   return (
-    <div className="flex-1 overflow-y-auto text-[10.5px]">
+    <div className="wb-briefing-scroll flex-1 overflow-y-auto text-[10.5px]">
       <div className="font-semibold text-foreground/80 mb-1">선택된 코인 (최대 5)</div>
       <ul className="space-y-0.5 mb-2">
         {selected.map((id) => (
@@ -617,7 +621,7 @@ function CoinPicker({ ids, onChange, onClose }: { ids: string[]; onChange: (ids:
         className="w-full h-6 px-1.5 rounded border border-foreground/20 bg-background mb-1"
       />
       {results.length > 0 && (
-        <ul className="space-y-0.5 mb-2 max-h-[100px] overflow-y-auto">
+        <ul className="wb-briefing-scroll space-y-0.5 mb-2 max-h-[100px] overflow-y-auto">
           {results.map((r) => (
             <li key={r.id}>
               <button
@@ -716,11 +720,12 @@ export function HeatmapWidget(_p: WidgetProps) {
 // 공통 헬퍼
 
 function ExtHeader({
-  icon, title, stale, onRefresh, onConfig, kind,
+  icon, title, stale, loading, onRefresh, onConfig, kind,
 }: {
   icon: React.ReactNode;
   title: string;
   stale?: boolean;
+  loading?: boolean;
   onRefresh: () => void;
   onConfig?: () => void;
   kind?: import('@/lib/dailyBriefingStore').WidgetKind;
@@ -743,11 +748,12 @@ function ExtHeader({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-        className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
+        disabled={loading}
+        className="h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0 disabled:opacity-60"
         aria-label="새로고침"
-        title="새로고침"
+        title={loading ? '갱신 중…' : '새로고침'}
       >
-        <RefreshCw className="h-3 w-3" />
+        <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} />
       </button>
       {onConfig && (
         <button

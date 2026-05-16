@@ -67,12 +67,14 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
                 />
               );
             })}
-            {/* 현재 시간 marker */}
+            {/* 현재 시간 marker — rose 핀 (얇은 선 + 상단 dot) */}
             <div
-              className="absolute top-[-2px] bottom-[-2px] w-[2px] bg-foreground"
+              className="absolute top-[-3px] bottom-[-3px] w-[2px] bg-rose-500/90"
               style={{ left: `${nowPct}%` }}
               title={`지금 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}
-            />
+            >
+              <span className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_0_2px_hsl(var(--card))]" />
+            </div>
           </div>
           <div className="flex justify-between mt-0.5 text-[8.5px] text-muted-foreground/60 tabular-nums">
             <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>

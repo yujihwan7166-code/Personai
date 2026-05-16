@@ -113,8 +113,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         )}
         style={{
           height: 'min(700px, 92vh)',
-          // 모달 자체 — 따뜻한 cream 톤 (위쪽 살짝 더 밝게, Samsung 톤)
-          background: 'linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
+          // 모달 자체 — 따뜻한 cream 톤 (상단 radial spot 으로 살짝 깊이감, Samsung 톤)
+          background: 'radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
         }}
       >
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
@@ -166,14 +166,14 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
               aria-label={editMode ? '편집 종료' : '편집'}
               title={editMode ? '편집 종료' : '위젯 편집'}
               className={cn(
-                'shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl transition-all',
+                'shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full transition-all',
                 editMode
-                  ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
+                  ? 'bg-primary text-primary-foreground shadow-sm scale-[1.04]'
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
-                hintShown && !editMode && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-card',
+                hintShown && !editMode && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-transparent',
               )}
             >
-              <Settings className="h-[18px] w-[18px]" />
+              <Settings className={cn('h-[17px] w-[17px] transition-transform', editMode && 'rotate-90')} />
             </button>
             {/* 첫 사용자 hint tooltip */}
             {hintShown && !editMode && (
@@ -193,14 +193,14 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
           >
-            <X className="h-[18px] w-[18px]" />
+            <X className="h-[17px] w-[17px]" />
           </button>
         </div>
 
         {/* 본문 — 그리드 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-7 pb-7 pt-1">
+        <div className="wb-briefing-scroll flex-1 min-h-0 overflow-y-auto px-7 pb-7 pt-1">
           {settings.widgets.length === 0 ? (
             <EmptyState onAdd={() => setPickerOpen(true)} />
           ) : (
@@ -216,10 +216,15 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 편집 모드 안내 + autoShow 토글 */}
         {editMode && (
-          <div className="shrink-0 px-7 py-3 border-t border-foreground/8 flex items-center gap-3 bg-primary/5 backdrop-blur-sm">
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/75 font-medium">
+          <div className="shrink-0 px-7 py-2.5 border-t border-foreground/8 flex items-center gap-4 bg-foreground/[0.02] backdrop-blur-sm">
+            <div className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/85 font-semibold tracking-tight">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              위젯을 드래그해서 이동, ⋯ 로 크기·삭제, Esc 로 종료
+              편집 모드
+            </div>
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+              드래그 · ⋯ 메뉴
+              <kbd className="px-1.5 py-0.5 rounded bg-foreground/8 text-[9.5px] font-medium text-foreground/70 tracking-wider">Esc</kbd>
+              종료
             </span>
             <button
               type="button"
@@ -420,8 +425,8 @@ function WidgetCard({
         // 평소 — 부드러운 흰 카드 (Samsung 톤)
         !editMode && 'bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
         !editMode && 'hover:shadow-[0_8px_28px_-12px_hsl(30_15%_8%/0.18),_0_3px_10px_-4px_hsl(30_15%_8%/0.10)] hover:-translate-y-0.5',
-        // 편집 모드 — boundary 명확 + ring
-        editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab bg-card shadow-md',
+        // 편집 모드 — boundary 명확 + ring (부드러운 톤)
+        editMode && 'wb-jiggle ring-1 ring-foreground/15 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
       )}
       style={{
@@ -538,12 +543,12 @@ function WidgetPicker({
   }
   return (
     <div
-      className="wb-backdrop-in absolute inset-0 z-30 bg-black/30 backdrop-blur-sm flex items-center justify-center p-6"
+      className="wb-backdrop-in absolute inset-0 z-30 bg-foreground/20 backdrop-blur-md flex items-center justify-center p-6"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="wb-picker-in w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
+        className="wb-picker-in w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden"
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
       >
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
           <h3 className="text-[14px] font-semibold text-foreground shrink-0">위젯 추가</h3>
@@ -563,7 +568,7 @@ function WidgetPicker({
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <div className="wb-briefing-scroll flex-1 overflow-y-auto px-5 py-4 space-y-5">
           {(['내 데이터', '외부 정보'] as const).map((group) => {
             if (grouped[group].length === 0) return null;
             return (
@@ -629,7 +634,7 @@ function WidgetPicker({
 // ──────────────────────────────────────────
 // 빈 상태
 
-// 작은 진행률 ring — 헤더용
+// 작은 진행률 ring — 헤더용 (그라디언트 stroke 으로 살짝 입체감)
 function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
   const stroke = 3;
   const r = (size - stroke) / 2;
@@ -638,6 +643,12 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
   const offset = c * (1 - clamped);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      <defs>
+        <linearGradient id="wb-ring-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="hsl(28 88% 58%)" />
+          <stop offset="100%" stopColor="hsl(28 88% 48%)" />
+        </linearGradient>
+      </defs>
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -651,7 +662,7 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="hsl(var(--primary))"
+        stroke="url(#wb-ring-grad)"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={c}
@@ -661,11 +672,12 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
       />
       <text
         x={size / 2}
-        y={size / 2 + 3.2}
+        y={size / 2 + 3.4}
         textAnchor="middle"
-        fontSize="10"
-        fontWeight="700"
+        fontSize="10.5"
+        fontWeight="800"
         fill="hsl(var(--foreground))"
+        className="font-display tabular-nums"
       >{Math.round(clamped * 100)}</text>
     </svg>
   );
@@ -673,19 +685,25 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center gap-3">
-      <div className="text-4xl">🎨</div>
-      <p className="text-[14px] font-medium text-foreground">위젯이 없어요</p>
-      <p className="text-[12px] text-muted-foreground max-w-[280px]">
-        ⚙ 편집 모드에서 위젯을 추가해 나만의 데일리 브리핑을 만들어보세요.
-      </p>
+    <div className="h-full flex flex-col items-center justify-center text-center gap-4 px-6">
+      <div
+        className="text-[56px] leading-none"
+        style={{ filter: 'drop-shadow(0 6px 14px hsl(28 88% 52% / 0.18))' }}
+      >🎨</div>
+      <div className="space-y-1">
+        <p className="font-display text-[18px] font-bold text-foreground">위젯이 없어요</p>
+        <p className="text-[12.5px] text-muted-foreground max-w-[300px] leading-relaxed">
+          날씨, 일정, 환율, 뉴스 등 13가지 위젯으로<br />
+          나만의 아침을 시작해보세요
+        </p>
+      </div>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-4 h-8 rounded-md bg-primary text-primary-foreground text-[12.5px] font-medium hover:bg-primary/90 transition-colors"
+        className="inline-flex items-center gap-1.5 px-5 h-9 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-[0_4px_12px_-4px_hsl(28_88%_52%/0.4)]"
       >
         <Plus className="h-3.5 w-3.5" />
-        위젯 추가
+        위젯 추가하기
       </button>
     </div>
   );
