@@ -29,13 +29,32 @@ interface Props {
 
 export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const settings = useBriefingSettings();
-  const data = useMemo(() => (open ? buildBriefingData() : null), [open]);
+  // 종료 애니메이션 — open=false 가 되어도 잠시 mount 유지
+  const [visible, setVisible] = useState(open);
+  const [closing, setClosing] = useState(false);
+  const data = useMemo(() => (visible ? buildBriefingData() : null), [visible]);
   const [editMode, setEditMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      setClosing(false);
+    } else if (visible) {
+      setClosing(true);
+      const t = window.setTimeout(() => {
+        setVisible(false);
+        setClosing(false);
+        setEditMode(false);
+        setPickerOpen(false);
+      }, 170);
+      return () => window.clearTimeout(t);
+    }
+  }, [open, visible]);
+
   // ESC 닫기 (편집·picker 우선)
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (pickerOpen) { setPickerOpen(false); return; }
@@ -45,25 +64,31 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, editMode, pickerOpen, onClose]);
+  }, [visible, editMode, pickerOpen, onClose]);
 
   // 열림 시 lastShownDate 기록 (autoShow 다음 표시 방지)
   useEffect(() => {
     if (open) dailyBriefingStore.markShownToday();
   }, [open]);
 
-  if (!open || !data || typeof document === 'undefined') return null;
+  if (!visible || !data || typeof document === 'undefined') return null;
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label="데일리 브리핑"
-      className="wb-backdrop-in fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm',
+        closing ? 'wb-backdrop-out' : 'wb-backdrop-in',
+      )}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="wb-modal-in relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden"
+        className={cn(
+          'relative w-full max-w-[1120px] flex flex-col bg-card border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden',
+          closing ? 'wb-modal-out' : 'wb-modal-in',
+        )}
         style={{
           height: 'min(700px, 92vh)',
           // 모달 자체에 옅은 따뜻한 그라디언트 — 위쪽 살짝 밝게
@@ -244,11 +269,7 @@ function BriefingGrid({
   return (
     <div
       ref={gridRef}
-      className="relative w-full h-full grid gap-3"
-      style={{
-        gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-        gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
-      }}
+      className="wb-briefing-grid relative w-full h-full grid gap-3"
       onDragOver={editMode ? handleDragOver : undefined}
       onDrop={editMode ? handleDrop : undefined}
       onDragEnd={() => { setDragId(null); setHoverCell(null); }}
@@ -324,6 +345,7 @@ function WidgetCard({
 
   return (
     <div
+      data-wb-size={widget.size}
       draggable={editMode}
       onDragStart={(e) => {
         if (!editMode) return;
