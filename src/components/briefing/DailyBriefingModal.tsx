@@ -269,7 +269,7 @@ function BriefingGrid({
   return (
     <div
       ref={gridRef}
-      className="wb-briefing-grid relative w-full h-full grid gap-3"
+      className="wb-briefing-grid relative w-full h-full grid gap-4"
       onDragOver={editMode ? handleDragOver : undefined}
       onDrop={editMode ? handleDrop : undefined}
       onDragEnd={() => { setDragId(null); setHoverCell(null); }}
@@ -359,21 +359,21 @@ function WidgetCard({
       onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
-        'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
-        !editMode && 'hover:-translate-y-0.5 hover:shadow-[0_8px_22px_-8px_hsl(30_15%_8%/0.18),_0_2px_6px_-2px_hsl(30_15%_8%/0.08)]',
-        editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab',
+        // 평소 — 거의 보이지 않는 카드 (Notion/Mail 톤)
+        !editMode && 'bg-card/40 hover:bg-card hover:shadow-[0_8px_28px_-12px_hsl(30_15%_8%/0.18),_0_2px_8px_-4px_hsl(30_15%_8%/0.08)]',
+        !editMode && 'hover:-translate-y-0.5',
+        // 편집 모드 — 카드 boundary 명확
+        editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab bg-card shadow-md',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
       )}
       style={{
         ...style,
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
-        background: isHero
-          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.18)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.06)').replace('hsl(', 'hsla(')})`
-          : `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 100%)`,
-        borderTop: `2.5px solid ${meta.tint.border}`,
-        outline: `1px solid hsl(var(--foreground) / 0.05)`,
-        outlineOffset: '-1px',
+        // hero (pickFirst) 만 살짝 색 ground — 다른 카드는 거의 투명
+        background: isHero && !editMode
+          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.10)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.02)').replace('hsl(', 'hsla(')})`
+          : undefined,
       }}
     >
       {renderWidget({ widget, data, onClose })}

@@ -41,7 +41,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} />
+      <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} kind="schedule" />
       {items.length === 0 ? (
         <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" />
       ) : (
@@ -106,7 +106,7 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} />
+      <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} kind="tasks" />
       {items.length === 0 ? (
         <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" />
       ) : (
@@ -258,7 +258,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} />
+      <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} kind="habits" />
       {total === 0 ? (
         <EmptyText text="활성 습관 없음" hint="플래너 → 습관 →" />
       ) : (
@@ -312,7 +312,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} />
+      <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} kind="dday" />
       {items.length === 0 ? (
         <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" />
       ) : (
@@ -349,7 +349,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
   if (!data.pickFirst) {
     return (
       <div className="w-full h-full p-4 flex flex-col">
-        <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" />
+        <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
         <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" />
       </div>
     );
@@ -360,7 +360,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-4 flex flex-col"
     >
-      <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" />
+      <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
       <div className="mt-2 font-display text-[20px] font-bold text-foreground leading-tight line-clamp-2">
         {data.pickFirst.title}
       </div>
@@ -390,6 +390,7 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
         icon={<AlertTriangle className={cn('h-3.5 w-3.5', empty ? 'text-emerald-500' : 'text-rose-500')} />}
         title={empty ? '깨끗' : '어제 미완료'}
         count={empty ? '' : data.overdue.length}
+        kind="overdue"
       />
       {empty ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
@@ -425,7 +426,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/journal'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" />
+      <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" kind="recentJournal" />
       {!entry ? (
         <EmptyText text="아직 일기가 없어요" hint="오늘 한 줄 적어볼까요? →" />
       ) : (
@@ -486,20 +487,21 @@ import {
 // 헬퍼
 
 function WidgetHeader({
-  icon, title, count, tint,
+  icon, title, count, kind,
 }: {
   icon: React.ReactNode;
   title: string;
   count: number | string;
-  tint?: boolean;
+  kind?: import('@/lib/dailyBriefingStore').WidgetKind;
 }) {
+  const tintHue = kind ? WIDGET_META[kind].tint.hue : undefined;
   return (
     <div className="flex items-center gap-2">
-      <span className={cn('shrink-0', tint ? 'text-primary' : 'text-foreground/65')}>{icon}</span>
-      <span className={cn(
-        'text-[12.5px] font-semibold tracking-tight truncate',
-        tint ? 'text-primary' : 'text-foreground/85',
-      )}>
+      <span
+        className="shrink-0"
+        style={{ color: tintHue ?? 'hsl(var(--foreground) / 0.65)' }}
+      >{icon}</span>
+      <span className="text-[12.5px] font-semibold tracking-tight truncate text-foreground/85">
         {title}
       </span>
       {count !== '' && (

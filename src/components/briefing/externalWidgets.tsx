@@ -19,7 +19,7 @@ import {
   NEWS_SOURCES, DEFAULT_NEWS_CONFIG, type NewsConfig, type WeatherData, type ForexRate, type NewsItem, type CoinData,
 } from '@/lib/briefingApiClients';
 import { type CachedResult } from '@/lib/briefingApi';
-import { dailyBriefingStore, type PlacedWidget } from '@/lib/dailyBriefingStore';
+import { dailyBriefingStore, WIDGET_META, type PlacedWidget } from '@/lib/dailyBriefingStore';
 
 interface WidgetProps {
   widget: PlacedWidget;
@@ -108,6 +108,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
         title={result?.data.city ?? coords?.city ?? '날씨'}
         stale={result?.stale}
         onRefresh={refresh}
+        kind="weather"
       />
 
       {/* geolocation 거부 — 도시 입력 안내 */}
@@ -216,6 +217,7 @@ export function ForexWidget({ widget }: WidgetProps) {
         stale={result?.stale}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
+        kind="forex"
       />
       {pickerOpen ? (
         <ForexPicker
@@ -338,6 +340,7 @@ export function NewsWidget({ widget }: WidgetProps) {
         stale={result?.stale}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
+        kind="news"
       />
       {pickerOpen ? (
         <NewsPicker
@@ -504,6 +507,7 @@ export function StockWidget({ widget }: WidgetProps) {
         stale={result?.stale}
         onRefresh={refresh}
         onConfig={() => setPickerOpen(true)}
+        kind="stock"
       />
       {pickerOpen ? (
         <CoinPicker
@@ -686,17 +690,22 @@ export function HeatmapWidget(_p: WidgetProps) {
 // 공통 헬퍼
 
 function ExtHeader({
-  icon, title, stale, onRefresh, onConfig,
+  icon, title, stale, onRefresh, onConfig, kind,
 }: {
   icon: React.ReactNode;
   title: string;
   stale?: boolean;
   onRefresh: () => void;
   onConfig?: () => void;
+  kind?: import('@/lib/dailyBriefingStore').WidgetKind;
 }) {
+  const tintHue = kind ? WIDGET_META[kind].tint.hue : undefined;
   return (
     <div className="flex items-center gap-2">
-      <span className="text-foreground/65 shrink-0">{icon}</span>
+      <span
+        className="shrink-0"
+        style={{ color: tintHue ?? 'hsl(var(--foreground) / 0.65)' }}
+      >{icon}</span>
       <span className="text-[12.5px] font-semibold tracking-tight text-foreground/85 truncate flex-1">
         {title}
       </span>
