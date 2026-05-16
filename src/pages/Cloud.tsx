@@ -3,11 +3,11 @@
  *  파일 binary 업로드/다운로드는 청크 4(Storage) 후 별도 단계.
  */
 
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Upload, Search, Settings, Eye,
-  FileText, FileSpreadsheet, Presentation, Folder, FolderPlus,
+  FileText, FileSpreadsheet, Presentation, Folder, FolderPlus, FolderOpen,
   Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
   MoreHorizontal,
 } from 'lucide-react';
@@ -19,7 +19,7 @@ import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
 import {
   createFolder, createEmptyFile,
   setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
-  searchByName, fetchNode,
+  searchByName, fetchNode, fetchAllFolders,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import {
@@ -48,6 +48,11 @@ export default function Cloud() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  // 사이드바 폴더 트리
+  const [allFolders, setAllFolders] = useState<CloudNode[]>([]);
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+  // 우클릭 컨텍스트 메뉴
+  const [ctxMenu, setCtxMenu] = useState<{ node: CloudNode; x: number; y: number } | null>(null);
 
   const currentFolderId = trail[trail.length - 1].id;
   const { nodes, loading, error, refresh, starredCount, trashCount } = useCloudNodes({
@@ -66,6 +71,80 @@ export default function Cloud() {
       description: 'Storage 셋업(청크 4) 후 파일 업로드·편집이 추가됩니다.',
     });
   }, []);
+
+  // 사이드바 폴더 트리 로드 — user 있으면 + nodes 변경 시
+  useEffect(() => {
+    if (!user) return;
+    void fetchAllFolders(user.id).then(setAllFolders);
+  }, [user, nodes]);
+
+  // 폴더 트리: parent_folder_id 별로 children 인덱싱
+  const folderChildrenMap = useMemo(() => {
+    const m = new Map<string | null, CloudNode[]>();
+    for (const f of allFolders) {
+      const key = f.parentFolderId ?? null;
+      const arr = m.get(key) ?? [];
+      arr.push(f);
+      m.set(key, arr);
+    }
+    return m;
+  }, [allFolders]);
+
+  const toggleFolderExpand = useCallback((id: string) => {
+    setExpandedFolderIds((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // 우클릭 컨텍스트 메뉴 트리거
+  const handleContextMenu = useCallback((e: React.MouseEvent, node: CloudNode) => {
+    e.preventDefault();
+    setCtxMenu({ node, x: e.clientX, y: e.clientY });
+    setSelectedId(node.id);
+  }, []);
+
+  // 메뉴 외 클릭 / 포커스 아웃 → 닫기
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [ctxMenu]);
+
+  // 트리 폴더 클릭 → 그 폴더로 이동 (folder 모드 + trail 재구성)
+  const navigateToFolder = useCallback((folder: CloudNode) => {
+    // trail 재구성: root 부터 folder 까지 부모 체인 따라가기
+    const chain: BreadcrumbItem[] = [{ id: null, name: '내 파일' }];
+    const reverse: CloudNode[] = [];
+    let cur: CloudNode | undefined = folder;
+    while (cur) {
+      reverse.push(cur);
+      const pid = cur.parentFolderId;
+      if (pid == null) break;
+      cur = allFolders.find((f) => f.id === pid);
+    }
+    for (const f of reverse.reverse()) {
+      chain.push({ id: f.id, name: f.name });
+    }
+    setListMode('folder');
+    setTrail(chain);
+    setSelectedId(null);
+    // 그 폴더 + 조상 모두 펼쳐두기
+    setExpandedFolderIds((cur2) => {
+      const next = new Set(cur2);
+      for (const c of reverse) next.add(c.id);
+      return next;
+    });
+  }, [allFolders]);
 
   // ─── 파일 업로드 → 자동 변환 → 편집기 진입 ───
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -533,9 +612,30 @@ export default function Cloud() {
           <SidebarItem
             icon={<Folder className="w-4 h-4" />}
             label="내 파일"
-            active={listMode === 'folder'}
-            onClick={() => switchMode('folder')}
+            active={listMode === 'folder' && currentFolderId === null}
+            onClick={() => {
+              setListMode('folder');
+              setTrail([{ id: null, name: '내 파일' }]);
+              setSelectedId(null);
+            }}
           />
+          {/* 폴더 트리 — 루트의 자식들부터 재귀 */}
+          {(folderChildrenMap.get(null) ?? []).length > 0 && (
+            <div className="ml-2 mt-1">
+              {(folderChildrenMap.get(null) ?? []).map((f) => (
+                <FolderTreeItem
+                  key={f.id}
+                  folder={f}
+                  depth={0}
+                  currentFolderId={currentFolderId}
+                  childrenMap={folderChildrenMap}
+                  expanded={expandedFolderIds}
+                  onToggle={toggleFolderExpand}
+                  onNavigate={navigateToFolder}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="my-3 border-t border-border" />
 
@@ -686,6 +786,7 @@ export default function Cloud() {
                     onRestore={() => void handleRestore(n)}
                     onPermanentDelete={() => void handlePermanentDelete(n)}
                     onOpenFile={() => handleOpenFile(n)}
+                    onContextMenu={handleContextMenu}
                   />
                 ))}
               </ul>
@@ -705,6 +806,7 @@ export default function Cloud() {
                     onRestore={() => void handleRestore(n)}
                     onPermanentDelete={() => void handlePermanentDelete(n)}
                     onOpenFile={() => handleOpenFile(n)}
+                    onContextMenu={handleContextMenu}
                   />
                 ))}
               </div>
@@ -735,6 +837,77 @@ export default function Cloud() {
         onClose={() => setSearchOpen(false)}
         onSelect={(n) => { void handleSearchSelect(n); }}
       />
+
+      {/* 우클릭 컨텍스트 메뉴 */}
+      {ctxMenu && (
+        <div
+          className="fixed z-[60] rounded border border-border bg-popover shadow-md text-sm min-w-[170px] py-1"
+          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {ctxMenu.node.deletedAt ? (
+            <>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => { void handleRestore(ctxMenu.node); setCtxMenu(null); }}
+              >
+                <RotateCcw className="w-4 h-4" /> 복원
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
+                onClick={() => { void handlePermanentDelete(ctxMenu.node); setCtxMenu(null); }}
+              >
+                <X className="w-4 h-4" /> 완전 삭제
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => {
+                  if (ctxMenu.node.kind === 'folder') {
+                    // 폴더: 들어가기
+                    setTrail((cur) => [...cur, { id: ctxMenu.node.id, name: ctxMenu.node.name }]);
+                  } else {
+                    handleOpenFile(ctxMenu.node);
+                  }
+                  setCtxMenu(null);
+                }}
+              >
+                <FolderOpen className="w-4 h-4" />
+                {ctxMenu.node.kind === 'folder' ? '폴더 열기' : '편집기에서 열기'}
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => { startRename(ctxMenu.node.id); setCtxMenu(null); }}
+              >
+                <Pencil className="w-4 h-4" /> 이름 변경
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => { void handleToggleStar(ctxMenu.node); setCtxMenu(null); }}
+              >
+                <Star className={cn('w-4 h-4', ctxMenu.node.starred && 'fill-yellow-400 text-yellow-400')} />
+                {ctxMenu.node.starred ? '별표 해제' : '별표 추가'}
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
+                onClick={() => { void handleMoveToTrash(ctxMenu.node); setCtxMenu(null); }}
+              >
+                <Trash2 className="w-4 h-4" /> 휴지통으로
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -949,6 +1122,76 @@ function SidebarItem({ icon, label, count, disabled, active, hint, onClick }: Si
 }
 
 // ─────────────────────────────────────────────
+// 폴더 트리 항목 (사이드바)
+// ─────────────────────────────────────────────
+
+interface FolderTreeItemProps {
+  folder: CloudNode;
+  depth: number;
+  currentFolderId: string | null;
+  childrenMap: Map<string | null, CloudNode[]>;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  onNavigate: (folder: CloudNode) => void;
+}
+
+function FolderTreeItem({
+  folder, depth, currentFolderId, childrenMap, expanded, onToggle, onNavigate,
+}: FolderTreeItemProps) {
+  const children = childrenMap.get(folder.id) ?? [];
+  const isExpanded = expanded.has(folder.id);
+  const isCurrent = currentFolderId === folder.id;
+  return (
+    <div>
+      <div
+        className={cn(
+          'flex items-center gap-1 px-1.5 py-1 rounded text-xs',
+          isCurrent ? 'bg-muted font-medium' : 'hover:bg-muted/60',
+        )}
+        style={{ paddingLeft: `${depth * 10 + 6}px` }}
+      >
+        {children.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => onToggle(folder.id)}
+            className="p-0.5 hover:bg-background rounded text-muted-foreground"
+            aria-label={isExpanded ? '접기' : '펼치기'}
+          >
+            <ChevronRight className={cn('w-3 h-3 transition-transform', isExpanded && 'rotate-90')} />
+          </button>
+        ) : (
+          <span className="w-4" aria-hidden />
+        )}
+        <button
+          type="button"
+          onClick={() => onNavigate(folder)}
+          className="flex-1 flex items-center gap-1.5 truncate text-left"
+        >
+          <Folder className="w-3 h-3 text-muted-foreground shrink-0" />
+          <span className="truncate">{folder.name}</span>
+        </button>
+      </div>
+      {isExpanded && children.length > 0 && (
+        <div>
+          {children.map((c) => (
+            <FolderTreeItem
+              key={c.id}
+              folder={c}
+              depth={depth + 1}
+              currentFolderId={currentFolderId}
+              childrenMap={childrenMap}
+              expanded={expanded}
+              onToggle={onToggle}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // 새로 만들기 카드
 // ─────────────────────────────────────────────
 
@@ -1058,12 +1301,14 @@ interface NodeRowProps {
   onRestore: () => void;
   onPermanentDelete: () => void;
   onOpenFile: () => void;
+  onContextMenu?: (e: React.MouseEvent, node: CloudNode) => void;
 }
 
 function NodeRow({
   node, selected, editing, listMode,
   onClick, onDoubleClick, onSubmitRename, onCancelRename,
   onToggleStar, onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
+  onContextMenu,
 }: NodeRowProps) {
   return (
     <li>
@@ -1072,6 +1317,7 @@ function NodeRow({
         tabIndex={0}
         onClick={editing ? undefined : onClick}
         onDoubleClick={editing ? undefined : onDoubleClick}
+        onContextMenu={editing || !onContextMenu ? undefined : (e) => onContextMenu(e, node)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !editing) onClick();
         }}
@@ -1155,11 +1401,12 @@ interface NodeCardProps {
   onRestore: () => void;
   onPermanentDelete: () => void;
   onOpenFile: () => void;
+  onContextMenu?: (e: React.MouseEvent, node: CloudNode) => void;
 }
 
 function NodeCard({
   node, selected, listMode, onClick, onDoubleClick, onToggleStar,
-  onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile,
+  onRename, onMoveToTrash, onRestore, onPermanentDelete, onOpenFile, onContextMenu,
 }: NodeCardProps) {
   return (
     <div
@@ -1167,6 +1414,7 @@ function NodeCard({
       tabIndex={0}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu ? (e) => onContextMenu(e, node) : undefined}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
       className={cn(
         'group border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',

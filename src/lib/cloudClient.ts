@@ -100,6 +100,15 @@ export async function fetchAliveChildren(
     .map((n) => rowToCloudNode(toRow(n)));
 }
 
+/** 모든 살아있는 폴더 — 사이드바 트리용. parent_folder_id + name 정렬. */
+export async function fetchAllFolders(ownerId: string): Promise<CloudNode[]> {
+  const all = loadAll();
+  return all
+    .filter((n) => n.owner_id === ownerId && n.deleted_at === null && n.kind === 'folder')
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    .map((n) => rowToCloudNode(toRow(n)));
+}
+
 /** 별표 (살아있는 항목 중 starred). */
 export async function fetchStarred(ownerId: string): Promise<CloudNode[]> {
   const all = loadAll();
