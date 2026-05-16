@@ -231,10 +231,13 @@ export function ForexWidget({ widget }: WidgetProps) {
           {!result?.data && loading && <WidgetSkeleton rows={3} />}
           {error && !result?.data && <CenterText text="실패" error />}
           {result?.data && (
-            <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
+            <ul className={cn(
+              'mt-1.5 flex-1 overflow-hidden',
+              widget.size === 'M' ? 'grid grid-cols-2 gap-x-3 gap-y-1' : 'space-y-1',
+            )}>
               {result.data.map((r) => (
                 <li key={r.code} className="flex items-baseline gap-1.5 text-[11.5px] leading-tight">
-                  <span className="font-bold text-foreground/85 w-[28px] tabular-nums">{r.code}</span>
+                  <span className="font-bold text-foreground/85 w-[28px] tabular-nums shrink-0">{r.code}</span>
                   {r.rate ? (
                     <span className="tabular-nums text-foreground font-semibold flex-1 truncate">
                       {Math.round(r.rate).toLocaleString()}<span className="text-[10px] text-muted-foreground ml-0.5">원</span>
@@ -351,18 +354,32 @@ export function NewsWidget({ widget }: WidgetProps) {
           {error && !result?.data && <CenterText text="가져오기 실패" error />}
           {result?.data && result.data.length === 0 && <CenterText text="기사 없음" />}
           {result?.data && result.data.length > 0 && (
-            <ul className="mt-1.5 space-y-1 flex-1 overflow-y-auto">
+            <ul className="mt-1.5 space-y-1.5 flex-1 overflow-y-auto">
               {result.data.map((n, i) => (
                 <li key={i}>
                   <a
                     href={n.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-baseline gap-1.5 text-[11px] leading-tight hover:text-primary"
+                    className="block group"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span className="text-[9.5px] text-muted-foreground/85 shrink-0 truncate max-w-[60px]">{n.source}</span>
-                    <span className="flex-1 truncate text-foreground/90">{n.title}</span>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-foreground/8 text-[9px] font-semibold text-foreground/65 truncate max-w-[60px]">
+                        {n.source}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground/65 tabular-nums">
+                        {(() => {
+                          const ago = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 60000);
+                          if (ago < 60) return `${Math.max(1, ago)}분`;
+                          if (ago < 1440) return `${Math.round(ago / 60)}시간`;
+                          return `${Math.round(ago / 1440)}일`;
+                        })()}
+                      </span>
+                    </div>
+                    <div className="text-[11.5px] leading-snug text-foreground/90 line-clamp-2 group-hover:text-primary transition-colors">
+                      {n.title}
+                    </div>
                   </a>
                 </li>
               ))}
@@ -502,15 +519,18 @@ export function StockWidget({ widget }: WidgetProps) {
           {!result?.data && loading && <WidgetSkeleton rows={3} />}
           {error && !result?.data && <CenterText text="실패" error />}
           {result?.data && (
-            <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
-              {result.data.slice(0, 4).map((c) => (
-                <li key={c.id} className="flex items-baseline gap-1 text-[10.5px] leading-tight">
-                  <span className="font-semibold text-foreground/85 w-[34px] truncate">{c.symbol}</span>
-                  <span className="tabular-nums text-foreground/90 flex-1 truncate">
+            <ul className={cn(
+              'mt-1.5 flex-1 overflow-hidden',
+              widget.size === 'M' ? 'grid grid-cols-2 gap-x-3 gap-y-1' : 'space-y-1',
+            )}>
+              {result.data.slice(0, widget.size === 'M' ? 6 : 4).map((c) => (
+                <li key={c.id} className="flex items-baseline gap-1 text-[11px] leading-tight">
+                  <span className="font-bold text-foreground/85 w-[36px] truncate shrink-0">{c.symbol}</span>
+                  <span className="tabular-nums text-foreground/90 flex-1 truncate font-semibold">
                     {c.price >= 1000 ? Math.round(c.price).toLocaleString() : c.price.toFixed(2)}
                   </span>
                   <span className={cn(
-                    'tabular-nums shrink-0 text-[9.5px] font-medium',
+                    'tabular-nums shrink-0 text-[10px] font-bold',
                     c.change24h > 0 ? 'text-rose-500' : c.change24h < 0 ? 'text-blue-500' : 'text-muted-foreground',
                   )}>
                     {c.change24h > 0 ? '▲' : c.change24h < 0 ? '▼' : ''}

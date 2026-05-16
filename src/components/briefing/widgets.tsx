@@ -415,10 +415,16 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 최근 일기 (M)
+// 최근 일기 (M) — mood + 날짜 pill + 이미지 thumb
+const MOOD_EMOJI: Record<string, string> = {
+  great: '😄', good: '🙂', okay: '😐', bad: '😕', awful: '😢',
+};
+
 export function RecentJournalWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const entry = data.recentJournal;
+  const moodEmoji = entry?.mood ? MOOD_EMOJI[entry.mood] : null;
+  const firstImg = entry?.images?.[0];
   return (
     <button
       type="button"
@@ -427,16 +433,27 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" />
       {!entry ? (
-        <EmptyText text="아직 일기가 없어요. 오늘 한 줄 적어볼까요?" />
+        <EmptyText text="아직 일기가 없어요" hint="오늘 한 줄 적어볼까요? →" />
       ) : (
-        <>
-          <div className="mt-1 text-[10.5px] text-muted-foreground/85">
-            {new Date(entry.createdAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+        <div className="mt-1.5 flex-1 flex gap-2 min-h-0">
+          {/* 이미지 썸네일 */}
+          {firstImg && (
+            <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-foreground/5">
+              <img src={firstImg.src} alt="" className="w-full h-full object-cover" loading="lazy" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 flex flex-col">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {moodEmoji && <span className="text-[14px] leading-none" aria-hidden>{moodEmoji}</span>}
+              <span className="inline-flex items-center px-1.5 h-[18px] rounded-full bg-foreground/8 text-[9.5px] font-semibold text-foreground/70 tabular-nums">
+                {new Date(entry.createdAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
+              </span>
+            </div>
+            <p className="mt-1 text-[11.5px] text-foreground/85 leading-snug line-clamp-3 flex-1">
+              {entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body}
+            </p>
           </div>
-          <p className="mt-0.5 text-[12.5px] text-foreground/90 leading-snug line-clamp-3">
-            {entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body}
-          </p>
-        </>
+        </div>
       )}
     </button>
   );

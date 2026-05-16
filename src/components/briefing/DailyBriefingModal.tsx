@@ -446,13 +446,17 @@ function sizeLabel(size: WidgetSize): string {
 function WidgetPicker({
   settings, onClose,
 }: { settings: ReturnType<typeof useBriefingSettings>; onClose: () => void }) {
+  const [query, setQuery] = useState('');
   const usedKinds = new Set(settings.widgets.map((w) => w.kind));
   const grouped: Record<string, WidgetKind[]> = {
     '내 데이터': [],
     '외부 정보': [],
   };
+  const q = query.trim().toLowerCase();
   for (const kind of ALL_WIDGET_KINDS) {
-    grouped[WIDGET_META[kind].group].push(kind);
+    const meta = WIDGET_META[kind];
+    if (q && !meta.label.toLowerCase().includes(q) && !kind.toLowerCase().includes(q)) continue;
+    grouped[meta.group].push(kind);
   }
   return (
     <div
@@ -460,18 +464,28 @@ function WidgetPicker({
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="wb-picker-in w-full max-w-[760px] max-h-[88%] bg-card border border-foreground/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-foreground">위젯 추가</h3>
+        <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
+          <h3 className="text-[14px] font-semibold text-foreground shrink-0">위젯 추가</h3>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            placeholder="검색..."
+            className="flex-1 h-7 px-2.5 text-[12px] rounded-md bg-foreground/5 border border-transparent focus:outline-none focus:border-primary/30 focus:bg-card transition-colors"
+          />
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent"
+            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {(['내 데이터', '외부 정보'] as const).map((group) => (
+          {(['내 데이터', '외부 정보'] as const).map((group) => {
+            if (grouped[group].length === 0) return null;
+            return (
             <div key={group}>
               <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground/75 font-semibold mb-2">
                 {group}
@@ -520,7 +534,13 @@ function WidgetPicker({
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
+          {grouped['내 데이터'].length === 0 && grouped['외부 정보'].length === 0 && (
+            <div className="text-center py-10 text-[12.5px] text-muted-foreground">
+              "{query}" 와 일치하는 위젯이 없어요
+            </div>
+          )}
         </div>
       </div>
     </div>
