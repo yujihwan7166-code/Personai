@@ -46,6 +46,9 @@ export default function Cloud() {
   const [folderNameInput, setFolderNameInput] = useState('');
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 다중 선택 (Ctrl/Cmd+클릭 = toggle, Shift+클릭 = anchor~current range)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const lastSelectAnchorRef = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   // 사이드바 폴더 트리
@@ -131,6 +134,74 @@ export default function Cloud() {
       window.removeEventListener('scroll', close, true);
     };
   }, [ctxMenu]);
+
+  // ─── 일괄 작업 (다중 선택) ───
+  const selectedNodes = useMemo(
+    () => nodes.filter((n) => selectedIds.has(n.id)),
+    [nodes, selectedIds],
+  );
+
+  const bulkStar = useCallback(async (toStarred: boolean) => {
+    if (selectedNodes.length === 0) return;
+    try {
+      for (const n of selectedNodes) {
+        await setStarred(n.id, toStarred);
+      }
+      await refresh();
+      toast({ title: `${selectedNodes.length}개 별표 ${toStarred ? '추가' : '해제'}` });
+    } catch (e) {
+      toast({ title: '일괄 별표 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [selectedNodes, refresh]);
+
+  const bulkMoveToTrash = useCallback(async () => {
+    if (selectedNodes.length === 0) return;
+    const ok = await confirmDialog({
+      title: `${selectedNodes.length}개 항목을 휴지통으로?`,
+      description: '나중에 복원할 수 있어요.',
+      confirmLabel: '휴지통으로',
+    });
+    if (!ok) return;
+    try {
+      for (const n of selectedNodes) await moveToTrash(n.id);
+      await refresh();
+      setSelectedIds(new Set());
+      toast({ title: `${selectedNodes.length}개 휴지통으로 이동` });
+    } catch (e) {
+      toast({ title: '일괄 삭제 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [selectedNodes, refresh]);
+
+  const bulkRestore = useCallback(async () => {
+    if (selectedNodes.length === 0) return;
+    try {
+      for (const n of selectedNodes) await restoreFromTrash(n.id);
+      await refresh();
+      setSelectedIds(new Set());
+      toast({ title: `${selectedNodes.length}개 복원` });
+    } catch (e) {
+      toast({ title: '일괄 복원 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [selectedNodes, refresh]);
+
+  const bulkPermanentDelete = useCallback(async () => {
+    if (selectedNodes.length === 0) return;
+    const ok = await confirmDialog({
+      title: `${selectedNodes.length}개 완전 삭제?`,
+      description: '되돌릴 수 없어요.',
+      confirmLabel: '완전 삭제',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      for (const n of selectedNodes) await permanentDelete(n.id);
+      await refresh();
+      setSelectedIds(new Set());
+      toast({ title: `${selectedNodes.length}개 완전 삭제` });
+    } catch (e) {
+      toast({ title: '일괄 삭제 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [selectedNodes, refresh]);
 
   // ─── DnD 이동 ───
   /** 폴더가 자기 자신·자손인지 검사 (사이클 방지) */
@@ -381,6 +452,7 @@ export default function Cloud() {
   const switchMode = useCallback((m: CloudListMode) => {
     setListMode(m);
     setSelectedId(null);
+    setSelectedIds(new Set());
     setEditingId(null);
     if (m === 'folder') {
       // 폴더 모드 진입 시 루트로 (사이드바 '내 파일' 클릭 효과)
@@ -388,10 +460,40 @@ export default function Cloud() {
     }
   }, []);
 
-  // ─── 1회 클릭 = 선택 (미리보기만, 진입 X) ───
-  const handleNodeClick = useCallback((node: CloudNode) => {
+  // ─── 1회 클릭 = 선택 (미리보기만, 진입 X) + 다중 선택 ───
+  const handleNodeClick = useCallback((node: CloudNode, e?: React.MouseEvent) => {
+    const ctrl = e && (e.ctrlKey || e.metaKey);
+    const shift = e && e.shiftKey;
+    if (ctrl) {
+      // Ctrl+클릭: toggle
+      setSelectedIds((cur) => {
+        const next = new Set(cur);
+        if (next.has(node.id)) next.delete(node.id);
+        else next.add(node.id);
+        return next;
+      });
+      setSelectedId(node.id);
+      lastSelectAnchorRef.current = node.id;
+      return;
+    }
+    if (shift && lastSelectAnchorRef.current) {
+      // Shift+클릭: anchor ~ current 모든 행 range
+      const anchorIdx = nodes.findIndex((n) => n.id === lastSelectAnchorRef.current);
+      const targetIdx = nodes.findIndex((n) => n.id === node.id);
+      if (anchorIdx !== -1 && targetIdx !== -1) {
+        const [a, b] = anchorIdx <= targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+        const next = new Set<string>();
+        for (let i = a; i <= b; i++) next.add(nodes[i].id);
+        setSelectedIds(next);
+        setSelectedId(node.id);
+        return;
+      }
+    }
+    // 단일 선택 + anchor 갱신
+    setSelectedIds(new Set([node.id]));
     setSelectedId(node.id);
-  }, []);
+    lastSelectAnchorRef.current = node.id;
+  }, [nodes]);
 
   // ─── 더블클릭 = 진입 (폴더: 폴더 들어가기, 파일: 편집기) ───
   const handleNodeDoubleClick = useCallback((node: CloudNode) => {
@@ -569,9 +671,19 @@ export default function Cloud() {
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
 
+      // Ctrl+A: 현재 모드의 모든 노드 선택
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(new Set(nodes.map((n) => n.id)));
+        return;
+      }
+
       if (e.key === 'Delete') {
         e.preventDefault();
-        if (listMode === 'trash') {
+        if (selectedIds.size > 1) {
+          if (listMode === 'trash') void bulkPermanentDelete();
+          else void bulkMoveToTrash();
+        } else if (listMode === 'trash') {
           void handlePermanentDelete(selectedNode);
         } else {
           void handleMoveToTrash(selectedNode);
@@ -581,11 +693,12 @@ export default function Cloud() {
         if (listMode !== 'trash') startRename(selectedNode.id);
       } else if (e.key === 'Escape') {
         setSelectedId(null);
+        setSelectedIds(new Set());
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedNode, editingId, listMode, handleMoveToTrash, handlePermanentDelete, startRename]);
+  }, [selectedNode, editingId, listMode, handleMoveToTrash, handlePermanentDelete, startRename, nodes, selectedIds.size, bulkMoveToTrash, bulkPermanentDelete]);
 
   // 에러 토스트
   useEffect(() => {
@@ -756,6 +869,63 @@ export default function Cloud() {
         </aside>
 
         <main className="flex-1 overflow-y-auto" onContextMenu={handleEmptyContextMenu}>
+          {selectedIds.size > 1 && (
+            <div className="sticky top-0 z-20 bg-foreground text-background px-4 py-2 flex items-center gap-2 text-sm shadow-md">
+              <span className="font-medium">{selectedIds.size}개 선택됨</span>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="ml-1 p-1 rounded hover:bg-background/20"
+                aria-label="선택 해제"
+                title="선택 해제 (Esc)"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-px h-4 bg-background/30 mx-1" />
+              {listMode === 'trash' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void bulkRestore()}
+                    className="px-2 py-1 rounded hover:bg-background/15 flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> 복원
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void bulkPermanentDelete()}
+                    className="px-2 py-1 rounded hover:bg-red-400/30 flex items-center gap-1 text-red-200"
+                  >
+                    <X className="w-3.5 h-3.5" /> 완전 삭제
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void bulkStar(true)}
+                    className="px-2 py-1 rounded hover:bg-background/15 flex items-center gap-1"
+                  >
+                    <Star className="w-3.5 h-3.5" /> 별표
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void bulkStar(false)}
+                    className="px-2 py-1 rounded hover:bg-background/15 flex items-center gap-1"
+                  >
+                    <Star className="w-3.5 h-3.5 opacity-50" /> 별표 해제
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void bulkMoveToTrash()}
+                    className="px-2 py-1 rounded hover:bg-red-400/30 flex items-center gap-1 text-red-200"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> 휴지통으로
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {listMode === 'folder' && (
             <section className="p-6 border-b border-border">
               <h2 className="text-sm font-medium text-muted-foreground mb-3">
@@ -880,10 +1050,10 @@ export default function Cloud() {
                   <NodeRow
                     key={n.id}
                     node={n}
-                    selected={n.id === selectedId}
+                    selected={selectedIds.has(n.id) || n.id === selectedId}
                     editing={n.id === editingId}
                     listMode={listMode}
-                    onClick={() => handleNodeClick(n)}
+                    onClick={(e) => handleNodeClick(n, e)}
                     onDoubleClick={() => handleNodeDoubleClick(n)}
                     onSubmitRename={(newName) => void submitRename(n.id, newName)}
                     onCancelRename={() => setEditingId(null)}
@@ -911,9 +1081,9 @@ export default function Cloud() {
                   <NodeCard
                     key={n.id}
                     node={n}
-                    selected={n.id === selectedId}
+                    selected={selectedIds.has(n.id) || n.id === selectedId}
                     listMode={listMode}
-                    onClick={() => handleNodeClick(n)}
+                    onClick={(e) => handleNodeClick(n, e)}
                     onDoubleClick={() => handleNodeDoubleClick(n)}
                     onToggleStar={() => void handleToggleStar(n)}
                     onRename={() => startRename(n.id)}
@@ -1474,7 +1644,7 @@ interface NodeRowProps {
   selected: boolean;
   editing: boolean;
   listMode: CloudListMode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onSubmitRename: (newName: string) => void;
   onCancelRename: () => void;
@@ -1517,11 +1687,11 @@ function NodeRow({
         onDragOver={isFolder && onDragOver ? (e) => onDragOver(e, node.id) : undefined}
         onDragLeave={isFolder ? onDragLeave : undefined}
         onDrop={isFolder && onDrop ? (e) => onDrop(e, node.id) : undefined}
-        onClick={editing ? undefined : onClick}
+        onClick={editing ? undefined : (e) => onClick(e)}
         onDoubleClick={editing ? undefined : onDoubleClick}
         onContextMenu={editing || !onContextMenu ? undefined : (e) => onContextMenu(e, node)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !editing) onClick();
+          if (e.key === 'Enter' && !editing) onClick(e as unknown as React.MouseEvent);
         }}
         className={cn(
           'group w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer',
@@ -1597,7 +1767,7 @@ interface NodeCardProps {
   node: CloudNode;
   selected: boolean;
   listMode: CloudListMode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onToggleStar: () => void;
   onRename: () => void;
@@ -1633,10 +1803,10 @@ function NodeCard({
       onDragOver={isFolder && onDragOver ? (e) => onDragOver(e, node.id) : undefined}
       onDragLeave={isFolder ? onDragLeave : undefined}
       onDrop={isFolder && onDrop ? (e) => onDrop(e, node.id) : undefined}
-      onClick={onClick}
+      onClick={(e) => onClick(e)}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, node) : undefined}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick(e as unknown as React.MouseEvent); }}
       className={cn(
         'group border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',
         selected && 'border-foreground/50 bg-muted',
