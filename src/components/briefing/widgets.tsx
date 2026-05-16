@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BriefingData } from '@/lib/buildBriefingData';
-import type { PlacedWidget, WidgetSize } from '@/lib/dailyBriefingStore';
+import { WIDGET_META, type PlacedWidget, type WidgetSize } from '@/lib/dailyBriefingStore';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 
 const fmtTime = (iso: string): string => {
@@ -38,7 +38,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} />
       {items.length === 0 ? (
-        <EmptyText text="시간 잡힌 항목 없음" />
+        <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" />
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
           {items.map((it, i) => (
@@ -68,7 +68,7 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} />
       {items.length === 0 ? (
-        <EmptyText text="대기 중 할일 없음" />
+        <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" />
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
           {items.map((t) => (
@@ -409,10 +409,11 @@ function WidgetHeader({
   );
 }
 
-function EmptyText({ text }: { text: string }) {
+function EmptyText({ text, hint }: { text: string; hint?: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <span className="text-[11px] text-muted-foreground/65 italic text-center px-2">{text}</span>
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-2 gap-0.5">
+      <span className="text-[11.5px] text-foreground/55 font-medium">{text}</span>
+      {hint && <span className="text-[10px] text-muted-foreground/70">{hint}</span>}
     </div>
   );
 }

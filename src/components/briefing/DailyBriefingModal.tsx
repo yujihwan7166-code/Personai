@@ -140,12 +140,12 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             </span>
             <button
               type="button"
-              onClick={() => { if (window.confirm('default 위젯 구성으로 되돌릴까요?')) dailyBriefingStore.resetWidgets(); }}
-              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
-              title="기본값"
+              onClick={() => { if (window.confirm('기본 위젯 구성으로 되돌릴까요?')) dailyBriefingStore.resetWidgets(); }}
+              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-foreground/5 transition-colors"
+              title="기본값으로 되돌리기"
             >
               <RotateCcw className="h-3 w-3" />
-              초기화
+              기본값
             </button>
             <label className="ml-auto inline-flex items-center gap-2 text-[11.5px] text-foreground/85 cursor-pointer select-none">
               <input
@@ -224,7 +224,7 @@ function BriefingGrid({
   return (
     <div
       ref={gridRef}
-      className="relative w-full h-full grid gap-2.5"
+      className="relative w-full h-full grid gap-3"
       style={{
         gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
         gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
@@ -327,13 +327,13 @@ function WidgetCard({
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
         background: isHero
-          ? `linear-gradient(135deg, ${meta.tint.bg.replace('0.08', '0.18')}, ${meta.tint.bg.replace('0.08', '0.05')})`
-          : `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 60%)`,
-        borderTop: `2.5px solid ${meta.tint.border}`,
+          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.22)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.08)').replace('hsl(', 'hsla(')})`
+          : `linear-gradient(180deg, ${meta.tint.bg}, ${meta.tint.hue.replace(')', ' / 0.03)').replace('hsl(', 'hsla(')} 100%)`,
+        borderTop: `3px solid ${meta.tint.border}`,
         boxShadow: isHero
-          ? `0 4px 16px -6px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
+          ? `0 6px 20px -8px ${meta.tint.hue}55, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
           : undefined,
-        outline: `1px solid hsl(var(--foreground) / 0.06)`,
+        outline: `1px solid hsl(var(--foreground) / 0.05)`,
         outlineOffset: '-1px',
       }}
     >

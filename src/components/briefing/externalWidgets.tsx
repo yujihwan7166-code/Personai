@@ -231,19 +231,23 @@ export function ForexWidget({ widget }: WidgetProps) {
           {!result?.data && loading && <WidgetSkeleton rows={3} />}
           {error && !result?.data && <CenterText text="실패" error />}
           {result?.data && (
-            <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
+            <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
               {result.data.map((r) => (
-                <li key={r.code} className="flex items-baseline gap-1.5 text-[10.5px] leading-tight">
-                  <span className="font-semibold text-foreground/85 w-[26px]">{r.code}</span>
-                  <span className="tabular-nums text-foreground/90 flex-1 truncate">
-                    {r.rate ? Math.round(r.rate).toLocaleString() : '-'}원
-                  </span>
-                  {r.change !== 0 && (
+                <li key={r.code} className="flex items-baseline gap-1.5 text-[11.5px] leading-tight">
+                  <span className="font-bold text-foreground/85 w-[28px] tabular-nums">{r.code}</span>
+                  {r.rate ? (
+                    <span className="tabular-nums text-foreground font-semibold flex-1 truncate">
+                      {Math.round(r.rate).toLocaleString()}<span className="text-[10px] text-muted-foreground ml-0.5">원</span>
+                    </span>
+                  ) : (
+                    <span className="flex-1 h-2 rounded skeleton-pulse bg-foreground/8" />
+                  )}
+                  {r.rate && r.change !== 0 && (
                     <span className={cn(
-                      'tabular-nums shrink-0 text-[9.5px] font-medium',
+                      'tabular-nums shrink-0 text-[10px] font-bold',
                       r.change > 0 ? 'text-rose-500' : 'text-blue-500',
                     )}>
-                      {r.change > 0 ? '▲' : '▼'}{Math.abs(r.change).toFixed(2)}
+                      {r.change > 0 ? '▲' : '▼'}{Math.abs(r.change).toFixed(1)}
                     </span>
                   )}
                 </li>
@@ -635,21 +639,22 @@ export function HeatmapWidget(_p: WidgetProps) {
   }, []);
 
   return (
-    <div className="w-full h-full p-2 flex flex-col">
-      <div className="flex items-center gap-1.5 mb-1 px-1">
-        <span className="text-foreground/65">📊</span>
-        <span className="text-[11px] font-semibold tracking-wide text-foreground/80">S&P 500</span>
+    <div className="w-full h-full p-3 flex flex-col">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-foreground/70">📊</span>
+        <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-foreground/75">S&P 500 히트맵</span>
         <a
           href="https://www.tradingview.com/heatmap/stock/"
           target="_blank"
           rel="noreferrer"
-          className="ml-auto text-muted-foreground hover:text-foreground"
+          className="ml-auto h-5 w-5 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
           onClick={(e) => e.stopPropagation()}
+          title="TradingView 에서 보기"
         >
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
-      <div ref={containerRef} className="flex-1 min-h-0 tradingview-widget-container rounded overflow-hidden" />
+      <div ref={containerRef} className="flex-1 min-h-0 tradingview-widget-container rounded-xl overflow-hidden bg-foreground/3" />
     </div>
   );
 }

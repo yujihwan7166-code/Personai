@@ -54,21 +54,21 @@ export interface WidgetMeta {
   tint: { hue: string; bg: string; border: string };
 }
 
-// 색 토큰 — 각 위젯이 정체성 가지도록.
-// bg / border 는 매우 옅게 (8% / 25%) — 사이트 cream 톤과 자연스럽게 섞임.
+// 색 토큰 — 각 위젯이 정체성 가지도록 (Samsung One UI 스타일).
+// bg 0.13~0.18 (눈에 띄게) / border 0.38~0.45 (선명한 상단 stripe).
 const T = {
-  blue:    { hue: 'hsl(217 91% 55%)',  bg: 'hsl(217 91% 55% / 0.06)', border: 'hsl(217 91% 55% / 0.18)' },
-  green:   { hue: 'hsl(142 65% 42%)',  bg: 'hsl(142 65% 42% / 0.07)', border: 'hsl(142 65% 42% / 0.20)' },
-  violet:  { hue: 'hsl(265 65% 58%)',  bg: 'hsl(265 65% 58% / 0.07)', border: 'hsl(265 65% 58% / 0.20)' },
-  orange:  { hue: 'hsl(20 88% 55%)',   bg: 'hsl(20 88% 55% / 0.08)',  border: 'hsl(20 88% 55% / 0.22)'  },
-  pink:    { hue: 'hsl(335 78% 60%)',  bg: 'hsl(335 78% 60% / 0.07)', border: 'hsl(335 78% 60% / 0.20)' },
-  amber:   { hue: 'hsl(38 92% 50%)',   bg: 'hsl(38 92% 50% / 0.08)',  border: 'hsl(38 92% 50% / 0.22)'  },
-  red:     { hue: 'hsl(0 72% 55%)',    bg: 'hsl(0 72% 55% / 0.06)',   border: 'hsl(0 72% 55% / 0.20)'   },
-  slate:   { hue: 'hsl(220 12% 38%)',  bg: 'hsl(220 12% 38% / 0.05)', border: 'hsl(220 12% 38% / 0.18)' },
-  sky:     { hue: 'hsl(200 85% 55%)',  bg: 'hsl(200 85% 55% / 0.08)', border: 'hsl(200 85% 55% / 0.22)' },
-  ink:     { hue: 'hsl(220 15% 22%)',  bg: 'hsl(220 15% 22% / 0.04)', border: 'hsl(220 15% 22% / 0.15)' },
-  teal:    { hue: 'hsl(175 60% 40%)',  bg: 'hsl(175 60% 40% / 0.07)', border: 'hsl(175 60% 40% / 0.20)' },
-  purple:  { hue: 'hsl(285 70% 58%)',  bg: 'hsl(285 70% 58% / 0.07)', border: 'hsl(285 70% 58% / 0.20)' },
+  blue:    { hue: 'hsl(217 91% 55%)',  bg: 'hsl(217 91% 55% / 0.13)', border: 'hsl(217 91% 55% / 0.38)' },
+  green:   { hue: 'hsl(142 65% 42%)',  bg: 'hsl(142 65% 42% / 0.14)', border: 'hsl(142 65% 42% / 0.40)' },
+  violet:  { hue: 'hsl(265 65% 58%)',  bg: 'hsl(265 65% 58% / 0.13)', border: 'hsl(265 65% 58% / 0.40)' },
+  orange:  { hue: 'hsl(20 88% 55%)',   bg: 'hsl(20 88% 55% / 0.15)',  border: 'hsl(20 88% 55% / 0.42)'  },
+  pink:    { hue: 'hsl(335 78% 60%)',  bg: 'hsl(335 78% 60% / 0.13)', border: 'hsl(335 78% 60% / 0.40)' },
+  amber:   { hue: 'hsl(38 92% 50%)',   bg: 'hsl(38 92% 50% / 0.16)',  border: 'hsl(38 92% 50% / 0.45)'  },
+  red:     { hue: 'hsl(0 72% 55%)',    bg: 'hsl(0 72% 55% / 0.12)',   border: 'hsl(0 72% 55% / 0.38)'   },
+  slate:   { hue: 'hsl(220 12% 38%)',  bg: 'hsl(220 12% 38% / 0.10)', border: 'hsl(220 12% 38% / 0.32)' },
+  sky:     { hue: 'hsl(200 85% 55%)',  bg: 'hsl(200 85% 55% / 0.15)', border: 'hsl(200 85% 55% / 0.42)' },
+  ink:     { hue: 'hsl(220 15% 22%)',  bg: 'hsl(220 15% 22% / 0.08)', border: 'hsl(220 15% 22% / 0.28)' },
+  teal:    { hue: 'hsl(175 60% 40%)',  bg: 'hsl(175 60% 40% / 0.13)', border: 'hsl(175 60% 40% / 0.40)' },
+  purple:  { hue: 'hsl(285 70% 58%)',  bg: 'hsl(285 70% 58% / 0.13)', border: 'hsl(285 70% 58% / 0.40)' },
 };
 
 export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
@@ -122,26 +122,29 @@ export interface BriefingSettings {
 }
 
 // ──────────────────────────────────────────
-// Default 7개 위젯 (Q15 결정대로)
-// 그리드 6×4: 가장먼저 (M, 0,0) · 시계 (S, 2,0) · 환율 (S, 3,0) [step2]
-//              일정 (M, 4,0) · 달력 (L, 0,1+2,1) · 할일 (M, 4,1) · 날씨 (M, 4,2)
+// Default 위젯 — 6×4 그리드 균형 잡힌 레이아웃
 //
-// Step 1 default 는 외부 위젯 빼고 6개로 시작 (날씨·환율 제외):
-//   pickFirst (M 0,0), schedule (M 2,0), tasks (M 4,0)
-//   calendar (L 0,1), clock (S 2,1), habits (S 3,1)
-//   dday (S 2,2), overdue (S 3,2)
-//   recentJournal (M 4,1)
+//  Col:  0   1   2   3   4   5
+//  Row 0: [pickFirst M] [schedule  M] [tasks    M]
+//  Row 1: [calendar L  ] [날씨   M  ] [habits S][dday S]
+//  Row 2: [calendar L  ] [recentJournal M] [overdue S][clock S]
+//  Row 3:                                  [환율 S    ] [코인 S]
+//
+// 외부 위젯 (날씨·환율·코인) 도 default 에 — 데이터 자동 fetch.
 function buildDefaultWidgets(): PlacedWidget[] {
   return [
-    placed('pickFirst', 'M', 0, 0),
-    placed('schedule', 'M', 2, 0),
-    placed('tasks', 'M', 4, 0),
-    placed('calendar', 'L', 0, 1),    // 0,1 + 1,1 + 0,2 + 1,2
-    placed('clock', 'S', 2, 1),
-    placed('habits', 'S', 3, 1),
-    placed('recentJournal', 'M', 4, 1),
-    placed('dday', 'S', 2, 2),
-    placed('overdue', 'S', 3, 2),
+    placed('pickFirst', 'M', 0, 0),       // 0,0–1,0
+    placed('schedule', 'M', 2, 0),        // 2,0–3,0
+    placed('tasks', 'M', 4, 0),           // 4,0–5,0
+    placed('calendar', 'L', 0, 1),        // 0,1–1,2
+    placed('weather', 'M', 2, 1),         // 2,1–3,1
+    placed('habits', 'S', 4, 1),          // 4,1
+    placed('dday', 'S', 5, 1),            // 5,1
+    placed('recentJournal', 'M', 2, 2),   // 2,2–3,2
+    placed('overdue', 'S', 4, 2),         // 4,2
+    placed('clock', 'S', 5, 2),           // 5,2
+    placed('forex', 'S', 4, 3),           // 4,3
+    placed('stock', 'S', 5, 3),           // 5,3
   ];
 }
 
