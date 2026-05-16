@@ -24,7 +24,7 @@ const SLIDE_H_EMU = 6858000;  // 7.5인치 (16:9 wide는 6858000 또는 5143500)
 // 우리 데이터 타입 (CloudSlideEditor 와 동일)
 // ─────────────────────────────────────────────
 
-interface BaseEl { id: string; xPct: number; yPct: number; wPct: number; hPct: number; }
+interface BaseEl { id: string; xPct: number; yPct: number; wPct: number; hPct: number; rotation?: number; }
 interface SlideTextEl extends BaseEl { type: 'text'; content: string; fontSizeRem: number; bold?: boolean; textColor?: string; }
 type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
 interface SlideShapeEl extends BaseEl { type: ShapeType; fillColor: string; strokeColor?: string; strokeWidth?: number; }
@@ -177,6 +177,9 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
   const yPct = clamp01((yEmu / SLIDE_H_EMU) * 100);
   const wPct = clamp01((cxEmu / SLIDE_W_EMU) * 100);
   const hPct = clamp01((cyEmu / SLIDE_H_EMU) * 100);
+  // 회전: rot = 60000 단위. xfrm[@rot] 또는 없음.
+  const rotRaw = xfrm?.['@_rot'];
+  const rotation = rotRaw != null ? ((Number(rotRaw) / 60000) % 360 + 360) % 360 : undefined;
 
   // 텍스트 추출
   const txBody = sp['p:txBody'] as Record<string, unknown> | undefined;
@@ -187,6 +190,7 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
         id: newId('el'),
         type: 'text',
         xPct, yPct, wPct: Math.max(wPct, 15), hPct: Math.max(hPct, 8),
+        rotation,
         content: text.trim(),
         fontSizeRem: 1.5,
       };
@@ -210,6 +214,7 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
       id: newId('el'),
       type,
       xPct, yPct, wPct: Math.max(wPct, 10), hPct: Math.max(hPct, 5),
+      rotation,
       fillColor,
     };
   }
@@ -232,6 +237,8 @@ async function parsePic(
   const yEmu = Number(off?.['@_y'] ?? 0);
   const cxEmu = Number(ext?.['@_cx'] ?? SLIDE_W_EMU * 0.3);
   const cyEmu = Number(ext?.['@_cy'] ?? SLIDE_H_EMU * 0.3);
+  const rotRaw = xfrm?.['@_rot'];
+  const rotation = rotRaw != null ? ((Number(rotRaw) / 60000) % 360 + 360) % 360 : undefined;
 
   // rId: p:blipFill/a:blip[@r:embed]
   const blipFill = pic['p:blipFill'] as Record<string, unknown> | undefined;
@@ -275,6 +282,7 @@ async function parsePic(
     yPct: clamp01((yEmu / SLIDE_H_EMU) * 100),
     wPct: clamp01((cxEmu / SLIDE_W_EMU) * 100),
     hPct: clamp01((cyEmu / SLIDE_H_EMU) * 100),
+    rotation,
     src,
   };
 }
@@ -357,9 +365,11 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
       const w = (el.wPct / 100) * W;
       const h = (el.hPct / 100) * H;
 
+      const rotate = el.rotation && el.rotation !== 0 ? el.rotation : undefined;
+
       if (el.type === 'text') {
         slide.addText(el.content, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           fontSize: Math.round(el.fontSizeRem * 12), // 1rem ≈ 12pt
           bold: el.bold,
           color: el.textColor ? el.textColor.replace('#', '') : '222222',
@@ -368,7 +378,7 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
         });
       } else if (el.type === 'rect') {
         slide.addShape(pres.ShapeType.rect, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           fill: { color: el.fillColor.replace('#', '').replace(/^hsl.*$/i, '3B82F6') },
           line: el.strokeColor
             ? { color: el.strokeColor.replace('#', ''), width: el.strokeWidth ?? 2 }
@@ -376,7 +386,7 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
         });
       } else if (el.type === 'ellipse') {
         slide.addShape(pres.ShapeType.ellipse, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           fill: { color: el.fillColor.replace('#', '').replace(/^hsl.*$/i, 'F59E0B') },
           line: el.strokeColor
             ? { color: el.strokeColor.replace('#', ''), width: el.strokeWidth ?? 2 }
@@ -384,31 +394,28 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
         });
       } else if (el.type === 'triangle') {
         slide.addShape(pres.ShapeType.triangle, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           fill: { color: el.fillColor.replace('#', '').replace(/^hsl.*$/i, '34D399') },
           line: el.strokeColor
             ? { color: el.strokeColor.replace('#', ''), width: el.strokeWidth ?? 2 }
             : { color: 'FFFFFF', width: 0 },
         });
       } else if (el.type === 'line') {
-        // 선: addShape(line) — 가로선, fill 없음
         slide.addShape(pres.ShapeType.line, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           line: {
             color: (el.strokeColor ?? el.fillColor).replace('#', ''),
             width: el.strokeWidth ?? 2,
           },
         });
       } else if (el.type === 'arrow') {
-        // 오른쪽 화살표 도형
         slide.addShape(pres.ShapeType.rightArrow, {
-          x, y, w, h,
+          x, y, w, h, rotate,
           fill: { color: (el.strokeColor ?? el.fillColor).replace('#', '').replace(/^hsl.*$/i, '222222') },
           line: { color: (el.strokeColor ?? el.fillColor).replace('#', ''), width: el.strokeWidth ?? 2 },
         });
       } else if (el.type === 'image') {
-        // src 는 data URL — pptxgenjs는 data: URL 직접 지원
-        slide.addImage({ data: el.src, x, y, w, h });
+        slide.addImage({ data: el.src, x, y, w, h, rotate });
       }
     }
   }

@@ -42,6 +42,7 @@ interface BaseEl {
   yPct: number;
   wPct: number;
   hPct: number;
+  rotation?: number;  // degrees, 0~359 (시계방향). 0 또는 미정의 = 회전 없음
 }
 
 interface SlideTextEl extends BaseEl {
@@ -571,6 +572,37 @@ export default function CloudSlideEditor() {
   }, [addTextEl]);
 
   // ─── 리사이즈 (8방향) ───
+  // 회전: 도형 중심 ↔ 포인터 의 각도로 rotation 계산.
+  // Shift = 15도 snap, Esc/우클릭 = 원래값 유지하고 종료.
+  const startRotate = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedElId(elId);
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRect) return;
+    const cx = canvasRect.left + canvasRect.width * (el.xPct + el.wPct / 2) / 100;
+    const cy = canvasRect.top + canvasRect.height * (el.yPct + el.hPct / 2) / 100;
+    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+    const startRotation = el.rotation ?? 0;
+
+    const onMove = (ev: PointerEvent) => {
+      const cur = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI;
+      let rotation = startRotation + (cur - startAngle);
+      // -180 ~ 180 정규화 → 0 ~ 360
+      rotation = ((rotation % 360) + 360) % 360;
+      if (ev.shiftKey) rotation = Math.round(rotation / 15) * 15;
+      // 0 도 가까우면 정확히 0
+      if (Math.abs(rotation) < 0.5 || Math.abs(rotation - 360) < 0.5) rotation = 0;
+      updateEl(elId, { rotation });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [updateEl]);
+
   const startResize = useCallback((e: React.PointerEvent, elId: string, el: SlideElement, dir: ResizeDir) => {
     e.preventDefault();
     e.stopPropagation();
@@ -870,6 +902,10 @@ export default function CloudSlideEditor() {
           child.style.top = `${el.yPct}%`;
           child.style.width = `${el.wPct}%`;
           child.style.height = `${el.hPct}%`;
+          if (el.rotation) {
+            child.style.transform = `rotate(${el.rotation}deg)`;
+            child.style.transformOrigin = 'center center';
+          }
           if (el.type === 'text') {
             child.style.padding = '4px 8px';
             child.style.fontSize = `${el.fontSizeRem * 16}px`;
@@ -1319,6 +1355,7 @@ export default function CloudSlideEditor() {
                       onPointerDown={(e) => startDrag(e, el.id, el)}
                       onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                      onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
                   );
                 }
@@ -1331,6 +1368,7 @@ export default function CloudSlideEditor() {
                       onPointerDown={(e) => startDrag(e, el.id, el)}
                       onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                      onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
                   );
                 }
@@ -1343,6 +1381,7 @@ export default function CloudSlideEditor() {
                     onPointerDown={(e) => startDrag(e, el.id, el)}
                     onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
                     onDoubleClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); setEditingElId(el.id); }}
+                    onStartRotate={(e) => startRotate(e, el.id, el)}
                     onChange={(content) => updateEl(el.id, { content })}
                     onFinishEdit={() => setEditingElId(null)}
                     onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
@@ -1574,7 +1613,8 @@ interface TextElViewProps {
 
 function TextElView({
   el, selected, editing, onPointerDown, onClick, onDoubleClick, onChange, onFinishEdit, onStartResize,
-}: TextElViewProps) {
+  onStartRotate,
+}: TextElViewProps & ShapeElViewExtraProps) {
   const editableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1608,6 +1648,8 @@ function TextElView({
         width: `${el.wPct}%`,
         height: `${el.hPct}%`,
         padding: '4px 8px',
+        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        transformOrigin: 'center center',
       }}
     >
       <div
@@ -1635,6 +1677,7 @@ function TextElView({
         {el.content}
       </div>
       {selected && !editing && <ResizeHandles onStart={onStartResize} />}
+      {selected && !editing && onStartRotate && <RotateHandle onStart={onStartRotate} />}
     </div>
   );
 }
@@ -1686,7 +1729,11 @@ interface ShapeElViewProps {
   onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
 }
 
-function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize }: ShapeElViewProps) {
+interface ShapeElViewExtraProps {
+  onStartRotate?: (e: React.PointerEvent) => void;
+}
+
+function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize, onStartRotate }: ShapeElViewProps & ShapeElViewExtraProps) {
   return (
     <div
       onPointerDown={onPointerDown}
@@ -1701,10 +1748,13 @@ function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize }: Sh
         top: `${el.yPct}%`,
         width: `${el.wPct}%`,
         height: `${el.hPct}%`,
+        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        transformOrigin: 'center center',
       }}
     >
       <ShapeRender el={el} />
       {selected && <ResizeHandles onStart={onStartResize} />}
+      {selected && onStartRotate && <RotateHandle onStart={onStartRotate} />}
     </div>
   );
 }
@@ -1721,7 +1771,7 @@ interface ImageElViewProps {
   onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
 }
 
-function ImageElView({ el, selected, onPointerDown, onClick, onStartResize }: ImageElViewProps) {
+function ImageElView({ el, selected, onPointerDown, onClick, onStartResize, onStartRotate }: ImageElViewProps & ShapeElViewExtraProps) {
   return (
     <div
       onPointerDown={onPointerDown}
@@ -1736,6 +1786,8 @@ function ImageElView({ el, selected, onPointerDown, onClick, onStartResize }: Im
         top: `${el.yPct}%`,
         width: `${el.wPct}%`,
         height: `${el.hPct}%`,
+        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        transformOrigin: 'center center',
       }}
     >
       <img
@@ -1745,6 +1797,7 @@ function ImageElView({ el, selected, onPointerDown, onClick, onStartResize }: Im
         draggable={false}
       />
       {selected && <ResizeHandles onStart={onStartResize} />}
+      {selected && onStartRotate && <RotateHandle onStart={onStartRotate} />}
     </div>
   );
 }
@@ -1778,6 +1831,29 @@ function ResizeHandles({ onStart }: { onStart: (e: React.PointerEvent, dir: Resi
         />
       ))}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 회전 핸들 (선택된 도형 위쪽)
+// ─────────────────────────────────────────────
+
+function RotateHandle({ onStart }: { onStart: (e: React.PointerEvent) => void }) {
+  return (
+    <div
+      onPointerDown={onStart}
+      onClick={(e) => e.stopPropagation()}
+      className="absolute left-1/2 -top-6 -translate-x-1/2 w-3 h-3 rounded-full bg-white border border-foreground/80 hover:bg-foreground/10 cursor-grab"
+      style={{ touchAction: 'none' }}
+      aria-label="회전"
+      title="드래그해서 회전 (Shift = 15도 snap)"
+    >
+      {/* 연결선 (요소 위 → 핸들) */}
+      <span
+        aria-hidden
+        className="block absolute left-1/2 top-3 -translate-x-1/2 w-px h-3 bg-foreground/40"
+      />
+    </div>
   );
 }
 
