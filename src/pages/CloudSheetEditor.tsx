@@ -12,6 +12,7 @@ import {
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
   Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
+  Undo2, Redo2,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -600,6 +601,112 @@ export default function CloudSheetEditor() {
     },
     [hasRange, selBounds, cells, cellFormats, merges, allCells, allFormats, currentSheetId, queueSave],
   );
+
+  // ─── Undo / Redo (debounce snapshot) ───
+  interface SheetSnapshot {
+    allCells: AllCells;
+    allFormats: AllFormats;
+    allMerges: AllMerges;
+    rowCount: number;
+    colCount: number;
+  }
+  const [history, setHistory] = useState<SheetSnapshot[]>([]);
+  const [historyIdx, setHistoryIdx] = useState(-1);
+  const isApplyingHistoryRef = useRef(false);
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 변경 감지 → 500ms 후 snapshot 저장 (history 끝에 push, future 삭제)
+  useEffect(() => {
+    // 로드 전(node 없음)이거나 undo/redo 중이면 push X
+    if (!node) return;
+    if (isApplyingHistoryRef.current) {
+      isApplyingHistoryRef.current = false;
+      return;
+    }
+    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    snapshotTimerRef.current = setTimeout(() => {
+      setHistory((h) => {
+        const snap: SheetSnapshot = {
+          allCells, allFormats, allMerges, rowCount, colCount,
+        };
+        // 첫 snapshot
+        if (historyIdx === -1) {
+          setHistoryIdx(0);
+          return [snap];
+        }
+        // 현재가 마지막 snapshot 과 같으면 skip
+        const last = h[historyIdx];
+        if (last
+          && last.allCells === snap.allCells
+          && last.allFormats === snap.allFormats
+          && last.allMerges === snap.allMerges
+          && last.rowCount === snap.rowCount
+          && last.colCount === snap.colCount) {
+          return h;
+        }
+        const next = h.slice(0, historyIdx + 1);
+        next.push(snap);
+        // 최대 100 step
+        if (next.length > 100) next.shift();
+        setHistoryIdx(next.length - 1);
+        return next;
+      });
+    }, 500);
+    return () => {
+      if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
+    };
+  }, [node, allCells, allFormats, allMerges, rowCount, colCount, historyIdx]);
+
+  const canUndo = historyIdx > 0;
+  const canRedo = historyIdx >= 0 && historyIdx < history.length - 1;
+
+  const applySnapshot = useCallback((snap: SheetSnapshot) => {
+    isApplyingHistoryRef.current = true;
+    setAllCells(snap.allCells);
+    setAllFormats(snap.allFormats);
+    setAllMerges(snap.allMerges);
+    setRowCount(snap.rowCount);
+    setColCount(snap.colCount);
+    queueSave({
+      allCells: snap.allCells,
+      allFormats: snap.allFormats,
+      allMerges: snap.allMerges,
+      rowCount: snap.rowCount,
+      colCount: snap.colCount,
+    });
+  }, [queueSave]);
+
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    const target = history[historyIdx - 1];
+    if (!target) return;
+    setHistoryIdx(historyIdx - 1);
+    applySnapshot(target);
+  }, [canUndo, history, historyIdx, applySnapshot]);
+
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    const target = history[historyIdx + 1];
+    if (!target) return;
+    setHistoryIdx(historyIdx + 1);
+    applySnapshot(target);
+  }, [canRedo, history, historyIdx, applySnapshot]);
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — 편집 중·input 안 X
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (editing) return;
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing, undo, redo]);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
@@ -1592,6 +1699,27 @@ export default function CloudSheetEditor() {
           <div className="ml-auto flex items-center gap-1">
             <button
               type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-2 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="되돌리기"
+              title="되돌리기 (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-2 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="다시 실행"
+              title="다시 실행 (Ctrl+Y / Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-4 h-4" />
+            </button>
+            <div className="w-px h-4 bg-border mx-0.5" />
+            <button
+              type="button"
               onClick={() => setHelpOpen(true)}
               className="p-2 rounded hover:bg-muted"
               aria-label="단축키 도움말"
@@ -2561,6 +2689,15 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
               <HelpRow keys={['Tab']} label="편집 후 오른쪽 셀" />
               <HelpRow keys={['Esc']} label="편집 취소" />
               <HelpRow keys={['Delete', 'Backspace']} label="셀 내용 지우기" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">되돌리기·다시</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'Z']} label="되돌리기 (Undo)" />
+              <HelpRow keys={['Ctrl', 'Y']} label="다시 실행 (Redo)" />
+              <HelpRow keys={['Ctrl', 'Shift', 'Z']} label="다시 실행 (대체)" />
             </div>
           </section>
 
