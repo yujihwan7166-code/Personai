@@ -1,11 +1,11 @@
 /**
  * 시트 ↔ .xlsx 호환.
  *
- * Import: SheetJS (xlsx) — 값·수식 추출
- * Export: ExcelJS — 셀 서식(글꼴·색·배경·정렬·숫자형식·테두리)까지 보존
+ * Import: SheetJS (xlsx) — 값·수식·셀 병합 추출
+ * Export: ExcelJS — 셀 서식(글꼴·색·배경·정렬·숫자형식·테두리) + 셀 병합 보존
  *
  * 함수명 변환: 엑셀 AVERAGE ↔ 우리 AVG
- * 한계: 차트·매크로·피벗·데이터 검증 무시. 셀 병합·이미지·코멘트 v1 미반영.
+ * 한계: 차트·매크로·피벗·데이터 검증 무시. 이미지·코멘트 v1 미반영.
  */
 
 import * as XLSX from 'xlsx';
@@ -25,15 +25,19 @@ interface CellFormat {
 }
 type CellFormats = Record<string, CellFormat>;
 
+export interface Merge { minR: number; maxR: number; minC: number; maxC: number }
+
 export interface ImportedSheet {
   name: string;
   cells: Cells;
+  merges?: Merge[];
 }
 
 export interface ExportSheetInput {
   name: string;
   cells: Cells;
   cellFormats?: CellFormats;
+  merges?: Merge[];
 }
 
 // ─────────────────────────────────────────────
@@ -48,7 +52,7 @@ export async function importXlsxFile(file: File): Promise<ImportedSheet[]> {
 
 function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedSheet {
   const cells: Cells = {};
-  if (!ws) return { name, cells };
+  if (!ws) return { name, cells, merges: [] };
   for (const key of Object.keys(ws)) {
     if (key.startsWith('!')) continue;
     const cell = ws[key] as XLSX.CellObject;
@@ -58,7 +62,12 @@ function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedShe
       cells[key] = String(cell.v);
     }
   }
-  return { name, cells };
+  // SheetJS 의 셀 병합: '!merges' 키에 Array<{ s:{r,c}, e:{r,c} }> (0-based, inclusive)
+  const rawMerges = (ws as XLSX.WorkSheet & { '!merges'?: XLSX.Range[] })['!merges'];
+  const merges: Merge[] = (rawMerges ?? []).map((r) => ({
+    minR: r.s.r, maxR: r.e.r, minC: r.s.c, maxC: r.e.c,
+  }));
+  return { name, cells, merges };
 }
 
 function normalizeFormula(f: string): string {
@@ -109,6 +118,15 @@ export async function exportXlsxFile(sheets: ExportSheetInput[], fileName: strin
 
     // 열 자동 너비 (대략)
     ws.columns.forEach((col) => { col.width = 15; });
+
+    // 셀 병합 — ExcelJS 는 1-based, (top, left, bottom, right)
+    for (const m of sheet.merges ?? []) {
+      try {
+        ws.mergeCells(m.minR + 1, m.minC + 1, m.maxR + 1, m.maxC + 1);
+      } catch {
+        // 영역이 겹치면 던짐 — 무시하고 진행
+      }
+    }
   }
 
   if (wb.worksheets.length === 0) {

@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
-  Hash, Square as SquareIcon,
+  Hash, Square as SquareIcon, Combine, Split,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles,
 } from 'lucide-react';
@@ -36,6 +36,8 @@ interface SheetMeta {
 }
 type AllCells = Record<string, Cells>;
 type AllFormats = Record<string, CellFormats>;
+interface Merge { minR: number; maxR: number; minC: number; maxC: number }
+type AllMerges = Record<string, Merge[]>;
 
 function newSheetId(): string {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -127,14 +129,53 @@ export default function CloudSheetEditor() {
   const [allFormats, setAllFormats] = useState<AllFormats>({ s_initial: {} });
 
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
+  const [rangeAnchor, setRangeAnchor] = useState<{ row: number; col: number } | null>(null);
+  const [draggingRange, setDraggingRange] = useState(false);
   const [editing, setEditing] = useState<{ row: number; col: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  // derived — 현재 시트의 cells/formats
+  // 선택 범위 계산 (rangeAnchor 가 null 이면 단일 셀)
+  const selBounds = useMemo(() => {
+    if (!rangeAnchor) {
+      return { minR: selected.row, maxR: selected.row, minC: selected.col, maxC: selected.col };
+    }
+    return {
+      minR: Math.min(rangeAnchor.row, selected.row),
+      maxR: Math.max(rangeAnchor.row, selected.row),
+      minC: Math.min(rangeAnchor.col, selected.col),
+      maxC: Math.max(rangeAnchor.col, selected.col),
+    };
+  }, [rangeAnchor, selected]);
+
+  const hasRange = !!rangeAnchor && (rangeAnchor.row !== selected.row || rangeAnchor.col !== selected.col);
+  // 현재 포커스 셀 ref (서식 도구바·수식 표시줄에서 사용) — useCallback 의존성 TDZ 회피
+  const selectedRef = cellRef(selected.row, selected.col);
+
+  // 셀 병합 — sheet 별 merge 배열 (top-left 포함, 좌표는 0-based)
+  const [allMerges, setAllMerges] = useState<AllMerges>({ s_initial: [] });
+
+  // derived — 현재 시트의 cells/formats/merges
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
   const currentSheetId = currentSheet?.id ?? 's_initial';
   const cells = allCells[currentSheetId] ?? {};
   const cellFormats = allFormats[currentSheetId] ?? {};
+  const merges = allMerges[currentSheetId] ?? [];
+
+  // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
+  const { mergeAtMap, coveredSet } = useMemo(() => {
+    const at = new Map<string, { rows: number; cols: number }>();
+    const covered = new Set<string>();
+    for (const m of merges) {
+      at.set(`${m.minR},${m.minC}`, { rows: m.maxR - m.minR + 1, cols: m.maxC - m.minC + 1 });
+      for (let r = m.minR; r <= m.maxR; r++) {
+        for (let c = m.minC; c <= m.maxC; c++) {
+          if (r === m.minR && c === m.minC) continue;
+          covered.add(`${r},${c}`);
+        }
+      }
+    }
+    return { mergeAtMap: at, coveredSet: covered };
+  }, [merges]);
 
   // 수식 평가 캐시 (cells 변경 시만 재계산) — early return 이전 위치
   const displayValues = useMemo<Cells>(() => {
@@ -170,11 +211,13 @@ export default function CloudSheetEditor() {
         const storedSheets = meta.sheets as Array<{ id: string; name: string }> | undefined;
         const storedAllCells = meta.allCells as AllCells | undefined;
         const storedAllFormats = meta.allFormats as AllFormats | undefined;
+        const storedAllMerges = meta.allMerges as AllMerges | undefined;
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
           setSheetsMeta(storedSheets);
           setAllCells(storedAllCells ?? {});
           setAllFormats(storedAllFormats ?? {});
+          setAllMerges(storedAllMerges ?? {});
           const idx = typeof meta.currentSheetIdx === 'number'
             ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
             : 0;
@@ -200,6 +243,7 @@ export default function CloudSheetEditor() {
           setSheetsMeta([{ id, name: 'Sheet1' }]);
           setAllCells({ [id]: safe });
           setAllFormats({ [id]: safeFmt });
+          setAllMerges({ [id]: [] });
           setCurrentSheetIdx(0);
         }
       } catch (e) {
@@ -231,6 +275,7 @@ export default function CloudSheetEditor() {
     sheets?: SheetMeta[];
     allCells?: AllCells;
     allFormats?: AllFormats;
+    allMerges?: AllMerges;
     currentSheetIdx?: number;
   }) => {
     pendingRef.current = {
@@ -239,13 +284,14 @@ export default function CloudSheetEditor() {
         sheets: patch.sheets ?? sheetsMeta,
         allCells: patch.allCells ?? allCells,
         allFormats: patch.allFormats ?? allFormats,
+        allMerges: patch.allMerges ?? allMerges,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
       },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, currentSheetIdx]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx]);
 
   useEffect(() => {
     return () => {
@@ -312,16 +358,18 @@ export default function CloudSheetEditor() {
     const nextSheets = [...sheetsMeta, newMeta];
     const nextCells: AllCells = { ...allCells, [id]: {} };
     const nextFormats: AllFormats = { ...allFormats, [id]: {} };
+    const nextMerges: AllMerges = { ...allMerges, [id]: [] };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
     setCurrentSheetIdx(nextSheets.length - 1);
     setSelected({ row: 0, col: 0 });
     queueSave({
-      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
       currentSheetIdx: nextSheets.length - 1,
     });
-  }, [sheetsMeta, allCells, allFormats, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
 
   const removeSheet = useCallback((idx: number) => {
     if (sheetsMeta.length <= 1) {
@@ -333,18 +381,21 @@ export default function CloudSheetEditor() {
     const nextSheets = sheetsMeta.filter((_, i) => i !== idx);
     const nextCells: AllCells = { ...allCells };
     const nextFormats: AllFormats = { ...allFormats };
+    const nextMerges: AllMerges = { ...allMerges };
     delete nextCells[target.id];
     delete nextFormats[target.id];
+    delete nextMerges[target.id];
     const newIdx = Math.max(0, Math.min(currentSheetIdx, nextSheets.length - 1));
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
     setCurrentSheetIdx(newIdx);
     queueSave({
-      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
       currentSheetIdx: newIdx,
     });
-  }, [sheetsMeta, allCells, allFormats, currentSheetIdx, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, queueSave]);
 
   const renameSheet = useCallback((idx: number, name: string) => {
     const trimmed = name.trim();
@@ -421,6 +472,7 @@ export default function CloudSheetEditor() {
         const newMetas: SheetMeta[] = [];
         const newAllCells: AllCells = { ...allCells };
         const newAllFormats: AllFormats = { ...allFormats };
+        const newAllMerges: AllMerges = { ...allMerges };
         for (const sheet of imported) {
           const id = newSheetId();
           // 중복 이름 회피
@@ -436,19 +488,21 @@ export default function CloudSheetEditor() {
           newMetas.push({ id, name });
           newAllCells[id] = sheet.cells;
           newAllFormats[id] = {};
+          newAllMerges[id] = sheet.merges ?? [];
         }
         const nextSheets = [...sheetsMeta, ...newMetas];
         setSheetsMeta(nextSheets);
         setAllCells(newAllCells);
         setAllFormats(newAllFormats);
+        setAllMerges(newAllMerges);
         setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
         queueSave({
-          sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats,
+          sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats, allMerges: newAllMerges,
           currentSheetIdx: sheetsMeta.length,
         });
         toast({
           title: '가져오기 완료',
-          description: `${imported.length}개 시트가 추가됐어요. 서식은 다음 단계에서 보존됩니다.`,
+          description: `${imported.length}개 시트가 추가됐어요. 셀 병합도 보존됐어요.`,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -456,7 +510,7 @@ export default function CloudSheetEditor() {
       }
     };
     input.click();
-  }, [allCells, allFormats, sheetsMeta, queueSave]);
+  }, [allCells, allFormats, allMerges, sheetsMeta, queueSave]);
 
   // ─── PDF export: 현재 시트 그리드 ───
   const exportPdf = useCallback(async () => {
@@ -474,22 +528,23 @@ export default function CloudSheetEditor() {
     }
   }, [node?.name, currentSheet?.name]);
 
-  // ─── .xlsx export: 모든 시트 → 파일 다운로드 (서식 포함) ───
+  // ─── .xlsx export: 모든 시트 → 파일 다운로드 (서식·병합 포함) ───
   const exportXlsx = useCallback(async () => {
     try {
       const exportSheets = sheetsMeta.map((s) => ({
         name: s.name,
         cells: allCells[s.id] ?? {},
         cellFormats: allFormats[s.id] ?? {},
+        merges: allMerges[s.id] ?? [],
       }));
       const fileName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
       await exportXlsxFile(exportSheets, fileName);
-      toast({ title: '내보내기 완료', description: `${fileName}.xlsx (서식 포함)` });
+      toast({ title: '내보내기 완료', description: `${fileName}.xlsx (서식·병합 포함)` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [sheetsMeta, allCells, allFormats, node?.name]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, node?.name]);
 
   const duplicateSheet = useCallback((idx: number) => {
     const src = sheetsMeta[idx];
@@ -499,15 +554,80 @@ export default function CloudSheetEditor() {
     const nextSheets = [...sheetsMeta.slice(0, idx + 1), newMeta, ...sheetsMeta.slice(idx + 1)];
     const nextCells: AllCells = { ...allCells, [id]: { ...(allCells[src.id] ?? {}) } };
     const nextFormats: AllFormats = { ...allFormats, [id]: { ...(allFormats[src.id] ?? {}) } };
+    const srcMerges = allMerges[src.id] ?? [];
+    const nextMerges: AllMerges = { ...allMerges, [id]: srcMerges.map((m) => ({ ...m })) };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
+    setAllMerges(nextMerges);
     setCurrentSheetIdx(idx + 1);
     queueSave({
-      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats,
+      sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
       currentSheetIdx: idx + 1,
     });
-  }, [sheetsMeta, allCells, allFormats, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
+
+  // ─── 셀 병합 ───
+  const applyMerge = useCallback((kind: 'all' | 'horizontal' | 'vertical' | 'unmerge') => {
+    const { minR, maxR, minC, maxC } = selBounds;
+    const isSingle = minR === maxR && minC === maxC;
+    if (kind !== 'unmerge' && isSingle) {
+      toast({ title: '먼저 2칸 이상 선택하세요', description: 'Shift+화살표 / 마우스 드래그' });
+      return;
+    }
+    setAllMerges((all) => {
+      const cur = all[currentSheetId] ?? [];
+      // 선택 영역과 겹치는 기존 병합은 일단 제거
+      const filtered = cur.filter((m) =>
+        m.maxR < minR || m.minR > maxR || m.maxC < minC || m.minC > maxC,
+      );
+      let next: Merge[];
+      if (kind === 'unmerge') {
+        next = filtered;
+      } else if (kind === 'horizontal') {
+        const added: Merge[] = [];
+        for (let r = minR; r <= maxR; r++) {
+          if (minC !== maxC) added.push({ minR: r, maxR: r, minC, maxC });
+        }
+        next = [...filtered, ...added];
+      } else if (kind === 'vertical') {
+        const added: Merge[] = [];
+        for (let c = minC; c <= maxC; c++) {
+          if (minR !== maxR) added.push({ minR, maxR, minC: c, maxC: c });
+        }
+        next = [...filtered, ...added];
+      } else {
+        next = [...filtered, { minR, maxR, minC, maxC }];
+      }
+      // 병합 영역의 top-left 가 아닌 셀들은 값/서식 정리 (시각적 일관성)
+      if (kind !== 'unmerge') {
+        const newMerges = next.filter((m) =>
+          (m.minR === minR && m.minC === minC) ||
+          // 가로/세로 모드에서 추가된 m 들 중 하나
+          (m.minR >= minR && m.maxR <= maxR && m.minC >= minC && m.maxC <= maxC),
+        );
+        setAllCells((allC) => {
+          const cur = { ...(allC[currentSheetId] ?? {}) };
+          let changed = false;
+          for (const m of newMerges) {
+            for (let r = m.minR; r <= m.maxR; r++) {
+              for (let c = m.minC; c <= m.maxC; c++) {
+                if (r === m.minR && c === m.minC) continue;
+                const ref = cellRef(r, c);
+                if (ref in cur) { delete cur[ref]; changed = true; }
+              }
+            }
+          }
+          if (!changed) return allC;
+          const nextAll: AllCells = { ...allC, [currentSheetId]: cur };
+          return nextAll;
+        });
+      }
+      const updated: AllMerges = { ...all, [currentSheetId]: next };
+      queueSave({ allMerges: updated });
+      return updated;
+    });
+  }, [selBounds, currentSheetId, queueSave]);
 
   // ─── 편집 시작/완료 ───
   const startEdit = useCallback((row: number, col: number, initialChar?: string) => {
@@ -544,43 +664,85 @@ export default function CloudSheetEditor() {
       if (tag === 'input' || tag === 'textarea') return;
 
       const isMod = e.ctrlKey || e.metaKey || e.altKey;
+      const isShift = e.shiftKey;
 
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+      if (e.key === '?' || (isShift && e.key === '/')) {
         if (!isMod) { e.preventDefault(); setHelpOpen(true); return; }
       }
-      if (e.key === 'ArrowUp') {
+
+      // 화살표 이동 — Shift 면 범위 확장, 아니면 단일 이동
+      const moveBy = (dr: number, dc: number) => {
+        if (isShift) {
+          // 범위 확장: anchor 보존 (없으면 현재 selected 로 잡음), focus 만 이동
+          setRangeAnchor((cur) => cur ?? { ...selected });
+          setSelected((s) => ({
+            row: Math.max(0, Math.min(ROWS - 1, s.row + dr)),
+            col: Math.max(0, Math.min(COLS - 1, s.col + dc)),
+          }));
+        } else {
+          // 단일 셀로 리셋 + 이동
+          setRangeAnchor(null);
+          setSelected((s) => ({
+            row: Math.max(0, Math.min(ROWS - 1, s.row + dr)),
+            col: Math.max(0, Math.min(COLS - 1, s.col + dc)),
+          }));
+        }
+      };
+
+      if (e.key === 'ArrowUp')         { e.preventDefault(); moveBy(-1, 0); }
+      else if (e.key === 'ArrowDown')  { e.preventDefault(); moveBy(1, 0); }
+      else if (e.key === 'ArrowLeft')  { e.preventDefault(); moveBy(0, -1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); moveBy(0, 1); }
+      else if (e.key === 'Tab')        { e.preventDefault(); moveBy(0, isShift ? -1 : 1); }
+      else if (e.key === 'Enter')      { e.preventDefault(); startEdit(selected.row, selected.col); }
+      else if (e.key === 'F2')         { e.preventDefault(); startEdit(selected.row, selected.col); }
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        setSelected((s) => ({ ...s, row: Math.max(0, s.row - 1) }));
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelected((s) => ({ ...s, row: Math.min(ROWS - 1, s.row + 1) }));
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setSelected((s) => ({ ...s, col: Math.max(0, s.col - 1) }));
-      } else if (e.key === 'ArrowRight' || e.key === 'Tab') {
-        e.preventDefault();
-        setSelected((s) => ({ ...s, col: Math.min(COLS - 1, s.col + 1) }));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        startEdit(selected.row, selected.col);
-      } else if (e.key === 'F2') {
-        e.preventDefault();
-        startEdit(selected.row, selected.col);
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        const ref = cellRef(selected.row, selected.col);
-        if (cells[ref] !== undefined) setCellValue(ref, '');
-      } else if (e.key.length === 1 && !isMod) {
-        // 글자 입력 → 즉시 편집 진입 + 그 글자로 초기화
-        e.preventDefault();
-        startEdit(selected.row, selected.col, e.key);
+        // 범위 안 모든 셀 지우기
+        for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+          for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+            const ref = cellRef(r, c);
+            if (cells[ref] !== undefined) setCellValue(ref, '');
+          }
+        }
       } else if (e.key === 'Escape') {
-        // 선택 해제(시각 효과만)
+        setRangeAnchor(null);
+      } else if (e.key.length === 1 && !isMod) {
+        // 글자 입력 → 단일 셀 모드 + 편집 진입
+        e.preventDefault();
+        setRangeAnchor(null);
+        startEdit(selected.row, selected.col, e.key);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, selected, cells, startEdit, setCellValue]);
+  }, [editing, selected, cells, startEdit, setCellValue, selBounds]);
+
+  // ─── 마우스 드래그 — 글로벌 pointerup 으로 종료 ───
+  useEffect(() => {
+    if (!draggingRange) return;
+    const onUp = () => setDraggingRange(false);
+    window.addEventListener('pointerup', onUp);
+    return () => window.removeEventListener('pointerup', onUp);
+  }, [draggingRange]);
+
+  // ─── 셀 마우스 핸들러 (SheetGrid 에 전달) ───
+  const handleCellPointerDown = useCallback((row: number, col: number, e: React.PointerEvent) => {
+    if (e.shiftKey) {
+      setRangeAnchor((cur) => cur ?? { ...selected });
+      setSelected({ row, col });
+    } else {
+      setRangeAnchor(null);
+      setSelected({ row, col });
+      setDraggingRange(true);
+    }
+  }, [selected]);
+
+  const handleCellPointerEnter = useCallback((row: number, col: number) => {
+    if (!draggingRange) return;
+    setRangeAnchor((cur) => cur ?? { ...selected });
+    setSelected({ row, col });
+  }, [draggingRange, selected]);
 
   const close = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -802,6 +964,41 @@ export default function CloudSheetEditor() {
                 </select>
 
                 <div className="w-px h-5 bg-border mx-1" />
+
+                {/* 셀 병합 드롭다운 */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="p-1.5 rounded hover:bg-muted flex items-center gap-0.5"
+                      title="셀 병합 (범위 선택 후)"
+                      aria-label="셀 병합"
+                    >
+                      <Combine className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[180px]">
+                    <DropdownMenuItem onSelect={() => applyMerge('all')}>
+                      <Combine className="w-4 h-4 mr-2" />
+                      모두 병합
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => applyMerge('horizontal')}>
+                      <Combine className="w-4 h-4 mr-2 rotate-90" />
+                      가로로 병합
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => applyMerge('vertical')}>
+                      <Combine className="w-4 h-4 mr-2" />
+                      세로로 병합
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => applyMerge('unmerge')}>
+                      <Split className="w-4 h-4 mr-2" />
+                      병합 해제
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="w-px h-5 bg-border mx-1" />
                 <button
                   type="button"
                   onClick={() => clearCellFormat(selectedRef)}
@@ -837,9 +1034,14 @@ export default function CloudSheetEditor() {
             displayValues={displayValues}
             cellFormats={cellFormats}
             selected={selected}
+            selBounds={selBounds}
+            hasRange={hasRange}
+            mergeAtMap={mergeAtMap}
+            coveredSet={coveredSet}
             editing={editing}
             editingValue={editingValue}
-            onSelect={(row, col) => setSelected({ row, col })}
+            onPointerDown={handleCellPointerDown}
+            onPointerEnter={handleCellPointerEnter}
             onStartEdit={startEdit}
             onChangeValue={setEditingValue}
             onCommitEdit={commitEdit}
@@ -920,14 +1122,21 @@ export default function CloudSheetEditor() {
 // 그리드
 // ─────────────────────────────────────────────
 
+interface SelBounds { minR: number; maxR: number; minC: number; maxC: number; }
+
 interface SheetGridProps {
   cells: Cells;
   displayValues: Cells;
   cellFormats: CellFormats;
   selected: { row: number; col: number };
+  selBounds: SelBounds;
+  hasRange: boolean;
+  mergeAtMap: Map<string, { rows: number; cols: number }>;
+  coveredSet: Set<string>;
   editing: { row: number; col: number } | null;
   editingValue: string;
-  onSelect: (row: number, col: number) => void;
+  onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
+  onPointerEnter: (row: number, col: number) => void;
   onStartEdit: (row: number, col: number) => void;
   onChangeValue: (v: string) => void;
   onCommitEdit: (moveDir?: 'down' | 'right' | 'none') => void;
@@ -935,8 +1144,9 @@ interface SheetGridProps {
 }
 
 function SheetGrid({
-  cells, displayValues, cellFormats, selected, editing, editingValue,
-  onSelect, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
+  cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
+  editing, editingValue,
+  onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
   const cols = useMemo(() => Array.from({ length: COLS }, (_, i) => colLabel(i)), []);
   const rows = useMemo(() => Array.from({ length: ROWS }, (_, i) => i), []);
@@ -964,17 +1174,23 @@ function SheetGrid({
                 {rowIdx + 1}
               </th>
               {cols.map((_, colIdx) => {
+                const key = `${rowIdx},${colIdx}`;
+                // 병합으로 가려진 셀은 렌더 X (rowSpan/colSpan 으로 위쪽 셀이 채움)
+                if (coveredSet.has(key)) return null;
                 const ref = cellRef(rowIdx, colIdx);
                 const raw = cells[ref] ?? '';
                 // 표시값: 수식이면 평가 결과, 아니면 raw 그대로
                 let display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
-                const isSelected = selected.row === rowIdx && selected.col === colIdx;
+                const isFocus = selected.row === rowIdx && selected.col === colIdx;
+                const isInRange = hasRange
+                  && rowIdx >= selBounds.minR && rowIdx <= selBounds.maxR
+                  && colIdx >= selBounds.minC && colIdx <= selBounds.maxC;
                 const isEditing = !!editing && editing.row === rowIdx && editing.col === colIdx;
                 const fmt = cellFormats[ref];
-                // 숫자 형식 적용 (편집 중이 아닐 때만, 에러 셀 제외)
                 if (fmt?.numberFmt && !isEditing && !display.startsWith('#')) {
                   display = applyNumberFormat(display, fmt.numberFmt);
                 }
+                const span = mergeAtMap.get(key);
                 return (
                   <SheetCell
                     key={ref}
@@ -982,10 +1198,14 @@ function SheetGrid({
                     col={colIdx}
                     value={display}
                     format={fmt}
-                    selected={isSelected}
+                    isFocus={isFocus}
+                    isInRange={isInRange}
+                    rowSpan={span?.rows}
+                    colSpan={span?.cols}
                     editing={isEditing}
                     editingValue={editingValue}
-                    onSelect={onSelect}
+                    onPointerDown={onPointerDown}
+                    onPointerEnter={onPointerEnter}
                     onStartEdit={onStartEdit}
                     onChangeValue={onChangeValue}
                     onCommitEdit={onCommitEdit}
@@ -1010,10 +1230,14 @@ interface SheetCellProps {
   col: number;
   value: string;
   format?: CellFormat;
-  selected: boolean;
+  isFocus: boolean;
+  isInRange: boolean;
+  rowSpan?: number;
+  colSpan?: number;
   editing: boolean;
   editingValue: string;
-  onSelect: (row: number, col: number) => void;
+  onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
+  onPointerEnter: (row: number, col: number) => void;
   onStartEdit: (row: number, col: number) => void;
   onChangeValue: (v: string) => void;
   onCommitEdit: (moveDir?: 'down' | 'right' | 'none') => void;
@@ -1021,8 +1245,8 @@ interface SheetCellProps {
 }
 
 const SheetCell = React.memo(function SheetCell({
-  row, col, value, format, selected, editing, editingValue,
-  onSelect, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
+  row, col, value, format, isFocus, isInRange, rowSpan, colSpan, editing, editingValue,
+  onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -1039,9 +1263,16 @@ const SheetCell = React.memo(function SheetCell({
     }
   }, [editing]);
 
+  // range 안 배경은 기존 bgColor 위에 살짝 덧입힘 (linear-gradient)
+  let bg: string | undefined = format?.bgColor;
+  if (isInRange && !isFocus) {
+    bg = bg
+      ? `linear-gradient(rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.15)), ${bg}`
+      : 'rgba(59, 130, 246, 0.15)';
+  }
   const tdStyle: React.CSSProperties = {
     padding: editing ? 0 : undefined,
-    backgroundColor: format?.bgColor,
+    background: bg,
     color: format?.textColor,
     fontWeight: format?.bold ? 600 : undefined,
     fontStyle: format?.italic ? 'italic' : undefined,
@@ -1050,12 +1281,15 @@ const SheetCell = React.memo(function SheetCell({
   };
   return (
     <td
-      onClick={() => onSelect(row, col)}
+      onPointerDown={(e) => onPointerDown(row, col, e)}
+      onPointerEnter={() => onPointerEnter(row, col)}
       onDoubleClick={() => onStartEdit(row, col)}
+      rowSpan={rowSpan}
+      colSpan={colSpan}
       className={cn(
-        'border border-border h-7 px-2 align-middle relative cursor-cell',
+        'border border-border h-7 px-2 align-middle relative cursor-cell select-none',
         'min-w-[88px] max-w-[200px] truncate',
-        selected && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
+        isFocus && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
       )}
       style={tdStyle}
     >
