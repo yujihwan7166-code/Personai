@@ -133,6 +133,91 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// ─────────────────────────────────────────────
+// Fill handle 시리즈 감지
+// ─────────────────────────────────────────────
+
+const KO_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const EN_DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const EN_DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const KO_MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const EN_MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const CYCLE_LISTS = [KO_DAYS, EN_DAYS_SHORT, EN_DAYS_LONG, KO_MONTHS, EN_MONTHS_SHORT, EN_MONTHS_LONG];
+
+/**
+ * src 셀 값들로부터 step 째 다음 값을 예측.
+ * step = 0 → src[0], step = src.length → 첫 새 항
+ *
+ * 우선순위:
+ *  1) 모두 숫자 + 등차수열 → 산술 시리즈
+ *  2) 첫 값이 cycle list 안 → cycle (요일·월명)
+ *  3) 텍스트+숫자 끝 패턴 ('1주차' 같은) → 숫자만 증가
+ *  4) 그 외 → 단순 cycle (src[step % src.length])
+ */
+function nextSeriesValue(src: string[], step: number): string {
+  if (src.length === 0) return '';
+  const idx = ((step % src.length) + src.length) % src.length;
+  if (step < src.length && step >= 0) return src[idx];
+
+  // 1) 숫자 등차수열
+  const nums = src.map((s) => Number(s));
+  const allNum = src.every((s) => s.trim() !== '' && Number.isFinite(Number(s)));
+  if (allNum && nums.length >= 2) {
+    const diff = nums[1] - nums[0];
+    const consistent = nums.every((n, i) => i === 0 || n - nums[i - 1] === diff);
+    if (consistent) {
+      const value = nums[nums.length - 1] + diff * (step - src.length + 1);
+      // 정수 보존
+      return Number.isInteger(value) ? String(value) : value.toFixed(2);
+    }
+  }
+  if (allNum && nums.length === 1) {
+    // 단일 숫자 → 1씩 증가
+    return String(nums[0] + (step - src.length + 1));
+  }
+
+  // 2) cycle list
+  for (const list of CYCLE_LISTS) {
+    const i0 = list.indexOf(src[0]);
+    if (i0 === -1) continue;
+    // src 가 모두 list 안 연속 항인지
+    const matchAll = src.every((s, i) => list[(i0 + i) % list.length] === s);
+    if (matchAll) {
+      const targetIdx = (i0 + step) % list.length;
+      return list[targetIdx];
+    }
+  }
+
+  // 3) 텍스트+끝숫자 패턴 ('1주차', 'Q1', 'Item5')
+  const tailNumRe = /^(.*?)(-?\d+)([^\d]*)$/;
+  const matches = src.map((s) => s.match(tailNumRe));
+  const allTailNum = matches.every((m) => m !== null);
+  if (allTailNum && matches.length >= 1) {
+    const heads = matches.map((m) => m![1]);
+    const tails = matches.map((m) => m![3]);
+    const nums2 = matches.map((m) => Number(m![2]));
+    const sameHead = heads.every((h) => h === heads[0]);
+    const sameTail = tails.every((t) => t === tails[0]);
+    if (sameHead && sameTail) {
+      if (nums2.length >= 2) {
+        const diff = nums2[1] - nums2[0];
+        const consistent = nums2.every((n, i) => i === 0 || n - nums2[i - 1] === diff);
+        if (consistent) {
+          const next = nums2[nums2.length - 1] + diff * (step - src.length + 1);
+          return `${heads[0]}${next}${tails[0]}`;
+        }
+      } else {
+        // 단일: 1씩 증가
+        return `${heads[0]}${nums2[0] + (step - src.length + 1)}${tails[0]}`;
+      }
+    }
+  }
+
+  // 4) cycle
+  return src[idx];
+}
+
 /** cells 의 최대 row / col 계산 (참조 → 좌표) */
 function maxRowColFromCells(cells: Cells): { row: number; col: number } {
   let maxR = -1; let maxC = -1;
@@ -1575,25 +1660,106 @@ export default function CloudSheetEditor() {
       if (fillR1 === src.minR && fillR2 === src.maxR
           && fillC1 === src.minC && fillC2 === src.maxC) return;
 
-      // 채우기: 영역 안 (src 영역 제외) 셀에 src 패턴 cycle
+      // 채우기 방향: 세로 / 가로 / 사각형 (단순)
+      // 우선순위: 세로 확장(↓↑)이 더 크면 세로, 그 외 가로
+      const downExt = tgt.row > src.maxR;
+      const upExt = tgt.row < src.minR;
+      const rightExt = tgt.col > src.maxC;
+      const leftExt = tgt.col < src.minC;
+      const isVertical = (downExt || upExt) && !rightExt && !leftExt;
+      const isHorizontal = (rightExt || leftExt) && !downExt && !upExt;
       const srcW = src.maxC - src.minC + 1;
       const srcH = src.maxR - src.minR + 1;
       const nextCells: Cells = { ...cells };
       let changed = false;
-      for (let r = fillR1; r <= fillR2; r++) {
-        for (let c = fillC1; c <= fillC2; c++) {
-          // src 영역 안이면 그대로 두기
-          if (r >= src.minR && r <= src.maxR && c >= src.minC && c <= src.maxC) continue;
-          // src 안 어디서 가져올지 — cycle
-          const srcR = src.minR + ((r - src.minR) % srcH + srcH) % srcH;
-          const srcC = src.minC + ((c - src.minC) % srcW + srcW) % srcW;
-          const srcRef = cellRef(srcR, srcC);
-          const dstRef = cellRef(r, c);
-          const v = cells[srcRef];
-          if (v === undefined) {
-            if (dstRef in nextCells) { delete nextCells[dstRef]; changed = true; }
-          } else {
-            if (nextCells[dstRef] !== v) { nextCells[dstRef] = v; changed = true; }
+
+      if (isVertical) {
+        // 각 col 별로 src 의 같은 col 값 들을 시리즈로 채움
+        for (let c = src.minC; c <= src.maxC; c++) {
+          const srcVals: string[] = [];
+          for (let r = src.minR; r <= src.maxR; r++) {
+            srcVals.push(cells[cellRef(r, c)] ?? '');
+          }
+          if (downExt) {
+            for (let r = src.maxR + 1; r <= fillR2; r++) {
+              const step = r - src.minR;
+              const v = nextSeriesValue(srcVals, step);
+              const dst = cellRef(r, c);
+              if (v === '') { if (dst in nextCells) { delete nextCells[dst]; changed = true; } }
+              else if (nextCells[dst] !== v) { nextCells[dst] = v; changed = true; }
+            }
+          } else if (upExt) {
+            // 위로 확장: src 시리즈를 음수 step 으로 (단, cycle/숫자만 의미 있음)
+            for (let r = fillR1; r < src.minR; r++) {
+              // 위로는 등차수열만 의미 있음 — diff 반대로
+              const nums = srcVals.map((s) => Number(s));
+              const allNum = srcVals.every((s) => s.trim() !== '' && Number.isFinite(Number(s)));
+              let v: string;
+              if (allNum && nums.length >= 2) {
+                const diff = nums[1] - nums[0];
+                const dist = src.minR - r;
+                v = String(nums[0] - diff * dist);
+              } else {
+                // 그 외: cycle 처럼 (위쪽도 그냥 반복)
+                const step = (r - src.minR) % srcVals.length;
+                const idx = ((step % srcVals.length) + srcVals.length) % srcVals.length;
+                v = srcVals[idx];
+              }
+              const dst = cellRef(r, c);
+              if (v === '') { if (dst in nextCells) { delete nextCells[dst]; changed = true; } }
+              else if (nextCells[dst] !== v) { nextCells[dst] = v; changed = true; }
+            }
+          }
+        }
+      } else if (isHorizontal) {
+        // 각 row 별로 src 의 같은 row 값 들을 시리즈로 채움
+        for (let r = src.minR; r <= src.maxR; r++) {
+          const srcVals: string[] = [];
+          for (let c = src.minC; c <= src.maxC; c++) {
+            srcVals.push(cells[cellRef(r, c)] ?? '');
+          }
+          if (rightExt) {
+            for (let c = src.maxC + 1; c <= fillC2; c++) {
+              const step = c - src.minC;
+              const v = nextSeriesValue(srcVals, step);
+              const dst = cellRef(r, c);
+              if (v === '') { if (dst in nextCells) { delete nextCells[dst]; changed = true; } }
+              else if (nextCells[dst] !== v) { nextCells[dst] = v; changed = true; }
+            }
+          } else if (leftExt) {
+            for (let c = fillC1; c < src.minC; c++) {
+              const nums = srcVals.map((s) => Number(s));
+              const allNum = srcVals.every((s) => s.trim() !== '' && Number.isFinite(Number(s)));
+              let v: string;
+              if (allNum && nums.length >= 2) {
+                const diff = nums[1] - nums[0];
+                const dist = src.minC - c;
+                v = String(nums[0] - diff * dist);
+              } else {
+                const step = (c - src.minC) % srcVals.length;
+                const idx = ((step % srcVals.length) + srcVals.length) % srcVals.length;
+                v = srcVals[idx];
+              }
+              const dst = cellRef(r, c);
+              if (v === '') { if (dst in nextCells) { delete nextCells[dst]; changed = true; } }
+              else if (nextCells[dst] !== v) { nextCells[dst] = v; changed = true; }
+            }
+          }
+        }
+      } else {
+        // 사각형 확장 — 기존 cycle 동작 (시리즈 감지 X)
+        for (let r = fillR1; r <= fillR2; r++) {
+          for (let c = fillC1; c <= fillC2; c++) {
+            if (r >= src.minR && r <= src.maxR && c >= src.minC && c <= src.maxC) continue;
+            const srcR = src.minR + ((r - src.minR) % srcH + srcH) % srcH;
+            const srcC = src.minC + ((c - src.minC) % srcW + srcW) % srcW;
+            const v = cells[cellRef(srcR, srcC)];
+            const dst = cellRef(r, c);
+            if (v === undefined) {
+              if (dst in nextCells) { delete nextCells[dst]; changed = true; }
+            } else {
+              if (nextCells[dst] !== v) { nextCells[dst] = v; changed = true; }
+            }
           }
         }
       }
