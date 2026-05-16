@@ -486,6 +486,116 @@ export default function CloudSheetEditor() {
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
 
+  // ─── 정렬 ───
+  /** 정렬 대상 영역: 선택 범위 / 그리드 used range */
+  const sortByColumn = useCallback(
+    (colIdx: number, dir: 'asc' | 'desc', opts?: { hasHeader?: boolean }) => {
+      // 영역 결정: 다중 선택이면 그 범위, 아니면 used range
+      let area: SelRange;
+      if (hasRange) {
+        area = { ...selBounds };
+      } else {
+        const { row: maxR, col: maxC } = maxRowColFromCells(cells);
+        if (maxR < 0 || maxC < 0) {
+          toast({ title: '정렬할 데이터가 없어요' });
+          return;
+        }
+        area = { minR: 0, maxR, minC: 0, maxC };
+      }
+      // 정렬 키 컬럼이 영역 밖이면 거절
+      if (colIdx < area.minC || colIdx > area.maxC) {
+        toast({ title: '정렬 키 열이 선택 영역 밖이에요' });
+        return;
+      }
+      // 영역과 겹치는 병합이 있으면 거절 (구조가 깨짐)
+      const blockedByMerge = merges.some((m) =>
+        !(m.maxR < area.minR || m.minR > area.maxR || m.maxC < area.minC || m.minC > area.maxC),
+      );
+      if (blockedByMerge) {
+        toast({ title: '병합된 셀이 있어 정렬 불가', description: '병합 해제 후 다시 시도하세요.' });
+        return;
+      }
+
+      // 헤더 처리: opts.hasHeader 가 명시되면 사용, 아니면 자동 감지 — 첫 행 모든 칸이 문자열이고
+      // 나머지 행에 숫자가 1개 이상 있으면 헤더로 간주
+      const autoHasHeader = (() => {
+        let firstRowAllText = true;
+        for (let c = area.minC; c <= area.maxC; c++) {
+          const v = cells[cellRef(area.minR, c)] ?? '';
+          if (v && Number.isFinite(Number(v))) { firstRowAllText = false; break; }
+        }
+        let restHasNumber = false;
+        outer: for (let r = area.minR + 1; r <= area.maxR; r++) {
+          for (let c = area.minC; c <= area.maxC; c++) {
+            const v = cells[cellRef(r, c)] ?? '';
+            if (v && Number.isFinite(Number(v))) { restHasNumber = true; break outer; }
+          }
+        }
+        return firstRowAllText && restHasNumber;
+      })();
+      const hasHeader = opts?.hasHeader ?? autoHasHeader;
+      const startRow = hasHeader ? area.minR + 1 : area.minR;
+      if (startRow >= area.maxR) {
+        toast({ title: '정렬할 행이 부족합니다' });
+        return;
+      }
+
+      // 행 수집
+      const rows: Array<{ values: string[]; formats: Array<CellFormat | undefined> }> = [];
+      for (let r = startRow; r <= area.maxR; r++) {
+        const values: string[] = [];
+        const formats: Array<CellFormat | undefined> = [];
+        for (let c = area.minC; c <= area.maxC; c++) {
+          values.push(cells[cellRef(r, c)] ?? '');
+          formats.push(cellFormats[cellRef(r, c)]);
+        }
+        rows.push({ values, formats });
+      }
+
+      // 정렬
+      const keyIdx = colIdx - area.minC;
+      rows.sort((a, b) => {
+        const va = a.values[keyIdx];
+        const vb = b.values[keyIdx];
+        // 빈 셀은 항상 끝으로
+        if (!va && !vb) return 0;
+        if (!va) return 1;
+        if (!vb) return -1;
+        const na = Number(va);
+        const nb = Number(vb);
+        let cmp: number;
+        if (Number.isFinite(na) && Number.isFinite(nb)) cmp = na - nb;
+        else cmp = String(va).localeCompare(String(vb), 'ko');
+        return dir === 'asc' ? cmp : -cmp;
+      });
+
+      // 다시 쓰기
+      const nextCells: Cells = { ...cells };
+      const nextFormats: CellFormats = { ...cellFormats };
+      let i = 0;
+      for (let r = startRow; r <= area.maxR; r++) {
+        const row = rows[i++];
+        for (let c = area.minC; c <= area.maxC; c++) {
+          const ref = cellRef(r, c);
+          const v = row.values[c - area.minC];
+          const fmt = row.formats[c - area.minC];
+          if (v === '') delete nextCells[ref]; else nextCells[ref] = v;
+          if (!fmt) delete nextFormats[ref]; else nextFormats[ref] = fmt;
+        }
+      }
+      const nextAllCells: AllCells = { ...allCells, [currentSheetId]: nextCells };
+      const nextAllFormats: AllFormats = { ...allFormats, [currentSheetId]: nextFormats };
+      setAllCells(nextAllCells);
+      setAllFormats(nextAllFormats);
+      queueSave({ allCells: nextAllCells, allFormats: nextAllFormats });
+      toast({
+        title: `${idxToCol(colIdx)}열 ${dir === 'asc' ? '오름차순' : '내림차순'} 정렬`,
+        description: `${rows.length}행 정렬 · ${hasHeader ? '첫 행은 헤더로 유지' : '헤더 없음'}`,
+      });
+    },
+    [hasRange, selBounds, cells, cellFormats, merges, allCells, allFormats, currentSheetId, queueSave],
+  );
+
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
   const openChart = useCallback(() => {
@@ -1471,6 +1581,23 @@ export default function CloudSheetEditor() {
             </>
           ) : (
             <>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => { sortByColumn(ctxMenu.idx, 'asc'); setCtxMenu(null); }}
+              >
+                <span aria-hidden>↑</span>
+                {idxToCol(ctxMenu.idx)}열 오름차순 정렬
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                onClick={() => { sortByColumn(ctxMenu.idx, 'desc'); setCtxMenu(null); }}
+              >
+                <span aria-hidden>↓</span>
+                {idxToCol(ctxMenu.idx)}열 내림차순 정렬
+              </button>
+              <div className="h-px bg-border my-1" />
               <button
                 type="button"
                 className="w-full text-left px-3 py-1.5 hover:bg-muted"
