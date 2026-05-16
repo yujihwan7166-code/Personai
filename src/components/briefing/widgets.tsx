@@ -173,40 +173,35 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
   return (
     <div className="w-full h-full p-3.5 flex flex-col">
       {/* 헤더 */}
-      <div className="flex items-center gap-1 mb-1.5">
+      <div className="flex items-center gap-1 mb-2">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }}
-          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
           aria-label="이전 달"
         >
-          <ChevronLeft className="h-3 w-3" />
+          <ChevronLeft className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={() => { onClose(); navigate('/planner'); }}
-          className="flex-1 text-[13px] font-bold text-foreground text-center hover:text-primary"
+          className="flex-1 text-[13.5px] font-semibold text-foreground text-center hover:text-primary transition-colors tabular-nums"
         >
-          {year}년 {month + 1}월
+          <span className="text-muted-foreground/65 font-normal mr-1">{year}</span>{month + 1}월
         </button>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setViewDate(new Date(year, month + 1, 1)); }}
-          className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
           aria-label="다음 달"
         >
-          <ChevronRight className="h-3 w-3" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      {/* 범례 — 일정·할일 점 */}
-      <div className="flex items-center justify-center gap-3 mb-1 text-[9.5px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary/80" />일정</span>
-        <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500/85" />할일</span>
-      </div>
       {/* 요일 */}
-      <div className="grid grid-cols-7 gap-0.5 text-[9.5px] font-medium text-muted-foreground/75 mb-0.5">
+      <div className="grid grid-cols-7 gap-0.5 text-[10px] font-semibold text-foreground/55 mb-1 pb-1 border-b border-foreground/8">
         {WEEKDAY_KR.map((w, i) => (
-          <div key={w} className={cn('text-center', i === 0 && 'text-rose-500/70', i === 6 && 'text-blue-500/70')}>{w}</div>
+          <div key={w} className={cn('text-center', i === 0 && 'text-rose-500/80', i === 6 && 'text-blue-500/80')}>{w}</div>
         ))}
       </div>
       {/* 날짜 그리드 */}
@@ -220,10 +215,10 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
               type="button"
               onClick={(e) => handleCellClick(e, cell.key)}
               className={cn(
-                'relative aspect-square text-[10.5px] rounded-lg flex flex-col items-center justify-center transition-all',
+                'relative aspect-square text-[11px] rounded-lg flex flex-col items-center justify-center transition-all',
                 cell.isToday
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30 scale-105'
-                  : 'text-foreground/85 font-medium hover:bg-foreground/5',
+                  ? 'bg-primary text-primary-foreground font-bold shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]'
+                  : 'text-foreground/80 font-medium hover:bg-foreground/5',
                 i % 7 === 0 && !cell.isToday && 'text-rose-500/90',
                 i % 7 === 6 && !cell.isToday && 'text-blue-500/90',
               )}
@@ -231,8 +226,8 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
               <span className="tabular-nums">{cell.day}</span>
               {mark && (
                 <span className="absolute bottom-1 inline-flex gap-0.5">
-                  {mark.events > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/90' : 'bg-primary/80')} />}
-                  {mark.tasks > 0 && <span className={cn('w-1 h-1 rounded-full', cell.isToday ? 'bg-white/60' : 'bg-amber-500/85')} />}
+                  {mark.events > 0 && <span className={cn('w-[3px] h-[3px] rounded-full', cell.isToday ? 'bg-white/90' : 'bg-primary/80')} />}
+                  {mark.tasks > 0 && <span className={cn('w-[3px] h-[3px] rounded-full', cell.isToday ? 'bg-white/60' : 'bg-amber-500/85')} />}
                 </span>
               )}
             </button>
@@ -458,7 +453,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
 
 // ──────────────────────────────────────────
 // 시계 (S) — 큰 디지털, 중앙 정렬
-export function ClockWidget(_: WidgetProps) {
+export function ClockWidget({ data }: WidgetProps) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 1000);
@@ -468,8 +463,24 @@ export function ClockWidget(_: WidgetProps) {
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
   const dateLabel = now.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
+
+  // 다음 일정 (아직 시작 안 한 가장 가까운)
+  const nowMs = now.getTime();
+  const nextEvent = data.timed.find((it) => {
+    const startMs = new Date(it.startAt).getTime();
+    const done = it.kind === 'task' ? it.done : false;
+    return !done && startMs > nowMs;
+  });
+  const nextLabel = (() => {
+    if (!nextEvent) return null;
+    const diffMin = Math.round((new Date(nextEvent.startAt).getTime() - nowMs) / 60000);
+    if (diffMin < 60) return `${diffMin}분 후`;
+    if (diffMin < 1440) return `${Math.floor(diffMin / 60)}시간 후`;
+    return null;
+  })();
+
   return (
-    <div className="w-full h-full p-3 flex flex-col items-center justify-center text-center">
+    <div className="w-full h-full p-3.5 flex flex-col items-center justify-center text-center">
       <div className="font-display text-[34px] font-extrabold tabular-nums tracking-tight text-foreground leading-none">
         <span>{hh}</span>
         <span className="opacity-50 mx-0.5">:</span>
@@ -477,6 +488,11 @@ export function ClockWidget(_: WidgetProps) {
         <span className="text-[16px] text-muted-foreground/70 align-top ml-1 font-bold tabular-nums">{ss}</span>
       </div>
       <div className="mt-2 text-[11px] text-muted-foreground font-medium">{dateLabel}</div>
+      {nextLabel && (
+        <div className="mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-semibold text-primary truncate max-w-full" title={nextEvent!.title}>
+          ⏱ {nextLabel}
+        </div>
+      )}
     </div>
   );
 }
