@@ -228,6 +228,15 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             </span>
             <button
               type="button"
+              onClick={() => setPickerOpen(true)}
+              className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-primary/10 transition-colors"
+              title="위젯 추가"
+            >
+              <Plus className="h-3 w-3" />
+              위젯 추가
+            </button>
+            <button
+              type="button"
               onClick={() => { if (window.confirm('기본 위젯 구성으로 되돌릴까요?')) dailyBriefingStore.resetWidgets(); }}
               className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-foreground/5 transition-colors"
               title="기본값으로 되돌리기"
