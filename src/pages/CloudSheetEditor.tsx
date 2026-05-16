@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { evalCell } from '@/lib/cloudSheet/formula';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -42,6 +43,15 @@ export default function CloudSheetEditor() {
   const [selected, setSelected] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
   const [editing, setEditing] = useState<{ row: number; col: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
+
+  // 수식 평가 캐시 (cells 변경 시만 재계산) — early return 이전 위치
+  const displayValues = useMemo<Cells>(() => {
+    const out: Cells = {};
+    for (const [ref, raw] of Object.entries(cells)) {
+      out[ref] = raw.startsWith('=') ? evalCell(ref, cells) : raw;
+    }
+    return out;
+  }, [cells]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -275,19 +285,25 @@ export default function CloudSheetEditor() {
           </div>
         </div>
 
-        {/* 수식 표시줄 */}
+        {/* 수식 표시줄: 원본(raw, 수식 포함) 표시 */}
         <div className="border-t border-border bg-muted/20 flex items-center gap-2 px-3 py-1.5 text-xs">
           <span className="w-14 font-mono font-medium text-muted-foreground shrink-0">{selectedRef}</span>
           <span className="text-muted-foreground select-none">fx</span>
           <span className="flex-1 truncate font-mono">
             {cells[selectedRef] ?? ''}
           </span>
+          {(cells[selectedRef] ?? '').startsWith('=') && (
+            <span className="text-muted-foreground shrink-0">
+              = <span className="font-medium text-foreground">{displayValues[selectedRef] ?? ''}</span>
+            </span>
+          )}
         </div>
       </header>
 
       <main className="flex-1 overflow-auto">
         <SheetGrid
           cells={cells}
+          displayValues={displayValues}
           selected={selected}
           editing={editing}
           editingValue={editingValue}
@@ -310,6 +326,7 @@ export default function CloudSheetEditor() {
 
 interface SheetGridProps {
   cells: Cells;
+  displayValues: Cells;
   selected: { row: number; col: number };
   editing: { row: number; col: number } | null;
   editingValue: string;
@@ -321,7 +338,7 @@ interface SheetGridProps {
 }
 
 function SheetGrid({
-  cells, selected, editing, editingValue,
+  cells, displayValues, selected, editing, editingValue,
   onSelect, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
   const cols = useMemo(() => Array.from({ length: COLS }, (_, i) => colLabel(i)), []);
@@ -351,7 +368,9 @@ function SheetGrid({
               </th>
               {cols.map((_, colIdx) => {
                 const ref = cellRef(rowIdx, colIdx);
-                const value = cells[ref] ?? '';
+                const raw = cells[ref] ?? '';
+                // 표시값: 수식이면 평가 결과, 아니면 raw 그대로
+                const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
                 const isSelected = selected.row === rowIdx && selected.col === colIdx;
                 const isEditing = !!editing && editing.row === rowIdx && editing.col === colIdx;
                 return (
@@ -359,7 +378,7 @@ function SheetGrid({
                     key={ref}
                     row={rowIdx}
                     col={colIdx}
-                    value={value}
+                    value={display}
                     selected={isSelected}
                     editing={isEditing}
                     editingValue={editingValue}
@@ -521,8 +540,13 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           </section>
         </div>
 
-        <div className="pt-3 text-xs text-muted-foreground border-t border-border">
-          수식 (=SUM 등) · 시트 탭 · .xlsx import/export 는 다음 단계.
+        <div className="pt-3 text-xs text-muted-foreground border-t border-border space-y-1">
+          <div className="font-medium text-foreground">수식 (✅ 지원):</div>
+          <div>=SUM(A1:A10) · =AVG / AVERAGE · =MIN / MAX / COUNT</div>
+          <div>=IF(A1{'>'}5, "큼", "작음") · =ABS / ROUND</div>
+          <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
+          <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
+          <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
         </div>
       </DialogContent>
     </Dialog>
