@@ -56,10 +56,11 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 오늘 할일 (M)
+// 오늘 할일 (M) — 우선순위 분포 dot 표시
 export function TasksWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const items = data.inbox.slice(0, 5);
+  const high = data.inbox.filter((t) => (t.priority ?? 0) >= 2).length;
   return (
     <button
       type="button"
@@ -70,23 +71,30 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
       {items.length === 0 ? (
         <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" />
       ) : (
-        <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
-          {items.map((t) => (
-            <li key={t.id} className="flex items-baseline gap-2 text-[12.5px] leading-tight">
-              {(t.priority ?? 0) > 0 ? (
-                <Flag className={cn(
-                  'h-2.5 w-2.5 shrink-0 mt-0.5',
-                  t.priority === 3 && 'text-rose-500 fill-rose-500',
-                  t.priority === 2 && 'text-amber-500 fill-amber-500',
-                  t.priority === 1 && 'text-blue-500 fill-blue-500',
-                )} />
-              ) : (
-                <span className="h-1 w-1 rounded-full bg-muted-foreground/55 shrink-0 mt-1.5" />
-              )}
-              <span className="flex-1 min-w-0 truncate text-foreground">{t.title}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {high > 0 && (
+            <div className="mt-1 text-[9.5px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
+              ⚑ 우선 {high}개
+            </div>
+          )}
+          <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
+            {items.map((t) => (
+              <li key={t.id} className="flex items-baseline gap-2 text-[12.5px] leading-tight">
+                {(t.priority ?? 0) > 0 ? (
+                  <Flag className={cn(
+                    'h-2.5 w-2.5 shrink-0 mt-0.5',
+                    t.priority === 3 && 'text-rose-500 fill-rose-500',
+                    t.priority === 2 && 'text-amber-500 fill-amber-500',
+                    t.priority === 1 && 'text-blue-500 fill-blue-500',
+                  )} />
+                ) : (
+                  <span className="h-1 w-1 rounded-full bg-muted-foreground/55 shrink-0 mt-1.5" />
+                )}
+                <span className="flex-1 min-w-0 truncate text-foreground">{t.title}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </button>
   );
@@ -126,7 +134,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
   return (
     <div className="w-full h-full p-3 flex flex-col">
       {/* 헤더 */}
-      <div className="flex items-center gap-1 mb-2">
+      <div className="flex items-center gap-1 mb-1.5">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }}
@@ -138,7 +146,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         <button
           type="button"
           onClick={() => { onClose(); navigate('/planner'); }}
-          className="flex-1 text-[12px] font-semibold text-foreground/85 text-center hover:text-foreground"
+          className="flex-1 text-[13px] font-bold text-foreground text-center hover:text-primary"
         >
           {year}년 {month + 1}월
         </button>
@@ -150,6 +158,11 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         >
           <ChevronRight className="h-3 w-3" />
         </button>
+      </div>
+      {/* 범례 — 일정·할일 점 */}
+      <div className="flex items-center justify-center gap-3 mb-1 text-[9.5px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary/80" />일정</span>
+        <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500/85" />할일</span>
       </div>
       {/* 요일 */}
       <div className="grid grid-cols-7 gap-0.5 text-[9.5px] font-medium text-muted-foreground/75 mb-0.5">
@@ -192,12 +205,14 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 습관 (S/M)
+// 습관 (S/M) — 진행률 바 + streak 위험 표시
 export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const done = data.habits.filter((h) => h.done).length;
   const total = data.habits.length;
+  const atRisk = data.habits.filter((h) => h.streakAtRisk).length;
   const limit = widget.size === 'M' ? 5 : 3;
+  const ratio = total > 0 ? done / total : 0;
   return (
     <button
       type="button"
@@ -206,55 +221,83 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} />
       {total === 0 ? (
-        <EmptyText text="활성 습관 없음" />
+        <EmptyText text="활성 습관 없음" hint="플래너 → 습관 →" />
       ) : (
-        <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
-          {data.habits.slice(0, limit).map((h) => (
-            <li key={h.id} className="flex items-center gap-1.5 text-[12px] leading-tight">
-              <span className={cn(
-                'h-3 w-3 rounded-full shrink-0 inline-flex items-center justify-center text-[9px] font-bold',
-                h.done ? 'bg-emerald-500 text-white' :
-                  h.streakAtRisk ? 'bg-rose-500/15 text-rose-500 ring-1 ring-rose-500/45' :
-                    'bg-muted text-muted-foreground/60',
-              )}>
-                {h.done ? '✓' : h.streakAtRisk ? '!' : ''}
-              </span>
-              <span className={cn('flex-1 truncate text-foreground', h.done && 'text-muted-foreground line-through')}>
-                {h.title}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* 진행률 bar */}
+          <div className="mt-1.5 h-1 rounded-full bg-foreground/8 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-orange-400 to-amber-500 transition-all duration-500"
+              style={{ width: `${ratio * 100}%` }}
+            />
+          </div>
+          {atRisk > 0 && (
+            <div className="mt-1 text-[9.5px] text-rose-500 font-semibold uppercase tracking-wider">
+              {atRisk}개 streak 위험
+            </div>
+          )}
+          <ul className="mt-1 space-y-1 flex-1 overflow-hidden">
+            {data.habits.slice(0, limit).map((h) => (
+              <li key={h.id} className="flex items-center gap-1.5 text-[11.5px] leading-tight">
+                <span className={cn(
+                  'h-3 w-3 rounded-full shrink-0 inline-flex items-center justify-center text-[9px] font-bold',
+                  h.done ? 'bg-emerald-500 text-white' :
+                    h.streakAtRisk ? 'bg-rose-500/15 text-rose-500 ring-1 ring-rose-500/45' :
+                      'bg-muted text-muted-foreground/60',
+                )}>
+                  {h.done ? '✓' : h.streakAtRisk ? '!' : ''}
+                </span>
+                <span className={cn('flex-1 truncate text-foreground', h.done && 'text-muted-foreground line-through')}>
+                  {h.title}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </button>
   );
 }
 
 // ──────────────────────────────────────────
-// D-day (S/M)
+// D-day (S/M) — 가장 가까운 D-day 는 hero 큰 숫자
 export function DdayWidget({ widget, data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const limit = widget.size === 'M' ? 5 : 2;
+  const items = data.upcomingDday;
+  const hero = items[0];
+  const rest = items.slice(1, limit);
   return (
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={data.upcomingDday.length} />
-      {data.upcomingDday.length === 0 ? (
-        <EmptyText text="가까운 일 없음" />
+      <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} />
+      {items.length === 0 ? (
+        <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" />
       ) : (
-        <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
-          {data.upcomingDday.slice(0, limit).map((d, i) => (
-            <li key={i} className="flex items-baseline gap-1.5 text-[12px] leading-tight">
-              <span className="tabular-nums font-mono text-[10.5px] font-bold text-foreground shrink-0 w-[36px]">
-                {d.daysLeft === 0 ? 'D-DAY' : `D-${d.daysLeft}`}
-              </span>
-              <span className="flex-1 truncate text-foreground/85">{d.label}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* hero — 가장 가까운 D-day */}
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="font-display text-[20px] font-extrabold tabular-nums text-foreground leading-none">
+              {hero.daysLeft === 0 ? 'D-DAY' : `D-${hero.daysLeft}`}
+            </span>
+            <span className="text-[11px] text-foreground/85 truncate flex-1">{hero.label}</span>
+          </div>
+          {rest.length > 0 && (
+            <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
+              {rest.map((d, i) => (
+                <li key={i} className="flex items-baseline gap-1.5 text-[10.5px] leading-tight">
+                  <span className="tabular-nums font-mono text-[9.5px] font-bold text-foreground/70 shrink-0 w-[30px]">
+                    D-{d.daysLeft}
+                  </span>
+                  <span className="flex-1 truncate text-foreground/65">{d.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </button>
   );
@@ -299,19 +342,28 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 어제 미완료 (S/M)
+// 어제 미완료 (S/M) — 0개일 때 축하 톤
 export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const limit = widget.size === 'M' ? 4 : 2;
+  const empty = data.overdue.length === 0;
   return (
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
       className="w-full h-full text-left p-3 flex flex-col"
     >
-      <WidgetHeader icon={<AlertTriangle className="h-3.5 w-3.5 text-rose-500" />} title="어제 미완료" count={data.overdue.length} />
-      {data.overdue.length === 0 ? (
-        <EmptyText text="다 끝났어요 ✨" />
+      <WidgetHeader
+        icon={<AlertTriangle className={cn('h-3.5 w-3.5', empty ? 'text-emerald-500' : 'text-rose-500')} />}
+        title={empty ? '깨끗' : '어제 미완료'}
+        count={empty ? '' : data.overdue.length}
+      />
+      {empty ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
+          <span className="text-[28px] leading-none" aria-hidden>✨</span>
+          <span className="text-[10.5px] text-foreground/75 font-medium mt-1">다 끝났어요</span>
+          <span className="text-[9.5px] text-muted-foreground/75">밀린 일 0</span>
+        </div>
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
           {data.overdue.slice(0, limit).map((t) => (

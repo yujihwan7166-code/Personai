@@ -122,29 +122,30 @@ export interface BriefingSettings {
 }
 
 // ──────────────────────────────────────────
-// Default 위젯 — 6×4 그리드 균형 잡힌 레이아웃
+// Default 위젯 — 6×4 그리드 균형 (12개, row 4개 다 채움)
 //
 //  Col:  0   1   2   3   4   5
 //  Row 0: [pickFirst M] [schedule  M] [tasks    M]
-//  Row 1: [calendar L  ] [날씨   M  ] [habits S][dday S]
+//  Row 1: [calendar L  ] [weather  M] [habits S][dday S]
 //  Row 2: [calendar L  ] [recentJournal M] [overdue S][clock S]
-//  Row 3:                                  [환율 S    ] [코인 S]
+//  Row 3: [pickFirst stays] [forex S][stock S][... 빈칸 채울 위젯]
 //
-// 외부 위젯 (날씨·환율·코인) 도 default 에 — 데이터 자동 fetch.
+// row 3 도 4 위젯으로 채워 균형.
 function buildDefaultWidgets(): PlacedWidget[] {
   return [
     placed('pickFirst', 'M', 0, 0),       // 0,0–1,0
     placed('schedule', 'M', 2, 0),        // 2,0–3,0
     placed('tasks', 'M', 4, 0),           // 4,0–5,0
-    placed('calendar', 'L', 0, 1),        // 0,1–1,2
+    placed('calendar', 'L', 0, 1),        // 0,1–1,2 (4셀)
     placed('weather', 'M', 2, 1),         // 2,1–3,1
     placed('habits', 'S', 4, 1),          // 4,1
     placed('dday', 'S', 5, 1),            // 5,1
     placed('recentJournal', 'M', 2, 2),   // 2,2–3,2
     placed('overdue', 'S', 4, 2),         // 4,2
     placed('clock', 'S', 5, 2),           // 5,2
-    placed('forex', 'S', 4, 3),           // 4,3
-    placed('stock', 'S', 5, 3),           // 5,3
+    placed('forex', 'M', 0, 3),           // 0,3–1,3 (M size 로 row 3 좌측 채움)
+    placed('stock', 'M', 2, 3),           // 2,3–3,3
+    placed('news', 'M', 4, 3),            // 4,3–5,3
   ];
 }
 

@@ -70,49 +70,69 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           backgroundImage: 'linear-gradient(180deg, hsl(40 35% 99%) 0%, hsl(var(--card)) 240px)',
         }}
       >
-        {/* 헤더 — 큰 인사말 + 날짜·진행 정보 */}
+        {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
         <div className="shrink-0 px-7 pt-5 pb-4 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-[22px] sm:text-[24px] font-bold tracking-tight text-foreground leading-tight">
+            <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1]">
               {data.greeting}
             </h2>
-            <p className="text-[12.5px] text-muted-foreground mt-1 tabular-nums">
+            <p className="text-[13px] text-foreground/70 mt-1.5 tabular-nums font-medium">
               {data.date}
               {data.timed.length > 0 && (
                 <>
-                  <span className="mx-1.5 text-foreground/25">·</span>
+                  <span className="mx-1.5 text-foreground/20">·</span>
                   <span>오늘 일정 {data.timed.length}건</span>
                 </>
               )}
               {data.inbox.length > 0 && (
                 <>
-                  <span className="mx-1.5 text-foreground/25">·</span>
+                  <span className="mx-1.5 text-foreground/20">·</span>
                   <span>할일 {data.inbox.length}개</span>
                 </>
               )}
             </p>
           </div>
+          {/* 오늘 진행률 ring — 할일·습관 중 데이터 있는 것 우선 */}
+          {(data.habits.length > 0 || data.inbox.length > 0) && (() => {
+            const habitDone = data.habits.filter((h) => h.done).length;
+            const habitTotal = data.habits.length;
+            const useHabit = habitTotal > 0;
+            const value = useHabit ? habitDone : 0;
+            const total = useHabit ? habitTotal : data.inbox.length;
+            const ratio = total > 0 ? value / total : 0;
+            return (
+              <div
+                className="shrink-0 mr-1 flex flex-col items-center justify-center gap-0.5"
+                title={useHabit ? `오늘 습관 ${habitDone}/${habitTotal}` : `오늘 할일 0/${total}`}
+              >
+                <ProgressRing size={36} ratio={ratio} />
+                <span className="text-[9.5px] tabular-nums text-muted-foreground font-semibold uppercase tracking-wider">
+                  {useHabit ? '습관' : '할일'}
+                </span>
+              </div>
+            );
+          })()}
           <button
             type="button"
             onClick={() => setEditMode((v) => !v)}
             aria-label={editMode ? '편집 종료' : '편집'}
             title={editMode ? '편집 종료' : '위젯 편집'}
             className={cn(
-              'shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-xl transition-all',
+              'shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl transition-all',
               editMode
                 ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
             )}
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-[18px] w-[18px]" />
           </button>
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+            className="shrink-0 h-10 w-10 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-[18px] w-[18px]" />
           </button>
         </div>
 
@@ -318,7 +338,7 @@ function WidgetCard({
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
         'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_2px_8px_-4px_hsl(30_15%_8%/0.05)]',
-        !editMode && 'hover:shadow-[0_4px_14px_-6px_hsl(30_15%_8%/0.12),_0_2px_6px_-3px_hsl(30_15%_8%/0.08)] hover:-translate-y-0.5',
+        !editMode && 'hover:-translate-y-0.5',
         editMode && 'wb-jiggle ring-2 ring-primary/30 cursor-grab',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
       )}
@@ -330,9 +350,11 @@ function WidgetCard({
           ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.22)').replace('hsl(', 'hsla(')}, ${meta.tint.hue.replace(')', ' / 0.08)').replace('hsl(', 'hsla(')})`
           : `linear-gradient(180deg, ${meta.tint.bg}, ${meta.tint.hue.replace(')', ' / 0.03)').replace('hsl(', 'hsla(')} 100%)`,
         borderTop: `3px solid ${meta.tint.border}`,
+        // hover 시 tint 글로우 — CSS var 로 동적
+        ['--card-tint-hue' as string]: meta.tint.hue,
         boxShadow: isHero
           ? `0 6px 20px -8px ${meta.tint.hue}55, 0 2px 6px -2px hsl(30 15% 8% / 0.08)`
-          : undefined,
+          : (hover ? `0 8px 22px -8px ${meta.tint.hue}40, 0 2px 6px -2px hsl(30 15% 8% / 0.08)` : undefined),
         outline: `1px solid hsl(var(--foreground) / 0.05)`,
         outlineOffset: '-1px',
       }}
@@ -507,6 +529,48 @@ function WidgetPicker({
 
 // ──────────────────────────────────────────
 // 빈 상태
+
+// 작은 진행률 ring — 헤더용
+function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
+  const stroke = 3;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const offset = c * (1 - clamped);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="hsl(var(--foreground) / 0.10)"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="hsl(var(--primary))"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+      />
+      <text
+        x={size / 2}
+        y={size / 2 + 3.2}
+        textAnchor="middle"
+        fontSize="10"
+        fontWeight="700"
+        fill="hsl(var(--foreground))"
+      >{Math.round(clamped * 100)}</text>
+    </svg>
+  );
+}
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
