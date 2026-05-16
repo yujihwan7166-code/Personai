@@ -645,7 +645,11 @@ export default function CloudSlideEditor() {
     window.addEventListener('pointerup', onUp);
   }, [updateEl]);
 
-  // ─── 드래그 이동 ───
+  // 정렬 가이드 (드래그 중에만) — kind h(가로선) / v(세로선), pct 0~100
+  const [snapGuides, setSnapGuides] = useState<Array<{ kind: 'h' | 'v'; pct: number }>>([]);
+
+  // ─── 드래그 이동 + snap ───
+  const SNAP_THRESHOLD_PCT = 1.0; // 1% 이내면 snap
   const startDrag = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
     if (editingElId === elId) return; // 편집 중엔 드래그 X
     e.preventDefault();
@@ -657,24 +661,84 @@ export default function CloudSlideEditor() {
     const startY = e.clientY;
     const startElX = el.xPct;
     const startElY = el.yPct;
-    let lastX = startElX;
-    let lastY = startElY;
+    // 다른 요소들의 anchor (현재 슬라이드만)
+    const others = (slides[currentIdx]?.elements ?? []).filter((o) => o.id !== elId);
+    const vLines: number[] = [0, 50, 100]; // 캔버스 가장자리·중앙
+    const hLines: number[] = [0, 50, 100];
+    for (const o of others) {
+      vLines.push(o.xPct, o.xPct + o.wPct / 2, o.xPct + o.wPct);
+      hLines.push(o.yPct, o.yPct + o.hPct / 2, o.yPct + o.hPct);
+    }
 
     const onMove = (ev: PointerEvent) => {
       const dxPct = ((ev.clientX - startX) / rect.width) * 100;
       const dyPct = ((ev.clientY - startY) / rect.height) * 100;
-      lastX = Math.max(0, Math.min(100 - el.wPct, startElX + dxPct));
-      lastY = Math.max(0, Math.min(100 - el.hPct, startElY + dyPct));
-      // 즉시 시각 반영 (state 통한 매번 저장 큐 방지 위해 직접 DOM 조작 → 단순화는 state 매번 업데이트)
-      updateEl(elId, { xPct: lastX, yPct: lastY });
+      let nx = Math.max(0, Math.min(100 - el.wPct, startElX + dxPct));
+      let ny = Math.max(0, Math.min(100 - el.hPct, startElY + dyPct));
+
+      // snap: 6개 anchor (left/centerX/right · top/centerY/bottom) vs vLines/hLines
+      const guides: Array<{ kind: 'h' | 'v'; pct: number }> = [];
+      // 수직 가이드 (도형의 left/centerX/right)
+      const xAnchors: Array<{ offset: number; pct: number }> = [
+        { offset: 0, pct: nx },
+        { offset: el.wPct / 2, pct: nx + el.wPct / 2 },
+        { offset: el.wPct, pct: nx + el.wPct },
+      ];
+      let bestVDelta = Infinity;
+      let bestVLine: number | null = null;
+      let bestVAnchorOffset = 0;
+      for (const a of xAnchors) {
+        for (const line of vLines) {
+          const d = a.pct - line;
+          if (Math.abs(d) < bestVDelta) {
+            bestVDelta = Math.abs(d);
+            bestVLine = line;
+            bestVAnchorOffset = a.offset;
+          }
+        }
+      }
+      if (bestVDelta <= SNAP_THRESHOLD_PCT && bestVLine !== null) {
+        nx = bestVLine - bestVAnchorOffset;
+        nx = Math.max(0, Math.min(100 - el.wPct, nx));
+        guides.push({ kind: 'v', pct: bestVLine });
+      }
+
+      // 수평 가이드 (도형의 top/centerY/bottom)
+      const yAnchors: Array<{ offset: number; pct: number }> = [
+        { offset: 0, pct: ny },
+        { offset: el.hPct / 2, pct: ny + el.hPct / 2 },
+        { offset: el.hPct, pct: ny + el.hPct },
+      ];
+      let bestHDelta = Infinity;
+      let bestHLine: number | null = null;
+      let bestHAnchorOffset = 0;
+      for (const a of yAnchors) {
+        for (const line of hLines) {
+          const d = a.pct - line;
+          if (Math.abs(d) < bestHDelta) {
+            bestHDelta = Math.abs(d);
+            bestHLine = line;
+            bestHAnchorOffset = a.offset;
+          }
+        }
+      }
+      if (bestHDelta <= SNAP_THRESHOLD_PCT && bestHLine !== null) {
+        ny = bestHLine - bestHAnchorOffset;
+        ny = Math.max(0, Math.min(100 - el.hPct, ny));
+        guides.push({ kind: 'h', pct: bestHLine });
+      }
+
+      setSnapGuides(guides);
+      updateEl(elId, { xPct: nx, yPct: ny });
     };
     const onUp = () => {
+      setSnapGuides([]);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }, [editingElId, updateEl]);
+  }, [editingElId, updateEl, slides, currentIdx]);
 
   // ─── AI 액션 ───
   const [aiBusy, setAiBusy] = useState<string | null>(null);
@@ -1388,6 +1452,24 @@ export default function CloudSlideEditor() {
                   />
                 );
               })}
+              {/* 정렬 가이드 라인 (드래그 중에만) */}
+              {snapGuides.map((g, i) =>
+                g.kind === 'v' ? (
+                  <div
+                    key={`g-${i}`}
+                    className="absolute top-0 bottom-0 pointer-events-none z-50"
+                    style={{ left: `${g.pct}%`, width: 0, borderLeft: '1px dashed rgb(239 68 68)' }}
+                    aria-hidden
+                  />
+                ) : (
+                  <div
+                    key={`g-${i}`}
+                    className="absolute left-0 right-0 pointer-events-none z-50"
+                    style={{ top: `${g.pct}%`, height: 0, borderTop: '1px dashed rgb(239 68 68)' }}
+                    aria-hidden
+                  />
+                ),
+              )}
               {currentSlide.elements.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none">
                   더블클릭으로 텍스트 추가 또는 도구바 [텍스트] 버튼
