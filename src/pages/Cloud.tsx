@@ -51,8 +51,8 @@ export default function Cloud() {
   // 사이드바 폴더 트리
   const [allFolders, setAllFolders] = useState<CloudNode[]>([]);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
-  // 우클릭 컨텍스트 메뉴
-  const [ctxMenu, setCtxMenu] = useState<{ node: CloudNode; x: number; y: number } | null>(null);
+  // 우클릭 컨텍스트 메뉴 — node 가 있으면 파일/폴더 메뉴, null 이면 빈 영역 메뉴
+  const [ctxMenu, setCtxMenu] = useState<{ node: CloudNode | null; x: number; y: number } | null>(null);
   // 드래그 중인 노드 + 호버 중인 drop target 폴더 id
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null | 'root'>(null); // 'root' = 루트 폴더
@@ -102,12 +102,21 @@ export default function Cloud() {
     });
   }, []);
 
-  // 우클릭 컨텍스트 메뉴 트리거
+  // 우클릭 컨텍스트 메뉴 트리거 (파일/폴더)
   const handleContextMenu = useCallback((e: React.MouseEvent, node: CloudNode) => {
     e.preventDefault();
+    e.stopPropagation();
     setCtxMenu({ node, x: e.clientX, y: e.clientY });
     setSelectedId(node.id);
   }, []);
+
+  // 빈 영역 우클릭 (main 또는 빈 nodes 영역)
+  const handleEmptyContextMenu = useCallback((e: React.MouseEvent) => {
+    // 자식 row 의 우클릭은 stopPropagation 됨 → 여기 안 옴
+    if (listMode === 'trash') return; // 휴지통에서는 새 항목 만들 수 없음
+    e.preventDefault();
+    setCtxMenu({ node: null, x: e.clientX, y: e.clientY });
+  }, [listMode]);
 
   // 메뉴 외 클릭 / 포커스 아웃 → 닫기
   useEffect(() => {
@@ -746,7 +755,7 @@ export default function Cloud() {
           />
         </aside>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" onContextMenu={handleEmptyContextMenu}>
           {listMode === 'folder' && (
             <section className="p-6 border-b border-border">
               <h2 className="text-sm font-medium text-muted-foreground mb-3">
@@ -953,75 +962,120 @@ export default function Cloud() {
       />
 
       {/* 우클릭 컨텍스트 메뉴 */}
-      {ctxMenu && (
-        <div
-          className="fixed z-[60] rounded border border-border bg-popover shadow-md text-sm min-w-[170px] py-1"
-          style={{ left: ctxMenu.x, top: ctxMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {ctxMenu.node.deletedAt ? (
-            <>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                onClick={() => { void handleRestore(ctxMenu.node); setCtxMenu(null); }}
-              >
-                <RotateCcw className="w-4 h-4" /> 복원
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
-                onClick={() => { void handlePermanentDelete(ctxMenu.node); setCtxMenu(null); }}
-              >
-                <X className="w-4 h-4" /> 완전 삭제
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                onClick={() => {
-                  if (ctxMenu.node.kind === 'folder') {
-                    // 폴더: 들어가기
-                    setTrail((cur) => [...cur, { id: ctxMenu.node.id, name: ctxMenu.node.name }]);
-                  } else {
-                    handleOpenFile(ctxMenu.node);
-                  }
-                  setCtxMenu(null);
-                }}
-              >
-                <FolderOpen className="w-4 h-4" />
-                {ctxMenu.node.kind === 'folder' ? '폴더 열기' : '편집기에서 열기'}
-              </button>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                onClick={() => { startRename(ctxMenu.node.id); setCtxMenu(null); }}
-              >
-                <Pencil className="w-4 h-4" /> 이름 변경
-              </button>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                onClick={() => { void handleToggleStar(ctxMenu.node); setCtxMenu(null); }}
-              >
-                <Star className={cn('w-4 h-4', ctxMenu.node.starred && 'fill-yellow-400 text-yellow-400')} />
-                {ctxMenu.node.starred ? '별표 해제' : '별표 추가'}
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button
-                type="button"
-                className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
-                onClick={() => { void handleMoveToTrash(ctxMenu.node); setCtxMenu(null); }}
-              >
-                <Trash2 className="w-4 h-4" /> 휴지통으로
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {ctxMenu && (() => {
+        const node = ctxMenu.node;
+        return (
+          <div
+            className="fixed z-[60] rounded border border-border bg-popover shadow-md text-sm min-w-[170px] py-1"
+            style={{ left: ctxMenu.x, top: ctxMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!node ? (
+              // 빈 영역: 새로 만들기 메뉴
+              <>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleCreateDoc(); setCtxMenu(null); }}
+                >
+                  <FileText className="w-4 h-4" /> 새 문서
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleCreateSheet(); setCtxMenu(null); }}
+                >
+                  <FileSpreadsheet className="w-4 h-4" /> 새 시트
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleCreateSlide(); setCtxMenu(null); }}
+                >
+                  <Presentation className="w-4 h-4" /> 새 슬라이드
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { openNewFolderInput(); setCtxMenu(null); }}
+                >
+                  <FolderPlus className="w-4 h-4" /> 새 폴더
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { handleUploadClick(); setCtxMenu(null); }}
+                >
+                  <Upload className="w-4 h-4" /> 파일 업로드…
+                </button>
+              </>
+            ) : node.deletedAt ? (
+              // 휴지통 항목
+              <>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleRestore(node); setCtxMenu(null); }}
+                >
+                  <RotateCcw className="w-4 h-4" /> 복원
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
+                  onClick={() => { void handlePermanentDelete(node); setCtxMenu(null); }}
+                >
+                  <X className="w-4 h-4" /> 완전 삭제
+                </button>
+              </>
+            ) : (
+              // 일반 파일/폴더
+              <>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => {
+                    if (node.kind === 'folder') {
+                      setTrail((cur) => [...cur, { id: node.id, name: node.name }]);
+                    } else {
+                      handleOpenFile(node);
+                    }
+                    setCtxMenu(null);
+                  }}
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  {node.kind === 'folder' ? '폴더 열기' : '편집기에서 열기'}
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { startRename(node.id); setCtxMenu(null); }}
+                >
+                  <Pencil className="w-4 h-4" /> 이름 변경
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleToggleStar(node); setCtxMenu(null); }}
+                >
+                  <Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />
+                  {node.starred ? '별표 해제' : '별표 추가'}
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive flex items-center gap-2"
+                  onClick={() => { void handleMoveToTrash(node); setCtxMenu(null); }}
+                >
+                  <Trash2 className="w-4 h-4" /> 휴지통으로
+                </button>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
