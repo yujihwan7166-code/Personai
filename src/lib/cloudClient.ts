@@ -1,14 +1,11 @@
 /**
- * 클라우드 모드 Supabase 호출 wrapper.
+ * 클라우드 모드 데이터 어댑터.
  *
- * Supabase types.ts 에 cloud_nodes 가 아직 없어서 (재생성 전) 'cloud_nodes' 테이블
- * 호출 부분만 임시 unknown 캐스트 처리. 결과 row 는 CloudNodeRow 로 받음.
- *
- * 청크 1~3 까지의 SQL 만으로 모든 메타 CRUD 동작 가능.
- * 파일 binary 업로드/다운로드는 청크 4(Storage) 후 별도 함수로 추가.
+ * v1 (현재): localStorage 기반 단일 사용자. 로그인·Supabase 의존 0.
+ * v2 (예정): 사용자 명시 요청 시 Supabase Storage·RLS 백엔드로 swap.
+ *           외부 인터페이스(함수 시그니처)는 동일하게 유지 → 호출자 코드 변경 0.
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import {
   rowToCloudNode,
   type CloudNode,
@@ -16,122 +13,170 @@ import {
   type CloudFileType,
 } from '@/types/cloud';
 
-const TABLE = 'cloud_nodes';
+const STORAGE_KEY = 'personai.cloud.nodes.v1';
 
-/** types 미재생성 우회용 임시 가드 — eslint 경고 캡슐화. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const cloudTable = () => (supabase as any).from(TABLE);
+interface StoredNode {
+  id: string;
+  owner_id: string;
+  parent_folder_id: string | null;
+  kind: 'file' | 'folder';
+  name: string;
+  file_type: CloudFileType | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  storage_path: string | null;
+  original_storage_path: string | null;
+  meta: Record<string, unknown>;
+  starred: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─────────────────────────────────────────────
+// 저장소 (localStorage + pub/sub)
+// ─────────────────────────────────────────────
+
+let cache: StoredNode[] | null = null;
+
+function loadAll(): StoredNode[] {
+  if (cache) return cache;
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      cache = [];
+      return cache;
+    }
+    const parsed = JSON.parse(raw);
+    cache = Array.isArray(parsed) ? (parsed as StoredNode[]) : [];
+    return cache;
+  } catch {
+    cache = [];
+    return cache;
+  }
+}
+
+function saveAll(nodes: StoredNode[]): void {
+  cache = nodes;
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes));
+  } catch {
+    // quota or privacy mode — 조용히 무시 (사용자에겐 토스트로 표시 가능)
+  }
+}
+
+function genId(): string {
+  return `cn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function toRow(n: StoredNode): CloudNodeRow {
+  return n as CloudNodeRow;
+}
 
 // ─────────────────────────────────────────────
 // 조회
 // ─────────────────────────────────────────────
 
-/** 특정 폴더 안의 살아있는 노드 (folder 먼저, 그 다음 file은 최근수정 순). */
+/** 특정 폴더 안의 살아있는 노드 (folder 먼저, file 은 최근수정 순). */
 export async function fetchAliveChildren(
   ownerId: string,
   parentFolderId: string | null,
 ): Promise<CloudNode[]> {
-  let q = cloudTable()
-    .select('*')
-    .eq('owner_id', ownerId)
-    .is('deleted_at', null);
-  q = parentFolderId === null
-    ? q.is('parent_folder_id', null)
-    : q.eq('parent_folder_id', parentFolderId);
-  // folder=true 가 먼저 오도록 kind 내림차순 정렬 ('folder' > 'file' 알파벳)
-  q = q.order('kind', { ascending: true }).order('updated_at', { ascending: false });
-  const { data, error } = await q;
-  if (error) throw error;
-  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+  const all = loadAll();
+  return all
+    .filter(
+      (n) =>
+        n.owner_id === ownerId &&
+        n.parent_folder_id === parentFolderId &&
+        n.deleted_at === null,
+    )
+    .sort(sortFolderFirstThenRecent)
+    .map((n) => rowToCloudNode(toRow(n)));
 }
 
-/** 별표한 항목 전체 (deleted 제외). */
+/** 별표 (살아있는 항목 중 starred). */
 export async function fetchStarred(ownerId: string): Promise<CloudNode[]> {
-  const { data, error } = await cloudTable()
-    .select('*')
-    .eq('owner_id', ownerId)
-    .is('deleted_at', null)
-    .eq('starred', true)
-    .order('updated_at', { ascending: false });
-  if (error) throw error;
-  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+  const all = loadAll();
+  return all
+    .filter((n) => n.owner_id === ownerId && n.deleted_at === null && n.starred)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .map((n) => rowToCloudNode(toRow(n)));
 }
 
-/** 휴지통 (deleted_at IS NOT NULL). */
+/** 휴지통 (deleted_at != null). */
 export async function fetchTrash(ownerId: string): Promise<CloudNode[]> {
-  const { data, error } = await cloudTable()
-    .select('*')
-    .eq('owner_id', ownerId)
-    .not('deleted_at', 'is', null)
-    .order('deleted_at', { ascending: false });
-  if (error) throw error;
-  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+  const all = loadAll();
+  return all
+    .filter((n) => n.owner_id === ownerId && n.deleted_at !== null)
+    .sort((a, b) => (b.deleted_at ?? '').localeCompare(a.deleted_at ?? ''))
+    .map((n) => rowToCloudNode(toRow(n)));
 }
 
-/** 최근 수정 (전체 폴더 가로질러, 30일·20개 제한). */
+/** 최근 30일 안에 수정된 파일 (limit 개). */
 export async function fetchRecent(ownerId: string, limit = 20): Promise<CloudNode[]> {
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await cloudTable()
-    .select('*')
-    .eq('owner_id', ownerId)
-    .is('deleted_at', null)
-    .eq('kind', 'file')
-    .gte('updated_at', sinceIso)
-    .order('updated_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+  const all = loadAll();
+  return all
+    .filter(
+      (n) =>
+        n.owner_id === ownerId &&
+        n.deleted_at === null &&
+        n.kind === 'file' &&
+        n.updated_at >= sinceIso,
+    )
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .slice(0, limit)
+    .map((n) => rowToCloudNode(toRow(n)));
 }
 
-/** 단일 노드 조회. 검색 결과의 부모 폴더 가져오기 등에 사용. */
+/** 단일 노드 조회. */
 export async function fetchNode(id: string): Promise<CloudNode | null> {
-  const { data, error } = await cloudTable()
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? rowToCloudNode(data as CloudNodeRow) : null;
+  const all = loadAll();
+  const found = all.find((n) => n.id === id);
+  return found ? rowToCloudNode(toRow(found)) : null;
 }
 
-/** 이름 검색 (살아있는 파일·폴더만, ILIKE 부분 일치). */
+/** 이름 검색 (살아있는 항목, 부분 일치, limit 개). */
 export async function searchByName(
   ownerId: string,
   query: string,
   limit = 30,
 ): Promise<CloudNode[]> {
-  const trimmed = query.trim();
-  if (!trimmed) return [];
-  // ILIKE 와일드카드 이스케이프 (% _ \)
-  const safe = trimmed.replace(/[\\%_]/g, (m) => `\\${m}`);
-  const { data, error } = await cloudTable()
-    .select('*')
-    .eq('owner_id', ownerId)
-    .is('deleted_at', null)
-    .ilike('name', `%${safe}%`)
-    .order('kind', { ascending: true })
-    .order('updated_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return ((data ?? []) as CloudNodeRow[]).map(rowToCloudNode);
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const all = loadAll();
+  return all
+    .filter(
+      (n) =>
+        n.owner_id === ownerId &&
+        n.deleted_at === null &&
+        n.name.toLowerCase().includes(q),
+    )
+    .sort(sortFolderFirstThenRecent)
+    .slice(0, limit)
+    .map((n) => rowToCloudNode(toRow(n)));
 }
 
 /** 사이드바 카운트 (별표·휴지통). */
 export async function fetchCounts(ownerId: string): Promise<{ starred: number; trash: number }> {
-  const [starredRes, trashRes] = await Promise.all([
-    cloudTable()
-      .select('id', { count: 'exact', head: true })
-      .eq('owner_id', ownerId)
-      .is('deleted_at', null)
-      .eq('starred', true),
-    cloudTable()
-      .select('id', { count: 'exact', head: true })
-      .eq('owner_id', ownerId)
-      .not('deleted_at', 'is', null),
-  ]);
-  return {
-    starred: (starredRes.count as number | null) ?? 0,
-    trash: (trashRes.count as number | null) ?? 0,
-  };
+  const all = loadAll();
+  let starred = 0;
+  let trash = 0;
+  for (const n of all) {
+    if (n.owner_id !== ownerId) continue;
+    if (n.deleted_at !== null) {
+      trash++;
+    } else if (n.starred) {
+      starred++;
+    }
+  }
+  return { starred, trash };
 }
 
 // ─────────────────────────────────────────────
@@ -143,57 +188,79 @@ export async function createFolder(
   name: string,
   parentFolderId: string | null,
 ): Promise<CloudNode> {
-  const { data, error } = await cloudTable()
-    .insert({
-      owner_id: ownerId,
-      parent_folder_id: parentFolderId,
-      kind: 'folder',
-      name,
-    })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToCloudNode(data as CloudNodeRow);
+  const now = nowIso();
+  const next: StoredNode = {
+    id: genId(),
+    owner_id: ownerId,
+    parent_folder_id: parentFolderId,
+    kind: 'folder',
+    name,
+    file_type: null,
+    mime_type: null,
+    size_bytes: null,
+    storage_path: null,
+    original_storage_path: null,
+    meta: {},
+    starred: false,
+    deleted_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+  saveAll([...loadAll(), next]);
+  return rowToCloudNode(toRow(next));
 }
 
-/** 빈 파일 row 생성 (Storage 비어있음). */
 export async function createEmptyFile(
   ownerId: string,
   name: string,
   fileType: CloudFileType,
   parentFolderId: string | null,
 ): Promise<CloudNode> {
-  const { data, error } = await cloudTable()
-    .insert({
-      owner_id: ownerId,
-      parent_folder_id: parentFolderId,
-      kind: 'file',
-      name,
-      file_type: fileType,
-    })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return rowToCloudNode(data as CloudNodeRow);
+  const now = nowIso();
+  const next: StoredNode = {
+    id: genId(),
+    owner_id: ownerId,
+    parent_folder_id: parentFolderId,
+    kind: 'file',
+    name,
+    file_type: fileType,
+    mime_type: null,
+    size_bytes: null,
+    storage_path: null,
+    original_storage_path: null,
+    meta: {},
+    starred: false,
+    deleted_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+  saveAll([...loadAll(), next]);
+  return rowToCloudNode(toRow(next));
 }
 
 // ─────────────────────────────────────────────
 // 수정
 // ─────────────────────────────────────────────
 
+function patchNode(id: string, patch: Partial<StoredNode>): void {
+  const all = loadAll();
+  const idx = all.findIndex((n) => n.id === id);
+  if (idx === -1) return;
+  const next = [...all];
+  next[idx] = { ...next[idx], ...patch, updated_at: nowIso() };
+  saveAll(next);
+}
+
 export async function renameNode(id: string, name: string): Promise<void> {
-  const { error } = await cloudTable().update({ name }).eq('id', id);
-  if (error) throw error;
+  patchNode(id, { name });
 }
 
 export async function moveNode(id: string, parentFolderId: string | null): Promise<void> {
-  const { error } = await cloudTable().update({ parent_folder_id: parentFolderId }).eq('id', id);
-  if (error) throw error;
+  patchNode(id, { parent_folder_id: parentFolderId });
 }
 
 export async function setStarred(id: string, starred: boolean): Promise<void> {
-  const { error } = await cloudTable().update({ starred }).eq('id', id);
-  if (error) throw error;
+  patchNode(id, { starred });
 }
 
 /** 에디터에서 본문/제목 동시 저장 (자동저장용). */
@@ -201,12 +268,11 @@ export async function updateFileBody(
   id: string,
   patch: { name?: string; meta?: Record<string, unknown> },
 ): Promise<void> {
-  const payload: Record<string, unknown> = {};
-  if (patch.name !== undefined) payload.name = patch.name;
-  if (patch.meta !== undefined) payload.meta = patch.meta;
-  if (Object.keys(payload).length === 0) return;
-  const { error } = await cloudTable().update(payload).eq('id', id);
-  if (error) throw error;
+  const stored: Partial<StoredNode> = {};
+  if (patch.name !== undefined) stored.name = patch.name;
+  if (patch.meta !== undefined) stored.meta = patch.meta;
+  if (Object.keys(stored).length === 0) return;
+  patchNode(id, stored);
 }
 
 // ─────────────────────────────────────────────
@@ -214,18 +280,23 @@ export async function updateFileBody(
 // ─────────────────────────────────────────────
 
 export async function moveToTrash(id: string): Promise<void> {
-  const { error } = await cloudTable()
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) throw error;
+  patchNode(id, { deleted_at: nowIso() });
 }
 
 export async function restoreFromTrash(id: string): Promise<void> {
-  const { error } = await cloudTable().update({ deleted_at: null }).eq('id', id);
-  if (error) throw error;
+  patchNode(id, { deleted_at: null });
 }
 
 export async function permanentDelete(id: string): Promise<void> {
-  const { error } = await cloudTable().delete().eq('id', id);
-  if (error) throw error;
+  const all = loadAll();
+  saveAll(all.filter((n) => n.id !== id));
+}
+
+// ─────────────────────────────────────────────
+// 정렬 헬퍼
+// ─────────────────────────────────────────────
+
+function sortFolderFirstThenRecent(a: StoredNode, b: StoredNode): number {
+  if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+  return b.updated_at.localeCompare(a.updated_at);
 }
