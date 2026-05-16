@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { buildBriefingData } from '@/lib/buildBriefingData';
 import {
   GRID_COLS, GRID_ROWS, WIDGET_META, ALL_WIDGET_KINDS,
-  dailyBriefingStore, sizeToSpan, useBriefingSettings, canPlace,
+  buildGrid, dailyBriefingStore, sizeToSpan, useBriefingSettings, canPlace,
   type PlacedWidget, type WidgetKind, type WidgetSize,
 } from '@/lib/dailyBriefingStore';
 import { renderWidget } from './widgets';
@@ -312,6 +312,38 @@ function BriefingGrid({
       onDrop={editMode ? handleDrop : undefined}
       onDragEnd={() => { setDragId(null); setHoverCell(null); }}
     >
+      {/* 편집 모드 — 빈 셀 outline (클릭으로 위젯 추가, drop zone 도 겸함) */}
+      {editMode && (() => {
+        const occupied = buildGrid(widgets);
+        const emptyCells: Array<{ col: number; row: number }> = [];
+        for (let r = 0; r < GRID_ROWS; r++) {
+          for (let c = 0; c < GRID_COLS; c++) {
+            if (!occupied[r][c]) emptyCells.push({ col: c, row: r });
+          }
+        }
+        // 첫 빈 셀은 + 버튼 강조, 나머지는 옅은 outline
+        return emptyCells.map((cell, i) => (
+          <button
+            key={`empty-${cell.col}-${cell.row}`}
+            type="button"
+            onClick={onAdd}
+            className={cn(
+              'rounded-xl border border-dashed transition-colors flex items-center justify-center group',
+              i === 0
+                ? 'border-foreground/25 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/4'
+                : 'border-foreground/10 text-foreground/30 hover:border-primary/40 hover:text-primary hover:bg-primary/4',
+            )}
+            style={{
+              gridColumn: `${cell.col + 1} / span 1`,
+              gridRow: `${cell.row + 1} / span 1`,
+            }}
+            title="위젯 추가"
+            aria-label="위젯 추가"
+          >
+            <Plus className={cn('transition-all', i === 0 ? 'h-5 w-5' : 'h-3.5 w-3.5 opacity-50 group-hover:opacity-100')} />
+          </button>
+        ));
+      })()}
       {widgets.map((w, idx) => (
         <WidgetCard
           key={w.id}
@@ -344,18 +376,6 @@ function BriefingGrid({
           />
         );
       })()}
-      {/* + 추가 버튼 — 편집 모드에서만 */}
-      {editMode && (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="col-span-1 row-span-1 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-foreground/20 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/4 transition-colors"
-          style={{ gridColumn: 'span 1', gridRow: 'span 1' }}
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-[10.5px] font-medium">추가</span>
-        </button>
-      )}
     </div>
   );
 }
