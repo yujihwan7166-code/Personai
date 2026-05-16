@@ -14,6 +14,11 @@ import { TextStyleKit } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import { Table } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
@@ -21,6 +26,7 @@ import {
   Undo2, Redo2, Keyboard,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Link as LinkIcon, Link2Off,
+  Table as TableIcon, Image as ImageIcon, ImagePlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -132,6 +138,17 @@ export default function CloudDocEditor() {
           target: '_blank',
         },
       }),
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-md my-2',
+        },
+      }),
+      Table.configure({ resizable: true, HTMLAttributes: { class: 'doc-table' } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
@@ -468,8 +485,77 @@ function DocToolbar({ editor }: { editor: Editor }) {
           <Link2Off className="w-4 h-4" />
         </ToolBtn>
       )}
+      <Sep />
+
+      {/* 표 삽입 */}
+      <ToolBtn
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        title="표 삽입 (3×3)"
+      >
+        <TableIcon className="w-4 h-4" />
+      </ToolBtn>
+      {/* 표 안일 때만 행/열 액션 노출 */}
+      {editor.isActive('table') && (
+        <>
+          <ToolBtn onClick={() => editor.chain().focus().addRowAfter().run()} title="아래 행 추가">
+            <span className="text-[10px]">+행</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => editor.chain().focus().addColumnAfter().run()} title="오른쪽 열 추가">
+            <span className="text-[10px]">+열</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => editor.chain().focus().deleteRow().run()} title="현재 행 삭제">
+            <span className="text-[10px]">−행</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => editor.chain().focus().deleteColumn().run()} title="현재 열 삭제">
+            <span className="text-[10px]">−열</span>
+          </ToolBtn>
+          <ToolBtn onClick={() => editor.chain().focus().deleteTable().run()} title="표 삭제">
+            <span className="text-[10px] text-destructive">표✕</span>
+          </ToolBtn>
+        </>
+      )}
+      <Sep />
+
+      {/* 이미지 */}
+      <ToolBtn
+        onClick={() => pickImage(editor)}
+        title="이미지 추가 (파일 선택)"
+      >
+        <ImagePlus className="w-4 h-4" />
+      </ToolBtn>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────
+// 이미지 선택 → base64 → 본문 삽입
+// (v1: 인라인 base64. 5MB 한계 가까우면 토스트 안내.
+//  추후 IndexedDB blob ref 로 마이그레이션 예정.)
+// ─────────────────────────────────────────────
+
+function pickImage(editor: Editor): void {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: '이미지가 큽니다',
+        description: '2MB 이하 권장 (localStorage 한계). 더 큰 이미지는 다음 단계의 IndexedDB 활성화 후 처리됩니다.',
+      });
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result;
+      if (typeof src === 'string') {
+        editor.chain().focus().setImage({ src }).run();
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 // ─────────────────────────────────────────────
@@ -632,6 +718,11 @@ function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => vo
             <HelpRow keys={['글자색']} label="도구바 색 picker 클릭 → 색 선택. 더블클릭으로 해제." />
             <HelpRow keys={['형광펜']} label="도구바 형광펜 → 색 선택. 더블클릭으로 해제." />
             <HelpRow keys={['🔗']} label="도구바 링크 → URL 입력. 빈 값 입력 시 제거." />
+          </HelpSection>
+
+          <HelpSection title="표·이미지">
+            <HelpRow keys={['표']} label="도구바 표 버튼 → 3×3 삽입. 표 안에선 +행/+열/−행/−열/표✕ 노출." />
+            <HelpRow keys={['이미지']} label="도구바 이미지+ → 파일 선택 → base64 인라인 (2MB 이하 권장)." />
           </HelpSection>
         </div>
 
