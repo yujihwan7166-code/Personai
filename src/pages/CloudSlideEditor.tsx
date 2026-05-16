@@ -10,6 +10,7 @@ import {
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
   Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
+  Combine, Split,
   Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
@@ -43,6 +44,7 @@ interface BaseEl {
   wPct: number;
   hPct: number;
   rotation?: number;  // degrees, 0~359 (시계방향). 0 또는 미정의 = 회전 없음
+  groupId?: string;   // 같은 groupId 끼리 묶여서 같이 선택·드래그됨
 }
 
 interface SlideTextEl extends BaseEl {
@@ -202,6 +204,8 @@ export default function CloudSlideEditor() {
   const [slides, setSlides] = useState<Slide[]>([emptySlide()]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedElId, setSelectedElId] = useState<string | null>(null);
+  // 다중 선택 (Shift+클릭 또는 그룹화된 멤버 자동 포함)
+  const [selectedElIds, setSelectedElIds] = useState<Set<string>>(new Set());
   const [editingElId, setEditingElId] = useState<string | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [presentIdx, setPresentIdx] = useState(0);
@@ -361,10 +365,12 @@ export default function CloudSlideEditor() {
       const k = e.key.toLowerCase();
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+      else if (k === 'g' && !e.shiftKey) { e.preventDefault(); groupSelected(); }
+      else if (k === 'g' && e.shiftKey) { e.preventDefault(); ungroupSelected(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo]);
+  }, [undo, redo, groupSelected, ungroupSelected]);
 
   const addSlide = useCallback(() => {
     updateSlides((prev) => {
@@ -553,13 +559,90 @@ export default function CloudSlideEditor() {
   }, [updateCurrentSlide]);
 
   const deleteEl = useCallback((elId: string) => {
+    // 그룹 멤버 모두 삭제 (다중 선택과 통합 동작)
+    const cur = slides[currentIdx];
+    const target = cur?.elements.find((e) => e.id === elId);
+    const idsToDelete = new Set<string>([elId]);
+    if (target?.groupId) {
+      for (const e of cur?.elements ?? []) {
+        if (e.groupId === target.groupId) idsToDelete.add(e.id);
+      }
+    }
+    // 추가로 다중 선택된 것도 함께 삭제
+    for (const sid of selectedElIds) idsToDelete.add(sid);
     updateCurrentSlide((s) => ({
       ...s,
-      elements: s.elements.filter((el) => el.id !== elId),
+      elements: s.elements.filter((el) => !idsToDelete.has(el.id)),
     }));
     setSelectedElId(null);
+    setSelectedElIds(new Set());
     setEditingElId(null);
-  }, [updateCurrentSlide]);
+  }, [updateCurrentSlide, slides, currentIdx, selectedElIds]);
+
+  // 어떤 요소를 클릭했을 때 그룹 멤버까지 묶어서 선택. Shift 면 toggle 추가.
+  const selectElement = useCallback((elId: string, multi: boolean = false) => {
+    const cur = slides[currentIdx];
+    if (!cur) return;
+    const target = cur.elements.find((e) => e.id === elId);
+    if (!target) return;
+    const groupIds = new Set<string>([elId]);
+    if (target.groupId) {
+      for (const e of cur.elements) {
+        if (e.groupId === target.groupId) groupIds.add(e.id);
+      }
+    }
+    setSelectedElIds((prev) => {
+      if (!multi) return groupIds;
+      const next = new Set(prev);
+      // toggle: 이미 안에 있으면 빼고, 없으면 추가
+      const alreadyIn = groupIds.size > 0 && [...groupIds].every((id) => next.has(id));
+      if (alreadyIn) {
+        for (const id of groupIds) next.delete(id);
+      } else {
+        for (const id of groupIds) next.add(id);
+      }
+      return next;
+    });
+    setSelectedElId(elId);
+  }, [slides, currentIdx]);
+
+  // ─── 그룹화 / 해제 ───
+  const groupSelected = useCallback(() => {
+    if (selectedElIds.size < 2) {
+      appToast({ title: '2개 이상 선택하세요', description: 'Shift+클릭으로 추가 선택' });
+      return;
+    }
+    const groupId = `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    updateCurrentSlide((s) => ({
+      ...s,
+      elements: s.elements.map((el) => (selectedElIds.has(el.id) ? ({ ...el, groupId } as SlideElement) : el)),
+    }));
+    appToast({ title: `${selectedElIds.size}개 그룹화` });
+  }, [selectedElIds, updateCurrentSlide]);
+
+  const ungroupSelected = useCallback(() => {
+    // 선택된 요소들의 groupId 제거
+    const cur = slides[currentIdx];
+    if (!cur) return;
+    const groupIdsToRemove = new Set<string>();
+    for (const id of selectedElIds) {
+      const el = cur.elements.find((e) => e.id === id);
+      if (el?.groupId) groupIdsToRemove.add(el.groupId);
+    }
+    if (groupIdsToRemove.size === 0) {
+      appToast({ title: '그룹이 없어요' });
+      return;
+    }
+    updateCurrentSlide((s) => ({
+      ...s,
+      elements: s.elements.map((el) => (
+        el.groupId && groupIdsToRemove.has(el.groupId)
+          ? ({ ...el, groupId: undefined } as SlideElement)
+          : el
+      )),
+    }));
+    appToast({ title: '그룹 해제됨' });
+  }, [selectedElIds, slides, currentIdx, updateCurrentSlide]);
 
   // ─── 캔버스 빈 곳 더블클릭 = 텍스트박스 추가 ───
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -654,15 +737,37 @@ export default function CloudSlideEditor() {
     if (editingElId === elId) return; // 편집 중엔 드래그 X
     e.preventDefault();
     e.stopPropagation();
-    setSelectedElId(elId);
+    // 드래그 시작 시 — selected 가 아니면 단일 선택, 이미 selected (다중 또는 그룹) 면 그대로 유지
+    const isAlreadyInSelection = selectedElIds.has(elId);
+    if (!isAlreadyInSelection) {
+      selectElement(elId);
+    }
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     const startX = e.clientX;
     const startY = e.clientY;
+    // 함께 이동할 요소들 (다중 선택 / 그룹 멤버) — 자기 자신 포함
+    const cur = slides[currentIdx];
+    const elList = cur?.elements ?? [];
+    const mates: SlideElement[] = (() => {
+      // selectedElIds 가 이 elId 를 포함하면 그 set 전체, 아니면 elId + 그룹 멤버
+      if (isAlreadyInSelection && selectedElIds.size > 0) {
+        return elList.filter((e2) => selectedElIds.has(e2.id));
+      }
+      if (el.groupId) {
+        return elList.filter((e2) => e2.groupId === el.groupId);
+      }
+      return [el];
+    })();
+    const startPositions = new Map<string, { x: number; y: number; w: number; h: number }>();
+    for (const m of mates) {
+      startPositions.set(m.id, { x: m.xPct, y: m.yPct, w: m.wPct, h: m.hPct });
+    }
     const startElX = el.xPct;
     const startElY = el.yPct;
-    // 다른 요소들의 anchor (현재 슬라이드만)
-    const others = (slides[currentIdx]?.elements ?? []).filter((o) => o.id !== elId);
+    // 다른 요소들의 anchor (snap 용) — 함께 움직이는 요소들은 제외
+    const movingIds = new Set(mates.map((m) => m.id));
+    const others = elList.filter((o) => !movingIds.has(o.id));
     const vLines: number[] = [0, 50, 100]; // 캔버스 가장자리·중앙
     const hLines: number[] = [0, 50, 100];
     for (const o of others) {
@@ -729,7 +834,24 @@ export default function CloudSlideEditor() {
       }
 
       setSnapGuides(guides);
-      updateEl(elId, { xPct: nx, yPct: ny });
+      // primary 의 실제 변화량 = (nx - startElX, ny - startElY)
+      const realDx = nx - startElX;
+      const realDy = ny - startElY;
+      if (mates.length === 1) {
+        updateEl(elId, { xPct: nx, yPct: ny });
+      } else {
+        // 모든 mates 같은 dx/dy 이동, 캔버스 밖으로 나가지 않게 클램프
+        updateCurrentSlide((s) => ({
+          ...s,
+          elements: s.elements.map((e2) => {
+            const sp = startPositions.get(e2.id);
+            if (!sp) return e2;
+            const nx2 = Math.max(0, Math.min(100 - sp.w, sp.x + realDx));
+            const ny2 = Math.max(0, Math.min(100 - sp.h, sp.y + realDy));
+            return { ...e2, xPct: nx2, yPct: ny2 } as SlideElement;
+          }),
+        }));
+      }
     };
     const onUp = () => {
       setSnapGuides([]);
@@ -738,7 +860,7 @@ export default function CloudSlideEditor() {
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }, [editingElId, updateEl, slides, currentIdx]);
+  }, [editingElId, updateEl, updateCurrentSlide, slides, currentIdx, selectedElIds, selectElement]);
 
   // ─── AI 액션 ───
   const [aiBusy, setAiBusy] = useState<string | null>(null);
@@ -1365,6 +1487,26 @@ export default function CloudSlideEditor() {
             </>
           )}
 
+          {/* 다중 선택 시 그룹화 / 해제 */}
+          {selectedElIds.size >= 2 && (
+            <>
+              <Sep />
+              <ToolBtn onClick={groupSelected} title={`${selectedElIds.size}개 그룹화 (Ctrl+G)`}>
+                <Combine className="w-4 h-4" />
+                <span className="text-xs ml-1">그룹</span>
+              </ToolBtn>
+            </>
+          )}
+          {selectedElIds.size >= 1 && currentSlide.elements.some((e) => selectedElIds.has(e.id) && e.groupId) && (
+            <>
+              <Sep />
+              <ToolBtn onClick={ungroupSelected} title="그룹 해제 (Ctrl+Shift+G)">
+                <Split className="w-4 h-4" />
+                <span className="text-xs ml-1">해제</span>
+              </ToolBtn>
+            </>
+          )}
+
           <div className="ml-auto text-xs text-muted-foreground">
             {currentIdx + 1} / {slides.length}
           </div>
@@ -1406,7 +1548,7 @@ export default function CloudSlideEditor() {
             <div
               ref={canvasRef}
               className="absolute inset-0 cursor-default"
-              onClick={() => { setSelectedElId(null); setEditingElId(null); }}
+              onClick={() => { setSelectedElId(null); setSelectedElIds(new Set()); setEditingElId(null); }}
               onDoubleClick={handleCanvasDoubleClick}
             >
               {currentSlide.elements.map((el) => {
@@ -1415,9 +1557,9 @@ export default function CloudSlideEditor() {
                     <ShapeElView
                       key={el.id}
                       el={el}
-                      selected={selectedElId === el.id}
+                      selected={selectedElIds.has(el.id) || selectedElId === el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el)}
-                      onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                      onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                       onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
@@ -1428,9 +1570,9 @@ export default function CloudSlideEditor() {
                     <ImageElView
                       key={el.id}
                       el={el}
-                      selected={selectedElId === el.id}
+                      selected={selectedElIds.has(el.id) || selectedElId === el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el)}
-                      onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
+                      onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                       onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
@@ -1440,11 +1582,11 @@ export default function CloudSlideEditor() {
                   <TextElView
                     key={el.id}
                     el={el}
-                    selected={selectedElId === el.id}
+                    selected={selectedElIds.has(el.id) || selectedElId === el.id}
                     editing={editingElId === el.id}
                     onPointerDown={(e) => startDrag(e, el.id, el)}
-                    onClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); }}
-                    onDoubleClick={(e) => { e.stopPropagation(); setSelectedElId(el.id); setEditingElId(el.id); }}
+                    onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                    onDoubleClick={(e) => { e.stopPropagation(); selectElement(el.id); setEditingElId(el.id); }}
                     onStartRotate={(e) => startRotate(e, el.id, el)}
                     onChange={(content) => updateEl(el.id, { content })}
                     onFinishEdit={() => setEditingElId(null)}
