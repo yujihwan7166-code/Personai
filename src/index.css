@@ -652,6 +652,13 @@
   .wb-picker-in {
     animation: wb-picker-in 0.18s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
   }
+  @keyframes wb-picker-out {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.96); }
+  }
+  .wb-picker-out {
+    animation: wb-picker-out 0.14s ease-in forwards;
+  }
 
   /* 모달 종료 — scale down + fade out */
   @keyframes wb-modal-out {
@@ -683,6 +690,16 @@
   .wb-widget-card:not(.wb-jiggle):active {
     transform: scale(0.985) translateY(0);
     transition: transform 0.08s ease;
+  }
+
+  /* 편집 모드 X 버튼 — 팝인 (편집 모드 진입 시) */
+  @keyframes wb-pop-in {
+    0%   { opacity: 0; transform: scale(0.4); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .wb-pop-in {
+    animation: wb-pop-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   }
 
   /* 데일리 브리핑 스크롤바 — Samsung 톤 (얇고 옅음) */

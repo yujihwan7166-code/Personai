@@ -449,7 +449,7 @@ function WidgetCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); dailyBriefingStore.removeWidget(widget.id); }}
-          className="absolute top-1.5 left-1.5 z-10 h-5 w-5 inline-flex items-center justify-center rounded-full bg-foreground/85 text-background hover:bg-rose-500 transition-colors"
+          className="wb-pop-in absolute top-1.5 left-1.5 z-10 h-5 w-5 inline-flex items-center justify-center rounded-full bg-foreground/85 text-background hover:bg-rose-500 hover:scale-110 transition-all"
           aria-label="삭제"
           title="삭제"
         >
@@ -530,6 +530,12 @@ function WidgetPicker({
   settings, onClose,
 }: { settings: ReturnType<typeof useBriefingSettings>; onClose: () => void }) {
   const [query, setQuery] = useState('');
+  const [closing, setClosing] = useState(false);
+  const close = () => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(onClose, 145);
+  };
   const usedKinds = new Set(settings.widgets.map((w) => w.kind));
   const grouped: Record<string, WidgetKind[]> = {
     '내 데이터': [],
@@ -543,11 +549,17 @@ function WidgetPicker({
   }
   return (
     <div
-      className="wb-backdrop-in absolute inset-0 z-30 bg-foreground/20 backdrop-blur-md flex items-center justify-center p-6"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className={cn(
+        'absolute inset-0 z-30 bg-foreground/20 backdrop-blur-md flex items-center justify-center p-6',
+        closing ? 'wb-backdrop-out' : 'wb-backdrop-in',
+      )}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}
     >
       <div
-        className="wb-picker-in w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden"
+        className={cn(
+          'w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden',
+          closing ? 'wb-picker-out' : 'wb-picker-in',
+        )}
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
       >
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
@@ -562,8 +574,9 @@ function WidgetPicker({
           />
           <button
             type="button"
-            onClick={onClose}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
+            onClick={close}
+            className="h-7 w-7 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 shrink-0 transition-colors"
+            aria-label="닫기"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -588,7 +601,7 @@ function WidgetPicker({
                       onClick={() => {
                         if (disabled) return;
                         dailyBriefingStore.addWidget(kind);
-                        onClose();
+                        close();
                       }}
                       disabled={disabled}
                       className={cn(
