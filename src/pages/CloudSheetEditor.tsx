@@ -1225,6 +1225,46 @@ export default function CloudSheetEditor() {
     return m;
   }, [comments]);
 
+  /** 선택 영역 통계 — 엑셀 상태표시줄과 동일 (Sum/Avg/Count/Min/Max) */
+  const selectionStats = useMemo(() => {
+    let count = 0;
+    let numCount = 0;
+    let sum = 0;
+    let min = Infinity;
+    let max = -Infinity;
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        const raw = cells[ref];
+        if (raw === undefined || raw === '') continue;
+        count++;
+        const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+        const n = Number(display);
+        if (Number.isFinite(n) && display.trim() !== '') {
+          numCount++;
+          sum += n;
+          if (n < min) min = n;
+          if (n > max) max = n;
+        }
+      }
+    }
+    const cellsInSel = (selBounds.maxR - selBounds.minR + 1) * (selBounds.maxC - selBounds.minC + 1);
+    return {
+      cellsInSel,
+      count,
+      numCount,
+      sum: numCount > 0 ? sum : null,
+      avg: numCount > 0 ? sum / numCount : null,
+      min: numCount > 0 ? min : null,
+      max: numCount > 0 ? max : null,
+    };
+  }, [selBounds, cells, displayValues]);
+
+  function fmtStatNum(n: number): string {
+    if (Number.isInteger(n)) return n.toLocaleString('ko-KR');
+    return n.toLocaleString('ko-KR', { maximumFractionDigits: 4 });
+  }
+
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
   const openChart = useCallback(() => {
@@ -2619,8 +2659,27 @@ export default function CloudSheetEditor() {
         >
           <Plus className="w-4 h-4" />
         </button>
-        <span className="ml-auto text-xs text-muted-foreground">
-          {currentSheetIdx + 1} / {sheetsMeta.length}
+        {/* 선택 영역 통계 — 엑셀 status bar */}
+        <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+          {selectionStats.numCount > 0 && (
+            <>
+              <span title="합계">∑ {fmtStatNum(selectionStats.sum!)}</span>
+              <span title="평균">avg {fmtStatNum(selectionStats.avg!)}</span>
+              <span title="최소">min {fmtStatNum(selectionStats.min!)}</span>
+              <span title="최대">max {fmtStatNum(selectionStats.max!)}</span>
+              <span title="숫자 셀 개수">n {selectionStats.numCount}</span>
+              <span className="w-px h-3 bg-border" aria-hidden />
+            </>
+          )}
+          {selectionStats.count > 0 && (
+            <>
+              <span title="값이 있는 셀 개수">count {selectionStats.count}</span>
+              <span className="w-px h-3 bg-border" aria-hidden />
+            </>
+          )}
+          <span>
+            {currentSheetIdx + 1} / {sheetsMeta.length}
+          </span>
         </span>
       </footer>
 
