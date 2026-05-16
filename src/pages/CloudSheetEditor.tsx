@@ -23,6 +23,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { evalCell, idxToCol, colToIdx } from '@/lib/cloudSheet/formula';
+import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import { buildChartData, flattenForPie, CHART_PALETTE, type SelRange } from '@/lib/cloudSheet/chart';
@@ -1654,14 +1655,31 @@ export default function CloudSheetEditor() {
     return out;
   }, []);
 
+  /** 모든 시트 cells 에 행/열 axis shift + 수식 값 보정 (cross-sheet 포함) */
+  const applyAxisShift = useCallback(
+    (allCellsIn: AllCells, axis: 'row' | 'col', at: number, delta: number): AllCells => {
+      const out: AllCells = {};
+      for (const sid of Object.keys(allCellsIn)) {
+        const isCurrentSheet = sid === currentSheetId;
+        // 위치 이동은 현재 시트만
+        const moved = isCurrentSheet
+          ? (axis === 'row'
+              ? shiftCellsRow(allCellsIn[sid] ?? {}, at, delta)
+              : shiftCellsCol(allCellsIn[sid] ?? {}, at, delta))
+          : (allCellsIn[sid] ?? {});
+        // 수식 값 보정은 모든 시트 (cross-sheet ref 까지)
+        out[sid] = shiftFormulasInCells(moved, axis, at, delta, currentSheetName);
+      }
+      return out;
+    },
+    [currentSheetId, currentSheetName, shiftCellsRow, shiftCellsCol],
+  );
+
   const insertRow = useCallback((atRow: number) => {
     const nextRowCount = Math.min(MAX_ROWS, rowCount + 1);
-    const nextCells: AllCells = { ...allCells };
+    const nextCells = applyAxisShift(allCells, 'row', atRow, +1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
-    for (const sid of Object.keys(allCells)) {
-      nextCells[sid] = shiftCellsRow(allCells[sid] ?? {}, atRow, +1);
-    }
     for (const sid of Object.keys(allFormats)) {
       nextFormats[sid] = shiftFormatsRow(allFormats[sid] ?? {}, atRow, +1);
     }
@@ -1673,16 +1691,13 @@ export default function CloudSheetEditor() {
     setAllMerges(nextMerges);
     setRowCount(nextRowCount);
     queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
-  }, [rowCount, allCells, allFormats, allMerges, shiftCellsRow, shiftFormatsRow, shiftMergesRow, queueSave]);
+  }, [rowCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
 
   const insertCol = useCallback((atCol: number) => {
     const nextColCount = Math.min(MAX_COLS, colCount + 1);
-    const nextCells: AllCells = { ...allCells };
+    const nextCells = applyAxisShift(allCells, 'col', atCol, +1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
-    for (const sid of Object.keys(allCells)) {
-      nextCells[sid] = shiftCellsCol(allCells[sid] ?? {}, atCol, +1);
-    }
     for (const sid of Object.keys(allFormats)) {
       nextFormats[sid] = shiftFormatsCol(allFormats[sid] ?? {}, atCol, +1);
     }
@@ -1694,7 +1709,7 @@ export default function CloudSheetEditor() {
     setAllMerges(nextMerges);
     setColCount(nextColCount);
     queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount });
-  }, [colCount, allCells, allFormats, allMerges, shiftCellsCol, shiftFormatsCol, shiftMergesCol, queueSave]);
+  }, [colCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsCol, shiftMergesCol, queueSave]);
 
   const deleteRow = useCallback((atRow: number) => {
     if (rowCount <= MIN_ROWS) {
@@ -1702,12 +1717,9 @@ export default function CloudSheetEditor() {
       return;
     }
     const nextRowCount = rowCount - 1;
-    const nextCells: AllCells = { ...allCells };
+    const nextCells = applyAxisShift(allCells, 'row', atRow, -1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
-    for (const sid of Object.keys(allCells)) {
-      nextCells[sid] = shiftCellsRow(allCells[sid] ?? {}, atRow, -1);
-    }
     for (const sid of Object.keys(allFormats)) {
       nextFormats[sid] = shiftFormatsRow(allFormats[sid] ?? {}, atRow, -1);
     }
@@ -1720,7 +1732,7 @@ export default function CloudSheetEditor() {
     setRowCount(nextRowCount);
     setSelected((s) => ({ ...s, row: Math.min(s.row, nextRowCount - 1) }));
     queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
-  }, [rowCount, allCells, allFormats, allMerges, shiftCellsRow, shiftFormatsRow, shiftMergesRow, queueSave]);
+  }, [rowCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
 
   const deleteCol = useCallback((atCol: number) => {
     if (colCount <= MIN_COLS) {
@@ -1728,12 +1740,9 @@ export default function CloudSheetEditor() {
       return;
     }
     const nextColCount = colCount - 1;
-    const nextCells: AllCells = { ...allCells };
+    const nextCells = applyAxisShift(allCells, 'col', atCol, -1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
-    for (const sid of Object.keys(allCells)) {
-      nextCells[sid] = shiftCellsCol(allCells[sid] ?? {}, atCol, -1);
-    }
     for (const sid of Object.keys(allFormats)) {
       nextFormats[sid] = shiftFormatsCol(allFormats[sid] ?? {}, atCol, -1);
     }
@@ -1755,7 +1764,7 @@ export default function CloudSheetEditor() {
     setColWidths(nextWidths);
     setSelected((s) => ({ ...s, col: Math.min(s.col, nextColCount - 1) }));
     queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount, colWidths: nextWidths });
-  }, [colCount, allCells, allFormats, allMerges, colWidths, shiftCellsCol, shiftFormatsCol, shiftMergesCol, queueSave]);
+  }, [colCount, allCells, allFormats, allMerges, colWidths, applyAxisShift, shiftFormatsCol, shiftMergesCol, queueSave]);
 
   // ─── 열 너비 변경 ───
   const setColWidth = useCallback((colIdx: number, w: number) => {
