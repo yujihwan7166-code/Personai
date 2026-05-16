@@ -336,6 +336,8 @@ export interface CoinData {
   name: string;        // 한국어 이름 또는 영어
   price: number;       // KRW
   change24h: number;   // % 변동률
+  /** 7일 price spark line (포인트 168개 정도 — 1시간 단위) */
+  sparkline?: number[];
 }
 
 export const DEFAULT_COINS = ['bitcoin', 'ethereum'];
@@ -346,16 +348,21 @@ export async function fetchCoins(ids: string[], force = false): Promise<CachedRe
     `coin:${sorted.join(',')}`,
     TTL.stock,
     async () => {
-      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=krw&ids=${sorted.join(',')}&order=market_cap_desc&per_page=20&page=1`;
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=krw&ids=${sorted.join(',')}&order=market_cap_desc&per_page=20&page=1&sparkline=true`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Coin API ${res.status}`);
-      const json = await res.json() as Array<{ id: string; symbol: string; name: string; current_price: number; price_change_percentage_24h: number }>;
+      const json = await res.json() as Array<{
+        id: string; symbol: string; name: string;
+        current_price: number; price_change_percentage_24h: number;
+        sparkline_in_7d?: { price: number[] };
+      }>;
       return json.map((c) => ({
         id: c.id,
         symbol: c.symbol.toUpperCase(),
         name: c.name,
         price: c.current_price,
         change24h: c.price_change_percentage_24h ?? 0,
+        sparkline: c.sparkline_in_7d?.price,
       }));
     },
     force,

@@ -524,13 +524,16 @@ export function StockWidget({ widget }: WidgetProps) {
               widget.size === 'M' ? 'grid grid-cols-2 gap-x-3 gap-y-1' : 'space-y-1',
             )}>
               {result.data.slice(0, widget.size === 'M' ? 6 : 4).map((c) => (
-                <li key={c.id} className="flex items-baseline gap-1 text-[11px] leading-tight">
-                  <span className="font-bold text-foreground/85 w-[36px] truncate shrink-0">{c.symbol}</span>
-                  <span className="tabular-nums text-foreground/90 flex-1 truncate font-semibold">
+                <li key={c.id} className="flex items-center gap-1 text-[11px] leading-tight">
+                  <span className="font-bold text-foreground/85 w-[34px] truncate shrink-0">{c.symbol}</span>
+                  {c.sparkline && c.sparkline.length > 4 && (
+                    <Sparkline data={c.sparkline} up={c.change24h >= 0} className="shrink-0" />
+                  )}
+                  <span className="tabular-nums text-foreground/90 flex-1 truncate font-semibold text-right">
                     {c.price >= 1000 ? Math.round(c.price).toLocaleString() : c.price.toFixed(2)}
                   </span>
                   <span className={cn(
-                    'tabular-nums shrink-0 text-[10px] font-bold',
+                    'tabular-nums shrink-0 text-[10px] font-bold w-[34px] text-right',
                     c.change24h > 0 ? 'text-rose-500' : c.change24h < 0 ? 'text-blue-500' : 'text-muted-foreground',
                   )}>
                     {c.change24h > 0 ? '▲' : c.change24h < 0 ? '▼' : ''}
@@ -734,6 +737,46 @@ function CenterText({ text, error }: { text: string; error?: boolean }) {
         error ? 'text-destructive' : 'text-muted-foreground/65 italic',
       )}>{text}</span>
     </div>
+  );
+}
+
+/** 미니 sparkline SVG — 가격 추이 시각화. */
+export function Sparkline({
+  data, up, width = 36, height = 14, className,
+}: { data: number[]; up: boolean; width?: number; height?: number; className?: string }) {
+  if (data.length < 2) return null;
+  // resample to ~32 points 으로 다운샘플 (path 단순화)
+  const STEP = Math.max(1, Math.floor(data.length / 32));
+  const pts: number[] = [];
+  for (let i = 0; i < data.length; i += STEP) pts.push(data[i]);
+  if (pts[pts.length - 1] !== data[data.length - 1]) pts.push(data[data.length - 1]);
+
+  const min = Math.min(...pts);
+  const max = Math.max(...pts);
+  const range = max - min || 1;
+  const w = width;
+  const h = height;
+  const stepX = w / (pts.length - 1);
+  const path = pts.map((v, i) => {
+    const x = i * stepX;
+    const y = h - ((v - min) / range) * (h - 2) - 1;
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' ');
+  const color = up ? 'hsl(0 72% 55%)' : 'hsl(217 91% 55%)';
+  // fill 영역 (그라디언트 옅게)
+  const areaPath = `${path} L ${w} ${h} L 0 ${h} Z`;
+  const gradId = `wb-spark-${up ? 'up' : 'down'}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} aria-hidden>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
