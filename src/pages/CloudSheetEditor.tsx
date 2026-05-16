@@ -46,6 +46,52 @@ type AllFormats = Record<string, CellFormats>;
 interface Merge { minR: number; maxR: number; minC: number; maxC: number }
 type AllMerges = Record<string, Merge[]>;
 
+type CondOp = '>' | '<' | '>=' | '<=' | '==' | '!=' | 'contains' | 'between' | 'empty' | 'nonempty';
+interface CondRule {
+  id: string;
+  range: { minR: number; maxR: number; minC: number; maxC: number };
+  op: CondOp;
+  value: string;  // op === 'between' 이면 'a,b'
+  format: { bgColor?: string; textColor?: string; bold?: boolean };
+}
+type AllCondRules = Record<string, CondRule[]>;
+
+function newCondRuleId(): string {
+  return `cr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** 셀 값이 rule 의 조건을 만족하는지 */
+function evalCondRule(value: string, op: CondOp, target: string): boolean {
+  if (op === 'empty') return value === '' || value === undefined;
+  if (op === 'nonempty') return value !== '' && value !== undefined;
+  if (op === 'contains') return value.toLowerCase().includes(target.toLowerCase());
+  if (op === 'between') {
+    const [a, b] = target.split(',').map((s) => Number(s.trim()));
+    const v = Number(value);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(v)) return false;
+    return v >= Math.min(a, b) && v <= Math.max(a, b);
+  }
+  const tn = Number(target);
+  const vn = Number(value);
+  // 숫자 비교 가능하면 숫자, 아니면 문자열
+  if (Number.isFinite(tn) && Number.isFinite(vn) && value.trim() !== '') {
+    switch (op) {
+      case '>': return vn > tn;
+      case '<': return vn < tn;
+      case '>=': return vn >= tn;
+      case '<=': return vn <= tn;
+      case '==': return vn === tn;
+      case '!=': return vn !== tn;
+    }
+  }
+  // 문자열 비교
+  switch (op) {
+    case '==': return value === target;
+    case '!=': return value !== target;
+    default: return false;
+  }
+}
+
 function newSheetId(): string {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -302,13 +348,16 @@ export default function CloudSheetEditor() {
 
   // 셀 병합 — sheet 별 merge 배열 (top-left 포함, 좌표는 0-based)
   const [allMerges, setAllMerges] = useState<AllMerges>({ s_initial: [] });
+  // 조건부 서식 — sheet 별 rule 목록
+  const [allCondRules, setAllCondRules] = useState<AllCondRules>({ s_initial: [] });
 
-  // derived — 현재 시트의 cells/formats/merges
+  // derived — 현재 시트의 cells/formats/merges/condRules
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
   const currentSheetId = currentSheet?.id ?? 's_initial';
   const cells = allCells[currentSheetId] ?? {};
   const cellFormats = allFormats[currentSheetId] ?? {};
   const merges = allMerges[currentSheetId] ?? [];
+  const condRules = allCondRules[currentSheetId] ?? [];
 
   // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
   const { mergeAtMap, coveredSet } = useMemo(() => {
@@ -361,6 +410,7 @@ export default function CloudSheetEditor() {
         const storedAllCells = meta.allCells as AllCells | undefined;
         const storedAllFormats = meta.allFormats as AllFormats | undefined;
         const storedAllMerges = meta.allMerges as AllMerges | undefined;
+        const storedAllCondRules = meta.allCondRules as AllCondRules | undefined;
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
@@ -374,6 +424,7 @@ export default function CloudSheetEditor() {
           setAllCells(cellsAll);
           setAllFormats(storedAllFormats ?? {});
           setAllMerges(mergesAll);
+          if (storedAllCondRules) setAllCondRules(storedAllCondRules);
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -450,6 +501,7 @@ export default function CloudSheetEditor() {
     allCells?: AllCells;
     allFormats?: AllFormats;
     allMerges?: AllMerges;
+    allCondRules?: AllCondRules;
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
@@ -464,6 +516,7 @@ export default function CloudSheetEditor() {
         allCells: patch.allCells ?? allCells,
         allFormats: patch.allFormats ?? allFormats,
         allMerges: patch.allMerges ?? allMerges,
+        allCondRules: patch.allCondRules ?? allCondRules,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
@@ -475,7 +528,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1038,6 +1091,45 @@ export default function CloudSheetEditor() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [editing, copyRange, cutRange, pasteFromClipboard]);
+
+  // ─── 조건부 서식 ───
+  const addCondRule = useCallback((rule: Omit<CondRule, 'id'>) => {
+    const id = newCondRuleId();
+    const nextRules = [...condRules, { ...rule, id }];
+    const nextAll: AllCondRules = { ...allCondRules, [currentSheetId]: nextRules };
+    setAllCondRules(nextAll);
+    queueSave({ allCondRules: nextAll });
+  }, [condRules, allCondRules, currentSheetId, queueSave]);
+
+  const removeCondRule = useCallback((ruleId: string) => {
+    const nextRules = condRules.filter((r) => r.id !== ruleId);
+    const nextAll: AllCondRules = { ...allCondRules, [currentSheetId]: nextRules };
+    setAllCondRules(nextAll);
+    queueSave({ allCondRules: nextAll });
+  }, [condRules, allCondRules, currentSheetId, queueSave]);
+
+  /** ref → 조건부 서식 적용 (cells 변경 시만 재계산) */
+  const condFormatMap = useMemo<Map<string, CondRule['format']>>(() => {
+    const out = new Map<string, CondRule['format']>();
+    if (condRules.length === 0) return out;
+    for (const rule of condRules) {
+      for (let r = rule.range.minR; r <= rule.range.maxR; r++) {
+        for (let c = rule.range.minC; c <= rule.range.maxC; c++) {
+          const ref = cellRef(r, c);
+          const raw = cells[ref] ?? '';
+          const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+          if (evalCondRule(display, rule.op, rule.value)) {
+            // 이후 rule 이 이전 rule 을 덮어씀 (마지막 우선)
+            const cur = out.get(ref);
+            out.set(ref, { ...(cur ?? {}), ...rule.format });
+          }
+        }
+      }
+    }
+    return out;
+  }, [condRules, cells, displayValues]);
+
+  const [condModalOpen, setCondModalOpen] = useState(false);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -1975,6 +2067,10 @@ export default function CloudSheetEditor() {
                   <BarChart3 className="w-4 h-4 mr-2" />
                   차트 만들기 (선택 범위)
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setCondModalOpen(true)}>
+                  <Palette className="w-4 h-4 mr-2" />
+                  조건부 서식 ({condRules.length})
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={toggleFreezeFirstRow}>
                   <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
@@ -2244,6 +2340,7 @@ export default function CloudSheetEditor() {
             currentMatchRef={searchMatches[searchCursor]}
             freezeFirstRow={freezeFirstRow}
             freezeFirstCol={freezeFirstCol}
+            condFormatMap={condFormatMap}
             filterOn={filterOn}
             filters={filters}
             onFilterChange={setColFilter}
@@ -2406,6 +2503,15 @@ export default function CloudSheetEditor() {
         range={selBounds}
       />
 
+      <CondFormatModal
+        open={condModalOpen}
+        onClose={() => setCondModalOpen(false)}
+        currentRange={selBounds}
+        rules={condRules}
+        onAdd={addCondRule}
+        onRemove={removeCondRule}
+      />
+
       {/* AI 결과 모달 */}
       <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
         <DialogContent className="max-w-2xl">
@@ -2470,6 +2576,8 @@ interface SheetGridProps {
   freezeFirstRow?: boolean;
   /** 첫 열 고정 (sticky left, A열) */
   freezeFirstCol?: boolean;
+  /** 조건부 서식 — cellFormats 위에 오버레이 */
+  condFormatMap?: Map<string, { bgColor?: string; textColor?: string; bold?: boolean }>;
   /** 필터 활성 시 헤더 alphabet row 아래에 검색 input 행 렌더 */
   filterOn?: boolean;
   filters?: Record<number, string>;
@@ -2496,6 +2604,7 @@ function SheetGrid({
   rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
   freezeFirstRow, freezeFirstCol,
+  condFormatMap,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
   editing, editingValue,
@@ -2576,7 +2685,11 @@ function SheetGrid({
                   && rowIdx >= selBounds.minR && rowIdx <= selBounds.maxR
                   && colIdx >= selBounds.minC && colIdx <= selBounds.maxC;
                 const isEditing = !!editing && editing.row === rowIdx && editing.col === colIdx;
-                const fmt = cellFormats[ref];
+                const baseFmt = cellFormats[ref];
+                const cond = condFormatMap?.get(ref);
+                const fmt = cond
+                  ? { ...(baseFmt ?? {}), ...cond }
+                  : baseFmt;
                 if (fmt?.numberFmt && !isEditing && !display.startsWith('#')) {
                   display = applyNumberFormat(display, fmt.numberFmt);
                 }
@@ -3360,6 +3473,196 @@ function SheetSearchPanel({
         )}
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 조건부 서식 모달
+// ─────────────────────────────────────────────
+
+interface CondFormatModalProps {
+  open: boolean;
+  onClose: () => void;
+  currentRange: { minR: number; maxR: number; minC: number; maxC: number };
+  rules: CondRule[];
+  onAdd: (rule: Omit<CondRule, 'id'>) => void;
+  onRemove: (id: string) => void;
+}
+
+const COND_OP_LABELS: Array<{ op: CondOp; label: string; needsValue: boolean }> = [
+  { op: '>',        label: '> 보다 큼',     needsValue: true },
+  { op: '>=',       label: '>= 이상',       needsValue: true },
+  { op: '<',        label: '< 보다 작음',   needsValue: true },
+  { op: '<=',       label: '<= 이하',       needsValue: true },
+  { op: '==',       label: '= 같음',        needsValue: true },
+  { op: '!=',       label: '≠ 다름',        needsValue: true },
+  { op: 'between',  label: 'a~b 범위 (예: 5,10)', needsValue: true },
+  { op: 'contains', label: '포함',           needsValue: true },
+  { op: 'empty',    label: '빈 셀',          needsValue: false },
+  { op: 'nonempty', label: '값이 있음',      needsValue: false },
+];
+
+function rangeLabel(r: { minR: number; maxR: number; minC: number; maxC: number }): string {
+  const a = `${idxToCol(r.minC)}${r.minR + 1}`;
+  const b = `${idxToCol(r.maxC)}${r.maxR + 1}`;
+  return a === b ? a : `${a}:${b}`;
+}
+
+function CondFormatModal({ open, onClose, currentRange, rules, onAdd, onRemove }: CondFormatModalProps) {
+  const [op, setOp] = useState<CondOp>('>');
+  const [value, setValue] = useState('0');
+  const [bgColor, setBgColor] = useState('#fef3c7');
+  const [textColor, setTextColor] = useState('');
+  const [bold, setBold] = useState(false);
+  const cur = COND_OP_LABELS.find((c) => c.op === op);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-xl">
+        <DialogTitle className="text-base flex items-center gap-2">
+          <Palette className="w-4 h-4" />
+          조건부 서식 — {rangeLabel(currentRange)}
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          현재 선택 범위에 조건을 만족하는 셀만 자동으로 서식이 적용됩니다.
+        </DialogDescription>
+
+        <div className="flex flex-col gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-muted-foreground">조건</span>
+            <select
+              value={op}
+              onChange={(e) => setOp(e.target.value as CondOp)}
+              className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background"
+            >
+              {COND_OP_LABELS.map((c) => (
+                <option key={c.op} value={c.op}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+          {cur?.needsValue && (
+            <label className="flex items-center gap-2">
+              <span className="w-16 shrink-0 text-muted-foreground">값</span>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={op === 'between' ? '예: 5,10' : '값'}
+                className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+              />
+            </label>
+          )}
+          <label className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-muted-foreground">배경</span>
+            <input
+              type="color"
+              value={bgColor.startsWith('#') ? bgColor : '#ffffff'}
+              onChange={(e) => setBgColor(e.target.value)}
+              className="w-10 h-7 cursor-pointer border border-border rounded"
+            />
+            <input
+              type="text"
+              value={bgColor}
+              onChange={(e) => setBgColor(e.target.value)}
+              placeholder="#fef3c7 또는 비워두기"
+              className="flex-1 text-xs font-mono px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+            />
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-muted-foreground">글자</span>
+            <input
+              type="color"
+              value={textColor.startsWith('#') ? textColor : '#000000'}
+              onChange={(e) => setTextColor(e.target.value)}
+              className="w-10 h-7 cursor-pointer border border-border rounded"
+            />
+            <input
+              type="text"
+              value={textColor}
+              onChange={(e) => setTextColor(e.target.value)}
+              placeholder="비워두면 기본색"
+              className="flex-1 text-xs font-mono px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+            />
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" checked={bold} onChange={(e) => setBold(e.target.checked)} />
+              <Bold className="w-3.5 h-3.5" />
+            </label>
+          </label>
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                const format: CondRule['format'] = {};
+                if (bgColor.trim()) format.bgColor = bgColor.trim();
+                if (textColor.trim()) format.textColor = textColor.trim();
+                if (bold) format.bold = true;
+                if (Object.keys(format).length === 0) {
+                  toast({ title: '적용할 서식이 없어요' });
+                  return;
+                }
+                onAdd({ range: currentRange, op, value, format });
+                toast({ title: '규칙 추가됨' });
+              }}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
+            >
+              규칙 추가
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-border">
+          <div className="text-xs font-medium text-muted-foreground mb-1.5">
+            기존 규칙 ({rules.length})
+          </div>
+          {rules.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-3 text-center">없음</div>
+          ) : (
+            <ul className="space-y-1 max-h-[200px] overflow-y-auto">
+              {rules.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-center gap-2 px-2 py-1 rounded border border-border text-xs"
+                >
+                  <span
+                    className="w-4 h-4 rounded border border-border shrink-0"
+                    style={{
+                      backgroundColor: r.format.bgColor ?? 'transparent',
+                      color: r.format.textColor,
+                      fontWeight: r.format.bold ? 600 : undefined,
+                    }}
+                    aria-hidden
+                  >Aa</span>
+                  <span className="font-mono">{rangeLabel(r.range)}</span>
+                  <span className="text-muted-foreground">
+                    {COND_OP_LABELS.find((c) => c.op === r.op)?.label ?? r.op}
+                    {r.op !== 'empty' && r.op !== 'nonempty' ? ` "${r.value}"` : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(r.id)}
+                    className="ml-auto p-1 rounded hover:bg-muted text-destructive"
+                    aria-label="규칙 삭제"
+                    title="삭제"
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
+          >
+            닫기
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
