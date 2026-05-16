@@ -21,6 +21,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
+import { Markdown } from 'tiptap-markdown';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
@@ -36,8 +37,14 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
+import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -155,6 +162,7 @@ export default function CloudDocEditor() {
       TableCell,
       Superscript,
       Subscript,
+      Markdown.configure({ html: true, linkify: true, breaks: false }),
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
@@ -199,6 +207,67 @@ export default function CloudDocEditor() {
       }
     }
   }, [editor, node, initialBody]);
+
+  // ─── Import / Export ───
+  const importFile = useCallback(() => {
+    if (!editor) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.docx,.md,.txt,.html,.htm';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith('.docx')) {
+          const html = await importDocxFile(file);
+          editor.commands.setContent(html);
+          toast({ title: '가져오기 완료', description: `${file.name} (서식 일부 손실 가능)` });
+        } else if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.txt')) {
+          const md = await readMarkdownFile(file);
+          editor.commands.setContent(md);
+          toast({ title: '가져오기 완료', description: file.name });
+        } else if (lower.endsWith('.html') || lower.endsWith('.htm')) {
+          const html = await file.text();
+          editor.commands.setContent(html);
+          toast({ title: '가져오기 완료', description: file.name });
+        } else {
+          toast({ title: '지원하지 않는 형식', description: '.docx / .md / .txt / .html 만 지원' });
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast({ title: '가져오기 실패', description: msg });
+      }
+    };
+    input.click();
+  }, [editor]);
+
+  const exportDocx = useCallback(async () => {
+    if (!editor || !node) return;
+    try {
+      const json = editor.getJSON();
+      const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
+      await exportDocxFromJson(json, fileName);
+      toast({ title: '내보내기 완료', description: `${fileName}.docx 다운로드 시작` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '내보내기 실패', description: msg });
+    }
+  }, [editor, node]);
+
+  const exportMarkdown = useCallback(() => {
+    if (!editor || !node) return;
+    try {
+      const storage = editor.storage as { markdown?: { getMarkdown?: () => string } };
+      const md = storage.markdown?.getMarkdown?.() ?? '';
+      const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
+      exportMarkdownFile(md, fileName);
+      toast({ title: '내보내기 완료', description: `${fileName}.md 다운로드 시작` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '내보내기 실패', description: msg });
+    }
+  }, [editor, node]);
 
   // ─── 단축키: ? = 도움말, Esc = 도움말 닫기 (도움말이 열려있을 때만) ───
   useEffect(() => {
@@ -276,15 +345,30 @@ export default function CloudDocEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => toast({ title: '곧 활성화돼요', description: '다운로드·공유는 다음 단계입니다.' })}
-              className="p-2 rounded hover:bg-muted"
-              aria-label="더보기"
-              title="더보기"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 rounded hover:bg-muted"
+                  aria-label="더보기"
+                  title="더보기"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[200px]">
+                <DropdownMenuItem onSelect={importFile}>
+                  📥 가져오기 (.docx / .md / .html)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={exportDocx}>
+                  📤 .docx 로 내보내기
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={exportMarkdown}>
+                  📤 .md 로 내보내기
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         {editor && <DocToolbar editor={editor} />}
