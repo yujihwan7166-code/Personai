@@ -31,6 +31,10 @@ import {
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -1237,6 +1241,29 @@ export default function CloudSheetEditor() {
     return m;
   }, [comments]);
 
+  // ─── AI 사이드바 ───
+  const getAiContext = useCallback((): AiContext => {
+    // 선택 범위의 cells 추출 → CSV
+    const partial: Cells = {};
+    let count = 0;
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        if (cells[ref] !== undefined) { partial[ref] = cells[ref]; count++; }
+      }
+    }
+    const csv = cellsToCsv(partial, { displayValues });
+    const a = `${idxToCol(selBounds.minC)}${selBounds.minR + 1}`;
+    const b = `${idxToCol(selBounds.maxC)}${selBounds.maxR + 1}`;
+    const rangeStr = a === b ? a : `${a}:${b}`;
+    return {
+      kind: 'sheet',
+      summary: count === 0 ? `${rangeStr} (빈 셀)` : `${rangeStr} (${count}개 셀)`,
+      fullText: csv,
+    };
+  }, [selBounds, cells, displayValues]);
+  const ai = useAiSidebar('sheet', getAiContext);
+
   /** 선택 영역 통계 — 엑셀 상태표시줄과 동일 (Sum/Avg/Count/Min/Max) */
   const selectionStats = useMemo(() => {
     let count = 0;
@@ -2197,6 +2224,7 @@ export default function CloudSheetEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
+            <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -2498,6 +2526,8 @@ export default function CloudSheetEditor() {
         />
       )}
 
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0">
       <main className="flex-1 overflow-auto">
         <div ref={gridRef}>
           <SheetGrid
@@ -2694,6 +2724,17 @@ export default function CloudSheetEditor() {
           </span>
         </span>
       </footer>
+        </div>
+        <AiSidebar
+          open={ai.open}
+          onClose={() => ai.setOpen(false)}
+          context={getAiContext()}
+          messages={ai.messages}
+          sending={ai.sending}
+          onSend={ai.send}
+          onClear={ai.clear}
+        />
+      </div>
 
       <SheetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
 

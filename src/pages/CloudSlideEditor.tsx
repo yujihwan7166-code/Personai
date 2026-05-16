@@ -27,6 +27,10 @@ import {
   slideToText, slidesToOutline, parseAiSlideContent,
 } from '@/lib/cloudSlide/ai';
 import { exportElementsToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -1229,6 +1233,25 @@ export default function CloudSlideEditor() {
     navigate('/cloud');
   }, [flushSave, navigate]);
 
+  // ─── AI 사이드바 (early return 전에 hook 호출 필수) ───
+  const getAiContext = useCallback((): AiContext => {
+    const cur = slides[currentIdx] ?? slides[0];
+    if (!cur) return { kind: 'slide', summary: '빈 발표', fullText: '' };
+    const curIdx = currentIdx + 1;
+    const total = slides.length;
+    const curText = slideToText(cur);
+    const outline = slidesToOutline(slides);
+    const fullText =
+      `# 현재 슬라이드 (${curIdx} / ${total})\n${curText || '(빈 슬라이드)'}\n\n` +
+      `# 전체 outline\n${outline}`;
+    return {
+      kind: 'slide',
+      summary: `슬라이드 ${curIdx} / ${total}`,
+      fullText,
+    };
+  }, [slides, currentIdx]);
+  const ai = useAiSidebar('slide', getAiContext);
+
   // ─── 로딩·에러 ───
   if (authLoading || (!loadError && !node)) {
     return (
@@ -1310,6 +1333,7 @@ export default function CloudSlideEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
+            <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <button
               type="button"
               onClick={() => setNotesOpen((v) => !v)}
@@ -1647,6 +1671,15 @@ export default function CloudSlideEditor() {
             )}
           </div>
         </main>
+        <AiSidebar
+          open={ai.open}
+          onClose={() => ai.setOpen(false)}
+          context={getAiContext()}
+          messages={ai.messages}
+          sending={ai.sending}
+          onSend={ai.send}
+          onClear={ai.clear}
+        />
       </div>
 
       <SlideHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />

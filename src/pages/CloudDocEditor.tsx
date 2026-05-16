@@ -43,6 +43,10 @@ import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@/lib/cloudDoc/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -63,6 +67,30 @@ export default function CloudDocEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
+
+  // ─── AI 사이드바 ───
+  const getAiContext = useCallback((): AiContext => {
+    if (!editor) {
+      return { kind: 'doc', summary: '빈 문서', fullText: '' };
+    }
+    const { from, to, empty } = editor.state.selection;
+    if (empty) {
+      const all = editor.getText({ blockSeparator: '\n\n' });
+      const chars = all.length;
+      return {
+        kind: 'doc',
+        summary: chars === 0 ? '빈 문서' : `전체 문서 (${chars}자)`,
+        fullText: all,
+      };
+    }
+    const selText = editor.state.doc.textBetween(from, to, '\n\n');
+    return {
+      kind: 'doc',
+      summary: `선택 (${selText.length}자)`,
+      fullText: selText,
+    };
+  }, [editor]);
+  const ai = useAiSidebar('doc', getAiContext);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -402,6 +430,7 @@ export default function CloudDocEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
+            <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -434,19 +463,30 @@ export default function CloudDocEditor() {
         {editor && <DocToolbar editor={editor} />}
       </header>
 
-      <main className="flex-1 overflow-y-auto relative">
-        {editor && searchOpen && (
-          <DocSearchPanel
-            editor={editor}
-            mode={searchOpen}
-            onModeChange={setSearchOpen}
-            onClose={() => setSearchOpen(false)}
-          />
-        )}
-        <div className="max-w-3xl mx-auto px-6 py-10">
-          <EditorContent editor={editor} />
-        </div>
-      </main>
+      <div className="flex-1 flex overflow-hidden">
+        <main className="flex-1 overflow-y-auto relative">
+          {editor && searchOpen && (
+            <DocSearchPanel
+              editor={editor}
+              mode={searchOpen}
+              onModeChange={setSearchOpen}
+              onClose={() => setSearchOpen(false)}
+            />
+          )}
+          <div className="max-w-3xl mx-auto px-6 py-10">
+            <EditorContent editor={editor} />
+          </div>
+        </main>
+        <AiSidebar
+          open={ai.open}
+          onClose={() => ai.setOpen(false)}
+          context={getAiContext()}
+          messages={ai.messages}
+          sending={ai.sending}
+          onSend={ai.send}
+          onClear={ai.clear}
+        />
+      </div>
 
       {editor && (
         <FloatingMenu

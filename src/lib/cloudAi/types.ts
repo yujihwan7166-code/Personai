@@ -1,0 +1,35 @@
+/**
+ * 클라우드 AI 사이드바 공통 타입.
+ * 4개 화면(Doc/Sheet/Slide/Drive)이 같은 채팅 컴포넌트를 공유한다.
+ */
+
+export type AiKind = 'doc' | 'sheet' | 'slide' | 'drive';
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  ts: number;
+  error?: boolean;
+}
+
+/**
+ * 사이드바가 보여줄 "현재 컨텍스트" — 자동 수집.
+ *  - summary: 헤더 칩에 표시 (예: "B2:D5 (12셀)", "슬라이드 3")
+ *  - fullText: AI 에 보낼 실제 컨텍스트 (CSV / 텍스트 / outline 등)
+ */
+export interface AiContext {
+  kind: AiKind;
+  summary: string;
+  fullText: string;
+}
+
+export interface QuickAction {
+  id: string;
+  label: string;
+  /** 사용자가 입력했다고 가정할 짧은 프롬프트 — 컨텍스트는 자동 추가됨 */
+  prompt: string;
+}
+
+/** sessionStorage 키 — 사이드바 open 상태만 영속 (채팅 메시지는 X) */
+export const STORAGE_KEY_OPEN = 'personai.cloud.aisidebar.open';

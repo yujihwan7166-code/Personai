@@ -1,0 +1,217 @@
+/**
+ * AI 사이드바 — 4개 화면 공통.
+ *
+ * 구조:
+ *  - 헤더: 제목 + 컨텍스트 칩 + 닫기
+ *  - 본문: 메시지 목록 (스크롤) / 빈 상태일 때 빠른 액션 칩 + 안내
+ *  - 푸터: textarea + 보내기 + 대화 초기화
+ *
+ * 너비 320px (lg 이상에서만 보임). 모바일은 v2.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Sparkles, X, Send, RefreshCw, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
+import type { AiContext, ChatMessage } from '@/lib/cloudAi/types';
+
+interface AiSidebarProps {
+  open: boolean;
+  onClose: () => void;
+  context: AiContext;
+  messages: ChatMessage[];
+  sending: boolean;
+  onSend: (text: string) => void | Promise<void>;
+  onClear: () => void;
+  /** 컨텍스트 칩 클릭 시 화면별 동작 (예: 시트 → selBounds 로 jump). 선택 사항 */
+  onContextClick?: () => void;
+}
+
+export function AiSidebar({
+  open, onClose, context, messages, sending, onSend, onClear, onContextClick,
+}: AiSidebarProps) {
+  const [draft, setDraft] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // 새 메시지 / 로딩 → 자동 스크롤
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, sending]);
+
+  // 사이드바 열리면 입력창 포커스
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  const handleSend = useCallback(() => {
+    const text = draft.trim();
+    if (!text || sending) return;
+    setDraft('');
+    void onSend(text);
+  }, [draft, sending, onSend]);
+
+  const handleQuickAction = useCallback((prompt: string) => {
+    if (sending) return;
+    void onSend(prompt);
+  }, [sending, onSend]);
+
+  if (!open) return null;
+
+  const quickActions = QUICK_ACTIONS[context.kind];
+  const isEmpty = messages.length === 0;
+
+  return (
+    <aside
+      className="w-80 shrink-0 border-l border-border bg-background flex flex-col hidden lg:flex"
+      role="complementary"
+      aria-label="AI 어시스턴트"
+    >
+      {/* 헤더 */}
+      <div className="border-b border-border px-3 py-2 flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-violet-500" aria-hidden />
+        <span className="text-sm font-medium">AI 어시스턴트</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto p-1 rounded hover:bg-muted"
+          aria-label="사이드바 닫기"
+          title="닫기"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 컨텍스트 칩 */}
+      {context.summary && (
+        <button
+          type="button"
+          onClick={onContextClick}
+          disabled={!onContextClick}
+          className={cn(
+            'text-left text-xs px-3 py-1.5 border-b border-border bg-muted/30 truncate',
+            onContextClick && 'hover:bg-muted cursor-pointer',
+            !onContextClick && 'cursor-default',
+          )}
+          title={`현재 컨텍스트: ${context.summary}`}
+        >
+          <span className="text-muted-foreground">컨텍스트: </span>
+          <span className="font-medium">{context.summary}</span>
+        </button>
+      )}
+
+      {/* 본문 — 메시지 목록 또는 빈 상태 */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        {isEmpty ? (
+          <div className="space-y-3 py-4">
+            <div className="text-center text-sm text-muted-foreground">
+              👋 무엇을 도와드릴까요?
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {quickActions.map((qa) => (
+                <button
+                  key={qa.id}
+                  type="button"
+                  onClick={() => handleQuickAction(qa.prompt)}
+                  disabled={sending}
+                  className="text-left px-3 py-2 rounded border border-border hover:bg-muted text-sm disabled:opacity-50"
+                >
+                  {qa.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-xs text-muted-foreground text-center pt-2">
+              또는 아래에 자유롭게 질문하세요.
+            </div>
+          </div>
+        ) : (
+          messages.map((m) => (
+            <MessageBubble key={m.id} message={m} />
+          ))
+        )}
+        {sending && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground pl-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '120ms' }} />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '240ms' }} />
+          </div>
+        )}
+      </div>
+
+      {/* 푸터 — 입력창 */}
+      <div className="border-t border-border p-2">
+        {!isEmpty && (
+          <div className="flex justify-between items-center pb-1.5">
+            <span className="text-[10px] text-muted-foreground">{messages.length}개 메시지</span>
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
+              title="대화 초기화"
+            >
+              <RefreshCw className="w-3 h-3" /> 새 대화
+            </button>
+          </div>
+        )}
+        <div className="flex items-end gap-1.5">
+          <textarea
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="질문 또는 명령을 입력…"
+            rows={2}
+            disabled={sending}
+            className="flex-1 min-h-[36px] max-h-[120px] resize-none px-2 py-1.5 rounded border border-border bg-background outline-none focus:border-foreground/40 text-sm disabled:opacity-60"
+            aria-label="AI 입력"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!draft.trim() || sending}
+            className="p-2 rounded bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="보내기"
+            title="보내기 (Enter)"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function MessageBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'user';
+  return (
+    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+      <div
+        className={cn(
+          'max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words',
+          isUser
+            ? 'bg-foreground text-background'
+            : message.error
+              ? 'bg-destructive/10 text-destructive border border-destructive/30'
+              : 'bg-muted text-foreground',
+        )}
+      >
+        {message.error && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium mb-1">
+            <AlertTriangle className="w-3 h-3" />
+            에러
+          </span>
+        )}
+        {message.content}
+      </div>
+    </div>
+  );
+}

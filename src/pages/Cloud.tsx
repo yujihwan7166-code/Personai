@@ -22,6 +22,10 @@ import {
   searchByName, fetchNode, fetchAllFolders, moveNode,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import type { AiContext } from '@/lib/cloudAi/types';
 import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
@@ -77,6 +81,36 @@ export default function Cloud() {
       description: 'Storage 셋업(청크 4) 후 파일 업로드·편집이 추가됩니다.',
     });
   }, []);
+
+  // ─── AI 사이드바 ───
+  const getAiContext = useCallback((): AiContext => {
+    // selectedNode 있으면 그 파일, 없으면 현재 폴더 + 자식 목록
+    if (selectedNode) {
+      const meta = [
+        `이름: ${selectedNode.name}`,
+        `종류: ${selectedNode.kind === 'folder' ? '폴더' : selectedNode.fileType ?? '파일'}`,
+        selectedNode.sizeBytes ? `크기: ${selectedNode.sizeBytes} 바이트` : null,
+        `수정: ${selectedNode.updatedAt ?? '미상'}`,
+        selectedNode.starred ? '⭐ 별표' : null,
+      ].filter(Boolean).join('\n');
+      return {
+        kind: 'drive',
+        summary: `📄 ${selectedNode.name}`,
+        fullText: meta,
+      };
+    }
+    const folderName = trail[trail.length - 1]?.name ?? '내 파일';
+    const list = nodes.slice(0, 50).map((n) => {
+      const kind = n.kind === 'folder' ? '[폴더]' : `[${n.fileType ?? 'file'}]`;
+      return `- ${kind} ${n.name}`;
+    }).join('\n');
+    return {
+      kind: 'drive',
+      summary: `📁 ${folderName} (${nodes.length}개)`,
+      fullText: `폴더: ${folderName}\n자식 ${nodes.length}개 (최대 50개 표시):\n${list || '(비어있음)'}`,
+    };
+  }, [selectedNode, trail, nodes]);
+  const ai = useAiSidebar('drive', getAiContext);
 
   // 사이드바 폴더 트리 로드 — user 있으면 + nodes 변경 시
   useEffect(() => {
@@ -760,6 +794,7 @@ export default function Cloud() {
             >
               <Search className="w-4 h-4" />
             </button>
+            <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <button
               onClick={notReady}
               className="p-2 rounded hover:bg-muted"
@@ -1123,6 +1158,15 @@ export default function Cloud() {
             <PreviewPanel node={selectedNode} listMode={listMode} />
           )}
         </aside>
+        <AiSidebar
+          open={ai.open}
+          onClose={() => ai.setOpen(false)}
+          context={getAiContext()}
+          messages={ai.messages}
+          sending={ai.sending}
+          onSend={ai.send}
+          onClear={ai.clear}
+        />
       </div>
 
       <SearchModal
