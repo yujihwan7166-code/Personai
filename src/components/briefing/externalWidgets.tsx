@@ -394,15 +394,24 @@ export function NewsWidget({ widget }: WidgetProps) {
                     className="flex gap-2 group"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {n.thumbnail && (
+                    {n.thumbnail ? (
                       <div className="shrink-0 w-10 h-10 rounded-md overflow-hidden bg-foreground/5">
                         <img
                           src={n.thumbnail}
                           alt=""
                           loading="lazy"
                           className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            img.style.display = 'none';
+                            const parent = img.parentElement;
+                            if (parent) parent.classList.add('flex', 'items-center', 'justify-center');
+                          }}
                         />
+                      </div>
+                    ) : (
+                      <div className="shrink-0 w-10 h-10 rounded-md bg-foreground/5 flex items-center justify-center">
+                        <Newspaper className="h-4 w-4 text-foreground/25" strokeWidth={1.5} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
