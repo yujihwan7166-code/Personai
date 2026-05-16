@@ -605,19 +605,29 @@ function WidgetPicker({
                       }}
                       disabled={disabled}
                       className={cn(
-                        'relative p-3.5 rounded-xl text-left transition-all bg-card',
+                        'group relative p-3.5 rounded-xl text-left transition-all bg-card overflow-hidden',
                         'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
                         disabled
                           ? 'text-foreground/40 cursor-not-allowed opacity-60'
                           : 'hover:-translate-y-0.5 hover:shadow-[0_8px_22px_-8px_hsl(30_15%_8%/0.18)]',
                       )}
                     >
+                      {/* hover 시 위젯 tint 색이 살짝 묻어남 */}
+                      {!disabled && (
+                        <span
+                          aria-hidden
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                          style={{
+                            background: `radial-gradient(circle at 30% 0%, ${meta.tint.hue.replace(')', ' / 0.10)')}, transparent 65%)`,
+                          }}
+                        />
+                      )}
                       <div
-                        className="text-2xl mb-1.5"
+                        className="text-2xl mb-1.5 relative"
                         style={!disabled ? { color: meta.tint.hue } : undefined}
                       >{meta.emoji}</div>
-                      <div className="text-[12.5px] font-semibold text-foreground/90 truncate">{meta.label}</div>
-                      <div className="text-[10px] text-muted-foreground/75 mt-0.5 font-medium tabular-nums">
+                      <div className="text-[12.5px] font-semibold text-foreground/90 truncate relative">{meta.label}</div>
+                      <div className="text-[10px] text-muted-foreground/75 mt-0.5 font-medium tabular-nums relative">
                         {sizeLabel(meta.defaultSize)}
                       </div>
                       {already && (
