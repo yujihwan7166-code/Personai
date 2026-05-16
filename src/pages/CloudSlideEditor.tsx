@@ -17,8 +17,13 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { importPptxFile, exportPptxFile } from '@/lib/cloudSlide/pptx';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const AUTOSAVE_DELAY_MS = 1000;
@@ -450,6 +455,51 @@ export default function CloudSlideEditor() {
     window.addEventListener('pointerup', onUp);
   }, [editingElId, updateEl]);
 
+  // ─── Import / Export .pptx ───
+  const importPptx = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pptx';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const imported = await importPptxFile(file);
+        if (!imported.length) {
+          toast({ title: '가져올 슬라이드가 없어요', description: '빈 파일입니다.' });
+          return;
+        }
+        // 기존 슬라이드 뒤에 추가
+        const nextSlides = [...slides, ...imported];
+        setSlides(nextSlides);
+        setCurrentIdx(slides.length);  // 첫 새 슬라이드로
+        setSelectedElId(null);
+        setEditingElId(null);
+        queueSave(nextSlides, slides.length);
+        toast({
+          title: '가져오기 완료',
+          description: `${imported.length}장 추가됨. 도형·이미지·애니메이션은 일부 손실 가능.`,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast({ title: '가져오기 실패', description: msg });
+      }
+    };
+    input.click();
+  }, [slides, queueSave]);
+
+  const exportPptx = useCallback(() => {
+    if (!node) return;
+    try {
+      const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
+      exportPptxFile(slides, fileName);
+      toast({ title: '내보내기 완료', description: `${fileName}.pptx 다운로드 시작` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '내보내기 실패', description: msg });
+    }
+  }, [slides, node]);
+
   // ─── 발표 모드 ───
   const startPresent = useCallback(() => {
     setPresentIdx(currentIdx);
@@ -594,15 +644,27 @@ export default function CloudSlideEditor() {
             >
               <Keyboard className="w-4 h-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => toast({ title: '곧 활성화돼요', description: '다운로드는 다음 단계입니다.' })}
-              className="p-2 rounded hover:bg-muted"
-              aria-label="더보기"
-              title="더보기"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 rounded hover:bg-muted"
+                  aria-label="더보기"
+                  title="더보기"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuItem onSelect={importPptx}>
+                  📥 .pptx 가져오기
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={exportPptx}>
+                  📤 .pptx 내보내기
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
