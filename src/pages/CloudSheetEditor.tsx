@@ -711,6 +711,130 @@ export default function CloudSheetEditor() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // ─── 복사 / 잘라내기 / 붙여넣기 (TSV — 엑셀과 호환) ───
+  const rangeToTsv = useCallback((bounds: SelBounds): string => {
+    const lines: string[] = [];
+    for (let r = bounds.minR; r <= bounds.maxR; r++) {
+      const row: string[] = [];
+      for (let c = bounds.minC; c <= bounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        const raw = cells[ref] ?? '';
+        // 수식은 raw 그대로 (붙여넣기 시 다시 수식으로 복원)
+        // 값 안에 탭/줄바꿈 있으면 "" 로 감싸기 (엑셀 호환)
+        const needQuote = raw.includes('\t') || raw.includes('\n') || raw.includes('"');
+        row.push(needQuote ? `"${raw.replace(/"/g, '""')}"` : raw);
+      }
+      lines.push(row.join('\t'));
+    }
+    return lines.join('\n');
+  }, [cells]);
+
+  const copyRange = useCallback(async () => {
+    const tsv = rangeToTsv(selBounds);
+    try {
+      await navigator.clipboard.writeText(tsv);
+      const w = selBounds.maxC - selBounds.minC + 1;
+      const h = selBounds.maxR - selBounds.minR + 1;
+      toast({ title: `${h}×${w} 복사됨`, description: '엑셀에도 그대로 붙여넣을 수 있어요.' });
+    } catch {
+      toast({ title: '클립보드 접근 실패' });
+    }
+  }, [rangeToTsv, selBounds]);
+
+  const cutRange = useCallback(async () => {
+    await copyRange();
+    // 선택 범위 모두 지우기
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        if (cells[ref] !== undefined) setCellValue(ref, '');
+      }
+    }
+  }, [copyRange, selBounds, cells, setCellValue]);
+
+  /** TSV 텍스트 → 2D 배열 (엑셀 호환: "" 로 감싼 셀 안 \t 보존) */
+  const parseTsv = useCallback((text: string): string[][] => {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let cell = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cell += ch; }
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === '\t') { row.push(cell); cell = ''; }
+        else if (ch === '\n' || ch === '\r') {
+          row.push(cell); cell = '';
+          rows.push(row); row = [];
+          if (ch === '\r' && text[i + 1] === '\n') i++;
+        } else { cell += ch; }
+      }
+    }
+    if (cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
+    return rows;
+  }, []);
+
+  const pasteFromClipboard = useCallback(async () => {
+    if (editing) return;
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) return;
+      const grid = parseTsv(text);
+      if (grid.length === 0) return;
+      const startR = selected.row;
+      const startC = selected.col;
+      const nextCells: Cells = { ...cells };
+      let maxR = startR;
+      let maxC = startC;
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          const tr = startR + r;
+          const tc = startC + c;
+          if (tr >= rowCount || tc >= colCount) continue;
+          const v = grid[r][c];
+          const ref = cellRef(tr, tc);
+          if (v === '') delete nextCells[ref];
+          else nextCells[ref] = v;
+          if (tr > maxR) maxR = tr;
+          if (tc > maxC) maxC = tc;
+        }
+      }
+      const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+      setAllCells(nextAll);
+      queueSave({ allCells: nextAll });
+      // 붙여넣은 영역을 새 선택 범위로
+      if (maxR !== startR || maxC !== startC) {
+        setRangeAnchor({ row: startR, col: startC });
+        setSelected({ row: maxR, col: maxC });
+      }
+      const w = maxC - startC + 1;
+      const h = maxR - startR + 1;
+      toast({ title: `${h}×${w} 붙여넣음` });
+    } catch (e) {
+      toast({ title: '붙여넣기 실패', description: e instanceof Error ? e.message : '권한이 필요합니다.' });
+    }
+  }, [editing, selected, cells, parseTsv, rowCount, colCount, allCells, currentSheetId, queueSave]);
+
+  // 글로벌 Ctrl+C / X / V (편집 중·input 내부 X)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (editing) return;
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+      if (e.key.toLowerCase() === 'c') { e.preventDefault(); void copyRange(); }
+      else if (e.key.toLowerCase() === 'x') { e.preventDefault(); void cutRange(); }
+      else if (e.key.toLowerCase() === 'v') { e.preventDefault(); void pasteFromClipboard(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing, copyRange, cutRange, pasteFromClipboard]);
+
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
   const openChart = useCallback(() => {
@@ -2311,6 +2435,33 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
               <HelpRow keys={['Tab']} label="편집 후 오른쪽 셀" />
               <HelpRow keys={['Esc']} label="편집 취소" />
               <HelpRow keys={['Delete', 'Backspace']} label="셀 내용 지우기" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">검색·치환</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'F']} label="찾기" />
+              <HelpRow keys={['Ctrl', 'H']} label="찾아 바꾸기" />
+              <HelpRow keys={['Enter']} label="다음 결과" />
+              <HelpRow keys={['Shift', 'Enter']} label="이전 결과" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">복사·붙여넣기 (엑셀 호환)</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'C']} label="선택 범위 복사 (TSV)" />
+              <HelpRow keys={['Ctrl', 'X']} label="잘라내기" />
+              <HelpRow keys={['Ctrl', 'V']} label="붙여넣기 (시작 셀부터)" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">선택·이동</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Shift', '↑↓←→']} label="범위 확장" />
+              <HelpRow keys={['Shift', '마우스']} label="범위 확장 / 드래그 선택" />
             </div>
           </section>
 
