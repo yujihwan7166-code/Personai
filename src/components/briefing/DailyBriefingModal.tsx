@@ -371,9 +371,12 @@ function WidgetCard({
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
         // hero (pickFirst) 만 옅은 amber ground — 다른 카드는 plain white
+        // hover 시: 위젯 tint 색이 살짝 묻어남
         background: isHero && !editMode
           ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.10)').replace('hsl(', 'hsla(')}, hsl(var(--card)) 70%)`
-          : undefined,
+          : (hover && !editMode
+              ? `linear-gradient(180deg, ${meta.tint.hue.replace(')', ' / 0.05)').replace('hsl(', 'hsla(')}, hsl(var(--card)) 100%)`
+              : undefined),
       }}
     >
       {renderWidget({ widget, data, onClose })}
@@ -480,7 +483,10 @@ function WidgetPicker({
       className="wb-backdrop-in absolute inset-0 z-30 bg-black/30 backdrop-blur-sm flex items-center justify-center p-6"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="wb-picker-in w-full max-w-[760px] max-h-[88%] bg-card border border-foreground/15 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div
+        className="wb-picker-in w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
+      >
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
           <h3 className="text-[14px] font-semibold text-foreground shrink-0">위젯 추가</h3>
           <input
@@ -523,19 +529,17 @@ function WidgetPicker({
                       }}
                       disabled={disabled}
                       className={cn(
-                        'relative p-3.5 rounded-xl text-left transition-all',
+                        'relative p-3.5 rounded-xl text-left transition-all bg-card',
+                        'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
                         disabled
-                          ? 'border border-foreground/8 bg-card/40 text-foreground/40 cursor-not-allowed'
-                          : 'hover:-translate-y-0.5 hover:shadow-md',
+                          ? 'text-foreground/40 cursor-not-allowed opacity-60'
+                          : 'hover:-translate-y-0.5 hover:shadow-[0_8px_22px_-8px_hsl(30_15%_8%/0.18)]',
                       )}
-                      style={!disabled ? {
-                        background: `linear-gradient(180deg, ${meta.tint.bg}, hsl(var(--card)) 70%)`,
-                        borderTop: `2px solid ${meta.tint.border}`,
-                        outline: '1px solid hsl(var(--foreground) / 0.06)',
-                        outlineOffset: '-1px',
-                      } : undefined}
                     >
-                      <div className="text-2xl mb-1.5">{meta.emoji}</div>
+                      <div
+                        className="text-2xl mb-1.5"
+                        style={!disabled ? { color: meta.tint.hue } : undefined}
+                      >{meta.emoji}</div>
                       <div className="text-[12.5px] font-semibold text-foreground/90 truncate">{meta.label}</div>
                       <div className="text-[10px] text-muted-foreground/75 mt-0.5 font-medium tabular-nums">
                         {sizeLabel(meta.defaultSize)}

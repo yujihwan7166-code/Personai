@@ -355,7 +355,17 @@ export function NewsWidget({ widget }: WidgetProps) {
         <>
           {!result?.data && loading && <WidgetSkeleton rows={4} />}
           {error && !result?.data && <CenterText text="가져오기 실패" error />}
-          {result?.data && result.data.length === 0 && <CenterText text="기사 없음" />}
+          {result?.data && result.data.length === 0 && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-1 text-center">
+              <Newspaper className="h-7 w-7 text-foreground/20" strokeWidth={1.5} />
+              <span className="text-[11.5px] text-foreground/55 font-medium">기사가 없어요</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setPickerOpen(true); }}
+                className="text-[10px] text-primary hover:underline font-medium"
+              >매체·주제 선택 →</button>
+            </div>
+          )}
           {result?.data && result.data.length > 0 && (
             <ul className="mt-1.5 space-y-1.5 flex-1 overflow-y-auto">
               {result.data.map((n, i) => (
