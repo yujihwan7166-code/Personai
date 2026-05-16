@@ -208,6 +208,7 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
+  thumbnail?: string;
 }
 
 /** 한국 매체 RSS — 매체 + 주제 키. */
@@ -262,17 +263,26 @@ export const NEWS_SOURCES: Record<string, { label: string; topics: Record<string
 };
 
 /** rss2json 으로 RSS 파싱 (CORS 우회). 무료 무인증 — rate limit 만 주의. */
-async function fetchRssViaProxy(rssUrl: string): Promise<{ title: string; link: string; pubDate: string }[]> {
+async function fetchRssViaProxy(rssUrl: string): Promise<{ title: string; link: string; pubDate: string; thumbnail?: string }[]> {
   const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`RSS proxy ${res.status}`);
   const json = await res.json();
   if (json.status !== 'ok') throw new Error(`RSS 파싱 실패: ${json.message ?? 'unknown'}`);
-  return (json.items ?? []).map((it: { title: string; link: string; pubDate: string }) => ({
-    title: it.title,
-    link: it.link,
-    pubDate: it.pubDate,
-  }));
+  return (json.items ?? []).map((it: { title: string; link: string; pubDate: string; thumbnail?: string; enclosure?: { link?: string }; description?: string }) => {
+    // rss2json thumbnail 또는 enclosure 또는 description 내 첫 <img>
+    let thumb = it.thumbnail || it.enclosure?.link;
+    if (!thumb && it.description) {
+      const m = it.description.match(/<img[^>]+src=["']([^"']+)["']/);
+      if (m) thumb = m[1];
+    }
+    return {
+      title: it.title,
+      link: it.link,
+      pubDate: it.pubDate,
+      thumbnail: thumb && thumb.startsWith('http') ? thumb : undefined,
+    };
+  });
 }
 
 export interface NewsConfig {

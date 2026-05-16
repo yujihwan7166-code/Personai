@@ -140,8 +140,11 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
             <div className="font-display text-[30px] font-extrabold leading-none tabular-nums text-foreground">
               {result.data.temp}<span className="text-[18px] opacity-70">°</span>
             </div>
-            <div className="text-[11px] text-foreground/80 mt-1 leading-tight font-medium">
+            <div className="text-[11px] text-foreground/80 mt-1 leading-tight font-medium truncate">
               {result.data.description}
+              {result.data.feelsLike !== undefined && result.data.feelsLike !== result.data.temp && (
+                <span className="text-muted-foreground/75 font-normal"> · 체감 {result.data.feelsLike}°</span>
+              )}
             </div>
             <div className="text-[10.5px] text-muted-foreground tabular-nums leading-tight mt-0.5">
               <span className="text-rose-500/85">↑{result.data.tempMax}°</span>{' '}
@@ -367,31 +370,44 @@ export function NewsWidget({ widget }: WidgetProps) {
             </div>
           )}
           {result?.data && result.data.length > 0 && (
-            <ul className="mt-1.5 space-y-1.5 flex-1 overflow-y-auto">
+            <ul className="mt-1.5 space-y-2 flex-1 overflow-y-auto">
               {result.data.map((n, i) => (
                 <li key={i}>
                   <a
                     href={n.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="block group"
+                    className="flex gap-2 group"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-foreground/8 text-[9px] font-semibold text-foreground/65 truncate max-w-[60px]">
-                        {n.source}
-                      </span>
-                      <span className="text-[9px] text-muted-foreground/65 tabular-nums">
-                        {(() => {
-                          const ago = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 60000);
-                          if (ago < 60) return `${Math.max(1, ago)}분`;
-                          if (ago < 1440) return `${Math.round(ago / 60)}시간`;
-                          return `${Math.round(ago / 1440)}일`;
-                        })()}
-                      </span>
-                    </div>
-                    <div className="text-[11.5px] leading-snug text-foreground/90 line-clamp-2 group-hover:text-primary transition-colors">
-                      {n.title}
+                    {n.thumbnail && (
+                      <div className="shrink-0 w-10 h-10 rounded-md overflow-hidden bg-foreground/5">
+                        <img
+                          src={n.thumbnail}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-foreground/8 text-[9px] font-semibold text-foreground/65 truncate max-w-[60px]">
+                          {n.source}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground/65 tabular-nums">
+                          {(() => {
+                            const ago = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 60000);
+                            if (ago < 60) return `${Math.max(1, ago)}분`;
+                            if (ago < 1440) return `${Math.round(ago / 60)}시간`;
+                            return `${Math.round(ago / 1440)}일`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="text-[11.5px] leading-snug text-foreground/90 line-clamp-2 group-hover:text-primary transition-colors">
+                        {n.title}
+                      </div>
                     </div>
                   </a>
                 </li>
