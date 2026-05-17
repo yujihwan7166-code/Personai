@@ -139,7 +139,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 {data.greeting}
               </h2>
             </div>
-            <div className="text-[13px] text-foreground/70 mt-2 tabular-nums font-medium flex items-center flex-wrap gap-x-3 gap-y-0.5">
+            <div className="text-[13px] text-foreground/70 mt-2 tabular-nums font-medium flex items-center flex-wrap gap-x-3 gap-y-1">
               <span>{data.date}</span>
               {data.timed.length > 0 && (
                 <span className="inline-flex items-center gap-1.5">
@@ -233,7 +233,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 편집 모드 안내 + autoShow 토글 */}
         {editMode && (
-          <div className="shrink-0 px-5 sm:px-7 py-2.5 border-t border-foreground/8 flex items-center gap-3 sm:gap-4 bg-foreground/[0.02] backdrop-blur-sm">
+          <div className="shrink-0 px-5 sm:px-7 py-2.5 border-t border-[hsl(30_15%_70%/0.3)] flex items-center gap-3 sm:gap-4 bg-foreground/[0.02] backdrop-blur-sm">
             <div className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/85 font-semibold tracking-tight">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(28_88%_52%)] animate-pulse" />
               편집 모드
@@ -362,8 +362,8 @@ function BriefingGrid({
             className={cn(
               'rounded-xl border border-dashed transition-colors flex items-center justify-center group',
               i === 0
-                ? 'border-foreground/25 text-muted-foreground hover:border-[hsl(28_88%_52%)] hover:text-amber-700 hover:bg-amber-500/[0.05]'
-                : 'border-foreground/10 text-foreground/30 hover:border-[hsl(28_88%_52%/0.45)] hover:text-amber-700 hover:bg-amber-500/[0.05]',
+                ? 'border-[hsl(30_15%_55%/0.4)] text-muted-foreground hover:border-[hsl(28_88%_52%)] hover:text-amber-700 hover:bg-amber-500/[0.05]'
+                : 'border-[hsl(30_15%_55%/0.18)] text-foreground/30 hover:border-[hsl(28_88%_52%/0.45)] hover:text-amber-700 hover:bg-amber-500/[0.05]',
             )}
             style={{
               gridColumn: `${cell.col + 1} / span 1`,
@@ -386,8 +386,8 @@ function BriefingGrid({
           onDragStart={() => setDragId(w.id)}
           onDragEnd={() => { setDragId(null); setHoverCell(null); }}
           onClose={onClose}
-          /* 스태거 entrance — index 기반 살짝 지연 */
-          style={{ animationDelay: `${Math.min(idx * 30, 200)}ms` }}
+          /* 스태거 entrance — index 기반 살짝 지연 (cap 240ms) */
+          style={{ animationDelay: `${Math.min(idx * 35, 240)}ms` }}
         />
       ))}
       {/* 드래그 hover preview cell */}
@@ -472,13 +472,17 @@ function WidgetCard({
         e.stopPropagation();
       }}
       className={cn(
-        'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
+        'wb-widget-card relative rounded-[18px] overflow-hidden transition-all',
         // 평소 — 사이즈별 그림자 (L 무겁게 / M 기본 / S 가볍게)
         !editMode && 'bg-card',
         !editMode && widget.size === 'L' && 'shadow-[0_2px_4px_hsl(30_15%_8%/0.05),_0_10px_28px_-10px_hsl(30_15%_8%/0.16)]',
         !editMode && widget.size === 'M' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_3px_12px_-5px_hsl(30_15%_8%/0.08)]',
         !editMode && widget.size === 'S' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_1px_4px_-2px_hsl(30_15%_8%/0.05)]',
-        !editMode && 'hover:shadow-[0_14px_36px_-12px_hsl(30_15%_8%/0.24),_0_5px_14px_-4px_hsl(30_15%_8%/0.14)] hover:-translate-y-1',
+        // 사이즈별 hover lift — L 무거운 카드 작게, S 가벼운 카드 크게 (시각 물리감)
+        !editMode && 'hover:shadow-[0_14px_36px_-12px_hsl(30_15%_8%/0.24),_0_5px_14px_-4px_hsl(30_15%_8%/0.14)]',
+        !editMode && widget.size === 'L' && 'hover:-translate-y-0.5',
+        !editMode && widget.size === 'M' && 'hover:-translate-y-1',
+        !editMode && widget.size === 'S' && 'hover:-translate-y-1.5',
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
         editMode && 'wb-jiggle ring-1 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
         editMode && !isDragging && 'ring-[hsl(30_15%_55%/0.22)]',
@@ -542,7 +546,7 @@ function WidgetActionMenu({
         ⋯
       </button>
       {open && (
-        <div className="wb-menu-in absolute right-0 top-6 z-20 min-w-[150px] bg-card border border-foreground/12 rounded-lg shadow-[0_8px_24px_-8px_hsl(30_30%_8%/0.25),_0_2px_6px_-2px_hsl(30_30%_8%/0.12)] py-1.5 text-[11.5px] overflow-hidden">
+        <div className="wb-menu-in absolute right-0 top-6 z-20 min-w-[150px] bg-card border border-[hsl(30_15%_70%/0.4)] rounded-lg shadow-[0_8px_24px_-8px_hsl(30_30%_8%/0.25),_0_2px_6px_-2px_hsl(30_30%_8%/0.12)] py-1.5 text-[11.5px] overflow-hidden">
           {meta.allowedSizes.length > 1 && (
             <div className="px-2.5 py-1 text-[9.5px] uppercase tracking-wider text-muted-foreground/70 font-semibold">크기</div>
           )}
@@ -632,12 +636,12 @@ function WidgetPicker({
     >
       <div
         className={cn(
-          'w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-[20px] shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden',
+          'w-full max-w-[760px] max-h-[88%] border border-[hsl(30_15%_70%/0.4)] rounded-[20px] shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden',
           closing ? 'wb-picker-out' : 'wb-picker-in',
         )}
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
       >
-        <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
+        <div className="shrink-0 px-5 py-3 border-b border-[hsl(30_15%_70%/0.35)] flex items-center gap-3">
           <h3 className="font-display text-[16px] font-bold tracking-tight text-foreground shrink-0">위젯 추가</h3>
           <div className="flex-1 relative">
             <input

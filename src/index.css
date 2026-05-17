@@ -673,7 +673,7 @@
     100% { opacity: 0; }
   }
   .wb-backdrop-out {
-    animation: wb-backdrop-out 0.15s ease-in forwards;
+    animation: wb-backdrop-out 0.20s ease-in forwards;
   }
 
   /* 카드 hover */
