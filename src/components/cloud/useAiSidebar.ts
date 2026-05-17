@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { runAiChat, newMessageId } from '@/lib/cloudAi/chat';
+import { runAiChatStream, newMessageId } from '@/lib/cloudAi/chat';
 import {
   STORAGE_KEY_OPEN, STORAGE_KEY_CHAT, MAX_MESSAGES_PER_CHAT,
   type AiKind, type AiContext, type ChatMessage,
@@ -114,27 +114,37 @@ export function useAiSidebar(
     };
     // 직전 history (이번 user 제외)
     const historyBefore = messages;
-    setMessages((cur) => [...cur, userMsg]);
+    // 빈 assistant 메시지를 미리 push — streaming chunk 가 채워줌
+    const aiId = newMessageId();
+    const aiMsg: ChatMessage = {
+      id: aiId,
+      role: 'assistant',
+      content: '',
+      ts: Date.now(),
+    };
+    setMessages((cur) => [...cur, userMsg, aiMsg]);
     setSending(true);
     try {
       const ctx = getContextRef.current();
-      const reply = await runAiChat(ctx, historyBefore, trimmed);
-      const aiMsg: ChatMessage = {
-        id: newMessageId(),
-        role: 'assistant',
-        content: reply || '(빈 응답)',
-        ts: Date.now(),
-      };
-      setMessages((cur) => [...cur, aiMsg]);
+      const final = await runAiChatStream(ctx, historyBefore, trimmed, (accumulated) => {
+        setMessages((cur) => cur.map((m) =>
+          m.id === aiId ? { ...m, content: accumulated } : m,
+        ));
+      });
+      // 최종 빈 응답 처리
+      setMessages((cur) => cur.map((m) =>
+        m.id === aiId && !final ? { ...m, content: '(빈 응답)' } : m,
+      ));
     } catch (e) {
-      const errMsg: ChatMessage = {
-        id: newMessageId(),
-        role: 'assistant',
-        content: e instanceof Error ? e.message : '알 수 없는 에러',
-        ts: Date.now(),
-        error: true,
-      };
-      setMessages((cur) => [...cur, errMsg]);
+      setMessages((cur) => cur.map((m) =>
+        m.id === aiId
+          ? {
+              ...m,
+              content: e instanceof Error ? e.message : '알 수 없는 에러',
+              error: true,
+            }
+          : m,
+      ));
     } finally {
       setSending(false);
     }

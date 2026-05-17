@@ -44,7 +44,7 @@ function buildUserPayload(history: ChatMessage[], context: AiContext, userInput:
 }
 
 /**
- * AI 호출.
+ * AI 호출 — non-streaming.
  *  - history: 이전 메시지들 (마지막 user 메시지 제외)
  *  - context: 현재 화면 컨텍스트
  *  - userInput: 새 사용자 입력
@@ -62,6 +62,73 @@ export async function runAiChat(
     maxTokens: 2048,
     temperature: 0.7,
   });
+}
+
+/**
+ * AI 호출 — streaming.
+ *  - onChunk: 누적 텍스트 (지금까지 받은 부분 전체) — UI 가 그대로 표시
+ *  - 반환: 최종 누적 텍스트
+ *  - throw: 네트워크 / 서버 에러
+ */
+export async function runAiChatStream(
+  context: AiContext,
+  history: ChatMessage[],
+  userInput: string,
+  onChunk: (accumulated: string) => void,
+): Promise<string> {
+  const system = SYSTEM_PROMPTS[context.kind];
+  const user = buildUserPayload(history, context, userInput);
+  const res = await fetch('/api/cloud-ai-stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system, user,
+      model: QUICK_MODEL,
+      maxTokens: 2048,
+      temperature: 0.7,
+    }),
+  });
+  if (!res.ok || !res.body) {
+    let msg = `AI 호출 실패 (${res.status})`;
+    try {
+      const data = await res.json();
+      if (typeof data.error === 'string') msg = data.error;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let full = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let lineEnd: number;
+    while ((lineEnd = buf.indexOf('\n')) !== -1) {
+      const line = buf.slice(0, lineEnd).trim();
+      buf = buf.slice(lineEnd + 1);
+      if (!line || line.startsWith(':')) continue;
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (payload === '[DONE]') return full;
+      try {
+        const json = JSON.parse(payload) as { text?: string; error?: string };
+        if (json.error) throw new Error(json.error);
+        if (typeof json.text === 'string') {
+          full += json.text;
+          onChunk(full);
+        }
+      } catch (e) {
+        // SSE error 메시지 → 그대로 throw
+        if (e instanceof Error && e.message && e.message !== 'SyntaxError') {
+          throw e;
+        }
+      }
+    }
+  }
+  return full;
 }
 
 export function newMessageId(): string {

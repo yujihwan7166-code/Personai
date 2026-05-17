@@ -158,11 +158,15 @@ export function AiSidebar({
             </div>
           </div>
         ) : (
-          messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
-          ))
+          messages.map((m) =>
+            // 빈 assistant 메시지 (streaming 시작 직전) 는 bubble 숨김 — spinner 가 대신
+            m.role === 'assistant' && m.content === '' ? null : (
+              <MessageBubble key={m.id} message={m} />
+            ),
+          )
         )}
-        {sending && (
+        {/* 응답 시작 전 spinner — 마지막 assistant 메시지가 아직 비어 있을 때만 */}
+        {sending && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground pl-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '120ms' }} />
