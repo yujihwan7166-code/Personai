@@ -1963,6 +1963,20 @@ export default function CloudSheetEditor() {
     });
   }, [queueSave]);
 
+  /** 자동 행 높이 — 그 row 의 모든 cells 중 가장 긴 줄수 × 라인 높이 */
+  const autoFitRowHeight = useCallback((rowIdx: number) => {
+    let maxLines = 1;
+    for (let c = 0; c < colCount; c++) {
+      const raw = cells[cellRef(rowIdx, c)] ?? '';
+      if (!raw) continue;
+      const lines = raw.split('\n').length;
+      if (lines > maxLines) maxLines = lines;
+    }
+    // 1줄 ≈ 22px + 6px padding 여유. 기본 28 보다 작으면 기본
+    const fit = Math.max(DEFAULT_ROW_HEIGHT, maxLines * 22 + 6);
+    setRowHeight(rowIdx, fit);
+  }, [colCount, cells, setRowHeight]);
+
   // ─── 헤더 컨텍스트 메뉴 ───
   const [ctxMenu, setCtxMenu] = useState<
     | { kind: 'row' | 'col'; idx: number; x: number; y: number }
@@ -2746,6 +2760,7 @@ export default function CloudSheetEditor() {
             rowHeights={rowHeights}
             onColResize={setColWidth}
             onRowResize={setRowHeight}
+            onRowAutoFit={autoFitRowHeight}
             onHeaderContextMenu={openHeaderContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
@@ -3063,6 +3078,7 @@ interface SheetGridProps {
   rowHeights: Record<number, number>;
   onColResize: (colIdx: number, newWidth: number) => void;
   onRowResize: (rowIdx: number, newHeight: number) => void;
+  onRowAutoFit?: (rowIdx: number) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
@@ -3106,7 +3122,7 @@ interface SheetGridProps {
 
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
-  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onHeaderContextMenu,
+  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
   condFormatMap,
@@ -3205,6 +3221,7 @@ function SheetGrid({
                   rowIdx={rowIdx}
                   currentHeight={rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT}
                   onResize={onRowResize}
+                  onAutoFit={onRowAutoFit}
                 />
               </th>
               {cols.map((_, colIdx) => {
@@ -3677,8 +3694,8 @@ function ColResizeHandle({
 // ─────────────────────────────────────────────
 
 function RowResizeHandle({
-  rowIdx, currentHeight, onResize,
-}: { rowIdx: number; currentHeight: number; onResize: (rowIdx: number, h: number) => void }) {
+  rowIdx, currentHeight, onResize, onAutoFit,
+}: { rowIdx: number; currentHeight: number; onResize: (rowIdx: number, h: number) => void; onAutoFit?: (rowIdx: number) => void }) {
   const startYRef = useRef(0);
   const startHRef = useRef(0);
   const draggingRef = useRef(false);
@@ -3709,8 +3726,14 @@ function RowResizeHandle({
     <span
       className="absolute left-0 bottom-0 w-full h-1.5 cursor-row-resize select-none group-hover:bg-foreground/10"
       onPointerDown={onPointerDown}
-      onDoubleClick={(e) => { e.stopPropagation(); onResize(rowIdx, DEFAULT_ROW_HEIGHT); }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        // autoFit 가 있으면 콘텐츠 줄수에 맞춤, 없으면 기본 높이로 리셋
+        if (onAutoFit) onAutoFit(rowIdx);
+        else onResize(rowIdx, DEFAULT_ROW_HEIGHT);
+      }}
       aria-label="행 높이 조정"
+      title="드래그로 조정 · 더블클릭 시 자동 맞춤"
       role="separator"
     />
   );
