@@ -101,7 +101,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
       aria-modal="true"
       aria-label="데일리 브리핑"
       className={cn(
-        'fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-sm',
+        'fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-md',
         closing ? 'wb-backdrop-out' : 'wb-backdrop-in',
       )}
       style={{ background: 'hsl(30 30% 8% / 0.45)' }}
@@ -476,8 +476,9 @@ function WidgetCard({
         !editMode && widget.size === 'S' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_1px_4px_-2px_hsl(30_15%_8%/0.05)]',
         !editMode && 'hover:shadow-[0_14px_36px_-12px_hsl(30_15%_8%/0.24),_0_5px_14px_-4px_hsl(30_15%_8%/0.14)] hover:-translate-y-1',
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
-        editMode && 'wb-jiggle ring-1 ring-foreground/15 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
-        editMode && isDragging && 'opacity-30 cursor-grabbing',
+        editMode && 'wb-jiggle ring-1 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
+        editMode && !isDragging && 'ring-foreground/15',
+        editMode && isDragging && 'opacity-40 cursor-grabbing ring-primary/40',
       )}
       style={{
         ...style,
@@ -760,7 +761,7 @@ function WidgetPicker({
 
 // 작은 진행률 ring — 헤더용 (그라디언트 stroke, 100% 도달 시 emerald + ✓)
 function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
-  const stroke = 3;
+  const stroke = 3.5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, ratio));

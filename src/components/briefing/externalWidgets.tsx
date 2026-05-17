@@ -152,9 +152,10 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
                 <span className="text-muted-foreground/75 font-normal"> · 체감 {result.data.feelsLike}°</span>
               )}
             </div>
-            <div className="text-[10.5px] text-muted-foreground tabular-nums leading-tight mt-0.5">
-              <span className="text-rose-500/85">↑{result.data.tempMax}°</span>{' '}
-              <span className="text-blue-500/85">↓{result.data.tempMin}°</span>
+            <div className="text-[10.5px] text-muted-foreground tabular-nums leading-tight mt-0.5 font-medium">
+              <span className="text-rose-500/75">↑{result.data.tempMax}°</span>
+              <span className="mx-1 text-foreground/20">·</span>
+              <span className="text-blue-500/75">↓{result.data.tempMin}°</span>
             </div>
           </div>
           {/* hover 시 도시 변경 가능함을 알려주는 작은 pencil */}
@@ -418,7 +419,7 @@ export function NewsWidget({ widget }: WidgetProps) {
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-foreground/8 text-[9px] font-semibold text-foreground/65 truncate max-w-[60px]">
+                        <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-[hsl(30_15%_50%/0.10)] text-[9.5px] font-semibold text-foreground/75 truncate max-w-[64px]">
                           {n.source}
                         </span>
                         <span className="text-[10px] text-muted-foreground/70 tabular-nums font-medium">
