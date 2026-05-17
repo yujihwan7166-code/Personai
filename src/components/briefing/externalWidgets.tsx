@@ -258,7 +258,7 @@ export function ForexWidget({ widget }: WidgetProps) {
             )}>
               {result.data.map((r) => (
                 <li key={r.code} className="flex items-baseline gap-1.5 text-[11.5px] leading-tight">
-                  <span className="font-bold text-foreground/85 w-[28px] tabular-nums shrink-0">{r.code}</span>
+                  <span className="font-bold text-foreground/85 w-[30px] tabular-nums shrink-0 tracking-wide">{r.code}</span>
                   {r.rate ? (
                     <span className="tabular-nums text-foreground font-semibold flex-1 truncate">
                       {Math.round(r.rate).toLocaleString()}<span className="text-[10px] text-muted-foreground ml-0.5">원</span>
@@ -582,7 +582,7 @@ export function StockWidget({ widget }: WidgetProps) {
             )}>
               {result.data.slice(0, widget.size === 'M' ? 6 : 4).map((c) => (
                 <li key={c.id} className="flex items-center gap-1 text-[11px] leading-tight">
-                  <span className="font-bold text-foreground/85 w-[34px] truncate shrink-0">{c.symbol}</span>
+                  <span className="font-bold text-foreground/85 w-[34px] truncate shrink-0 tracking-wide uppercase">{c.symbol}</span>
                   {c.sparkline && c.sparkline.length > 4 && (
                     <Sparkline data={c.sparkline} up={c.change24h >= 0} className="shrink-0" />
                   )}
@@ -850,7 +850,7 @@ export function Sparkline({
 /** 스켈레톤 — 위젯 로딩 시 표시 (cream 톤). */
 export function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="flex-1 mt-2 space-y-1.5">
+    <div className="flex-1 mt-2 space-y-2">
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}

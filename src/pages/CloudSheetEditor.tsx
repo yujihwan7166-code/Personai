@@ -12,7 +12,7 @@ import {
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
   Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
-  Undo2, Redo2, MessageSquare,
+  Undo2, Redo2, MessageSquare, ExternalLink,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -214,6 +214,18 @@ function cellRef(row: number, col: number): string {
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** 셀 값이 링크 형식이면 정규화된 URL 반환, 아니면 null.
+ *  지원: http(s)://, mailto:, www. (자동으로 https:// 붙임) */
+function detectLink(value: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (/^https?:\/\/[^\s]+$/i.test(trimmed)) return trimmed;
+  if (/^mailto:[^\s]+$/i.test(trimmed)) return trimmed;
+  if (/^[\w.-]+@[\w.-]+\.[a-z]{2,}$/i.test(trimmed)) return `mailto:${trimmed}`;
+  if (/^www\.[^\s]+$/i.test(trimmed)) return `https://${trimmed}`;
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -3477,10 +3489,31 @@ const SheetCell = React.memo(function SheetCell({
             className="w-full h-full px-2 py-0 outline-none bg-transparent text-sm relative z-10 resize-none leading-snug font-[inherit]"
           />
         </div>
-      ) : (
-        // 줄바꿈 (\n) 은 보존, 한 줄 컨텐츠는 ellipsis. 행 높이가 충분히 크면 여러 줄 보임.
-        <span className="block whitespace-pre-line overflow-hidden break-words">{value}</span>
-      )}
+      ) : (() => {
+        const link = detectLink(value);
+        return (
+          <>
+            <span className={cn(
+              'block whitespace-pre-line overflow-hidden break-words',
+              link && 'text-blue-600 dark:text-blue-400 underline underline-offset-2 decoration-1',
+            )}>
+              {value}
+            </span>
+            {link && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); window.open(link, '_blank', 'noopener,noreferrer'); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-60 hover:opacity-100"
+                aria-label="링크 열기"
+                title={`새 탭에서 열기: ${link}`}
+              >
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
+          </>
+        );
+      })()}
       {hasFillHandle && (
         <span
           onPointerDown={onFillStart}

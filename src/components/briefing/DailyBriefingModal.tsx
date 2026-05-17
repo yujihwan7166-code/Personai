@@ -129,7 +129,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
         <div className="shrink-0 px-5 sm:px-7 pt-6 pb-5 flex items-start gap-2 sm:gap-4 relative">
           {/* hairline divider — 헤더와 본문 자연 분리 (반응형 inset) */}
-          <span aria-hidden className="absolute inset-x-5 sm:inset-x-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
+          <span aria-hidden className="absolute inset-x-5 sm:inset-x-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/[0.14] to-transparent" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <TimeOfDayIcon />
@@ -489,7 +489,7 @@ function WidgetCard({
         background: isHero && !editMode
           ? `linear-gradient(135deg, hsl(28 88% 52% / 0.16) 0%, hsl(28 88% 52% / 0.04) 55%, hsl(var(--card)) 100%)`
           : (hover && !editMode
-              ? `linear-gradient(180deg, ${meta.tint.hue.replace(')', ' / 0.06)')}, hsl(var(--card)) 100%)`
+              ? `linear-gradient(180deg, ${meta.tint.hue.replace(')', ' / 0.08)')}, hsl(var(--card)) 100%)`
               : undefined),
       }}
     >
