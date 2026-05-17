@@ -1987,6 +1987,38 @@ export default function CloudSheetEditor() {
     });
   }, [queueSave]);
 
+  /** 선택 영역 일괄 입력 — focus 셀의 값을 모든 selBounds 셀에 복사 */
+  const fillSelectionWithCurrent = useCallback(() => {
+    if (selBounds.minR === selBounds.maxR && selBounds.minC === selBounds.maxC) {
+      toast({ title: '먼저 범위를 선택하세요', description: 'Shift+화살표 또는 드래그' });
+      return;
+    }
+    const sourceRef = cellRef(selected.row, selected.col);
+    const value = cells[sourceRef] ?? '';
+    if (value === '') {
+      toast({ title: '현재 셀이 비어있어요', description: '값이 있는 셀에서 시도하세요.' });
+      return;
+    }
+    let changed = 0;
+    const nextCells: Cells = { ...cells };
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        if (nextCells[ref] !== value) {
+          nextCells[ref] = value;
+          changed++;
+        }
+      }
+    }
+    if (changed === 0) return;
+    const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+    setAllCells(nextAll);
+    queueSave({ allCells: nextAll });
+    const w = selBounds.maxC - selBounds.minC + 1;
+    const h = selBounds.maxR - selBounds.minR + 1;
+    toast({ title: `${h}×${w} 셀에 채움`, description: `값: "${value.slice(0, 30)}"` });
+  }, [selBounds, selected, cells, allCells, currentSheetId, queueSave]);
+
   /** 자동 행 높이 — 그 row 의 모든 cells 중 가장 긴 줄수 × 라인 높이 */
   const autoFitRowHeight = useCallback((rowIdx: number) => {
     let maxLines = 1;
@@ -2702,6 +2734,17 @@ export default function CloudSheetEditor() {
                 >
                   <MessageSquare className="w-4 h-4" />
                 </button>
+                {hasRange && (
+                  <button
+                    type="button"
+                    onClick={fillSelectionWithCurrent}
+                    className="p-1.5 rounded hover:bg-muted"
+                    title="현재 셀 값을 선택 영역에 일괄 입력"
+                    aria-label="선택 영역 일괄 입력"
+                  >
+                    <CopyIcon className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => clearCellFormat(selectedRef)}
