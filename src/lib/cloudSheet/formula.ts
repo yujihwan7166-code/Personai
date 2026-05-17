@@ -76,10 +76,13 @@ function collectRange(c1: string, r1: number, c2: string, r2: number): string[] 
  *    없으면 이 sheet 에서 조회)
  *  - allSheets: name → cells. 다른 시트 참조 시 lookup. 없으면 cross-sheet
  *    참조는 모두 #REF! 처럼 0/빈 값 처리.
+ *  - namedRanges: 글로벌 이름 → 범위 문자열 (예: '월매출' → 'Sheet1!A1:A12').
+ *    수식 평가 전에 이름이 그 문자열로 치환됨.
  */
 export interface EvalContext {
   currentName?: string;
   allSheets?: Record<string, Cells>;
+  namedRanges?: Record<string, string>;
 }
 
 /** 셀 평가 — 수식이면 결과, 아니면 raw 값. */
@@ -90,13 +93,15 @@ export function evalCell(ref: string, cells: Cells, ctx?: EvalContext): string {
   if (allSheets[sheetName] !== cells) {
     allSheets[sheetName] = cells;
   }
-  return evalWithGuard(sheetName, ref, allSheets, new Set());
+  const namedRanges = ctx?.namedRanges ?? {};
+  return evalWithGuard(sheetName, ref, allSheets, namedRanges, new Set());
 }
 
 function evalWithGuard(
   sheetName: string,
   ref: string,
   allSheets: Record<string, Cells>,
+  namedRanges: Record<string, string>,
   visiting: Set<string>,
 ): string {
   const cells = allSheets[sheetName] ?? {};
@@ -107,7 +112,7 @@ function evalWithGuard(
   const next = new Set(visiting);
   next.add(key);
   try {
-    const result = evalExpr(raw.slice(1), sheetName, allSheets, next);
+    const result = evalExpr(raw.slice(1), sheetName, allSheets, namedRanges, next);
     return formatResult(result);
   } catch {
     return '#ERROR';
@@ -131,9 +136,23 @@ function evalExpr(
   expr: string,
   currentSheet: string,
   allSheets: Record<string, Cells>,
+  namedRanges: Record<string, string>,
   visiting: Set<string>,
 ): unknown {
   let work = expr;
+
+  // 0. Named Range 치환 — 가장 먼저. 이름이 함수명·기존 ref 와 안 겹친다 가정.
+  //    토큰 경계: 앞뒤가 알파뉴 X. case-insensitive.
+  if (Object.keys(namedRanges).length > 0) {
+    // 긴 이름부터 (짧은 이름이 긴 이름의 prefix 인 경우 방지)
+    const names = Object.keys(namedRanges).sort((a, b) => b.length - a.length);
+    for (const name of names) {
+      const safe = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // 한글·영문·_ 등 word 문자로 시작/끝나는 토큰만 매칭
+      const re = new RegExp(`(?<![A-Za-z0-9_가-힣])${safe}(?![A-Za-z0-9_가-힣!])`, 'g');
+      work = work.replace(re, `(${namedRanges[name]})`);
+    }
+  }
 
   // 1. 범위 (sheet 옵셔널 + A1:B5) — $ 절대 참조 마커는 평가에서 무시
   //    Sheet1!$A$1:$B$5 또는 A1:B5
@@ -145,7 +164,7 @@ function evalExpr(
         : currentSheet;
       const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
       const tokens = refs.map((r) => {
-        const v = evalWithGuard(sheet, r, allSheets, visiting);
+        const v = evalWithGuard(sheet, r, allSheets, namedRanges, visiting);
         if (v.startsWith('#')) return '0';
         const n = Number(v);
         if (Number.isFinite(n) && v.trim() !== '') return String(n);
@@ -165,7 +184,7 @@ function evalExpr(
         ? String(sheetRaw).replace(/^'|'$/g, '')
         : currentSheet;
       const ref = `${c}${r}`;
-      const v = evalWithGuard(sheet, ref, allSheets, visiting);
+      const v = evalWithGuard(sheet, ref, allSheets, namedRanges, visiting);
       if (v.startsWith('#')) return '0';
       const n = Number(v);
       if (Number.isFinite(n) && v.trim() !== '') return String(n);

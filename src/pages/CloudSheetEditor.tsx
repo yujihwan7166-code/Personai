@@ -390,6 +390,8 @@ export default function CloudSheetEditor() {
   const [allComments, setAllComments] = useState<AllComments>({ s_initial: {} });
   // 영구 embed 차트 — sheet 별
   const [allEmbeddedCharts, setAllEmbeddedCharts] = useState<AllEmbeddedCharts>({ s_initial: [] });
+  // 명명된 범위 (Named Range) — 글로벌. name → 'Sheet1!A1:A10' 같은 ref 문자열
+  const [namedRanges, setNamedRanges] = useState<Record<string, string>>({});
 
   // derived — 현재 시트의 cells/formats/merges/condRules
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
@@ -429,15 +431,15 @@ export default function CloudSheetEditor() {
   }, [sheetsMeta, allCells]);
   const currentSheetName = currentSheet?.name ?? 'Sheet1';
 
-  // 수식 평가 캐시 (cells / 다른 시트 변경 시 재계산)
+  // 수식 평가 캐시 (cells / 다른 시트 / named ranges 변경 시 재계산)
   const displayValues = useMemo<Cells>(() => {
     const out: Cells = {};
-    const ctx = { currentName: currentSheetName, allSheets: sheetsForEval };
+    const ctx = { currentName: currentSheetName, allSheets: sheetsForEval, namedRanges };
     for (const [ref, raw] of Object.entries(cells)) {
       out[ref] = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
     }
     return out;
-  }, [cells, sheetsForEval, currentSheetName]);
+  }, [cells, sheetsForEval, currentSheetName, namedRanges]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -469,6 +471,7 @@ export default function CloudSheetEditor() {
         const storedAllValidations = meta.allValidations as AllValidations | undefined;
         const storedAllComments = meta.allComments as AllComments | undefined;
         const storedAllEmbeddedCharts = meta.allEmbeddedCharts as AllEmbeddedCharts | undefined;
+        const storedNamedRanges = meta.namedRanges as Record<string, string> | undefined;
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
@@ -486,6 +489,9 @@ export default function CloudSheetEditor() {
           if (storedAllValidations) setAllValidations(storedAllValidations);
           if (storedAllComments) setAllComments(storedAllComments);
           if (storedAllEmbeddedCharts) setAllEmbeddedCharts(storedAllEmbeddedCharts);
+          if (storedNamedRanges && typeof storedNamedRanges === 'object') {
+            setNamedRanges(storedNamedRanges);
+          }
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -566,6 +572,7 @@ export default function CloudSheetEditor() {
     allValidations?: AllValidations;
     allComments?: AllComments;
     allEmbeddedCharts?: AllEmbeddedCharts;
+    namedRanges?: Record<string, string>;
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
@@ -584,6 +591,7 @@ export default function CloudSheetEditor() {
         allValidations: patch.allValidations ?? allValidations,
         allComments: patch.allComments ?? allComments,
         allEmbeddedCharts: patch.allEmbeddedCharts ?? allEmbeddedCharts,
+        namedRanges: patch.namedRanges ?? namedRanges,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
@@ -595,7 +603,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1341,6 +1349,23 @@ export default function CloudSheetEditor() {
     setAllEmbeddedCharts(nextAll);
     queueSave({ allEmbeddedCharts: nextAll });
   }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
+
+  // ─── Named Range ───
+  const addNamedRange = useCallback((name: string, rangeStr: string) => {
+    const next = { ...namedRanges, [name]: rangeStr };
+    setNamedRanges(next);
+    queueSave({ namedRanges: next });
+    toast({ title: `'${name}' 정의됨`, description: rangeStr });
+  }, [namedRanges, queueSave]);
+
+  const removeNamedRange = useCallback((name: string) => {
+    const next = { ...namedRanges };
+    delete next[name];
+    setNamedRanges(next);
+    queueSave({ namedRanges: next });
+  }, [namedRanges, queueSave]);
+
+  const [nameRangeModalOpen, setNameRangeModalOpen] = useState(false);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -2295,6 +2320,10 @@ export default function CloudSheetEditor() {
                   <ChevronDown className="w-4 h-4 mr-2" />
                   데이터 검증 / 드롭다운 ({validations.length})
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setNameRangeModalOpen(true)}>
+                  <Hash className="w-4 h-4 mr-2" />
+                  이름 정의 ({Object.keys(namedRanges).length})
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={toggleFreezeFirstRow}>
                   <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
@@ -2833,6 +2862,16 @@ export default function CloudSheetEditor() {
         cellRefStr={selectedRef}
         initialText={comments[selectedRef] ?? ''}
         onSave={(text) => setCellComment(selectedRef, text)}
+      />
+
+      <NamedRangeModal
+        open={nameRangeModalOpen}
+        onClose={() => setNameRangeModalOpen(false)}
+        currentRange={selBounds}
+        currentSheetName={currentSheetName}
+        namedRanges={namedRanges}
+        onAdd={addNamedRange}
+        onRemove={removeNamedRange}
       />
 
       {/* AI 결과 모달 */}
@@ -3674,6 +3713,7 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
           <div>=Sheet2!A1 · =SUM(Data!B1:B10) — 다른 시트 참조</div>
           <div>=$A$1 · =A$1 · =$A1 — 절대 참조 (행/열 삽입에도 고정)</div>
+          <div>=SUM(월매출) — 명명된 범위 (더보기 → 이름 정의)</div>
           <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
           <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
         </div>
@@ -4396,6 +4436,119 @@ interface CommentModalProps {
   cellRefStr: string;
   initialText: string;
   onSave: (text: string) => void;
+}
+
+// ─────────────────────────────────────────────
+// Named Range 모달 (이름 정의)
+// ─────────────────────────────────────────────
+
+interface NamedRangeModalProps {
+  open: boolean;
+  onClose: () => void;
+  currentRange: { minR: number; maxR: number; minC: number; maxC: number };
+  currentSheetName: string;
+  namedRanges: Record<string, string>;
+  onAdd: (name: string, rangeStr: string) => void;
+  onRemove: (name: string) => void;
+}
+
+function NamedRangeModal({
+  open, onClose, currentRange, currentSheetName, namedRanges, onAdd, onRemove,
+}: NamedRangeModalProps) {
+  const [name, setName] = useState('');
+  const defaultRangeStr = useMemo(() => {
+    const a = `${idxToCol(currentRange.minC)}${currentRange.minR + 1}`;
+    const b = `${idxToCol(currentRange.maxC)}${currentRange.maxR + 1}`;
+    return `${currentSheetName}!${a === b ? a : `${a}:${b}`}`;
+  }, [currentRange, currentSheetName]);
+  const [rangeStr, setRangeStr] = useState(defaultRangeStr);
+  useEffect(() => { if (open) { setName(''); setRangeStr(defaultRangeStr); } }, [open, defaultRangeStr]);
+
+  const valid = /^[A-Za-z_가-힣][A-Za-z0-9_가-힣]*$/.test(name) && rangeStr.trim() !== '';
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-base flex items-center gap-2">
+          <Hash className="w-4 h-4" /> 이름 정의
+        </DialogTitle>
+        <DialogDescription className="text-xs text-muted-foreground">
+          범위에 이름을 붙이고 수식에서 사용하세요 (예: <code>=SUM(월매출)</code>).
+        </DialogDescription>
+
+        <div className="flex flex-col gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="w-14 shrink-0 text-muted-foreground">이름</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="월매출 (한글·영문·_, 숫자 시작 X)"
+              className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+              autoFocus
+            />
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="w-14 shrink-0 text-muted-foreground">범위</span>
+            <input
+              type="text"
+              value={rangeStr}
+              onChange={(e) => setRangeStr(e.target.value)}
+              placeholder="Sheet1!A1:A10"
+              className="flex-1 text-sm font-mono px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+            />
+          </label>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => { if (valid) { onAdd(name.trim(), rangeStr.trim()); setName(''); } }}
+              disabled={!valid}
+              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm disabled:opacity-40"
+            >
+              추가
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-border">
+          <div className="text-xs font-medium text-muted-foreground mb-1.5">
+            기존 이름 ({Object.keys(namedRanges).length})
+          </div>
+          {Object.keys(namedRanges).length === 0 ? (
+            <div className="text-xs text-muted-foreground py-3 text-center">없음</div>
+          ) : (
+            <ul className="space-y-1 max-h-[200px] overflow-y-auto">
+              {Object.entries(namedRanges).map(([n, r]) => (
+                <li key={n} className="flex items-center gap-2 px-2 py-1 rounded border border-border text-xs">
+                  <Hash className="w-3 h-3 text-muted-foreground" />
+                  <span className="font-medium">{n}</span>
+                  <span className="text-muted-foreground font-mono truncate flex-1">{r}</span>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(n)}
+                    className="p-1 rounded hover:bg-muted text-destructive"
+                    aria-label="삭제" title="삭제"
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
+          >
+            닫기
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function CommentModal({ open, onClose, cellRefStr, initialText, onSave }: CommentModalProps) {
