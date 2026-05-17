@@ -421,8 +421,23 @@ function WidgetCard({
   const meta = WIDGET_META[widget.kind];
   const isHero = widget.kind === 'pickFirst';
 
+  /* 메뉴 열려 있을 때 카드 외부 클릭 → 닫기 */
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      const card = cardRef.current;
+      if (card && !card.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
   return (
     <div
+      ref={cardRef}
       data-wb-size={widget.size}
       draggable={editMode}
       onDragStart={(e) => {
@@ -434,7 +449,8 @@ function WidgetCard({
       }}
       onDragEnd={() => onDragEnd?.()}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
+      /* menuOpen 일 땐 hover 해제돼도 메뉴 유지 — document mousedown 으로 외부 클릭 시 닫음 */
+      onMouseLeave={() => setHover(false)}
       /* 편집 모드에서 카드 본문 클릭 → 네비게이션 방지 (X·⋯ 만 동작) */
       onClickCapture={(e) => {
         if (!editMode) return;
