@@ -136,12 +136,12 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
                 {(t.priority ?? 0) > 0 ? (
                   <Flag className={cn(
                     'h-2.5 w-2.5 shrink-0 mt-0.5',
-                    t.priority === 3 && 'text-rose-500 fill-rose-500',
-                    t.priority === 2 && 'text-amber-500 fill-amber-500',
-                    t.priority === 1 && 'text-blue-500 fill-blue-500',
+                    t.priority === 3 && 'text-rose-500/90 fill-rose-500/90',
+                    t.priority === 2 && 'text-amber-500/90 fill-amber-500/90',
+                    t.priority === 1 && 'text-blue-500/90 fill-blue-500/90',
                   )} />
                 ) : (
-                  <span className="h-1 w-1 rounded-full bg-muted-foreground/55 shrink-0 mt-1.5" />
+                  <span className="h-1 w-1 rounded-full bg-foreground/30 shrink-0 mt-1.5" />
                 )}
                 <span className="flex-1 min-w-0 truncate text-foreground">{t.title}</span>
               </li>
@@ -223,9 +223,9 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         </button>
       </div>
       {/* 요일 */}
-      <div className="grid grid-cols-7 gap-0.5 text-[10px] font-semibold text-foreground/55 mb-1 pb-1 border-b border-foreground/8">
+      <div className="grid grid-cols-7 gap-0.5 text-[10px] font-bold text-foreground/65 mb-1 pb-1 border-b border-foreground/8 uppercase tracking-wider">
         {WEEKDAY_KR.map((w, i) => (
-          <div key={w} className={cn('text-center', i === 0 && 'text-rose-500/80', i === 6 && 'text-blue-500/80')}>{w}</div>
+          <div key={w} className={cn('text-center', i === 0 && 'text-rose-500/85', i === 6 && 'text-blue-500/85')}>{w}</div>
         ))}
       </div>
       {/* 날짜 그리드 */}
@@ -303,9 +303,9 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
               <li key={h.id} className="flex items-center gap-1.5 text-[11.5px] leading-tight">
                 <span className={cn(
                   'h-3 w-3 rounded-full shrink-0 inline-flex items-center justify-center text-[9px] font-bold',
-                  h.done ? 'bg-emerald-500 text-white' :
+                  h.done ? 'bg-emerald-500/85 text-white' :
                     h.streakAtRisk ? 'bg-rose-500/15 text-rose-500 ring-1 ring-rose-500/45' :
-                      'bg-muted text-muted-foreground/60',
+                      'bg-foreground/10 text-foreground/40',
                 )}>
                   {h.done ? '✓' : h.streakAtRisk ? '!' : ''}
                 </span>
@@ -354,7 +354,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
             >
               {hero.daysLeft === 0 ? 'D-DAY' : `D-${hero.daysLeft}`}
             </span>
-            <span className="text-[11px] text-foreground/85 truncate flex-1">{hero.label}</span>
+            <span className="text-[12px] text-foreground/90 truncate flex-1 font-medium">{hero.label}</span>
           </div>
           {rest.length > 0 && (
             <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
@@ -442,11 +442,11 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
       />
       {empty ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-1">
-          <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center mb-1">
-            <span className="text-[18px] leading-none" aria-hidden>✓</span>
+          <div className="w-10 h-10 rounded-full bg-emerald-500/12 flex items-center justify-center mb-1">
+            <span className="text-[20px] leading-none text-emerald-600 font-bold" aria-hidden>✓</span>
           </div>
-          <span className="text-[11px] text-foreground/75 font-medium">다 끝났어요</span>
-          <span className="text-[9.5px] text-muted-foreground/70">밀린 일 0</span>
+          <span className="text-[12px] text-foreground/90 font-bold">다 끝났어요</span>
+          <span className="text-[9.5px] text-muted-foreground/70 font-medium">밀린 일 0</span>
         </div>
       ) : (
         <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
