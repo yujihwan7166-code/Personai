@@ -355,9 +355,9 @@ export default function CloudSheetEditor() {
   const [colWidths, setColWidths] = useState<Record<number, number>>({});
   // 행 높이 — rowIdx → px (없으면 DEFAULT_ROW_HEIGHT)
   const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
-  // freeze pane — 첫 행/A열 고정
-  const [freezeFirstRow, setFreezeFirstRow] = useState(false);
-  const [freezeFirstCol, setFreezeFirstCol] = useState(false);
+  // freeze pane — N행/N열 고정 (0=고정 X)
+  const [freezeRows, setFreezeRows] = useState(0);
+  const [freezeCols, setFreezeCols] = useState(0);
   // 필터 — col idx → substring 검색어 (대소문자 무시, 포함 매칭)
   const [filterOn, setFilterOn] = useState(false);
   const [filters, setFilters] = useState<Record<number, string>>({});
@@ -507,8 +507,11 @@ export default function CloudSheetEditor() {
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
         const storedRowHeights = meta.rowHeights as Record<string, number> | undefined;
-        if (typeof meta.freezeFirstRow === 'boolean') setFreezeFirstRow(meta.freezeFirstRow);
-        if (typeof meta.freezeFirstCol === 'boolean') setFreezeFirstCol(meta.freezeFirstCol);
+        // freeze: number(신) 또는 boolean(구) 둘 다 호환
+        if (typeof meta.freezeRows === 'number') setFreezeRows(Math.max(0, meta.freezeRows));
+        else if (typeof meta.freezeFirstRow === 'boolean') setFreezeRows(meta.freezeFirstRow ? 1 : 0);
+        if (typeof meta.freezeCols === 'number') setFreezeCols(Math.max(0, meta.freezeCols));
+        else if (typeof meta.freezeFirstCol === 'boolean') setFreezeCols(meta.freezeFirstCol ? 1 : 0);
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
           const cellsAll = storedAllCells ?? {};
@@ -618,8 +621,8 @@ export default function CloudSheetEditor() {
     colCount?: number;
     colWidths?: Record<number, number>;
     rowHeights?: Record<number, number>;
-    freezeFirstRow?: boolean;
-    freezeFirstCol?: boolean;
+    freezeRows?: number;
+    freezeCols?: number;
   }) => {
     pendingRef.current = {
       ...pendingRef.current,
@@ -638,14 +641,14 @@ export default function CloudSheetEditor() {
         colCount: patch.colCount ?? colCount,
         colWidths: patch.colWidths ?? colWidths,
         rowHeights: patch.rowHeights ?? rowHeights,
-        freezeFirstRow: patch.freezeFirstRow ?? freezeFirstRow,
-        freezeFirstCol: patch.freezeFirstCol ?? freezeFirstCol,
+        freezeRows: patch.freezeRows ?? freezeRows,
+        freezeCols: patch.freezeCols ?? freezeCols,
       },
     };
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols]);
 
   useEffect(() => {
     return () => {
@@ -1590,20 +1593,16 @@ export default function CloudSheetEditor() {
     });
   }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
 
-  // ─── Freeze pane 토글 ───
-  const toggleFreezeFirstRow = useCallback(() => {
-    setFreezeFirstRow((v) => {
-      const next = !v;
-      queueSave({ freezeFirstRow: next });
-      return next;
-    });
+  // ─── Freeze pane 설정 ───
+  const applyFreezeRows = useCallback((n: number) => {
+    const clamped = Math.max(0, Math.min(20, Math.floor(n)));
+    setFreezeRows(clamped);
+    queueSave({ freezeRows: clamped });
   }, [queueSave]);
-  const toggleFreezeFirstCol = useCallback(() => {
-    setFreezeFirstCol((v) => {
-      const next = !v;
-      queueSave({ freezeFirstCol: next });
-      return next;
-    });
+  const applyFreezeCols = useCallback((n: number) => {
+    const clamped = Math.max(0, Math.min(10, Math.floor(n)));
+    setFreezeCols(clamped);
+    queueSave({ freezeCols: clamped });
   }, [queueSave]);
 
   // 필터 — 토글 + 단일 col 검색어 갱신 + 모두 지우기
@@ -2394,18 +2393,20 @@ export default function CloudSheetEditor() {
                   이름 정의 ({Object.keys(namedRanges).length})
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={toggleFreezeFirstRow}>
-                  <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
-                    {freezeFirstRow ? '☑' : '☐'}
-                  </span>
-                  첫 행 고정 (Freeze)
+                <DropdownMenuItem onSelect={() => applyFreezeRows(selected.row + 1)}>
+                  <span className="w-4 h-4 mr-2 text-xs" aria-hidden>📌</span>
+                  현재 행까지 고정 ({selected.row + 1}행)
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={toggleFreezeFirstCol}>
-                  <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
-                    {freezeFirstCol ? '☑' : '☐'}
-                  </span>
-                  첫 열 고정 (Freeze)
+                <DropdownMenuItem onSelect={() => applyFreezeCols(selected.col + 1)}>
+                  <span className="w-4 h-4 mr-2 text-xs" aria-hidden>📌</span>
+                  현재 열까지 고정 ({idxToCol(selected.col)}열)
                 </DropdownMenuItem>
+                {(freezeRows > 0 || freezeCols > 0) && (
+                  <DropdownMenuItem onSelect={() => { applyFreezeRows(0); applyFreezeCols(0); }}>
+                    <span className="w-4 h-4 mr-2 text-xs" aria-hidden>✕</span>
+                    고정 해제 (현재: {freezeRows}행 × {freezeCols}열)
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onSelect={toggleFilterOn}>
                   <span className="w-4 h-4 mr-2 flex items-center justify-center text-xs" aria-hidden>
                     {filterOn ? '☑' : '☐'}
@@ -2692,8 +2693,8 @@ export default function CloudSheetEditor() {
             onHeaderContextMenu={openHeaderContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
-            freezeFirstRow={freezeFirstRow}
-            freezeFirstCol={freezeFirstCol}
+            freezeRows={freezeRows}
+            freezeCols={freezeCols}
             condFormatMap={condFormatMap}
             validationItemsMap={validationItemsMap}
             invalidRefSet={invalidRefSet}
@@ -3007,10 +3008,10 @@ interface SheetGridProps {
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
-  /** 첫 행 고정 (sticky top) */
-  freezeFirstRow?: boolean;
-  /** 첫 열 고정 (sticky left, A열) */
-  freezeFirstCol?: boolean;
+  /** N행 고정 (0=고정X) */
+  freezeRows?: number;
+  /** N열 고정 (0=고정X) */
+  freezeCols?: number;
   /** 조건부 서식 — cellFormats 위에 오버레이 */
   condFormatMap?: Map<string, { bgColor?: string; textColor?: string; bold?: boolean }>;
   /** ref → 허용 items (드롭다운 셀) */
@@ -3047,7 +3048,7 @@ function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
-  freezeFirstRow, freezeFirstCol,
+  freezeRows = 0, freezeCols = 0,
   condFormatMap,
   validationItemsMap, invalidRefSet, onCellValueChange,
   commentMap,
@@ -3061,6 +3062,28 @@ function SheetGrid({
   const ROW_HEADER_W = 40; // 첫 col (w-10)
   const cols = useMemo(() => Array.from({ length: colCount }, (_, i) => colLabel(i)), [colCount]);
   const rows = useMemo(() => Array.from({ length: rowCount }, (_, i) => i), [rowCount]);
+
+  /** sticky top 누적 — freezeRows 안 각 행의 top px 값 */
+  const stickyRowTops = useMemo(() => {
+    const out: number[] = [];
+    let acc = HEADER_H;
+    for (let r = 0; r < freezeRows; r++) {
+      out.push(acc);
+      acc += rowHeights[r] ?? DEFAULT_ROW_HEIGHT;
+    }
+    return out;
+  }, [freezeRows, rowHeights]);
+
+  /** sticky left 누적 — freezeCols 안 각 열의 left px 값 */
+  const stickyColLefts = useMemo(() => {
+    const out: number[] = [];
+    let acc = ROW_HEADER_W;
+    for (let c = 0; c < freezeCols; c++) {
+      out.push(acc);
+      acc += colWidths[c] ?? DEFAULT_COL_WIDTH;
+    }
+    return out;
+  }, [freezeCols, colWidths]);
 
   return (
     <div className="inline-block min-w-full">
@@ -3156,8 +3179,8 @@ function SheetGrid({
                 const hasFillHandle = !!fillCorner
                   && fillCorner.row === rowIdx && fillCorner.col === colIdx
                   && !fillPreview;
-                const isStickyRow = freezeFirstRow && rowIdx === 0;
-                const isStickyCol = freezeFirstCol && colIdx === 0;
+                const isStickyRow = rowIdx < freezeRows;
+                const isStickyCol = colIdx < freezeCols;
                 const validationItems = validationItemsMap?.get(ref);
                 const isInvalid = !!invalidRefSet?.has(ref);
                 const commentText = commentMap?.get(ref);
@@ -3181,8 +3204,8 @@ function SheetGrid({
                     onSelectValidationItem={onCellValueChange}
                     commentText={commentText}
                     autocomplete={isEditing ? autocomplete : undefined}
-                    stickyTop={isStickyRow ? HEADER_H : undefined}
-                    stickyLeft={isStickyCol ? ROW_HEADER_W : undefined}
+                    stickyTop={isStickyRow ? stickyRowTops[rowIdx] : undefined}
+                    stickyLeft={isStickyCol ? stickyColLefts[colIdx] : undefined}
                     rowSpan={span?.rows}
                     colSpan={span?.cols}
                     editing={isEditing}
