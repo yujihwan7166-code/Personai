@@ -200,6 +200,9 @@ const COL_ADD_CHUNK = 5;
 const DEFAULT_COL_WIDTH = 88; // px
 const MIN_COL_WIDTH = 40;
 const MAX_COL_WIDTH = 600;
+const DEFAULT_ROW_HEIGHT = 28; // px (기존 h-7)
+const MIN_ROW_HEIGHT = 18;
+const MAX_ROW_HEIGHT = 200;
 const AUTOSAVE_DELAY_MS = 1000;
 
 function colLabel(col: number): string {
@@ -350,6 +353,8 @@ export default function CloudSheetEditor() {
   const [colCount, setColCount] = useState(DEFAULT_COLS);
   // 열 너비 — colIdx → px (없으면 DEFAULT_COL_WIDTH)
   const [colWidths, setColWidths] = useState<Record<number, number>>({});
+  // 행 높이 — rowIdx → px (없으면 DEFAULT_ROW_HEIGHT)
+  const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
   // freeze pane — 첫 행/A열 고정
   const [freezeFirstRow, setFreezeFirstRow] = useState(false);
   const [freezeFirstCol, setFreezeFirstCol] = useState(false);
@@ -475,6 +480,7 @@ export default function CloudSheetEditor() {
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
+        const storedRowHeights = meta.rowHeights as Record<string, number> | undefined;
         if (typeof meta.freezeFirstRow === 'boolean') setFreezeFirstRow(meta.freezeFirstRow);
         if (typeof meta.freezeFirstCol === 'boolean') setFreezeFirstCol(meta.freezeFirstCol);
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
@@ -498,7 +504,7 @@ export default function CloudSheetEditor() {
           const cc = Math.max(storedColCount ?? DEFAULT_COLS, maxC + 1, MIN_COLS);
           setRowCount(Math.min(rc, MAX_ROWS));
           setColCount(Math.min(cc, MAX_COLS));
-          // 열 너비 복원 (key 가 문자열로 저장돼있으므로 숫자로 변환)
+          // 열 너비 / 행 높이 복원 (key 가 문자열로 저장돼있으므로 숫자로 변환)
           if (storedColWidths && typeof storedColWidths === 'object') {
             const out: Record<number, number> = {};
             for (const [k, v] of Object.entries(storedColWidths)) {
@@ -506,6 +512,14 @@ export default function CloudSheetEditor() {
               if (Number.isFinite(idx) && typeof v === 'number') out[idx] = v;
             }
             setColWidths(out);
+          }
+          if (storedRowHeights && typeof storedRowHeights === 'object') {
+            const out: Record<number, number> = {};
+            for (const [k, v] of Object.entries(storedRowHeights)) {
+              const idx = Number(k);
+              if (Number.isFinite(idx) && typeof v === 'number') out[idx] = v;
+            }
+            setRowHeights(out);
           }
           const idx = typeof meta.currentSheetIdx === 'number'
             ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
@@ -577,6 +591,7 @@ export default function CloudSheetEditor() {
     rowCount?: number;
     colCount?: number;
     colWidths?: Record<number, number>;
+    rowHeights?: Record<number, number>;
     freezeFirstRow?: boolean;
     freezeFirstCol?: boolean;
   }) => {
@@ -596,6 +611,7 @@ export default function CloudSheetEditor() {
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
         colWidths: patch.colWidths ?? colWidths,
+        rowHeights: patch.rowHeights ?? rowHeights,
         freezeFirstRow: patch.freezeFirstRow ?? freezeFirstRow,
         freezeFirstCol: patch.freezeFirstCol ?? freezeFirstCol,
       },
@@ -603,7 +619,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1748,12 +1764,20 @@ export default function CloudSheetEditor() {
     for (const sid of Object.keys(allMerges)) {
       nextMerges[sid] = shiftMergesRow(allMerges[sid] ?? [], atRow, +1);
     }
+    // 행 높이도 shift — at 이상은 +1
+    const nextHeights: Record<number, number> = {};
+    for (const [k, v] of Object.entries(rowHeights)) {
+      const r = Number(k);
+      const nr = r >= atRow ? r + 1 : r;
+      nextHeights[nr] = v;
+    }
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
     setRowCount(nextRowCount);
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
-  }, [rowCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
+    setRowHeights(nextHeights);
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount, rowHeights: nextHeights });
+  }, [rowCount, allCells, allFormats, allMerges, rowHeights, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
 
   const insertCol = useCallback((atCol: number) => {
     const nextColCount = Math.min(MAX_COLS, colCount + 1);
@@ -1788,13 +1812,22 @@ export default function CloudSheetEditor() {
     for (const sid of Object.keys(allMerges)) {
       nextMerges[sid] = shiftMergesRow(allMerges[sid] ?? [], atRow, -1);
     }
+    // 행 높이도 shift
+    const nextHeights: Record<number, number> = {};
+    for (const [k, v] of Object.entries(rowHeights)) {
+      const r = Number(k);
+      if (r === atRow) continue;
+      const nr = r > atRow ? r - 1 : r;
+      nextHeights[nr] = v;
+    }
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
     setRowCount(nextRowCount);
+    setRowHeights(nextHeights);
     setSelected((s) => ({ ...s, row: Math.min(s.row, nextRowCount - 1) }));
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount });
-  }, [rowCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
+    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount, rowHeights: nextHeights });
+  }, [rowCount, allCells, allFormats, allMerges, rowHeights, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
 
   const deleteCol = useCallback((atCol: number) => {
     if (colCount <= MIN_COLS) {
@@ -1828,13 +1861,23 @@ export default function CloudSheetEditor() {
     queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount, colWidths: nextWidths });
   }, [colCount, allCells, allFormats, allMerges, colWidths, applyAxisShift, shiftFormatsCol, shiftMergesCol, queueSave]);
 
-  // ─── 열 너비 변경 ───
+  // ─── 열 너비 / 행 높이 변경 ───
   const setColWidth = useCallback((colIdx: number, w: number) => {
     const clamped = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(w)));
     setColWidths((prev) => {
       if (prev[colIdx] === clamped) return prev;
       const next = { ...prev, [colIdx]: clamped };
       queueSave({ colWidths: next });
+      return next;
+    });
+  }, [queueSave]);
+
+  const setRowHeight = useCallback((rowIdx: number, h: number) => {
+    const clamped = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, Math.round(h)));
+    setRowHeights((prev) => {
+      if (prev[rowIdx] === clamped) return prev;
+      const next = { ...prev, [rowIdx]: clamped };
+      queueSave({ rowHeights: next });
       return next;
     });
   }, [queueSave]);
@@ -2617,7 +2660,9 @@ export default function CloudSheetEditor() {
             rowCount={rowCount}
             colCount={colCount}
             colWidths={colWidths}
+            rowHeights={rowHeights}
             onColResize={setColWidth}
+            onRowResize={setRowHeight}
             onHeaderContextMenu={openHeaderContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
@@ -2930,7 +2975,9 @@ interface SheetGridProps {
   rowCount: number;
   colCount: number;
   colWidths: Record<number, number>;
+  rowHeights: Record<number, number>;
   onColResize: (colIdx: number, newWidth: number) => void;
+  onRowResize: (rowIdx: number, newHeight: number) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
@@ -2971,7 +3018,7 @@ interface SheetGridProps {
 
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
-  rowCount, colCount, colWidths, onColResize, onHeaderContextMenu,
+  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onHeaderContextMenu,
   matchedRefs, currentMatchRef,
   freezeFirstRow, freezeFirstCol,
   condFormatMap,
@@ -3037,12 +3084,18 @@ function SheetGrid({
         )}
         <tbody>
           {rows.map((rowIdx) => visibleRowSet && !visibleRowSet.has(rowIdx) ? null : (
-            <tr key={rowIdx}>
+            <tr key={rowIdx} style={{ height: rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT }}>
               <th
-                className="w-10 h-7 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10"
+                className="w-10 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10 relative group"
                 onContextMenu={(e) => onHeaderContextMenu?.('row', rowIdx, e)}
+                style={{ height: rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT }}
               >
                 {rowIdx + 1}
+                <RowResizeHandle
+                  rowIdx={rowIdx}
+                  currentHeight={rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT}
+                  onResize={onRowResize}
+                />
               </th>
               {cols.map((_, colIdx) => {
                 const key = `${rowIdx},${colIdx}`;
@@ -3231,7 +3284,7 @@ const SheetCell = React.memo(function SheetCell({
       colSpan={colSpan}
       title={commentText}
       className={cn(
-        'border border-border h-7 px-2 align-middle relative cursor-cell select-none',
+        'border border-border px-2 align-middle relative cursor-cell select-none',
         'min-w-[88px] max-w-[200px] truncate',
         isFocus && !editing && 'outline outline-2 -outline-offset-2 outline-foreground/70',
         isCurrentMatch && !isFocus && 'outline outline-2 -outline-offset-2 outline-amber-500',
@@ -3458,6 +3511,50 @@ function ColResizeHandle({
       onPointerDown={onPointerDown}
       onDoubleClick={(e) => { e.stopPropagation(); onResize(colIdx, DEFAULT_COL_WIDTH); }}
       aria-label="열 너비 조정"
+      role="separator"
+    />
+  );
+}
+
+// ─────────────────────────────────────────────
+// 행 높이 드래그 핸들 (row header 하단 가장자리)
+// ─────────────────────────────────────────────
+
+function RowResizeHandle({
+  rowIdx, currentHeight, onResize,
+}: { rowIdx: number; currentHeight: number; onResize: (rowIdx: number, h: number) => void }) {
+  const startYRef = useRef(0);
+  const startHRef = useRef(0);
+  const draggingRef = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startYRef.current = e.clientY;
+    startHRef.current = currentHeight;
+    draggingRef.current = true;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+
+    const onMove = (ev: PointerEvent) => {
+      if (!draggingRef.current) return;
+      const dy = ev.clientY - startYRef.current;
+      onResize(rowIdx, startHRef.current + dy);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [rowIdx, currentHeight, onResize]);
+
+  return (
+    <span
+      className="absolute left-0 bottom-0 w-full h-1.5 cursor-row-resize select-none group-hover:bg-foreground/10"
+      onPointerDown={onPointerDown}
+      onDoubleClick={(e) => { e.stopPropagation(); onResize(rowIdx, DEFAULT_ROW_HEIGHT); }}
+      aria-label="행 높이 조정"
       role="separator"
     />
   );
