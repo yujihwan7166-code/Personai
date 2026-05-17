@@ -24,10 +24,21 @@
 
 type Cells = Record<string, string>;
 
-// 긴 이름부터 → SUMIFS/COUNTIFS 가 SUMIF/COUNTIF 보다 먼저 매칭되도록
+// 긴 이름부터 → 짧은 이름이 prefix 인 경우 먼저 매칭되도록 정렬
 const FUNC_ORDER = [
-  'AVERAGE', 'AVG', 'SUMIFS', 'COUNTIFS', 'SUMIF', 'COUNTIF',
-  'SUM', 'MIN', 'MAX', 'COUNT', 'IF', 'ABS', 'ROUND',
+  // 6자+
+  'AVERAGE', 'SUMIFS', 'COUNTIFS', 'VLOOKUP', 'HLOOKUP',
+  // 5자
+  'MEDIAN', 'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM',
+  'MONTH', 'TODAY', 'CONCATENATE', 'CONCAT',
+  // 4자
+  'SUMIF', 'COUNTIF', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT',
+  'ROUND', 'INDEX', 'MATCH', 'LEFT', 'RIGHT',
+  'YEAR', 'WEEKDAY',
+  // 3자
+  'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT', 'NOW', 'DAY',
+  // 2자
+  'IF', 'OR', 'ABS',
 ];
 
 // ─────────────────────────────────────────────
@@ -345,15 +356,160 @@ function evalExpr(
     return total;
   };
 
+  // ─── 문자열 함수 ───
+  const __left   = (s: unknown, n: unknown = 1) => String(s ?? '').slice(0, Math.max(0, Number(n) || 0));
+  const __right  = (s: unknown, n: unknown = 1) => {
+    const str = String(s ?? '');
+    const k = Math.max(0, Number(n) || 0);
+    return k === 0 ? '' : str.slice(-k);
+  };
+  const __mid    = (s: unknown, start: unknown, len: unknown) => {
+    const str = String(s ?? '');
+    const i = Math.max(0, (Number(start) || 1) - 1);
+    return str.slice(i, i + Math.max(0, Number(len) || 0));
+  };
+  const __len    = (s: unknown) => String(s ?? '').length;
+  const __upper  = (s: unknown) => String(s ?? '').toUpperCase();
+  const __lower  = (s: unknown) => String(s ?? '').toLowerCase();
+  const __trim   = (s: unknown) => String(s ?? '').trim();
+  const __concat = (...args: unknown[]) => args.flatMap(toArr).map((x) => String(x ?? '')).join('');
+  const __concatenate = __concat;
+
+  // ─── 논리 함수 ───
+  const __and = (...args: unknown[]) => args.flatMap(toArr).every((x) => !!x);
+  const __or  = (...args: unknown[]) => args.flatMap(toArr).some((x) => !!x);
+  const __not = (x: unknown) => !x;
+
+  // ─── 날짜 함수 ───
+  const __today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const __now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const parseDate = (v: unknown): Date | null => {
+    if (v instanceof Date) return v;
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const __year  = (v: unknown) => { const d = parseDate(v); return d ? d.getFullYear() : 0; };
+  const __month = (v: unknown) => { const d = parseDate(v); return d ? d.getMonth() + 1 : 0; };
+  const __day   = (v: unknown) => { const d = parseDate(v); return d ? d.getDate() : 0; };
+  const __weekday = (v: unknown) => { const d = parseDate(v); return d ? d.getDay() + 1 : 0; }; // 1=일, 7=토
+
+  // ─── 수치 추가 ───
+  const __power  = (b: unknown, e: unknown) => Math.pow(Number(b), Number(e));
+  const __sqrt   = (n: unknown) => Math.sqrt(Number(n));
+  const __mod    = (a: unknown, b: unknown) => {
+    const bb = Number(b);
+    return bb === 0 ? NaN : Number(a) % bb;
+  };
+  const __int    = (n: unknown) => Math.floor(Number(n));
+  const __median = (...args: unknown[]) => {
+    const nums = args.flatMap(toNums).sort((a, b) => a - b);
+    if (nums.length === 0) return 0;
+    const mid = Math.floor(nums.length / 2);
+    return nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+  };
+
+  // ─── 조회 함수 ───
+  /** VLOOKUP(search, range, colIdx, exactOnly=true)
+   *  range 는 2D 가 아니라 1D 배열 (셀 값들이 행 우선 평탄화됨).
+   *  단순 v1: range 의 첫 col 만 검색하고 colIdx 번째 col 값 반환.
+   *  range 가 길이 N 이면, 콜럼 개수를 추정 어렵 → range 가 명확히
+   *  rectangle 일 때만 동작. 사용자는 colIdx + 행 개수로 가정.
+   *  실제 표현: VLOOKUP(key, A1:C10, 2) — 3 columns 10 rows.
+   *  현재 평탄화는 row-major. 따라서 colCount = numCols, rowCount = N/numCols.
+   *  numCols 는 별도 정보가 없어 추정 어려움 → v1 단순화: 사용자가 colIdx
+   *  대신 'colCount' 4번째 인자로 전달하게 함:
+   *    VLOOKUP(key, range, returnColIdx, numCols)
+   *  엑셀과 시그니처 차이 있지만 v1 한계.
+   */
+  const __vlookup = (key: unknown, range: unknown, returnColIdx: unknown, numCols: unknown = 2) => {
+    const arr = toArr(range);
+    const cols = Math.max(1, Math.floor(Number(numCols) || 2));
+    const ret = Math.max(1, Math.floor(Number(returnColIdx) || 1));
+    if (ret > cols) return '#REF!';
+    const keyStr = String(key ?? '');
+    const keyNum = Number(key);
+    for (let r = 0; r < arr.length; r += cols) {
+      const cell = arr[r];
+      const cellNum = Number(cell);
+      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
+        ? cellNum === keyNum
+        : String(cell ?? '') === keyStr;
+      if (match) return arr[r + ret - 1];
+    }
+    return '#N/A';
+  };
+  /** HLOOKUP: 같은 사상으로 row-major 1D. 첫 row 에서 검색.
+   *  HLOOKUP(key, range, returnRowIdx, numCols)
+   */
+  const __hlookup = (key: unknown, range: unknown, returnRowIdx: unknown, numCols: unknown = 2) => {
+    const arr = toArr(range);
+    const cols = Math.max(1, Math.floor(Number(numCols) || 2));
+    const ret = Math.max(1, Math.floor(Number(returnRowIdx) || 1));
+    const keyStr = String(key ?? '');
+    const keyNum = Number(key);
+    for (let c = 0; c < cols; c++) {
+      const cell = arr[c];
+      const cellNum = Number(cell);
+      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
+        ? cellNum === keyNum
+        : String(cell ?? '') === keyStr;
+      if (match) {
+        const idx = (ret - 1) * cols + c;
+        if (idx < arr.length) return arr[idx];
+        return '#REF!';
+      }
+    }
+    return '#N/A';
+  };
+  /** INDEX(range, idx) — 단순 1-based 인덱싱 (평탄화 배열) */
+  const __index = (range: unknown, idx: unknown) => {
+    const arr = toArr(range);
+    const i = Math.max(1, Math.floor(Number(idx) || 1));
+    if (i > arr.length) return '#REF!';
+    return arr[i - 1];
+  };
+  /** MATCH(key, range) — 1-based 위치 반환. 못 찾으면 #N/A */
+  const __match = (key: unknown, range: unknown) => {
+    const arr = toArr(range);
+    const keyStr = String(key ?? '');
+    const keyNum = Number(key);
+    for (let i = 0; i < arr.length; i++) {
+      const cell = arr[i];
+      const cellNum = Number(cell);
+      const found = Number.isFinite(keyNum) && Number.isFinite(cellNum)
+        ? cellNum === keyNum
+        : String(cell ?? '') === keyStr;
+      if (found) return i + 1;
+    }
+    return '#N/A';
+  };
+
   // 6. 평가 (new Function — 단일 사용자 환경 가정)
   const fn = new Function(
     '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
     '__sumif', '__countif', '__sumifs', '__countifs',
+    '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim',
+    '__concat', '__concatenate',
+    '__and', '__or', '__not',
+    '__today', '__now', '__year', '__month', '__day', '__weekday',
+    '__power', '__sqrt', '__mod', '__int', '__median',
+    '__vlookup', '__hlookup', '__index', '__match',
     `"use strict"; return (${work});`,
   );
   return fn(
     __sum, __avg, __average, __min, __max, __count, __if, __abs, __round,
     __sumif, __countif, __sumifs, __countifs,
+    __left, __right, __mid, __len, __upper, __lower, __trim,
+    __concat, __concatenate,
+    __and, __or, __not,
+    __today, __now, __year, __month, __day, __weekday,
+    __power, __sqrt, __mod, __int, __median,
+    __vlookup, __hlookup, __index, __match,
   );
 }
 

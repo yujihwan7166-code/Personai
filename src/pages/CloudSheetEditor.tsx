@@ -3714,6 +3714,12 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div>=Sheet2!A1 · =SUM(Data!B1:B10) — 다른 시트 참조</div>
           <div>=$A$1 · =A$1 · =$A1 — 절대 참조 (행/열 삽입에도 고정)</div>
           <div>=SUM(월매출) — 명명된 범위 (더보기 → 이름 정의)</div>
+          <div>=LEFT(A1, 3) / =RIGHT / =MID / =LEN / =UPPER / =LOWER / =TRIM</div>
+          <div>=CONCAT(A1, " ", B1) · =AND(A1{'>'}0, B1{'<'}100) · =OR / =NOT</div>
+          <div>=TODAY() / =NOW() / =YEAR(A1) / =MONTH / =DAY / =WEEKDAY</div>
+          <div>=POWER(2, 10) · =SQRT · =MOD · =INT · =MEDIAN</div>
+          <div>=VLOOKUP(키, A1:C10, 2, 3) — 마지막 인자는 열 개수</div>
+          <div>=INDEX(A1:A10, 5) · =MATCH("X", A1:A10)</div>
           <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
           <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
         </div>
