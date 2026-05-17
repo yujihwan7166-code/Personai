@@ -10,7 +10,7 @@
  * 모든 위젯: 캐시 + TTL + 에러 fallback + ↻ 새로고침 버튼
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Cloud, RefreshCw, Newspaper, TrendingUp, DollarSign, Settings, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Cloud, RefreshCw, Newspaper, TrendingUp, DollarSign, Settings, ExternalLink, AlertTriangle, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   fetchWeather, fetchForex, fetchNews, fetchCoins, searchCoins,
@@ -138,7 +138,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
         <button
           type="button"
           onClick={() => setCityInputOpen(true)}
-          className="flex-1 text-left flex items-center gap-2 mt-1 -mx-1 px-1 rounded transition-colors hover:bg-foreground/5"
+          className="group relative flex-1 text-left flex items-center gap-2 mt-1 -mx-1 px-1 rounded transition-colors hover:bg-foreground/5"
           title="도시 변경"
         >
           <span className="text-[44px] leading-none" aria-hidden>{wmoLabel(result.data.code).emoji}</span>
@@ -157,6 +157,8 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
               <span className="text-blue-500/85">↓{result.data.tempMin}°</span>
             </div>
           </div>
+          {/* hover 시 도시 변경 가능함을 알려주는 작은 pencil */}
+          <Pencil className="absolute top-1 right-1 h-2.5 w-2.5 text-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       )}
 
@@ -844,15 +846,15 @@ export function Sparkline({
   );
 }
 
-/** 스켈레톤 — 위젯 로딩 시 표시. */
+/** 스켈레톤 — 위젯 로딩 시 표시 (cream 톤). */
 export function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div className="flex-1 mt-2 space-y-1.5">
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-2.5 rounded skeleton-pulse bg-foreground/8"
-          style={{ width: `${75 - i * 12}%` }}
+          className="h-2.5 rounded skeleton-pulse"
+          style={{ width: `${75 - i * 12}%`, background: 'hsl(30 15% 78% / 0.4)' }}
         />
       ))}
     </div>
