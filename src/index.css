@@ -660,13 +660,13 @@
     animation: wb-picker-out 0.14s ease-in forwards;
   }
 
-  /* 모달 종료 — scale down + fade out */
+  /* 모달 종료 — easeInExpo cinematic fade out */
   @keyframes wb-modal-out {
     0%   { opacity: 1; transform: scale(1) translateY(0); }
-    100% { opacity: 0; transform: scale(0.96) translateY(8px); }
+    100% { opacity: 0; transform: scale(0.94) translateY(12px); }
   }
   .wb-modal-out {
-    animation: wb-modal-out 0.16s ease-in forwards;
+    animation: wb-modal-out 0.20s cubic-bezier(0.7, 0, 0.84, 0) forwards;
   }
   @keyframes wb-backdrop-out {
     0%   { opacity: 1; }
@@ -710,6 +710,15 @@
   .wb-menu-in {
     animation: wb-menu-in 0.14s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
     transform-origin: top right;
+  }
+
+  /* 시계 콜론 깜빡임 — 살아있는 메타포 */
+  @keyframes wb-clock-blink {
+    0%, 50%   { opacity: 0.5; }
+    51%, 100% { opacity: 1; }
+  }
+  .wb-clock-blink {
+    animation: wb-clock-blink 1s steps(1, end) infinite;
   }
 
   /* ProgressRing 100% 도달 — 한 번 가볍게 팝 (축하 톤) */

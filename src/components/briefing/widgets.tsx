@@ -533,7 +533,7 @@ export function ClockWidget({ data }: WidgetProps) {
     <div className="w-full h-full p-3.5 flex flex-col items-center justify-center text-center">
       <div className="font-display text-[34px] font-extrabold tabular-nums tracking-tight text-foreground leading-none">
         <span>{hh}</span>
-        <span className="opacity-50 mx-0.5">:</span>
+        <span className="mx-0.5 wb-clock-blink">:</span>
         <span>{mm}</span>
         <span className="text-[16px] text-muted-foreground/70 align-top ml-1 font-bold tabular-nums">{ss}</span>
       </div>

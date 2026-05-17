@@ -252,10 +252,10 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             <button
               type="button"
               onClick={() => { if (window.confirm('기본 위젯 구성으로 되돌릴까요?')) dailyBriefingStore.resetWidgets(); }}
-              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-foreground/5 transition-colors"
+              className="group text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-foreground/5 transition-colors"
               title="기본값으로 되돌리기"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-3 w-3 transition-transform group-hover:-rotate-[30deg]" />
               기본값
             </button>
             <label className="ml-auto inline-flex items-center gap-2 text-[11.5px] text-foreground/85 cursor-pointer select-none">
@@ -547,8 +547,8 @@ function WidgetActionMenu({
               type="button"
               onClick={(e) => { e.stopPropagation(); dailyBriefingStore.resizeWidget(widget.id, sz); onToggle(false); }}
               className={cn(
-                'w-full text-left px-2.5 py-1 hover:bg-foreground/5 flex items-center gap-2 transition-colors',
-                widget.size === sz && 'text-primary font-semibold',
+                'w-full text-left px-2.5 py-1 hover:bg-foreground/8 flex items-center gap-2 transition-colors',
+                widget.size === sz && 'text-primary font-semibold bg-primary/[0.06]',
               )}
             >
               <SizeIcon size={sz} active={widget.size === sz} />

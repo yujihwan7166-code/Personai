@@ -421,7 +421,7 @@ export function NewsWidget({ widget }: WidgetProps) {
                         <span className="inline-flex items-center px-1.5 h-[16px] rounded-full bg-foreground/8 text-[9px] font-semibold text-foreground/65 truncate max-w-[60px]">
                           {n.source}
                         </span>
-                        <span className="text-[9px] text-muted-foreground/65 tabular-nums">
+                        <span className="text-[10px] text-muted-foreground/70 tabular-nums font-medium">
                           {(() => {
                             const ago = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 60000);
                             if (ago < 60) return `${Math.max(1, ago)}분`;
