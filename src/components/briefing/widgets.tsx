@@ -242,7 +242,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
               className={cn(
                 'relative aspect-square text-[11px] rounded-lg flex flex-col items-center justify-center transition-all',
                 cell.isToday
-                  ? 'bg-primary text-primary-foreground font-bold shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]'
+                  ? 'bg-[hsl(28_88%_52%)] text-white font-bold shadow-[0_3px_10px_-2px_hsl(28_88%_52%/0.55)]'
                   : hasMark
                     ? 'text-foreground font-semibold hover:bg-foreground/5'
                     : 'text-foreground/80 font-medium hover:bg-foreground/5',
@@ -357,7 +357,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
             <span className="text-[12px] text-foreground/90 truncate flex-1 font-medium">{hero.label}</span>
           </div>
           {rest.length > 0 && (
-            <ul className="mt-1 space-y-0.5 flex-1 overflow-hidden">
+            <ul className="mt-2 space-y-0.5 flex-1 overflow-hidden">
               {rest.map((d, i) => (
                 <li key={i} className="flex items-baseline gap-1.5 text-[10.5px] leading-tight">
                   <span className="tabular-nums font-mono text-[9.5px] font-bold text-foreground/70 shrink-0 w-[30px]">

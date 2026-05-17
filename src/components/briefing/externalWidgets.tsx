@@ -185,18 +185,18 @@ function CityInput({ value, onChange, onSubmit, onCancel, error }: {
         }}
         placeholder="도시 (예: 서울)"
         className={cn(
-          'w-full h-7 px-2 text-[11.5px] rounded border bg-background focus:outline-none transition-colors',
+          'w-full h-8 px-2.5 text-[12px] rounded-md border bg-background focus:outline-none transition-colors',
           error ? 'border-rose-400/60 focus:border-rose-500' : 'border-foreground/20 focus:border-primary',
         )}
       />
       {error && (
         <span className="text-[9.5px] text-rose-500 font-medium leading-tight px-0.5">{error}</span>
       )}
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         <button
           type="button"
           onClick={onSubmit}
-          className="flex-1 h-6 text-[10.5px] rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="flex-1 h-7 text-[11px] font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           확인
         </button>
@@ -204,7 +204,7 @@ function CityInput({ value, onChange, onSubmit, onCancel, error }: {
           <button
             type="button"
             onClick={onCancel}
-            className="px-2 h-6 text-[10.5px] rounded text-muted-foreground hover:bg-accent transition-colors"
+            className="px-2.5 h-7 text-[11px] rounded-md text-muted-foreground hover:bg-foreground/5 transition-colors"
           >
             취소
           </button>
@@ -837,12 +837,12 @@ export function Sparkline({
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} aria-hidden>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={`url(#${gradId})`} />
-      <path d={path} fill="none" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
