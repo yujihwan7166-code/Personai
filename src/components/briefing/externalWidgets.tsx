@@ -196,7 +196,8 @@ function CityInput({ value, onChange, onSubmit, onCancel, error }: {
         <button
           type="button"
           onClick={onSubmit}
-          className="flex-1 h-7 text-[11px] font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="flex-1 h-7 text-[11px] font-semibold rounded-md text-white transition-colors"
+          style={{ background: 'hsl(28 88% 52%)' }}
         >
           확인
         </button>
@@ -305,7 +306,7 @@ function ForexPicker({ codes, onChange, onClose }: { codes: string[]; onChange: 
                 onClick={() => toggle(code)}
                 className={cn(
                   'w-full text-left px-1 py-0.5 rounded text-[10px] transition-colors',
-                  on ? 'bg-primary/15 text-primary font-medium' : 'text-foreground/75 hover:bg-accent',
+                  on ? 'bg-[hsl(28_88%_52%/0.15)] text-amber-700 font-medium' : 'text-foreground/75 hover:bg-accent',
                 )}
               >
                 {on && '✓ '}{code}
@@ -318,7 +319,8 @@ function ForexPicker({ codes, onChange, onClose }: { codes: string[]; onChange: 
         <button
           type="button"
           onClick={() => onChange([...selected])}
-          className="flex-1 h-6 text-[10px] rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="flex-1 h-6 text-[10px] rounded text-white transition-colors"
+          style={{ background: 'hsl(28 88% 52%)' }}
         >
           저장
         </button>
@@ -382,7 +384,7 @@ export function NewsWidget({ widget }: WidgetProps) {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setPickerOpen(true); }}
-                className="text-[10px] text-primary hover:underline font-medium"
+                className="text-[10px] text-amber-700 hover:underline font-medium"
               >매체·주제 선택 →</button>
             </div>
           )}
@@ -431,7 +433,7 @@ export function NewsWidget({ widget }: WidgetProps) {
                           })()}
                         </span>
                       </div>
-                      <div className="text-[11.5px] leading-snug text-foreground/90 line-clamp-2 group-hover:text-primary transition-colors">
+                      <div className="text-[11.5px] leading-snug text-foreground/90 line-clamp-2 group-hover:text-amber-700 transition-colors">
                         {n.title}
                       </div>
                     </div>
@@ -484,7 +486,7 @@ function NewsPicker({ config, onChange, onClose }: {
                 }}
                 className={cn(
                   'w-full text-left px-1.5 py-0.5 rounded transition-colors',
-                  on ? 'bg-primary/15 text-primary' : 'text-foreground/75 hover:bg-accent',
+                  on ? 'bg-[hsl(28_88%_52%/0.15)] text-amber-700' : 'text-foreground/75 hover:bg-accent',
                 )}
               >
                 {on && '✓ '}{NEWS_SOURCES[sk].label}
@@ -509,7 +511,7 @@ function NewsPicker({ config, onChange, onClose }: {
                 }}
                 className={cn(
                   'w-full text-left px-1.5 py-0.5 rounded transition-colors',
-                  on ? 'bg-primary/15 text-primary' : 'text-foreground/75 hover:bg-accent',
+                  on ? 'bg-[hsl(28_88%_52%/0.15)] text-amber-700' : 'text-foreground/75 hover:bg-accent',
                 )}
               >
                 {on && '✓ '}{allTopicLabels[tk]}
@@ -522,7 +524,8 @@ function NewsPicker({ config, onChange, onClose }: {
         <button
           type="button"
           onClick={() => onChange({ sources: [...sources], topics: [...topics], limit: config.limit })}
-          className="flex-1 h-6 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+          className="flex-1 h-6 rounded text-white"
+          style={{ background: 'hsl(28 88% 52%)' }}
         >
           저장
         </button>
@@ -666,7 +669,8 @@ function CoinPicker({ ids, onChange, onClose }: { ids: string[]; onChange: (ids:
         <button
           type="button"
           onClick={() => onChange(selected)}
-          className="flex-1 h-6 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+          className="flex-1 h-6 rounded text-white"
+          style={{ background: 'hsl(28 88% 52%)' }}
         >
           저장
         </button>

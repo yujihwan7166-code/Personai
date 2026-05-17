@@ -199,7 +199,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         <button
           type="button"
           onClick={() => { onClose(); navigate('/planner'); }}
-          className="flex-1 text-[14px] font-bold text-foreground text-center hover:text-primary transition-colors tabular-nums"
+          className="flex-1 text-[14px] font-bold text-foreground text-center hover:text-amber-700 transition-colors tabular-nums"
         >
           <span className="text-muted-foreground/65 font-medium mr-1">{year}</span>{month + 1}월
         </button>
@@ -207,7 +207,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setViewDate(new Date()); }}
-            className="px-1.5 h-5 inline-flex items-center text-[9.5px] font-semibold text-primary uppercase tracking-wider rounded hover:bg-primary/10 transition-colors"
+            className="px-1.5 h-5 inline-flex items-center text-[9.5px] font-semibold text-amber-700 uppercase tracking-wider rounded hover:bg-amber-500/[0.10] transition-colors"
             title="이번 달로"
           >
             오늘
@@ -253,7 +253,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
               <span className="tabular-nums">{cell.day}</span>
               {mark && (
                 <span className="absolute bottom-1 inline-flex gap-0.5">
-                  {mark.events > 0 && <span className={cn('w-[3px] h-[3px] rounded-full', cell.isToday ? 'bg-white/90' : 'bg-primary/80')} />}
+                  {mark.events > 0 && <span className={cn('w-[3px] h-[3px] rounded-full', cell.isToday ? 'bg-white/90' : 'bg-[hsl(210_80%_52%/0.85)]')} />}
                   {mark.tasks > 0 && <span className={cn('w-[3px] h-[3px] rounded-full', cell.isToday ? 'bg-white/60' : 'bg-amber-500/85')} />}
                 </span>
               )}
