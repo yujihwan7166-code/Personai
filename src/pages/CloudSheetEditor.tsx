@@ -2039,6 +2039,66 @@ export default function CloudSheetEditor() {
     | null
   >(null);
 
+  // ─── 셀 컨텍스트 메뉴 (헤더와 별도) ───
+  const [cellCtxMenu, setCellCtxMenu] = useState<{ row: number; col: number; x: number; y: number } | null>(null);
+  const openCellContextMenu = useCallback(
+    (row: number, col: number, e: React.MouseEvent) => {
+      e.preventDefault();
+      // 선택이 그 셀을 포함하지 않으면 단일 선택으로 변경
+      const inSel =
+        row >= selBounds.minR && row <= selBounds.maxR
+        && col >= selBounds.minC && col <= selBounds.maxC;
+      if (!inSel) {
+        setRangeAnchor(null);
+        setSelected({ row, col });
+      }
+      setCellCtxMenu({ row, col, x: e.clientX, y: e.clientY });
+    },
+    [selBounds],
+  );
+
+  useEffect(() => {
+    if (!cellCtxMenu) return;
+    const close = () => setCellCtxMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+    };
+  }, [cellCtxMenu]);
+
+  /** 선택 영역 셀 값 + 서식 지우기 */
+  const clearSelectionValues = useCallback(() => {
+    const nextCells: Cells = { ...cells };
+    let changed = false;
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        if (ref in nextCells) { delete nextCells[ref]; changed = true; }
+      }
+    }
+    if (!changed) return;
+    const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+    setAllCells(nextAll);
+    queueSave({ allCells: nextAll });
+  }, [selBounds, cells, allCells, currentSheetId, queueSave]);
+
+  const clearSelectionFormats = useCallback(() => {
+    const nextFormats: CellFormats = { ...cellFormats };
+    let changed = false;
+    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const ref = cellRef(r, c);
+        if (ref in nextFormats) { delete nextFormats[ref]; changed = true; }
+      }
+    }
+    if (!changed) return;
+    const nextAll: AllFormats = { ...allFormats, [currentSheetId]: nextFormats };
+    setAllFormats(nextAll);
+    queueSave({ allFormats: nextAll });
+  }, [selBounds, cellFormats, allFormats, currentSheetId, queueSave]);
+
   const openHeaderContextMenu = useCallback(
     (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => {
       e.preventDefault();
@@ -2829,6 +2889,7 @@ export default function CloudSheetEditor() {
             onRowResize={setRowHeight}
             onRowAutoFit={autoFitRowHeight}
             onHeaderContextMenu={openHeaderContextMenu}
+            onCellContextMenu={openCellContextMenu}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
             freezeRows={freezeRows}
@@ -2978,6 +3039,55 @@ export default function CloudSheetEditor() {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* 셀 우클릭 컨텍스트 메뉴 */}
+      {cellCtxMenu && (
+        <div
+          className="fixed z-50 rounded border border-border bg-popover shadow-md text-sm min-w-[180px] py-1"
+          style={{ left: cellCtxMenu.x, top: cellCtxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { void copyRange(); setCellCtxMenu(null); }}>
+            <CopyIcon className="w-3.5 h-3.5" /> 복사
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { void cutRange(); setCellCtxMenu(null); }}>
+            <Eraser className="w-3.5 h-3.5" /> 잘라내기
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { void pasteFromClipboard(); setCellCtxMenu(null); }}>
+            <span className="w-3.5 h-3.5 inline-flex items-center justify-center text-[10px]" aria-hidden>📋</span>
+            붙여넣기
+          </button>
+          {hasRange && (
+            <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+              onClick={() => { fillSelectionWithCurrent(); setCellCtxMenu(null); }}>
+              <CopyIcon className="w-3.5 h-3.5" /> 선택 영역에 같은 값 채우기
+            </button>
+          )}
+          <div className="h-px bg-border my-1" />
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { insertRow(cellCtxMenu.row); setCellCtxMenu(null); }}>
+            <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>↑+</span>
+            위에 행 삽입
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { insertCol(cellCtxMenu.col); setCellCtxMenu(null); }}>
+            <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>←+</span>
+            왼쪽에 열 삽입
+          </button>
+          <div className="h-px bg-border my-1" />
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2 text-destructive"
+            onClick={() => { clearSelectionValues(); setCellCtxMenu(null); }}>
+            <TrashIcon className="w-3.5 h-3.5" /> 값 지우기
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { clearSelectionFormats(); setCellCtxMenu(null); }}>
+            <Eraser className="w-3.5 h-3.5" /> 서식 지우기
+          </button>
         </div>
       )}
 
@@ -3149,6 +3259,7 @@ interface SheetGridProps {
   onRowResize: (rowIdx: number, newHeight: number) => void;
   onRowAutoFit?: (rowIdx: number) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
+  onCellContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
   /** N행 고정 (0=고정X) */
@@ -3183,6 +3294,7 @@ interface SheetGridProps {
   formulaRefHighlights?: Map<string, string>;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
   onPointerEnter: (row: number, col: number) => void;
+  onContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
   onStartEdit: (row: number, col: number) => void;
   onChangeValue: (v: string) => void;
   onCommitEdit: (moveDir?: 'down' | 'right' | 'none') => void;
@@ -3192,6 +3304,7 @@ interface SheetGridProps {
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderContextMenu,
+  onCellContextMenu,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
   condFormatMap,
@@ -3359,6 +3472,7 @@ function SheetGrid({
                     editingValue={editingValue}
                     onPointerDown={onPointerDown}
                     onPointerEnter={onPointerEnter}
+                    onContextMenu={onCellContextMenu}
                     onStartEdit={onStartEdit}
                     onChangeValue={onChangeValue}
                     onCommitEdit={onCommitEdit}
@@ -3405,6 +3519,7 @@ interface SheetCellProps {
   editingValue: string;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
   onPointerEnter: (row: number, col: number) => void;
+  onContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
   onStartEdit: (row: number, col: number) => void;
   onChangeValue: (v: string) => void;
   onCommitEdit: (moveDir?: 'down' | 'right' | 'none') => void;
@@ -3418,7 +3533,7 @@ const SheetCell = React.memo(function SheetCell({
   commentText, autocomplete, formulaRefColor,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
-  onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
+  onPointerDown, onPointerEnter, onContextMenu, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -3483,6 +3598,7 @@ const SheetCell = React.memo(function SheetCell({
       data-cell-ref={cellRefStr}
       onPointerDown={(e) => onPointerDown(row, col, e)}
       onPointerEnter={() => onPointerEnter(row, col)}
+      onContextMenu={onContextMenu ? (e) => onContextMenu(row, col, e) : undefined}
       onDoubleClick={() => onStartEdit(row, col)}
       rowSpan={rowSpan}
       colSpan={colSpan}
