@@ -180,7 +180,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          className="h-6 w-6 inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground hover:bg-foreground/8 transition-colors"
           aria-label="이전 달"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -188,14 +188,24 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
         <button
           type="button"
           onClick={() => { onClose(); navigate('/planner'); }}
-          className="flex-1 text-[13.5px] font-semibold text-foreground text-center hover:text-primary transition-colors tabular-nums"
+          className="flex-1 text-[14px] font-bold text-foreground text-center hover:text-primary transition-colors tabular-nums"
         >
-          <span className="text-muted-foreground/65 font-normal mr-1">{year}</span>{month + 1}월
+          <span className="text-muted-foreground/65 font-medium mr-1">{year}</span>{month + 1}월
         </button>
+        {!isThisMonth && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setViewDate(new Date()); }}
+            className="px-1.5 h-5 inline-flex items-center text-[9.5px] font-semibold text-primary uppercase tracking-wider rounded hover:bg-primary/10 transition-colors"
+            title="이번 달로"
+          >
+            오늘
+          </button>
+        )}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setViewDate(new Date(year, month + 1, 1)); }}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          className="h-6 w-6 inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground hover:bg-foreground/8 transition-colors"
           aria-label="다음 달"
         >
           <ChevronRight className="h-3.5 w-3.5" />
@@ -518,8 +528,9 @@ export function ClockWidget({ data }: WidgetProps) {
       </div>
       <div className="mt-2 text-[11px] text-muted-foreground font-medium">{dateLabel}</div>
       {nextLabel && (
-        <div className="mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-semibold text-primary truncate max-w-full" title={nextEvent!.title}>
-          ⏱ {nextLabel}
+        <div className="mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 inline-flex items-center gap-1 text-[10px] font-semibold text-primary truncate max-w-full" title={nextEvent!.title}>
+          <ClockIcon className="h-2.5 w-2.5 shrink-0" />
+          {nextLabel}
         </div>
       )}
     </div>
