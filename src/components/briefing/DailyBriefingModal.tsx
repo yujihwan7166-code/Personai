@@ -193,13 +193,14 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             {hintShown && !editMode && (
               <div className="absolute top-full right-0 mt-2 z-10 pointer-events-none animate-fade-in">
                 <div
-                  className="px-3 py-1.5 rounded-lg bg-foreground text-background text-[11px] font-medium whitespace-nowrap shadow-lg"
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white whitespace-nowrap shadow-[0_6px_20px_-4px_hsl(30_30%_8%/0.45)]"
+                  style={{ background: 'hsl(30 30% 15%)' }}
                   onClick={dismissHint}
                 >
                   여기서 위젯 편집 ↑
                 </div>
                 {/* 화살표 */}
-                <div className="absolute -top-1 right-3.5 w-2 h-2 bg-foreground rotate-45" />
+                <div className="absolute -top-1 right-3.5 w-2 h-2 rotate-45" style={{ background: 'hsl(30 30% 15%)' }} />
               </div>
             )}
           </div>
@@ -232,7 +233,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         {editMode && (
           <div className="shrink-0 px-5 sm:px-7 py-2.5 border-t border-foreground/8 flex items-center gap-3 sm:gap-4 bg-foreground/[0.02] backdrop-blur-sm">
             <div className="inline-flex items-center gap-1.5 text-[11.5px] text-foreground/85 font-semibold tracking-tight">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(28_88%_52%)] animate-pulse" />
               편집 모드
             </div>
             <span className="hidden sm:inline-flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
@@ -358,8 +359,8 @@ function BriefingGrid({
             className={cn(
               'rounded-xl border border-dashed transition-colors flex items-center justify-center group',
               i === 0
-                ? 'border-foreground/25 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/4'
-                : 'border-foreground/10 text-foreground/30 hover:border-primary/40 hover:text-primary hover:bg-primary/4',
+                ? 'border-foreground/25 text-muted-foreground hover:border-[hsl(28_88%_52%)] hover:text-amber-700 hover:bg-amber-500/[0.05]'
+                : 'border-foreground/10 text-foreground/30 hover:border-[hsl(28_88%_52%/0.45)] hover:text-amber-700 hover:bg-amber-500/[0.05]',
             )}
             style={{
               gridColumn: `${cell.col + 1} / span 1`,
@@ -395,7 +396,7 @@ function BriefingGrid({
           <div
             className={cn(
               'pointer-events-none rounded-2xl border-2 border-dashed',
-              hoverCell.valid ? 'border-primary bg-primary/8' : 'border-destructive bg-destructive/8',
+              hoverCell.valid ? 'border-[hsl(28_88%_52%)] bg-amber-500/[0.10]' : 'border-destructive bg-destructive/8',
             )}
             style={{
               gridColumn: `${hoverCell.col + 1} / span ${span.w}`,
@@ -549,7 +550,7 @@ function WidgetActionMenu({
               onClick={(e) => { e.stopPropagation(); dailyBriefingStore.resizeWidget(widget.id, sz); onToggle(false); }}
               className={cn(
                 'w-full text-left px-2.5 py-1 hover:bg-foreground/8 flex items-center gap-2 transition-colors',
-                widget.size === sz && 'text-primary font-semibold bg-primary/[0.06]',
+                widget.size === sz && 'text-amber-700 font-semibold bg-amber-500/[0.08]',
               )}
             >
               <SizeIcon size={sz} active={widget.size === sz} />
@@ -581,7 +582,7 @@ function SizeIcon({ size, active }: { size: WidgetSize; active?: boolean }) {
       <div
         className={cn(
           'rounded-[1.5px] border',
-          active ? 'bg-primary/85 border-primary' : 'border-foreground/35 bg-foreground/8',
+          active ? 'bg-[hsl(28_88%_52%/0.85)] border-[hsl(28_88%_52%)]' : 'border-foreground/35 bg-foreground/8',
         )}
         style={{ width: `${w}px`, height: `${h}px` }}
       />
@@ -885,7 +886,11 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center gap-1.5 px-5 h-9 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-[0_4px_12px_-4px_hsl(28_88%_52%/0.4)]"
+        className="inline-flex items-center gap-1.5 px-5 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all hover:scale-[1.02]"
+        style={{
+          background: 'hsl(28 88% 52%)',
+          boxShadow: '0 4px 14px -4px hsl(28 88% 52% / 0.55)',
+        }}
       >
         <Plus className="h-3.5 w-3.5" />
         위젯 추가하기
