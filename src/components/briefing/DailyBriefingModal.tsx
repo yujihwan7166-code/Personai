@@ -658,8 +658,16 @@ function WidgetPicker({
             if (grouped[group].length === 0) return null;
             return (
             <div key={group}>
-              <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground/75 font-semibold mb-2">
+              <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground/75 font-semibold mb-2 flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block w-1 h-1 rounded-full',
+                    group === '내 데이터' ? 'bg-primary/60' : 'bg-amber-500/60',
+                  )}
+                />
                 {group}
+                <span className="text-foreground/30 font-normal normal-case tracking-normal">·</span>
+                <span className="text-muted-foreground/50 font-medium normal-case tracking-normal">{grouped[group].length}</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {grouped[group].map((kind) => {
@@ -795,27 +803,27 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
   );
 }
 
-/** 오늘 하루 시간 진행률 — 모달 상단 hairline (1분마다 업데이트). */
+/** 오늘 하루 시간 진행률 — 모달 상단 hairline (시간대별 색, 1분마다 업데이트). */
 function DayProgressBar() {
-  const [ratio, setRatio] = useState(() => {
-    const now = new Date();
-    return (now.getHours() * 60 + now.getMinutes()) / (24 * 60);
-  });
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = window.setInterval(() => {
-      const now = new Date();
-      setRatio((now.getHours() * 60 + now.getMinutes()) / (24 * 60));
-    }, 60 * 1000);
+    const id = window.setInterval(() => setNow(new Date()), 60 * 1000);
     return () => window.clearInterval(id);
   }, []);
+  const ratio = (now.getHours() * 60 + now.getMinutes()) / (24 * 60);
+  // 시간대별 그라디언트 — 새벽=cool blue, 아침=warm orange, 정오=amber, 저녁=rose
+  const grad = (() => {
+    const h = now.getHours();
+    if (h < 6) return 'linear-gradient(90deg, hsl(220 70% 60%), hsl(240 70% 50%))';
+    if (h < 12) return 'linear-gradient(90deg, hsl(28 88% 58%), hsl(28 88% 48%))';
+    if (h < 18) return 'linear-gradient(90deg, hsl(45 90% 55%), hsl(30 88% 50%))';
+    return 'linear-gradient(90deg, hsl(340 70% 55%), hsl(280 60% 50%))';
+  })();
   return (
     <div className="shrink-0 h-[2px] bg-foreground/[0.04] overflow-hidden">
       <div
         className="h-full transition-all duration-1000"
-        style={{
-          width: `${ratio * 100}%`,
-          background: 'linear-gradient(90deg, hsl(28 88% 58%), hsl(28 88% 48%))',
-        }}
+        style={{ width: `${ratio * 100}%`, background: grad }}
         title={`오늘 ${Math.round(ratio * 100)}% 지남`}
       />
     </div>
