@@ -61,7 +61,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
                   className={cn(
                     'absolute top-0 h-full rounded-full transition-all hover:scale-y-[1.6]',
                     it.kind === 'event'
-                      ? 'bg-primary/85 hover:bg-primary'
+                      ? 'bg-[hsl(210_80%_52%/0.85)] hover:bg-[hsl(210_80%_52%)]'
                       : it.done ? 'bg-emerald-500/55 hover:bg-emerald-500' : 'bg-amber-500/85 hover:bg-amber-500',
                   )}
                   style={{ left: `${startPct}%`, width: `${widthPct}%` }}
@@ -77,8 +77,10 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
               <span className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_0_2px_hsl(var(--card))]" />
             </div>
           </div>
-          <div className="flex justify-between mt-0.5 text-[8.5px] text-muted-foreground/60 tabular-nums">
-            <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
+          <div className="flex justify-between mt-0.5 text-[8.5px] text-foreground/45 tabular-nums">
+            <span>00</span><span>06</span>
+            <span className="font-semibold text-foreground/65">12</span>
+            <span>18</span><span>24</span>
           </div>
           {/* 리스트 — top 3 (종류별 dot 으로 timeline 과 시각 일관) */}
           <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
@@ -88,7 +90,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
                   className={cn(
                     'h-1.5 w-1.5 rounded-full shrink-0',
                     it.kind === 'event'
-                      ? 'bg-primary/85'
+                      ? 'bg-[hsl(210_80%_52%/0.85)]'
                       : it.done ? 'bg-emerald-500/65' : 'bg-amber-500/85',
                   )}
                 />
@@ -284,7 +286,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
       ) : (
         <>
           {/* 진행률 bar */}
-          <div className="mt-1.5 h-1 rounded-full bg-foreground/8 overflow-hidden">
+          <div className="mt-1.5 h-1.5 rounded-full bg-foreground/8 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-orange-400 to-amber-500 transition-all duration-500"
               style={{ width: `${ratio * 100}%` }}
@@ -408,7 +410,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
           {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
         </span>
         <span className="truncate flex-1">{data.pickFirst.reason}</span>
-        <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/40 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
       </div>
     </button>
   );

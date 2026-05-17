@@ -127,7 +127,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         <DayProgressBar />
 
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
-        <div className="shrink-0 px-5 sm:px-7 pt-6 pb-5 flex items-start gap-2 sm:gap-3 relative">
+        <div className="shrink-0 px-5 sm:px-7 pt-6 pb-5 flex items-start gap-2 sm:gap-4 relative">
           {/* hairline divider — 헤더와 본문 자연 분리 */}
           <span aria-hidden className="absolute left-7 right-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
           <div className="min-w-0 flex-1">
