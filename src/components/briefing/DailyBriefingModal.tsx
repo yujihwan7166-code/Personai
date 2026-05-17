@@ -109,12 +109,14 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     >
       <div
         className={cn(
-          'relative w-full max-w-[1120px] flex flex-col border border-foreground/10 rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden',
+          'relative w-full max-w-[1120px] flex flex-col border rounded-3xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.25),_0_8px_25px_-8px_hsl(30_30%_8%/0.15)] overflow-hidden',
           closing ? 'wb-modal-out' : 'wb-modal-in',
         )}
         style={{
           // 작은 viewport (모바일 landscape 등) 에서도 최소 420px 보장
           height: 'clamp(420px, 92vh, 700px)',
+          // 모달 모서리 — warm cream border (회색 X)
+          borderColor: 'hsl(30 15% 75% / 0.45)',
           // 모달 자체 — 두 radial spot (상단 중앙 cream, 우하단 warm amber) 으로 dimensional cream surface
           background: `
             radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%),
@@ -479,7 +481,7 @@ function WidgetCard({
         !editMode && 'hover:shadow-[0_14px_36px_-12px_hsl(30_15%_8%/0.24),_0_5px_14px_-4px_hsl(30_15%_8%/0.14)] hover:-translate-y-1',
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
         editMode && 'wb-jiggle ring-1 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
-        editMode && !isDragging && 'ring-foreground/15',
+        editMode && !isDragging && 'ring-[hsl(30_15%_55%/0.22)]',
         editMode && isDragging && 'opacity-40 cursor-grabbing ring-[hsl(28_88%_52%/0.5)]',
       )}
       style={{
@@ -534,7 +536,7 @@ function WidgetActionMenu({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onToggle(!open); }}
-        className="h-5 w-5 inline-flex items-center justify-center rounded-md bg-card/95 backdrop-blur-sm border border-foreground/12 text-muted-foreground hover:text-foreground transition-colors text-[14px] leading-none"
+        className="h-5 w-5 inline-flex items-center justify-center rounded-md bg-card/95 backdrop-blur-sm border border-[hsl(30_15%_60%/0.28)] text-muted-foreground hover:text-foreground transition-colors text-[14px] leading-none"
         aria-label="위젯 메뉴"
       >
         ⋯
@@ -860,7 +862,7 @@ function DayProgressBar() {
     return 'linear-gradient(90deg, hsl(340 70% 55%), hsl(280 60% 50%))';
   })();
   return (
-    <div className="shrink-0 h-[3px] bg-foreground/[0.04] overflow-hidden">
+    <div className="shrink-0 h-[3px] overflow-hidden" style={{ background: 'hsl(30 15% 75% / 0.18)' }}>
       <div
         className="h-full transition-all duration-1000"
         style={{ width: `${ratio * 100}%`, background: grad }}

@@ -285,11 +285,14 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
         <EmptyText text="첫 습관 시작해볼까요" hint="플래너 → 습관 →" icon={<Flame className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
-          {/* 진행률 bar */}
+          {/* 진행률 bar — 3-stop warm 그라디언트 */}
           <div className="mt-1.5 h-1.5 rounded-full bg-foreground/8 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-orange-400 to-amber-500 transition-all duration-500"
-              style={{ width: `${ratio * 100}%` }}
+              className="h-full transition-all duration-500 rounded-full"
+              style={{
+                width: `${ratio * 100}%`,
+                background: 'linear-gradient(90deg, hsl(20 90% 58%) 0%, hsl(32 92% 56%) 50%, hsl(42 92% 50%) 100%)',
+              }}
             />
           </div>
           {atRisk > 0 && (
