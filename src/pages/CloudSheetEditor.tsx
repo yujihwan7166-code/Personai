@@ -63,6 +63,19 @@ type AllValidations = Record<string, Validation[]>;
 type Comments = Record<string, string>;
 type AllComments = Record<string, Comments>;
 
+interface EmbeddedChart {
+  id: string;
+  type: 'bar' | 'line' | 'pie';
+  orientation: 'columns' | 'rows';
+  range: { minR: number; maxR: number; minC: number; maxC: number };
+  title?: string;
+}
+type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
+
+function newEmbeddedChartId(): string {
+  return `ch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
 function newValidationId(): string {
   return `vd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -375,6 +388,8 @@ export default function CloudSheetEditor() {
   const [allValidations, setAllValidations] = useState<AllValidations>({ s_initial: [] });
   // 셀 코멘트 — sheet 별 ref → text
   const [allComments, setAllComments] = useState<AllComments>({ s_initial: {} });
+  // 영구 embed 차트 — sheet 별
+  const [allEmbeddedCharts, setAllEmbeddedCharts] = useState<AllEmbeddedCharts>({ s_initial: [] });
 
   // derived — 현재 시트의 cells/formats/merges/condRules
   const currentSheet = sheetsMeta[currentSheetIdx] ?? sheetsMeta[0];
@@ -385,6 +400,7 @@ export default function CloudSheetEditor() {
   const condRules = allCondRules[currentSheetId] ?? [];
   const validations = allValidations[currentSheetId] ?? [];
   const comments = allComments[currentSheetId] ?? {};
+  const embeddedCharts = allEmbeddedCharts[currentSheetId] ?? [];
 
   // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
   const { mergeAtMap, coveredSet } = useMemo(() => {
@@ -452,6 +468,7 @@ export default function CloudSheetEditor() {
         const storedAllCondRules = meta.allCondRules as AllCondRules | undefined;
         const storedAllValidations = meta.allValidations as AllValidations | undefined;
         const storedAllComments = meta.allComments as AllComments | undefined;
+        const storedAllEmbeddedCharts = meta.allEmbeddedCharts as AllEmbeddedCharts | undefined;
         const storedRowCount = typeof meta.rowCount === 'number' ? meta.rowCount : undefined;
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
@@ -468,6 +485,7 @@ export default function CloudSheetEditor() {
           if (storedAllCondRules) setAllCondRules(storedAllCondRules);
           if (storedAllValidations) setAllValidations(storedAllValidations);
           if (storedAllComments) setAllComments(storedAllComments);
+          if (storedAllEmbeddedCharts) setAllEmbeddedCharts(storedAllEmbeddedCharts);
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -547,6 +565,7 @@ export default function CloudSheetEditor() {
     allCondRules?: AllCondRules;
     allValidations?: AllValidations;
     allComments?: AllComments;
+    allEmbeddedCharts?: AllEmbeddedCharts;
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
@@ -564,6 +583,7 @@ export default function CloudSheetEditor() {
         allCondRules: patch.allCondRules ?? allCondRules,
         allValidations: patch.allValidations ?? allValidations,
         allComments: patch.allComments ?? allComments,
+        allEmbeddedCharts: patch.allEmbeddedCharts ?? allEmbeddedCharts,
         currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
@@ -575,7 +595,7 @@ export default function CloudSheetEditor() {
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
+  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, currentSheetIdx, rowCount, colCount, colWidths, freezeFirstRow, freezeFirstCol]);
 
   useEffect(() => {
     return () => {
@@ -1304,6 +1324,23 @@ export default function CloudSheetEditor() {
     if (Number.isInteger(n)) return n.toLocaleString('ko-KR');
     return n.toLocaleString('ko-KR', { maximumFractionDigits: 4 });
   }
+
+  // ─── 영구 embed 차트 ───
+  const addEmbeddedChart = useCallback((c: Omit<EmbeddedChart, 'id'>) => {
+    const id = newEmbeddedChartId();
+    const next = [...embeddedCharts, { ...c, id }];
+    const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
+    setAllEmbeddedCharts(nextAll);
+    queueSave({ allEmbeddedCharts: nextAll });
+    toast({ title: '차트 추가됨', description: '시트 아래에 표시됩니다.' });
+  }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
+
+  const removeEmbeddedChart = useCallback((id: string) => {
+    const next = embeddedCharts.filter((c) => c.id !== id);
+    const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
+    setAllEmbeddedCharts(nextAll);
+    queueSave({ allEmbeddedCharts: nextAll });
+  }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
 
   // ─── 차트 모달 ───
   const [chartOpen, setChartOpen] = useState(false);
@@ -2607,6 +2644,20 @@ export default function CloudSheetEditor() {
             <span className="opacity-60"> · 헤더 우클릭 → 삽입/삭제 · 열 가장자리 드래그 → 너비</span>
           </span>
         </div>
+
+        {/* 영구 embed 차트 — 시트 아래에 카드 형식, 데이터 자동 갱신 */}
+        {embeddedCharts.length > 0 && (
+          <div className="px-3 pb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {embeddedCharts.map((c) => (
+              <EmbeddedChartCard
+                key={c.id}
+                chart={c}
+                cells={cells}
+                onRemove={() => removeEmbeddedChart(c.id)}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
       {/* 헤더 컨텍스트 메뉴 — 우클릭 위치에 고정 */}
@@ -2752,6 +2803,10 @@ export default function CloudSheetEditor() {
         onClose={() => setChartOpen(false)}
         cells={cells}
         range={selBounds}
+        onEmbed={(c) => {
+          addEmbeddedChart(c);
+          setChartOpen(false);
+        }}
       />
 
       <CondFormatModal
@@ -3651,14 +3706,111 @@ function HelpRow({ keys, label }: { keys: string[]; label: string }) {
 
 type ChartType = 'bar' | 'line' | 'pie';
 
+// ─────────────────────────────────────────────
+// 영구 embed 차트 카드 (시트 아래 표시, 데이터 자동 갱신)
+// ─────────────────────────────────────────────
+
+interface EmbeddedChartCardProps {
+  chart: EmbeddedChart;
+  cells: Cells;
+  onRemove: () => void;
+}
+
+function EmbeddedChartCard({ chart, cells, onRemove }: EmbeddedChartCardProps) {
+  const data = useMemo(
+    () => buildChartData(cells, chart.range, chart.orientation),
+    [cells, chart.range, chart.orientation],
+  );
+  const hasData = data.rows.length > 0 && data.seriesKeys.length > 0;
+  const rangeStr = useMemo(() => {
+    const a = `${idxToCol(chart.range.minC)}${chart.range.minR + 1}`;
+    const b = `${idxToCol(chart.range.maxC)}${chart.range.maxR + 1}`;
+    return a === b ? a : `${a}:${b}`;
+  }, [chart.range]);
+
+  return (
+    <div className="rounded border border-border bg-background overflow-hidden">
+      <div className="flex items-center px-3 py-1.5 border-b border-border bg-muted/30 text-xs">
+        <span className="font-medium">
+          {chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}{' '}
+          {chart.title || `${chart.type} 차트`}
+        </span>
+        <span className="ml-2 text-muted-foreground">{rangeStr}</span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="ml-auto p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          aria-label="차트 삭제"
+          title="차트 삭제"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="h-[260px] p-2">
+        {!hasData ? (
+          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+            데이터 없음 ({rangeStr})
+          </div>
+        ) : chart.type === 'bar' ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.rows} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {data.seriesKeys.map((k, i) => (
+                <Bar key={k} dataKey={k} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        ) : chart.type === 'line' ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.rows} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {data.seriesKeys.map((k, i) => (
+                <Line
+                  key={k} type="monotone" dataKey={k}
+                  stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
+                  strokeWidth={2} dot={{ r: 2 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Pie
+                data={flattenForPie(data)}
+                dataKey="value" nameKey="name"
+                cx="50%" cy="50%" outerRadius={80} label={false}
+              >
+                {flattenForPie(data).map((_, i) => (
+                  <RechartsCell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface ChartModalProps {
   open: boolean;
   onClose: () => void;
   cells: Cells;
   range: SelRange;
+  /** "시트에 추가" — 클릭 시 영구 차트로 embed */
+  onEmbed?: (c: { type: ChartType; orientation: 'columns' | 'rows'; range: SelRange }) => void;
 }
 
-function ChartModal({ open, onClose, cells, range }: ChartModalProps) {
+function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
   const [type, setType] = useState<ChartType>('bar');
   const [orientation, setOrientation] = useState<'columns' | 'rows'>('columns');
   const data = useMemo(
@@ -3796,6 +3948,16 @@ function ChartModal({ open, onClose, cells, range }: ChartModalProps) {
             >
               <Download className="w-3.5 h-3.5" /> PNG 저장
             </button>
+            {onEmbed && (
+              <button
+                type="button"
+                onClick={() => onEmbed({ type, orientation, range })}
+                disabled={!hasData}
+                className="px-3 py-1.5 rounded bg-violet-500 text-white hover:bg-violet-600 text-sm flex items-center gap-1 disabled:opacity-50"
+              >
+                <Plus className="w-3.5 h-3.5" /> 시트에 추가
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
