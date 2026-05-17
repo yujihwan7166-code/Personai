@@ -3618,6 +3618,7 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div>=SUMIFS(C1:C10, A1:A10, "{'>'}5", B1:B10, "사과")</div>
           <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
           <div>=Sheet2!A1 · =SUM(Data!B1:B10) — 다른 시트 참조</div>
+          <div>=$A$1 · =A$1 · =$A1 — 절대 참조 (행/열 삽입에도 고정)</div>
           <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
           <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
         </div>

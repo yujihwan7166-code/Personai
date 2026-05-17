@@ -135,9 +135,10 @@ function evalExpr(
 ): unknown {
   let work = expr;
 
-  // 1. 범위 (sheet 옵셔널 + A1:B5) — Sheet1!A1:B5 또는 A1:B5
+  // 1. 범위 (sheet 옵셔널 + A1:B5) — $ 절대 참조 마커는 평가에서 무시
+  //    Sheet1!$A$1:$B$5 또는 A1:B5
   work = work.replace(
-    /(?:('[^']+'|[A-Za-z]\w*)!)?([A-Z]+)(\d+):([A-Z]+)(\d+)/g,
+    /(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)/g,
     (_m, sheetRaw, c1, r1, c2, r2) => {
       const sheet = sheetRaw
         ? String(sheetRaw).replace(/^'|'$/g, '')
@@ -155,10 +156,10 @@ function evalExpr(
     },
   );
 
-  // 2. 단일 셀 참조 — Sheet1!A1 또는 A1
+  // 2. 단일 셀 참조 — Sheet1!$A$1 또는 A1
   //    함수 이름과 혼동 방지: lookbehind 로 알파벳·_ 뒤가 아닐 때만 매칭
   work = work.replace(
-    /(?<![A-Za-z_0-9])(?:('[^']+'|[A-Za-z]\w*)!)?([A-Z]+)(\d+)\b/g,
+    /(?<![A-Za-z_0-9$])(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b/g,
     (_m, sheetRaw, c, r) => {
       const sheet = sheetRaw
         ? String(sheetRaw).replace(/^'|'$/g, '')
