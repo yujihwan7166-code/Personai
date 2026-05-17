@@ -265,8 +265,8 @@ export function ForexWidget({ widget }: WidgetProps) {
                   )}
                   {r.rate && r.change !== 0 && (
                     <span className={cn(
-                      'tabular-nums shrink-0 text-[10px] font-bold',
-                      r.change > 0 ? 'text-rose-500' : 'text-blue-500',
+                      'tabular-nums shrink-0 text-[10px] font-bold inline-flex items-center px-1 py-px rounded',
+                      r.change > 0 ? 'text-rose-500 bg-rose-500/8' : 'text-blue-500 bg-blue-500/8',
                     )}>
                       {r.change > 0 ? '▲' : '▼'}{Math.abs(r.change).toFixed(1)}
                     </span>

@@ -369,12 +369,12 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     <button
       type="button"
       onClick={() => { onClose(); navigate('/planner'); }}
-      className="w-full h-full text-left p-4 flex flex-col relative overflow-hidden"
+      className="group w-full h-full text-left p-4 flex flex-col relative overflow-hidden"
     >
       {/* 우상단 미세 deco — radial amber glow */}
       <span
         aria-hidden
-        className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
+        className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none transition-transform duration-300 group-hover:scale-110"
         style={{ background: 'radial-gradient(circle at center, hsl(28 88% 52% / 0.20) 0%, transparent 70%)' }}
       />
       <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
@@ -388,7 +388,8 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
         >
           {data.pickFirst.kind === 'event' ? '일정' : data.pickFirst.kind === 'habit' ? '습관' : '할일'}
         </span>
-        <span className="truncate">{data.pickFirst.reason}</span>
+        <span className="truncate flex-1">{data.pickFirst.reason}</span>
+        <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/40 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
       </div>
     </button>
   );
