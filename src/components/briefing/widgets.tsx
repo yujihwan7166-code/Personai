@@ -47,7 +47,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
       ) : (
         <>
           {/* 0-24h timeline */}
-          <div className="relative mt-2 h-1.5 rounded-full bg-foreground/8 overflow-visible">
+          <div className="relative mt-2 h-2 rounded-full bg-foreground/8 overflow-visible">
             {data.timed.map((it, i) => {
               const start = new Date(it.startAt);
               const startPct = ((start.getHours() * 60 + start.getMinutes()) / (24 * 60)) * 100;

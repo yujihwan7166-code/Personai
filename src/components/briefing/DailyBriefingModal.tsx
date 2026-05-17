@@ -133,7 +133,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <TimeOfDayIcon />
-              <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1] min-w-0 truncate">
+              <h2 className="font-display text-[26px] sm:text-[32px] font-extrabold tracking-tight text-foreground leading-[1.1] min-w-0 truncate">
                 {data.greeting}
               </h2>
             </div>

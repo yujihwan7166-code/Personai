@@ -628,13 +628,13 @@
   .wb-jiggle:nth-child(2n) { animation-delay: -0.18s; }
   .wb-jiggle:nth-child(3n) { animation-delay: -0.09s; animation-duration: 0.4s; }
 
-  /* 데일리 브리핑 모달 entrance — scale + fade in */
+  /* 데일리 브리핑 모달 entrance — easeOutExpo cinematic */
   @keyframes wb-modal-in {
-    0%   { opacity: 0; transform: scale(0.96) translateY(8px); }
+    0%   { opacity: 0; transform: scale(0.94) translateY(12px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
   .wb-modal-in {
-    animation: wb-modal-in 0.22s cubic-bezier(0.34, 1.36, 0.64, 1) forwards;
+    animation: wb-modal-in 0.30s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   @keyframes wb-backdrop-in {
     0%   { opacity: 0; }
@@ -690,6 +690,10 @@
   .wb-widget-card:not(.wb-jiggle):active {
     transform: scale(0.985) translateY(0);
     transition: transform 0.08s ease;
+  }
+  /* 카드 hover transition 통일 — 200ms easeOut */
+  .wb-widget-card:not(.wb-jiggle) {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s ease;
   }
 
   /* 편집 모드 X 버튼 — 팝인 (편집 모드 진입 시) */
