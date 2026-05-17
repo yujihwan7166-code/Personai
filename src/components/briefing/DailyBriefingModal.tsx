@@ -728,19 +728,26 @@ function WidgetPicker({
 // ──────────────────────────────────────────
 // 빈 상태
 
-// 작은 진행률 ring — 헤더용 (그라디언트 stroke 으로 살짝 입체감)
+// 작은 진행률 ring — 헤더용 (그라디언트 stroke, 100% 도달 시 emerald + ✓)
 function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
   const stroke = 3;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, ratio));
   const offset = c * (1 - clamped);
+  const isComplete = clamped >= 1;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden
+      className={isComplete ? 'wb-ring-complete' : undefined}
+    >
       <defs>
         <linearGradient id="wb-ring-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="hsl(28 88% 58%)" />
-          <stop offset="100%" stopColor="hsl(28 88% 48%)" />
+          <stop offset="0%" stopColor={isComplete ? 'hsl(142 70% 50%)' : 'hsl(28 88% 58%)'} />
+          <stop offset="100%" stopColor={isComplete ? 'hsl(142 70% 38%)' : 'hsl(28 88% 48%)'} />
         </linearGradient>
       </defs>
       <circle
@@ -762,17 +769,17 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
         strokeDasharray={c}
         strokeDashoffset={offset}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+        style={{ transition: 'stroke-dashoffset 0.4s ease, stroke 0.4s ease' }}
       />
       <text
         x={size / 2}
-        y={size / 2 + 3.4}
+        y={size / 2 + (isComplete ? 4 : 3.4)}
         textAnchor="middle"
-        fontSize="10.5"
+        fontSize={isComplete ? '13' : '10.5'}
         fontWeight="800"
-        fill="hsl(var(--foreground))"
+        fill={isComplete ? 'hsl(142 70% 35%)' : 'hsl(var(--foreground))'}
         className="font-display tabular-nums"
-      >{Math.round(clamped * 100)}</text>
+      >{isComplete ? '✓' : Math.round(clamped * 100)}</text>
     </svg>
   );
 }
