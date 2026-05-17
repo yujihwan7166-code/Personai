@@ -264,7 +264,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 type="checkbox"
                 checked={settings.autoShow}
                 onChange={(e) => dailyBriefingStore.setAutoShow(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-foreground/30 accent-primary cursor-pointer"
+                className="h-3.5 w-3.5 rounded border-foreground/30 cursor-pointer"
+                style={{ accentColor: 'hsl(28 88% 52%)' }}
               />
               매일 자동 표시
             </label>
@@ -479,7 +480,7 @@ function WidgetCard({
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
         editMode && 'wb-jiggle ring-1 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
         editMode && !isDragging && 'ring-foreground/15',
-        editMode && isDragging && 'opacity-40 cursor-grabbing ring-primary/40',
+        editMode && isDragging && 'opacity-40 cursor-grabbing ring-[hsl(28_88%_52%/0.5)]',
       )}
       style={{
         ...style,
@@ -643,7 +644,7 @@ function WidgetPicker({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.stopPropagation()}
               placeholder="검색..."
-              className="w-full h-7 pl-2.5 pr-7 text-[12px] rounded-md bg-foreground/5 border border-transparent focus:outline-none focus:border-primary/30 focus:bg-card transition-colors"
+              className="w-full h-7 pl-2.5 pr-7 text-[12px] rounded-md bg-foreground/5 border border-transparent focus:outline-none focus:border-[hsl(28_88%_52%/0.45)] focus:bg-card transition-colors"
             />
             {query && (
               <button
@@ -675,7 +676,7 @@ function WidgetPicker({
                 <span
                   className={cn(
                     'inline-block w-1 h-1 rounded-full',
-                    group === '내 데이터' ? 'bg-primary/60' : 'bg-amber-500/60',
+                    group === '내 데이터' ? 'bg-[hsl(210_80%_52%/0.7)]' : 'bg-amber-500/70',
                   )}
                 />
                 {group}
@@ -745,7 +746,7 @@ function WidgetPicker({
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                className="text-[10.5px] text-primary hover:underline font-medium"
+                className="text-[10.5px] text-amber-700 hover:underline font-medium"
               >
                 검색어 지우기
               </button>

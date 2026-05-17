@@ -265,7 +265,10 @@ export function ForexWidget({ widget }: WidgetProps) {
                       {Math.round(r.rate).toLocaleString()}<span className="text-[10px] text-muted-foreground ml-0.5">원</span>
                     </span>
                   ) : (
-                    <span className="flex-1 h-2 rounded skeleton-pulse bg-foreground/8" />
+                    <span
+                      className="flex-1 h-2 rounded skeleton-pulse"
+                      style={{ background: 'hsl(30 15% 78% / 0.4)' }}
+                    />
                   )}
                   {r.rate && r.change !== 0 && (
                     <span className={cn(
