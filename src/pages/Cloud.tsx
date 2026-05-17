@@ -25,7 +25,7 @@ import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndCo
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
-import type { AiContext } from '@/lib/cloudAi/types';
+import { clearChatHistoryForNode, type AiContext } from '@/lib/cloudAi/types';
 import {
   type CloudNode, FILE_TYPE_EMOJI, FILE_TYPE_LABEL, formatSize,
 } from '@/types/cloud';
@@ -110,7 +110,7 @@ export default function Cloud() {
       fullText: `폴더: ${folderName}\n자식 ${nodes.length}개 (최대 50개 표시):\n${list || '(비어있음)'}`,
     };
   }, [selectedNode, trail, nodes]);
-  const ai = useAiSidebar('drive', getAiContext);
+  const ai = useAiSidebar('drive', getAiContext, { persistKey: 'global' });
 
   // 사이드바 폴더 트리 로드 — user 있으면 + nodes 변경 시
   useEffect(() => {
@@ -228,7 +228,10 @@ export default function Cloud() {
     });
     if (!ok) return;
     try {
-      for (const n of selectedNodes) await permanentDelete(n.id);
+      for (const n of selectedNodes) {
+        await permanentDelete(n.id);
+        clearChatHistoryForNode(n.id);
+      }
       await refresh();
       setSelectedIds(new Set());
       toast({ title: `${selectedNodes.length}개 완전 삭제` });
@@ -656,6 +659,7 @@ export default function Cloud() {
     if (!ok) return;
     try {
       await permanentDelete(node.id);
+      clearChatHistoryForNode(node.id);
       await refresh();
       setSelectedId(null);
       toast({ title: '영구 삭제했어요', description: node.name });

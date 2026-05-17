@@ -2,13 +2,23 @@
  * 클라우드 AI 사이드바 공통 훅.
  *
  *  - open 상태 + sessionStorage 영속 (kind 별)
- *  - messages 상태 + 전송 로직 (sessionStorage 비영속)
+ *  - messages 상태 + localStorage 영속 (kind + persistKey 별, 보통 nodeId)
+ *    persistKey 가 없으면 메모리만 (drive 등 임시 화면)
  *  - 로딩·에러 처리
+ *  - persistKey 가 바뀌면 (다른 파일로 이동) 새 history 로드
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { runAiChat, newMessageId } from '@/lib/cloudAi/chat';
-import { STORAGE_KEY_OPEN, type AiKind, type AiContext, type ChatMessage } from '@/lib/cloudAi/types';
+import {
+  STORAGE_KEY_OPEN, STORAGE_KEY_CHAT, MAX_MESSAGES_PER_CHAT,
+  type AiKind, type AiContext, type ChatMessage,
+} from '@/lib/cloudAi/types';
+
+interface UseAiSidebarOptions {
+  /** localStorage 키에 들어갈 식별자. 보통 nodeId. 없으면 메모리만 */
+  persistKey?: string;
+}
 
 interface UseAiSidebarReturn {
   open: boolean;
@@ -20,7 +30,47 @@ interface UseAiSidebarReturn {
   clear: () => void;
 }
 
-export function useAiSidebar(kind: AiKind, getContext: () => AiContext): UseAiSidebarReturn {
+function chatStorageKey(kind: AiKind, persistKey: string): string {
+  return `${STORAGE_KEY_CHAT}.${kind}.${persistKey}`;
+}
+
+function loadMessages(kind: AiKind, persistKey: string | undefined): ChatMessage[] {
+  if (!persistKey || typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(chatStorageKey(kind, persistKey));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // 가벼운 sanity check
+    return parsed.filter((m): m is ChatMessage =>
+      m && typeof m.id === 'string'
+      && (m.role === 'user' || m.role === 'assistant')
+      && typeof m.content === 'string'
+      && typeof m.ts === 'number'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(kind: AiKind, persistKey: string | undefined, messages: ChatMessage[]): void {
+  if (!persistKey || typeof window === 'undefined') return;
+  try {
+    const trimmed = messages.length > MAX_MESSAGES_PER_CHAT
+      ? messages.slice(messages.length - MAX_MESSAGES_PER_CHAT)
+      : messages;
+    window.localStorage.setItem(chatStorageKey(kind, persistKey), JSON.stringify(trimmed));
+  } catch {
+    // quota / private mode → silent
+  }
+}
+
+export function useAiSidebar(
+  kind: AiKind,
+  getContext: () => AiContext,
+  options: UseAiSidebarOptions = {},
+): UseAiSidebarReturn {
+  const { persistKey } = options;
   // open: sessionStorage 영속 — kind 마다 별도 key
   const storageKey = `${STORAGE_KEY_OPEN}.${kind}`;
   const [open, setOpenInner] = useState<boolean>(() => {
@@ -35,9 +85,20 @@ export function useAiSidebar(kind: AiKind, getContext: () => AiContext): UseAiSi
   }, [storageKey]);
   const toggle = useCallback(() => setOpen(!open), [open, setOpen]);
 
-  // messages: 비영속 — 새로고침 시 비워짐 (v2 에서 파일별 영속)
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // messages — persistKey 가 바뀌면 새 history 로드
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(kind, persistKey));
   const [sending, setSending] = useState(false);
+
+  // persistKey 변경 시 (다른 파일로 이동) 그 파일의 history 로드
+  useEffect(() => {
+    setMessages(loadMessages(kind, persistKey));
+  }, [kind, persistKey]);
+
+  // messages 변경 시 자동 저장 (debounce 없이 즉시 — 호출량 적음)
+  useEffect(() => {
+    saveMessages(kind, persistKey, messages);
+  }, [kind, persistKey, messages]);
+
   // getContext 는 항상 최신 — ref 로 wrapping
   const getContextRef = useRef(getContext);
   useEffect(() => { getContextRef.current = getContext; }, [getContext]);
@@ -81,7 +142,12 @@ export function useAiSidebar(kind: AiKind, getContext: () => AiContext): UseAiSi
 
   const clear = useCallback(() => {
     setMessages([]);
-  }, []);
+    // localStorage 도 함께 비움
+    if (persistKey && typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(chatStorageKey(kind, persistKey)); }
+      catch { /* noop */ }
+    }
+  }, [kind, persistKey]);
 
   return { open, setOpen, toggle, messages, sending, send, clear };
 }

@@ -1250,7 +1250,7 @@ export default function CloudSlideEditor() {
       fullText,
     };
   }, [slides, currentIdx]);
-  const ai = useAiSidebar('slide', getAiContext);
+  const ai = useAiSidebar('slide', getAiContext, { persistKey: node?.id });
 
   // ─── 로딩·에러 ───
   if (authLoading || (!loadError && !node)) {

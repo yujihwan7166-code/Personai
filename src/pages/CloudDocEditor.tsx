@@ -90,7 +90,7 @@ export default function CloudDocEditor() {
       fullText: selText,
     };
   }, [editor]);
-  const ai = useAiSidebar('doc', getAiContext);
+  const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

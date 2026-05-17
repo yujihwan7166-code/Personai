@@ -1263,7 +1263,7 @@ export default function CloudSheetEditor() {
       fullText: csv,
     };
   }, [selBounds, cells, displayValues]);
-  const ai = useAiSidebar('sheet', getAiContext);
+  const ai = useAiSidebar('sheet', getAiContext, { persistKey: node?.id });
 
   /** 선택 영역 통계 — 엑셀 상태표시줄과 동일 (Sum/Avg/Count/Min/Max) */
   const selectionStats = useMemo(() => {
