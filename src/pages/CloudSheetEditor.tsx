@@ -11,7 +11,7 @@ import {
   Hash, Square as SquareIcon, Combine, Split,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
-  Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
+  Search as SearchIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Replace as ReplaceIcon,
   Undo2, Redo2, MessageSquare, ExternalLink,
 } from 'lucide-react';
 import {
@@ -1463,6 +1463,18 @@ export default function CloudSheetEditor() {
     queueSave({ allEmbeddedCharts: nextAll });
   }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
 
+  const moveEmbeddedChart = useCallback((id: string, dir: -1 | 1) => {
+    const idx = embeddedCharts.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    const target = idx + dir;
+    if (target < 0 || target >= embeddedCharts.length) return;
+    const next = [...embeddedCharts];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
+    setAllEmbeddedCharts(nextAll);
+    queueSave({ allEmbeddedCharts: nextAll });
+  }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
+
   // ─── Named Range ───
   const addNamedRange = useCallback((name: string, rangeStr: string) => {
     const next = { ...namedRanges, [name]: rangeStr };
@@ -2834,12 +2846,14 @@ export default function CloudSheetEditor() {
         {/* 영구 embed 차트 — 시트 아래에 카드 형식, 데이터 자동 갱신 */}
         {embeddedCharts.length > 0 && (
           <div className="px-3 pb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {embeddedCharts.map((c) => (
+            {embeddedCharts.map((c, idx) => (
               <EmbeddedChartCard
                 key={c.id}
                 chart={c}
                 cells={cells}
                 onRemove={() => removeEmbeddedChart(c.id)}
+                onMovePrev={idx > 0 ? () => moveEmbeddedChart(c.id, -1) : undefined}
+                onMoveNext={idx < embeddedCharts.length - 1 ? () => moveEmbeddedChart(c.id, +1) : undefined}
               />
             ))}
           </div>
@@ -4113,9 +4127,11 @@ interface EmbeddedChartCardProps {
   chart: EmbeddedChart;
   cells: Cells;
   onRemove: () => void;
+  onMovePrev?: () => void;
+  onMoveNext?: () => void;
 }
 
-function EmbeddedChartCard({ chart, cells, onRemove }: EmbeddedChartCardProps) {
+function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
     [cells, chart.range, chart.orientation],
@@ -4135,15 +4151,37 @@ function EmbeddedChartCard({ chart, cells, onRemove }: EmbeddedChartCardProps) {
           {chart.title || `${chart.type} 차트`}
         </span>
         <span className="ml-2 text-muted-foreground">{rangeStr}</span>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="ml-auto p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-          aria-label="차트 삭제"
-          title="차트 삭제"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+        <div className="ml-auto flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onMovePrev}
+            disabled={!onMovePrev}
+            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="앞으로"
+            title="앞으로 이동"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveNext}
+            disabled={!onMoveNext}
+            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="뒤로"
+            title="뒤로 이동"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+            aria-label="차트 삭제"
+            title="차트 삭제"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
       <div className="h-[260px] p-2">
         {!hasData ? (

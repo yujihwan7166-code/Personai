@@ -182,9 +182,9 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
               className={cn(
                 'shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full transition-all',
                 editMode
-                  ? 'bg-primary text-primary-foreground shadow-sm scale-[1.04]'
+                  ? 'bg-[hsl(28_88%_52%)] text-white shadow-[0_3px_10px_-2px_hsl(28_88%_52%/0.5)] scale-[1.04]'
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
-                hintShown && !editMode && 'ring-2 ring-primary/40 ring-offset-2 ring-offset-transparent',
+                hintShown && !editMode && 'ring-2 ring-[hsl(28_88%_52%/0.4)] ring-offset-2 ring-offset-transparent',
               )}
             >
               <Settings className={cn('h-[17px] w-[17px] transition-transform', editMode && 'rotate-90')} />
@@ -243,7 +243,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-primary/10 transition-colors"
+              className="text-[11px] font-semibold text-amber-700 inline-flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-amber-500/[0.12] transition-colors"
               title="위젯 추가"
             >
               <Plus className="h-3 w-3" />
