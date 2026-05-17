@@ -141,7 +141,7 @@ export function WeatherWidget({ widget, onClose: _onClose }: WidgetProps) {
           className="group relative flex-1 text-left flex items-center gap-2 mt-1 -mx-1 px-1 rounded transition-colors hover:bg-foreground/5"
           title="도시 변경"
         >
-          <span className="text-[44px] leading-none" aria-hidden>{wmoLabel(result.data.code).emoji}</span>
+          <span className="text-[44px] leading-none -mt-1" aria-hidden>{wmoLabel(result.data.code).emoji}</span>
           <div className="min-w-0 flex-1">
             <div className="font-display text-[30px] font-extrabold leading-none tabular-nums text-foreground">
               {result.data.temp}<span className="text-[18px] opacity-70">°</span>

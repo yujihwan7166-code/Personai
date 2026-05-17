@@ -128,8 +128,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
         <div className="shrink-0 px-5 sm:px-7 pt-6 pb-5 flex items-start gap-2 sm:gap-4 relative">
-          {/* hairline divider — 헤더와 본문 자연 분리 */}
-          <span aria-hidden className="absolute left-7 right-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
+          {/* hairline divider — 헤더와 본문 자연 분리 (반응형 inset) */}
+          <span aria-hidden className="absolute inset-x-5 sm:inset-x-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <TimeOfDayIcon />
@@ -627,7 +627,7 @@ function WidgetPicker({
     >
       <div
         className={cn(
-          'w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-2xl shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden',
+          'w-full max-w-[760px] max-h-[88%] border border-foreground/10 rounded-[20px] shadow-[0_20px_60px_-15px_hsl(30_30%_8%/0.35),_0_8px_25px_-8px_hsl(30_30%_8%/0.18)] flex flex-col overflow-hidden',
           closing ? 'wb-picker-out' : 'wb-picker-in',
         )}
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}

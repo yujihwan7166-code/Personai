@@ -392,11 +392,17 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
       onClick={() => { onClose(); navigate('/planner'); }}
       className="group w-full h-full text-left p-4 flex flex-col relative overflow-hidden"
     >
-      {/* 우상단 미세 deco — radial amber glow */}
+      {/* 우상단 deco — radial amber glow */}
       <span
         aria-hidden
         className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none transition-transform duration-300 group-hover:scale-110"
         style={{ background: 'radial-gradient(circle at center, hsl(28 88% 52% / 0.20) 0%, transparent 70%)' }}
+      />
+      {/* 좌하단 작은 cream spot — 균형 */}
+      <span
+        aria-hidden
+        className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle at center, hsl(28 70% 92% / 0.5) 0%, transparent 70%)' }}
       />
       <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
       <div className="mt-2.5 font-display text-[22px] font-extrabold text-foreground leading-[1.15] line-clamp-2 relative tracking-tight">
@@ -539,7 +545,7 @@ export function ClockWidget({ data }: WidgetProps) {
       </div>
       <div className="mt-2 text-[11px] text-muted-foreground font-medium">{dateLabel}</div>
       {nextLabel && (
-        <div className="mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 inline-flex items-center gap-1 text-[10px] font-semibold text-primary truncate max-w-full" title={nextEvent!.title}>
+        <div className="mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/[0.13] inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 truncate max-w-full" title={nextEvent!.title}>
           <ClockIcon className="h-2.5 w-2.5 shrink-0" />
           {nextLabel}
         </div>
