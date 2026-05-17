@@ -436,6 +436,62 @@ export default function CloudSheetEditor() {
   }, [sheetsMeta, allCells]);
   const currentSheetName = currentSheet?.name ?? 'Sheet1';
 
+  /** editing 중 수식 입력 시 참조된 셀들을 다른 색으로 outline. ref → 색 매핑.
+   *  현재 시트의 단일 셀·범위만 시각화 (다른 시트 ref 는 표시 X). */
+  const formulaRefHighlights = useMemo<Map<string, string>>(() => {
+    const out = new Map<string, string>();
+    if (!editing || !editingValue.startsWith('=')) return out;
+    const expr = editingValue.slice(1);
+    // 시트 prefix 가 있고 currentSheetName 과 다르면 skip 위해 prefix 추출
+    const isOurSheet = (sheetRaw: string | undefined): boolean => {
+      if (!sheetRaw) return true;
+      const name = sheetRaw.replace(/^'|'$/g, '');
+      return name === currentSheetName;
+    };
+    const palette = CHART_PALETTE;
+    let colorIdx = 0;
+    const assignColor = (key: string): string => {
+      const existing = out.get(key);
+      if (existing) return existing;
+      const color = palette[colorIdx % palette.length];
+      colorIdx++;
+      return color;
+    };
+    // 범위 먼저
+    const rangeRe = /(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)/g;
+    let m: RegExpExecArray | null;
+    const consumed = new Set<string>();
+    while ((m = rangeRe.exec(expr)) !== null) {
+      if (!isOurSheet(m[1])) continue;
+      const c1 = colToIdx(m[2]);
+      const r1 = Number(m[3]) - 1;
+      const c2 = colToIdx(m[4]);
+      const r2 = Number(m[5]) - 1;
+      const minR = Math.min(r1, r2);
+      const maxR = Math.max(r1, r2);
+      const minC = Math.min(c1, c2);
+      const maxC = Math.max(c1, c2);
+      const groupKey = `${m[2]}${m[3]}:${m[4]}${m[5]}`;
+      const color = assignColor(groupKey);
+      for (let r = minR; r <= maxR; r++) {
+        for (let c = minC; c <= maxC; c++) {
+          const ref = cellRef(r, c);
+          out.set(ref, color);
+          consumed.add(ref);
+        }
+      }
+    }
+    // 단일 셀 (범위 매칭 후 남은 것)
+    const singleRe = /(?<![A-Za-z_0-9:$])(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b(?!:)/g;
+    while ((m = singleRe.exec(expr)) !== null) {
+      if (!isOurSheet(m[1])) continue;
+      const ref = `${m[2]}${m[3]}`;
+      if (consumed.has(ref)) continue;
+      out.set(ref, assignColor(ref));
+    }
+    return out;
+  }, [editing, editingValue, currentSheetName]);
+
   /** 자동완성 — editing 중인 셀의 같은 col 에서 prefix 매치되는 첫 값 (대소문자 무시).
    *  editingValue 가 비어있거나 '=' 로 시작 (수식), 또는 매치 없으면 null. */
   const autocomplete = useMemo<string | null>(() => {
@@ -2709,6 +2765,8 @@ export default function CloudSheetEditor() {
             onFillStart={startFill}
             editing={editing}
             editingValue={editingValue}
+            autocomplete={autocomplete}
+            formulaRefHighlights={formulaRefHighlights}
             onPointerDown={handleCellPointerDown}
             onPointerEnter={handleCellPointerEnter}
             onStartEdit={startEdit}
@@ -3036,6 +3094,8 @@ interface SheetGridProps {
   editing: { row: number; col: number } | null;
   editingValue: string;
   autocomplete?: string | null;
+  /** 수식 안 참조된 셀 ref → 색 (다중 ref 마다 다른 색) */
+  formulaRefHighlights?: Map<string, string>;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
   onPointerEnter: (row: number, col: number) => void;
   onStartEdit: (row: number, col: number) => void;
@@ -3054,7 +3114,7 @@ function SheetGrid({
   commentMap,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
-  editing, editingValue, autocomplete,
+  editing, editingValue, autocomplete, formulaRefHighlights,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
   // 행 헤더 너비 (40px) + 열 헤더 높이 (28px) 가 sticky 기준
@@ -3204,6 +3264,7 @@ function SheetGrid({
                     onSelectValidationItem={onCellValueChange}
                     commentText={commentText}
                     autocomplete={isEditing ? autocomplete : undefined}
+                    formulaRefColor={formulaRefHighlights?.get(ref)}
                     stickyTop={isStickyRow ? stickyRowTops[rowIdx] : undefined}
                     stickyLeft={isStickyCol ? stickyColLefts[colIdx] : undefined}
                     rowSpan={span?.rows}
@@ -3249,6 +3310,7 @@ interface SheetCellProps {
   onSelectValidationItem?: (ref: string, value: string) => void;
   commentText?: string;
   autocomplete?: string | null;
+  formulaRefColor?: string;
   stickyTop?: number;
   stickyLeft?: number;
   rowSpan?: number;
@@ -3267,7 +3329,7 @@ const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
   validationItems, isInvalid, onSelectValidationItem,
-  commentText, autocomplete,
+  commentText, autocomplete, formulaRefColor,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
@@ -3326,6 +3388,10 @@ const SheetCell = React.memo(function SheetCell({
       : isSticky ? 4 : undefined,
     ...borderStyleFor(format?.border),
   };
+  // 수식 참조 셀: 그 색으로 inset box-shadow (다른 outline 시스템과 충돌 없이 함께 보임)
+  if (formulaRefColor) {
+    tdStyle.boxShadow = `inset 0 0 0 2px ${formulaRefColor}`;
+  }
   return (
     <td
       data-cell-ref={cellRefStr}
