@@ -1987,6 +1987,58 @@ export default function CloudSheetEditor() {
     });
   }, [queueSave]);
 
+  /** 빠른 합계 (Σ AutoSum) — 선택 영역의 각 col 바로 아래 셀에 =SUM(범위) 자동 입력.
+   *  단일 셀 선택이면: 그 셀 위쪽에 인접한 연속 숫자 구간을 합산. */
+  const insertAutoSum = useCallback(() => {
+    const nextCells: Cells = { ...cells };
+    let changed = 0;
+    // 다중 셀 선택: 각 col 의 maxR+1 행에 SUM
+    const hasRangeSel = !(selBounds.minR === selBounds.maxR && selBounds.minC === selBounds.maxC);
+    if (hasRangeSel) {
+      const targetRow = selBounds.maxR + 1;
+      if (targetRow >= rowCount) {
+        toast({ title: '아래 행이 부족해요', description: '먼저 행을 추가하거나 다른 범위를 선택하세요.' });
+        return;
+      }
+      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+        const target = cellRef(targetRow, c);
+        if (nextCells[target]) continue; // 이미 값 있으면 skip
+        const from = cellRef(selBounds.minR, c);
+        const to = cellRef(selBounds.maxR, c);
+        nextCells[target] = `=SUM(${from}:${to})`;
+        changed++;
+      }
+    } else {
+      // 단일 셀: 같은 col 의 위쪽에 인접한 숫자 구간 찾기
+      const col = selected.col;
+      const row = selected.row;
+      let topRow = row - 1;
+      while (topRow >= 0) {
+        const v = cells[cellRef(topRow, col)] ?? '';
+        const n = Number(v.startsWith('=') ? (displayValues[cellRef(topRow, col)] ?? '') : v);
+        if (!Number.isFinite(n) || v.trim() === '') break;
+        topRow--;
+      }
+      topRow++; // 첫 숫자 위치
+      if (topRow >= row) {
+        toast({ title: '위쪽에 합산할 숫자가 없어요' });
+        return;
+      }
+      const from = cellRef(topRow, col);
+      const to = cellRef(row - 1, col);
+      nextCells[cellRef(row, col)] = `=SUM(${from}:${to})`;
+      changed = 1;
+    }
+    if (changed === 0) {
+      toast({ title: '대상 셀이 이미 차 있어요' });
+      return;
+    }
+    const nextAll: AllCells = { ...allCells, [currentSheetId]: nextCells };
+    setAllCells(nextAll);
+    queueSave({ allCells: nextAll });
+    toast({ title: `Σ ${changed}개 셀에 합계 추가됨` });
+  }, [selBounds, selected, cells, displayValues, rowCount, allCells, currentSheetId, queueSave]);
+
   /** 선택 영역 일괄 입력 — focus 셀의 값을 모든 selBounds 셀에 복사 */
   const fillSelectionWithCurrent = useCallback(() => {
     if (selBounds.minR === selBounds.maxR && selBounds.minC === selBounds.maxC) {
@@ -2805,6 +2857,17 @@ export default function CloudSheetEditor() {
                     <CopyIcon className="w-4 h-4" />
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={insertAutoSum}
+                  className="p-1.5 rounded hover:bg-muted font-bold"
+                  title={hasRange
+                    ? '선택 영역 각 열의 아래 셀에 =SUM 자동 입력'
+                    : '위쪽 인접 숫자 구간을 합산해 현재 셀에 =SUM 입력'}
+                  aria-label="빠른 합계"
+                >
+                  Σ
+                </button>
                 <button
                   type="button"
                   onClick={() => clearCellFormat(selectedRef)}
