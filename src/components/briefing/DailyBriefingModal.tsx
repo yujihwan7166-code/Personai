@@ -207,7 +207,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/[0.08] transition-colors"
           >
             <X className="h-[17px] w-[17px]" />
           </button>
@@ -474,7 +474,7 @@ function WidgetCard({
         !editMode && widget.size === 'L' && 'shadow-[0_2px_4px_hsl(30_15%_8%/0.05),_0_10px_28px_-10px_hsl(30_15%_8%/0.16)]',
         !editMode && widget.size === 'M' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_3px_12px_-5px_hsl(30_15%_8%/0.08)]',
         !editMode && widget.size === 'S' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_1px_4px_-2px_hsl(30_15%_8%/0.05)]',
-        !editMode && 'hover:shadow-[0_10px_32px_-12px_hsl(30_15%_8%/0.22),_0_4px_12px_-4px_hsl(30_15%_8%/0.12)] hover:-translate-y-0.5',
+        !editMode && 'hover:shadow-[0_14px_36px_-12px_hsl(30_15%_8%/0.24),_0_5px_14px_-4px_hsl(30_15%_8%/0.14)] hover:-translate-y-1',
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
         editMode && 'wb-jiggle ring-1 ring-foreground/15 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
@@ -633,7 +633,7 @@ function WidgetPicker({
         style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%), hsl(40 22% 93%))' }}
       >
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
-          <h3 className="text-[14px] font-semibold text-foreground shrink-0">위젯 추가</h3>
+          <h3 className="font-display text-[16px] font-bold tracking-tight text-foreground shrink-0">위젯 추가</h3>
           <div className="flex-1 relative">
             <input
               type="text"
@@ -857,7 +857,7 @@ function DayProgressBar() {
     return 'linear-gradient(90deg, hsl(340 70% 55%), hsl(280 60% 50%))';
   })();
   return (
-    <div className="shrink-0 h-[2px] bg-foreground/[0.04] overflow-hidden">
+    <div className="shrink-0 h-[3px] bg-foreground/[0.04] overflow-hidden">
       <div
         className="h-full transition-all duration-1000"
         style={{ width: `${ratio * 100}%`, background: grad }}

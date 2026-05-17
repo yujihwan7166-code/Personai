@@ -762,7 +762,7 @@ function ExtHeader({
         className="shrink-0"
         style={{ color: tintHue ?? 'hsl(var(--foreground) / 0.65)' }}
       >{icon}</span>
-      <span className="text-[12.5px] font-semibold tracking-tight text-foreground/85 truncate flex-1">
+      <span className="text-[12.5px] font-bold tracking-tight text-foreground/90 truncate flex-1">
         {title}
       </span>
       {stale && (

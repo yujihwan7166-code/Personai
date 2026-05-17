@@ -568,11 +568,11 @@ function WidgetHeader({
         className="shrink-0"
         style={{ color: tintHue ?? 'hsl(var(--foreground) / 0.65)' }}
       >{icon}</span>
-      <span className="text-[12.5px] font-semibold tracking-tight truncate text-foreground/85">
+      <span className="text-[12.5px] font-bold tracking-tight truncate text-foreground/90">
         {title}
       </span>
       {count !== '' && (
-        <span className="ml-auto text-[11px] tabular-nums text-muted-foreground font-medium shrink-0">
+        <span className="ml-auto text-[11px] tabular-nums text-foreground/55 font-semibold shrink-0">
           {count}
         </span>
       )}
