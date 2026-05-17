@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP } from '@/lib/cloudSheet/formula';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
@@ -3323,6 +3323,8 @@ const SheetCell = React.memo(function SheetCell({
     >
       {editing ? (
         <div className="relative w-full h-full bg-background border-2 border-foreground/70">
+          <FuncHintPopover value={editingValue} />
+
           {/* ghost: 자동완성 미리보기 — input 아래 정렬, 같은 폰트·padding */}
           {autocomplete && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase()) && editingValue.length > 0 && editingValue !== autocomplete && (
             <span
@@ -3719,6 +3721,50 @@ function SheetTab({ name, active, canRemove, onClick, onRename, onDuplicate, onR
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 수식 함수 popover — '=SUM(' 같이 입력 중 시그니처 힌트
+// ─────────────────────────────────────────────
+
+function FuncHintPopover({ value }: { value: string }) {
+  const hint = useMemo(() => {
+    if (!value.startsWith('=')) return null;
+    // 마지막 미닫힌 ( 안의 함수 이름 찾기. 단순 v1: 가장 마지막 '(' 직전의
+    //  연속된 알파벳 토큰. 다중 중첩 함수는 가장 안쪽만.
+    // 예: =SUM(IF(  → 'IF', =SUM(A1, AVG  → 'AVG' (직접 매칭), =SUM  → 'SUM'
+    // 1) 함수( 안에 있는 경우 — 마지막 '(' 의 직전 함수
+    const lastOpen = value.lastIndexOf('(');
+    const lastClose = value.lastIndexOf(')');
+    if (lastOpen > lastClose) {
+      // 미닫힌 ( 가 있음
+      const beforeOpen = value.slice(0, lastOpen);
+      const m = beforeOpen.match(/([A-Z]+)$/i);
+      if (m) {
+        const name = m[1].toUpperCase();
+        if (FUNC_HELP[name]) return { name, ...FUNC_HELP[name] };
+      }
+    }
+    // 2) 아직 ( 가 없음 — 입력 중인 함수 이름 자체로 매칭
+    //    예: =SU → SUM 후보? 일단 정확 매칭만
+    const tail = value.slice(1).match(/([A-Z]+)$/i);
+    if (tail) {
+      const name = tail[1].toUpperCase();
+      if (FUNC_HELP[name]) return { name, ...FUNC_HELP[name] };
+    }
+    return null;
+  }, [value]);
+
+  if (!hint) return null;
+  return (
+    <div
+      className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md px-2 py-1 text-xs whitespace-nowrap pointer-events-none"
+      role="tooltip"
+    >
+      <span className="font-mono font-medium">{hint.sig}</span>
+      <span className="text-muted-foreground ml-2">{hint.desc}</span>
     </div>
   );
 }

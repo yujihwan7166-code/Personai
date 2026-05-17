@@ -24,6 +24,53 @@
 
 type Cells = Record<string, string>;
 
+/**
+ * 함수 시그니처·설명 — 셀 수식 입력 시 popover 로 표시.
+ * key 는 함수 이름 (대문자). 도움말 모달과 popover 모두 이걸 사용.
+ */
+export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
+  SUM:       { sig: 'SUM(range)',                      desc: '범위의 합계' },
+  AVG:       { sig: 'AVG(range)',                      desc: '범위의 평균' },
+  AVERAGE:   { sig: 'AVERAGE(range)',                  desc: '범위의 평균 (AVG 와 동일)' },
+  MIN:       { sig: 'MIN(range)',                      desc: '최솟값' },
+  MAX:       { sig: 'MAX(range)',                      desc: '최댓값' },
+  COUNT:     { sig: 'COUNT(range)',                    desc: '숫자 셀 개수' },
+  MEDIAN:    { sig: 'MEDIAN(range)',                   desc: '중앙값' },
+  IF:        { sig: 'IF(조건, 참값, 거짓값)',          desc: '조건부 분기' },
+  ABS:       { sig: 'ABS(숫자)',                       desc: '절댓값' },
+  ROUND:     { sig: 'ROUND(숫자, 소수자리)',           desc: '반올림' },
+  POWER:     { sig: 'POWER(밑, 지수)',                 desc: '거듭제곱' },
+  SQRT:      { sig: 'SQRT(숫자)',                      desc: '제곱근' },
+  MOD:       { sig: 'MOD(피제수, 제수)',               desc: '나머지' },
+  INT:       { sig: 'INT(숫자)',                       desc: '소수 버림 (내림)' },
+  SUMIF:     { sig: 'SUMIF(range, criteria, [sum_range])', desc: '조건 만족 셀 합계' },
+  COUNTIF:   { sig: 'COUNTIF(range, criteria)',        desc: '조건 만족 셀 개수' },
+  SUMIFS:    { sig: 'SUMIFS(sum_range, range1, c1, …)', desc: '다중 조건 합계' },
+  COUNTIFS:  { sig: 'COUNTIFS(range1, c1, range2, c2, …)', desc: '다중 조건 개수' },
+  LEFT:      { sig: 'LEFT(텍스트, n)',                 desc: '왼쪽 n자' },
+  RIGHT:     { sig: 'RIGHT(텍스트, n)',                desc: '오른쪽 n자' },
+  MID:       { sig: 'MID(텍스트, 시작, 길이)',         desc: '중간 부분 문자열' },
+  LEN:       { sig: 'LEN(텍스트)',                     desc: '글자 수' },
+  UPPER:     { sig: 'UPPER(텍스트)',                   desc: '대문자' },
+  LOWER:     { sig: 'LOWER(텍스트)',                   desc: '소문자' },
+  TRIM:      { sig: 'TRIM(텍스트)',                    desc: '앞뒤 공백 제거' },
+  CONCAT:    { sig: 'CONCAT(텍스트1, 텍스트2, …)',    desc: '문자열 연결' },
+  CONCATENATE: { sig: 'CONCATENATE(텍스트1, …)',       desc: '문자열 연결 (CONCAT 과 동일)' },
+  AND:       { sig: 'AND(논리1, 논리2, …)',            desc: '모두 참인지' },
+  OR:        { sig: 'OR(논리1, 논리2, …)',             desc: '하나 이상 참인지' },
+  NOT:       { sig: 'NOT(논리)',                       desc: '부정' },
+  TODAY:     { sig: 'TODAY()',                         desc: '오늘 날짜 (yyyy-mm-dd)' },
+  NOW:       { sig: 'NOW()',                           desc: '현재 시각' },
+  YEAR:      { sig: 'YEAR(날짜)',                      desc: '연도' },
+  MONTH:     { sig: 'MONTH(날짜)',                     desc: '월 (1~12)' },
+  DAY:       { sig: 'DAY(날짜)',                       desc: '일 (1~31)' },
+  WEEKDAY:   { sig: 'WEEKDAY(날짜)',                   desc: '요일 (1=일, 7=토)' },
+  VLOOKUP:   { sig: 'VLOOKUP(key, range, returnCol, numCols)', desc: '세로 검색 (numCols 필수)' },
+  HLOOKUP:   { sig: 'HLOOKUP(key, range, returnRow, numCols)', desc: '가로 검색' },
+  INDEX:     { sig: 'INDEX(range, idx)',               desc: '1-based 평탄 인덱싱' },
+  MATCH:     { sig: 'MATCH(key, range)',               desc: 'key 위치 (1-based) 또는 #N/A' },
+};
+
 // 긴 이름부터 → 짧은 이름이 prefix 인 경우 먼저 매칭되도록 정렬
 const FUNC_ORDER = [
   // 6자+
