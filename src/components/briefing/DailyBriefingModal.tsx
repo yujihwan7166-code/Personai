@@ -127,7 +127,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         <DayProgressBar />
 
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
-        <div className="shrink-0 px-5 sm:px-7 pt-5 pb-4 flex items-start gap-2 sm:gap-3 relative">
+        <div className="shrink-0 px-5 sm:px-7 pt-6 pb-5 flex items-start gap-2 sm:gap-3 relative">
           {/* hairline divider — 헤더와 본문 자연 분리 */}
           <span aria-hidden className="absolute left-7 right-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
           <div className="min-w-0 flex-1">
@@ -137,21 +137,21 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 {data.greeting}
               </h2>
             </div>
-            <p className="text-[13px] text-foreground/70 mt-1.5 tabular-nums font-medium">
-              {data.date}
+            <div className="text-[13px] text-foreground/70 mt-2 tabular-nums font-medium flex items-center flex-wrap gap-x-3 gap-y-0.5">
+              <span>{data.date}</span>
               {data.timed.length > 0 && (
-                <>
-                  <span className="mx-1.5 text-foreground/20">·</span>
-                  <span>오늘 일정 {data.timed.length}건</span>
-                </>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(210_80%_52%/0.75)]" />
+                  일정 {data.timed.length}
+                </span>
               )}
               {data.inbox.length > 0 && (
-                <>
-                  <span className="mx-1.5 text-foreground/20">·</span>
-                  <span>할일 {data.inbox.length}개</span>
-                </>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block w-1.5 h-1.5 rounded-full bg-[hsl(150_55%_40%/0.75)]" />
+                  할일 {data.inbox.length}
+                </span>
               )}
-            </p>
+            </div>
           </div>
           {/* 오늘 진행률 ring — 할일·습관 중 데이터 있는 것 우선 */}
           {(data.habits.length > 0 || data.inbox.length > 0) && (() => {
@@ -166,7 +166,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 className="shrink-0 mr-1 flex flex-col items-center justify-center gap-0.5"
                 title={useHabit ? `오늘 습관 ${habitDone}/${habitTotal}` : `오늘 할일 0/${total}`}
               >
-                <ProgressRing size={36} ratio={ratio} />
+                <ProgressRing size={40} ratio={ratio} />
                 <span className="text-[9.5px] tabular-nums text-muted-foreground font-semibold uppercase tracking-wider">
                   {useHabit ? '습관' : '할일'}
                 </span>
@@ -619,9 +619,10 @@ function WidgetPicker({
   return (
     <div
       className={cn(
-        'absolute inset-0 z-30 bg-foreground/20 backdrop-blur-md flex items-center justify-center p-6',
+        'absolute inset-0 z-30 backdrop-blur-md flex items-center justify-center p-6',
         closing ? 'wb-backdrop-out' : 'wb-backdrop-in',
       )}
+      style={{ background: 'hsl(30 30% 8% / 0.38)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}
     >
       <div
@@ -802,9 +803,9 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
       />
       <text
         x={size / 2}
-        y={size / 2 + (isComplete ? 4 : 3.4)}
+        y={size / 2 + (isComplete ? 4.5 : 3.8)}
         textAnchor="middle"
-        fontSize={isComplete ? '13' : '10.5'}
+        fontSize={isComplete ? '14' : '11.5'}
         fontWeight="800"
         fill={isComplete ? 'hsl(142 70% 35%)' : 'hsl(var(--foreground))'}
         className="font-display tabular-nums"
