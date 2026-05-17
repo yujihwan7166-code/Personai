@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { X, Settings, Plus, Trash2, RotateCcw, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildBriefingData } from '@/lib/buildBriefingData';
 import {
@@ -101,9 +101,10 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
       aria-modal="true"
       aria-label="데일리 브리핑"
       className={cn(
-        'fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm',
+        'fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-sm',
         closing ? 'wb-backdrop-out' : 'wb-backdrop-in',
       )}
+      style={{ background: 'hsl(30 30% 8% / 0.45)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
@@ -715,8 +716,18 @@ function WidgetPicker({
             );
           })}
           {grouped['내 데이터'].length === 0 && grouped['외부 정보'].length === 0 && (
-            <div className="text-center py-10 text-[12.5px] text-muted-foreground">
-              "{query}" 와 일치하는 위젯이 없어요
+            <div className="text-center py-10 flex flex-col items-center gap-2">
+              <Search className="h-7 w-7 text-foreground/15" strokeWidth={1.5} />
+              <p className="text-[12.5px] text-muted-foreground">
+                "<span className="text-foreground/85 font-medium">{query}</span>" 결과 없음
+              </p>
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="text-[10.5px] text-primary hover:underline font-medium"
+              >
+                검색어 지우기
+              </button>
             </div>
           )}
         </div>
