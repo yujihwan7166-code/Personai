@@ -6,7 +6,8 @@
  *  - 본문: 메시지 목록 (스크롤) / 빈 상태일 때 빠른 액션 칩 + 안내
  *  - 푸터: textarea + 보내기 + 대화 초기화
  *
- * 너비 320px (lg 이상에서만 보임). 모바일은 v2.
+ * - lg 이상: 우측 inline 사이드바 320px
+ * - lg 미만: fixed 풀스크린 overlay + backdrop (Esc 또는 backdrop 클릭으로 닫기)
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -48,6 +49,21 @@ export function AiSidebar({
     }
   }, [open]);
 
+  // Esc 닫기 (모바일 풀스크린 시 특히 유용)
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const t = e.target as HTMLElement | null;
+        // 입력창 안에서 esc 면 닫지 말고 그냥 blur 만
+        if (t?.tagName === 'TEXTAREA' || t?.tagName === 'INPUT') return;
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   const handleSend = useCallback(() => {
     const text = draft.trim();
     if (!text || sending) return;
@@ -66,11 +82,24 @@ export function AiSidebar({
   const isEmpty = messages.length === 0;
 
   return (
-    <aside
-      className="w-80 shrink-0 border-l border-border bg-background flex flex-col hidden lg:flex"
-      role="complementary"
-      aria-label="AI 어시스턴트"
-    >
+    <>
+      {/* 모바일 backdrop — lg 미만에서만 보임 */}
+      <div
+        className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside
+        className={cn(
+          'bg-background flex flex-col shrink-0',
+          // 모바일: fixed 풀스크린
+          'fixed inset-0 z-50',
+          // lg 이상: in-flow 320px column
+          'lg:static lg:inset-auto lg:z-auto lg:w-80 lg:border-l lg:border-border',
+        )}
+        role="complementary"
+        aria-label="AI 어시스턴트"
+      >
       {/* 헤더 */}
       <div className="border-b border-border px-3 py-2 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-violet-500" aria-hidden />
@@ -186,7 +215,8 @@ export function AiSidebar({
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
