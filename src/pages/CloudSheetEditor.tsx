@@ -436,6 +436,32 @@ export default function CloudSheetEditor() {
   }, [sheetsMeta, allCells]);
   const currentSheetName = currentSheet?.name ?? 'Sheet1';
 
+  /** 자동완성 — editing 중인 셀의 같은 col 에서 prefix 매치되는 첫 값 (대소문자 무시).
+   *  editingValue 가 비어있거나 '=' 로 시작 (수식), 또는 매치 없으면 null. */
+  const autocomplete = useMemo<string | null>(() => {
+    if (!editing) return null;
+    const prefix = editingValue;
+    if (!prefix || prefix.startsWith('=')) return null;
+    const lowerPrefix = prefix.toLowerCase();
+    const editingRef = cellRef(editing.row, editing.col);
+    // 같은 col 의 모든 행 — 가까운 위쪽 우선
+    let best: string | null = null;
+    // 위쪽부터 아래쪽으로 검색해 첫 매치 사용
+    for (let r = 0; r < rowCount; r++) {
+      if (r === editing.row) continue;
+      const ref = cellRef(r, editing.col);
+      const v = cells[ref];
+      if (v === undefined || v === '') continue;
+      if (v.startsWith('=')) continue; // 수식 셀의 raw 는 추천 X
+      if (v === prefix) continue; // 완전 동일은 추천 X
+      if (v.toLowerCase().startsWith(lowerPrefix)) {
+        best = v;
+        break;
+      }
+    }
+    return best && best !== editingRef ? best : null;
+  }, [editing, editingValue, cells, rowCount]);
+
   // 수식 평가 캐시 (cells / 다른 시트 / named ranges 변경 시 재계산)
   const displayValues = useMemo<Cells>(() => {
     const out: Cells = {};
@@ -3008,6 +3034,7 @@ interface SheetGridProps {
   onFillStart?: (e: React.PointerEvent) => void;
   editing: { row: number; col: number } | null;
   editingValue: string;
+  autocomplete?: string | null;
   onPointerDown: (row: number, col: number, e: React.PointerEvent) => void;
   onPointerEnter: (row: number, col: number) => void;
   onStartEdit: (row: number, col: number) => void;
@@ -3026,7 +3053,7 @@ function SheetGrid({
   commentMap,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
-  editing, editingValue,
+  editing, editingValue, autocomplete,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetGridProps) {
   // 행 헤더 너비 (40px) + 열 헤더 높이 (28px) 가 sticky 기준
@@ -3153,6 +3180,7 @@ function SheetGrid({
                     isInvalid={isInvalid}
                     onSelectValidationItem={onCellValueChange}
                     commentText={commentText}
+                    autocomplete={isEditing ? autocomplete : undefined}
                     stickyTop={isStickyRow ? HEADER_H : undefined}
                     stickyLeft={isStickyCol ? ROW_HEADER_W : undefined}
                     rowSpan={span?.rows}
@@ -3197,6 +3225,7 @@ interface SheetCellProps {
   isInvalid?: boolean;
   onSelectValidationItem?: (ref: string, value: string) => void;
   commentText?: string;
+  autocomplete?: string | null;
   stickyTop?: number;
   stickyLeft?: number;
   rowSpan?: number;
@@ -3215,7 +3244,7 @@ const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
   validationItems, isInvalid, onSelectValidationItem,
-  commentText,
+  commentText, autocomplete,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
@@ -3293,18 +3322,51 @@ const SheetCell = React.memo(function SheetCell({
       style={tdStyle}
     >
       {editing ? (
-        <input
-          ref={inputRef}
-          value={editingValue}
-          onChange={(e) => onChangeValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); onCommitEdit('down'); }
-            else if (e.key === 'Tab') { e.preventDefault(); onCommitEdit('right'); }
-            else if (e.key === 'Escape') { e.preventDefault(); onCancelEdit(); }
-          }}
-          onBlur={() => onCommitEdit('none')}
-          className="w-full h-full px-2 outline-none bg-background border-2 border-foreground/70 text-sm"
-        />
+        <div className="relative w-full h-full bg-background border-2 border-foreground/70">
+          {/* ghost: 자동완성 미리보기 — input 아래 정렬, 같은 폰트·padding */}
+          {autocomplete && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase()) && editingValue.length > 0 && editingValue !== autocomplete && (
+            <span
+              className="absolute inset-0 px-2 flex items-center text-sm pointer-events-none select-none whitespace-pre"
+              aria-hidden
+            >
+              <span className="invisible">{editingValue}</span>
+              <span className="text-muted-foreground/50">{autocomplete.slice(editingValue.length)}</span>
+            </span>
+          )}
+          <input
+            ref={inputRef}
+            value={editingValue}
+            onChange={(e) => onChangeValue(e.target.value)}
+            onKeyDown={(e) => {
+              // Tab: 자동완성이 있으면 그것으로 채우고 commit, 아니면 그냥 right
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                if (autocomplete && autocomplete !== editingValue
+                    && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase())) {
+                  onChangeValue(autocomplete);
+                  // 약간의 지연 — onCommitEdit 가 editingValue 의 최신값을 capture 하도록
+                  setTimeout(() => onCommitEdit('right'), 0);
+                } else {
+                  onCommitEdit('right');
+                }
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (autocomplete && autocomplete !== editingValue
+                    && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase())) {
+                  onChangeValue(autocomplete);
+                  setTimeout(() => onCommitEdit('down'), 0);
+                } else {
+                  onCommitEdit('down');
+                }
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onCancelEdit();
+              }
+            }}
+            onBlur={() => onCommitEdit('none')}
+            className="w-full h-full px-2 outline-none bg-transparent text-sm relative z-10"
+          />
+        </div>
       ) : (
         <span className="block truncate">{value}</span>
       )}
