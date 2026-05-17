@@ -587,8 +587,11 @@ export function StockWidget({ widget }: WidgetProps) {
                     {c.price >= 1000 ? Math.round(c.price).toLocaleString() : c.price.toFixed(2)}
                   </span>
                   <span className={cn(
-                    'tabular-nums shrink-0 text-[10px] font-bold w-[34px] text-right',
-                    c.change24h > 0 ? 'text-rose-500' : c.change24h < 0 ? 'text-blue-500' : 'text-muted-foreground',
+                    'tabular-nums shrink-0 text-[10px] font-bold min-w-[36px] text-right',
+                    c.change24h !== 0 && 'inline-flex items-center justify-end px-1 py-px rounded',
+                    c.change24h > 0 ? 'text-rose-500 bg-rose-500/8'
+                      : c.change24h < 0 ? 'text-blue-500 bg-blue-500/8'
+                        : 'text-muted-foreground',
                   )}>
                     {c.change24h > 0 ? '▲' : c.change24h < 0 ? '▼' : ''}
                     {Math.abs(c.change24h).toFixed(1)}

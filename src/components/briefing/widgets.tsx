@@ -476,12 +476,12 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
           )}
           <div className="min-w-0 flex-1 flex flex-col">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {moodEmoji && <span className="text-[14px] leading-none" aria-hidden>{moodEmoji}</span>}
+              {moodEmoji && <span className="text-[16px] leading-none" aria-hidden>{moodEmoji}</span>}
               <span className="inline-flex items-center px-1.5 h-[18px] rounded-full bg-foreground/8 text-[9.5px] font-semibold text-foreground/70 tabular-nums">
                 {new Date(entry.createdAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
               </span>
             </div>
-            <p className="mt-1 text-[11.5px] text-foreground/85 leading-snug line-clamp-3 flex-1">
+            <p className="mt-1 text-[11.5px] text-foreground/85 leading-relaxed line-clamp-3 flex-1">
               {entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body}
             </p>
           </div>
