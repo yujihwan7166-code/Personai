@@ -112,7 +112,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           closing ? 'wb-modal-out' : 'wb-modal-in',
         )}
         style={{
-          height: 'min(700px, 92vh)',
+          // 작은 viewport (모바일 landscape 등) 에서도 최소 420px 보장
+          height: 'clamp(420px, 92vh, 700px)',
           // 모달 자체 — 따뜻한 cream 톤 (상단 radial spot 으로 살짝 깊이감, Samsung 톤)
           background: 'radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
         }}

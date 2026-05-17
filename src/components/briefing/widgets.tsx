@@ -80,11 +80,19 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
           <div className="flex justify-between mt-0.5 text-[8.5px] text-muted-foreground/60 tabular-nums">
             <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
           </div>
-          {/* 리스트 — top 3 */}
-          <ul className="mt-1.5 space-y-0.5 flex-1 overflow-hidden">
+          {/* 리스트 — top 3 (종류별 dot 으로 timeline 과 시각 일관) */}
+          <ul className="mt-1.5 space-y-1 flex-1 overflow-hidden">
             {items.map((it, i) => (
-              <li key={i} className="flex items-baseline gap-2 text-[11.5px] leading-tight">
-                <span className="tabular-nums font-mono text-foreground/60 text-[10.5px] shrink-0 w-[40px]">{fmtTime(it.startAt)}</span>
+              <li key={i} className="flex items-center gap-1.5 text-[11.5px] leading-tight">
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full shrink-0',
+                    it.kind === 'event'
+                      ? 'bg-primary/85'
+                      : it.done ? 'bg-emerald-500/65' : 'bg-amber-500/85',
+                  )}
+                />
+                <span className="tabular-nums font-mono text-foreground/60 text-[10.5px] shrink-0 w-[36px]">{fmtTime(it.startAt)}</span>
                 <span className={cn('flex-1 min-w-0 truncate text-foreground', it.done && 'line-through text-muted-foreground')}>
                   {it.title}
                 </span>
