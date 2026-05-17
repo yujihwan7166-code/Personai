@@ -117,8 +117,13 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           background: 'radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
         }}
       >
+        {/* 상단 hairline — 오늘 시간 진행률 (0-24h) */}
+        <DayProgressBar />
+
         {/* 헤더 — hero 인사말 + 진행률 ring + 메타 */}
-        <div className="shrink-0 px-5 sm:px-7 pt-5 pb-4 flex items-start gap-2 sm:gap-3">
+        <div className="shrink-0 px-5 sm:px-7 pt-5 pb-4 flex items-start gap-2 sm:gap-3 relative">
+          {/* hairline divider — 헤더와 본문 자연 분리 */}
+          <span aria-hidden className="absolute left-7 right-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1]">
               {data.greeting}
@@ -739,6 +744,33 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
         className="font-display tabular-nums"
       >{Math.round(clamped * 100)}</text>
     </svg>
+  );
+}
+
+/** 오늘 하루 시간 진행률 — 모달 상단 hairline (1분마다 업데이트). */
+function DayProgressBar() {
+  const [ratio, setRatio] = useState(() => {
+    const now = new Date();
+    return (now.getHours() * 60 + now.getMinutes()) / (24 * 60);
+  });
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const now = new Date();
+      setRatio((now.getHours() * 60 + now.getMinutes()) / (24 * 60));
+    }, 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div className="shrink-0 h-[2px] bg-foreground/[0.04] overflow-hidden">
+      <div
+        className="h-full transition-all duration-1000"
+        style={{
+          width: `${ratio * 100}%`,
+          background: 'linear-gradient(90deg, hsl(28 88% 58%), hsl(28 88% 48%))',
+        }}
+        title={`오늘 ${Math.round(ratio * 100)}% 지남`}
+      />
+    </div>
   );
 }
 
