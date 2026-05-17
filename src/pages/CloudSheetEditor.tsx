@@ -3272,7 +3272,7 @@ const SheetCell = React.memo(function SheetCell({
   rowSpan, colSpan, editing, editingValue,
   onPointerDown, onPointerEnter, onStartEdit, onChangeValue, onCommitEdit, onCancelEdit,
 }: SheetCellProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (editing) {
@@ -3358,7 +3358,7 @@ const SheetCell = React.memo(function SheetCell({
               <span className="text-muted-foreground/50">{autocomplete.slice(editingValue.length)}</span>
             </span>
           )}
-          <input
+          <textarea
             ref={inputRef}
             value={editingValue}
             onChange={(e) => onChangeValue(e.target.value)}
@@ -3369,12 +3369,12 @@ const SheetCell = React.memo(function SheetCell({
                 if (autocomplete && autocomplete !== editingValue
                     && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase())) {
                   onChangeValue(autocomplete);
-                  // 약간의 지연 — onCommitEdit 가 editingValue 의 최신값을 capture 하도록
                   setTimeout(() => onCommitEdit('right'), 0);
                 } else {
                   onCommitEdit('right');
                 }
-              } else if (e.key === 'Enter') {
+              } else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+                // Enter = commit. Shift+Enter / Alt+Enter = 줄바꿈 (textarea 기본)
                 e.preventDefault();
                 if (autocomplete && autocomplete !== editingValue
                     && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase())) {
@@ -3387,13 +3387,16 @@ const SheetCell = React.memo(function SheetCell({
                 e.preventDefault();
                 onCancelEdit();
               }
+              // Shift+Enter / Alt+Enter 는 preventDefault X → textarea 가 \n 삽입
             }}
             onBlur={() => onCommitEdit('none')}
-            className="w-full h-full px-2 outline-none bg-transparent text-sm relative z-10"
+            rows={Math.max(1, editingValue.split('\n').length)}
+            className="w-full h-full px-2 py-0 outline-none bg-transparent text-sm relative z-10 resize-none leading-snug font-[inherit]"
           />
         </div>
       ) : (
-        <span className="block truncate">{value}</span>
+        // 줄바꿈 (\n) 은 보존, 한 줄 컨텐츠는 ellipsis. 행 높이가 충분히 크면 여러 줄 보임.
+        <span className="block whitespace-pre-line overflow-hidden break-words">{value}</span>
       )}
       {hasFillHandle && (
         <span
