@@ -605,14 +605,27 @@ function WidgetPicker({
       >
         <div className="shrink-0 px-5 py-3 border-b border-foreground/12 flex items-center gap-3">
           <h3 className="text-[14px] font-semibold text-foreground shrink-0">위젯 추가</h3>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.stopPropagation()}
-            placeholder="검색..."
-            className="flex-1 h-7 px-2.5 text-[12px] rounded-md bg-foreground/5 border border-transparent focus:outline-none focus:border-primary/30 focus:bg-card transition-colors"
-          />
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              placeholder="검색..."
+              className="w-full h-7 pl-2.5 pr-7 text-[12px] rounded-md bg-foreground/5 border border-transparent focus:outline-none focus:border-primary/30 focus:bg-card transition-colors"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 inline-flex items-center justify-center rounded-full text-muted-foreground/65 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                aria-label="검색어 지우기"
+                title="지우기"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={close}

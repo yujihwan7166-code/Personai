@@ -47,7 +47,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
       ) : (
         <>
           {/* 0-24h timeline */}
-          <div className="relative mt-2 h-1.5 rounded-full bg-foreground/8 overflow-hidden">
+          <div className="relative mt-2 h-1.5 rounded-full bg-foreground/8 overflow-visible">
             {data.timed.map((it, i) => {
               const start = new Date(it.startAt);
               const startPct = ((start.getHours() * 60 + start.getMinutes()) / (24 * 60)) * 100;
@@ -57,11 +57,12 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
               return (
                 <div
                   key={i}
+                  title={`${fmtTime(it.startAt)} ${it.title}`}
                   className={cn(
-                    'absolute top-0 h-full rounded-full',
+                    'absolute top-0 h-full rounded-full transition-all hover:scale-y-[1.6]',
                     it.kind === 'event'
-                      ? 'bg-primary/85'
-                      : it.done ? 'bg-emerald-500/55' : 'bg-amber-500/85',
+                      ? 'bg-primary/85 hover:bg-primary'
+                      : it.done ? 'bg-emerald-500/55 hover:bg-emerald-500' : 'bg-amber-500/85 hover:bg-amber-500',
                   )}
                   style={{ left: `${startPct}%`, width: `${widthPct}%` }}
                 />
