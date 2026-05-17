@@ -61,8 +61,8 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
                   className={cn(
                     'absolute top-0 h-full rounded-full transition-all hover:scale-y-[1.6]',
                     it.kind === 'event'
-                      ? 'bg-[hsl(210_80%_52%/0.85)] hover:bg-[hsl(210_80%_52%)]'
-                      : it.done ? 'bg-emerald-500/55 hover:bg-emerald-500' : 'bg-amber-500/85 hover:bg-amber-500',
+                      ? 'bg-[hsl(210_80%_52%/0.78)] hover:bg-[hsl(210_80%_52%)]'
+                      : it.done ? 'bg-emerald-500/50 hover:bg-emerald-500' : 'bg-amber-500/78 hover:bg-amber-500',
                   )}
                   style={{ left: `${startPct}%`, width: `${widthPct}%` }}
                 />
@@ -70,7 +70,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
             })}
             {/* 현재 시간 marker — rose 핀 (얇은 선 + 상단 dot) */}
             <div
-              className="absolute top-[-3px] bottom-[-3px] w-[2px] bg-rose-500/90"
+              className="absolute top-[-2px] bottom-[-2px] w-[2px] bg-rose-500/90 rounded-full"
               style={{ left: `${nowPct}%` }}
               title={`지금 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}
             >

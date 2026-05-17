@@ -133,7 +133,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <TimeOfDayIcon />
-              <h2 className="font-display text-[26px] sm:text-[32px] font-extrabold tracking-tight text-foreground leading-[1.1] min-w-0 truncate">
+              <h2 className="font-display text-[26px] sm:text-[32px] font-extrabold tracking-tight text-foreground leading-[1.15] min-w-0 truncate">
                 {data.greeting}
               </h2>
             </div>
@@ -723,10 +723,10 @@ function WidgetPicker({
                         {sizeLabel(meta.defaultSize)}
                       </div>
                       {already && (
-                        <span className="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">✓</span>
+                        <span className="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold shadow-[0_2px_4px_-1px_hsl(142_70%_30%/0.4)]">✓</span>
                       )}
                       {meta.soon && !already && (
-                        <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wide text-muted-foreground/70 font-semibold">곧</span>
+                        <span className="absolute top-2 right-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-[9px] uppercase tracking-wider text-foreground/55 font-bold">곧</span>
                       )}
                     </button>
                   );
