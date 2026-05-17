@@ -43,7 +43,7 @@ export function ScheduleWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Calendar className="h-3.5 w-3.5" />} title="오늘 일정" count={data.timed.length} kind="schedule" />
       {items.length === 0 ? (
-        <EmptyText text="오늘은 비어있어요" hint="플래너에서 일정 추가 →" icon={<Calendar className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="여유로운 하루예요" hint="플래너에서 일정 추가 →" icon={<Calendar className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* 0-24h timeline */}
@@ -119,7 +119,7 @@ export function TasksWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<CheckSquare className="h-3.5 w-3.5" />} title="오늘 할일" count={data.inbox.length} kind="tasks" />
       {items.length === 0 ? (
-        <EmptyText text="할일이 없어요 ✨" hint="플래너에서 추가 →" icon={<CheckSquare className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="자유로운 하루" hint="플래너에서 할일 추가 →" icon={<CheckSquare className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {high > 0 && (
@@ -280,7 +280,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Flame className="h-3.5 w-3.5" />} title="습관" count={`${done}/${total}`} kind="habits" />
       {total === 0 ? (
-        <EmptyText text="활성 습관 없음" hint="플래너 → 습관 →" icon={<Flame className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="첫 습관 시작해볼까요" hint="플래너 → 습관 →" icon={<Flame className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* 진행률 bar */}
@@ -335,7 +335,7 @@ export function DdayWidget({ widget, data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<Flag className="h-3.5 w-3.5" />} title="D-day" count={items.length} kind="dday" />
       {items.length === 0 ? (
-        <EmptyText text="가까운 일 없음" hint="플래너에서 추가 →" icon={<Flag className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="당분간 한가해요" hint="플래너에서 D-day 추가 →" icon={<Flag className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <>
           {/* hero — 가장 가까운 D-day (오늘=rose, 1-3일=amber) */}
@@ -380,7 +380,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
     return (
       <div className="w-full h-full p-4 flex flex-col">
         <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
-        <EmptyText text="추천할 항목 없음" hint="일정·할일 추가 →" icon={<Sparkles className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="마음 가는 대로" hint="일정·할일 추가 →" icon={<Sparkles className="h-7 w-7" strokeWidth={1.5} />} />
       </div>
     );
   }
@@ -397,7 +397,7 @@ export function PickFirstWidget({ data, onClose }: WidgetProps) {
         style={{ background: 'radial-gradient(circle at center, hsl(28 88% 52% / 0.20) 0%, transparent 70%)' }}
       />
       <WidgetHeader icon={<Sparkles className="h-3.5 w-3.5" />} title="가장 먼저" count="" kind="pickFirst" />
-      <div className="mt-2 font-display text-[20px] font-bold text-foreground leading-tight line-clamp-2 relative">
+      <div className="mt-2.5 font-display text-[22px] font-extrabold text-foreground leading-[1.15] line-clamp-2 relative tracking-tight">
         {data.pickFirst.title}
       </div>
       <div className="mt-auto pt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground relative">
@@ -473,7 +473,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
     >
       <WidgetHeader icon={<NotebookPen className="h-3.5 w-3.5" />} title="최근 일기" count="" kind="recentJournal" />
       {!entry ? (
-        <EmptyText text="아직 일기가 없어요" hint="오늘 한 줄 적어볼까요? →" icon={<NotebookPen className="h-7 w-7" strokeWidth={1.5} />} />
+        <EmptyText text="오늘 한 줄 어떠세요" hint="일기 쓰러 가기 →" icon={<NotebookPen className="h-7 w-7" strokeWidth={1.5} />} />
       ) : (
         <div className="mt-1.5 flex-1 flex gap-2 min-h-0">
           {/* 이미지 썸네일 */}

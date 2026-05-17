@@ -377,7 +377,7 @@ export function NewsWidget({ widget }: WidgetProps) {
           {result?.data && result.data.length === 0 && (
             <div className="flex-1 flex flex-col items-center justify-center gap-1 text-center">
               <Newspaper className="h-7 w-7 text-foreground/20" strokeWidth={1.5} />
-              <span className="text-[11.5px] text-foreground/55 font-medium">기사가 없어요</span>
+              <span className="text-[11.5px] text-foreground/55 font-medium">조용한 오늘</span>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setPickerOpen(true); }}

@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings, Plus, Trash2, RotateCcw, Search } from 'lucide-react';
+import { X, Settings, Plus, Trash2, RotateCcw, Search, Sunrise, Sun, Sunset, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildBriefingData } from '@/lib/buildBriefingData';
 import {
@@ -115,8 +115,12 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
         style={{
           // 작은 viewport (모바일 landscape 등) 에서도 최소 420px 보장
           height: 'clamp(420px, 92vh, 700px)',
-          // 모달 자체 — 따뜻한 cream 톤 (상단 radial spot 으로 살짝 깊이감, Samsung 톤)
-          background: 'radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%), linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)',
+          // 모달 자체 — 두 radial spot (상단 중앙 cream, 우하단 warm amber) 으로 dimensional cream surface
+          background: `
+            radial-gradient(ellipse 65% 45% at 50% -10%, hsl(40 60% 98%) 0%, transparent 70%),
+            radial-gradient(ellipse 35% 45% at 95% 100%, hsl(28 70% 92% / 0.55) 0%, transparent 65%),
+            linear-gradient(180deg, hsl(40 30% 96%) 0%, hsl(40 22% 93%) 100%)
+          `,
         }}
       >
         {/* 상단 hairline — 오늘 시간 진행률 (0-24h) */}
@@ -127,9 +131,12 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           {/* hairline divider — 헤더와 본문 자연 분리 */}
           <span aria-hidden className="absolute left-7 right-7 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1]">
-              {data.greeting}
-            </h2>
+            <div className="flex items-center gap-2.5">
+              <TimeOfDayIcon />
+              <h2 className="font-display text-[26px] sm:text-[30px] font-extrabold tracking-tight text-foreground leading-[1.1] min-w-0 truncate">
+                {data.greeting}
+              </h2>
+            </div>
             <p className="text-[13px] text-foreground/70 mt-1.5 tabular-nums font-medium">
               {data.date}
               {data.timed.length > 0 && (
@@ -462,9 +469,12 @@ function WidgetCard({
       }}
       className={cn(
         'wb-widget-card relative rounded-2xl overflow-hidden transition-all',
-        // 평소 — 부드러운 흰 카드 (Samsung 톤)
-        !editMode && 'bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_2px_8px_-4px_hsl(30_15%_8%/0.06)]',
-        !editMode && 'hover:shadow-[0_8px_28px_-12px_hsl(30_15%_8%/0.18),_0_3px_10px_-4px_hsl(30_15%_8%/0.10)] hover:-translate-y-0.5',
+        // 평소 — 사이즈별 그림자 (L 무겁게 / M 기본 / S 가볍게)
+        !editMode && 'bg-card',
+        !editMode && widget.size === 'L' && 'shadow-[0_2px_4px_hsl(30_15%_8%/0.05),_0_10px_28px_-10px_hsl(30_15%_8%/0.16)]',
+        !editMode && widget.size === 'M' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.04),_0_3px_12px_-5px_hsl(30_15%_8%/0.08)]',
+        !editMode && widget.size === 'S' && 'shadow-[0_1px_2px_hsl(30_15%_8%/0.03),_0_1px_4px_-2px_hsl(30_15%_8%/0.05)]',
+        !editMode && 'hover:shadow-[0_10px_32px_-12px_hsl(30_15%_8%/0.22),_0_4px_12px_-4px_hsl(30_15%_8%/0.12)] hover:-translate-y-0.5',
         // 편집 모드 — boundary 명확 + ring (부드러운 톤)
         editMode && 'wb-jiggle ring-1 ring-foreground/15 cursor-grab bg-card shadow-[0_2px_6px_-2px_hsl(30_15%_8%/0.10)]',
         editMode && isDragging && 'opacity-30 cursor-grabbing',
@@ -473,12 +483,12 @@ function WidgetCard({
         ...style,
         gridColumn: `${widget.col + 1} / span ${span.w}`,
         gridRow: `${widget.row + 1} / span ${span.h}`,
-        // hero (pickFirst) 만 옅은 amber ground — 다른 카드는 plain white
+        // hero (pickFirst) — 3-stop amber 그라디언트 (시각 무게)
         // hover 시: 위젯 tint 색이 살짝 묻어남
         background: isHero && !editMode
-          ? `linear-gradient(135deg, ${meta.tint.hue.replace(')', ' / 0.10)').replace('hsl(', 'hsla(')}, hsl(var(--card)) 70%)`
+          ? `linear-gradient(135deg, hsl(28 88% 52% / 0.16) 0%, hsl(28 88% 52% / 0.04) 55%, hsl(var(--card)) 100%)`
           : (hover && !editMode
-              ? `linear-gradient(180deg, ${meta.tint.hue.replace(')', ' / 0.05)').replace('hsl(', 'hsla(')}, hsl(var(--card)) 100%)`
+              ? `linear-gradient(180deg, ${meta.tint.hue.replace(')', ' / 0.06)')}, hsl(var(--card)) 100%)`
               : undefined),
       }}
     >
@@ -800,6 +810,32 @@ function ProgressRing({ size, ratio }: { size: number; ratio: number }) {
         className="font-display tabular-nums"
       >{isComplete ? '✓' : Math.round(clamped * 100)}</text>
     </svg>
+  );
+}
+
+/** 시간대 아이콘 — greeting 옆에 배치. Sunrise(5-9)·Sun(9-17)·Sunset(17-20)·Moon(20-5). */
+function TimeOfDayIcon() {
+  const [h, setH] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const id = window.setInterval(() => setH(new Date().getHours()), 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const cfg = (() => {
+    if (h >= 5 && h < 9) return { Icon: Sunrise, color: 'hsl(28 90% 55%)', label: '동틀녘' };
+    if (h >= 9 && h < 17) return { Icon: Sun, color: 'hsl(42 92% 52%)', label: '낮' };
+    if (h >= 17 && h < 20) return { Icon: Sunset, color: 'hsl(18 82% 55%)', label: '해질녘' };
+    return { Icon: Moon, color: 'hsl(225 60% 60%)', label: '밤' };
+  })();
+  const { Icon, color, label } = cfg;
+  return (
+    <span
+      className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full"
+      style={{ background: `${color.replace(')', ' / 0.12)')}` }}
+      title={label}
+      aria-label={label}
+    >
+      <Icon className="h-[18px] w-[18px]" style={{ color }} strokeWidth={2.2} />
+    </span>
   );
 }
 
