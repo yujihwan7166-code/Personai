@@ -55,6 +55,7 @@ import {
 import {
   nextFontSize, nextStrokeWidth, nextLineHeight, nextRadius,
 } from '@/lib/cloudSlide/steps';
+import { computeAlign, computeDistribute } from '@/lib/cloudSlide/align';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
@@ -469,33 +470,19 @@ export default function CloudSlideEditor() {
   }, [slides, currentIdx]);
 
   // ─── 다중 선택 정렬 / 분배 ───
+  // 알고리즘은 lib/cloudSlide/align.ts (테스트 가능) — 여기서는 state 적용만.
   const alignSelected = useCallback((axis: 'h' | 'v', mode: 'start' | 'center' | 'end') => {
     if (selectedElIds.size < 2) return;
     updateCurrentSlide((s) => {
       const els = s.elements.filter((e) => selectedElIds.has(e.id));
-      if (els.length < 2) return s;
-      const positions = axis === 'h'
-        ? els.map((e) => ({ start: e.xPct, size: e.wPct }))
-        : els.map((e) => ({ start: e.yPct, size: e.hPct }));
-      const minStart = Math.min(...positions.map((p) => p.start));
-      const maxEnd = Math.max(...positions.map((p) => p.start + p.size));
-      const center = (minStart + maxEnd) / 2;
-      const computeNew = (start: number, size: number): number => {
-        if (mode === 'start') return minStart;
-        if (mode === 'end') return maxEnd - size;
-        return center - size / 2;
-      };
+      const newPos = computeAlign(els, axis, mode);
+      if (newPos.size === 0) return s;
       return {
         ...s,
         elements: s.elements.map((e) => {
-          if (!selectedElIds.has(e.id)) return e;
-          if (axis === 'h') {
-            const x = computeNew(e.xPct, e.wPct);
-            return { ...e, xPct: Math.max(0, Math.min(100 - e.wPct, x)) };
-          } else {
-            const y = computeNew(e.yPct, e.hPct);
-            return { ...e, yPct: Math.max(0, Math.min(100 - e.hPct, y)) };
-          }
+          const np = newPos.get(e.id);
+          if (np === undefined) return e;
+          return axis === 'h' ? { ...e, xPct: np } : { ...e, yPct: np };
         }),
       };
     });
@@ -505,27 +492,14 @@ export default function CloudSlideEditor() {
     if (selectedElIds.size < 3) return;
     updateCurrentSlide((s) => {
       const els = s.elements.filter((e) => selectedElIds.has(e.id));
-      if (els.length < 3) return s;
-      const getCenter = (e: SlideElement): number =>
-        axis === 'h' ? e.xPct + e.wPct / 2 : e.yPct + e.hPct / 2;
-      const sorted = [...els].sort((a, b) => getCenter(a) - getCenter(b));
-      const firstC = getCenter(sorted[0]);
-      const lastC = getCenter(sorted[sorted.length - 1]);
-      const step = (lastC - firstC) / (sorted.length - 1);
-      const newPos = new Map<string, number>();
-      for (let i = 0; i < sorted.length; i++) {
-        const targetCenter = firstC + step * i;
-        const el = sorted[i];
-        const size = axis === 'h' ? el.wPct : el.hPct;
-        newPos.set(el.id, targetCenter - size / 2);
-      }
+      const newPos = computeDistribute(els, axis);
+      if (newPos.size === 0) return s;
       return {
         ...s,
         elements: s.elements.map((e) => {
           const np = newPos.get(e.id);
           if (np === undefined) return e;
-          if (axis === 'h') return { ...e, xPct: np };
-          return { ...e, yPct: np };
+          return axis === 'h' ? { ...e, xPct: np } : { ...e, yPct: np };
         }),
       };
     });

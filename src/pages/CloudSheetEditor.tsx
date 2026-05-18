@@ -92,6 +92,9 @@ import {
   type FontFamily, FONT_FAMILY_LABEL, FONT_FAMILY_CSS,
   FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT,
 } from '@/lib/cloudSheet/fontFamily';
+import {
+  type VAlign, type Wrap, type CellFormat, type CellFormats,
+} from '@/lib/cloudSheet/cellFormat';
 
 type Cells = Record<string, string>;
 
@@ -130,26 +133,7 @@ type AllCondRules = Record<string, CondRule[]>;
 // NumberFmt / DECIMAL_SEQUENCE / decimalsIndexOf 는 lib/cloudSheet/numberFormat 공용
 // BorderStyle 은 lib/cloudSheet/borderStyle 공용
 // FontFamily / FONT_FAMILY_* / FONT_SIZE_* 는 lib/cloudSheet/fontFamily 공용
-type VAlign = 'top' | 'middle' | 'bottom';
-type Wrap = 'overflow' | 'wrap' | 'clip';
-
-interface CellFormat {
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  strikethrough?: boolean;
-  textColor?: string;
-  bgColor?: string;
-  align?: 'left' | 'center' | 'right';
-  vAlign?: VAlign;
-  wrap?: Wrap;
-  fontFamily?: FontFamily;
-  /** 폰트 크기 (px). 8~48. */
-  fontSize?: number;
-  numberFmt?: NumberFmt;
-  border?: BorderStyle;
-}
-type CellFormats = Record<string, CellFormat>;
+// VAlign / Wrap / CellFormat / CellFormats 는 lib/cloudSheet/cellFormat 공용
 
 // FONT_FAMILY_LABEL / FONT_FAMILY_CSS / FONT_SIZE_* 는 lib/cloudSheet/fontFamily 공용
 
