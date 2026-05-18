@@ -4,6 +4,7 @@
  */
 
 import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/cloudDoc/ai';
+import { IMAGE_SENTINEL } from './formula';
 
 type Cells = Record<string, string>;
 
@@ -29,7 +30,8 @@ function colIdx(label: string): number {
   return n - 1;
 }
 
-/** cells 를 CSV 형식으로 직렬화. 빈 셀은 빈 칸. 비어있는 trailing 행/열 제거. */
+/** cells 를 CSV 형식으로 직렬화. 빈 셀은 빈 칸. 비어있는 trailing 행/열 제거.
+ *  IMAGE 함수 결과(sentinel)는 URL 만 남김. */
 export function cellsToCsv(cells: Cells, opts: { displayValues?: Cells } = {}): string {
   let maxRow = -1;
   let maxCol = -1;
@@ -48,7 +50,9 @@ export function cellsToCsv(cells: Cells, opts: { displayValues?: Cells } = {}): 
     const row: string[] = [];
     for (let c = 0; c <= maxCol; c++) {
       const ref = `${colLabel(c)}${r + 1}`;
-      const raw = opts.displayValues?.[ref] ?? cells[ref] ?? '';
+      let raw = opts.displayValues?.[ref] ?? cells[ref] ?? '';
+      // IMAGE sentinel → URL 만
+      if (raw.startsWith(IMAGE_SENTINEL)) raw = raw.slice(IMAGE_SENTINEL.length);
       // CSV escape
       const needsQuote = raw.includes(',') || raw.includes('"') || raw.includes('\n');
       row.push(needsQuote ? `"${raw.replace(/"/g, '""')}"` : raw);

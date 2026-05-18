@@ -3783,7 +3783,7 @@ const SheetCell = React.memo(function SheetCell({
     >
       {editing ? (
         <div className="relative w-full h-full bg-background border-2 border-foreground/70">
-          <FuncHintPopover value={editingValue} />
+          <FuncHintPopover value={editingValue} onReplaceValue={onChangeValue} />
 
           {/* ghost: 자동완성 미리보기 — input 아래 정렬, 같은 폰트·padding */}
           {autocomplete && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase()) && editingValue.length > 0 && editingValue !== autocomplete && (
@@ -4295,45 +4295,86 @@ function SheetTab({
 }
 
 // ─────────────────────────────────────────────
-// 수식 함수 popover — '=SUM(' 같이 입력 중 시그니처 힌트
+// 수식 함수 popover — 시그니처 hint + prefix 매치 후보 리스트
 // ─────────────────────────────────────────────
 
-function FuncHintPopover({ value }: { value: string }) {
-  const hint = useMemo(() => {
+interface FuncHintPopoverProps {
+  value: string;
+  /** 후보 클릭 시 입력값 교체 (부모가 textarea/input 값 갱신). */
+  onReplaceValue?: (next: string) => void;
+}
+
+function FuncHintPopover({ value, onReplaceValue }: FuncHintPopoverProps) {
+  /** 함수( 안 — 시그니처 hint */
+  const sigHint = useMemo(() => {
     if (!value.startsWith('=')) return null;
-    // 마지막 미닫힌 ( 안의 함수 이름 찾기. 단순 v1: 가장 마지막 '(' 직전의
-    //  연속된 알파벳 토큰. 다중 중첩 함수는 가장 안쪽만.
-    // 예: =SUM(IF(  → 'IF', =SUM(A1, AVG  → 'AVG' (직접 매칭), =SUM  → 'SUM'
-    // 1) 함수( 안에 있는 경우 — 마지막 '(' 의 직전 함수
     const lastOpen = value.lastIndexOf('(');
     const lastClose = value.lastIndexOf(')');
-    if (lastOpen > lastClose) {
-      // 미닫힌 ( 가 있음
-      const beforeOpen = value.slice(0, lastOpen);
-      const m = beforeOpen.match(/([A-Z]+)$/i);
-      if (m) {
-        const name = m[1].toUpperCase();
-        if (FUNC_HELP[name]) return { name, ...FUNC_HELP[name] };
-      }
-    }
-    // 2) 아직 ( 가 없음 — 입력 중인 함수 이름 자체로 매칭
-    //    예: =SU → SUM 후보? 일단 정확 매칭만
-    const tail = value.slice(1).match(/([A-Z]+)$/i);
-    if (tail) {
-      const name = tail[1].toUpperCase();
-      if (FUNC_HELP[name]) return { name, ...FUNC_HELP[name] };
-    }
-    return null;
+    if (lastOpen <= lastClose) return null;
+    const beforeOpen = value.slice(0, lastOpen);
+    const m = beforeOpen.match(/([A-Z]+)$/i);
+    if (!m) return null;
+    const name = m[1].toUpperCase();
+    if (!FUNC_HELP[name]) return null;
+    return { name, ...FUNC_HELP[name] };
   }, [value]);
 
-  if (!hint) return null;
+  /** 미닫힌 ( 가 없을 때 — 입력 끝의 함수 prefix 로 후보 리스트 (최대 8) */
+  const suggestions = useMemo(() => {
+    if (!value.startsWith('=') || sigHint) return [];
+    // 입력 끝 알파벳 토큰을 prefix 로
+    const tail = value.slice(1).match(/([A-Z]+)$/i);
+    if (!tail) return [];
+    const prefix = tail[1].toUpperCase();
+    const names = Object.keys(FUNC_HELP)
+      .filter((k) => k.startsWith(prefix))
+      .sort((a, b) => a.length - b.length || a.localeCompare(b))
+      .slice(0, 8);
+    return names.map((name) => ({ name, ...FUNC_HELP[name] }));
+  }, [value, sigHint]);
+
+  /** 후보 클릭 시 입력값에서 끝 prefix 를 NAME( 로 교체 */
+  const pick = useCallback((name: string) => {
+    if (!onReplaceValue) return;
+    const m = value.match(/([A-Za-z]+)$/);
+    if (!m) return;
+    const before = value.slice(0, value.length - m[1].length);
+    onReplaceValue(`${before}${name}(`);
+  }, [value, onReplaceValue]);
+
+  if (sigHint) {
+    return (
+      <div
+        className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md px-2 py-1 text-xs whitespace-nowrap pointer-events-none"
+        role="tooltip"
+      >
+        <span className="font-mono font-medium">{sigHint.sig}</span>
+        <span className="text-muted-foreground ml-2">{sigHint.desc}</span>
+      </div>
+    );
+  }
+  if (suggestions.length === 0) return null;
   return (
     <div
-      className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md px-2 py-1 text-xs whitespace-nowrap pointer-events-none"
-      role="tooltip"
+      className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md py-1 text-xs min-w-[260px] max-w-[360px]"
+      role="listbox"
+      aria-label="함수 자동완성 후보"
+      onPointerDown={(e) => e.stopPropagation()}
     >
-      <span className="font-mono font-medium">{hint.sig}</span>
-      <span className="text-muted-foreground ml-2">{hint.desc}</span>
+      {suggestions.map((s) => (
+        <button
+          key={s.name}
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => { e.preventDefault(); pick(s.name); }}
+          className="w-full text-left px-2 py-1 hover:bg-muted flex items-center gap-2"
+          title={`${s.sig} — ${s.desc}`}
+          role="option"
+        >
+          <span className="font-mono font-medium w-20 shrink-0 truncate">{s.name}</span>
+          <span className="font-mono text-muted-foreground truncate flex-1">{s.sig}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -4386,7 +4427,7 @@ function FormulaBarInput({ currentRef, value, evaluatedValue, onCommit }: Formul
           = <span className="font-medium text-foreground">{evaluatedValue}</span>
         </span>
       )}
-      {editing && <FuncHintPopover value={draft} />}
+      {editing && <FuncHintPopover value={draft} onReplaceValue={setDraft} />}
     </div>
   );
 }
