@@ -95,8 +95,10 @@ import {
 import {
   type VAlign, type Wrap, type CellFormat, type CellFormats,
 } from '@/lib/cloudSheet/cellFormat';
-
-type Cells = Record<string, string>;
+import {
+  type Cells, type AllCells, type Merge, type AllMerges,
+  type Comments, type AllComments, type SelBounds,
+} from '@/lib/cloudSheet/cellTypes';
 
 // SheetTabColor / SHEET_TAB_COLOR_LABEL / SHEET_TAB_COLOR_HEX 는 lib/cloudSheet/SheetTab 공용
 
@@ -106,17 +108,12 @@ interface SheetMeta {
   /** 탭 색상 (PR #7) — 빠른 시각 구분. 미설정 = 기본. */
   color?: SheetTabColor;
 }
-type AllCells = Record<string, Cells>;
 type AllFormats = Record<string, CellFormats>;
-interface Merge { minR: number; maxR: number; minC: number; maxC: number }
-type AllMerges = Record<string, Merge[]>;
+
+// Cells / AllCells / Merge / AllMerges / Comments / AllComments 는 lib/cloudSheet/cellTypes 공용
 
 // Validation 은 lib/cloudSheet/validation 공용
 type AllValidations = Record<string, Validation[]>;
-
-// sheet 별 ref → 코멘트 텍스트
-type Comments = Record<string, string>;
-type AllComments = Record<string, Comments>;
 
 // EmbeddedChart 는 lib/cloudSheet/chart 공용
 type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
@@ -3891,7 +3888,7 @@ export default function CloudSheetEditor() {
 // 그리드
 // ─────────────────────────────────────────────
 
-interface SelBounds { minR: number; maxR: number; minC: number; maxC: number; }
+// SelBounds 는 lib/cloudSheet/cellTypes 공용
 
 interface SheetGridProps {
   cells: Cells;
