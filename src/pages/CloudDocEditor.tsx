@@ -191,10 +191,8 @@ export default function CloudDocEditor() {
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm sm:prose-base lg:prose-lg max-w-none',
-          'focus:outline-none min-h-[60vh]',
-          'prose-headings:font-semibold prose-headings:tracking-tight',
-          'dark:prose-invert',
+          'doc-content focus:outline-none',
+          'min-h-[800px]',  // 첫 페이지 가용 높이 확보 (다음 단계 페이지 break overlay 와 호환)
         ),
       },
     },
@@ -511,7 +509,7 @@ export default function CloudDocEditor() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <main ref={scrollerRef} className="flex-1 overflow-y-auto relative">
+        <main ref={scrollerRef} className="flex-1 overflow-auto relative doc-page-bg">
           {editor && searchOpen && (
             <DocSearchPanel
               editor={editor}
@@ -520,7 +518,8 @@ export default function CloudDocEditor() {
               onClose={() => setSearchOpen(false)}
             />
           )}
-          <div className="max-w-3xl mx-auto px-6 py-10">
+          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi, 종이 안 여백 1인치 */}
+          <div className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm px-[96px] py-[96px] dark:bg-slate-50 dark:text-slate-900">
             <EditorContent editor={editor} />
           </div>
         </main>

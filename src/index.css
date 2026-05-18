@@ -1097,4 +1097,139 @@
     color: hsl(var(--muted-foreground));
     margin: 0.4rem 0;
   }
+
+  /* ───────────────────────────────────────────
+     클라우드 문서 에디터 — 독스 톤
+     prose 의존 끊고 자체 스타일.
+     글꼴 Arial, 줄간격 1.5, 헤딩 weight 보통 (400~500).
+     ─────────────────────────────────────────── */
+  .doc-content {
+    font-family: Arial, "Helvetica Neue", "맑은 고딕", "Malgun Gothic", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: hsl(var(--foreground));
+    word-break: break-word;
+  }
+  .doc-content h1 {
+    font-size: 26px;
+    font-weight: 400;
+    margin: 1.5rem 0 0.5rem;
+    line-height: 1.3;
+  }
+  .doc-content h2 {
+    font-size: 20px;
+    font-weight: 400;
+    margin: 1.2rem 0 0.4rem;
+    line-height: 1.3;
+  }
+  .doc-content h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 1rem 0 0.3rem;
+    line-height: 1.4;
+  }
+  .doc-content h4, .doc-content h5, .doc-content h6 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0.8rem 0 0.3rem;
+  }
+  .doc-content p {
+    margin: 0 0 0.6rem;
+  }
+  .doc-content p:empty::before {
+    content: '\200B';
+  }
+  .doc-content ul, .doc-content ol {
+    margin: 0.4rem 0 0.8rem 1.5rem;
+    padding-left: 0.5rem;
+  }
+  .doc-content ul { list-style: disc; }
+  .doc-content ol { list-style: decimal; }
+  .doc-content li { margin: 0.15rem 0; }
+  .doc-content li > p { margin: 0; }
+  .doc-content blockquote {
+    border-left: 3px solid hsl(var(--border));
+    padding: 0.2rem 0 0.2rem 0.8rem;
+    margin: 0.6rem 0;
+    color: hsl(var(--muted-foreground));
+  }
+  .doc-content code {
+    background: hsl(var(--muted));
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-family: "Courier New", Consolas, Menlo, monospace;
+    font-size: 0.9em;
+  }
+  .doc-content pre {
+    background: hsl(var(--muted));
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0.6rem 0;
+    font-family: "Courier New", Consolas, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .doc-content pre code {
+    background: transparent;
+    padding: 0;
+  }
+  .doc-content a {
+    color: #1a73e8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .doc-content table {
+    border-collapse: collapse;
+    margin: 0.8rem 0;
+    width: 100%;
+  }
+  .doc-content table th, .doc-content table td {
+    border: 1px solid #d0d0d0;
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+  .doc-content table th {
+    background: #f3f3f3;
+    font-weight: 600;
+  }
+  .doc-content img {
+    max-width: 100%;
+    height: auto;
+  }
+  .doc-content hr {
+    border: 0;
+    border-top: 1px solid hsl(var(--border));
+    margin: 1rem 0;
+  }
+  .doc-content .doc-title {
+    font-size: 28px;
+    font-weight: 500;
+    text-align: center;
+    margin: 1rem 0;
+  }
+  .doc-content .doc-subtitle {
+    font-size: 18px;
+    font-weight: 400;
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+    margin: 0 0 1rem;
+  }
+  /* TipTap placeholder — 빈 첫 노드 회색 안내 */
+  .doc-content p.is-editor-empty:first-child::before,
+  .doc-content h1.is-editor-empty:first-child::before {
+    color: hsl(var(--muted-foreground));
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* 페이지 외부 배경 (스크롤러) — 회색 톤. 다크모드 대응 */
+  .doc-page-bg {
+    background-color: hsl(220 14% 92%);
+  }
+  .dark .doc-page-bg {
+    background-color: hsl(220 14% 12%);
+  }
 }
