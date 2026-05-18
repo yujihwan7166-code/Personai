@@ -102,6 +102,21 @@ export default function CloudDocEditor() {
     try { window.localStorage.setItem('personai.cloud.doc.pageMargin', JSON.stringify(m)); } catch { /* noop */ }
   }, []);
 
+  // 헤더 / 푸터 / 페이지 번호 — node.meta 영속. 기본 페이지 번호 ON.
+  const [headerText, setHeaderText] = useState('');
+  const [footerText, setFooterText] = useState('');
+  const [showPageNumber, setShowPageNumber] = useState(true);
+
+  // 노드 변경 (다른 파일 열기 등) 시 헤더/푸터 메타에서 로드
+  useEffect(() => {
+    if (!node?.meta) return;
+    const m = node.meta as Record<string, unknown>;
+    setHeaderText(typeof m.headerText === 'string' ? m.headerText : '');
+    setFooterText(typeof m.footerText === 'string' ? m.footerText : '');
+    setShowPageNumber(typeof m.showPageNumber === 'boolean' ? m.showPageNumber : true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node?.id]);
+
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
@@ -556,6 +571,17 @@ export default function CloudDocEditor() {
             zoom={zoom}
             pageMargin={pageMargin}
             onMarginChange={setPageMargin}
+            headerText={headerText}
+            footerText={footerText}
+            onHeaderChange={(v) => {
+              setHeaderText(v);
+              if (node) queueSave({ meta: { ...node.meta, headerText: v } });
+            }}
+            onFooterChange={(v) => {
+              setFooterText(v);
+              if (node) queueSave({ meta: { ...node.meta, footerText: v } });
+            }}
+            showPageNumber={showPageNumber}
           >
             <EditorContent editor={editor} />
           </DocPage>
@@ -602,12 +628,21 @@ interface DocPageProps {
   zoom: number;
   pageMargin: PageMargin;
   onMarginChange: (m: PageMargin) => void;
+  headerText: string;
+  footerText: string;
+  onHeaderChange: (v: string) => void;
+  onFooterChange: (v: string) => void;
+  showPageNumber: boolean;
   children: React.ReactNode;
 }
 
-function DocPage({ zoom, pageMargin, onMarginChange, children }: DocPageProps) {
+function DocPage({
+  zoom, pageMargin, onMarginChange,
+  headerText, footerText, onHeaderChange, onFooterChange, showPageNumber,
+  children,
+}: DocPageProps) {
   const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null);
-  const { pageBreaks } = usePageBreaks(contentEl, PAGE_CONTENT_HEIGHT_PX);
+  const { pageBreaks, totalPages } = usePageBreaks(contentEl, PAGE_CONTENT_HEIGHT_PX);
 
   return (
     <div
@@ -623,20 +658,62 @@ function DocPage({ zoom, pageMargin, onMarginChange, children }: DocPageProps) {
         className="relative py-[96px]"
         style={{ paddingLeft: pageMargin.left, paddingRight: pageMargin.right }}
       >
+        {/* 첫 페이지 헤더 — padding-top 96 안 (편집 가능) */}
+        <input
+          type="text"
+          value={headerText}
+          onChange={(e) => onHeaderChange(e.target.value)}
+          placeholder="머리글 (선택)"
+          className="absolute top-3 left-[96px] right-[96px] text-xs text-slate-500 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
+          aria-label="머리글"
+        />
+
         {children}
-        {/* 페이지 break overlay — 점선 + 라벨 */}
+
+        {/* 페이지 break + 페이지마다 헤더/푸터 미러 + 페이지 번호 */}
         {pageBreaks.map((y, i) => (
           <div
             key={i}
-            className="absolute left-0 right-0 pointer-events-none border-t border-dashed border-slate-400"
+            className="absolute left-0 right-0 pointer-events-none"
             style={{ top: y }}
             aria-hidden="true"
           >
-            <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-white dark:bg-slate-50 text-[10px] text-slate-500 px-2 py-0.5 rounded border border-slate-300">
-              ── 페이지 {i + 2} ──
-            </span>
+            {/* 이전 페이지(= i+1) 푸터 미러 — break 위 */}
+            {(footerText || showPageNumber) && (
+              <div className="absolute -top-8 left-[96px] right-[96px] flex items-center justify-between text-[10px] text-slate-500">
+                <span className="flex-1 text-center truncate">{footerText}</span>
+                {showPageNumber && <span className="absolute right-0">{i + 1} / {totalPages}</span>}
+              </div>
+            )}
+            {/* break 라인 + 라벨 */}
+            <div className="border-t border-dashed border-slate-400">
+              <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-white dark:bg-slate-50 text-[10px] text-slate-500 px-2 py-0.5 rounded border border-slate-300">
+                ── 페이지 {i + 2} ──
+              </span>
+            </div>
+            {/* 다음 페이지(= i+2) 헤더 미러 — break 아래 */}
+            {headerText && (
+              <div className="absolute top-5 left-[96px] right-[96px] text-[10px] text-slate-500 text-center truncate">
+                {headerText}
+              </div>
+            )}
           </div>
         ))}
+
+        {/* 마지막 페이지 푸터 (편집 가능) — 카드 bottom anchored, padding-bottom 96 안 */}
+        <div className="absolute bottom-3 left-[96px] right-[96px] flex items-center justify-between text-xs text-slate-500">
+          <input
+            type="text"
+            value={footerText}
+            onChange={(e) => onFooterChange(e.target.value)}
+            placeholder="바닥글 (선택)"
+            className="flex-1 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
+            aria-label="바닥글"
+          />
+          {showPageNumber && (
+            <span className="absolute right-0 text-[10px]">{totalPages} / {totalPages}</span>
+          )}
+        </div>
       </div>
     </div>
   );
