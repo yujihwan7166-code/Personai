@@ -43,6 +43,7 @@ import {
 import { ColorPopover } from '@/components/cloud/ColorPopover';
 
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
+import { ToolBtn, Sep } from '@/lib/cloudSlide/ToolBtn';
 import { SlideHelpModal } from '@/lib/cloudSlide/SlideHelpModal';
 import { newId } from '@/lib/idGenerator';
 import {
@@ -2183,43 +2184,7 @@ const ThumbButton = React.memo(function ThumbButton({
 });
 
 
-// ─────────────────────────────────────────────
-// 도구 버튼·구분선·저장 뱃지
-// ─────────────────────────────────────────────
-
-interface ToolBtnProps {
-  onClick: () => void;
-  disabled?: boolean;
-  destructive?: boolean;
-  active?: boolean;
-  title?: string;
-  children: React.ReactNode;
-}
-
-function ToolBtn({ onClick, disabled, destructive, active, title, children }: ToolBtnProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      className={cn(
-        'px-2 py-1 rounded flex items-center transition-colors',
-        disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-muted',
-        destructive && !disabled && 'text-destructive hover:bg-destructive/10',
-        active && !disabled && 'bg-muted text-foreground',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Sep() {
-  return <div className="w-px h-5 bg-border mx-1 shrink-0" />;
-}
+// ToolBtn / Sep 는 lib/cloudSlide/ToolBtn 공용
 
 
 
