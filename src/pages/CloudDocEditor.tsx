@@ -25,8 +25,8 @@ import Subscript from '@tiptap/extension-subscript';
 import { Markdown } from 'tiptap-markdown';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
-  Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
-  Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code2, Minus,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
+  List, ListOrdered,
   Undo2, Redo2, Keyboard,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Link as LinkIcon, Link2Off,
@@ -236,7 +236,7 @@ export default function CloudDocEditor() {
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
-          return '내용을 입력하세요 — # 헤딩, - 목록, > 인용, ``` 코드도 가능';
+          return '내용을 입력하세요';
         },
       }),
     ],
@@ -1017,69 +1017,23 @@ function DocToolbar({ editor, zoom, onZoomChange }: { editor: Editor; zoom: numb
       >
         <Strikethrough className="w-4 h-4" />
       </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleCode().run()}
-        active={editor.isActive('code')}
-        title="인라인 코드 (Ctrl+E)"
-      >
-        <Code className="w-4 h-4" />
-      </ToolBtn>
       <Sep />
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        active={editor.isActive('heading', { level: 1 })}
-        title="제목 1 (# )"
-      >
-        <Heading1 className="w-4 h-4" />
-      </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        active={editor.isActive('heading', { level: 2 })}
-        title="제목 2 (## )"
-      >
-        <Heading2 className="w-4 h-4" />
-      </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        active={editor.isActive('heading', { level: 3 })}
-        title="제목 3 (### )"
-      >
-        <Heading3 className="w-4 h-4" />
-      </ToolBtn>
-      <Sep />
+      {/* 목록 (구글 독스 도구바 패턴 — 블록 스타일은 StyleSelect 으로 통일).
+         인라인 코드 / 헤딩 단축 / 인용 / 코드 블록 / 구분선은 도구바에서 제거.
+         → StyleSelect (블록 스타일) + 슬래시 `/` 메뉴 + 키보드 단축키로 모두 접근 가능. */}
       <ToolBtn
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         active={editor.isActive('bulletList')}
-        title="글머리 기호 목록 (- )"
+        title="글머리 기호 목록 (Ctrl+Shift+8)"
       >
         <List className="w-4 h-4" />
       </ToolBtn>
       <ToolBtn
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         active={editor.isActive('orderedList')}
-        title="번호 매기기 (1. )"
+        title="번호 매기기 (Ctrl+Shift+7)"
       >
         <ListOrdered className="w-4 h-4" />
-      </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        active={editor.isActive('blockquote')}
-        title="인용 (> )"
-      >
-        <Quote className="w-4 h-4" />
-      </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        active={editor.isActive('codeBlock')}
-        title="코드 블록 (``` )"
-      >
-        <Code2 className="w-4 h-4" />
-      </ToolBtn>
-      <ToolBtn
-        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        title="구분선 (---)"
-      >
-        <Minus className="w-4 h-4" />
       </ToolBtn>
       <Sep />
 
