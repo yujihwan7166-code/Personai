@@ -50,63 +50,11 @@ import {
   type SlideElement, type ResizeDir, type Slide, type SlideMeta,
   SHAPE_SHADOW, isText, isShape, isLineLike, isImage, emptySlide, defaultMeta,
 } from '@/lib/cloudSlide/types';
+import {
+  nextFontSize, nextStrokeWidth, nextLineHeight, nextRadius,
+} from '@/lib/cloudSlide/steps';
 
 const AUTOSAVE_DELAY_MS = 1000;
-
-// type 들은 lib/cloudSlide/types 공용
-
-// isText/isShape/isLineLike/isImage 는 lib/cloudSlide/types 공용
-
-/** 글자 크기 단계 (rem) — px ≈ rem × 16. */
-const FONT_STEPS_REM = [
-  0.625, 0.75, 0.875, 1, 1.125, 1.25, 1.5, 1.75,
-  2, 2.25, 2.6, 3, 3.5, 4, 5, 6,
-];
-function nextFontSize(cur: number, dir: 1 | -1): number {
-  let idx = 0;
-  let bestDist = Infinity;
-  for (let i = 0; i < FONT_STEPS_REM.length; i++) {
-    const d = Math.abs(FONT_STEPS_REM[i] - cur);
-    if (d < bestDist) { bestDist = d; idx = i; }
-  }
-  const ni = Math.max(0, Math.min(FONT_STEPS_REM.length - 1, idx + dir));
-  return FONT_STEPS_REM[ni];
-}
-
-/** 도형 테두리/선 굵기 단계 (px) */
-const STROKE_STEPS_PX = [1, 2, 3, 4, 6, 8, 12, 16];
-function nextStrokeWidth(cur: number, dir: 1 | -1): number {
-  let idx = 0;
-  let bestDist = Infinity;
-  for (let i = 0; i < STROKE_STEPS_PX.length; i++) {
-    const d = Math.abs(STROKE_STEPS_PX[i] - cur);
-    if (d < bestDist) { bestDist = d; idx = i; }
-  }
-  const ni = Math.max(0, Math.min(STROKE_STEPS_PX.length - 1, idx + dir));
-  return STROKE_STEPS_PX[ni];
-}
-
-/** 텍스트 줄간격 단계 (배수) */
-const LINE_HEIGHT_STEPS = [1, 1.15, 1.25, 1.5, 1.75, 2];
-function nextLineHeight(cur: number): number {
-  const idx = LINE_HEIGHT_STEPS.findIndex((v) => Math.abs(v - cur) < 0.01);
-  return LINE_HEIGHT_STEPS[(idx + 1) % LINE_HEIGHT_STEPS.length];
-}
-
-/** rect 도형 모서리 반경 단계 (px) */
-const RADIUS_STEPS_PX = [0, 4, 8, 12, 16, 24, 32, 48];
-function nextRadius(cur: number, dir: 1 | -1): number {
-  let idx = 0;
-  let bestDist = Infinity;
-  for (let i = 0; i < RADIUS_STEPS_PX.length; i++) {
-    const d = Math.abs(RADIUS_STEPS_PX[i] - cur);
-    if (d < bestDist) { bestDist = d; idx = i; }
-  }
-  const ni = Math.max(0, Math.min(RADIUS_STEPS_PX.length - 1, idx + dir));
-  return RADIUS_STEPS_PX[ni];
-}
-
-// Slide / SlideMeta / emptySlide / defaultMeta 는 lib/cloudSlide/types 공용
 
 export default function CloudSlideEditor() {
   const { id } = useParams<{ id: string }>();
