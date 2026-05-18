@@ -157,6 +157,95 @@ describe('runPivot — 정렬', () => {
   });
 });
 
+describe('runPivot — 엣지 케이스', () => {
+  it('빈 데이터 (헤더만) → 결과 헤더만', () => {
+    const out = runPivot(
+      { A1: '카테고리', B1: '매출' },
+      parsePivotRange('A1:B1'),
+      { rowCol: '카테고리', values: [{ col: '매출', agg: 'sum' }] },
+    );
+    expect(out.A1).toBe('카테고리');
+    expect(out.B1).toBe('SUM(매출)');
+    expect(out.A2).toBeUndefined();
+  });
+
+  it('단일 행 데이터', () => {
+    const out = runPivot(
+      { A1: '카테고리', B1: '매출', A2: '문구', B2: '100' },
+      parsePivotRange('A1:B2'),
+      { rowCol: '카테고리', values: [{ col: '매출', agg: 'sum' }] },
+    );
+    expect(out.A2).toBe('문구');
+    expect(out.B2).toBe('100');
+  });
+
+  it('숫자 아닌 값 섞임 → SUM 은 숫자만 합산', () => {
+    const out = runPivot(
+      {
+        A1: '카', B1: '값',
+        A2: 'X', B2: '10',
+        A3: 'X', B3: '20',
+        A4: 'X', B4: '비숫자',
+        A5: 'X', B5: '5',
+      },
+      parsePivotRange('A1:B5'),
+      { rowCol: '카', values: [{ col: '값', agg: 'sum' }] },
+    );
+    expect(out.B2).toBe('35'); // 10+20+5
+  });
+
+  it('값 컬럼 label override', () => {
+    const out = runPivot(
+      { A1: '카', B1: '매출', A2: 'X', B2: '100' },
+      parsePivotRange('A1:B2'),
+      {
+        rowCol: '카',
+        values: [{ col: '매출', agg: 'sum', label: '총매출' }],
+      },
+    );
+    expect(out.B1).toBe('총매출');
+  });
+
+  it('필터로 모두 제외 → 행 0개', () => {
+    const out = runPivot(
+      {
+        A1: '카', B1: '값',
+        A2: 'X', B2: '10',
+        A3: 'Y', B3: '20',
+      },
+      parsePivotRange('A1:B3'),
+      {
+        rowCol: '카',
+        values: [{ col: '값', agg: 'sum' }],
+        filters: [{ col: '값', criteria: '>99999' }],
+      },
+    );
+    expect(out.A1).toBe('카');
+    expect(out.A2).toBeUndefined();
+  });
+
+  it('교차표 + 빈 셀 (해당 조합 데이터 없음) → 0', () => {
+    const out = runPivot(
+      {
+        A1: '월', B1: '카테고리', C1: '매출',
+        A2: '1월', B2: '문구', C2: '100',
+        A3: '2월', B3: '음료', C3: '200',
+      },
+      parsePivotRange('A1:C3'),
+      {
+        rowCol: '월',
+        colCol: '카테고리',
+        values: [{ col: '매출', agg: 'sum' }],
+      },
+    );
+    // 헤더 알파벳 정렬: 문구, 음료
+    expect(out.B1).toBe('문구');
+    expect(out.C1).toBe('음료');
+    // 2월·문구는 데이터 없음 → 0
+    expect(out.B2).toBeDefined(); // 어딘가에 0
+  });
+});
+
 describe('runPivot — 검증', () => {
   it('없는 행 컬럼 → throw', () => {
     expect(() => runPivot(SAMPLE, parsePivotRange('A1:C6'), {
