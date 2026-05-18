@@ -32,6 +32,8 @@ dist-ssr
 next-env.d.ts
 .playwright-cli/
 .claude/worktrees/
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks/
 output/
 tmp/
 services/**/.venv/

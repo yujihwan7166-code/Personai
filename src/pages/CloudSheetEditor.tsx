@@ -2713,199 +2713,205 @@ export default function CloudSheetEditor() {
         </div>
 
         {/* 서식 도구바 */}
-        <div className="border-t border-border bg-background flex items-center gap-0.5 px-3 py-1.5 overflow-x-auto text-sm">
+        <div className="border-t border-border bg-background flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 text-sm">
           {(() => {
             const curFmt = cellFormats[selectedRef] ?? {};
+            const cluster = 'inline-flex items-center gap-0.5 shrink-0 rounded-md bg-muted/30 px-1 py-0.5';
             return (
               <>
-                <button
-                  type="button"
-                  onClick={() => setCellFormat(selectedRef, { bold: !curFmt.bold })}
-                  className={cn(
-                    'p-1.5 rounded transition-colors hover:bg-muted',
-                    curFmt.bold && 'bg-muted text-foreground',
-                  )}
-                  title="굵게"
-                  aria-pressed={!!curFmt.bold}
-                >
-                  <Bold className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCellFormat(selectedRef, { italic: !curFmt.italic })}
-                  className={cn(
-                    'p-1.5 rounded transition-colors hover:bg-muted',
-                    curFmt.italic && 'bg-muted text-foreground',
-                  )}
-                  title="기울임"
-                  aria-pressed={!!curFmt.italic}
-                >
-                  <Italic className="w-4 h-4" />
-                </button>
-                <div className="w-px h-5 bg-border mx-1" />
-
-                {/* 정렬 */}
-                <button
-                  type="button"
-                  onClick={() => setCellFormat(selectedRef, { align: 'left' })}
-                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'left' && 'bg-muted')}
-                  title="왼쪽 정렬"
-                >
-                  <AlignLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCellFormat(selectedRef, { align: 'center' })}
-                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'center' && 'bg-muted')}
-                  title="가운데 정렬"
-                >
-                  <AlignCenter className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCellFormat(selectedRef, { align: 'right' })}
-                  className={cn('p-1.5 rounded hover:bg-muted', curFmt.align === 'right' && 'bg-muted')}
-                  title="오른쪽 정렬"
-                >
-                  <AlignRight className="w-4 h-4" />
-                </button>
-                <div className="w-px h-5 bg-border mx-1" />
-
-                {/* 글자색 */}
-                <SheetColorBtn
-                  icon={<Palette className="w-3.5 h-3.5" />}
-                  value={curFmt.textColor ?? '#222222'}
-                  onChange={(c) => setCellFormat(selectedRef, { textColor: c })}
-                  title="글자색"
-                />
-                {/* 배경색 */}
-                <SheetColorBtn
-                  icon={<Highlighter className="w-3.5 h-3.5" />}
-                  value={curFmt.bgColor ?? '#fff59d'}
-                  onChange={(c) => setCellFormat(selectedRef, { bgColor: c })}
-                  title="배경색"
-                />
-                <div className="w-px h-5 bg-border mx-1" />
-
-                {/* 숫자 형식 */}
-                <Hash className="w-3.5 h-3.5 text-muted-foreground ml-1" aria-hidden />
-                <select
-                  value={curFmt.numberFmt ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value as '' | NumberFmt;
-                    setCellFormat(selectedRef, { numberFmt: v || undefined });
-                  }}
-                  className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[88px]"
-                  title="숫자 형식"
-                  aria-label="숫자 형식"
-                >
-                  {NUMBER_FMT_OPTIONS.map((o) => (
-                    <option key={o.value || 'auto'} value={o.value}>
-                      {o.label}{o.example ? ` (${o.example})` : ''}
-                    </option>
-                  ))}
-                </select>
-
-                {/* 테두리 */}
-                <SquareIcon className="w-3.5 h-3.5 text-muted-foreground ml-1" aria-hidden />
-                <select
-                  value={curFmt.border ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value as '' | BorderStyle;
-                    setCellFormat(selectedRef, { border: v || undefined });
-                  }}
-                  className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[74px]"
-                  title="테두리"
-                  aria-label="테두리"
-                >
-                  <option value="">없음</option>
-                  <option value="all">전체</option>
-                  <option value="top">위</option>
-                  <option value="bottom">아래</option>
-                  <option value="left">왼쪽</option>
-                  <option value="right">오른쪽</option>
-                </select>
-
-                <div className="w-px h-5 bg-border mx-1" />
-
-                {/* 셀 병합 드롭다운 */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="p-1.5 rounded hover:bg-muted flex items-center gap-0.5"
-                      title="셀 병합 (범위 선택 후)"
-                      aria-label="셀 병합"
-                    >
-                      <Combine className="w-4 h-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="min-w-[180px]">
-                    <DropdownMenuItem onSelect={() => applyMerge('all')}>
-                      <Combine className="w-4 h-4 mr-2" />
-                      모두 병합
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => applyMerge('horizontal')}>
-                      <Combine className="w-4 h-4 mr-2 rotate-90" />
-                      가로로 병합
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => applyMerge('vertical')}>
-                      <Combine className="w-4 h-4 mr-2" />
-                      세로로 병합
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => applyMerge('unmerge')}>
-                      <Split className="w-4 h-4 mr-2" />
-                      병합 해제
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <div className="w-px h-5 bg-border mx-1" />
-                <button
-                  type="button"
-                  onClick={() => setCommentModalOpen(true)}
-                  className={cn(
-                    'p-1.5 rounded hover:bg-muted',
-                    comments[selectedRef] && 'bg-muted text-foreground',
-                  )}
-                  title={comments[selectedRef]
-                    ? `코멘트 편집: ${comments[selectedRef].slice(0, 40)}`
-                    : '코멘트 추가'}
-                  aria-label="셀 코멘트"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                </button>
-                {hasRange && (
+                {/* 텍스트 스타일 */}
+                <div className={cluster} role="group" aria-label="텍스트 스타일">
                   <button
                     type="button"
-                    onClick={fillSelectionWithCurrent}
-                    className="p-1.5 rounded hover:bg-muted"
-                    title="현재 셀 값을 선택 영역에 일괄 입력"
-                    aria-label="선택 영역 일괄 입력"
+                    onClick={() => setCellFormat(selectedRef, { bold: !curFmt.bold })}
+                    className={cn(
+                      'p-1.5 rounded transition-colors hover:bg-background',
+                      curFmt.bold && 'bg-background text-foreground shadow-sm',
+                    )}
+                    title="굵게"
+                    aria-pressed={!!curFmt.bold}
                   >
-                    <CopyIcon className="w-4 h-4" />
+                    <Bold className="w-4 h-4" />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={insertAutoSum}
-                  className="p-1.5 rounded hover:bg-muted font-bold"
-                  title={hasRange
-                    ? '선택 영역 각 열의 아래 셀에 =SUM 자동 입력'
-                    : '위쪽 인접 숫자 구간을 합산해 현재 셀에 =SUM 입력'}
-                  aria-label="빠른 합계"
-                >
-                  Σ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => clearCellFormat(selectedRef)}
-                  className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-                  title="서식 지우기"
-                >
-                  <Eraser className="w-4 h-4" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { italic: !curFmt.italic })}
+                    className={cn(
+                      'p-1.5 rounded transition-colors hover:bg-background',
+                      curFmt.italic && 'bg-background text-foreground shadow-sm',
+                    )}
+                    title="기울임"
+                    aria-pressed={!!curFmt.italic}
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* 정렬 */}
+                <div className={cluster} role="group" aria-label="정렬">
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { align: 'left' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.align === 'left' && 'bg-background shadow-sm')}
+                    title="왼쪽 정렬"
+                  >
+                    <AlignLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { align: 'center' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.align === 'center' && 'bg-background shadow-sm')}
+                    title="가운데 정렬"
+                  >
+                    <AlignCenter className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { align: 'right' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.align === 'right' && 'bg-background shadow-sm')}
+                    title="오른쪽 정렬"
+                  >
+                    <AlignRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* 색상 */}
+                <div className={cluster} role="group" aria-label="색상">
+                  <SheetColorBtn
+                    icon={<Palette className="w-3.5 h-3.5" />}
+                    value={curFmt.textColor ?? '#222222'}
+                    onChange={(c) => setCellFormat(selectedRef, { textColor: c })}
+                    title="글자색"
+                  />
+                  <SheetColorBtn
+                    icon={<Highlighter className="w-3.5 h-3.5" />}
+                    value={curFmt.bgColor ?? '#fff59d'}
+                    onChange={(c) => setCellFormat(selectedRef, { bgColor: c })}
+                    title="배경색"
+                  />
+                </div>
+
+                {/* 숫자/테두리 */}
+                <div className={cluster} role="group" aria-label="숫자 형식 및 테두리">
+                  <Hash className="w-3.5 h-3.5 text-muted-foreground ml-0.5" aria-hidden />
+                  <select
+                    value={curFmt.numberFmt ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value as '' | NumberFmt;
+                      setCellFormat(selectedRef, { numberFmt: v || undefined });
+                    }}
+                    className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[88px]"
+                    title="숫자 형식"
+                    aria-label="숫자 형식"
+                  >
+                    {NUMBER_FMT_OPTIONS.map((o) => (
+                      <option key={o.value || 'auto'} value={o.value}>
+                        {o.label}{o.example ? ` (${o.example})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <SquareIcon className="w-3.5 h-3.5 text-muted-foreground ml-1" aria-hidden />
+                  <select
+                    value={curFmt.border ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value as '' | BorderStyle;
+                      setCellFormat(selectedRef, { border: v || undefined });
+                    }}
+                    className="text-xs px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer min-w-[74px]"
+                    title="테두리"
+                    aria-label="테두리"
+                  >
+                    <option value="">없음</option>
+                    <option value="all">전체</option>
+                    <option value="top">위</option>
+                    <option value="bottom">아래</option>
+                    <option value="left">왼쪽</option>
+                    <option value="right">오른쪽</option>
+                  </select>
+                </div>
+
+                {/* 병합 */}
+                <div className={cluster} role="group" aria-label="셀 병합">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="p-1.5 rounded hover:bg-background flex items-center gap-0.5"
+                        title="셀 병합 (범위 선택 후)"
+                        aria-label="셀 병합"
+                      >
+                        <Combine className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="min-w-[180px]">
+                      <DropdownMenuItem onSelect={() => applyMerge('all')}>
+                        <Combine className="w-4 h-4 mr-2" />
+                        모두 병합
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => applyMerge('horizontal')}>
+                        <Combine className="w-4 h-4 mr-2 rotate-90" />
+                        가로로 병합
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => applyMerge('vertical')}>
+                        <Combine className="w-4 h-4 mr-2" />
+                        세로로 병합
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => applyMerge('unmerge')}>
+                        <Split className="w-4 h-4 mr-2" />
+                        병합 해제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* 도구 (코멘트·일괄·합계·지우기) */}
+                <div className={cluster} role="group" aria-label="데이터 도구">
+                  <button
+                    type="button"
+                    onClick={() => setCommentModalOpen(true)}
+                    className={cn(
+                      'p-1.5 rounded hover:bg-background',
+                      comments[selectedRef] && 'bg-background text-foreground shadow-sm',
+                    )}
+                    title={comments[selectedRef]
+                      ? `코멘트 편집: ${comments[selectedRef].slice(0, 40)}`
+                      : '코멘트 추가'}
+                    aria-label="셀 코멘트"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </button>
+                  {hasRange && (
+                    <button
+                      type="button"
+                      onClick={fillSelectionWithCurrent}
+                      className="p-1.5 rounded hover:bg-background"
+                      title="현재 셀 값을 선택 영역에 일괄 입력"
+                      aria-label="선택 영역 일괄 입력"
+                    >
+                      <CopyIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={insertAutoSum}
+                    className="p-1.5 rounded hover:bg-background font-bold"
+                    title={hasRange
+                      ? '선택 영역 각 열의 아래 셀에 =SUM 자동 입력'
+                      : '위쪽 인접 숫자 구간을 합산해 현재 셀에 =SUM 입력'}
+                    aria-label="빠른 합계"
+                  >
+                    Σ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => clearCellFormat(selectedRef)}
+                    className="p-1.5 rounded hover:bg-background text-muted-foreground"
+                    title="서식 지우기"
+                  >
+                    <Eraser className="w-4 h-4" />
+                  </button>
+                </div>
               </>
             );
           })()}
