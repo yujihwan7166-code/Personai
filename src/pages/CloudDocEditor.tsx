@@ -742,13 +742,13 @@ function DocPage({
                 onChange={(e) => onHeaderChange(e.target.value)}
                 placeholder="머리글 (선택)"
                 className="absolute z-20 text-xs text-slate-500 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
-                style={{ top: `${cardTop + 32}px`, left: '96px', width: '624px' }}
+                style={{ top: `${cardTop + 32}px`, left: `${pageMargin.left}px`, width: `${816 - pageMargin.left - pageMargin.right}px` }}
                 aria-label="머리글"
               />
             ) : headerText ? (
               <div
                 className="absolute z-20 text-[11px] text-slate-500 text-center truncate pointer-events-none"
-                style={{ top: `${cardTop + 16}px`, left: '96px', width: '624px' }}
+                style={{ top: `${cardTop + 16}px`, left: `${pageMargin.left}px`, width: `${816 - pageMargin.left - pageMargin.right}px` }}
               >
                 {headerText}
               </div>
@@ -756,7 +756,7 @@ function DocPage({
             {/* 푸터 — 마지막 카드는 편집, 나머지는 미러. 페이지 번호 모든 카드 */}
             <div
               className="absolute z-20 flex items-center text-xs text-slate-500"
-              style={{ top: `${cardTop + CARD_HEIGHT_PX - 32}px`, left: '96px', width: '624px' }}
+              style={{ top: `${cardTop + CARD_HEIGHT_PX - 32}px`, left: `${pageMargin.left}px`, width: `${816 - pageMargin.left - pageMargin.right}px` }}
             >
               {isLast ? (
                 <input
