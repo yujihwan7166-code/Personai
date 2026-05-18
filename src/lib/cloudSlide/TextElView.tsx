@@ -1,0 +1,92 @@
+/** 슬라이드 텍스트 요소 — contentEditable 박스 + 리사이즈/회전 핸들. */
+
+import React, { useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
+import type { SlideTextEl, ResizeDir } from './types';
+import { ResizeHandles, RotateHandle } from './Handles';
+
+interface TextElViewProps {
+  el: SlideTextEl;
+  selected: boolean;
+  editing: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onClick: (e: React.MouseEvent) => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
+  onChange: (content: string) => void;
+  onFinishEdit: () => void;
+  onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
+  onStartRotate?: (e: React.PointerEvent) => void;
+}
+
+export function TextElView({
+  el, selected, editing, onPointerDown, onClick, onDoubleClick, onChange, onFinishEdit, onStartResize, onStartRotate,
+}: TextElViewProps) {
+  const editableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editing && editableRef.current) {
+      editableRef.current.focus();
+      const range = document.createRange();
+      range.selectNodeContents(editableRef.current);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  }, [editing]);
+
+  return (
+    <div
+      onPointerDown={editing ? undefined : onPointerDown}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      className={cn(
+        'absolute group',
+        editing ? 'cursor-text' : 'cursor-move',
+        'rounded-sm',
+        selected && !editing && 'outline outline-2 -outline-offset-1 outline-foreground/70',
+        !selected && 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-foreground/30',
+      )}
+      style={{
+        left: `${el.xPct}%`,
+        top: `${el.yPct}%`,
+        width: `${el.wPct}%`,
+        height: `${el.hPct}%`,
+        padding: '4px 8px',
+        backgroundColor: el.bgColor,
+        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        transformOrigin: 'center center',
+      }}
+    >
+      <div
+        ref={editableRef}
+        contentEditable={editing}
+        suppressContentEditableWarning
+        onInput={(e) => onChange((e.currentTarget.textContent ?? '').trim())}
+        onBlur={onFinishEdit}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            onFinishEdit();
+          }
+        }}
+        className={cn(
+          'w-full h-full outline-none break-words overflow-hidden',
+          el.bold && 'font-semibold',
+          el.italic && 'italic',
+          el.underline && 'underline underline-offset-2',
+        )}
+        style={{
+          fontSize: `${el.fontSizeRem}rem`,
+          lineHeight: el.lineHeight ?? 1.25,
+          color: el.textColor ?? 'rgba(0,0,0,0.8)',
+          textAlign: el.align ?? 'left',
+        }}
+      >
+        {el.content}
+      </div>
+      {selected && !editing && <ResizeHandles onStart={onStartResize} />}
+      {selected && !editing && onStartRotate && <RotateHandle onStart={onStartRotate} />}
+    </div>
+  );
+}
