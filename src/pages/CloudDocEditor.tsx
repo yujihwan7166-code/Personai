@@ -29,8 +29,9 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateFileBody } from '@/lib/cloudClient';
+// updateFileBody 는 useDebouncedAutosave 내부 사용
 import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
+import { useDebouncedAutosave } from '@/lib/cloudCommon/useDebouncedAutosave';
 import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
@@ -124,8 +125,6 @@ export default function CloudDocEditor() {
   }, [node?.id]);
 
 
-  const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
   const scrollRestoredRef = useRef(false);
   const initialBody = useMemo(() => {
@@ -149,38 +148,10 @@ export default function CloudDocEditor() {
     onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
   });
 
-  // ─── 디바운스 저장 큐 ───
-  const flushSave = useCallback(async () => {
-    if (!id) return;
-    const payload = pendingRef.current;
-    if (!payload.name && !payload.meta) return;
-    pendingRef.current = {};
-    setSaveState('saving');
-    try {
-      await updateFileBody(id, payload);
-      setSaveState('saved');
-      setLastSavedAt(Date.now());
-    } catch (e) {
-      setSaveState('error');
-      const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: '저장 실패', description: msg });
-    }
-  }, [id]);
-
-  const queueSave = useCallback((patch: { name?: string; meta?: Record<string, unknown> }) => {
-    pendingRef.current = { ...pendingRef.current, ...patch };
-    setSaveState('saving');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave]);
-
-  // 언마운트 시 즉시 flush
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      void flushSave();
-    };
-  }, [flushSave]);
+  // ─── 디바운스 저장 큐 (공용 훅) ───
+  const { flushSave, queueSave } = useDebouncedAutosave({
+    id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
+  });
 
   // ─── TipTap 에디터 ───
   const editor = useEditor({
@@ -520,7 +491,6 @@ export default function CloudDocEditor() {
   }, []);
 
   const close = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     void flushSave();
     navigate('/cloud');
   }, [flushSave, navigate]);

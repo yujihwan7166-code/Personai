@@ -30,10 +30,11 @@ interface EmbeddedChartCardProps {
   onMoveNext?: () => void;
   onChangePalette?: (palette: string) => void;
   onChangeTitle?: (title: string) => void;
+  onChangeType?: (type: 'bar' | 'line' | 'pie') => void;
 }
 
 export function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle,
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
@@ -92,7 +93,37 @@ export function EmbeddedChartCard({
   return (
     <div className="rounded border border-border bg-background overflow-hidden">
       <div className="flex items-center px-3 py-1.5 border-b border-border bg-muted/30 text-xs gap-1">
-        <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+        {onChangeType ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="px-1 py-0.5 rounded hover:bg-muted"
+                title="차트 종류 변경"
+                aria-label="차트 종류"
+              >
+                <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[120px]">
+              {([
+                { t: 'bar' as const, icon: '📊', label: '막대' },
+                { t: 'line' as const, icon: '📈', label: '선' },
+                { t: 'pie' as const, icon: '🥧', label: '원' },
+              ]).map(({ t, icon, label }) => (
+                <DropdownMenuItem key={t} onSelect={() => onChangeType(t)} className="flex items-center gap-2">
+                  <span aria-hidden>{icon}</span>
+                  <span>{label}</span>
+                  {chart.type === t && (
+                    <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-foreground" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+        )}
         {editingTitle ? (
           <input
             ref={titleInputRef}
