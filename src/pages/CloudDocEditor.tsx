@@ -1823,6 +1823,7 @@ function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => vo
             <HelpRow keys={['Ctrl', 'U']} label="밑줄" />
             <HelpRow keys={['Ctrl', 'Shift', 'X']} label="취소선" />
             <HelpRow keys={['Ctrl', 'E']} label="인라인 코드" />
+            <HelpRow keys={['🖌']} label="서식 복사 — 선택 후 도구바 🖌 → 다음 선택에 적용" />
           </HelpSection>
 
           <HelpSection title="구조 (마크다운 입력 가능)">
@@ -1874,6 +1875,16 @@ function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => vo
             <HelpRow keys={['Ctrl', ',']} label="아래 첨자 (x₂)" />
             <HelpRow keys={['Tab']} label="리스트 들여쓰기" />
             <HelpRow keys={['Shift', 'Tab']} label="리스트 내어쓰기" />
+          </HelpSection>
+
+          <HelpSection title="페이지·문서">
+            <HelpRow keys={['스타일']} label="도구바 좌측 드롭다운 → 일반/제목 1~3/인용/코드 블록" />
+            <HelpRow keys={['줌']} label="도구바 줌 select → 50~200%" />
+            <HelpRow keys={['머리글']} label="첫 페이지 카드 상단 input — 모든 페이지에 자동 반복" />
+            <HelpRow keys={['바닥글']} label="마지막 페이지 카드 하단 input — 모든 페이지 자동 반복" />
+            <HelpRow keys={['페이지 ▭']} label="본문이 1056px 넘으면 자동으로 다음 카드 시작" />
+            <HelpRow keys={['마진']} label="cm 눈금자 좌우 ▾ 핸들 드래그로 본문 마진 조절" />
+            <HelpRow keys={['각주 ✱']} label="도구바 ✱ → 위첨자 [N] + 문서 끝 모음. 클릭으로 편집" />
           </HelpSection>
         </div>
 

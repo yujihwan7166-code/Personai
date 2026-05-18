@@ -1289,6 +1289,12 @@ export default function CloudSheetEditor() {
   }, [canRedo, history, historyIdx, applySnapshot]);
 
   // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — 편집 중·input 안 X
+  // + PR #8 파워 단축키 (Sheets 매칭):
+  //   Ctrl+;             → 오늘 날짜 (YYYY-MM-DD)
+  //   Ctrl+Shift+;       → 현재 시각 (HH:MM:SS)
+  //   Ctrl+Alt+1~5       → 통화/소수1/시간/날짜/퍼센트 (Sheets 매칭)
+  //   Ctrl+\             → 서식 지우기
+  //   (F4 절대참조 토글은 편집 모드 안에서 동작해야 하므로 별도 — 본 PR 범위 밖)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (editing) return;
@@ -1297,12 +1303,51 @@ export default function CloudSheetEditor() {
       const isMod = e.ctrlKey || e.metaKey;
       if (!isMod) return;
       const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
-      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
+
+      // Ctrl+; / Ctrl+Shift+; — 날짜/시간 삽입
+      if (e.key === ';' && !e.altKey) {
+        e.preventDefault();
+        const d = new Date();
+        if (e.shiftKey) {
+          // 현재 시각
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          const ss = String(d.getSeconds()).padStart(2, '0');
+          setCellValue(selectedRef, `${hh}:${mm}:${ss}`);
+        } else {
+          // 오늘 날짜
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          setCellValue(selectedRef, `${y}-${m}-${day}`);
+        }
+        return;
+      }
+
+      // Ctrl+Alt+1~5 / Ctrl+\ — 숫자 서식 단축
+      if (e.altKey) {
+        if (e.key === '1') { e.preventDefault(); setCellFormat(selectedRef, { numberFmt: 'currency-krw' }); return; }
+        if (e.key === '2') { e.preventDefault(); setCellFormat(selectedRef, { numberFmt: 'decimal1' }); return; }
+        if (e.key === '3') { e.preventDefault(); setCellFormat(selectedRef, { numberFmt: 'date' }); return; }
+        if (e.key === '4') { e.preventDefault(); setCellFormat(selectedRef, { numberFmt: 'integer' }); return; }
+        if (e.key === '5') { e.preventDefault(); setCellFormat(selectedRef, { numberFmt: 'percent' }); return; }
+      }
+      if (e.key === '\\') {
+        e.preventDefault();
+        setCellFormat(selectedRef, {
+          bold: undefined, italic: undefined, underline: undefined, strikethrough: undefined,
+          textColor: undefined, bgColor: undefined, align: undefined, vAlign: undefined,
+          wrap: undefined, fontFamily: undefined, fontSize: undefined,
+          numberFmt: undefined, border: undefined,
+        });
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, undo, redo]);
+  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat]);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
