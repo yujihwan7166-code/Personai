@@ -1560,6 +1560,32 @@ export default function CloudSheetEditor() {
     }
   }, [sheetsMeta, allCells, allFormats, allMerges, node?.name]);
 
+  /** 현재 시트만 CSV 다운로드 — 서식·병합·다른 시트 손실 (UTF-8 BOM 포함, Excel 한글 호환). */
+  const exportCsv = useCallback(() => {
+    try {
+      const csv = cellsToCsv(cells, { displayValues });
+      if (!csv) {
+        toast({ title: '빈 시트', description: '값이 있는 셀이 없어요.' });
+        return;
+      }
+      const baseName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
+      const sheetSuffix = sheetsMeta.length > 1 ? `_${currentSheetName.replace(/[\\/:*?"<>|]/g, '_')}` : '';
+      const fileName = `${baseName}${sheetSuffix}.csv`;
+      // UTF-8 BOM (U+FEFF) prepend → Excel 한글 깨짐 방지
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast({ title: 'CSV 다운로드', description: `${fileName} (현재 시트만)` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'CSV 내보내기 실패', description: msg });
+    }
+  }, [cells, displayValues, node?.name, sheetsMeta.length, currentSheetName]);
+
   const duplicateSheet = useCallback((idx: number) => {
     const src = sheetsMeta[idx];
     if (!src) return;
@@ -2618,6 +2644,10 @@ export default function CloudSheetEditor() {
                 <DropdownMenuItem onSelect={exportXlsx}>
                   <Download className="w-4 h-4 mr-2" />
                   .xlsx 내보내기
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={exportCsv}>
+                  <Download className="w-4 h-4 mr-2" />
+                  .csv 내보내기 (현재 시트)
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => { void exportPdf(); }}>
                   <Download className="w-4 h-4 mr-2" />
