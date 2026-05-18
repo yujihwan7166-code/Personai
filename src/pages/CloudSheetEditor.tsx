@@ -2159,6 +2159,30 @@ export default function CloudSheetEditor() {
     [],
   );
 
+  /** 헤더 클릭: 그 row/col 전체 선택. Shift 클릭으로 연속 선택. */
+  const handleHeaderClick = useCallback(
+    (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => {
+      if (kind === 'row') {
+        // 한 row 전체 (col 0 ~ colCount-1)
+        if (e.shiftKey && rangeAnchor) {
+          setSelected({ row: idx, col: colCount - 1 });
+        } else {
+          setRangeAnchor({ row: idx, col: 0 });
+          setSelected({ row: idx, col: colCount - 1 });
+        }
+      } else {
+        // 한 col 전체 (row 0 ~ rowCount-1)
+        if (e.shiftKey && rangeAnchor) {
+          setSelected({ row: rowCount - 1, col: idx });
+        } else {
+          setRangeAnchor({ row: 0, col: idx });
+          setSelected({ row: rowCount - 1, col: idx });
+        }
+      }
+    },
+    [rangeAnchor, rowCount, colCount],
+  );
+
   useEffect(() => {
     if (!ctxMenu) return;
     const close = () => setCtxMenu(null);
@@ -2949,6 +2973,7 @@ export default function CloudSheetEditor() {
             onColResize={setColWidth}
             onRowResize={setRowHeight}
             onRowAutoFit={autoFitRowHeight}
+            onHeaderClick={handleHeaderClick}
             onHeaderContextMenu={openHeaderContextMenu}
             onCellContextMenu={openCellContextMenu}
             matchedRefs={searchMatchSet}
@@ -3319,6 +3344,7 @@ interface SheetGridProps {
   onColResize: (colIdx: number, newWidth: number) => void;
   onRowResize: (rowIdx: number, newHeight: number) => void;
   onRowAutoFit?: (rowIdx: number) => void;
+  onHeaderClick?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onCellContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
   matchedRefs?: Set<string>;
@@ -3364,7 +3390,7 @@ interface SheetGridProps {
 
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
-  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderContextMenu,
+  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
   onCellContextMenu,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
@@ -3413,8 +3439,9 @@ function SheetGrid({
             {cols.map((c, i) => (
               <th
                 key={c}
-                className="border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground relative group"
+                className="border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground relative group cursor-pointer hover:bg-muted/60"
                 style={{ width: colWidths[i] ?? DEFAULT_COL_WIDTH, minWidth: MIN_COL_WIDTH }}
+                onClick={(e) => onHeaderClick?.('col', i, e)}
                 onContextMenu={(e) => onHeaderContextMenu?.('col', i, e)}
               >
                 {c}
@@ -3455,7 +3482,8 @@ function SheetGrid({
           {rows.map((rowIdx) => visibleRowSet && !visibleRowSet.has(rowIdx) ? null : (
             <tr key={rowIdx} style={{ height: rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT }}>
               <th
-                className="w-10 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10 relative group"
+                className="w-10 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10 relative group cursor-pointer hover:bg-muted/60"
+                onClick={(e) => onHeaderClick?.('row', rowIdx, e)}
                 onContextMenu={(e) => onHeaderContextMenu?.('row', rowIdx, e)}
                 style={{ height: rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT }}
               >
