@@ -283,6 +283,18 @@ export default function Cloud() {
     }
   }, [selectedNodes, refresh]);
 
+  const bulkFolderColor = useCallback(async (color: string | null) => {
+    const folders = selectedNodes.filter((n) => n.kind === 'folder');
+    if (folders.length === 0) return;
+    try {
+      for (const n of folders) await setFolderColor(n.id, color);
+      await refresh();
+      toast({ title: `${folders.length}개 폴더 색상 ${color ? '변경' : '제거'}` });
+    } catch (e) {
+      toast({ title: '일괄 색상 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [selectedNodes, refresh]);
+
   const bulkMoveToTrash = useCallback(async () => {
     if (selectedNodes.length === 0) return;
     const ok = await confirmDialog({
@@ -1166,6 +1178,30 @@ export default function Cloud() {
                   >
                     <Star className="w-3.5 h-3.5 opacity-50" /> 별표 해제
                   </button>
+                  {selectedNodes.some((n) => n.kind === 'folder') && (
+                    <div className="flex items-center gap-1 px-2 py-1 rounded bg-background/10">
+                      <span className="text-[10px] opacity-70 mr-1">폴더 색</span>
+                      <button
+                        type="button"
+                        onClick={() => void bulkFolderColor(null)}
+                        className="w-3.5 h-3.5 rounded-sm border border-background/40 bg-background/20 flex items-center justify-center"
+                        title="기본"
+                      >
+                        <span className="text-[7px] opacity-70">×</span>
+                      </button>
+                      {FOLDER_COLOR_KEYS.map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => void bulkFolderColor(k)}
+                          className="w-3.5 h-3.5 rounded-sm border border-background/40 hover:scale-110 transition-transform"
+                          style={{ backgroundColor: FOLDER_COLOR_MAP[k] }}
+                          title={k}
+                          aria-label={`색상 ${k}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => void bulkMoveToTrash()}
