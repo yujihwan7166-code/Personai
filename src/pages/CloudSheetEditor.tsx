@@ -3800,9 +3800,15 @@ const SheetCell = React.memo(function SheetCell({
             value={editingValue}
             onChange={(e) => onChangeValue(e.target.value)}
             onKeyDown={(e) => {
-              // Tab: 자동완성이 있으면 그것으로 채우고 commit, 아니면 그냥 right
+              // Tab 1순위: 함수 자동완성 (=SU → SUM( ) — commit X, 인자 입력 계속
               if (e.key === 'Tab') {
                 e.preventDefault();
+                const funcs = getFuncSuggestionNames(editingValue);
+                if (funcs.length > 0) {
+                  onChangeValue(applyFuncSuggestion(editingValue, funcs[0]));
+                  return;
+                }
+                // 2순위: 셀 값 자동완성이 있으면 그것으로 채우고 commit right
                 if (autocomplete && autocomplete !== editingValue
                     && autocomplete.toLowerCase().startsWith(editingValue.toLowerCase())) {
                   onChangeValue(autocomplete);
@@ -4298,6 +4304,29 @@ function SheetTab({
 // 수식 함수 popover — 시그니처 hint + prefix 매치 후보 리스트
 // ─────────────────────────────────────────────
 
+/** 입력 끝의 함수 prefix 로 매치되는 후보 (정렬: 짧은 이름 우선) */
+function getFuncSuggestionNames(value: string): string[] {
+  if (!value.startsWith('=')) return [];
+  // 미닫힌 ( 가 있으면 시그니처 hint 모드 — 후보 X
+  const lastOpen = value.lastIndexOf('(');
+  const lastClose = value.lastIndexOf(')');
+  if (lastOpen > lastClose) return [];
+  const tail = value.slice(1).match(/([A-Z]+)$/i);
+  if (!tail) return [];
+  const prefix = tail[1].toUpperCase();
+  return Object.keys(FUNC_HELP)
+    .filter((k) => k.startsWith(prefix))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b));
+}
+
+/** 입력 끝의 알파벳 prefix 를 NAME( 으로 교체 */
+function applyFuncSuggestion(value: string, name: string): string {
+  const m = value.match(/([A-Za-z]+)$/);
+  if (!m) return value;
+  const before = value.slice(0, value.length - m[1].length);
+  return `${before}${name}(`;
+}
+
 interface FuncHintPopoverProps {
   value: string;
   /** 후보 클릭 시 입력값 교체 (부모가 textarea/input 값 갱신). */
@@ -4321,25 +4350,14 @@ function FuncHintPopover({ value, onReplaceValue }: FuncHintPopoverProps) {
 
   /** 미닫힌 ( 가 없을 때 — 입력 끝의 함수 prefix 로 후보 리스트 (최대 8) */
   const suggestions = useMemo(() => {
-    if (!value.startsWith('=') || sigHint) return [];
-    // 입력 끝 알파벳 토큰을 prefix 로
-    const tail = value.slice(1).match(/([A-Z]+)$/i);
-    if (!tail) return [];
-    const prefix = tail[1].toUpperCase();
-    const names = Object.keys(FUNC_HELP)
-      .filter((k) => k.startsWith(prefix))
-      .sort((a, b) => a.length - b.length || a.localeCompare(b))
-      .slice(0, 8);
-    return names.map((name) => ({ name, ...FUNC_HELP[name] }));
+    if (sigHint) return [];
+    return getFuncSuggestionNames(value).slice(0, 8).map((name) => ({ name, ...FUNC_HELP[name] }));
   }, [value, sigHint]);
 
   /** 후보 클릭 시 입력값에서 끝 prefix 를 NAME( 로 교체 */
   const pick = useCallback((name: string) => {
     if (!onReplaceValue) return;
-    const m = value.match(/([A-Za-z]+)$/);
-    if (!m) return;
-    const before = value.slice(0, value.length - m[1].length);
-    onReplaceValue(`${before}${name}(`);
+    onReplaceValue(applyFuncSuggestion(value, name));
   }, [value, onReplaceValue]);
 
   if (sigHint) {
