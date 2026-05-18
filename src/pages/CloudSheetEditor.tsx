@@ -3463,6 +3463,17 @@ export default function CloudSheetEditor() {
             이 열 삭제 ({idxToCol(cellCtxMenu.col)})
           </button>
           <div className="h-px bg-border my-1" />
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { sortByColumn(cellCtxMenu.col, 'asc'); setCellCtxMenu(null); }}>
+            <ChevronUp className="w-3.5 h-3.5" />
+            이 열 오름차순 정렬 ({idxToCol(cellCtxMenu.col)})
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+            onClick={() => { sortByColumn(cellCtxMenu.col, 'desc'); setCellCtxMenu(null); }}>
+            <ChevronDown className="w-3.5 h-3.5" />
+            이 열 내림차순 정렬 ({idxToCol(cellCtxMenu.col)})
+          </button>
+          <div className="h-px bg-border my-1" />
           <div className="px-3 py-1.5">
             <div className="text-[10px] text-muted-foreground mb-1">빠른 색 (선택 영역)</div>
             <div className="flex items-center gap-1 mb-1">
