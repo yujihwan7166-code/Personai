@@ -46,6 +46,10 @@ import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { ToolBtn, Sep } from '@/lib/cloudSlide/ToolBtn';
 import { ThumbButton } from '@/lib/cloudSlide/ThumbButton';
 import { SlideHelpModal } from '@/lib/cloudSlide/SlideHelpModal';
+import { PresentationOverlay } from '@/lib/cloudSlide/PresentationOverlay';
+import { TextElView } from '@/lib/cloudSlide/TextElView';
+import { ImageElView } from '@/lib/cloudSlide/ImageElView';
+import { ShapeElView } from '@/lib/cloudSlide/ShapeElView';
 import { newId } from '@/lib/idGenerator';
 import {
   type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
@@ -850,7 +854,7 @@ export default function CloudSlideEditor() {
       if (out) {
         // 기존 텍스트박스를 새 내용으로 교체 (첫 텍스트박스만 — 단순화)
         const lines = out.trim().split('\n');
-        const newElements = current.elements.filter((e) => e.type !== 'text');
+        const newElements: SlideElement[] = current.elements.filter((e) => e.type !== 'text');
         if (lines[0]) {
           newElements.push({
             id: newId('el'),

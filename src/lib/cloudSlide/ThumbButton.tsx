@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import type { Slide } from './types';
+import { isText, type Slide } from './types';
 
 interface ThumbButtonProps {
   idx: number;
@@ -33,21 +33,25 @@ export const ThumbButton = React.memo(function ThumbButton({
         )}
         style={{ background: slide.background ?? '#fff' }}
       >
-        {slide.elements.map((el) => (
-          <span
-            key={el.id}
-            className="absolute text-[5px] leading-tight overflow-hidden text-black/70"
-            style={{
-              left: `${el.xPct}%`,
-              top: `${el.yPct}%`,
-              width: `${el.wPct}%`,
-              height: `${el.hPct}%`,
-              fontWeight: el.bold ? 600 : 400,
-            }}
-          >
-            {el.content || ' '}
-          </span>
-        ))}
+        {slide.elements.map((el) => {
+          // 썸네일은 텍스트 미리보기만 — 도형/이미지는 영역 점유만 표시
+          const isTxt = isText(el);
+          return (
+            <span
+              key={el.id}
+              className="absolute text-[5px] leading-tight overflow-hidden text-black/70"
+              style={{
+                left: `${el.xPct}%`,
+                top: `${el.yPct}%`,
+                width: `${el.wPct}%`,
+                height: `${el.hPct}%`,
+                fontWeight: isTxt && el.bold ? 600 : 400,
+              }}
+            >
+              {isTxt ? (el.content || ' ') : ' '}
+            </span>
+          );
+        })}
       </span>
     </button>
   );
