@@ -18,6 +18,10 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent,
+  ContextMenuItem, ContextMenuSeparator,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -859,6 +863,23 @@ export default function CloudSheetEditor() {
     setSheetsMeta(nextSheets);
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
+
+  /** 시트 위치 이동 (드래그 없이 우클릭 메뉴로) */
+  const moveSheet = useCallback((from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    if (from >= sheetsMeta.length || to >= sheetsMeta.length) return;
+    const next = sheetsMeta.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    // 현재 활성 시트 인덱스 보정
+    let nextActive = currentSheetIdx;
+    if (currentSheetIdx === from) nextActive = to;
+    else if (from < currentSheetIdx && to >= currentSheetIdx) nextActive = currentSheetIdx - 1;
+    else if (from > currentSheetIdx && to <= currentSheetIdx) nextActive = currentSheetIdx + 1;
+    setSheetsMeta(next);
+    setCurrentSheetIdx(nextActive);
+    queueSave({ sheets: next, currentSheetIdx: nextActive });
+  }, [sheetsMeta, currentSheetIdx, queueSave]);
 
   // ─── 정렬 ───
   /** 정렬 대상 영역: 선택 범위 / 그리드 used range */
@@ -3231,6 +3252,10 @@ export default function CloudSheetEditor() {
             onRename={(n) => renameSheet(i, n)}
             onDuplicate={() => duplicateSheet(i)}
             onRemove={() => removeSheet(i)}
+            onMoveLeft={() => moveSheet(i, i - 1)}
+            onMoveRight={() => moveSheet(i, i + 1)}
+            canMoveLeft={i > 0}
+            canMoveRight={i < sheetsMeta.length - 1}
             canRemove={sheetsMeta.length > 1}
           />
         ))}
@@ -4093,13 +4118,20 @@ interface SheetTabProps {
   name: string;
   active: boolean;
   canRemove: boolean;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
   onClick: () => void;
   onRename: (newName: string) => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
 }
 
-function SheetTab({ name, active, canRemove, onClick, onRename, onDuplicate, onRemove }: SheetTabProps) {
+function SheetTab({
+  name, active, canRemove, canMoveLeft, canMoveRight,
+  onClick, onRename, onDuplicate, onRemove, onMoveLeft, onMoveRight,
+}: SheetTabProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -4120,69 +4152,115 @@ function SheetTab({ name, active, canRemove, onClick, onRename, onDuplicate, onR
     if (v && v !== name) onRename(v);
   };
 
-  return (
-    <div className="flex items-center group">
-      {editing ? (
-        <input
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commit(); }
-            else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
-          }}
-          onBlur={commit}
-          className={cn(
-            'text-xs px-2 py-1 rounded-t border-l border-r border-t border-border bg-background outline-none',
-            'w-24',
-          )}
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={onClick}
-          onDoubleClick={() => setEditing(true)}
-          className={cn(
-            'text-xs px-3 py-1 rounded-t border-l border-r border-t transition-colors',
-            active
-              ? 'border-border bg-background font-medium text-foreground'
-              : 'border-transparent text-muted-foreground hover:bg-muted',
-          )}
-        >
-          {name}
-        </button>
+  const menuItems = (
+    <>
+      {!active && (
+        <ContextMenuItem onSelect={onClick}>
+          <CheckCircle2 className="w-4 h-4 mr-2" /> 이 시트로 이동
+        </ContextMenuItem>
       )}
+      <ContextMenuItem onSelect={() => setEditing(true)}>
+        <Pencil className="w-4 h-4 mr-2" /> 이름 변경
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={onDuplicate}>
+        <CopyIcon className="w-4 h-4 mr-2" /> 복제
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onSelect={onMoveLeft} disabled={!canMoveLeft}>
+        <ChevronLeft className="w-4 h-4 mr-2" /> 왼쪽으로 이동
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={onMoveRight} disabled={!canMoveRight}>
+        <ChevronRight className="w-4 h-4 mr-2" /> 오른쪽으로 이동
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        onSelect={onRemove}
+        disabled={!canRemove}
+        className="text-destructive focus:text-destructive"
+      >
+        <TrashIcon className="w-4 h-4 mr-2" /> 삭제
+      </ContextMenuItem>
+    </>
+  );
 
-      {active && !editing && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="flex items-center group">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); commit(); }
+                else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
+              }}
+              onBlur={commit}
+              className={cn(
+                'text-xs px-2 py-1 rounded-t border-l border-r border-t border-border bg-background outline-none',
+                'w-24',
+              )}
+            />
+          ) : (
             <button
               type="button"
-              className="ml-0.5 p-0.5 rounded hover:bg-muted opacity-60 hover:opacity-100"
-              aria-label="시트 메뉴"
+              onClick={onClick}
+              onDoubleClick={() => setEditing(true)}
+              className={cn(
+                'text-xs px-3 py-1 rounded-t border-l border-r border-t transition-colors',
+                active
+                  ? 'border-border bg-background font-medium text-foreground'
+                  : 'border-transparent text-muted-foreground hover:bg-muted',
+              )}
+              title="더블클릭: 이름 변경 · 우클릭: 메뉴"
             >
-              <MoreHorizontal className="w-3 h-3" />
+              {name}
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[140px]">
-            <DropdownMenuItem onSelect={() => setEditing(true)}>
-              <Pencil className="w-4 h-4 mr-2" /> 이름 변경
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onDuplicate}>
-              <CopyIcon className="w-4 h-4 mr-2" /> 복제
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={onRemove}
-              disabled={!canRemove}
-              className="text-destructive focus:text-destructive"
-            >
-              <TrashIcon className="w-4 h-4 mr-2" /> 삭제
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
+          )}
+
+          {active && !editing && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="ml-0.5 p-0.5 rounded hover:bg-muted opacity-60 hover:opacity-100"
+                  aria-label="시트 메뉴"
+                >
+                  <MoreHorizontal className="w-3 h-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[160px]">
+                <DropdownMenuItem onSelect={() => setEditing(true)}>
+                  <Pencil className="w-4 h-4 mr-2" /> 이름 변경
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={onDuplicate}>
+                  <CopyIcon className="w-4 h-4 mr-2" /> 복제
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onMoveLeft} disabled={!canMoveLeft}>
+                  <ChevronLeft className="w-4 h-4 mr-2" /> 왼쪽으로 이동
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={onMoveRight} disabled={!canMoveRight}>
+                  <ChevronRight className="w-4 h-4 mr-2" /> 오른쪽으로 이동
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={onRemove}
+                  disabled={!canRemove}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <TrashIcon className="w-4 h-4 mr-2" /> 삭제
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-[160px]">
+        {menuItems}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
