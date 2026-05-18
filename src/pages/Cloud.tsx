@@ -83,6 +83,7 @@ export default function Cloud() {
   const [searchOpen, setSearchOpen] = useState(false);
   // 사이드바 폴더 트리
   const [allFolders, setAllFolders] = useState<CloudNode[]>([]);
+  const [folderFilter, setFolderFilter] = useState('');
   // 폴더 트리 펼침 상태 — localStorage 영속화 (매번 다시 펼치는 불편 해소)
   const [expandedFolderIds, setExpandedFolderIdsInner] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
@@ -974,8 +975,60 @@ export default function Cloud() {
               }}
             />
           </div>
-          {/* 폴더 트리 — 루트의 자식들부터 재귀 */}
-          {(folderChildrenMap.get(null) ?? []).length > 0 && (
+          {/* 폴더 검색 input — 비어 있으면 트리, 채워지면 flat 매칭 리스트 */}
+          {allFolders.length > 3 && (
+            <div className="mt-1 px-1">
+              <input
+                type="search"
+                value={folderFilter}
+                onChange={(e) => setFolderFilter(e.target.value)}
+                placeholder="폴더 검색…"
+                className="w-full text-xs px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+                aria-label="폴더 검색"
+              />
+            </div>
+          )}
+          {/* 폴더 트리 — 검색 중이면 flat 매칭, 아니면 루트의 자식부터 재귀 */}
+          {folderFilter.trim() ? (() => {
+            const q = folderFilter.trim().toLowerCase();
+            const matches = allFolders
+              .filter((f) => f.name.toLowerCase().includes(q))
+              .slice(0, 50);
+            if (matches.length === 0) {
+              return (
+                <div className="mt-1 px-2 py-1 text-xs text-muted-foreground italic">
+                  일치하는 폴더 없음
+                </div>
+              );
+            }
+            return (
+              <div className="ml-2 mt-1 space-y-0.5">
+                {matches.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => { navigateToFolder(f); setFolderFilter(''); }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-1.5 py-1 rounded text-xs w-full text-left truncate',
+                      currentFolderId === f.id ? 'bg-muted font-medium' : 'hover:bg-muted/60',
+                    )}
+                    title={f.name}
+                  >
+                    {(() => {
+                      const color = folderColorOf(f);
+                      return (
+                        <Folder
+                          className={cn('w-3 h-3 shrink-0', !color && 'text-muted-foreground')}
+                          style={color ? { color } : undefined}
+                        />
+                      );
+                    })()}
+                    <span className="truncate">{f.name}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })() : (folderChildrenMap.get(null) ?? []).length > 0 && (
             <div className="ml-2 mt-1">
               {(folderChildrenMap.get(null) ?? []).map((f) => (
                 <FolderTreeItem
