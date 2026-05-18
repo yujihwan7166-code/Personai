@@ -115,7 +115,7 @@ export default function CloudSlideEditor() {
   });
 
   // ─── 저장 큐 (공용 훅) ───
-  const { queueSave: queueSaveRaw } = useDebouncedAutosave({
+  const { queueSave: queueSaveRaw, flushSave } = useDebouncedAutosave({
     id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
   });
 
@@ -1087,7 +1087,6 @@ export default function CloudSlideEditor() {
   }, [editingElId, selectedElId, deleteEl, addSlide, slides.length, presenting, startPresent, stopPresent]);
 
   const close = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     void flushSave();
     navigate('/cloud');
   }, [flushSave, navigate]);

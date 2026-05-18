@@ -34,6 +34,7 @@ import {
   shiftFormatsRow, shiftFormatsCol,
   shiftMergesRow, shiftMergesCol,
 } from '@/lib/cloudSheet/axisShift';
+import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -860,20 +861,7 @@ export default function CloudSheetEditor() {
 
       // 정렬
       const keyIdx = colIdx - area.minC;
-      rows.sort((a, b) => {
-        const va = a.values[keyIdx];
-        const vb = b.values[keyIdx];
-        // 빈 셀은 항상 끝으로
-        if (!va && !vb) return 0;
-        if (!va) return 1;
-        if (!vb) return -1;
-        const na = Number(va);
-        const nb = Number(vb);
-        let cmp: number;
-        if (Number.isFinite(na) && Number.isFinite(nb)) cmp = na - nb;
-        else cmp = String(va).localeCompare(String(vb), 'ko');
-        return dir === 'asc' ? cmp : -cmp;
-      });
+      rows.sort((a, b) => compareCellValues(a.values[keyIdx], b.values[keyIdx], dir));
 
       // 다시 쓰기
       const nextCells: Cells = { ...cells };
