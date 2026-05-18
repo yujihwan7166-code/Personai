@@ -745,10 +745,6 @@ export default function Cloud() {
   }, [buildNodePath]);
 
   const handleDuplicate = useCallback(async (node: CloudNode) => {
-    if (node.kind === 'folder') {
-      toast({ title: '폴더 복제는 지원 안 함', description: '하위 항목 재귀 복제는 추후 단계.' });
-      return;
-    }
     try {
       const dup = await duplicateNode(node.id);
       if (!dup) {
@@ -756,7 +752,11 @@ export default function Cloud() {
         return;
       }
       await refresh();
-      toast({ title: '복사본 만들었어요', description: dup.name });
+      const isFolder = node.kind === 'folder';
+      toast({
+        title: isFolder ? '폴더 + 하위 모두 복사됨' : '복사본 만들었어요',
+        description: dup.name,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '복제 실패', description: msg });
@@ -1561,17 +1561,17 @@ export default function Cloud() {
                   <span className="w-4 h-4 inline-flex items-center justify-center text-[10px] font-mono text-muted-foreground" aria-hidden>/_</span>
                   경로 복사
                 </button>
-                {node.kind === 'file' && (
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                    onClick={() => { void handleDuplicate(node); setCtxMenu(null); }}
-                    title="같은 폴더에 사본 만들기"
-                  >
-                    <CopyIcon className="w-4 h-4" />
-                    복사본 만들기
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleDuplicate(node); setCtxMenu(null); }}
+                  title={node.kind === 'folder'
+                    ? '폴더 + 하위 항목 모두 같은 위치에 사본 만들기'
+                    : '같은 폴더에 사본 만들기'}
+                >
+                  <CopyIcon className="w-4 h-4" />
+                  복사본 만들기
+                </button>
                 {node.kind === 'folder' && (
                   <>
                     <div className="h-px bg-border my-1" />

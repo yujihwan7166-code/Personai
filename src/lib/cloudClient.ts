@@ -249,16 +249,18 @@ export async function createEmptyFile(
 }
 
 /**
- * 파일 복제 — 같은 부모 폴더에 '<이름> 사본' 으로 새 노드 생성, meta 그대로 복사.
- * 폴더 복제는 자식 재귀 필요해서 일단 X (null 반환).
+ * 노드 복제 — 같은 부모 폴더에 '<이름> 사본' 으로 새 노드 생성.
+ * 파일: meta 그대로 깊은 복사.
+ * 폴더: 자식 모두 재귀 복제, parent_folder_id 는 새 id 들로 remap.
+ *       삭제된 자식(deleted_at != null)은 복제 X.
  */
 export async function duplicateNode(id: string): Promise<CloudNode | null> {
   const all = loadAll();
   const orig = all.find((n) => n.id === id);
   if (!orig) return null;
-  if (orig.kind === 'folder') return null;
   const now = nowIso();
-  const dup: StoredNode = {
+
+  const newRoot: StoredNode = {
     ...orig,
     id: genId(),
     name: `${orig.name} 사본`,
@@ -267,8 +269,52 @@ export async function duplicateNode(id: string): Promise<CloudNode | null> {
     created_at: now,
     updated_at: now,
   };
-  saveAll([...all, dup]);
-  return rowToCloudNode(toRow(dup));
+
+  // 파일은 단일 복제 — 자식 X
+  if (orig.kind === 'file') {
+    saveAll([...all, newRoot]);
+    return rowToCloudNode(toRow(newRoot));
+  }
+
+  // 폴더 재귀 복제 — BFS 로 모든 살아있는 자손 수집
+  const idMap = new Map<string, string>([[orig.id, newRoot.id]]);
+  const collected: StoredNode[] = [];
+  const queue = [orig.id];
+  let safety = 0;
+  while (queue.length > 0 && safety < 10000) {
+    safety++;
+    const parentId = queue.shift()!;
+    const children = all.filter(
+      (n) => n.parent_folder_id === parentId && n.deleted_at === null,
+    );
+    for (const c of children) {
+      collected.push(c);
+      if (c.kind === 'folder') queue.push(c.id);
+    }
+  }
+
+  // 각 자손에 새 id 할당
+  const newChildren: StoredNode[] = collected.map((c) => {
+    const newId = genId();
+    idMap.set(c.id, newId);
+    return {
+      ...c,
+      id: newId,
+      meta: JSON.parse(JSON.stringify(c.meta ?? {})),
+      starred: false,
+      created_at: now,
+      updated_at: now,
+    };
+  });
+  // parent_folder_id remap
+  for (const c of newChildren) {
+    if (c.parent_folder_id && idMap.has(c.parent_folder_id)) {
+      c.parent_folder_id = idMap.get(c.parent_folder_id)!;
+    }
+  }
+
+  saveAll([...all, newRoot, ...newChildren]);
+  return rowToCloudNode(toRow(newRoot));
 }
 
 // ─────────────────────────────────────────────
