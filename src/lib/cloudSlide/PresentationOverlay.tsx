@@ -36,6 +36,8 @@ export function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: Pr
             top: `${el.yPct}%`,
             width: `${el.wPct}%`,
             height: `${el.hPct}%`,
+            transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+            transformOrigin: 'center center',
           };
           if (el.type === 'text') {
             return (
@@ -45,9 +47,14 @@ export function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: Pr
                   ...pos,
                   fontSize: `${el.fontSizeRem}rem`,
                   fontWeight: el.bold ? 600 : 400,
+                  fontStyle: el.italic ? 'italic' : undefined,
+                  textDecoration: el.underline ? 'underline' : undefined,
                   color: el.textColor ?? 'rgba(0,0,0,0.85)',
+                  backgroundColor: el.bgColor,
                   padding: '4px 8px',
-                  lineHeight: 1.25,
+                  lineHeight: el.lineHeight ?? 1.25,
+                  textAlign: el.align ?? 'left',
+                  whiteSpace: 'pre-wrap',
                 }}
                 className="break-words overflow-hidden"
               >

@@ -86,6 +86,7 @@ import {
   NUMBER_FMT_OPTIONS, applyNumberFormat,
 } from '@/lib/cloudSheet/numberFormat';
 import { nextSeriesValue } from '@/lib/cloudSheet/seriesAutofill';
+import { type BorderStyle, borderStyleFor } from '@/lib/cloudSheet/borderStyle';
 
 type Cells = Record<string, string>;
 
@@ -126,7 +127,7 @@ function newSheetId(): string {
 }
 
 // NumberFmt / DECIMAL_SEQUENCE / decimalsIndexOf 는 lib/cloudSheet/numberFormat 공용
-type BorderStyle = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
+// BorderStyle 은 lib/cloudSheet/borderStyle 공용
 type FontFamily = 'pretendard' | 'inter' | 'arial' | 'noto-sans' | 'georgia' | 'jetbrains';
 type VAlign = 'top' | 'middle' | 'bottom';
 type Wrap = 'overflow' | 'wrap' | 'clip';
@@ -173,19 +174,7 @@ const FONT_SIZE_DEFAULT = 13;
 
 // NUMBER_FMT_OPTIONS / applyNumberFormat 는 lib/cloudSheet/numberFormat 공용
 
-function borderStyleFor(b: BorderStyle | undefined): React.CSSProperties {
-  if (!b) return {};
-  const line = '1.5px solid hsl(var(--foreground))';
-  switch (b) {
-    case 'all':    return { boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground))` };
-    case 'outer':  return { boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground))` };
-    case 'top':    return { borderTop: line };
-    case 'bottom': return { borderBottom: line };
-    case 'left':   return { borderLeft: line };
-    case 'right':  return { borderRight: line };
-    default:       return {};
-  }
-}
+// borderStyleFor 는 lib/cloudSheet/borderStyle 공용
 
 const DEFAULT_ROWS = 50;
 const DEFAULT_COLS = 26; // A~Z
