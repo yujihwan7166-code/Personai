@@ -26,3 +26,11 @@ export interface CellFormat {
 }
 
 export type CellFormats = Record<string, CellFormat>;
+
+/** Ctrl+\ (서식 지우기) 등에서 사용 — 모든 서식 키를 undefined 로 패치. */
+export const CLEARED_FORMAT: Partial<CellFormat> = {
+  bold: undefined, italic: undefined, underline: undefined, strikethrough: undefined,
+  textColor: undefined, bgColor: undefined, align: undefined, vAlign: undefined,
+  wrap: undefined, fontFamily: undefined, fontSize: undefined,
+  numberFmt: undefined, border: undefined,
+};

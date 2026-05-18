@@ -76,7 +76,7 @@ import {
   FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT,
 } from '@/lib/cloudSheet/fontFamily';
 import {
-  type VAlign, type Wrap, type CellFormat, type CellFormats,
+  type VAlign, type Wrap, type CellFormat, type CellFormats, CLEARED_FORMAT,
 } from '@/lib/cloudSheet/cellFormat';
 import {
   type Cells, type AllCells, type Merge, type AllMerges,
@@ -953,12 +953,7 @@ export default function CloudSheetEditor() {
       }
       if (e.key === '\\') {
         e.preventDefault();
-        setCellFormat(selectedRef, {
-          bold: undefined, italic: undefined, underline: undefined, strikethrough: undefined,
-          textColor: undefined, bgColor: undefined, align: undefined, vAlign: undefined,
-          wrap: undefined, fontFamily: undefined, fontSize: undefined,
-          numberFmt: undefined, border: undefined,
-        });
+        setCellFormat(selectedRef, CLEARED_FORMAT);
         return;
       }
     };
