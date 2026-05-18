@@ -36,6 +36,7 @@ import {
 } from '@/lib/cloudSheet/axisShift';
 import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
 import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
+import { computeSelBounds } from '@/lib/cloudSheet/selBounds';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -202,18 +203,11 @@ export default function CloudSheetEditor() {
   /** 서식 복사 source — null = 비활성. object = 활성 (이 format 을 다음 클릭/영역에 덮어쓰기). */
   const [formatPainterSource, setFormatPainterSource] = useState<CellFormat | null>(null);
 
-  // 선택 범위 계산 (rangeAnchor 가 null 이면 단일 셀)
-  const selBounds = useMemo(() => {
-    if (!rangeAnchor) {
-      return { minR: selected.row, maxR: selected.row, minC: selected.col, maxC: selected.col };
-    }
-    return {
-      minR: Math.min(rangeAnchor.row, selected.row),
-      maxR: Math.max(rangeAnchor.row, selected.row),
-      minC: Math.min(rangeAnchor.col, selected.col),
-      maxC: Math.max(rangeAnchor.col, selected.col),
-    };
-  }, [rangeAnchor, selected]);
+  // 선택 범위 계산 (lib/cloudSheet/selBounds 공용)
+  const selBounds = useMemo(
+    () => computeSelBounds(selected, rangeAnchor),
+    [rangeAnchor, selected],
+  );
 
   const hasRange = !!rangeAnchor && (rangeAnchor.row !== selected.row || rangeAnchor.col !== selected.col);
   // 현재 포커스 셀 ref (서식 도구바·수식 표시줄에서 사용) — useCallback 의존성 TDZ 회피
