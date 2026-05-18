@@ -1042,17 +1042,28 @@ export default function Cloud() {
               }}
             />
           </div>
-          {/* 폴더 검색 input — 비어 있으면 트리, 채워지면 flat 매칭 리스트 */}
+          {/* 폴더 검색 input + 모두 접기 — 비어 있으면 트리, 채워지면 flat 매칭 리스트 */}
           {allFolders.length > 3 && (
-            <div className="mt-1 px-1">
+            <div className="mt-1 px-1 flex items-center gap-1">
               <input
                 type="search"
                 value={folderFilter}
                 onChange={(e) => setFolderFilter(e.target.value)}
                 placeholder="폴더 검색…"
-                className="w-full text-xs px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+                className="flex-1 min-w-0 text-xs px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
                 aria-label="폴더 검색"
               />
+              {expandedFolderIds.size > 0 && !folderFilter.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedFolderIds(new Set())}
+                  className="shrink-0 px-1.5 py-1 rounded hover:bg-muted text-xs text-muted-foreground"
+                  title={`모두 접기 (${expandedFolderIds.size}개 펼침)`}
+                  aria-label="모두 접기"
+                >
+                  ↕
+                </button>
+              )}
             </div>
           )}
           {/* 폴더 트리 — 검색 중이면 flat 매칭, 아니면 루트의 자식부터 재귀 */}
