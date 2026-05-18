@@ -602,7 +602,7 @@ export default function CloudDocEditor() {
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[200px]">
+              <DropdownMenuContent align="end" className="min-w-[220px]">
                 <DropdownMenuItem onSelect={importFile}>
                   📥 가져오기 (.docx / .md / .html)
                 </DropdownMenuItem>
@@ -615,6 +615,17 @@ export default function CloudDocEditor() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => { void exportPdf(); }}>
                   📤 PDF 로 내보내기
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault(); // 메뉴 안 닫고 토글
+                    const next = !showPageNumber;
+                    setShowPageNumber(next);
+                    if (node) queueSave({ meta: { ...node.meta, showPageNumber: next } });
+                  }}
+                >
+                  {showPageNumber ? '✓' : '·'} 페이지 번호 표시
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
