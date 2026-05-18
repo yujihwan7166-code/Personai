@@ -80,6 +80,7 @@ import { ValidationModal } from '@/lib/cloudSheet/ValidationModal';
 import { type Validation, newValidationId } from '@/lib/cloudSheet/validation';
 import { CommentModal } from '@/lib/cloudSheet/CommentModal';
 import { NamedRangeModal } from '@/lib/cloudSheet/NamedRangeModal';
+import { colLabel, cellRef, escapeRegex, detectLink } from '@/lib/cloudSheet/sheetUtils';
 
 type Cells = Record<string, string>;
 
@@ -241,28 +242,7 @@ const MIN_ROW_HEIGHT = 18;
 const MAX_ROW_HEIGHT = 200;
 const AUTOSAVE_DELAY_MS = 1000;
 
-function colLabel(col: number): string {
-  return idxToCol(col); // A, B, ..., Z, AA, AB, ...
-}
-function cellRef(row: number, col: number): string {
-  return `${colLabel(col)}${row + 1}`;
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** 셀 값이 링크 형식이면 정규화된 URL 반환, 아니면 null.
- *  지원: http(s)://, mailto:, www. (자동으로 https:// 붙임) */
-function detectLink(value: string): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (/^https?:\/\/[^\s]+$/i.test(trimmed)) return trimmed;
-  if (/^mailto:[^\s]+$/i.test(trimmed)) return trimmed;
-  if (/^[\w.-]+@[\w.-]+\.[a-z]{2,}$/i.test(trimmed)) return `mailto:${trimmed}`;
-  if (/^www\.[^\s]+$/i.test(trimmed)) return `https://${trimmed}`;
-  return null;
-}
+// colLabel / cellRef / escapeRegex / detectLink 는 lib/cloudSheet/sheetUtils 공용
 
 // ─────────────────────────────────────────────
 // Fill handle 시리즈 감지
