@@ -85,6 +85,17 @@ export default function CloudDocEditor() {
     setZoomInner(v);
     try { window.localStorage.setItem('personai.cloud.doc.zoom', String(v)); } catch { /* noop */ }
   }, []);
+  // 줌 변경 시 scroll 위치 비례 보정 — 보던 줄이 화면에서 사라지지 않게
+  const prevZoomRef = useRef(zoom);
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const prev = prevZoomRef.current;
+    if (prev !== zoom) {
+      scroller.scrollTop = scroller.scrollTop * (zoom / prev);
+      prevZoomRef.current = zoom;
+    }
+  }, [zoom]);
 
   // 페이지 마진 (좌우 px) — localStorage 영속. 기본 96px (1인치).
   const [pageMargin, setPageMarginInner] = useState<PageMargin>(() => {
