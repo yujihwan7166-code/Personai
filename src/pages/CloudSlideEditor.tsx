@@ -62,6 +62,7 @@ import {
   nextFontSize, nextStrokeWidth, nextLineHeight, nextRadius,
 } from '@/lib/cloudSlide/steps';
 import { computeAlign, computeDistribute } from '@/lib/cloudSlide/align';
+import { applySnap, buildSnapLines } from '@/lib/cloudSlide/snap';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
@@ -661,71 +662,17 @@ export default function CloudSlideEditor() {
     // 다른 요소들의 anchor (snap 용) — 함께 움직이는 요소들은 제외
     const movingIds = new Set(mates.map((m) => m.id));
     const others = elList.filter((o) => !movingIds.has(o.id));
-    const vLines: number[] = [0, 50, 100]; // 캔버스 가장자리·중앙
-    const hLines: number[] = [0, 50, 100];
-    for (const o of others) {
-      vLines.push(o.xPct, o.xPct + o.wPct / 2, o.xPct + o.wPct);
-      hLines.push(o.yPct, o.yPct + o.hPct / 2, o.yPct + o.hPct);
-    }
+    const { vLines, hLines } = buildSnapLines(others);
 
     const onMove = (ev: PointerEvent) => {
       const dxPct = ((ev.clientX - startX) / rect.width) * 100;
       const dyPct = ((ev.clientY - startY) / rect.height) * 100;
-      let nx = Math.max(0, Math.min(100 - el.wPct, startElX + dxPct));
-      let ny = Math.max(0, Math.min(100 - el.hPct, startElY + dyPct));
-
-      // snap: 6개 anchor (left/centerX/right · top/centerY/bottom) vs vLines/hLines
-      const guides: Array<{ kind: 'h' | 'v'; pct: number }> = [];
-      // 수직 가이드 (도형의 left/centerX/right)
-      const xAnchors: Array<{ offset: number; pct: number }> = [
-        { offset: 0, pct: nx },
-        { offset: el.wPct / 2, pct: nx + el.wPct / 2 },
-        { offset: el.wPct, pct: nx + el.wPct },
-      ];
-      let bestVDelta = Infinity;
-      let bestVLine: number | null = null;
-      let bestVAnchorOffset = 0;
-      for (const a of xAnchors) {
-        for (const line of vLines) {
-          const d = a.pct - line;
-          if (Math.abs(d) < bestVDelta) {
-            bestVDelta = Math.abs(d);
-            bestVLine = line;
-            bestVAnchorOffset = a.offset;
-          }
-        }
-      }
-      if (bestVDelta <= SNAP_THRESHOLD_PCT && bestVLine !== null) {
-        nx = bestVLine - bestVAnchorOffset;
-        nx = Math.max(0, Math.min(100 - el.wPct, nx));
-        guides.push({ kind: 'v', pct: bestVLine });
-      }
-
-      // 수평 가이드 (도형의 top/centerY/bottom)
-      const yAnchors: Array<{ offset: number; pct: number }> = [
-        { offset: 0, pct: ny },
-        { offset: el.hPct / 2, pct: ny + el.hPct / 2 },
-        { offset: el.hPct, pct: ny + el.hPct },
-      ];
-      let bestHDelta = Infinity;
-      let bestHLine: number | null = null;
-      let bestHAnchorOffset = 0;
-      for (const a of yAnchors) {
-        for (const line of hLines) {
-          const d = a.pct - line;
-          if (Math.abs(d) < bestHDelta) {
-            bestHDelta = Math.abs(d);
-            bestHLine = line;
-            bestHAnchorOffset = a.offset;
-          }
-        }
-      }
-      if (bestHDelta <= SNAP_THRESHOLD_PCT && bestHLine !== null) {
-        ny = bestHLine - bestHAnchorOffset;
-        ny = Math.max(0, Math.min(100 - el.hPct, ny));
-        guides.push({ kind: 'h', pct: bestHLine });
-      }
-
+      const rawNx = Math.max(0, Math.min(100 - el.wPct, startElX + dxPct));
+      const rawNy = Math.max(0, Math.min(100 - el.hPct, startElY + dyPct));
+      const { nx, ny, guides } = applySnap({
+        nx: rawNx, ny: rawNy, w: el.wPct, h: el.hPct,
+        vLines, hLines, threshold: SNAP_THRESHOLD_PCT,
+      });
       setSnapGuides(guides);
       // primary 의 실제 변화량 = (nx - startElX, ny - startElY)
       const realDx = nx - startElX;
