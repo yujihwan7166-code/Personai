@@ -1634,8 +1634,9 @@ function EmptyState({ mode }: { mode: CloudListMode }) {
       <div className="text-sm text-muted-foreground mb-4">
         위 카드를 누르거나 ⬆️ 파일을 끌어다 놓아보세요
       </div>
-      <div className="text-xs text-muted-foreground/70">
-        (파일 업로드·편집은 Storage 셋업 후 활성화됩니다)
+      <div className="text-xs text-muted-foreground/70 space-y-1">
+        <div>📄 문서 · 📊 시트 · 🎬 슬라이드 — 3종 에디터 지원</div>
+        <div>가져오기: .docx / .xlsx / .csv / .pptx / .md / .html</div>
       </div>
     </div>
   );
