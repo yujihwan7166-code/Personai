@@ -947,7 +947,7 @@ export default function CloudSlideEditor() {
 
   // ─── PDF export: 슬라이드별 페이지 ───
   // 화면에 안 보이는 슬라이드도 캡처하려면 모든 슬라이드를 임시 렌더 후 캡처
-  const exportPdf = useCallback(async () => {
+  const exportPdf = useCallback(async (orientation: 'l' | 'p' = 'l') => {
     if (!node) return;
     setAiBusy('PDF 생성');
     // 임시 컨테이너에 모든 슬라이드 렌더 — 에러 시도 cleanup 보장
@@ -1031,8 +1031,11 @@ export default function CloudSlideEditor() {
       }
 
       const name = sanitizeFileName(node.name);
-      await exportElementsToPdf(elements, { fileName: name, orientation: 'l' });
-      toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf (${slides.length}장)` });
+      await exportElementsToPdf(elements, { fileName: name, orientation });
+      toast({
+        title: 'PDF 다운로드 시작',
+        description: `${name}.pdf (${slides.length}장, ${orientation === 'l' ? '가로' : '세로'})`,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: 'PDF 내보내기 실패', description: msg });
@@ -1278,8 +1281,11 @@ export default function CloudSlideEditor() {
                 <DropdownMenuItem onSelect={exportPptx}>
                   📤 .pptx 내보내기
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => { void exportPdf(); }} disabled={!!aiBusy}>
-                  📤 PDF 내보내기 ({slides.length}장)
+                <DropdownMenuItem onSelect={() => { void exportPdf('l'); }} disabled={!!aiBusy}>
+                  📤 PDF 가로 ({slides.length}장)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void exportPdf('p'); }} disabled={!!aiBusy}>
+                  📤 PDF 세로 ({slides.length}장)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
