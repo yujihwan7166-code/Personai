@@ -684,84 +684,105 @@ interface DocPageProps {
   children: React.ReactNode;
 }
 
+/** v2: 페이지마다 별도 카드 (구글 독스 톤). 본문은 한 ProseMirror doc 한 흐름. */
+const CARD_HEIGHT_PX = 1056;
+const PAGE_GAP_PX = 32;
+
 function DocPage({
   zoom, pageMargin, onMarginChange,
   headerText, footerText, onHeaderChange, onFooterChange, showPageNumber,
   children,
 }: DocPageProps) {
   const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null);
-  const { pageBreaks, totalPages } = usePageBreaks(contentEl, PAGE_CONTENT_HEIGHT_PX);
+  const { totalPages } = usePageBreaks(contentEl, PAGE_CONTENT_HEIGHT_PX);
+  const containerHeight = totalPages * CARD_HEIGHT_PX + (totalPages - 1) * PAGE_GAP_PX;
 
   return (
     <div
-      className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm dark:bg-slate-50 dark:text-slate-900"
+      className="mx-auto my-8 relative"
       style={{
+        width: '816px',
+        minHeight: `${containerHeight}px`,
         transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
         transformOrigin: 'top center',
       }}
     >
-      <PageRuler widthPx={816} margin={pageMargin} onMarginChange={onMarginChange} />
-      <div
-        ref={setContentEl}
-        className="relative py-[96px]"
-        style={{ paddingLeft: pageMargin.left, paddingRight: pageMargin.right }}
-      >
-        {/* 첫 페이지 헤더 — padding-top 96 안 (편집 가능) */}
-        <input
-          type="text"
-          value={headerText}
-          onChange={(e) => onHeaderChange(e.target.value)}
-          placeholder="머리글 (선택)"
-          className="absolute top-3 left-[96px] right-[96px] text-xs text-slate-500 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
-          aria-label="머리글"
-        />
-
-        {children}
-
-        {/* 페이지 break + 페이지마다 헤더/푸터 미러 + 페이지 번호 */}
-        {pageBreaks.map((y, i) => (
-          <div
-            key={i}
-            className="absolute left-0 right-0 pointer-events-none"
-            style={{ top: y }}
-            aria-hidden="true"
-          >
-            {/* 이전 페이지(= i+1) 푸터 미러 — break 위 */}
-            {(footerText || showPageNumber) && (
-              <div className="absolute -top-8 left-[96px] right-[96px] flex items-center justify-between text-[10px] text-slate-500">
-                <span className="flex-1 text-center truncate">{footerText}</span>
-                {showPageNumber && <span className="absolute right-0">{i + 1} / {totalPages}</span>}
+      {/* 카드 N개 — background + ruler + 카드별 헤더/푸터 + 페이지 번호 */}
+      {Array.from({ length: totalPages }).map((_, i) => {
+        const cardTop = i * (CARD_HEIGHT_PX + PAGE_GAP_PX);
+        const isFirst = i === 0;
+        const isLast = i === totalPages - 1;
+        return (
+          <div key={`page-${i}`}>
+            {/* 카드 흰 배경 + shadow */}
+            <div
+              className="absolute left-0 w-[816px] bg-white shadow-md rounded-sm dark:bg-slate-50"
+              style={{ top: `${cardTop}px`, height: `${CARD_HEIGHT_PX}px` }}
+              aria-hidden="true"
+            />
+            {/* 첫 카드만 cm ruler */}
+            {isFirst && (
+              <div className="absolute left-0 w-[816px] z-20" style={{ top: '0px' }}>
+                <PageRuler widthPx={816} margin={pageMargin} onMarginChange={onMarginChange} />
               </div>
             )}
-            {/* break 라인 + 라벨 */}
-            <div className="border-t border-dashed border-slate-400">
-              <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-white dark:bg-slate-50 text-[10px] text-slate-500 px-2 py-0.5 rounded border border-slate-300">
-                ── 페이지 {i + 2} ──
-              </span>
-            </div>
-            {/* 다음 페이지(= i+2) 헤더 미러 — break 아래 */}
-            {headerText && (
-              <div className="absolute top-5 left-[96px] right-[96px] text-[10px] text-slate-500 text-center truncate">
+            {/* 헤더 — 첫 카드는 편집, 나머지는 미러 */}
+            {isFirst ? (
+              <input
+                type="text"
+                value={headerText}
+                onChange={(e) => onHeaderChange(e.target.value)}
+                placeholder="머리글 (선택)"
+                className="absolute z-20 text-xs text-slate-500 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
+                style={{ top: `${cardTop + 32}px`, left: '96px', width: '624px' }}
+                aria-label="머리글"
+              />
+            ) : headerText ? (
+              <div
+                className="absolute z-20 text-[11px] text-slate-500 text-center truncate pointer-events-none"
+                style={{ top: `${cardTop + 16}px`, left: '96px', width: '624px' }}
+              >
                 {headerText}
               </div>
-            )}
+            ) : null}
+            {/* 푸터 — 마지막 카드는 편집, 나머지는 미러. 페이지 번호 모든 카드 */}
+            <div
+              className="absolute z-20 flex items-center text-xs text-slate-500"
+              style={{ top: `${cardTop + CARD_HEIGHT_PX - 32}px`, left: '96px', width: '624px' }}
+            >
+              {isLast ? (
+                <input
+                  type="text"
+                  value={footerText}
+                  onChange={(e) => onFooterChange(e.target.value)}
+                  placeholder="바닥글 (선택)"
+                  className="flex-1 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
+                  aria-label="바닥글"
+                />
+              ) : (
+                <span className="flex-1 text-center text-[11px] truncate">{footerText}</span>
+              )}
+              {showPageNumber && (
+                <span className="absolute right-0 top-1 text-[10px]">{i + 1} / {totalPages}</span>
+              )}
+            </div>
           </div>
-        ))}
+        );
+      })}
 
-        {/* 마지막 페이지 푸터 (편집 가능) — 카드 bottom anchored, padding-bottom 96 안 */}
-        <div className="absolute bottom-3 left-[96px] right-[96px] flex items-center justify-between text-xs text-slate-500">
-          <input
-            type="text"
-            value={footerText}
-            onChange={(e) => onFooterChange(e.target.value)}
-            placeholder="바닥글 (선택)"
-            className="flex-1 bg-transparent outline-none text-center placeholder-slate-300 focus:placeholder-slate-400"
-            aria-label="바닥글"
-          />
-          {showPageNumber && (
-            <span className="absolute right-0 text-[10px]">{totalPages} / {totalPages}</span>
-          )}
-        </div>
+      {/* 본문 wrap — absolute. 첫 카드의 top padding (96) 부터. 한 흐름.
+          한계 (v2): 본문이 길어 페이지 경계에 걸치면 카드 갭·다른 카드의 헤더 영역 위로
+          흐를 수 있음 — ProseMirror 본문 분할 X. v3 에서 자체 plugin 으로 해결. */}
+      <div
+        ref={setContentEl}
+        className="absolute left-0 right-0 z-10"
+        style={{
+          top: '96px',
+          paddingLeft: pageMargin.left,
+          paddingRight: pageMargin.right,
+        }}
+      >
+        {children}
       </div>
     </div>
   );
