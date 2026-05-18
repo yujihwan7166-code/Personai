@@ -1937,8 +1937,10 @@ export default function CloudSlideEditor() {
             </>
           )}
 
-          <div className="ml-auto text-xs text-muted-foreground">
-            {currentIdx + 1} / {slides.length}
+          <div className="ml-auto text-xs text-muted-foreground tabular-nums flex items-center gap-2">
+            <span className="hidden sm:inline" title="캔버스 해상도 (16:9)">1280×720</span>
+            <span className="hidden sm:inline text-muted-foreground/50">·</span>
+            <span title="현재 슬라이드 / 총 슬라이드">{currentIdx + 1} / {slides.length}</span>
           </div>
         </div>
       </header>
