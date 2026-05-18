@@ -416,10 +416,19 @@ export default function CloudDocEditor() {
       try {
         const lower = file.name.toLowerCase();
         if (lower.endsWith('.docx')) {
-          const { html, warnings } = await importDocxFile(file);
+          const { html, warnings, headerText: hT, footerText: fT } = await importDocxFile(file);
           editor.commands.setContent(html);
+          if (hT) {
+            setHeaderText(hT);
+            if (node) queueSave({ meta: { ...node.meta, headerText: hT } });
+          }
+          if (fT) {
+            setFooterText(fT);
+            if (node) queueSave({ meta: { ...node.meta, footerText: fT } });
+          }
+          const extras = [hT && '머리글', fT && '바닥글'].filter(Boolean).join('·');
           const desc = warnings.length === 0
-            ? file.name
+            ? `${file.name}${extras ? ` (${extras} 보존)` : ''}`
             : `${file.name} — ${warnings.length}개 항목은 표시할 수 없음 (예: ${warnings[0]})`;
           toast({ title: '가져오기 완료', description: desc });
         } else if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.txt')) {
@@ -446,13 +455,13 @@ export default function CloudDocEditor() {
     try {
       const json = editor.getJSON();
       const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
-      await exportDocxFromJson(json, fileName);
+      await exportDocxFromJson(json, fileName, { headerText, footerText });
       toast({ title: '내보내기 완료', description: `${fileName}.docx 다운로드 시작` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [editor, node]);
+  }, [editor, node, headerText, footerText]);
 
   const exportPdf = useCallback(async () => {
     if (!editor || !node) return;

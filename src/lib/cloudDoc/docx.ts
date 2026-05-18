@@ -15,8 +15,10 @@ import mammoth from 'mammoth';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Table, TableRow, TableCell, ImageRun, WidthType, BorderStyle,
+  Header, Footer,
 } from 'docx';
 import { enrichDocxHtml } from './docxRich';
+import { parseDocxAdvanced } from './docxAdvanced';
 
 // ─────────────────────────────────────────────
 // Import — .docx → HTML
@@ -26,6 +28,10 @@ import { enrichDocxHtml } from './docxRich';
 export interface DocxImportResult {
   html: string;
   warnings: string[];
+  /** 자체 OOXML 파서로 추출 — 헤더 텍스트 (있으면). */
+  headerText?: string;
+  /** 자체 OOXML 파서로 추출 — 푸터 텍스트 (있으면). */
+  footerText?: string;
 }
 
 /** 한글 Word 스타일 → HTML 매핑 (영문 기본 매핑 + 한글 변형). */
@@ -60,28 +66,36 @@ const STYLE_MAP = [
  */
 export async function importDocxFile(file: File): Promise<DocxImportResult> {
   const buffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml(
-    { arrayBuffer: buffer },
-    {
-      styleMap: STYLE_MAP,
-      includeDefaultStyleMap: true,
-      includeEmbeddedStyleMap: true,
-      ignoreEmptyParagraphs: false,
-      convertImage: mammoth.images.imgElement(async (image) => {
-        const buf = await image.read('base64');
-        if (typeof buf === 'string' && buf.length > 3 * 1024 * 1024 * 1.4) {
-          // base64 길이가 ~4MB+ 면 원본 이미지가 약 3MB+ → skip
-          return { src: '', alt: '[큰 이미지 — 생략됨]' };
-        }
-        return { src: `data:${image.contentType};base64,${buf}` };
-      }),
-    },
-  );
+  // mammoth 와 자체 OOXML 파서 병렬 — mammoth 가 본문, advanced 가 헤더/푸터/각주
+  const [result, advanced] = await Promise.all([
+    mammoth.convertToHtml(
+      { arrayBuffer: buffer },
+      {
+        styleMap: STYLE_MAP,
+        includeDefaultStyleMap: true,
+        includeEmbeddedStyleMap: true,
+        ignoreEmptyParagraphs: false,
+        convertImage: mammoth.images.imgElement(async (image) => {
+          const buf = await image.read('base64');
+          if (typeof buf === 'string' && buf.length > 3 * 1024 * 1024 * 1.4) {
+            return { src: '', alt: '[큰 이미지 — 생략됨]' };
+          }
+          return { src: `data:${image.contentType};base64,${buf}` };
+        }),
+      },
+    ),
+    parseDocxAdvanced(buffer).catch(() => null),
+  ]);
   const enriched = enrichDocxHtml(result.value);
   const warnings = (result.messages ?? [])
     .filter((m) => m.type === 'warning' || m.type === 'error')
     .map((m) => m.message);
-  return { html: enriched, warnings };
+  return {
+    html: enriched,
+    warnings,
+    headerText: advanced?.headerText || undefined,
+    footerText: advanced?.footerText || undefined,
+  };
 }
 
 // ─────────────────────────────────────────────
@@ -96,7 +110,18 @@ interface PMNode {
   marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
 }
 
-export async function exportDocxFromJson(json: unknown, fileName: string): Promise<void> {
+export interface DocxExportOptions {
+  /** 단순 텍스트 헤더 — 매 페이지 반복. 빈 문자열이면 헤더 없음. */
+  headerText?: string;
+  /** 단순 텍스트 푸터 — 매 페이지 반복. */
+  footerText?: string;
+}
+
+export async function exportDocxFromJson(
+  json: unknown,
+  fileName: string,
+  options: DocxExportOptions = {},
+): Promise<void> {
   const root = json as PMNode | null;
   const sectionChildren: Array<Paragraph | Table> = [];
   for (const block of root?.content ?? []) {
@@ -105,8 +130,18 @@ export async function exportDocxFromJson(json: unknown, fileName: string): Promi
   if (sectionChildren.length === 0) {
     sectionChildren.push(new Paragraph({ children: [new TextRun('')] }));
   }
+  const headerNode = options.headerText?.trim()
+    ? new Header({ children: [new Paragraph({ children: [new TextRun(options.headerText)] })] })
+    : undefined;
+  const footerNode = options.footerText?.trim()
+    ? new Footer({ children: [new Paragraph({ children: [new TextRun(options.footerText)] })] })
+    : undefined;
   const doc = new Document({
-    sections: [{ children: sectionChildren }],
+    sections: [{
+      children: sectionChildren,
+      headers: headerNode ? { default: headerNode } : undefined,
+      footers: footerNode ? { default: footerNode } : undefined,
+    }],
   });
   const blob = await Packer.toBlob(doc);
   triggerDownload(blob, fileName.endsWith('.docx') ? fileName : `${fileName}.docx`);

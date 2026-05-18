@@ -3256,6 +3256,7 @@ export default function CloudSheetEditor() {
                 onMovePrev={idx > 0 ? () => moveEmbeddedChart(c.id, -1) : undefined}
                 onMoveNext={idx < embeddedCharts.length - 1 ? () => moveEmbeddedChart(c.id, +1) : undefined}
                 onChangePalette={(palette) => updateEmbeddedChart(c.id, { palette })}
+                onChangeTitle={(title) => updateEmbeddedChart(c.id, { title: title || undefined })}
               />
             ))}
           </div>
@@ -4809,10 +4810,11 @@ interface EmbeddedChartCardProps {
   onMovePrev?: () => void;
   onMoveNext?: () => void;
   onChangePalette?: (palette: string) => void;
+  onChangeTitle?: (title: string) => void;
 }
 
 function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette,
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
@@ -4825,15 +4827,57 @@ function EmbeddedChartCard({
     return a === b ? a : `${a}:${b}`;
   }, [chart.range]);
   const palette = getChartPalette(chart.palette);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(chart.title ?? '');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editingTitle) {
+      setTitleDraft(chart.title ?? '');
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+        titleInputRef.current?.select();
+      }, 0);
+    }
+  }, [editingTitle, chart.title]);
+  const commitTitle = () => {
+    setEditingTitle(false);
+    const v = titleDraft.trim();
+    if (onChangeTitle && v !== (chart.title ?? '')) onChangeTitle(v);
+  };
+  const defaultTitle = `${chart.type === 'bar' ? '막대' : chart.type === 'line' ? '선' : '원'} 차트`;
 
   return (
     <div className="rounded border border-border bg-background overflow-hidden">
-      <div className="flex items-center px-3 py-1.5 border-b border-border bg-muted/30 text-xs">
-        <span className="font-medium">
-          {chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}{' '}
-          {chart.title || `${chart.type} 차트`}
-        </span>
-        <span className="ml-2 text-muted-foreground">{rangeStr}</span>
+      <div className="flex items-center px-3 py-1.5 border-b border-border bg-muted/30 text-xs gap-1">
+        <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitTitle(); }
+              else if (e.key === 'Escape') { e.preventDefault(); setEditingTitle(false); }
+            }}
+            onBlur={commitTitle}
+            placeholder={defaultTitle}
+            className="font-medium text-xs px-1 py-0 rounded border border-border bg-background outline-none flex-1 min-w-0 max-w-[200px]"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onChangeTitle && setEditingTitle(true)}
+            disabled={!onChangeTitle}
+            className={cn(
+              'font-medium text-left truncate max-w-[200px]',
+              onChangeTitle && 'hover:underline cursor-text',
+            )}
+            title={onChangeTitle ? '클릭으로 제목 편집' : undefined}
+          >
+            {chart.title || defaultTitle}
+          </button>
+        )}
+        <span className="ml-1 text-muted-foreground">{rangeStr}</span>
         <div className="ml-auto flex items-center gap-0.5">
           {onChangePalette && (
             <DropdownMenu>

@@ -46,9 +46,16 @@ export async function uploadAndConvert(
 
   // ── 문서 계열 ──
   if (ext === 'docx' || ext === 'doc') {
-    const { html, warnings } = await importDocxFile(file);
+    const { html, warnings, headerText, footerText } = await importDocxFile(file);
     const node = await createEmptyFile(opts.ownerId, title, 'doc', opts.parentFolderId);
-    await updateFileBody(node.id, { meta: { bodyHtml: html, importWarnings: warnings } });
+    await updateFileBody(node.id, {
+      meta: {
+        bodyHtml: html,
+        importWarnings: warnings,
+        ...(headerText ? { headerText } : {}),
+        ...(footerText ? { footerText } : {}),
+      },
+    });
     return { nodeId: node.id, fileType: 'doc', route: `/cloud/doc/${node.id}` };
   }
   if (ext === 'md' || ext === 'markdown' || ext === 'txt') {
