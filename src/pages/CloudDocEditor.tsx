@@ -769,9 +769,10 @@ function DocPage({
         const isLast = i === totalPages - 1;
         return (
           <div key={`page-${i}`}>
-            {/* 카드 흰 배경 + shadow. 다크모드는 zinc-100 (살짝 어두운 종이 톤) */}
+            {/* 카드 흰 배경 + shadow. 다크모드는 zinc-100 (살짝 어두운 종이 톤).
+                hover 시 그림자 강조 — 카드라는 느낌 ↑ */}
             <div
-              className="absolute left-0 w-[816px] bg-white shadow-md rounded-sm dark:bg-zinc-100"
+              className="absolute left-0 w-[816px] bg-white shadow-md rounded-sm dark:bg-zinc-100 transition-shadow hover:shadow-lg"
               style={{ top: `${cardTop}px`, height: `${CARD_HEIGHT_PX}px` }}
               aria-hidden="true"
             />
