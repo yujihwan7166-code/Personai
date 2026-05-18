@@ -49,10 +49,6 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
             </div>
           </section>
         </div>
-
-        <div className="pt-3 text-xs text-muted-foreground border-t border-border">
-          Mac: Ctrl → ⌘
-        </div>
       </DialogContent>
     </Dialog>
   );

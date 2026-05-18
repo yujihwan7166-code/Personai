@@ -83,10 +83,6 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
             <HelpRow keys={['각주 ✱']} label="도구바 ✱ → 위첨자 [N] + 문서 끝 모음. 클릭으로 편집" />
           </HelpSection>
         </div>
-
-        <div className="pt-3 text-xs text-muted-foreground border-t border-border">
-          Mac: Ctrl → ⌘
-        </div>
       </DialogContent>
     </Dialog>
   );
