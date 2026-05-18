@@ -182,9 +182,14 @@ export function AiSidebar({
             <span className="text-[10px] text-muted-foreground">{messages.length}개 메시지</span>
             <button
               type="button"
-              onClick={onClear}
+              onClick={() => {
+                if (messages.length === 0) return;
+                if (window.confirm(`이 대화의 메시지 ${messages.length}개를 모두 삭제할까요? 되돌릴 수 없습니다.`)) {
+                  onClear();
+                }
+              }}
               className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
-              title="대화 초기화"
+              title="대화 초기화 (모든 메시지 삭제)"
             >
               <RefreshCw className="w-3 h-3" /> 새 대화
             </button>
