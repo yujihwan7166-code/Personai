@@ -80,7 +80,9 @@ export async function importDocxFile(file: File): Promise<DocxImportResult> {
           if (typeof buf === 'string' && buf.length > 3 * 1024 * 1024 * 1.4) {
             return { src: '', alt: '[큰 이미지 — 생략됨]' };
           }
-          return { src: `data:${image.contentType};base64,${buf}` };
+          // alt text 명시 — .docx 의 image alt 속성 또는 빈 문자열 (장식 이미지)
+          const altText = (image as { altText?: string }).altText ?? '';
+          return { src: `data:${image.contentType};base64,${buf}`, alt: altText };
         }),
       },
     ),
