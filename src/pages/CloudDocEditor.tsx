@@ -95,6 +95,8 @@ export default function CloudDocEditor() {
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  const scrollRestoredRef = useRef(false);
   const initialBody = useMemo(() => {
     if (!node?.meta) return null;
     const meta = node.meta as Record<string, unknown>;
@@ -255,7 +257,46 @@ export default function CloudDocEditor() {
     } catch {
       editor.commands.setContent('', { emitUpdate: false });
     }
+    // 콘텐츠 주입 직후 스크롤 위치 복원 (한 번만)
+    if (!scrollRestoredRef.current && node.id) {
+      try {
+        const v = window.localStorage.getItem(`personai.cloud.doc.scrollTop.${node.id}`);
+        const n = v ? Number(v) : NaN;
+        if (Number.isFinite(n) && n > 0) {
+          // 렌더 완료 후 스크롤 (TipTap DOM 마운트 대기)
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (scrollerRef.current) scrollerRef.current.scrollTop = n;
+            });
+          });
+        }
+      } catch { /* noop */ }
+      scrollRestoredRef.current = true;
+    }
   }, [editor, node, initialBody]);
+
+  // ─── 스크롤 위치 영속화 (디바운스) ───
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || !node?.id) return;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        try {
+          window.localStorage.setItem(
+            `personai.cloud.doc.scrollTop.${node.id}`,
+            String(Math.round(el.scrollTop)),
+          );
+        } catch { /* noop */ }
+      }, 400);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (t) clearTimeout(t);
+    };
+  }, [node?.id]);
 
   // ─── 키보드 — Ctrl+F / Ctrl+H 검색·치환, Esc 닫기 ───
   useEffect(() => {
@@ -467,7 +508,7 @@ export default function CloudDocEditor() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-y-auto relative">
+        <main ref={scrollerRef} className="flex-1 overflow-y-auto relative">
           {editor && searchOpen && (
             <DocSearchPanel
               editor={editor}
