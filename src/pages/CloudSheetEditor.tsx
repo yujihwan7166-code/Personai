@@ -22,6 +22,7 @@ import {
   ContextMenu, ContextMenuTrigger, ContextMenuContent,
   ContextMenuItem, ContextMenuSeparator,
 } from '@/components/ui/context-menu';
+import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -2828,17 +2829,20 @@ export default function CloudSheetEditor() {
 
                 {/* 색상 */}
                 <div className={cluster} role="group" aria-label="색상">
-                  <SheetColorBtn
-                    icon={<Palette className="w-3.5 h-3.5" />}
+                  <ColorPopover
+                    variant="compact"
+                    icon={<Palette className="w-3.5 h-3.5 text-muted-foreground" />}
                     value={curFmt.textColor ?? '#222222'}
                     onChange={(c) => setCellFormat(selectedRef, { textColor: c })}
                     title="글자색"
                   />
-                  <SheetColorBtn
-                    icon={<Highlighter className="w-3.5 h-3.5" />}
+                  <ColorPopover
+                    variant="compact"
+                    icon={<Highlighter className="w-3.5 h-3.5 text-muted-foreground" />}
                     value={curFmt.bgColor ?? '#fff59d'}
                     onChange={(c) => setCellFormat(selectedRef, { bgColor: c })}
                     title="배경색"
+                    allowTransparent
                   />
                 </div>
 
@@ -4358,36 +4362,6 @@ function FormulaBarInput({ currentRef, value, evaluatedValue, onCommit }: Formul
       )}
       {editing && <FuncHintPopover value={draft} />}
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// 색 picker (서식 도구바)
-// ─────────────────────────────────────────────
-
-function SheetColorBtn({
-  icon, value, onChange, title,
-}: { icon: React.ReactNode; value: string; onChange: (c: string) => void; title?: string }) {
-  return (
-    <label
-      className="relative flex items-center gap-0.5 px-1.5 py-1.5 rounded hover:bg-muted cursor-pointer"
-      title={title}
-      aria-label={title}
-    >
-      {icon}
-      <span
-        className="block w-3 h-3 rounded-sm border border-border"
-        style={{ backgroundColor: value }}
-        aria-hidden
-      />
-      <input
-        type="color"
-        value={value.startsWith('#') && (value.length === 4 || value.length === 7) ? value : '#000000'}
-        onChange={(e) => onChange(e.target.value)}
-        className="absolute inset-0 opacity-0 cursor-pointer"
-        aria-label={title}
-      />
-    </label>
   );
 }
 

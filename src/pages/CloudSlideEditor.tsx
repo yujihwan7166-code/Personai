@@ -3,7 +3,7 @@
  *  도형·이미지·전환·발표 모드·.pptx import/export 는 다음 단계.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
@@ -11,7 +11,6 @@ import {
   Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
   Combine, Split,
-  Palette,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
   Sparkles, Undo2, Redo2,
@@ -37,7 +36,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { ColorPopover } from '@/components/cloud/ColorPopover';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const AUTOSAVE_DELAY_MS = 1000;
@@ -1451,13 +1450,13 @@ export default function CloudSlideEditor() {
               return (
                 <>
                   <Sep />
-                  <ColorField
+                  <ColorPopover
                     label="채우기"
                     value={el.fillColor}
                     onChange={(v) => updateEl(el.id, { fillColor: v })}
                     allowTransparent
                   />
-                  <ColorField
+                  <ColorPopover
                     label="테두리"
                     value={el.strokeColor ?? '#000000'}
                     onChange={(v) => updateEl(el.id, { strokeColor: v, strokeWidth: el.strokeWidth ?? 2 })}
@@ -1477,7 +1476,7 @@ export default function CloudSlideEditor() {
               return (
                 <>
                   <Sep />
-                  <ColorField
+                  <ColorPopover
                     label="글자색"
                     value={el.textColor ?? '#222222'}
                     onChange={(v) => updateEl(el.id, { textColor: v })}
@@ -2144,148 +2143,6 @@ function RotateHandle({ onStart }: { onStart: (e: React.PointerEvent) => void })
       />
     </div>
   );
-}
-
-// ─────────────────────────────────────────────
-// 색 필드 (도구바 내 인라인) — 프리셋 + 최근 + 사용자 지정
-// ─────────────────────────────────────────────
-
-const SLIDE_PRESET_COLORS = [
-  '#111827', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#F3F4F6', '#FFFFFF', '#000000',
-  '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E', '#10B981', '#14B8A6',
-  '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E',
-];
-const RECENT_COLOR_KEY = 'personai.cloud.slide.recentColors';
-const MAX_RECENT = 8;
-
-function loadRecentColors(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const v = window.localStorage.getItem(RECENT_COLOR_KEY);
-    if (!v) return [];
-    const arr: unknown = JSON.parse(v);
-    if (!Array.isArray(arr)) return [];
-    return arr.filter((x): x is string => typeof x === 'string' && /^#[0-9a-fA-F]{6}$/.test(x)).slice(0, MAX_RECENT);
-  } catch {
-    return [];
-  }
-}
-
-function ColorField({
-  label, value, onChange, allowTransparent,
-}: { label: string; value: string; onChange: (v: string) => void; allowTransparent?: boolean }) {
-  const hex = useMemo(() => toHex(value), [value]);
-  const isTransparent = value === 'transparent';
-  const [recent, setRecent] = useState<string[]>(() => loadRecentColors());
-  const [open, setOpen] = useState(false);
-
-  const choose = useCallback((c: string, keepOpen?: boolean) => {
-    onChange(c);
-    if (c !== 'transparent' && /^#[0-9a-fA-F]{6}$/i.test(c)) {
-      const cl = c.toLowerCase();
-      setRecent((cur) => {
-        const next = [cl, ...cur.filter((x) => x.toLowerCase() !== cl)].slice(0, MAX_RECENT);
-        try { window.localStorage.setItem(RECENT_COLOR_KEY, JSON.stringify(next)); } catch { /* noop */ }
-        return next;
-      });
-    }
-    if (!keepOpen) setOpen(false);
-  }, [onChange]);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center gap-1 px-1.5 py-1 rounded hover:bg-muted cursor-pointer"
-          title={label}
-        >
-          <Palette className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs">{label}</span>
-          <span
-            className="block w-4 h-4 rounded-sm border border-border"
-            style={isTransparent
-              ? { backgroundImage: 'repeating-linear-gradient(45deg,#fff,#fff 3px,#ddd 3px,#ddd 6px)' }
-              : { backgroundColor: value }}
-            aria-hidden
-          />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-60 p-2" align="start">
-        <div className="text-[11px] text-muted-foreground mb-1.5">표준</div>
-        <div className="grid grid-cols-8 gap-1">
-          {SLIDE_PRESET_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={cn(
-                'w-5 h-5 rounded border border-border hover:scale-110 transition-transform',
-                hex.toLowerCase() === c.toLowerCase() && 'ring-2 ring-primary ring-offset-1',
-              )}
-              style={{ backgroundColor: c }}
-              onClick={() => choose(c)}
-              title={c}
-              aria-label={c}
-            />
-          ))}
-        </div>
-        {recent.length > 0 && (
-          <>
-            <div className="text-[11px] text-muted-foreground mt-2 mb-1.5">최근</div>
-            <div className="grid grid-cols-8 gap-1">
-              {recent.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={cn(
-                    'w-5 h-5 rounded border border-border hover:scale-110 transition-transform',
-                    hex.toLowerCase() === c.toLowerCase() && 'ring-2 ring-primary ring-offset-1',
-                  )}
-                  style={{ backgroundColor: c }}
-                  onClick={() => choose(c)}
-                  title={c}
-                />
-              ))}
-            </div>
-          </>
-        )}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
-          {allowTransparent && (
-            <button
-              type="button"
-              onClick={() => choose('transparent')}
-              className={cn(
-                'text-xs px-2 py-1 rounded border border-border hover:bg-muted',
-                isTransparent && 'ring-2 ring-primary',
-              )}
-              title="투명"
-            >
-              ◇ 투명
-            </button>
-          )}
-          <label className="ml-auto flex items-center gap-1.5 text-xs cursor-pointer hover:underline">
-            <span>사용자 지정</span>
-            <input
-              type="color"
-              value={hex}
-              onChange={(e) => choose(e.target.value, true)}
-              className="w-5 h-5 rounded cursor-pointer border-none bg-transparent p-0"
-              aria-label="사용자 지정 색"
-            />
-          </label>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function toHex(color: string): string {
-  if (!color) return '#000000';
-  if (color === 'transparent') return '#ffffff';
-  if (color.startsWith('#') && (color.length === 7 || color.length === 4)) return color.length === 7 ? color : color;
-  // HSL/RGB 등은 변환 비용이 있으므로 대충 fallback. input[type=color] 가 무효한 값엔 '#000' 표시.
-  // 사용자가 변경 시 hex 로 다시 들어오므로 store 갱신됨.
-  return '#3b82f6';
 }
 
 function SaveStateBadge({ state }: { state: SaveState }) {
