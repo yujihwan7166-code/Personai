@@ -68,8 +68,9 @@ type AllMerges = Record<string, Merge[]>;
 interface Validation {
   id: string;
   range: { minR: number; maxR: number; minC: number; maxC: number };
-  kind: 'list';
-  items: string[]; // 허용 값 목록 (드롭다운으로 표시)
+  kind: 'list' | 'checkbox';
+  /** kind='list' 면 사용자 정의 목록, kind='checkbox' 면 항상 ['TRUE','FALSE']. */
+  items: string[];
 }
 type AllValidations = Record<string, Validation[]>;
 
@@ -1559,13 +1560,28 @@ export default function CloudSheetEditor() {
     queueSave({ allValidations: nextAll });
   }, [validations, allValidations, currentSheetId, queueSave]);
 
-  /** ref → 허용 items (드롭다운 목록 표시용) — 나중 rule 우선 */
+  /** ref → 허용 items (드롭다운 목록 표시용) — 나중 rule 우선. checkbox 는 별도 처리. */
   const validationItemsMap = useMemo<Map<string, string[]>>(() => {
     const out = new Map<string, string[]>();
     for (const v of validations) {
+      if (v.kind === 'checkbox') continue; // 드롭다운 표시 X — 체크박스 위젯으로 따로 렌더
       for (let r = v.range.minR; r <= v.range.maxR; r++) {
         for (let c = v.range.minC; c <= v.range.maxC; c++) {
           out.set(cellRef(r, c), v.items);
+        }
+      }
+    }
+    return out;
+  }, [validations]);
+
+  /** ref 집합 — 체크박스 위젯으로 표시할 셀. */
+  const checkboxRefSet = useMemo<Set<string>>(() => {
+    const out = new Set<string>();
+    for (const v of validations) {
+      if (v.kind !== 'checkbox') continue;
+      for (let r = v.range.minR; r <= v.range.maxR; r++) {
+        for (let c = v.range.minC; c <= v.range.maxC; c++) {
+          out.add(cellRef(r, c));
         }
       }
     }
@@ -3002,6 +3018,16 @@ export default function CloudSheetEditor() {
             setCellValue(selectedRef, `=HYPERLINK("${url.replace(/"/g, '""')}", "${label.replace(/"/g, '""')}")`);
           }}
           insertComment={() => setCommentModalOpen(true)}
+          insertCheckbox={() => {
+            // 선택 영역(또는 단일 셀) 에 checkbox validation 추가.
+            // 기존 값이 ''/null 인 셀은 'FALSE' 로 초기화 (false = 빈 셀과 동일 동작이지만 명시적).
+            addValidation({
+              range: { minR: selBounds.minR, maxR: selBounds.maxR, minC: selBounds.minC, maxC: selBounds.maxC },
+              kind: 'checkbox',
+              items: ['TRUE', 'FALSE'],
+            });
+            toast({ title: '체크박스 추가됨', description: '셀 클릭으로 토글, Space 키도 가능.' });
+          }}
           toggleBold={() => {
             const c = cellFormats[selectedRef] ?? {};
             setCellFormat(selectedRef, { bold: !c.bold });
@@ -3604,6 +3630,7 @@ export default function CloudSheetEditor() {
             freezeCols={freezeCols}
             condFormatMap={condFormatMap}
             validationItemsMap={validationItemsMap}
+            checkboxRefSet={checkboxRefSet}
             invalidRefSet={invalidRefSet}
             onCellValueChange={setCellValue}
             commentMap={commentMap}
@@ -4046,6 +4073,8 @@ interface SheetGridProps {
   condFormatMap?: Map<string, { bgColor?: string; textColor?: string; bold?: boolean }>;
   /** ref → 허용 items (드롭다운 셀) */
   validationItemsMap?: Map<string, string[]>;
+  /** 체크박스 위젯으로 렌더할 ref 집합 */
+  checkboxRefSet?: Set<string>;
   /** invalid 셀 ref 집합 (빨간 outline) */
   invalidRefSet?: Set<string>;
   /** 셀 값 직접 변경 (드롭다운 선택 시) */
@@ -4084,7 +4113,7 @@ function SheetGrid({
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
   condFormatMap,
-  validationItemsMap, invalidRefSet, onCellValueChange,
+  validationItemsMap, checkboxRefSet, invalidRefSet, onCellValueChange,
   commentMap,
   filterOn, filters, onFilterChange, visibleRowSet,
   fillPreview, fillCorner, onFillStart,
@@ -4226,6 +4255,7 @@ function SheetGrid({
                 const isStickyRow = rowIdx < freezeRows;
                 const isStickyCol = colIdx < freezeCols;
                 const validationItems = validationItemsMap?.get(ref);
+                const isCheckbox = !!checkboxRefSet?.has(ref);
                 const isInvalid = !!invalidRefSet?.has(ref);
                 const commentText = commentMap?.get(ref);
                 return (
@@ -4244,6 +4274,7 @@ function SheetGrid({
                     hasFillHandle={hasFillHandle}
                     onFillStart={onFillStart}
                     validationItems={validationItems}
+                    isCheckbox={isCheckbox}
                     isInvalid={isInvalid}
                     onSelectValidationItem={onCellValueChange}
                     commentText={commentText}
@@ -4291,6 +4322,8 @@ interface SheetCellProps {
   hasFillHandle?: boolean;
   onFillStart?: (e: React.PointerEvent) => void;
   validationItems?: string[];
+  /** true 면 셀에 체크박스 위젯 렌더 — 값 'TRUE'/'FALSE' 토글. */
+  isCheckbox?: boolean;
   isInvalid?: boolean;
   onSelectValidationItem?: (ref: string, value: string) => void;
   commentText?: string;
@@ -4314,7 +4347,7 @@ interface SheetCellProps {
 const SheetCell = React.memo(function SheetCell({
   cellRefStr, row, col, value, format, isFocus, isInRange,
   isMatch, isCurrentMatch, isInFillPreview, hasFillHandle, onFillStart,
-  validationItems, isInvalid, onSelectValidationItem,
+  validationItems, isCheckbox, isInvalid, onSelectValidationItem,
   commentText, autocomplete, formulaRefColor,
   stickyTop, stickyLeft,
   rowSpan, colSpan, editing, editingValue,
@@ -4470,6 +4503,19 @@ const SheetCell = React.memo(function SheetCell({
             onBlur={() => onCommitEdit('none')}
             rows={Math.max(1, editingValue.split('\n').length)}
             className="w-full h-full px-2 py-0 outline-none bg-transparent text-sm relative z-10 resize-none leading-snug font-[inherit]"
+          />
+        </div>
+      ) : isCheckbox ? (
+        // 체크박스 셀 (Sheets 매칭) — 값 'TRUE'/'FALSE' 토글.
+        // 빈 셀 = unchecked. 클릭으로 onSelectValidationItem 호출 → 셀 값 변경.
+        <div className="w-full h-full flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={value === 'TRUE'}
+            onChange={(e) => onSelectValidationItem?.(cellRefStr, e.target.checked ? 'TRUE' : 'FALSE')}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-pointer accent-primary"
+            aria-label={`체크박스 (${value === 'TRUE' ? '체크됨' : '안 체크됨'})`}
           />
         </div>
       ) : value.startsWith(IMAGE_SENTINEL) ? (() => {

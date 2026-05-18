@@ -13,7 +13,7 @@ import {
   FileUp, FileDown, FileText, Printer, Undo2, Redo2, Search, Replace,
   Plus, Trash2, Image as ImageIcon, BarChart3, Link as LinkIcon, MessageSquare,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  Filter, ArrowUpDown, Table2, Sparkles, Keyboard, BookOpen,
+  Filter, ArrowUpDown, Table2, Sparkles, Keyboard, BookOpen, CheckSquare,
 } from 'lucide-react';
 
 export interface SheetMenuActions {
@@ -36,6 +36,7 @@ export interface SheetMenuActions {
   insertLink: () => void;
   insertComment: () => void;
   insertImage: () => void;
+  insertCheckbox: () => void;
   // 서식 — toolbar 와 동일 토글
   toggleBold: () => void;
   toggleItalic: () => void;
@@ -166,6 +167,9 @@ export function SheetMenuBar(p: SheetMenuBarProps) {
           </MenubarItem>
           <MenubarItem onSelect={p.insertComment}>
             <MessageSquare className="w-4 h-4 mr-2" /> 댓글
+          </MenubarItem>
+          <MenubarItem onSelect={p.insertCheckbox}>
+            <CheckSquare className="w-4 h-4 mr-2" /> 체크박스
           </MenubarItem>
         </MenubarContent>
       </MenubarMenu>
