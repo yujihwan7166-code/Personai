@@ -72,7 +72,7 @@ export const Footnote = Node.create({
       addFootnote: (text: string) => ({ chain }) => {
         const id = `fn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         return chain()
-          .insertContent({ type: this.name, attrs: { id, text } })
+          .insertContent({ type: 'footnote', attrs: { id, text } })
           .run();
       },
     };

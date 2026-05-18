@@ -122,7 +122,7 @@ export default function CloudDocEditor() {
   // 본문 안 각주(sup) 클릭 → 내용 편집 (prompt v1)
   useEffect(() => {
     if (!editor) return;
-    const root = editor.options.element;
+    const root = editor.view?.dom as HTMLElement | undefined;
     if (!root) return;
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
