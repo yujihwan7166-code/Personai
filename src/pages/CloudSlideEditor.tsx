@@ -1900,6 +1900,18 @@ export default function CloudSlideEditor() {
                       onChange={(v) => applyToTexts({ textColor: v })}
                     />
                     {(() => {
+                      const firstBg = texts[0]?.bgColor;
+                      const allSameBg = texts.every((t) => t.bgColor === firstBg);
+                      return (
+                        <ColorPopover
+                          label={`박스 배경 ×${texts.length}`}
+                          value={allSameBg && firstBg ? firstBg : 'transparent'}
+                          onChange={(v) => applyToTexts({ bgColor: v === 'transparent' ? undefined : v })}
+                          allowTransparent
+                        />
+                      );
+                    })()}
+                    {(() => {
                       const allBold = texts.every((t) => t.bold);
                       const allItalic = texts.every((t) => t.italic);
                       const allUnderline = texts.every((t) => t.underline);
