@@ -26,7 +26,8 @@ import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { updateFileBody } from '@/lib/cloudClient';
+import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -43,7 +44,7 @@ import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { SheetMenuBar } from '@/components/cloud/SheetMenuBar';
 import { InsertLinkDialog } from '@/components/cloud/InsertLinkDialog';
 import type { AiContext } from '@/lib/cloudAi/types';
-import type { CloudNode } from '@/types/cloud';
+// CloudNode 는 useCloudNodeLoader 내부 사용
 // Dialog 는 lib/cloudSheet/ 의 각 모달 내부 사용
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 // HelpRow 는 SheetHelpModal 내부 사용
@@ -146,8 +147,6 @@ export default function CloudSheetEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [node, setNode] = useState<CloudNode | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -410,23 +409,14 @@ export default function CloudSheetEditor() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // ─── 노드 로드 + 초기 cells 주입 ───
-  useEffect(() => {
-    if (!id) return;
-    if (authLoading) return;
-    if (!user) return;
-    let cancelled = false;
-    void (async () => {
+  // ─── 노드 로드 + 초기 cells 주입 (공용 훅 + onLoad 콜백) ───
+  const { node, loadError } = useCloudNodeLoader({
+    id, user, authLoading,
+    expectedFileType: 'sheet',
+    notFoundMessage: '시트를 찾을 수 없어요.',
+    wrongTypeMessage: '시트 파일이 아니에요.',
+    onLoad: (n) => {
       try {
-        const n = await fetchNode(id);
-        if (cancelled) return;
-        if (!n) { setLoadError('시트를 찾을 수 없어요.'); return; }
-        if (n.ownerId !== user.id) { setLoadError('접근 권한이 없어요.'); return; }
-        if (n.kind !== 'file' || n.fileType !== 'sheet') {
-          setLoadError('시트 파일이 아니에요.');
-          return;
-        }
-        setNode(n);
         const meta = (n.meta ?? {}) as Record<string, unknown>;
         const storedSheets = meta.sheets as Array<{ id: string; name: string }> | undefined;
         const storedAllCells = meta.allCells as AllCells | undefined;
@@ -533,13 +523,11 @@ export default function CloudSheetEditor() {
           setRowCount(Math.max(DEFAULT_ROWS, maxR + 1, MIN_ROWS));
           setColCount(Math.max(DEFAULT_COLS, maxC + 1, MIN_COLS));
         }
-      } catch (e) {
-        if (cancelled) return;
-        setLoadError(e instanceof Error ? e.message : String(e));
+      } catch {
+        // 로드 검증은 훅이 담당 — 여기서는 meta 파싱 실패 시 빈 시트로 유지
       }
-    })();
-    return () => { cancelled = true; };
-  }, [id, user, authLoading]);
+    },
+  });
 
   // ─── 마지막 셀 위치 + 시트 인덱스 localStorage 저장 ───
   // (cloud meta 가 아니라 localStorage 라 저장 상태 flicker 없음)
