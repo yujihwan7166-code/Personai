@@ -43,11 +43,33 @@ interface BreadcrumbItem {
 export default function Cloud() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  // 정렬: 폴더는 항상 first, 그 안에서 사용자 선택 적용
+  // viewMode + 정렬: localStorage 영속. 폴더는 정렬과 무관하게 항상 first.
   type SortKey = 'name' | 'updated' | 'size';
-  const [sortKey, setSortKey] = useState<SortKey>('updated');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewModeInner] = useState<'list' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return window.localStorage.getItem('personai.cloud.drive.viewMode') === 'grid' ? 'grid' : 'list';
+  });
+  const setViewMode = useCallback((v: 'list' | 'grid') => {
+    setViewModeInner(v);
+    try { window.localStorage.setItem('personai.cloud.drive.viewMode', v); } catch { /* noop */ }
+  }, []);
+  const [sortKey, setSortKeyInner] = useState<SortKey>(() => {
+    if (typeof window === 'undefined') return 'updated';
+    const v = window.localStorage.getItem('personai.cloud.drive.sortKey');
+    return v === 'name' || v === 'updated' || v === 'size' ? v : 'updated';
+  });
+  const setSortKey = useCallback((v: SortKey) => {
+    setSortKeyInner(v);
+    try { window.localStorage.setItem('personai.cloud.drive.sortKey', v); } catch { /* noop */ }
+  }, []);
+  const [sortDir, setSortDirInner] = useState<'asc' | 'desc'>(() => {
+    if (typeof window === 'undefined') return 'desc';
+    return window.localStorage.getItem('personai.cloud.drive.sortDir') === 'asc' ? 'asc' : 'desc';
+  });
+  const setSortDir = useCallback((v: 'asc' | 'desc') => {
+    setSortDirInner(v);
+    try { window.localStorage.setItem('personai.cloud.drive.sortDir', v); } catch { /* noop */ }
+  }, []);
   const [listMode, setListMode] = useState<CloudListMode>('folder');
   const [trail, setTrail] = useState<BreadcrumbItem[]>([{ id: null, name: '내 파일' }]);
   const [showFolderInput, setShowFolderInput] = useState(false);
@@ -1060,7 +1082,7 @@ export default function Cloud() {
                 </select>
                 <button
                   type="button"
-                  onClick={() => setSortDir((d) => d === 'asc' ? 'desc' : 'asc')}
+                  onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
                   className="px-1.5 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                   title={sortDir === 'asc' ? '오름차순 (낮은→높은)' : '내림차순 (높은→낮은)'}
                   aria-label="정렬 방향"
