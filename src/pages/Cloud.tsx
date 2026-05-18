@@ -792,7 +792,8 @@ export default function Cloud() {
   const modeTitle =
     listMode === 'starred' ? '⭐ 별표'
       : listMode === 'trash' ? '🗑 휴지통'
-        : null;
+        : listMode === 'recent' ? '🕒 최근 파일'
+          : null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -881,7 +882,12 @@ export default function Cloud() {
           </div>
         )}
         <aside className="w-56 shrink-0 border-r border-border bg-background overflow-y-auto p-3 text-sm hidden md:block">
-          <SidebarItem icon={<Clock className="w-4 h-4" />} label="최근" disabled hint="다음 단계에서 활성화" />
+          <SidebarItem
+            icon={<Clock className="w-4 h-4" />}
+            label="최근"
+            active={listMode === 'recent'}
+            onClick={() => switchMode('recent')}
+          />
           <SidebarItem
             icon={<Star className="w-4 h-4" />}
             label="별표"
@@ -1516,6 +1522,15 @@ function EmptyState({ mode }: { mode: CloudListMode }) {
         <div className="text-5xl mb-3" aria-hidden>🗑</div>
         <div className="text-base font-medium mb-1">휴지통이 비어있어요</div>
         <div className="text-sm text-muted-foreground">삭제한 항목은 30일 동안 여기에 보관돼요.</div>
+      </div>
+    );
+  }
+  if (mode === 'recent') {
+    return (
+      <div className="border-2 border-dashed border-border rounded-lg py-16 px-4 text-center">
+        <div className="text-5xl mb-3" aria-hidden>🕒</div>
+        <div className="text-base font-medium mb-1">최근 작업한 파일이 없어요</div>
+        <div className="text-sm text-muted-foreground">파일을 만들거나 편집하면 최근 50개가 여기 모입니다.</div>
       </div>
     );
   }

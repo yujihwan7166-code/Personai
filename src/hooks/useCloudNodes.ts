@@ -8,11 +8,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  fetchAliveChildren, fetchStarred, fetchTrash, fetchCounts,
+  fetchAliveChildren, fetchStarred, fetchTrash, fetchRecent, fetchCounts,
 } from '@/lib/cloudClient';
 import type { CloudNode } from '@/types/cloud';
 
-export type CloudListMode = 'folder' | 'starred' | 'trash';
+export type CloudListMode = 'folder' | 'starred' | 'trash' | 'recent';
 
 export interface UseCloudNodesArgs {
   mode: CloudListMode;
@@ -50,7 +50,8 @@ export function useCloudNodes({ mode, parentFolderId }: UseCloudNodesArgs): UseC
       const fetcher =
         mode === 'starred' ? fetchStarred(user.id)
           : mode === 'trash' ? fetchTrash(user.id)
-            : fetchAliveChildren(user.id, parentFolderId);
+            : mode === 'recent' ? fetchRecent(user.id, 50)
+              : fetchAliveChildren(user.id, parentFolderId);
       const [items, counts] = await Promise.all([fetcher, fetchCounts(user.id)]);
       setNodes(items);
       setStarredCount(counts.starred);
