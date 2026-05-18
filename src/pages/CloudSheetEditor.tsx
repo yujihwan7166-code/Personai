@@ -466,23 +466,10 @@ export default function CloudSheetEditor() {
     } catch { /* noop */ }
   }, [id, node, selected.row, selected.col, currentSheetIdx]);
 
-  // ─── 저장 큐 ───
-  const flushSave = useCallback(async () => {
-    if (!id) return;
-    const payload = pendingRef.current;
-    if (!payload.name && !payload.meta) return;
-    pendingRef.current = {};
-    setSaveState('saving');
-    try {
-      await updateFileBody(id, payload);
-      setSaveState('saved');
-      setLastSavedAt(Date.now());
-    } catch (e) {
-      setSaveState('error');
-      const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: '저장 실패', description: msg });
-    }
-  }, [id]);
+  // ─── 저장 큐 (공용 훅 + 시트 전용 wrapper) ───
+  const { flushSave, queueSave: queueSaveRaw } = useDebouncedAutosave({
+    id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
+  });
 
   const queueSave = useCallback((patch: {
     sheets?: SheetMeta[];
@@ -502,8 +489,7 @@ export default function CloudSheetEditor() {
     freezeRows?: number;
     freezeCols?: number;
   }) => {
-    pendingRef.current = {
-      ...pendingRef.current,
+    queueSaveRaw({
       meta: {
         sheets: patch.sheets ?? sheetsMeta,
         allCells: patch.allCells ?? allCells,
@@ -522,18 +508,8 @@ export default function CloudSheetEditor() {
         freezeRows: patch.freezeRows ?? freezeRows,
         freezeCols: patch.freezeCols ?? freezeCols,
       },
-    };
-    setSaveState('saving');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols]);
-
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      void flushSave();
-    };
-  }, [flushSave]);
+    });
+  }, [queueSaveRaw, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols]);
 
   // ─── 셀 값 변경 (현재 시트) ───
   const setCellValue = useCallback((ref: string, value: string) => {
@@ -2216,7 +2192,6 @@ export default function CloudSheetEditor() {
   }, [draggingRange, selected]);
 
   const close = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     void flushSave();
     navigate('/cloud');
   }, [flushSave, navigate]);
