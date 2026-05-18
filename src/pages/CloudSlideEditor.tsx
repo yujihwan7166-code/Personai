@@ -64,6 +64,8 @@ interface SlideTextEl extends BaseEl {
   italic?: boolean;
   underline?: boolean;
   textColor?: string;
+  /** 박스 배경색 (콜아웃 박스용). 미지정 = 투명. */
+  bgColor?: string;
   /** 텍스트 정렬. 미지정 = 'left'. */
   align?: 'left' | 'center' | 'right';
   /** 줄간격 (배수). 미지정 = 1.25. */
@@ -1235,6 +1237,7 @@ export default function CloudSlideEditor() {
             child.style.fontStyle = el.italic ? 'italic' : 'normal';
             if (el.underline) child.style.textDecoration = 'underline';
             child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
+            if (el.bgColor) child.style.backgroundColor = el.bgColor;
             child.style.lineHeight = String(el.lineHeight ?? 1.25);
             child.style.whiteSpace = 'pre-wrap';
             child.style.textAlign = el.align ?? 'left';
@@ -1696,6 +1699,12 @@ export default function CloudSlideEditor() {
                     label="글자색"
                     value={el.textColor ?? '#222222'}
                     onChange={(v) => updateEl(el.id, { textColor: v })}
+                  />
+                  <ColorPopover
+                    label="박스 배경"
+                    value={el.bgColor ?? 'transparent'}
+                    onChange={(v) => updateEl(el.id, { bgColor: v === 'transparent' ? undefined : v })}
+                    allowTransparent
                   />
                   <ToolBtn
                     onClick={() => updateEl(el.id, { bold: !el.bold })}
@@ -2505,6 +2514,7 @@ function TextElView({
         width: `${el.wPct}%`,
         height: `${el.hPct}%`,
         padding: '4px 8px',
+        backgroundColor: el.bgColor,
         transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
         transformOrigin: 'center center',
       }}
