@@ -31,10 +31,11 @@ interface EmbeddedChartCardProps {
   onChangePalette?: (palette: string) => void;
   onChangeTitle?: (title: string) => void;
   onChangeType?: (type: 'bar' | 'line' | 'pie') => void;
+  onChangeOrientation?: (orientation: 'columns' | 'rows') => void;
 }
 
 export function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType,
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
@@ -197,6 +198,17 @@ export function EmbeddedChartCard({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          {onChangeOrientation && (
+            <button
+              type="button"
+              onClick={() => onChangeOrientation(chart.orientation === 'columns' ? 'rows' : 'columns')}
+              className="px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground text-[10px] font-medium tabular-nums"
+              title={chart.orientation === 'columns' ? '시리즈 방향: 열 (클릭으로 행으로)' : '시리즈 방향: 행 (클릭으로 열로)'}
+              aria-label="시리즈 방향 전환"
+            >
+              {chart.orientation === 'columns' ? '열 ⇆ 행' : '행 ⇆ 열'}
+            </button>
           )}
           <button
             type="button"

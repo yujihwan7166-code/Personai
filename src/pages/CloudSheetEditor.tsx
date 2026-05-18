@@ -3330,6 +3330,7 @@ export default function CloudSheetEditor() {
                 onChangePalette={(palette) => updateEmbeddedChart(c.id, { palette })}
                 onChangeTitle={(title) => updateEmbeddedChart(c.id, { title: title || undefined })}
                 onChangeType={(type) => updateEmbeddedChart(c.id, { type })}
+                onChangeOrientation={(orientation) => updateEmbeddedChart(c.id, { orientation })}
               />
             ))}
           </div>
