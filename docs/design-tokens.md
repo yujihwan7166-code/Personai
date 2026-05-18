@@ -203,3 +203,5 @@
 
 **변경 이력**
 - 2026-04-22: 초안 작성 (#20)
+- 2026-05-18: 토큰 사용 audit (grep 기반) — mode-* 9개 시그니처 컬러 모두 활성 사용 중 (general·multi·premium·assistant 9~12회 / debate-b 가 2회로 가장 적지만 유효 사용). dead token 없음.
+- 2026-05-18: 시트 CellFormat 5종 신규 필드(fontFamily/fontSize/vAlign/wrap/underline/strikethrough) — 셀 인라인 스타일로만 적용, 디자인 토큰 변경 없음.
