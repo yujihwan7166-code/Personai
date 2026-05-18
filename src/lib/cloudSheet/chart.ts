@@ -115,14 +115,28 @@ export function flattenForPie(data: ChartData, seriesKey?: string): Array<{ name
   return data.rows.map((r) => ({ name: r.name, value: r[key] ?? 0 }));
 }
 
-/** 차트용 기본 팔레트 (8색 cycle) */
-export const CHART_PALETTE = [
-  '#4F46E5', // indigo
-  '#10B981', // emerald
-  '#F59E0B', // amber
-  '#EF4444', // red
-  '#8B5CF6', // violet
-  '#0EA5E9', // sky
-  '#EC4899', // pink
-  '#84CC16', // lime
-];
+/** 차트 팔레트 프리셋 — 사용자가 차트별로 선택 가능. */
+export const CHART_PALETTES = {
+  default: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#0EA5E9', '#EC4899', '#84CC16'],
+  warm:    ['#EF4444', '#F97316', '#F59E0B', '#EAB308', '#EC4899', '#F43F5E', '#FB923C', '#FACC15'],
+  cool:    ['#0EA5E9', '#10B981', '#06B6D4', '#3B82F6', '#14B8A6', '#22C55E', '#6366F1', '#8B5CF6'],
+  mono:    ['#1F2937', '#374151', '#4B5563', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB', '#F3F4F6'],
+} as const;
+
+export type ChartPaletteName = keyof typeof CHART_PALETTES;
+
+export const CHART_PALETTE_LABELS: Record<ChartPaletteName, string> = {
+  default: '기본',
+  warm:    '따뜻',
+  cool:    '시원',
+  mono:    '단색',
+};
+
+/** 차트용 기본 팔레트 (default) — 하위 호환 alias. */
+export const CHART_PALETTE = CHART_PALETTES.default;
+
+/** name → palette 배열. 잘못된 name 은 default. */
+export function getChartPalette(name?: string): readonly string[] {
+  if (name && name in CHART_PALETTES) return CHART_PALETTES[name as ChartPaletteName];
+  return CHART_PALETTES.default;
+}

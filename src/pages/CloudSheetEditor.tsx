@@ -31,7 +31,10 @@ import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL } from '@/lib/c
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
-import { buildChartData, flattenForPie, CHART_PALETTE, type SelRange } from '@/lib/cloudSheet/chart';
+import {
+  buildChartData, flattenForPie, CHART_PALETTE, getChartPalette,
+  CHART_PALETTES, CHART_PALETTE_LABELS, type SelRange,
+} from '@/lib/cloudSheet/chart';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
@@ -74,6 +77,8 @@ interface EmbeddedChart {
   orientation: 'columns' | 'rows';
   range: { minR: number; maxR: number; minC: number; maxC: number };
   title?: string;
+  /** 팔레트 프리셋 이름 — getChartPalette 가 fallback 처리. */
+  palette?: string;
 }
 type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
 
@@ -1522,6 +1527,13 @@ export default function CloudSheetEditor() {
     if (target < 0 || target >= embeddedCharts.length) return;
     const next = [...embeddedCharts];
     [next[idx], next[target]] = [next[target], next[idx]];
+    const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
+    setAllEmbeddedCharts(nextAll);
+    queueSave({ allEmbeddedCharts: nextAll });
+  }, [embeddedCharts, allEmbeddedCharts, currentSheetId, queueSave]);
+
+  const updateEmbeddedChart = useCallback((id: string, patch: Partial<EmbeddedChart>) => {
+    const next = embeddedCharts.map((c) => (c.id === id ? { ...c, ...patch } : c));
     const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
     setAllEmbeddedCharts(nextAll);
     queueSave({ allEmbeddedCharts: nextAll });
@@ -3112,6 +3124,7 @@ export default function CloudSheetEditor() {
                 onRemove={() => removeEmbeddedChart(c.id)}
                 onMovePrev={idx > 0 ? () => moveEmbeddedChart(c.id, -1) : undefined}
                 onMoveNext={idx < embeddedCharts.length - 1 ? () => moveEmbeddedChart(c.id, +1) : undefined}
+                onChangePalette={(palette) => updateEmbeddedChart(c.id, { palette })}
               />
             ))}
           </div>
@@ -4618,9 +4631,12 @@ interface EmbeddedChartCardProps {
   onRemove: () => void;
   onMovePrev?: () => void;
   onMoveNext?: () => void;
+  onChangePalette?: (palette: string) => void;
 }
 
-function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: EmbeddedChartCardProps) {
+function EmbeddedChartCard({
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette,
+}: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
     [cells, chart.range, chart.orientation],
@@ -4631,6 +4647,7 @@ function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: E
     const b = `${idxToCol(chart.range.maxC)}${chart.range.maxR + 1}`;
     return a === b ? a : `${a}:${b}`;
   }, [chart.range]);
+  const palette = getChartPalette(chart.palette);
 
   return (
     <div className="rounded border border-border bg-background overflow-hidden">
@@ -4641,6 +4658,51 @@ function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: E
         </span>
         <span className="ml-2 text-muted-foreground">{rangeStr}</span>
         <div className="ml-auto flex items-center gap-0.5">
+          {onChangePalette && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
+                  aria-label="색상 팔레트"
+                  title="색상 팔레트 변경"
+                >
+                  <span className="flex">
+                    {palette.slice(0, 4).map((c) => (
+                      <span
+                        key={c}
+                        className="block w-2 h-2.5 -ml-px first:ml-0 border border-background"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[140px]">
+                {(Object.keys(CHART_PALETTES) as Array<keyof typeof CHART_PALETTES>).map((name) => (
+                  <DropdownMenuItem
+                    key={name}
+                    onSelect={() => onChangePalette(name)}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="flex">
+                      {CHART_PALETTES[name].slice(0, 5).map((c) => (
+                        <span
+                          key={c}
+                          className="block w-3 h-3 -ml-px first:ml-0 border border-background rounded-sm"
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </span>
+                    <span>{CHART_PALETTE_LABELS[name]}</span>
+                    {(chart.palette ?? 'default') === name && (
+                      <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-foreground" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <button
             type="button"
             onClick={onMovePrev}
@@ -4685,7 +4747,7 @@ function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: E
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {data.seriesKeys.map((k, i) => (
-                <Bar key={k} dataKey={k} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                <Bar key={k} dataKey={k} fill={palette[i % palette.length]} />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -4699,7 +4761,7 @@ function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: E
               {data.seriesKeys.map((k, i) => (
                 <Line
                   key={k} type="monotone" dataKey={k}
-                  stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
+                  stroke={palette[i % palette.length]}
                   strokeWidth={2} dot={{ r: 2 }}
                 />
               ))}
@@ -4716,7 +4778,7 @@ function EmbeddedChartCard({ chart, cells, onRemove, onMovePrev, onMoveNext }: E
                 cx="50%" cy="50%" outerRadius={80} label={false}
               >
                 {flattenForPie(data).map((_, i) => (
-                  <RechartsCell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                  <RechartsCell key={i} fill={palette[i % palette.length]} />
                 ))}
               </Pie>
             </PieChart>
