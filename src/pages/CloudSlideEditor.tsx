@@ -812,12 +812,16 @@ export default function CloudSlideEditor() {
         fontSizeRem: 1.4,
       });
     }
-    const nextSlides = [...slides.slice(0, currentIdx + 1), newSlide, ...slides.slice(currentIdx + 1)];
-    setSlides(nextSlides);
-    setCurrentIdx(currentIdx + 1);
+    // 함수형 업데이터로 stale slides/currentIdx 회피 (AI 비동기 중 다른 상태 변경 가능)
+    setSlides((prev) => {
+      const insertAt = currentIdx + 1;
+      const next = [...prev.slice(0, insertAt), newSlide, ...prev.slice(insertAt)];
+      queueSave(next, insertAt);
+      return next;
+    });
+    setCurrentIdx((i) => i + 1);
     setSelectedElId(null);
-    queueSave(nextSlides, currentIdx + 1);
-  }, [slides, currentIdx, queueSave]);
+  }, [currentIdx, queueSave]);
 
   const runAiAndAddSlide = useCallback(async (label: string, fn: () => Promise<string>) => {
     setAiBusy(label);
@@ -921,10 +925,14 @@ export default function CloudSlideEditor() {
         }
         return { id: newId('s'), elements };
       });
-      const nextSlides = [...slides, ...newSlides];
-      setSlides(nextSlides);
-      setCurrentIdx(slides.length);
-      queueSave(nextSlides, slides.length);
+      // 함수형 업데이터 — 비동기 후 stale slides 회피
+      setSlides((prev) => {
+        const nextSlides = [...prev, ...newSlides];
+        const targetIdx = prev.length;
+        setCurrentIdx(targetIdx);
+        queueSave(nextSlides, targetIdx);
+        return nextSlides;
+      });
       toast({ title: '5장 개요 완료', description: `${newSlides.length}장 추가됨` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -948,13 +956,16 @@ export default function CloudSlideEditor() {
           toast({ title: '가져올 슬라이드가 없어요', description: '빈 파일입니다.' });
           return;
         }
-        // 기존 슬라이드 뒤에 추가
-        const nextSlides = [...slides, ...imported];
-        setSlides(nextSlides);
-        setCurrentIdx(slides.length);  // 첫 새 슬라이드로
+        // 기존 슬라이드 뒤에 추가 — 함수형 업데이터로 stale slides 회피 (파일 파싱 동안 변경 가능)
+        setSlides((prev) => {
+          const nextSlides = [...prev, ...imported];
+          const targetIdx = prev.length;
+          setCurrentIdx(targetIdx);
+          queueSave(nextSlides, targetIdx);
+          return nextSlides;
+        });
         setSelectedElId(null);
         setEditingElId(null);
-        queueSave(nextSlides, slides.length);
         toast({
           title: '가져오기 완료',
           description: `${imported.length}장 추가됨. 도형·이미지·애니메이션은 일부 손실 가능.`,
@@ -1042,16 +1053,20 @@ export default function CloudSlideEditor() {
             child.style.borderRadius = '50%';
             if (el.shadow) child.style.boxShadow = SHAPE_SHADOW;
           } else {
-            // triangle / line / arrow — SVG
+            // triangle / line / arrow — SVG. attribute 값은 escape 필요 (사용자가 색에 따옴표 등 주입 가능).
             const sw = el.strokeWidth ?? 2;
             const stroke = el.strokeColor ?? el.fillColor;
+            const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const fillAttr = esc(el.fillColor);
+            const strokeAttr = esc(stroke);
+            const strokeColorAttr = esc(el.strokeColor ?? 'none');
             if (el.type === 'triangle') {
-              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,0 100,100 0,100" fill="${el.fillColor}" stroke="${el.strokeColor ?? 'none'}" stroke-width="${el.strokeColor ? sw : 0}" vector-effect="non-scaling-stroke" /></svg>`;
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,0 100,100 0,100" fill="${fillAttr}" stroke="${strokeColorAttr}" stroke-width="${el.strokeColor ? sw : 0}" vector-effect="non-scaling-stroke" /></svg>`;
             } else if (el.type === 'line') {
-              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="50" x2="100" y2="50" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" /></svg>`;
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="50" x2="100" y2="50" stroke="${strokeAttr}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" /></svg>`;
             } else if (el.type === 'arrow') {
-              const ahId = `ah-${el.id}-pdf`;
-              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="overflow:visible"><defs><marker id="${ahId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="${stroke}" /></marker></defs><line x1="0" y1="50" x2="100" y2="50" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" marker-end="url(#${ahId})" /></svg>`;
+              const ahId = `ah-${esc(el.id)}-pdf`;
+              child.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="overflow:visible"><defs><marker id="${ahId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="${strokeAttr}" /></marker></defs><line x1="0" y1="50" x2="100" y2="50" stroke="${strokeAttr}" stroke-width="${sw}" stroke-linecap="round" vector-effect="non-scaling-stroke" marker-end="url(#${ahId})" /></svg>`;
             }
           }
           slideEl.appendChild(child);
