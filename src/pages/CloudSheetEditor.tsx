@@ -36,7 +36,7 @@ import {
 } from '@/lib/cloudSheet/axisShift';
 import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
 import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
-import { computeSelBounds } from '@/lib/cloudSheet/selBounds';
+import { computeSelBounds, buildMergeMaps } from '@/lib/cloudSheet/selBounds';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -237,21 +237,8 @@ export default function CloudSheetEditor() {
   const comments = allComments[currentSheetId] ?? {};
   const embeddedCharts = allEmbeddedCharts[currentSheetId] ?? [];
 
-  // 병합 렌더링용 — top-left 위치 → 크기, 그 외 위치 → covered 표시
-  const { mergeAtMap, coveredSet } = useMemo(() => {
-    const at = new Map<string, { rows: number; cols: number }>();
-    const covered = new Set<string>();
-    for (const m of merges) {
-      at.set(`${m.minR},${m.minC}`, { rows: m.maxR - m.minR + 1, cols: m.maxC - m.minC + 1 });
-      for (let r = m.minR; r <= m.maxR; r++) {
-        for (let c = m.minC; c <= m.maxC; c++) {
-          if (r === m.minR && c === m.minC) continue;
-          covered.add(`${r},${c}`);
-        }
-      }
-    }
-    return { mergeAtMap: at, coveredSet: covered };
-  }, [merges]);
+  // 병합 렌더링용 — lib/cloudSheet/selBounds.buildMergeMaps 공용
+  const { mergeAtMap, coveredSet } = useMemo(() => buildMergeMaps(merges), [merges]);
 
   // ─── cross-sheet 평가 컨텍스트 ───
   // sheetName → cells 매핑 (다른 시트의 셀을 'Sheet1!A1' 식으로 참조 가능)

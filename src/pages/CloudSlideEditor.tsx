@@ -63,6 +63,7 @@ import {
 } from '@/lib/cloudSlide/steps';
 import { computeAlign, computeDistribute } from '@/lib/cloudSlide/align';
 import { applySnap, buildSnapLines } from '@/lib/cloudSlide/snap';
+import { computeRotation, angleBetween } from '@/lib/cloudSlide/rotation';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
@@ -338,6 +339,11 @@ export default function CloudSlideEditor() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      // MIME type 검증 (확장자 위장된 비-이미지 차단)
+      if (!file.type.startsWith('image/')) {
+        appToast({ title: '이미지 파일이 아닙니다', description: `MIME: ${file.type || '알 수 없음'}` });
+        return;
+      }
       // 하드 한계 — 5MB 초과 → 거부 (data URL base64 가 1.33배 부풀어 저장 실패 가능)
       if (file.size > 5 * 1024 * 1024) {
         appToast({
@@ -570,17 +576,12 @@ export default function CloudSlideEditor() {
     if (!canvasRect) return;
     const cx = canvasRect.left + canvasRect.width * (el.xPct + el.wPct / 2) / 100;
     const cy = canvasRect.top + canvasRect.height * (el.yPct + el.hPct / 2) / 100;
-    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+    const startAngle = angleBetween(cx, cy, e.clientX, e.clientY);
     const startRotation = el.rotation ?? 0;
 
     const onMove = (ev: PointerEvent) => {
-      const cur = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI;
-      let rotation = startRotation + (cur - startAngle);
-      // -180 ~ 180 정규화 → 0 ~ 360
-      rotation = ((rotation % 360) + 360) % 360;
-      if (ev.shiftKey) rotation = Math.round(rotation / 15) * 15;
-      // 0 도 가까우면 정확히 0
-      if (Math.abs(rotation) < 0.5 || Math.abs(rotation - 360) < 0.5) rotation = 0;
+      const curAngle = angleBetween(cx, cy, ev.clientX, ev.clientY);
+      const rotation = computeRotation({ startRotation, startAngle, curAngle, shift: ev.shiftKey });
       updateEl(elId, { rotation });
     };
     const onUp = () => {
@@ -883,6 +884,19 @@ export default function CloudSlideEditor() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+      // 확장자 검증 — accept 만으론 부족
+      if (!file.name.toLowerCase().endsWith('.pptx')) {
+        toast({ title: '.pptx 파일만 가능합니다', description: `선택한 파일: ${file.name}` });
+        return;
+      }
+      // 50MB 한계 — 그 이상 파싱 시 메모리 폭주 가능
+      if (file.size > 50 * 1024 * 1024) {
+        toast({
+          title: '파일이 너무 큽니다',
+          description: `${(file.size / 1024 / 1024).toFixed(1)}MB. 50MB 이하만 가능합니다.`,
+        });
+        return;
+      }
       try {
         const imported = await importPptxFile(file);
         if (!imported.length) {
