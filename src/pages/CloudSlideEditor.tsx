@@ -57,6 +57,7 @@ interface SlideTextEl extends BaseEl {
   content: string;
   fontSizeRem: number;
   bold?: boolean;
+  italic?: boolean;
   textColor?: string;
   /** 텍스트 정렬. 미지정 = 'left'. */
   align?: 'left' | 'center' | 'right';
@@ -1132,6 +1133,7 @@ export default function CloudSlideEditor() {
             child.style.padding = '4px 8px';
             child.style.fontSize = `${el.fontSizeRem * 16}px`;
             child.style.fontWeight = el.bold ? '600' : '400';
+            child.style.fontStyle = el.italic ? 'italic' : 'normal';
             child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
             child.style.lineHeight = '1.25';
             child.style.whiteSpace = 'pre-wrap';
@@ -1420,8 +1422,8 @@ export default function CloudSlideEditor() {
           </div>
         </div>
 
-        {/* 도구바 */}
-        <div className="border-t border-border bg-background flex items-center gap-0.5 px-3 py-1.5 overflow-x-auto">
+        {/* 도구바 — flex-wrap 로 좁은 화면에서 줄바꿈 */}
+        <div className="border-t border-border bg-background flex flex-wrap items-center gap-x-1 gap-y-1 px-3 py-1.5">
           <ToolBtn onClick={addSlide} title="새 슬라이드 (Ctrl+M)">
             <Plus className="w-4 h-4" /><span className="text-xs ml-1">슬라이드</span>
           </ToolBtn>
@@ -1560,8 +1562,16 @@ export default function CloudSlideEditor() {
                   <ToolBtn
                     onClick={() => updateEl(el.id, { bold: !el.bold })}
                     title="굵게"
+                    active={!!el.bold}
                   >
-                    <span className={cn('text-sm font-bold', el.bold && 'underline')}>B</span>
+                    <span className="text-sm font-bold">B</span>
+                  </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { italic: !el.italic })}
+                    title="기울임"
+                    active={!!el.italic}
+                  >
+                    <span className="text-sm italic font-serif">I</span>
                   </ToolBtn>
                   <ToolBtn
                     onClick={() => updateEl(el.id, { fontSizeRem: nextFontSize(el.fontSizeRem, -1) })}
@@ -1693,13 +1703,24 @@ export default function CloudSlideEditor() {
                     />
                     {(() => {
                       const allBold = texts.every((t) => t.bold);
+                      const allItalic = texts.every((t) => t.italic);
                       return (
-                        <ToolBtn
-                          onClick={() => applyToTexts({ bold: !allBold })}
-                          title={allBold ? '굵게 해제' : '모두 굵게'}
-                        >
-                          <span className={cn('text-sm font-bold', allBold && 'underline')}>B</span>
-                        </ToolBtn>
+                        <>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ bold: !allBold })}
+                            title={allBold ? '굵게 해제' : '모두 굵게'}
+                            active={allBold}
+                          >
+                            <span className="text-sm font-bold">B</span>
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ italic: !allItalic })}
+                            title={allItalic ? '기울임 해제' : '모두 기울임'}
+                            active={allItalic}
+                          >
+                            <span className="text-sm italic font-serif">I</span>
+                          </ToolBtn>
+                        </>
                       );
                     })()}
                     {(() => {
@@ -2219,6 +2240,7 @@ function TextElView({
         className={cn(
           'w-full h-full outline-none break-words overflow-hidden',
           el.bold && 'font-semibold',
+          el.italic && 'italic',
         )}
         style={{
           fontSize: `${el.fontSizeRem}rem`,
