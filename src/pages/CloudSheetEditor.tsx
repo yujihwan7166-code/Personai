@@ -87,6 +87,7 @@ import {
 } from '@/lib/cloudSheet/numberFormat';
 import { nextSeriesValue } from '@/lib/cloudSheet/seriesAutofill';
 import { type BorderStyle, borderStyleFor } from '@/lib/cloudSheet/borderStyle';
+import { newId } from '@/lib/idGenerator';
 
 type Cells = Record<string, string>;
 
@@ -113,9 +114,7 @@ type AllComments = Record<string, Comments>;
 // EmbeddedChart 는 lib/cloudSheet/chart 공용
 type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
 
-function newEmbeddedChartId(): string {
-  return `ch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-}
+// newEmbeddedChartId → newId('ch') 공용
 
 // newValidationId 는 lib/cloudSheet/validation 공용
 

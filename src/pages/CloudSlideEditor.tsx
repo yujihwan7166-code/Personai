@@ -526,7 +526,7 @@ export default function CloudSlideEditor() {
       appToast({ title: '2개 이상 선택하세요', description: 'Shift+클릭으로 추가 선택' });
       return;
     }
-    const groupId = `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const groupId = newId('g');
     updateCurrentSlide((s) => ({
       ...s,
       elements: s.elements.map((el) => (selectedElIds.has(el.id) ? ({ ...el, groupId } as SlideElement) : el)),
@@ -995,14 +995,14 @@ export default function CloudSlideEditor() {
   const exportPdf = useCallback(async () => {
     if (!node) return;
     setAiBusy('PDF 생성');
+    // 임시 컨테이너에 모든 슬라이드 렌더 — 에러 시도 cleanup 보장
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-99999px';
+    host.style.top = '0';
+    host.style.width = '1280px';  // 16:9 캔버스 폭
+    document.body.appendChild(host);
     try {
-      // 임시 컨테이너에 모든 슬라이드 렌더
-      const host = document.createElement('div');
-      host.style.position = 'fixed';
-      host.style.left = '-99999px';
-      host.style.top = '0';
-      host.style.width = '1280px';  // 16:9 캔버스 폭
-      document.body.appendChild(host);
 
       const elements: HTMLElement[] = [];
       for (const s of slides) {
@@ -1074,12 +1074,11 @@ export default function CloudSlideEditor() {
       const name = sanitizeFileName(node.name);
       await exportElementsToPdf(elements, { fileName: name, orientation: 'l' });
       toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf (${slides.length}장)` });
-
-      document.body.removeChild(host);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: 'PDF 내보내기 실패', description: msg });
     } finally {
+      if (host.parentNode) host.parentNode.removeChild(host);
       setAiBusy(null);
     }
   }, [node, slides]);

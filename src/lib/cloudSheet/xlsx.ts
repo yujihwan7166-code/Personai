@@ -267,10 +267,22 @@ export async function exportXlsxFile(sheets: ExportSheetInput[], fileName: strin
 
       // 값/수식
       if (raw.startsWith('=')) {
-        cell.value = {
-          formula: raw.slice(1).replace(/\bAVG\b/gi, 'AVERAGE'),
-          // result는 비워두면 excel이 열 때 자동 계산
-        };
+        // IMAGE(url) 특별 처리 — Microsoft 365 의 IMAGE 가 호환되지만 이전 버전엔 #NAME?
+        // → result 에 URL 텍스트 + hyperlink 도 함께 저장하여 클릭 가능한 fallback 보장.
+        const imgMatch = raw.match(/^=\s*IMAGE\(\s*"([^"]+)"/i);
+        if (imgMatch) {
+          const url = imgMatch[1];
+          cell.value = {
+            formula: raw.slice(1),
+            result: url,
+          };
+          try { cell.hyperlink = url; } catch { /* exceljs 가 거부하면 skip */ }
+        } else {
+          cell.value = {
+            formula: raw.slice(1).replace(/\bAVG\b/gi, 'AVERAGE'),
+            // result는 비워두면 excel이 열 때 자동 계산
+          };
+        }
       } else {
         const n = Number(raw);
         if (raw.trim() !== '' && Number.isFinite(n)) {
