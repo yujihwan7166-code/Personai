@@ -194,6 +194,7 @@ export default function CloudSlideEditor() {
     setHistoryIdx(historyIdx - 1);
     applySnapshot(target);
     setSelectedElId(null);
+    setSelectedElIds(new Set());  // 다중 선택도 함께 초기화 (snapshot 의 element id 와 다를 수 있음)
     setEditingElId(null);
   }, [canUndo, history, historyIdx, applySnapshot]);
 
@@ -204,6 +205,7 @@ export default function CloudSlideEditor() {
     setHistoryIdx(historyIdx + 1);
     applySnapshot(target);
     setSelectedElId(null);
+    setSelectedElIds(new Set());
     setEditingElId(null);
   }, [canRedo, history, historyIdx, applySnapshot]);
 
@@ -1047,6 +1049,14 @@ export default function CloudSlideEditor() {
     setSelectedElId(null);
     setEditingElId(null);
   }, [currentIdx]);
+
+  // 발표 모드 중 body 스크롤 잠금 (overlay 뒤 컨텐츠가 휠로 스크롤되는 것 방지)
+  useEffect(() => {
+    if (!presenting) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [presenting]);
 
   const stopPresent = useCallback(() => {
     setCurrentIdx(presentIdx);  // 마지막으로 본 슬라이드로 에디터 복귀

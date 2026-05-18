@@ -40,6 +40,9 @@ import { computeSelBounds, buildMergeMaps } from '@/lib/cloudSheet/selBounds';
 import { buildFormulaRefHighlights } from '@/lib/cloudSheet/formulaRefHighlights';
 import { findAutocomplete } from '@/lib/cloudSheet/autocompleteCell';
 import { computeSelectionStats, formatStatNumber } from '@/lib/cloudSheet/selectionStats';
+import {
+  buildValidationItemsMap, buildCheckboxRefSet, buildInvalidRefSet,
+} from '@/lib/cloudSheet/validationMaps';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -1096,45 +1099,13 @@ export default function CloudSheetEditor() {
     queueSave({ allValidations: nextAll });
   }, [validations, allValidations, currentSheetId, queueSave]);
 
-  /** ref → 허용 items (드롭다운 목록 표시용) — 나중 rule 우선. checkbox 는 별도 처리. */
-  const validationItemsMap = useMemo<Map<string, string[]>>(() => {
-    const out = new Map<string, string[]>();
-    for (const v of validations) {
-      if (v.kind === 'checkbox') continue; // 드롭다운 표시 X — 체크박스 위젯으로 따로 렌더
-      for (let r = v.range.minR; r <= v.range.maxR; r++) {
-        for (let c = v.range.minC; c <= v.range.maxC; c++) {
-          out.set(cellRef(r, c), v.items);
-        }
-      }
-    }
-    return out;
-  }, [validations]);
-
-  /** ref 집합 — 체크박스 위젯으로 표시할 셀. */
-  const checkboxRefSet = useMemo<Set<string>>(() => {
-    const out = new Set<string>();
-    for (const v of validations) {
-      if (v.kind !== 'checkbox') continue;
-      for (let r = v.range.minR; r <= v.range.maxR; r++) {
-        for (let c = v.range.minC; c <= v.range.maxC; c++) {
-          out.add(cellRef(r, c));
-        }
-      }
-    }
-    return out;
-  }, [validations]);
-
-  /** ref → 유효한지 (rule 있고 값이 items 에 없으면 false) */
-  const invalidRefSet = useMemo<Set<string>>(() => {
-    const out = new Set<string>();
-    for (const [ref, items] of validationItemsMap) {
-      const raw = cells[ref];
-      if (raw === undefined || raw === '') continue; // 빈 셀은 valid
-      const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
-      if (!items.includes(display) && !items.includes(raw)) out.add(ref);
-    }
-    return out;
-  }, [validationItemsMap, cells, displayValues]);
+  /** Validation 규칙 → ref lookup maps (lib/cloudSheet/validationMaps 공용) */
+  const validationItemsMap = useMemo(() => buildValidationItemsMap(validations), [validations]);
+  const checkboxRefSet = useMemo(() => buildCheckboxRefSet(validations), [validations]);
+  const invalidRefSet = useMemo(
+    () => buildInvalidRefSet(validationItemsMap, cells, displayValues),
+    [validationItemsMap, cells, displayValues],
+  );
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
 

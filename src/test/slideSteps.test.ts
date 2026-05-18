@@ -32,7 +32,7 @@ describe('nextStrokeWidth', () => {
 });
 
 describe('nextLineHeight', () => {
-  it('순환', () => {
+  it('순환 (dir 없음)', () => {
     const first = LINE_HEIGHT_STEPS[0];
     const second = LINE_HEIGHT_STEPS[1];
     const last = LINE_HEIGHT_STEPS[LINE_HEIGHT_STEPS.length - 1];
@@ -41,6 +41,14 @@ describe('nextLineHeight', () => {
   });
   it('단계 외 값 → 첫 번째 (idx=-1, (-1+1)%n=0)', () => {
     expect(nextLineHeight(99)).toBe(LINE_HEIGHT_STEPS[0]);
+  });
+  it('dir=1 → clamp (다른 next* 와 동일)', () => {
+    const last = LINE_HEIGHT_STEPS[LINE_HEIGHT_STEPS.length - 1];
+    expect(nextLineHeight(last, 1)).toBe(last); // clamp, wrap X
+    expect(nextLineHeight(LINE_HEIGHT_STEPS[0], -1)).toBe(LINE_HEIGHT_STEPS[0]);
+  });
+  it('dir=1 + 근사값', () => {
+    expect(nextLineHeight(1.2, 1)).toBe(1.5); // 1.25 와 가까움 → +1 = 1.5
   });
 });
 
