@@ -24,8 +24,9 @@ import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateFileBody } from '@/lib/cloudClient';
+// updateFileBody 는 useDebouncedAutosave 내부 사용
 import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
+import { useDebouncedAutosave } from '@/lib/cloudCommon/useDebouncedAutosave';
 import { importPptxFile, exportPptxFile } from '@/lib/cloudSlide/pptx';
 import {
   aiNextSlide, aiImproveSlide, aiOutlinePresentation,
@@ -82,8 +83,6 @@ export default function CloudSlideEditor() {
   const [presentIdx, setPresentIdx] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
 
-  const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ─── 노드 로드 (공용 훅) ───
@@ -102,40 +101,16 @@ export default function CloudSlideEditor() {
     },
   });
 
-  // ─── 저장 큐 ───
-  const flushSave = useCallback(async () => {
-    if (!id) return;
-    const payload = pendingRef.current;
-    if (!payload.name && !payload.meta) return;
-    pendingRef.current = {};
-    setSaveState('saving');
-    try {
-      await updateFileBody(id, payload);
-      setSaveState('saved');
-      setLastSavedAt(Date.now());
-    } catch (e) {
-      setSaveState('error');
-      const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: '저장 실패', description: msg });
-    }
-  }, [id]);
+  // ─── 저장 큐 (공용 훅) ───
+  const { queueSave: queueSaveRaw } = useDebouncedAutosave({
+    id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
+  });
 
   const queueSave = useCallback((nextSlides: Slide[], nextIdx: number) => {
-    pendingRef.current = {
-      ...pendingRef.current,
+    queueSaveRaw({
       meta: { ...(node?.meta ?? {}), slides: nextSlides, currentIdx: nextIdx },
-    };
-    setSaveState('saving');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => { void flushSave(); }, AUTOSAVE_DELAY_MS);
-  }, [flushSave, node?.meta]);
-
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      void flushSave();
-    };
-  }, [flushSave]);
+    });
+  }, [queueSaveRaw, node?.meta]);
 
   // ─── 슬라이드 mutate ───
   const updateSlides = useCallback((updater: (prev: Slide[]) => Slide[], newIdx?: number) => {
