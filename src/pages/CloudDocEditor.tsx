@@ -1681,14 +1681,19 @@ function TocDropdown({ editor }: { editor: Editor }) {
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); refresh(); }}
         className={cn(
-          'p-2 rounded text-sm flex items-center gap-1',
+          'p-2 rounded text-sm flex items-center gap-1.5',
           open ? 'bg-muted' : 'hover:bg-muted',
         )}
         aria-pressed={open}
-        aria-label="목차"
-        title={`목차 (헤딩 ${items.length}개)`}
+        aria-label={`목차 (헤딩 ${items.length}개)`}
+        title={items.length === 0 ? '목차 (헤딩이 아직 없어요)' : `목차 (헤딩 ${items.length}개)`}
       >
         <ListTree className="w-4 h-4" />
+        {items.length > 0 && (
+          <span className="text-[10px] font-medium text-muted-foreground tabular-nums hidden sm:inline">
+            {items.length}
+          </span>
+        )}
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-40 min-w-[220px] max-w-[360px] max-h-[60vh] overflow-y-auto rounded border border-border bg-popover shadow-md py-1">
