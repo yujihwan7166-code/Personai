@@ -100,10 +100,17 @@ export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
       {/* 좌측 마진 핸들 */}
       {onMarginChange && (
         <div
-          className="absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize group hover:bg-blue-200/40"
+          role="slider"
+          tabIndex={0}
+          aria-label="좌측 마진"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(widthPx - margin.right - MIN_BODY_WIDTH_PX)}
+          aria-valuenow={Math.round(margin.left)}
+          aria-valuetext={`${(margin.left / pxPerCm).toFixed(1)}cm`}
+          className="absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize group hover:bg-blue-200/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           style={{ left: margin.left }}
           onPointerDown={startDrag('left')}
-          title={`좌측 마진 (${(margin.left / pxPerCm).toFixed(1)}cm)`}
+          title={`좌측 마진 ${(margin.left / pxPerCm).toFixed(1)}cm — 드래그로 조절`}
         >
           <div className="w-0 h-0 mx-auto mt-0.5 border-l-[4px] border-r-[4px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-600 group-hover:border-t-blue-600" />
         </div>
@@ -111,10 +118,17 @@ export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
       {/* 우측 마진 핸들 */}
       {onMarginChange && (
         <div
-          className="absolute top-0 h-full w-3 translate-x-1/2 cursor-ew-resize group hover:bg-blue-200/40"
+          role="slider"
+          tabIndex={0}
+          aria-label="우측 마진"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(widthPx - margin.left - MIN_BODY_WIDTH_PX)}
+          aria-valuenow={Math.round(margin.right)}
+          aria-valuetext={`${(margin.right / pxPerCm).toFixed(1)}cm`}
+          className="absolute top-0 h-full w-3 translate-x-1/2 cursor-ew-resize group hover:bg-blue-200/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           style={{ right: margin.right }}
           onPointerDown={startDrag('right')}
-          title={`우측 마진 (${(margin.right / pxPerCm).toFixed(1)}cm)`}
+          title={`우측 마진 ${(margin.right / pxPerCm).toFixed(1)}cm — 드래그로 조절`}
         >
           <div className="w-0 h-0 mx-auto mt-0.5 border-l-[4px] border-r-[4px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-600 group-hover:border-t-blue-600" />
         </div>
