@@ -15,16 +15,43 @@ import { excelNumFmtToToken } from './numFmtMap';
 
 type Cells = Record<string, string>;
 
+type FontFamily = 'pretendard' | 'inter' | 'arial' | 'noto-sans' | 'georgia' | 'jetbrains';
+
 interface CellFormat {
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
   textColor?: string;
   bgColor?: string;
   align?: 'left' | 'center' | 'right';
+  vAlign?: 'top' | 'middle' | 'bottom';
+  wrap?: 'overflow' | 'wrap' | 'clip';
+  fontFamily?: FontFamily;
+  fontSize?: number;
   numberFmt?: 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
   border?: 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
 }
 type CellFormats = Record<string, CellFormat>;
+
+/** 엑셀 폰트 이름 → 우리 FontFamily 토큰. 알 수 없으면 undefined. */
+const FONT_NAME_MAP: Record<string, FontFamily> = {
+  'pretendard variable': 'pretendard', 'pretendard': 'pretendard',
+  'inter': 'inter',
+  'arial': 'arial', 'helvetica': 'arial',
+  'noto sans kr': 'noto-sans', 'noto sans': 'noto-sans', '맑은 고딕': 'noto-sans', 'malgun gothic': 'noto-sans',
+  'georgia': 'georgia', 'times new roman': 'georgia', 'times': 'georgia',
+  'jetbrains mono': 'jetbrains', 'consolas': 'jetbrains', 'monaco': 'jetbrains', 'menlo': 'jetbrains', 'courier new': 'jetbrains',
+};
+
+const FONT_TOKEN_TO_EXCEL: Record<FontFamily, string> = {
+  pretendard: 'Pretendard',
+  inter: 'Inter',
+  arial: 'Arial',
+  'noto-sans': 'Noto Sans KR',
+  georgia: 'Georgia',
+  jetbrains: 'JetBrains Mono',
+};
 
 export interface Merge { minR: number; maxR: number; minC: number; maxC: number }
 
@@ -158,7 +185,16 @@ function extractCellFormat(cell: ExcelJS.Cell): CellFormat | undefined {
   const font = cell.font;
   if (font?.bold) out.bold = true;
   if (font?.italic) out.italic = true;
+  if (font?.underline) out.underline = true;
+  if (font?.strike) out.strikethrough = true;
   if (font?.color?.argb) out.textColor = argbToHex(font.color.argb);
+  if (typeof font?.size === 'number' && Number.isFinite(font.size)) {
+    out.fontSize = Math.round(font.size);
+  }
+  if (font?.name) {
+    const tok = FONT_NAME_MAP[font.name.toLowerCase().trim()];
+    if (tok) out.fontFamily = tok;
+  }
 
   const fill = cell.fill as ExcelJS.FillPattern | undefined;
   if (fill?.type === 'pattern' && fill.fgColor?.argb) {
@@ -170,6 +206,11 @@ function extractCellFormat(cell: ExcelJS.Cell): CellFormat | undefined {
   if (align === 'left' || align === 'center' || align === 'right') {
     out.align = align;
   }
+  const vert = cell.alignment?.vertical;
+  if (vert === 'top' || vert === 'middle' || vert === 'bottom') {
+    out.vAlign = vert;
+  }
+  if (cell.alignment?.wrapText) out.wrap = 'wrap';
 
   const tok = excelNumFmtToToken(cell.numFmt);
   if (tok) out.numberFmt = tok;
@@ -272,12 +313,19 @@ export async function exportXlsxFile(sheets: ExportSheetInput[], fileName: strin
 }
 
 function applyFormat(cell: ExcelJS.Cell, fmt: CellFormat): void {
-  // 글꼴 (B/I/색)
-  if (fmt.bold || fmt.italic || fmt.textColor) {
+  // 글꼴 (B/I/U/S/색/이름/크기) — 하나라도 있으면 font 설정
+  if (
+    fmt.bold || fmt.italic || fmt.underline || fmt.strikethrough ||
+    fmt.textColor || fmt.fontFamily || fmt.fontSize
+  ) {
     cell.font = {
       bold: fmt.bold || undefined,
       italic: fmt.italic || undefined,
+      underline: fmt.underline || undefined,
+      strike: fmt.strikethrough || undefined,
       color: fmt.textColor ? { argb: 'FF' + fmt.textColor.replace('#', '').toUpperCase() } : undefined,
+      name: fmt.fontFamily ? FONT_TOKEN_TO_EXCEL[fmt.fontFamily] : undefined,
+      size: fmt.fontSize || undefined,
     };
   }
   // 배경색
@@ -288,9 +336,13 @@ function applyFormat(cell: ExcelJS.Cell, fmt: CellFormat): void {
       fgColor: { argb: 'FF' + fmt.bgColor.replace('#', '').toUpperCase() },
     };
   }
-  // 정렬
-  if (fmt.align) {
-    cell.alignment = { horizontal: fmt.align, vertical: 'middle' };
+  // 정렬 (가로 + 세로 + 줄바꿈)
+  if (fmt.align || fmt.vAlign || fmt.wrap) {
+    cell.alignment = {
+      horizontal: fmt.align ?? undefined,
+      vertical: fmt.vAlign ?? 'middle',
+      wrapText: fmt.wrap === 'wrap' ? true : undefined,
+    };
   }
   // 숫자 형식
   if (fmt.numberFmt) {

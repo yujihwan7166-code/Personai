@@ -109,6 +109,60 @@ describe('xlsx import — 서식 보존 (신규)', () => {
     expect(sheet.cellFormats?.A2?.numberFmt).toBe('percent');
     expect(sheet.cellFormats?.A3?.numberFmt).toBe('date');
   });
+
+  it('밑줄 / 취소선 추출', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'u';
+      ws.getCell('A1').font = { underline: true };
+      ws.getCell('B1').value = 's';
+      ws.getCell('B1').font = { strike: true };
+      ws.getCell('C1').value = 'b+u';
+      ws.getCell('C1').font = { bold: true, underline: true, strike: true };
+    });
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.cellFormats?.A1?.underline).toBe(true);
+    expect(sheet.cellFormats?.B1?.strikethrough).toBe(true);
+    expect(sheet.cellFormats?.C1?.bold).toBe(true);
+    expect(sheet.cellFormats?.C1?.underline).toBe(true);
+    expect(sheet.cellFormats?.C1?.strikethrough).toBe(true);
+  });
+
+  it('폰트 이름 / 크기 추출', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'big';
+      ws.getCell('A1').font = { name: 'Arial', size: 24 };
+      ws.getCell('B1').value = 'mono';
+      ws.getCell('B1').font = { name: 'Consolas', size: 12 };
+      ws.getCell('C1').value = 'unknown';
+      ws.getCell('C1').font = { name: 'NonExistentFont', size: 11 };
+    });
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.cellFormats?.A1?.fontFamily).toBe('arial');
+    expect(sheet.cellFormats?.A1?.fontSize).toBe(24);
+    expect(sheet.cellFormats?.B1?.fontFamily).toBe('jetbrains'); // Consolas → 코드 폰트 매핑
+    expect(sheet.cellFormats?.B1?.fontSize).toBe(12);
+    // 알 수 없는 폰트 → fontFamily 미설정 (size 만)
+    expect(sheet.cellFormats?.C1?.fontFamily).toBeUndefined();
+    expect(sheet.cellFormats?.C1?.fontSize).toBe(11);
+  });
+
+  it('세로 정렬 + 줄바꿈 추출', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'top';
+      ws.getCell('A1').alignment = { vertical: 'top' };
+      ws.getCell('B1').value = 'mid';
+      ws.getCell('B1').alignment = { vertical: 'middle' };
+      ws.getCell('C1').value = 'bot';
+      ws.getCell('C1').alignment = { vertical: 'bottom' };
+      ws.getCell('D1').value = 'wrap me please';
+      ws.getCell('D1').alignment = { wrapText: true };
+    });
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.cellFormats?.A1?.vAlign).toBe('top');
+    expect(sheet.cellFormats?.B1?.vAlign).toBe('middle');
+    expect(sheet.cellFormats?.C1?.vAlign).toBe('bottom');
+    expect(sheet.cellFormats?.D1?.wrap).toBe('wrap');
+  });
 });
 
 describe('xlsx import — 열너비 / 행높이 / freeze (신규)', () => {

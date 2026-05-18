@@ -7,10 +7,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
-  Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
+  AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   Paintbrush,
   Hash, Square as SquareIcon, Combine, Split,
-  Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
+  Plus, Minus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
   Search as SearchIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Replace as ReplaceIcon,
   Undo2, Redo2, MessageSquare, ExternalLink,
@@ -145,17 +147,49 @@ function newSheetId(): string {
 
 type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
 type BorderStyle = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
+type FontFamily = 'pretendard' | 'inter' | 'arial' | 'noto-sans' | 'georgia' | 'jetbrains';
+type VAlign = 'top' | 'middle' | 'bottom';
+type Wrap = 'overflow' | 'wrap' | 'clip';
 
 interface CellFormat {
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
   textColor?: string;
   bgColor?: string;
   align?: 'left' | 'center' | 'right';
+  vAlign?: VAlign;
+  wrap?: Wrap;
+  fontFamily?: FontFamily;
+  /** 폰트 크기 (px). 8~48. */
+  fontSize?: number;
   numberFmt?: NumberFmt;
   border?: BorderStyle;
 }
 type CellFormats = Record<string, CellFormat>;
+
+const FONT_FAMILY_LABEL: Record<FontFamily, string> = {
+  pretendard: 'Pretendard',
+  inter: 'Inter',
+  arial: 'Arial',
+  'noto-sans': 'Noto Sans',
+  georgia: 'Georgia',
+  jetbrains: 'JetBrains Mono',
+};
+
+const FONT_FAMILY_CSS: Record<FontFamily, string> = {
+  pretendard: '"Pretendard Variable", Pretendard, system-ui, sans-serif',
+  inter: 'Inter, system-ui, sans-serif',
+  arial: 'Arial, Helvetica, sans-serif',
+  'noto-sans': '"Noto Sans KR", "Noto Sans", sans-serif',
+  georgia: 'Georgia, "Times New Roman", serif',
+  jetbrains: '"JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace',
+};
+
+const FONT_SIZE_MIN = 8;
+const FONT_SIZE_MAX = 48;
+const FONT_SIZE_DEFAULT = 13;
 
 const NUMBER_FMT_OPTIONS: Array<{ value: '' | NumberFmt; label: string; example: string }> = [
   { value: '',              label: '자동',     example: '' },
@@ -2891,7 +2925,69 @@ export default function CloudSheetEditor() {
             const cluster = 'inline-flex items-center gap-0.5 shrink-0 rounded-md bg-muted/30 px-1 py-0.5';
             return (
               <>
-                {/* 텍스트 스타일 */}
+                {/* 폰트 + 크기 — Sheets/Excel 매칭 */}
+                <div className={cluster} role="group" aria-label="폰트">
+                  <select
+                    value={curFmt.fontFamily ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value as FontFamily | '';
+                      setCellFormat(selectedRef, { fontFamily: v === '' ? undefined : v });
+                    }}
+                    className="px-1.5 py-1 text-xs bg-transparent rounded hover:bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer max-w-[110px]"
+                    title="폰트"
+                    aria-label="폰트"
+                  >
+                    <option value="">기본</option>
+                    {(Object.keys(FONT_FAMILY_LABEL) as FontFamily[]).map((f) => (
+                      <option key={f} value={f}>{FONT_FAMILY_LABEL[f]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className={cluster} role="group" aria-label="폰트 크기">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = curFmt.fontSize ?? FONT_SIZE_DEFAULT;
+                      const next = Math.max(FONT_SIZE_MIN, cur - 1);
+                      setCellFormat(selectedRef, { fontSize: next === FONT_SIZE_DEFAULT ? undefined : next });
+                    }}
+                    className="p-1 rounded hover:bg-background"
+                    title="크기 축소"
+                    aria-label="폰트 크기 줄이기"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    type="number"
+                    min={FONT_SIZE_MIN}
+                    max={FONT_SIZE_MAX}
+                    value={curFmt.fontSize ?? FONT_SIZE_DEFAULT}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (!Number.isFinite(n)) return;
+                      const clamped = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(n)));
+                      setCellFormat(selectedRef, { fontSize: clamped === FONT_SIZE_DEFAULT ? undefined : clamped });
+                    }}
+                    className="w-10 text-center text-xs bg-transparent rounded focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    title="폰트 크기"
+                    aria-label="폰트 크기"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = curFmt.fontSize ?? FONT_SIZE_DEFAULT;
+                      const next = Math.min(FONT_SIZE_MAX, cur + 1);
+                      setCellFormat(selectedRef, { fontSize: next === FONT_SIZE_DEFAULT ? undefined : next });
+                    }}
+                    className="p-1 rounded hover:bg-background"
+                    title="크기 확대"
+                    aria-label="폰트 크기 늘리기"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* 텍스트 스타일 — B / I / U / S */}
                 <div className={cluster} role="group" aria-label="텍스트 스타일">
                   <button
                     type="button"
@@ -2900,7 +2996,7 @@ export default function CloudSheetEditor() {
                       'p-1.5 rounded transition-colors hover:bg-background',
                       curFmt.bold && 'bg-background text-foreground shadow-sm',
                     )}
-                    title="굵게"
+                    title="굵게 (Ctrl+B)"
                     aria-pressed={!!curFmt.bold}
                   >
                     <Bold className="w-4 h-4" />
@@ -2912,10 +3008,34 @@ export default function CloudSheetEditor() {
                       'p-1.5 rounded transition-colors hover:bg-background',
                       curFmt.italic && 'bg-background text-foreground shadow-sm',
                     )}
-                    title="기울임"
+                    title="기울임 (Ctrl+I)"
                     aria-pressed={!!curFmt.italic}
                   >
                     <Italic className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { underline: !curFmt.underline })}
+                    className={cn(
+                      'p-1.5 rounded transition-colors hover:bg-background',
+                      curFmt.underline && 'bg-background text-foreground shadow-sm',
+                    )}
+                    title="밑줄 (Ctrl+U)"
+                    aria-pressed={!!curFmt.underline}
+                  >
+                    <UnderlineIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { strikethrough: !curFmt.strikethrough })}
+                    className={cn(
+                      'p-1.5 rounded transition-colors hover:bg-background',
+                      curFmt.strikethrough && 'bg-background text-foreground shadow-sm',
+                    )}
+                    title="취소선"
+                    aria-pressed={!!curFmt.strikethrough}
+                  >
+                    <Strikethrough className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -2945,6 +3065,55 @@ export default function CloudSheetEditor() {
                   >
                     <AlignRight className="w-4 h-4" />
                   </button>
+                </div>
+
+                {/* 세로 정렬 */}
+                <div className={cluster} role="group" aria-label="세로 정렬">
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { vAlign: 'top' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.vAlign === 'top' && 'bg-background shadow-sm')}
+                    title="위 정렬"
+                    aria-pressed={curFmt.vAlign === 'top'}
+                  >
+                    <AlignStartVertical className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { vAlign: 'middle' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.vAlign === 'middle' && 'bg-background shadow-sm')}
+                    title="가운데 정렬 (세로)"
+                    aria-pressed={curFmt.vAlign === 'middle'}
+                  >
+                    <AlignCenterVertical className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, { vAlign: 'bottom' })}
+                    className={cn('p-1.5 rounded hover:bg-background', curFmt.vAlign === 'bottom' && 'bg-background shadow-sm')}
+                    title="아래 정렬"
+                    aria-pressed={curFmt.vAlign === 'bottom'}
+                  >
+                    <AlignEndVertical className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* 줄바꿈 */}
+                <div className={cluster} role="group" aria-label="텍스트 줄바꿈">
+                  <select
+                    value={curFmt.wrap ?? 'overflow'}
+                    onChange={(e) => {
+                      const v = e.target.value as Wrap;
+                      setCellFormat(selectedRef, { wrap: v === 'overflow' ? undefined : v });
+                    }}
+                    className="px-1.5 py-1 text-xs bg-transparent rounded hover:bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                    title="텍스트 줄바꿈"
+                    aria-label="텍스트 줄바꿈"
+                  >
+                    <option value="overflow">흘러넘침</option>
+                    <option value="wrap">줄바꿈</option>
+                    <option value="clip">자르기</option>
+                  </select>
                 </div>
 
                 {/* 색상 */}
@@ -3888,13 +4057,32 @@ const SheetCell = React.memo(function SheetCell({
   const isSticky = stickyTop !== undefined || stickyLeft !== undefined;
   // sticky 면 배경이 투명이면 뒤가 비치므로 흰색을 깐다
   const effectiveBg = isSticky && !bg ? 'hsl(var(--background))' : bg;
+  // 텍스트 장식 — underline / strikethrough 둘 다 가능 (공백 join)
+  const decorations: string[] = [];
+  if (format?.underline) decorations.push('underline');
+  if (format?.strikethrough) decorations.push('line-through');
+  const verticalAlignCss: React.CSSProperties['verticalAlign'] | undefined =
+    format?.vAlign === 'top' ? 'top'
+    : format?.vAlign === 'bottom' ? 'bottom'
+    : format?.vAlign === 'middle' ? 'middle'
+    : undefined;
+  const wrapCss: Pick<React.CSSProperties, 'whiteSpace' | 'overflow' | 'textOverflow'> | undefined =
+    format?.wrap === 'wrap' ? { whiteSpace: 'normal', overflow: 'hidden' }
+    : format?.wrap === 'clip' ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }
+    : undefined; // 'overflow' (기본) — 셀 밖으로 흘러나가는 동작은 기존 그대로
+
   const tdStyle: React.CSSProperties = {
     padding: editing ? 0 : undefined,
     background: effectiveBg,
     color: format?.textColor,
     fontWeight: format?.bold ? 600 : undefined,
     fontStyle: format?.italic ? 'italic' : undefined,
+    textDecoration: decorations.length > 0 ? decorations.join(' ') : undefined,
+    fontFamily: format?.fontFamily ? FONT_FAMILY_CSS[format.fontFamily] : undefined,
+    fontSize: format?.fontSize ? `${format.fontSize}px` : undefined,
     textAlign: format?.align,
+    verticalAlign: verticalAlignCss,
+    ...wrapCss,
     position: isSticky ? 'sticky' : undefined,
     top: stickyTop,
     left: stickyLeft,
