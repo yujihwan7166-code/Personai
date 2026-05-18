@@ -40,6 +40,7 @@ import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection 
 import {
   buildChartData, flattenForPie, CHART_PALETTE, getChartPalette,
   CHART_PALETTES, CHART_PALETTE_LABELS, type SelRange,
+  type EmbeddedChart,
 } from '@/lib/cloudSheet/chart';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
@@ -68,6 +69,7 @@ import {
   SHEET_TAB_COLOR_LABEL, SHEET_TAB_COLOR_HEX,
 } from '@/lib/cloudSheet/SheetTab';
 import { SheetHelpModal } from '@/lib/cloudSheet/SheetHelpModal';
+import { EmbeddedChartCard } from '@/lib/cloudSheet/EmbeddedChartCard';
 
 type Cells = Record<string, string>;
 
@@ -97,15 +99,7 @@ type AllValidations = Record<string, Validation[]>;
 type Comments = Record<string, string>;
 type AllComments = Record<string, Comments>;
 
-interface EmbeddedChart {
-  id: string;
-  type: 'bar' | 'line' | 'pie';
-  orientation: 'columns' | 'rows';
-  range: { minR: number; maxR: number; minC: number; maxC: number };
-  title?: string;
-  /** 팔레트 프리셋 이름 — getChartPalette 가 fallback 처리. */
-  palette?: string;
-}
+// EmbeddedChart 는 lib/cloudSheet/chart 공용
 type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
 
 function newEmbeddedChartId(): string {
@@ -4796,256 +4790,13 @@ const SheetCell = React.memo(function SheetCell({
 
 // HelpRow 는 lib/cloudCommon/HelpRow 공용
 
+// EmbeddedChartCard 는 lib/cloudSheet/EmbeddedChartCard 공용
+
 // ─────────────────────────────────────────────
 // 차트 모달 (선택 범위 → 막대/선/원)
 // ─────────────────────────────────────────────
 
 type ChartType = 'bar' | 'line' | 'pie';
-
-// ─────────────────────────────────────────────
-// 영구 embed 차트 카드 (시트 아래 표시, 데이터 자동 갱신)
-// ─────────────────────────────────────────────
-
-interface EmbeddedChartCardProps {
-  chart: EmbeddedChart;
-  cells: Cells;
-  onRemove: () => void;
-  onMovePrev?: () => void;
-  onMoveNext?: () => void;
-  onChangePalette?: (palette: string) => void;
-  onChangeTitle?: (title: string) => void;
-}
-
-function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle,
-}: EmbeddedChartCardProps) {
-  const data = useMemo(
-    () => buildChartData(cells, chart.range, chart.orientation),
-    [cells, chart.range, chart.orientation],
-  );
-  const hasData = data.rows.length > 0 && data.seriesKeys.length > 0;
-  const rangeStr = useMemo(() => {
-    const a = `${idxToCol(chart.range.minC)}${chart.range.minR + 1}`;
-    const b = `${idxToCol(chart.range.maxC)}${chart.range.maxR + 1}`;
-    return a === b ? a : `${a}:${b}`;
-  }, [chart.range]);
-  const palette = getChartPalette(chart.palette);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(chart.title ?? '');
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  const chartBodyRef = useRef<HTMLDivElement>(null);
-  const handleDownloadPng = useCallback(async () => {
-    const el = chartBodyRef.current;
-    if (!el) return;
-    try {
-      const html2canvasMod = await import('html2canvas');
-      const html2canvas = html2canvasMod.default;
-      const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const safeTitle = (chart.title || `${chart.type}_chart`).replace(/[\\/?*:|"<>]/g, '_');
-        a.download = `${safeTitle}_${Date.now()}.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        toast({ title: 'PNG 저장됨' });
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: 'PNG 저장 실패', description: msg });
-    }
-  }, [chart.title, chart.type]);
-  useEffect(() => {
-    if (editingTitle) {
-      setTitleDraft(chart.title ?? '');
-      setTimeout(() => {
-        titleInputRef.current?.focus();
-        titleInputRef.current?.select();
-      }, 0);
-    }
-  }, [editingTitle, chart.title]);
-  const commitTitle = () => {
-    setEditingTitle(false);
-    const v = titleDraft.trim();
-    if (onChangeTitle && v !== (chart.title ?? '')) onChangeTitle(v);
-  };
-  const defaultTitle = `${chart.type === 'bar' ? '막대' : chart.type === 'line' ? '선' : '원'} 차트`;
-
-  return (
-    <div className="rounded border border-border bg-background overflow-hidden">
-      <div className="flex items-center px-3 py-1.5 border-b border-border bg-muted/30 text-xs gap-1">
-        <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
-        {editingTitle ? (
-          <input
-            ref={titleInputRef}
-            value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); commitTitle(); }
-              else if (e.key === 'Escape') { e.preventDefault(); setEditingTitle(false); }
-            }}
-            onBlur={commitTitle}
-            placeholder={defaultTitle}
-            className="font-medium text-xs px-1 py-0 rounded border border-border bg-background outline-none flex-1 min-w-0 max-w-[200px]"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => onChangeTitle && setEditingTitle(true)}
-            disabled={!onChangeTitle}
-            className={cn(
-              'font-medium text-left truncate max-w-[200px]',
-              onChangeTitle && 'hover:underline cursor-text',
-            )}
-            title={onChangeTitle ? '클릭으로 제목 편집' : undefined}
-          >
-            {chart.title || defaultTitle}
-          </button>
-        )}
-        <span className="ml-1 text-muted-foreground">{rangeStr}</span>
-        <div className="ml-auto flex items-center gap-0.5">
-          {onChangePalette && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
-                  aria-label="색상 팔레트"
-                  title="색상 팔레트 변경"
-                >
-                  <span className="flex">
-                    {palette.slice(0, 4).map((c) => (
-                      <span
-                        key={c}
-                        className="block w-2 h-2.5 -ml-px first:ml-0 border border-background"
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[140px]">
-                {(Object.keys(CHART_PALETTES) as Array<keyof typeof CHART_PALETTES>).map((name) => (
-                  <DropdownMenuItem
-                    key={name}
-                    onSelect={() => onChangePalette(name)}
-                    className="flex items-center gap-2"
-                  >
-                    <span className="flex">
-                      {CHART_PALETTES[name].slice(0, 5).map((c) => (
-                        <span
-                          key={c}
-                          className="block w-3 h-3 -ml-px first:ml-0 border border-background rounded-sm"
-                          style={{ backgroundColor: c }}
-                        />
-                      ))}
-                    </span>
-                    <span>{CHART_PALETTE_LABELS[name]}</span>
-                    {(chart.palette ?? 'default') === name && (
-                      <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-foreground" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <button
-            type="button"
-            onClick={() => { void handleDownloadPng(); }}
-            disabled={!hasData}
-            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="PNG 다운로드"
-            title="PNG 다운로드"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onMovePrev}
-            disabled={!onMovePrev}
-            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="앞으로"
-            title="앞으로 이동"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onMoveNext}
-            disabled={!onMoveNext}
-            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="뒤로"
-            title="뒤로 이동"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-            aria-label="차트 삭제"
-            title="차트 삭제"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-      <div ref={chartBodyRef} className="h-[260px] p-2 bg-white">
-        {!hasData ? (
-          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-            데이터 없음 ({rangeStr})
-          </div>
-        ) : chart.type === 'bar' ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.rows} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              {data.seriesKeys.map((k, i) => (
-                <Bar key={k} dataKey={k} fill={palette[i % palette.length]} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        ) : chart.type === 'line' ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.rows} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              {data.seriesKeys.map((k, i) => (
-                <Line
-                  key={k} type="monotone" dataKey={k}
-                  stroke={palette[i % palette.length]}
-                  strokeWidth={2} dot={{ r: 2 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Pie
-                data={flattenForPie(data)}
-                dataKey="value" nameKey="name"
-                cx="50%" cy="50%" outerRadius={80} label={false}
-              >
-                {flattenForPie(data).map((_, i) => (
-                  <RechartsCell key={i} fill={palette[i % palette.length]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
-  );
-}
 
 interface ChartModalProps {
   open: boolean;

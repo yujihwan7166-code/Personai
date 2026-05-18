@@ -19,6 +19,17 @@ type Cells = Record<string, string>;
 
 export interface SelRange { minR: number; maxR: number; minC: number; maxC: number }
 
+/** 시트에 영구 embed 된 차트 한 개 (시트 별로 배열 보유). */
+export interface EmbeddedChart {
+  id: string;
+  type: 'bar' | 'line' | 'pie';
+  orientation: 'columns' | 'rows';
+  range: SelRange;
+  title?: string;
+  /** 팔레트 프리셋 이름 — getChartPalette 가 fallback 처리. */
+  palette?: string;
+}
+
 export interface ChartData {
   // Recharts 가 먹는 dataKey/x 구조
   rows: Array<{ name: string } & Record<string, number>>;
