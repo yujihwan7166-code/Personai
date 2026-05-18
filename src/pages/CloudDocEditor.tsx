@@ -34,7 +34,7 @@ import {
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   IndentIncrease, IndentDecrease,
   Sparkles, Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
-  ListTree, Paintbrush,
+  ListTree, Paintbrush, Asterisk,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -46,6 +46,8 @@ import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { PageRuler, type PageMargin } from '@/lib/cloudDoc/PageRuler';
 import { usePageBreaks } from '@/lib/cloudDoc/usePageBreaks';
+import { Footnote } from '@/lib/cloudDoc/tiptap/Footnote';
+import { FootnoteList } from '@/lib/cloudDoc/tiptap/FootnoteList';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -116,6 +118,40 @@ export default function CloudDocEditor() {
     setShowPageNumber(typeof m.showPageNumber === 'boolean' ? m.showPageNumber : true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id]);
+
+  // 본문 안 각주(sup) 클릭 → 내용 편집 (prompt v1)
+  useEffect(() => {
+    if (!editor) return;
+    const root = editor.options.element;
+    if (!root) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || target.tagName !== 'SUP' || !target.hasAttribute('data-footnote')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = target.getAttribute('data-footnote-id');
+      if (!id) return;
+      let foundPos = -1;
+      let currentText = '';
+      editor.state.doc.descendants((nd, pos) => {
+        if (nd.type.name === 'footnote' && nd.attrs.id === id) {
+          foundPos = pos;
+          currentText = String(nd.attrs.text ?? '');
+          return false;
+        }
+        return true;
+      });
+      if (foundPos < 0) return;
+      const newText = window.prompt('각주 내용:', currentText);
+      if (newText == null) return;
+      editor.chain().focus()
+        .setNodeSelection(foundPos)
+        .updateAttributes('footnote', { text: newText.trim() || '(빈 각주)' })
+        .run();
+    };
+    root.addEventListener('click', onClick);
+    return () => root.removeEventListener('click', onClick);
+  }, [editor]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -229,6 +265,7 @@ export default function CloudDocEditor() {
       Superscript,
       Subscript,
       Markdown.configure({ html: true, linkify: true, breaks: false }),
+      Footnote,
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
@@ -584,6 +621,7 @@ export default function CloudDocEditor() {
             showPageNumber={showPageNumber}
           >
             <EditorContent editor={editor} />
+            <FootnoteList editor={editor} />
           </DocPage>
         </main>
         <AiSidebar
@@ -1148,6 +1186,16 @@ function DocToolbar({ editor, zoom, onZoomChange }: { editor: Editor; zoom: numb
         title="아래 첨자 (Ctrl+,)"
       >
         <SubscriptIcon className="w-4 h-4" />
+      </ToolBtn>
+      <ToolBtn
+        onClick={() => {
+          const text = window.prompt('각주 내용:', '');
+          if (text == null) return;
+          editor.chain().focus().addFootnote(text.trim() || '(빈 각주)').run();
+        }}
+        title="각주 추가"
+      >
+        <Asterisk className="w-4 h-4" />
       </ToolBtn>
       <Sep />
 

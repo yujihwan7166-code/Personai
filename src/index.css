@@ -1109,6 +1109,23 @@
     line-height: 1.5;
     color: hsl(var(--foreground));
     word-break: break-word;
+    counter-reset: footnote-ref;
+  }
+  /* 각주 위첨자 — 본문 안 자동 번호 ([1], [2], ...) */
+  .doc-content sup[data-footnote] {
+    counter-increment: footnote-ref;
+    color: #1a73e8;
+    cursor: pointer;
+    font-size: 0.75em;
+    margin: 0 1px;
+    user-select: none;
+  }
+  .doc-content sup[data-footnote]::before {
+    content: "[" counter(footnote-ref) "]";
+  }
+  .doc-content sup[data-footnote]:hover {
+    background: rgba(26, 115, 232, 0.1);
+    border-radius: 2px;
   }
   .doc-content h1 {
     font-size: 26px;
