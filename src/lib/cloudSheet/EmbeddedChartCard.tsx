@@ -53,6 +53,10 @@ export function EmbeddedChartCard({
   const [titleDraft, setTitleDraft] = useState(chart.title ?? '');
   const titleInputRef = useRef<HTMLInputElement>(null);
   const chartBodyRef = useRef<HTMLDivElement>(null);
+  const safeTitle = useCallback(
+    () => (chart.title || `${chart.type}_chart`).replace(/[\\/?*:|"<>]/g, '_'),
+    [chart.title, chart.type],
+  );
   const handleDownloadPng = useCallback(async () => {
     const el = chartBodyRef.current;
     if (!el) return;
@@ -65,8 +69,7 @@ export function EmbeddedChartCard({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const safeTitle = (chart.title || `${chart.type}_chart`).replace(/[\\/?*:|"<>]/g, '_');
-        a.download = `${safeTitle}_${Date.now()}.png`;
+        a.download = `${safeTitle()}_${Date.now()}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         toast({ title: 'PNG 저장됨' });
@@ -75,7 +78,38 @@ export function EmbeddedChartCard({
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: 'PNG 저장 실패', description: msg });
     }
-  }, [chart.title, chart.type]);
+  }, [safeTitle]);
+  const handleDownloadSvg = useCallback(() => {
+    const el = chartBodyRef.current;
+    if (!el) return;
+    const svg = el.querySelector('svg');
+    if (!svg) {
+      toast({ title: 'SVG 추출 실패', description: '차트 SVG 를 찾지 못함' });
+      return;
+    }
+    try {
+      const clone = svg.cloneNode(true) as SVGElement;
+      if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      // 흰 배경 박스 prepend
+      const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bgRect.setAttribute('width', '100%');
+      bgRect.setAttribute('height', '100%');
+      bgRect.setAttribute('fill', '#ffffff');
+      clone.insertBefore(bgRect, clone.firstChild);
+      const xml = new XMLSerializer().serializeToString(clone);
+      const blob = new Blob([xml], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeTitle()}_${Date.now()}.svg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast({ title: 'SVG 저장됨' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'SVG 저장 실패', description: msg });
+    }
+  }, [safeTitle]);
   useEffect(() => {
     if (editingTitle) {
       setTitleDraft(chart.title ?? '');
@@ -211,16 +245,27 @@ export function EmbeddedChartCard({
               {chart.orientation === 'columns' ? '열 ⇆ 행' : '행 ⇆ 열'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => { void handleDownloadPng(); }}
-            disabled={!hasData}
-            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="PNG 다운로드"
-            title="PNG 다운로드"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                disabled={!hasData}
+                className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="이미지 다운로드"
+                title="이미지 다운로드 (PNG / SVG)"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[120px]">
+              <DropdownMenuItem onSelect={() => { void handleDownloadPng(); }}>
+                PNG (래스터)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleDownloadSvg()}>
+                SVG (벡터)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             type="button"
             onClick={onMovePrev}
