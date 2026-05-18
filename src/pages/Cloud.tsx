@@ -83,7 +83,37 @@ export default function Cloud() {
   const [searchOpen, setSearchOpen] = useState(false);
   // 사이드바 폴더 트리
   const [allFolders, setAllFolders] = useState<CloudNode[]>([]);
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+  // 폴더 트리 펼침 상태 — localStorage 영속화 (매번 다시 펼치는 불편 해소)
+  const [expandedFolderIds, setExpandedFolderIdsInner] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const v = window.localStorage.getItem('personai.cloud.drive.expandedFolderIds');
+      if (!v) return new Set();
+      const arr: unknown = JSON.parse(v);
+      return Array.isArray(arr)
+        ? new Set(arr.filter((x): x is string => typeof x === 'string'))
+        : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const setExpandedFolderIds = useCallback(
+    (v: React.SetStateAction<Set<string>>) => {
+      setExpandedFolderIdsInner((cur) => {
+        const next = typeof v === 'function'
+          ? (v as (prev: Set<string>) => Set<string>)(cur)
+          : v;
+        try {
+          window.localStorage.setItem(
+            'personai.cloud.drive.expandedFolderIds',
+            JSON.stringify(Array.from(next)),
+          );
+        } catch { /* noop */ }
+        return next;
+      });
+    },
+    [],
+  );
   // 우클릭 컨텍스트 메뉴 — node 가 있으면 파일/폴더 메뉴, null 이면 빈 영역 메뉴
   const [ctxMenu, setCtxMenu] = useState<{ node: CloudNode | null; x: number; y: number } | null>(null);
   // 드래그 중인 노드 + 호버 중인 drop target 폴더 id
