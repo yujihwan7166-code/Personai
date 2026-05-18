@@ -28,7 +28,7 @@ const SLIDE_H_EMU = 6858000;  // 7.5인치 (16:9 wide는 6858000 또는 5143500)
 interface BaseEl { id: string; xPct: number; yPct: number; wPct: number; hPct: number; rotation?: number; }
 interface SlideTextEl extends BaseEl { type: 'text'; content: string; fontSizeRem: number; bold?: boolean; textColor?: string; }
 type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
-interface SlideShapeEl extends BaseEl { type: ShapeType; fillColor: string; strokeColor?: string; strokeWidth?: number; }
+interface SlideShapeEl extends BaseEl { type: ShapeType; fillColor: string; strokeColor?: string; strokeWidth?: number; borderRadius?: number; shadow?: boolean; }
 interface SlideImageEl extends BaseEl { type: 'image'; src: string; alt?: string; }
 type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
 interface Slide { id: string; elements: SlideElement[]; background?: string; notes?: string; }
@@ -247,7 +247,9 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
     const fillColor = typeof fillSrgb?.['@_val'] === 'string' ? `#${fillSrgb['@_val']}` : 'hsl(200 75% 60%)';
 
     let type: ShapeType = 'rect';
-    if (prst === 'ellipse' || prst === 'roundRect') type = 'ellipse';
+    let borderRadius: number | undefined;
+    if (prst === 'ellipse' || prst === 'oval') type = 'ellipse';
+    else if (prst === 'roundRect') { type = 'rect'; borderRadius = 12; }  // 둥근 사각형 → rect + 반경
     else if (prst === 'triangle' || prst === 'rtTriangle') type = 'triangle';
     else if (prst === 'line' || prst === 'straightConnector1') type = 'line';
     else if (prst === 'rightArrow' || prst === 'straightArrow' || prst === 'leftRightArrow') type = 'arrow';
@@ -258,7 +260,8 @@ function parseShape(sp: Record<string, unknown>): SlideElement | null {
       xPct, yPct, wPct: Math.max(wPct, 10), hPct: Math.max(hPct, 5),
       rotation,
       fillColor,
-    };
+      ...(borderRadius != null ? { borderRadius } : {}),
+    } as SlideShapeEl;
   }
 
   return null;

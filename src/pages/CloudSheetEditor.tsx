@@ -39,6 +39,7 @@ import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
 import { computeSelBounds, buildMergeMaps } from '@/lib/cloudSheet/selBounds';
 import { buildFormulaRefHighlights } from '@/lib/cloudSheet/formulaRefHighlights';
 import { findAutocomplete } from '@/lib/cloudSheet/autocompleteCell';
+import { computeSelectionStats, formatStatNumber } from '@/lib/cloudSheet/selectionStats';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -1182,44 +1183,12 @@ export default function CloudSheetEditor() {
   const ai = useAiSidebar('sheet', getAiContext, { persistKey: node?.id });
 
   /** 선택 영역 통계 — 엑셀 상태표시줄과 동일 (Sum/Avg/Count/Min/Max) */
-  const selectionStats = useMemo(() => {
-    let count = 0;
-    let numCount = 0;
-    let sum = 0;
-    let min = Infinity;
-    let max = -Infinity;
-    for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
-      for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
-        const ref = cellRef(r, c);
-        const raw = cells[ref];
-        if (raw === undefined || raw === '') continue;
-        count++;
-        const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
-        const n = Number(display);
-        if (Number.isFinite(n) && display.trim() !== '') {
-          numCount++;
-          sum += n;
-          if (n < min) min = n;
-          if (n > max) max = n;
-        }
-      }
-    }
-    const cellsInSel = (selBounds.maxR - selBounds.minR + 1) * (selBounds.maxC - selBounds.minC + 1);
-    return {
-      cellsInSel,
-      count,
-      numCount,
-      sum: numCount > 0 ? sum : null,
-      avg: numCount > 0 ? sum / numCount : null,
-      min: numCount > 0 ? min : null,
-      max: numCount > 0 ? max : null,
-    };
-  }, [selBounds, cells, displayValues]);
+  const selectionStats = useMemo(
+    () => computeSelectionStats(selBounds, cells, displayValues),
+    [selBounds, cells, displayValues],
+  );
 
-  function fmtStatNum(n: number): string {
-    if (Number.isInteger(n)) return n.toLocaleString('ko-KR');
-    return n.toLocaleString('ko-KR', { maximumFractionDigits: 4 });
-  }
+  const fmtStatNum = formatStatNumber;
 
   // ─── 영구 embed 차트 ───
   const addEmbeddedChart = useCallback((c: Omit<EmbeddedChart, 'id'>) => {
