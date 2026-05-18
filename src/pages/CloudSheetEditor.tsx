@@ -26,7 +26,7 @@ import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateFileBody } from '@/lib/cloudClient';
+// updateFileBody 는 useDebouncedAutosave 내부 사용
 import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
 import { useDebouncedAutosave } from '@/lib/cloudCommon/useDebouncedAutosave';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
@@ -406,8 +406,6 @@ export default function CloudSheetEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cells, sheetsForEval, currentSheetName, namedRanges, aiVersion]);
 
-  const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // ─── 노드 로드 + 초기 cells 주입 (공용 훅 + onLoad 콜백) ───
