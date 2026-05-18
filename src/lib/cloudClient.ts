@@ -67,8 +67,9 @@ function saveAll(nodes: StoredNode[]): void {
   }
 }
 
+import { newId } from '@/lib/idGenerator';
 function genId(): string {
-  return `cn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return newId('cn');
 }
 
 function nowIso(): string {
