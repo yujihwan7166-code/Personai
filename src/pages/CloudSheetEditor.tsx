@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL } from '@/lib/cloudSheet/formula';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
@@ -3831,7 +3831,33 @@ const SheetCell = React.memo(function SheetCell({
             className="w-full h-full px-2 py-0 outline-none bg-transparent text-sm relative z-10 resize-none leading-snug font-[inherit]"
           />
         </div>
-      ) : (() => {
+      ) : value.startsWith(IMAGE_SENTINEL) ? (() => {
+        const url = value.slice(IMAGE_SENTINEL.length);
+        return (
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <img
+              src={url}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="max-w-full max-h-full object-contain block pointer-events-none"
+              onError={(e) => {
+                // 로드 실패 시 placeholder 텍스트로 대체
+                const el = e.currentTarget;
+                el.style.display = 'none';
+                const next = el.nextElementSibling as HTMLElement | null;
+                if (next) next.style.display = 'block';
+              }}
+            />
+            <span
+              className="hidden text-xs text-destructive truncate"
+              title={url}
+            >
+              #IMG_FAIL
+            </span>
+          </div>
+        );
+      })() : (() => {
         const link = detectLink(value);
         return (
           <>

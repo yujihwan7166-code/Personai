@@ -69,7 +69,11 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   HLOOKUP:   { sig: 'HLOOKUP(key, range, returnRow, numCols)', desc: '가로 검색' },
   INDEX:     { sig: 'INDEX(range, idx)',               desc: '1-based 평탄 인덱싱' },
   MATCH:     { sig: 'MATCH(key, range)',               desc: 'key 위치 (1-based) 또는 #N/A' },
+  IMAGE:     { sig: 'IMAGE(url)',                      desc: '셀에 이미지 표시 (HTTPS 권장)' },
 };
+
+/** IMAGE 함수 sentinel — 셀 렌더가 이 prefix 를 보고 <img> 로 표시. */
+export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
 
 // 긴 이름부터 → 짧은 이름이 prefix 인 경우 먼저 매칭되도록 정렬
 const FUNC_ORDER = [
@@ -77,7 +81,7 @@ const FUNC_ORDER = [
   'AVERAGE', 'SUMIFS', 'COUNTIFS', 'VLOOKUP', 'HLOOKUP',
   // 5자
   'MEDIAN', 'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM',
-  'MONTH', 'TODAY', 'CONCATENATE', 'CONCAT',
+  'MONTH', 'TODAY', 'CONCATENATE', 'CONCAT', 'IMAGE',
   // 4자
   'SUMIF', 'COUNTIF', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT',
   'ROUND', 'INDEX', 'MATCH', 'LEFT', 'RIGHT',
@@ -520,6 +524,16 @@ function evalExpr(
     if (i > arr.length) return '#REF!';
     return arr[i - 1];
   };
+  /** IMAGE(url) — sentinel 문자열 반환. 셀 렌더가 prefix 보고 <img> 표시. */
+  const __image = (url: unknown) => {
+    const u = String(url ?? '').trim();
+    if (!u) return '#VALUE!';
+    // 보안: javascript: / data: text/html 스킴 차단
+    if (/^\s*javascript:/i.test(u)) return '#REF!';
+    if (/^\s*data:text\/html/i.test(u)) return '#REF!';
+    return `${IMAGE_SENTINEL}${u}`;
+  };
+
   /** MATCH(key, range) — 1-based 위치 반환. 못 찾으면 #N/A */
   const __match = (key: unknown, range: unknown) => {
     const arr = toArr(range);
@@ -545,7 +559,7 @@ function evalExpr(
     '__and', '__or', '__not',
     '__today', '__now', '__year', '__month', '__day', '__weekday',
     '__power', '__sqrt', '__mod', '__int', '__median',
-    '__vlookup', '__hlookup', '__index', '__match',
+    '__vlookup', '__hlookup', '__index', '__match', '__image',
     `"use strict"; return (${work});`,
   );
   return fn(
@@ -556,7 +570,7 @@ function evalExpr(
     __and, __or, __not,
     __today, __now, __year, __month, __day, __weekday,
     __power, __sqrt, __mod, __int, __median,
-    __vlookup, __hlookup, __index, __match,
+    __vlookup, __hlookup, __index, __match, __image,
   );
 }
 
