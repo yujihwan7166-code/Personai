@@ -40,8 +40,9 @@ export function computeAlign(boxes: readonly Box[], axis: AlignAxis, mode: Align
     if (mode === 'start') nv = minStart;
     else if (mode === 'end') nv = maxEnd - p.size;
     else nv = center - p.size / 2;
-    // 캔버스 클램프 (0 ~ 100-size)
-    nv = Math.max(0, Math.min(100 - p.size, nv));
+    // 캔버스 클램프 (0 ~ 100-size). size 가 100 초과면 음수 → 0 으로.
+    const upper = Math.max(0, 100 - p.size);
+    nv = Math.max(0, Math.min(upper, nv));
     out.set(p.id, nv);
   }
   return out;
@@ -59,6 +60,8 @@ export function computeDistribute(boxes: readonly Box[], axis: AlignAxis): Map<s
   const sorted = [...boxes].sort((a, b) => getCenter(a) - getCenter(b));
   const firstC = getCenter(sorted[0]);
   const lastC = getCenter(sorted[sorted.length - 1]);
+  // 첫·끝 박스 중심이 동일하면 분배 의미 없음 (모두 같은 위치)
+  if (firstC === lastC) return out;
   const step = (lastC - firstC) / (sorted.length - 1);
   for (let i = 0; i < sorted.length; i++) {
     const el = sorted[i];

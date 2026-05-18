@@ -255,18 +255,20 @@ export default function CloudSlideEditor() {
   }, [updateSlides, currentIdx]);
 
   const deleteSlide = useCallback(() => {
-    if (slides.length <= 1) {
-      toast({ title: '마지막 슬라이드예요', description: '최소 1장은 유지됩니다.' });
-      return;
-    }
-    const newSlides = slides.filter((_, i) => i !== currentIdx);
-    const newIdx = Math.max(0, Math.min(currentIdx, newSlides.length - 1));
-    setSlides(newSlides);
-    setCurrentIdx(newIdx);
+    setSlides((prev) => {
+      if (prev.length <= 1) {
+        toast({ title: '마지막 슬라이드예요', description: '최소 1장은 유지됩니다.' });
+        return prev;
+      }
+      const newSlides = prev.filter((_, i) => i !== currentIdx);
+      const newIdx = Math.max(0, Math.min(currentIdx, newSlides.length - 1));
+      setCurrentIdx(newIdx);
+      queueSave(newSlides, newIdx);
+      return newSlides;
+    });
     setSelectedElId(null);
     setEditingElId(null);
-    queueSave(newSlides, newIdx);
-  }, [slides, currentIdx, queueSave]);
+  }, [currentIdx, queueSave]);
 
   const moveSlideUp = useCallback(() => {
     if (currentIdx === 0) return;
@@ -877,9 +879,11 @@ export default function CloudSlideEditor() {
             fontSizeRem: 1.4,
           });
         }
-        const nextSlides = slides.map((s, i) => (i === currentIdx ? { ...s, elements: newElements } : s));
-        setSlides(nextSlides);
-        queueSave(nextSlides, currentIdx);
+        setSlides((prev) => {
+          const nextSlides = prev.map((s, i) => (i === currentIdx ? { ...s, elements: newElements } : s));
+          queueSave(nextSlides, currentIdx);
+          return nextSlides;
+        });
       }
       toast({ title: '슬라이드 개선 완료', description: '본문이 교체됐어요.' });
     } catch (e) {
@@ -940,7 +944,7 @@ export default function CloudSlideEditor() {
     } finally {
       setAiBusy(null);
     }
-  }, [slides, queueSave]);
+  }, [queueSave]);
 
   // ─── Import / Export .pptx ───
   const importPptx = useCallback(() => {
@@ -976,7 +980,7 @@ export default function CloudSlideEditor() {
       }
     };
     input.click();
-  }, [slides, queueSave]);
+  }, [queueSave]);
 
   const exportPptx = useCallback(() => {
     if (!node) return;

@@ -46,6 +46,12 @@ describe('computeAlign', () => {
     const r = computeAlign([A, big], 'h', 'end');
     expect(r.get('big')!).toBeLessThanOrEqual(80);
   });
+
+  it('size > 100 인 박스도 음수 안 나옴 (방어)', () => {
+    const huge = { id: 'huge', xPct: 0, yPct: 0, wPct: 120, hPct: 10 };
+    const r = computeAlign([A, huge], 'h', 'end');
+    expect(r.get('huge')!).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('computeDistribute', () => {
@@ -66,5 +72,12 @@ describe('computeDistribute', () => {
     const r1 = computeDistribute([A, B, C], 'h');
     const r2 = computeDistribute([C, A, B], 'h');
     expect(r1.get('b')).toBeCloseTo(r2.get('b')!);
+  });
+
+  it('첫·끝 박스 중심 동일 → 빈 Map (NaN 방어)', () => {
+    const same1 = { id: 'x', xPct: 50, yPct: 0, wPct: 10, hPct: 10 };
+    const same2 = { id: 'y', xPct: 50, yPct: 0, wPct: 10, hPct: 10 };
+    const middle = { id: 'm', xPct: 50, yPct: 0, wPct: 10, hPct: 10 };
+    expect(computeDistribute([same1, middle, same2], 'h').size).toBe(0);
   });
 });
