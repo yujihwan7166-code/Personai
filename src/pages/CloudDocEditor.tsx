@@ -29,7 +29,8 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { updateFileBody } from '@/lib/cloudClient';
+import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
 import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
@@ -49,7 +50,7 @@ import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import type { AiContext } from '@/lib/cloudAi/types';
-import type { CloudNode } from '@/types/cloud';
+// CloudNode 는 useCloudNodeLoader 내부 사용
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -62,8 +63,6 @@ export default function CloudDocEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [node, setNode] = useState<CloudNode | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -141,36 +140,14 @@ export default function CloudDocEditor() {
     return null;
   }, [node]);
 
-  // 노드 로드
-  useEffect(() => {
-    if (!id) return;
-    if (authLoading) return;
-    if (!user) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const n = await fetchNode(id);
-        if (cancelled) return;
-        if (!n) {
-          setLoadError('문서를 찾을 수 없어요.');
-          return;
-        }
-        if (n.ownerId !== user.id) {
-          setLoadError('접근 권한이 없어요.');
-          return;
-        }
-        if (n.kind !== 'file' || n.fileType !== 'doc') {
-          setLoadError('문서 파일이 아니에요.');
-          return;
-        }
-        setNode(n);
-      } catch (e) {
-        if (cancelled) return;
-        setLoadError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [id, user, authLoading]);
+  // 노드 로드 (공용 훅)
+  const { node, loadError } = useCloudNodeLoader({
+    id, user, authLoading,
+    expectedFileType: 'doc',
+    notFoundMessage: '문서를 찾을 수 없어요.',
+    wrongTypeMessage: '문서 파일이 아니에요.',
+    onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
+  });
 
   // ─── 디바운스 저장 큐 ───
   const flushSave = useCallback(async () => {
