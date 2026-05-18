@@ -419,6 +419,7 @@ export default function CloudDocEditor() {
           <span className="ml-3 text-xs">
             <SaveStateBadge state={saveState} />
           </span>
+          {editor && <WordCountBadge editor={editor} />}
 
           <div className="ml-auto flex items-center gap-1">
             <button
@@ -1210,6 +1211,49 @@ function Sep() {
 // ─────────────────────────────────────────────
 // 저장 상태 뱃지
 // ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// 워드카운트 뱃지 — 글자/단어 수 (선택 영역이 있으면 그 안만)
+// ─────────────────────────────────────────────
+
+function WordCountBadge({ editor }: { editor: Editor }) {
+  const [stats, setStats] = useState<{ chars: number; words: number; isSelection: boolean }>({
+    chars: 0, words: 0, isSelection: false,
+  });
+
+  useEffect(() => {
+    const compute = (): void => {
+      const { from, to, empty } = editor.state.selection;
+      const text = empty
+        ? editor.getText({ blockSeparator: '\n' })
+        : editor.state.doc.textBetween(from, to, '\n');
+      const trimmed = text.trim();
+      const chars = text.length;
+      // 한글은 공백 단위가 어색하므로 한·영 혼용: 공백 토큰 + 한글 음절도 단어로 카운트
+      // 단순 v1: 공백/줄바꿈으로 split
+      const words = trimmed === '' ? 0 : trimmed.split(/\s+/).length;
+      setStats({ chars, words, isSelection: !empty });
+    };
+    compute();
+    editor.on('update', compute);
+    editor.on('selectionUpdate', compute);
+    return () => {
+      editor.off('update', compute);
+      editor.off('selectionUpdate', compute);
+    };
+  }, [editor]);
+
+  if (stats.chars === 0) return null;
+  return (
+    <span
+      className="ml-3 text-xs text-muted-foreground tabular-nums"
+      title={stats.isSelection ? '선택 영역 통계' : '전체 문서 통계'}
+    >
+      {stats.isSelection && <span className="text-amber-600 dark:text-amber-400 mr-1">선택</span>}
+      {stats.chars.toLocaleString('ko-KR')}자 · {stats.words.toLocaleString('ko-KR')}단어
+    </span>
+  );
+}
 
 function SaveStateBadge({ state }: { state: SaveState }) {
   if (state === 'saving') {
