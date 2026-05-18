@@ -85,6 +85,7 @@ import {
 import { SheetGrid } from '@/lib/cloudSheet/SheetGrid';
 import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBounds';
 import { useSheetHistory } from '@/lib/cloudSheet/useSheetHistory';
+import { rangeToTsv as rangeToTsvFn, parseTsv as parseTsvFn } from '@/lib/cloudSheet/tsv';
 import {
   DEFAULT_ROWS, DEFAULT_COLS, MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS,
   ROW_ADD_CHUNK, COL_ADD_CHUNK,
@@ -1087,22 +1088,10 @@ export default function CloudSheetEditor() {
   }, []);
 
   // ─── 복사 / 잘라내기 / 붙여넣기 (TSV — 엑셀과 호환) ───
-  const rangeToTsv = useCallback((bounds: SelBounds): string => {
-    const lines: string[] = [];
-    for (let r = bounds.minR; r <= bounds.maxR; r++) {
-      const row: string[] = [];
-      for (let c = bounds.minC; c <= bounds.maxC; c++) {
-        const ref = cellRef(r, c);
-        const raw = cells[ref] ?? '';
-        // 수식은 raw 그대로 (붙여넣기 시 다시 수식으로 복원)
-        // 값 안에 탭/줄바꿈 있으면 "" 로 감싸기 (엑셀 호환)
-        const needQuote = raw.includes('\t') || raw.includes('\n') || raw.includes('"');
-        row.push(needQuote ? `"${raw.replace(/"/g, '""')}"` : raw);
-      }
-      lines.push(row.join('\t'));
-    }
-    return lines.join('\n');
-  }, [cells]);
+  const rangeToTsv = useCallback(
+    (bounds: SelBounds): string => rangeToTsvFn(cells, bounds),
+    [cells],
+  );
 
   const copyRange = useCallback(async () => {
     const tsv = rangeToTsv(selBounds);
@@ -1127,31 +1116,8 @@ export default function CloudSheetEditor() {
     }
   }, [copyRange, selBounds, cells, setCellValue]);
 
-  /** TSV 텍스트 → 2D 배열 (엑셀 호환: "" 로 감싼 셀 안 \t 보존) */
-  const parseTsv = useCallback((text: string): string[][] => {
-    const rows: string[][] = [];
-    let row: string[] = [];
-    let cell = '';
-    let inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (inQuotes) {
-        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-        else if (ch === '"') { inQuotes = false; }
-        else { cell += ch; }
-      } else {
-        if (ch === '"') inQuotes = true;
-        else if (ch === '\t') { row.push(cell); cell = ''; }
-        else if (ch === '\n' || ch === '\r') {
-          row.push(cell); cell = '';
-          rows.push(row); row = [];
-          if (ch === '\r' && text[i + 1] === '\n') i++;
-        } else { cell += ch; }
-      }
-    }
-    if (cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
-    return rows;
-  }, []);
+  // parseTsv 는 lib/cloudSheet/tsv 공용 (parseTsvFn 직접 사용)
+  const parseTsv = parseTsvFn;
 
   const pasteFromClipboard = useCallback(async () => {
     if (editing) return;
