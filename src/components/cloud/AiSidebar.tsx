@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Sparkles, X, Send, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
@@ -235,11 +236,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words',
+          'max-w-[85%] rounded-lg px-3 py-2 text-sm break-words',
           isUser
-            ? 'bg-foreground text-background'
+            ? 'bg-foreground text-background whitespace-pre-wrap'
             : message.error
-              ? 'bg-destructive/10 text-destructive border border-destructive/30'
+              ? 'bg-destructive/10 text-destructive border border-destructive/30 whitespace-pre-wrap'
               : 'bg-muted text-foreground',
         )}
       >
@@ -249,7 +250,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             에러
           </span>
         )}
-        {message.content}
+        {isUser || message.error ? (
+          message.content
+        ) : (
+          <div className="markdown-msg [&>*+*]:mt-1.5 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-foreground/10 [&_code]:text-[0.85em] [&_code]:font-mono [&_pre]:p-2 [&_pre]:rounded [&_pre]:bg-foreground/10 [&_pre]:overflow-x-auto [&_pre>code]:bg-transparent [&_pre>code]:p-0 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold [&_strong]:font-semibold [&_em]:italic [&_a]:underline [&_a]:text-violet-600 [&_blockquote]:border-l-2 [&_blockquote]:border-foreground/30 [&_blockquote]:pl-2 [&_blockquote]:text-muted-foreground">
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        )}
       </div>
     </div>
   );
