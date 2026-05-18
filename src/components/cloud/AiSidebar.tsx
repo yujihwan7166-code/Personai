@@ -148,8 +148,9 @@ export function AiSidebar({
                   type="button"
                   onClick={() => handleQuickAction(qa.prompt)}
                   disabled={sending}
-                  className="text-left px-3 py-2 rounded border border-border hover:bg-muted text-sm disabled:opacity-50"
+                  className="text-left px-3 py-2 rounded border border-border bg-background hover:bg-muted hover:border-foreground/30 text-sm disabled:opacity-50 transition-colors"
                 >
+                  <Sparkles className="w-3 h-3 text-violet-500 inline mr-1.5 -mt-0.5" aria-hidden />
                   {qa.label}
                 </button>
               ))}
