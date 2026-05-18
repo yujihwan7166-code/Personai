@@ -65,6 +65,7 @@ export default function CloudDocEditor() {
   const [node, setNode] = useState<CloudNode | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
 
@@ -181,6 +182,7 @@ export default function CloudDocEditor() {
     try {
       await updateFileBody(id, payload);
       setSaveState('saved');
+      setLastSavedAt(Date.now());
     } catch (e) {
       setSaveState('error');
       const msg = e instanceof Error ? e.message : String(e);
@@ -588,7 +590,7 @@ export default function CloudDocEditor() {
           <span className="font-medium truncate max-w-md">{node?.name ?? '제목 없음'}</span>
 
           <span className="ml-3 text-xs">
-            <SaveStateBadge state={saveState} showIdle />
+            <SaveStateBadge state={saveState} lastSavedAt={lastSavedAt} showIdle />
           </span>
           {editor && <WordCountBadge editor={editor} />}
 
