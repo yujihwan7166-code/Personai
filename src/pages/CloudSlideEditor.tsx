@@ -45,59 +45,15 @@ import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { SlideHelpModal } from '@/lib/cloudSlide/SlideHelpModal';
 import { newId } from '@/lib/idGenerator';
+import {
+  type BaseEl, type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
+  type SlideElement, type ResizeDir, type Slide, type SlideMeta,
+  SHAPE_SHADOW, isText, isShape, isLineLike, isImage, emptySlide, defaultMeta,
+} from '@/lib/cloudSlide/types';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
-interface BaseEl {
-  id: string;
-  xPct: number;  // 0~100, 캔버스 폭 대비
-  yPct: number;
-  wPct: number;
-  hPct: number;
-  rotation?: number;  // degrees, 0~359 (시계방향). 0 또는 미정의 = 회전 없음
-  groupId?: string;   // 같은 groupId 끼리 묶여서 같이 선택·드래그됨
-}
-
-interface SlideTextEl extends BaseEl {
-  type: 'text';
-  content: string;
-  fontSizeRem: number;
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  textColor?: string;
-  /** 박스 배경색 (콜아웃 박스용). 미지정 = 투명. */
-  bgColor?: string;
-  /** 텍스트 정렬. 미지정 = 'left'. */
-  align?: 'left' | 'center' | 'right' | 'justify';
-  /** 줄간격 (배수). 미지정 = 1.25. */
-  lineHeight?: number;
-}
-
-type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
-
-interface SlideShapeEl extends BaseEl {
-  type: ShapeType;
-  fillColor: string;     // CSS color (line/arrow 는 stroke 만 사용)
-  strokeColor?: string;  // 테두리 색
-  strokeWidth?: number;  // px (캔버스 픽셀 기준)
-  /** rect 의 모서리 반경 (px). 미지정 = 0 (직각). 다른 타입은 무시. */
-  borderRadius?: number;
-  /** 그림자 표시 — rect/ellipse 에만 의미. */
-  shadow?: boolean;
-}
-
-const SHAPE_SHADOW = '0 4px 12px rgba(0,0,0,0.18)';
-
-interface SlideImageEl extends BaseEl {
-  type: 'image';
-  src: string;   // data URL (base64) — 추후 IndexedDB blob ref 마이그레이션
-  alt?: string;
-}
-
-type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
-
-type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+// type 들은 lib/cloudSlide/types 공용
 
 /**
  * 도형(SlideShapeEl) 렌더 — rect/ellipse 는 div, triangle/line/arrow 는 SVG.
@@ -182,19 +138,7 @@ function ShapeRender({ el }: { el: SlideShapeEl }): React.ReactElement {
   );
 }
 
-function isText(el: SlideElement): el is SlideTextEl {
-  return el.type === 'text';
-}
-function isShape(el: SlideElement): el is SlideShapeEl {
-  return el.type === 'rect' || el.type === 'ellipse'
-    || el.type === 'triangle' || el.type === 'line' || el.type === 'arrow';
-}
-function isLineLike(el: SlideElement): boolean {
-  return el.type === 'line' || el.type === 'arrow';
-}
-function isImage(el: SlideElement): el is SlideImageEl {
-  return el.type === 'image';
-}
+// isText/isShape/isLineLike/isImage 는 lib/cloudSlide/types 공용
 
 /** 글자 크기 단계 (rem) — px ≈ rem × 16. */
 const FONT_STEPS_REM = [
@@ -245,27 +189,7 @@ function nextRadius(cur: number, dir: 1 | -1): number {
   return RADIUS_STEPS_PX[ni];
 }
 
-interface Slide {
-  id: string;
-  elements: SlideElement[];
-  background?: string;
-  notes?: string;
-}
-
-interface SlideMeta {
-  slides: Slide[];
-  currentIdx?: number;
-}
-
-// newId 는 lib/idGenerator 공용 — import 는 파일 상단
-
-function emptySlide(): Slide {
-  return { id: newId('s'), elements: [] };
-}
-
-function defaultMeta(): SlideMeta {
-  return { slides: [emptySlide()], currentIdx: 0 };
-}
+// Slide / SlideMeta / emptySlide / defaultMeta 는 lib/cloudSlide/types 공용
 
 export default function CloudSlideEditor() {
   const { id } = useParams<{ id: string }>();
