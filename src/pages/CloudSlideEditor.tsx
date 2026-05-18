@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
-  AlignLeft, AlignCenter, AlignRight,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
   AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter,
@@ -67,7 +67,7 @@ interface SlideTextEl extends BaseEl {
   /** 박스 배경색 (콜아웃 박스용). 미지정 = 투명. */
   bgColor?: string;
   /** 텍스트 정렬. 미지정 = 'left'. */
-  align?: 'left' | 'center' | 'right';
+  align?: 'left' | 'center' | 'right' | 'justify';
   /** 줄간격 (배수). 미지정 = 1.25. */
   lineHeight?: number;
 }
@@ -1767,6 +1767,13 @@ export default function CloudSlideEditor() {
                     <AlignRight className="w-4 h-4" />
                   </ToolBtn>
                   <ToolBtn
+                    onClick={() => updateEl(el.id, { align: 'justify' })}
+                    title="양쪽 맞춤"
+                    active={curAlign === 'justify'}
+                  >
+                    <AlignJustify className="w-4 h-4" />
+                  </ToolBtn>
+                  <ToolBtn
                     onClick={() => updateEl(el.id, { lineHeight: nextLineHeight(el.lineHeight ?? 1.25) })}
                     title="줄간격 (클릭으로 순환)"
                   >
@@ -1986,6 +1993,13 @@ export default function CloudSlideEditor() {
                             active={allSameAlign && firstAlign === 'right'}
                           >
                             <AlignRight className="w-4 h-4" />
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ align: 'justify' })}
+                            title="모두 양쪽 맞춤"
+                            active={allSameAlign && firstAlign === 'justify'}
+                          >
+                            <AlignJustify className="w-4 h-4" />
                           </ToolBtn>
                           {(() => {
                             const firstLh = texts[0]?.lineHeight ?? 1.25;
