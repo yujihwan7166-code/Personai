@@ -88,6 +88,10 @@ import {
 import { nextSeriesValue } from '@/lib/cloudSheet/seriesAutofill';
 import { type BorderStyle, borderStyleFor } from '@/lib/cloudSheet/borderStyle';
 import { newId } from '@/lib/idGenerator';
+import {
+  type FontFamily, FONT_FAMILY_LABEL, FONT_FAMILY_CSS,
+  FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT,
+} from '@/lib/cloudSheet/fontFamily';
 
 type Cells = Record<string, string>;
 
@@ -125,7 +129,7 @@ type AllCondRules = Record<string, CondRule[]>;
 
 // NumberFmt / DECIMAL_SEQUENCE / decimalsIndexOf 는 lib/cloudSheet/numberFormat 공용
 // BorderStyle 은 lib/cloudSheet/borderStyle 공용
-type FontFamily = 'pretendard' | 'inter' | 'arial' | 'noto-sans' | 'georgia' | 'jetbrains';
+// FontFamily / FONT_FAMILY_* / FONT_SIZE_* 는 lib/cloudSheet/fontFamily 공용
 type VAlign = 'top' | 'middle' | 'bottom';
 type Wrap = 'overflow' | 'wrap' | 'clip';
 
@@ -147,27 +151,7 @@ interface CellFormat {
 }
 type CellFormats = Record<string, CellFormat>;
 
-const FONT_FAMILY_LABEL: Record<FontFamily, string> = {
-  pretendard: 'Pretendard',
-  inter: 'Inter',
-  arial: 'Arial',
-  'noto-sans': 'Noto Sans',
-  georgia: 'Georgia',
-  jetbrains: 'JetBrains Mono',
-};
-
-const FONT_FAMILY_CSS: Record<FontFamily, string> = {
-  pretendard: '"Pretendard Variable", Pretendard, system-ui, sans-serif',
-  inter: 'Inter, system-ui, sans-serif',
-  arial: 'Arial, Helvetica, sans-serif',
-  'noto-sans': '"Noto Sans KR", "Noto Sans", sans-serif',
-  georgia: 'Georgia, "Times New Roman", serif',
-  jetbrains: '"JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace',
-};
-
-const FONT_SIZE_MIN = 8;
-const FONT_SIZE_MAX = 48;
-const FONT_SIZE_DEFAULT = 13;
+// FONT_FAMILY_LABEL / FONT_FAMILY_CSS / FONT_SIZE_* 는 lib/cloudSheet/fontFamily 공용
 
 // NUMBER_FMT_OPTIONS / applyNumberFormat 는 lib/cloudSheet/numberFormat 공용
 
