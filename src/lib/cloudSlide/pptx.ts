@@ -15,6 +15,7 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import pptxgen from 'pptxgenjs';
+import { newId } from '@/lib/idGenerator';
 
 // .pptx 캔버스 표준 크기 (EMU)
 const SLIDE_W_EMU = 9144000;  // 10인치 = 9144000 EMU
@@ -32,9 +33,7 @@ interface SlideImageEl extends BaseEl { type: 'image'; src: string; alt?: string
 type SlideElement = SlideTextEl | SlideShapeEl | SlideImageEl;
 interface Slide { id: string; elements: SlideElement[]; background?: string; notes?: string; }
 
-function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-}
+// newId 는 lib/idGenerator 공용
 
 // ─────────────────────────────────────────────
 // Import
