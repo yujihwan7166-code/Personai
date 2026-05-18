@@ -1778,7 +1778,11 @@ function WordCountBadge({ editor }: { editor: Editor }) {
 function SaveStateBadge({ state }: { state: SaveState }) {
   if (state === 'saving') {
     return (
-      <span className="flex items-center gap-1 text-muted-foreground">
+      <span
+        className="flex items-center gap-1 text-muted-foreground"
+        title="변경 사항을 저장하는 중입니다 (자동 — 1초 디바운스)"
+        aria-live="polite"
+      >
         <Loader2 className="w-3 h-3 animate-spin" />
         저장 중…
       </span>
@@ -1786,7 +1790,11 @@ function SaveStateBadge({ state }: { state: SaveState }) {
   }
   if (state === 'saved') {
     return (
-      <span className="flex items-center gap-1 text-muted-foreground">
+      <span
+        className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
+        title="모든 변경 사항이 저장됨"
+        aria-live="polite"
+      >
         <CheckCircle2 className="w-3 h-3" />
         저장됨
       </span>
@@ -1794,7 +1802,11 @@ function SaveStateBadge({ state }: { state: SaveState }) {
   }
   if (state === 'error') {
     return (
-      <span className="flex items-center gap-1 text-destructive">
+      <span
+        className="flex items-center gap-1 text-destructive"
+        title="저장 실패 — 변경 사항이 디스크에 반영되지 않았어요. 새로고침 전 백업하세요."
+        aria-live="assertive"
+      >
         <AlertCircle className="w-3 h-3" />
         저장 실패
       </span>
