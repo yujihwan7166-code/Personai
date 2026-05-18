@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
+  AlignLeft, AlignCenter, AlignRight,
   Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
   Combine, Split,
@@ -57,6 +58,8 @@ interface SlideTextEl extends BaseEl {
   fontSizeRem: number;
   bold?: boolean;
   textColor?: string;
+  /** 텍스트 정렬. 미지정 = 'left'. */
+  align?: 'left' | 'center' | 'right';
 }
 
 type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
@@ -1132,6 +1135,7 @@ export default function CloudSlideEditor() {
             child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
             child.style.lineHeight = '1.25';
             child.style.whiteSpace = 'pre-wrap';
+            child.style.textAlign = el.align ?? 'left';
             child.textContent = el.content;
           } else if (el.type === 'image') {
             const img = document.createElement('img');
@@ -1536,6 +1540,7 @@ export default function CloudSlideEditor() {
               );
             }
             if (isText(el)) {
+              const curAlign = el.align ?? 'left';
               return (
                 <>
                   <Sep />
@@ -1567,6 +1572,27 @@ export default function CloudSlideEditor() {
                     title="글자 크게"
                   >
                     <span className="text-sm font-medium">A+</span>
+                  </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { align: 'left' })}
+                    title="왼쪽 정렬"
+                    active={curAlign === 'left'}
+                  >
+                    <AlignLeft className="w-4 h-4" />
+                  </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { align: 'center' })}
+                    title="가운데 정렬"
+                    active={curAlign === 'center'}
+                  >
+                    <AlignCenter className="w-4 h-4" />
+                  </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { align: 'right' })}
+                    title="오른쪽 정렬"
+                    active={curAlign === 'right'}
+                  >
+                    <AlignRight className="w-4 h-4" />
                   </ToolBtn>
                 </>
               );
@@ -1671,6 +1697,8 @@ export default function CloudSlideEditor() {
                     {(() => {
                       const firstSize = texts[0]?.fontSizeRem ?? 1.5;
                       const allSameSize = texts.every((t) => t.fontSizeRem === firstSize);
+                      const firstAlign = texts[0]?.align ?? 'left';
+                      const allSameAlign = texts.every((t) => (t.align ?? 'left') === firstAlign);
                       return (
                         <>
                           <ToolBtn
@@ -1690,6 +1718,27 @@ export default function CloudSlideEditor() {
                             title="글자 크게"
                           >
                             <span className="text-sm font-medium">A+</span>
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ align: 'left' })}
+                            title="모두 왼쪽 정렬"
+                            active={allSameAlign && firstAlign === 'left'}
+                          >
+                            <AlignLeft className="w-4 h-4" />
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ align: 'center' })}
+                            title="모두 가운데 정렬"
+                            active={allSameAlign && firstAlign === 'center'}
+                          >
+                            <AlignCenter className="w-4 h-4" />
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ align: 'right' })}
+                            title="모두 오른쪽 정렬"
+                            active={allSameAlign && firstAlign === 'right'}
+                          >
+                            <AlignRight className="w-4 h-4" />
                           </ToolBtn>
                         </>
                       );
@@ -2167,6 +2216,7 @@ function TextElView({
           fontSize: `${el.fontSizeRem}rem`,
           lineHeight: 1.25,
           color: el.textColor ?? 'rgba(0,0,0,0.8)',
+          textAlign: el.align ?? 'left',
         }}
       >
         {el.content}
@@ -2185,11 +2235,12 @@ interface ToolBtnProps {
   onClick: () => void;
   disabled?: boolean;
   destructive?: boolean;
+  active?: boolean;
   title?: string;
   children: React.ReactNode;
 }
 
-function ToolBtn({ onClick, disabled, destructive, title, children }: ToolBtnProps) {
+function ToolBtn({ onClick, disabled, destructive, active, title, children }: ToolBtnProps) {
   return (
     <button
       type="button"
@@ -2197,10 +2248,12 @@ function ToolBtn({ onClick, disabled, destructive, title, children }: ToolBtnPro
       disabled={disabled}
       title={title}
       aria-label={title}
+      aria-pressed={active}
       className={cn(
         'px-2 py-1 rounded flex items-center transition-colors',
         disabled ? 'opacity-30 cursor-not-allowed' : 'hover:bg-muted',
         destructive && !disabled && 'text-destructive hover:bg-destructive/10',
+        active && !disabled && 'bg-muted text-foreground',
       )}
     >
       {children}
