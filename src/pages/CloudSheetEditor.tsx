@@ -24,6 +24,7 @@ import {
 import {
   ContextMenu, ContextMenuTrigger, ContextMenuContent,
   ContextMenuItem, ContextMenuSeparator,
+  ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
 } from '@/components/ui/context-menu';
 import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { cn } from '@/lib/utils';
@@ -57,10 +58,31 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type Cells = Record<string, string>;
 
+type SheetTabColor = 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple' | 'pink';
+
 interface SheetMeta {
   id: string;
   name: string;
+  /** 탭 색상 (PR #7) — 빠른 시각 구분. 미설정 = 기본. */
+  color?: SheetTabColor;
 }
+
+const SHEET_TAB_COLOR_LABEL: Record<SheetTabColor, string> = {
+  red: '빨강', orange: '주황', amber: '노랑', green: '초록',
+  teal: '청록', blue: '파랑', purple: '보라', pink: '분홍',
+};
+
+/** 탭 인디케이터용 — Tailwind 동적 클래스 X 회피, 직접 hex (디자인 토큰 톤 맞춤). */
+const SHEET_TAB_COLOR_HEX: Record<SheetTabColor, string> = {
+  red:    '#ef4444',
+  orange: '#f97316',
+  amber:  '#f59e0b',
+  green:  '#22c55e',
+  teal:   '#14b8a6',
+  blue:   '#3b82f6',
+  purple: '#a855f7',
+  pink:   '#ec4899',
+};
 type AllCells = Record<string, Cells>;
 type AllFormats = Record<string, CellFormats>;
 interface Merge { minR: number; maxR: number; minC: number; maxC: number }
@@ -1038,6 +1060,13 @@ export default function CloudSheetEditor() {
     const trimmed = name.trim();
     if (!trimmed) return;
     const nextSheets = sheetsMeta.map((s, i) => (i === idx ? { ...s, name: trimmed } : s));
+    setSheetsMeta(nextSheets);
+    queueSave({ sheets: nextSheets });
+  }, [sheetsMeta, queueSave]);
+
+  /** 탭 색상 변경 — undefined 면 색상 해제. (PR #7) */
+  const setSheetColor = useCallback((idx: number, color: SheetTabColor | undefined) => {
+    const nextSheets = sheetsMeta.map((s, i) => (i === idx ? { ...s, color } : s));
     setSheetsMeta(nextSheets);
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
@@ -3890,9 +3919,11 @@ export default function CloudSheetEditor() {
           <SheetTab
             key={s.id}
             name={s.name}
+            color={s.color}
             active={i === currentSheetIdx}
             onClick={() => switchSheet(i)}
             onRename={(n) => renameSheet(i, n)}
+            onColorChange={(c) => setSheetColor(i, c)}
             onDuplicate={() => duplicateSheet(i)}
             onRemove={() => removeSheet(i)}
             onMoveLeft={() => moveSheet(i, i - 1)}
@@ -4916,12 +4947,14 @@ function RowResizeHandle({
 
 interface SheetTabProps {
   name: string;
+  color?: SheetTabColor;
   active: boolean;
   canRemove: boolean;
   canMoveLeft: boolean;
   canMoveRight: boolean;
   onClick: () => void;
   onRename: (newName: string) => void;
+  onColorChange: (color: SheetTabColor | undefined) => void;
   onDuplicate: () => void;
   onRemove: () => void;
   onMoveLeft: () => void;
@@ -4929,8 +4962,8 @@ interface SheetTabProps {
 }
 
 function SheetTab({
-  name, active, canRemove, canMoveLeft, canMoveRight,
-  onClick, onRename, onDuplicate, onRemove, onMoveLeft, onMoveRight,
+  name, color, active, canRemove, canMoveLeft, canMoveRight,
+  onClick, onRename, onColorChange, onDuplicate, onRemove, onMoveLeft, onMoveRight,
 }: SheetTabProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
@@ -4973,6 +5006,30 @@ function SheetTab({
         <ChevronRight className="w-4 h-4 mr-2" /> 오른쪽으로 이동
       </ContextMenuItem>
       <ContextMenuSeparator />
+      {/* 탭 색상 (PR #7) — 8 색 + 해제 */}
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>
+          <Palette className="w-4 h-4 mr-2" /> 탭 색상
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent>
+          <ContextMenuItem onSelect={() => onColorChange(undefined)}>
+            <span className="inline-block w-3 h-3 mr-2 rounded-sm border border-border" />
+            기본 (해제)
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          {(Object.keys(SHEET_TAB_COLOR_LABEL) as SheetTabColor[]).map((c) => (
+            <ContextMenuItem key={c} onSelect={() => onColorChange(c)}>
+              <span
+                className="inline-block w-3 h-3 mr-2 rounded-sm border border-border"
+                style={{ backgroundColor: SHEET_TAB_COLOR_HEX[c] }}
+              />
+              {SHEET_TAB_COLOR_LABEL[c]}
+              {color === c && <CheckCircle2 className="w-3 h-3 ml-auto text-primary" />}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      <ContextMenuSeparator />
       <ContextMenuItem
         onSelect={onRemove}
         disabled={!canRemove}
@@ -5008,11 +5065,17 @@ function SheetTab({
               onClick={onClick}
               onDoubleClick={() => setEditing(true)}
               className={cn(
-                'text-xs px-3 py-1 rounded-t border-l border-r border-t transition-colors',
+                'text-xs px-3 py-1 rounded-t border-l border-r border-t transition-colors relative',
                 active
                   ? 'border-border bg-background font-medium text-foreground'
                   : 'border-transparent text-muted-foreground hover:bg-muted',
               )}
+              // 색 띠 — 활성: 윗쪽 2px 강조. 비활성: 아래쪽 얇은 1.5px (작게 보임).
+              style={color
+                ? (active
+                    ? { boxShadow: `inset 0 2px 0 ${SHEET_TAB_COLOR_HEX[color]}` }
+                    : { boxShadow: `inset 0 -1.5px 0 ${SHEET_TAB_COLOR_HEX[color]}` })
+                : undefined}
               title="더블클릭: 이름 변경 · 우클릭: 메뉴"
             >
               {name}
