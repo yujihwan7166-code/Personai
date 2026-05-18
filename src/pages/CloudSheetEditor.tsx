@@ -4853,21 +4853,28 @@ interface ChartModalProps {
   onClose: () => void;
   cells: Cells;
   range: SelRange;
-  /** "시트에 추가" — 클릭 시 영구 차트로 embed */
-  onEmbed?: (c: { type: ChartType; orientation: 'columns' | 'rows'; range: SelRange }) => void;
+  /** "시트에 추가" — 클릭 시 영구 차트로 embed (palette 포함) */
+  onEmbed?: (c: { type: ChartType; orientation: 'columns' | 'rows'; range: SelRange; palette: string }) => void;
 }
 
 function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
   const [type, setType] = useState<ChartType>('bar');
   const [orientation, setOrientation] = useState<'columns' | 'rows'>('columns');
+  const [paletteName, setPaletteName] = useState<string>('default');
   const data = useMemo(
     () => buildChartData(cells, range, orientation),
     [cells, range, orientation],
   );
+  const palette = useMemo(() => getChartPalette(paletteName), [paletteName]);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // 모달 열릴 때 막대로 초기화
-  useEffect(() => { if (open) setType('bar'); }, [open]);
+  // 모달 열릴 때 막대 + default palette 로 초기화
+  useEffect(() => {
+    if (open) {
+      setType('bar');
+      setPaletteName('default');
+    }
+  }, [open]);
 
   const handleDownloadPng = useCallback(async () => {
     if (!chartRef.current) return;
@@ -4919,6 +4926,34 @@ function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
             <ChartTypeBtn label="열별 시리즈" active={orientation === 'columns'} onClick={() => setOrientation('columns')} />
             <ChartTypeBtn label="행별 시리즈" active={orientation === 'rows'} onClick={() => setOrientation('rows')} />
           </div>
+          <div className="flex items-center gap-1 p-0.5 rounded border border-border bg-muted/40">
+            {(Object.keys(CHART_PALETTES) as Array<keyof typeof CHART_PALETTES>).map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setPaletteName(name)}
+                className={cn(
+                  'px-2 py-1 rounded text-xs flex items-center gap-1',
+                  paletteName === name
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                title={`${CHART_PALETTE_LABELS[name]} 팔레트`}
+                aria-pressed={paletteName === name}
+              >
+                <span className="flex">
+                  {CHART_PALETTES[name].slice(0, 4).map((c) => (
+                    <span
+                      key={c}
+                      className="block w-2 h-2.5 -ml-px first:ml-0 border border-background"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </span>
+                <span>{CHART_PALETTE_LABELS[name]}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div ref={chartRef} className="h-[380px] bg-white rounded border border-border p-3">
@@ -4934,7 +4969,7 @@ function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {data.seriesKeys.map((k, i) => (
-                  <Bar key={k} dataKey={k} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                  <Bar key={k} dataKey={k} fill={palette[i % palette.length]} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -4950,7 +4985,7 @@ function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
                     key={k}
                     type="monotone"
                     dataKey={k}
-                    stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
+                    stroke={palette[i % palette.length]}
                     strokeWidth={2}
                     dot={{ r: 3 }}
                   />
@@ -4972,7 +5007,7 @@ function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
                   label
                 >
                   {flattenForPie(data).map((_, i) => (
-                    <RechartsCell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                    <RechartsCell key={i} fill={palette[i % palette.length]} />
                   ))}
                 </Pie>
               </PieChart>
@@ -4998,7 +5033,7 @@ function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
             {onEmbed && (
               <button
                 type="button"
-                onClick={() => onEmbed({ type, orientation, range })}
+                onClick={() => onEmbed({ type, orientation, range, palette: paletteName })}
                 disabled={!hasData}
                 className="px-3 py-1.5 rounded bg-violet-500 text-white hover:bg-violet-600 text-sm flex items-center gap-1 disabled:opacity-50"
               >
