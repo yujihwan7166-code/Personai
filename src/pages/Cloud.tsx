@@ -9,7 +9,7 @@ import {
   ArrowLeft, Plus, Upload, Search, Settings, Eye,
   FileText, FileSpreadsheet, Presentation, Folder, FolderPlus, FolderOpen,
   Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
-  MoreHorizontal,
+  MoreHorizontal, Copy as CopyIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ import {
   createFolder, createEmptyFile,
   setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
   searchByName, fetchNode, fetchAllFolders, moveNode, setFolderColor,
+  duplicateNode,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
@@ -730,6 +731,25 @@ export default function Cloud() {
       toast({ title: '복사 실패', description: msg });
     }
   }, [buildNodePath]);
+
+  const handleDuplicate = useCallback(async (node: CloudNode) => {
+    if (node.kind === 'folder') {
+      toast({ title: '폴더 복제는 지원 안 함', description: '하위 항목 재귀 복제는 추후 단계.' });
+      return;
+    }
+    try {
+      const dup = await duplicateNode(node.id);
+      if (!dup) {
+        toast({ title: '복제 실패', description: '원본 찾지 못함' });
+        return;
+      }
+      await refresh();
+      toast({ title: '복사본 만들었어요', description: dup.name });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '복제 실패', description: msg });
+    }
+  }, [refresh]);
 
   // ─── 이름 변경 ───
   const startRename = useCallback((id: string) => {
@@ -1505,6 +1525,17 @@ export default function Cloud() {
                   <span className="w-4 h-4 inline-flex items-center justify-center text-[10px] font-mono text-muted-foreground" aria-hidden>/_</span>
                   경로 복사
                 </button>
+                {node.kind === 'file' && (
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                    onClick={() => { void handleDuplicate(node); setCtxMenu(null); }}
+                    title="같은 폴더에 사본 만들기"
+                  >
+                    <CopyIcon className="w-4 h-4" />
+                    복사본 만들기
+                  </button>
+                )}
                 {node.kind === 'folder' && (
                   <>
                     <div className="h-px bg-border my-1" />

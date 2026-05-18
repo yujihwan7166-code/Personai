@@ -248,6 +248,29 @@ export async function createEmptyFile(
   return rowToCloudNode(toRow(next));
 }
 
+/**
+ * 파일 복제 — 같은 부모 폴더에 '<이름> 사본' 으로 새 노드 생성, meta 그대로 복사.
+ * 폴더 복제는 자식 재귀 필요해서 일단 X (null 반환).
+ */
+export async function duplicateNode(id: string): Promise<CloudNode | null> {
+  const all = loadAll();
+  const orig = all.find((n) => n.id === id);
+  if (!orig) return null;
+  if (orig.kind === 'folder') return null;
+  const now = nowIso();
+  const dup: StoredNode = {
+    ...orig,
+    id: genId(),
+    name: `${orig.name} 사본`,
+    meta: JSON.parse(JSON.stringify(orig.meta ?? {})),
+    starred: false,
+    created_at: now,
+    updated_at: now,
+  };
+  saveAll([...all, dup]);
+  return rowToCloudNode(toRow(dup));
+}
+
 // ─────────────────────────────────────────────
 // 수정
 // ─────────────────────────────────────────────
