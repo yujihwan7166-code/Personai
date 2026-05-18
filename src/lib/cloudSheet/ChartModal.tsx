@@ -72,6 +72,36 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
     }
   }, []);
 
+  const handleDownloadSvg = useCallback(() => {
+    if (!chartRef.current) return;
+    const svg = chartRef.current.querySelector('svg');
+    if (!svg) {
+      toast({ title: 'SVG 추출 실패', description: '차트 SVG 를 찾지 못함' });
+      return;
+    }
+    try {
+      const clone = svg.cloneNode(true) as SVGElement;
+      if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bgRect.setAttribute('width', '100%');
+      bgRect.setAttribute('height', '100%');
+      bgRect.setAttribute('fill', '#ffffff');
+      clone.insertBefore(bgRect, clone.firstChild);
+      const xml = new XMLSerializer().serializeToString(clone);
+      const blob = new Blob([xml], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chart_${Date.now()}.svg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast({ title: 'SVG 저장됨' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'SVG 저장 실패', description: msg });
+    }
+  }, []);
+
   const hasData = data.rows.length > 0 && data.seriesKeys.length > 0;
   const rangeLabel = useMemo(() => {
     const a = `${idxToCol(range.minC)}${range.minR + 1}`;
@@ -201,8 +231,18 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
               onClick={handleDownloadPng}
               disabled={!hasData}
               className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm flex items-center gap-1 disabled:opacity-50"
+              title="래스터 (스크린샷)"
             >
-              <Download className="w-3.5 h-3.5" /> PNG 저장
+              <Download className="w-3.5 h-3.5" /> PNG
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadSvg}
+              disabled={!hasData}
+              className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm flex items-center gap-1 disabled:opacity-50"
+              title="벡터 (확대·인쇄·편집)"
+            >
+              <Download className="w-3.5 h-3.5" /> SVG
             </button>
             {onEmbed && (
               <button
