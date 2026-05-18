@@ -616,6 +616,9 @@ export default function CloudDocEditor() {
                 <DropdownMenuItem onSelect={() => { void exportPdf(); }}>
                   📤 PDF 로 내보내기
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { window.print(); }}>
+                  🖨 인쇄 (Ctrl+P)
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={(e) => {

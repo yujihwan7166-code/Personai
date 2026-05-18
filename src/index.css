@@ -1249,4 +1249,22 @@
   .dark .doc-page-bg {
     background-color: hsl(220 14% 12%);
   }
+
+  /* 인쇄 모드 — 헤더/사이드바/그림자 제거. 본문만 인쇄. */
+  @media print {
+    header,
+    aside {
+      display: none !important;
+    }
+    .doc-page-bg {
+      background: white !important;
+      overflow: visible !important;
+    }
+    .doc-page-bg [class*="shadow-"] {
+      box-shadow: none !important;
+    }
+    .doc-page-bg [class*="rounded-"] {
+      border-radius: 0 !important;
+    }
+  }
 }
