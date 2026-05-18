@@ -5391,6 +5391,20 @@ const FUNC_CATEGORIES: Array<{ name: string; funcs: string[] }> = [
 ];
 
 function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [funcQuery, setFuncQuery] = useState('');
+  useEffect(() => { if (!open) setFuncQuery(''); }, [open]);
+  const q = funcQuery.trim().toLowerCase();
+  const matchedFuncs = (names: string[]): string[] => {
+    if (!q) return names;
+    return names.filter((name) => {
+      if (name.toLowerCase().includes(q)) return true;
+      const h = FUNC_HELP[name];
+      return !!h && (h.sig.toLowerCase().includes(q) || h.desc.toLowerCase().includes(q));
+    });
+  };
+  const totalMatched = q
+    ? FUNC_CATEGORIES.reduce((acc, c) => acc + matchedFuncs(c.funcs).length, 0)
+    : Object.keys(FUNC_HELP).length;
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -5465,29 +5479,54 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
 
         <div className="pt-3 text-xs border-t border-border space-y-3">
-          <div className="font-medium text-foreground">수식 — 카테고리별 ({Object.keys(FUNC_HELP).length}개)</div>
-          <div className="text-muted-foreground/80 space-y-0.5">
-            <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2 · =Sheet2!A1 · =SUM(Data!B1:B10)</div>
-            <div>=$A$1 / =A$1 / =$A1 — 절대 참조 · =SUM(월매출) — 명명된 범위</div>
-            <div className="text-muted-foreground/60">에러: #CIRCULAR / #ERROR / #DIV/0! / #VALUE! / #REF! / #N/A / #NUM!</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-medium text-foreground">
+              수식 ({q ? `${totalMatched} / ${Object.keys(FUNC_HELP).length}` : `${Object.keys(FUNC_HELP).length}개`})
+            </div>
+            <input
+              type="search"
+              value={funcQuery}
+              onChange={(e) => setFuncQuery(e.target.value)}
+              placeholder="함수 검색…  (예: SUM, 날짜, 정규)"
+              className="text-xs px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40 w-56"
+              aria-label="함수 검색"
+            />
           </div>
-          {FUNC_CATEGORIES.map((cat) => (
-            <section key={cat.name}>
-              <h4 className="text-xs font-medium text-foreground mb-1">{cat.name}</h4>
-              <ul className="space-y-0.5">
-                {cat.funcs.map((name) => {
-                  const h = FUNC_HELP[name];
-                  if (!h) return null;
-                  return (
-                    <li key={name} className="flex items-baseline gap-2 text-muted-foreground">
-                      <code className="font-mono text-foreground/90 shrink-0">={h.sig}</code>
-                      <span className="text-muted-foreground/80 truncate">{h.desc}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+          {!q && (
+            <div className="text-muted-foreground/80 space-y-0.5">
+              <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2 · =Sheet2!A1 · =SUM(Data!B1:B10)</div>
+              <div>=$A$1 / =A$1 / =$A1 — 절대 참조 · =SUM(월매출) — 명명된 범위</div>
+              <div className="text-muted-foreground/60">에러: #CIRCULAR / #ERROR / #DIV/0! / #VALUE! / #REF! / #N/A / #NUM!</div>
+            </div>
+          )}
+          {q && totalMatched === 0 && (
+            <div className="text-muted-foreground italic py-4 text-center">
+              일치하는 함수 없음 — 함수 이름·시그니처·설명에서 검색됩니다.
+            </div>
+          )}
+          {FUNC_CATEGORIES.map((cat) => {
+            const filtered = matchedFuncs(cat.funcs);
+            if (filtered.length === 0) return null;
+            return (
+              <section key={cat.name}>
+                <h4 className="text-xs font-medium text-foreground mb-1">
+                  {cat.name} {q && <span className="text-muted-foreground font-normal">({filtered.length})</span>}
+                </h4>
+                <ul className="space-y-0.5">
+                  {filtered.map((name) => {
+                    const h = FUNC_HELP[name];
+                    if (!h) return null;
+                    return (
+                      <li key={name} className="flex items-baseline gap-2 text-muted-foreground">
+                        <code className="font-mono text-foreground/90 shrink-0">={h.sig}</code>
+                        <span className="text-muted-foreground/80 truncate">{h.desc}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>
