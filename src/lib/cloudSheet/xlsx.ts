@@ -29,7 +29,7 @@ interface CellFormat {
   wrap?: 'overflow' | 'wrap' | 'clip';
   fontFamily?: FontFamily;
   fontSize?: number;
-  numberFmt?: 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
+  numberFmt?: 'currency-krw' | 'percent' | 'integer' | 'decimal1' | 'decimal2' | 'decimal3' | 'decimal4' | 'date';
   border?: 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
 }
 type CellFormats = Record<string, CellFormat>;
@@ -357,7 +357,10 @@ function applyFormat(cell: ExcelJS.Cell, fmt: CellFormat): void {
 function numFmtFor(fmt: NonNullable<CellFormat['numberFmt']>): string {
   switch (fmt) {
     case 'integer':       return '#,##0';
+    case 'decimal1':      return '0.0';
     case 'decimal2':      return '0.00';
+    case 'decimal3':      return '0.000';
+    case 'decimal4':      return '0.0000';
     case 'currency-krw':  return '"₩"#,##0';
     case 'percent':       return '0.0%';
     case 'date':          return 'yyyy-mm-dd';

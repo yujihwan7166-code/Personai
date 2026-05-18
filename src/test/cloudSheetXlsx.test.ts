@@ -216,9 +216,18 @@ describe('numFmtMap — 양방향 코드 매핑', () => {
   });
 
   it('round-trip — 우리 토큰 → 엑셀 → 우리 토큰', () => {
-    const tokens = ['integer', 'decimal2', 'percent', 'currency-krw', 'date'] as const;
+    const tokens = ['integer', 'decimal1', 'decimal2', 'decimal3', 'decimal4', 'percent', 'currency-krw', 'date'] as const;
     for (const t of tokens) {
       expect(excelNumFmtToToken(tokenToExcelNumFmt(t))).toBe(t);
     }
+  });
+
+  it('자릿수별 numFmt 패턴', () => {
+    expect(excelNumFmtToToken('0.0')).toBe('decimal1');
+    expect(excelNumFmtToToken('0.00')).toBe('decimal2');
+    expect(excelNumFmtToToken('0.000')).toBe('decimal3');
+    expect(excelNumFmtToToken('0.0000')).toBe('decimal4');
+    expect(excelNumFmtToToken('#,##0.0')).toBe('decimal1');
+    expect(excelNumFmtToToken('#,##0.0000')).toBe('decimal4');
   });
 });

@@ -7,7 +7,10 @@
 
 export type NumberFmtToken =
   | 'integer'
+  | 'decimal1'
   | 'decimal2'
+  | 'decimal3'
+  | 'decimal4'
   | 'percent'
   | 'currency-krw'
   | 'date';
@@ -32,12 +35,23 @@ export function excelNumFmtToToken(code: string | undefined): NumberFmtToken | u
   // 'yyyy-mm-dd' 패턴 (대소문자 무관, m 이 분이 아니라 월)
   if (/y{1,4}.?m{1,2}.?d{1,2}/i.test(c)) return 'date';
 
-  // 소수점 자리 — 2자리 패턴
-  if (/\.0{2,}|\.#{2,}|\.0#/.test(c)) return 'decimal2';
-
   // 정수 (콤마 천단위 또는 단순 0/#)
   if (/^#,##0$|^0$|^#$/.test(c)) return 'integer';
-  if (/^#,##0\.0+$/.test(c)) return 'decimal2';
+
+  // 소수점 자리 — 자릿수별 매핑 (1~4). 콤마 천단위 유무 무관.
+  const decMatch = c.match(/^(?:#,##)?0\.(0+|#+|0#+|#0+)$/);
+  if (decMatch) {
+    const dec = decMatch[1].length;
+    if (dec >= 4) return 'decimal4';
+    if (dec === 3) return 'decimal3';
+    if (dec === 2) return 'decimal2';
+    if (dec === 1) return 'decimal1';
+  }
+  // 일반 패턴 (위 정확 매치 실패 시 fallback)
+  if (/\.0{4,}|\.#{4,}/.test(c)) return 'decimal4';
+  if (/\.0{3}|\.#{3}/.test(c)) return 'decimal3';
+  if (/\.0{2}|\.#{2}|\.0#/.test(c)) return 'decimal2';
+  if (/\.0|\.#/.test(c)) return 'decimal1';
 
   return undefined; // 미지원 코드는 general
 }
@@ -49,7 +63,10 @@ export function excelNumFmtToToken(code: string | undefined): NumberFmtToken | u
 export function tokenToExcelNumFmt(t: NumberFmtToken): string {
   switch (t) {
     case 'integer':      return '#,##0';
+    case 'decimal1':     return '0.0';
     case 'decimal2':     return '0.00';
+    case 'decimal3':     return '0.000';
+    case 'decimal4':     return '0.0000';
     case 'currency-krw': return '"₩"#,##0';
     case 'percent':      return '0.0%';
     case 'date':         return 'yyyy-mm-dd';

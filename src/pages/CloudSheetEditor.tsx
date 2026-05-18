@@ -146,7 +146,16 @@ function newSheetId(): string {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal2' | 'date';
+type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal1' | 'decimal2' | 'decimal3' | 'decimal4' | 'date';
+
+/** 자릿수 ±1 시 토큰 시퀀스. integer=0자리, decimal4=4자리. 통화/%/날짜는 별도 처리. */
+const DECIMAL_SEQUENCE: NumberFmt[] = ['integer', 'decimal1', 'decimal2', 'decimal3', 'decimal4'];
+
+/** 토큰의 자릿수 위치 — 일반 숫자 토큰이면 0~4, 그 외(₩/%/date)면 -1. */
+function decimalsIndexOf(fmt: NumberFmt | undefined): number {
+  if (!fmt) return -1;
+  return DECIMAL_SEQUENCE.indexOf(fmt);
+}
 type BorderStyle = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right';
 type FontFamily = 'pretendard' | 'inter' | 'arial' | 'noto-sans' | 'georgia' | 'jetbrains';
 type VAlign = 'top' | 'middle' | 'bottom';
@@ -193,12 +202,15 @@ const FONT_SIZE_MAX = 48;
 const FONT_SIZE_DEFAULT = 13;
 
 const NUMBER_FMT_OPTIONS: Array<{ value: '' | NumberFmt; label: string; example: string }> = [
-  { value: '',              label: '자동',     example: '' },
-  { value: 'integer',       label: '정수',     example: '1,234' },
-  { value: 'decimal2',      label: '소수 2자리', example: '1.23' },
-  { value: 'currency-krw',  label: '₩ 통화',   example: '₩1,234' },
-  { value: 'percent',       label: '%',        example: '12.3%' },
-  { value: 'date',          label: '날짜',     example: '2026-05-16' },
+  { value: '',              label: '자동',         example: '' },
+  { value: 'integer',       label: '정수',         example: '1,234' },
+  { value: 'decimal1',      label: '소수 1자리',   example: '1.2' },
+  { value: 'decimal2',      label: '소수 2자리',   example: '1.23' },
+  { value: 'decimal3',      label: '소수 3자리',   example: '1.234' },
+  { value: 'decimal4',      label: '소수 4자리',   example: '1.2345' },
+  { value: 'currency-krw',  label: '₩ 통화',       example: '₩1,234' },
+  { value: 'percent',       label: '%',            example: '12.3%' },
+  { value: 'date',          label: '날짜',         example: '2026-05-16' },
 ];
 
 function applyNumberFormat(value: string, fmt: NumberFmt | undefined): string {
@@ -207,7 +219,10 @@ function applyNumberFormat(value: string, fmt: NumberFmt | undefined): string {
   if (!Number.isFinite(n) || value === '') return value;
   switch (fmt) {
     case 'integer':       return Math.round(n).toLocaleString('ko-KR');
+    case 'decimal1':      return n.toFixed(1);
     case 'decimal2':      return n.toFixed(2);
+    case 'decimal3':      return n.toFixed(3);
+    case 'decimal4':      return n.toFixed(4);
     case 'currency-krw':  return `₩${n.toLocaleString('ko-KR')}`;
     case 'percent':       return `${(n * 100).toFixed(1)}%`;
     case 'date': {
@@ -3219,6 +3234,75 @@ export default function CloudSheetEditor() {
                     title="배경색"
                     allowTransparent
                   />
+                </div>
+
+                {/* 숫자 서식 원터치 (₩ / % / .← / .→) — Sheets 매칭 */}
+                <div className={cluster} role="group" aria-label="숫자 서식 원터치">
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, {
+                      numberFmt: curFmt.numberFmt === 'currency-krw' ? undefined : 'currency-krw',
+                    })}
+                    className={cn(
+                      'px-1.5 py-1 text-xs rounded hover:bg-background font-medium',
+                      curFmt.numberFmt === 'currency-krw' && 'bg-background shadow-sm',
+                    )}
+                    title="₩ 통화 (한 번 클릭)"
+                    aria-label="통화 (원)"
+                    aria-pressed={curFmt.numberFmt === 'currency-krw'}
+                  >
+                    ₩
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellFormat(selectedRef, {
+                      numberFmt: curFmt.numberFmt === 'percent' ? undefined : 'percent',
+                    })}
+                    className={cn(
+                      'px-1.5 py-1 text-xs rounded hover:bg-background font-medium',
+                      curFmt.numberFmt === 'percent' && 'bg-background shadow-sm',
+                    )}
+                    title="퍼센트 (한 번 클릭)"
+                    aria-label="퍼센트"
+                    aria-pressed={curFmt.numberFmt === 'percent'}
+                  >
+                    %
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // 자릿수 -1 (integer 미만 X). 통화/%/날짜 토큰이면 일반 자릿수 시퀀스로 전환.
+                      const cur = decimalsIndexOf(curFmt.numberFmt);
+                      const next = cur >= 0
+                        ? Math.max(0, cur - 1)
+                        : (curFmt.numberFmt === 'percent' || curFmt.numberFmt === 'currency-krw' || curFmt.numberFmt === 'date'
+                          ? Math.min(DECIMAL_SEQUENCE.length - 1, 2) - 1  // 일반 → decimal2 에서 -1 = decimal1
+                          : 0);
+                      const tok = DECIMAL_SEQUENCE[Math.max(0, next)];
+                      setCellFormat(selectedRef, { numberFmt: tok });
+                    }}
+                    className="px-1.5 py-1 text-xs rounded hover:bg-background font-medium"
+                    title="소수 자릿수 줄이기"
+                    aria-label="소수 자릿수 줄이기"
+                  >
+                    .0←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = decimalsIndexOf(curFmt.numberFmt);
+                      const next = cur >= 0
+                        ? Math.min(DECIMAL_SEQUENCE.length - 1, cur + 1)
+                        : 2; // 통화/%/날짜/없음 → decimal2 로 시작
+                      const tok = DECIMAL_SEQUENCE[next];
+                      setCellFormat(selectedRef, { numberFmt: tok });
+                    }}
+                    className="px-1.5 py-1 text-xs rounded hover:bg-background font-medium"
+                    title="소수 자릿수 늘리기"
+                    aria-label="소수 자릿수 늘리기"
+                  >
+                    .0→
+                  </button>
                 </div>
 
                 {/* 숫자/테두리 */}
