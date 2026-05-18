@@ -3571,6 +3571,16 @@ export default function CloudSheetEditor() {
             <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>←+</span>
             왼쪽에 열 삽입
           </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2 text-destructive"
+            onClick={() => { deleteRow(cellCtxMenu.row); setCellCtxMenu(null); }}>
+            <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>−</span>
+            이 행 삭제 ({cellCtxMenu.row + 1})
+          </button>
+          <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2 text-destructive"
+            onClick={() => { deleteCol(cellCtxMenu.col); setCellCtxMenu(null); }}>
+            <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>−</span>
+            이 열 삭제 ({idxToCol(cellCtxMenu.col)})
+          </button>
           <div className="h-px bg-border my-1" />
           <div className="px-3 py-1.5">
             <div className="text-[10px] text-muted-foreground mb-1">빠른 색 (선택 영역)</div>
