@@ -17,6 +17,7 @@ import { importXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { importPptxFile } from '@/lib/cloudSlide/pptx';
 import { createEmptyFile, updateFileBody } from '@/lib/cloudClient';
 import type { CloudFileType } from '@/types/cloud';
+import { newId } from '@/lib/idGenerator';
 
 export interface UploadResult {
   nodeId: string;
@@ -24,9 +25,7 @@ export interface UploadResult {
   route: string;
 }
 
-function newSheetId(): string {
-  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-}
+const newSheetId = () => newId('s');
 
 function getExt(name: string): string {
   const i = name.lastIndexOf('.');
