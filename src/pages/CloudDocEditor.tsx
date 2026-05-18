@@ -570,6 +570,7 @@ export default function CloudDocEditor() {
               <Keyboard className="w-4 h-4" />
             </button>
             {editor && <TocDropdown editor={editor} />}
+            {editor && <AiActionsButton editor={editor} />}
             <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1199,10 +1200,7 @@ function DocToolbar({ editor, zoom, onZoomChange }: { editor: Editor; zoom: numb
       >
         <IndentDecrease className="w-4 h-4" />
       </ToolBtn>
-      <Sep />
-
-      {/* ✨ AI 액션 */}
-      <AiActionsButton editor={editor} />
+      {/* ✨ AI 액션은 헤더 우측 (AiSidebarToggle 옆) 으로 이동 — 도구바 정리 */}
     </div>
   );
 }
