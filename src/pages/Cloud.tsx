@@ -44,7 +44,7 @@ export default function Cloud() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   // viewMode + 정렬: localStorage 영속. 폴더는 정렬과 무관하게 항상 first.
-  type SortKey = 'name' | 'updated' | 'size';
+  type SortKey = 'name' | 'updated' | 'size' | 'kind';
   const [viewMode, setViewModeInner] = useState<'list' | 'grid'>(() => {
     if (typeof window === 'undefined') return 'list';
     return window.localStorage.getItem('personai.cloud.drive.viewMode') === 'grid' ? 'grid' : 'list';
@@ -56,7 +56,7 @@ export default function Cloud() {
   const [sortKey, setSortKeyInner] = useState<SortKey>(() => {
     if (typeof window === 'undefined') return 'updated';
     const v = window.localStorage.getItem('personai.cloud.drive.sortKey');
-    return v === 'name' || v === 'updated' || v === 'size' ? v : 'updated';
+    return v === 'name' || v === 'updated' || v === 'size' || v === 'kind' ? v : 'updated';
   });
   const setSortKey = useCallback((v: SortKey) => {
     setSortKeyInner(v);
@@ -127,10 +127,14 @@ export default function Cloud() {
     parentFolderId: currentFolderId,
   });
 
+  /** 파일 타입 정렬 우선순위. 폴더는 항상 -1 (위). */
+  const FILE_TYPE_ORDER: Record<string, number> = {
+    doc: 1, sheet: 2, slide: 3, pdf: 4, image: 5, other: 6,
+  };
   /** 정렬된 노드 — 폴더 first 유지, 그 안에서 sortKey/Dir 적용 */
   const displayedNodes = useMemo(() => {
     const cmp = (a: CloudNode, b: CloudNode): number => {
-      // 폴더 first (정렬 키와 무관하게 항상)
+      // 폴더 first (정렬 키와 무관하게 항상) — 'kind' 정렬도 폴더는 분리
       if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
       let r = 0;
       if (sortKey === 'name') {
@@ -139,6 +143,11 @@ export default function Cloud() {
         r = (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '');
       } else if (sortKey === 'size') {
         r = (a.sizeBytes ?? 0) - (b.sizeBytes ?? 0);
+      } else if (sortKey === 'kind') {
+        // 파일 종류로 묶음 (doc → sheet → slide → pdf → image → other), 같은 종류면 이름 ko
+        const oa = FILE_TYPE_ORDER[a.fileType ?? 'other'] ?? 99;
+        const ob = FILE_TYPE_ORDER[b.fileType ?? 'other'] ?? 99;
+        r = oa - ob || a.name.localeCompare(b.name, 'ko');
       }
       return sortDir === 'asc' ? r : -r;
     };
@@ -1218,6 +1227,7 @@ export default function Cloud() {
                   <option value="updated">수정일</option>
                   <option value="name">이름</option>
                   <option value="size">크기</option>
+                  <option value="kind">종류 (문서/시트/슬라이드…)</option>
                 </select>
                 <button
                   type="button"
