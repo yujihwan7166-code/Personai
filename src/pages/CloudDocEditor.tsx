@@ -45,6 +45,7 @@ import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@/lib/cloudDoc/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { PageRuler, type PageMargin } from '@/lib/cloudDoc/PageRuler';
+import { usePageBreaks } from '@/lib/cloudDoc/usePageBreaks';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -59,6 +60,8 @@ import {
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const AUTOSAVE_DELAY_MS = 1000;
+/** A4 한 페이지의 본문 가용 높이 (1056 - top/bottom margins 96*2). */
+const PAGE_CONTENT_HEIGHT_PX = 864;
 
 export default function CloudDocEditor() {
   const { id } = useParams<{ id: string }>();
@@ -548,22 +551,14 @@ export default function CloudDocEditor() {
               onClose={() => setSearchOpen(false)}
             />
           )}
-          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi. ruler 가 카드 상단, 본문 padding 은 동적 마진 */}
-          <div
-            className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm dark:bg-slate-50 dark:text-slate-900"
-            style={{
-              transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
-              transformOrigin: 'top center',
-            }}
+          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi. 본문 길이에 따라 카드 height 자동 확장 */}
+          <DocPage
+            zoom={zoom}
+            pageMargin={pageMargin}
+            onMarginChange={setPageMargin}
           >
-            <PageRuler widthPx={816} margin={pageMargin} onMarginChange={setPageMargin} />
-            <div
-              className="py-[96px]"
-              style={{ paddingLeft: pageMargin.left, paddingRight: pageMargin.right }}
-            >
-              <EditorContent editor={editor} />
-            </div>
-          </div>
+            <EditorContent editor={editor} />
+          </DocPage>
         </main>
         <AiSidebar
           open={ai.open}
@@ -592,6 +587,57 @@ export default function CloudDocEditor() {
       )}
 
       <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 페이지 카드 + 자동 분할 overlay
+//  - A4 흰 카드 (mx-auto, zoom transform, ruler)
+//  - 본문 길이에 따라 페이지 break (점선 + "페이지 N" 라벨)
+//  - 진짜 페이지 단위 ProseMirror 분할 X — 시각 overlay 만
+// ─────────────────────────────────────────────
+
+interface DocPageProps {
+  zoom: number;
+  pageMargin: PageMargin;
+  onMarginChange: (m: PageMargin) => void;
+  children: React.ReactNode;
+}
+
+function DocPage({ zoom, pageMargin, onMarginChange, children }: DocPageProps) {
+  const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null);
+  const { pageBreaks } = usePageBreaks(contentEl, PAGE_CONTENT_HEIGHT_PX);
+
+  return (
+    <div
+      className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm dark:bg-slate-50 dark:text-slate-900"
+      style={{
+        transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
+        transformOrigin: 'top center',
+      }}
+    >
+      <PageRuler widthPx={816} margin={pageMargin} onMarginChange={onMarginChange} />
+      <div
+        ref={setContentEl}
+        className="relative py-[96px]"
+        style={{ paddingLeft: pageMargin.left, paddingRight: pageMargin.right }}
+      >
+        {children}
+        {/* 페이지 break overlay — 점선 + 라벨 */}
+        {pageBreaks.map((y, i) => (
+          <div
+            key={i}
+            className="absolute left-0 right-0 pointer-events-none border-t border-dashed border-slate-400"
+            style={{ top: y }}
+            aria-hidden="true"
+          >
+            <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-white dark:bg-slate-50 text-[10px] text-slate-500 px-2 py-0.5 rounded border border-slate-300">
+              ── 페이지 {i + 2} ──
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
