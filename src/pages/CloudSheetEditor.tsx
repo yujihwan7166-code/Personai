@@ -2159,6 +2159,12 @@ export default function CloudSheetEditor() {
     [],
   );
 
+  /** 코너 헤더 클릭 → 전체 시트 선택 */
+  const selectAllCells = useCallback(() => {
+    setRangeAnchor({ row: 0, col: 0 });
+    setSelected({ row: rowCount - 1, col: colCount - 1 });
+  }, [rowCount, colCount]);
+
   /** 헤더 클릭: 그 row/col 전체 선택. Shift 클릭으로 연속 선택. */
   const handleHeaderClick = useCallback(
     (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => {
@@ -2976,6 +2982,7 @@ export default function CloudSheetEditor() {
             onHeaderClick={handleHeaderClick}
             onHeaderContextMenu={openHeaderContextMenu}
             onCellContextMenu={openCellContextMenu}
+            onSelectAll={selectAllCells}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
             freezeRows={freezeRows}
@@ -3347,6 +3354,7 @@ interface SheetGridProps {
   onHeaderClick?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onCellContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
+  onSelectAll?: () => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
   /** N행 고정 (0=고정X) */
@@ -3391,7 +3399,7 @@ interface SheetGridProps {
 function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
-  onCellContextMenu,
+  onCellContextMenu, onSelectAll,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
   condFormatMap,
@@ -3435,7 +3443,14 @@ function SheetGrid({
       <table className="border-collapse text-sm font-normal" style={{ tableLayout: 'fixed' }}>
         <thead className="sticky top-0 z-10">
           <tr>
-            <th className="w-10 h-7 border border-border bg-muted/40 sticky left-0 z-20"></th>
+            <th
+              className="w-10 h-7 border border-border bg-muted/40 sticky left-0 z-20 cursor-pointer hover:bg-muted/60 relative"
+              onClick={onSelectAll}
+              title="전체 시트 선택"
+              aria-label="전체 시트 선택"
+            >
+              <span className="absolute right-1 bottom-1 text-[8px] text-muted-foreground leading-none" aria-hidden>◢</span>
+            </th>
             {cols.map((c, i) => (
               <th
                 key={c}
