@@ -49,6 +49,7 @@ import { DocPage } from '@/lib/cloudDoc/DocPage';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
 import { StyleSelect } from '@/lib/cloudDoc/StyleSelect';
+import { ZoomSelect } from '@/lib/cloudDoc/ZoomSelect';
 import { Footnote } from '@/lib/cloudDoc/tiptap/Footnote';
 import { FootnoteList } from '@/lib/cloudDoc/tiptap/FootnoteList';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
@@ -720,36 +721,6 @@ export default function CloudDocEditor() {
   );
 }
 
-// ─────────────────────────────────────────────
-// 줌 컨트롤 — 50/75/100/125/150/200%
-// ─────────────────────────────────────────────
-
-const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200] as const;
-
-function ZoomSelect({ zoom, onZoomChange }: { zoom: number; onZoomChange: (z: number) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="h-7 px-2 rounded hover:bg-muted text-xs flex items-center gap-1 min-w-[64px] border border-border"
-        title="줌"
-      >
-        <span className="truncate text-left flex-1">{zoom}%</span>
-        <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[88px]">
-        {ZOOM_PRESETS.map((p) => (
-          <DropdownMenuItem
-            key={p}
-            onSelect={() => onZoomChange(p)}
-            className={zoom === p ? 'bg-muted' : ''}
-          >
-            {p}%
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 
 // ─────────────────────────────────────────────
