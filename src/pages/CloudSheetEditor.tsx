@@ -84,6 +84,7 @@ import {
 } from '@/lib/cloudSheet/cellTypes';
 import { SheetGrid } from '@/lib/cloudSheet/SheetGrid';
 import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBounds';
+import { useSheetHistory } from '@/lib/cloudSheet/useSheetHistory';
 import {
   DEFAULT_ROWS, DEFAULT_COLS, MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS,
   ROW_ADD_CHUNK, COL_ADD_CHUNK,
@@ -906,95 +907,13 @@ export default function CloudSheetEditor() {
     [hasRange, selBounds, cells, cellFormats, merges, allCells, allFormats, currentSheetId, queueSave],
   );
 
-  // ─── Undo / Redo (debounce snapshot) ───
-  interface SheetSnapshot {
-    allCells: AllCells;
-    allFormats: AllFormats;
-    allMerges: AllMerges;
-    rowCount: number;
-    colCount: number;
-  }
-  const [history, setHistory] = useState<SheetSnapshot[]>([]);
-  const [historyIdx, setHistoryIdx] = useState(-1);
-  const isApplyingHistoryRef = useRef(false);
-  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 변경 감지 → 500ms 후 snapshot 저장 (history 끝에 push, future 삭제)
-  useEffect(() => {
-    // 로드 전(node 없음)이거나 undo/redo 중이면 push X
-    if (!node) return;
-    if (isApplyingHistoryRef.current) {
-      isApplyingHistoryRef.current = false;
-      return;
-    }
-    if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
-    snapshotTimerRef.current = setTimeout(() => {
-      setHistory((h) => {
-        const snap: SheetSnapshot = {
-          allCells, allFormats, allMerges, rowCount, colCount,
-        };
-        // 첫 snapshot
-        if (historyIdx === -1) {
-          setHistoryIdx(0);
-          return [snap];
-        }
-        // 현재가 마지막 snapshot 과 같으면 skip
-        const last = h[historyIdx];
-        if (last
-          && last.allCells === snap.allCells
-          && last.allFormats === snap.allFormats
-          && last.allMerges === snap.allMerges
-          && last.rowCount === snap.rowCount
-          && last.colCount === snap.colCount) {
-          return h;
-        }
-        const next = h.slice(0, historyIdx + 1);
-        next.push(snap);
-        // 최대 100 step
-        if (next.length > 100) next.shift();
-        setHistoryIdx(next.length - 1);
-        return next;
-      });
-    }, 500);
-    return () => {
-      if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
-    };
-  }, [node, allCells, allFormats, allMerges, rowCount, colCount, historyIdx]);
-
-  const canUndo = historyIdx > 0;
-  const canRedo = historyIdx >= 0 && historyIdx < history.length - 1;
-
-  const applySnapshot = useCallback((snap: SheetSnapshot) => {
-    isApplyingHistoryRef.current = true;
-    setAllCells(snap.allCells);
-    setAllFormats(snap.allFormats);
-    setAllMerges(snap.allMerges);
-    setRowCount(snap.rowCount);
-    setColCount(snap.colCount);
-    queueSave({
-      allCells: snap.allCells,
-      allFormats: snap.allFormats,
-      allMerges: snap.allMerges,
-      rowCount: snap.rowCount,
-      colCount: snap.colCount,
-    });
-  }, [queueSave]);
-
-  const undo = useCallback(() => {
-    if (!canUndo) return;
-    const target = history[historyIdx - 1];
-    if (!target) return;
-    setHistoryIdx(historyIdx - 1);
-    applySnapshot(target);
-  }, [canUndo, history, historyIdx, applySnapshot]);
-
-  const redo = useCallback(() => {
-    if (!canRedo) return;
-    const target = history[historyIdx + 1];
-    if (!target) return;
-    setHistoryIdx(historyIdx + 1);
-    applySnapshot(target);
-  }, [canRedo, history, historyIdx, applySnapshot]);
+  // ─── Undo / Redo (lib/cloudSheet/useSheetHistory 공용 훅) ───
+  const { canUndo, canRedo, undo, redo } = useSheetHistory({
+    allCells, allFormats, allMerges, rowCount, colCount,
+    setAllCells, setAllFormats, setAllMerges, setRowCount, setColCount,
+    ready: !!node,
+    queueSave,
+  });
 
   // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — 편집 중·input 안 X
   // + PR #8 파워 단축키 (Sheets 매칭):
