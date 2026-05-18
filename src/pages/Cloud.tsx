@@ -1738,7 +1738,15 @@ function FolderTreeItem({
           onClick={() => onNavigate(folder)}
           className="flex-1 flex items-center gap-1.5 truncate text-left"
         >
-          <Folder className="w-3 h-3 text-muted-foreground shrink-0" />
+          {(() => {
+            const color = folderColorOf(folder);
+            return (
+              <Folder
+                className={cn('w-3 h-3 shrink-0', !color && 'text-muted-foreground')}
+                style={color ? { color } : undefined}
+              />
+            );
+          })()}
           <span className="truncate">{folder.name}</span>
         </button>
       </div>
