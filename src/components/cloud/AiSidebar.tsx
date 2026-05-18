@@ -141,6 +141,11 @@ export function AiSidebar({
             <div className="text-center text-sm text-muted-foreground">
               👋 무엇을 도와드릴까요?
             </div>
+            {context.summary && (
+              <div className="text-center text-[11px] text-muted-foreground/80 px-2">
+                현재 컨텍스트로 바로 시작할 수 있어요
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               {quickActions.map((qa) => (
                 <button
