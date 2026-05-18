@@ -34,7 +34,7 @@ import {
   Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
   IndentIncrease, IndentDecrease,
   Sparkles, Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
-  ListTree,
+  ListTree, Paintbrush,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -555,6 +555,149 @@ export default function CloudDocEditor() {
 }
 
 // ─────────────────────────────────────────────
+// 스타일 드롭다운 — 일반 텍스트 / 제목 1~3 / 인용 / 코드 블록
+// (구글 독스 좌측 첫 컨트롤과 같은 역할)
+// ─────────────────────────────────────────────
+
+function StyleSelect({ editor }: { editor: Editor }) {
+  const currentLabel = (() => {
+    if (editor.isActive('heading', { level: 1 })) return '제목 1';
+    if (editor.isActive('heading', { level: 2 })) return '제목 2';
+    if (editor.isActive('heading', { level: 3 })) return '제목 3';
+    if (editor.isActive('blockquote')) return '인용';
+    if (editor.isActive('codeBlock')) return '코드 블록';
+    return '일반 텍스트';
+  })();
+
+  const apply = (kind: 'p' | 'h1' | 'h2' | 'h3' | 'quote' | 'code') => {
+    const c = editor.chain().focus();
+    if (kind === 'p')        c.clearNodes().setParagraph().run();
+    else if (kind === 'h1')  c.clearNodes().toggleHeading({ level: 1 }).run();
+    else if (kind === 'h2')  c.clearNodes().toggleHeading({ level: 2 }).run();
+    else if (kind === 'h3')  c.clearNodes().toggleHeading({ level: 3 }).run();
+    else if (kind === 'quote') c.toggleBlockquote().run();
+    else if (kind === 'code')  c.toggleCodeBlock().run();
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="h-7 px-2 rounded hover:bg-muted text-xs flex items-center gap-1 min-w-[96px] border border-border"
+        title="단락 스타일"
+      >
+        <span className="truncate text-left flex-1">{currentLabel}</span>
+        <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[140px]">
+        <DropdownMenuItem onSelect={() => apply('p')}>일반 텍스트</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h1')}>
+          <span className="text-base font-medium">제목 1</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h2')}>
+          <span className="text-sm font-medium">제목 2</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h3')}>제목 3</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => apply('quote')}>인용</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('code')}>코드 블록</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 서식 복사 (Format Painter)
+//  - 클릭: 현재 선택의 마크 캡처 + 활성화
+//  - 다음 selection 변경 (non-empty) 시 자동 적용 + 해제
+//  - Esc 또는 다시 클릭으로 취소
+// ─────────────────────────────────────────────
+
+interface CapturedMarks {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+  code: boolean;
+  textStyle: { fontFamily?: string; fontSize?: string; color?: string } | null;
+  highlight: { color?: string } | null;
+}
+
+function FormatPainterBtn({ editor }: { editor: Editor }) {
+  const [captured, setCaptured] = useState<CapturedMarks | null>(null);
+  const firstUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (!captured) return;
+    const onUpdate = () => {
+      if (!firstUpdateRef.current) {
+        firstUpdateRef.current = true;
+        return;
+      }
+      const sel = editor.state.selection;
+      if (sel.empty) return;
+      const c = editor.chain().focus();
+      // 인라인 mark 들
+      if (captured.bold)      c.setMark('bold');      else c.unsetMark('bold');
+      if (captured.italic)    c.setMark('italic');    else c.unsetMark('italic');
+      if (captured.underline) c.setMark('underline'); else c.unsetMark('underline');
+      if (captured.strike)    c.setMark('strike');    else c.unsetMark('strike');
+      if (captured.code)      c.setMark('code');      else c.unsetMark('code');
+      if (captured.textStyle) c.setMark('textStyle', captured.textStyle);
+      else c.unsetMark('textStyle');
+      if (captured.highlight?.color) c.setMark('highlight', { color: captured.highlight.color });
+      else c.unsetMark('highlight');
+      c.run();
+      setCaptured(null);
+    };
+    editor.on('selectionUpdate', onUpdate);
+    return () => { editor.off('selectionUpdate', onUpdate); };
+  }, [captured, editor]);
+
+  useEffect(() => {
+    if (!captured) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCaptured(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [captured]);
+
+  const handleClick = () => {
+    if (captured) {
+      setCaptured(null);
+      return;
+    }
+    const sel = editor.state.selection;
+    if (sel.empty) {
+      toast({ title: '복사할 텍스트를 먼저 선택하세요' });
+      return;
+    }
+    const ts = editor.getAttributes('textStyle') as { fontFamily?: string; fontSize?: string; color?: string };
+    const hl = editor.getAttributes('highlight') as { color?: string };
+    setCaptured({
+      bold:      editor.isActive('bold'),
+      italic:    editor.isActive('italic'),
+      underline: editor.isActive('underline'),
+      strike:    editor.isActive('strike'),
+      code:      editor.isActive('code'),
+      textStyle: (ts.fontFamily || ts.fontSize || ts.color) ? ts : null,
+      highlight: hl.color ? hl : null,
+    });
+    firstUpdateRef.current = false;
+  };
+
+  return (
+    <ToolBtn
+      onClick={handleClick}
+      active={!!captured}
+      title={captured ? '서식 복사 활성 — 다음 선택에 적용 (Esc 취소)' : '서식 복사 (Format Painter)'}
+    >
+      <Paintbrush className="w-4 h-4" />
+    </ToolBtn>
+  );
+}
+
+// ─────────────────────────────────────────────
 // 도구바
 // ─────────────────────────────────────────────
 
@@ -575,6 +718,10 @@ function DocToolbar({ editor }: { editor: Editor }) {
       >
         <Redo2 className="w-4 h-4" />
       </ToolBtn>
+      <Sep />
+      <FormatPainterBtn editor={editor} />
+      <Sep />
+      <StyleSelect editor={editor} />
       <Sep />
       <ToolBtn
         onClick={() => editor.chain().focus().toggleBold().run()}
