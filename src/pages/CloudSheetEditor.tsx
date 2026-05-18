@@ -101,6 +101,7 @@ import {
 } from '@/lib/cloudSheet/cellTypes';
 import { SheetCell } from '@/lib/cloudSheet/SheetCell';
 import { SheetGrid } from '@/lib/cloudSheet/SheetGrid';
+import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBounds';
 import {
   DEFAULT_ROWS, DEFAULT_COLS, MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS,
   ROW_ADD_CHUNK, COL_ADD_CHUNK,
@@ -153,37 +154,7 @@ const AUTOSAVE_DELAY_MS = 1000;
 
 // nextSeriesValue / CYCLE_LISTS 는 lib/cloudSheet/seriesAutofill 공용
 
-/** cells 의 최대 row / col 계산 (참조 → 좌표) */
-function maxRowColFromCells(cells: Cells): { row: number; col: number } {
-  let maxR = -1; let maxC = -1;
-  for (const ref of Object.keys(cells)) {
-    const m = ref.match(/^([A-Z]+)(\d+)$/);
-    if (!m) continue;
-    const c = colToIdx(m[1]);
-    const r = Number(m[2]) - 1;
-    if (r > maxR) maxR = r;
-    if (c > maxC) maxC = c;
-  }
-  return { row: maxR, col: maxC };
-}
-
-function maxRowColFromAll(
-  allCells: AllCells, allMerges: AllMerges,
-): { row: number; col: number } {
-  let maxR = -1; let maxC = -1;
-  for (const sheetId of Object.keys(allCells)) {
-    const { row, col } = maxRowColFromCells(allCells[sheetId] ?? {});
-    if (row > maxR) maxR = row;
-    if (col > maxC) maxC = col;
-  }
-  for (const sheetId of Object.keys(allMerges)) {
-    for (const m of allMerges[sheetId] ?? []) {
-      if (m.maxR > maxR) maxR = m.maxR;
-      if (m.maxC > maxC) maxC = m.maxC;
-    }
-  }
-  return { row: maxR, col: maxC };
-}
+// maxRowColFromCells / maxRowColFromAll 는 lib/cloudSheet/sheetBounds 공용
 
 export default function CloudSheetEditor() {
   const { id } = useParams<{ id: string }>();
