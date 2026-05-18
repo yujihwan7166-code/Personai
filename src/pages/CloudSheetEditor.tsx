@@ -12,40 +12,30 @@ import {
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   Paintbrush,
   Hash, Square as SquareIcon, Combine, Split,
-  Plus, Minus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
-  Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Printer,
-  Search as SearchIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Replace as ReplaceIcon,
-  Undo2, Redo2, MessageSquare, ExternalLink,
+  Plus, Minus, Copy as CopyIcon, Trash2 as TrashIcon,
+  Upload, Download, Sparkles, BarChart3, Printer,
+  ChevronDown,
+  Undo2, Redo2, MessageSquare,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  ContextMenu, ContextMenuTrigger, ContextMenuContent,
-  ContextMenuItem, ContextMenuSeparator,
-  ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
-} from '@/components/ui/context-menu';
+// ContextMenu 는 SheetTab 내부 사용
 import { ColorPopover } from '@/components/cloud/ColorPopover';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX, SPILL_SENTINEL, LINK_SENTINEL } from '@/lib/cloudSheet/formula';
-import { buildSparklineSvg, type SparklinePayload } from '@/lib/cloudSheet/sparkline';
+import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import {
-  buildChartData, flattenForPie, CHART_PALETTE, getChartPalette,
-  CHART_PALETTES, CHART_PALETTE_LABELS, type SelRange,
-  type EmbeddedChart,
+  CHART_PALETTE, type SelRange, type EmbeddedChart,
 } from '@/lib/cloudSheet/chart';
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
-  XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
+// recharts components 는 lib/cloudSheet/EmbeddedChartCard + ChartModal 으로 이동
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
@@ -56,18 +46,12 @@ import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
-import { HelpRow } from '@/lib/cloudCommon/HelpRow';
+// HelpRow 는 SheetHelpModal 내부 사용
 import { NameBox } from '@/lib/cloudSheet/NameBox';
-import { ColResizeHandle, RowResizeHandle } from '@/lib/cloudSheet/ResizeHandles';
-import { ValidationDropdown } from '@/lib/cloudSheet/ValidationDropdown';
-import {
-  FuncHintPopover, getFuncSuggestionNames, applyFuncSuggestion,
-} from '@/lib/cloudSheet/FuncHintPopover';
+// ColResizeHandle / RowResizeHandle / ValidationDropdown 는 SheetGrid/SheetCell 내부 사용
+// FuncHintPopover / getFuncSuggestionNames / applyFuncSuggestion 는 SheetCell 내부 사용
 import { FormulaBarInput } from '@/lib/cloudSheet/FormulaBarInput';
-import {
-  SheetTab, type SheetTabColor,
-  SHEET_TAB_COLOR_LABEL, SHEET_TAB_COLOR_HEX,
-} from '@/lib/cloudSheet/SheetTab';
+import { SheetTab, type SheetTabColor } from '@/lib/cloudSheet/SheetTab';
 import { SheetHelpModal } from '@/lib/cloudSheet/SheetHelpModal';
 import { EmbeddedChartCard } from '@/lib/cloudSheet/EmbeddedChartCard';
 import { ChartModal } from '@/lib/cloudSheet/ChartModal';
@@ -80,16 +64,15 @@ import { ValidationModal } from '@/lib/cloudSheet/ValidationModal';
 import { type Validation, newValidationId } from '@/lib/cloudSheet/validation';
 import { CommentModal } from '@/lib/cloudSheet/CommentModal';
 import { NamedRangeModal } from '@/lib/cloudSheet/NamedRangeModal';
-import { colLabel, cellRef, escapeRegex, detectLink } from '@/lib/cloudSheet/sheetUtils';
+import { cellRef, escapeRegex } from '@/lib/cloudSheet/sheetUtils';
 import {
-  type NumberFmt, DECIMAL_SEQUENCE, decimalsIndexOf,
-  NUMBER_FMT_OPTIONS, applyNumberFormat,
+  type NumberFmt, DECIMAL_SEQUENCE, decimalsIndexOf, NUMBER_FMT_OPTIONS,
 } from '@/lib/cloudSheet/numberFormat';
 import { nextSeriesValue } from '@/lib/cloudSheet/seriesAutofill';
-import { type BorderStyle, borderStyleFor } from '@/lib/cloudSheet/borderStyle';
+import { type BorderStyle } from '@/lib/cloudSheet/borderStyle';
 import { newId } from '@/lib/idGenerator';
 import {
-  type FontFamily, FONT_FAMILY_LABEL, FONT_FAMILY_CSS,
+  type FontFamily, FONT_FAMILY_LABEL,
   FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT,
 } from '@/lib/cloudSheet/fontFamily';
 import {
@@ -99,7 +82,6 @@ import {
   type Cells, type AllCells, type Merge, type AllMerges,
   type Comments, type AllComments, type SelBounds,
 } from '@/lib/cloudSheet/cellTypes';
-import { SheetCell } from '@/lib/cloudSheet/SheetCell';
 import { SheetGrid } from '@/lib/cloudSheet/SheetGrid';
 import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBounds';
 import {
