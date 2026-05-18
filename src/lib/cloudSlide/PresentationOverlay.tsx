@@ -71,6 +71,13 @@ export function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: Pr
                 style={pos}
                 className="object-contain pointer-events-none"
                 draggable={false}
+                onError={(e) => {
+                  // 깨진 이미지 → 회색 placeholder (img → transparent + bg)
+                  const img = e.currentTarget;
+                  img.style.background = '#e5e7eb';
+                  img.style.opacity = '0.3';
+                  img.removeAttribute('src');
+                }}
               />
             );
           }

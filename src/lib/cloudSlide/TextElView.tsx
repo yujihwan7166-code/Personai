@@ -70,6 +70,12 @@ export function TextElView({
             onFinishEdit();
           }
         }}
+        onPaste={(e) => {
+          // 스타일 포함 HTML 붙여넣기 방지 — 항상 plain text 로
+          e.preventDefault();
+          const text = e.clipboardData.getData('text/plain');
+          document.execCommand('insertText', false, text);
+        }}
         className={cn(
           'w-full h-full outline-none break-words overflow-hidden',
           el.bold && 'font-semibold',

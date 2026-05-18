@@ -38,6 +38,7 @@ import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
 import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
 import { computeSelBounds, buildMergeMaps } from '@/lib/cloudSheet/selBounds';
 import { buildFormulaRefHighlights } from '@/lib/cloudSheet/formulaRefHighlights';
+import { findAutocomplete } from '@/lib/cloudSheet/autocompleteCell';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -260,31 +261,11 @@ export default function CloudSheetEditor() {
     [editing, editingValue, currentSheetName],
   );
 
-  /** 자동완성 — editing 중인 셀의 같은 col 에서 prefix 매치되는 첫 값 (대소문자 무시).
-   *  editingValue 가 비어있거나 '=' 로 시작 (수식), 또는 매치 없으면 null. */
-  const autocomplete = useMemo<string | null>(() => {
-    if (!editing) return null;
-    const prefix = editingValue;
-    if (!prefix || prefix.startsWith('=')) return null;
-    const lowerPrefix = prefix.toLowerCase();
-    const editingRef = cellRef(editing.row, editing.col);
-    // 같은 col 의 모든 행 — 가까운 위쪽 우선
-    let best: string | null = null;
-    // 위쪽부터 아래쪽으로 검색해 첫 매치 사용
-    for (let r = 0; r < rowCount; r++) {
-      if (r === editing.row) continue;
-      const ref = cellRef(r, editing.col);
-      const v = cells[ref];
-      if (v === undefined || v === '') continue;
-      if (v.startsWith('=')) continue; // 수식 셀의 raw 는 추천 X
-      if (v === prefix) continue; // 완전 동일은 추천 X
-      if (v.toLowerCase().startsWith(lowerPrefix)) {
-        best = v;
-        break;
-      }
-    }
-    return best && best !== editingRef ? best : null;
-  }, [editing, editingValue, cells, rowCount]);
+  /** 자동완성 — editing 중인 셀의 같은 col 에서 prefix 매치되는 첫 값 (대소문자 무시). */
+  const autocomplete = useMemo<string | null>(
+    () => editing ? findAutocomplete(cells, editingValue, editing.row, editing.col, rowCount) : null,
+    [editing, editingValue, cells, rowCount],
+  );
 
   // AI 셀 결과가 비동기로 도착하면 AI_CHANGED 이벤트 → aiVersion bump → memo 재계산.
   // 결과는 캐시에 들어가있어 다음 평가에서 sentinel 대신 실제 값을 반환함.
