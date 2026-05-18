@@ -62,7 +62,7 @@ export function TextElView({
         ref={editableRef}
         contentEditable={editing}
         suppressContentEditableWarning
-        onInput={(e) => onChange((e.currentTarget.textContent ?? '').trim())}
+        onInput={(e) => onChange(e.currentTarget.innerText ?? '')}
         onBlur={onFinishEdit}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
@@ -81,6 +81,7 @@ export function TextElView({
           lineHeight: el.lineHeight ?? 1.25,
           color: el.textColor ?? 'rgba(0,0,0,0.8)',
           textAlign: el.align ?? 'left',
+          whiteSpace: 'pre-wrap',
         }}
       >
         {el.content}
