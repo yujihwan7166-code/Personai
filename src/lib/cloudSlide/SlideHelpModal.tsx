@@ -1,6 +1,7 @@
 /** 슬라이드 에디터 단축키 도움말 모달 (? 으로 열림). */
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { HelpRow } from '@/lib/cloudCommon/HelpRow';
 
 export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -57,20 +58,4 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
-function HelpRow({ keys, label }: { keys: string[]; label: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm">{label}</span>
-      <span className="flex items-center gap-1">
-        {keys.map((k, i) => (
-          <kbd
-            key={`${k}-${i}`}
-            className="text-[10px] border border-border rounded px-1.5 py-0.5 bg-muted/40 font-mono"
-          >
-            {k}
-          </kbd>
-        ))}
-      </span>
-    </div>
-  );
-}
+// HelpRow 는 lib/cloudCommon/HelpRow 공용

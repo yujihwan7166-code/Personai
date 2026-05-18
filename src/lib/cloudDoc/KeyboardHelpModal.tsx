@@ -1,7 +1,7 @@
 /** 문서 에디터 단축키 도움말 모달 (Ctrl+? 으로 열림). */
 
-import React from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { HelpSection, HelpRow } from '@/lib/cloudCommon/HelpRow';
 
 export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -92,31 +92,4 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
   );
 }
 
-function HelpSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h3 className="text-xs font-medium text-muted-foreground mb-1.5">{title}</h3>
-      <div className="space-y-1">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function HelpRow({ keys, label }: { keys: string[]; label: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm">{label}</span>
-      <span className="flex items-center gap-1">
-        {keys.map((k, i) => (
-          <kbd
-            key={`${k}-${i}`}
-            className="text-[10px] border border-border rounded px-1.5 py-0.5 bg-muted/40 font-mono"
-          >
-            {k}
-          </kbd>
-        ))}
-      </span>
-    </div>
-  );
-}
+// HelpSection / HelpRow 는 lib/cloudCommon/HelpRow 공용
