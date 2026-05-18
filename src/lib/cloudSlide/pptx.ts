@@ -56,7 +56,7 @@ export async function importPptxFile(file: File): Promise<Slide[]> {
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
     removeNSPrefix: false,
-    isArray: (name) => ['p:sp', 'p:pic', 'a:r', 'a:p', 'Relationship'].includes(name),
+    isArray: (name) => ['p:sp', 'p:pic', 'p:graphicFrame', 'a:r', 'a:p', 'Relationship'].includes(name),
   });
 
   const slides: Slide[] = [];
@@ -153,11 +153,54 @@ async function parseSlide(
         if (el) elements.push(el);
       }
     }
+
+    // graphicFrame (차트/표/SmartArt) — 위치만 보존, "[차트/표 자리]" placeholder
+    const frames = spTree?.['p:graphicFrame'] as Array<Record<string, unknown>> | undefined;
+    if (frames) {
+      for (const gf of frames) {
+        const el = parseGraphicFrame(gf);
+        if (el) elements.push(el);
+      }
+    }
   } catch {
     // 파싱 실패 — 빈 슬라이드로
   }
 
   return { id: newId('s'), elements, background };
+}
+
+/** p:graphicFrame → placeholder 텍스트 박스 (차트/표/SmartArt 자리만 보존) */
+function parseGraphicFrame(gf: Record<string, unknown>): SlideTextEl | null {
+  const xfrm = gf['p:xfrm'] as Record<string, unknown> | undefined;
+  const off = xfrm?.['a:off'] as Record<string, unknown> | undefined;
+  const ext = xfrm?.['a:ext'] as Record<string, unknown> | undefined;
+  if (!off || !ext) return null;
+
+  const xEmu = Number(off['@_x'] ?? 0);
+  const yEmu = Number(off['@_y'] ?? 0);
+  const cxEmu = Number(ext['@_cx'] ?? SLIDE_W_EMU * 0.4);
+  const cyEmu = Number(ext['@_cy'] ?? SLIDE_H_EMU * 0.3);
+
+  // 종류 추정 (URI 로): chart / table / diagram
+  const graphic = gf['a:graphic'] as Record<string, unknown> | undefined;
+  const graphicData = graphic?.['a:graphicData'] as Record<string, unknown> | undefined;
+  const uri = (graphicData?.['@_uri'] ?? '') as string;
+  let label = '[그래픽 자리]';
+  if (uri.includes('chart')) label = '[차트 자리]';
+  else if (uri.includes('table')) label = '[표 자리]';
+  else if (uri.includes('diagram')) label = '[다이어그램 자리]';
+
+  return {
+    id: newId('el'),
+    type: 'text',
+    xPct: clamp01((xEmu / SLIDE_W_EMU) * 100),
+    yPct: clamp01((yEmu / SLIDE_H_EMU) * 100),
+    wPct: Math.max(clamp01((cxEmu / SLIDE_W_EMU) * 100), 15),
+    hPct: Math.max(clamp01((cyEmu / SLIDE_H_EMU) * 100), 8),
+    content: label,
+    fontSizeRem: 1.25,
+    textColor: 'rgba(0,0,0,0.4)',
+  };
 }
 
 function parseShape(sp: Record<string, unknown>): SlideElement | null {
