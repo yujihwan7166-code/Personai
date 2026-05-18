@@ -121,9 +121,7 @@ type AllEmbeddedCharts = Record<string, EmbeddedChart[]>;
 // CondOp / CondRule / evalCondRule / newCondRuleId 는 lib/cloudSheet/condFormat 공용
 type AllCondRules = Record<string, CondRule[]>;
 
-function newSheetId(): string {
-  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-}
+// newSheetId → newId('s') 공용
 
 // NumberFmt / DECIMAL_SEQUENCE / decimalsIndexOf 는 lib/cloudSheet/numberFormat 공용
 // BorderStyle 은 lib/cloudSheet/borderStyle 공용
@@ -806,7 +804,7 @@ export default function CloudSheetEditor() {
   }, [queueSave]);
 
   const addSheet = useCallback(() => {
-    const id = newSheetId();
+    const id = newId('s');
     const usedNames = new Set(sheetsMeta.map((s) => s.name));
     let n = sheetsMeta.length + 1;
     while (usedNames.has(`Sheet${n}`)) n++;
@@ -1563,7 +1561,7 @@ export default function CloudSheetEditor() {
 
   // ─── 영구 embed 차트 ───
   const addEmbeddedChart = useCallback((c: Omit<EmbeddedChart, 'id'>) => {
-    const id = newEmbeddedChartId();
+    const id = newId('ch');
     const next = [...embeddedCharts, { ...c, id }];
     const nextAll: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: next };
     setAllEmbeddedCharts(nextAll);
@@ -1702,7 +1700,7 @@ export default function CloudSheetEditor() {
         let importedFreezeCols: number | undefined;
         let preservedCount = 0;
         for (const sheet of imported) {
-          const id = newSheetId();
+          const id = newId('s');
           const usedNames = new Set([
             ...sheetsMeta.map((s) => s.name),
             ...newMetas.map((s) => s.name),
@@ -1796,7 +1794,7 @@ export default function CloudSheetEditor() {
   const duplicateSheet = useCallback((idx: number) => {
     const src = sheetsMeta[idx];
     if (!src) return;
-    const id = newSheetId();
+    const id = newId('s');
     const newMeta: SheetMeta = { id, name: `${src.name} 복사본` };
     const nextSheets = [...sheetsMeta.slice(0, idx + 1), newMeta, ...sheetsMeta.slice(idx + 1)];
     const nextCells: AllCells = { ...allCells, [id]: { ...(allCells[src.id] ?? {}) } };
