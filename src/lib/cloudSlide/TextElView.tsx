@@ -35,6 +35,17 @@ export function TextElView({
     }
   }, [editing]);
 
+  // 외부에서 content 가 바뀌었는데 contentEditable 안 갱신되는 문제 해결 (undo/redo/AI 응답 등).
+  // 편집 중이면 사용자 입력 보호 — 갱신 안 함.
+  useEffect(() => {
+    if (editing) return;
+    const node = editableRef.current;
+    if (!node) return;
+    if (node.innerText !== el.content) {
+      node.innerText = el.content;
+    }
+  }, [el.content, editing]);
+
   return (
     <div
       onPointerDown={editing ? undefined : onPointerDown}

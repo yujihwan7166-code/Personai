@@ -74,7 +74,7 @@ import { ChartModal } from '@/lib/cloudSheet/ChartModal';
 import { SheetSearchPanel } from '@/lib/cloudSheet/SheetSearchPanel';
 import { CondFormatModal } from '@/lib/cloudSheet/CondFormatModal';
 import {
-  type CondOp, type CondRule, evalCondRule, newCondRuleId,
+  type CondOp, type CondRule, newCondRuleId, buildCondFormatMap,
 } from '@/lib/cloudSheet/condFormat';
 import { ValidationModal } from '@/lib/cloudSheet/ValidationModal';
 import { type Validation, newValidationId } from '@/lib/cloudSheet/validation';
@@ -1060,26 +1060,11 @@ export default function CloudSheetEditor() {
     queueSave({ allCondRules: nextAll });
   }, [condRules, allCondRules, currentSheetId, queueSave]);
 
-  /** ref → 조건부 서식 적용 (cells 변경 시만 재계산) */
-  const condFormatMap = useMemo<Map<string, CondRule['format']>>(() => {
-    const out = new Map<string, CondRule['format']>();
-    if (condRules.length === 0) return out;
-    for (const rule of condRules) {
-      for (let r = rule.range.minR; r <= rule.range.maxR; r++) {
-        for (let c = rule.range.minC; c <= rule.range.maxC; c++) {
-          const ref = cellRef(r, c);
-          const raw = cells[ref] ?? '';
-          const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
-          if (evalCondRule(display, rule.op, rule.value)) {
-            // 이후 rule 이 이전 rule 을 덮어씀 (마지막 우선)
-            const cur = out.get(ref);
-            out.set(ref, { ...(cur ?? {}), ...rule.format });
-          }
-        }
-      }
-    }
-    return out;
-  }, [condRules, cells, displayValues]);
+  /** ref → 조건부 서식 적용 (lib/cloudSheet/condFormat 공용) */
+  const condFormatMap = useMemo(
+    () => buildCondFormatMap(condRules, cells, displayValues),
+    [condRules, cells, displayValues],
+  );
 
   const [condModalOpen, setCondModalOpen] = useState(false);
 

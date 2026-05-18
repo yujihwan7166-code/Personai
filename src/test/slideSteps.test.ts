@@ -48,7 +48,8 @@ describe('nextLineHeight', () => {
     expect(nextLineHeight(LINE_HEIGHT_STEPS[0], -1)).toBe(LINE_HEIGHT_STEPS[0]);
   });
   it('dir=1 + 근사값', () => {
-    expect(nextLineHeight(1.2, 1)).toBe(1.5); // 1.25 와 가까움 → +1 = 1.5
+    // 1.3 은 1.25 와 가장 가까움 (거리 0.05). +1 → 1.5
+    expect(nextLineHeight(1.3, 1)).toBe(1.5);
   });
 });
 

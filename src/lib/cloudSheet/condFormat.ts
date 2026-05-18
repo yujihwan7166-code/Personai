@@ -1,4 +1,7 @@
-/** 조건부 서식 (Conditional Formatting) 타입 + 평가 함수. */
+/** 조건부 서식 (Conditional Formatting) 타입 + 평가 함수 + ref 빌더. */
+
+import { cellRef } from './sheetUtils';
+import type { Cells } from './cellTypes';
 
 export type CondOp = '>' | '<' | '>=' | '<=' | '==' | '!=' | 'contains' | 'between' | 'empty' | 'nonempty';
 
@@ -44,4 +47,28 @@ export function evalCondRule(value: string, op: CondOp, target: string): boolean
     case '!=': return value !== target;
     default: return false;
   }
+}
+
+/** ref → 적용된 format (cells / displayValues 기반). 나중 rule 이 이전 덮어쓰기. */
+export function buildCondFormatMap(
+  rules: CondRule[],
+  cells: Cells,
+  displayValues: Cells,
+): Map<string, CondRule['format']> {
+  const out = new Map<string, CondRule['format']>();
+  if (rules.length === 0) return out;
+  for (const rule of rules) {
+    for (let r = rule.range.minR; r <= rule.range.maxR; r++) {
+      for (let c = rule.range.minC; c <= rule.range.maxC; c++) {
+        const ref = cellRef(r, c);
+        const raw = cells[ref] ?? '';
+        const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+        if (evalCondRule(display, rule.op, rule.value)) {
+          const cur = out.get(ref);
+          out.set(ref, { ...(cur ?? {}), ...rule.format });
+        }
+      }
+    }
+  }
+  return out;
 }
