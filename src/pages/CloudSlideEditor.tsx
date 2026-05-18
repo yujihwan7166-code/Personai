@@ -63,6 +63,8 @@ interface SlideTextEl extends BaseEl {
   textColor?: string;
   /** 텍스트 정렬. 미지정 = 'left'. */
   align?: 'left' | 'center' | 'right';
+  /** 줄간격 (배수). 미지정 = 1.25. */
+  lineHeight?: number;
 }
 
 type ShapeType = 'rect' | 'ellipse' | 'triangle' | 'line' | 'arrow';
@@ -208,6 +210,13 @@ function nextStrokeWidth(cur: number, dir: 1 | -1): number {
   }
   const ni = Math.max(0, Math.min(STROKE_STEPS_PX.length - 1, idx + dir));
   return STROKE_STEPS_PX[ni];
+}
+
+/** 텍스트 줄간격 단계 (배수) */
+const LINE_HEIGHT_STEPS = [1, 1.15, 1.25, 1.5, 1.75, 2];
+function nextLineHeight(cur: number): number {
+  const idx = LINE_HEIGHT_STEPS.findIndex((v) => Math.abs(v - cur) < 0.01);
+  return LINE_HEIGHT_STEPS[(idx + 1) % LINE_HEIGHT_STEPS.length];
 }
 
 /** rect 도형 모서리 반경 단계 (px) */
@@ -1154,7 +1163,7 @@ export default function CloudSlideEditor() {
             child.style.fontStyle = el.italic ? 'italic' : 'normal';
             if (el.underline) child.style.textDecoration = 'underline';
             child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
-            child.style.lineHeight = '1.25';
+            child.style.lineHeight = String(el.lineHeight ?? 1.25);
             child.style.whiteSpace = 'pre-wrap';
             child.style.textAlign = el.align ?? 'left';
             child.textContent = el.content;
@@ -1665,6 +1674,12 @@ export default function CloudSlideEditor() {
                   >
                     <AlignRight className="w-4 h-4" />
                   </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { lineHeight: nextLineHeight(el.lineHeight ?? 1.25) })}
+                    title="줄간격 (클릭으로 순환)"
+                  >
+                    <span className="text-xs tabular-nums">⇕ {(el.lineHeight ?? 1.25).toFixed(2).replace(/\.?0+$/, '')}</span>
+                  </ToolBtn>
                 </>
               );
             }
@@ -1868,6 +1883,20 @@ export default function CloudSlideEditor() {
                           >
                             <AlignRight className="w-4 h-4" />
                           </ToolBtn>
+                          {(() => {
+                            const firstLh = texts[0]?.lineHeight ?? 1.25;
+                            const allSameLh = texts.every((t) => (t.lineHeight ?? 1.25) === firstLh);
+                            return (
+                              <ToolBtn
+                                onClick={() => applyToTexts({ lineHeight: nextLineHeight(firstLh) })}
+                                title="줄간격 (다음 단계로 통일)"
+                              >
+                                <span className="text-xs tabular-nums">
+                                  ⇕ {allSameLh ? firstLh.toFixed(2).replace(/\.?0+$/, '') : '—'}
+                                </span>
+                              </ToolBtn>
+                            );
+                          })()}
                         </>
                       );
                     })()}
@@ -2382,7 +2411,7 @@ function TextElView({
         )}
         style={{
           fontSize: `${el.fontSizeRem}rem`,
-          lineHeight: 1.25,
+          lineHeight: el.lineHeight ?? 1.25,
           color: el.textColor ?? 'rgba(0,0,0,0.8)',
           textAlign: el.align ?? 'left',
         }}
