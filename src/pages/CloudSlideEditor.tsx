@@ -13,6 +13,7 @@ import {
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
   Combine, Split,
   ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
+  RotateCw, RotateCcw,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
   Sparkles, Undo2, Redo2,
 } from 'lucide-react';
@@ -588,7 +589,7 @@ export default function CloudSlideEditor() {
   }, [updateCurrentSlide]);
 
   // 부분 patch (유니온 호환 위해 unknown 캐스트 — id 매칭 후 안전)
-  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl> | Partial<SlideShapeEl>) => {
+  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl> | Partial<SlideShapeEl> | Partial<SlideImageEl>) => {
     updateCurrentSlide((s) => ({
       ...s,
       elements: s.elements.map((el) => (el.id === elId ? ({ ...el, ...patch } as SlideElement) : el)),
@@ -1796,6 +1797,44 @@ export default function CloudSlideEditor() {
               </ToolBtn>
             </>
           )}
+
+          {/* 선택 요소 회전 — ±15° + 0° 복귀 */}
+          {selectedElId && (() => {
+            const el = currentSlide.elements.find((x) => x.id === selectedElId);
+            if (!el) return null;
+            const rot = (((el.rotation ?? 0) % 360) + 360) % 360;
+            return (
+              <>
+                <Sep />
+                <ToolBtn
+                  onClick={() => updateEl(el.id, { rotation: ((rot - 15 + 360) % 360) || undefined })}
+                  title="−15° 회전"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </ToolBtn>
+                <span
+                  className="text-xs text-muted-foreground tabular-nums px-1 min-w-[36px] text-center"
+                  title="회전 각도 (°)"
+                >
+                  {Math.round(rot)}°
+                </span>
+                <ToolBtn
+                  onClick={() => updateEl(el.id, { rotation: ((rot + 15) % 360) || undefined })}
+                  title="+15° 회전"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </ToolBtn>
+                {rot !== 0 && (
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { rotation: undefined })}
+                    title="회전 0° 복귀"
+                  >
+                    <span className="text-xs">0°</span>
+                  </ToolBtn>
+                )}
+              </>
+            );
+          })()}
 
           {/* 다중 선택 시 그룹화 / 해제 */}
           {selectedElIds.size >= 2 && (
