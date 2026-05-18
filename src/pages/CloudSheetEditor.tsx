@@ -622,6 +622,24 @@ export default function CloudSheetEditor() {
             ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
             : 0;
           setCurrentSheetIdx(idx);
+          // 마지막 셀 위치 + 시트 인덱스 복원 (localStorage)
+          try {
+            const lc = window.localStorage.getItem(`personai.cloud.sheet.lastCell.${id}`);
+            if (lc) {
+              const p = JSON.parse(lc) as { row?: number; col?: number; sheetIdx?: number };
+              if (typeof p.sheetIdx === 'number') {
+                setCurrentSheetIdx(Math.max(0, Math.min(p.sheetIdx, storedSheets.length - 1)));
+              }
+              if (typeof p.row === 'number' && typeof p.col === 'number') {
+                const finalRC = Math.min(rc, MAX_ROWS);
+                const finalCC = Math.min(cc, MAX_COLS);
+                setSelected({
+                  row: Math.max(0, Math.min(p.row, finalRC - 1)),
+                  col: Math.max(0, Math.min(p.col, finalCC - 1)),
+                });
+              }
+            }
+          } catch { /* noop */ }
         } else {
           // 단일 시트 옛 형식 → 마이그레이션 (cells/cellFormats 직접)
           const stored = meta.cells;
@@ -656,6 +674,18 @@ export default function CloudSheetEditor() {
     })();
     return () => { cancelled = true; };
   }, [id, user, authLoading]);
+
+  // ─── 마지막 셀 위치 + 시트 인덱스 localStorage 저장 ───
+  // (cloud meta 가 아니라 localStorage 라 저장 상태 flicker 없음)
+  useEffect(() => {
+    if (!id || !node) return;
+    try {
+      window.localStorage.setItem(
+        `personai.cloud.sheet.lastCell.${id}`,
+        JSON.stringify({ row: selected.row, col: selected.col, sheetIdx: currentSheetIdx }),
+      );
+    } catch { /* noop */ }
+  }, [id, node, selected.row, selected.col, currentSheetIdx]);
 
   // ─── 저장 큐 ───
   const flushSave = useCallback(async () => {
