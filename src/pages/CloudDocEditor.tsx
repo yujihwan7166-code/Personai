@@ -333,9 +333,12 @@ export default function CloudDocEditor() {
       try {
         const lower = file.name.toLowerCase();
         if (lower.endsWith('.docx')) {
-          const html = await importDocxFile(file);
+          const { html, warnings } = await importDocxFile(file);
           editor.commands.setContent(html);
-          toast({ title: '가져오기 완료', description: `${file.name} (서식 일부 손실 가능)` });
+          const desc = warnings.length === 0
+            ? file.name
+            : `${file.name} — ${warnings.length}개 항목은 표시할 수 없음 (예: ${warnings[0]})`;
+          toast({ title: '가져오기 완료', description: desc });
         } else if (lower.endsWith('.md') || lower.endsWith('.markdown') || lower.endsWith('.txt')) {
           const md = await readMarkdownFile(file);
           editor.commands.setContent(md);

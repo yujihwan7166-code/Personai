@@ -16,15 +16,72 @@ import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Table, TableRow, TableCell, ImageRun, WidthType, BorderStyle,
 } from 'docx';
+import { enrichDocxHtml } from './docxRich';
 
 // ─────────────────────────────────────────────
 // Import — .docx → HTML
 // ─────────────────────────────────────────────
 
-export async function importDocxFile(file: File): Promise<string> {
+/** 변환 결과. warnings = mammoth 가 처리 못 한 항목 (caller 가 토스트로 표시). */
+export interface DocxImportResult {
+  html: string;
+  warnings: string[];
+}
+
+/** 한글 Word 스타일 → HTML 매핑 (영문 기본 매핑 + 한글 변형). */
+const STYLE_MAP = [
+  // 영문 기본 (mammoth 기본에도 있지만 명시)
+  "p[style-name='Heading 1'] => h1:fresh",
+  "p[style-name='Heading 2'] => h2:fresh",
+  "p[style-name='Heading 3'] => h3:fresh",
+  "p[style-name='Title'] => h1.doc-title:fresh",
+  "p[style-name='Subtitle'] => h2.doc-subtitle:fresh",
+  "p[style-name='Quote'] => blockquote:fresh",
+  "p[style-name='Intense Quote'] => blockquote.intense:fresh",
+  "p[style-name='Code'] => pre:fresh",
+  "r[style-name='Strong'] => strong",
+  "r[style-name='Emphasis'] => em",
+  "r[style-name='Code Char'] => code",
+  // 한글판 Word 스타일명
+  "p[style-name='제목 1'] => h1:fresh",
+  "p[style-name='제목 2'] => h2:fresh",
+  "p[style-name='제목 3'] => h3:fresh",
+  "p[style-name='제목'] => h1.doc-title:fresh",
+  "p[style-name='부제'] => h2.doc-subtitle:fresh",
+  "p[style-name='인용'] => blockquote:fresh",
+  "p[style-name='강한 인용'] => blockquote.intense:fresh",
+].join('\n');
+
+/**
+ * .docx → 강화된 HTML.
+ *  - mammoth 옵션 강화 (styleMap, 이미지 base64, 빈 단락 보존)
+ *  - enrichDocxHtml 후처리 (글꼴·표·이미지 정규화)
+ *  - 큰 이미지(3MB+) 는 skip 하고 placeholder 로 대체 (메모리 폭주 방지)
+ */
+export async function importDocxFile(file: File): Promise<DocxImportResult> {
   const buffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
-  return result.value;
+  const result = await mammoth.convertToHtml(
+    { arrayBuffer: buffer },
+    {
+      styleMap: STYLE_MAP,
+      includeDefaultStyleMap: true,
+      includeEmbeddedStyleMap: true,
+      ignoreEmptyParagraphs: false,
+      convertImage: mammoth.images.imgElement(async (image) => {
+        const buf = await image.read('base64');
+        if (typeof buf === 'string' && buf.length > 3 * 1024 * 1024 * 1.4) {
+          // base64 길이가 ~4MB+ 면 원본 이미지가 약 3MB+ → skip
+          return { src: '', alt: '[큰 이미지 — 생략됨]' };
+        }
+        return { src: `data:${image.contentType};base64,${buf}` };
+      }),
+    },
+  );
+  const enriched = enrichDocxHtml(result.value);
+  const warnings = (result.messages ?? [])
+    .filter((m) => m.type === 'warning' || m.type === 'error')
+    .map((m) => m.message);
+  return { html: enriched, warnings };
 }
 
 // ─────────────────────────────────────────────
