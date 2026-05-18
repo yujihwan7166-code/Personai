@@ -115,6 +115,11 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   REGEXREPLACE: { sig: 'REGEXREPLACE(텍스트, 패턴, 치환)', desc: '패턴 치환 (전역)' },
   // ── 미니 차트 ──
   SPARKLINE:    { sig: 'SPARKLINE(range, [옵션JSON])',  desc: '셀에 미니 차트 (line/bar/column/winloss)' },
+  // ── AI (비동기 — 결과 캐시) ──
+  AI:           { sig: 'AI("프롬프트", [모델])',         desc: 'AI 에 자연어 질문 → 결과 텍스트 (30일 캐시)' },
+  AI_CLASSIFY:  { sig: 'AI_CLASSIFY(텍스트, "카테고리1,카테고리2,…")', desc: 'AI 가 텍스트를 카테고리 중 하나로 분류' },
+  AI_TRANSLATE: { sig: 'AI_TRANSLATE(텍스트, "en")',     desc: 'AI 번역 (언어 코드: en/ko/ja 등)' },
+  AI_SUMMARIZE: { sig: 'AI_SUMMARIZE(텍스트 또는 range)', desc: 'AI 가 1~2문장으로 요약' },
 };
 
 /** IMAGE 함수 sentinel — 셀 렌더가 이 prefix 를 보고 <img> 로 표시. */
@@ -122,13 +127,23 @@ export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
 // SPARKLINE 도 동일 패턴 — sparkline.ts 에 상수 정의 (순환 import 피하려 거기에).
 // 셀 렌더는 SPARKLINE_SENTINEL 도 함께 검사.
 export { SPARKLINE_SENTINEL } from './sparkline';
+// AI 함수도 동일 — 비동기라 cache hit 면 결과, miss 면 sentinel 반환.
+export { AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX } from './aiCellEval';
+
+import {
+  AI_SENTINEL as AI_SEN,
+  AI_LOADING_PREFIX as AI_LOAD,
+  aiCacheGet,
+  aiCacheKey,
+  aiQueueFetch,
+} from './aiCellEval';
 
 // 긴 이름부터 → \b 경계 덕에 prefix 충돌은 없지만 가독성 위해 desc 정렬.
 const FUNC_ORDER = [
   // 12자
-  'REGEXREPLACE', 'REGEXEXTRACT',
+  'REGEXREPLACE', 'REGEXEXTRACT', 'AI_SUMMARIZE', 'AI_TRANSLATE',
   // 11자
-  'NETWORKDAYS', 'CONCATENATE',
+  'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY',
   // 10자
   'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE',
   // 9자
@@ -152,6 +167,8 @@ const FUNC_ORDER = [
   'NOW', 'DAY', 'VAR', 'IFS',
   // 2자
   'IF', 'OR', 'ABS',
+  // AI (특수 — '_' 포함). 위에서 긴 것부터 처리되지만 'AI' 는 'AI_*' 와 \b 경계 덕에 별 충돌 없음.
+  'AI',
 ];
 
 // ─────────────────────────────────────────────
@@ -928,6 +945,30 @@ function evalExpr(
     return String(val ?? '');
   };
 
+  // ─── AI 함수 (비동기 — 캐시 hit 면 결과, miss 면 sentinel 로 진행 알림) ───
+  // sentinel 이 셀에 떠있는 동안 백그라운드 fetch 가 동작하고, 결과가 오면
+  // AI_CHANGED 이벤트가 발행 → CloudSheetEditor 가 해당 셀 재평가 → 결과 표시.
+  const aiResolve = (fn: string, args: unknown): unknown => {
+    const key = aiCacheKey(fn, args);
+    const cached = aiCacheGet(key);
+    if (cached !== undefined) return cached;
+    aiQueueFetch(key, fn, args);
+    return `${AI_SEN}${AI_LOAD}${key}`;
+  };
+  const __ai = (prompt: unknown, model?: unknown) =>
+    aiResolve('ai', { prompt: String(prompt ?? ''), model: model !== undefined ? String(model) : undefined });
+  const __ai_classify = (text: unknown, categories: unknown) =>
+    aiResolve('ai_classify', { text: String(text ?? ''), categories: String(categories ?? '') });
+  const __ai_translate = (text: unknown, lang: unknown) =>
+    aiResolve('ai_translate', { text: String(text ?? ''), lang: String(lang ?? 'en') });
+  const __ai_summarize = (text: unknown) => {
+    // range 가 들어오면 join 해서 한 텍스트로.
+    const joined = Array.isArray(text)
+      ? text.filter((x) => x != null && String(x).trim() !== '').map(String).join('\n')
+      : String(text ?? '');
+    return aiResolve('ai_summarize', { text: joined });
+  };
+
   // ─── 정규표현식 ───
   const __regexmatch = (text: unknown, pattern: unknown) => {
     try {
@@ -972,6 +1013,7 @@ function evalExpr(
     '__stdev', '__var', '__rank',
     '__date', '__eomonth', '__edate', '__datedif', '__networkdays',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
+    '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
     `"use strict"; return (${work});`,
   );
   return fn(
@@ -990,6 +1032,7 @@ function evalExpr(
     __stdev, __var, __rank,
     __date, __eomonth, __edate, __datedif, __networkdays,
     __text, __regexmatch, __regexextract, __regexreplace,
+    __ai, __ai_classify, __ai_translate, __ai_summarize,
   );
 }
 

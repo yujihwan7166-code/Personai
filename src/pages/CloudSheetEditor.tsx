@@ -28,8 +28,9 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX } from '@/lib/cloudSheet/formula';
 import { buildSparklineSvg, type SparklinePayload } from '@/lib/cloudSheet/sparkline';
+import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
@@ -544,7 +545,17 @@ export default function CloudSheetEditor() {
     return best && best !== editingRef ? best : null;
   }, [editing, editingValue, cells, rowCount]);
 
-  // 수식 평가 캐시 (cells / 다른 시트 / named ranges 변경 시 재계산)
+  // AI 셀 결과가 비동기로 도착하면 AI_CHANGED 이벤트 → aiVersion bump → memo 재계산.
+  // 결과는 캐시에 들어가있어 다음 평가에서 sentinel 대신 실제 값을 반환함.
+  const [aiVersion, setAiVersion] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onChange = () => setAiVersion((v) => v + 1);
+    window.addEventListener(AI_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(AI_CHANGED_EVENT, onChange);
+  }, []);
+
+  // 수식 평가 캐시 (cells / 다른 시트 / named ranges / AI 결과 도착 시 재계산)
   const displayValues = useMemo<Cells>(() => {
     const out: Cells = {};
     const ctx = { currentName: currentSheetName, allSheets: sheetsForEval, namedRanges };
@@ -552,7 +563,9 @@ export default function CloudSheetEditor() {
       out[ref] = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
     }
     return out;
-  }, [cells, sheetsForEval, currentSheetName, namedRanges]);
+    // aiVersion 은 의도된 의존 — AI 캐시 변화 → 같은 cells 재평가 트리거.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cells, sheetsForEval, currentSheetName, namedRanges, aiVersion]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3955,6 +3968,26 @@ const SheetCell = React.memo(function SheetCell({
             </span>
           </div>
         );
+      })() : value.startsWith(AI_SENTINEL) ? (() => {
+        // AI 셀 — sentinel 페이로드: LOADING:<key> | ERROR:<msg>
+        const body = value.slice(AI_SENTINEL.length);
+        if (body.startsWith(AI_LOADING_PREFIX)) {
+          return (
+            <div className="w-full h-full flex items-center justify-start gap-1.5 px-2 text-muted-foreground/80 text-xs">
+              <span className="inline-block w-2 h-2 rounded-full bg-current opacity-60 animate-pulse" aria-hidden />
+              <span>AI 생성 중…</span>
+            </div>
+          );
+        }
+        if (body.startsWith(AI_ERROR_PREFIX)) {
+          const msg = body.slice(AI_ERROR_PREFIX.length);
+          return (
+            <span className="text-xs text-destructive truncate" title={msg}>
+              #AI_ERR
+            </span>
+          );
+        }
+        return <span className="text-xs">{value}</span>;
       })() : value.startsWith(SPARKLINE_SENTINEL) ? (() => {
         // SPARKLINE — sentinel 페이로드(JSON)를 SVG 로 렌더.
         // 평가는 formula.ts 에서, 시각화만 여기서.
