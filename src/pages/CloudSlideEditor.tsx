@@ -59,6 +59,7 @@ interface SlideTextEl extends BaseEl {
   fontSizeRem: number;
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
   textColor?: string;
   /** 텍스트 정렬. 미지정 = 'left'. */
   align?: 'left' | 'center' | 'right';
@@ -1135,6 +1136,7 @@ export default function CloudSlideEditor() {
             child.style.fontSize = `${el.fontSizeRem * 16}px`;
             child.style.fontWeight = el.bold ? '600' : '400';
             child.style.fontStyle = el.italic ? 'italic' : 'normal';
+            if (el.underline) child.style.textDecoration = 'underline';
             child.style.color = el.textColor ?? 'rgba(0,0,0,0.85)';
             child.style.lineHeight = '1.25';
             child.style.whiteSpace = 'pre-wrap';
@@ -1575,6 +1577,13 @@ export default function CloudSlideEditor() {
                     <span className="text-sm italic font-serif">I</span>
                   </ToolBtn>
                   <ToolBtn
+                    onClick={() => updateEl(el.id, { underline: !el.underline })}
+                    title="밑줄"
+                    active={!!el.underline}
+                  >
+                    <span className="text-sm underline underline-offset-2">U</span>
+                  </ToolBtn>
+                  <ToolBtn
                     onClick={() => updateEl(el.id, { fontSizeRem: nextFontSize(el.fontSizeRem, -1) })}
                     title="글자 작게"
                   >
@@ -1705,6 +1714,7 @@ export default function CloudSlideEditor() {
                     {(() => {
                       const allBold = texts.every((t) => t.bold);
                       const allItalic = texts.every((t) => t.italic);
+                      const allUnderline = texts.every((t) => t.underline);
                       return (
                         <>
                           <ToolBtn
@@ -1720,6 +1730,13 @@ export default function CloudSlideEditor() {
                             active={allItalic}
                           >
                             <span className="text-sm italic font-serif">I</span>
+                          </ToolBtn>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ underline: !allUnderline })}
+                            title={allUnderline ? '밑줄 해제' : '모두 밑줄'}
+                            active={allUnderline}
+                          >
+                            <span className="text-sm underline underline-offset-2">U</span>
                           </ToolBtn>
                         </>
                       );
@@ -2280,6 +2297,7 @@ function TextElView({
           'w-full h-full outline-none break-words overflow-hidden',
           el.bold && 'font-semibold',
           el.italic && 'italic',
+          el.underline && 'underline underline-offset-2',
         )}
         style={{
           fontSize: `${el.fontSizeRem}rem`,
