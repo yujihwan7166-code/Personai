@@ -46,6 +46,8 @@ export interface SheetMenuActions {
   toggleFilter: () => void;
   sortSelectionAsc: () => void;
   sortSelectionDesc: () => void;
+  // 보기 — 줌
+  setZoom: (percent: number) => void;
   // 도구 + AI + 도움말
   toggleAiPanel: () => void;
   openShortcutHelp: () => void;
@@ -112,13 +114,20 @@ export function SheetMenuBar(p: SheetMenuBarProps) {
         </MenubarContent>
       </MenubarMenu>
 
-      {/* 보기 — 현재 placeholder (PR #4 이후 줌·전체화면 등 추가) */}
+      {/* 보기 — 줌 */}
       <MenubarMenu>
         <MenubarTrigger className="text-[13px] px-2 py-1 h-7">보기</MenubarTrigger>
-        <MenubarContent className="min-w-[200px]">
-          <MenubarItem disabled>
-            <FileText className="w-4 h-4 mr-2" /> 줌 (toolbar 에서 곧 추가)
-          </MenubarItem>
+        <MenubarContent className="min-w-[180px]">
+          <MenubarSub>
+            <MenubarSubTrigger>
+              <FileText className="w-4 h-4 mr-2" /> 줌
+            </MenubarSubTrigger>
+            <MenubarSubContent>
+              {[50, 75, 100, 125, 150, 200].map((z) => (
+                <MenubarItem key={z} onSelect={() => p.setZoom(z)}>{z}%</MenubarItem>
+              ))}
+            </MenubarSubContent>
+          </MenubarSub>
         </MenubarContent>
       </MenubarMenu>
 

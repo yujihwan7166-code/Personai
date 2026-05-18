@@ -13,7 +13,7 @@ import {
   Paintbrush,
   Hash, Square as SquareIcon, Combine, Split,
   Plus, Minus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
-  Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
+  Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Printer,
   Search as SearchIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Replace as ReplaceIcon,
   Undo2, Redo2, MessageSquare, ExternalLink,
 } from 'lucide-react';
@@ -416,6 +416,18 @@ export default function CloudSheetEditor() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // 줌 (PR #4) — 25/50/75/100/125/150/175/200%. localStorage 에 마지막 값.
+  const [zoom, setZoom] = useState<number>(() => {
+    if (typeof window === 'undefined') return 100;
+    const raw = window.localStorage.getItem('cloudSheet.zoom.v1');
+    const n = raw ? Number(raw) : 100;
+    return Number.isFinite(n) && n >= 25 && n <= 200 ? n : 100;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem('cloudSheet.zoom.v1', String(zoom)); } catch { /* silent */ }
+  }, [zoom]);
 
   // 다중 시트 — sheetsMeta 는 순서·이름, allCells/allFormats 는 시트별 데이터
   const [sheetsMeta, setSheetsMeta] = useState<SheetMeta[]>([{ id: 's_initial', name: 'Sheet1' }]);
@@ -2973,6 +2985,7 @@ export default function CloudSheetEditor() {
           insertColLeft={() => insertCol(selected.col)}
           insertColRight={() => insertCol(selected.col + 1)}
           insertChart={openChart}
+          setZoom={setZoom}
           insertImage={() => {
              
             const url = window.prompt('이미지 URL (https://…)');
@@ -3449,6 +3462,59 @@ export default function CloudSheetEditor() {
                     <Eraser className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* 인쇄 + 차트 삽입 + 줌 — Sheets 매칭 (PR #4/9) */}
+                <div className={cluster} role="group" aria-label="페이지 도구">
+                  <button
+                    type="button"
+                    onClick={() => { try { window.print(); } catch { /* silent */ } }}
+                    className="p-1.5 rounded hover:bg-background"
+                    title="인쇄 (Ctrl+P)"
+                    aria-label="인쇄"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openChart}
+                    className="p-1.5 rounded hover:bg-background"
+                    title="차트 삽입 (영역 선택 후)"
+                    aria-label="차트 삽입"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </button>
+                  <div className="inline-flex items-center ml-1">
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => Math.max(25, z - 25))}
+                      className="p-1 rounded hover:bg-background text-xs"
+                      title="줌 축소"
+                      aria-label="줌 축소"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <select
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="px-1.5 py-1 text-xs bg-transparent rounded hover:bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer tabular-nums"
+                      title="줌"
+                      aria-label="줌"
+                    >
+                      {[25, 50, 75, 100, 125, 150, 175, 200].map((z) => (
+                        <option key={z} value={z}>{z}%</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => Math.min(200, z + 25))}
+                      className="p-1 rounded hover:bg-background text-xs"
+                      title="줌 확대"
+                      aria-label="줌 확대"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </>
             );
           })()}
@@ -3505,7 +3571,13 @@ export default function CloudSheetEditor() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0">
       <main className="flex-1 overflow-auto">
-        <div ref={gridRef} className={cn(formatPainterSource && 'cursor-copy')}>
+        {/* zoom 적용 — CSS zoom property (Chromium/Safari/Edge 지원 — 우리 주 타겟).
+            Firefox 는 미지원 (1.0 으로 고정 — 사용자에게 시각 영향 없음). */}
+        <div
+          ref={gridRef}
+          className={cn(formatPainterSource && 'cursor-copy')}
+          style={zoom !== 100 ? { zoom: `${zoom}%` } as React.CSSProperties : undefined}
+        >
           <SheetGrid
             cells={cells}
             displayValues={displayValues}
