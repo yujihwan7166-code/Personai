@@ -1221,7 +1221,7 @@ export default function CloudSlideEditor() {
           <span className="font-medium truncate max-w-md">{node?.name ?? '제목 없음'}</span>
 
           <span className="ml-3 text-xs">
-            <SaveStateBadge state={saveState} />
+            <SaveStateBadge state={saveState} showIdle />
           </span>
 
           <div className="ml-auto flex items-center gap-1">

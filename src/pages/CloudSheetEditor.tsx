@@ -54,8 +54,8 @@ import { InsertLinkDialog } from '@/components/cloud/InsertLinkDialog';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type Cells = Record<string, string>;
 
 type SheetTabColor = 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple' | 'pink';
@@ -5324,53 +5324,7 @@ function FormulaBarInput({ currentRef, value, evaluatedValue, onCommit }: Formul
   );
 }
 
-// ─────────────────────────────────────────────
-// 저장 상태 뱃지
-// ─────────────────────────────────────────────
-
-function SaveStateBadge({ state, lastSavedAt }: { state: SaveState; lastSavedAt?: number }) {
-  if (state === 'saving') {
-    return (
-      <span className="flex items-center gap-1 text-muted-foreground">
-        <Loader2 className="w-3 h-3 animate-spin" />
-        저장 중…
-      </span>
-    );
-  }
-  if (state === 'saved' || (state === 'idle' && lastSavedAt)) {
-    const rel = lastSavedAt ? formatRelTime(lastSavedAt) : '';
-    return (
-      <span
-        className="flex items-center gap-1 text-muted-foreground"
-        title={lastSavedAt ? new Date(lastSavedAt).toLocaleString('ko-KR') : '저장됨'}
-      >
-        <CheckCircle2 className="w-3 h-3" />
-        {rel ? `저장됨 · ${rel}` : '저장됨'}
-      </span>
-    );
-  }
-  if (state === 'error') {
-    return (
-      <span className="flex items-center gap-1 text-destructive">
-        <AlertCircle className="w-3 h-3" />
-        저장 실패
-      </span>
-    );
-  }
-  return null;
-}
-
-/** 마지막 저장 시각을 "방금" / "1분 전" / "1시간 전" 형식으로. */
-function formatRelTime(at: number): string {
-  const sec = Math.floor((Date.now() - at) / 1000);
-  if (sec < 5) return '방금';
-  if (sec < 60) return `${sec}초 전`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  return new Date(at).toLocaleDateString('ko-KR');
-}
+// SaveStateBadge / formatRelTime 는 lib/cloudDoc/SaveStateBadge 공용
 
 // ─────────────────────────────────────────────
 // 단축키 도움말

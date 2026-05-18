@@ -1,10 +1,18 @@
-/** 문서 에디터 헤더의 저장 상태 표시 (saving/saved/error/idle). */
+/** 에디터 헤더의 저장 상태 표시 (saving/saved/error/idle). 문서·시트·슬라이드 공용. */
 
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
-export function SaveStateBadge({ state }: { state: SaveState }) {
+interface SaveStateBadgeProps {
+  state: SaveState;
+  /** epoch ms — 있으면 "저장됨 · 1분 전" 형식, 없으면 "저장됨". idle + 있으면 saved 처럼 표시. */
+  lastSavedAt?: number;
+  /** idle 일 때 "변경 없음" 표시 여부. 기본 false (시트/슬라이드는 안 보임, 문서는 true). */
+  showIdle?: boolean;
+}
+
+export function SaveStateBadge({ state, lastSavedAt, showIdle = false }: SaveStateBadgeProps) {
   if (state === 'saving') {
     return (
       <span
@@ -17,15 +25,16 @@ export function SaveStateBadge({ state }: { state: SaveState }) {
       </span>
     );
   }
-  if (state === 'saved') {
+  if (state === 'saved' || (state === 'idle' && lastSavedAt)) {
+    const rel = lastSavedAt ? formatRelTime(lastSavedAt) : '';
     return (
       <span
         className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
-        title="모든 변경 사항이 저장됨"
+        title={lastSavedAt ? new Date(lastSavedAt).toLocaleString('ko-KR') : '모든 변경 사항이 저장됨'}
         aria-live="polite"
       >
         <CheckCircle2 className="w-3 h-3" />
-        저장됨
+        {rel ? `저장됨 · ${rel}` : '저장됨'}
       </span>
     );
   }
@@ -41,12 +50,27 @@ export function SaveStateBadge({ state }: { state: SaveState }) {
       </span>
     );
   }
-  return (
-    <span
-      className="text-muted-foreground/60 text-[11px]"
-      title="아직 변경 사항 없음 — 본문 수정 시 자동 저장됩니다."
-    >
-      변경 없음
-    </span>
-  );
+  if (showIdle) {
+    return (
+      <span
+        className="text-muted-foreground/60 text-[11px]"
+        title="아직 변경 사항 없음 — 본문 수정 시 자동 저장됩니다."
+      >
+        변경 없음
+      </span>
+    );
+  }
+  return null;
+}
+
+/** 마지막 저장 시각을 "방금" / "1분 전" / "1시간 전" 형식으로. */
+function formatRelTime(at: number): string {
+  const sec = Math.floor((Date.now() - at) / 1000);
+  if (sec < 5) return '방금';
+  if (sec < 60) return `${sec}초 전`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  return new Date(at).toLocaleDateString('ko-KR');
 }
