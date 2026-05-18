@@ -1475,6 +1475,14 @@ export default function CloudSlideEditor() {
             <Trash2 className="w-4 h-4" />
           </ToolBtn>
 
+          {/* 슬라이드 배경색 — 요소 선택과 무관 */}
+          <Sep />
+          <ColorPopover
+            label="배경"
+            value={currentSlide.background ?? '#ffffff'}
+            onChange={(v) => updateCurrentSlide((s) => ({ ...s, background: v }))}
+          />
+
           {/* 선택된 요소별 인스펙터 — 단일 선택: 도형이면 색 picker, 텍스트면 글자색 */}
           {selectedElId && selectedElIds.size <= 1 && (() => {
             const el = currentSlide.elements.find((x) => x.id === selectedElId);
