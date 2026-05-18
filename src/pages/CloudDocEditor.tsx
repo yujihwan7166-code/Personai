@@ -50,6 +50,7 @@ import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
 import { StyleSelect } from '@/lib/cloudDoc/StyleSelect';
 import { ZoomSelect } from '@/lib/cloudDoc/ZoomSelect';
+import { ToolBtn, Sep } from '@/lib/cloudDoc/ToolBtn';
 import { Footnote } from '@/lib/cloudDoc/tiptap/Footnote';
 import { FootnoteList } from '@/lib/cloudDoc/tiptap/FootnoteList';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
@@ -1454,39 +1455,6 @@ function toHex(color: string): string {
   return '#000000';
 }
 
-interface ToolBtnProps {
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  title?: string;
-  children: React.ReactNode;
-}
-
-function ToolBtn({ onClick, active, disabled, title, children }: ToolBtnProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      className={cn(
-        'p-1.5 rounded transition-colors',
-        disabled
-          ? 'opacity-30 cursor-not-allowed'
-          : 'hover:bg-muted',
-        active && !disabled && 'bg-muted text-foreground',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Sep() {
-  return <div className="w-px h-5 bg-border mx-1 shrink-0" />;
-}
 
 // ─────────────────────────────────────────────
 // 저장 상태 뱃지
