@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { buildSparklineSvg, type SparklinePayload } from '@/lib/cloudSheet/sparkline';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -556,11 +556,50 @@ export default function CloudSheetEditor() {
   }, []);
 
   // 수식 평가 캐시 (cells / 다른 시트 / named ranges / AI 결과 도착 시 재계산)
+  // 동적 배열 수식(FILTER/SORT/UNIQUE/SEQUENCE) 은 anchor 셀에서 SPILL_SENTINEL
+  // 페이로드를 반환 → 여기서 인접 셀로 펼침. 기존 셀과 충돌하면 anchor 에 #SPILL! 표시.
   const displayValues = useMemo<Cells>(() => {
     const out: Cells = {};
     const ctx = { currentName: currentSheetName, allSheets: sheetsForEval, namedRanges };
+    const spilledInto = new Set<string>();
     for (const [ref, raw] of Object.entries(cells)) {
-      out[ref] = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
+      const v = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
+      if (!v.startsWith(SPILL_SENTINEL)) {
+        out[ref] = v;
+        continue;
+      }
+      // Spill 처리 — anchor 좌표 파싱
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!m) { out[ref] = v; continue; }
+      const anchorCol = colToIdx(m[1]);
+      const anchorRow = Number(m[2]);
+      let grid: unknown[][] = [];
+      try {
+        const parsed = JSON.parse(v.slice(SPILL_SENTINEL.length));
+        if (Array.isArray(parsed)) grid = parsed as unknown[][];
+      } catch { out[ref] = '#SPILL_PARSE'; continue; }
+      // 충돌 검사: anchor 외 spill 영역에 다른 내용이 있는지
+      let conflict = false;
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          if (r === 0 && c === 0) continue;
+          const target = `${idxToCol(anchorCol + c)}${anchorRow + r}`;
+          if (cells[target] !== undefined || spilledInto.has(target)) { conflict = true; break; }
+        }
+        if (conflict) break;
+      }
+      if (conflict) {
+        out[ref] = '#SPILL!';
+        continue;
+      }
+      // 펼치기
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          const target = `${idxToCol(anchorCol + c)}${anchorRow + r}`;
+          out[target] = String(grid[r][c] ?? '');
+          if (!(r === 0 && c === 0)) spilledInto.add(target);
+        }
+      }
     }
     return out;
     // aiVersion 은 의도된 의존 — AI 캐시 변화 → 같은 cells 재평가 트리거.

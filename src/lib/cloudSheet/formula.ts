@@ -115,6 +115,11 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   REGEXREPLACE: { sig: 'REGEXREPLACE(텍스트, 패턴, 치환)', desc: '패턴 치환 (전역)' },
   // ── 미니 차트 ──
   SPARKLINE:    { sig: 'SPARKLINE(range, [옵션JSON])',  desc: '셀에 미니 차트 (line/bar/column/winloss)' },
+  // ── 동적 배열 (spill) ──
+  FILTER:       { sig: 'FILTER(range, 조건range)',      desc: '조건이 참인 값만 (인접 셀로 spill)' },
+  SORT:         { sig: 'SORT(range, [내림차순=0])',     desc: '정렬 (인접 셀로 spill)' },
+  UNIQUE:       { sig: 'UNIQUE(range)',                 desc: '중복 제거 (인접 셀로 spill)' },
+  SEQUENCE:     { sig: 'SEQUENCE(n, [시작=1], [증분=1])', desc: '연속 숫자 n개 (인접 셀로 spill)' },
   // ── AI (비동기 — 결과 캐시) ──
   AI:           { sig: 'AI("프롬프트", [모델])',         desc: 'AI 에 자연어 질문 → 결과 텍스트 (30일 캐시)' },
   AI_CLASSIFY:  { sig: 'AI_CLASSIFY(텍스트, "카테고리1,카테고리2,…")', desc: 'AI 가 텍스트를 카테고리 중 하나로 분류' },
@@ -124,6 +129,14 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
 
 /** IMAGE 함수 sentinel — 셀 렌더가 이 prefix 를 보고 <img> 로 표시. */
 export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
+
+/**
+ * 동적 배열 함수 (FILTER/SORT/UNIQUE/SEQUENCE) sentinel.
+ * 페이로드: SPILL_SENTINEL + JSON.stringify(2D array)
+ * 1D 입력은 항상 [[v1],[v2],…] 의 세로 spill 로 정규화.
+ * displayValues 단계 (CloudSheetEditor) 가 anchor 셀 + 인접 셀로 펼쳐 표시.
+ */
+export const SPILL_SENTINEL = '__CLOUDSHEET_SPILL__:';
 // SPARKLINE 도 동일 패턴 — sparkline.ts 에 상수 정의 (순환 import 피하려 거기에).
 // 셀 렌더는 SPARKLINE_SENTINEL 도 함께 검사.
 export { SPARKLINE_SENTINEL } from './sparkline';
@@ -148,6 +161,12 @@ const FUNC_ORDER = [
   'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE',
   // 9자
   'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE',
+  // 8자
+  'SEQUENCE',
+  // 6자
+  'FILTER', 'UNIQUE',
+  // 4자
+  'SORT',
   // 8자
   'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
   // 7자
@@ -945,6 +964,56 @@ function evalExpr(
     return String(val ?? '');
   };
 
+  // ─── 동적 배열 (spill) ───
+  // 1D 결과를 SPILL_SENTINEL + JSON 2D 배열로 직렬화. displayValues 가 인접 셀로 펼침.
+  const spillVertical = (arr: unknown[]): string => {
+    const grid = arr.map((v) => [v == null ? '' : String(v)]);
+    return `__CLOUDSHEET_SPILL__:${JSON.stringify(grid)}`;
+  };
+  const __filter = (range: unknown, condition: unknown) => {
+    const data = toArr(range);
+    const cond = toArr(condition);
+    const out: unknown[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const c = cond[i];
+      // truthy 판정 — 숫자 0/"" 제외, 그 외 truthy
+      const truthy = c === true || (typeof c === 'number' && c !== 0) || (typeof c === 'string' && c !== '' && c !== '0' && c.toLowerCase() !== 'false');
+      if (truthy) out.push(data[i]);
+    }
+    if (out.length === 0) return '#N/A';
+    return spillVertical(out);
+  };
+  const __sort = (range: unknown, descending: unknown = 0) => {
+    const data = [...toArr(range)];
+    const desc = Boolean(Number(descending));
+    data.sort((a, b) => {
+      const na = Number(a), nb = Number(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return desc ? nb - na : na - nb;
+      return desc
+        ? String(b ?? '').localeCompare(String(a ?? ''))
+        : String(a ?? '').localeCompare(String(b ?? ''));
+    });
+    return spillVertical(data);
+  };
+  const __unique = (range: unknown) => {
+    const data = toArr(range);
+    const seen = new Set<string>();
+    const out: unknown[] = [];
+    for (const v of data) {
+      const k = String(v ?? '');
+      if (!seen.has(k)) { seen.add(k); out.push(v); }
+    }
+    return spillVertical(out);
+  };
+  const __sequence = (n: unknown, start: unknown = 1, step: unknown = 1) => {
+    const count = Math.max(0, Math.floor(Number(n) || 0));
+    const s = Number(start) || 0;
+    const st = Number(step) || 1;
+    const out: number[] = [];
+    for (let i = 0; i < count; i++) out.push(s + i * st);
+    return spillVertical(out);
+  };
+
   // ─── AI 함수 (비동기 — 캐시 hit 면 결과, miss 면 sentinel 로 진행 알림) ───
   // sentinel 이 셀에 떠있는 동안 백그라운드 fetch 가 동작하고, 결과가 오면
   // AI_CHANGED 이벤트가 발행 → CloudSheetEditor 가 해당 셀 재평가 → 결과 표시.
@@ -1014,6 +1083,7 @@ function evalExpr(
     '__date', '__eomonth', '__edate', '__datedif', '__networkdays',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
+    '__filter', '__sort', '__unique', '__sequence',
     `"use strict"; return (${work});`,
   );
   return fn(
@@ -1033,6 +1103,7 @@ function evalExpr(
     __date, __eomonth, __edate, __datedif, __networkdays,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,
+    __filter, __sort, __unique, __sequence,
   );
 }
 
