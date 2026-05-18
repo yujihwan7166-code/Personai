@@ -48,6 +48,7 @@ import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExpor
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import { SheetMenuBar } from '@/components/cloud/SheetMenuBar';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -2941,6 +2942,67 @@ export default function CloudSheetEditor() {
             </DropdownMenu>
           </div>
         </div>
+
+        {/* 메뉴 바 — Sheets 매칭 (PR #2/9) */}
+        <SheetMenuBar
+          importXlsx={importXlsx}
+          exportXlsx={() => { void exportXlsx(); }}
+          exportPdf={() => { void exportPdf(); }}
+          print={() => { try { window.print(); } catch { /* silent */ } }}
+          undo={undo}
+          redo={redo}
+          find={() => setSearchOpen('find')}
+          replace={() => setSearchOpen('replace')}
+          insertRowAbove={() => insertRow(selected.row)}
+          insertRowBelow={() => insertRow(selected.row + 1)}
+          insertColLeft={() => insertCol(selected.col)}
+          insertColRight={() => insertCol(selected.col + 1)}
+          insertChart={openChart}
+          insertImage={() => {
+             
+            const url = window.prompt('이미지 URL (https://…)');
+            if (!url) return;
+            setCellValue(selectedRef, `=IMAGE("${url.replace(/"/g, '""')}")`);
+          }}
+          insertLink={() => {
+            // PR #6 에서 정식 모달로 대체 예정.
+             
+            const url = window.prompt('링크 URL (https://…)');
+            if (!url) return;
+             
+            const label = window.prompt('표시 텍스트 (생략하면 URL)', url) ?? url;
+            setCellValue(selectedRef, `=HYPERLINK("${url.replace(/"/g, '""')}", "${label.replace(/"/g, '""')}")`);
+          }}
+          insertComment={() => setCommentModalOpen(true)}
+          toggleBold={() => {
+            const c = cellFormats[selectedRef] ?? {};
+            setCellFormat(selectedRef, { bold: !c.bold });
+          }}
+          toggleItalic={() => {
+            const c = cellFormats[selectedRef] ?? {};
+            setCellFormat(selectedRef, { italic: !c.italic });
+          }}
+          toggleUnderline={() => {
+            const c = cellFormats[selectedRef] ?? {};
+            setCellFormat(selectedRef, { underline: !c.underline });
+          }}
+          toggleStrikethrough={() => {
+            const c = cellFormats[selectedRef] ?? {};
+            setCellFormat(selectedRef, { strikethrough: !c.strikethrough });
+          }}
+          clearFormat={() => setCellFormat(selectedRef, {
+            bold: undefined, italic: undefined, underline: undefined, strikethrough: undefined,
+            textColor: undefined, bgColor: undefined, align: undefined, vAlign: undefined,
+            wrap: undefined, fontFamily: undefined, fontSize: undefined,
+            numberFmt: undefined, border: undefined,
+          })}
+          toggleFilter={() => setFilterOn((v) => !v)}
+          sortSelectionAsc={() => toast({ title: '선택 영역 정렬', description: '곧 추가됩니다 (PR 후속).' })}
+          sortSelectionDesc={() => toast({ title: '선택 영역 정렬', description: '곧 추가됩니다 (PR 후속).' })}
+          toggleAiPanel={ai.toggle}
+          openShortcutHelp={() => setHelpOpen(true)}
+          openFunctionList={() => setHelpOpen(true)}
+        />
 
         {/* 서식 도구바 */}
         <div className="border-t border-border bg-background flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 text-sm">
