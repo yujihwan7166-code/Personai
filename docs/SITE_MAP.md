@@ -247,6 +247,17 @@ EasterEgg.tsx
 | 단축키 추가 | 해당 페이지의 keydown 핸들러 (input/textarea/contentEditable 안에서는 비활성) |
 | 토스트 | `src/lib/notify.ts` (`notify.success/error/info/warning`) — sonner 래핑 |
 | 디자인 토큰 (radius/색) | `index.css` + `tailwind.config.ts` |
+| 단축키 표시 | `components/shared/KbdHint` — OS 자동 (⌘ vs Ctrl) |
+| 빈 상태 | `components/shared/EmptyState` — icon+title+desc+action |
+| 로딩 셔머 | `components/shared/LoadingShimmer` |
+| AI 사용량 뱃지 | `components/UsageStatBadge` |
+| 숫자/바이트/상대시각 포맷 | `lib/formatters` |
+| 디바운스 | `hooks/useDebouncedValue` |
+| 시트 함수 추가 | `lib/cloudSheet/formula.ts` (FUNC_HELP + FUNC_ORDER + helper + new Function 등록 4곳) |
+| 시트 sentinel 패턴 | IMAGE_SENTINEL / SPARKLINE_SENTINEL / AI_SENTINEL / SPILL_SENTINEL / LINK_SENTINEL |
+| 시트 도메인 일관성 | `lib/planner/taskDomain.ts` (할 일/일정 sanitize) — 동일 패턴 |
+| 플래너 시간 키 | `lib/planner/timeKeys.ts` (toDayKey / parseDayKey / shiftDayKey 등) |
+| 피벗 엔진 | `lib/cloudSheet/pivot.ts` + UI `components/cloud/PivotDialog.tsx` |
 
 ---
 
@@ -256,7 +267,7 @@ EasterEgg.tsx
 2. **거대 파일** — `TodayTimeline.tsx` 944줄, `Planner.tsx` 894줄, `TaskScheduleDialog.tsx` 748줄, `Memos.tsx` 1000+줄
 3. **시간 변환 로직 산재** — `Planner.tsx`, `TodayTimeline.tsx`, `transposeTimeToDate`, `nextHalfHourSlot` 등에 흩어짐
 4. **레거시 잔재** — `eventStore` 가 taskStore 로 마이그레이션 진행 중이지만 미완료
-5. **테스트 커버리지** — `recurrence`, `parseNaturalLanguage` 등 핵심 로직 미커버 (커버: taskStore, habitStats, journalStore, taskDomain 등)
+5. **테스트 커버리지** — `recurrence` 등 일부 미커버 (커버: taskStore, habitStats, journalStore, taskDomain, parseNaturalLanguage, timeKeys, formatters, useDebouncedValue, cloudSheet formula/sparkline/xlsx/pivot/aiCell/spill 등 200+ cases)
 6. **번들 사이즈** — mermaid (530KB), mammoth (500KB) 등 무거운 라이브러리 정적 import. 코드 스플릿 여지
 
 ---
