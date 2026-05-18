@@ -59,6 +59,10 @@ import { HelpRow } from '@/lib/cloudCommon/HelpRow';
 import { NameBox } from '@/lib/cloudSheet/NameBox';
 import { ColResizeHandle, RowResizeHandle } from '@/lib/cloudSheet/ResizeHandles';
 import { ValidationDropdown } from '@/lib/cloudSheet/ValidationDropdown';
+import {
+  FuncHintPopover, getFuncSuggestionNames, applyFuncSuggestion,
+} from '@/lib/cloudSheet/FuncHintPopover';
+import { FormulaBarInput } from '@/lib/cloudSheet/FormulaBarInput';
 
 type Cells = Record<string, string>;
 
@@ -4971,151 +4975,8 @@ function SheetTab({
 // 수식 함수 popover — 시그니처 hint + prefix 매치 후보 리스트
 // ─────────────────────────────────────────────
 
-/** 입력 끝의 함수 prefix 로 매치되는 후보 (정렬: 짧은 이름 우선) */
-function getFuncSuggestionNames(value: string): string[] {
-  if (!value.startsWith('=')) return [];
-  // 미닫힌 ( 가 있으면 시그니처 hint 모드 — 후보 X
-  const lastOpen = value.lastIndexOf('(');
-  const lastClose = value.lastIndexOf(')');
-  if (lastOpen > lastClose) return [];
-  const tail = value.slice(1).match(/([A-Z]+)$/i);
-  if (!tail) return [];
-  const prefix = tail[1].toUpperCase();
-  return Object.keys(FUNC_HELP)
-    .filter((k) => k.startsWith(prefix))
-    .sort((a, b) => a.length - b.length || a.localeCompare(b));
-}
-
-/** 입력 끝의 알파벳 prefix 를 NAME( 으로 교체 */
-function applyFuncSuggestion(value: string, name: string): string {
-  const m = value.match(/([A-Za-z]+)$/);
-  if (!m) return value;
-  const before = value.slice(0, value.length - m[1].length);
-  return `${before}${name}(`;
-}
-
-interface FuncHintPopoverProps {
-  value: string;
-  /** 후보 클릭 시 입력값 교체 (부모가 textarea/input 값 갱신). */
-  onReplaceValue?: (next: string) => void;
-}
-
-function FuncHintPopover({ value, onReplaceValue }: FuncHintPopoverProps) {
-  /** 함수( 안 — 시그니처 hint */
-  const sigHint = useMemo(() => {
-    if (!value.startsWith('=')) return null;
-    const lastOpen = value.lastIndexOf('(');
-    const lastClose = value.lastIndexOf(')');
-    if (lastOpen <= lastClose) return null;
-    const beforeOpen = value.slice(0, lastOpen);
-    const m = beforeOpen.match(/([A-Z]+)$/i);
-    if (!m) return null;
-    const name = m[1].toUpperCase();
-    if (!FUNC_HELP[name]) return null;
-    return { name, ...FUNC_HELP[name] };
-  }, [value]);
-
-  /** 미닫힌 ( 가 없을 때 — 입력 끝의 함수 prefix 로 후보 리스트 (최대 8) */
-  const suggestions = useMemo(() => {
-    if (sigHint) return [];
-    return getFuncSuggestionNames(value).slice(0, 8).map((name) => ({ name, ...FUNC_HELP[name] }));
-  }, [value, sigHint]);
-
-  /** 후보 클릭 시 입력값에서 끝 prefix 를 NAME( 로 교체 */
-  const pick = useCallback((name: string) => {
-    if (!onReplaceValue) return;
-    onReplaceValue(applyFuncSuggestion(value, name));
-  }, [value, onReplaceValue]);
-
-  if (sigHint) {
-    return (
-      <div
-        className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md px-2 py-1 text-xs whitespace-nowrap pointer-events-none"
-        role="tooltip"
-      >
-        <span className="font-mono font-medium">{sigHint.sig}</span>
-        <span className="text-muted-foreground ml-2">{sigHint.desc}</span>
-      </div>
-    );
-  }
-  if (suggestions.length === 0) return null;
-  return (
-    <div
-      className="absolute left-0 top-full mt-0.5 z-50 rounded border border-border bg-popover shadow-md py-1 text-xs min-w-[260px] max-w-[360px]"
-      role="listbox"
-      aria-label="함수 자동완성 후보"
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      {suggestions.map((s) => (
-        <button
-          key={s.name}
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => { e.preventDefault(); pick(s.name); }}
-          className="w-full text-left px-2 py-1 hover:bg-muted flex items-center gap-2"
-          title={`${s.sig} — ${s.desc}`}
-          role="option"
-        >
-          <span className="font-mono font-medium w-20 shrink-0 truncate">{s.name}</span>
-          <span className="font-mono text-muted-foreground truncate flex-1">{s.sig}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// 수식 표시줄 input — 긴 수식 직접 편집 + 함수 popover
-// ─────────────────────────────────────────────
-
-interface FormulaBarInputProps {
-  currentRef: string;
-  value: string;
-  evaluatedValue: string;
-  onCommit: (next: string) => void;
-}
-
-function FormulaBarInput({ currentRef, value, evaluatedValue, onCommit }: FormulaBarInputProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  // selectedRef 변경 시 (editing 아닐 때만) draft 동기
-  useEffect(() => { if (!editing) setDraft(value); }, [value, editing, currentRef]);
-
-  const commit = useCallback(() => {
-    setEditing(false);
-    if (draft !== value) onCommit(draft);
-  }, [draft, value, onCommit]);
-
-  const showEvaluation = !editing && value.startsWith('=');
-
-  return (
-    <div className="relative flex-1 flex items-center gap-2 min-w-0">
-      <input
-        value={editing ? draft : value}
-        onFocus={() => { setEditing(true); setDraft(value); }}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur(); }
-          else if (e.key === 'Escape') { e.preventDefault(); setDraft(value); setEditing(false); (e.target as HTMLInputElement).blur(); }
-        }}
-        onBlur={() => { if (editing) commit(); }}
-        placeholder=""
-        className={cn(
-          'flex-1 min-w-0 font-mono text-xs px-2 py-1 rounded border border-transparent bg-transparent outline-none',
-          'hover:border-border hover:bg-background focus:border-foreground/40 focus:bg-background',
-        )}
-        aria-label={`${currentRef} 셀 값 편집`}
-      />
-      {showEvaluation && (
-        <span className="text-muted-foreground shrink-0 text-xs">
-          = <span className="font-medium text-foreground">{evaluatedValue}</span>
-        </span>
-      )}
-      {editing && <FuncHintPopover value={draft} onReplaceValue={setDraft} />}
-    </div>
-  );
-}
+// FuncHintPopover / getFuncSuggestionNames / applyFuncSuggestion 는 lib/cloudSheet/FuncHintPopover 공용
+// FormulaBarInput 은 lib/cloudSheet/FormulaBarInput 공용
 
 // SaveStateBadge / formatRelTime 는 lib/cloudDoc/SaveStateBadge 공용
 
