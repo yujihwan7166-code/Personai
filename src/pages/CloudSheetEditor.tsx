@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL, AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX, SPILL_SENTINEL, LINK_SENTINEL } from '@/lib/cloudSheet/formula';
 import { buildSparklineSvg, type SparklinePayload } from '@/lib/cloudSheet/sparkline';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -49,6 +49,7 @@ import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { SheetMenuBar } from '@/components/cloud/SheetMenuBar';
+import { InsertLinkDialog } from '@/components/cloud/InsertLinkDialog';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -417,6 +418,9 @@ export default function CloudSheetEditor() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // 링크 삽입 모달 (PR #6) — 메뉴 "삽입 → 링크" / Ctrl+K 진입.
+  const [insertLinkOpen, setInsertLinkOpen] = useState(false);
 
   // 줌 (PR #4) — 25/50/75/100/125/150/175/200%. localStorage 에 마지막 값.
   const [zoom, setZoom] = useState<number>(() => {
@@ -3008,15 +3012,7 @@ export default function CloudSheetEditor() {
             if (!url) return;
             setCellValue(selectedRef, `=IMAGE("${url.replace(/"/g, '""')}")`);
           }}
-          insertLink={() => {
-            // PR #6 에서 정식 모달로 대체 예정.
-             
-            const url = window.prompt('링크 URL (https://…)');
-            if (!url) return;
-             
-            const label = window.prompt('표시 텍스트 (생략하면 URL)', url) ?? url;
-            setCellValue(selectedRef, `=HYPERLINK("${url.replace(/"/g, '""')}", "${label.replace(/"/g, '""')}")`);
-          }}
+          insertLink={() => setInsertLinkOpen(true)}
           insertComment={() => setCommentModalOpen(true)}
           insertCheckbox={() => {
             // 선택 영역(또는 단일 셀) 에 checkbox validation 추가.
@@ -3952,6 +3948,21 @@ export default function CloudSheetEditor() {
 
       <SheetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
 
+      {/* 링크 삽입 모달 (PR #6) */}
+      <InsertLinkDialog
+        open={insertLinkOpen}
+        onClose={() => setInsertLinkOpen(false)}
+        onSubmit={(url, label) => {
+          // Excel/Sheets escape — 큰따옴표 = "" 로 이스케이프해서 셀에 삽입.
+          const eUrl = url.replace(/"/g, '""');
+          const eLabel = label.replace(/"/g, '""');
+          const formula = label
+            ? `=HYPERLINK("${eUrl}", "${eLabel}")`
+            : `=HYPERLINK("${eUrl}")`;
+          setCellValue(selectedRef, formula);
+        }}
+      />
+
       <ChartModal
         open={chartOpen}
         onClose={() => setChartOpen(false)}
@@ -4564,6 +4575,32 @@ const SheetCell = React.memo(function SheetCell({
           );
         }
         return <span className="text-xs">{value}</span>;
+      })() : value.startsWith(LINK_SENTINEL) ? (() => {
+        // HYPERLINK 셀 (PR #6) — 클릭 가능한 링크. 새 탭 + noreferrer.
+        // 보안: formula 단계에서 javascript:/vbscript:/data:text/html 이미 차단.
+        let url = '';
+        let label = '';
+        try {
+          const parsed = JSON.parse(value.slice(LINK_SENTINEL.length));
+          if (parsed && typeof parsed === 'object') {
+            url = typeof parsed.url === 'string' ? parsed.url : '';
+            label = typeof parsed.label === 'string' ? parsed.label : url;
+          }
+        } catch { /* fallthrough */ }
+        if (!url) return <span className="text-xs text-destructive">#LINK</span>;
+        return (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-blue-600 dark:text-blue-400 underline underline-offset-2 decoration-1 truncate inline-block max-w-full hover:opacity-80"
+            title={url}
+          >
+            {label}
+          </a>
+        );
       })() : value.startsWith(SPARKLINE_SENTINEL) ? (() => {
         // SPARKLINE — sentinel 페이로드(JSON)를 SVG 로 렌더.
         // 평가는 formula.ts 에서, 시각화만 여기서.

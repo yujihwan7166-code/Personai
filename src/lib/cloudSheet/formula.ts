@@ -131,6 +131,13 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
 export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
 
 /**
+ * HYPERLINK 함수 sentinel — 셀 렌더가 <a> 로 표시 (새 탭, rel=noreferrer).
+ * 페이로드: SENTINEL + JSON {"url":"…","label":"…"}.
+ * 보안: javascript:/vbscript:/data:text/html 스킴 차단 (formula 단계).
+ */
+export const LINK_SENTINEL = '__CLOUDSHEET_LINK__:';
+
+/**
  * 동적 배열 함수 (FILTER/SORT/UNIQUE/SEQUENCE) sentinel.
  * 페이로드: SPILL_SENTINEL + JSON.stringify(2D array)
  * 1D 입력은 항상 [[v1],[v2],…] 의 세로 spill 로 정규화.
@@ -835,9 +842,19 @@ function evalExpr(
     const idx = s.indexOf(q, from);
     return idx < 0 ? '#VALUE!' : idx + 1;
   };
-  // HYPERLINK v1: 셀 렌더가 별도 처리 안 함 — 라벨(있으면) 또는 URL 만 텍스트 표시.
-  const __hyperlink = (url: unknown, label?: unknown) =>
-    String(label ?? url ?? '');
+  // HYPERLINK v2 (PR #6) — sentinel + JSON {url, label} 반환. 셀 렌더가 <a> 로 표시.
+  // 라벨이 비어있으면 URL 자체가 라벨. 안전한 스킴만 통과.
+  const __hyperlink = (url: unknown, label?: unknown) => {
+    const u = String(url ?? '').trim();
+    if (!u) return '#VALUE!';
+    // 안전한 스킴만 — javascript:/vbscript:/data: 통째로 차단 (이미지는 IMAGE 함수 따로).
+    // evaluator 가 string 내부 함수명도 치환하는 부수효과로 data:text/html 가
+    // data:__text/html 로 변형되는 케이스까지 한 번에 막음.
+    if (/^\s*(javascript|vbscript|data):/i.test(u)) return '#REF!';
+    const l = label === undefined || label === null || String(label).trim() === ''
+      ? u : String(label);
+    return `__CLOUDSHEET_LINK__:${JSON.stringify({ url: u, label: l })}`;
+  };
 
   // ─── 수치 ───
   const __roundup = (n: unknown, d: unknown = 0) => {

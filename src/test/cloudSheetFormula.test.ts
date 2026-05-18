@@ -92,9 +92,26 @@ describe('formula — 텍스트', () => {
     expect(evaluate('SEARCH("L", "Hello")')).toBe('3');    // 케이스 무시
   });
 
-  it('HYPERLINK — v1 텍스트만', () => {
-    expect(evaluate('HYPERLINK("https://x", "X")')).toBe('X');
-    expect(evaluate('HYPERLINK("https://x")')).toBe('https://x');
+  it('HYPERLINK v2 (PR #6) — sentinel + JSON 페이로드', () => {
+    // 라벨 있음
+    const a = evaluate('HYPERLINK("https://x", "X")');
+    expect(a.startsWith('__CLOUDSHEET_LINK__:')).toBe(true);
+    const p1 = JSON.parse(a.slice('__CLOUDSHEET_LINK__:'.length));
+    expect(p1).toEqual({ url: 'https://x', label: 'X' });
+
+    // 라벨 없으면 URL 자체가 라벨
+    const b = evaluate('HYPERLINK("https://y")');
+    const p2 = JSON.parse(b.slice('__CLOUDSHEET_LINK__:'.length));
+    expect(p2).toEqual({ url: 'https://y', label: 'https://y' });
+
+    // 빈 URL → 에러
+    expect(evaluate('HYPERLINK("")')).toBe('#VALUE!');
+  });
+
+  it('HYPERLINK 보안 — 위험 스킴 차단', () => {
+    expect(evaluate('HYPERLINK("javascript:alert(1)")')).toBe('#REF!');
+    expect(evaluate('HYPERLINK("vbscript:msgbox")')).toBe('#REF!');
+    expect(evaluate('HYPERLINK("data:text/html,<script>")')).toBe('#REF!');
   });
 });
 
