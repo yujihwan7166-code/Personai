@@ -87,6 +87,7 @@ import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBoun
 import { useSheetHistory } from '@/lib/cloudSheet/useSheetHistory';
 import { rangeToTsv as rangeToTsvFn, parseTsv as parseTsvFn } from '@/lib/cloudSheet/tsv';
 import { AiResultModal } from '@/lib/cloudSheet/AiResultModal';
+import { todayString, nowTimeString } from '@/lib/cloudSheet/dateInsert';
 import {
   DEFAULT_ROWS, DEFAULT_COLS, MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS,
   ROW_ADD_CHUNK, COL_ADD_CHUNK,
@@ -938,20 +939,7 @@ export default function CloudSheetEditor() {
       // Ctrl+; / Ctrl+Shift+; — 날짜/시간 삽입
       if (e.key === ';' && !e.altKey) {
         e.preventDefault();
-        const d = new Date();
-        if (e.shiftKey) {
-          // 현재 시각
-          const hh = String(d.getHours()).padStart(2, '0');
-          const mm = String(d.getMinutes()).padStart(2, '0');
-          const ss = String(d.getSeconds()).padStart(2, '0');
-          setCellValue(selectedRef, `${hh}:${mm}:${ss}`);
-        } else {
-          // 오늘 날짜
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          setCellValue(selectedRef, `${y}-${m}-${day}`);
-        }
+        setCellValue(selectedRef, e.shiftKey ? nowTimeString() : todayString());
         return;
       }
 
