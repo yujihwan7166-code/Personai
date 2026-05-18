@@ -884,6 +884,30 @@ export default function CloudSheetEditor() {
     });
   }, [queueSave, currentSheetId]);
 
+  /** 영역의 모든 셀에 같은 format patch 머지 — 기존 다른 키 보존. */
+  const patchFormatInRange = useCallback((bounds: SelRange, patch: Partial<CellFormat>) => {
+    setAllFormats((all) => {
+      const curFmts = { ...(all[currentSheetId] ?? {}) };
+      for (let r = bounds.minR; r <= bounds.maxR; r++) {
+        for (let c = bounds.minC; c <= bounds.maxC; c++) {
+          const ref = cellRef(r, c);
+          const cur = curFmts[ref] ?? {};
+          const merged: CellFormat = { ...cur };
+          for (const k of Object.keys(patch) as Array<keyof CellFormat>) {
+            const v = patch[k];
+            if (v === undefined || v === '') delete merged[k];
+            else (merged as Record<string, unknown>)[k] = v;
+          }
+          if (Object.keys(merged).length === 0) delete curFmts[ref];
+          else curFmts[ref] = merged;
+        }
+      }
+      const next: AllFormats = { ...all, [currentSheetId]: curFmts };
+      queueSave({ allFormats: next });
+      return next;
+    });
+  }, [queueSave, currentSheetId]);
+
   /** 영역의 모든 셀에 같은 format 덮어쓰기 (서식 복사 적용). */
   const applyFormatToRange = useCallback((bounds: SelRange, format: CellFormat) => {
     setAllFormats((all) => {
@@ -3547,6 +3571,56 @@ export default function CloudSheetEditor() {
             <span className="w-3.5 h-3.5 inline-flex items-center justify-center" aria-hidden>←+</span>
             왼쪽에 열 삽입
           </button>
+          <div className="h-px bg-border my-1" />
+          <div className="px-3 py-1.5">
+            <div className="text-[10px] text-muted-foreground mb-1">빠른 색 (선택 영역)</div>
+            <div className="flex items-center gap-1 mb-1">
+              <Palette className="w-3 h-3 text-muted-foreground shrink-0" aria-hidden />
+              {['#111827', '#EF4444', '#F59E0B', '#22C55E', '#0EA5E9', '#A855F7', '#EC4899'].map((c) => (
+                <button
+                  key={`t-${c}`}
+                  type="button"
+                  onClick={() => { patchFormatInRange(selBounds, { textColor: c }); setCellCtxMenu(null); }}
+                  className="w-4 h-4 rounded-sm border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: c }}
+                  title={`글자색 ${c}`}
+                  aria-label={`글자색 ${c}`}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => { patchFormatInRange(selBounds, { textColor: undefined }); setCellCtxMenu(null); }}
+                className="w-4 h-4 rounded-sm border border-border hover:bg-muted flex items-center justify-center"
+                title="글자색 제거"
+                aria-label="글자색 제거"
+              >
+                <span className="text-[8px] text-muted-foreground">×</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <Highlighter className="w-3 h-3 text-muted-foreground shrink-0" aria-hidden />
+              {['#FEE2E2', '#FED7AA', '#FEF3C7', '#DCFCE7', '#DBEAFE', '#F3E8FF', '#FCE7F3'].map((c) => (
+                <button
+                  key={`b-${c}`}
+                  type="button"
+                  onClick={() => { patchFormatInRange(selBounds, { bgColor: c }); setCellCtxMenu(null); }}
+                  className="w-4 h-4 rounded-sm border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: c }}
+                  title={`배경색 ${c}`}
+                  aria-label={`배경색 ${c}`}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => { patchFormatInRange(selBounds, { bgColor: undefined }); setCellCtxMenu(null); }}
+                className="w-4 h-4 rounded-sm border border-border hover:bg-muted flex items-center justify-center"
+                title="배경색 제거"
+                aria-label="배경색 제거"
+              >
+                <span className="text-[8px] text-muted-foreground">×</span>
+              </button>
+            </div>
+          </div>
           <div className="h-px bg-border my-1" />
           <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2 text-destructive"
             onClick={() => { clearSelectionValues(); setCellCtxMenu(null); }}>
