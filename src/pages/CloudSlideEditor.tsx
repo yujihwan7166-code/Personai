@@ -76,7 +76,11 @@ interface SlideShapeEl extends BaseEl {
   strokeWidth?: number;  // px (캔버스 픽셀 기준)
   /** rect 의 모서리 반경 (px). 미지정 = 0 (직각). 다른 타입은 무시. */
   borderRadius?: number;
+  /** 그림자 표시 — rect/ellipse 에만 의미. */
+  shadow?: boolean;
 }
+
+const SHAPE_SHADOW = '0 4px 12px rgba(0,0,0,0.18)';
 
 interface SlideImageEl extends BaseEl {
   type: 'image';
@@ -102,6 +106,7 @@ function ShapeRender({ el }: { el: SlideShapeEl }): React.ReactElement {
         backgroundColor: el.fillColor,
         border: el.strokeColor ? `${sw}px solid ${stroke}` : undefined,
         borderRadius: el.borderRadius ? `${el.borderRadius}px` : undefined,
+        boxShadow: el.shadow ? SHAPE_SHADOW : undefined,
       }} />
     );
   }
@@ -112,6 +117,7 @@ function ShapeRender({ el }: { el: SlideShapeEl }): React.ReactElement {
         backgroundColor: el.fillColor,
         border: el.strokeColor ? `${sw}px solid ${stroke}` : undefined,
         borderRadius: '50%',
+        boxShadow: el.shadow ? SHAPE_SHADOW : undefined,
       }} />
     );
   }
@@ -1178,10 +1184,12 @@ export default function CloudSlideEditor() {
             child.style.background = el.fillColor;
             if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
             if (el.borderRadius) child.style.borderRadius = `${el.borderRadius}px`;
+            if (el.shadow) child.style.boxShadow = SHAPE_SHADOW;
           } else if (el.type === 'ellipse') {
             child.style.background = el.fillColor;
             if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
             child.style.borderRadius = '50%';
+            if (el.shadow) child.style.boxShadow = SHAPE_SHADOW;
           } else {
             // triangle / line / arrow — SVG
             const sw = el.strokeWidth ?? 2;
@@ -1600,6 +1608,15 @@ export default function CloudSlideEditor() {
                         <span className="text-xs">▢</span>
                       </ToolBtn>
                     </>
+                  )}
+                  {(el.type === 'rect' || el.type === 'ellipse') && (
+                    <ToolBtn
+                      onClick={() => updateEl(el.id, { shadow: !el.shadow })}
+                      title={el.shadow ? '그림자 끄기' : '그림자 켜기'}
+                      active={!!el.shadow}
+                    >
+                      <span className="text-xs">▦</span>
+                    </ToolBtn>
                   )}
                 </>
               );
