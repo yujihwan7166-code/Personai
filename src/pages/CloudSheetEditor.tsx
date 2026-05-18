@@ -35,6 +35,7 @@ import {
   shiftMergesRow, shiftMergesCol,
 } from '@/lib/cloudSheet/axisShift';
 import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
+import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -823,24 +824,8 @@ export default function CloudSheetEditor() {
         return;
       }
 
-      // 헤더 처리: opts.hasHeader 가 명시되면 사용, 아니면 자동 감지 — 첫 행 모든 칸이 문자열이고
-      // 나머지 행에 숫자가 1개 이상 있으면 헤더로 간주
-      const autoHasHeader = (() => {
-        let firstRowAllText = true;
-        for (let c = area.minC; c <= area.maxC; c++) {
-          const v = cells[cellRef(area.minR, c)] ?? '';
-          if (v && Number.isFinite(Number(v))) { firstRowAllText = false; break; }
-        }
-        let restHasNumber = false;
-        outer: for (let r = area.minR + 1; r <= area.maxR; r++) {
-          for (let c = area.minC; c <= area.maxC; c++) {
-            const v = cells[cellRef(r, c)] ?? '';
-            if (v && Number.isFinite(Number(v))) { restHasNumber = true; break outer; }
-          }
-        }
-        return firstRowAllText && restHasNumber;
-      })();
-      const hasHeader = opts?.hasHeader ?? autoHasHeader;
+      // 헤더 처리: opts.hasHeader 명시 우선, 없으면 자동 감지
+      const hasHeader = opts?.hasHeader ?? detectHeaderRow(cells, area);
       const startRow = hasHeader ? area.minR + 1 : area.minR;
       if (startRow >= area.maxR) {
         toast({ title: '정렬할 행이 부족합니다' });

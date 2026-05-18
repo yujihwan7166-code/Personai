@@ -1,6 +1,7 @@
 /** 슬라이드 이미지 요소 — 선택/리사이즈/회전 핸들. */
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SlideImageEl, ResizeDir } from './types';
 import { ResizeHandles, RotateHandle } from './Handles';
@@ -17,6 +18,8 @@ interface ImageElViewProps {
 export function ImageElView({
   el, selected, onPointerDown, onClick, onStartResize, onStartRotate,
 }: ImageElViewProps) {
+  // src 로드 실패 시 fallback — 영원히 broken 아이콘 보여주는 대신 회색 박스 + 안내
+  const [errored, setErrored] = useState(false);
   return (
     <div
       onPointerDown={onPointerDown}
@@ -35,12 +38,24 @@ export function ImageElView({
         transformOrigin: 'center center',
       }}
     >
-      <img
-        src={el.src}
-        alt={el.alt ?? ''}
-        className="w-full h-full object-contain select-none pointer-events-none"
-        draggable={false}
-      />
+      {errored ? (
+        <div
+          className="w-full h-full flex flex-col items-center justify-center gap-1 bg-muted/40 border border-dashed border-muted-foreground/30 text-muted-foreground"
+          aria-label="이미지 로드 실패"
+          title="이미지를 표시할 수 없습니다"
+        >
+          <ImageOff className="w-6 h-6 opacity-60" />
+          <span className="text-[10px]">이미지 로드 실패</span>
+        </div>
+      ) : (
+        <img
+          src={el.src}
+          alt={el.alt ?? ''}
+          className="w-full h-full object-contain select-none pointer-events-none"
+          draggable={false}
+          onError={() => setErrored(true)}
+        />
+      )}
       {selected && <ResizeHandles onStart={onStartResize} />}
       {selected && onStartRotate && <RotateHandle onStart={onStartRotate} />}
     </div>
