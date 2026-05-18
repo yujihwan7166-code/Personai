@@ -24,7 +24,8 @@ import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchNode, updateFileBody } from '@/lib/cloudClient';
+import { updateFileBody } from '@/lib/cloudClient';
+import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
 import { importPptxFile, exportPptxFile } from '@/lib/cloudSlide/pptx';
 import {
   aiNextSlide, aiImproveSlide, aiOutlinePresentation,
@@ -35,7 +36,7 @@ import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import type { AiContext } from '@/lib/cloudAi/types';
-import type { CloudNode } from '@/types/cloud';
+// CloudNode 는 useCloudNodeLoader 내부 사용
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -67,8 +68,6 @@ export default function CloudSlideEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [node, setNode] = useState<CloudNode | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -87,36 +86,21 @@ export default function CloudSlideEditor() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // ─── 노드 로드 ───
-  useEffect(() => {
-    if (!id) return;
-    if (authLoading) return;
-    if (!user) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const n = await fetchNode(id);
-        if (cancelled) return;
-        if (!n) { setLoadError('슬라이드를 찾을 수 없어요.'); return; }
-        if (n.ownerId !== user.id) { setLoadError('접근 권한이 없어요.'); return; }
-        if (n.kind !== 'file' || n.fileType !== 'slide') {
-          setLoadError('슬라이드 파일이 아니에요.');
-          return;
-        }
-        setNode(n);
-        const meta = (n.meta ?? {}) as Partial<SlideMeta>;
-        const loaded = Array.isArray(meta.slides) && meta.slides.length > 0
-          ? meta.slides as Slide[]
-          : defaultMeta().slides;
-        setSlides(loaded);
-        setCurrentIdx(Math.max(0, Math.min((meta.currentIdx ?? 0), loaded.length - 1)));
-      } catch (e) {
-        if (cancelled) return;
-        setLoadError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [id, user, authLoading]);
+  // ─── 노드 로드 (공용 훅) ───
+  const { node, loadError } = useCloudNodeLoader({
+    id, user, authLoading,
+    expectedFileType: 'slide',
+    notFoundMessage: '슬라이드를 찾을 수 없어요.',
+    wrongTypeMessage: '슬라이드 파일이 아니에요.',
+    onLoad: (n) => {
+      const meta = (n.meta ?? {}) as Partial<SlideMeta>;
+      const loaded = Array.isArray(meta.slides) && meta.slides.length > 0
+        ? meta.slides as Slide[]
+        : defaultMeta().slides;
+      setSlides(loaded);
+      setCurrentIdx(Math.max(0, Math.min((meta.currentIdx ?? 0), loaded.length - 1)));
+    },
+  });
 
   // ─── 저장 큐 ───
   const flushSave = useCallback(async () => {
