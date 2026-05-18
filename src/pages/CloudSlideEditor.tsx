@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
+  X, MoreHorizontal, Loader2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
@@ -15,7 +15,7 @@ import {
   Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
   Combine, Split,
-  ImagePlus, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
+  ImagePlus, ArrowUpToLine, ArrowDownToLine,
   RotateCw, RotateCcw,
   Play, ChevronLeft, ChevronRight as ChevronRightIcon,
   Sparkles, Undo2, Redo2,
@@ -36,7 +36,6 @@ import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
