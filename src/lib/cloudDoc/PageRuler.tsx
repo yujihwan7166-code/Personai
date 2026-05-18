@@ -65,7 +65,7 @@ export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
   return (
     <div
       ref={rulerRef}
-      className="relative h-5 border-b border-slate-200 select-none bg-white"
+      className="relative h-5 border-b border-slate-200 select-none bg-white dark:bg-zinc-100"
       style={{ width: widthPx }}
       aria-hidden="true"
     >
