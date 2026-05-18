@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
 import { FloatingMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -24,17 +24,7 @@ import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import { Markdown } from 'tiptap-markdown';
 import {
-  X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft,
-  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  List, ListOrdered,
-  Undo2, Redo2, Keyboard,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Palette, Highlighter, Link as LinkIcon, Link2Off,
-  Table as TableIcon, ImagePlus,
-  Superscript as SuperscriptIcon, Subscript as SubscriptIcon,
-  IndentIncrease, IndentDecrease,
-  Sparkles, Search as SearchIcon, ChevronUp, ChevronDown, Replace as ReplaceIcon,
-  ListTree, Paintbrush, Asterisk,
+  X, MoreHorizontal, Loader2, AlertCircle, ArrowLeft, Keyboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -42,23 +32,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
 import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
-import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@/lib/cloudDoc/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { type PageMargin } from '@/lib/cloudDoc/PageRuler';
 import { DocPage } from '@/lib/cloudDoc/DocPage';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
-import { StyleSelect } from '@/lib/cloudDoc/StyleSelect';
-import { ZoomSelect } from '@/lib/cloudDoc/ZoomSelect';
-import { ToolBtn, Sep } from '@/lib/cloudDoc/ToolBtn';
-import { FormatPainterBtn } from '@/lib/cloudDoc/FormatPainterBtn';
 import { TocDropdown } from '@/lib/cloudDoc/TocDropdown';
 import { KeyboardHelpModal } from '@/lib/cloudDoc/KeyboardHelpModal';
 import { SlashMenu } from '@/lib/cloudDoc/SlashMenu';
-import { pickImage } from '@/lib/cloudDoc/pickImage';
 import { AiActionsButton } from '@/lib/cloudDoc/AiActionsButton';
-import { FontSizeSelect, FontFamilySelect } from '@/lib/cloudDoc/FontSelects';
-import { ColorPickBtn } from '@/lib/cloudDoc/ColorPickBtn';
 import { DocSearchPanel } from '@/lib/cloudDoc/DocSearchPanel';
 import { DocToolbar } from '@/lib/cloudDoc/DocToolbar';
 import { Footnote } from '@/lib/cloudDoc/tiptap/Footnote';
@@ -68,7 +50,7 @@ import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
