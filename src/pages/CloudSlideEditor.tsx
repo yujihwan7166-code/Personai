@@ -348,16 +348,27 @@ export default function CloudSlideEditor() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      // 하드 한계 — 5MB 초과 → 거부 (data URL base64 가 1.33배 부풀어 저장 실패 가능)
+      if (file.size > 5 * 1024 * 1024) {
+        appToast({
+          title: '이미지가 너무 큽니다',
+          description: `${(file.size / 1024 / 1024).toFixed(1)}MB. 5MB 이하만 가능합니다. 압축 후 다시 시도하세요.`,
+        });
+        return;
+      }
       if (file.size > 2 * 1024 * 1024) {
         appToast({
           title: '이미지가 큽니다',
-          description: '2MB 이하 권장 (localStorage 한계). 다음 단계 IndexedDB 활성화 후 큰 이미지도 처리됩니다.',
+          description: '2MB 이하 권장. localStorage 용량을 빠르게 소모합니다.',
         });
       }
       const reader = new FileReader();
       reader.onload = (ev) => {
         const src = ev.target?.result;
         if (typeof src === 'string') addImageEl(src);
+      };
+      reader.onerror = () => {
+        appToast({ title: '이미지 읽기 실패', description: '파일이 손상되었거나 접근할 수 없습니다.' });
       };
       reader.readAsDataURL(file);
     };
