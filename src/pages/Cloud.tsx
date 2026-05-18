@@ -696,6 +696,32 @@ export default function Cloud() {
     }
   }, [refresh]);
 
+  /** 노드의 절대 경로 (조상 폴더 chain → "/A/B/file.txt"). */
+  const buildNodePath = useCallback((node: CloudNode): string => {
+    const parts: string[] = [node.name];
+    let parentId = node.parentFolderId;
+    let safety = 0;
+    while (parentId && safety < 50) {
+      const parent = allFolders.find((f) => f.id === parentId);
+      if (!parent) break;
+      parts.unshift(parent.name);
+      parentId = parent.parentFolderId;
+      safety++;
+    }
+    return '/' + parts.join('/');
+  }, [allFolders]);
+
+  const handleCopyPath = useCallback(async (node: CloudNode) => {
+    const path = buildNodePath(node);
+    try {
+      await navigator.clipboard.writeText(path);
+      toast({ title: '경로 복사됨', description: path });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '복사 실패', description: msg });
+    }
+  }, [buildNodePath]);
+
   // ─── 이름 변경 ───
   const startRename = useCallback((id: string) => {
     setEditingId(id);
@@ -1459,6 +1485,15 @@ export default function Cloud() {
                 >
                   <Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />
                   {node.starred ? '별표 해제' : '별표 추가'}
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                  onClick={() => { void handleCopyPath(node); setCtxMenu(null); }}
+                  title="절대 경로 복사 (조상 폴더 + 이름)"
+                >
+                  <span className="w-4 h-4 inline-flex items-center justify-center text-[10px] font-mono text-muted-foreground" aria-hidden>/_</span>
+                  경로 복사
                 </button>
                 {node.kind === 'folder' && (
                   <>
