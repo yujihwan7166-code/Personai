@@ -1859,7 +1859,15 @@ function SaveStateBadge({ state }: { state: SaveState }) {
       </span>
     );
   }
-  return null;
+  // idle (마운트 직후 — 아직 변경 없음)
+  return (
+    <span
+      className="text-muted-foreground/60 text-[11px]"
+      title="아직 변경 사항 없음 — 본문 수정 시 자동 저장됩니다."
+    >
+      변경 없음
+    </span>
+  );
 }
 
 // ─────────────────────────────────────────────
