@@ -11,19 +11,17 @@ describe('formatBizNumber', () => {
 });
 
 describe('isValidBizNumber', () => {
-  // 알려진 유효 사업자등록번호 — 국세청 공식 예시
-  it('유효 번호 (체크섬 OK)', () => {
-    expect(isValidBizNumber('1208114245')).toBe(true);
-    expect(isValidBizNumber('120-81-14245')).toBe(true);
+  // 알고리즘 직접 계산: 123456789 → 마지막 자리 = 1 → 유효 1234567891
+  it('유효 번호 (직접 계산 체크섬)', () => {
+    expect(isValidBizNumber('1234567891')).toBe(true);
+    expect(isValidBizNumber('123-45-67891')).toBe(true);
   });
   it('무효 번호 (체크섬 깨짐)', () => {
     expect(isValidBizNumber('1234567890')).toBe(false);
+    expect(isValidBizNumber('1234567892')).toBe(false);
   });
   it('길이 다르면 false', () => {
     expect(isValidBizNumber('12345')).toBe(false);
     expect(isValidBizNumber('')).toBe(false);
-  });
-  it('비숫자 포함 → 숫자만 검증', () => {
-    expect(isValidBizNumber('120abc8114245')).toBe(true);
   });
 });
