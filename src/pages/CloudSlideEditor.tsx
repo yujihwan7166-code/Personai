@@ -9,6 +9,9 @@ import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Plus, Trash2, Copy as CopyIcon, Type as TypeIcon, ChevronUp, ChevronDown,
   AlignLeft, AlignCenter, AlignRight,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
+  AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
+  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter,
   Square as SquareIcon, Circle as CircleIcon, Triangle as TriangleIcon,
   Minus as LineIcon, ArrowRight as ArrowRightIcon, Shapes,
   Combine, Split,
@@ -675,6 +678,69 @@ export default function CloudSlideEditor() {
     });
     setSelectedElId(elId);
   }, [slides, currentIdx]);
+
+  // ─── 다중 선택 정렬 / 분배 ───
+  const alignSelected = useCallback((axis: 'h' | 'v', mode: 'start' | 'center' | 'end') => {
+    if (selectedElIds.size < 2) return;
+    updateCurrentSlide((s) => {
+      const els = s.elements.filter((e) => selectedElIds.has(e.id));
+      if (els.length < 2) return s;
+      const positions = axis === 'h'
+        ? els.map((e) => ({ start: e.xPct, size: e.wPct }))
+        : els.map((e) => ({ start: e.yPct, size: e.hPct }));
+      const minStart = Math.min(...positions.map((p) => p.start));
+      const maxEnd = Math.max(...positions.map((p) => p.start + p.size));
+      const center = (minStart + maxEnd) / 2;
+      const computeNew = (start: number, size: number): number => {
+        if (mode === 'start') return minStart;
+        if (mode === 'end') return maxEnd - size;
+        return center - size / 2;
+      };
+      return {
+        ...s,
+        elements: s.elements.map((e) => {
+          if (!selectedElIds.has(e.id)) return e;
+          if (axis === 'h') {
+            const x = computeNew(e.xPct, e.wPct);
+            return { ...e, xPct: Math.max(0, Math.min(100 - e.wPct, x)) };
+          } else {
+            const y = computeNew(e.yPct, e.hPct);
+            return { ...e, yPct: Math.max(0, Math.min(100 - e.hPct, y)) };
+          }
+        }),
+      };
+    });
+  }, [selectedElIds, updateCurrentSlide]);
+
+  const distributeSelected = useCallback((axis: 'h' | 'v') => {
+    if (selectedElIds.size < 3) return;
+    updateCurrentSlide((s) => {
+      const els = s.elements.filter((e) => selectedElIds.has(e.id));
+      if (els.length < 3) return s;
+      const getCenter = (e: SlideElement): number =>
+        axis === 'h' ? e.xPct + e.wPct / 2 : e.yPct + e.hPct / 2;
+      const sorted = [...els].sort((a, b) => getCenter(a) - getCenter(b));
+      const firstC = getCenter(sorted[0]);
+      const lastC = getCenter(sorted[sorted.length - 1]);
+      const step = (lastC - firstC) / (sorted.length - 1);
+      const newPos = new Map<string, number>();
+      for (let i = 0; i < sorted.length; i++) {
+        const targetCenter = firstC + step * i;
+        const el = sorted[i];
+        const size = axis === 'h' ? el.wPct : el.hPct;
+        newPos.set(el.id, targetCenter - size / 2);
+      }
+      return {
+        ...s,
+        elements: s.elements.map((e) => {
+          const np = newPos.get(e.id);
+          if (np === undefined) return e;
+          if (axis === 'h') return { ...e, xPct: np };
+          return { ...e, yPct: np };
+        }),
+      };
+    });
+  }, [selectedElIds, updateCurrentSlide]);
 
   // ─── 그룹화 / 해제 ───
   const groupSelected = useCallback(() => {
@@ -1979,6 +2045,41 @@ export default function CloudSlideEditor() {
               </>
             );
           })()}
+
+          {/* 다중 선택 시 정렬/분배 — 가로/세로 + 균등 */}
+          {selectedElIds.size >= 2 && (
+            <>
+              <Sep />
+              <ToolBtn onClick={() => alignSelected('h', 'start')} title="왼쪽 정렬">
+                <AlignStartVertical className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => alignSelected('h', 'center')} title="가로 중앙">
+                <AlignCenterVertical className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => alignSelected('h', 'end')} title="오른쪽 정렬">
+                <AlignEndVertical className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => alignSelected('v', 'start')} title="위쪽 정렬">
+                <AlignStartHorizontal className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => alignSelected('v', 'center')} title="세로 중앙">
+                <AlignCenterHorizontal className="w-4 h-4" />
+              </ToolBtn>
+              <ToolBtn onClick={() => alignSelected('v', 'end')} title="아래쪽 정렬">
+                <AlignEndHorizontal className="w-4 h-4" />
+              </ToolBtn>
+              {selectedElIds.size >= 3 && (
+                <>
+                  <ToolBtn onClick={() => distributeSelected('h')} title="가로 균등 분배 (3개 이상)">
+                    <AlignHorizontalDistributeCenter className="w-4 h-4" />
+                  </ToolBtn>
+                  <ToolBtn onClick={() => distributeSelected('v')} title="세로 균등 분배 (3개 이상)">
+                    <AlignVerticalDistributeCenter className="w-4 h-4" />
+                  </ToolBtn>
+                </>
+              )}
+            </>
+          )}
 
           {/* 다중 선택 시 그룹화 / 해제 */}
           {selectedElIds.size >= 2 && (
