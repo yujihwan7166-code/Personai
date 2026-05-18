@@ -85,6 +85,18 @@ export default function CloudSlideEditor() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // ─── 슬라이드 zoom (캔버스 폭 % — localStorage 영속) ───
+  const SLIDE_ZOOM_STEPS = [50, 75, 100, 125, 150, 200];
+  const [slideZoom, setSlideZoomInner] = useState<number>(() => {
+    if (typeof window === 'undefined') return 100;
+    const v = Number(window.localStorage.getItem('personai.cloud.slide.zoom'));
+    return SLIDE_ZOOM_STEPS.includes(v) ? v : 100;
+  });
+  const setSlideZoom = useCallback((v: number) => {
+    setSlideZoomInner(v);
+    try { window.localStorage.setItem('personai.cloud.slide.zoom', String(v)); } catch { /* noop */ }
+  }, []);
+
   // ─── 노드 로드 (공용 훅) ───
   const { node, loadError } = useCloudNodeLoader({
     id, user, authLoading,
@@ -1940,6 +1952,18 @@ export default function CloudSlideEditor() {
           <div className="ml-auto text-xs text-muted-foreground tabular-nums flex items-center gap-2">
             <span className="hidden sm:inline" title="캔버스 해상도 (16:9)">1280×720</span>
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
+            <select
+              value={slideZoom}
+              onChange={(e) => setSlideZoom(Number(e.target.value))}
+              className="text-xs px-1.5 py-0.5 rounded border border-border bg-background hover:bg-muted cursor-pointer"
+              title="캔버스 줌"
+              aria-label="캔버스 줌"
+            >
+              {SLIDE_ZOOM_STEPS.map((z) => (
+                <option key={z} value={z}>{z}%</option>
+              ))}
+            </select>
+            <span className="text-muted-foreground/50">·</span>
             <span title="현재 슬라이드 / 총 슬라이드">{currentIdx + 1} / {slides.length}</span>
           </div>
         </div>
@@ -1974,8 +1998,13 @@ export default function CloudSlideEditor() {
         {/* 가운데 캔버스 */}
         <main className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center p-8">
           <div
-            className="w-full max-w-5xl bg-white shadow-lg rounded-sm overflow-hidden relative"
-            style={{ aspectRatio: '16 / 9', background: currentSlide.background ?? '#fff' }}
+            className="bg-white shadow-lg rounded-sm overflow-hidden relative shrink-0"
+            style={{
+              aspectRatio: '16 / 9',
+              background: currentSlide.background ?? '#fff',
+              width: `${slideZoom}%`,
+              maxWidth: `${64 * (slideZoom / 100)}rem`,
+            }}
           >
             <div
               ref={canvasRef}
