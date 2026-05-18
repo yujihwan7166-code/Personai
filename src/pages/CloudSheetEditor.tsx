@@ -57,6 +57,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { HelpRow } from '@/lib/cloudCommon/HelpRow';
 import { NameBox } from '@/lib/cloudSheet/NameBox';
+import { ColResizeHandle, RowResizeHandle } from '@/lib/cloudSheet/ResizeHandles';
 
 type Cells = Record<string, string>;
 
@@ -4265,6 +4266,7 @@ function SheetGrid({
                 <ColResizeHandle
                   colIdx={i}
                   currentWidth={colWidths[i] ?? DEFAULT_COL_WIDTH}
+                  defaultWidth={DEFAULT_COL_WIDTH}
                   onResize={onColResize}
                 />
               </th>
@@ -4307,6 +4309,7 @@ function SheetGrid({
                 <RowResizeHandle
                   rowIdx={rowIdx}
                   currentHeight={rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT}
+                  defaultHeight={DEFAULT_ROW_HEIGHT}
                   onResize={onRowResize}
                   onAutoFit={onRowAutoFit}
                 />
@@ -4824,95 +4827,7 @@ function ValidationDropdown({
 // 열 너비 드래그 핸들 (헤더 오른쪽 가장자리)
 // ─────────────────────────────────────────────
 
-function ColResizeHandle({
-  colIdx, currentWidth, onResize,
-}: { colIdx: number; currentWidth: number; onResize: (colIdx: number, w: number) => void }) {
-  const startXRef = useRef(0);
-  const startWRef = useRef(0);
-  const draggingRef = useRef(false);
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startXRef.current = e.clientX;
-    startWRef.current = currentWidth;
-    draggingRef.current = true;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-
-    const onMove = (ev: PointerEvent) => {
-      if (!draggingRef.current) return;
-      const dx = ev.clientX - startXRef.current;
-      onResize(colIdx, startWRef.current + dx);
-    };
-    const onUp = () => {
-      draggingRef.current = false;
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  }, [colIdx, currentWidth, onResize]);
-
-  return (
-    <span
-      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize select-none group-hover:bg-foreground/10"
-      onPointerDown={onPointerDown}
-      onDoubleClick={(e) => { e.stopPropagation(); onResize(colIdx, DEFAULT_COL_WIDTH); }}
-      aria-label="열 너비 조정"
-      role="separator"
-    />
-  );
-}
-
-// ─────────────────────────────────────────────
-// 행 높이 드래그 핸들 (row header 하단 가장자리)
-// ─────────────────────────────────────────────
-
-function RowResizeHandle({
-  rowIdx, currentHeight, onResize, onAutoFit,
-}: { rowIdx: number; currentHeight: number; onResize: (rowIdx: number, h: number) => void; onAutoFit?: (rowIdx: number) => void }) {
-  const startYRef = useRef(0);
-  const startHRef = useRef(0);
-  const draggingRef = useRef(false);
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startYRef.current = e.clientY;
-    startHRef.current = currentHeight;
-    draggingRef.current = true;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-
-    const onMove = (ev: PointerEvent) => {
-      if (!draggingRef.current) return;
-      const dy = ev.clientY - startYRef.current;
-      onResize(rowIdx, startHRef.current + dy);
-    };
-    const onUp = () => {
-      draggingRef.current = false;
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  }, [rowIdx, currentHeight, onResize]);
-
-  return (
-    <span
-      className="absolute left-0 bottom-0 w-full h-1.5 cursor-row-resize select-none group-hover:bg-foreground/10"
-      onPointerDown={onPointerDown}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        // autoFit 가 있으면 콘텐츠 줄수에 맞춤, 없으면 기본 높이로 리셋
-        if (onAutoFit) onAutoFit(rowIdx);
-        else onResize(rowIdx, DEFAULT_ROW_HEIGHT);
-      }}
-      aria-label="행 높이 조정"
-      title="드래그로 조정 · 더블클릭 시 자동 맞춤"
-      role="separator"
-    />
-  );
-}
+// ColResizeHandle / RowResizeHandle 은 lib/cloudSheet/ResizeHandles 공용
 
 // ─────────────────────────────────────────────
 // 시트 탭
