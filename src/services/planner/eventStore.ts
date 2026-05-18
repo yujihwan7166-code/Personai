@@ -1,11 +1,17 @@
 /**
- * 캘린더 일정(Event) 영속 store — LocalStorage 기반.
+ * 캘린더 일정(Event) 영속 store — LocalStorage 기반. ⚠️ 레거시.
+ *
+ * **마이그레이션 진행 중**: 새 일정은 모두 taskStore (startAt 있는 PlannerTask)
+ * 로 통합. eventStore 는 옛 데이터 호환 + 외부 통합용으로만 유지.
+ *
+ * 새 코드 작성 시:
+ *   - 시간 배정 항목 추가: `taskStore.add({ startAt, endAt, ... })` 사용
+ *   - 시간표 조회: usePlannerToday / usePlannerRange (둘 다 taskStore + eventStore 합산)
+ *   - eventStore 직접 호출은 점진적으로 제거 대상
  *
  * - vanilla module: React 외부에서도 import 후 호출 가능.
  * - 변경 시 PLANNER_EVENT_CHANGED 커스텀 이벤트 broadcast.
  *   훅(usePlannerToday 등)이 listen 해서 자동 re-render.
- *
- * 주의: 직접 호출보다는 훅(useEvents) 사용 권장.
  */
 import { PlannerEvent, PLANNER_EVENT_CHANGED } from '@/types/planner';
 import { expandRecurrence } from '@/lib/planner/recurrence';
