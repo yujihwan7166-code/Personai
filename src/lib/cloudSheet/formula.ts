@@ -113,10 +113,15 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   REGEXMATCH:   { sig: 'REGEXMATCH(텍스트, 패턴)',     desc: '패턴 일치 여부' },
   REGEXEXTRACT: { sig: 'REGEXEXTRACT(텍스트, 패턴)',   desc: '첫 일치(또는 그룹 1) 추출' },
   REGEXREPLACE: { sig: 'REGEXREPLACE(텍스트, 패턴, 치환)', desc: '패턴 치환 (전역)' },
+  // ── 미니 차트 ──
+  SPARKLINE:    { sig: 'SPARKLINE(range, [옵션JSON])',  desc: '셀에 미니 차트 (line/bar/column/winloss)' },
 };
 
 /** IMAGE 함수 sentinel — 셀 렌더가 이 prefix 를 보고 <img> 로 표시. */
 export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
+// SPARKLINE 도 동일 패턴 — sparkline.ts 에 상수 정의 (순환 import 피하려 거기에).
+// 셀 렌더는 SPARKLINE_SENTINEL 도 함께 검사.
+export { SPARKLINE_SENTINEL } from './sparkline';
 
 // 긴 이름부터 → \b 경계 덕에 prefix 충돌은 없지만 가독성 위해 desc 정렬.
 const FUNC_ORDER = [
@@ -127,7 +132,7 @@ const FUNC_ORDER = [
   // 10자
   'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE',
   // 9자
-  'ROUNDDOWN', 'HYPERLINK',
+  'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE',
   // 8자
   'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
   // 7자
@@ -251,6 +256,34 @@ function formatResult(v: unknown): string {
   return String(v);
 }
 
+/**
+ * 문자열 리터럴 escape pre-processor.
+ * - 두 따옴표(`""`) → `\"` (Excel/Sheets 의 embedded quote)
+ * - 백슬래시(`\`) → `\\` (regex 패턴 `\d+` 등이 JS 문자열 파서에서 손실되지 않게)
+ * 문자열 바깥은 그대로 두고, 안쪽만 변환.
+ */
+function escapeStringLiterals(src: string): string {
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (c !== '"') { out += c; i++; continue; }
+    out += '"';
+    i++;
+    while (i < src.length) {
+      const ch = src[i];
+      if (ch === '"') {
+        // Excel: "" 가 한 따옴표 (escape). 그렇지 않으면 문자열 종료.
+        if (src[i + 1] === '"') { out += '\\"'; i += 2; continue; }
+        out += '"'; i++; break;
+      }
+      if (ch === '\\') { out += '\\\\'; i++; continue; }
+      out += ch; i++;
+    }
+  }
+  return out;
+}
+
 function evalExpr(
   expr: string,
   currentSheet: string,
@@ -263,11 +296,11 @@ function evalExpr(
   // -1. TRUE/FALSE 리터럴 — JS 식별자 아님(=undefined ReferenceError). 사전 치환.
   work = work.replace(/\bTRUE\b/gi, 'true').replace(/\bFALSE\b/gi, 'false');
 
-  // -0.5. 문자열 리터럴 내 백슬래시 escape — 사용자가 "\d+" 같은 정규표현식 패턴을
-  //       쓸 때 JS 문자열 파서가 \d 를 d 로 swallow 하는 문제 회피.
-  //       "..." 안의 \ 를 \\ 로 변환해 JS 가 \ 로 정확히 인식하도록.
-  //       (제한: 문자열 안에 escape 된 따옴표 \" 는 v1 미지원 — 일반 셀 입력엔 거의 없음.)
-  work = work.replace(/"([^"]*)"/g, (_, c: string) => '"' + c.replace(/\\/g, '\\\\') + '"');
+  // -0.5. 문자열 리터럴 전처리 — Excel/Sheets 식 "" escape + 백슬래시 보존.
+  //   "abc""def"  → "abc\"def"   (Excel 스타일: 두 따옴표가 한 따옴표)
+  //   "\d+"       → "\\d+"       (정규표현식 \d 가 JS 파서에서 사라지지 않게)
+  //   둘을 동시에 정확히 처리하려면 단순 regex 로는 안 되므로 작은 state machine.
+  work = escapeStringLiterals(work);
 
   // 0. Named Range 치환 — 가장 먼저. 이름이 함수명·기존 ref 와 안 겹친다 가정.
   //    토큰 경계: 앞뒤가 알파뉴 X. case-insensitive.
@@ -600,6 +633,37 @@ function evalExpr(
     return `${IMAGE_SENTINEL}${u}`;
   };
 
+  /**
+   * SPARKLINE(range, [optionsJSON]) — sentinel 반환. 렌더가 SVG 로 그림.
+   * 페이로드: `__CLOUDSHEET_SPARKLINE__:{"values":[…], "options":{…}}`
+   *
+   * 옵션 인자는 JSON 문자열로 전달:
+   *   =SPARKLINE(A1:A12)
+   *   =SPARKLINE(A1:A12, "{""charttype"":""column"", ""color"":""#22c55e""}")
+   *
+   * IMAGE 함수와 동일하게 evaluator 는 sentinel 만 만들고 렌더링은
+   * CloudSheetEditor 가 buildSparklineSvg 로 수행 — 평가 단계에 DOM 의존성 없음.
+   */
+  const __sparkline = (range: unknown, optionsJson?: unknown) => {
+    const arr = toArr(range);
+    const values = arr.map((x) => {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : 0;
+    });
+    if (values.length === 0) return '#VALUE!';
+    let options: Record<string, unknown> = {};
+    if (optionsJson !== undefined) {
+      try {
+        const parsed = JSON.parse(String(optionsJson ?? ''));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          options = parsed as Record<string, unknown>;
+        }
+      } catch { /* 잘못된 JSON 은 기본 옵션 fallback */ }
+    }
+    const payload = JSON.stringify({ values, options });
+    return `__CLOUDSHEET_SPARKLINE__:${payload}`;
+  };
+
   /** MATCH(key, range) — 1-based 위치 반환. 못 찾으면 #N/A */
   const __match = (key: unknown, range: unknown) => {
     const arr = toArr(range);
@@ -900,7 +964,7 @@ function evalExpr(
     '__and', '__or', '__not',
     '__today', '__now', '__year', '__month', '__day', '__weekday',
     '__power', '__sqrt', '__mod', '__int', '__median',
-    '__vlookup', '__hlookup', '__index', '__match', '__image',
+    '__vlookup', '__hlookup', '__index', '__match', '__image', '__sparkline',
     '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
     '__ifs', '__switch', '__xlookup',
     '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
@@ -918,7 +982,7 @@ function evalExpr(
     __and, __or, __not,
     __today, __now, __year, __month, __day, __weekday,
     __power, __sqrt, __mod, __int, __median,
-    __vlookup, __hlookup, __index, __match, __image,
+    __vlookup, __hlookup, __index, __match, __image, __sparkline,
     __iferror, __ifna, __isnumber, __isblank, __istext, __iserror, __isna,
     __ifs, __switch, __xlookup,
     __textjoin, __substitute, __replace, __find, __search, __hyperlink,

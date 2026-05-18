@@ -28,7 +28,8 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNode, updateFileBody } from '@/lib/cloudClient';
-import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL } from '@/lib/cloudSheet/formula';
+import { evalCell, idxToCol, colToIdx, FUNC_HELP, IMAGE_SENTINEL, SPARKLINE_SENTINEL } from '@/lib/cloudSheet/formula';
+import { buildSparklineSvg, type SparklinePayload } from '@/lib/cloudSheet/sparkline';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
@@ -3934,6 +3935,32 @@ const SheetCell = React.memo(function SheetCell({
               #IMG_FAIL
             </span>
           </div>
+        );
+      })() : value.startsWith(SPARKLINE_SENTINEL) ? (() => {
+        // SPARKLINE — sentinel 페이로드(JSON)를 SVG 로 렌더.
+        // 평가는 formula.ts 에서, 시각화만 여기서.
+        const raw = value.slice(SPARKLINE_SENTINEL.length);
+        let payload: SparklinePayload;
+        try {
+          const parsed = JSON.parse(raw) as { values?: unknown; options?: unknown };
+          const values = Array.isArray(parsed.values) ? parsed.values.map(Number).filter(Number.isFinite) : [];
+          const options = parsed.options && typeof parsed.options === 'object'
+            ? (parsed.options as SparklinePayload['options'])
+            : {};
+          payload = { values, options };
+        } catch {
+          return <span className="text-xs text-destructive">#SPARK_FAIL</span>;
+        }
+        const svg = buildSparklineSvg(payload);
+        // 셀 hover 시 raw 값 미리보기 (최대 12개)
+        const preview = payload.values.slice(0, 12).join(', ') + (payload.values.length > 12 ? ', …' : '');
+        return (
+          <div
+            className="w-full h-full flex items-center justify-center overflow-hidden text-foreground"
+            title={`${payload.values.length}개 값: ${preview}`}
+            // SVG 페이로드는 sparkline.ts 의 safeColor 가이드(스크립트 스킴 차단)를 거침.
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
         );
       })() : (() => {
         const link = detectLink(value);
