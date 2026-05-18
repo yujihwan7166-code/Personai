@@ -44,7 +44,7 @@ import { SheetMenuBar } from '@/components/cloud/SheetMenuBar';
 import { InsertLinkDialog } from '@/components/cloud/InsertLinkDialog';
 import type { AiContext } from '@/lib/cloudAi/types';
 import type { CloudNode } from '@/types/cloud';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+// Dialog 는 lib/cloudSheet/ 의 각 모달 내부 사용
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 // HelpRow 는 SheetHelpModal 내부 사용
 import { NameBox } from '@/lib/cloudSheet/NameBox';
@@ -86,6 +86,7 @@ import { SheetGrid } from '@/lib/cloudSheet/SheetGrid';
 import { maxRowColFromCells, maxRowColFromAll } from '@/lib/cloudSheet/sheetBounds';
 import { useSheetHistory } from '@/lib/cloudSheet/useSheetHistory';
 import { rangeToTsv as rangeToTsvFn, parseTsv as parseTsvFn } from '@/lib/cloudSheet/tsv';
+import { AiResultModal } from '@/lib/cloudSheet/AiResultModal';
 import {
   DEFAULT_ROWS, DEFAULT_COLS, MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS,
   ROW_ADD_CHUNK, COL_ADD_CHUNK,
@@ -3680,39 +3681,7 @@ export default function CloudSheetEditor() {
       />
 
       {/* AI 결과 모달 */}
-      <Dialog open={!!aiResult} onOpenChange={(v) => { if (!v) setAiResult(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogTitle className="text-base flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-violet-500" />
-            AI 결과
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            데이터 분석 결과입니다. 셀 자동 반영은 안 됩니다 (수동 복붙).
-          </DialogDescription>
-          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm border border-border rounded p-3 bg-muted/30">
-            {aiResult}
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (aiResult) navigator.clipboard.writeText(aiResult);
-                toast({ title: '복사됨' });
-              }}
-              className="px-3 py-1.5 rounded border border-border hover:bg-muted text-sm"
-            >
-              복사
-            </button>
-            <button
-              type="button"
-              onClick={() => setAiResult(null)}
-              className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm"
-            >
-              닫기
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AiResultModal result={aiResult} onClose={() => setAiResult(null)} />
     </div>
   );
 }
