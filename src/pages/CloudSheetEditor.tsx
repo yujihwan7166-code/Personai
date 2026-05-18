@@ -3331,6 +3331,7 @@ export default function CloudSheetEditor() {
                 onChangeTitle={(title) => updateEmbeddedChart(c.id, { title: title || undefined })}
                 onChangeType={(type) => updateEmbeddedChart(c.id, { type })}
                 onChangeOrientation={(orientation) => updateEmbeddedChart(c.id, { orientation })}
+                onToggleCollapsed={() => updateEmbeddedChart(c.id, { collapsed: !c.collapsed })}
               />
             ))}
           </div>

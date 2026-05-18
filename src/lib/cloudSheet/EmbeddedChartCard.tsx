@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import {
-  CheckCircle2, ChevronLeft, ChevronRight, Download, X,
+  CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -32,10 +32,11 @@ interface EmbeddedChartCardProps {
   onChangeTitle?: (title: string) => void;
   onChangeType?: (type: 'bar' | 'line' | 'pie') => void;
   onChangeOrientation?: (orientation: 'columns' | 'rows') => void;
+  onToggleCollapsed?: () => void;
 }
 
 export function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation,
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation, onToggleCollapsed,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
@@ -240,6 +241,17 @@ export function EmbeddedChartCard({
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
+          {onToggleCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="p-1 rounded hover:bg-muted text-muted-foreground"
+              aria-label={chart.collapsed ? '펴기' : '접기'}
+              title={chart.collapsed ? '차트 펴기' : '차트 접기 (헤더만 표시)'}
+            >
+              {chart.collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={onRemove}
@@ -251,6 +263,7 @@ export function EmbeddedChartCard({
           </button>
         </div>
       </div>
+      {!chart.collapsed && (
       <div ref={chartBodyRef} className="h-[260px] p-2 bg-white">
         {!hasData ? (
           <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
@@ -302,6 +315,7 @@ export function EmbeddedChartCard({
           </ResponsiveContainer>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -28,6 +28,8 @@ export interface EmbeddedChart {
   title?: string;
   /** 팔레트 프리셋 이름 — getChartPalette 가 fallback 처리. */
   palette?: string;
+  /** 카드 접힘 상태 (헤더만 표시). 미지정 = 펼침. */
+  collapsed?: boolean;
 }
 
 export interface ChartData {
