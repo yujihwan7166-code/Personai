@@ -72,6 +72,8 @@ interface SlideShapeEl extends BaseEl {
   fillColor: string;     // CSS color (line/arrow 는 stroke 만 사용)
   strokeColor?: string;  // 테두리 색
   strokeWidth?: number;  // px (캔버스 픽셀 기준)
+  /** rect 의 모서리 반경 (px). 미지정 = 0 (직각). 다른 타입은 무시. */
+  borderRadius?: number;
 }
 
 interface SlideImageEl extends BaseEl {
@@ -97,6 +99,7 @@ function ShapeRender({ el }: { el: SlideShapeEl }): React.ReactElement {
         width: '100%', height: '100%',
         backgroundColor: el.fillColor,
         border: el.strokeColor ? `${sw}px solid ${stroke}` : undefined,
+        borderRadius: el.borderRadius ? `${el.borderRadius}px` : undefined,
       }} />
     );
   }
@@ -205,6 +208,19 @@ function nextStrokeWidth(cur: number, dir: 1 | -1): number {
   }
   const ni = Math.max(0, Math.min(STROKE_STEPS_PX.length - 1, idx + dir));
   return STROKE_STEPS_PX[ni];
+}
+
+/** rect 도형 모서리 반경 단계 (px) */
+const RADIUS_STEPS_PX = [0, 4, 8, 12, 16, 24, 32, 48];
+function nextRadius(cur: number, dir: 1 | -1): number {
+  let idx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < RADIUS_STEPS_PX.length; i++) {
+    const d = Math.abs(RADIUS_STEPS_PX[i] - cur);
+    if (d < bestDist) { bestDist = d; idx = i; }
+  }
+  const ni = Math.max(0, Math.min(RADIUS_STEPS_PX.length - 1, idx + dir));
+  return RADIUS_STEPS_PX[ni];
 }
 
 interface Slide {
@@ -1152,6 +1168,7 @@ export default function CloudSlideEditor() {
           } else if (el.type === 'rect') {
             child.style.background = el.fillColor;
             if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
+            if (el.borderRadius) child.style.borderRadius = `${el.borderRadius}px`;
           } else if (el.type === 'ellipse') {
             child.style.background = el.fillColor;
             if (el.strokeColor) child.style.border = `${el.strokeWidth ?? 2}px solid ${el.strokeColor}`;
@@ -1549,6 +1566,32 @@ export default function CloudSlideEditor() {
                       <span className="text-xs">테두리 끄기</span>
                     </ToolBtn>
                   )}
+                  {el.type === 'rect' && (
+                    <>
+                      <ToolBtn
+                        onClick={() => updateEl(el.id, {
+                          borderRadius: nextRadius(el.borderRadius ?? 0, -1) || undefined,
+                        })}
+                        title="모서리 직각으로"
+                      >
+                        <span className="text-xs">⬜</span>
+                      </ToolBtn>
+                      <span
+                        className="text-xs text-muted-foreground tabular-nums px-1 min-w-[30px] text-center"
+                        title="모서리 반경 (px)"
+                      >
+                        {el.borderRadius ?? 0}r
+                      </span>
+                      <ToolBtn
+                        onClick={() => updateEl(el.id, {
+                          borderRadius: nextRadius(el.borderRadius ?? 0, 1),
+                        })}
+                        title="모서리 둥글게"
+                      >
+                        <span className="text-xs">▢</span>
+                      </ToolBtn>
+                    </>
+                  )}
                 </>
               );
             }
@@ -1698,6 +1741,44 @@ export default function CloudSlideEditor() {
                             title="테두리/선 굵게"
                           >
                             <span className="text-xs font-bold">+</span>
+                          </ToolBtn>
+                        </>
+                      );
+                    })()}
+                    {(() => {
+                      const rects = shapes.filter((s) => s.type === 'rect');
+                      if (rects.length === 0) return null;
+                      const firstR = rects[0].borderRadius ?? 0;
+                      const allSameR = rects.every((r) => (r.borderRadius ?? 0) === firstR);
+                      const applyToRects = (br: number | undefined) => {
+                        updateCurrentSlide((s) => ({
+                          ...s,
+                          elements: s.elements.map((e) =>
+                            selectedElIds.has(e.id) && isShape(e) && e.type === 'rect'
+                              ? ({ ...e, borderRadius: br } as SlideElement)
+                              : e,
+                          ),
+                        }));
+                      };
+                      return (
+                        <>
+                          <ToolBtn
+                            onClick={() => applyToRects(nextRadius(firstR, -1) || undefined)}
+                            title={`rect ×${rects.length} 모서리 직각으로`}
+                          >
+                            <span className="text-xs">⬜</span>
+                          </ToolBtn>
+                          <span
+                            className="text-xs text-muted-foreground tabular-nums px-1 min-w-[30px] text-center"
+                            title={allSameR ? `rect 모서리 반경 (px)` : '여러 반경 — 다음 단계로 통일'}
+                          >
+                            {allSameR ? `${firstR}r` : '—'}
+                          </span>
+                          <ToolBtn
+                            onClick={() => applyToRects(nextRadius(firstR, 1))}
+                            title={`rect ×${rects.length} 모서리 둥글게`}
+                          >
+                            <span className="text-xs">▢</span>
                           </ToolBtn>
                         </>
                       );
