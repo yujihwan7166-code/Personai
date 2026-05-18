@@ -272,6 +272,19 @@ export async function setStarred(id: string, starred: boolean): Promise<void> {
   patchNode(id, { starred });
 }
 
+/** 폴더 색상 지정 — meta.folderColor 에 색 키 (null = 기본) 저장. */
+export async function setFolderColor(id: string, color: string | null): Promise<void> {
+  const node = await fetchNode(id);
+  if (!node) return;
+  const nextMeta: Record<string, unknown> = { ...(node.meta ?? {}) };
+  if (color == null) {
+    delete nextMeta.folderColor;
+  } else {
+    nextMeta.folderColor = color;
+  }
+  patchNode(id, { meta: nextMeta });
+}
+
 /** 에디터에서 본문/제목 동시 저장 (자동저장용). */
 export async function updateFileBody(
   id: string,

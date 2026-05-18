@@ -19,7 +19,7 @@ import { useCloudNodes, type CloudListMode } from '@/hooks/useCloudNodes';
 import {
   createFolder, createEmptyFile,
   setStarred, renameNode, moveToTrash, restoreFromTrash, permanentDelete,
-  searchByName, fetchNode, fetchAllFolders, moveNode,
+  searchByName, fetchNode, fetchAllFolders, moveNode, setFolderColor,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
@@ -682,6 +682,16 @@ export default function Cloud() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '별표 변경 실패', description: msg });
+    }
+  }, [refresh]);
+
+  const handleFolderColor = useCallback(async (node: CloudNode, color: string | null) => {
+    try {
+      await setFolderColor(node.id, color);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: '색상 변경 실패', description: msg });
     }
   }, [refresh]);
 
@@ -1397,6 +1407,45 @@ export default function Cloud() {
                   <Star className={cn('w-4 h-4', node.starred && 'fill-yellow-400 text-yellow-400')} />
                   {node.starred ? '별표 해제' : '별표 추가'}
                 </button>
+                {node.kind === 'folder' && (
+                  <>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-[10px] text-muted-foreground mb-1">폴더 색상</div>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => { void handleFolderColor(node, null); setCtxMenu(null); }}
+                          className={cn(
+                            'w-5 h-5 rounded-sm border border-border bg-background flex items-center justify-center',
+                            !folderColorOf(node) && 'ring-2 ring-foreground/40',
+                          )}
+                          title="기본 (회색)"
+                          aria-label="기본 색상"
+                        >
+                          <Folder className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                        {FOLDER_COLOR_KEYS.map((k) => {
+                          const current = (node.meta as Record<string, unknown> | undefined)?.folderColor === k;
+                          return (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => { void handleFolderColor(node, k); setCtxMenu(null); }}
+                              className={cn(
+                                'w-5 h-5 rounded-sm border border-border hover:scale-110 transition-transform',
+                                current && 'ring-2 ring-foreground/40',
+                              )}
+                              style={{ backgroundColor: FOLDER_COLOR_MAP[k] }}
+                              title={k}
+                              aria-label={`색상 ${k}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className="h-px bg-border my-1" />
                 <button
                   type="button"
@@ -1751,9 +1800,34 @@ function NewCard({ icon, label, color, onClick }: NewCardProps) {
 // 노드 아이콘·시간
 // ─────────────────────────────────────────────
 
+/** 폴더 색상 키 → CSS 색. null/없음 = 기본(muted-foreground). */
+const FOLDER_COLOR_MAP: Record<string, string> = {
+  red:    '#EF4444',
+  orange: '#F97316',
+  amber:  '#F59E0B',
+  green:  '#22C55E',
+  sky:    '#0EA5E9',
+  indigo: '#6366F1',
+  purple: '#A855F7',
+  pink:   '#EC4899',
+};
+const FOLDER_COLOR_KEYS = ['red', 'orange', 'amber', 'green', 'sky', 'indigo', 'purple', 'pink'] as const;
+
+function folderColorOf(node: CloudNode): string | undefined {
+  const meta = node.meta as Record<string, unknown> | undefined;
+  const key = typeof meta?.folderColor === 'string' ? meta.folderColor : null;
+  return key ? FOLDER_COLOR_MAP[key] : undefined;
+}
+
 function NodeIcon({ node }: { node: CloudNode }) {
   if (node.kind === 'folder') {
-    return <Folder className="w-4 h-4 text-muted-foreground" />;
+    const color = folderColorOf(node);
+    return (
+      <Folder
+        className={cn('w-4 h-4', !color && 'text-muted-foreground')}
+        style={color ? { color } : undefined}
+      />
+    );
   }
   const emoji = FILE_TYPE_EMOJI[node.fileType ?? 'other'];
   return <span className="text-base leading-none" aria-hidden>{emoji}</span>;
