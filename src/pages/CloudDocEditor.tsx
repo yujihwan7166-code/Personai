@@ -1809,7 +1809,12 @@ function WordCountBadge({ editor }: { editor: Editor }) {
   return (
     <span
       className="ml-3 text-xs text-muted-foreground tabular-nums"
-      title={stats.isSelection ? '선택 영역 통계' : '전체 문서 통계'}
+      title={
+        stats.isSelection
+          ? `선택 영역: ${stats.chars.toLocaleString('ko-KR')}자 / ${stats.words.toLocaleString('ko-KR')}단어 (공백 포함)`
+          : `전체 문서: ${stats.chars.toLocaleString('ko-KR')}자 / ${stats.words.toLocaleString('ko-KR')}단어 (공백 포함). 텍스트를 선택하면 그 영역만 통계로 표시.`
+      }
+      aria-live="polite"
     >
       {stats.isSelection && <span className="text-amber-600 dark:text-amber-400 mr-1">선택</span>}
       {stats.chars.toLocaleString('ko-KR')}자 · {stats.words.toLocaleString('ko-KR')}단어
