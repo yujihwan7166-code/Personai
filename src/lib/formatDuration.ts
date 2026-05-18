@@ -10,7 +10,7 @@ const DAY = 24 * HOUR;
 
 /** "1일 3시간 20분" — 0 단위 생략. */
 export function formatDurationKr(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return '0초';
+  if (!Number.isFinite(ms) || ms <= 0) return '0초';
   if (ms < 1000) return `${ms}ms`;
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / HOUR);
