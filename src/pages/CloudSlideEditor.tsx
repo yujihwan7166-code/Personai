@@ -172,6 +172,22 @@ function isImage(el: SlideElement): el is SlideImageEl {
   return el.type === 'image';
 }
 
+/** 글자 크기 단계 (rem) — px ≈ rem × 16. */
+const FONT_STEPS_REM = [
+  0.625, 0.75, 0.875, 1, 1.125, 1.25, 1.5, 1.75,
+  2, 2.25, 2.6, 3, 3.5, 4, 5, 6,
+];
+function nextFontSize(cur: number, dir: 1 | -1): number {
+  let idx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < FONT_STEPS_REM.length; i++) {
+    const d = Math.abs(FONT_STEPS_REM[i] - cur);
+    if (d < bestDist) { bestDist = d; idx = i; }
+  }
+  const ni = Math.max(0, Math.min(FONT_STEPS_REM.length - 1, idx + dir));
+  return FONT_STEPS_REM[ni];
+}
+
 interface Slide {
   id: string;
   elements: SlideElement[];
@@ -1487,6 +1503,24 @@ export default function CloudSlideEditor() {
                   >
                     <span className={cn('text-sm font-bold', el.bold && 'underline')}>B</span>
                   </ToolBtn>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { fontSizeRem: nextFontSize(el.fontSizeRem, -1) })}
+                    title="글자 작게"
+                  >
+                    <span className="text-xs">A−</span>
+                  </ToolBtn>
+                  <span
+                    className="text-xs text-muted-foreground tabular-nums px-1 min-w-[28px] text-center"
+                    title="현재 글자 크기 (px)"
+                  >
+                    {Math.round(el.fontSizeRem * 16)}
+                  </span>
+                  <ToolBtn
+                    onClick={() => updateEl(el.id, { fontSizeRem: nextFontSize(el.fontSizeRem, 1) })}
+                    title="글자 크게"
+                  >
+                    <span className="text-sm font-medium">A+</span>
+                  </ToolBtn>
                 </>
               );
             }
@@ -1559,6 +1593,32 @@ export default function CloudSlideEditor() {
                         >
                           <span className={cn('text-sm font-bold', allBold && 'underline')}>B</span>
                         </ToolBtn>
+                      );
+                    })()}
+                    {(() => {
+                      const firstSize = texts[0]?.fontSizeRem ?? 1.5;
+                      const allSameSize = texts.every((t) => t.fontSizeRem === firstSize);
+                      return (
+                        <>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ fontSizeRem: nextFontSize(firstSize, -1) })}
+                            title="글자 작게"
+                          >
+                            <span className="text-xs">A−</span>
+                          </ToolBtn>
+                          <span
+                            className="text-xs text-muted-foreground tabular-nums px-1 min-w-[28px] text-center"
+                            title={allSameSize ? `현재 글자 크기 (px)` : '여러 크기 — 다음 단계로 통일'}
+                          >
+                            {allSameSize ? Math.round(firstSize * 16) : '—'}
+                          </span>
+                          <ToolBtn
+                            onClick={() => applyToTexts({ fontSizeRem: nextFontSize(firstSize, 1) })}
+                            title="글자 크게"
+                          >
+                            <span className="text-sm font-medium">A+</span>
+                          </ToolBtn>
+                        </>
                       );
                     })()}
                   </>
