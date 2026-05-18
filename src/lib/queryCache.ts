@@ -50,7 +50,7 @@ export class QueryCache<T = unknown> {
     const existing = this.inflight.get(key);
     if (existing) return existing;
     const p = fetcher().then(
-      d => { this.set(key, d); this.inflight.delete(key); return d; },
+      d => { this.set(key, d, now); this.inflight.delete(key); return d; },
       e => { this.inflight.delete(key); throw e; },
     );
     this.inflight.set(key, p);
