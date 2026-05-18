@@ -225,7 +225,10 @@ export const SheetCell = React.memo(function SheetCell({
       ) : value.startsWith(IMAGE_SENTINEL) ? (() => {
         const url = value.slice(IMAGE_SENTINEL.length);
         return (
-          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+          <div
+            className="w-full h-full flex items-center justify-center overflow-hidden relative group/img"
+            title={url}
+          >
             <img
               src={url}
               alt=""
@@ -246,6 +249,20 @@ export const SheetCell = React.memo(function SheetCell({
             >
               #IMG_FAIL
             </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-0.5 top-0.5 p-0.5 rounded bg-background/70 hover:bg-background opacity-0 group-hover/img:opacity-100 transition-opacity z-10"
+              aria-label="이미지 새 탭에서 열기"
+              title={`새 탭에서 열기: ${url}`}
+            >
+              <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </button>
           </div>
         );
       })() : value.startsWith(AI_SENTINEL) ? (() => {
