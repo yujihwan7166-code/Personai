@@ -69,30 +69,6 @@ export default function CloudDocEditor() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
 
-  // ─── AI 사이드바 ───
-  const getAiContext = useCallback((): AiContext => {
-    if (!editor) {
-      return { kind: 'doc', summary: '빈 문서', fullText: '' };
-    }
-    const { from, to, empty } = editor.state.selection;
-    if (empty) {
-      const all = editor.getText({ blockSeparator: '\n\n' });
-      const chars = all.length;
-      return {
-        kind: 'doc',
-        summary: chars === 0 ? '빈 문서' : `전체 문서 (${chars}자)`,
-        fullText: all,
-      };
-    }
-    const selText = editor.state.doc.textBetween(from, to, '\n\n');
-    return {
-      kind: 'doc',
-      summary: `선택 (${selText.length}자)`,
-      fullText: selText,
-    };
-  }, [editor]);
-  const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
-
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
@@ -236,6 +212,30 @@ export default function CloudDocEditor() {
       queueSave(patch);
     },
   }, [node?.id]);
+
+  // ─── AI 사이드바 (early return 전에 hook 호출 필수) ───
+  const getAiContext = useCallback((): AiContext => {
+    if (!editor) {
+      return { kind: 'doc', summary: '빈 문서', fullText: '' };
+    }
+    const { from, to, empty } = editor.state.selection;
+    if (empty) {
+      const all = editor.getText({ blockSeparator: '\n\n' });
+      const chars = all.length;
+      return {
+        kind: 'doc',
+        summary: chars === 0 ? '빈 문서' : `전체 문서 (${chars}자)`,
+        fullText: all,
+      };
+    }
+    const selText = editor.state.doc.textBetween(from, to, '\n\n');
+    return {
+      kind: 'doc',
+      summary: `선택 (${selText.length}자)`,
+      fullText: selText,
+    };
+  }, [editor]);
+  const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
 
   // 초기 본문 주입 (bodyHtml / bodyMarkdown / body 우선순위)
   useEffect(() => {
