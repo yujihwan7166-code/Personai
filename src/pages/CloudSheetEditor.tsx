@@ -4677,13 +4677,27 @@ function SaveStateBadge({ state }: { state: SaveState }) {
 // 단축키 도움말
 // ─────────────────────────────────────────────
 
+/** 도움말 모달 함수 카테고리 — FUNC_HELP keys 를 카테고리별 그룹. */
+const FUNC_CATEGORIES: Array<{ name: string; funcs: string[] }> = [
+  { name: '집계', funcs: ['SUM', 'AVG', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'COUNTA', 'COUNTBLANK', 'MEDIAN'] },
+  { name: '논리/분기', funcs: ['IF', 'IFS', 'SWITCH', 'AND', 'OR', 'NOT'] },
+  { name: '에러/타입', funcs: ['IFERROR', 'IFNA', 'ISNUMBER', 'ISBLANK', 'ISTEXT', 'ISERROR', 'ISNA'] },
+  { name: '검색', funcs: ['VLOOKUP', 'HLOOKUP', 'XLOOKUP', 'INDEX', 'MATCH'] },
+  { name: '조건 집계', funcs: ['SUMIF', 'COUNTIF', 'SUMIFS', 'COUNTIFS'] },
+  { name: '수치', funcs: ['ABS', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'CEILING', 'FLOOR', 'POWER', 'SQRT', 'MOD', 'INT'] },
+  { name: '통계', funcs: ['STDEV', 'VAR', 'RANK'] },
+  { name: '문자열', funcs: ['LEFT', 'RIGHT', 'MID', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'CONCAT', 'CONCATENATE', 'TEXTJOIN', 'SUBSTITUTE', 'REPLACE', 'FIND', 'SEARCH', 'HYPERLINK', 'TEXT'] },
+  { name: '날짜', funcs: ['TODAY', 'NOW', 'YEAR', 'MONTH', 'DAY', 'WEEKDAY', 'DATE', 'EOMONTH', 'EDATE', 'DATEDIF', 'NETWORKDAYS'] },
+  { name: '특수', funcs: ['IMAGE', 'REGEXMATCH', 'REGEXEXTRACT', 'REGEXREPLACE'] },
+];
+
 function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
-        <DialogTitle className="text-base">시트 단축키</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogTitle className="text-base">시트 도움말</DialogTitle>
         <DialogDescription className="text-xs text-muted-foreground">
-          시트 에디터에서 쓸 수 있는 단축키.
+          단축키 + 지원 수식 함수 ({Object.keys(FUNC_HELP).length}개).
         </DialogDescription>
 
         <div className="space-y-4 text-sm">
@@ -4751,24 +4765,30 @@ function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () => void 
           </section>
         </div>
 
-        <div className="pt-3 text-xs text-muted-foreground border-t border-border space-y-1">
-          <div className="font-medium text-foreground">수식 (✅ 지원):</div>
-          <div>=SUM(A1:A10) · =AVG / AVERAGE · =MIN / MAX / COUNT</div>
-          <div>=IF(A1{'>'}5, "큼", "작음") · =ABS / ROUND</div>
-          <div>=SUMIF(A1:A10, "{'>'}5") · =COUNTIF(B1:B10, "사과")</div>
-          <div>=SUMIFS(C1:C10, A1:A10, "{'>'}5", B1:B10, "사과")</div>
-          <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2</div>
-          <div>=Sheet2!A1 · =SUM(Data!B1:B10) — 다른 시트 참조</div>
-          <div>=$A$1 · =A$1 · =$A1 — 절대 참조 (행/열 삽입에도 고정)</div>
-          <div>=SUM(월매출) — 명명된 범위 (더보기 → 이름 정의)</div>
-          <div>=LEFT(A1, 3) / =RIGHT / =MID / =LEN / =UPPER / =LOWER / =TRIM</div>
-          <div>=CONCAT(A1, " ", B1) · =AND(A1{'>'}0, B1{'<'}100) · =OR / =NOT</div>
-          <div>=TODAY() / =NOW() / =YEAR(A1) / =MONTH / =DAY / =WEEKDAY</div>
-          <div>=POWER(2, 10) · =SQRT · =MOD · =INT · =MEDIAN</div>
-          <div>=VLOOKUP(키, A1:C10, 2, 3) — 마지막 인자는 열 개수</div>
-          <div>=INDEX(A1:A10, 5) · =MATCH("X", A1:A10)</div>
-          <div className="text-muted-foreground/70">에러: #CIRCULAR / #ERROR / #DIV/0!</div>
-          <div className="pt-1">시트 탭 · 셀 서식 · .xlsx import/export 는 다음 단계.</div>
+        <div className="pt-3 text-xs border-t border-border space-y-3">
+          <div className="font-medium text-foreground">수식 — 카테고리별 ({Object.keys(FUNC_HELP).length}개)</div>
+          <div className="text-muted-foreground/80 space-y-0.5">
+            <div>=A1+B1*2 · =(A1+B1)/2 · =A1^2 · =Sheet2!A1 · =SUM(Data!B1:B10)</div>
+            <div>=$A$1 / =A$1 / =$A1 — 절대 참조 · =SUM(월매출) — 명명된 범위</div>
+            <div className="text-muted-foreground/60">에러: #CIRCULAR / #ERROR / #DIV/0! / #VALUE! / #REF! / #N/A / #NUM!</div>
+          </div>
+          {FUNC_CATEGORIES.map((cat) => (
+            <section key={cat.name}>
+              <h4 className="text-xs font-medium text-foreground mb-1">{cat.name}</h4>
+              <ul className="space-y-0.5">
+                {cat.funcs.map((name) => {
+                  const h = FUNC_HELP[name];
+                  if (!h) return null;
+                  return (
+                    <li key={name} className="flex items-baseline gap-2 text-muted-foreground">
+                      <code className="font-mono text-foreground/90 shrink-0">={h.sig}</code>
+                      <span className="text-muted-foreground/80 truncate">{h.desc}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
