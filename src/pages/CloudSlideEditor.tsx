@@ -1442,8 +1442,8 @@ export default function CloudSlideEditor() {
             <Trash2 className="w-4 h-4" />
           </ToolBtn>
 
-          {/* 선택된 요소별 인스펙터 — 도형이면 색 picker, 텍스트면 글자색 */}
-          {selectedElId && (() => {
+          {/* 선택된 요소별 인스펙터 — 단일 선택: 도형이면 색 picker, 텍스트면 글자색 */}
+          {selectedElId && selectedElIds.size <= 1 && (() => {
             const el = currentSlide.elements.find((x) => x.id === selectedElId);
             if (!el) return null;
             if (isShape(el)) {
@@ -1491,6 +1491,67 @@ export default function CloudSlideEditor() {
               );
             }
             return null;
+          })()}
+
+          {/* 다중 선택 색상 일괄 적용 — 도형/텍스트 분리해 각각에 적용 */}
+          {selectedElIds.size >= 2 && (() => {
+            const els = currentSlide.elements.filter((e) => selectedElIds.has(e.id));
+            const shapes = els.filter(isShape);
+            const texts = els.filter(isText);
+            const applyToShapes = (patch: Partial<SlideShapeEl>) => {
+              updateCurrentSlide((s) => ({
+                ...s,
+                elements: s.elements.map((el) =>
+                  selectedElIds.has(el.id) && isShape(el)
+                    ? ({ ...el, ...patch } as SlideElement)
+                    : el,
+                ),
+              }));
+            };
+            const applyToTexts = (patch: Partial<SlideTextEl>) => {
+              updateCurrentSlide((s) => ({
+                ...s,
+                elements: s.elements.map((el) =>
+                  selectedElIds.has(el.id) && isText(el)
+                    ? ({ ...el, ...patch } as SlideElement)
+                    : el,
+                ),
+              }));
+            };
+            const firstFill = shapes[0]?.fillColor ?? '#3b82f6';
+            const allSameFill = shapes.length > 0 && shapes.every((s) => s.fillColor === firstFill);
+            const firstStroke = shapes[0]?.strokeColor;
+            const allSameStroke = shapes.length > 0 && shapes.every((s) => s.strokeColor === firstStroke);
+            const firstText = texts[0]?.textColor ?? '#222222';
+            const allSameText = texts.length > 0 && texts.every((t) => (t.textColor ?? '#222222') === firstText);
+            if (shapes.length === 0 && texts.length === 0) return null;
+            return (
+              <>
+                <Sep />
+                {shapes.length > 0 && (
+                  <>
+                    <ColorPopover
+                      label={`채우기 ×${shapes.length}`}
+                      value={allSameFill ? firstFill : '#3b82f6'}
+                      onChange={(v) => applyToShapes({ fillColor: v })}
+                      allowTransparent
+                    />
+                    <ColorPopover
+                      label={`테두리 ×${shapes.length}`}
+                      value={allSameStroke ? (firstStroke ?? '#000000') : '#000000'}
+                      onChange={(v) => applyToShapes({ strokeColor: v, strokeWidth: 2 })}
+                    />
+                  </>
+                )}
+                {texts.length > 0 && (
+                  <ColorPopover
+                    label={`글자색 ×${texts.length}`}
+                    value={allSameText ? firstText : '#222222'}
+                    onChange={(v) => applyToTexts({ textColor: v })}
+                  />
+                )}
+              </>
+            );
           })()}
 
           {/* 선택된 요소가 있을 때 z-order 액션 */}
