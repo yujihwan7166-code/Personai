@@ -44,6 +44,10 @@ export default function Cloud() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  // 정렬: 폴더는 항상 first, 그 안에서 사용자 선택 적용
+  type SortKey = 'name' | 'updated' | 'size';
+  const [sortKey, setSortKey] = useState<SortKey>('updated');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [listMode, setListMode] = useState<CloudListMode>('folder');
   const [trail, setTrail] = useState<BreadcrumbItem[]>([{ id: null, name: '내 파일' }]);
   const [showFolderInput, setShowFolderInput] = useState(false);
@@ -69,6 +73,24 @@ export default function Cloud() {
     mode: listMode,
     parentFolderId: currentFolderId,
   });
+
+  /** 정렬된 노드 — 폴더 first 유지, 그 안에서 sortKey/Dir 적용 */
+  const displayedNodes = useMemo(() => {
+    const cmp = (a: CloudNode, b: CloudNode): number => {
+      // 폴더 first (정렬 키와 무관하게 항상)
+      if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+      let r = 0;
+      if (sortKey === 'name') {
+        r = a.name.localeCompare(b.name, 'ko');
+      } else if (sortKey === 'updated') {
+        r = (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '');
+      } else if (sortKey === 'size') {
+        r = (a.sizeBytes ?? 0) - (b.sizeBytes ?? 0);
+      }
+      return sortDir === 'asc' ? r : -r;
+    };
+    return [...nodes].sort(cmp);
+  }, [nodes, sortKey, sortDir]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -1023,7 +1045,29 @@ export default function Cloud() {
                   ))
                 )}
               </div>
-              <div className="flex items-center gap-1 text-xs">
+              <div className="flex items-center gap-2 text-xs">
+                {/* 정렬 옵션 */}
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value as SortKey)}
+                  className="px-1.5 py-1 rounded border border-border bg-background hover:bg-muted cursor-pointer text-xs"
+                  aria-label="정렬 기준"
+                  title="정렬 기준"
+                >
+                  <option value="updated">수정일</option>
+                  <option value="name">이름</option>
+                  <option value="size">크기</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setSortDir((d) => d === 'asc' ? 'desc' : 'asc')}
+                  className="px-1.5 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                  title={sortDir === 'asc' ? '오름차순 (낮은→높은)' : '내림차순 (높은→낮은)'}
+                  aria-label="정렬 방향"
+                >
+                  {sortDir === 'asc' ? '↑' : '↓'}
+                </button>
+                <div className="w-px h-4 bg-border mx-1" />
                 <button
                   onClick={() => setViewMode('list')}
                   className={cn(
@@ -1085,7 +1129,7 @@ export default function Cloud() {
               <EmptyState mode={listMode} />
             ) : viewMode === 'list' ? (
               <ul className="divide-y divide-border">
-                {nodes.map((n) => (
+                {displayedNodes.map((n) => (
                   <NodeRow
                     key={n.id}
                     node={n}
@@ -1116,7 +1160,7 @@ export default function Cloud() {
               </ul>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {nodes.map((n) => (
+                {displayedNodes.map((n) => (
                   <NodeCard
                     key={n.id}
                     node={n}
