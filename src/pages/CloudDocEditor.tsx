@@ -231,7 +231,14 @@ export default function CloudDocEditor() {
       TableCell,
       Superscript,
       Subscript,
-      Markdown.configure({ html: true, linkify: true, breaks: false }),
+      // paste/copy 시 markdown 자동 변환 끄기 — 외부 텍스트가 의도 안 한 변환되는 것 방지 (독스 톤)
+      Markdown.configure({
+        html: true,
+        linkify: true,
+        breaks: false,
+        transformPastedText: false,
+        transformCopiedText: false,
+      }),
       Footnote,
       Placeholder.configure({
         placeholder: ({ node: pmNode }) => {
