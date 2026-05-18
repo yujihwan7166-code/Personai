@@ -30,6 +30,12 @@ describe('slidesToOutline', () => {
     ];
     expect(slidesToOutline(slides)).toBe('[슬라이드 1]\nA\n\n[슬라이드 2]\nB');
   });
+  it('긴 본문 → 200자 + … truncate (토큰 한계 보호)', () => {
+    const long = 'a'.repeat(300);
+    const r = slidesToOutline([{ elements: [{ type: 'text', content: long }] }]);
+    expect(r).toContain('a'.repeat(200) + '…');
+    expect(r.length).toBeLessThan(long.length);
+  });
 });
 
 describe('parseAiSlideContent', () => {

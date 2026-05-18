@@ -66,6 +66,8 @@ import { applySnap, buildSnapLines } from '@/lib/cloudSlide/snap';
 import { computeRotation, angleBetween } from '@/lib/cloudSlide/rotation';
 
 const AUTOSAVE_DELAY_MS = 1000;
+const SLIDE_ZOOM_STEPS = [50, 75, 100, 125, 150, 200] as const;
+const SLIDE_ZOOM_LS_KEY = 'personai.cloud.slide.zoom';
 
 export default function CloudSlideEditor() {
   const { id } = useParams<{ id: string }>();
@@ -88,15 +90,19 @@ export default function CloudSlideEditor() {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ─── 슬라이드 zoom (캔버스 폭 % — localStorage 영속) ───
-  const SLIDE_ZOOM_STEPS = [50, 75, 100, 125, 150, 200];
   const [slideZoom, setSlideZoomInner] = useState<number>(() => {
     if (typeof window === 'undefined') return 100;
-    const v = Number(window.localStorage.getItem('personai.cloud.slide.zoom'));
-    return SLIDE_ZOOM_STEPS.includes(v) ? v : 100;
+    try {
+      const v = Number(window.localStorage.getItem(SLIDE_ZOOM_LS_KEY));
+      return (SLIDE_ZOOM_STEPS as readonly number[]).includes(v) ? v : 100;
+    } catch {
+      // private mode / cookie 차단 환경
+      return 100;
+    }
   });
   const setSlideZoom = useCallback((v: number) => {
     setSlideZoomInner(v);
-    try { window.localStorage.setItem('personai.cloud.slide.zoom', String(v)); } catch { /* noop */ }
+    try { window.localStorage.setItem(SLIDE_ZOOM_LS_KEY, String(v)); } catch { /* noop */ }
   }, []);
 
   // ─── 노드 로드 (공용 훅) ───

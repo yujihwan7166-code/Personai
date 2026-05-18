@@ -21,9 +21,21 @@ export function slideToText(slide: { elements: { type: string; content?: string 
   return lines.join('\n').trim();
 }
 
+/**
+ * 전체 slides → outline 텍스트. 너무 길면 (예: 100장+) 토큰 한계 초과 가능 →
+ * 각 슬라이드 본문은 최대 200자로 truncate.
+ */
+const SLIDE_OUTLINE_MAX_CHARS = 200;
+
 export function slidesToOutline(slides: Array<{ elements: { type: string; content?: string }[] }>): string {
   return slides
-    .map((s, i) => `[슬라이드 ${i + 1}]\n${slideToText(s)}`)
+    .map((s, i) => {
+      const text = slideToText(s);
+      const shortened = text.length > SLIDE_OUTLINE_MAX_CHARS
+        ? text.slice(0, SLIDE_OUTLINE_MAX_CHARS) + '…'
+        : text;
+      return `[슬라이드 ${i + 1}]\n${shortened}`;
+    })
     .join('\n\n');
 }
 
