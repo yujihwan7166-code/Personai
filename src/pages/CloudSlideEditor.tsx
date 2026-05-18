@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ColorPopover } from '@/components/cloud/ColorPopover';
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 const AUTOSAVE_DELAY_MS = 1000;
 
 interface BaseEl {
@@ -2756,30 +2756,6 @@ function RotateHandle({ onStart }: { onStart: (e: React.PointerEvent) => void })
   );
 }
 
-function SaveStateBadge({ state }: { state: SaveState }) {
-  if (state === 'saving') {
-    return (
-      <span className="flex items-center gap-1 text-muted-foreground">
-        <Loader2 className="w-3 h-3 animate-spin" />저장 중…
-      </span>
-    );
-  }
-  if (state === 'saved') {
-    return (
-      <span className="flex items-center gap-1 text-muted-foreground">
-        <CheckCircle2 className="w-3 h-3" />저장됨
-      </span>
-    );
-  }
-  if (state === 'error') {
-    return (
-      <span className="flex items-center gap-1 text-destructive">
-        <AlertCircle className="w-3 h-3" />저장 실패
-      </span>
-    );
-  }
-  return null;
-}
 
 // ─────────────────────────────────────────────
 // 단축키 도움말
