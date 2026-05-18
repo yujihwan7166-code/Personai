@@ -11,6 +11,7 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { colToIdx, idxToCol } from './formula';
+import { excelNumFmtToToken } from './numFmtMap';
 
 type Cells = Record<string, string>;
 
@@ -31,6 +32,16 @@ export interface ImportedSheet {
   name: string;
   cells: Cells;
   merges?: Merge[];
+  /** A1 좌표 → 셀 서식 (글꼴/색/배경/정렬/숫자형식/테두리). 가능한 것만. */
+  cellFormats?: CellFormats;
+  /** 0-based 열 인덱스 → 픽셀 너비. 엑셀의 character-unit 너비를 px 추정. */
+  colWidths?: Record<number, number>;
+  /** 1-based 행 번호 → 픽셀 높이. */
+  rowHeights?: Record<number, number>;
+  /** 행 고정 개수 (0 = 없음). */
+  freezeRows?: number;
+  /** 열 고정 개수 (0 = 없음). */
+  freezeCols?: number;
 }
 
 export interface ExportSheetInput {
@@ -46,8 +57,30 @@ export interface ExportSheetInput {
 
 export async function importXlsxFile(file: File): Promise<ImportedSheet[]> {
   const data = await file.arrayBuffer();
+  return importXlsxBuffer(data);
+}
+
+/**
+ * Buffer 기반 import — 테스트·서버사이드용. importXlsxFile 의 내부 구현.
+ * SheetJS 로 값/수식/병합, ExcelJS 로 서식/열·행 크기/freeze 추출.
+ */
+export async function importXlsxBuffer(data: ArrayBuffer): Promise<ImportedSheet[]> {
+  // SheetJS — 값/수식/병합 추출 (안정적).
   const wb = XLSX.read(data, { type: 'array' });
-  return wb.SheetNames.map((name) => extractSheet(wb.Sheets[name], name));
+  const base = wb.SheetNames.map((name) => extractSheet(wb.Sheets[name], name));
+
+  // ExcelJS — 서식/열너비/행높이/freeze 추가 추출. 실패해도 base 반환.
+  try {
+    const ewb = new ExcelJS.Workbook();
+    await ewb.xlsx.load(data);
+    for (const sheet of base) {
+      const ews = ewb.getWorksheet(sheet.name);
+      if (ews) enrichWithStyles(sheet, ews);
+    }
+  } catch {
+    // ExcelJS 파싱 실패해도 base (값+병합) 는 유지.
+  }
+  return base;
 }
 
 function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedSheet {
@@ -68,6 +101,98 @@ function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedShe
     minR: r.s.r, maxR: r.e.r, minC: r.s.c, maxC: r.e.c,
   }));
   return { name, cells, merges };
+}
+
+/**
+ * ExcelJS 워크시트의 서식 정보를 ImportedSheet 에 mutate.
+ *  - 셀 서식 (글꼴/색/배경/정렬/numFmt/테두리) — 가능한 것만 우리 토큰으로 매핑
+ *  - 열 너비 (엑셀 character unit → px 추정)
+ *  - 행 높이 (point → px)
+ *  - freeze (ws.views[0].xSplit/ySplit)
+ */
+function enrichWithStyles(sheet: ImportedSheet, ews: ExcelJS.Worksheet): void {
+  const cellFormats: CellFormats = {};
+  const colWidths: Record<number, number> = {};
+  const rowHeights: Record<number, number> = {};
+
+  // 열 너비 — character units → px (대략 width * 7 + 5)
+  ews.columns?.forEach((col, idx) => {
+    if (typeof col?.width === 'number' && Number.isFinite(col.width)) {
+      colWidths[idx] = Math.round(col.width * 7 + 5);
+    }
+  });
+
+  // 행 높이 + 셀 서식
+  ews.eachRow({ includeEmpty: false }, (row, rowNum) => {
+    if (typeof row.height === 'number' && Number.isFinite(row.height)) {
+      // pt → px (1pt ≈ 1.333px)
+      rowHeights[rowNum] = Math.round(row.height * 1.333);
+    }
+    row.eachCell({ includeEmpty: false }, (cell) => {
+      const ref = cell.address; // 'A1' 형식
+      const fmt = extractCellFormat(cell);
+      if (fmt) cellFormats[ref] = fmt;
+    });
+  });
+
+  // Freeze pane — views[0].state === 'frozen' 이면 xSplit/ySplit 가 freeze 위치 (1-based 분리 지점)
+  const view = ews.views?.[0];
+  let freezeRows = 0;
+  let freezeCols = 0;
+  if (view && view.state === 'frozen') {
+    freezeRows = view.ySplit ?? 0;
+    freezeCols = view.xSplit ?? 0;
+  }
+
+  if (Object.keys(cellFormats).length > 0) sheet.cellFormats = cellFormats;
+  if (Object.keys(colWidths).length > 0) sheet.colWidths = colWidths;
+  if (Object.keys(rowHeights).length > 0) sheet.rowHeights = rowHeights;
+  if (freezeRows > 0) sheet.freezeRows = freezeRows;
+  if (freezeCols > 0) sheet.freezeCols = freezeCols;
+}
+
+/** ExcelJS cell → 우리 CellFormat. 빈 결과면 undefined. */
+function extractCellFormat(cell: ExcelJS.Cell): CellFormat | undefined {
+  const out: CellFormat = {};
+
+  const font = cell.font;
+  if (font?.bold) out.bold = true;
+  if (font?.italic) out.italic = true;
+  if (font?.color?.argb) out.textColor = argbToHex(font.color.argb);
+
+  const fill = cell.fill as ExcelJS.FillPattern | undefined;
+  if (fill?.type === 'pattern' && fill.fgColor?.argb) {
+    const bg = argbToHex(fill.fgColor.argb);
+    if (bg) out.bgColor = bg;
+  }
+
+  const align = cell.alignment?.horizontal;
+  if (align === 'left' || align === 'center' || align === 'right') {
+    out.align = align;
+  }
+
+  const tok = excelNumFmtToToken(cell.numFmt);
+  if (tok) out.numberFmt = tok;
+
+  // 테두리 — ExcelJS 는 4면 개별 정보만 — 'all'(=4면 다) vs 단일 면만 매핑.
+  // 'outer' 는 우리 토큰 정의상 'all' 과 결과 동일하므로 별도 매핑 안 함.
+  const b = cell.border;
+  if (b?.top && b?.bottom && b?.left && b?.right) out.border = 'all';
+  else if (b?.top) out.border = 'top';
+  else if (b?.bottom) out.border = 'bottom';
+  else if (b?.left) out.border = 'left';
+  else if (b?.right) out.border = 'right';
+
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** ExcelJS 의 ARGB(8자리 hex, alpha 첫 2) → #RRGGBB. */
+function argbToHex(argb: string): string | undefined {
+  if (!argb || argb.length < 6) return undefined;
+  // 8자리이면 alpha 떼고, 6자리이면 그대로.
+  const hex = argb.length === 8 ? argb.slice(2) : argb;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return undefined;
+  return '#' + hex.toUpperCase();
 }
 
 /**

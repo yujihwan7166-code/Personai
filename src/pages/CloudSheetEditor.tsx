@@ -1661,13 +1661,19 @@ export default function CloudSheetEditor() {
           return;
         }
         // 새 시트들로 추가 (현재 시트는 보존)
+        // ExcelJS 로 추출된 서식·열너비·행높이·freeze 도 함께 반영 (PR #2/5 — Import 정확도).
         const newMetas: SheetMeta[] = [];
         const newAllCells: AllCells = { ...allCells };
         const newAllFormats: AllFormats = { ...allFormats };
         const newAllMerges: AllMerges = { ...allMerges };
+        // 첫 import 된 시트의 col/row/freeze 만 전체 그리드에 반영 (단일 그리드 한계 — v1).
+        let importedColWidths: Record<number, number> | undefined;
+        let importedRowHeights: Record<number, number> | undefined;
+        let importedFreezeRows: number | undefined;
+        let importedFreezeCols: number | undefined;
+        let preservedCount = 0;
         for (const sheet of imported) {
           const id = newSheetId();
-          // 중복 이름 회피
           const usedNames = new Set([
             ...sheetsMeta.map((s) => s.name),
             ...newMetas.map((s) => s.name),
@@ -1679,14 +1685,23 @@ export default function CloudSheetEditor() {
           }
           newMetas.push({ id, name });
           newAllCells[id] = sheet.cells;
-          newAllFormats[id] = {};
+          newAllFormats[id] = sheet.cellFormats ?? {};
           newAllMerges[id] = sheet.merges ?? [];
+          if (sheet.cellFormats && Object.keys(sheet.cellFormats).length > 0) preservedCount++;
+          if (!importedColWidths && sheet.colWidths) importedColWidths = sheet.colWidths;
+          if (!importedRowHeights && sheet.rowHeights) importedRowHeights = sheet.rowHeights;
+          if (importedFreezeRows === undefined && sheet.freezeRows) importedFreezeRows = sheet.freezeRows;
+          if (importedFreezeCols === undefined && sheet.freezeCols) importedFreezeCols = sheet.freezeCols;
         }
         const nextSheets = [...sheetsMeta, ...newMetas];
         setSheetsMeta(nextSheets);
         setAllCells(newAllCells);
         setAllFormats(newAllFormats);
         setAllMerges(newAllMerges);
+        if (importedColWidths) setColWidths((cur) => ({ ...cur, ...importedColWidths }));
+        if (importedRowHeights) setRowHeights((cur) => ({ ...cur, ...importedRowHeights }));
+        if (importedFreezeRows !== undefined) setFreezeRows(importedFreezeRows);
+        if (importedFreezeCols !== undefined) setFreezeCols(importedFreezeCols);
         setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
         // 가져온 시트가 현재 그리드보다 크면 자동 확장
         const { row: maxR, col: maxC } = maxRowColFromAll(newAllCells, newAllMerges);
@@ -1699,9 +1714,13 @@ export default function CloudSheetEditor() {
           currentSheetIdx: sheetsMeta.length,
           rowCount: nextRowCount, colCount: nextColCount,
         });
+        const parts: string[] = [`${imported.length}개 시트`];
+        if (preservedCount > 0) parts.push(`서식 ${preservedCount}개 시트 보존`);
+        if (importedColWidths || importedRowHeights) parts.push('행/열 크기 적용');
+        if (importedFreezeRows || importedFreezeCols) parts.push('freeze 적용');
         toast({
           title: '가져오기 완료',
-          description: `${imported.length}개 시트 추가 · 그리드 ${nextRowCount}행 × ${nextColCount}열 (셀 병합 보존)`,
+          description: parts.join(' · '),
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

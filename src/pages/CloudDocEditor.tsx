@@ -69,6 +69,17 @@ export default function CloudDocEditor() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
 
+  // 줌 — localStorage 영속 (사용자별 마지막 선택값 유지)
+  const [zoom, setZoomInner] = useState<number>(() => {
+    if (typeof window === 'undefined') return 100;
+    const v = Number(window.localStorage.getItem('personai.cloud.doc.zoom'));
+    return [50, 75, 100, 125, 150, 200].includes(v) ? v : 100;
+  });
+  const setZoom = useCallback((v: number) => {
+    setZoomInner(v);
+    try { window.localStorage.setItem('personai.cloud.doc.zoom', String(v)); } catch { /* noop */ }
+  }, []);
+
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
@@ -505,7 +516,7 @@ export default function CloudDocEditor() {
             </DropdownMenu>
           </div>
         </div>
-        {editor && <DocToolbar editor={editor} />}
+        {editor && <DocToolbar editor={editor} zoom={zoom} onZoomChange={setZoom} />}
       </header>
 
       <div className="flex-1 flex overflow-hidden">
@@ -518,8 +529,14 @@ export default function CloudDocEditor() {
               onClose={() => setSearchOpen(false)}
             />
           )}
-          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi, 종이 안 여백 1인치 */}
-          <div className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm px-[96px] py-[96px] dark:bg-slate-50 dark:text-slate-900">
+          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi, 종이 안 여백 1인치. zoom 은 transform: scale */}
+          <div
+            className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm px-[96px] py-[96px] dark:bg-slate-50 dark:text-slate-900"
+            style={{
+              transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
+              transformOrigin: 'top center',
+            }}
+          >
             <EditorContent editor={editor} />
           </div>
         </main>
@@ -551,6 +568,37 @@ export default function CloudDocEditor() {
 
       <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 줌 컨트롤 — 50/75/100/125/150/200%
+// ─────────────────────────────────────────────
+
+const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200] as const;
+
+function ZoomSelect({ zoom, onZoomChange }: { zoom: number; onZoomChange: (z: number) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="h-7 px-2 rounded hover:bg-muted text-xs flex items-center gap-1 min-w-[64px] border border-border"
+        title="줌"
+      >
+        <span className="truncate text-left flex-1">{zoom}%</span>
+        <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[88px]">
+        {ZOOM_PRESETS.map((p) => (
+          <DropdownMenuItem
+            key={p}
+            onSelect={() => onZoomChange(p)}
+            className={zoom === p ? 'bg-muted' : ''}
+          >
+            {p}%
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -701,7 +749,7 @@ function FormatPainterBtn({ editor }: { editor: Editor }) {
 // 도구바
 // ─────────────────────────────────────────────
 
-function DocToolbar({ editor }: { editor: Editor }) {
+function DocToolbar({ editor, zoom, onZoomChange }: { editor: Editor; zoom: number; onZoomChange: (z: number) => void }) {
   return (
     <div className="border-t border-border bg-background flex items-center gap-0.5 px-3 py-1.5 overflow-x-auto">
       <ToolBtn
@@ -722,6 +770,7 @@ function DocToolbar({ editor }: { editor: Editor }) {
       <FormatPainterBtn editor={editor} />
       <Sep />
       <StyleSelect editor={editor} />
+      <ZoomSelect zoom={zoom} onZoomChange={onZoomChange} />
       <Sep />
       <ToolBtn
         onClick={() => editor.chain().focus().toggleBold().run()}
