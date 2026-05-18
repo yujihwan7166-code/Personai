@@ -70,24 +70,81 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   INDEX:     { sig: 'INDEX(range, idx)',               desc: '1-based 평탄 인덱싱' },
   MATCH:     { sig: 'MATCH(key, range)',               desc: 'key 위치 (1-based) 또는 #N/A' },
   IMAGE:     { sig: 'IMAGE(url)',                      desc: '셀에 이미지 표시 (HTTPS 권장)' },
+  // ── 에러 처리 ──
+  IFERROR:   { sig: 'IFERROR(값, 대체값)',             desc: '에러면 대체값, 아니면 값 그대로' },
+  IFNA:      { sig: 'IFNA(값, 대체값)',                desc: '#N/A 면 대체값' },
+  ISNUMBER:  { sig: 'ISNUMBER(값)',                    desc: '숫자면 TRUE' },
+  ISBLANK:   { sig: 'ISBLANK(값)',                     desc: '빈 셀이면 TRUE' },
+  ISTEXT:    { sig: 'ISTEXT(값)',                      desc: '문자열이면 TRUE' },
+  ISERROR:   { sig: 'ISERROR(값)',                     desc: '에러(#XXX)면 TRUE' },
+  ISNA:      { sig: 'ISNA(값)',                        desc: '#N/A 면 TRUE' },
+  // ── 분기 ──
+  IFS:       { sig: 'IFS(조건1, 값1, 조건2, 값2, …)',  desc: '여러 조건을 차례로 검사' },
+  SWITCH:    { sig: 'SWITCH(식, 케이스1, 값1, …, [기본값])', desc: '식이 케이스와 일치하면 값' },
+  // ── 검색 (XLOOKUP) ──
+  XLOOKUP:   { sig: 'XLOOKUP(키, 검색범위, 반환범위, [없을때])', desc: 'VLOOKUP 상위호환' },
+  // ── 텍스트 ──
+  TEXTJOIN:  { sig: 'TEXTJOIN(구분자, 빈셀무시, 텍스트1, …)', desc: '여러 텍스트를 구분자로 연결' },
+  SUBSTITUTE: { sig: 'SUBSTITUTE(텍스트, 옛값, 새값, [N번째])', desc: '특정 문자열 치환' },
+  REPLACE:   { sig: 'REPLACE(텍스트, 시작, 길이, 새값)', desc: '위치 기반 치환' },
+  FIND:      { sig: 'FIND(찾을값, 텍스트, [시작])',    desc: '대소문자 구분 검색 (1-based)' },
+  SEARCH:    { sig: 'SEARCH(찾을값, 텍스트, [시작])',  desc: '대소문자 무시 검색' },
+  HYPERLINK: { sig: 'HYPERLINK(url, [라벨])',          desc: '링크 (v1: 라벨만 표시)' },
+  // ── 수치 ──
+  ROUNDUP:   { sig: 'ROUNDUP(숫자, 소수자리)',         desc: '올림' },
+  ROUNDDOWN: { sig: 'ROUNDDOWN(숫자, 소수자리)',       desc: '내림' },
+  CEILING:   { sig: 'CEILING(숫자, [기준])',           desc: '기준 배수로 올림' },
+  FLOOR:     { sig: 'FLOOR(숫자, [기준])',             desc: '기준 배수로 내림' },
+  COUNTA:    { sig: 'COUNTA(range)',                   desc: '비어있지 않은 셀 개수' },
+  COUNTBLANK:{ sig: 'COUNTBLANK(range)',               desc: '빈 셀 개수' },
+  // ── 통계 ──
+  STDEV:     { sig: 'STDEV(range)',                    desc: '표본 표준편차' },
+  VAR:       { sig: 'VAR(range)',                      desc: '표본 분산' },
+  RANK:      { sig: 'RANK(값, range, [오름차순=0])',  desc: '범위 내 순위' },
+  // ── 날짜 ──
+  DATE:      { sig: 'DATE(년, 월, 일)',                desc: '날짜 만들기' },
+  EOMONTH:   { sig: 'EOMONTH(시작, [개월]=0)',         desc: '월말 (개월 더한 뒤)' },
+  EDATE:     { sig: 'EDATE(시작, 개월)',               desc: '개월 더한 같은 날짜' },
+  DATEDIF:   { sig: 'DATEDIF(시작, 끝, "Y"|"M"|"D")',  desc: '두 날짜 간격' },
+  NETWORKDAYS: { sig: 'NETWORKDAYS(시작, 끝)',         desc: '평일 일수 (주말 제외)' },
+  // ── 포맷 ──
+  TEXT:      { sig: 'TEXT(값, 형식)',                  desc: '숫자·날짜 포맷 (yyyy-mm-dd, #,##0.00 등)' },
+  // ── 정규표현식 ──
+  REGEXMATCH:   { sig: 'REGEXMATCH(텍스트, 패턴)',     desc: '패턴 일치 여부' },
+  REGEXEXTRACT: { sig: 'REGEXEXTRACT(텍스트, 패턴)',   desc: '첫 일치(또는 그룹 1) 추출' },
+  REGEXREPLACE: { sig: 'REGEXREPLACE(텍스트, 패턴, 치환)', desc: '패턴 치환 (전역)' },
 };
 
 /** IMAGE 함수 sentinel — 셀 렌더가 이 prefix 를 보고 <img> 로 표시. */
 export const IMAGE_SENTINEL = '__CLOUDSHEET_IMAGE__:';
 
-// 긴 이름부터 → 짧은 이름이 prefix 인 경우 먼저 매칭되도록 정렬
+// 긴 이름부터 → \b 경계 덕에 prefix 충돌은 없지만 가독성 위해 desc 정렬.
 const FUNC_ORDER = [
-  // 6자+
-  'AVERAGE', 'SUMIFS', 'COUNTIFS', 'VLOOKUP', 'HLOOKUP',
+  // 12자
+  'REGEXREPLACE', 'REGEXEXTRACT',
+  // 11자
+  'NETWORKDAYS', 'CONCATENATE',
+  // 10자
+  'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE',
+  // 9자
+  'ROUNDDOWN', 'HYPERLINK',
+  // 8자
+  'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
+  // 7자
+  'AVERAGE', 'VLOOKUP', 'HLOOKUP', 'DATEDIF', 'CEILING', 'ROUNDUP', 'EOMONTH',
+  'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE',
+  // 6자
+  'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT',
   // 5자
-  'MEDIAN', 'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM',
-  'MONTH', 'TODAY', 'CONCATENATE', 'CONCAT', 'IMAGE',
+  'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
+  'STDEV', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
+  'RIGHT',
   // 4자
-  'SUMIF', 'COUNTIF', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT',
-  'ROUND', 'INDEX', 'MATCH', 'LEFT', 'RIGHT',
-  'YEAR', 'WEEKDAY',
+  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'RANK', 'DATE', 'TEXT',
+  'IFNA', 'ISNA', 'FIND',
   // 3자
-  'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT', 'NOW', 'DAY',
+  'SUM', 'AVG', 'MIN', 'MAX', 'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT',
+  'NOW', 'DAY', 'VAR', 'IFS',
   // 2자
   'IF', 'OR', 'ABS',
 ];
@@ -202,6 +259,15 @@ function evalExpr(
   visiting: Set<string>,
 ): unknown {
   let work = expr;
+
+  // -1. TRUE/FALSE 리터럴 — JS 식별자 아님(=undefined ReferenceError). 사전 치환.
+  work = work.replace(/\bTRUE\b/gi, 'true').replace(/\bFALSE\b/gi, 'false');
+
+  // -0.5. 문자열 리터럴 내 백슬래시 escape — 사용자가 "\d+" 같은 정규표현식 패턴을
+  //       쓸 때 JS 문자열 파서가 \d 를 d 로 swallow 하는 문제 회피.
+  //       "..." 안의 \ 를 \\ 로 변환해 JS 가 \ 로 정확히 인식하도록.
+  //       (제한: 문자열 안에 escape 된 따옴표 \" 는 v1 미지원 — 일반 셀 입력엔 거의 없음.)
+  work = work.replace(/"([^"]*)"/g, (_, c: string) => '"' + c.replace(/\\/g, '\\\\') + '"');
 
   // 0. Named Range 치환 — 가장 먼저. 이름이 함수명·기존 ref 와 안 겹친다 가정.
   //    토큰 경계: 앞뒤가 알파뉴 X. case-insensitive.
@@ -550,6 +616,281 @@ function evalExpr(
     return '#N/A';
   };
 
+  // ─── 에러 처리 ───
+  const isErrorStr = (v: unknown): boolean =>
+    typeof v === 'string' && /^#(?:REF|VALUE|N\/A|NUM|DIV\/0|ERROR|CIRCULAR)!?$/.test(v);
+  // IFERROR — 문자열 에러 + JS 수준 Infinity/NaN 도 fallback.
+  // (1/0 같은 식은 evaluator 가 formatResult 단계에 가야 #DIV/0! 가 됨.
+  //  IFERROR 호출 시점엔 raw Infinity 이므로 isFinite 도 같이 검사.)
+  const __iferror = (v: unknown, fallback: unknown) => {
+    if (isErrorStr(v)) return fallback;
+    if (typeof v === 'number' && !Number.isFinite(v)) return fallback;
+    return v;
+  };
+  const __ifna = (v: unknown, fallback: unknown) => (v === '#N/A' ? fallback : v);
+  const __isnumber = (v: unknown) => {
+    if (typeof v === 'number') return Number.isFinite(v);
+    const s = String(v ?? '').trim();
+    if (!s) return false;
+    return Number.isFinite(Number(s));
+  };
+  const __isblank = (v: unknown) => v == null || String(v ?? '') === '';
+  const __istext = (v: unknown) => {
+    if (typeof v !== 'string') return false;
+    if (isErrorStr(v)) return false;
+    const s = v.trim();
+    if (s === '') return false;
+    return !Number.isFinite(Number(s));
+  };
+  const __iserror = (v: unknown) => isErrorStr(v);
+  const __isna = (v: unknown) => v === '#N/A';
+
+  // ─── 분기 ───
+  const __ifs = (...args: unknown[]) => {
+    for (let i = 0; i < args.length - 1; i += 2) if (args[i]) return args[i + 1];
+    return '#N/A';
+  };
+  const __switch = (value: unknown, ...args: unknown[]) => {
+    const pairCount = args.length - (args.length % 2);
+    const vStr = String(value ?? '');
+    const vNum = Number(value);
+    for (let i = 0; i < pairCount; i += 2) {
+      const caseV = args[i];
+      const caseNum = Number(caseV);
+      const match = Number.isFinite(vNum) && Number.isFinite(caseNum)
+        ? vNum === caseNum
+        : vStr === String(caseV ?? '');
+      if (match) return args[i + 1];
+    }
+    return args.length % 2 ? args[args.length - 1] : '#N/A';
+  };
+
+  // ─── XLOOKUP — VLOOKUP 상위호환 ───
+  const __xlookup = (
+    key: unknown, lookupRange: unknown, returnRange: unknown, notFound: unknown = '#N/A',
+  ) => {
+    const lookup = toArr(lookupRange);
+    const ret = toArr(returnRange);
+    const keyStr = String(key ?? '');
+    const keyNum = Number(key);
+    for (let i = 0; i < lookup.length; i++) {
+      const cell = lookup[i];
+      const cellNum = Number(cell);
+      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
+        ? cellNum === keyNum
+        : String(cell ?? '') === keyStr;
+      if (match) return i < ret.length ? ret[i] : '#N/A';
+    }
+    return notFound;
+  };
+
+  // ─── 텍스트 ───
+  const __textjoin = (sep: unknown, ignoreEmpty: unknown, ...args: unknown[]) => {
+    const arr = args.flatMap(toArr).map((x) => String(x ?? ''));
+    const filtered = ignoreEmpty ? arr.filter((s) => s !== '') : arr;
+    return filtered.join(String(sep ?? ''));
+  };
+  const __substitute = (text: unknown, oldStr: unknown, newStr: unknown, instance?: unknown) => {
+    const s = String(text ?? '');
+    const o = String(oldStr ?? '');
+    const n = String(newStr ?? '');
+    if (!o) return s;
+    if (instance === undefined) return s.split(o).join(n);
+    const inst = Math.max(1, Math.floor(Number(instance) || 1));
+    let count = 0;
+    let result = '';
+    let i = 0;
+    while (i < s.length) {
+      if (s.startsWith(o, i)) {
+        count++;
+        if (count === inst) {
+          result += n + s.slice(i + o.length);
+          return result;
+        }
+        result += o;
+        i += o.length;
+      } else {
+        result += s[i++];
+      }
+    }
+    return result;
+  };
+  const __replace = (text: unknown, start: unknown, len: unknown, newText: unknown) => {
+    const s = String(text ?? '');
+    const i = Math.max(0, (Number(start) || 1) - 1);
+    const k = Math.max(0, Number(len) || 0);
+    return s.slice(0, i) + String(newText ?? '') + s.slice(i + k);
+  };
+  const __find = (search: unknown, text: unknown, start: unknown = 1) => {
+    const s = String(text ?? '');
+    const q = String(search ?? '');
+    const from = Math.max(0, (Number(start) || 1) - 1);
+    const idx = s.indexOf(q, from);
+    return idx < 0 ? '#VALUE!' : idx + 1;
+  };
+  const __search = (search: unknown, text: unknown, start: unknown = 1) => {
+    const s = String(text ?? '').toLowerCase();
+    const q = String(search ?? '').toLowerCase();
+    const from = Math.max(0, (Number(start) || 1) - 1);
+    const idx = s.indexOf(q, from);
+    return idx < 0 ? '#VALUE!' : idx + 1;
+  };
+  // HYPERLINK v1: 셀 렌더가 별도 처리 안 함 — 라벨(있으면) 또는 URL 만 텍스트 표시.
+  const __hyperlink = (url: unknown, label?: unknown) =>
+    String(label ?? url ?? '');
+
+  // ─── 수치 ───
+  const __roundup = (n: unknown, d: unknown = 0) => {
+    const p = Math.pow(10, Number(d) || 0);
+    const v = Number(n);
+    return (v >= 0 ? Math.ceil(v * p) : Math.floor(v * p)) / p;
+  };
+  const __rounddown = (n: unknown, d: unknown = 0) => {
+    const p = Math.pow(10, Number(d) || 0);
+    return Math.trunc(Number(n) * p) / p;
+  };
+  const __ceiling = (n: unknown, significance: unknown = 1) => {
+    const s = Number(significance) || 1;
+    if (s === 0) return 0;
+    return Math.ceil(Number(n) / s) * s;
+  };
+  const __floor = (n: unknown, significance: unknown = 1) => {
+    const s = Number(significance) || 1;
+    if (s === 0) return 0;
+    return Math.floor(Number(n) / s) * s;
+  };
+  const __counta = (...args: unknown[]) =>
+    args.flatMap(toArr).filter((x) => x != null && String(x).trim() !== '').length;
+  const __countblank = (...args: unknown[]) =>
+    args.flatMap(toArr).filter((x) => x == null || String(x).trim() === '').length;
+
+  // ─── 통계 ───
+  const __stdev = (...args: unknown[]) => {
+    const nums = args.flatMap(toNums);
+    if (nums.length < 2) return 0;
+    const m = nums.reduce((a, b) => a + b, 0) / nums.length;
+    const variance = nums.reduce((a, b) => a + (b - m) ** 2, 0) / (nums.length - 1);
+    return Math.sqrt(variance);
+  };
+  const __var = (...args: unknown[]) => {
+    const nums = args.flatMap(toNums);
+    if (nums.length < 2) return 0;
+    const m = nums.reduce((a, b) => a + b, 0) / nums.length;
+    return nums.reduce((a, b) => a + (b - m) ** 2, 0) / (nums.length - 1);
+  };
+  const __rank = (val: unknown, range: unknown, ascending: unknown = 0) => {
+    const nums = toNums(range);
+    const v = Number(val);
+    if (!Number.isFinite(v)) return '#N/A';
+    const sorted = ascending ? [...nums].sort((a, b) => a - b) : [...nums].sort((a, b) => b - a);
+    const idx = sorted.indexOf(v);
+    return idx < 0 ? '#N/A' : idx + 1;
+  };
+
+  // ─── 날짜 (parseDate 위에서 정의됨) ───
+  const fmtDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const __date = (y: unknown, m: unknown, d: unknown) => {
+    const Y = Number(y), M = Number(m), D = Number(d);
+    if (![Y, M, D].every(Number.isFinite)) return '#VALUE!';
+    return fmtDate(new Date(Y, M - 1, D));
+  };
+  const __eomonth = (start: unknown, months: unknown = 0) => {
+    const d = parseDate(start);
+    if (!d) return '#VALUE!';
+    const end = new Date(d.getFullYear(), d.getMonth() + (Number(months) || 0) + 1, 0);
+    return fmtDate(end);
+  };
+  const __edate = (start: unknown, months: unknown = 0) => {
+    const d = parseDate(start);
+    if (!d) return '#VALUE!';
+    const next = new Date(d.getFullYear(), d.getMonth() + (Number(months) || 0), d.getDate());
+    return fmtDate(next);
+  };
+  const __datedif = (start: unknown, end: unknown, unit: unknown) => {
+    const a = parseDate(start), b = parseDate(end);
+    if (!a || !b) return '#VALUE!';
+    const u = String(unit ?? '').toUpperCase();
+    if (u === 'D') return Math.floor((b.getTime() - a.getTime()) / 86_400_000);
+    if (u === 'M') return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    if (u === 'Y') {
+      let y = b.getFullYear() - a.getFullYear();
+      if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) y--;
+      return y;
+    }
+    return '#NUM!';
+  };
+  const __networkdays = (start: unknown, end: unknown) => {
+    const a = parseDate(start), b = parseDate(end);
+    if (!a || !b) return '#VALUE!';
+    const cur = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    const stop = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    let n = 0;
+    while (cur <= stop) {
+      const wd = cur.getDay();
+      if (wd !== 0 && wd !== 6) n++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return n;
+  };
+
+  // ─── 포맷 (단순 지원) ───
+  const __text = (val: unknown, format: unknown) => {
+    const f = String(format ?? '');
+    const d = parseDate(val);
+    if (d && /[ymdhMs]/i.test(f)) {
+      return f
+        .replace(/yyyy/gi, String(d.getFullYear()))
+        .replace(/yy/g, String(d.getFullYear()).slice(-2))
+        .replace(/mm/g, String(d.getMonth() + 1).padStart(2, '0'))
+        .replace(/dd/g, String(d.getDate()).padStart(2, '0'))
+        .replace(/HH/g, String(d.getHours()).padStart(2, '0'))
+        .replace(/MM/g, String(d.getMinutes()).padStart(2, '0'))
+        .replace(/SS/g, String(d.getSeconds()).padStart(2, '0'));
+    }
+    const n = Number(val);
+    if (Number.isFinite(n) && /[0#]/.test(f)) {
+      const dotIdx = f.indexOf('.');
+      const hasComma = f.includes(',');
+      let decDigits = 0;
+      if (dotIdx >= 0) decDigits = f.slice(dotIdx + 1).replace(/[^0#]/g, '').length;
+      let result = n.toFixed(decDigits);
+      if (hasComma) {
+        const [intPart, decPart] = result.split('.');
+        result = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (decPart ? '.' + decPart : '');
+      }
+      return result;
+    }
+    return String(val ?? '');
+  };
+
+  // ─── 정규표현식 ───
+  const __regexmatch = (text: unknown, pattern: unknown) => {
+    try {
+      return new RegExp(String(pattern ?? '')).test(String(text ?? ''));
+    } catch {
+      return '#ERROR!';
+    }
+  };
+  const __regexextract = (text: unknown, pattern: unknown) => {
+    try {
+      const m = String(text ?? '').match(new RegExp(String(pattern ?? '')));
+      return m ? (m[1] ?? m[0]) : '';
+    } catch {
+      return '#ERROR!';
+    }
+  };
+  const __regexreplace = (text: unknown, pattern: unknown, replacement: unknown) => {
+    try {
+      return String(text ?? '').replace(
+        new RegExp(String(pattern ?? ''), 'g'),
+        String(replacement ?? ''),
+      );
+    } catch {
+      return '#ERROR!';
+    }
+  };
+
   // 6. 평가 (new Function — 단일 사용자 환경 가정)
   const fn = new Function(
     '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
@@ -560,6 +901,13 @@ function evalExpr(
     '__today', '__now', '__year', '__month', '__day', '__weekday',
     '__power', '__sqrt', '__mod', '__int', '__median',
     '__vlookup', '__hlookup', '__index', '__match', '__image',
+    '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
+    '__ifs', '__switch', '__xlookup',
+    '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
+    '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
+    '__stdev', '__var', '__rank',
+    '__date', '__eomonth', '__edate', '__datedif', '__networkdays',
+    '__text', '__regexmatch', '__regexextract', '__regexreplace',
     `"use strict"; return (${work});`,
   );
   return fn(
@@ -571,6 +919,13 @@ function evalExpr(
     __today, __now, __year, __month, __day, __weekday,
     __power, __sqrt, __mod, __int, __median,
     __vlookup, __hlookup, __index, __match, __image,
+    __iferror, __ifna, __isnumber, __isblank, __istext, __iserror, __isna,
+    __ifs, __switch, __xlookup,
+    __textjoin, __substitute, __replace, __find, __search, __hyperlink,
+    __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
+    __stdev, __var, __rank,
+    __date, __eomonth, __edate, __datedif, __networkdays,
+    __text, __regexmatch, __regexextract, __regexreplace,
   );
 }
 

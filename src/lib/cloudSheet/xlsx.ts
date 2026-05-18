@@ -70,6 +70,11 @@ function extractSheet(ws: XLSX.WorkSheet | undefined, name: string): ImportedShe
   return { name, cells, merges };
 }
 
+/**
+ * 엑셀/구글시트 → 우리 수식 별칭 정규화.
+ * 새 함수(XLOOKUP, IFERROR, ROUNDUP 등)는 우리도 같은 이름을 쓰므로 별도 매핑 불필요.
+ * AVG 만 우리 고유 별칭 — AVERAGE 들어오면 AVG 로 변환.
+ */
 function normalizeFormula(f: string): string {
   return f.replace(/\bAVERAGE\b/gi, 'AVG');
 }
