@@ -428,23 +428,6 @@ export default function CloudSlideEditor() {
     setEditingElId(null);
   }, [canRedo, history, historyIdx, applySnapshot]);
 
-  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      const isMod = e.ctrlKey || e.metaKey;
-      if (!isMod) return;
-      const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
-      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
-      else if (k === 'g' && !e.shiftKey) { e.preventDefault(); groupSelected(); }
-      else if (k === 'g' && e.shiftKey) { e.preventDefault(); ungroupSelected(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo, groupSelected, ungroupSelected]);
-
   const addSlide = useCallback(() => {
     updateSlides((prev) => {
       const next = [...prev];
@@ -779,6 +762,23 @@ export default function CloudSlideEditor() {
     }));
     appToast({ title: '그룹 해제됨' });
   }, [selectedElIds, slides, currentIdx, updateCurrentSlide]);
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z / Ctrl+G / Ctrl+Shift+G
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+      else if (k === 'g' && !e.shiftKey) { e.preventDefault(); groupSelected(); }
+      else if (k === 'g' && e.shiftKey) { e.preventDefault(); ungroupSelected(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo, groupSelected, ungroupSelected]);
 
   // ─── 캔버스 빈 곳 더블클릭 = 텍스트박스 추가 ───
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
