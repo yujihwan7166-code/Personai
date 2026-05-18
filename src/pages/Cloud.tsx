@@ -229,6 +229,16 @@ export default function Cloud() {
     setCtxMenu({ node: null, x: e.clientX, y: e.clientY });
   }, [listMode]);
 
+  // 빈 영역 더블클릭 → 우클릭 메뉴와 동일 (새 항목 만들기 빠른 진입)
+  const handleEmptyDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (listMode === 'trash') return;
+    // 노드 row 위 더블클릭은 NodeRow handler (open) 가 처리 — 빈 영역만
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-cloud-node]')) return;
+    if (target.closest('[data-cloud-no-empty]')) return; // 헤더/툴바 영역 제외
+    setCtxMenu({ node: null, x: e.clientX, y: e.clientY });
+  }, [listMode]);
+
   // 메뉴 외 클릭 / 포커스 아웃 → 닫기
   useEffect(() => {
     if (!ctxMenu) return;
@@ -987,7 +997,11 @@ export default function Cloud() {
           />
         </aside>
 
-        <main className="flex-1 overflow-y-auto" onContextMenu={handleEmptyContextMenu}>
+        <main
+          className="flex-1 overflow-y-auto"
+          onContextMenu={handleEmptyContextMenu}
+          onDoubleClick={handleEmptyDoubleClick}
+        >
           {selectedIds.size > 1 && (
             <div className="sticky top-0 z-20 bg-foreground text-background px-4 py-2 flex items-center gap-2 text-sm shadow-md">
               <span className="font-medium">{selectedIds.size}개 선택됨</span>
@@ -1839,6 +1853,7 @@ function NodeRow({
       <div
         role="button"
         tabIndex={0}
+        data-cloud-node="true"
         draggable={draggable && !editing}
         onDragStart={onDragStart && !editing ? (e) => onDragStart(e, node) : undefined}
         onDragEnd={onDragEnd}
@@ -1956,6 +1971,7 @@ function NodeCard({
     <div
       role="button"
       tabIndex={0}
+      data-cloud-node="true"
       draggable={draggable}
       onDragStart={onDragStart ? (e) => onDragStart(e, node) : undefined}
       onDragEnd={onDragEnd}
