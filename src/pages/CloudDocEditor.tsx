@@ -306,11 +306,21 @@ export default function CloudDocEditor() {
   const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
 
   // 모바일 편집 잠금 — 메모리 정책 (모바일은 보기 전용)
+  const wasMobileNotifiedRef = useRef(false);
   useEffect(() => {
     if (!editor) return;
     const check = () => {
       const isMobile = window.innerWidth < 640; // tailwind sm
       editor.setEditable(!isMobile);
+      if (isMobile && !wasMobileNotifiedRef.current) {
+        toast({
+          title: '모바일은 보기 전용',
+          description: '편집은 데스크탑·노트북에서 가능해요. 다운로드는 ⋯ 메뉴에서.',
+        });
+        wasMobileNotifiedRef.current = true;
+      } else if (!isMobile) {
+        wasMobileNotifiedRef.current = false;
+      }
     };
     check();
     window.addEventListener('resize', check);
