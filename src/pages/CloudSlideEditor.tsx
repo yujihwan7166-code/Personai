@@ -17,7 +17,7 @@ import {
   Combine, Split,
   ImagePlus, ArrowUpToLine, ArrowDownToLine,
   RotateCw, RotateCcw,
-  Play, ChevronLeft, ChevronRight as ChevronRightIcon,
+  Play,
   Sparkles, Undo2, Redo2,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
@@ -46,11 +46,10 @@ import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { SlideHelpModal } from '@/lib/cloudSlide/SlideHelpModal';
 import { newId } from '@/lib/idGenerator';
 import {
-  type BaseEl, type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
+  type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
   type SlideElement, type ResizeDir, type Slide, type SlideMeta,
   SHAPE_SHADOW, isText, isShape, isLineLike, isImage, emptySlide, defaultMeta,
 } from '@/lib/cloudSlide/types';
-import { ShapeRender } from '@/lib/cloudSlide/ShapeRender';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
