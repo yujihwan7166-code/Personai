@@ -2044,8 +2044,8 @@ export default function CloudSlideEditor() {
             </>
           )}
 
-          {/* 선택 요소 회전 — ±15° + 0° 복귀 */}
-          {selectedElId && (() => {
+          {/* 선택 요소 회전 — 단일: ±15° + 각도 표시 + 0° 복귀 */}
+          {selectedElId && selectedElIds.size <= 1 && (() => {
             const el = currentSlide.elements.find((x) => x.id === selectedElId);
             if (!el) return null;
             const rot = (((el.rotation ?? 0) % 360) + 360) % 360;
@@ -2075,6 +2075,48 @@ export default function CloudSlideEditor() {
                     onClick={() => updateEl(el.id, { rotation: undefined })}
                     title="회전 0° 복귀"
                   >
+                    <span className="text-xs">0°</span>
+                  </ToolBtn>
+                )}
+              </>
+            );
+          })()}
+
+          {/* 다중 선택 회전 — 각 요소 개별 ±15° (그룹 중심 회전 X) */}
+          {selectedElIds.size >= 2 && (() => {
+            const rotateMulti = (delta: number) => {
+              updateCurrentSlide((s) => ({
+                ...s,
+                elements: s.elements.map((e) => {
+                  if (!selectedElIds.has(e.id)) return e;
+                  const cur = (((e.rotation ?? 0) % 360) + 360) % 360;
+                  const next = (cur + delta + 360) % 360;
+                  return { ...e, rotation: next || undefined };
+                }),
+              }));
+            };
+            const resetMulti = () => {
+              updateCurrentSlide((s) => ({
+                ...s,
+                elements: s.elements.map((e) =>
+                  selectedElIds.has(e.id) ? { ...e, rotation: undefined } : e,
+                ),
+              }));
+            };
+            const anyRotated = currentSlide.elements
+              .filter((e) => selectedElIds.has(e.id))
+              .some((e) => (e.rotation ?? 0) !== 0);
+            return (
+              <>
+                <Sep />
+                <ToolBtn onClick={() => rotateMulti(-15)} title="각 요소 −15° 회전">
+                  <RotateCcw className="w-4 h-4" />
+                </ToolBtn>
+                <ToolBtn onClick={() => rotateMulti(15)} title="각 요소 +15° 회전">
+                  <RotateCw className="w-4 h-4" />
+                </ToolBtn>
+                {anyRotated && (
+                  <ToolBtn onClick={resetMulti} title="모두 회전 0° 복귀">
                     <span className="text-xs">0°</span>
                   </ToolBtn>
                 )}
