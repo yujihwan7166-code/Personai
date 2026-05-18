@@ -294,6 +294,18 @@ export default function CloudDocEditor() {
   }, [editor]);
   const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
 
+  // 모바일 편집 잠금 — 메모리 정책 (모바일은 보기 전용)
+  useEffect(() => {
+    if (!editor) return;
+    const check = () => {
+      const isMobile = window.innerWidth < 640; // tailwind sm
+      editor.setEditable(!isMobile);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [editor]);
+
   // 본문 안 각주(sup) 클릭 → 내용 편집 (prompt v1)
   useEffect(() => {
     if (!editor) return;
