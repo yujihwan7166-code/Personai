@@ -439,6 +439,7 @@ export default function CloudSheetEditor() {
   const [node, setNode] = useState<CloudNode | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
 
   // 링크 삽입 모달 (PR #6) — 메뉴 "삽입 → 링크" / Ctrl+K 진입.
@@ -852,6 +853,7 @@ export default function CloudSheetEditor() {
     try {
       await updateFileBody(id, payload);
       setSaveState('saved');
+      setLastSavedAt(Date.now());
     } catch (e) {
       setSaveState('error');
       const msg = e instanceof Error ? e.message : String(e);
@@ -2949,7 +2951,7 @@ export default function CloudSheetEditor() {
           <span className="font-medium truncate max-w-md">{node?.name ?? '제목 없음'}</span>
 
           <span className="ml-3 text-xs">
-            <SaveStateBadge state={saveState} />
+            <SaveStateBadge state={saveState} lastSavedAt={lastSavedAt} />
           </span>
 
           <div className="ml-auto flex items-center gap-1">
@@ -5326,7 +5328,7 @@ function FormulaBarInput({ currentRef, value, evaluatedValue, onCommit }: Formul
 // 저장 상태 뱃지
 // ─────────────────────────────────────────────
 
-function SaveStateBadge({ state }: { state: SaveState }) {
+function SaveStateBadge({ state, lastSavedAt }: { state: SaveState; lastSavedAt?: number }) {
   if (state === 'saving') {
     return (
       <span className="flex items-center gap-1 text-muted-foreground">
@@ -5335,11 +5337,15 @@ function SaveStateBadge({ state }: { state: SaveState }) {
       </span>
     );
   }
-  if (state === 'saved') {
+  if (state === 'saved' || (state === 'idle' && lastSavedAt)) {
+    const rel = lastSavedAt ? formatRelTime(lastSavedAt) : '';
     return (
-      <span className="flex items-center gap-1 text-muted-foreground">
+      <span
+        className="flex items-center gap-1 text-muted-foreground"
+        title={lastSavedAt ? new Date(lastSavedAt).toLocaleString('ko-KR') : '저장됨'}
+      >
         <CheckCircle2 className="w-3 h-3" />
-        저장됨
+        {rel ? `저장됨 · ${rel}` : '저장됨'}
       </span>
     );
   }
@@ -5352,6 +5358,18 @@ function SaveStateBadge({ state }: { state: SaveState }) {
     );
   }
   return null;
+}
+
+/** 마지막 저장 시각을 "방금" / "1분 전" / "1시간 전" 형식으로. */
+function formatRelTime(at: number): string {
+  const sec = Math.floor((Date.now() - at) / 1000);
+  if (sec < 5) return '방금';
+  if (sec < 60) return `${sec}초 전`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  return new Date(at).toLocaleDateString('ko-KR');
 }
 
 // ─────────────────────────────────────────────

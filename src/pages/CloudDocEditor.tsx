@@ -1324,7 +1324,7 @@ function SlashMenu({ editor }: { editor: Editor }) {
         ))
       )}
       <div className="border-t border-border mt-1 pt-1 px-2 text-[10px] text-muted-foreground">
-        ↑↓ 화살표는 다음 단계에서 · Esc · 다른 키로 닫기
+        클릭으로 적용 · 단어 더 입력하면 필터 · Esc 닫기
       </div>
     </div>
   );
