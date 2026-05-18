@@ -44,6 +44,7 @@ import { importDocxFile, exportDocxFromJson } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { aiSummarize, aiRewrite, aiTranslate, aiChangeTone, aiContinue } from '@/lib/cloudDoc/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { PageRuler, type PageMargin } from '@/lib/cloudDoc/PageRuler';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -78,6 +79,24 @@ export default function CloudDocEditor() {
   const setZoom = useCallback((v: number) => {
     setZoomInner(v);
     try { window.localStorage.setItem('personai.cloud.doc.zoom', String(v)); } catch { /* noop */ }
+  }, []);
+
+  // 페이지 마진 (좌우 px) — localStorage 영속. 기본 96px (1인치).
+  const [pageMargin, setPageMarginInner] = useState<PageMargin>(() => {
+    if (typeof window === 'undefined') return { left: 96, right: 96 };
+    try {
+      const v = window.localStorage.getItem('personai.cloud.doc.pageMargin');
+      if (!v) return { left: 96, right: 96 };
+      const p = JSON.parse(v) as Partial<PageMargin>;
+      if (typeof p?.left === 'number' && typeof p?.right === 'number') {
+        return { left: p.left, right: p.right };
+      }
+    } catch { /* noop */ }
+    return { left: 96, right: 96 };
+  });
+  const setPageMargin = useCallback((m: PageMargin) => {
+    setPageMarginInner(m);
+    try { window.localStorage.setItem('personai.cloud.doc.pageMargin', JSON.stringify(m)); } catch { /* noop */ }
   }, []);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
@@ -529,15 +548,21 @@ export default function CloudDocEditor() {
               onClose={() => setSearchOpen(false)}
             />
           )}
-          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi, 종이 안 여백 1인치. zoom 은 transform: scale */}
+          {/* A4 흰 카드 — 21cm × 29.7cm @ 96dpi. ruler 가 카드 상단, 본문 padding 은 동적 마진 */}
           <div
-            className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm px-[96px] py-[96px] dark:bg-slate-50 dark:text-slate-900"
+            className="mx-auto my-8 w-[816px] min-w-[816px] min-h-[1056px] bg-white text-foreground shadow-md rounded-sm dark:bg-slate-50 dark:text-slate-900"
             style={{
               transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
               transformOrigin: 'top center',
             }}
           >
-            <EditorContent editor={editor} />
+            <PageRuler widthPx={816} margin={pageMargin} onMarginChange={setPageMargin} />
+            <div
+              className="py-[96px]"
+              style={{ paddingLeft: pageMargin.left, paddingRight: pageMargin.right }}
+            >
+              <EditorContent editor={editor} />
+            </div>
           </div>
         </main>
         <AiSidebar
