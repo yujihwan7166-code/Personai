@@ -2410,47 +2410,6 @@ function Sep() {
   return <div className="w-px h-5 bg-border mx-1 shrink-0" />;
 }
 
-// ─────────────────────────────────────────────
-// 도형 요소 (캔버스)
-// ─────────────────────────────────────────────
-
-interface ShapeElViewProps {
-  el: SlideShapeEl;
-  selected: boolean;
-  onPointerDown: (e: React.PointerEvent) => void;
-  onClick: (e: React.MouseEvent) => void;
-  onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
-}
-
-interface ShapeElViewExtraProps {
-  onStartRotate?: (e: React.PointerEvent) => void;
-}
-
-function ShapeElView({ el, selected, onPointerDown, onClick, onStartResize, onStartRotate }: ShapeElViewProps & ShapeElViewExtraProps) {
-  return (
-    <div
-      onPointerDown={onPointerDown}
-      onClick={onClick}
-      className={cn(
-        'absolute cursor-move',
-        selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',
-        !selected && 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-foreground/30',
-      )}
-      style={{
-        left: `${el.xPct}%`,
-        top: `${el.yPct}%`,
-        width: `${el.wPct}%`,
-        height: `${el.hPct}%`,
-        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-        transformOrigin: 'center center',
-      }}
-    >
-      <ShapeRender el={el} />
-      {selected && <ResizeHandles onStart={onStartResize} />}
-      {selected && onStartRotate && <RotateHandle onStart={onStartRotate} />}
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────
 // 이미지 요소 (캔버스)
