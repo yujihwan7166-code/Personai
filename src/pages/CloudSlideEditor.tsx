@@ -188,6 +188,19 @@ function nextFontSize(cur: number, dir: 1 | -1): number {
   return FONT_STEPS_REM[ni];
 }
 
+/** 도형 테두리/선 굵기 단계 (px) */
+const STROKE_STEPS_PX = [1, 2, 3, 4, 6, 8, 12, 16];
+function nextStrokeWidth(cur: number, dir: 1 | -1): number {
+  let idx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < STROKE_STEPS_PX.length; i++) {
+    const d = Math.abs(STROKE_STEPS_PX[i] - cur);
+    if (d < bestDist) { bestDist = d; idx = i; }
+  }
+  const ni = Math.max(0, Math.min(STROKE_STEPS_PX.length - 1, idx + dir));
+  return STROKE_STEPS_PX[ni];
+}
+
 interface Slide {
   id: string;
   elements: SlideElement[];
@@ -1463,21 +1476,55 @@ export default function CloudSlideEditor() {
             const el = currentSlide.elements.find((x) => x.id === selectedElId);
             if (!el) return null;
             if (isShape(el)) {
+              const lineLike = isLineLike(el);
+              const showStroke = !!el.strokeColor || lineLike;
               return (
                 <>
                   <Sep />
+                  {!lineLike && (
+                    <ColorPopover
+                      label="채우기"
+                      value={el.fillColor}
+                      onChange={(v) => updateEl(el.id, { fillColor: v })}
+                      allowTransparent
+                    />
+                  )}
                   <ColorPopover
-                    label="채우기"
-                    value={el.fillColor}
-                    onChange={(v) => updateEl(el.id, { fillColor: v })}
-                    allowTransparent
+                    label={lineLike ? '색' : '테두리'}
+                    value={el.strokeColor ?? el.fillColor}
+                    onChange={(v) => updateEl(el.id, {
+                      strokeColor: v,
+                      strokeWidth: el.strokeWidth ?? (lineLike ? 3 : 2),
+                      ...(lineLike ? { fillColor: v } : {}),
+                    })}
                   />
-                  <ColorPopover
-                    label="테두리"
-                    value={el.strokeColor ?? '#000000'}
-                    onChange={(v) => updateEl(el.id, { strokeColor: v, strokeWidth: el.strokeWidth ?? 2 })}
-                  />
-                  {el.strokeColor && (
+                  {showStroke && (
+                    <>
+                      <ToolBtn
+                        onClick={() => updateEl(el.id, {
+                          strokeWidth: nextStrokeWidth(el.strokeWidth ?? (lineLike ? 3 : 2), -1),
+                        })}
+                        title={lineLike ? '선 얇게' : '테두리 얇게'}
+                      >
+                        <span className="text-xs">−</span>
+                      </ToolBtn>
+                      <span
+                        className="text-xs text-muted-foreground tabular-nums px-1 min-w-[28px] text-center"
+                        title={lineLike ? '선 굵기 (px)' : '테두리 두께 (px)'}
+                      >
+                        {el.strokeWidth ?? (lineLike ? 3 : 2)}px
+                      </span>
+                      <ToolBtn
+                        onClick={() => updateEl(el.id, {
+                          strokeWidth: nextStrokeWidth(el.strokeWidth ?? (lineLike ? 3 : 2), 1),
+                        })}
+                        title={lineLike ? '선 굵게' : '테두리 굵게'}
+                      >
+                        <span className="text-xs font-bold">+</span>
+                      </ToolBtn>
+                    </>
+                  )}
+                  {el.strokeColor && !lineLike && (
                     <ToolBtn
                       onClick={() => updateEl(el.id, { strokeColor: undefined, strokeWidth: undefined })}
                       title="테두리 제거"
@@ -1575,6 +1622,32 @@ export default function CloudSlideEditor() {
                       value={allSameStroke ? (firstStroke ?? '#000000') : '#000000'}
                       onChange={(v) => applyToShapes({ strokeColor: v, strokeWidth: 2 })}
                     />
+                    {(() => {
+                      const firstSw = shapes[0]?.strokeWidth ?? 2;
+                      const allSameSw = shapes.every((s) => (s.strokeWidth ?? 2) === firstSw);
+                      return (
+                        <>
+                          <ToolBtn
+                            onClick={() => applyToShapes({ strokeWidth: nextStrokeWidth(firstSw, -1) })}
+                            title="테두리/선 얇게"
+                          >
+                            <span className="text-xs">−</span>
+                          </ToolBtn>
+                          <span
+                            className="text-xs text-muted-foreground tabular-nums px-1 min-w-[28px] text-center"
+                            title={allSameSw ? '두께 (px)' : '여러 두께 — 다음 단계로 통일'}
+                          >
+                            {allSameSw ? `${firstSw}px` : '—'}
+                          </span>
+                          <ToolBtn
+                            onClick={() => applyToShapes({ strokeWidth: nextStrokeWidth(firstSw, 1) })}
+                            title="테두리/선 굵게"
+                          >
+                            <span className="text-xs font-bold">+</span>
+                          </ToolBtn>
+                        </>
+                      );
+                    })()}
                   </>
                 )}
                 {texts.length > 0 && (
