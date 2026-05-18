@@ -119,39 +119,6 @@ export default function CloudDocEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id]);
 
-  // 본문 안 각주(sup) 클릭 → 내용 편집 (prompt v1)
-  useEffect(() => {
-    if (!editor) return;
-    const root = editor.view?.dom as HTMLElement | undefined;
-    if (!root) return;
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target || target.tagName !== 'SUP' || !target.hasAttribute('data-footnote')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const id = target.getAttribute('data-footnote-id');
-      if (!id) return;
-      let foundPos = -1;
-      let currentText = '';
-      editor.state.doc.descendants((nd, pos) => {
-        if (nd.type.name === 'footnote' && nd.attrs.id === id) {
-          foundPos = pos;
-          currentText = String(nd.attrs.text ?? '');
-          return false;
-        }
-        return true;
-      });
-      if (foundPos < 0) return;
-      const newText = window.prompt('각주 내용:', currentText);
-      if (newText == null) return;
-      editor.chain().focus()
-        .setNodeSelection(foundPos)
-        .updateAttributes('footnote', { text: newText.trim() || '(빈 각주)' })
-        .run();
-    };
-    root.addEventListener('click', onClick);
-    return () => root.removeEventListener('click', onClick);
-  }, [editor]);
 
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -319,6 +286,40 @@ export default function CloudDocEditor() {
     };
   }, [editor]);
   const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
+
+  // 본문 안 각주(sup) 클릭 → 내용 편집 (prompt v1)
+  useEffect(() => {
+    if (!editor) return;
+    const root = editor.view?.dom as HTMLElement | undefined;
+    if (!root) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || target.tagName !== 'SUP' || !target.hasAttribute('data-footnote')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = target.getAttribute('data-footnote-id');
+      if (!id) return;
+      let foundPos = -1;
+      let currentText = '';
+      editor.state.doc.descendants((nd, pos) => {
+        if (nd.type.name === 'footnote' && nd.attrs.id === id) {
+          foundPos = pos;
+          currentText = String(nd.attrs.text ?? '');
+          return false;
+        }
+        return true;
+      });
+      if (foundPos < 0) return;
+      const newText = window.prompt('각주 내용:', currentText);
+      if (newText == null) return;
+      editor.chain().focus()
+        .setNodeSelection(foundPos)
+        .updateAttributes('footnote', { text: newText.trim() || '(빈 각주)' })
+        .run();
+    };
+    root.addEventListener('click', onClick);
+    return () => root.removeEventListener('click', onClick);
+  }, [editor]);
 
   // 초기 본문 주입 (bodyHtml / bodyMarkdown / body 우선순위)
   useEffect(() => {
