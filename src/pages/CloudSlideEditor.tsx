@@ -293,31 +293,42 @@ export default function CloudSlideEditor() {
       line:     'transparent',
       arrow:    'transparent',
     };
-    const el: SlideShapeEl = {
-      id: newId('el'),
-      type: shape,
-      xPct: 25, yPct: 30,
-      wPct: sz.wPct, hPct: sz.hPct,
-      fillColor: defaultFill[shape],
-      strokeColor: (shape === 'line' || shape === 'arrow') ? '#222222' : undefined,
-      strokeWidth: (shape === 'line' || shape === 'arrow') ? 3 : undefined,
-    };
-    updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
-    setSelectedElId(el.id);
-    setEditingElId(null);
+    updateCurrentSlide((s) => {
+      const shapeCount = s.elements.filter((e) => e.type === shape).length;
+      const offset = Math.min(15, shapeCount * 3);
+      const el: SlideShapeEl = {
+        id: newId('el'),
+        type: shape,
+        xPct: Math.min(60, 25 + offset),
+        yPct: Math.min(50, 30 + offset),
+        wPct: sz.wPct, hPct: sz.hPct,
+        fillColor: defaultFill[shape],
+        strokeColor: (shape === 'line' || shape === 'arrow') ? '#222222' : undefined,
+        strokeWidth: (shape === 'line' || shape === 'arrow') ? 3 : undefined,
+      };
+      setSelectedElId(el.id);
+      setEditingElId(null);
+      return { ...s, elements: [...s.elements, el] };
+    });
   }, [updateCurrentSlide]);
 
   const addImageEl = useCallback((src: string) => {
-    const el: SlideImageEl = {
-      id: newId('el'),
-      type: 'image',
-      xPct: 20, yPct: 25,
-      wPct: 50, hPct: 50,
-      src,
-    };
-    updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, el] }));
-    setSelectedElId(el.id);
-    setEditingElId(null);
+    // 같은 슬라이드에 이미 이미지가 있으면 cascade 로 살짝 옮겨 추가 (완전 겹침 방지)
+    updateCurrentSlide((s) => {
+      const imageCount = s.elements.filter((e) => e.type === 'image').length;
+      const offset = Math.min(15, imageCount * 2); // 최대 15% 까지
+      const el: SlideImageEl = {
+        id: newId('el'),
+        type: 'image',
+        xPct: Math.min(60, 20 + offset),
+        yPct: Math.min(40, 25 + offset),
+        wPct: 50, hPct: 50,
+        src,
+      };
+      setSelectedElId(el.id);
+      setEditingElId(null);
+      return { ...s, elements: [...s.elements, el] };
+    });
   }, [updateCurrentSlide]);
 
   const pickAndAddImage = useCallback(() => {
