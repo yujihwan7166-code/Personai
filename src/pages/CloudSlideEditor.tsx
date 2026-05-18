@@ -1544,11 +1544,24 @@ export default function CloudSlideEditor() {
                   </>
                 )}
                 {texts.length > 0 && (
-                  <ColorPopover
-                    label={`글자색 ×${texts.length}`}
-                    value={allSameText ? firstText : '#222222'}
-                    onChange={(v) => applyToTexts({ textColor: v })}
-                  />
+                  <>
+                    <ColorPopover
+                      label={`글자색 ×${texts.length}`}
+                      value={allSameText ? firstText : '#222222'}
+                      onChange={(v) => applyToTexts({ textColor: v })}
+                    />
+                    {(() => {
+                      const allBold = texts.every((t) => t.bold);
+                      return (
+                        <ToolBtn
+                          onClick={() => applyToTexts({ bold: !allBold })}
+                          title={allBold ? '굵게 해제' : '모두 굵게'}
+                        >
+                          <span className={cn('text-sm font-bold', allBold && 'underline')}>B</span>
+                        </ToolBtn>
+                      );
+                    })()}
+                  </>
                 )}
               </>
             );
