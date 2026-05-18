@@ -475,13 +475,13 @@ export default function CloudDocEditor() {
     try {
       const json = editor.getJSON();
       const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
-      await exportDocxFromJson(json, fileName, { headerText, footerText });
+      await exportDocxFromJson(json, fileName, { headerText, footerText, showPageNumber });
       toast({ title: '내보내기 완료', description: `${fileName}.docx 다운로드 시작` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [editor, node, headerText, footerText]);
+  }, [editor, node, headerText, footerText, showPageNumber]);
 
   const exportPdf = useCallback(async () => {
     if (!editor || !node) return;

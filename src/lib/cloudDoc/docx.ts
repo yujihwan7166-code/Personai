@@ -15,7 +15,7 @@ import mammoth from 'mammoth';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Table, TableRow, TableCell, ImageRun, WidthType, BorderStyle,
-  Header, Footer,
+  Header, Footer, PageNumber,
 } from 'docx';
 import { enrichDocxHtml } from './docxRich';
 import { parseDocxAdvanced } from './docxAdvanced';
@@ -117,6 +117,8 @@ export interface DocxExportOptions {
   headerText?: string;
   /** 단순 텍스트 푸터 — 매 페이지 반복. */
   footerText?: string;
+  /** true 면 푸터 우측에 "N / Total" 페이지 번호 필드 자동 삽입. */
+  showPageNumber?: boolean;
 }
 
 export async function exportDocxFromJson(
@@ -135,8 +137,21 @@ export async function exportDocxFromJson(
   const headerNode = options.headerText?.trim()
     ? new Header({ children: [new Paragraph({ children: [new TextRun(options.headerText)] })] })
     : undefined;
-  const footerNode = options.footerText?.trim()
-    ? new Footer({ children: [new Paragraph({ children: [new TextRun(options.footerText)] })] })
+  const footerNode = (options.footerText?.trim() || options.showPageNumber)
+    ? new Footer({
+        children: [new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            ...(options.footerText?.trim() ? [new TextRun(options.footerText)] : []),
+            ...(options.footerText?.trim() && options.showPageNumber ? [new TextRun('   ')] : []),
+            ...(options.showPageNumber ? [
+              new TextRun({ children: [PageNumber.CURRENT] }),
+              new TextRun(' / '),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES] }),
+            ] : []),
+          ],
+        })],
+      })
     : undefined;
   const doc = new Document({
     sections: [{
