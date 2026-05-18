@@ -1312,6 +1312,14 @@ const SLASH_ITEMS: SlashItem[] = [
     run: (e) => pickImage(e),
   },
   {
+    label: '각주', emoji: '✱', keywords: ['각주', 'footnote', 'note'],
+    run: (e) => {
+      const text = window.prompt('각주 내용:', '');
+      if (text == null) return;
+      e.chain().focus().addFootnote(text.trim() || '(빈 각주)').run();
+    },
+  },
+  {
     label: '✨ AI 이어쓰기', emoji: '✨', keywords: ['ai', '이어', 'continue', '쓰기'],
     run: async (e) => {
       const { from } = e.state.selection;
