@@ -5527,6 +5527,30 @@ function EmbeddedChartCard({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(chart.title ?? '');
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const chartBodyRef = useRef<HTMLDivElement>(null);
+  const handleDownloadPng = useCallback(async () => {
+    const el = chartBodyRef.current;
+    if (!el) return;
+    try {
+      const html2canvasMod = await import('html2canvas');
+      const html2canvas = html2canvasMod.default;
+      const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const safeTitle = (chart.title || `${chart.type}_chart`).replace(/[\\/?*:|"<>]/g, '_');
+        a.download = `${safeTitle}_${Date.now()}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast({ title: 'PNG 저장됨' });
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'PNG 저장 실패', description: msg });
+    }
+  }, [chart.title, chart.type]);
   useEffect(() => {
     if (editingTitle) {
       setTitleDraft(chart.title ?? '');
@@ -5623,6 +5647,16 @@ function EmbeddedChartCard({
           )}
           <button
             type="button"
+            onClick={() => { void handleDownloadPng(); }}
+            disabled={!hasData}
+            className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="PNG 다운로드"
+            title="PNG 다운로드"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
             onClick={onMovePrev}
             disabled={!onMovePrev}
             className="p-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed"
@@ -5652,7 +5686,7 @@ function EmbeddedChartCard({
           </button>
         </div>
       </div>
-      <div className="h-[260px] p-2">
+      <div ref={chartBodyRef} className="h-[260px] p-2 bg-white">
         {!hasData ? (
           <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
             데이터 없음 ({rangeStr})
