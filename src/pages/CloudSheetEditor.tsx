@@ -28,6 +28,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateFileBody } from '@/lib/cloudClient';
 import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
+import { useDebouncedAutosave } from '@/lib/cloudCommon/useDebouncedAutosave';
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
@@ -3330,6 +3331,7 @@ export default function CloudSheetEditor() {
                 onMoveNext={idx < embeddedCharts.length - 1 ? () => moveEmbeddedChart(c.id, +1) : undefined}
                 onChangePalette={(palette) => updateEmbeddedChart(c.id, { palette })}
                 onChangeTitle={(title) => updateEmbeddedChart(c.id, { title: title || undefined })}
+                onChangeType={(type) => updateEmbeddedChart(c.id, { type })}
               />
             ))}
           </div>
