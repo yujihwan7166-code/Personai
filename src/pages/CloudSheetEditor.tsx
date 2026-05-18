@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, MoreHorizontal, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Keyboard,
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Palette, Highlighter, Eraser,
+  Paintbrush,
   Hash, Square as SquareIcon, Combine, Split,
   Plus, Pencil, Copy as CopyIcon, Trash2 as TrashIcon,
   Upload, Download, Sparkles, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
@@ -389,6 +390,8 @@ export default function CloudSheetEditor() {
   const [draggingRange, setDraggingRange] = useState(false);
   const [editing, setEditing] = useState<{ row: number; col: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  /** 서식 복사 source — null = 비활성. object = 활성 (이 format 을 다음 클릭/영역에 덮어쓰기). */
+  const [formatPainterSource, setFormatPainterSource] = useState<CellFormat | null>(null);
 
   // 선택 범위 계산 (rangeAnchor 가 null 이면 단일 셀)
   const selBounds = useMemo(() => {
@@ -788,6 +791,31 @@ export default function CloudSheetEditor() {
       }
       if (Object.keys(merged).length === 0) delete curFmts[ref];
       else curFmts[ref] = merged;
+      const next: AllFormats = { ...all, [currentSheetId]: curFmts };
+      queueSave({ allFormats: next });
+      return next;
+    });
+  }, [queueSave, currentSheetId]);
+
+  /** 영역의 모든 셀에 같은 format 덮어쓰기 (서식 복사 적용). */
+  const applyFormatToRange = useCallback((bounds: SelRange, format: CellFormat) => {
+    setAllFormats((all) => {
+      const curFmts = { ...(all[currentSheetId] ?? {}) };
+      const cleaned: CellFormat = {};
+      for (const k of Object.keys(format) as Array<keyof CellFormat>) {
+        const v = format[k];
+        if (v !== undefined && v !== '') (cleaned as Record<string, unknown>)[k] = v;
+      }
+      for (let r = bounds.minR; r <= bounds.maxR; r++) {
+        for (let c = bounds.minC; c <= bounds.maxC; c++) {
+          const ref = cellRef(r, c);
+          if (Object.keys(cleaned).length === 0) {
+            delete curFmts[ref];
+          } else {
+            curFmts[ref] = { ...cleaned };
+          }
+        }
+      }
       const next: AllFormats = { ...all, [currentSheetId]: curFmts };
       queueSave({ allFormats: next });
       return next;
@@ -2404,6 +2432,7 @@ export default function CloudSheetEditor() {
         }
       } else if (e.key === 'Escape') {
         setRangeAnchor(null);
+        setFormatPainterSource(null);
       } else if (e.key.length === 1 && !isMod) {
         // 글자 입력 → 단일 셀 모드 + 편집 진입
         e.preventDefault();
@@ -2415,13 +2444,20 @@ export default function CloudSheetEditor() {
     return () => window.removeEventListener('keydown', onKey);
   }, [editing, selected, cells, startEdit, setCellValue, selBounds, rowCount, colCount]);
 
-  // ─── 마우스 드래그 — 글로벌 pointerup 으로 종료 ───
+  // ─── 마우스 드래그 — 글로벌 pointerup 으로 종료 + 서식 복사 적용 ───
   useEffect(() => {
     if (!draggingRange) return;
-    const onUp = () => setDraggingRange(false);
+    const onUp = () => {
+      setDraggingRange(false);
+      // 페인터 활성이면 selBounds 에 source format 적용 + 비활성화
+      if (formatPainterSource) {
+        applyFormatToRange(selBounds, formatPainterSource);
+        setFormatPainterSource(null);
+      }
+    };
     window.addEventListener('pointerup', onUp);
     return () => window.removeEventListener('pointerup', onUp);
-  }, [draggingRange]);
+  }, [draggingRange, formatPainterSource, selBounds, applyFormatToRange]);
 
   // ─── 자동 채우기 (Fill handle) ───
   /** fillBounds: 채우기 영역 미리보기 — null 이면 idle */
@@ -2972,6 +3008,29 @@ export default function CloudSheetEditor() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      if (formatPainterSource) {
+                        // 토글 해제
+                        setFormatPainterSource(null);
+                      } else {
+                        // 현재 셀의 format 을 source 로 저장
+                        const src = cellFormats[selectedRef] ?? {};
+                        setFormatPainterSource({ ...src });
+                      }
+                    }}
+                    className={cn(
+                      'p-1.5 rounded hover:bg-background',
+                      formatPainterSource && 'bg-background text-foreground shadow-sm ring-1 ring-foreground/40',
+                    )}
+                    title={formatPainterSource
+                      ? '서식 복사 활성 — 적용할 셀/영역 클릭 (Esc 취소)'
+                      : '서식 복사: 현재 셀의 서식을 다른 셀에 붙이기'}
+                    aria-pressed={!!formatPainterSource}
+                  >
+                    <Paintbrush className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => clearCellFormat(selectedRef)}
                     className="p-1.5 rounded hover:bg-background text-muted-foreground"
                     title="서식 지우기"
@@ -3035,7 +3094,7 @@ export default function CloudSheetEditor() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0">
       <main className="flex-1 overflow-auto">
-        <div ref={gridRef}>
+        <div ref={gridRef} className={cn(formatPainterSource && 'cursor-copy')}>
           <SheetGrid
             cells={cells}
             displayValues={displayValues}
