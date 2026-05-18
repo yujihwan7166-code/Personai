@@ -45,6 +45,7 @@ import { ColorPopover } from '@/components/cloud/ColorPopover';
 
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { SlideHelpModal } from '@/lib/cloudSlide/SlideHelpModal';
+import { newId } from '@/lib/idGenerator';
 
 const AUTOSAVE_DELAY_MS = 1000;
 
@@ -257,9 +258,7 @@ interface SlideMeta {
   currentIdx?: number;
 }
 
-function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-}
+// newId 는 lib/idGenerator 공용 — import 는 파일 상단
 
 function emptySlide(): Slide {
   return { id: newId('s'), elements: [] };
