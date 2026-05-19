@@ -1,6 +1,7 @@
 /** 문서 도구바 공용 — 작은 아이콘 버튼 + 구분선. */
 
 import React from 'react';
+import type { Editor } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 
 export interface ToolBtnProps {
@@ -9,22 +10,28 @@ export interface ToolBtnProps {
   disabled?: boolean;
   title?: string;
   children: React.ReactNode;
+  /** 있으면 명령 직후 editor.view.focus() 강제 호출 — dom selection 시각 복원용. */
+  editor?: Editor;
 }
 
-export function ToolBtn({ onClick, active, disabled, title, children }: ToolBtnProps) {
+export function ToolBtn({ onClick, active, disabled, title, children, editor }: ToolBtnProps) {
   return (
     <button
       type="button"
-      // mousedown 의 기본 동작(blur 시키기)을 막아 ProseMirror selection 유지.
-      // 일부 브라우저는 mousedown preventDefault 만으로는 mouseup 사이 button focus 가
-      // 잠시 들어가 dom selection 이 풀리므로 명령을 mousedown 안에서 즉시 실행.
+      // mousedown 의 기본 동작(button focus 이동)을 막아 contenteditable 의 dom selection 유지.
+      // 명령은 mousedown 시점에 즉시 실행 — mouseup ~ click 사이 selection 풀림 회피.
+      // 명령 직후 editor.view.focus() 를 호출해서, 일부 브라우저가 dom selection 을
+      // 흐리게 보여주는 경우(=editor 가 잠시 focus 잃은 경우) 다시 진하게 복원.
       onMouseDown={(e) => {
         e.preventDefault();
-        if (!disabled) onClick();
+        if (disabled) return;
+        onClick();
+        if (editor) {
+          // 마이크로태스크로 미뤄서 명령 dispatch 후 dom 상태가 안정되면 강제 focus
+          queueMicrotask(() => editor.view.focus());
+        }
       }}
-      // 키보드 접근성 — Enter/Space 로도 동작.
       onClick={(e) => { e.preventDefault(); }}
-      // button 이 focusable 이 되지 않도록 — Tab 으로도, 클릭으로도.
       tabIndex={-1}
       disabled={disabled}
       title={title}

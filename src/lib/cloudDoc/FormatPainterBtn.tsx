@@ -86,6 +86,7 @@ export function FormatPainterBtn({ editor }: { editor: Editor }) {
 
   return (
     <ToolBtn
+      editor={editor}
       onClick={handleClick}
       active={!!captured}
       title={captured ? '서식 복사 활성 — 다음 선택에 적용 (Esc 취소)' : '서식 복사 (Format Painter)'}
