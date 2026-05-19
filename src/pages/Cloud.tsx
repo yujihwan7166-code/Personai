@@ -518,9 +518,14 @@ export default function Cloud() {
   const onDragOver = useCallback((e: React.DragEvent) => {
     if (e.dataTransfer.types.includes('Files')) {
       e.preventDefault();
+      // 휴지통/별표 모드에서는 시각적으로만 거부 (커서 변경, 오버레이 안 띄움).
+      if (listMode === 'trash') {
+        e.dataTransfer.dropEffect = 'none';
+        return;
+      }
       setDragOver(true);
     }
-  }, []);
+  }, [listMode]);
   const onDragLeave = useCallback((e: React.DragEvent) => {
     // 자식 요소 이동 시 dragleave 무시
     if (e.currentTarget === e.target) setDragOver(false);
@@ -528,9 +533,13 @@ export default function Cloud() {
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    if (listMode === 'trash') {
+      toast({ title: '휴지통에는 업로드할 수 없어요', description: '먼저 내 파일로 이동하세요.' });
+      return;
+    }
     const files = e.dataTransfer.files;
     if (files && files.length > 0) void handleUploadFiles(files);
-  }, [handleUploadFiles]);
+  }, [handleUploadFiles, listMode]);
 
   // ─── 새 문서 만들기 → 즉시 편집기 ───
   const handleCreateDoc = useCallback(async () => {
@@ -990,7 +999,14 @@ export default function Cloud() {
           <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none">
             <Upload className="w-12 h-12 text-foreground/70 mb-3" />
             <div className="text-lg font-medium">파일을 놓으세요</div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+              <Folder className="w-3.5 h-3.5" aria-hidden />
+              <span className="font-medium text-foreground/80 max-w-[300px] truncate">
+                {trail[trail.length - 1]?.name ?? '내 파일'}
+              </span>
+              <span>에 추가</span>
+            </div>
+            <div className="text-xs text-muted-foreground/70 mt-2">
               .docx · .xlsx · .pptx · .md · .txt · .html · .csv
             </div>
           </div>
