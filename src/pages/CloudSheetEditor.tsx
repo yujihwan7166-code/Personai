@@ -1987,6 +1987,46 @@ export default function CloudSheetEditor() {
       else if (e.key === 'ArrowDown')  { e.preventDefault(); moveBy(1, 0); }
       else if (e.key === 'ArrowLeft')  { e.preventDefault(); moveBy(0, -1); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); moveBy(0, 1); }
+      else if (e.key === 'Home') {
+        // Home = 현재 행의 A 열로. Ctrl+Home = A1.
+        e.preventDefault();
+        if (e.ctrlKey || e.metaKey) {
+          setRangeAnchor(isShift ? (rangeAnchor ?? { ...selected }) : null);
+          setSelected({ row: 0, col: 0 });
+        } else {
+          setRangeAnchor(isShift ? (rangeAnchor ?? { ...selected }) : null);
+          setSelected((s) => ({ row: s.row, col: 0 }));
+        }
+      }
+      else if (e.key === 'End') {
+        // End = 현재 행의 마지막 데이터 있는 셀 (없으면 그대로).
+        // Ctrl+End = 콘텐츠가 있는 마지막 셀 (max row, max col among 데이터 있는 셀).
+        e.preventDefault();
+        if (e.ctrlKey || e.metaKey) {
+          let maxR = 0, maxC = 0;
+          for (const ref of Object.keys(cells)) {
+            const m = ref.match(/^([A-Z]+)(\d+)$/);
+            if (!m) continue;
+            const v = cells[ref];
+            if (v === undefined || v === '') continue;
+            const c = colToIdx(m[1]);
+            const r = Number(m[2]) - 1;
+            if (r > maxR) maxR = r;
+            if (c > maxC) maxC = c;
+          }
+          setRangeAnchor(isShift ? (rangeAnchor ?? { ...selected }) : null);
+          setSelected({ row: maxR, col: maxC });
+        } else {
+          // 현재 행의 마지막 콘텐츠 있는 셀
+          let lastC = selected.col;
+          for (let c = colCount - 1; c >= 0; c--) {
+            const v = cells[cellRef(selected.row, c)];
+            if (v !== undefined && v !== '') { lastC = c; break; }
+          }
+          setRangeAnchor(isShift ? (rangeAnchor ?? { ...selected }) : null);
+          setSelected((s) => ({ row: s.row, col: lastC }));
+        }
+      }
       else if (e.key === 'Tab')        { e.preventDefault(); moveBy(0, isShift ? -1 : 1); }
       else if (e.key === 'Enter')      { e.preventDefault(); startEdit(selected.row, selected.col); }
       else if (e.key === 'F2')         { e.preventDefault(); startEdit(selected.row, selected.col); }
@@ -2011,7 +2051,7 @@ export default function CloudSheetEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, selected, cells, startEdit, setCellValue, selBounds, rowCount, colCount]);
+  }, [editing, selected, cells, startEdit, setCellValue, selBounds, rowCount, colCount, rangeAnchor]);
 
   // ─── 마우스 드래그 — 글로벌 pointerup 으로 종료 + 서식 복사 적용 ───
   useEffect(() => {

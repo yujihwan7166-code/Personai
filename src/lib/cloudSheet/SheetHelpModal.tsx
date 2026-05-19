@@ -48,7 +48,11 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <h3 className="text-xs font-medium text-muted-foreground mb-1.5">이동</h3>
             <div className="space-y-1">
               <HelpRow keys={['↑', '↓', '←', '→']} label="셀 이동" />
-              <HelpRow keys={['Tab']} label="오른쪽 셀" />
+              <HelpRow keys={['Tab']} label="오른쪽 셀 (Shift+Tab = 왼쪽)" />
+              <HelpRow keys={['Home']} label="현재 행 첫 셀 (A 열)" />
+              <HelpRow keys={['End']} label="현재 행 마지막 데이터 셀" />
+              <HelpRow keys={['Ctrl', 'Home']} label="A1 으로 이동" />
+              <HelpRow keys={['Ctrl', 'End']} label="콘텐츠 끝 셀 (최우하단)" />
             </div>
           </section>
 
