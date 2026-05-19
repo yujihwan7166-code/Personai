@@ -6,7 +6,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Upload, Search, Settings, Eye,
+  ArrowLeft, Plus, Upload, Search, Settings, Eye, Keyboard,
   FileText, FileSpreadsheet, Presentation, Folder, FolderPlus, FolderOpen,
   Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
   MoreHorizontal, Copy as CopyIcon,
@@ -25,6 +25,7 @@ import {
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
 import { estimateUsedBytes, usagePercent } from '@/lib/storageQuota';
 import { formatBytes } from '@/lib/formatters';
+import { DriveHelpModal } from '@/components/cloud/DriveHelpModal';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -84,6 +85,7 @@ export default function Cloud() {
   const lastSelectAnchorRef = useRef<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   // 사이드바 폴더 트리
   const [allFolders, setAllFolders] = useState<CloudNode[]>([]);
   const [folderFilter, setFolderFilter] = useState('');
@@ -878,6 +880,13 @@ export default function Cloud() {
         setSearchOpen((v) => !v);
         return;
       }
+      // ? = 도움말 (input 안 X)
+      const tag0 = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if ((e.key === '?' || (e.shiftKey && e.key === '/')) && tag0 !== 'input' && tag0 !== 'textarea') {
+        e.preventDefault();
+        setHelpOpen(true);
+        return;
+      }
       if (!selectedNode || editingId) return;
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
@@ -973,6 +982,15 @@ export default function Cloud() {
               type="button"
             >
               <Search className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="p-2 rounded hover:bg-muted"
+              aria-label="단축키 도움말"
+              title="단축키 도움말 (?)"
+              type="button"
+            >
+              <Keyboard className="w-4 h-4" />
             </button>
             <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <button
@@ -1546,6 +1564,8 @@ export default function Cloud() {
         onClose={() => setSearchOpen(false)}
         onSelect={(n) => { void handleSearchSelect(n); }}
       />
+
+      <DriveHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* 우클릭 컨텍스트 메뉴 */}
       {ctxMenu && (() => {
