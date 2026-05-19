@@ -2293,6 +2293,7 @@ function NodeCard({
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
 }: NodeCardProps) {
   const isFolder = node.kind === 'folder';
+  const folderColor = isFolder ? folderColorOf(node) : undefined;
   return (
     <div
       role="button"
@@ -2309,11 +2310,13 @@ function NodeCard({
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, node) : undefined}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(e as unknown as React.MouseEvent); }}
       className={cn(
-        'group border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',
+        'group border rounded-lg p-3 hover:bg-muted/30 transition-colors text-left cursor-pointer relative',
+        !folderColor && 'border-border',
         selected && 'border-foreground/50 bg-muted',
         isDragging && 'opacity-50',
         isDropTarget && 'ring-2 ring-foreground/40 bg-foreground/5',
       )}
+      style={folderColor && !selected ? { borderColor: folderColor + '66' /* 40% alpha */ } : undefined}
     >
       {/* 상단 우측: 별표 + ⋯ */}
       <div className="absolute top-2 right-2 flex items-center gap-0.5">
