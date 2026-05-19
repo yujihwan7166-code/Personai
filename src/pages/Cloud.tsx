@@ -23,6 +23,8 @@ import {
   duplicateNode,
 } from '@/lib/cloudClient';
 import { uploadAndConvert, ACCEPT_EXT_LIST } from '@/lib/cloudCommon/uploadAndConvert';
+import { estimateUsedBytes, usagePercent } from '@/lib/storageQuota';
+import { formatBytes } from '@/lib/formatters';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -1136,6 +1138,37 @@ export default function Cloud() {
             active={listMode === 'trash'}
             onClick={() => switchMode('trash')}
           />
+
+          {/* 저장 공간 사용량 — localStorage 기반 (5MB limit 추정) */}
+          {(() => {
+            const used = estimateUsedBytes();
+            const pct = usagePercent();
+            const limit = 5 * 1024 * 1024;
+            const warn = pct >= 80;
+            const danger = pct >= 95;
+            return (
+              <div className="mt-3 pt-3 border-t border-border" title={`전체 ${formatBytes(used)} / ${formatBytes(limit)} 추정`}>
+                <div className="text-[10px] text-muted-foreground mb-1 flex items-center justify-between">
+                  <span>저장 공간</span>
+                  <span className={cn(
+                    'tabular-nums',
+                    danger ? 'text-destructive font-medium' : warn ? 'text-amber-600 dark:text-amber-400' : '',
+                  )}>
+                    {formatBytes(used)} / 5 MB
+                  </span>
+                </div>
+                <div className="h-1 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      'h-full transition-all',
+                      danger ? 'bg-destructive' : warn ? 'bg-amber-500' : 'bg-foreground/40',
+                    )}
+                    style={{ width: `${Math.max(2, pct).toFixed(1)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
         </aside>
 
         <main
