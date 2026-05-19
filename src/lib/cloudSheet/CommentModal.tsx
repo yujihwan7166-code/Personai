@@ -30,11 +30,25 @@ export function CommentModal({ open, onClose, cellRefStr, initialText, onSave }:
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            // Ctrl/Cmd+Enter = 저장, Esc = 닫기 (저장 없이)
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              onSave(text);
+              onClose();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              onClose();
+            }
+          }}
           rows={5}
-          placeholder="이 셀에 대한 메모…"
+          placeholder="이 셀에 대한 메모…  (Ctrl+Enter = 저장)"
           className="w-full px-2 py-1.5 rounded border border-border bg-background outline-none focus:border-foreground/40 text-sm"
           autoFocus
         />
+        <div className="text-[10px] text-muted-foreground -mt-1 ml-1">
+          {text.length}자 · Ctrl+Enter 로 저장, Esc 로 닫기
+        </div>
         <div className="flex justify-between items-center pt-2 border-t border-border">
           {initialText && (
             <button
