@@ -93,6 +93,16 @@ export const ThumbButton = React.memo(function ThumbButton({
           }
           return null;
         })}
+        {/* 노트 있음 표시 — 우상단 작은 📝 (presenter notes 있는 슬라이드 식별) */}
+        {slide.notes?.trim() && (
+          <span
+            className="absolute top-0.5 right-0.5 text-[8px] leading-none bg-background/90 rounded-sm px-0.5 shadow-sm"
+            title="발표자 노트 있음"
+            aria-label="발표자 노트 있음"
+          >
+            📝
+          </span>
+        )}
       </span>
     </button>
   );
