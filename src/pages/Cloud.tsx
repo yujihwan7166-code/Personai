@@ -1296,24 +1296,45 @@ export default function Cloud() {
               <div className="flex items-center gap-1 text-sm">
                 {modeTitle ? (
                   <span className="font-medium">{modeTitle}</span>
-                ) : (
-                  trail.map((t, idx) => (
-                    <span key={`${t.id ?? 'root'}-${idx}`} className="flex items-center gap-1">
-                      {idx > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                      <button
-                        onClick={() => goToTrailIndex(idx)}
-                        className={cn(
-                          'px-1.5 py-0.5 rounded hover:bg-muted',
-                          idx === trail.length - 1 ? 'font-medium' : 'text-muted-foreground',
-                        )}
-                        type="button"
-                      >
-                        {idx === 0 && <Folder className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />}
-                        {t.name}
-                      </button>
+                ) : (() => {
+                  // 5+ depth 시 중간 truncate: [root, …, parent, current]
+                  const visible: Array<{ t: typeof trail[number]; idx: number; collapsed?: boolean }> = [];
+                  if (trail.length <= 4) {
+                    trail.forEach((t, idx) => visible.push({ t, idx }));
+                  } else {
+                    visible.push({ t: trail[0], idx: 0 });
+                    visible.push({ t: { id: '__ellipsis__', name: '…' }, idx: -1, collapsed: true });
+                    // 마지막 2개 (parent + current)
+                    visible.push({ t: trail[trail.length - 2], idx: trail.length - 2 });
+                    visible.push({ t: trail[trail.length - 1], idx: trail.length - 1 });
+                  }
+                  return visible.map((v, i) => (
+                    <span key={`${v.t.id ?? 'root'}-${v.idx}-${i}`} className="flex items-center gap-1">
+                      {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                      {v.collapsed ? (
+                        <span
+                          className="px-1.5 py-0.5 text-muted-foreground/70"
+                          title={`중간 ${trail.length - 3}개 폴더 숨김`}
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => goToTrailIndex(v.idx)}
+                          className={cn(
+                            'px-1.5 py-0.5 rounded hover:bg-muted truncate max-w-[200px]',
+                            v.idx === trail.length - 1 ? 'font-medium' : 'text-muted-foreground',
+                          )}
+                          type="button"
+                          title={v.t.name}
+                        >
+                          {v.idx === 0 && <Folder className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />}
+                          {v.t.name}
+                        </button>
+                      )}
                     </span>
-                  ))
-                )}
+                  ));
+                })()}
                 {/* 현재 표시 중 항목 수 — 모드별 보충 정보 */}
                 {nodes.length > 0 && (() => {
                   const folderCount = nodes.filter((n) => n.kind === 'folder').length;
