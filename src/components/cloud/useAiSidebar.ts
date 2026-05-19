@@ -27,6 +27,8 @@ interface UseAiSidebarReturn {
   messages: ChatMessage[];
   sending: boolean;
   send: (text: string) => Promise<void>;
+  /** 마지막 user 메시지를 그대로 다시 전송 — 응답 재생성. */
+  retryLast: () => Promise<void>;
   clear: () => void;
 }
 
@@ -150,6 +152,48 @@ export function useAiSidebar(
     }
   }, [messages, sending]);
 
+  /** 마지막 user 메시지를 다시 전송 — 그 뒤 assistant 답변(들)을 새 응답으로 교체. */
+  const retryLast = useCallback(async () => {
+    if (sending) return;
+    // 끝에서부터 마지막 user 메시지 찾기
+    let userIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') { userIdx = i; break; }
+    }
+    if (userIdx < 0) return;
+    const userMsg = messages[userIdx];
+    // 그 user 메시지 뒤의 모든 assistant 응답 제거 → 새 빈 assistant + streaming
+    const historyBefore = messages.slice(0, userIdx); // user 메시지 직전까지가 history
+    const aiId = newMessageId();
+    const aiMsg: ChatMessage = {
+      id: aiId,
+      role: 'assistant',
+      content: '',
+      ts: Date.now(),
+    };
+    setMessages([...historyBefore, userMsg, aiMsg]);
+    setSending(true);
+    try {
+      const ctx = getContextRef.current();
+      const final = await runAiChatStream(ctx, historyBefore, userMsg.content, (accumulated) => {
+        setMessages((cur) => cur.map((m) =>
+          m.id === aiId ? { ...m, content: accumulated } : m,
+        ));
+      });
+      setMessages((cur) => cur.map((m) =>
+        m.id === aiId && !final ? { ...m, content: '(빈 응답)' } : m,
+      ));
+    } catch (e) {
+      setMessages((cur) => cur.map((m) =>
+        m.id === aiId
+          ? { ...m, content: e instanceof Error ? e.message : '알 수 없는 에러', error: true }
+          : m,
+      ));
+    } finally {
+      setSending(false);
+    }
+  }, [messages, sending]);
+
   const clear = useCallback(() => {
     setMessages([]);
     // localStorage 도 함께 비움
@@ -159,5 +203,5 @@ export function useAiSidebar(
     }
   }, [kind, persistKey]);
 
-  return { open, setOpen, toggle, messages, sending, send, clear };
+  return { open, setOpen, toggle, messages, sending, send, retryLast, clear };
 }

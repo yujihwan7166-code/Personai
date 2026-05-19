@@ -25,13 +25,15 @@ interface AiSidebarProps {
   messages: ChatMessage[];
   sending: boolean;
   onSend: (text: string) => void | Promise<void>;
+  /** 마지막 user 메시지로 응답 재생성. 미제공이면 retry 버튼 X. */
+  onRetry?: () => void | Promise<void>;
   onClear: () => void;
   /** 컨텍스트 칩 클릭 시 화면별 동작 (예: 시트 → selBounds 로 jump). 선택 사항 */
   onContextClick?: () => void;
 }
 
 export function AiSidebar({
-  open, onClose, context, messages, sending, onSend, onClear, onContextClick,
+  open, onClose, context, messages, sending, onSend, onRetry, onClear, onContextClick,
 }: AiSidebarProps) {
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -192,19 +194,32 @@ export function AiSidebar({
         {!isEmpty && (
           <div className="flex justify-between items-center pb-1.5">
             <span className="text-[10px] text-muted-foreground">{messages.length}개 메시지</span>
-            <button
-              type="button"
-              onClick={() => {
-                if (messages.length === 0) return;
-                if (window.confirm(`이 대화의 메시지 ${messages.length}개를 모두 삭제할까요? 되돌릴 수 없습니다.`)) {
-                  onClear();
-                }
-              }}
-              className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
-              title="대화 초기화 (모든 메시지 삭제)"
-            >
-              <RefreshCw className="w-3 h-3" /> 새 대화
-            </button>
+            <div className="flex items-center gap-0.5">
+              {onRetry && messages.some((m) => m.role === 'user') && (
+                <button
+                  type="button"
+                  onClick={() => { void onRetry(); }}
+                  disabled={sending}
+                  className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1 disabled:opacity-40"
+                  title="마지막 질문을 다시 보내 응답 재생성"
+                >
+                  ↻ 재시도
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (messages.length === 0) return;
+                  if (window.confirm(`이 대화의 메시지 ${messages.length}개를 모두 삭제할까요? 되돌릴 수 없습니다.`)) {
+                    onClear();
+                  }
+                }}
+                className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
+                title="대화 초기화 (모든 메시지 삭제)"
+              >
+                <RefreshCw className="w-3 h-3" /> 새 대화
+              </button>
+            </div>
           </div>
         )}
         <div className="flex items-end gap-1.5">

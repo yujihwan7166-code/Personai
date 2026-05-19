@@ -3541,6 +3541,7 @@ export default function CloudSheetEditor() {
           messages={ai.messages}
           sending={ai.sending}
           onSend={ai.send}
+          onRetry={ai.retryLast}
           onClear={ai.clear}
         />
       </div>

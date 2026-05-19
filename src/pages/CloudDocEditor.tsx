@@ -656,6 +656,7 @@ export default function CloudDocEditor() {
           messages={ai.messages}
           sending={ai.sending}
           onSend={ai.send}
+          onRetry={ai.retryLast}
           onClear={ai.clear}
         />
       </div>
