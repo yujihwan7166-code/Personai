@@ -95,6 +95,36 @@ export function CondFormatModal({ open, onClose, currentRange, rules, onAdd, onR
               className="flex-1 text-xs font-mono px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
             />
           </label>
+          {/* 자주 쓰는 배경 프리셋 — 클릭으로 적용 + 비우기 */}
+          <div className="flex items-center gap-1 pl-16 -mt-1">
+            <span className="text-[10px] text-muted-foreground mr-1">빠른 색</span>
+            {([
+              { c: '#fee2e2', label: '빨강' },
+              { c: '#fef3c7', label: '노랑' },
+              { c: '#d1fae5', label: '초록' },
+              { c: '#dbeafe', label: '파랑' },
+              { c: '#ede9fe', label: '보라' },
+              { c: '#f3f4f6', label: '회색' },
+            ]).map(({ c, label }) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setBgColor(c)}
+                className={`w-5 h-5 rounded border ${bgColor.toLowerCase() === c.toLowerCase() ? 'border-foreground' : 'border-border'} hover:scale-110 transition-transform`}
+                style={{ backgroundColor: c }}
+                title={label}
+                aria-label={label}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setBgColor('')}
+              className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:bg-muted ml-1"
+              title="배경 색상 없음"
+            >
+              비우기
+            </button>
+          </div>
           <label className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-muted-foreground">글자</span>
             <input
@@ -115,7 +145,20 @@ export function CondFormatModal({ open, onClose, currentRange, rules, onAdd, onR
               <Bold className="w-3.5 h-3.5" />
             </label>
           </label>
-          <div className="flex justify-end pt-1">
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>미리보기:</span>
+              <span
+                className="inline-flex items-center px-2 py-1 rounded border border-border font-mono"
+                style={{
+                  backgroundColor: bgColor.trim() || 'transparent',
+                  color: textColor.trim() || undefined,
+                  fontWeight: bold ? 600 : undefined,
+                }}
+              >
+                예시 값
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => {
