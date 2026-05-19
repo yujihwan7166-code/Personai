@@ -103,6 +103,8 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <div className="space-y-1">
               <HelpRow keys={['Shift', '↑↓←→']} label="범위 확장" />
               <HelpRow keys={['Shift', '마우스']} label="범위 확장 / 드래그 선택" />
+              <HelpRow keys={['Ctrl', 'Space']} label="현재 열 전체 선택" />
+              <HelpRow keys={['Shift', 'Space']} label="현재 행 전체 선택" />
               <HelpRow keys={['우클릭']} label="셀 메뉴 — 빠른 색·서식·텍스트 변환·정렬 등" />
             </div>
           </section>

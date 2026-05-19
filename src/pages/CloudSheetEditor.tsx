@@ -830,10 +830,19 @@ export default function CloudSheetEditor() {
         if (prevIdx !== currentSheetIdx) switchSheet(prevIdx);
         return;
       }
+
+      // Ctrl+Space — 현재 셀이 속한 열 전체 선택 (엑셀 표준)
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        const col = selectedRef ? colToIdx(selectedRef.match(/^([A-Z]+)/)?.[1] ?? 'A') : 0;
+        setRangeAnchor({ row: 0, col });
+        setSelected({ row: rowCount - 1, col });
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet]);
+  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount]);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
@@ -2059,6 +2068,11 @@ export default function CloudSheetEditor() {
       } else if (e.key === 'Escape') {
         setRangeAnchor(null);
         setFormatPainterSource(null);
+      } else if (isShift && (e.key === ' ' || e.code === 'Space')) {
+        // Shift+Space — 현재 셀이 속한 행 전체 선택 (엑셀 표준)
+        e.preventDefault();
+        setRangeAnchor({ row: selected.row, col: 0 });
+        setSelected({ row: selected.row, col: colCount - 1 });
       } else if (e.key.length === 1 && !isMod) {
         // 글자 입력 → 단일 셀 모드 + 편집 진입
         e.preventDefault();
