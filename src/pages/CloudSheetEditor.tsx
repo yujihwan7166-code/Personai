@@ -3311,6 +3311,47 @@ export default function CloudSheetEditor() {
             onClick={() => { clearSelectionFormats(); setCellCtxMenu(null); }}>
             <Eraser className="w-3.5 h-3.5" /> 서식 지우기
           </button>
+          <div className="h-px bg-border my-1" />
+          <div className="px-3 py-1">
+            <div className="text-[10px] text-muted-foreground mb-1">텍스트 변환 (선택 영역)</div>
+            <div className="flex items-center gap-1">
+              {([
+                { label: 'A↑', title: '대문자', fn: (v: string) => v.toUpperCase() },
+                { label: 'a↓', title: '소문자', fn: (v: string) => v.toLowerCase() },
+                { label: '⌽', title: '앞뒤 공백 제거 (Trim)', fn: (v: string) => v.trim() },
+              ]).map(({ label, title, fn }) => (
+                <button
+                  key={title}
+                  type="button"
+                  onClick={() => {
+                    // 선택 영역의 raw 값 중 수식이 아닌 값만 변환
+                    setAllCells((all) => {
+                      const cur = { ...(all[currentSheetId] ?? {}) };
+                      for (let r = selBounds.minR; r <= selBounds.maxR; r++) {
+                        for (let c = selBounds.minC; c <= selBounds.maxC; c++) {
+                          const ref = cellRef(r, c);
+                          const v = cur[ref];
+                          if (v == null || v === '' || v.startsWith('=')) continue;
+                          const next = fn(v);
+                          if (next === v) continue;
+                          if (next === '') delete cur[ref];
+                          else cur[ref] = next;
+                        }
+                      }
+                      const nextAll: AllCells = { ...all, [currentSheetId]: cur };
+                      queueSave({ allCells: nextAll });
+                      return nextAll;
+                    });
+                    setCellCtxMenu(null);
+                  }}
+                  className="text-xs px-2 py-1 rounded border border-border hover:bg-muted"
+                  title={`${title} (수식 셀 제외)`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         );
       })()}
