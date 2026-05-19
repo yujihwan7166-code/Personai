@@ -97,6 +97,40 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <div className="space-y-1">
               <HelpRow keys={['Shift', '↑↓←→']} label="범위 확장" />
               <HelpRow keys={['Shift', '마우스']} label="범위 확장 / 드래그 선택" />
+              <HelpRow keys={['우클릭']} label="셀 메뉴 — 빠른 색·서식·텍스트 변환·정렬 등" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">서식 (선택 셀/범위에 적용)</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'B']} label="굵게" />
+              <HelpRow keys={['Ctrl', 'I']} label="기울임" />
+              <HelpRow keys={['Ctrl', 'U']} label="밑줄" />
+              <HelpRow keys={['Ctrl', 'Alt', '1']} label="통화 (₩)" />
+              <HelpRow keys={['Ctrl', 'Alt', '2']} label="소수 1자리" />
+              <HelpRow keys={['Ctrl', 'Alt', '3']} label="날짜" />
+              <HelpRow keys={['Ctrl', 'Alt', '4']} label="정수 (천단위 콤마)" />
+              <HelpRow keys={['Ctrl', 'Alt', '5']} label="퍼센트 (%)" />
+              <HelpRow keys={['Ctrl', '\\']} label="서식 지우기" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">날짜·시각 입력</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', ';']} label="오늘 날짜 (YYYY-MM-DD)" />
+              <HelpRow keys={['Ctrl', 'Shift', ';']} label="현재 시각 (HH:MM:SS)" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">행·열 / 코너</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['헤더 드래그']} label="행/열 크기 조정 — 드래그 중 픽셀 툴팁" />
+              <HelpRow keys={['헤더 더블클릭']} label="기본 크기로 리셋" />
+              <HelpRow keys={['코너 더블클릭']} label="모든 열 폭 자동 맞춤" />
+              <HelpRow keys={['채우기 핸들']} label="범위 우하단 ▢ 드래그 — 시리즈/패턴 자동 채우기" />
             </div>
           </section>
 
