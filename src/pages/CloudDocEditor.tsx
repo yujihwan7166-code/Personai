@@ -696,8 +696,8 @@ export default function CloudDocEditor() {
         </FloatingMenu>
       )}
 
-      {/* ── Q1 D: 텍스트 선택 시 floating ✨ ── */}
-      {editor && <AiBubbleMenu editor={editor} ai={docAi} />}
+      {/* ── Q1 D: 텍스트 선택 시 floating ✨ — 메뉴는 본문 안 가리는 우측 패널 ── */}
+      {editor && <AiBubbleMenu editor={editor} ai={docAi} aiSidebarOpen={ai.open} />}
 
       {/* ── Q2 A: 빈 줄에서 Space 누르면 — FloatingMenu 안 AiInlineMenu ── */}
       {editor && docAi.menuOpen === 'empty-line' && (
