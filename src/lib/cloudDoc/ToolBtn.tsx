@@ -15,11 +15,17 @@ export function ToolBtn({ onClick, active, disabled, title, children }: ToolBtnP
   return (
     <button
       type="button"
-      onClick={onClick}
-      // mousedown 의 기본 동작(blur)을 막아 ProseMirror 의 selection 시각 표시를 유지.
-      // 이게 없으면 버튼 클릭 시 editor 가 blur → 선택 영역 시각이 사라지고
-      // 명령 실행 후 scrollIntoView 가 발동해 화면이 점프함.
-      onMouseDown={(e) => e.preventDefault()}
+      // mousedown 의 기본 동작(blur 시키기)을 막아 ProseMirror selection 유지.
+      // 일부 브라우저는 mousedown preventDefault 만으로는 mouseup 사이 button focus 가
+      // 잠시 들어가 dom selection 이 풀리므로 명령을 mousedown 안에서 즉시 실행.
+      onMouseDown={(e) => {
+        e.preventDefault();
+        if (!disabled) onClick();
+      }}
+      // 키보드 접근성 — Enter/Space 로도 동작.
+      onClick={(e) => { e.preventDefault(); }}
+      // button 이 focusable 이 되지 않도록 — Tab 으로도, 클릭으로도.
+      tabIndex={-1}
       disabled={disabled}
       title={title}
       aria-label={title}
