@@ -125,6 +125,8 @@ export default function CloudSlideEditor() {
   const [editingElId, setEditingElId] = useState<string | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [presentIdx, setPresentIdx] = useState(0);
+  /** 발표 모드 가림: 'black'/'white' = 화면 검정/흰. null = 정상. PowerPoint convention. */
+  const [presentBlank, setPresentBlank] = useState<'black' | 'white' | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -1191,6 +1193,7 @@ export default function CloudSlideEditor() {
   const stopPresent = useCallback(() => {
     setCurrentIdx(presentIdx);  // 마지막으로 본 슬라이드로 에디터 복귀
     setPresenting(false);
+    setPresentBlank(null);
   }, [presentIdx]);
 
   // ─── 키보드 ───
@@ -1213,6 +1216,12 @@ export default function CloudSlideEditor() {
         } else if (e.key === 'End') {
           e.preventDefault();
           setPresentIdx(slides.length - 1);
+        } else if (e.key === 'b' || e.key === 'B') {
+          e.preventDefault();
+          setPresentBlank((cur) => (cur === 'black' ? null : 'black'));
+        } else if (e.key === 'w' || e.key === 'W') {
+          e.preventDefault();
+          setPresentBlank((cur) => (cur === 'white' ? null : 'white'));
         }
         return;
       }
@@ -2371,8 +2380,9 @@ export default function CloudSlideEditor() {
         <PresentationOverlay
           slides={slides}
           idx={presentIdx}
-          onPrev={() => setPresentIdx((i) => Math.max(0, i - 1))}
-          onNext={() => setPresentIdx((i) => Math.min(slides.length - 1, i + 1))}
+          blank={presentBlank}
+          onPrev={() => { setPresentBlank(null); setPresentIdx((i) => Math.max(0, i - 1)); }}
+          onNext={() => { setPresentBlank(null); setPresentIdx((i) => Math.min(slides.length - 1, i + 1)); }}
           onClose={stopPresent}
         />
       )}

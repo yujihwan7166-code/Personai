@@ -9,17 +9,39 @@ import { ShapeRender } from './ShapeRender';
 interface PresentationOverlayProps {
   slides: Slide[];
   idx: number;
+  /** B (black) / W (white) 화면 가림 상태. null = 정상. */
+  blank?: 'black' | 'white' | null;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
 }
 
-export function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: PresentationOverlayProps) {
+export function PresentationOverlay({ slides, idx, blank, onPrev, onNext, onClose }: PresentationOverlayProps) {
   const slide = slides[idx];
   const [notesOpen, setNotesOpen] = useState(false);
   const hasNotes = !!slide?.notes?.trim();
+  // 진행률 % — 마지막 슬라이드 = 100%. 1장이면 100%.
+  const progressPct = slides.length <= 1 ? 100 : Math.round(((idx + 1) / slides.length) * 100);
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none">
+      {/* 진행률 바 — 상단 2px */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10 z-10">
+        <div
+          className="h-full bg-white/60 transition-all duration-200"
+          style={{ width: `${progressPct}%` }}
+          aria-hidden
+        />
+      </div>
+      {/* B/W 가림막 */}
+      {blank && (
+        <div
+          className={cn(
+            'absolute inset-0 z-40 pointer-events-none',
+            blank === 'black' ? 'bg-black' : 'bg-white',
+          )}
+          aria-label={blank === 'black' ? '화면 가림 (검정)' : '화면 가림 (흰색)'}
+        />
+      )}
       {/* 슬라이드 — 16:9 비율 최대 */}
       <div
         className="bg-white shadow-2xl relative overflow-hidden"
@@ -122,7 +144,7 @@ export function PresentationOverlay({ slides, idx, onPrev, onNext, onClose }: Pr
 
       {/* 하단 정보 + 노트 토글 + 닫기 */}
       <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between px-5 text-white/60 text-xs">
-        <span>← → 이동 · Esc 종료 · Home/End 처음/끝</span>
+        <span>← → 이동 · Esc 종료 · Home/End 처음/끝 · B/W 가림</span>
         <span className="font-mono">{idx + 1} / {slides.length}</span>
         <div className="flex items-center gap-1">
           {hasNotes && (

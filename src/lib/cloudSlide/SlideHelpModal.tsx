@@ -29,6 +29,8 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['→', 'Space', 'Enter']} label="다음 슬라이드" />
               <HelpRow keys={['←', 'Backspace']} label="이전 슬라이드" />
               <HelpRow keys={['Home', 'End']} label="처음 / 끝 슬라이드" />
+              <HelpRow keys={['B']} label="화면 검정 가림 (토글) — 시선 유도" />
+              <HelpRow keys={['W']} label="화면 흰 가림 (토글)" />
               <HelpRow keys={['Esc']} label="발표 종료" />
               <HelpRow keys={['클릭']} label="화면 좌·우 영역 클릭으로도 이동" />
             </div>
