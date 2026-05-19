@@ -816,10 +816,24 @@ export default function CloudSheetEditor() {
         setCellFormat(selectedRef, CLEARED_FORMAT);
         return;
       }
+
+      // Ctrl+PageDown / Ctrl+PageUp — 시트 전환 (엑셀 표준)
+      if (e.key === 'PageDown') {
+        e.preventDefault();
+        const nextIdx = Math.min(sheetsMeta.length - 1, currentSheetIdx + 1);
+        if (nextIdx !== currentSheetIdx) switchSheet(nextIdx);
+        return;
+      }
+      if (e.key === 'PageUp') {
+        e.preventDefault();
+        const prevIdx = Math.max(0, currentSheetIdx - 1);
+        if (prevIdx !== currentSheetIdx) switchSheet(prevIdx);
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat]);
+  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet]);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);

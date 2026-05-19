@@ -53,6 +53,8 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['End']} label="현재 행 마지막 데이터 셀" />
               <HelpRow keys={['Ctrl', 'Home']} label="A1 으로 이동" />
               <HelpRow keys={['Ctrl', 'End']} label="콘텐츠 끝 셀 (최우하단)" />
+              <HelpRow keys={['Ctrl', 'PageDown']} label="다음 시트 (탭)" />
+              <HelpRow keys={['Ctrl', 'PageUp']} label="이전 시트 (탭)" />
             </div>
           </section>
 
