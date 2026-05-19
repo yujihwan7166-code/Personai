@@ -27,7 +27,18 @@ export function NamedRangeModal({
   const [rangeStr, setRangeStr] = useState(defaultRangeStr);
   useEffect(() => { if (open) { setName(''); setRangeStr(defaultRangeStr); } }, [open, defaultRangeStr]);
 
-  const valid = /^[A-Za-z_가-힣][A-Za-z0-9_가-힣]*$/.test(name) && rangeStr.trim() !== '';
+  const nameValid = /^[A-Za-z_가-힣][A-Za-z0-9_가-힣]*$/.test(name);
+  const rangeValid = rangeStr.trim() !== '';
+  const isDuplicate = nameValid && Object.keys(namedRanges).some((k) => k.toLowerCase() === name.trim().toLowerCase());
+  // cell ref 와 충돌하는 이름은 비추 (예: A1 같은 이름)
+  const looksLikeCellRef = /^[A-Z]+\d+$/i.test(name.trim());
+  const valid = nameValid && rangeValid;
+
+  const submit = () => {
+    if (!valid) return;
+    onAdd(name.trim(), rangeStr.trim());
+    setName('');
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -46,6 +57,7 @@ export function NamedRangeModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
               placeholder="월매출 (한글·영문·_, 숫자 시작 X)"
               className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
               autoFocus
@@ -57,18 +69,35 @@ export function NamedRangeModal({
               type="text"
               value={rangeStr}
               onChange={(e) => setRangeStr(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
               placeholder="Sheet1!A1:A10"
               className="flex-1 text-sm font-mono px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
             />
           </label>
+          {/* 경고/안내 */}
+          {name && !nameValid && (
+            <div className="text-[11px] text-amber-600 dark:text-amber-400 pl-16">
+              이름은 글자(한글·영문)나 _ 로 시작, 숫자·기호 X
+            </div>
+          )}
+          {looksLikeCellRef && (
+            <div className="text-[11px] text-amber-600 dark:text-amber-400 pl-16">
+              ‘{name.trim()}’ 는 셀 참조와 비슷해 혼동될 수 있어요
+            </div>
+          )}
+          {isDuplicate && (
+            <div className="text-[11px] text-amber-600 dark:text-amber-400 pl-16">
+              같은 이름이 이미 있어요 — 추가하면 기존 정의를 덮어쓰게 됩니다
+            </div>
+          )}
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => { if (valid) { onAdd(name.trim(), rangeStr.trim()); setName(''); } }}
+              onClick={submit}
               disabled={!valid}
               className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-foreground/90 text-sm disabled:opacity-40"
             >
-              추가
+              {isDuplicate ? '덮어쓰기' : '추가'}
             </button>
           </div>
         </div>
