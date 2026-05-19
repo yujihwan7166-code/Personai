@@ -44,6 +44,8 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <div className="space-y-1">
               <HelpRow keys={['더블클릭']} label="빈 캔버스: 텍스트 추가 / 요소: 편집" />
               <HelpRow keys={['드래그']} label="요소 이동 (Shift = 스냅 끄기)" />
+              <HelpRow keys={['↑↓←→']} label="선택 요소 미세 이동 (1%)" />
+              <HelpRow keys={['Shift', '↑↓←→']} label="선택 요소 큰 이동 (5%)" />
               <HelpRow keys={['Ctrl', 'A']} label="현재 슬라이드 모든 요소 선택" />
               <HelpRow keys={['Ctrl', 'D']} label="선택 요소 복제" />
               <HelpRow keys={['Delete', 'Backspace']} label="선택 요소 삭제" />

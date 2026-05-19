@@ -1300,6 +1300,29 @@ export default function CloudSlideEditor() {
       } else if ((isMod) && e.key.toLowerCase() === 'm') {
         e.preventDefault();
         addSlide();
+      } else if (!isMod && selectedElId && (
+        e.key === 'ArrowDown' || e.key === 'ArrowUp' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+      )) {
+        // 선택 요소 nudge — 화살표 1%, Shift+화살표 5%
+        e.preventDefault();
+        const step = e.shiftKey ? 5 : 1;
+        let dx = 0, dy = 0;
+        if (e.key === 'ArrowLeft')  dx = -step;
+        if (e.key === 'ArrowRight') dx =  step;
+        if (e.key === 'ArrowUp')    dy = -step;
+        if (e.key === 'ArrowDown')  dy =  step;
+        // 다중 선택이면 selectedElIds 전체, 아니면 selectedElId 만
+        const targetIds = selectedElIds.size > 0 ? selectedElIds : new Set([selectedElId]);
+        updateCurrentSlide((s) => ({
+          ...s,
+          elements: s.elements.map((el) => {
+            if (!targetIds.has(el.id)) return el;
+            const nx = Math.max(0, Math.min(100 - el.wPct, el.xPct + dx));
+            const ny = Math.max(0, Math.min(100 - el.hPct, el.yPct + dy));
+            return { ...el, xPct: nx, yPct: ny };
+          }),
+        }));
       } else if (!isMod && (e.key === 'ArrowDown' || e.key === 'PageDown')) {
         e.preventDefault();
         setCurrentIdx((i) => Math.min(slides.length - 1, i + 1));
@@ -1329,7 +1352,7 @@ export default function CloudSlideEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editingElId, selectedElId, deleteEl, addSlide, slides, currentIdx, presenting, startPresent, stopPresent]);
+  }, [editingElId, selectedElId, selectedElIds, deleteEl, addSlide, slides, currentIdx, presenting, startPresent, stopPresent, updateCurrentSlide]);
 
   const close = useCallback(() => {
     void flushSave();
