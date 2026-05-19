@@ -6,7 +6,7 @@ import { HelpSection, HelpRow } from '@/lib/cloudCommon/HelpRow';
 export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogTitle className="text-base">키보드 단축키</DialogTitle>
         <DialogDescription className="text-xs text-muted-foreground">
           문서 에디터에서 쓸 수 있는 단축키.
@@ -45,6 +45,23 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
             <HelpRow keys={['Ctrl', 'Shift', 'Z']} label="다시 실행" />
             <HelpRow keys={['?']} label="이 도움말" />
             <HelpRow keys={['Esc']} label="닫기 / 도움말 닫기" />
+          </HelpSection>
+
+          <HelpSection title="찾기·바꾸기">
+            <HelpRow keys={['Ctrl', 'F']} label="찾기 패널 열기" />
+            <HelpRow keys={['Ctrl', 'H']} label="바꾸기 모드 토글" />
+            <HelpRow keys={['Enter']} label="다음 결과 (Shift+Enter = 이전)" />
+            <HelpRow keys={['Aa']} label="대/소문자 구분 토글" />
+            <HelpRow keys={['W']} label="전체 단어 일치 토글" />
+            <HelpRow keys={['Esc']} label="패널 닫기" />
+          </HelpSection>
+
+          <HelpSection title="AI ✨ (인라인)">
+            <HelpRow keys={['빈 줄', 'Space']} label="AI 메뉴 — 14개 빠른 액션 + 자유 입력" />
+            <HelpRow keys={['선택', '✨']} label="텍스트 선택 시 떠오르는 bubble — 재작성·요약·번역" />
+            <HelpRow keys={['헤더', '✨']} label="언제든 헤더 ✨ 버튼으로 메뉴 열기" />
+            <HelpRow keys={['↑', '↓', 'Enter']} label="메뉴 내 항목 이동·선택" />
+            <HelpRow keys={['Accept', 'Reject']} label="결과 카드에서 본문 적용 / 버림 / 재시도" />
           </HelpSection>
 
           <HelpSection title="색·링크">
