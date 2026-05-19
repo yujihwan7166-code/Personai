@@ -2115,6 +2115,15 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+/** 최근 수정 강조 단계 — recent(1시간 이내) / today(24시간 이내) / 그 외 null. */
+function recencyLevel(iso: string): 'recent' | 'today' | null {
+  const then = new Date(iso).getTime();
+  const diffMin = (Date.now() - then) / 60_000;
+  if (diffMin < 60) return 'recent';
+  if (diffMin < 60 * 24) return 'today';
+  return null;
+}
+
 /** 휴지통 자동 영구 삭제까지 남은 일수 (30일 정책). 음수면 0. */
 function trashDaysRemaining(deletedAtIso: string): number {
   const deletedMs = new Date(deletedAtIso).getTime();
@@ -2270,11 +2279,38 @@ function NodeRow({
           </button>
         )}
 
-        <span className="text-xs text-muted-foreground w-20 text-right truncate">
-          {listMode === 'trash'
-            ? `${relativeTime(node.deletedAt ?? node.updatedAt)} 삭제`
-            : relativeTime(node.updatedAt)}
-        </span>
+        {(() => {
+          const level = listMode !== 'trash' ? recencyLevel(node.updatedAt) : null;
+          return (
+            <span
+              className={cn(
+                'text-xs w-20 text-right truncate flex items-center justify-end gap-1',
+                level === 'recent'
+                  ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                  : 'text-muted-foreground',
+              )}
+              title={
+                level === 'recent'
+                  ? '1시간 이내 수정'
+                  : level === 'today'
+                    ? '오늘 수정됨'
+                    : undefined
+              }
+            >
+              {level === 'recent' && (
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0"
+                  aria-hidden
+                />
+              )}
+              <span className="truncate">
+                {listMode === 'trash'
+                  ? `${relativeTime(node.deletedAt ?? node.updatedAt)} 삭제`
+                  : relativeTime(node.updatedAt)}
+              </span>
+            </span>
+          );
+        })()}
         {listMode === 'trash' && node.deletedAt && (() => {
           const days = trashDaysRemaining(node.deletedAt);
           return (
@@ -2403,7 +2439,34 @@ function NodeCard({
         <NodeIcon node={node} />
       </div>
       <div className="text-sm truncate font-medium pr-12">{node.name}</div>
-      <div className="text-xs text-muted-foreground mt-1">{relativeTime(node.updatedAt)}</div>
+      {(() => {
+        const level = listMode !== 'trash' ? recencyLevel(node.updatedAt) : null;
+        return (
+          <div
+            className={cn(
+              'text-xs mt-1 flex items-center gap-1',
+              level === 'recent'
+                ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                : 'text-muted-foreground',
+            )}
+            title={
+              level === 'recent'
+                ? '1시간 이내 수정'
+                : level === 'today'
+                  ? '오늘 수정됨'
+                  : undefined
+            }
+          >
+            {level === 'recent' && (
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0"
+                aria-hidden
+              />
+            )}
+            <span>{relativeTime(node.updatedAt)}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
