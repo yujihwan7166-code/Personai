@@ -43,7 +43,6 @@ import { TocDropdown } from '@/lib/cloudDoc/TocDropdown';
 import { KeyboardHelpModal } from '@/lib/cloudDoc/KeyboardHelpModal';
 import { SlashMenu } from '@/lib/cloudDoc/SlashMenu';
 import { AiBubbleMenu } from '@/lib/cloudDoc/AiBubbleMenu';
-import { AiInlineMenu } from '@/lib/cloudDoc/AiInlineMenu';
 import { AiPreviewCard } from '@/lib/cloudDoc/AiPreviewCard';
 import { useDocAi } from '@/lib/cloudDoc/useDocAi';
 import { DocSearchPanel } from '@/lib/cloudDoc/DocSearchPanel';
@@ -120,9 +119,8 @@ export default function CloudDocEditor() {
 
   const scrollerRef = useRef<HTMLElement | null>(null);
   const scrollRestoredRef = useRef(false);
-  /** 빈 줄 Space → AI 메뉴 (Q2 A) — handleKeyDown 안에서 안정 참조용. */
+  /** editor 가 mount 후 다른 콜백·effect 에서 참조하기 위한 안정 ref. */
   const editorRef = useRef<Editor | null>(null);
-  const docAiRef = useRef<ReturnType<typeof useDocAi> | null>(null);
 
   // 노드 로드 (공용 훅) — 아래의 node 참조 hook 들(initialBody useMemo, 헤더/푸터 로드 useEffect)
   // 보다 반드시 먼저 선언 (TDZ 회피).
@@ -220,23 +218,6 @@ export default function CloudDocEditor() {
           'min-h-[800px]',  // 첫 페이지 가용 높이 확보 (다음 단계 페이지 break overlay 와 호환)
         ),
       },
-      // Q2 A: 빈 단락에서 Space 누르면 AI 메뉴 열기 (한글 IME 조합 중에는 동작 X)
-      handleKeyDown: (_view, event) => {
-        if (event.key !== ' ' || event.isComposing) return false;
-        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return false;
-        const ed = editorRef.current;
-        if (!ed) return false;
-        const { $from, empty } = ed.state.selection;
-        if (!empty) return false;
-        // 현재 단락이 빈 paragraph 인지
-        const parent = $from.parent;
-        if (parent.type.name !== 'paragraph') return false;
-        if (parent.textContent.length > 0) return false;
-        // OK — AI 메뉴 띄움 (Space 입력은 막음)
-        event.preventDefault();
-        docAiRef.current?.openMenu('empty-line');
-        return true;
-      },
     },
     onUpdate: ({ editor: ed }) => {
       const json = ed.getJSON();
@@ -276,11 +257,9 @@ export default function CloudDocEditor() {
     };
   }, [editor]);
   const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
-  /** 본문 편집 AI (인라인 메뉴 + 미리보기 카드 + bubble menu). 사이드바와 별개. */
+  /** 본문 편집 AI (드래그 bubble menu + 미리보기 카드). 사이드바와 별개. */
   const docAi = useDocAi(editor);
-  // handleKeyDown 안 사용용 안정 참조
   editorRef.current = editor;
-  docAiRef.current = docAi;
 
   // 모바일 편집 잠금 — 메모리 정책 (모바일은 보기 전용)
   const wasMobileNotifiedRef = useRef(false);
@@ -693,28 +672,6 @@ export default function CloudDocEditor() {
 
       {/* ── Q1 D: 텍스트 선택 시 floating ✨ ── */}
       {editor && <AiBubbleMenu editor={editor} ai={docAi} />}
-
-      {/* ── Q2 A: 빈 줄에서 Space 누르면 — FloatingMenu 안 AiInlineMenu ── */}
-      {editor && docAi.menuOpen === 'empty-line' && (
-        <FloatingMenu
-          editor={editor}
-          shouldShow={({ state }) => {
-            const { $from, empty } = state.selection;
-            if (!empty) return false;
-            const parent = $from.parent;
-            return parent.type.name === 'paragraph' && parent.textContent.length === 0;
-          }}
-        >
-          <AiInlineMenu
-            open
-            onClose={docAi.closeMenu}
-            onSubmitPrompt={docAi.submitPrompt}
-            onRunAction={docAi.runAction}
-            busy={docAi.busy}
-            selectionSummary="빈 줄 — 새 글 생성"
-          />
-        </FloatingMenu>
-      )}
 
       {/* ── Q3 B: AI 결과 미리보기 카드 (스크롤러 위 고정) ── */}
       {docAi.preview && (
