@@ -16,6 +16,7 @@ import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import pptxgen from 'pptxgenjs';
 import { newId } from '@/lib/idGenerator';
+import { getTheme } from './themes';
 
 // .pptx 캔버스 표준 크기 (EMU)
 const SLIDE_W_EMU = 9144000;  // 10인치 = 9144000 EMU
@@ -384,23 +385,51 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(95, n));
 }
 
+/** CSS 색 → pptx 6자리 hex. rgba/hsl/짧은 hex 등은 fallback 사용. */
+function pptxColor(css: string, fallback: string): string {
+  if (!css) return fallback;
+  const m = css.trim().match(/^#([0-9a-fA-F]{6})$/);
+  if (m) return m[1].toUpperCase();
+  const m3 = css.trim().match(/^#([0-9a-fA-F]{3})$/);
+  if (m3) {
+    const [r, g, b] = m3[1];
+    return `${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+  // rgba/hsl 등 복잡한 색은 첫 호환되는 값으로
+  return fallback;
+}
+
+/** CSS font-family → pptx fontFace (첫 패밀리 추출, 따옴표 제거). */
+function pptxFontFace(family: string): string {
+  const first = family.split(',')[0]?.trim() ?? 'Pretendard';
+  return first.replace(/^['"]|['"]$/g, '');
+}
+
 // ─────────────────────────────────────────────
 // Export — pptxgenjs
 // ─────────────────────────────────────────────
 
-export function exportPptxFile(slides: Slide[], fileName: string): void {
+export function exportPptxFile(slides: Slide[], fileName: string, themeId?: string): void {
   const pres = new pptxgen();
   pres.layout = 'LAYOUT_WIDE'; // 16:9 wide (13.333 x 7.5 inch)
+
+  const theme = getTheme(themeId);
 
   // pptxgenjs 좌표: 인치. 16:9 wide = 13.333 x 7.5
   const W = 13.333;
   const H = 7.5;
 
+  // 테마 색 → pptx 헥스 (#·rgba 정리 — pptxgenjs 는 6자리 hex 만 받음)
+  const themeBgHex = pptxColor(theme.bgColor, 'FFFFFF');
+  const themeTextHex = pptxColor(theme.textColor, '222222');
+  // 폰트: SERIF/MONO 패밀리에서 첫 폰트 추출 (Times New Roman / Courier New / Pretendard)
+  const themeFontFace = pptxFontFace(theme.bodyFontFamily);
+
   for (const s of slides) {
     const slide = pres.addSlide();
-    if (s.background) {
-      slide.background = { color: s.background.replace('#', '') };
-    }
+    // 슬라이드 배경: 사용자 명시 > 테마 배경
+    const bg = s.background ?? theme.bgColor;
+    slide.background = { color: pptxColor(bg, 'FFFFFF') };
     if (s.notes && s.notes.trim()) {
       slide.addNotes(s.notes);
     }
@@ -417,9 +446,9 @@ export function exportPptxFile(slides: Slide[], fileName: string): void {
           x, y, w, h, rotate,
           fontSize: Math.round(el.fontSizeRem * 12), // 1rem ≈ 12pt
           bold: el.bold,
-          color: el.textColor ? el.textColor.replace('#', '') : '222222',
+          color: el.textColor ? pptxColor(el.textColor, themeTextHex) : themeTextHex,
           valign: 'top',
-          fontFace: 'Pretendard',
+          fontFace: themeFontFace,
         });
       } else if (el.type === 'rect') {
         slide.addShape(pres.ShapeType.rect, {

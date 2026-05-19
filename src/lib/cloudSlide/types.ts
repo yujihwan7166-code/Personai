@@ -90,6 +90,8 @@ export interface Slide {
 export interface SlideMeta {
   slides: Slide[];
   currentIdx?: number;
+  /** 적용된 테마 id (lib/cloudSlide/themes.ts SLIDE_THEMES 의 한 id). 미지정 = 'default'. */
+  themeId?: string;
 }
 
 export function emptySlide(): Slide {
@@ -97,5 +99,5 @@ export function emptySlide(): Slide {
 }
 
 export function defaultMeta(): SlideMeta {
-  return { slides: [emptySlide()], currentIdx: 0 };
+  return { slides: [emptySlide()], currentIdx: 0, themeId: 'default' };
 }

@@ -3,12 +3,16 @@
 import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { SlideTextEl, ResizeDir } from './types';
+import type { SlideTheme } from './themes';
+import { resolveTextColor, resolveTextFontFamily } from './themes';
 import { ResizeHandles, RotateHandle } from './Handles';
 
 interface TextElViewProps {
   el: SlideTextEl;
   selected: boolean;
   editing: boolean;
+  /** 현재 슬라이드 테마 — 텍스트 색·폰트 미지정 시 폴백. */
+  theme?: SlideTheme;
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
@@ -20,7 +24,7 @@ interface TextElViewProps {
 }
 
 export function TextElView({
-  el, selected, editing, onPointerDown, onClick, onDoubleClick, onContextMenu, onChange, onFinishEdit, onStartResize, onStartRotate,
+  el, selected, editing, theme, onPointerDown, onClick, onDoubleClick, onContextMenu, onChange, onFinishEdit, onStartResize, onStartRotate,
 }: TextElViewProps) {
   const editableRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +102,8 @@ export function TextElView({
         style={{
           fontSize: `${el.fontSizeRem}rem`,
           lineHeight: el.lineHeight ?? 1.25,
-          color: el.textColor ?? 'rgba(0,0,0,0.8)',
+          color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? 'rgba(0,0,0,0.8)'),
+          fontFamily: theme ? resolveTextFontFamily(theme) : undefined,
           textAlign: el.align ?? 'left',
           whiteSpace: 'pre-wrap',
         }}

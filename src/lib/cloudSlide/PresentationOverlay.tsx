@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Slide } from './types';
+import type { SlideTheme } from './themes';
+import { resolveSlideBackground, resolveTextColor, resolveTextFontFamily } from './themes';
 import { ShapeRender } from './ShapeRender';
 
 interface PresentationOverlayProps {
@@ -11,12 +13,14 @@ interface PresentationOverlayProps {
   idx: number;
   /** B (black) / W (white) 화면 가림 상태. null = 정상. */
   blank?: 'black' | 'white' | null;
+  /** 적용 테마 — 슬라이드 배경/텍스트 폴백. */
+  theme?: SlideTheme;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
 }
 
-export function PresentationOverlay({ slides, idx, blank, onPrev, onNext, onClose }: PresentationOverlayProps) {
+export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext, onClose }: PresentationOverlayProps) {
   const slide = slides[idx];
   const [notesOpen, setNotesOpen] = useState(false);
   const hasNotes = !!slide?.notes?.trim();
@@ -48,7 +52,7 @@ export function PresentationOverlay({ slides, idx, blank, onPrev, onNext, onClos
         style={{
           aspectRatio: '16 / 9',
           width: 'min(95vw, calc(95vh * 16 / 9))',
-          background: slide?.background ?? '#fff',
+          background: theme ? resolveSlideBackground(slide?.background, theme) : (slide?.background ?? '#fff'),
         }}
       >
         {slide?.elements.map((el) => {
@@ -71,7 +75,8 @@ export function PresentationOverlay({ slides, idx, blank, onPrev, onNext, onClos
                   fontWeight: el.bold ? 600 : 400,
                   fontStyle: el.italic ? 'italic' : undefined,
                   textDecoration: el.underline ? 'underline' : undefined,
-                  color: el.textColor ?? 'rgba(0,0,0,0.85)',
+                  color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? 'rgba(0,0,0,0.85)'),
+                  fontFamily: theme ? resolveTextFontFamily(theme) : undefined,
                   backgroundColor: el.bgColor,
                   padding: '4px 8px',
                   lineHeight: el.lineHeight ?? 1.25,

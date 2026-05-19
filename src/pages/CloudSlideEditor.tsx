@@ -19,6 +19,7 @@ import {
   RotateCw, RotateCcw,
   Play,
   Sparkles, Undo2, Redo2,
+  Palette,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,8 @@ import { PresentationOverlay } from '@/lib/cloudSlide/PresentationOverlay';
 import { TextElView } from '@/lib/cloudSlide/TextElView';
 import { ImageElView } from '@/lib/cloudSlide/ImageElView';
 import { ShapeElView } from '@/lib/cloudSlide/ShapeElView';
+import { ThemePickerModal } from '@/lib/cloudSlide/ThemePickerModal';
+import { getTheme, resolveSlideBackground, DEFAULT_THEME_ID } from '@/lib/cloudSlide/themes';
 import { newId } from '@/lib/idGenerator';
 import {
   type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
@@ -76,6 +79,9 @@ export default function CloudSlideEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [themeId, setThemeId] = useState<string>(DEFAULT_THEME_ID);
+  const currentTheme = getTheme(themeId);
 
   const [slides, setSlides] = useState<Slide[]>([emptySlide()]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -171,6 +177,7 @@ export default function CloudSlideEditor() {
         : defaultMeta().slides;
       setSlides(loaded);
       setCurrentIdx(Math.max(0, Math.min((meta.currentIdx ?? 0), loaded.length - 1)));
+      if (typeof meta.themeId === 'string') setThemeId(meta.themeId);
     },
   });
 
@@ -179,11 +186,22 @@ export default function CloudSlideEditor() {
     id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
   });
 
-  const queueSave = useCallback((nextSlides: Slide[], nextIdx: number) => {
+  const queueSave = useCallback((nextSlides: Slide[], nextIdx: number, nextThemeId?: string) => {
     queueSaveRaw({
-      meta: { ...(node?.meta ?? {}), slides: nextSlides, currentIdx: nextIdx },
+      meta: {
+        ...(node?.meta ?? {}),
+        slides: nextSlides,
+        currentIdx: nextIdx,
+        themeId: nextThemeId ?? themeId,
+      },
     });
-  }, [queueSaveRaw, node?.meta]);
+  }, [queueSaveRaw, node?.meta, themeId]);
+
+  /** 테마 변경 — meta.themeId 저장 + state 갱신. */
+  const changeTheme = useCallback((nextThemeId: string) => {
+    setThemeId(nextThemeId);
+    queueSave(slides, currentIdx, nextThemeId);
+  }, [queueSave, slides, currentIdx]);
 
   // ─── 슬라이드 mutate ───
   const updateSlides = useCallback((updater: (prev: Slide[]) => Slide[], newIdx?: number) => {
@@ -1086,13 +1104,13 @@ export default function CloudSlideEditor() {
     if (!node) return;
     try {
       const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
-      exportPptxFile(slides, fileName);
+      exportPptxFile(slides, fileName, themeId);
       toast({ title: '내보내기 완료', description: `${fileName}.pptx 다운로드 시작` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [slides, node]);
+  }, [slides, node, themeId]);
 
   // ─── PDF export: 슬라이드별 페이지 ───
   // 화면에 안 보이는 슬라이드도 캡처하려면 모든 슬라이드를 임시 렌더 후 캡처
@@ -1503,13 +1521,20 @@ export default function CloudSlideEditor() {
             <Trash2 className="w-4 h-4" />
           </ToolBtn>
 
-          {/* 슬라이드 배경색 — 요소 선택과 무관 */}
+          {/* 슬라이드 배경색 + 전체 테마 — 요소 선택과 무관 */}
           <Sep />
           <ColorPopover
             label="배경"
             value={currentSlide.background ?? '#ffffff'}
             onChange={(v) => updateCurrentSlide((s) => ({ ...s, background: v }))}
           />
+          <ToolBtn
+            onClick={() => setThemePickerOpen(true)}
+            title={`테마: ${currentTheme.name} — 모든 슬라이드의 기본 배경·텍스트 색·폰트`}
+          >
+            <Palette className="w-4 h-4" />
+            <span className="text-xs ml-1">테마</span>
+          </ToolBtn>
 
           {/* 선택된 요소별 인스펙터 — 단일 선택: 도형이면 색 picker, 텍스트면 글자색 */}
           {selectedElId && selectedElIds.size <= 1 && (() => {
@@ -2165,7 +2190,7 @@ export default function CloudSlideEditor() {
             className="bg-white shadow-lg rounded-sm overflow-hidden relative shrink-0"
             style={{
               aspectRatio: '16 / 9',
-              background: currentSlide.background ?? '#fff',
+              background: resolveSlideBackground(currentSlide.background, currentTheme),
               width: `${slideZoom}%`,
               maxWidth: `${64 * (slideZoom / 100)}rem`,
             }}
@@ -2224,6 +2249,7 @@ export default function CloudSlideEditor() {
                     el={el}
                     selected={selectedElIds.has(el.id) || selectedElId === el.id}
                     editing={editingElId === el.id}
+                    theme={currentTheme}
                     onPointerDown={(e) => startDrag(e, el.id, el)}
                     onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                     onDoubleClick={(e) => { e.stopPropagation(); selectElement(el.id); setEditingElId(el.id); }}
@@ -2300,6 +2326,13 @@ export default function CloudSlideEditor() {
       </div>
 
       <SlideHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      <ThemePickerModal
+        open={themePickerOpen}
+        currentThemeId={themeId}
+        onClose={() => setThemePickerOpen(false)}
+        onSelect={changeTheme}
+      />
 
       {/* 도형/텍스트/이미지 우클릭 메뉴 */}
       {elCtxMenu && (
@@ -2439,6 +2472,7 @@ export default function CloudSlideEditor() {
           slides={slides}
           idx={presentIdx}
           blank={presentBlank}
+          theme={currentTheme}
           onPrev={() => { setPresentBlank(null); setPresentIdx((i) => Math.max(0, i - 1)); }}
           onNext={() => { setPresentBlank(null); setPresentIdx((i) => Math.min(slides.length - 1, i + 1)); }}
           onClose={stopPresent}
