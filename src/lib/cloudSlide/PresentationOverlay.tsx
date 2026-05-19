@@ -1,12 +1,22 @@
 /** 슬라이드 발표 모드 풀스크린 오버레이 (F5 시작 / Esc 종료). */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Slide } from './types';
 import type { SlideTheme } from './themes';
 import { resolveSlideBackground, resolveTextColor, resolveTextFontFamily } from './themes';
 import { ShapeRender } from './ShapeRender';
+
+/** 경과 시간 mm:ss / hh:mm:ss 포맷. */
+function formatElapsed(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const ss = s % 60;
+  const mm = Math.floor(s / 60) % 60;
+  const hh = Math.floor(s / 3600);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`;
+}
 
 interface PresentationOverlayProps {
   slides: Slide[];
@@ -26,6 +36,13 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
   const hasNotes = !!slide?.notes?.trim();
   // 진행률 % — 마지막 슬라이드 = 100%. 1장이면 100%.
   const progressPct = slides.length <= 1 ? 100 : Math.round(((idx + 1) / slides.length) * 100);
+  /** 발표 시작 시각 — 컴포넌트 mount 시 1회 결정. */
+  const [startedAt] = useState(() => Date.now());
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setElapsed(Date.now() - startedAt), 1000);
+    return () => window.clearInterval(id);
+  }, [startedAt]);
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none">
       {/* 진행률 바 — 상단 2px */}
@@ -150,7 +167,11 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
       {/* 하단 정보 + 노트 토글 + 닫기 */}
       <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between px-5 text-white/60 text-xs">
         <span>← → 이동 · Esc 종료 · Home/End 처음/끝 · B/W 가림</span>
-        <span className="font-mono">{idx + 1} / {slides.length}</span>
+        <span className="font-mono flex items-center gap-3">
+          <span title="발표 경과 시간">⏱ {formatElapsed(elapsed)}</span>
+          <span className="text-white/30">·</span>
+          <span>{idx + 1} / {slides.length}</span>
+        </span>
         <div className="flex items-center gap-1">
           {hasNotes && (
             <button
