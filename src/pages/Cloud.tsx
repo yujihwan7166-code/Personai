@@ -1036,6 +1036,7 @@ export default function Cloud() {
             <SidebarItem
               icon={<Folder className="w-4 h-4" />}
               label="내 파일"
+              count={(folderChildrenMap.get(null) ?? []).length || undefined}
               active={listMode === 'folder' && currentFolderId === null}
               onClick={() => {
                 setListMode('folder');
