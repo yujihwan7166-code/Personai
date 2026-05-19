@@ -80,6 +80,27 @@ export default function CloudSlideEditor() {
   const [slides, setSlides] = useState<Slide[]>([emptySlide()]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedElId, setSelectedElId] = useState<string | null>(null);
+  /** 요소 우클릭 컨텍스트 메뉴 — id + 화면 좌표. */
+  const [elCtxMenu, setElCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!elCtxMenu) return;
+    const close = () => setElCtxMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [elCtxMenu]);
+  const handleElContextMenu = useCallback((e: React.MouseEvent, elId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedElId(elId);
+    setSelectedElIds(new Set([elId]));
+    setElCtxMenu({ id: elId, x: e.clientX, y: e.clientY });
+  }, []);
   // 다중 선택 (Shift+클릭 또는 그룹화된 멤버 자동 포함)
   const [selectedElIds, setSelectedElIds] = useState<Set<string>>(new Set());
   const [editingElId, setEditingElId] = useState<string | null>(null);
@@ -444,6 +465,28 @@ export default function CloudSlideEditor() {
     setSelectedElIds(new Set());
     setEditingElId(null);
   }, [updateCurrentSlide, slides, currentIdx, selectedElIds]);
+
+  /** 요소 복제 — 같은 슬라이드에 +2% 위치 어긋나게 추가. */
+  const duplicateEl = useCallback((elId: string) => {
+    let newId_: string | null = null;
+    updateCurrentSlide((s) => {
+      const target = s.elements.find((e) => e.id === elId);
+      if (!target) return s;
+      newId_ = newId('el');
+      const dup: SlideElement = {
+        ...target,
+        id: newId_,
+        xPct: Math.max(0, Math.min(100 - target.wPct, target.xPct + 2)),
+        yPct: Math.max(0, Math.min(100 - target.hPct, target.yPct + 2)),
+        groupId: undefined,
+      };
+      return { ...s, elements: [...s.elements, dup] };
+    });
+    if (newId_) {
+      setSelectedElId(newId_);
+      setSelectedElIds(new Set([newId_]));
+    }
+  }, [updateCurrentSlide]);
 
   // 어떤 요소를 클릭했을 때 그룹 멤버까지 묶어서 선택. Shift 면 toggle 추가.
   const selectElement = useCallback((elId: string, multi: boolean = false) => {
@@ -2014,6 +2057,7 @@ export default function CloudSlideEditor() {
                       selected={selectedElIds.has(el.id) || selectedElId === el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el)}
                       onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                      onContextMenu={(e) => handleElContextMenu(e, el.id)}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                       onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
@@ -2027,6 +2071,7 @@ export default function CloudSlideEditor() {
                       selected={selectedElIds.has(el.id) || selectedElId === el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el)}
                       onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                      onContextMenu={(e) => handleElContextMenu(e, el.id)}
                       onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
                       onStartRotate={(e) => startRotate(e, el.id, el)}
                     />
@@ -2041,6 +2086,7 @@ export default function CloudSlideEditor() {
                     onPointerDown={(e) => startDrag(e, el.id, el)}
                     onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
                     onDoubleClick={(e) => { e.stopPropagation(); selectElement(el.id); setEditingElId(el.id); }}
+                    onContextMenu={(e) => handleElContextMenu(e, el.id)}
                     onStartRotate={(e) => startRotate(e, el.id, el)}
                     onChange={(content) => updateEl(el.id, { content })}
                     onFinishEdit={() => setEditingElId(null)}
@@ -2113,6 +2159,74 @@ export default function CloudSlideEditor() {
       </div>
 
       <SlideHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* 도형/텍스트/이미지 우클릭 메뉴 */}
+      {elCtxMenu && (
+        <div
+          className="fixed z-[60] rounded border border-border bg-popover shadow-md text-sm min-w-[180px] py-1"
+          style={{ left: elCtxMenu.x, top: elCtxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+          role="menu"
+        >
+          <button
+            type="button"
+            onClick={() => { duplicateEl(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between"
+          >
+            <span>복제</span>
+            <span className="text-xs text-muted-foreground">Ctrl+D</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { deleteEl(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between text-destructive"
+          >
+            <span>삭제</span>
+            <span className="text-xs text-muted-foreground">Del</span>
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => { moveElForward(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            앞으로 (한 칸)
+          </button>
+          <button
+            type="button"
+            onClick={() => { moveElBackward(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            뒤로 (한 칸)
+          </button>
+          <button
+            type="button"
+            onClick={() => { moveElToFront(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            맨 앞으로
+          </button>
+          <button
+            type="button"
+            onClick={() => { moveElToBack(elCtxMenu.id); setElCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            맨 뒤로
+          </button>
+          {selectedElIds.size >= 2 && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <button
+                type="button"
+                onClick={() => { groupSelected(); setElCtxMenu(null); }}
+                className="w-full text-left px-3 py-1.5 hover:bg-accent"
+              >
+                그룹화 ({selectedElIds.size}개)
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {presenting && (
         <PresentationOverlay

@@ -11,12 +11,13 @@ interface ImageElViewProps {
   selected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
   onStartRotate?: (e: React.PointerEvent) => void;
 }
 
 export function ImageElView({
-  el, selected, onPointerDown, onClick, onStartResize, onStartRotate,
+  el, selected, onPointerDown, onClick, onContextMenu, onStartResize, onStartRotate,
 }: ImageElViewProps) {
   // src 로드 실패 시 fallback — 영원히 broken 아이콘 보여주는 대신 회색 박스 + 안내
   const [errored, setErrored] = useState(false);
@@ -24,6 +25,7 @@ export function ImageElView({
     <div
       onPointerDown={onPointerDown}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className={cn(
         'absolute cursor-move overflow-hidden',
         selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',

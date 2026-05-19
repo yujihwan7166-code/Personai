@@ -12,6 +12,7 @@ interface TextElViewProps {
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   onChange: (content: string) => void;
   onFinishEdit: () => void;
   onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
@@ -19,7 +20,7 @@ interface TextElViewProps {
 }
 
 export function TextElView({
-  el, selected, editing, onPointerDown, onClick, onDoubleClick, onChange, onFinishEdit, onStartResize, onStartRotate,
+  el, selected, editing, onPointerDown, onClick, onDoubleClick, onContextMenu, onChange, onFinishEdit, onStartResize, onStartRotate,
 }: TextElViewProps) {
   const editableRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,7 @@ export function TextElView({
       onPointerDown={editing ? undefined : onPointerDown}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onContextMenu={editing || !onContextMenu ? undefined : onContextMenu}
       className={cn(
         'absolute group',
         editing ? 'cursor-text' : 'cursor-move',

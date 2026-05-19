@@ -11,17 +11,19 @@ interface ShapeElViewProps {
   selected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   onStartResize: (e: React.PointerEvent, dir: ResizeDir) => void;
   onStartRotate?: (e: React.PointerEvent) => void;
 }
 
 export function ShapeElView({
-  el, selected, onPointerDown, onClick, onStartResize, onStartRotate,
+  el, selected, onPointerDown, onClick, onContextMenu, onStartResize, onStartRotate,
 }: ShapeElViewProps) {
   return (
     <div
       onPointerDown={onPointerDown}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className={cn(
         'absolute cursor-move',
         selected && 'outline outline-2 -outline-offset-1 outline-foreground/70',
