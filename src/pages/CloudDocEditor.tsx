@@ -114,9 +114,26 @@ export default function CloudDocEditor() {
   }, []);
 
   // 헤더 / 푸터 / 페이지 번호 — node.meta 영속. 기본 페이지 번호 ON.
+  // useState 들은 위에 두되, node 를 참조하는 useEffect 는 반드시 useCloudNodeLoader 아래에 둔다 (TDZ 회피).
   const [headerText, setHeaderText] = useState('');
   const [footerText, setFooterText] = useState('');
   const [showPageNumber, setShowPageNumber] = useState(true);
+
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  const scrollRestoredRef = useRef(false);
+  /** 빈 줄 Space → AI 메뉴 (Q2 A) — handleKeyDown 안에서 안정 참조용. */
+  const editorRef = useRef<Editor | null>(null);
+  const docAiRef = useRef<ReturnType<typeof useDocAi> | null>(null);
+
+  // 노드 로드 (공용 훅) — 아래의 node 참조 hook 들(initialBody useMemo, 헤더/푸터 로드 useEffect)
+  // 보다 반드시 먼저 선언 (TDZ 회피).
+  const { node, loadError } = useCloudNodeLoader({
+    id, user, authLoading,
+    expectedFileType: 'doc',
+    notFoundMessage: '문서를 찾을 수 없어요.',
+    wrongTypeMessage: '문서 파일이 아니에요.',
+    onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
+  });
 
   // 노드 변경 (다른 파일 열기 등) 시 헤더/푸터 메타에서 로드
   useEffect(() => {
@@ -127,22 +144,6 @@ export default function CloudDocEditor() {
     setShowPageNumber(typeof m.showPageNumber === 'boolean' ? m.showPageNumber : true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id]);
-
-
-  const scrollerRef = useRef<HTMLElement | null>(null);
-  const scrollRestoredRef = useRef(false);
-  /** 빈 줄 Space → AI 메뉴 (Q2 A) — handleKeyDown 안에서 안정 참조용. */
-  const editorRef = useRef<Editor | null>(null);
-  const docAiRef = useRef<ReturnType<typeof useDocAi> | null>(null);
-
-  // 노드 로드 (공용 훅) — initialBody useMemo 가 node 를 참조하므로 반드시 위에 둔다 (TDZ 회피).
-  const { node, loadError } = useCloudNodeLoader({
-    id, user, authLoading,
-    expectedFileType: 'doc',
-    notFoundMessage: '문서를 찾을 수 없어요.',
-    wrongTypeMessage: '문서 파일이 아니에요.',
-    onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
-  });
 
   const initialBody = useMemo(() => {
     if (!node?.meta) return null;
