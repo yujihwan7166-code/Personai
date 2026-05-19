@@ -2000,6 +2000,7 @@ function FolderTreeItem({
           type="button"
           onClick={() => onNavigate(folder)}
           className="flex-1 flex items-center gap-1.5 truncate text-left"
+          title={children.length > 0 ? `${folder.name} (하위 ${children.length})` : folder.name}
         >
           {(() => {
             const color = folderColorOf(folder);
@@ -2011,6 +2012,14 @@ function FolderTreeItem({
             );
           })()}
           <span className="truncate">{folder.name}</span>
+          {children.length > 0 && (
+            <span
+              className="text-[10px] text-muted-foreground/70 tabular-nums shrink-0 ml-auto pl-1"
+              aria-label={`하위 폴더 ${children.length}개`}
+            >
+              {children.length}
+            </span>
+          )}
         </button>
       </div>
       {isExpanded && children.length > 0 && (
