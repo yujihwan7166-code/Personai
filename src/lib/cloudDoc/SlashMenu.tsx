@@ -66,6 +66,22 @@ const SLASH_ITEMS: SlashItem[] = [
     },
   },
   {
+    label: '오늘 날짜', emoji: '📅', keywords: ['날짜', 'date', '오늘', 'today'],
+    run: (e) => {
+      const d = new Date();
+      const text = d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+      e.chain().focus().insertContent(text).run();
+    },
+  },
+  {
+    label: '현재 시각', emoji: '🕐', keywords: ['시각', 'time', '시간', 'now'],
+    run: (e) => {
+      const d = new Date();
+      const text = d.toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      e.chain().focus().insertContent(text).run();
+    },
+  },
+  {
     label: '✨ AI 이어쓰기', emoji: '✨', keywords: ['ai', '이어', 'continue', '쓰기'],
     run: async (e) => {
       const { from } = e.state.selection;
