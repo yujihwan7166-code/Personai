@@ -1366,7 +1366,8 @@ export default function CloudSlideEditor() {
   const currentSlide = slides[currentIdx] ?? slides[0];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    // h-screen + overflow-hidden: 본문(캔버스) 과 AI 사이드바 스크롤 분리.
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
       <header className="border-b border-border bg-background sticky top-0 z-20">
         <div className="flex items-center gap-2 px-4 py-2 text-sm">
           <button onClick={close} className="p-2 rounded hover:bg-muted" aria-label="닫기" type="button">

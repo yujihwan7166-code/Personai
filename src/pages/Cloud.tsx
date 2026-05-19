@@ -925,7 +925,9 @@ export default function Cloud() {
           : null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    // h-screen + overflow-hidden: 페이지 전체를 viewport 에 고정해서
+    // 본문(파일 목록) 과 AI 사이드바가 각자 자체 스크롤로 동작하게 한다.
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
       <header className="border-b border-border bg-background sticky top-0 z-10">
         <div className="flex items-center gap-2 px-4 py-2">
           <button
