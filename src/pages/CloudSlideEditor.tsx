@@ -147,6 +147,17 @@ export default function CloudSlideEditor() {
     try { window.localStorage.setItem(SLIDE_ZOOM_LS_KEY, String(v)); } catch { /* noop */ }
   }, []);
 
+  // ─── 그리드 표시 토글 (localStorage 영속) — 10% 간격 가이드 라인 ───
+  const GRID_LS_KEY = 'personai.slide.gridOn';
+  const [gridOn, setGridOnInner] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem(GRID_LS_KEY) === '1'; } catch { return false; }
+  });
+  const setGridOn = useCallback((v: boolean) => {
+    setGridOnInner(v);
+    try { window.localStorage.setItem(GRID_LS_KEY, v ? '1' : '0'); } catch { /* noop */ }
+  }, []);
+
   // ─── 노드 로드 (공용 훅) ───
   const { node, loadError } = useCloudNodeLoader({
     id, user, authLoading,
@@ -2088,6 +2099,20 @@ export default function CloudSlideEditor() {
           )}
 
           <div className="ml-auto text-xs text-muted-foreground tabular-nums flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setGridOn(!gridOn)}
+              className={cn(
+                'text-xs px-1.5 py-0.5 rounded border hover:bg-muted',
+                gridOn
+                  ? 'border-foreground/30 bg-muted text-foreground'
+                  : 'border-border bg-background text-muted-foreground',
+              )}
+              title="격자 표시 (10% 간격) — 정렬 보조"
+              aria-pressed={gridOn}
+            >
+              # 격자
+            </button>
             <span className="hidden sm:inline" title="캔버스 해상도 (16:9)">1280×720</span>
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
             <select
@@ -2151,6 +2176,19 @@ export default function CloudSlideEditor() {
               onClick={() => { setSelectedElId(null); setSelectedElIds(new Set()); setEditingElId(null); }}
               onDoubleClick={handleCanvasDoubleClick}
             >
+              {/* 격자 오버레이 (10% 간격) — 정렬 보조용. pointer 이벤트 통과. */}
+              {gridOn && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, rgba(0,0,0,0.07) 1px, transparent 1px),' +
+                      'linear-gradient(to bottom, rgba(0,0,0,0.07) 1px, transparent 1px)',
+                    backgroundSize: '10% 10%',
+                  }}
+                  aria-hidden
+                />
+              )}
               {currentSlide.elements.map((el) => {
                 if (isShape(el)) {
                   return (
