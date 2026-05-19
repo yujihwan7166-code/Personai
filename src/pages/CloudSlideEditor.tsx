@@ -720,8 +720,10 @@ export default function CloudSlideEditor() {
       const curAngle = angleBetween(cx, cy, ev.clientX, ev.clientY);
       const rotation = computeRotation({ startRotation, startAngle, curAngle, shift: ev.shiftKey });
       updateEl(elId, { rotation });
+      setDragHint({ x: ev.clientX, y: ev.clientY, text: `${Math.round(rotation)}°` });
     };
     const onUp = () => {
+      setDragHint(null);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -762,8 +764,10 @@ export default function CloudSlideEditor() {
       hPct = Math.min(100 - yPct, hPct);
 
       updateEl(elId, { xPct, yPct, wPct, hPct });
+      setDragHint({ x: ev.clientX, y: ev.clientY, text: `${Math.round(wPct)}% × ${Math.round(hPct)}%` });
     };
     const onUp = () => {
+      setDragHint(null);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -773,6 +777,9 @@ export default function CloudSlideEditor() {
 
   // 정렬 가이드 (드래그 중에만) — kind h(가로선) / v(세로선), pct 0~100
   const [snapGuides, setSnapGuides] = useState<Array<{ kind: 'h' | 'v'; pct: number }>>([]);
+
+  /** 리사이즈/회전/이동 시 커서 근처 floating tooltip — '120% x 60%' / '15°' / 'x 12%, y 30%'. */
+  const [dragHint, setDragHint] = useState<{ x: number; y: number; text: string } | null>(null);
 
   // ─── 드래그 이동 + snap ───
   const SNAP_THRESHOLD_PCT = 1.0; // 1% 이내면 snap
@@ -841,9 +848,11 @@ export default function CloudSlideEditor() {
           }),
         }));
       }
+      setDragHint({ x: ev.clientX, y: ev.clientY, text: `x ${Math.round(nx)}%, y ${Math.round(ny)}%` });
     };
     const onUp = () => {
       setSnapGuides([]);
+      setDragHint(null);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -2374,6 +2383,17 @@ export default function CloudSlideEditor() {
             슬라이드 삭제
           </button>
         </div>
+      )}
+
+      {/* 리사이즈/회전/이동 floating 정보 */}
+      {dragHint && (
+        <span
+          className="fixed z-[60] pointer-events-none rounded bg-foreground text-background text-[10px] font-mono px-1.5 py-0.5 shadow-md"
+          style={{ left: dragHint.x + 12, top: dragHint.y + 12 }}
+          aria-hidden
+        >
+          {dragHint.text}
+        </span>
       )}
 
       {presenting && (
