@@ -95,8 +95,10 @@ export function AiSidebar({
           'bg-background flex flex-col shrink-0',
           // 모바일: fixed 풀스크린
           'fixed inset-0 z-50',
-          // lg 이상: in-flow 320px column. min-h-0 로 자식 flex-1 overflow 가 부모 높이를 넘지 않도록 강제.
-          'lg:static lg:inset-auto lg:z-auto lg:w-80 lg:border-l lg:border-border lg:h-full lg:min-h-0',
+          // lg 이상: in-flow column. 화면이 클수록 더 넓게 (본문 가독성 유지하면서 채팅 영역 확보).
+          // lg: 384px, xl: 448px, 2xl: 512px. min-h-0 로 자식 flex-1 overflow 가 부모 높이를 넘지 않도록 강제.
+          'lg:static lg:inset-auto lg:z-auto lg:border-l lg:border-border lg:h-full lg:min-h-0',
+          'lg:w-96 xl:w-[28rem] 2xl:w-[32rem]',
         )}
         role="complementary"
         aria-label="AI 어시스턴트"
