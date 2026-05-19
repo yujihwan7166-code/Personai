@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { HelpRow } from '@/lib/cloudCommon/HelpRow';
 import { FUNC_HELP } from '@/lib/cloudSheet/formula';
+import { toast } from '@/hooks/use-toast';
 
 /** 도움말 모달 함수 카테고리 — FUNC_HELP keys 를 카테고리별 그룹. */
 const FUNC_CATEGORIES: Array<{ name: string; funcs: string[] }> = [
@@ -146,9 +147,22 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
                     const h = FUNC_HELP[name];
                     if (!h) return null;
                     return (
-                      <li key={name} className="flex items-baseline gap-2 text-muted-foreground">
-                        <code className="font-mono text-foreground/90 shrink-0">={h.sig}</code>
-                        <span className="text-muted-foreground/80 truncate">{h.desc}</span>
+                      <li key={name}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const ins = `=${name}(`;
+                            try {
+                              await navigator.clipboard.writeText(ins);
+                              toast({ title: '복사됨', description: `${ins} — 셀에 붙여넣기` });
+                            } catch { /* noop */ }
+                          }}
+                          className="w-full text-left flex items-baseline gap-2 text-muted-foreground hover:bg-muted/50 rounded px-1 -mx-1"
+                          title={`클릭으로 ${name}( 클립보드 복사`}
+                        >
+                          <code className="font-mono text-foreground/90 shrink-0">={h.sig}</code>
+                          <span className="text-muted-foreground/80 truncate">{h.desc}</span>
+                        </button>
                       </li>
                     );
                   })}
