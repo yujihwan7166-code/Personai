@@ -3174,12 +3174,33 @@ export default function CloudSheetEditor() {
       )}
 
       {/* 셀 우클릭 컨텍스트 메뉴 */}
-      {cellCtxMenu && (
+      {cellCtxMenu && (() => {
+        const refStr = cellRef(cellCtxMenu.row, cellCtxMenu.col);
+        const refRange = hasRange
+          ? `${cellRef(selBounds.minR, selBounds.minC)}:${cellRef(selBounds.maxR, selBounds.maxC)}`
+          : refStr;
+        return (
         <div
           className="fixed z-50 rounded border border-border bg-popover shadow-md text-sm min-w-[180px] py-1"
           style={{ left: cellCtxMenu.x, top: cellCtxMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* 상단 ref 표시 + 클릭으로 클립보드 복사 */}
+          <button
+            type="button"
+            className="w-full text-left px-3 py-1 hover:bg-muted text-[10px] text-muted-foreground border-b border-border flex items-center justify-between gap-2"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(refRange);
+                toast({ title: '셀 참조 복사됨', description: refRange });
+              } catch { /* noop */ }
+              setCellCtxMenu(null);
+            }}
+            title="클릭으로 클립보드 복사"
+          >
+            <span className="font-mono">{refRange}</span>
+            <span className="opacity-60">📋</span>
+          </button>
           <button type="button" className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2"
             onClick={() => { void copyRange(); setCellCtxMenu(null); }}>
             <CopyIcon className="w-3.5 h-3.5" /> 복사
@@ -3291,7 +3312,8 @@ export default function CloudSheetEditor() {
             <Eraser className="w-3.5 h-3.5" /> 서식 지우기
           </button>
         </div>
-      )}
+        );
+      })()}
 
       {/* 하단 시트 탭 */}
       <footer className="border-t border-border bg-muted/20 flex items-center gap-1 px-3 py-1.5 overflow-x-auto text-sm">
