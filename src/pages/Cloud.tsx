@@ -2194,13 +2194,24 @@ function NodeRow({
           if (e.key === 'Enter' && !editing) onClick(e as unknown as React.MouseEvent);
         }}
         className={cn(
-          'group w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer',
+          'group w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer relative',
           'hover:bg-muted/50',
           selected && 'bg-muted',
           isDragging && 'opacity-50',
           isDropTarget && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
         )}
       >
+        {(() => {
+          const c = isFolder ? folderColorOf(node) : undefined;
+          if (!c) return null;
+          return (
+            <span
+              aria-hidden
+              className="absolute left-0 top-1 bottom-1 w-1 rounded-r-sm"
+              style={{ backgroundColor: c }}
+            />
+          );
+        })()}
         <NodeIcon node={node} />
         {editing ? (
           <RenameInput
