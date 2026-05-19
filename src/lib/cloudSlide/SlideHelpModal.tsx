@@ -6,7 +6,7 @@ import { HelpRow } from '@/lib/cloudCommon/HelpRow';
 export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogTitle className="text-base">슬라이드 단축키</DialogTitle>
         <DialogDescription className="text-xs text-muted-foreground">
           슬라이드 에디터에서 쓸 수 있는 단축키.
@@ -20,6 +20,7 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['↑', 'PageUp']} label="이전 슬라이드" />
               <HelpRow keys={['↓', 'PageDown']} label="다음 슬라이드" />
               <HelpRow keys={['F5']} label="발표 모드 시작" />
+              <HelpRow keys={['썸네일 우클릭']} label="복제 · 이동 · 삭제 · 새 슬라이드" />
             </div>
           </section>
 
@@ -35,18 +36,43 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['클릭']} label="화면 좌·우 영역 클릭으로도 이동" />
             </div>
           </section>
+
           <section>
             <h3 className="text-xs font-medium text-muted-foreground mb-1.5">요소</h3>
             <div className="space-y-1">
               <HelpRow keys={['더블클릭']} label="빈 캔버스: 텍스트 추가 / 요소: 편집" />
-              <HelpRow keys={['드래그']} label="요소 이동" />
-              <HelpRow keys={['Delete', 'Backspace']} label="선택한 요소 삭제" />
+              <HelpRow keys={['드래그']} label="요소 이동 (Shift = 스냅 끄기)" />
+              <HelpRow keys={['Ctrl', 'D']} label="선택 요소 복제" />
+              <HelpRow keys={['Delete', 'Backspace']} label="선택 요소 삭제" />
+              <HelpRow keys={['우클릭']} label="요소 메뉴 — 복제·삭제·앞뒤로·그룹" />
               <HelpRow keys={['Esc']} label="선택 해제 / 편집 종료" />
             </div>
           </section>
+
           <section>
-            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">기타</h3>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">그룹 / 정렬</h3>
             <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'G']} label="선택 요소 그룹화 (2개 이상)" />
+              <HelpRow keys={['Ctrl', 'Shift', 'G']} label="그룹 해제" />
+              <HelpRow keys={['Shift', '클릭']} label="다중 선택 추가/제거" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">편집 일반</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['Ctrl', 'Z']} label="되돌리기" />
+              <HelpRow keys={['Ctrl', 'Y']} label="다시 실행 (Ctrl+Shift+Z 도)" />
+              <HelpRow keys={['Ctrl', 'C']} label="요소 복사" />
+              <HelpRow keys={['Ctrl', 'V']} label="요소 붙여넣기" />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">보기 / 기타</h3>
+            <div className="space-y-1">
+              <HelpRow keys={['# 격자']} label="격자 표시 토글 (10% 간격) — 도구바 우측" />
+              <HelpRow keys={['줌 select']} label="50~200% 캔버스 줌 — 도구바 우측" />
               <HelpRow keys={['?']} label="이 도움말" />
             </div>
           </section>
