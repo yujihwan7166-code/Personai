@@ -204,14 +204,11 @@ export default function CloudDocEditor() {
       }),
       Footnote,
       Placeholder.configure({
-        // 빈 줄 placeholder — 첫 줄 / 빈 단락에서 ✨ Space 힌트 (Q2 A).
-        placeholder: ({ node: pmNode, editor: ed }) => {
+        // 빈 줄 placeholder. AI 힌트는 노출하지 않음 (Space 단축키는 그대로 동작).
+        placeholder: ({ node: pmNode }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
-          // 빈 단락이면 AI 힌트, 아니면 일반 안내
-          const isEmpty = ed.isEmpty;
-          return isEmpty ? '내용을 입력하거나 ✨ Space 로 AI 글 작성…' : '✨ Space 로 AI…';
+          return '내용을 입력하세요';
         },
-        // 모든 빈 단락에 placeholder 표시 (기본은 첫 줄만)
         showOnlyCurrent: true,
         includeChildren: false,
       }),
