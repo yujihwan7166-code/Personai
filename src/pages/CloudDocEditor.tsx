@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { FloatingMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -42,7 +42,11 @@ import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
 import { TocDropdown } from '@/lib/cloudDoc/TocDropdown';
 import { KeyboardHelpModal } from '@/lib/cloudDoc/KeyboardHelpModal';
 import { SlashMenu } from '@/lib/cloudDoc/SlashMenu';
-import { AiActionsButton } from '@/lib/cloudDoc/AiActionsButton';
+import { AiHeaderButton } from '@/lib/cloudDoc/AiHeaderButton';
+import { AiBubbleMenu } from '@/lib/cloudDoc/AiBubbleMenu';
+import { AiInlineMenu } from '@/lib/cloudDoc/AiInlineMenu';
+import { AiPreviewCard } from '@/lib/cloudDoc/AiPreviewCard';
+import { useDocAi } from '@/lib/cloudDoc/useDocAi';
 import { DocSearchPanel } from '@/lib/cloudDoc/DocSearchPanel';
 import { DocToolbar } from '@/lib/cloudDoc/DocToolbar';
 import { Footnote } from '@/lib/cloudDoc/tiptap/Footnote';
@@ -127,6 +131,9 @@ export default function CloudDocEditor() {
 
   const scrollerRef = useRef<HTMLElement | null>(null);
   const scrollRestoredRef = useRef(false);
+  /** 빈 줄 Space → AI 메뉴 (Q2 A) — handleKeyDown 안에서 안정 참조용. */
+  const editorRef = useRef<Editor | null>(null);
+  const docAiRef = useRef<ReturnType<typeof useDocAi> | null>(null);
   const initialBody = useMemo(() => {
     if (!node?.meta) return null;
     const meta = node.meta as Record<string, unknown>;
@@ -195,10 +202,16 @@ export default function CloudDocEditor() {
       }),
       Footnote,
       Placeholder.configure({
-        placeholder: ({ node: pmNode }) => {
+        // 빈 줄 placeholder — 첫 줄 / 빈 단락에서 ✨ Space 힌트 (Q2 A).
+        placeholder: ({ node: pmNode, editor: ed }) => {
           if (pmNode.type.name === 'heading') return '제목을 입력하세요';
-          return '내용을 입력하세요';
+          // 빈 단락이면 AI 힌트, 아니면 일반 안내
+          const isEmpty = ed.isEmpty;
+          return isEmpty ? '내용을 입력하거나 ✨ Space 로 AI 글 작성…' : '✨ Space 로 AI…';
         },
+        // 모든 빈 단락에 placeholder 표시 (기본은 첫 줄만)
+        showOnlyCurrent: true,
+        includeChildren: false,
       }),
     ],
     editorProps: {
@@ -207,6 +220,23 @@ export default function CloudDocEditor() {
           'doc-content focus:outline-none',
           'min-h-[800px]',  // 첫 페이지 가용 높이 확보 (다음 단계 페이지 break overlay 와 호환)
         ),
+      },
+      // Q2 A: 빈 단락에서 Space 누르면 AI 메뉴 열기 (한글 IME 조합 중에는 동작 X)
+      handleKeyDown: (_view, event) => {
+        if (event.key !== ' ' || event.isComposing) return false;
+        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return false;
+        const ed = editorRef.current;
+        if (!ed) return false;
+        const { $from, empty } = ed.state.selection;
+        if (!empty) return false;
+        // 현재 단락이 빈 paragraph 인지
+        const parent = $from.parent;
+        if (parent.type.name !== 'paragraph') return false;
+        if (parent.textContent.length > 0) return false;
+        // OK — AI 메뉴 띄움 (Space 입력은 막음)
+        event.preventDefault();
+        docAiRef.current?.openMenu('empty-line');
+        return true;
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -247,6 +277,11 @@ export default function CloudDocEditor() {
     };
   }, [editor]);
   const ai = useAiSidebar('doc', getAiContext, { persistKey: node?.id });
+  /** 본문 편집 AI (인라인 메뉴 + 미리보기 카드 + bubble menu). 사이드바와 별개. */
+  const docAi = useDocAi(editor);
+  // handleKeyDown 안 사용용 안정 참조
+  editorRef.current = editor;
+  docAiRef.current = docAi;
 
   // 모바일 편집 잠금 — 메모리 정책 (모바일은 보기 전용)
   const wasMobileNotifiedRef = useRef(false);
@@ -552,7 +587,7 @@ export default function CloudDocEditor() {
               <Keyboard className="w-4 h-4" />
             </button>
             {editor && <TocDropdown editor={editor} />}
-            {editor && <AiActionsButton editor={editor} />}
+            {editor && <AiHeaderButton ai={docAi} />}
             <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -655,6 +690,48 @@ export default function CloudDocEditor() {
         >
           <SlashMenu editor={editor} />
         </FloatingMenu>
+      )}
+
+      {/* ── Q1 D: 텍스트 선택 시 floating ✨ ── */}
+      {editor && <AiBubbleMenu editor={editor} ai={docAi} />}
+
+      {/* ── Q2 A: 빈 줄에서 Space 누르면 — FloatingMenu 안 AiInlineMenu ── */}
+      {editor && docAi.menuOpen === 'empty-line' && (
+        <FloatingMenu
+          editor={editor}
+          shouldShow={({ state }) => {
+            const { $from, empty } = state.selection;
+            if (!empty) return false;
+            const parent = $from.parent;
+            return parent.type.name === 'paragraph' && parent.textContent.length === 0;
+          }}
+        >
+          <AiInlineMenu
+            open
+            onClose={docAi.closeMenu}
+            onSubmitPrompt={docAi.submitPrompt}
+            onRunAction={docAi.runAction}
+            busy={docAi.busy}
+            selectionSummary="빈 줄 — 새 글 생성"
+          />
+        </FloatingMenu>
+      )}
+
+      {/* ── Q3 B: AI 결과 미리보기 카드 (스크롤러 위 고정) ── */}
+      {docAi.preview && (
+        <div className="fixed top-20 left-0 right-0 z-50 pointer-events-none">
+          <div className="container max-w-3xl mx-auto px-4 pointer-events-auto">
+            <AiPreviewCard
+              result={docAi.preview.result}
+              actionLabel={docAi.preview.actionLabel}
+              defaultPlacement={docAi.preview.defaultPlacement}
+              onAccept={docAi.acceptPreview}
+              onReject={docAi.rejectPreview}
+              onRetry={docAi.retryPreview}
+              onEdit={docAi.editPreview}
+            />
+          </div>
+        </div>
       )}
 
       <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
