@@ -9,15 +9,17 @@ interface ThumbButtonProps {
   slide: Slide;
   active: boolean;
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export const ThumbButton = React.memo(function ThumbButton({
-  idx, slide, active, onClick,
+  idx, slide, active, onClick, onContextMenu,
 }: ThumbButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className={cn(
         'w-full flex items-stretch gap-2 group',
         'rounded-sm overflow-hidden',

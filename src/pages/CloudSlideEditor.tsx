@@ -101,6 +101,25 @@ export default function CloudSlideEditor() {
     setSelectedElIds(new Set([elId]));
     setElCtxMenu({ id: elId, x: e.clientX, y: e.clientY });
   }, []);
+  /** 슬라이드 썸네일 우클릭 컨텍스트 메뉴 — idx + 화면 좌표. */
+  const [slideCtxMenu, setSlideCtxMenu] = useState<{ idx: number; x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!slideCtxMenu) return;
+    const close = () => setSlideCtxMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [slideCtxMenu]);
+  const handleSlideContextMenu = useCallback((e: React.MouseEvent, idx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSlideCtxMenu({ idx, x: e.clientX, y: e.clientY });
+  }, []);
   // 다중 선택 (Shift+클릭 또는 그룹화된 멤버 자동 포함)
   const [selectedElIds, setSelectedElIds] = useState<Set<string>>(new Set());
   const [editingElId, setEditingElId] = useState<string | null>(null);
@@ -291,6 +310,71 @@ export default function CloudSlideEditor() {
     }, currentIdx + 1);
     setCurrentIdx((i) => i + 1);
   }, [updateSlides, currentIdx, slides.length]);
+
+  // 인덱스 기반 wrapper — 썸네일 우클릭 컨텍스트 메뉴에서 사용.
+  // currentIdx 클로저에 묶이지 않도록 별도 함수로 둠.
+  const duplicateSlideAt = useCallback((idx: number) => {
+    updateSlides((prev) => {
+      const next = [...prev];
+      const src = next[idx];
+      if (!src) return prev;
+      next.splice(idx + 1, 0, {
+        ...src,
+        id: newId('s'),
+        elements: src.elements.map((el) => ({ ...el, id: newId('el') })),
+      });
+      return next;
+    }, idx + 1);
+    setCurrentIdx(idx + 1);
+  }, [updateSlides]);
+
+  const deleteSlideAt = useCallback((idx: number) => {
+    setSlides((prev) => {
+      if (prev.length <= 1) {
+        toast({ title: '마지막 슬라이드예요', description: '최소 1장은 유지됩니다.' });
+        return prev;
+      }
+      const newSlides = prev.filter((_, i) => i !== idx);
+      const newIdx = Math.max(0, Math.min(idx, newSlides.length - 1));
+      setCurrentIdx(newIdx);
+      queueSave(newSlides, newIdx);
+      return newSlides;
+    });
+    setSelectedElId(null);
+    setEditingElId(null);
+  }, [queueSave]);
+
+  const moveSlideUpAt = useCallback((idx: number) => {
+    if (idx === 0) return;
+    updateSlides((prev) => {
+      const next = [...prev];
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      return next;
+    }, idx - 1);
+    setCurrentIdx(idx - 1);
+  }, [updateSlides]);
+
+  const moveSlideDownAt = useCallback((idx: number) => {
+    let moved = false;
+    setSlides((prev) => {
+      if (idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      queueSave(next, idx + 1);
+      moved = true;
+      return next;
+    });
+    if (moved) setCurrentIdx(idx + 1);
+  }, [queueSave]);
+
+  const insertSlideAt = useCallback((idx: number) => {
+    updateSlides((prev) => {
+      const next = [...prev];
+      next.splice(idx + 1, 0, emptySlide());
+      return next;
+    }, idx + 1);
+    setCurrentIdx(idx + 1);
+  }, [updateSlides]);
 
   // ─── 요소 mutate ───
   const updateCurrentSlide = useCallback((updater: (s: Slide) => Slide) => {
@@ -2020,6 +2104,7 @@ export default function CloudSlideEditor() {
                 setEditingElId(null);
                 queueSave(slides, i);
               }}
+              onContextMenu={(e) => handleSlideContextMenu(e, i)}
             />
           ))}
           <button
@@ -2225,6 +2310,60 @@ export default function CloudSlideEditor() {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* 슬라이드 썸네일 우클릭 메뉴 */}
+      {slideCtxMenu && (
+        <div
+          className="fixed z-[60] rounded border border-border bg-popover shadow-md text-sm min-w-[200px] py-1"
+          style={{ left: slideCtxMenu.x, top: slideCtxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+          role="menu"
+        >
+          <div className="px-3 py-1 text-xs text-muted-foreground border-b border-border mb-1">
+            슬라이드 {slideCtxMenu.idx + 1}
+          </div>
+          <button
+            type="button"
+            onClick={() => { insertSlideAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            아래에 새 슬라이드
+          </button>
+          <button
+            type="button"
+            onClick={() => { duplicateSlideAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            이 슬라이드 복제
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => { moveSlideUpAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            disabled={slideCtxMenu.idx === 0}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          >
+            위로 이동
+          </button>
+          <button
+            type="button"
+            onClick={() => { moveSlideDownAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            disabled={slideCtxMenu.idx >= slides.length - 1}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          >
+            아래로 이동
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => { deleteSlideAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            disabled={slides.length <= 1}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent text-destructive"
+          >
+            슬라이드 삭제
+          </button>
         </div>
       )}
 
