@@ -1,5 +1,6 @@
 /** 에디터 헤더의 저장 상태 표시 (saving/saved/error/idle). 문서·시트·슬라이드 공용. */
 
+import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -13,6 +14,18 @@ interface SaveStateBadgeProps {
 }
 
 export function SaveStateBadge({ state, lastSavedAt, showIdle = false }: SaveStateBadgeProps) {
+  // 상대 시각 자동 갱신 — saved/idle 일 때만 30초마다 re-render.
+  // 1분 미만은 빨리 (10초), 그 위는 30초 간격.
+  const showsRelTime = (state === 'saved' || state === 'idle') && Boolean(lastSavedAt);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!showsRelTime || !lastSavedAt) return;
+    const elapsed = Date.now() - lastSavedAt;
+    const interval = elapsed < 60_000 ? 10_000 : 30_000;
+    const id = window.setInterval(() => tick((v) => v + 1), interval);
+    return () => window.clearInterval(id);
+  }, [showsRelTime, lastSavedAt]);
+
   if (state === 'saving') {
     return (
       <span
@@ -63,7 +76,7 @@ export function SaveStateBadge({ state, lastSavedAt, showIdle = false }: SaveSta
   return null;
 }
 
-/** 마지막 저장 시각을 "방금" / "1분 전" / "1시간 전" 형식으로. */
+/** 마지막 저장 시각을 "방금" / "1분 전" / "1시간 전" / "어제" 형식으로. */
 function formatRelTime(at: number): string {
   const sec = Math.floor((Date.now() - at) / 1000);
   if (sec < 5) return '방금';
@@ -72,5 +85,8 @@ function formatRelTime(at: number): string {
   if (min < 60) return `${min}분 전`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day === 1) return '어제';
+  if (day < 7) return `${day}일 전`;
   return new Date(at).toLocaleDateString('ko-KR');
 }
