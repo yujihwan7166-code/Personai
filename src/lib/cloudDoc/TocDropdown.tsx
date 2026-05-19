@@ -10,6 +10,8 @@ interface TocItem { level: number; text: string; pos: number }
 export function TocDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<TocItem[]>([]);
+  /** 현재 커서가 속한 섹션의 헤딩 인덱스. -1 = 첫 헤딩 전. */
+  const [activeIdx, setActiveIdx] = useState(-1);
 
   const refresh = useCallback(() => {
     const out: TocItem[] = [];
@@ -23,11 +25,32 @@ export function TocDropdown({ editor }: { editor: Editor }) {
     setItems(out);
   }, [editor]);
 
+  /** 커서가 들어 있는 섹션 = 커서 위치보다 작은 pos 중 가장 큰 헤딩. */
+  const recomputeActive = useCallback(() => {
+    const cur = editor.state.selection.from;
+    let idx = -1;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].pos <= cur) idx = i;
+      else break;
+    }
+    setActiveIdx(idx);
+  }, [editor, items]);
+
   useEffect(() => {
     refresh();
     editor.on('update', refresh);
     return () => { editor.off('update', refresh); };
   }, [editor, refresh]);
+
+  useEffect(() => {
+    recomputeActive();
+    editor.on('selectionUpdate', recomputeActive);
+    editor.on('update', recomputeActive);
+    return () => {
+      editor.off('selectionUpdate', recomputeActive);
+      editor.off('update', recomputeActive);
+    };
+  }, [editor, recomputeActive]);
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -36,6 +59,8 @@ export function TocDropdown({ editor }: { editor: Editor }) {
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, [open]);
+
+  const activeText = activeIdx >= 0 ? items[activeIdx]?.text : null;
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -48,7 +73,13 @@ export function TocDropdown({ editor }: { editor: Editor }) {
         )}
         aria-pressed={open}
         aria-label={`목차 (헤딩 ${items.length}개)`}
-        title={items.length === 0 ? '목차 (헤딩이 아직 없어요)' : `목차 (헤딩 ${items.length}개)`}
+        title={
+          items.length === 0
+            ? '목차 (헤딩이 아직 없어요)'
+            : activeText
+              ? `목차 — 현재: ${activeText}`
+              : `목차 (헤딩 ${items.length}개)`
+        }
       >
         <ListTree className="w-4 h-4" />
         {items.length > 0 && (
@@ -65,32 +96,40 @@ export function TocDropdown({ editor }: { editor: Editor }) {
             </div>
           ) : (
             <ul className="text-sm">
-              {items.map((it, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      editor.chain()
-                        .focus()
-                        .setTextSelection(it.pos + 1)
-                        .scrollIntoView()
-                        .run();
-                      setOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-muted truncate"
-                    style={{ paddingLeft: `${12 + (it.level - 1) * 12}px` }}
-                    title={it.text}
-                  >
-                    <span className={cn(
-                      it.level === 1 && 'font-semibold',
-                      it.level === 2 && 'font-medium',
-                      it.level >= 3 && 'text-muted-foreground',
-                    )}>
-                      {it.text}
-                    </span>
-                  </button>
-                </li>
-              ))}
+              {items.map((it, i) => {
+                const isActive = i === activeIdx;
+                return (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        editor.chain()
+                          .focus()
+                          .setTextSelection(it.pos + 1)
+                          .scrollIntoView()
+                          .run();
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        'w-full text-left px-3 py-1.5 truncate flex items-center gap-2',
+                        isActive ? 'bg-accent/60 border-l-2 border-foreground/60' : 'hover:bg-muted',
+                      )}
+                      style={{ paddingLeft: `${(isActive ? 10 : 12) + (it.level - 1) * 12}px` }}
+                      title={it.text}
+                      aria-current={isActive ? 'true' : undefined}
+                    >
+                      <span className={cn(
+                        'truncate',
+                        it.level === 1 && 'font-semibold',
+                        it.level === 2 && 'font-medium',
+                        it.level >= 3 && !isActive && 'text-muted-foreground',
+                      )}>
+                        {it.text}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
