@@ -42,7 +42,6 @@ import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
 import { TocDropdown } from '@/lib/cloudDoc/TocDropdown';
 import { KeyboardHelpModal } from '@/lib/cloudDoc/KeyboardHelpModal';
 import { SlashMenu } from '@/lib/cloudDoc/SlashMenu';
-import { AiHeaderButton } from '@/lib/cloudDoc/AiHeaderButton';
 import { AiBubbleMenu } from '@/lib/cloudDoc/AiBubbleMenu';
 import { AiInlineMenu } from '@/lib/cloudDoc/AiInlineMenu';
 import { AiPreviewCard } from '@/lib/cloudDoc/AiPreviewCard';
@@ -591,7 +590,6 @@ export default function CloudDocEditor() {
               <Keyboard className="w-4 h-4" />
             </button>
             {editor && <TocDropdown editor={editor} />}
-            {editor && <AiHeaderButton ai={docAi} />}
             <AiSidebarToggle open={ai.open} onClick={ai.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
