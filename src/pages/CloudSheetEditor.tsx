@@ -1801,6 +1801,31 @@ export default function CloudSheetEditor() {
     setSelected({ row: rowCount - 1, col: colCount - 1 });
   }, [rowCount, colCount]);
 
+  /** 코너 헤더 더블클릭 → 모든 열 폭 자동 (텍스트 가장 긴 line 기준). */
+  const autoFitAllCols = useCallback(() => {
+    const next: Record<number, number> = {};
+    let touched = 0;
+    for (let c = 0; c < colCount; c++) {
+      let maxLen = 0;
+      for (let r = 0; r < rowCount; r++) {
+        const ref = cellRef(r, c);
+        const v = (displayValues[ref] ?? cells[ref] ?? '') as string;
+        if (!v) continue;
+        for (const line of v.split('\n')) {
+          if (line.length > maxLen) maxLen = line.length;
+        }
+      }
+      if (maxLen > 0) {
+        // 8px/char + 24 padding/sort 핸들 여유. clamp [60, 400].
+        next[c] = Math.max(60, Math.min(400, maxLen * 8 + 24));
+        touched++;
+      }
+    }
+    setColWidths((cur) => ({ ...cur, ...next }));
+    queueSave({ colWidths: { ...colWidths, ...next } });
+    toast({ title: `${touched}개 열 폭 자동 조정` });
+  }, [colCount, rowCount, cells, displayValues, colWidths, queueSave]);
+
   /** 헤더 클릭: 그 row/col 전체 선택. Shift 클릭으로 연속 선택. */
   const handleHeaderClick = useCallback(
     (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => {
@@ -2989,6 +3014,7 @@ export default function CloudSheetEditor() {
             onHeaderContextMenu={openHeaderContextMenu}
             onCellContextMenu={openCellContextMenu}
             onSelectAll={selectAllCells}
+            onAutoFitAllCols={autoFitAllCols}
             matchedRefs={searchMatchSet}
             currentMatchRef={searchMatches[searchCursor]}
             freezeRows={freezeRows}

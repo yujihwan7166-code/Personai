@@ -32,6 +32,7 @@ interface SheetGridProps {
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onCellContextMenu?: (row: number, col: number, e: React.MouseEvent) => void;
   onSelectAll?: () => void;
+  onAutoFitAllCols?: () => void;
   matchedRefs?: Set<string>;
   currentMatchRef?: string;
   /** N행 고정 (0=고정X) */
@@ -78,7 +79,7 @@ interface SheetGridProps {
 export function SheetGrid({
   cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
-  onCellContextMenu, onSelectAll,
+  onCellContextMenu, onSelectAll, onAutoFitAllCols,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
   condFormatMap,
@@ -122,7 +123,8 @@ export function SheetGrid({
             <th
               className="w-10 h-7 border border-border bg-muted/40 sticky left-0 z-20 cursor-pointer hover:bg-muted/60 relative"
               onClick={onSelectAll}
-              title="전체 시트 선택"
+              onDoubleClick={onAutoFitAllCols}
+              title="클릭: 전체 시트 선택 · 더블클릭: 모든 열 폭 자동"
               aria-label="전체 시트 선택"
             >
               <span className="absolute right-1 bottom-1 text-[8px] text-muted-foreground leading-none" aria-hidden>◢</span>
