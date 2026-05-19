@@ -2360,31 +2360,47 @@ export default function CloudSlideEditor() {
             </div>
 
             {/* 발표자 노트 패널 (토글) */}
-            {notesOpen && (
-              <div className="mt-3 mx-auto w-full max-w-[1280px]">
-                <div className="flex items-center justify-between mb-1.5 px-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    📝 발표자 노트 (슬라이드 {currentIdx + 1})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setNotesOpen(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground p-0.5"
-                  >
-                    닫기
-                  </button>
+            {notesOpen && (() => {
+              const noteText = slides[currentIdx]?.notes ?? '';
+              const noteChars = noteText.length;
+              const totalWithNotes = slides.filter((s) => s.notes?.trim()).length;
+              return (
+                <div className="mt-3 mx-auto w-full max-w-[1280px]">
+                  <div className="flex items-center justify-between mb-1.5 px-1">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                      <span>📝 발표자 노트 (슬라이드 {currentIdx + 1})</span>
+                      {totalWithNotes > 0 && (
+                        <span
+                          className="text-[10px] text-muted-foreground/70"
+                          title={`${totalWithNotes}개 슬라이드에 노트 있음`}
+                        >
+                          · 전체 {totalWithNotes}/{slides.length}
+                        </span>
+                      )}
+                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
+                      {noteChars > 0 && <span>{noteChars}자</span>}
+                      <button
+                        type="button"
+                        onClick={() => setNotesOpen(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground p-0.5"
+                      >
+                        닫기
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      updateCurrentSlide((s) => ({ ...s, notes: v }));
+                    }}
+                    placeholder="이 슬라이드를 발표할 때 말할 내용을 적어두세요. .pptx 로 내보낼 때 함께 보존됩니다."
+                    className="w-full min-h-[120px] max-h-[200px] resize-y rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
+                  />
                 </div>
-                <textarea
-                  value={slides[currentIdx]?.notes ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    updateCurrentSlide((s) => ({ ...s, notes: v }));
-                  }}
-                  placeholder="이 슬라이드를 발표할 때 말할 내용을 적어두세요. .pptx 로 내보낼 때 함께 보존됩니다."
-                  className="w-full min-h-[120px] max-h-[200px] resize-y rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
-                />
-              </div>
-            )}
+              );
+            })()}
           </div>
         </main>
         <AiSidebar
