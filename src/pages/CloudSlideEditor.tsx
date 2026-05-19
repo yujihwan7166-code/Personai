@@ -1308,11 +1308,28 @@ export default function CloudSlideEditor() {
         e.preventDefault();
         setCurrentIdx((i) => Math.max(0, i - 1));
         setSelectedElId(null);
+      } else if (!isMod && e.key === 'Home') {
+        e.preventDefault();
+        setCurrentIdx(0);
+        setSelectedElId(null);
+      } else if (!isMod && e.key === 'End') {
+        e.preventDefault();
+        setCurrentIdx(slides.length - 1);
+        setSelectedElId(null);
+      } else if (isMod && e.key.toLowerCase() === 'a') {
+        // Ctrl+A — 현재 슬라이드 모든 요소 선택
+        e.preventDefault();
+        const cur = slides[currentIdx];
+        if (cur && cur.elements.length > 0) {
+          const ids = new Set(cur.elements.map((el) => el.id));
+          setSelectedElIds(ids);
+          setSelectedElId(cur.elements[0].id);
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editingElId, selectedElId, deleteEl, addSlide, slides.length, presenting, startPresent, stopPresent]);
+  }, [editingElId, selectedElId, deleteEl, addSlide, slides, currentIdx, presenting, startPresent, stopPresent]);
 
   const close = useCallback(() => {
     void flushSave();

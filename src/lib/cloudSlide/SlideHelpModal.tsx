@@ -19,6 +19,8 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['Ctrl', 'M']} label="새 슬라이드 추가" />
               <HelpRow keys={['↑', 'PageUp']} label="이전 슬라이드" />
               <HelpRow keys={['↓', 'PageDown']} label="다음 슬라이드" />
+              <HelpRow keys={['Home']} label="첫 슬라이드로" />
+              <HelpRow keys={['End']} label="마지막 슬라이드로" />
               <HelpRow keys={['F5']} label="발표 모드 시작" />
               <HelpRow keys={['썸네일 우클릭']} label="복제 · 이동 · 삭제 · 새 슬라이드" />
             </div>
@@ -42,6 +44,7 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <div className="space-y-1">
               <HelpRow keys={['더블클릭']} label="빈 캔버스: 텍스트 추가 / 요소: 편집" />
               <HelpRow keys={['드래그']} label="요소 이동 (Shift = 스냅 끄기)" />
+              <HelpRow keys={['Ctrl', 'A']} label="현재 슬라이드 모든 요소 선택" />
               <HelpRow keys={['Ctrl', 'D']} label="선택 요소 복제" />
               <HelpRow keys={['Delete', 'Backspace']} label="선택 요소 삭제" />
               <HelpRow keys={['우클릭']} label="요소 메뉴 — 복제·삭제·앞뒤로·그룹" />
