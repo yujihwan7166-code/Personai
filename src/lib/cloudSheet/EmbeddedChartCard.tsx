@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
+  BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell as RechartsCell,
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import {
@@ -30,7 +30,7 @@ interface EmbeddedChartCardProps {
   onMoveNext?: () => void;
   onChangePalette?: (palette: string) => void;
   onChangeTitle?: (title: string) => void;
-  onChangeType?: (type: 'bar' | 'line' | 'pie') => void;
+  onChangeType?: (type: 'bar' | 'line' | 'area' | 'pie') => void;
   onChangeOrientation?: (orientation: 'columns' | 'rows') => void;
   onToggleCollapsed?: () => void;
 }
@@ -124,7 +124,13 @@ export function EmbeddedChartCard({
     const v = titleDraft.trim();
     if (onChangeTitle && v !== (chart.title ?? '')) onChangeTitle(v);
   };
-  const defaultTitle = `${chart.type === 'bar' ? '막대' : chart.type === 'line' ? '선' : '원'} 차트`;
+  const TYPE_LABEL: Record<EmbeddedChart['type'], string> = {
+    bar: '막대', line: '선', area: '영역', pie: '원',
+  };
+  const TYPE_ICON: Record<EmbeddedChart['type'], string> = {
+    bar: '📊', line: '📈', area: '🌊', pie: '🥧',
+  };
+  const defaultTitle = `${TYPE_LABEL[chart.type]} 차트`;
 
   return (
     <div className="rounded border border-border bg-background overflow-hidden">
@@ -138,13 +144,14 @@ export function EmbeddedChartCard({
                 title="차트 종류 변경"
                 aria-label="차트 종류"
               >
-                <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+                <span aria-hidden>{TYPE_ICON[chart.type]}</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[120px]">
               {([
                 { t: 'bar' as const, icon: '📊', label: '막대' },
                 { t: 'line' as const, icon: '📈', label: '선' },
+                { t: 'area' as const, icon: '🌊', label: '영역' },
                 { t: 'pie' as const, icon: '🥧', label: '원' },
               ]).map(({ t, icon, label }) => (
                 <DropdownMenuItem key={t} onSelect={() => onChangeType(t)} className="flex items-center gap-2">
@@ -158,7 +165,7 @@ export function EmbeddedChartCard({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <span aria-hidden>{chart.type === 'bar' ? '📊' : chart.type === 'line' ? '📈' : '🥧'}</span>
+          <span aria-hidden>{TYPE_ICON[chart.type]}</span>
         )}
         {editingTitle ? (
           <input
@@ -341,6 +348,24 @@ export function EmbeddedChartCard({
                 />
               ))}
             </LineChart>
+          </ResponsiveContainer>
+        ) : chart.type === 'area' ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.rows} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {data.seriesKeys.map((k, i) => (
+                <Area
+                  key={k} type="monotone" dataKey={k}
+                  stroke={palette[i % palette.length]}
+                  fill={palette[i % palette.length]}
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+              ))}
+            </AreaChart>
           </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

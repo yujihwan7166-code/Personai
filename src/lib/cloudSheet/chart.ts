@@ -22,7 +22,7 @@ export interface SelRange { minR: number; maxR: number; minC: number; maxC: numb
 /** 시트에 영구 embed 된 차트 한 개 (시트 별로 배열 보유). */
 export interface EmbeddedChart {
   id: string;
-  type: 'bar' | 'line' | 'pie';
+  type: 'bar' | 'line' | 'area' | 'pie';
   orientation: 'columns' | 'rows';
   range: SelRange;
   title?: string;

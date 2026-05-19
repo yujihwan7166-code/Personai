@@ -1,12 +1,12 @@
-/** 차트 만들기 모달 — 선택 범위를 막대/선/원 차트로 미리보기 + PNG 저장 / 시트 embed. */
+/** 차트 만들기 모달 — 선택 범위를 막대/선/영역/원 차트로 미리보기 + PNG 저장 / 시트 embed. */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell as RechartsCell,
+  BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell as RechartsCell,
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import {
-  BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
+  BarChart3, LineChart as LineChartIcon, AreaChart as AreaChartIcon, PieChart as PieChartIcon,
   Download, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ import {
 } from '@/lib/cloudSheet/chart';
 import { idxToCol } from '@/lib/cloudSheet/formula';
 
-type ChartType = 'bar' | 'line' | 'pie';
+type ChartType = 'bar' | 'line' | 'area' | 'pie';
 type Cells = Record<string, string>;
 
 interface ChartModalProps {
@@ -124,6 +124,7 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
           <div className="flex items-center gap-1 p-0.5 rounded border border-border bg-muted/40">
             <ChartTypeBtn icon={<BarChart3 className="w-4 h-4" />} label="막대" active={type === 'bar'} onClick={() => setType('bar')} />
             <ChartTypeBtn icon={<LineChartIcon className="w-4 h-4" />} label="선" active={type === 'line'} onClick={() => setType('line')} />
+            <ChartTypeBtn icon={<AreaChartIcon className="w-4 h-4" />} label="영역" active={type === 'area'} onClick={() => setType('area')} />
             <ChartTypeBtn icon={<PieChartIcon className="w-4 h-4" />} label="원" active={type === 'pie'} onClick={() => setType('pie')} />
           </div>
           <div className="flex items-center gap-1 p-0.5 rounded border border-border bg-muted/40">
@@ -195,6 +196,26 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
                   />
                 ))}
               </LineChart>
+            </ResponsiveContainer>
+          ) : type === 'area' ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.rows} margin={{ top: 10, right: 16, bottom: 8, left: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {data.seriesKeys.map((k, i) => (
+                  <Area
+                    key={k}
+                    type="monotone"
+                    dataKey={k}
+                    stroke={palette[i % palette.length]}
+                    fill={palette[i % palette.length]}
+                    fillOpacity={0.3}
+                    strokeWidth={2}
+                  />
+                ))}
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
