@@ -16,6 +16,10 @@ export function ToolBtn({ onClick, active, disabled, title, children }: ToolBtnP
     <button
       type="button"
       onClick={onClick}
+      // mousedown 의 기본 동작(blur)을 막아 ProseMirror 의 selection 시각 표시를 유지.
+      // 이게 없으면 버튼 클릭 시 editor 가 blur → 선택 영역 시각이 사라지고
+      // 명령 실행 후 scrollIntoView 가 발동해 화면이 점프함.
+      onMouseDown={(e) => e.preventDefault()}
       disabled={disabled}
       title={title}
       aria-label={title}
