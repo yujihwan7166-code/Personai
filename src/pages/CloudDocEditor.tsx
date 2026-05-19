@@ -134,6 +134,16 @@ export default function CloudDocEditor() {
   /** 빈 줄 Space → AI 메뉴 (Q2 A) — handleKeyDown 안에서 안정 참조용. */
   const editorRef = useRef<Editor | null>(null);
   const docAiRef = useRef<ReturnType<typeof useDocAi> | null>(null);
+
+  // 노드 로드 (공용 훅) — initialBody useMemo 가 node 를 참조하므로 반드시 위에 둔다 (TDZ 회피).
+  const { node, loadError } = useCloudNodeLoader({
+    id, user, authLoading,
+    expectedFileType: 'doc',
+    notFoundMessage: '문서를 찾을 수 없어요.',
+    wrongTypeMessage: '문서 파일이 아니에요.',
+    onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
+  });
+
   const initialBody = useMemo(() => {
     if (!node?.meta) return null;
     const meta = node.meta as Record<string, unknown>;
@@ -145,15 +155,6 @@ export default function CloudDocEditor() {
     if (meta.body) return { type: 'json', value: meta.body };
     return null;
   }, [node]);
-
-  // 노드 로드 (공용 훅)
-  const { node, loadError } = useCloudNodeLoader({
-    id, user, authLoading,
-    expectedFileType: 'doc',
-    notFoundMessage: '문서를 찾을 수 없어요.',
-    wrongTypeMessage: '문서 파일이 아니에요.',
-    onLoad: () => { /* 본문 적용은 별도 useEffect (loaded) */ },
-  });
 
   // ─── 디바운스 저장 큐 (공용 훅) ───
   const { flushSave, queueSave } = useDebouncedAutosave({
