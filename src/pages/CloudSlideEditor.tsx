@@ -1228,6 +1228,64 @@ export default function CloudSlideEditor() {
     }
   }, [node, slides]);
 
+  /**
+   * Markdown 으로 내보내기 — 각 슬라이드를 H1 ('# 슬라이드 N · 제목') + 본문 단락 + 노트(quote) 로.
+   * 첫 텍스트가 짧으면(< 60자) 제목으로 사용, 길거나 없으면 '슬라이드 N' 사용.
+   */
+  const exportMarkdown = useCallback(() => {
+    if (!node) return;
+    try {
+      const lines: string[] = [];
+      slides.forEach((s, i) => {
+        // 텍스트 요소들을 fontSize 큰 순으로 정렬해 첫 번째가 제목 후보
+        const texts = s.elements
+          .filter((el) => el.type === 'text' && (el as { content?: string }).content?.trim())
+          .map((el) => el as { content: string; fontSizeRem?: number });
+        const titleEl = texts.length > 0
+          ? [...texts].sort((a, b) => (b.fontSizeRem ?? 1) - (a.fontSizeRem ?? 1))[0]
+          : null;
+        const titleText = titleEl?.content.split('\n')[0]?.trim();
+        const heading = titleText && titleText.length <= 60
+          ? `# 슬라이드 ${i + 1} · ${titleText}`
+          : `# 슬라이드 ${i + 1}`;
+        lines.push(heading);
+        lines.push('');
+        // 본문: 제목 외 텍스트 요소들 (제목이 단일이면 본문 X)
+        const bodyTexts = titleEl
+          ? texts.filter((el) => el !== titleEl).map((el) => el.content.trim()).filter(Boolean)
+          : texts.map((el) => el.content.trim()).filter(Boolean);
+        if (bodyTexts.length > 0) {
+          lines.push(bodyTexts.join('\n\n'));
+          lines.push('');
+        }
+        // 노트는 인용 블록으로
+        const notes = s.notes?.trim();
+        if (notes) {
+          lines.push('> 📝 노트');
+          notes.split('\n').forEach((line) => lines.push(`> ${line}`));
+          lines.push('');
+        }
+        if (i < slides.length - 1) {
+          lines.push('---');
+          lines.push('');
+        }
+      });
+      const md = lines.join('\n');
+      const fileName = sanitizeFileName(node.name);
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.md`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      appToast({ title: 'Markdown 다운로드 시작', description: `${fileName}.md (${slides.length}장)` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      appToast({ title: 'Markdown 내보내기 실패', description: msg });
+    }
+  }, [node, slides]);
+
   // ─── 발표 모드 ───
   const startPresent = useCallback(() => {
     setPresentIdx(currentIdx);
@@ -1517,6 +1575,9 @@ export default function CloudSlideEditor() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => { void exportPdf('p'); }} disabled={!!aiBusy}>
                   📤 PDF 세로 ({slides.length}장)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={exportMarkdown}>
+                  📤 Markdown 내보내기 (.md)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
