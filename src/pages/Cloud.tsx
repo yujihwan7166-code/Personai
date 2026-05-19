@@ -2098,6 +2098,14 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+/** 휴지통 자동 영구 삭제까지 남은 일수 (30일 정책). 음수면 0. */
+function trashDaysRemaining(deletedAtIso: string): number {
+  const deletedMs = new Date(deletedAtIso).getTime();
+  const expireMs = deletedMs + 30 * 24 * 60 * 60 * 1000;
+  const remainMs = expireMs - Date.now();
+  return Math.max(0, Math.ceil(remainMs / (24 * 60 * 60 * 1000)));
+}
+
 // ─────────────────────────────────────────────
 // 인라인 이름 편집 input
 // ─────────────────────────────────────────────
@@ -2250,6 +2258,20 @@ function NodeRow({
             ? `${relativeTime(node.deletedAt ?? node.updatedAt)} 삭제`
             : relativeTime(node.updatedAt)}
         </span>
+        {listMode === 'trash' && node.deletedAt && (() => {
+          const days = trashDaysRemaining(node.deletedAt);
+          return (
+            <span
+              className={cn(
+                'text-[10px] tabular-nums px-1.5 py-0.5 rounded shrink-0',
+                days <= 3 ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground',
+              )}
+              title={`30일 후 자동 영구 삭제 — ${days}일 남음`}
+            >
+              {days}일
+            </span>
+          );
+        })()}
         <span className="text-xs text-muted-foreground w-16 text-right hidden sm:inline">
           {node.kind === 'file' ? formatSize(node.sizeBytes) : ''}
         </span>
