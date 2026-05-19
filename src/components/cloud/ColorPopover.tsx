@@ -82,6 +82,10 @@ export function ColorPopover({
   const isTransparent = value === 'transparent';
   const [recent, setRecent] = useState<string[]>(() => loadRecentColors());
   const [open, setOpen] = useState(false);
+  /** hex 직접 입력 draft — 잘못된 입력 중에도 작성 가능. */
+  const [hexDraft, setHexDraft] = useState(hex);
+  // popover 열릴 때마다 draft 동기화
+  React.useEffect(() => { if (open) setHexDraft(hex); }, [open, hex]);
 
   const choose = useCallback((c: string, keepOpen?: boolean) => {
     onChange(c);
@@ -90,6 +94,22 @@ export function ColorPopover({
     }
     if (!keepOpen) setOpen(false);
   }, [onChange]);
+
+  /** hex draft 를 검증해서 적용. 잘못된 값이면 원복. */
+  const commitHexDraft = useCallback(() => {
+    let v = hexDraft.trim();
+    if (!v) { setHexDraft(hex); return; }
+    if (!v.startsWith('#')) v = `#${v}`;
+    // #abc → #aabbcc 자동 확장
+    if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+      v = `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+    }
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      choose(v.toLowerCase(), true);
+    } else {
+      setHexDraft(hex); // 잘못된 입력 원복
+    }
+  }, [hexDraft, hex, choose]);
 
   const swatchStyle: React.CSSProperties = isTransparent
     ? { backgroundImage: 'repeating-linear-gradient(45deg,#fff,#fff 3px,#ddd 3px,#ddd 6px)' }
@@ -166,7 +186,7 @@ export function ColorPopover({
               type="button"
               onClick={() => choose('transparent')}
               className={cn(
-                'text-xs px-2 py-1 rounded border border-border hover:bg-muted',
+                'text-xs px-2 py-1 rounded border border-border hover:bg-muted shrink-0',
                 isTransparent && 'ring-2 ring-primary',
               )}
               title="투명"
@@ -174,16 +194,29 @@ export function ColorPopover({
               ◇ 투명
             </button>
           )}
-          <label className="ml-auto flex items-center gap-1.5 text-xs cursor-pointer hover:underline">
-            <span>사용자 지정</span>
-            <input
-              type="color"
-              value={hex}
-              onChange={(e) => choose(e.target.value, true)}
-              className="w-5 h-5 rounded cursor-pointer border-none bg-transparent p-0"
-              aria-label="사용자 지정 색"
-            />
-          </label>
+          {/* hex 직접 입력 — 사용자가 외워둔 브랜드 색 등 */}
+          <input
+            type="text"
+            value={hexDraft}
+            onChange={(e) => setHexDraft(e.target.value)}
+            onBlur={commitHexDraft}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitHexDraft(); }
+              else if (e.key === 'Escape') { e.preventDefault(); setHexDraft(hex); }
+            }}
+            placeholder="#RRGGBB"
+            className="ml-auto w-20 text-xs font-mono px-1.5 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
+            aria-label="hex 색 입력"
+            title="hex 값 직접 입력 — 예: #ff6600 또는 #f60"
+          />
+          <input
+            type="color"
+            value={hex}
+            onChange={(e) => choose(e.target.value, true)}
+            className="w-7 h-7 rounded cursor-pointer border border-border bg-transparent p-0 shrink-0"
+            aria-label="사용자 지정 색"
+            title="시스템 색상 선택기"
+          />
         </div>
       </PopoverContent>
     </Popover>
