@@ -1314,6 +1314,19 @@ export default function Cloud() {
                     </span>
                   ))
                 )}
+                {/* 현재 표시 중 항목 수 — 모드별 보충 정보 */}
+                {nodes.length > 0 && (() => {
+                  const folderCount = nodes.filter((n) => n.kind === 'folder').length;
+                  const fileCount = nodes.length - folderCount;
+                  const parts: string[] = [];
+                  if (folderCount > 0) parts.push(`폴더 ${folderCount}`);
+                  if (fileCount > 0) parts.push(`파일 ${fileCount}`);
+                  return (
+                    <span className="ml-2 text-xs text-muted-foreground tabular-nums" title={`이 화면에 ${nodes.length}개 항목`}>
+                      · {parts.join(' · ')}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-2 text-xs">
                 {/* 정렬 옵션 */}
