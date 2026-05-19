@@ -12,8 +12,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, X, Send, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Sparkles, X, Send, RefreshCw, AlertTriangle, Copy as CopyIcon, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
 import type { AiContext, ChatMessage } from '@/lib/cloudAi/types';
 
@@ -242,11 +243,25 @@ export function AiSidebar({
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+  const canCopy = !isUser && !message.error && message.content.length > 0;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      toast({ title: 'AI 응답 복사됨' });
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      toast({ title: '클립보드 접근 실패' });
+    }
+  };
+
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex group', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-lg px-3 py-2 text-sm break-words',
+          'max-w-[85%] rounded-lg px-3 py-2 text-sm break-words relative',
           isUser
             ? 'bg-foreground text-background whitespace-pre-wrap'
             : message.error
@@ -266,6 +281,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           <div className="markdown-msg [&>*+*]:mt-1.5 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-foreground/10 [&_code]:text-[0.85em] [&_code]:font-mono [&_pre]:p-2 [&_pre]:rounded [&_pre]:bg-foreground/10 [&_pre]:overflow-x-auto [&_pre>code]:bg-transparent [&_pre>code]:p-0 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold [&_strong]:font-semibold [&_em]:italic [&_a]:underline [&_a]:text-violet-600 [&_blockquote]:border-l-2 [&_blockquote]:border-foreground/30 [&_blockquote]:pl-2 [&_blockquote]:text-muted-foreground">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
+        )}
+        {canCopy && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              'absolute -top-2 -right-2 p-1 rounded border border-border bg-background shadow-sm transition-opacity',
+              copied ? 'opacity-100 text-emerald-600' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground',
+            )}
+            title={copied ? '복사됨' : 'AI 응답 복사'}
+            aria-label="AI 응답 복사"
+          >
+            {copied ? <Check className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
+          </button>
         )}
       </div>
     </div>
