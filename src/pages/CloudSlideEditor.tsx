@@ -726,10 +726,16 @@ export default function CloudSlideEditor() {
       else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
       else if (k === 'g' && !e.shiftKey) { e.preventDefault(); groupSelected(); }
       else if (k === 'g' && e.shiftKey) { e.preventDefault(); ungroupSelected(); }
+      else if (k === 's' && !e.shiftKey) {
+        // Ctrl+S — 즉시 저장 + 토스트
+        e.preventDefault();
+        void flushSave();
+        appToast({ title: '저장됨', description: '모든 변경 사항이 저장되었어요.' });
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo, groupSelected, ungroupSelected]);
+  }, [undo, redo, groupSelected, ungroupSelected, flushSave]);
 
   // ─── 캔버스 빈 곳 더블클릭 = 텍스트박스 추가 ───
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {

@@ -378,7 +378,7 @@ export default function CloudDocEditor() {
     };
   }, [node?.id]);
 
-  // ─── 키보드 — Ctrl+F / Ctrl+H 검색·치환, Esc 닫기 ───
+  // ─── 키보드 — Ctrl+F / Ctrl+H 검색·치환, Ctrl+S 즉시 저장, Esc 닫기 ───
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isMod = e.ctrlKey || e.metaKey;
@@ -388,6 +388,11 @@ export default function CloudDocEditor() {
       } else if (isMod && e.key.toLowerCase() === 'h') {
         e.preventDefault();
         setSearchOpen('replace');
+      } else if (isMod && e.key.toLowerCase() === 's' && !e.shiftKey) {
+        // Ctrl+S — 즉시 저장 + 토스트. 브라우저 native save 차단.
+        e.preventDefault();
+        void flushSave();
+        toast({ title: '저장됨', description: '모든 변경 사항이 저장되었어요.' });
       } else if (e.key === 'Escape' && searchOpen) {
         // 검색 패널 내 input 에 있으면 그 input 의 onKey 가 처리
         // 그 외(에디터 안)는 닫기
@@ -399,7 +404,7 @@ export default function CloudDocEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [searchOpen]);
+  }, [searchOpen, flushSave]);
 
   // ─── Import / Export ───
   const importFile = useCallback(() => {

@@ -795,6 +795,13 @@ export default function CloudSheetEditor() {
       const k = e.key.toLowerCase();
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); return; }
+      // Ctrl+S — 즉시 저장 (브라우저 native save 차단). 자동 저장 디바운스 무시.
+      if (k === 's' && !e.shiftKey) {
+        e.preventDefault();
+        void flushSave();
+        toast({ title: '저장됨', description: '모든 변경 사항이 저장되었어요.' });
+        return;
+      }
 
       // Ctrl+; / Ctrl+Shift+; — 날짜/시간 삽입
       if (e.key === ';' && !e.altKey) {
@@ -842,7 +849,7 @@ export default function CloudSheetEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount]);
+  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount, flushSave]);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);

@@ -43,6 +43,7 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
           <HelpSection title="동작">
             <HelpRow keys={['Ctrl', 'Z']} label="실행 취소" />
             <HelpRow keys={['Ctrl', 'Shift', 'Z']} label="다시 실행" />
+            <HelpRow keys={['Ctrl', 'S']} label="즉시 저장 — 자동저장 디바운스 무시" />
             <HelpRow keys={['?']} label="이 도움말" />
             <HelpRow keys={['Esc']} label="닫기 / 도움말 닫기" />
           </HelpSection>

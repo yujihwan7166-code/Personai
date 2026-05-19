@@ -70,6 +70,7 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['Ctrl', 'Y']} label="다시 실행 (Ctrl+Shift+Z 도)" />
               <HelpRow keys={['Ctrl', 'C']} label="요소 복사" />
               <HelpRow keys={['Ctrl', 'V']} label="요소 붙여넣기" />
+              <HelpRow keys={['Ctrl', 'S']} label="즉시 저장 — 자동저장 디바운스 무시" />
             </div>
           </section>
 

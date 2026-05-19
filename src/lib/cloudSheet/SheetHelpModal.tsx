@@ -71,11 +71,12 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
           </section>
 
           <section>
-            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">되돌리기·다시</h3>
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">되돌리기·다시·저장</h3>
             <div className="space-y-1">
               <HelpRow keys={['Ctrl', 'Z']} label="되돌리기 (Undo)" />
               <HelpRow keys={['Ctrl', 'Y']} label="다시 실행 (Redo)" />
               <HelpRow keys={['Ctrl', 'Shift', 'Z']} label="다시 실행 (대체)" />
+              <HelpRow keys={['Ctrl', 'S']} label="즉시 저장 — 자동저장 디바운스 무시" />
             </div>
           </section>
 
