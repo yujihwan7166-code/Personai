@@ -6,7 +6,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Upload, Search, Settings, Eye, Keyboard,
+  ArrowLeft, Plus, Upload, Search, Settings, Eye, Keyboard, RefreshCw,
   FileText, FileSpreadsheet, Presentation, Folder, FolderPlus, FolderOpen,
   Clock, Star, Share2, Trash2, ChevronRight, Pencil, RotateCcw, X,
   MoreHorizontal, Copy as CopyIcon,
@@ -982,6 +982,19 @@ export default function Cloud() {
               type="button"
             >
               <Search className="w-4 h-4" />
+            </button>
+            <button
+              onClick={async () => {
+                await refresh();
+                toast({ title: '새로고침 완료', description: `${nodes.length}개 항목` });
+              }}
+              className="p-2 rounded hover:bg-muted disabled:opacity-50"
+              aria-label="새로고침"
+              title="목록 새로고침"
+              disabled={loading}
+              type="button"
+            >
+              <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
             </button>
             <button
               onClick={() => setHelpOpen(true)}
