@@ -13,6 +13,9 @@ interface SheetSearchPanelProps {
   onReplaceTextChange: (v: string) => void;
   caseSensitive: boolean;
   onCaseSensitiveChange: (v: boolean) => void;
+  /** 전체 셀 일치 — 셀 값 전체가 query 와 같을 때만 매치. */
+  wholeCell?: boolean;
+  onWholeCellChange?: (v: boolean) => void;
   matches: number;
   cursor: number;
   onNext: () => void;
@@ -24,8 +27,8 @@ interface SheetSearchPanelProps {
 
 export function SheetSearchPanel({
   mode, onModeChange, query, onQueryChange, replaceText, onReplaceTextChange,
-  caseSensitive, onCaseSensitiveChange, matches, cursor,
-  onNext, onPrev, onReplaceOne, onReplaceAll, onClose,
+  caseSensitive, onCaseSensitiveChange, wholeCell, onWholeCellChange,
+  matches, cursor, onNext, onPrev, onReplaceOne, onReplaceAll, onClose,
 }: SheetSearchPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -66,11 +69,24 @@ export function SheetSearchPanel({
             className="p-1 rounded hover:bg-muted disabled:opacity-40" title="Enter">
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer select-none">
+          <label
+            className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer select-none"
+            title="대/소문자 구분"
+          >
             <input type="checkbox" checked={caseSensitive}
               onChange={(e) => onCaseSensitiveChange(e.target.checked)} className="cursor-pointer" />
             Aa
           </label>
+          {onWholeCellChange && (
+            <label
+              className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer select-none"
+              title="전체 셀 일치 — 셀 값 전체가 query 와 같을 때만"
+            >
+              <input type="checkbox" checked={!!wholeCell}
+                onChange={(e) => onWholeCellChange(e.target.checked)} className="cursor-pointer" />
+              <span className="border border-current px-0.5 leading-none">=</span>
+            </label>
+          )}
           <button
             type="button"
             onClick={() => onModeChange(mode === 'find' ? 'replace' : 'find')}

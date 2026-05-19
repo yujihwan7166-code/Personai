@@ -840,6 +840,8 @@ export default function CloudSheetEditor() {
   const [searchQuery, setSearchQuery] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+  /** 전체 셀 일치 — 셀 값 전체가 query 와 같을 때만 매치 (스프레드시트 표준). */
+  const [searchWholeCell, setSearchWholeCell] = useState(false);
   const [searchCursor, setSearchCursor] = useState(0);
 
   // 매치된 셀 ref 목록 (현재 시트만)
@@ -855,11 +857,12 @@ export default function CloudSheetEditor() {
         if (raw === undefined) continue;
         const display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
         const hay = searchCaseSensitive ? display : display.toLowerCase();
-        if (hay.includes(q)) hits.push(ref);
+        const match = searchWholeCell ? hay === q : hay.includes(q);
+        if (match) hits.push(ref);
       }
     }
     return hits;
-  }, [searchQuery, searchCaseSensitive, cells, displayValues, rowCount, colCount]);
+  }, [searchQuery, searchCaseSensitive, searchWholeCell, cells, displayValues, rowCount, colCount]);
 
   const searchMatchSet = useMemo(() => new Set(searchMatches), [searchMatches]);
 
@@ -3030,6 +3033,8 @@ export default function CloudSheetEditor() {
           onReplaceTextChange={setReplaceText}
           caseSensitive={searchCaseSensitive}
           onCaseSensitiveChange={setSearchCaseSensitive}
+          wholeCell={searchWholeCell}
+          onWholeCellChange={setSearchWholeCell}
           matches={searchMatches.length}
           cursor={searchCursor}
           onNext={searchNext}
