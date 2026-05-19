@@ -2942,6 +2942,7 @@ export default function CloudSheetEditor() {
             currentRef={selectedRef}
             rowCount={rowCount}
             colCount={colCount}
+            namedRanges={namedRanges}
             onJump={(target) => {
               setRangeAnchor(target.anchor);
               setSelected(target.focus);
