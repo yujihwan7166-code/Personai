@@ -127,7 +127,8 @@ export default function CloudDocEditor() {
 
   // 노드 로드 (공용 훅) — 아래의 node 참조 hook 들(initialBody useMemo, 헤더/푸터 로드 useEffect)
   // 보다 반드시 먼저 선언 (TDZ 회피).
-  const { node, loadError } = useCloudNodeLoader({
+  // setNode: tiptap onUpdate 등에서 로컬 node state 즉시 갱신용.
+  const { node, loadError, setNode } = useCloudNodeLoader({
     id, user, authLoading,
     expectedFileType: 'doc',
     notFoundMessage: '문서를 찾을 수 없어요.',

@@ -1,5 +1,6 @@
 /** 클라우드 노드 로드 + 소유자/타입 검증 — 시트/슬라이드/문서 공용 훅. */
 
+import type React from 'react';
 import { useEffect, useState } from 'react';
 import { fetchNode } from '@/lib/cloudClient';
 import type { CloudNode, CloudFileType } from '@/types/cloud';
@@ -20,6 +21,8 @@ interface UseCloudNodeLoaderOpts {
 interface UseCloudNodeLoaderResult {
   node: CloudNode | null;
   loadError: string | null;
+  /** 로컬 node state 직접 patch — onUpdate 등에서 즉시 반영용 (서버 저장은 별도). */
+  setNode: React.Dispatch<React.SetStateAction<CloudNode | null>>;
 }
 
 export function useCloudNodeLoader({
@@ -55,5 +58,5 @@ export function useCloudNodeLoader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user, authLoading]);
 
-  return { node, loadError };
+  return { node, loadError, setNode };
 }
