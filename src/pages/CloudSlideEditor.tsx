@@ -2181,6 +2181,22 @@ export default function CloudSlideEditor() {
           )}
 
           <div className="ml-auto text-xs text-muted-foreground tabular-nums flex items-center gap-2">
+            {/* 선택 요소 카운트 — 1개 이상이면 표시 */}
+            {(selectedElIds.size > 0 || selectedElId) && (() => {
+              const count = selectedElIds.size > 0 ? selectedElIds.size : (selectedElId ? 1 : 0);
+              const total = currentSlide.elements.length;
+              return (
+                <>
+                  <span
+                    className="text-foreground/70"
+                    title={`현재 슬라이드 ${total}개 요소 중 ${count}개 선택`}
+                  >
+                    ☑ {count}{total > count && ` / ${total}`}
+                  </span>
+                  <span className="text-muted-foreground/50">·</span>
+                </>
+              );
+            })()}
             <button
               type="button"
               onClick={() => setGridOn(!gridOn)}
