@@ -3469,6 +3469,25 @@ export default function CloudSheetEditor() {
         </button>
         {/* 선택 영역 통계 — 엑셀 status bar */}
         <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+          {(() => {
+            const w = selBounds.maxC - selBounds.minC + 1;
+            const h = selBounds.maxR - selBounds.minR + 1;
+            // 단일 셀이면 안 보임 — 노이즈 방지
+            if (w === 1 && h === 1) return null;
+            const startRef = cellRef(selBounds.minR, selBounds.minC);
+            const endRef = cellRef(selBounds.maxR, selBounds.maxC);
+            return (
+              <>
+                <span
+                  className="font-mono tabular-nums"
+                  title={`선택 범위 ${startRef}:${endRef} — ${h}행 × ${w}열 = ${h * w}개 셀`}
+                >
+                  {startRef}:{endRef} · {h}×{w}
+                </span>
+                <span className="w-px h-3 bg-border" aria-hidden />
+              </>
+            );
+          })()}
           {selectionStats.numCount > 0 && (
             <>
               <span title="합계">∑ {fmtStatNum(selectionStats.sum!)}</span>
