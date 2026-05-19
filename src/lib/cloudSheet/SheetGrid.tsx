@@ -16,6 +16,8 @@ interface SheetGridProps {
   cells: Cells;
   displayValues: Cells;
   cellFormats: CellFormats;
+  /** 수식 보기 모드 — true 면 수식 셀이 평가값 대신 raw '=...' 표시. */
+  showFormulas?: boolean;
   selected: { row: number; col: number };
   selBounds: SelBounds;
   hasRange: boolean;
@@ -77,7 +79,7 @@ interface SheetGridProps {
 }
 
 export function SheetGrid({
-  cells, displayValues, cellFormats, selected, selBounds, hasRange, mergeAtMap, coveredSet,
+  cells, displayValues, cellFormats, showFormulas, selected, selBounds, hasRange, mergeAtMap, coveredSet,
   rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
   onCellContextMenu, onSelectAll, onAutoFitAllCols,
   matchedRefs, currentMatchRef,
@@ -196,8 +198,10 @@ export function SheetGrid({
                 if (coveredSet.has(key)) return null;
                 const ref = cellRef(rowIdx, colIdx);
                 const raw = cells[ref] ?? '';
-                // 표시값: 수식이면 평가 결과, 아니면 raw 그대로
-                let display = raw.startsWith('=') ? (displayValues[ref] ?? '') : raw;
+                // 표시값: 수식 보기 모드면 raw, 아니면 (수식이면 평가 결과, 아니면 raw 그대로)
+                let display = showFormulas
+                  ? raw
+                  : (raw.startsWith('=') ? (displayValues[ref] ?? '') : raw);
                 const isFocus = selected.row === rowIdx && selected.col === colIdx;
                 const isInRange = hasRange
                   && rowIdx >= selBounds.minR && rowIdx <= selBounds.maxR
@@ -208,7 +212,7 @@ export function SheetGrid({
                 const fmt = cond
                   ? { ...(baseFmt ?? {}), ...cond }
                   : baseFmt;
-                if (fmt?.numberFmt && !isEditing && !display.startsWith('#')) {
+                if (fmt?.numberFmt && !isEditing && !showFormulas && !display.startsWith('#')) {
                   display = applyNumberFormat(display, fmt.numberFmt);
                 }
                 const span = mergeAtMap.get(key);

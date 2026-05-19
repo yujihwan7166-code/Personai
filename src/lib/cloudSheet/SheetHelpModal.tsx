@@ -122,6 +122,7 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['Ctrl', 'Alt', '4']} label="정수 (천단위 콤마)" />
               <HelpRow keys={['Ctrl', 'Alt', '5']} label="퍼센트 (%)" />
               <HelpRow keys={['Ctrl', '\\']} label="서식 지우기" />
+              <HelpRow keys={['Ctrl', '`']} label="수식 보기 토글 — 평가값 대신 수식 그대로" />
             </div>
           </section>
 

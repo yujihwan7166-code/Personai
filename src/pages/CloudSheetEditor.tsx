@@ -802,6 +802,12 @@ export default function CloudSheetEditor() {
         toast({ title: '저장됨', description: '모든 변경 사항이 저장되었어요.' });
         return;
       }
+      // Ctrl+` — 수식 보기 토글 (엑셀 표준)
+      if (e.key === '`') {
+        e.preventDefault();
+        setShowFormulas((v) => !v);
+        return;
+      }
 
       // Ctrl+; / Ctrl+Shift+; — 날짜/시간 삽입
       if (e.key === ';' && !e.altKey) {
@@ -850,6 +856,9 @@ export default function CloudSheetEditor() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount, flushSave]);
+
+  // ─── 수식 보기 모드 (Ctrl+`) — true 면 수식 셀이 평가값 대신 '=...' 그대로 표시 ───
+  const [showFormulas, setShowFormulas] = useState(false);
 
   // ─── 검색/치환 (시트 내) ───
   const [searchOpen, setSearchOpen] = useState<false | 'find' | 'replace'>(false);
@@ -3040,6 +3049,20 @@ export default function CloudSheetEditor() {
             evaluatedValue={displayValues[selectedRef] ?? ''}
             onCommit={(v) => setCellValue(selectedRef, v)}
           />
+          <button
+            type="button"
+            onClick={() => setShowFormulas((v) => !v)}
+            className={cn(
+              'shrink-0 text-xs px-1.5 py-0.5 rounded border hover:bg-muted',
+              showFormulas
+                ? 'border-foreground/40 bg-muted text-foreground'
+                : 'border-border bg-background text-muted-foreground',
+            )}
+            title="수식 보기 토글 (Ctrl+`) — 평가값 대신 수식 그대로"
+            aria-pressed={showFormulas}
+          >
+            =보기
+          </button>
         </div>
       </header>
 
@@ -3080,6 +3103,7 @@ export default function CloudSheetEditor() {
             cells={cells}
             displayValues={displayValues}
             cellFormats={cellFormats}
+            showFormulas={showFormulas}
             selected={selected}
             selBounds={selBounds}
             hasRange={hasRange}
