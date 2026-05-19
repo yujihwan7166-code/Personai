@@ -95,8 +95,8 @@ export function AiSidebar({
           'bg-background flex flex-col shrink-0',
           // 모바일: fixed 풀스크린
           'fixed inset-0 z-50',
-          // lg 이상: in-flow 320px column
-          'lg:static lg:inset-auto lg:z-auto lg:w-80 lg:border-l lg:border-border',
+          // lg 이상: in-flow 320px column. min-h-0 로 자식 flex-1 overflow 가 부모 높이를 넘지 않도록 강제.
+          'lg:static lg:inset-auto lg:z-auto lg:w-80 lg:border-l lg:border-border lg:h-full lg:min-h-0',
         )}
         role="complementary"
         aria-label="AI 어시스턴트"
@@ -134,8 +134,10 @@ export function AiSidebar({
         </button>
       )}
 
-      {/* 본문 — 메시지 목록 또는 빈 상태 */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      {/* 본문 — 메시지 목록 또는 빈 상태.
+          overscroll-contain: 메시지 끝까지 스크롤 후 휠이 부모(클라우드 본문)로 전파되는 걸 막아 스크롤 분리.
+          min-h-0: 부모 flex column 안에서 자체 스크롤이 정상 작동하도록 보장. */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 space-y-3">
         {isEmpty ? (
           <div className="space-y-3 py-4">
             <div className="text-center text-sm text-muted-foreground">

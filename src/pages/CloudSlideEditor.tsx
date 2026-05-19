@@ -186,22 +186,32 @@ export default function CloudSlideEditor() {
     id, delayMs: AUTOSAVE_DELAY_MS, setSaveState, setLastSavedAt,
   });
 
+  // themeId 를 ref 로도 보관 — queueSave deps 에서 themeId 를 빼서
+  // 다른 콜백들이 themeId 변화마다 재생성되는 cascade 를 막는다.
+  const themeIdRef = useRef(themeId);
+  useEffect(() => { themeIdRef.current = themeId; }, [themeId]);
+
   const queueSave = useCallback((nextSlides: Slide[], nextIdx: number, nextThemeId?: string) => {
     queueSaveRaw({
       meta: {
         ...(node?.meta ?? {}),
         slides: nextSlides,
         currentIdx: nextIdx,
-        themeId: nextThemeId ?? themeId,
+        themeId: nextThemeId ?? themeIdRef.current,
       },
     });
-  }, [queueSaveRaw, node?.meta, themeId]);
+  }, [queueSaveRaw, node?.meta]);
 
-  /** 테마 변경 — meta.themeId 저장 + state 갱신. */
+  /** 테마 변경 — meta.themeId 저장 + state 갱신. slides/idx 는 ref 로 최신값. */
+  const slidesRef = useRef(slides);
+  const currentIdxRef = useRef(currentIdx);
+  useEffect(() => { slidesRef.current = slides; }, [slides]);
+  useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
+
   const changeTheme = useCallback((nextThemeId: string) => {
     setThemeId(nextThemeId);
-    queueSave(slides, currentIdx, nextThemeId);
-  }, [queueSave, slides, currentIdx]);
+    queueSave(slidesRef.current, currentIdxRef.current, nextThemeId);
+  }, [queueSave]);
 
   // ─── 슬라이드 mutate ───
   const updateSlides = useCallback((updater: (prev: Slide[]) => Slide[], newIdx?: number) => {
