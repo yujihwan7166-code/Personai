@@ -89,6 +89,33 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },
+      // ProseMirror "Duplicate use of selection JSON ID cell" 방지 — TipTap × Vite dev 환경에서
+      // optimizeDeps 가 prosemirror 모듈을 별도 chunk 로 pre-bundle 하면 CellSelection 의
+      // static jsonID('cell') 이 두 번 실행돼 RangeError. 단일 인스턴스 강제.
+      dedupe: [
+        '@tiptap/pm',
+        'prosemirror-state',
+        'prosemirror-view',
+        'prosemirror-model',
+        'prosemirror-transform',
+        'prosemirror-tables',
+        'prosemirror-keymap',
+        'prosemirror-commands',
+        'prosemirror-history',
+        'prosemirror-schema-list',
+        'prosemirror-dropcursor',
+        'prosemirror-gapcursor',
+      ],
+    },
+    optimizeDeps: {
+      // 위 dedupe 와 짝 — prosemirror 패키지를 사전번들 단계에서 한 번에 묶어 인스턴스 갈라짐 차단.
+      include: [
+        'prosemirror-state',
+        'prosemirror-view',
+        'prosemirror-model',
+        'prosemirror-transform',
+        'prosemirror-tables',
+      ],
     },
     build: {
       rollupOptions: {
