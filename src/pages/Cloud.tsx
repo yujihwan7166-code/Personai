@@ -351,6 +351,29 @@ export default function Cloud() {
     }
   }, [selectedNodes, refresh]);
 
+  /** 휴지통 모든 항목 영구 삭제 — 'Empty Trash' 표준 액션. */
+  const emptyTrash = useCallback(async () => {
+    if (listMode !== 'trash' || nodes.length === 0) return;
+    const ok = await confirmDialog({
+      title: `휴지통의 ${nodes.length}개 항목 모두 영구 삭제?`,
+      description: '되돌릴 수 없어요. 정말 진행하시겠어요?',
+      confirmLabel: '모두 삭제',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      for (const n of nodes) {
+        await permanentDelete(n.id);
+        clearChatHistoryForNode(n.id);
+      }
+      await refresh();
+      setSelectedIds(new Set());
+      toast({ title: `휴지통 비움 — ${nodes.length}개 완전 삭제` });
+    } catch (e) {
+      toast({ title: '휴지통 비우기 실패', description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [listMode, nodes, refresh]);
+
   // ─── DnD 이동 ───
   /** 폴더가 자기 자신·자손인지 검사 (사이클 방지) */
   const isDescendantOf = useCallback((descendantId: string, ancestorId: string): boolean => {
@@ -1385,7 +1408,19 @@ export default function Cloud() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-1 text-sm">
                 {modeTitle ? (
-                  <span className="font-medium">{modeTitle}</span>
+                  <>
+                    <span className="font-medium">{modeTitle}</span>
+                    {listMode === 'trash' && nodes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { void emptyTrash(); }}
+                        className="ml-3 px-2 py-0.5 rounded border border-destructive/40 text-destructive hover:bg-destructive/10 text-xs flex items-center gap-1"
+                        title="휴지통의 모든 항목 영구 삭제"
+                      >
+                        🗑 휴지통 비우기 ({nodes.length})
+                      </button>
+                    )}
+                  </>
                 ) : (() => {
                   // 5+ depth 시 중간 truncate: [root, …, parent, current]
                   const visible: Array<{ t: typeof trail[number]; idx: number; collapsed?: boolean }> = [];
