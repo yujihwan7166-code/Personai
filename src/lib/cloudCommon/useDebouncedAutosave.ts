@@ -37,6 +37,8 @@ export function useDebouncedAutosave({
 }: UseDebouncedAutosaveOpts): UseDebouncedAutosaveResult {
   const pendingRef = useRef<{ name?: string; meta?: Record<string, unknown> }>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** pending 변경 여부 — beforeunload 경고 트리거. */
+  const hasPendingRef = useRef(false);
 
   const flushSave = useCallback(async () => {
     if (!id) return;
@@ -46,9 +48,12 @@ export function useDebouncedAutosave({
     setSaveState('saving');
     try {
       await updateFileBody(id, payload);
+      hasPendingRef.current = false;
       setSaveState('saved');
       setLastSavedAt?.(Date.now());
     } catch (e) {
+      // 실패 시 pending 유지 (다음 시도에서 함께 보냄)
+      pendingRef.current = { ...payload, ...pendingRef.current };
       setSaveState('error');
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '저장 실패', description: msg });
@@ -61,10 +66,24 @@ export function useDebouncedAutosave({
       ...(patch.name !== undefined ? { name: patch.name } : {}),
       ...(patch.meta !== undefined ? { meta: patch.meta } : {}),
     };
+    hasPendingRef.current = true;
     setSaveState('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { void flushSave(); }, delayMs);
   }, [flushSave, delayMs, setSaveState]);
+
+  // beforeunload — pending 있을 때만 경고 (브라우저 표준 다이얼로그)
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasPendingRef.current) {
+        e.preventDefault();
+        // 일부 브라우저는 returnValue 필요 (메시지는 무시되고 표준 다이얼로그 노출)
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   // unmount 시 pending 있으면 flush
   useEffect(() => {
