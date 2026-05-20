@@ -1379,24 +1379,28 @@ export default function Cloud() {
                 <NewCard
                   icon={<FileText className="w-6 h-6" />}
                   label="문서"
+                  hint="긴 글·메모·노트"
                   color="hsl(200 75% 55%)"
                   onClick={() => { void handleCreateDoc(); }}
                 />
                 <NewCard
                   icon={<FileSpreadsheet className="w-6 h-6" />}
                   label="시트"
+                  hint="표·계산·90+ 수식"
                   color="hsl(140 50% 50%)"
                   onClick={() => { void handleCreateSheet(); }}
                 />
                 <NewCard
                   icon={<Presentation className="w-6 h-6" />}
                   label="슬라이드"
+                  hint="발표·기획·.pptx"
                   color="hsl(25 85% 55%)"
                   onClick={() => { void handleCreateSlide(); }}
                 />
                 <NewCard
                   icon={<FolderPlus className="w-6 h-6" />}
                   label="폴더"
+                  hint="파일 정리"
                   color="hsl(220 15% 50%)"
                   onClick={openNewFolderInput}
                 />
@@ -2176,25 +2180,31 @@ function FolderTreeItem({
 interface NewCardProps {
   icon: React.ReactNode;
   label: string;
+  /** 카드 아래 작은 회색 설명. 가독성 위해 한 줄 권장. */
+  hint?: string;
   color: string;
   onClick: () => void;
 }
 
-function NewCard({ icon, label, color, onClick }: NewCardProps) {
+function NewCard({ icon, label, hint, color, onClick }: NewCardProps) {
   return (
     <button
       onClick={onClick}
-      className="border border-border rounded-lg p-4 hover:border-foreground/30 hover:bg-muted/30 transition-colors flex flex-col items-center gap-2 text-sm"
+      className="border border-border rounded-lg p-4 hover:border-foreground/30 hover:bg-muted/30 transition-colors flex flex-col items-center gap-1 text-sm"
       type="button"
+      title={hint}
     >
       <div
-        className="w-10 h-10 rounded flex items-center justify-center text-white"
+        className="w-10 h-10 rounded flex items-center justify-center text-white mb-1"
         style={{ backgroundColor: color }}
         aria-hidden
       >
         {icon}
       </div>
       <span>{label}</span>
+      {hint && (
+        <span className="text-[10px] text-muted-foreground/70 leading-tight">{hint}</span>
+      )}
     </button>
   );
 }
