@@ -136,6 +136,8 @@ export default function CloudSlideEditor() {
   const [notesOpen, setNotesOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  /** main 영역 ref — Ctrl+휠 줌을 위해 native event listener (passive:false) 부착용. */
+  const mainRef = useRef<HTMLElement>(null);
 
   // ─── 슬라이드 zoom (캔버스 폭 % — localStorage 영속) ───
   const [slideZoom, setSlideZoomInner] = useState<number>(() => {
@@ -152,6 +154,31 @@ export default function CloudSlideEditor() {
     setSlideZoomInner(v);
     try { window.localStorage.setItem(SLIDE_ZOOM_LS_KEY, String(v)); } catch { /* noop */ }
   }, []);
+
+  /** Ctrl+휠 줌 — 현재 step 에서 한 단계 위/아래. */
+  const adjustZoom = useCallback((dir: 1 | -1) => {
+    setSlideZoomInner((cur) => {
+      const idx = SLIDE_ZOOM_STEPS.indexOf(cur as 50 | 75 | 100 | 125 | 150 | 200);
+      const safeIdx = idx >= 0 ? idx : SLIDE_ZOOM_STEPS.indexOf(100 as const);
+      const nextIdx = Math.max(0, Math.min(SLIDE_ZOOM_STEPS.length - 1, safeIdx + dir));
+      const next = SLIDE_ZOOM_STEPS[nextIdx];
+      try { window.localStorage.setItem(SLIDE_ZOOM_LS_KEY, String(next)); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
+
+  // Ctrl/Cmd + 휠 = 캔버스 줌 (React onWheel 은 passive 라 preventDefault 안 됨 → native listener)
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      adjustZoom(e.deltaY < 0 ? 1 : -1);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [adjustZoom]);
 
   // ─── 그리드 표시 토글 (localStorage 영속) — 10% 간격 가이드 라인 ───
   const GRID_LS_KEY = 'personai.slide.gridOn';
@@ -2319,7 +2346,10 @@ export default function CloudSlideEditor() {
         </aside>
 
         {/* 가운데 캔버스 */}
-        <main className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center p-8">
+        <main
+          ref={mainRef}
+          className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center p-8"
+        >
           <div
             className="bg-white shadow-lg rounded-sm overflow-hidden relative shrink-0"
             style={{

@@ -79,6 +79,7 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <div className="space-y-1">
               <HelpRow keys={['# 격자']} label="격자 표시 토글 (10% 간격) — 도구바 우측" />
               <HelpRow keys={['줌 select']} label="50~200% 캔버스 줌 — 도구바 우측" />
+              <HelpRow keys={['Ctrl', '휠']} label="캔버스 위에서 스크롤로 줌 단계 조절" />
               <HelpRow keys={['?']} label="이 도움말" />
             </div>
           </section>
