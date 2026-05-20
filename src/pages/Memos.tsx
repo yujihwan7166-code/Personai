@@ -1335,16 +1335,18 @@ function MemoEditor({
 // ──────────────────────────────────────────
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-5xl mb-5">✏️</div>
-        <p className="text-[16px] font-medium text-foreground mb-2">지금 머리에 떠오른 한 가지를 적어보세요.</p>
-        <p className="text-[13px] text-muted-foreground mb-7">
-          여기 적은 메모는 나중에 한 클릭으로 위키로 보낼 수 있어요.
+    <div className="flex-1 flex items-center justify-center px-6">
+      <div className="text-center max-w-[360px]">
+        <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/60 text-[28px] leading-none">
+          ✏️
+        </div>
+        <p className="text-[16px] font-semibold text-foreground mb-2">지금 머리에 떠오른 한 가지를 적어보세요.</p>
+        <p className="text-[13px] text-muted-foreground leading-relaxed mb-7">
+          짧은 메모도 괜찮아요. 나중에 한 클릭으로 위키 페이지로 보낼 수 있어요.
         </p>
         <button
           onClick={onNew}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:opacity-90"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.3)]"
         >
           <Plus className="w-4 h-4" />
           새 메모 시작
