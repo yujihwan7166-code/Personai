@@ -10,9 +10,16 @@
  *   downloadJson(obj, 'data.json');
  */
 
-/** 파일명을 OS 친화로 sanitize — 금지 문자 _ 로. */
-export function sanitizeFileName(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim() || 'untitled';
+/**
+ * 파일명을 OS 친화로 sanitize — 금지 문자(\/:*?"<>|) → _, 연속 공백 정규화,
+ * 200자 길이 제한, 빈 결과는 fallback 으로.
+ *
+ * @param name OS 에 들어갈 파일명 (확장자 제외 추천)
+ * @param fallback name 이 sanitize 후 빈 문자열이 됐을 때 대체할 이름. 기본 'untitled'.
+ */
+export function sanitizeFileName(name: string, fallback = 'untitled'): string {
+  const cleaned = name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 200);
+  return cleaned || fallback;
 }
 
 /** Blob 다운로드 trigger. anchor 동적 생성 + 자동 정리. */

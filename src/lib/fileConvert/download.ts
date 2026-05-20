@@ -1,11 +1,10 @@
 // 다운로드 이중 전략: File System Access API 우선, anchor fallback
 
 import { canUseFileSystemAccess } from './features';
+import { sanitizeFileName } from '@/lib/blob';
 
-// OS 금지 문자 제거 + 길이 제한
-export function sanitizeFileName(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 200);
-}
+// 통합된 sanitizeFileName 재노출 (외부에서 이 모듈을 통해 import 하던 경로 호환).
+export { sanitizeFileName };
 
 export function replaceExtension(name: string, newExtWithDot: string): string {
   const lastDot = name.lastIndexOf('.');

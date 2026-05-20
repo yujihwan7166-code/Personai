@@ -99,7 +99,5 @@ export async function exportElementsToPdf(elements: HTMLElement[], options: Expo
   pdf.save(options.fileName.endsWith('.pdf') ? options.fileName : `${options.fileName}.pdf`);
 }
 
-/** 파일명 안전 처리 — Windows 금지 문자 제거. */
-export function sanitizeFileName(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, '_').trim() || '문서';
-}
+/** 파일명 안전 처리 — `@/lib/blob` 의 통합 헬퍼 re-export (호환 유지). */
+export { sanitizeFileName } from '@/lib/blob';
