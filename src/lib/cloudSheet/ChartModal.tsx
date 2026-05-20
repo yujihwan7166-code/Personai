@@ -62,7 +62,7 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
     }
   }, []);
 
-  const handleDownloadSvg = useCallback(() => {
+  const handleDownloadSvg = useCallback(async () => {
     if (!chartRef.current) return;
     const svg = chartRef.current.querySelector('svg');
     if (!svg) {
@@ -70,21 +70,8 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
       return;
     }
     try {
-      const clone = svg.cloneNode(true) as SVGElement;
-      if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      bgRect.setAttribute('width', '100%');
-      bgRect.setAttribute('height', '100%');
-      bgRect.setAttribute('fill', '#ffffff');
-      clone.insertBefore(bgRect, clone.firstChild);
-      const xml = new XMLSerializer().serializeToString(clone);
-      const blob = new Blob([xml], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chart_${Date.now()}.svg`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const { exportSvgAsFile } = await import('@/lib/cloudCommon/svgExport');
+      exportSvgAsFile(svg, { fileName: `chart_${Date.now()}` });
       toast({ title: 'SVG 저장됨' });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

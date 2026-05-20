@@ -71,7 +71,7 @@ export function EmbeddedChartCard({
       toast({ title: 'PNG 저장 실패', description: msg });
     }
   }, [safeTitle]);
-  const handleDownloadSvg = useCallback(() => {
+  const handleDownloadSvg = useCallback(async () => {
     const el = chartBodyRef.current;
     if (!el) return;
     const svg = el.querySelector('svg');
@@ -80,22 +80,8 @@ export function EmbeddedChartCard({
       return;
     }
     try {
-      const clone = svg.cloneNode(true) as SVGElement;
-      if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      // 흰 배경 박스 prepend
-      const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      bgRect.setAttribute('width', '100%');
-      bgRect.setAttribute('height', '100%');
-      bgRect.setAttribute('fill', '#ffffff');
-      clone.insertBefore(bgRect, clone.firstChild);
-      const xml = new XMLSerializer().serializeToString(clone);
-      const blob = new Blob([xml], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeTitle()}_${Date.now()}.svg`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const { exportSvgAsFile } = await import('@/lib/cloudCommon/svgExport');
+      exportSvgAsFile(svg, { fileName: `${safeTitle()}_${Date.now()}` });
       toast({ title: 'SVG 저장됨' });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -271,7 +257,7 @@ export function EmbeddedChartCard({
               <DropdownMenuItem onSelect={() => { void handleDownloadPng(); }}>
                 PNG (래스터)
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleDownloadSvg()}>
+              <DropdownMenuItem onSelect={() => { void handleDownloadSvg(); }}>
                 SVG (벡터)
               </DropdownMenuItem>
             </DropdownMenuContent>
