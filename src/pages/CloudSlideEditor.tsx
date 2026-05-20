@@ -918,6 +918,13 @@ export default function CloudSlideEditor() {
     const movingIds = new Set(mates.map((m) => m.id));
     const others = elList.filter((o) => !movingIds.has(o.id));
     const { vLines, hLines } = buildSnapLines(others);
+    // 격자 켜져있으면 10/20/.../90 lines 도 snap 대상에 추가
+    if (gridOn) {
+      for (let i = 10; i <= 90; i += 10) {
+        if (!vLines.includes(i)) vLines.push(i);
+        if (!hLines.includes(i)) hLines.push(i);
+      }
+    }
 
     const onMove = (ev: PointerEvent) => {
       const dxPct = ((ev.clientX - startX) / rect.width) * 100;
@@ -957,7 +964,7 @@ export default function CloudSlideEditor() {
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }, [editingElId, updateEl, updateCurrentSlide, slides, currentIdx, selectedElIds, selectElement]);
+  }, [editingElId, updateEl, updateCurrentSlide, slides, currentIdx, selectedElIds, selectElement, gridOn]);
 
   // ─── AI 액션 ───
   const [aiBusy, setAiBusy] = useState<string | null>(null);
@@ -2374,7 +2381,7 @@ export default function CloudSlideEditor() {
                   ? 'border-foreground/30 bg-muted text-foreground'
                   : 'border-border bg-background text-muted-foreground',
               )}
-              title="격자 표시 (10% 간격) — 정렬 보조"
+              title="격자 표시 (10% 간격) — 드래그 시 격자 라인에도 스냅"
               aria-pressed={gridOn}
             >
               # 격자
