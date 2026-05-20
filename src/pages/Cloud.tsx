@@ -1922,7 +1922,9 @@ function SearchModal({ open, onClose, onSelect }: SearchModalProps) {
                     )}
                   >
                     <NodeIcon node={n} />
-                    <span className="flex-1 truncate">{n.name}</span>
+                    <span className="flex-1 truncate">
+                      {highlightMatch(n.name, query)}
+                    </span>
                     {n.starred && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />}
                     <span className="text-xs text-muted-foreground">{relativeTime(n.updatedAt)}</span>
                   </button>
@@ -2197,6 +2199,25 @@ function NodeIcon({ node }: { node: CloudNode }) {
   }
   const emoji = FILE_TYPE_EMOJI[node.fileType ?? 'other'];
   return <span className="text-base leading-none" aria-hidden>{emoji}</span>;
+}
+
+/** 검색어가 포함된 문자열에서 매치 부분을 <mark> 로 감싸 반환. 대소문자 무시. */
+function highlightMatch(text: string, query: string): React.ReactNode {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const qLower = q.toLowerCase();
+  const i = lower.indexOf(qLower);
+  if (i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="bg-amber-200 text-foreground dark:bg-amber-500/40 rounded-sm">
+        {text.slice(i, i + q.length)}
+      </mark>
+      {text.slice(i + q.length)}
+    </>
+  );
 }
 
 function relativeTime(iso: string): string {
