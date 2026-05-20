@@ -17,7 +17,10 @@ import { StyleSelect } from './StyleSelect';
 import { ZoomSelect } from './ZoomSelect';
 import { ColorPickBtn } from './ColorPickBtn';
 import { FontSizeSelect, FontFamilySelect } from './FontSelects';
-import { pickImage } from './pickImage';
+import { pickImage, insertImageByUrl } from './pickImage';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 export function DocToolbar({ editor, zoom, onZoomChange }: {
   editor: Editor; zoom: number; onZoomChange: (z: number) => void;
@@ -114,10 +117,27 @@ export function DocToolbar({ editor, zoom, onZoomChange }: {
       )}
       <Sep />
 
-      {/* 이미지 */}
-      <ToolBtn editor={editor} onClick={() => pickImage(editor)} title="이미지 추가 (파일 선택)">
-        <ImagePlus className="w-4 h-4" />
-      </ToolBtn>
+      {/* 이미지 — 파일/URL 선택 dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="p-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+            title="이미지 삽입"
+            aria-label="이미지 삽입"
+          >
+            <ImagePlus className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[160px]">
+          <DropdownMenuItem onSelect={() => pickImage(editor)}>
+            📁 파일에서 (≤2MB)
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => insertImageByUrl(editor)}>
+            🔗 URL 로
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Sep />
 
       {/* 글꼴 크기·종류 */}

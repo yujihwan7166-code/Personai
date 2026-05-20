@@ -27,3 +27,18 @@ export function pickImage(editor: Editor): void {
   };
   input.click();
 }
+
+/** URL 로 이미지 삽입 — 원격 호스팅 이미지를 본문에 인라인. */
+export function insertImageByUrl(editor: Editor): void {
+  const raw = window.prompt('이미지 URL', 'https://');
+  if (!raw) return;
+  const url = raw.trim();
+  if (!url || url === 'https://') return;
+  // 간단한 URL 검증 — https? + 경로
+  if (!/^https?:\/\/\S+/i.test(url)) {
+    toast({ title: '유효하지 않은 URL', description: 'http(s):// 로 시작해야 합니다.' });
+    return;
+  }
+  editor.chain().focus().setImage({ src: url }).run();
+  toast({ title: '이미지 삽입됨', description: '외부 호스팅 이미지 — 원본 사이트가 막히면 깨질 수 있어요.' });
+}
