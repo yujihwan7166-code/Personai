@@ -556,7 +556,7 @@ export default function CloudDocEditor() {
           <span className="font-medium truncate max-w-md">{node?.name ?? '제목 없음'}</span>
 
           <span className="ml-3 text-xs">
-            <SaveStateBadge state={saveState} lastSavedAt={lastSavedAt} showIdle />
+            <SaveStateBadge state={saveState} lastSavedAt={lastSavedAt} showIdle onRetry={() => { void flushSave(); }} />
           </span>
           {editor && <WordCountBadge editor={editor} />}
 

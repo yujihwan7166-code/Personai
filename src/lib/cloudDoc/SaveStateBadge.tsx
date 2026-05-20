@@ -1,7 +1,7 @@
 /** 에디터 헤더의 저장 상태 표시 (saving/saved/error/idle). 문서·시트·슬라이드 공용. */
 
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, RotateCw } from 'lucide-react';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -11,9 +11,11 @@ interface SaveStateBadgeProps {
   lastSavedAt?: number;
   /** idle 일 때 "변경 없음" 표시 여부. 기본 false (시트/슬라이드는 안 보임, 문서는 true). */
   showIdle?: boolean;
+  /** state === 'error' 일 때 클릭으로 즉시 재시도. 미제공이면 버튼 없음. */
+  onRetry?: () => void;
 }
 
-export function SaveStateBadge({ state, lastSavedAt, showIdle = false }: SaveStateBadgeProps) {
+export function SaveStateBadge({ state, lastSavedAt, showIdle = false, onRetry }: SaveStateBadgeProps) {
   // 상대 시각 자동 갱신 — saved/idle 일 때만 30초마다 re-render.
   // 1분 미만은 빨리 (10초), 그 위는 30초 간격.
   const showsRelTime = (state === 'saved' || state === 'idle') && Boolean(lastSavedAt);
@@ -59,7 +61,17 @@ export function SaveStateBadge({ state, lastSavedAt, showIdle = false }: SaveSta
         aria-live="assertive"
       >
         <AlertCircle className="w-3 h-3" />
-        저장 실패
+        <span>저장 실패</span>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="ml-1 px-1.5 py-0.5 rounded border border-destructive/40 hover:bg-destructive/10 text-[11px] flex items-center gap-1"
+            title="지금 다시 저장 시도"
+          >
+            <RotateCw className="w-3 h-3" /> 다시
+          </button>
+        )}
       </span>
     );
   }
