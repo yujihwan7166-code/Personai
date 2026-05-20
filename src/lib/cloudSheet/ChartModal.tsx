@@ -53,19 +53,9 @@ export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalP
   const handleDownloadPng = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const html2canvasMod = await import('html2canvas');
-      const html2canvas = html2canvasMod.default;
-      const canvas = await html2canvas(chartRef.current, { backgroundColor: '#ffffff', scale: 2 });
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chart_${Date.now()}.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        toast({ title: 'PNG 저장됨' });
-      });
+      const { exportElementAsPng } = await import('@/lib/cloudCommon/pngExport');
+      await exportElementAsPng(chartRef.current, { fileName: `chart_${Date.now()}`, scale: 2 });
+      toast({ title: 'PNG 저장됨' });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: 'PNG 저장 실패', description: msg });

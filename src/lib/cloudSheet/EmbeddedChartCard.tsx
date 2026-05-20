@@ -63,19 +63,9 @@ export function EmbeddedChartCard({
     const el = chartBodyRef.current;
     if (!el) return;
     try {
-      const html2canvasMod = await import('html2canvas');
-      const html2canvas = html2canvasMod.default;
-      const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${safeTitle()}_${Date.now()}.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        toast({ title: 'PNG 저장됨' });
-      });
+      const { exportElementAsPng } = await import('@/lib/cloudCommon/pngExport');
+      await exportElementAsPng(el, { fileName: `${safeTitle()}_${Date.now()}`, scale: 2 });
+      toast({ title: 'PNG 저장됨' });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: 'PNG 저장 실패', description: msg });
