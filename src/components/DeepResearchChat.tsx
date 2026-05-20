@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect, useMemo, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { QuestionInput } from '@/components/QuestionInput';
 import { buildAttachmentPrompt, type AttachedFile } from '@/lib/fileProcessor';
 import {
-  Loader2, Send, Search, FileText, Sparkles, CheckCircle2, ShieldCheck,
-  AlertTriangle, Scale, Clock, Circle, BookOpen, Zap, ChevronRight, ChevronDown,
+  Loader2, Search, FileText, Sparkles, CheckCircle2, ShieldCheck,
+  AlertTriangle, Scale, Clock, Circle, ChevronDown,
   Target, PenLine, Wand2, ArrowRight, Telescope,
   type LucideIcon,
 } from 'lucide-react';

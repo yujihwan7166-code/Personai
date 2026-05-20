@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef, useCallback, Fragment, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Expert, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER,
+  Expert, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
-  DEBATE_SUB_MODE_LABELS, getMainMode, DebateSettings,
+  getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
-  GAME_CARDS, GameCard,
   SimulationScenario, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES, type ScenarioCategory,
-  StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS,
+  StakeholderSettings,
   type PremiumDomainId,
   type AivsBattleDraft,
   AIVS_USER_TOPIC_PRESETS,
@@ -39,12 +37,11 @@ import { processFile, validateFile, MAX_FILES, type AttachedFile } from '@/lib/f
 import { Paperclip, Loader2, Info } from 'lucide-react';
 import {
   Target, Scale, Lightbulb,
-  Plus, X, Check, ChevronLeft, ChevronRight, ChevronDown, ArrowRight, ArrowLeft, Zap,
-  FileText, Search, Sliders,
-  Eye, BookOpen, Brain, Link2, Sparkles, Swords, Clapperboard,
-  Users, User, Crown, Star,
-  Flame, ShieldAlert, Heart, RotateCcw, Lock, Bomb, UserX, Shield, Handshake,
-  Drama, Gavel, LogOut,
+  Plus, X, Check, ChevronLeft, ChevronDown, ArrowRight,
+  FileText, Search,
+  Sparkles,
+  Users, User,
+  Drama, LogOut,
 } from 'lucide-react';
 
 

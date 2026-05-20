@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Expert, ExpertColor, ExpertCategory, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER } from '@/types/expert';
+import { Expert, ExpertColor, EXPERT_CATEGORY_LABELS, EXPERT_CATEGORY_ORDER } from '@/types/expert';
 import { ExpertAvatar } from './ExpertAvatar';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
