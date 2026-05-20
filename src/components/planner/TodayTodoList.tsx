@@ -98,10 +98,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
           <button
             type="button"
             onClick={onAdd}
-            className="w-full rounded-md px-2 py-3 text-left text-[12.5px] text-foreground/70 hover:bg-accent hover:text-foreground transition-colors leading-snug"
+            className="w-full rounded-lg px-3 py-4 text-left text-[12.5px] text-foreground/70 border border-dashed border-foreground/15 hover:bg-accent hover:text-foreground hover:border-foreground/30 transition-colors leading-snug"
           >
-            오늘 하기로 정한 항목이 없어요.<br />
-            <span className="text-foreground/55">+ 로 새 할 일 추가</span>
+            오늘 할 일이 비어있어요.<br />
+            <span className="text-foreground/55">+ 로 첫 항목 추가</span>
           </button>
         ) : (
           <div className="space-y-0.5 pb-1">
