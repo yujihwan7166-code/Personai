@@ -1216,6 +1216,20 @@ export default function Cloud() {
                     style={{ width: `${Math.max(2, pct).toFixed(1)}%` }}
                   />
                 </div>
+                {/* 공간 부족 안내 — warn 이상일 때만 */}
+                {(warn || danger) && trashCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode('trash')}
+                    className={cn(
+                      'mt-1.5 text-[10px] flex items-center gap-1 hover:underline',
+                      danger ? 'text-destructive' : 'text-amber-600 dark:text-amber-400',
+                    )}
+                    title="휴지통으로 이동해 영구 삭제 — 공간 확보"
+                  >
+                    🗑 휴지통({trashCount}) 정리하기
+                  </button>
+                )}
               </div>
             );
           })()}
