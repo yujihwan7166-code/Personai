@@ -2601,8 +2601,13 @@ export default function CloudSlideEditor() {
                 ),
               )}
               {currentSlide.elements.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none">
-                  더블클릭으로 텍스트 추가 또는 도구바 [텍스트] 버튼
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground/60 pointer-events-none">
+                  <div className="text-3xl" aria-hidden>✨</div>
+                  <div className="text-sm font-medium">빈 슬라이드</div>
+                  <div className="text-xs text-muted-foreground/50 text-center max-w-xs leading-relaxed">
+                    캔버스를 <b>더블클릭</b> 해서 텍스트 시작하거나<br />
+                    도구바의 <b>텍스트 / 도형 / 이미지</b> 버튼으로 추가
+                  </div>
                 </div>
               )}
             </div>
