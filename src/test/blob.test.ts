@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sanitizeFileName, downloadBlob, downloadText, downloadJson, downloadCsv } from '@/lib/blob';
+import { sanitizeFileName, downloadBlob, downloadJson, downloadCsv } from '@/lib/blob';
 
 describe('sanitizeFileName', () => {
   it('금지 문자 _ 로 치환', () => {
@@ -49,7 +49,6 @@ describe('downloadText / downloadJson / downloadCsv (wrap downloadBlob)', () => 
     document.createElement = vi.fn((tag: string) => {
       const el = orig(tag) as HTMLAnchorElement;
       if (tag === 'a') {
-        const desc = Object.getOwnPropertyDescriptor(HTMLAnchorElement.prototype, 'download');
         Object.defineProperty(el, 'download', {
           set: (v: string) => { recordedName = v; },
           get: () => recordedName,

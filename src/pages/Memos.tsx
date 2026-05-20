@@ -31,7 +31,7 @@ import {
   useMemos, addMemo, updateMemo, removeMemo, restoreMemo, purgeMemo, emptyTrash, togglePin,
   archiveMemo, unarchiveMemo, removeMemoImage,
   type MemoSortKey,
-  memoTitle, memoPreview, extractMemoTags, memoTimeLabel,
+  memoTitle, extractMemoTags, memoTimeLabel,
   tagFrequencies,
   useFolders, addFolder, renameFolder, removeFolder, updateFolder, moveMemoToFolder,
   MEMO_FOLDER_COLORS,

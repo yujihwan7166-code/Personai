@@ -102,7 +102,7 @@ import {
 import { WB_STICKY_BG, WB_COLOR_HSL } from '@/lib/whiteboard/colors';
 import { WB_COLORS } from '@/types/whiteboard';
 import { canRedo, canUndo, clearHistory, pushSnapshot, redo, undo } from '@/lib/whiteboard/history';
-import { findBindable, isBindable, resolveArrow, syncAllBindings } from '@/lib/whiteboard/binding';
+import { findBindable, resolveArrow, syncAllBindings } from '@/lib/whiteboard/binding';
 import { buildTemplate, TEMPLATE_META, type WBTemplateKind } from '@/lib/whiteboard/templates';
 import { alignElements, computeSnap, distributeElements, type AlignMode, type DistributeMode, type Guide } from '@/lib/whiteboard/snapping';
 import { exportJSON, exportPNG, exportSVG } from '@/lib/whiteboard/export';
