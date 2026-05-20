@@ -21,6 +21,8 @@
  *      있으므로 UI 에서 크기/시간을 안내한다.
  */
 
+import { downloadBlob } from '@/lib/blob';
+
 export interface BackupPayload {
   version: 1;
   exportedAt: number;
@@ -130,17 +132,13 @@ export async function buildBackup(): Promise<BackupPayload> {
 export async function downloadBackup(filenamePrefix = 'personai-backup'): Promise<{ size: number; blobs: number }> {
   const payload = await buildBackup();
   const json = JSON.stringify(payload);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
   const d = new Date();
   const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filenamePrefix}-${stamp}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // downloadJson 은 pretty print 라 파일 크기↑ → downloadBlob 으로 직접 minified JSON 전달.
+  downloadBlob(
+    new Blob([json], { type: 'application/json;charset=utf-8' }),
+    `${filenamePrefix}-${stamp}.json`,
+  );
   return { size: json.length, blobs: payload.studyBlobs.length };
 }
 

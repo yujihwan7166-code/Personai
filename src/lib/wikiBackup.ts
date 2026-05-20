@@ -10,6 +10,7 @@ import { loadAllPages, upsertPage, clearAllPages } from '@/lib/wikiStore';
 import { saveImage, getImage } from '@/lib/wikiImageStore';
 import { listRevisions, recordRevision, type Revision } from '@/lib/wikiHistory';
 import { setLastBackupAt } from '@/lib/wikiBackupMeta';
+import { downloadJson } from '@/lib/blob';
 
 const SCHEMA_V2 = 'wiki-v2';
 const SCHEMA_V1 = 'wiki-v1';
@@ -98,17 +99,8 @@ export async function exportAllAsJson(): Promise<void> {
     images,
     revisions,
   };
-  const json = JSON.stringify(payload, null, 2);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
   const ts = new Date().toISOString().slice(0, 10);
-  a.download = `wiki-backup-${ts}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadJson(payload, `wiki-backup-${ts}`);
   setLastBackupAt();
 }
 
