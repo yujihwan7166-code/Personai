@@ -1466,6 +1466,19 @@ export default function CloudSlideEditor() {
           setSelectedElIds(ids);
           setSelectedElId(cur.elements[0].id);
         }
+      } else if (!isMod && e.key === 'Tab') {
+        // Tab / Shift+Tab — 다음/이전 요소 순환 선택. Figma/PPT 표준.
+        e.preventDefault();
+        const cur = slides[currentIdx];
+        if (!cur || cur.elements.length === 0) return;
+        const els = cur.elements;
+        const curIdx = selectedElId ? els.findIndex((x) => x.id === selectedElId) : -1;
+        const step = e.shiftKey ? -1 : 1;
+        const nextIdx = ((curIdx + step) % els.length + els.length) % els.length;
+        const target = els[nextIdx];
+        setSelectedElId(target.id);
+        setSelectedElIds(new Set([target.id]));
+        setEditingElId(null);
       }
     };
     window.addEventListener('keydown', onKey);
