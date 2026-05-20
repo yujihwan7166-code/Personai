@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import * as Sentry from "@sentry/react";
 
 interface AppErrorBoundaryProps {
   children: ReactNode;
@@ -78,6 +79,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("AppErrorBoundary caught an app render error", error, errorInfo);
     this.setState({ componentStack: errorInfo.componentStack ?? null });
+    // Sentry — init 안 됐으면 자체 no-op. componentStack 도 함께 첨부.
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack ?? undefined } },
+    });
   }
 
   private reset = () => {
