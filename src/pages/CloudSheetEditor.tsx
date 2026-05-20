@@ -3303,6 +3303,16 @@ export default function CloudSheetEditor() {
                 onChangeType={(type) => updateEmbeddedChart(c.id, { type })}
                 onChangeOrientation={(orientation) => updateEmbeddedChart(c.id, { orientation })}
                 onToggleCollapsed={() => updateEmbeddedChart(c.id, { collapsed: !c.collapsed })}
+                onJumpToRange={() => {
+                  setRangeAnchor({ row: c.range.minR, col: c.range.minC });
+                  setSelected({ row: c.range.maxR, col: c.range.maxC });
+                  // 스크롤
+                  setTimeout(() => {
+                    const ref = cellRef(c.range.minR, c.range.minC);
+                    const cell = gridRef.current?.querySelector(`[data-cell-ref="${ref}"]`) as HTMLElement | null;
+                    cell?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+                  }, 0);
+                }}
               />
             ))}
           </div>

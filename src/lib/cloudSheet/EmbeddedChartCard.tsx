@@ -33,10 +33,12 @@ interface EmbeddedChartCardProps {
   onChangeType?: (type: 'bar' | 'line' | 'area' | 'pie') => void;
   onChangeOrientation?: (orientation: 'columns' | 'rows') => void;
   onToggleCollapsed?: () => void;
+  /** range 라벨 클릭 시 그 범위로 셀 선택을 이동. 미제공이면 단순 텍스트. */
+  onJumpToRange?: () => void;
 }
 
 export function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation, onToggleCollapsed,
+  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation, onToggleCollapsed, onJumpToRange,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
     () => buildChartData(cells, chart.range, chart.orientation),
@@ -194,7 +196,18 @@ export function EmbeddedChartCard({
             {chart.title || defaultTitle}
           </button>
         )}
-        <span className="ml-1 text-muted-foreground">{rangeStr}</span>
+        {onJumpToRange ? (
+          <button
+            type="button"
+            onClick={onJumpToRange}
+            className="ml-1 px-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded font-mono"
+            title={`${rangeStr} 으로 이동`}
+          >
+            {rangeStr}
+          </button>
+        ) : (
+          <span className="ml-1 text-muted-foreground">{rangeStr}</span>
+        )}
         <div className="ml-auto flex items-center gap-0.5">
           {onChangePalette && (
             <DropdownMenu>
