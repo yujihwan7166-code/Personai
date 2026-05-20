@@ -18,6 +18,7 @@ export function DriveHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <HelpRow keys={['브레드크럼 클릭']} label="상위 폴더로 이동" />
             <HelpRow keys={['더블클릭']} label="폴더 진입 / 파일 열기" />
             <HelpRow keys={['Enter']} label="선택 파일 열기 (편집기 진입)" />
+            <HelpRow keys={['Ctrl', '더블클릭']} label="새 탭에서 열기 (Cmd/Shift 도 동일)" />
           </HelpSection>
 
           <HelpSection title="선택">

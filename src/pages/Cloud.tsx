@@ -612,20 +612,27 @@ export default function Cloud() {
   }, [user, currentFolderId, navigate]);
 
   // ─── 파일 편집 진입 (파일 종류별 라우팅) ───
-  const handleOpenFile = useCallback((node: CloudNode) => {
+  const handleOpenFile = useCallback((node: CloudNode, e?: React.MouseEvent | MouseEvent) => {
     if (node.kind !== 'file') return;
-    if (node.fileType === 'doc') {
-      navigate(`/cloud/doc/${node.id}`);
-    } else if (node.fileType === 'sheet') {
-      navigate(`/cloud/sheet/${node.id}`);
-    } else if (node.fileType === 'slide') {
-      navigate(`/cloud/slide/${node.id}`);
-    } else {
+    const routeMap: Partial<Record<string, string>> = {
+      doc: `/cloud/doc/${node.id}`,
+      sheet: `/cloud/sheet/${node.id}`,
+      slide: `/cloud/slide/${node.id}`,
+    };
+    const route = node.fileType ? routeMap[node.fileType] : undefined;
+    if (!route) {
       toast({
         title: '곧 활성화돼요',
         description: `${FILE_TYPE_LABEL[node.fileType ?? 'other']} 에디터는 다음 단계에서 추가됩니다.`,
       });
+      return;
     }
+    // Ctrl/Cmd/Shift + 클릭 → 새 탭에서 열기 (브라우저 표준)
+    if (e && (e.ctrlKey || e.metaKey || e.shiftKey)) {
+      window.open(route, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    navigate(route);
   }, [navigate]);
 
   // ─── 모드 전환 ───
@@ -676,20 +683,30 @@ export default function Cloud() {
   }, [nodes]);
 
   // ─── 더블클릭 = 진입 (폴더: 폴더 들어가기, 파일: 편집기) ───
-  const handleNodeDoubleClick = useCallback((node: CloudNode) => {
+  const handleNodeDoubleClick = useCallback((node: CloudNode, e?: React.MouseEvent) => {
     if (listMode === 'trash') return; // 휴지통은 더블클릭 X
     if (node.kind === 'folder' && listMode === 'folder') {
       setTrail((t) => [...t, { id: node.id, name: node.name }]);
       setSelectedId(null);
     } else if (node.kind === 'file') {
-      // handleOpenFile 호출 — 아래에 정의됨 (forward ref via inline)
-      if (node.fileType === 'doc') navigate(`/cloud/doc/${node.id}`);
-      else if (node.fileType === 'sheet') navigate(`/cloud/sheet/${node.id}`);
-      else if (node.fileType === 'slide') navigate(`/cloud/slide/${node.id}`);
-      else toast({
-        title: '곧 활성화돼요',
-        description: `${FILE_TYPE_LABEL[node.fileType ?? 'other']} 에디터는 다음 단계에서 추가됩니다.`,
-      });
+      // Ctrl/Cmd/Shift + 더블클릭 → 새 탭 (브라우저 표준 보조)
+      const inNewTab = !!(e && (e.ctrlKey || e.metaKey || e.shiftKey));
+      const routeMap: Partial<Record<string, string>> = {
+        doc: `/cloud/doc/${node.id}`,
+        sheet: `/cloud/sheet/${node.id}`,
+        slide: `/cloud/slide/${node.id}`,
+      };
+      const route = node.fileType ? routeMap[node.fileType] : undefined;
+      if (!route) {
+        toast({
+          title: '곧 활성화돼요',
+          description: `${FILE_TYPE_LABEL[node.fileType ?? 'other']} 에디터는 다음 단계에서 추가됩니다.`,
+        });
+      } else if (inNewTab) {
+        window.open(route, '_blank', 'noopener,noreferrer');
+      } else {
+        navigate(route);
+      }
     }
   }, [listMode, navigate]);
 
@@ -1583,7 +1600,7 @@ export default function Cloud() {
                     editing={n.id === editingId}
                     listMode={listMode}
                     onClick={(e) => handleNodeClick(n, e)}
-                    onDoubleClick={() => handleNodeDoubleClick(n)}
+                    onDoubleClick={(e) => handleNodeDoubleClick(n, e)}
                     onSubmitRename={(newName) => void submitRename(n.id, newName)}
                     onCancelRename={() => setEditingId(null)}
                     onToggleStar={() => void handleToggleStar(n)}
@@ -1613,7 +1630,7 @@ export default function Cloud() {
                     selected={selectedIds.has(n.id) || n.id === selectedId}
                     listMode={listMode}
                     onClick={(e) => handleNodeClick(n, e)}
-                    onDoubleClick={() => handleNodeDoubleClick(n)}
+                    onDoubleClick={(e) => handleNodeDoubleClick(n, e)}
                     onToggleStar={() => void handleToggleStar(n)}
                     onRename={() => startRename(n.id)}
                     onMoveToTrash={() => void handleMoveToTrash(n)}
@@ -2341,7 +2358,7 @@ interface NodeRowProps {
   editing: boolean;
   listMode: CloudListMode;
   onClick: (e: React.MouseEvent) => void;
-  onDoubleClick: () => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
   onSubmitRename: (newName: string) => void;
   onCancelRename: () => void;
   onToggleStar: () => void;
@@ -2517,7 +2534,7 @@ interface NodeCardProps {
   selected: boolean;
   listMode: CloudListMode;
   onClick: (e: React.MouseEvent) => void;
-  onDoubleClick: () => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
   onToggleStar: () => void;
   onRename: () => void;
   onMoveToTrash: () => void;
