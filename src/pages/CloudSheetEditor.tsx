@@ -333,6 +333,25 @@ export default function CloudSheetEditor() {
   }, [cells, sheetsForEval, currentSheetName, namedRanges, aiVersion]);
 
   const gridRef = useRef<HTMLDivElement>(null);
+  /** main 컨테이너 ref — Ctrl+휠 줌 native listener 부착용 (passive 회피). */
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Ctrl/Cmd + 휠 = 줌 단계 (25 step). React onWheel 은 passive 라 native listener 필요.
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1;
+      setZoom((z) => {
+        const next = Math.max(25, Math.min(200, z + dir * 25));
+        return next;
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   // ─── 노드 로드 + 초기 cells 주입 (공용 훅 + onLoad 콜백) ───
   const { node, loadError } = useCloudNodeLoader({
@@ -3145,7 +3164,7 @@ export default function CloudSheetEditor() {
 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0">
-      <main className="flex-1 overflow-auto">
+      <main ref={mainRef} className="flex-1 overflow-auto">
         {/* zoom 적용 — CSS zoom property (Chromium/Safari/Edge 지원 — 우리 주 타겟).
             Firefox 는 미지원 (1.0 으로 고정 — 사용자에게 시각 영향 없음). */}
         <div

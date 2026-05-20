@@ -56,6 +56,7 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['Ctrl', 'PageDown']} label="다음 시트 (탭)" />
               <HelpRow keys={['Ctrl', 'PageUp']} label="이전 시트 (탭)" />
               <HelpRow keys={['Ctrl', '↑↓←→']} label="데이터 영역 가장자리로 점프 (Shift = 확장)" />
+              <HelpRow keys={['Ctrl', '휠']} label="줌 단계 조절 (25% 단위)" />
             </div>
           </section>
 
