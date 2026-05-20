@@ -1105,17 +1105,43 @@ export default function Cloud() {
                 className="flex-1 min-w-0 text-xs px-2 py-1 rounded border border-border bg-background outline-none focus:border-foreground/40"
                 aria-label="폴더 검색"
               />
-              {expandedFolderIds.size > 0 && !folderFilter.trim() && (
-                <button
-                  type="button"
-                  onClick={() => setExpandedFolderIds(new Set())}
-                  className="shrink-0 px-1.5 py-1 rounded hover:bg-muted text-xs text-muted-foreground"
-                  title={`모두 접기 (${expandedFolderIds.size}개 펼침)`}
-                  aria-label="모두 접기"
-                >
-                  ↕
-                </button>
-              )}
+              {!folderFilter.trim() && (() => {
+                // 자식이 있는 폴더만 — 그 중 펼침 vs 미펼침
+                const parentsWithChildren = allFolders.filter((f) =>
+                  (folderChildrenMap.get(f.id) ?? []).length > 0,
+                );
+                const expandable = parentsWithChildren.filter((f) => !expandedFolderIds.has(f.id));
+                const hasExpanded = expandedFolderIds.size > 0;
+                if (parentsWithChildren.length === 0) return null;
+                return (
+                  <>
+                    {expandable.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedFolderIds(
+                          new Set(parentsWithChildren.map((f) => f.id)),
+                        )}
+                        className="shrink-0 px-1.5 py-1 rounded hover:bg-muted text-xs text-muted-foreground"
+                        title={`모두 펼치기 (${expandable.length}개 접힘)`}
+                        aria-label="모두 펼치기"
+                      >
+                        ⊕
+                      </button>
+                    )}
+                    {hasExpanded && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedFolderIds(new Set())}
+                        className="shrink-0 px-1.5 py-1 rounded hover:bg-muted text-xs text-muted-foreground"
+                        title={`모두 접기 (${expandedFolderIds.size}개 펼침)`}
+                        aria-label="모두 접기"
+                      >
+                        ↕
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
           {/* 폴더 트리 — 검색 중이면 flat 매칭, 아니면 루트의 자식부터 재귀 */}
