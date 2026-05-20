@@ -518,13 +518,15 @@ function EmptyMain() {
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center max-w-[420px]">
-          <div className="text-5xl mb-4">🎨</div>
-          <p className="text-[16px] font-medium text-foreground mb-1.5">보드를 선택하거나 새로 만들어보세요</p>
-          <p className="text-[13px] text-muted-foreground mb-4">자유 캔버스에 스티키·도형·연결선을 배치하며 생각을 정리해요.</p>
+          <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/60 text-[28px] leading-none">
+            🎨
+          </div>
+          <p className="text-[16px] font-semibold text-foreground mb-2">보드를 선택하거나 새로 만들어보세요</p>
+          <p className="text-[13px] text-muted-foreground leading-relaxed mb-5">자유 캔버스에 스티키·도형·연결선을 배치하며 생각을 정리해요.</p>
           <button
             type="button"
             onClick={() => addBoard('새 보드', null)}
-            className="inline-flex items-center gap-1.5 px-4 h-9 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 h-9 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.3)]"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             새 보드 만들기
