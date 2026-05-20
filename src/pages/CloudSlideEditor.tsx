@@ -2227,6 +2227,13 @@ export default function CloudSlideEditor() {
                     <span className="text-xs">0°</span>
                   </ToolBtn>
                 )}
+                {/* 위치/크기 정보 readout — 캔버스 % 단위 */}
+                <span
+                  className="text-[10px] text-muted-foreground tabular-nums px-1.5 ml-1 hidden md:inline"
+                  title={`위치 x:${el.xPct.toFixed(1)}% y:${el.yPct.toFixed(1)}% · 크기 ${el.wPct.toFixed(1)}% × ${el.hPct.toFixed(1)}%`}
+                >
+                  📐 {Math.round(el.wPct)}×{Math.round(el.hPct)}
+                </span>
               </>
             );
           })()}
