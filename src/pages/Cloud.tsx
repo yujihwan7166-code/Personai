@@ -1371,12 +1371,24 @@ export default function Cloud() {
                       ) : (
                         <button
                           onClick={() => goToTrailIndex(v.idx)}
+                          // 현재 폴더(마지막 trail 항목)는 drop target 의미 없음 — 그 외만 활성
+                          onDragOver={v.idx === trail.length - 1
+                            ? undefined
+                            : (e) => handleDragOver(e, v.t.id)
+                          }
+                          onDragLeave={v.idx === trail.length - 1 ? undefined : handleDragLeave}
+                          onDrop={v.idx === trail.length - 1
+                            ? undefined
+                            : (e) => { void handleDrop(e, v.t.id); }
+                          }
                           className={cn(
                             'px-1.5 py-0.5 rounded hover:bg-muted truncate max-w-[200px]',
                             v.idx === trail.length - 1 ? 'font-medium' : 'text-muted-foreground',
+                            dropTargetId === v.t.id && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
+                            dropTargetId === 'root' && v.t.id === null && 'ring-2 ring-inset ring-foreground/40 bg-foreground/5',
                           )}
                           type="button"
-                          title={v.t.name}
+                          title={v.t.id === trail[trail.length - 1]?.id ? v.t.name : `${v.t.name} — 끌어다 놓으면 여기로 이동`}
                         >
                           {v.idx === 0 && <Folder className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />}
                           {v.t.name}
