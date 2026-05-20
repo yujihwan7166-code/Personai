@@ -34,6 +34,7 @@ import {
   slideToText, slidesToOutline, parseAiSlideContent,
 } from '@/lib/cloudSlide/ai';
 import { exportElementsToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { exportElementAsPng } from '@/lib/cloudCommon/pngExport';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -1303,6 +1304,28 @@ export default function CloudSlideEditor() {
     }
   }, [node, slides]);
 
+  /** 현재 슬라이드만 PNG 로 캡처해 다운로드 — canvasRef 의 부모 (.bg-white 카드) 캡처. */
+  const exportCurrentSlideAsPng = useCallback(async () => {
+    if (!node) return;
+    const canvasEl = canvasRef.current;
+    const slideEl = canvasEl?.parentElement;
+    if (!slideEl) return;
+    setAiBusy('PNG 생성');
+    try {
+      const fileName = `${sanitizeFileName(node.name)}-${currentIdx + 1}`;
+      await exportElementAsPng(slideEl, { fileName, scale: 2 });
+      appToast({
+        title: 'PNG 다운로드 시작',
+        description: `${fileName}.png (슬라이드 ${currentIdx + 1})`,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      appToast({ title: 'PNG 내보내기 실패', description: msg });
+    } finally {
+      setAiBusy(null);
+    }
+  }, [node, currentIdx]);
+
   /**
    * Markdown 으로 내보내기 — 각 슬라이드를 H1 ('# 슬라이드 N · 제목') + 본문 단락 + 노트(quote) 로.
    * 첫 텍스트가 짧으면(< 60자) 제목으로 사용, 길거나 없으면 '슬라이드 N' 사용.
@@ -1696,6 +1719,9 @@ export default function CloudSlideEditor() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => { void exportPdf('p'); }} disabled={!!aiBusy}>
                   📤 PDF 세로 ({slides.length}장)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void exportCurrentSlideAsPng(); }} disabled={!!aiBusy}>
+                  🖼 현재 슬라이드 PNG ({currentIdx + 1}/{slides.length})
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={exportMarkdown}>
                   📤 Markdown 내보내기 (.md)
