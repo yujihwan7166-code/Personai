@@ -222,10 +222,10 @@ export function WikiHome({
         <div className="w-full max-w-3xl">
           <header className="text-center mb-7">
             <div className="text-5xl mb-3">🌐</div>
-            <h1 className="text-2xl font-bold text-foreground mb-1.5">마이위키 시작하기</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">마이위키 시작하기</h1>
             <p className="text-[13px] text-muted-foreground leading-relaxed">
-              아래 스타터 팩으로 시작하면 30초 안에 위키 골격이 생겨요.<br />
-              나중에 자유롭게 바꾸거나 지울 수 있어요.
+              생각을 잇고, 검색·역참조로 다시 꺼내 쓰는 개인 지식 베이스.<br />
+              아래 스타터 팩으로 시작하면 30초 안에 골격이 잡혀요.
             </p>
           </header>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
@@ -249,7 +249,7 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium border border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:border-foreground/30 hover:text-foreground wiki-trans-color"
             >
               <Plus className="w-3.5 h-3.5" />
               빈 페이지로 시작
