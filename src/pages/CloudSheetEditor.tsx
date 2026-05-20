@@ -852,10 +852,64 @@ export default function CloudSheetEditor() {
         setSelected({ row: rowCount - 1, col });
         return;
       }
+
+      // Ctrl+화살표 — 데이터 영역 가장자리로 점프 (엑셀 표준)
+      // 비어있는 셀에서 출발: 첫 번째 비어있지 않은 셀로
+      // 채워진 셀에서 출발: 같은 연속 영역의 마지막 채워진 셀로 (그 후엔 다음 채워진 셀)
+      if (
+        e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+      ) {
+        e.preventDefault();
+        const m = selectedRef?.match(/^([A-Z]+)(\d+)$/);
+        if (!m) return;
+        const curC = colToIdx(m[1]);
+        const curR = Number(m[2]) - 1;
+        const isVert = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+        const step = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+        const limit = isVert ? rowCount : colCount;
+        const hasValue = (r: number, c: number) => {
+          const v = cells[cellRef(r, c)];
+          return v !== undefined && v !== '';
+        };
+        const isFilled = hasValue(curR, curC);
+        let r = curR, c = curC;
+        if (isFilled) {
+          // 채워진 영역 끝까지 진행, 그 다음 첫 채워진 셀로
+          while (true) {
+            const nr = isVert ? r + step : r;
+            const nc = isVert ? c : c + step;
+            if (nr < 0 || nr >= limit && isVert) break;
+            if (nc < 0 || nc >= limit && !isVert) break;
+            if (isVert && (nr < 0 || nr >= rowCount)) break;
+            if (!isVert && (nc < 0 || nc >= colCount)) break;
+            if (!hasValue(nr, nc)) break;
+            r = nr; c = nc;
+          }
+        } else {
+          // 빈 칸에서 출발: 첫 채워진 셀로 이동 (또는 끝까지)
+          while (true) {
+            const nr = isVert ? r + step : r;
+            const nc = isVert ? c : c + step;
+            if (isVert && (nr < 0 || nr >= rowCount)) { r = Math.max(0, Math.min(rowCount - 1, nr)); break; }
+            if (!isVert && (nc < 0 || nc >= colCount)) { c = Math.max(0, Math.min(colCount - 1, nc)); break; }
+            r = nr; c = nc;
+            if (hasValue(r, c)) break;
+          }
+        }
+        const isShift = e.shiftKey;
+        if (isShift) {
+          setRangeAnchor((cur) => cur ?? { row: curR, col: curC });
+        } else {
+          setRangeAnchor(null);
+        }
+        setSelected({ row: r, col: c });
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount, flushSave]);
+  }, [editing, undo, redo, selectedRef, setCellValue, setCellFormat, currentSheetIdx, sheetsMeta.length, switchSheet, rowCount, colCount, cells, flushSave]);
 
   // ─── 수식 보기 모드 (Ctrl+`) — true 면 수식 셀이 평가값 대신 '=...' 그대로 표시 ───
   const [showFormulas, setShowFormulas] = useState(false);
