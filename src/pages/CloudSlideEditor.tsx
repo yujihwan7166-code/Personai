@@ -79,6 +79,8 @@ export default function CloudSlideEditor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<number | undefined>(undefined);
   const [helpOpen, setHelpOpen] = useState(false);
+  /** 제목 인라인 편집 — 더블클릭 시 input 으로 전환. */
+  const [editingTitle, setEditingTitle] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [themeId, setThemeId] = useState<string>(DEFAULT_THEME_ID);
   const currentTheme = getTheme(themeId);
@@ -1531,7 +1533,40 @@ export default function CloudSlideEditor() {
           </button>
           <span className="text-muted-foreground" aria-hidden>☁️</span>
           <span className="text-muted-foreground">/</span>
-          <span className="font-medium truncate max-w-md">{node?.name ?? '제목 없음'}</span>
+          {editingTitle ? (
+            <input
+              type="text"
+              defaultValue={node?.name ?? ''}
+              autoFocus
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v && v !== node?.name) queueSaveRaw({ name: v });
+                setEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const v = (e.target as HTMLInputElement).value.trim();
+                  if (v && v !== node?.name) queueSaveRaw({ name: v });
+                  setEditingTitle(false);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setEditingTitle(false);
+                }
+              }}
+              className="font-medium px-1.5 py-0.5 rounded border border-foreground/40 bg-background outline-none max-w-md"
+              aria-label="제목 편집"
+            />
+          ) : (
+            <button
+              type="button"
+              onDoubleClick={() => setEditingTitle(true)}
+              className="font-medium truncate max-w-md text-left hover:underline decoration-dotted underline-offset-4"
+              title="더블클릭으로 이름 변경"
+            >
+              {node?.name ?? '제목 없음'}
+            </button>
+          )}
 
           <span className="ml-3 text-xs">
             <SaveStateBadge state={saveState} lastSavedAt={lastSavedAt} showIdle onRetry={() => { void flushSave(); }} />

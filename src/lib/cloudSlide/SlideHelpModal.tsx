@@ -23,6 +23,7 @@ export function SlideHelpModal({ open, onClose }: { open: boolean; onClose: () =
               <HelpRow keys={['End']} label="마지막 슬라이드로" />
               <HelpRow keys={['F5']} label="발표 모드 시작" />
               <HelpRow keys={['썸네일 우클릭']} label="복제 · 이동 · 삭제 · 새 슬라이드" />
+              <HelpRow keys={['썸네일 드래그']} label="임의 위치로 재배치 — drop 위치에 가이드 라인" />
             </div>
           </section>
 
