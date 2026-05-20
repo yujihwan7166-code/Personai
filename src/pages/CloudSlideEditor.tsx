@@ -579,6 +579,20 @@ export default function CloudSlideEditor() {
     input.click();
   }, [addImageEl]);
 
+  /** URL 로 이미지 추가 — 원격 호스팅 이미지. data URL 안 거치므로 용량 부담 X. */
+  const addImageByUrl = useCallback(() => {
+    const raw = window.prompt('이미지 URL', 'https://');
+    if (!raw) return;
+    const url = raw.trim();
+    if (!url || url === 'https://') return;
+    if (!/^https?:\/\/\S+/i.test(url)) {
+      appToast({ title: '유효하지 않은 URL', description: 'http(s):// 로 시작해야 합니다.' });
+      return;
+    }
+    addImageEl(url);
+    appToast({ title: '이미지 추가됨', description: '외부 호스팅 이미지 — 원본 사이트가 막히면 깨질 수 있어요.' });
+  }, [addImageEl]);
+
   // ─── z-order ───
   const moveElForward = useCallback((id: string) => {
     updateCurrentSlide((s) => {
@@ -1729,9 +1743,26 @@ export default function CloudSlideEditor() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ToolBtn onClick={pickAndAddImage} title="이미지 추가 (파일 선택)">
-            <ImagePlus className="w-4 h-4" /><span className="text-xs ml-1">이미지</span>
-          </ToolBtn>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="px-2 py-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground flex items-center"
+                title="이미지 추가"
+                aria-label="이미지 추가"
+              >
+                <ImagePlus className="w-4 h-4" /><span className="text-xs ml-1">이미지</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px]">
+              <DropdownMenuItem onSelect={pickAndAddImage}>
+                📁 파일에서 (≤5MB)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={addImageByUrl}>
+                🔗 URL 로
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Sep />
           <ToolBtn onClick={duplicateSlide} title="이 슬라이드 복제">
             <CopyIcon className="w-4 h-4" />
