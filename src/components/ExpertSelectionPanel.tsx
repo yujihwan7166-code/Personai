@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
-  Expert, EXPERT_CATEGORY_ORDER,
+  Expert, type ExpertCategory, EXPERT_CATEGORY_ORDER,
   EXPERT_SUB_CATEGORIES, DiscussionMode, MainMode, DebateSubMode,
   getMainMode, DebateSettings,
   THINKING_FRAMEWORKS, ThinkingFramework, DiscussionIssue,
@@ -37,7 +37,7 @@ import { processFile, validateFile, MAX_FILES, type AttachedFile } from '@/lib/f
 import { Paperclip, Loader2, Info } from 'lucide-react';
 import {
   Target, Scale, Lightbulb,
-  Plus, X, Check, ChevronLeft, ChevronDown, ArrowRight,
+  Plus, X, Check, ChevronLeft, ChevronRight, ChevronDown, ArrowRight,
   FileText, Search,
   Sparkles,
   Users, User,
