@@ -140,7 +140,7 @@ export function SheetHelpModal({ open, onClose }: { open: boolean; onClose: () =
             <h3 className="text-xs font-medium text-muted-foreground mb-1.5">행·열 / 코너</h3>
             <div className="space-y-1">
               <HelpRow keys={['헤더 드래그']} label="행/열 크기 조정 — 드래그 중 픽셀 툴팁" />
-              <HelpRow keys={['헤더 더블클릭']} label="기본 크기로 리셋" />
+              <HelpRow keys={['헤더 더블클릭']} label="콘텐츠 폭/높이에 자동 맞춤" />
               <HelpRow keys={['코너 더블클릭']} label="모든 열 폭 자동 맞춤" />
               <HelpRow keys={['채우기 핸들']} label="범위 우하단 ▢ 드래그 — 시리즈/패턴 자동 채우기" />
             </div>

@@ -1918,6 +1918,35 @@ export default function CloudSheetEditor() {
     setSelected({ row: rowCount - 1, col: colCount - 1 });
   }, [rowCount, colCount]);
 
+  /** 단일 열 자동 폭 — 그 열의 가장 긴 텍스트 line 기준. */
+  const autoFitCol = useCallback((colIdx: number) => {
+    let maxLen = 0;
+    for (let r = 0; r < rowCount; r++) {
+      const ref = cellRef(r, colIdx);
+      const v = (displayValues[ref] ?? cells[ref] ?? '') as string;
+      if (!v) continue;
+      for (const line of v.split('\n')) {
+        if (line.length > maxLen) maxLen = line.length;
+      }
+    }
+    if (maxLen === 0) {
+      // 빈 열은 기본 폭으로
+      setColWidths((cur) => {
+        const nx = { ...cur };
+        delete nx[colIdx];
+        queueSave({ colWidths: nx });
+        return nx;
+      });
+      return;
+    }
+    const w = Math.max(60, Math.min(400, maxLen * 8 + 24));
+    setColWidths((cur) => {
+      const nx = { ...cur, [colIdx]: w };
+      queueSave({ colWidths: nx });
+      return nx;
+    });
+  }, [rowCount, cells, displayValues, queueSave]);
+
   /** 코너 헤더 더블클릭 → 모든 열 폭 자동 (텍스트 가장 긴 line 기준). */
   const autoFitAllCols = useCallback(() => {
     const next: Record<number, number> = {};
@@ -3224,6 +3253,7 @@ export default function CloudSheetEditor() {
             onColResize={setColWidth}
             onRowResize={setRowHeight}
             onRowAutoFit={autoFitRowHeight}
+            onColAutoFit={autoFitCol}
             onHeaderClick={handleHeaderClick}
             onHeaderContextMenu={openHeaderContextMenu}
             onCellContextMenu={openCellContextMenu}

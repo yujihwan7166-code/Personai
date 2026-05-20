@@ -7,9 +7,11 @@ interface ColResizeHandleProps {
   currentWidth: number;
   defaultWidth: number;
   onResize: (colIdx: number, w: number) => void;
+  /** 더블클릭 시 호출 — 콘텐츠 폭 자동. 미제공이면 기본 폭으로 리셋. */
+  onAutoFit?: (colIdx: number) => void;
 }
 
-export function ColResizeHandle({ colIdx, currentWidth, defaultWidth, onResize }: ColResizeHandleProps) {
+export function ColResizeHandle({ colIdx, currentWidth, defaultWidth, onResize, onAutoFit }: ColResizeHandleProps) {
   const startXRef = useRef(0);
   const startWRef = useRef(0);
   const draggingRef = useRef(false);
@@ -50,8 +52,14 @@ export function ColResizeHandle({ colIdx, currentWidth, defaultWidth, onResize }
       <span
         className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize select-none group-hover:bg-foreground/10"
         onPointerDown={onPointerDown}
-        onDoubleClick={(e) => { e.stopPropagation(); onResize(colIdx, defaultWidth); }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          // autoFit 가 있으면 콘텐츠 폭에 맞춤, 없으면 기본 폭으로 리셋
+          if (onAutoFit) onAutoFit(colIdx);
+          else onResize(colIdx, defaultWidth);
+        }}
         aria-label="열 너비 조정"
+        title="드래그로 조정 · 더블클릭 시 자동 맞춤"
         role="separator"
       />
       {tip && (

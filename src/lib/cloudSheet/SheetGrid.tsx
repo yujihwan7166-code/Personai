@@ -29,6 +29,7 @@ interface SheetGridProps {
   rowHeights: Record<number, number>;
   onColResize: (colIdx: number, newWidth: number) => void;
   onRowResize: (rowIdx: number, newHeight: number) => void;
+  onColAutoFit?: (colIdx: number) => void;
   onRowAutoFit?: (rowIdx: number) => void;
   onHeaderClick?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
   onHeaderContextMenu?: (kind: 'row' | 'col', idx: number, e: React.MouseEvent) => void;
@@ -80,7 +81,7 @@ interface SheetGridProps {
 
 export function SheetGrid({
   cells, displayValues, cellFormats, showFormulas, selected, selBounds, hasRange, mergeAtMap, coveredSet,
-  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
+  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onColAutoFit, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
   onCellContextMenu, onSelectAll, onAutoFitAllCols,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
@@ -146,6 +147,7 @@ export function SheetGrid({
                   currentWidth={colWidths[i] ?? DEFAULT_COL_WIDTH}
                   defaultWidth={DEFAULT_COL_WIDTH}
                   onResize={onColResize}
+                  onAutoFit={onColAutoFit}
                 />
               </th>
             ))}
