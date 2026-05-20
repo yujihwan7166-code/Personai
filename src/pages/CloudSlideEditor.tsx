@@ -126,6 +126,9 @@ export default function CloudSlideEditor() {
     e.stopPropagation();
     setSlideCtxMenu({ idx, x: e.clientX, y: e.clientY });
   }, []);
+  /** 썸네일 드래그 재배치 — 시작 인덱스 + drop target 인덱스. */
+  const [draggingThumbIdx, setDraggingThumbIdx] = useState<number | null>(null);
+  const [dragOverThumbIdx, setDragOverThumbIdx] = useState<number | null>(null);
   // 다중 선택 (Shift+클릭 또는 그룹화된 멤버 자동 포함)
   const [selectedElIds, setSelectedElIds] = useState<Set<string>>(new Set());
   const [editingElId, setEditingElId] = useState<string | null>(null);
@@ -434,6 +437,28 @@ export default function CloudSlideEditor() {
     });
     if (moved) setCurrentIdx(idx + 1);
   }, [queueSave]);
+
+  /**
+   * 슬라이드 임의 재배치 — 썸네일 drag&drop 용.
+   * from 위치의 슬라이드를 to 위치로 옮기고 currentIdx 도 따라감.
+   */
+  const reorderSlide = useCallback((from: number, to: number) => {
+    if (from === to) return;
+    updateSlides((prev) => {
+      if (from < 0 || from >= prev.length || to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    }, to);
+    // currentIdx 보정: 옮긴 슬라이드를 따라가거나, 사이에 끼었으면 ±1
+    setCurrentIdx((cur) => {
+      if (cur === from) return to;
+      if (from < cur && to >= cur) return cur - 1;
+      if (from > cur && to <= cur) return cur + 1;
+      return cur;
+    });
+  }, [updateSlides]);
 
   const insertSlideAt = useCallback((idx: number) => {
     updateSlides((prev) => {
@@ -2322,19 +2347,58 @@ export default function CloudSlideEditor() {
         {/* 좌측 슬라이드 썸네일 */}
         <aside className="w-44 shrink-0 border-r border-border bg-muted/10 overflow-y-auto p-2 space-y-2">
           {slides.map((s, i) => (
-            <ThumbButton
+            <div
               key={s.id}
-              idx={i}
-              slide={s}
-              active={i === currentIdx}
-              onClick={() => {
-                setCurrentIdx(i);
-                setSelectedElId(null);
-                setEditingElId(null);
-                queueSave(slides, i);
+              draggable
+              onDragStart={(e) => {
+                setDraggingThumbIdx(i);
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', String(i)); } catch { /* noop */ }
               }}
-              onContextMenu={(e) => handleSlideContextMenu(e, i)}
-            />
+              onDragOver={(e) => {
+                if (draggingThumbIdx === null || draggingThumbIdx === i) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverThumbIdx !== i) setDragOverThumbIdx(i);
+              }}
+              onDragLeave={(e) => {
+                // 자식 leave 무시 — 같은 idx 인 경우만 reset
+                if (dragOverThumbIdx === i && e.currentTarget === e.target) setDragOverThumbIdx(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromIdxRaw = draggingThumbIdx ?? Number(e.dataTransfer.getData('text/plain'));
+                const fromIdx = Number.isFinite(fromIdxRaw) ? fromIdxRaw : -1;
+                setDraggingThumbIdx(null);
+                setDragOverThumbIdx(null);
+                if (fromIdx < 0 || fromIdx === i || fromIdx >= slides.length) return;
+                reorderSlide(fromIdx, i);
+              }}
+              onDragEnd={() => {
+                setDraggingThumbIdx(null);
+                setDragOverThumbIdx(null);
+              }}
+              className={cn(
+                'relative rounded-sm',
+                draggingThumbIdx === i && 'opacity-50',
+                dragOverThumbIdx === i && draggingThumbIdx !== null
+                  ? 'before:absolute before:left-0 before:right-0 before:-top-1 before:h-0.5 before:bg-foreground/70 before:rounded-full'
+                  : '',
+              )}
+            >
+              <ThumbButton
+                idx={i}
+                slide={s}
+                active={i === currentIdx}
+                onClick={() => {
+                  setCurrentIdx(i);
+                  setSelectedElId(null);
+                  setEditingElId(null);
+                  queueSave(slides, i);
+                }}
+                onContextMenu={(e) => handleSlideContextMenu(e, i)}
+              />
+            </div>
           ))}
           <button
             type="button"
