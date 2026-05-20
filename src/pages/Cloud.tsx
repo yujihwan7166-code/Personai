@@ -2641,6 +2641,34 @@ function PreviewPanel({ node, listMode }: PreviewPanelProps) {
         {node.kind === 'file' && node.sizeBytes != null && (
           <div>💾 {formatSize(node.sizeBytes)}</div>
         )}
+        {/* 파일 타입별 meta 통계 — 가벼운 inspection 만 */}
+        {node.kind === 'file' && (() => {
+          const meta = node.meta as Record<string, unknown> | undefined;
+          if (!meta) return null;
+          if (node.fileType === 'slide') {
+            const slides = Array.isArray(meta.slides) ? meta.slides : null;
+            if (!slides || slides.length === 0) return null;
+            const withNotes = slides.filter((s) => {
+              const notes = (s as { notes?: string })?.notes;
+              return typeof notes === 'string' && notes.trim().length > 0;
+            }).length;
+            return (
+              <div className="flex items-center gap-2">
+                <span>🎬 {slides.length}장</span>
+                {withNotes > 0 && (
+                  <span className="text-muted-foreground/70">· 노트 {withNotes}</span>
+                )}
+              </div>
+            );
+          }
+          if (node.fileType === 'sheet') {
+            const sheets = Array.isArray(meta.sheets) ? meta.sheets : null;
+            if (sheets && sheets.length > 0) {
+              return <div>📊 시트 {sheets.length}개</div>;
+            }
+          }
+          return null;
+        })()}
         {isTrash && node.deletedAt && (
           <div>🗑 {new Date(node.deletedAt).toLocaleString('ko-KR')} 삭제</div>
         )}
