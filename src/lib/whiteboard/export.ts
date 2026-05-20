@@ -6,6 +6,7 @@
  * - PNG:  SVG → canvas → dataURL (2× DPI)
  */
 import type { WBBoardData, WBElement } from '@/types/whiteboard';
+import { downloadBlob, sanitizeFileName } from '@/lib/blob';
 import { getWBImage } from './imageStore';
 
 const PADDING = 32;  // 요소 union bbox 주위 여백
@@ -33,20 +34,10 @@ function computeExportBBox(elements: WBElement[]): { x: number; y: number; w: nu
   };
 }
 
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-}
-
 /** JSON export — BoardData 그대로. */
 export function exportJSON(boardData: WBBoardData, baseName: string): void {
   const json = JSON.stringify(boardData, null, 2);
-  const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
-  downloadBlob(new Blob([json], { type: 'application/json' }), `${safeName}.json`);
+  downloadBlob(new Blob([json], { type: 'application/json' }), `${sanitizeFileName(baseName)}.json`);
 }
 
 /**
@@ -126,8 +117,7 @@ async function buildExportSVGAsync(svgEl: SVGSVGElement, elements: WBElement[]):
 /** SVG export (이미지 inline 포함) */
 export async function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
   const svgString = await buildExportSVGAsync(svgEl, elements);
-  const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
-  downloadBlob(new Blob([svgString], { type: 'image/svg+xml' }), `${safeName}.svg`);
+  downloadBlob(new Blob([svgString], { type: 'image/svg+xml' }), `${sanitizeFileName(baseName)}.svg`);
 }
 
 /** PNG export — 2× DPI */
@@ -158,8 +148,7 @@ export async function exportPNG(svgEl: SVGSVGElement, elements: WBElement[], bas
     ctx.drawImage(img, 0, 0, W, H);
     const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
     if (!pngBlob) throw new Error('PNG 변환 실패');
-    const safeName = baseName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
-    downloadBlob(pngBlob, `${safeName}.png`);
+    downloadBlob(pngBlob, `${sanitizeFileName(baseName)}.png`);
   } finally {
     URL.revokeObjectURL(url);
   }
