@@ -2620,7 +2620,24 @@ function PreviewPanel({ node, listMode }: PreviewPanelProps) {
       </div>
 
       <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
-        <div>📅 {new Date(node.updatedAt).toLocaleString('ko-KR')} 수정</div>
+        {(() => {
+          const updated = new Date(node.updatedAt);
+          const created = new Date(node.createdAt);
+          // 생성·수정 같은 날 (분 단위 같음) 이면 '만들고 미수정'
+          const sameMinute = Math.abs(updated.getTime() - created.getTime()) < 60_000;
+          return (
+            <>
+              <div title={node.updatedAt}>
+                📅 {updated.toLocaleString('ko-KR')} {sameMinute ? '생성' : '수정'}
+              </div>
+              {!sameMinute && (
+                <div className="text-muted-foreground/70" title={node.createdAt}>
+                  ✨ {created.toLocaleString('ko-KR')} 생성
+                </div>
+              )}
+            </>
+          );
+        })()}
         {node.kind === 'file' && node.sizeBytes != null && (
           <div>💾 {formatSize(node.sizeBytes)}</div>
         )}
