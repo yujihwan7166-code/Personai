@@ -94,6 +94,7 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
           <HelpSection title="페이지·문서">
             <HelpRow keys={['스타일']} label="도구바 좌측 드롭다운 → 일반/제목 1~3/인용/코드 블록" />
             <HelpRow keys={['줌']} label="도구바 줌 select → 50~200%" />
+            <HelpRow keys={['Ctrl', '휠']} label="본문 위에서 스크롤로 줌 단계 조절" />
             <HelpRow keys={['머리글']} label="첫 페이지 카드 상단 input — 모든 페이지에 자동 반복" />
             <HelpRow keys={['바닥글']} label="마지막 페이지 카드 하단 input — 모든 페이지 자동 반복" />
             <HelpRow keys={['페이지 ▭']} label="본문이 1056px 넘으면 자동으로 다음 카드 시작" />

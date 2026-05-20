@@ -92,6 +92,26 @@ export default function CloudDocEditor() {
       prevZoomRef.current = zoom;
     }
   }, [zoom]);
+  /** Ctrl/Cmd + 휠 = 줌 단계 (50/75/100/125/150/200). React onWheel passive 회피용 native listener. */
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const STEPS = [50, 75, 100, 125, 150, 200] as const;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1;
+      setZoomInner((cur) => {
+        const idx = STEPS.indexOf(cur as 50 | 75 | 100 | 125 | 150 | 200);
+        const safeIdx = idx >= 0 ? idx : STEPS.indexOf(100 as const);
+        const next = STEPS[Math.max(0, Math.min(STEPS.length - 1, safeIdx + dir))];
+        try { window.localStorage.setItem('personai.cloud.doc.zoom', String(next)); } catch { /* noop */ }
+        return next;
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   // 페이지 마진 (좌우 px) — localStorage 영속. 기본 96px (1인치).
   const [pageMargin, setPageMarginInner] = useState<PageMargin>(() => {
