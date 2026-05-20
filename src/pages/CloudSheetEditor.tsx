@@ -53,6 +53,7 @@ import {
 } from '@/lib/cloudSheet/chart';
 // recharts components 는 lib/cloudSheet/EmbeddedChartCard + ChartModal 으로 이동
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { downloadCsv } from '@/lib/blob';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
@@ -1462,7 +1463,7 @@ export default function CloudSheetEditor() {
         cellFormats: allFormats[s.id] ?? {},
         merges: allMerges[s.id] ?? [],
       }));
-      const fileName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
+      const fileName = sanitizeFileName(node?.name ?? '시트', '시트');
       await exportXlsxFile(exportSheets, fileName);
       toast({ title: '내보내기 완료', description: `${fileName}.xlsx (서식·병합 포함)` });
     } catch (e) {
@@ -1479,17 +1480,11 @@ export default function CloudSheetEditor() {
         toast({ title: '빈 시트', description: '값이 있는 셀이 없어요.' });
         return;
       }
-      const baseName = (node?.name ?? '시트').replace(/[\\/:*?"<>|]/g, '_');
-      const sheetSuffix = sheetsMeta.length > 1 ? `_${currentSheetName.replace(/[\\/:*?"<>|]/g, '_')}` : '';
+      const baseName = sanitizeFileName(node?.name ?? '시트', '시트');
+      const sheetSuffix = sheetsMeta.length > 1 ? `_${sanitizeFileName(currentSheetName, 'Sheet')}` : '';
       const fileName = `${baseName}${sheetSuffix}.csv`;
-      // UTF-8 BOM (U+FEFF) prepend → Excel 한글 깨짐 방지
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // downloadCsv 가 UTF-8 BOM 자동 prepend (Excel 한글 깨짐 방지)
+      downloadCsv(csv, fileName);
       toast({ title: 'CSV 다운로드', description: `${fileName} (현재 시트만)` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
