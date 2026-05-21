@@ -46,7 +46,9 @@ import {
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
+import { remapNamedRangeSheet, rewriteCellsFormulaSheetNames } from '@/lib/cloudSheet/sheetNameRewrite';
 import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
+import { isSafeImageSrc } from '@/lib/safeUrl';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import {
   CHART_PALETTE, type SelRange, type EmbeddedChart,
@@ -121,6 +123,9 @@ interface SheetMeta {
   color?: SheetTabColor;
 }
 type AllFormats = Record<string, CellFormats>;
+type DimensionMap = Record<number, number>;
+type AllDimensionMaps = Record<string, DimensionMap>;
+type AllFreezeCounts = Record<string, number>;
 
 // Cells / AllCells / Merge / AllMerges / Comments / AllComments 는 lib/cloudSheet/cellTypes 공용
 
@@ -159,6 +164,34 @@ const AUTOSAVE_DELAY_MS = 1000;
 
 // maxRowColFromCells / maxRowColFromAll 는 lib/cloudSheet/sheetBounds 공용
 
+function normalizeDimensionMap(raw: unknown): DimensionMap {
+  const out: DimensionMap = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const idx = Number(k);
+    if (Number.isFinite(idx) && typeof v === 'number' && Number.isFinite(v)) out[idx] = v;
+  }
+  return out;
+}
+
+function normalizeAllDimensionMaps(raw: unknown): AllDimensionMaps {
+  const out: AllDimensionMaps = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    out[sheetId] = normalizeDimensionMap(value);
+  }
+  return out;
+}
+
+function normalizeAllFreezeCounts(raw: unknown): AllFreezeCounts {
+  const out: AllFreezeCounts = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'number' && Number.isFinite(value)) out[sheetId] = Math.max(0, Math.floor(value));
+  }
+  return out;
+}
+
 export default function CloudSheetEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -193,13 +226,11 @@ export default function CloudSheetEditor() {
   // 행/열 개수 — 파일 단위 (모든 시트 공통) v1
   const [rowCount, setRowCount] = useState(DEFAULT_ROWS);
   const [colCount, setColCount] = useState(DEFAULT_COLS);
-  // 열 너비 — colIdx → px (없으면 DEFAULT_COL_WIDTH)
-  const [colWidths, setColWidths] = useState<Record<number, number>>({});
-  // 행 높이 — rowIdx → px (없으면 DEFAULT_ROW_HEIGHT)
-  const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
-  // freeze pane — N행/N열 고정 (0=고정 X)
-  const [freezeRows, setFreezeRows] = useState(0);
-  const [freezeCols, setFreezeCols] = useState(0);
+  // 열/행 크기와 freeze는 Excel처럼 시트별로 보존한다. legacy meta 호환을 위해 queueSave에서 현재 시트 값도 함께 저장한다.
+  const [allColWidths, setAllColWidths] = useState<AllDimensionMaps>({ s_initial: {} });
+  const [allRowHeights, setAllRowHeights] = useState<AllDimensionMaps>({ s_initial: {} });
+  const [allFreezeRows, setAllFreezeRows] = useState<AllFreezeCounts>({ s_initial: 0 });
+  const [allFreezeCols, setAllFreezeCols] = useState<AllFreezeCounts>({ s_initial: 0 });
   // 필터 — col idx → substring 검색어 (대소문자 무시, 포함 매칭)
   const [filterOn, setFilterOn] = useState(false);
   const [filters, setFilters] = useState<Record<number, string>>({});
@@ -245,6 +276,34 @@ export default function CloudSheetEditor() {
   const validations = allValidations[currentSheetId] ?? [];
   const comments = allComments[currentSheetId] ?? {};
   const embeddedCharts = allEmbeddedCharts[currentSheetId] ?? [];
+  const colWidths = allColWidths[currentSheetId] ?? {};
+  const rowHeights = allRowHeights[currentSheetId] ?? {};
+  const freezeRows = allFreezeRows[currentSheetId] ?? 0;
+  const freezeCols = allFreezeCols[currentSheetId] ?? 0;
+
+  const setColWidths = useCallback((next: DimensionMap | ((prev: DimensionMap) => DimensionMap)) => {
+    setAllColWidths((all) => {
+      const prev = all[currentSheetId] ?? {};
+      const value = typeof next === 'function' ? next(prev) : next;
+      return { ...all, [currentSheetId]: value };
+    });
+  }, [currentSheetId]);
+
+  const setRowHeights = useCallback((next: DimensionMap | ((prev: DimensionMap) => DimensionMap)) => {
+    setAllRowHeights((all) => {
+      const prev = all[currentSheetId] ?? {};
+      const value = typeof next === 'function' ? next(prev) : next;
+      return { ...all, [currentSheetId]: value };
+    });
+  }, [currentSheetId]);
+
+  const setFreezeRows = useCallback((next: number) => {
+    setAllFreezeRows((all) => ({ ...all, [currentSheetId]: next }));
+  }, [currentSheetId]);
+
+  const setFreezeCols = useCallback((next: number) => {
+    setAllFreezeCols((all) => ({ ...all, [currentSheetId]: next }));
+  }, [currentSheetId]);
 
   // 병합 렌더링용 — lib/cloudSheet/selBounds.buildMergeMaps 공용
   const { mergeAtMap, coveredSet } = useMemo(() => buildMergeMaps(merges), [merges]);
@@ -378,11 +437,11 @@ export default function CloudSheetEditor() {
         const storedColCount = typeof meta.colCount === 'number' ? meta.colCount : undefined;
         const storedColWidths = meta.colWidths as Record<string, number> | undefined;
         const storedRowHeights = meta.rowHeights as Record<string, number> | undefined;
+        const storedAllColWidths = meta.allColWidths as Record<string, Record<string, number>> | undefined;
+        const storedAllRowHeights = meta.allRowHeights as Record<string, Record<string, number>> | undefined;
+        const storedAllFreezeRows = meta.allFreezeRows as Record<string, number> | undefined;
+        const storedAllFreezeCols = meta.allFreezeCols as Record<string, number> | undefined;
         // freeze: number(신) 또는 boolean(구) 둘 다 호환
-        if (typeof meta.freezeRows === 'number') setFreezeRows(Math.max(0, meta.freezeRows));
-        else if (typeof meta.freezeFirstRow === 'boolean') setFreezeRows(meta.freezeFirstRow ? 1 : 0);
-        if (typeof meta.freezeCols === 'number') setFreezeCols(Math.max(0, meta.freezeCols));
-        else if (typeof meta.freezeFirstCol === 'boolean') setFreezeCols(meta.freezeFirstCol ? 1 : 0);
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
           const cellsAll = storedAllCells ?? {};
@@ -398,6 +457,42 @@ export default function CloudSheetEditor() {
           if (storedNamedRanges && typeof storedNamedRanges === 'object') {
             setNamedRanges(storedNamedRanges);
           }
+          const loadedAllColWidths = normalizeAllDimensionMaps(storedAllColWidths);
+          const loadedAllRowHeights = normalizeAllDimensionMaps(storedAllRowHeights);
+          const loadedAllFreezeRows = normalizeAllFreezeCounts(storedAllFreezeRows);
+          const loadedAllFreezeCols = normalizeAllFreezeCounts(storedAllFreezeCols);
+          if (Object.keys(loadedAllColWidths).length > 0) {
+            setAllColWidths(loadedAllColWidths);
+          } else {
+            const legacy = normalizeDimensionMap(storedColWidths);
+            if (Object.keys(legacy).length > 0) {
+              setAllColWidths(Object.fromEntries(storedSheets.map((s) => [s.id, { ...legacy }])));
+            }
+          }
+          if (Object.keys(loadedAllRowHeights).length > 0) {
+            setAllRowHeights(loadedAllRowHeights);
+          } else {
+            const legacy = normalizeDimensionMap(storedRowHeights);
+            if (Object.keys(legacy).length > 0) {
+              setAllRowHeights(Object.fromEntries(storedSheets.map((s) => [s.id, { ...legacy }])));
+            }
+          }
+          if (Object.keys(loadedAllFreezeRows).length > 0) {
+            setAllFreezeRows(loadedAllFreezeRows);
+          } else if (typeof meta.freezeRows === 'number' || typeof meta.freezeFirstRow === 'boolean') {
+            const legacy = typeof meta.freezeRows === 'number'
+              ? Math.max(0, meta.freezeRows)
+              : meta.freezeFirstRow ? 1 : 0;
+            setAllFreezeRows(Object.fromEntries(storedSheets.map((s) => [s.id, legacy])));
+          }
+          if (Object.keys(loadedAllFreezeCols).length > 0) {
+            setAllFreezeCols(loadedAllFreezeCols);
+          } else if (typeof meta.freezeCols === 'number' || typeof meta.freezeFirstCol === 'boolean') {
+            const legacy = typeof meta.freezeCols === 'number'
+              ? Math.max(0, meta.freezeCols)
+              : meta.freezeFirstCol ? 1 : 0;
+            setAllFreezeCols(Object.fromEntries(storedSheets.map((s) => [s.id, legacy])));
+          }
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -405,22 +500,6 @@ export default function CloudSheetEditor() {
           setRowCount(Math.min(rc, MAX_ROWS));
           setColCount(Math.min(cc, MAX_COLS));
           // 열 너비 / 행 높이 복원 (key 가 문자열로 저장돼있으므로 숫자로 변환)
-          if (storedColWidths && typeof storedColWidths === 'object') {
-            const out: Record<number, number> = {};
-            for (const [k, v] of Object.entries(storedColWidths)) {
-              const idx = Number(k);
-              if (Number.isFinite(idx) && typeof v === 'number') out[idx] = v;
-            }
-            setColWidths(out);
-          }
-          if (storedRowHeights && typeof storedRowHeights === 'object') {
-            const out: Record<number, number> = {};
-            for (const [k, v] of Object.entries(storedRowHeights)) {
-              const idx = Number(k);
-              if (Number.isFinite(idx) && typeof v === 'number') out[idx] = v;
-            }
-            setRowHeights(out);
-          }
           const idx = typeof meta.currentSheetIdx === 'number'
             ? Math.max(0, Math.min(meta.currentSheetIdx, storedSheets.length - 1))
             : 0;
@@ -465,6 +544,20 @@ export default function CloudSheetEditor() {
           setAllCells({ [id]: safe });
           setAllFormats({ [id]: safeFmt });
           setAllMerges({ [id]: [] });
+          const legacyColWidths = normalizeDimensionMap(storedColWidths);
+          const legacyRowHeights = normalizeDimensionMap(storedRowHeights);
+          setAllColWidths({ [id]: legacyColWidths });
+          setAllRowHeights({ [id]: legacyRowHeights });
+          setAllFreezeRows({
+            [id]: typeof meta.freezeRows === 'number'
+              ? Math.max(0, meta.freezeRows)
+              : meta.freezeFirstRow ? 1 : 0,
+          });
+          setAllFreezeCols({
+            [id]: typeof meta.freezeCols === 'number'
+              ? Math.max(0, meta.freezeCols)
+              : meta.freezeFirstCol ? 1 : 0,
+          });
           setCurrentSheetIdx(0);
           const { row: maxR, col: maxC } = maxRowColFromCells(safe);
           setRowCount(Math.max(DEFAULT_ROWS, maxR + 1, MIN_ROWS));
@@ -506,11 +599,25 @@ export default function CloudSheetEditor() {
     currentSheetIdx?: number;
     rowCount?: number;
     colCount?: number;
+    allColWidths?: AllDimensionMaps;
+    allRowHeights?: AllDimensionMaps;
+    allFreezeRows?: AllFreezeCounts;
+    allFreezeCols?: AllFreezeCounts;
     colWidths?: Record<number, number>;
     rowHeights?: Record<number, number>;
     freezeRows?: number;
     freezeCols?: number;
   }) => {
+    const nextCurrentSheetIdx = patch.currentSheetIdx ?? currentSheetIdx;
+    const nextCurrentSheetId = (patch.sheets ?? sheetsMeta)[nextCurrentSheetIdx]?.id ?? currentSheetId;
+    const nextAllColWidths = patch.allColWidths
+      ?? (patch.colWidths ? { ...allColWidths, [nextCurrentSheetId]: patch.colWidths } : allColWidths);
+    const nextAllRowHeights = patch.allRowHeights
+      ?? (patch.rowHeights ? { ...allRowHeights, [nextCurrentSheetId]: patch.rowHeights } : allRowHeights);
+    const nextAllFreezeRows = patch.allFreezeRows
+      ?? (patch.freezeRows !== undefined ? { ...allFreezeRows, [nextCurrentSheetId]: patch.freezeRows } : allFreezeRows);
+    const nextAllFreezeCols = patch.allFreezeCols
+      ?? (patch.freezeCols !== undefined ? { ...allFreezeCols, [nextCurrentSheetId]: patch.freezeCols } : allFreezeCols);
     queueSaveRaw({
       meta: {
         sheets: patch.sheets ?? sheetsMeta,
@@ -522,16 +629,20 @@ export default function CloudSheetEditor() {
         allComments: patch.allComments ?? allComments,
         allEmbeddedCharts: patch.allEmbeddedCharts ?? allEmbeddedCharts,
         namedRanges: patch.namedRanges ?? namedRanges,
-        currentSheetIdx: patch.currentSheetIdx ?? currentSheetIdx,
+        currentSheetIdx: nextCurrentSheetIdx,
         rowCount: patch.rowCount ?? rowCount,
         colCount: patch.colCount ?? colCount,
-        colWidths: patch.colWidths ?? colWidths,
-        rowHeights: patch.rowHeights ?? rowHeights,
-        freezeRows: patch.freezeRows ?? freezeRows,
-        freezeCols: patch.freezeCols ?? freezeCols,
+        allColWidths: nextAllColWidths,
+        allRowHeights: nextAllRowHeights,
+        allFreezeRows: nextAllFreezeRows,
+        allFreezeCols: nextAllFreezeCols,
+        colWidths: nextAllColWidths[nextCurrentSheetId] ?? {},
+        rowHeights: nextAllRowHeights[nextCurrentSheetId] ?? {},
+        freezeRows: nextAllFreezeRows[nextCurrentSheetId] ?? 0,
+        freezeCols: nextAllFreezeCols[nextCurrentSheetId] ?? 0,
       },
     });
-  }, [queueSaveRaw, sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols]);
+  }, [queueSaveRaw, sheetsMeta, currentSheetId, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, allColWidths, allRowHeights, allFreezeRows, allFreezeCols]);
 
   // ─── 셀 값 변경 (현재 시트) ───
   const setCellValue = useCallback((ref: string, value: string) => {
@@ -641,17 +752,27 @@ export default function CloudSheetEditor() {
     const nextCells: AllCells = { ...allCells, [id]: {} };
     const nextFormats: AllFormats = { ...allFormats, [id]: {} };
     const nextMerges: AllMerges = { ...allMerges, [id]: [] };
+    const nextAllColWidths = { ...allColWidths, [id]: {} };
+    const nextAllRowHeights = { ...allRowHeights, [id]: {} };
+    const nextAllFreezeRows = { ...allFreezeRows, [id]: 0 };
+    const nextAllFreezeCols = { ...allFreezeCols, [id]: 0 };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllColWidths(nextAllColWidths);
+    setAllRowHeights(nextAllRowHeights);
+    setAllFreezeRows(nextAllFreezeRows);
+    setAllFreezeCols(nextAllFreezeCols);
     setCurrentSheetIdx(nextSheets.length - 1);
     setSelected({ row: 0, col: 0 });
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
+      allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
       currentSheetIdx: nextSheets.length - 1,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, queueSave]);
 
   const removeSheet = useCallback((idx: number) => {
     if (sheetsMeta.length <= 1) {
@@ -664,20 +785,34 @@ export default function CloudSheetEditor() {
     const nextCells: AllCells = { ...allCells };
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
+    const nextAllColWidths = { ...allColWidths };
+    const nextAllRowHeights = { ...allRowHeights };
+    const nextAllFreezeRows = { ...allFreezeRows };
+    const nextAllFreezeCols = { ...allFreezeCols };
     delete nextCells[target.id];
     delete nextFormats[target.id];
     delete nextMerges[target.id];
+    delete nextAllColWidths[target.id];
+    delete nextAllRowHeights[target.id];
+    delete nextAllFreezeRows[target.id];
+    delete nextAllFreezeCols[target.id];
     const newIdx = Math.max(0, Math.min(currentSheetIdx, nextSheets.length - 1));
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllColWidths(nextAllColWidths);
+    setAllRowHeights(nextAllRowHeights);
+    setAllFreezeRows(nextAllFreezeRows);
+    setAllFreezeCols(nextAllFreezeCols);
     setCurrentSheetIdx(newIdx);
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
+      allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
       currentSheetIdx: newIdx,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, currentSheetIdx, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, currentSheetIdx, queueSave]);
 
   const renameSheet = useCallback((idx: number, name: string) => {
     const trimmed = name.trim();
@@ -794,8 +929,12 @@ export default function CloudSheetEditor() {
 
   // ─── Undo / Redo (lib/cloudSheet/useSheetHistory 공용 훅) ───
   const { canUndo, canRedo, undo, redo } = useSheetHistory({
-    allCells, allFormats, allMerges, rowCount, colCount,
-    setAllCells, setAllFormats, setAllMerges, setRowCount, setColCount,
+    allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges,
+    rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols,
+    allColWidths, allRowHeights, allFreezeRows, allFreezeCols,
+    setAllCells, setAllFormats, setAllMerges, setAllCondRules, setAllValidations, setAllComments, setAllEmbeddedCharts, setNamedRanges,
+    setRowCount, setColCount, setColWidths, setRowHeights, setFreezeRows, setFreezeCols,
+    setAllColWidths, setAllRowHeights, setAllFreezeRows, setAllFreezeCols,
     ready: !!node,
     queueSave,
   });
@@ -1358,7 +1497,7 @@ export default function CloudSheetEditor() {
   const importXlsx = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.xlsx,.xls,.csv';
+    input.accept = '.xlsx,.xls,.csv,.tsv';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
@@ -1374,11 +1513,18 @@ export default function CloudSheetEditor() {
         const newAllCells: AllCells = { ...allCells };
         const newAllFormats: AllFormats = { ...allFormats };
         const newAllMerges: AllMerges = { ...allMerges };
+        const newAllValidations: AllValidations = { ...allValidations };
+        const newAllComments: AllComments = { ...allComments };
         // 첫 import 된 시트의 col/row/freeze 만 전체 그리드에 반영 (단일 그리드 한계 — v1).
-        let importedColWidths: Record<number, number> | undefined;
-        let importedRowHeights: Record<number, number> | undefined;
-        let importedFreezeRows: number | undefined;
-        let importedFreezeCols: number | undefined;
+        const newAllColWidths: AllDimensionMaps = { ...allColWidths };
+        const newAllRowHeights: AllDimensionMaps = { ...allRowHeights };
+        const newAllFreezeRows: AllFreezeCounts = { ...allFreezeRows };
+        const newAllFreezeCols: AllFreezeCounts = { ...allFreezeCols };
+        let importedDimensionCount = 0;
+        let importedFreezeCount = 0;
+        const importedNameMap = new Map<string, string>();
+        const importedSheetIds: string[] = [];
+        const importedNamedRanges: Record<string, string> = {};
         let preservedCount = 0;
         for (const sheet of imported) {
           const id = newId('s');
@@ -1391,25 +1537,42 @@ export default function CloudSheetEditor() {
           while (usedNames.has(name)) {
             name = `${sheet.name} (${n++})`;
           }
+          importedNameMap.set(sheet.name, name);
+          importedSheetIds.push(id);
           newMetas.push({ id, name });
           newAllCells[id] = sheet.cells;
           newAllFormats[id] = sheet.cellFormats ?? {};
           newAllMerges[id] = sheet.merges ?? [];
+          newAllValidations[id] = sheet.validations ?? [];
+          newAllComments[id] = sheet.comments ?? {};
+          newAllColWidths[id] = sheet.colWidths ?? {};
+          newAllRowHeights[id] = sheet.rowHeights ?? {};
+          newAllFreezeRows[id] = sheet.freezeRows ?? 0;
+          newAllFreezeCols[id] = sheet.freezeCols ?? 0;
           if (sheet.cellFormats && Object.keys(sheet.cellFormats).length > 0) preservedCount++;
-          if (!importedColWidths && sheet.colWidths) importedColWidths = sheet.colWidths;
-          if (!importedRowHeights && sheet.rowHeights) importedRowHeights = sheet.rowHeights;
-          if (importedFreezeRows === undefined && sheet.freezeRows) importedFreezeRows = sheet.freezeRows;
-          if (importedFreezeCols === undefined && sheet.freezeCols) importedFreezeCols = sheet.freezeCols;
+          if (sheet.colWidths || sheet.rowHeights) importedDimensionCount++;
+          if (sheet.freezeRows || sheet.freezeCols) importedFreezeCount++;
+          Object.assign(importedNamedRanges, sheet.namedRanges ?? {});
+        }
+        for (const id of importedSheetIds) {
+          newAllCells[id] = rewriteCellsFormulaSheetNames(newAllCells[id] ?? {}, importedNameMap);
+        }
+        const nextNamedRanges = { ...namedRanges };
+        for (const [name, range] of Object.entries(importedNamedRanges)) {
+          nextNamedRanges[name] = remapNamedRangeSheet(range, importedNameMap);
         }
         const nextSheets = [...sheetsMeta, ...newMetas];
         setSheetsMeta(nextSheets);
         setAllCells(newAllCells);
         setAllFormats(newAllFormats);
         setAllMerges(newAllMerges);
-        if (importedColWidths) setColWidths((cur) => ({ ...cur, ...importedColWidths }));
-        if (importedRowHeights) setRowHeights((cur) => ({ ...cur, ...importedRowHeights }));
-        if (importedFreezeRows !== undefined) setFreezeRows(importedFreezeRows);
-        if (importedFreezeCols !== undefined) setFreezeCols(importedFreezeCols);
+        setAllValidations(newAllValidations);
+        setAllComments(newAllComments);
+        setAllColWidths(newAllColWidths);
+        setAllRowHeights(newAllRowHeights);
+        setAllFreezeRows(newAllFreezeRows);
+        setAllFreezeCols(newAllFreezeCols);
+        if (Object.keys(importedNamedRanges).length > 0) setNamedRanges(nextNamedRanges);
         setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
         // 가져온 시트가 현재 그리드보다 크면 자동 확장
         const { row: maxR, col: maxC } = maxRowColFromAll(newAllCells, newAllMerges);
@@ -1419,13 +1582,18 @@ export default function CloudSheetEditor() {
         if (nextColCount !== colCount) setColCount(nextColCount);
         queueSave({
           sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats, allMerges: newAllMerges,
+          allValidations: newAllValidations,
+          allComments: newAllComments,
+          allColWidths: newAllColWidths, allRowHeights: newAllRowHeights,
+          allFreezeRows: newAllFreezeRows, allFreezeCols: newAllFreezeCols,
           currentSheetIdx: sheetsMeta.length,
           rowCount: nextRowCount, colCount: nextColCount,
+          namedRanges: nextNamedRanges,
         });
         const parts: string[] = [`${imported.length}개 시트`];
         if (preservedCount > 0) parts.push(`서식 ${preservedCount}개 시트 보존`);
-        if (importedColWidths || importedRowHeights) parts.push('행/열 크기 적용');
-        if (importedFreezeRows || importedFreezeCols) parts.push('freeze 적용');
+        if (importedDimensionCount > 0) parts.push(`열·행 크기 ${importedDimensionCount}개 시트 보존`);
+        if (importedFreezeCount > 0) parts.push(`freeze ${importedFreezeCount}개 시트 보존`);
         toast({
           title: '가져오기 완료',
           description: parts.join(' · '),
@@ -1436,7 +1604,7 @@ export default function CloudSheetEditor() {
       }
     };
     input.click();
-  }, [allCells, allFormats, allMerges, sheetsMeta, rowCount, colCount, queueSave]);
+  }, [allCells, allFormats, allMerges, allValidations, allComments, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, namedRanges, sheetsMeta, rowCount, colCount, queueSave]);
 
   // ─── PDF export: 현재 시트 그리드 ───
   const exportPdf = useCallback(async () => {
@@ -1462,20 +1630,26 @@ export default function CloudSheetEditor() {
         cells: allCells[s.id] ?? {},
         cellFormats: allFormats[s.id] ?? {},
         merges: allMerges[s.id] ?? [],
+        validations: allValidations[s.id] ?? [],
+        comments: allComments[s.id] ?? {},
+        colWidths: allColWidths[s.id] ?? {},
+        rowHeights: allRowHeights[s.id] ?? {},
+        freezeRows: allFreezeRows[s.id] ?? 0,
+        freezeCols: allFreezeCols[s.id] ?? 0,
       }));
       const fileName = sanitizeFileName(node?.name ?? '시트', '시트');
-      await exportXlsxFile(exportSheets, fileName);
+      await exportXlsxFile(exportSheets, fileName, { namedRanges });
       toast({ title: '내보내기 완료', description: `${fileName}.xlsx (서식·병합 포함)` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [sheetsMeta, allCells, allFormats, allMerges, node?.name]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allValidations, allComments, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, namedRanges, node?.name]);
 
   /** 현재 시트만 CSV 다운로드 — 서식·병합·다른 시트 손실 (UTF-8 BOM 포함, Excel 한글 호환). */
   const exportCsv = useCallback(() => {
     try {
-      const csv = cellsToCsv(cells, { displayValues });
+      const csv = cellsToCsv(cells, { displayValues, safeForSpreadsheet: true });
       if (!csv) {
         toast({ title: '빈 시트', description: '값이 있는 셀이 없어요.' });
         return;
@@ -1502,16 +1676,26 @@ export default function CloudSheetEditor() {
     const nextFormats: AllFormats = { ...allFormats, [id]: { ...(allFormats[src.id] ?? {}) } };
     const srcMerges = allMerges[src.id] ?? [];
     const nextMerges: AllMerges = { ...allMerges, [id]: srcMerges.map((m) => ({ ...m })) };
+    const nextAllColWidths = { ...allColWidths, [id]: { ...(allColWidths[src.id] ?? {}) } };
+    const nextAllRowHeights = { ...allRowHeights, [id]: { ...(allRowHeights[src.id] ?? {}) } };
+    const nextAllFreezeRows = { ...allFreezeRows, [id]: allFreezeRows[src.id] ?? 0 };
+    const nextAllFreezeCols = { ...allFreezeCols, [id]: allFreezeCols[src.id] ?? 0 };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllColWidths(nextAllColWidths);
+    setAllRowHeights(nextAllRowHeights);
+    setAllFreezeRows(nextAllFreezeRows);
+    setAllFreezeCols(nextAllFreezeCols);
     setCurrentSheetIdx(idx + 1);
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
+      allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
       currentSheetIdx: idx + 1,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, queueSave]);
 
   // ─── Freeze pane 설정 ───
   const applyFreezeRows = useCallback((n: number) => {
@@ -2624,7 +2808,12 @@ export default function CloudSheetEditor() {
              
             const url = window.prompt('이미지 URL (https://…)');
             if (!url) return;
-            setCellValue(selectedRef, `=IMAGE("${url.replace(/"/g, '""')}")`);
+            const trimmed = url.trim();
+            if (!isSafeImageSrc(trimmed)) {
+              toast({ title: '이미지 URL을 사용할 수 없어요', description: 'https/http, 내부 경로, PNG/JPEG/GIF/WebP data URL만 지원합니다.' });
+              return;
+            }
+            setCellValue(selectedRef, `=IMAGE("${trimmed.replace(/"/g, '""')}")`);
           }}
           insertLink={() => setInsertLinkOpen(true)}
           insertComment={() => setCommentModalOpen(true)}

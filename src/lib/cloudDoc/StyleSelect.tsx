@@ -1,5 +1,3 @@
-/** 문서 도구바 좌측 — 단락 스타일 드롭다운 (구글 독스 "일반 텍스트" 등). */
-
 import { ChevronDown } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import {
@@ -7,31 +5,33 @@ import {
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
+type BlockKind = 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'quote' | 'code';
+
+const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+
 export function StyleSelect({ editor }: { editor: Editor }) {
   const currentLabel = (() => {
-    if (editor.isActive('heading', { level: 1 })) return '제목 1';
-    if (editor.isActive('heading', { level: 2 })) return '제목 2';
-    if (editor.isActive('heading', { level: 3 })) return '제목 3';
+    for (const level of HEADING_LEVELS) {
+      if (editor.isActive('heading', { level })) return `제목 ${level}`;
+    }
     if (editor.isActive('blockquote')) return '인용';
     if (editor.isActive('codeBlock')) return '코드 블록';
     return '일반 텍스트';
   })();
 
-  const apply = (kind: 'p' | 'h1' | 'h2' | 'h3' | 'quote' | 'code') => {
+  const apply = (kind: BlockKind) => {
     const c = editor.chain().focus();
-    if (kind === 'p')        c.clearNodes().setParagraph().run();
-    else if (kind === 'h1')  c.clearNodes().toggleHeading({ level: 1 }).run();
-    else if (kind === 'h2')  c.clearNodes().toggleHeading({ level: 2 }).run();
-    else if (kind === 'h3')  c.clearNodes().toggleHeading({ level: 3 }).run();
+    if (kind === 'p') c.clearNodes().setParagraph().run();
+    else if (kind.startsWith('h')) c.clearNodes().toggleHeading({ level: Number(kind.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }).run();
     else if (kind === 'quote') c.toggleBlockquote().run();
-    else if (kind === 'code')  c.toggleCodeBlock().run();
+    else if (kind === 'code') c.toggleCodeBlock().run();
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="h-7 px-2 rounded hover:bg-muted text-xs flex items-center gap-1 min-w-[96px] border border-border"
-        title="단락 스타일"
+        title="문단 스타일"
       >
         <span className="truncate text-left flex-1">{currentLabel}</span>
         <ChevronDown className="w-3 h-3 opacity-50 shrink-0" />
@@ -45,6 +45,9 @@ export function StyleSelect({ editor }: { editor: Editor }) {
           <span className="text-sm font-medium">제목 2</span>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => apply('h3')}>제목 3</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h4')}>제목 4</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h5')}>제목 5</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => apply('h6')}>제목 6</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => apply('quote')}>인용</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => apply('code')}>코드 블록</DropdownMenuItem>

@@ -16,6 +16,7 @@ import type { Editor } from '@tiptap/react';
 interface FootnoteEntry {
   id: string;
   text: string;
+  noteType: 'footnote' | 'endnote';
   pos: number;  // 본문 안 위치 — jump 용
 }
 
@@ -34,6 +35,7 @@ export function FootnoteList({ editor }: { editor: Editor | null }) {
           list.push({
             id: String(node.attrs.id ?? ''),
             text: String(node.attrs.text ?? ''),
+            noteType: node.attrs.noteType === 'endnote' ? 'endnote' : 'footnote',
             pos,
           });
         }

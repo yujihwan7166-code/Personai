@@ -44,6 +44,8 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
 const MAX_ENTRIES = 500;
 const MAX_CONCURRENT = 3;
 export const DEFAULT_PER_SHEET_LIMIT = 50;
+export const AI_JOB_TIMEOUT_MS = 25_000;
+export const AI_CELL_TEXT_LIMIT = 6_000;
 
 /** 캐시 엔트리. */
 interface CacheEntry {
@@ -153,11 +155,13 @@ export function setAIFetcher(fetcher: AIFetcher): void {
 }
 
 /** 큐에 추가 — 동일 key 중복 enqueue 차단. */
-export function aiQueueFetch(key: string, fn: string, args: unknown): void {
-  if (inflight.has(key)) return;
-  if (queue.some((j) => j.key === key)) return;
+export function aiQueueFetch(key: string, fn: string, args: unknown): boolean {
+  if (inflight.has(key)) return true;
+  if (queue.some((j) => j.key === key)) return true;
+  if (queue.length >= DEFAULT_PER_SHEET_LIMIT) return false;
   queue.push({ key, fn, args, inflight: false });
   pump();
+  return true;
 }
 
 function pump(): void {
@@ -172,7 +176,7 @@ function pump(): void {
 
 async function runJob(job: QueuedJob): Promise<void> {
   try {
-    const result = await activeFetcher(job.fn, job.args);
+    const result = await withTimeout(activeFetcher(job.fn, job.args), AI_JOB_TIMEOUT_MS);
     aiCacheSet(job.key, result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -184,6 +188,16 @@ async function runJob(job: QueuedJob): Promise<void> {
     if (idx >= 0) queue.splice(idx, 1);
     pump();
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('AI_TIMEOUT')), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }
 
 /** 큐 + inflight 비우기 — 테스트용. */

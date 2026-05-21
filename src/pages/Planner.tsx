@@ -19,6 +19,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Bot } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { PageSwitcher } from '@/components/PageSwitcher';
+import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import {
   DndContext,
@@ -50,6 +51,7 @@ import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerMatrixPopover } from '@/components/planner/PlannerMatrixPopover';
 import { PlannerAgendaPopover } from '@/components/planner/PlannerAgendaPopover';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
+import { PlannerOverviewBar } from '@/components/planner/PlannerOverviewBar';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
@@ -67,6 +69,10 @@ import {
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
+const PLANNER_VIEW_STORAGE_KEY = 'planner.view.v1';
+const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'goals', 'habits'];
+const isPlannerView = (value: string | null): value is PlannerView =>
+  !!value && PLANNER_VIEWS.includes(value as PlannerView);
 
 import type { PlannerTask, Priority } from '@/types/planner';
 
@@ -89,9 +95,28 @@ const isSameDay = (a: Date, b: Date): boolean =>
 const Planner = () => {
   // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
-  const [view, setView] = useState<PlannerView>('day');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [view, setViewState] = useState<PlannerView>(() => {
+    const viewParam = searchParams.get('view');
+    if (isPlannerView(viewParam)) return viewParam;
+    if (typeof window === 'undefined') return 'day';
+    try {
+      const stored = window.localStorage.getItem(PLANNER_VIEW_STORAGE_KEY);
+      return isPlannerView(stored) ? stored : 'day';
+    } catch {
+      return 'day';
+    }
+  });
+  const setView = useCallback((next: PlannerView | ((prev: PlannerView) => PlannerView)) => {
+    setViewState((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next;
+      if (typeof window !== 'undefined') {
+        try { window.localStorage.setItem(PLANNER_VIEW_STORAGE_KEY, resolved); } catch { /* silent */ }
+      }
+      return resolved;
+    });
+  }, []);
   // Rail "모드" → MainModeTabs 패널을 플래너 위에 플로팅. 외부 트리거용 apiRef.
   const mainModeTabsApiRef = useRef<MainModeTabsApi | null>(null);
   const [anchorIso, setAnchorIso] = useState(() => {
@@ -116,6 +141,20 @@ const Planner = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    const current = searchParams.get('view');
+    if (view === 'day') {
+      if (!current) return;
+      const next = new URLSearchParams(searchParams);
+      next.delete('view');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    if (current === view) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('view', view);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, view]);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -487,6 +526,12 @@ const Planner = () => {
     navigate('/', { state: { selectMainMode: m } });
   }, [navigate]);
 
+  const openPlannerCommand = useCallback(() => setPaletteOpen(true), []);
+  const openGoalsView = useCallback(() => setView('goals'), [setView]);
+  const focusQuickAdd = useCallback(() => {
+    if (view !== 'day') setView('day');
+    setTimeout(() => dayInputRef.current?.focus(), 50);
+  }, [setView, view]);
 
   const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'habits';
 
@@ -796,13 +841,19 @@ const Planner = () => {
       style={{ ['--ai-panel-w' as string]: `${aiPanelWidth}px` }}
     >
       {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
-      <aside className="shrink-0 w-12 border-r hairline bg-card/30">
+      <aside className="hidden sm:block shrink-0 w-12 border-r hairline bg-card/30">
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
-      <main className="flex-1 min-w-0 px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-7 max-w-[1320px] w-full mx-auto">
+      <nav
+        aria-label="플래너 빠른 이동"
+        className="fixed inset-x-0 bottom-0 z-40 border-t hairline bg-card/95 shadow-[0_-8px_24px_-18px_hsl(30_15%_8%/0.35)] backdrop-blur sm:hidden"
+      >
+        <PlannerLeftRail aiOpen={aiPanelOpen} orientation="horizontal" />
+      </nav>
+      <main className="flex-1 min-w-0 px-4 sm:px-8 pt-5 sm:pt-8 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
-        <div className="mb-3 pt-1 flex items-center gap-4 px-0.5">
+        <div className="mb-3 pt-1 flex flex-wrap items-center gap-3 px-0.5">
           {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
           {view !== 'goals' && (
             <div className="shrink-0 flex items-center gap-2">
@@ -877,7 +928,7 @@ const Planner = () => {
             <button
               type="button"
               onClick={() => setAiPanelOpen(true)}
-              className="shrink-0 h-8 w-8 sm:w-auto sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
+              className="hidden sm:inline-flex shrink-0 h-8 w-auto px-3 items-center justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
               title="AI 챗봇"
               aria-label="AI 챗봇 열기"
             >
@@ -887,15 +938,30 @@ const Planner = () => {
           )}
 
           {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
-          <div className="flex-1" />
+          <div className="hidden lg:block flex-1" />
 
           {/* 페이지 스위처 — 우측 끝. 시각적으로 살짝 위로. */}
-          <PageSwitcher current="planner" className="-mt-3 self-start" />
+          <PageSwitcher current="planner" className="hidden lg:inline-flex -mt-3 self-start" />
         </div>
 
+        <PlannerOverviewBar
+          anchorIso={anchorIso}
+          onOpenCommand={openPlannerCommand}
+          onOpenGoals={openGoalsView}
+          onFocusQuickAdd={focusQuickAdd}
+        />
+
+        <ModeErrorBoundary
+          modeLabel="통합 플래너"
+          resetKey={`${view}:${anchorIso}`}
+          onReset={() => {
+            setAnchorIso(new Date().toISOString());
+            setView('day');
+          }}
+        >
         {isFullscreen ? (
           <div className={cn(
-            'rounded-2xl border hairline bg-card min-h-[600px] h-[calc(100vh-180px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
+            'rounded-2xl border hairline bg-card min-h-[520px] h-[calc(100vh-270px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
             // habits 는 자체 헤더·배경이 있어 외곽 패딩 줄임 (다른 풀뷰 p-4/p-5 보다 슬림)
             view === 'habits' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5',
           )}>
@@ -931,7 +997,7 @@ const Planner = () => {
             {view === 'habits' && <HabitsView />}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[228px_minmax(0,1fr)] gap-4 sm:gap-5 h-[calc(100vh-180px)] min-h-[600px]">
+          <div className="grid grid-cols-1 md:grid-cols-[228px_minmax(0,1fr)] gap-4 sm:gap-5 h-[calc(100vh-270px)] min-h-[520px]">
             <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
               <PlannerSidebar
                 anchorIso={anchorIso}
@@ -1001,6 +1067,7 @@ const Planner = () => {
             ) : null}
           </div>
         )}
+        </ModeErrorBoundary>
       </main>
       <TaskScheduleDialog
         open={dialogMode !== null}

@@ -35,7 +35,7 @@ export function isSafeImageSrc(src: string | null | undefined): boolean {
   if (!src || typeof src !== 'string') return false;
   const t = src.trim();
   if (/^https?:\/\//i.test(t)) return true;
-  if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);/i.test(t)) return true;
+  if (/^data:image\/(png|jpe?g|gif|webp|bmp|x-ms-bmp);/i.test(t)) return true;
   if (/^\/[^/]/.test(t)) return true; // 절대 경로
   return false;
 }

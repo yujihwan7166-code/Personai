@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseCsvLine, parseCsv, escapeCsvCell, toCsv } from '@/lib/csv';
+import { cellsToCsv } from '@/lib/cloudSheet/ai';
+import { IMAGE_SENTINEL } from '@/lib/cloudSheet/formula';
 
 describe('parseCsvLine', () => {
   it('단순 콤마 분리', () => {
@@ -21,6 +23,15 @@ describe('parseCsv', () => {
     const out = parseCsv('a,b\n\nc,d\n');
     expect(out).toEqual([['a', 'b'], ['c', 'd']]);
   });
+
+  it('UTF-8 BOM and quoted multi-line cells', () => {
+    const out = parseCsv('\uFEFFid,note\n001,"line1\nline2"\n002,"He said ""hi"""');
+    expect(out).toEqual([
+      ['id', 'note'],
+      ['001', 'line1\nline2'],
+      ['002', 'He said "hi"'],
+    ]);
+  });
 });
 
 describe('escapeCsvCell', () => {
@@ -39,5 +50,38 @@ describe('toCsv', () => {
     const grid = [['a', 'b,b', 'c'], ['1', '2', '3']];
     const csv = toCsv(grid);
     expect(parseCsv(csv)).toEqual(grid);
+  });
+});
+
+describe('cellsToCsv spreadsheet-safe export', () => {
+  it('keeps the default AI/context export unchanged', () => {
+    const csv = cellsToCsv({ A1: '00123', B1: '=SUM(1,2)', C1: 'normal' });
+
+    expect(csv).toBe('00123,"=SUM(1,2)",normal');
+  });
+
+  it('protects formula-like values and text identifiers for Excel/Sheets downloads', () => {
+    const csv = cellsToCsv(
+      {
+        A1: '00123',
+        B1: '1234567890123456',
+        C1: '=SUM(1,2)',
+        D1: '+cmd',
+        E1: '-10',
+        F1: 'normal',
+      },
+      { safeForSpreadsheet: true },
+    );
+
+    expect(csv).toBe("'00123,'1234567890123456,\"'=SUM(1,2)\",'+cmd,-10,normal");
+  });
+
+  it('applies spreadsheet safety after display value selection and IMAGE unwrapping', () => {
+    const csv = cellsToCsv(
+      { A1: '=RAW()', B1: `${IMAGE_SENTINEL}https://example.test/image.png` },
+      { displayValues: { A1: '00045' }, safeForSpreadsheet: true },
+    );
+
+    expect(csv).toBe("'00045,https://example.test/image.png");
   });
 });

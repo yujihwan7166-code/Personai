@@ -48,12 +48,20 @@ export const Footnote = Node.create({
           title: attrs.text ?? '',
         }),
       },
+      noteType: {
+        default: 'footnote',
+        parseHTML: (el) => (el as HTMLElement).getAttribute('data-note-type') === 'endnote' ? 'endnote' : 'footnote',
+        renderHTML: (attrs) => (
+          attrs.noteType === 'endnote' ? { 'data-note-type': 'endnote', 'data-endnote': '' } : {}
+        ),
+      },
     };
   },
 
   parseHTML() {
     return [
       { tag: 'sup[data-footnote]' },
+      { tag: 'sup[data-endnote]' },
     ];
   },
 

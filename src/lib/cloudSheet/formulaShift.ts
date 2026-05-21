@@ -22,6 +22,45 @@ import { colToIdx, idxToCol } from './formula';
 
 type Axis = 'row' | 'col';
 
+function parseSheetPrefix(sheetRaw: unknown): string | undefined {
+  if (!sheetRaw) return undefined;
+  const raw = String(sheetRaw);
+  if (raw.startsWith("'") && raw.endsWith("'")) {
+    return raw.slice(1, -1).replace(/''/g, "'");
+  }
+  return raw;
+}
+
+function replaceOutsideFormulaStrings(src: string, replaceChunk: (chunk: string) => string): string {
+  let out = '';
+  let chunk = '';
+  let inString = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (!inString) {
+      if (ch === '"') {
+        out += replaceChunk(chunk) + ch;
+        chunk = '';
+        inString = true;
+      } else {
+        chunk += ch;
+      }
+      continue;
+    }
+
+    out += ch;
+    if (ch === '"' && src[i + 1] === '"') {
+      out += '"';
+      i++;
+      continue;
+    }
+    if (ch === '"') inString = false;
+  }
+
+  return out + replaceChunk(chunk);
+}
+
 /**
  * @param raw 수식 문자열 ('=' 포함 또는 미포함). '=' 로 시작하면 그대로,
  *            아니면 단순 텍스트로 보고 변경 없이 반환.
@@ -40,12 +79,13 @@ export function shiftFormula(
   if (!raw.startsWith('=')) return raw;
   // 단일 셀과 범위 모두 같은 transform 함수로 처리. 단일은 c2/r2 가 c1/r1 와 동일.
   // 처리 순서: 범위 먼저 (긴 패턴), 그 다음 단일
-  let work = raw.slice(1);
+  const work = replaceOutsideFormulaStrings(raw.slice(1), (chunk) => {
+    let shifted = chunk;
   // 범위 + sheet prefix 옵셔널 + $ 옵셔널 (양쪽 끝 각각)
-  work = work.replace(
-    /(?<![A-Za-z_0-9])(?:('[^']+'|[A-Za-z]\w*)!)?(\$?)([A-Z]+)(\$?)(\d+):(\$?)([A-Z]+)(\$?)(\d+)/g,
-    (_m, sheetRaw, cAbs1, c1, rAbs1, r1, cAbs2, c2, rAbs2, r2) => {
-      const sheetName = sheetRaw ? String(sheetRaw).replace(/^'|'$/g, '') : undefined;
+    shifted = shifted.replace(
+    /(?<![A-Za-z_0-9])(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?(\$?)([A-Z]+)(\$?)(\d+):(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?(\$?)([A-Z]+)(\$?)(\d+)/g,
+    (_m, sheetRaw, cAbs1, c1, rAbs1, r1, sheetRaw2, cAbs2, c2, rAbs2, r2) => {
+      const sheetName = parseSheetPrefix(sheetRaw ?? sheetRaw2);
       if (sheetName && currentSheetName && sheetName !== currentSheetName) {
         return _m;
       }
@@ -54,14 +94,15 @@ export function shiftFormula(
         cAbs1 === '$', rAbs1 === '$', cAbs2 === '$', rAbs2 === '$',
         axis, at, delta,
       );
-      return sheetRaw ? `${sheetRaw}!${result}` : result;
+      const prefix = sheetRaw ?? sheetRaw2;
+      return prefix ? `${prefix}!${result}` : result;
     },
   );
   // 단일 셀
-  work = work.replace(
-    /(?<![A-Za-z_0-9:$])(?:('[^']+'|[A-Za-z]\w*)!)?(\$?)([A-Z]+)(\$?)(\d+)\b(?!:)/g,
+    shifted = shifted.replace(
+    /(?<![A-Za-z_0-9:$])(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?(\$?)([A-Z]+)(\$?)(\d+)\b(?!:)/g,
     (_m, sheetRaw, cAbs, c, rAbs, r) => {
-      const sheetName = sheetRaw ? String(sheetRaw).replace(/^'|'$/g, '') : undefined;
+      const sheetName = parseSheetPrefix(sheetRaw);
       if (sheetName && currentSheetName && sheetName !== currentSheetName) {
         return _m;
       }
@@ -69,6 +110,8 @@ export function shiftFormula(
       return sheetRaw ? `${sheetRaw}!${result}` : result;
     },
   );
+    return shifted;
+  });
   return `=${work}`;
 }
 

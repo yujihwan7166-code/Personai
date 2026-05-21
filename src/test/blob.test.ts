@@ -1,6 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sanitizeFileName, downloadBlob, downloadJson, downloadCsv } from '@/lib/blob';
 
+const readBlobBytes = (blob: Blob): Promise<Uint8Array> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+
+const readBlobText = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+
 describe('sanitizeFileName', () => {
   it('금지 문자 _ 로 치환', () => {
     expect(sanitizeFileName('a/b\\c:d*e?f"g<h>i|j')).toBe('a_b_c_d_e_f_g_h_i_j');
@@ -61,8 +77,8 @@ describe('downloadText / downloadJson / downloadCsv (wrap downloadBlob)', () => 
     expect(recordedName).toBe('data.json');
   });
 
-  it('downloadCsv BOM 추가', () => {
-    let savedBlob: Blob | null = null;
+  it('downloadCsv BOM 추가', async () => {
+    let savedBlob: Blob | undefined;
     URL.createObjectURL = vi.fn((b: Blob) => { savedBlob = b; return 'blob:x'; }) as typeof URL.createObjectURL;
     const orig = document.createElement.bind(document);
     document.createElement = vi.fn((tag: string) => {
@@ -72,6 +88,8 @@ describe('downloadText / downloadJson / downloadCsv (wrap downloadBlob)', () => 
     }) as typeof document.createElement;
     downloadCsv('a,b', 'test');
     expect(savedBlob).toBeTruthy();
-    // BOM 포함 검증 — Blob 의 byte length 가 3 (BOM) + 'a,b' 길이
+    const bytes = await readBlobBytes(savedBlob!);
+    expect(Array.from(bytes.slice(0, 3))).toEqual([0xef, 0xbb, 0xbf]);
+    expect(await readBlobText(savedBlob!)).toBe('a,b');
   });
 });

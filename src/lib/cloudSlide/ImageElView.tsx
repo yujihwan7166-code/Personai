@@ -5,6 +5,7 @@ import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SlideImageEl, ResizeDir } from './types';
 import { ResizeHandles, RotateHandle } from './Handles';
+import { imageCropStyle } from './imageCrop';
 
 interface ImageElViewProps {
   el: SlideImageEl;
@@ -39,6 +40,7 @@ export function ImageElView({
         transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
         transformOrigin: 'center center',
       }}
+      title={el.hyperlink ?? el.alt}
     >
       {errored ? (
         <div
@@ -53,7 +55,8 @@ export function ImageElView({
         <img
           src={el.src}
           alt={el.alt ?? ''}
-          className="w-full h-full object-contain select-none pointer-events-none"
+          className="select-none pointer-events-none"
+          style={imageCropStyle(el.crop)}
           draggable={false}
           onError={() => setErrored(true)}
         />

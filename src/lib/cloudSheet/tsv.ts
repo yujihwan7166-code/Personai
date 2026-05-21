@@ -22,26 +22,29 @@ export function rangeToTsv(cells: Cells, bounds: SelBounds): string {
 
 /** TSV 텍스트 → 2D 배열 (엑셀 호환: "" 로 감싼 셀 안 \t 보존) */
 export function parseTsv(text: string): string[][] {
+  const input = text.startsWith('\uFEFF') ? text.slice(1) : text;
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';
   let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+  let cellTouched = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
     if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      if (ch === '"' && input[i + 1] === '"') { cell += '"'; i++; cellTouched = true; }
       else if (ch === '"') { inQuotes = false; }
-      else { cell += ch; }
+      else { cell += ch; cellTouched = true; }
     } else {
-      if (ch === '"') inQuotes = true;
-      else if (ch === '\t') { row.push(cell); cell = ''; }
+      if (ch === '"' && !cellTouched && cell === '') { inQuotes = true; cellTouched = true; }
+      else if (ch === '\t') { row.push(cell); cell = ''; cellTouched = false; }
       else if (ch === '\n' || ch === '\r') {
         row.push(cell); cell = '';
         rows.push(row); row = [];
-        if (ch === '\r' && text[i + 1] === '\n') i++;
-      } else { cell += ch; }
+        cellTouched = false;
+        if (ch === '\r' && input[i + 1] === '\n') i++;
+      } else { cell += ch; cellTouched = true; }
     }
   }
-  if (cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
+  if (cellTouched || cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
   return rows;
 }

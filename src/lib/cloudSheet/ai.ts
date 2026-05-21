@@ -4,9 +4,14 @@
  */
 
 import { quickAi, QUICK_MODEL, QUALITY_MODEL } from '@/lib/cloudDoc/ai';
+import { escapeCsvCell } from '@/lib/csv';
 import { IMAGE_SENTINEL } from './formula';
 
 type Cells = Record<string, string>;
+type CellsToCsvOptions = {
+  displayValues?: Cells;
+  safeForSpreadsheet?: boolean;
+};
 
 // ─────────────────────────────────────────────
 // 데이터 → CSV (AI 프롬프트 용)
@@ -30,9 +35,27 @@ function colIdx(label: string): number {
   return n - 1;
 }
 
+function shouldProtectSpreadsheetCsvValue(value: string): boolean {
+  if (!value) return false;
+  const withoutBom = value.replace(/^\uFEFF/, '');
+  const trimmedStart = withoutBom.trimStart();
+  const trimmed = withoutBom.trim();
+
+  if (/^[=+@]/.test(trimmedStart)) return true;
+  if (/^-/.test(trimmedStart) && !/^-?\d+(?:\.\d+)?$/.test(trimmedStart)) return true;
+  if (/^0\d+$/.test(trimmed)) return true;
+  if (/^[+-]?\d{16,}$/.test(trimmed)) return true;
+
+  return false;
+}
+
+function protectSpreadsheetCsvValue(value: string): string {
+  return shouldProtectSpreadsheetCsvValue(value) ? `'${value}` : value;
+}
+
 /** cells 를 CSV 형식으로 직렬화. 빈 셀은 빈 칸. 비어있는 trailing 행/열 제거.
  *  IMAGE 함수 결과(sentinel)는 URL 만 남김. */
-export function cellsToCsv(cells: Cells, opts: { displayValues?: Cells } = {}): string {
+export function cellsToCsv(cells: Cells, opts: CellsToCsvOptions = {}): string {
   let maxRow = -1;
   let maxCol = -1;
   for (const ref of Object.keys(cells)) {
@@ -53,9 +76,8 @@ export function cellsToCsv(cells: Cells, opts: { displayValues?: Cells } = {}): 
       let raw = opts.displayValues?.[ref] ?? cells[ref] ?? '';
       // IMAGE sentinel → URL 만
       if (raw.startsWith(IMAGE_SENTINEL)) raw = raw.slice(IMAGE_SENTINEL.length);
-      // CSV escape
-      const needsQuote = raw.includes(',') || raw.includes('"') || raw.includes('\n');
-      row.push(needsQuote ? `"${raw.replace(/"/g, '""')}"` : raw);
+      if (opts.safeForSpreadsheet) raw = protectSpreadsheetCsvValue(raw);
+      row.push(escapeCsvCell(raw));
     }
     lines.push(row.join(','));
   }

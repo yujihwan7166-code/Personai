@@ -112,6 +112,16 @@ describe('formula — 텍스트', () => {
     expect(evaluate('HYPERLINK("javascript:alert(1)")')).toBe('#REF!');
     expect(evaluate('HYPERLINK("vbscript:msgbox")')).toBe('#REF!');
     expect(evaluate('HYPERLINK("data:text/html,<script>")')).toBe('#REF!');
+    expect(evaluate('HYPERLINK("file:///C:/secret.txt")')).toBe('#REF!');
+    expect(evaluate('HYPERLINK("ftp://example.com/file")')).toBe('#REF!');
+  });
+
+  it('IMAGE 보안 — 안전한 이미지 소스만 sentinel로 반환', () => {
+    expect(evaluate('IMAGE("https://example.com/a.png")')).toBe('__CLOUDSHEET_IMAGE__:https://example.com/a.png');
+    expect(evaluate('IMAGE("file:///C:/secret.png")')).toBe('#REF!');
+    expect(evaluate('IMAGE("ftp://example.com/a.png")')).toBe('#REF!');
+    expect(evaluate('IMAGE("data:text/html,<script>")')).toBe('#REF!');
+    expect(evaluate('IMAGE("data:image/svg+xml,<svg/>")')).toBe('#REF!');
   });
 });
 
@@ -228,5 +238,18 @@ describe('formula — 회귀 (기존)', () => {
     expect(evaluate('IFERROR(SUM(A1:A3) / COUNT(A1:A3), 0)', {
       A1: '10', A2: '20', A3: '30',
     })).toBe('20');
+  });
+});
+
+describe('formula — evaluator sandbox', () => {
+  it('blocks direct JavaScript execution escapes', () => {
+    expect(evaluate('(()=>{return 1})()')).toBe('#ERROR');
+    expect(evaluate('globalThis.alert(1)')).toBe('#ERROR');
+    expect(evaluate('__sum.constructor("return 7")()')).toBe('#ERROR');
+  });
+
+  it('keeps normal spreadsheet formulas working', () => {
+    expect(evaluate('IF(1 > 0, "y", "n")')).toBe('y');
+    expect(evaluate('SUM(A1:A2)', { A1: '2', A2: '3' })).toBe('5');
   });
 });

@@ -12,8 +12,21 @@ import {
   type CloudNodeRow,
   type CloudFileType,
 } from '@/types/cloud';
+import { estimateUsedBytes } from '@/lib/storageQuota';
+import { formatBytes } from '@/lib/formatters';
 
 const STORAGE_KEY = 'personai.cloud.nodes.v1';
+
+export class CloudStorageError extends Error {
+  cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = 'CloudStorageError';
+    this.cause = cause;
+    Object.setPrototypeOf(this, CloudStorageError.prototype);
+  }
+}
 
 interface StoredNode {
   id: string;
@@ -58,12 +71,26 @@ function loadAll(): StoredNode[] {
 }
 
 function saveAll(nodes: StoredNode[]): void {
-  cache = nodes;
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    cache = nodes;
+    return;
+  }
+  let serialized: string;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes));
-  } catch {
-    // quota or privacy mode — 조용히 무시 (사용자에겐 토스트로 표시 가능)
+    serialized = JSON.stringify(nodes);
+    window.localStorage.setItem(STORAGE_KEY, serialized);
+    cache = nodes;
+  } catch (e) {
+    const used = estimateUsedBytes();
+    const nextBytes = (STORAGE_KEY.length + (serialized?.length ?? 0)) * 2;
+    throw new CloudStorageError(
+      [
+        '브라우저 저장 공간이 부족해서 저장하지 못했어요.',
+        `현재 사용량 약 ${formatBytes(used)}, 저장 후 예상 ${formatBytes(Math.max(used, nextBytes))}.`,
+        '큰 이미지는 URL로 넣거나 더 작은 파일로 줄여주세요.',
+      ].join(' '),
+      e,
+    );
   }
 }
 

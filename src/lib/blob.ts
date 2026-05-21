@@ -49,6 +49,6 @@ export function downloadJson(value: unknown, fileName: string): void {
 
 /** CSV 다운로드 — UTF-8 BOM 포함 (Excel 한글 깨짐 방지). */
 export function downloadCsv(csv: string, fileName: string): void {
-  const bom = '﻿';
+  const bom = '\uFEFF';
   downloadText(bom + csv, fileName.endsWith('.csv') ? fileName : `${fileName}.csv`, 'text/csv;charset=utf-8');
 }

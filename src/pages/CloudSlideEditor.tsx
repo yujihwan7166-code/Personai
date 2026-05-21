@@ -19,7 +19,7 @@ import {
   RotateCw, RotateCcw,
   Play,
   Sparkles, Undo2, Redo2,
-  Palette,
+  Palette, Lock,
 } from 'lucide-react';
 import { toast as appToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // updateFileBody 는 useDebouncedAutosave 내부 사용
 import { useCloudNodeLoader } from '@/lib/cloudCommon/useCloudNodeLoader';
 import { useDebouncedAutosave } from '@/lib/cloudCommon/useDebouncedAutosave';
-import { importPptxFile, exportPptxFile } from '@/lib/cloudSlide/pptx';
+import { importPptxDeck, exportPptxFile } from '@/lib/cloudSlide/pptx';
 import {
   aiNextSlide, aiImproveSlide, aiOutlinePresentation,
   slideToText, slidesToOutline, parseAiSlideContent,
@@ -44,6 +44,12 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { ColorPopover } from '@/components/cloud/ColorPopover';
 
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
@@ -54,13 +60,16 @@ import { PresentationOverlay } from '@/lib/cloudSlide/PresentationOverlay';
 import { TextElView } from '@/lib/cloudSlide/TextElView';
 import { ImageElView } from '@/lib/cloudSlide/ImageElView';
 import { ShapeElView } from '@/lib/cloudSlide/ShapeElView';
+import { ChartElView } from '@/lib/cloudSlide/ChartElView';
+import { TableElView } from '@/lib/cloudSlide/TableElView';
 import { ThemePickerModal } from '@/lib/cloudSlide/ThemePickerModal';
-import { getTheme, resolveSlideBackground, DEFAULT_THEME_ID } from '@/lib/cloudSlide/themes';
+import { getTheme, DEFAULT_THEME_ID } from '@/lib/cloudSlide/themes';
 import { newId } from '@/lib/idGenerator';
 import {
   type SlideTextEl, type ShapeType, type SlideShapeEl, type SlideImageEl,
-  type SlideElement, type ResizeDir, type Slide, type SlideMeta,
-  SHAPE_SHADOW, isText, isShape, isLineLike, isImage, emptySlide, defaultMeta,
+  type SlideElement, type ResizeDir, type Slide, type SlideMeta, type SlideTableEl, type SlideTransition,
+  SHAPE_SHADOW, DEFAULT_SLIDE_SIZE, isText, isShape, isLineLike, isImage, isChart, isTable,
+  emptySlide, defaultMeta, normalizeSlideSize, slideAspectRatio,
 } from '@/lib/cloudSlide/types';
 import {
   nextFontSize, nextStrokeWidth, nextLineHeight, nextRadius,
@@ -68,10 +77,50 @@ import {
 import { computeAlign, computeDistribute } from '@/lib/cloudSlide/align';
 import { applySnap, buildSnapLines } from '@/lib/cloudSlide/snap';
 import { computeRotation, angleBetween } from '@/lib/cloudSlide/rotation';
+import {
+  createSlideElementClipboard,
+  pasteSlideElementClipboard,
+  type SlideElementClipboardPayload,
+} from '@/lib/cloudSlide/elementClipboard';
+import { updateSlideTableCellText, type TableCellAddress } from '@/lib/cloudSlide/tableOps';
+import { imageCropStyle } from '@/lib/cloudSlide/imageCrop';
+import { slideBackgroundStyle } from '@/lib/cloudSlide/slideBackground';
 
 const AUTOSAVE_DELAY_MS = 1000;
 const SLIDE_ZOOM_STEPS = [50, 75, 100, 125, 150, 200] as const;
 const SLIDE_ZOOM_LS_KEY = 'personai.cloud.slide.zoom';
+const SLIDE_TRANSITION_OPTIONS: Array<{ label: string; transition?: SlideTransition }> = [
+  { label: 'None' },
+  { label: 'Fade', transition: { type: 'fade', durationMs: 1000, advanceOnClick: true } },
+  { label: 'Push', transition: { type: 'push', direction: 'left', durationMs: 1000, advanceOnClick: true } },
+  { label: 'Wipe', transition: { type: 'wipe', direction: 'right', durationMs: 1000, advanceOnClick: true } },
+  { label: 'Cover', transition: { type: 'cover', direction: 'left', durationMs: 1000, advanceOnClick: true } },
+  { label: 'Zoom', transition: { type: 'zoom', durationMs: 1000, advanceOnClick: true } },
+];
+
+function isLockedEl(el: SlideElement | undefined): boolean {
+  return !!el?.locked;
+}
+
+function nearestVisibleSlideIndex(slides: Slide[], from: number, dir: 1 | -1): number {
+  if (slides.length === 0) return 0;
+  const start = Math.max(0, Math.min(slides.length - 1, from));
+  if (!slides[start]?.hidden) return start;
+  for (let i = start + dir; i >= 0 && i < slides.length; i += dir) {
+    if (!slides[i]?.hidden) return i;
+  }
+  for (let i = start - dir; i >= 0 && i < slides.length; i -= dir) {
+    if (!slides[i]?.hidden) return i;
+  }
+  return start;
+}
+
+function stepVisibleSlideIndex(slides: Slide[], from: number, dir: 1 | -1): number {
+  for (let i = from + dir; i >= 0 && i < slides.length; i += dir) {
+    if (!slides[i]?.hidden) return i;
+  }
+  return Math.max(0, Math.min(Math.max(0, slides.length - 1), from));
+}
 
 export default function CloudSlideEditor() {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +133,7 @@ export default function CloudSlideEditor() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [themeId, setThemeId] = useState<string>(DEFAULT_THEME_ID);
+  const [slideSize, setSlideSize] = useState(DEFAULT_SLIDE_SIZE);
   const currentTheme = getTheme(themeId);
 
   const [slides, setSlides] = useState<Slide[]>([emptySlide()]);
@@ -134,12 +184,18 @@ export default function CloudSlideEditor() {
   const [dragOverThumbIdx, setDragOverThumbIdx] = useState<number | null>(null);
   // 다중 선택 (Shift+클릭 또는 그룹화된 멤버 자동 포함)
   const [selectedElIds, setSelectedElIds] = useState<Set<string>>(new Set());
+  const [elementClipboard, setElementClipboard] = useState<SlideElementClipboardPayload | null>(null);
   const [editingElId, setEditingElId] = useState<string | null>(null);
+  const [editingTableCell, setEditingTableCell] = useState<(TableCellAddress & { elId: string }) | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [presentIdx, setPresentIdx] = useState(0);
   /** 발표 모드 가림: 'black'/'white' = 화면 검정/흰. null = 정상. PowerPoint convention. */
   const [presentBlank, setPresentBlank] = useState<'black' | 'white' | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [imageUrlDialogOpen, setImageUrlDialogOpen] = useState(false);
+  const [imageUrlDraft, setImageUrlDraft] = useState('');
+  const [outlineTopicDialogOpen, setOutlineTopicDialogOpen] = useState(false);
+  const [outlineTopicDraft, setOutlineTopicDraft] = useState('');
 
   const canvasRef = useRef<HTMLDivElement>(null);
   /** main 영역 ref — Ctrl+휠 줌을 위해 native event listener (passive:false) 부착용. */
@@ -210,6 +266,7 @@ export default function CloudSlideEditor() {
         : defaultMeta().slides;
       setSlides(loaded);
       setCurrentIdx(Math.max(0, Math.min((meta.currentIdx ?? 0), loaded.length - 1)));
+      setSlideSize(normalizeSlideSize(meta.slideSize));
       if (typeof meta.themeId === 'string') setThemeId(meta.themeId);
     },
   });
@@ -223,13 +280,16 @@ export default function CloudSlideEditor() {
   // 다른 콜백들이 themeId 변화마다 재생성되는 cascade 를 막는다.
   const themeIdRef = useRef(themeId);
   useEffect(() => { themeIdRef.current = themeId; }, [themeId]);
+  const slideSizeRef = useRef(slideSize);
+  useEffect(() => { slideSizeRef.current = slideSize; }, [slideSize]);
 
-  const queueSave = useCallback((nextSlides: Slide[], nextIdx: number, nextThemeId?: string) => {
+  const queueSave = useCallback((nextSlides: Slide[], nextIdx: number, nextThemeId?: string, nextSlideSize = slideSizeRef.current) => {
     queueSaveRaw({
       meta: {
         ...(node?.meta ?? {}),
         slides: nextSlides,
         currentIdx: nextIdx,
+        slideSize: nextSlideSize,
         themeId: nextThemeId ?? themeIdRef.current,
       },
     });
@@ -257,7 +317,12 @@ export default function CloudSlideEditor() {
   }, [queueSave, currentIdx]);
 
   // ─── Undo / Redo (debounce snapshot) ───
-  interface SlideSnapshot { slides: Slide[]; currentIdx: number }
+  interface SlideSnapshot {
+    slides: Slide[];
+    currentIdx: number;
+    themeId: string;
+    slideSize: typeof DEFAULT_SLIDE_SIZE;
+  }
   const [history, setHistory] = useState<SlideSnapshot[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const isApplyingHistoryRef = useRef(false);
@@ -272,13 +337,20 @@ export default function CloudSlideEditor() {
     if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
     snapshotTimerRef.current = setTimeout(() => {
       setHistory((h) => {
-        const snap: SlideSnapshot = { slides, currentIdx };
+        const snap: SlideSnapshot = { slides, currentIdx, themeId, slideSize };
         if (historyIdx === -1) {
           setHistoryIdx(0);
           return [snap];
         }
         const last = h[historyIdx];
-        if (last && last.slides === snap.slides && last.currentIdx === snap.currentIdx) return h;
+        if (
+          last &&
+          last.slides === snap.slides &&
+          last.currentIdx === snap.currentIdx &&
+          last.themeId === snap.themeId &&
+          last.slideSize.width === snap.slideSize.width &&
+          last.slideSize.height === snap.slideSize.height
+        ) return h;
         const next = h.slice(0, historyIdx + 1);
         next.push(snap);
         if (next.length > 100) next.shift();
@@ -289,7 +361,7 @@ export default function CloudSlideEditor() {
     return () => {
       if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
     };
-  }, [node, slides, currentIdx, historyIdx]);
+  }, [node, slides, currentIdx, themeId, slideSize, historyIdx]);
 
   const canUndo = historyIdx > 0;
   const canRedo = historyIdx >= 0 && historyIdx < history.length - 1;
@@ -298,7 +370,9 @@ export default function CloudSlideEditor() {
     isApplyingHistoryRef.current = true;
     setSlides(snap.slides);
     setCurrentIdx(snap.currentIdx);
-    queueSave(snap.slides, snap.currentIdx);
+    setThemeId(snap.themeId);
+    setSlideSize(snap.slideSize);
+    queueSave(snap.slides, snap.currentIdx, snap.themeId, snap.slideSize);
   }, [queueSave]);
 
   const undo = useCallback(() => {
@@ -310,6 +384,7 @@ export default function CloudSlideEditor() {
     setSelectedElId(null);
     setSelectedElIds(new Set());  // 다중 선택도 함께 초기화 (snapshot 의 element id 와 다를 수 있음)
     setEditingElId(null);
+    setEditingTableCell(null);
   }, [canUndo, history, historyIdx, applySnapshot]);
 
   const redo = useCallback(() => {
@@ -321,6 +396,7 @@ export default function CloudSlideEditor() {
     setSelectedElId(null);
     setSelectedElIds(new Set());
     setEditingElId(null);
+    setEditingTableCell(null);
   }, [canRedo, history, historyIdx, applySnapshot]);
 
   const addSlide = useCallback(() => {
@@ -472,6 +548,11 @@ export default function CloudSlideEditor() {
     setCurrentIdx(idx + 1);
   }, [updateSlides]);
 
+  const toggleSlideHiddenAt = useCallback((idx: number) => {
+    updateSlides((prev) => prev.map((s, i) => (i === idx ? { ...s, hidden: !s.hidden } : s)), idx);
+    setCurrentIdx(idx);
+  }, [updateSlides]);
+
   // ─── 요소 mutate ───
   const updateCurrentSlide = useCallback((updater: (s: Slide) => Slide) => {
     updateSlides((prev) => prev.map((s, i) => (i === currentIdx ? updater(s) : s)));
@@ -580,25 +661,31 @@ export default function CloudSlideEditor() {
     input.click();
   }, [addImageEl]);
 
+  const openImageUrlDialog = useCallback(() => {
+    setImageUrlDraft('');
+    setImageUrlDialogOpen(true);
+  }, []);
+
   /** URL 로 이미지 추가 — 원격 호스팅 이미지. data URL 안 거치므로 용량 부담 X. */
-  const addImageByUrl = useCallback(() => {
-    const raw = window.prompt('이미지 URL', 'https://');
-    if (!raw) return;
-    const url = raw.trim();
+  const submitImageUrl = useCallback(() => {
+    const url = imageUrlDraft.trim();
     if (!url || url === 'https://') return;
     if (!/^https?:\/\/\S+/i.test(url)) {
       appToast({ title: '유효하지 않은 URL', description: 'http(s):// 로 시작해야 합니다.' });
       return;
     }
     addImageEl(url);
+    setImageUrlDialogOpen(false);
+    setImageUrlDraft('');
     appToast({ title: '이미지 추가됨', description: '외부 호스팅 이미지 — 원본 사이트가 막히면 깨질 수 있어요.' });
-  }, [addImageEl]);
+  }, [addImageEl, imageUrlDraft]);
 
   // ─── z-order ───
   const moveElForward = useCallback((id: string) => {
     updateCurrentSlide((s) => {
       const i = s.elements.findIndex((e) => e.id === id);
       if (i === -1 || i === s.elements.length - 1) return s;
+      if (isLockedEl(s.elements[i])) return s;
       const next = [...s.elements];
       [next[i], next[i + 1]] = [next[i + 1], next[i]];
       return { ...s, elements: next };
@@ -609,6 +696,7 @@ export default function CloudSlideEditor() {
     updateCurrentSlide((s) => {
       const i = s.elements.findIndex((e) => e.id === id);
       if (i <= 0) return s;
+      if (isLockedEl(s.elements[i])) return s;
       const next = [...s.elements];
       [next[i - 1], next[i]] = [next[i], next[i - 1]];
       return { ...s, elements: next };
@@ -619,6 +707,7 @@ export default function CloudSlideEditor() {
     updateCurrentSlide((s) => {
       const target = s.elements.find((e) => e.id === id);
       if (!target) return s;
+      if (isLockedEl(target)) return s;
       return { ...s, elements: [...s.elements.filter((e) => e.id !== id), target] };
     });
   }, [updateCurrentSlide]);
@@ -627,15 +716,27 @@ export default function CloudSlideEditor() {
     updateCurrentSlide((s) => {
       const target = s.elements.find((e) => e.id === id);
       if (!target) return s;
+      if (isLockedEl(target)) return s;
       return { ...s, elements: [target, ...s.elements.filter((e) => e.id !== id)] };
     });
   }, [updateCurrentSlide]);
 
   // 부분 patch (유니온 호환 위해 unknown 캐스트 — id 매칭 후 안전)
-  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl> | Partial<SlideShapeEl> | Partial<SlideImageEl>) => {
+  const updateEl = useCallback((elId: string, patch: Partial<SlideTextEl> | Partial<SlideShapeEl> | Partial<SlideImageEl> | Partial<SlideTableEl>) => {
     updateCurrentSlide((s) => ({
       ...s,
-      elements: s.elements.map((el) => (el.id === elId ? ({ ...el, ...patch } as SlideElement) : el)),
+      elements: s.elements.map((el) => (el.id === elId && !isLockedEl(el) ? ({ ...el, ...patch } as SlideElement) : el)),
+    }));
+  }, [updateCurrentSlide]);
+
+  const updateTableCellText = useCallback((elId: string, row: number, col: number, text: string) => {
+    updateCurrentSlide((s) => ({
+      ...s,
+      elements: s.elements.map((el) => (
+        el.id === elId && isTable(el) && !isLockedEl(el)
+          ? updateSlideTableCellText(el, row, col, text)
+          : el
+      )),
     }));
   }, [updateCurrentSlide]);
 
@@ -653,7 +754,7 @@ export default function CloudSlideEditor() {
     for (const sid of selectedElIds) idsToDelete.add(sid);
     updateCurrentSlide((s) => ({
       ...s,
-      elements: s.elements.filter((el) => !idsToDelete.has(el.id)),
+      elements: s.elements.filter((el) => isLockedEl(el) || !idsToDelete.has(el.id)),
     }));
     setSelectedElId(null);
     setSelectedElIds(new Set());
@@ -662,25 +763,56 @@ export default function CloudSlideEditor() {
 
   /** 요소 복제 — 같은 슬라이드에 +2% 위치 어긋나게 추가. */
   const duplicateEl = useCallback((elId: string) => {
-    let newId_: string | null = null;
+    let pastedIds: string[] = [];
     updateCurrentSlide((s) => {
-      const target = s.elements.find((e) => e.id === elId);
-      if (!target) return s;
-      newId_ = newId('el');
-      const dup: SlideElement = {
-        ...target,
-        id: newId_,
-        xPct: Math.max(0, Math.min(100 - target.wPct, target.xPct + 2)),
-        yPct: Math.max(0, Math.min(100 - target.hPct, target.yPct + 2)),
-        groupId: undefined,
-      };
-      return { ...s, elements: [...s.elements, dup] };
+      const payload = createSlideElementClipboard(s, [elId]);
+      if (!payload) return s;
+      const pasted = pasteSlideElementClipboard(payload);
+      pastedIds = pasted.selectedIds;
+      return { ...s, elements: [...s.elements, ...pasted.elements] };
     });
-    if (newId_) {
-      setSelectedElId(newId_);
-      setSelectedElIds(new Set([newId_]));
+    if (pastedIds.length > 0) {
+      setSelectedElId(pastedIds[0]);
+      setSelectedElIds(new Set(pastedIds));
     }
   }, [updateCurrentSlide]);
+
+  const copySelectedElements = useCallback((): boolean => {
+    const cur = slides[currentIdx];
+    if (!cur) return false;
+    const payload = createSlideElementClipboard(cur, selectedElIds, selectedElId);
+    if (!payload) return false;
+    setElementClipboard(payload);
+    return true;
+  }, [slides, currentIdx, selectedElIds, selectedElId]);
+
+  const pasteCopiedElements = useCallback((): boolean => {
+    if (!elementClipboard) return false;
+    let pastedIds: string[] = [];
+    updateCurrentSlide((s) => {
+      const pasted = pasteSlideElementClipboard(elementClipboard);
+      pastedIds = pasted.selectedIds;
+      return { ...s, elements: [...s.elements, ...pasted.elements] };
+    });
+    if (pastedIds.length === 0) return false;
+    setSelectedElId(pastedIds[0]);
+    setSelectedElIds(new Set(pastedIds));
+    setEditingElId(null);
+    return true;
+  }, [elementClipboard, updateCurrentSlide]);
+
+  const duplicateSelectedElements = useCallback((): boolean => {
+    const cur = slides[currentIdx];
+    if (!cur) return false;
+    const payload = createSlideElementClipboard(cur, selectedElIds, selectedElId);
+    if (!payload) return false;
+    const pasted = pasteSlideElementClipboard(payload);
+    updateCurrentSlide((s) => ({ ...s, elements: [...s.elements, ...pasted.elements] }));
+    setSelectedElId(pasted.selectedIds[0] ?? null);
+    setSelectedElIds(new Set(pasted.selectedIds));
+    setEditingElId(null);
+    return true;
+  }, [slides, currentIdx, selectedElIds, selectedElId, updateCurrentSlide]);
 
   // 어떤 요소를 클릭했을 때 그룹 멤버까지 묶어서 선택. Shift 면 toggle 추가.
   const selectElement = useCallback((elId: string, multi: boolean = false) => {
@@ -688,6 +820,7 @@ export default function CloudSlideEditor() {
     if (!cur) return;
     const target = cur.elements.find((e) => e.id === elId);
     if (!target) return;
+    setEditingTableCell(null);
     const groupIds = new Set<string>([elId]);
     if (target.groupId) {
       for (const e of cur.elements) {
@@ -714,7 +847,8 @@ export default function CloudSlideEditor() {
   const alignSelected = useCallback((axis: 'h' | 'v', mode: 'start' | 'center' | 'end') => {
     if (selectedElIds.size < 2) return;
     updateCurrentSlide((s) => {
-      const els = s.elements.filter((e) => selectedElIds.has(e.id));
+      const els = s.elements.filter((e) => selectedElIds.has(e.id) && !isLockedEl(e));
+      if (els.length < 2) return s;
       const newPos = computeAlign(els, axis, mode);
       if (newPos.size === 0) return s;
       return {
@@ -731,7 +865,8 @@ export default function CloudSlideEditor() {
   const distributeSelected = useCallback((axis: 'h' | 'v') => {
     if (selectedElIds.size < 3) return;
     updateCurrentSlide((s) => {
-      const els = s.elements.filter((e) => selectedElIds.has(e.id));
+      const els = s.elements.filter((e) => selectedElIds.has(e.id) && !isLockedEl(e));
+      if (els.length < 3) return s;
       const newPos = computeDistribute(els, axis);
       if (newPos.size === 0) return s;
       return {
@@ -747,17 +882,21 @@ export default function CloudSlideEditor() {
 
   // ─── 그룹화 / 해제 ───
   const groupSelected = useCallback(() => {
-    if (selectedElIds.size < 2) {
+    const cur = slides[currentIdx];
+    const unlockedIds = new Set((cur?.elements ?? [])
+      .filter((el) => selectedElIds.has(el.id) && !isLockedEl(el))
+      .map((el) => el.id));
+    if (unlockedIds.size < 2) {
       appToast({ title: '2개 이상 선택하세요', description: 'Shift+클릭으로 추가 선택' });
       return;
     }
     const groupId = newId('g');
     updateCurrentSlide((s) => ({
       ...s,
-      elements: s.elements.map((el) => (selectedElIds.has(el.id) ? ({ ...el, groupId } as SlideElement) : el)),
+      elements: s.elements.map((el) => (unlockedIds.has(el.id) ? ({ ...el, groupId } as SlideElement) : el)),
     }));
-    appToast({ title: `${selectedElIds.size}개 그룹화` });
-  }, [selectedElIds, updateCurrentSlide]);
+    appToast({ title: `${unlockedIds.size}개 그룹화` });
+  }, [selectedElIds, slides, currentIdx, updateCurrentSlide]);
 
   const ungroupSelected = useCallback(() => {
     // 선택된 요소들의 groupId 제거
@@ -766,7 +905,7 @@ export default function CloudSlideEditor() {
     const groupIdsToRemove = new Set<string>();
     for (const id of selectedElIds) {
       const el = cur.elements.find((e) => e.id === id);
-      if (el?.groupId) groupIdsToRemove.add(el.groupId);
+      if (el?.groupId && !isLockedEl(el)) groupIdsToRemove.add(el.groupId);
     }
     if (groupIdsToRemove.size === 0) {
       appToast({ title: '그룹이 없어요' });
@@ -775,7 +914,7 @@ export default function CloudSlideEditor() {
     updateCurrentSlide((s) => ({
       ...s,
       elements: s.elements.map((el) => (
-        el.groupId && groupIdsToRemove.has(el.groupId)
+        el.groupId && groupIdsToRemove.has(el.groupId) && !isLockedEl(el)
           ? ({ ...el, groupId: undefined } as SlideElement)
           : el
       )),
@@ -820,6 +959,7 @@ export default function CloudSlideEditor() {
   // 회전: 도형 중심 ↔ 포인터 의 각도로 rotation 계산.
   // Shift = 15도 snap, Esc/우클릭 = 원래값 유지하고 종료.
   const startRotate = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
+    if (isLockedEl(el)) return;
     e.preventDefault();
     e.stopPropagation();
     setSelectedElId(elId);
@@ -846,6 +986,7 @@ export default function CloudSlideEditor() {
   }, [updateEl]);
 
   const startResize = useCallback((e: React.PointerEvent, elId: string, el: SlideElement, dir: ResizeDir) => {
+    if (isLockedEl(el)) return;
     e.preventDefault();
     e.stopPropagation();
     setSelectedElId(elId);
@@ -898,6 +1039,7 @@ export default function CloudSlideEditor() {
   // ─── 드래그 이동 + snap ───
   const SNAP_THRESHOLD_PCT = 1.0; // 1% 이내면 snap
   const startDrag = useCallback((e: React.PointerEvent, elId: string, el: SlideElement) => {
+    if (isLockedEl(el)) return;
     if (editingElId === elId) return; // 편집 중엔 드래그 X
     e.preventDefault();
     e.stopPropagation();
@@ -923,6 +1065,7 @@ export default function CloudSlideEditor() {
       }
       return [el];
     })();
+    if (mates.some(isLockedEl)) return;
     const startPositions = new Map<string, { x: number; y: number; w: number; h: number }>();
     for (const m of mates) {
       startPositions.set(m.id, { x: m.xPct, y: m.yPct, w: m.wPct, h: m.hPct });
@@ -1091,9 +1234,13 @@ export default function CloudSlideEditor() {
     }
   }, [slides, currentIdx, queueSave]);
 
-  const aiActionOutline = useCallback(async () => {
-    const topic = window.prompt('프레젠테이션 주제를 짧게 입력하세요\n(예: "AI 도입 효과", "신제품 기획안")');
-    if (!topic || !topic.trim()) return;
+  const openOutlineTopicDialog = useCallback(() => {
+    setOutlineTopicDraft('');
+    setOutlineTopicDialogOpen(true);
+  }, []);
+
+  const runAiOutline = useCallback(async (topic: string) => {
+    if (!topic.trim()) return;
     setAiBusy('5장 개요');
     try {
       const out = await aiOutlinePresentation(topic.trim());
@@ -1143,6 +1290,14 @@ export default function CloudSlideEditor() {
     }
   }, [queueSave]);
 
+  const submitOutlineTopic = useCallback(() => {
+    const topic = outlineTopicDraft.trim();
+    if (!topic) return;
+    setOutlineTopicDialogOpen(false);
+    setOutlineTopicDraft('');
+    void runAiOutline(topic);
+  }, [outlineTopicDraft, runAiOutline]);
+
   // ─── Import / Export .pptx ───
   const importPptx = useCallback(() => {
     const input = document.createElement('input');
@@ -1165,17 +1320,19 @@ export default function CloudSlideEditor() {
         return;
       }
       try {
-        const imported = await importPptxFile(file);
+        const importedDeck = await importPptxDeck(file);
+        const imported = importedDeck.slides;
         if (!imported.length) {
           toast({ title: '가져올 슬라이드가 없어요', description: '빈 파일입니다.' });
           return;
         }
+        setSlideSize(importedDeck.slideSize);
         // 기존 슬라이드 뒤에 추가 — 함수형 업데이터로 stale slides 회피 (파일 파싱 동안 변경 가능)
         setSlides((prev) => {
           const nextSlides = [...prev, ...imported];
           const targetIdx = prev.length;
           setCurrentIdx(targetIdx);
-          queueSave(nextSlides, targetIdx);
+          queueSave(nextSlides, targetIdx, undefined, importedDeck.slideSize);
           return nextSlides;
         });
         setSelectedElId(null);
@@ -1192,17 +1349,17 @@ export default function CloudSlideEditor() {
     input.click();
   }, [queueSave]);
 
-  const exportPptx = useCallback(() => {
+  const exportPptx = useCallback(async () => {
     if (!node) return;
     try {
       const fileName = node.name.replace(/[\\/:*?"<>|]/g, '_');
-      exportPptxFile(slides, fileName, themeId);
+      await exportPptxFile(slides, fileName, themeId, slideSize);
       toast({ title: '내보내기 완료', description: `${fileName}.pptx 다운로드 시작` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [slides, node, themeId]);
+  }, [slides, node, themeId, slideSize]);
 
   // ─── PDF export: 슬라이드별 페이지 ───
   // 화면에 안 보이는 슬라이드도 캡처하려면 모든 슬라이드를 임시 렌더 후 캡처
@@ -1214,17 +1371,17 @@ export default function CloudSlideEditor() {
     host.style.position = 'fixed';
     host.style.left = '-99999px';
     host.style.top = '0';
-    host.style.width = '1280px';  // 16:9 캔버스 폭
+    host.style.width = `${slideSize.width}px`;
     document.body.appendChild(host);
     try {
 
       const elements: HTMLElement[] = [];
       for (const s of slides) {
         const slideEl = document.createElement('div');
-        slideEl.style.width = '1280px';
-        slideEl.style.height = '720px';
+        slideEl.style.width = `${slideSize.width}px`;
+        slideEl.style.height = `${slideSize.height}px`;
         slideEl.style.position = 'relative';
-        slideEl.style.background = s.background ?? '#ffffff';
+        Object.assign(slideEl.style, slideBackgroundStyle(s, currentTheme));
         slideEl.style.overflow = 'hidden';
         for (const el of s.elements) {
           const child = document.createElement('div');
@@ -1252,9 +1409,7 @@ export default function CloudSlideEditor() {
           } else if (el.type === 'image') {
             const img = document.createElement('img');
             img.src = el.src;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'contain';
+            Object.assign(img.style, imageCropStyle(el.crop));
             child.appendChild(img);
           } else if (el.type === 'rect') {
             child.style.background = el.fillColor;
@@ -1302,7 +1457,7 @@ export default function CloudSlideEditor() {
       if (host.parentNode) host.parentNode.removeChild(host);
       setAiBusy(null);
     }
-  }, [node, slides]);
+  }, [currentTheme, node, slides, slideSize]);
 
   /** 현재 슬라이드만 PNG 로 캡처해 다운로드 — canvasRef 의 부모 (.bg-white 카드) 캡처. */
   const exportCurrentSlideAsPng = useCallback(async () => {
@@ -1386,11 +1541,11 @@ export default function CloudSlideEditor() {
 
   // ─── 발표 모드 ───
   const startPresent = useCallback(() => {
-    setPresentIdx(currentIdx);
+    setPresentIdx(nearestVisibleSlideIndex(slides, currentIdx, 1));
     setPresenting(true);
     setSelectedElId(null);
     setEditingElId(null);
-  }, [currentIdx]);
+  }, [currentIdx, slides]);
 
   // 발표 모드 중 body 스크롤 잠금 (overlay 뒤 컨텐츠가 휠로 스크롤되는 것 방지)
   useEffect(() => {
@@ -1416,16 +1571,16 @@ export default function CloudSlideEditor() {
           stopPresent();
         } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
-          setPresentIdx((i) => Math.min(slides.length - 1, i + 1));
+          setPresentIdx((i) => stepVisibleSlideIndex(slides, i, 1));
         } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
           e.preventDefault();
-          setPresentIdx((i) => Math.max(0, i - 1));
+          setPresentIdx((i) => stepVisibleSlideIndex(slides, i, -1));
         } else if (e.key === 'Home') {
           e.preventDefault();
-          setPresentIdx(0);
+          setPresentIdx(nearestVisibleSlideIndex(slides, 0, 1));
         } else if (e.key === 'End') {
           e.preventDefault();
-          setPresentIdx(slides.length - 1);
+          setPresentIdx(nearestVisibleSlideIndex(slides, slides.length - 1, -1));
         } else if (e.key === 'b' || e.key === 'B') {
           e.preventDefault();
           setPresentBlank((cur) => (cur === 'black' ? null : 'black'));
@@ -1449,7 +1604,14 @@ export default function CloudSlideEditor() {
       if (tag === 'input' || tag === 'textarea' || isEditable) return;
 
       const isMod = e.ctrlKey || e.metaKey;
-      if ((e.key === '?' || (e.shiftKey && e.key === '/')) && !isMod) {
+      const key = e.key.toLowerCase();
+      if (isMod && key === 'c') {
+        if (copySelectedElements()) e.preventDefault();
+      } else if (isMod && key === 'v') {
+        if (pasteCopiedElements()) e.preventDefault();
+      } else if (isMod && key === 'd') {
+        if (duplicateSelectedElements()) e.preventDefault();
+      } else if ((e.key === '?' || (e.shiftKey && e.key === '/')) && !isMod) {
         e.preventDefault();
         setHelpOpen(true);
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -1479,7 +1641,7 @@ export default function CloudSlideEditor() {
         updateCurrentSlide((s) => ({
           ...s,
           elements: s.elements.map((el) => {
-            if (!targetIds.has(el.id)) return el;
+            if (!targetIds.has(el.id) || isLockedEl(el)) return el;
             const nx = Math.max(0, Math.min(100 - el.wPct, el.xPct + dx));
             const ny = Math.max(0, Math.min(100 - el.hPct, el.yPct + dy));
             return { ...el, xPct: nx, yPct: ny };
@@ -1527,7 +1689,7 @@ export default function CloudSlideEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editingElId, selectedElId, selectedElIds, deleteEl, addSlide, slides, currentIdx, presenting, startPresent, stopPresent, updateCurrentSlide]);
+  }, [editingElId, selectedElId, selectedElIds, deleteEl, addSlide, slides, currentIdx, presenting, startPresent, stopPresent, updateCurrentSlide, copySelectedElements, pasteCopiedElements, duplicateSelectedElements]);
 
   const close = useCallback(() => {
     void flushSave();
@@ -1579,6 +1741,34 @@ export default function CloudSlideEditor() {
   }
 
   const currentSlide = slides[currentIdx] ?? slides[0];
+  const selectedElement = selectedElId
+    ? currentSlide.elements.find((x) => x.id === selectedElId)
+    : undefined;
+  const selectedIdsForUi = new Set(selectedElIds);
+  if (selectedElId) selectedIdsForUi.add(selectedElId);
+  const selectedElementsForUi = currentSlide.elements.filter((el) => selectedIdsForUi.has(el.id));
+  const selectedLockedCount = selectedElementsForUi.filter(isLockedEl).length;
+  const selectionHasLocked = selectedLockedCount > 0;
+  const selectedElementLocked = isLockedEl(selectedElement);
+  const selectedEditableCount = selectedElementsForUi.length - selectedLockedCount;
+  const contextMenuElement = elCtxMenu
+    ? currentSlide.elements.find((x) => x.id === elCtxMenu.id)
+    : undefined;
+  const contextMenuElementLocked = isLockedEl(contextMenuElement);
+  const renderSelectedLockBadge = (el: SlideElement) => {
+    if (!isLockedEl(el) || !(selectedElIds.has(el.id) || selectedElId === el.id)) return null;
+    return (
+      <div
+        key={`${el.id}-lock`}
+        className="absolute z-40 pointer-events-none inline-flex h-5 w-5 items-center justify-center rounded border border-amber-300 bg-amber-50 text-amber-700 shadow-sm"
+        style={{ left: `calc(${el.xPct}% + 6px)`, top: `calc(${el.yPct}% + 6px)` }}
+        title="잠긴 개체"
+        aria-hidden
+      >
+        <Lock className="h-3 w-3" />
+      </div>
+    );
+  };
 
   return (
     // h-screen + overflow-hidden: 본문(캔버스) 과 AI 사이드바 스크롤 분리.
@@ -1703,7 +1893,7 @@ export default function CloudSlideEditor() {
                   <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
                   이 슬라이드 개선 (AI)
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={aiActionOutline} disabled={!!aiBusy}>
+                <DropdownMenuItem onSelect={openOutlineTopicDialog} disabled={!!aiBusy}>
                   <Sparkles className="w-4 h-4 mr-2 text-violet-500" />
                   주제로 5장 개요 (AI)
                 </DropdownMenuItem>
@@ -1784,7 +1974,7 @@ export default function CloudSlideEditor() {
               <DropdownMenuItem onSelect={pickAndAddImage}>
                 📁 파일에서 (≤5MB)
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={addImageByUrl}>
+              <DropdownMenuItem onSelect={openImageUrlDialog}>
                 🔗 URL 로
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1819,9 +2009,51 @@ export default function CloudSlideEditor() {
           </ToolBtn>
 
           {/* 선택된 요소별 인스펙터 — 단일 선택: 도형이면 색 picker, 텍스트면 글자색 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="px-2 py-1 rounded hover:bg-muted text-sm flex items-center gap-1"
+                title="Slide transition"
+              >
+                <Play className="w-4 h-4" />
+                <span className="text-xs">{currentSlide.transition?.type ?? 'None'}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[140px]">
+              {SLIDE_TRANSITION_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.label}
+                  onSelect={() => {
+                    updateCurrentSlide((s) => ({
+                      ...s,
+                      transition: option.transition ? { ...option.transition } : undefined,
+                    }));
+                  }}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {selectedElId && selectedElIds.size <= 1 && (() => {
             const el = currentSlide.elements.find((x) => x.id === selectedElId);
             if (!el) return null;
+            if (isLockedEl(el)) {
+              return (
+                <>
+                  <Sep />
+                  <span
+                    className="inline-flex items-center gap-1 rounded border border-amber-300/70 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700"
+                    title="PPTX에서 잠긴 개체라 편집할 수 없습니다."
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    잠김
+                  </span>
+                </>
+              );
+            }
             if (isShape(el)) {
               const lineLike = isLineLike(el);
               const showStroke = !!el.strokeColor || lineLike;
@@ -2015,13 +2247,14 @@ export default function CloudSlideEditor() {
           {/* 다중 선택 색상 일괄 적용 — 도형/텍스트 분리해 각각에 적용 */}
           {selectedElIds.size >= 2 && (() => {
             const els = currentSlide.elements.filter((e) => selectedElIds.has(e.id));
-            const shapes = els.filter(isShape);
-            const texts = els.filter(isText);
+            const editableEls = els.filter((e) => !isLockedEl(e));
+            const shapes = editableEls.filter(isShape);
+            const texts = editableEls.filter(isText);
             const applyToShapes = (patch: Partial<SlideShapeEl>) => {
               updateCurrentSlide((s) => ({
                 ...s,
                 elements: s.elements.map((el) =>
-                  selectedElIds.has(el.id) && isShape(el)
+                  selectedElIds.has(el.id) && isShape(el) && !isLockedEl(el)
                     ? ({ ...el, ...patch } as SlideElement)
                     : el,
                 ),
@@ -2031,7 +2264,7 @@ export default function CloudSlideEditor() {
               updateCurrentSlide((s) => ({
                 ...s,
                 elements: s.elements.map((el) =>
-                  selectedElIds.has(el.id) && isText(el)
+                  selectedElIds.has(el.id) && isText(el) && !isLockedEl(el)
                     ? ({ ...el, ...patch } as SlideElement)
                     : el,
                 ),
@@ -2095,7 +2328,7 @@ export default function CloudSlideEditor() {
                         updateCurrentSlide((s) => ({
                           ...s,
                           elements: s.elements.map((e) =>
-                            selectedElIds.has(e.id) && isShape(e) && e.type === 'rect'
+                            selectedElIds.has(e.id) && isShape(e) && e.type === 'rect' && !isLockedEl(e)
                               ? ({ ...e, borderRadius: br } as SlideElement)
                               : e,
                           ),
@@ -2255,16 +2488,16 @@ export default function CloudSlideEditor() {
           {selectedElId && (
             <>
               <Sep />
-              <ToolBtn onClick={() => moveElForward(selectedElId)} title="앞으로 (한 칸)">
+              <ToolBtn onClick={() => moveElForward(selectedElId)} disabled={selectedElementLocked} title="앞으로 (한 칸)">
                 <ChevronUp className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => moveElBackward(selectedElId)} title="뒤로 (한 칸)">
+              <ToolBtn onClick={() => moveElBackward(selectedElId)} disabled={selectedElementLocked} title="뒤로 (한 칸)">
                 <ChevronDown className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => moveElToFront(selectedElId)} title="맨 앞으로">
+              <ToolBtn onClick={() => moveElToFront(selectedElId)} disabled={selectedElementLocked} title="맨 앞으로">
                 <ArrowUpToLine className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => moveElToBack(selectedElId)} title="맨 뒤로">
+              <ToolBtn onClick={() => moveElToBack(selectedElId)} disabled={selectedElementLocked} title="맨 뒤로">
                 <ArrowDownToLine className="w-4 h-4" />
               </ToolBtn>
             </>
@@ -2321,7 +2554,7 @@ export default function CloudSlideEditor() {
               updateCurrentSlide((s) => ({
                 ...s,
                 elements: s.elements.map((e) => {
-                  if (!selectedElIds.has(e.id)) return e;
+                  if (!selectedElIds.has(e.id) || isLockedEl(e)) return e;
                   const cur = (((e.rotation ?? 0) % 360) + 360) % 360;
                   const next = (cur + delta + 360) % 360;
                   return { ...e, rotation: next || undefined };
@@ -2332,7 +2565,7 @@ export default function CloudSlideEditor() {
               updateCurrentSlide((s) => ({
                 ...s,
                 elements: s.elements.map((e) =>
-                  selectedElIds.has(e.id) ? { ...e, rotation: undefined } : e,
+                  selectedElIds.has(e.id) && !isLockedEl(e) ? { ...e, rotation: undefined } : e,
                 ),
               }));
             };
@@ -2342,14 +2575,14 @@ export default function CloudSlideEditor() {
             return (
               <>
                 <Sep />
-                <ToolBtn onClick={() => rotateMulti(-15)} title="각 요소 −15° 회전">
+                <ToolBtn onClick={() => rotateMulti(-15)} disabled={selectedEditableCount < 1} title="각 요소 -15° 회전">
                   <RotateCcw className="w-4 h-4" />
                 </ToolBtn>
-                <ToolBtn onClick={() => rotateMulti(15)} title="각 요소 +15° 회전">
+                <ToolBtn onClick={() => rotateMulti(15)} disabled={selectedEditableCount < 1} title="각 요소 +15° 회전">
                   <RotateCw className="w-4 h-4" />
                 </ToolBtn>
                 {anyRotated && (
-                  <ToolBtn onClick={resetMulti} title="모두 회전 0° 복귀">
+                  <ToolBtn onClick={resetMulti} disabled={selectedEditableCount < 1} title="모두 회전 0° 복귀">
                     <span className="text-xs">0°</span>
                   </ToolBtn>
                 )}
@@ -2361,30 +2594,30 @@ export default function CloudSlideEditor() {
           {selectedElIds.size >= 2 && (
             <>
               <Sep />
-              <ToolBtn onClick={() => alignSelected('h', 'start')} title="왼쪽 정렬">
+              <ToolBtn onClick={() => alignSelected('h', 'start')} disabled={selectedEditableCount < 2} title="왼쪽 정렬">
                 <AlignStartVertical className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => alignSelected('h', 'center')} title="가로 중앙">
+              <ToolBtn onClick={() => alignSelected('h', 'center')} disabled={selectedEditableCount < 2} title="가로 중앙">
                 <AlignCenterVertical className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => alignSelected('h', 'end')} title="오른쪽 정렬">
+              <ToolBtn onClick={() => alignSelected('h', 'end')} disabled={selectedEditableCount < 2} title="오른쪽 정렬">
                 <AlignEndVertical className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => alignSelected('v', 'start')} title="위쪽 정렬">
+              <ToolBtn onClick={() => alignSelected('v', 'start')} disabled={selectedEditableCount < 2} title="위쪽 정렬">
                 <AlignStartHorizontal className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => alignSelected('v', 'center')} title="세로 중앙">
+              <ToolBtn onClick={() => alignSelected('v', 'center')} disabled={selectedEditableCount < 2} title="세로 중앙">
                 <AlignCenterHorizontal className="w-4 h-4" />
               </ToolBtn>
-              <ToolBtn onClick={() => alignSelected('v', 'end')} title="아래쪽 정렬">
+              <ToolBtn onClick={() => alignSelected('v', 'end')} disabled={selectedEditableCount < 2} title="아래쪽 정렬">
                 <AlignEndHorizontal className="w-4 h-4" />
               </ToolBtn>
               {selectedElIds.size >= 3 && (
                 <>
-                  <ToolBtn onClick={() => distributeSelected('h')} title="가로 균등 분배 (3개 이상)">
+                  <ToolBtn onClick={() => distributeSelected('h')} disabled={selectedEditableCount < 3} title="가로 균등 분배 (3개 이상)">
                     <AlignHorizontalDistributeCenter className="w-4 h-4" />
                   </ToolBtn>
-                  <ToolBtn onClick={() => distributeSelected('v')} title="세로 균등 분배 (3개 이상)">
+                  <ToolBtn onClick={() => distributeSelected('v')} disabled={selectedEditableCount < 3} title="세로 균등 분배 (3개 이상)">
                     <AlignVerticalDistributeCenter className="w-4 h-4" />
                   </ToolBtn>
                 </>
@@ -2396,7 +2629,7 @@ export default function CloudSlideEditor() {
           {selectedElIds.size >= 2 && (
             <>
               <Sep />
-              <ToolBtn onClick={groupSelected} title={`${selectedElIds.size}개 그룹화 (Ctrl+G)`}>
+              <ToolBtn onClick={groupSelected} disabled={selectedEditableCount < 2} title={`${selectedElIds.size}개 그룹화 (Ctrl+G)`}>
                 <Combine className="w-4 h-4" />
                 <span className="text-xs ml-1">그룹</span>
               </ToolBtn>
@@ -2405,7 +2638,7 @@ export default function CloudSlideEditor() {
           {selectedElIds.size >= 1 && currentSlide.elements.some((e) => selectedElIds.has(e.id) && e.groupId) && (
             <>
               <Sep />
-              <ToolBtn onClick={ungroupSelected} title="그룹 해제 (Ctrl+Shift+G)">
+              <ToolBtn onClick={ungroupSelected} disabled={selectedEditableCount < 1} title="그룹 해제 (Ctrl+Shift+G)">
                 <Split className="w-4 h-4" />
                 <span className="text-xs ml-1">해제</span>
               </ToolBtn>
@@ -2429,6 +2662,18 @@ export default function CloudSlideEditor() {
                 </>
               );
             })()}
+            {selectionHasLocked && (
+              <>
+                <span
+                  className="inline-flex items-center gap-1 rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0.5 text-amber-700"
+                  title="PPTX에서 잠긴 개체는 이동, 편집, 정렬, 그룹 변경을 막습니다."
+                >
+                  <Lock className="h-3 w-3" />
+                  {selectedLockedCount}
+                </span>
+                <span className="text-muted-foreground/50">·</span>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setGridOn(!gridOn)}
@@ -2443,7 +2688,9 @@ export default function CloudSlideEditor() {
             >
               # 격자
             </button>
-            <span className="hidden sm:inline" title="캔버스 해상도 (16:9)">1280×720</span>
+            <span className="hidden sm:inline" title="캔버스 크기">
+              {Math.round(slideSize.width)}x{Math.round(slideSize.height)}
+            </span>
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
             <select
               value={slideZoom}
@@ -2508,6 +2755,7 @@ export default function CloudSlideEditor() {
               <ThumbButton
                 idx={i}
                 slide={s}
+                slideSize={slideSize}
                 active={i === currentIdx}
                 onClick={() => {
                   setCurrentIdx(i);
@@ -2522,7 +2770,8 @@ export default function CloudSlideEditor() {
           <button
             type="button"
             onClick={addSlide}
-            className="w-full aspect-video border border-dashed border-border rounded hover:bg-muted/30 flex items-center justify-center text-xs text-muted-foreground"
+            className="w-full border border-dashed border-border rounded hover:bg-muted/30 flex items-center justify-center text-xs text-muted-foreground"
+            style={{ aspectRatio: slideAspectRatio(slideSize) }}
           >
             <Plus className="w-3 h-3 mr-1" /> 슬라이드 추가
           </button>
@@ -2536,8 +2785,8 @@ export default function CloudSlideEditor() {
           <div
             className="bg-white shadow-lg rounded-sm overflow-hidden relative shrink-0"
             style={{
-              aspectRatio: '16 / 9',
-              background: resolveSlideBackground(currentSlide.background, currentTheme),
+              aspectRatio: slideAspectRatio(slideSize),
+              ...slideBackgroundStyle(currentSlide, currentTheme),
               width: `${slideZoom}%`,
               maxWidth: `${64 * (slideZoom / 100)}rem`,
             }}
@@ -2545,7 +2794,7 @@ export default function CloudSlideEditor() {
             <div
               ref={canvasRef}
               className="absolute inset-0 cursor-default"
-              onClick={() => { setSelectedElId(null); setSelectedElIds(new Set()); setEditingElId(null); }}
+              onClick={() => { setSelectedElId(null); setSelectedElIds(new Set()); setEditingElId(null); setEditingTableCell(null); }}
               onDoubleClick={handleCanvasDoubleClick}
             >
               {/* 격자 오버레이 (10% 간격) — 정렬 보조용. pointer 이벤트 통과. */}
@@ -2564,48 +2813,95 @@ export default function CloudSlideEditor() {
               {currentSlide.elements.map((el) => {
                 if (isShape(el)) {
                   return (
-                    <ShapeElView
-                      key={el.id}
-                      el={el}
-                      selected={selectedElIds.has(el.id) || selectedElId === el.id}
-                      onPointerDown={(e) => startDrag(e, el.id, el)}
-                      onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
-                      onContextMenu={(e) => handleElContextMenu(e, el.id)}
-                      onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
-                      onStartRotate={(e) => startRotate(e, el.id, el)}
-                    />
+                    <React.Fragment key={el.id}>
+                      <ShapeElView
+                        el={el}
+                        selected={selectedElIds.has(el.id) || selectedElId === el.id}
+                        onPointerDown={(e) => startDrag(e, el.id, el)}
+                        onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                        onContextMenu={(e) => handleElContextMenu(e, el.id)}
+                        onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                        onStartRotate={(e) => startRotate(e, el.id, el)}
+                      />
+                      {renderSelectedLockBadge(el)}
+                    </React.Fragment>
                   );
                 }
                 if (isImage(el)) {
                   return (
-                    <ImageElView
-                      key={el.id}
-                      el={el}
-                      selected={selectedElIds.has(el.id) || selectedElId === el.id}
-                      onPointerDown={(e) => startDrag(e, el.id, el)}
-                      onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
-                      onContextMenu={(e) => handleElContextMenu(e, el.id)}
-                      onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
-                      onStartRotate={(e) => startRotate(e, el.id, el)}
-                    />
+                    <React.Fragment key={el.id}>
+                      <ImageElView
+                        el={el}
+                        selected={selectedElIds.has(el.id) || selectedElId === el.id}
+                        onPointerDown={(e) => startDrag(e, el.id, el)}
+                        onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                        onContextMenu={(e) => handleElContextMenu(e, el.id)}
+                        onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                        onStartRotate={(e) => startRotate(e, el.id, el)}
+                      />
+                      {renderSelectedLockBadge(el)}
+                    </React.Fragment>
+                  );
+                }
+                if (isChart(el)) {
+                  return (
+                    <React.Fragment key={el.id}>
+                      <ChartElView
+                        el={el}
+                        selected={selectedElIds.has(el.id) || selectedElId === el.id}
+                        onPointerDown={(e) => startDrag(e, el.id, el)}
+                        onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                        onContextMenu={(e) => handleElContextMenu(e, el.id)}
+                        onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                        onStartRotate={(e) => startRotate(e, el.id, el)}
+                      />
+                      {renderSelectedLockBadge(el)}
+                    </React.Fragment>
+                  );
+                }
+                if (isTable(el)) {
+                  return (
+                    <React.Fragment key={el.id}>
+                      <TableElView
+                        el={el}
+                        editingCell={editingTableCell?.elId === el.id ? editingTableCell : null}
+                        selected={selectedElIds.has(el.id) || selectedElId === el.id}
+                        onPointerDown={(e) => startDrag(e, el.id, el)}
+                        onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                        onContextMenu={(e) => handleElContextMenu(e, el.id)}
+                        onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                        onStartRotate={(e) => startRotate(e, el.id, el)}
+                        onCellDoubleClick={(row, col) => {
+                          if (isLockedEl(el)) return;
+                          selectElement(el.id);
+                          setEditingElId(null);
+                          setEditingTableCell({ elId: el.id, row, col });
+                        }}
+                        onCellFinishEdit={() => setEditingTableCell(null)}
+                        onCellInput={(row, col, text) => updateTableCellText(el.id, row, col, text)}
+                      />
+                      {renderSelectedLockBadge(el)}
+                    </React.Fragment>
                   );
                 }
                 return (
-                  <TextElView
-                    key={el.id}
-                    el={el}
-                    selected={selectedElIds.has(el.id) || selectedElId === el.id}
-                    editing={editingElId === el.id}
-                    theme={currentTheme}
-                    onPointerDown={(e) => startDrag(e, el.id, el)}
-                    onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
-                    onDoubleClick={(e) => { e.stopPropagation(); selectElement(el.id); setEditingElId(el.id); }}
-                    onContextMenu={(e) => handleElContextMenu(e, el.id)}
-                    onStartRotate={(e) => startRotate(e, el.id, el)}
-                    onChange={(content) => updateEl(el.id, { content })}
-                    onFinishEdit={() => setEditingElId(null)}
-                    onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
-                  />
+                  <React.Fragment key={el.id}>
+                    <TextElView
+                      el={el}
+                      selected={selectedElIds.has(el.id) || selectedElId === el.id}
+                      editing={editingElId === el.id}
+                      theme={currentTheme}
+                      onPointerDown={(e) => startDrag(e, el.id, el)}
+                      onClick={(e) => { e.stopPropagation(); selectElement(el.id, e.shiftKey || e.ctrlKey || e.metaKey); }}
+                      onDoubleClick={(e) => { e.stopPropagation(); selectElement(el.id); if (!isLockedEl(el)) setEditingElId(el.id); }}
+                      onContextMenu={(e) => handleElContextMenu(e, el.id)}
+                      onStartRotate={(e) => startRotate(e, el.id, el)}
+                      onChange={(content) => updateEl(el.id, { content })}
+                      onFinishEdit={() => setEditingElId(null)}
+                      onStartResize={(e, dir) => startResize(e, el.id, el, dir)}
+                    />
+                    {renderSelectedLockBadge(el)}
+                  </React.Fragment>
                 );
               })}
               {/* 정렬 가이드 라인 (드래그 중에만) */}
@@ -2703,6 +2999,70 @@ export default function CloudSlideEditor() {
         onSelect={changeTheme}
       />
 
+      <Dialog open={imageUrlDialogOpen} onOpenChange={setImageUrlDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>이미지 URL 추가</DialogTitle>
+            <DialogDescription>
+              공개 이미지 주소를 넣으면 슬라이드에 링크 이미지로 배치합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitImageUrl();
+            }}
+          >
+            <Input
+              value={imageUrlDraft}
+              onChange={(e) => setImageUrlDraft(e.target.value)}
+              placeholder="https://example.com/image.png"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setImageUrlDialogOpen(false)}>
+                취소
+              </Button>
+              <Button type="submit">추가</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={outlineTopicDialogOpen} onOpenChange={setOutlineTopicDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>AI 슬라이드 개요</DialogTitle>
+            <DialogDescription>
+              발표 주제를 입력하면 현재 문서 뒤에 개요 슬라이드를 추가합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitOutlineTopic();
+            }}
+          >
+            <Input
+              value={outlineTopicDraft}
+              onChange={(e) => setOutlineTopicDraft(e.target.value)}
+              placeholder="예: AI 도입 효과, 신제품 기획안"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOutlineTopicDialogOpen(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={!!aiBusy}>
+                생성
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* 도형/텍스트/이미지 우클릭 메뉴 */}
       {elCtxMenu && (
         <div
@@ -2714,7 +3074,8 @@ export default function CloudSlideEditor() {
           <button
             type="button"
             onClick={() => { duplicateEl(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <span>복제</span>
             <span className="text-xs text-muted-foreground">Ctrl+D</span>
@@ -2722,7 +3083,8 @@ export default function CloudSlideEditor() {
           <button
             type="button"
             onClick={() => { deleteEl(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between text-destructive"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent flex items-center justify-between text-destructive disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <span>삭제</span>
             <span className="text-xs text-muted-foreground">Del</span>
@@ -2731,28 +3093,32 @@ export default function CloudSlideEditor() {
           <button
             type="button"
             onClick={() => { moveElForward(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             앞으로 (한 칸)
           </button>
           <button
             type="button"
             onClick={() => { moveElBackward(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             뒤로 (한 칸)
           </button>
           <button
             type="button"
             onClick={() => { moveElToFront(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             맨 앞으로
           </button>
           <button
             type="button"
             onClick={() => { moveElToBack(elCtxMenu.id); setElCtxMenu(null); }}
-            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+            disabled={contextMenuElementLocked}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             맨 뒤로
           </button>
@@ -2762,7 +3128,8 @@ export default function CloudSlideEditor() {
               <button
                 type="button"
                 onClick={() => { groupSelected(); setElCtxMenu(null); }}
-                className="w-full text-left px-3 py-1.5 hover:bg-accent"
+                disabled={selectedEditableCount < 2}
+                className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 그룹화 ({selectedElIds.size}개)
               </button>
@@ -2816,6 +3183,14 @@ export default function CloudSlideEditor() {
           <div className="my-1 border-t border-border" />
           <button
             type="button"
+            onClick={() => { toggleSlideHiddenAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
+            className="w-full text-left px-3 py-1.5 hover:bg-accent"
+          >
+            {slides[slideCtxMenu.idx]?.hidden ? '발표에 포함' : '발표에서 숨기기'}
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
             onClick={() => { deleteSlideAt(slideCtxMenu.idx); setSlideCtxMenu(null); }}
             disabled={slides.length <= 1}
             className="w-full text-left px-3 py-1.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent text-destructive"
@@ -2842,8 +3217,13 @@ export default function CloudSlideEditor() {
           idx={presentIdx}
           blank={presentBlank}
           theme={currentTheme}
-          onPrev={() => { setPresentBlank(null); setPresentIdx((i) => Math.max(0, i - 1)); }}
-          onNext={() => { setPresentBlank(null); setPresentIdx((i) => Math.min(slides.length - 1, i + 1)); }}
+          slideSize={slideSize}
+          onPrev={() => { setPresentBlank(null); setPresentIdx((i) => stepVisibleSlideIndex(slides, i, -1)); }}
+          onNext={() => { setPresentBlank(null); setPresentIdx((i) => stepVisibleSlideIndex(slides, i, 1)); }}
+          onGoToSlide={(nextIdx) => {
+            setPresentBlank(null);
+            setPresentIdx(nearestVisibleSlideIndex(slides, nextIdx, nextIdx >= presentIdx ? 1 : -1));
+          }}
           onClose={stopPresent}
         />
       )}

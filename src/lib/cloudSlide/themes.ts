@@ -138,6 +138,6 @@ export function resolveTextColor(
 }
 
 /** 텍스트 요소 폰트 폴백: theme.bodyFontFamily. (요소별 fontFamily 는 추후 도입) */
-export function resolveTextFontFamily(theme: SlideTheme): string {
-  return theme.bodyFontFamily;
+export function resolveTextFontFamily(theme: SlideTheme, elFontFamily?: string): string {
+  return elFontFamily ?? theme.bodyFontFamily;
 }

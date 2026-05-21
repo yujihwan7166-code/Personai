@@ -3,10 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight as ChevronRightIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Slide } from './types';
+import { slideAspectRatio, type Slide, type SlideSize } from './types';
 import type { SlideTheme } from './themes';
-import { resolveSlideBackground, resolveTextColor, resolveTextFontFamily } from './themes';
+import { resolveTextColor, resolveTextFontFamily } from './themes';
+import { slideBackgroundStyle } from './slideBackground';
 import { ShapeRender } from './ShapeRender';
+import { ChartRender } from './ChartRender';
+import { TableRender } from './TableRender';
+import { presentationLinkTarget } from './presentationLinks';
 
 /** 경과 시간 mm:ss / hh:mm:ss 포맷. */
 function formatElapsed(ms: number): string {
@@ -18,6 +22,23 @@ function formatElapsed(ms: number): string {
   return hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`;
 }
 
+function transitionDurationMs(slide: Slide | undefined): number {
+  return Math.max(150, Math.min(3000, slide?.transition?.durationMs ?? 0));
+}
+
+function transitionAnimationName(slide: Slide | undefined): string | undefined {
+  switch (slide?.transition?.type) {
+    case 'fade': return 'slide-present-fade';
+    case 'push': return 'slide-present-push';
+    case 'wipe': return 'slide-present-wipe';
+    case 'split': return 'slide-present-split';
+    case 'cover': return 'slide-present-cover';
+    case 'uncover': return 'slide-present-uncover';
+    case 'zoom': return 'slide-present-zoom';
+    default: return undefined;
+  }
+}
+
 interface PresentationOverlayProps {
   slides: Slide[];
   idx: number;
@@ -25,13 +46,29 @@ interface PresentationOverlayProps {
   blank?: 'black' | 'white' | null;
   /** 적용 테마 — 슬라이드 배경/텍스트 폴백. */
   theme?: SlideTheme;
+  slideSize?: SlideSize;
   onPrev: () => void;
   onNext: () => void;
+  onGoToSlide?: (index: number) => void;
+  onOpenHref?: (href: string) => void;
   onClose: () => void;
 }
 
-export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext, onClose }: PresentationOverlayProps) {
+export function PresentationOverlay({
+  slides,
+  idx,
+  blank,
+  theme,
+  slideSize,
+  onPrev,
+  onNext,
+  onGoToSlide,
+  onOpenHref,
+  onClose,
+}: PresentationOverlayProps) {
   const slide = slides[idx];
+  const safeAspect = slideAspectRatio(slideSize);
+  const aspectValue = slideSize ? slideSize.width / slideSize.height : 16 / 9;
   const [notesOpen, setNotesOpen] = useState(false);
   const hasNotes = !!slide?.notes?.trim();
   // 진행률 % — 마지막 슬라이드 = 100%. 1장이면 100%.
@@ -43,6 +80,46 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
     const id = window.setInterval(() => setElapsed(Date.now() - startedAt), 1000);
     return () => window.clearInterval(id);
   }, [startedAt]);
+
+  const openHref = (href: string) => {
+    if (onOpenHref) {
+      onOpenHref(href);
+      return;
+    }
+    if (/^(?:mailto|tel):/i.test(href)) {
+      window.location.href = href;
+      return;
+    }
+    window.open(href, '_blank', 'noopener,noreferrer');
+  };
+
+  const activateHyperlink = (href: string | undefined, event?: React.SyntheticEvent): boolean => {
+    const target = presentationLinkTarget(href, slides.length);
+    if (!target) return false;
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (target.kind === 'slide') {
+      onGoToSlide?.(target.index);
+    } else {
+      openHref(target.href);
+    }
+    return true;
+  };
+
+  const linkProps = (href: string | undefined) => {
+    if (!presentationLinkTarget(href, slides.length)) return {};
+    return {
+      role: 'link',
+      tabIndex: 0,
+      title: href,
+      onClick: (e: React.MouseEvent) => { activateHyperlink(href, e); },
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        activateHyperlink(href, e);
+      },
+    };
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none">
       {/* 진행률 바 — 상단 2px */}
@@ -65,11 +142,15 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
       )}
       {/* 슬라이드 — 16:9 비율 최대 */}
       <div
-        className="bg-white shadow-2xl relative overflow-hidden"
+        key={slide?.id ?? idx}
+        className="bg-white shadow-2xl relative overflow-hidden z-20"
         style={{
-          aspectRatio: '16 / 9',
-          width: 'min(95vw, calc(95vh * 16 / 9))',
-          background: theme ? resolveSlideBackground(slide?.background, theme) : (slide?.background ?? '#fff'),
+          aspectRatio: safeAspect,
+          width: `min(95vw, calc(95vh * ${aspectValue}))`,
+          ...(theme ? slideBackgroundStyle(slide, theme) : { background: slide?.background ?? '#fff' }),
+          animation: transitionAnimationName(slide)
+            ? `${transitionAnimationName(slide)} ${transitionDurationMs(slide)}ms ease both`
+            : undefined,
         }}
       >
         {slide?.elements.map((el) => {
@@ -83,22 +164,25 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
             transformOrigin: 'center center',
           };
           if (el.type === 'text') {
+            const hasLink = !!presentationLinkTarget(el.hyperlink, slides.length);
             return (
               <div
                 key={el.id}
+                {...linkProps(el.hyperlink)}
                 style={{
                   ...pos,
                   fontSize: `${el.fontSizeRem}rem`,
                   fontWeight: el.bold ? 600 : 400,
                   fontStyle: el.italic ? 'italic' : undefined,
-                  textDecoration: el.underline ? 'underline' : undefined,
-                  color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? 'rgba(0,0,0,0.85)'),
-                  fontFamily: theme ? resolveTextFontFamily(theme) : undefined,
+                  color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? (hasLink ? '#0563C1' : 'rgba(0,0,0,0.85)')),
+                  fontFamily: theme ? resolveTextFontFamily(theme, el.fontFamily) : el.fontFamily,
                   backgroundColor: el.bgColor,
                   padding: '4px 8px',
                   lineHeight: el.lineHeight ?? 1.25,
                   textAlign: el.align ?? 'left',
+                  textDecoration: el.underline || hasLink ? 'underline' : undefined,
                   whiteSpace: 'pre-wrap',
+                  cursor: hasLink ? 'pointer' : undefined,
                 }}
                 className="break-words overflow-hidden"
               >
@@ -112,8 +196,9 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
                 key={el.id}
                 src={el.src}
                 alt=""
+                {...linkProps(el.hyperlink)}
                 style={pos}
-                className="object-contain pointer-events-none"
+                className={cn('object-contain', presentationLinkTarget(el.hyperlink, slides.length) && 'cursor-pointer')}
                 draggable={false}
                 onError={(e) => {
                   // 깨진 이미지 → 회색 placeholder (img → transparent + bg)
@@ -125,8 +210,32 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
               />
             );
           }
+          if (el.type === 'chart') {
+            return (
+              <div key={el.id} style={pos}>
+                <ChartRender el={el} />
+              </div>
+            );
+          }
+          if (el.type === 'table') {
+            return (
+              <div key={el.id} style={pos}>
+                <TableRender
+                  el={el}
+                  onCellHyperlinkClick={(href, e) => { activateHyperlink(href, e); }}
+                />
+              </div>
+            );
+          }
           return (
-            <div key={el.id} style={pos}>
+            <div
+              key={el.id}
+              {...linkProps('hyperlink' in el ? el.hyperlink : undefined)}
+              style={{
+                ...pos,
+                cursor: 'hyperlink' in el && presentationLinkTarget(el.hyperlink, slides.length) ? 'pointer' : undefined,
+              }}
+            >
               <ShapeRender el={el} />
             </div>
           );
@@ -134,11 +243,22 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
       </div>
 
       {/* 좌우 클릭 영역 (보이지 않음) */}
+      <style>
+        {`
+          @keyframes slide-present-fade { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes slide-present-push { from { opacity: 0; transform: translateX(5%); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes slide-present-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+          @keyframes slide-present-cover { from { opacity: 0; transform: translateY(4%); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes slide-present-uncover { from { opacity: 0; transform: scale(1.03); } to { opacity: 1; transform: scale(1); } }
+          @keyframes slide-present-zoom { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+          @keyframes slide-present-split { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+        `}
+      </style>
       <button
         type="button"
         onClick={onPrev}
         disabled={idx === 0}
-        className="absolute left-0 top-0 bottom-0 w-1/4 cursor-w-resize disabled:cursor-default group"
+        className="absolute left-0 top-0 bottom-0 w-1/4 cursor-w-resize disabled:cursor-default group z-10"
         aria-label="이전 슬라이드"
       >
         <ChevronLeft className="w-8 h-8 text-white/0 group-hover:text-white/40 absolute left-4 top-1/2 -translate-y-1/2 transition-colors" />
@@ -147,7 +267,7 @@ export function PresentationOverlay({ slides, idx, blank, theme, onPrev, onNext,
         type="button"
         onClick={onNext}
         disabled={idx === slides.length - 1}
-        className="absolute right-0 top-0 bottom-0 w-1/4 cursor-e-resize disabled:cursor-default group"
+        className="absolute right-0 top-0 bottom-0 w-1/4 cursor-e-resize disabled:cursor-default group z-10"
         aria-label="다음 슬라이드"
       >
         <ChevronRightIcon className="w-8 h-8 text-white/0 group-hover:text-white/40 absolute right-4 top-1/2 -translate-y-1/2 transition-colors" />

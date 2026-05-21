@@ -13,7 +13,8 @@ export type NumberFmtToken =
   | 'decimal4'
   | 'percent'
   | 'currency-krw'
-  | 'date';
+  | 'date'
+  | 'datetime';
 
 /**
  * 엑셀 코드 → 우리 토큰. 못 알아보면 undefined (= general).
@@ -30,7 +31,10 @@ export function excelNumFmtToToken(code: string | undefined): NumberFmtToken | u
   // 한국 통화 (원/₩)
   if (/₩|"원"|\bKRW\b/.test(c)) return 'currency-krw';
 
-  // 날짜/시간 — y/m/d/h 들어가면 date 로 일반화
+  // 날짜/시간 — 시간 요소가 같이 있으면 datetime 으로 보존한다.
+  if (/[yYdD]/.test(c) && /[hHsS]/.test(c) && !/[#0]/.test(c)) return 'datetime';
+  if (/y{1,4}.?m{1,2}.?d{1,2}/i.test(c) && /h{1,2}|s{1,2}/i.test(c)) return 'datetime';
+  // 날짜 — y/m/d/h 들어가면 date 로 일반화
   if (/[yYdDhH]/.test(c) && !/[#0]/.test(c)) return 'date';
   // 'yyyy-mm-dd' 패턴 (대소문자 무관, m 이 분이 아니라 월)
   if (/y{1,4}.?m{1,2}.?d{1,2}/i.test(c)) return 'date';
@@ -70,5 +74,6 @@ export function tokenToExcelNumFmt(t: NumberFmtToken): string {
     case 'currency-krw': return '"₩"#,##0';
     case 'percent':      return '0.0%';
     case 'date':         return 'yyyy-mm-dd';
+    case 'datetime':     return 'yyyy-mm-dd hh:mm';
   }
 }

@@ -22,6 +22,8 @@
  *   cells[ref] 가 '=' 로 시작하면 수식으로 인식
  */
 
+import { isSafeHref, isSafeImageSrc } from '@/lib/safeUrl';
+
 type Cells = Record<string, string>;
 
 /**
@@ -29,6 +31,9 @@ type Cells = Record<string, string>;
  * key 는 함수 이름 (대문자). 도움말 모달과 popover 모두 이걸 사용.
  */
 export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
+  DATEVALUE: { sig: 'DATEVALUE(date_text)', desc: 'Converts date text to an Excel serial date' },
+  DAYS:      { sig: 'DAYS(end_date, start_date)', desc: 'Returns the number of days between two dates' },
+  VALUE:     { sig: 'VALUE(text)', desc: 'Converts numeric text to a number' },
   SUM:       { sig: 'SUM(range)',                      desc: '범위의 합계' },
   AVG:       { sig: 'AVG(range)',                      desc: '범위의 평균' },
   AVERAGE:   { sig: 'AVERAGE(range)',                  desc: '범위의 평균 (AVG 와 동일)' },
@@ -45,8 +50,12 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   INT:       { sig: 'INT(숫자)',                       desc: '소수 버림 (내림)' },
   SUMIF:     { sig: 'SUMIF(range, criteria, [sum_range])', desc: '조건 만족 셀 합계' },
   COUNTIF:   { sig: 'COUNTIF(range, criteria)',        desc: '조건 만족 셀 개수' },
+  AVERAGEIF: { sig: 'AVERAGEIF(range, criteria, [average_range])', desc: '조건 만족 셀 평균' },
   SUMIFS:    { sig: 'SUMIFS(sum_range, range1, c1, …)', desc: '다중 조건 합계' },
   COUNTIFS:  { sig: 'COUNTIFS(range1, c1, range2, c2, …)', desc: '다중 조건 개수' },
+  AVERAGEIFS:{ sig: 'AVERAGEIFS(avg_range, range1, c1, …)', desc: '다중 조건 평균' },
+  MINIFS:    { sig: 'MINIFS(min_range, range1, c1, …)', desc: '다중 조건 최솟값' },
+  MAXIFS:    { sig: 'MAXIFS(max_range, range1, c1, …)', desc: '다중 조건 최댓값' },
   LEFT:      { sig: 'LEFT(텍스트, n)',                 desc: '왼쪽 n자' },
   RIGHT:     { sig: 'RIGHT(텍스트, n)',                desc: '오른쪽 n자' },
   MID:       { sig: 'MID(텍스트, 시작, 길이)',         desc: '중간 부분 문자열' },
@@ -153,6 +162,8 @@ export { AI_SENTINEL, AI_LOADING_PREFIX, AI_ERROR_PREFIX } from './aiCellEval';
 import {
   AI_SENTINEL as AI_SEN,
   AI_LOADING_PREFIX as AI_LOAD,
+  AI_ERROR_PREFIX as AI_ERR,
+  AI_CELL_TEXT_LIMIT,
   aiCacheGet,
   aiCacheKey,
   aiQueueFetch,
@@ -163,9 +174,9 @@ const FUNC_ORDER = [
   // 12자
   'REGEXREPLACE', 'REGEXEXTRACT', 'AI_SUMMARIZE', 'AI_TRANSLATE',
   // 11자
-  'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY',
+  'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS',
   // 10자
-  'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE',
+  'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE',
   // 9자
   'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE',
   // 8자
@@ -181,13 +192,14 @@ const FUNC_ORDER = [
   'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE',
   // 6자
   'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT',
+  'MINIFS', 'MAXIFS',
   // 5자
   'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
   'STDEV', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
-  'RIGHT',
+  'RIGHT', 'VALUE',
   // 4자
   'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'RANK', 'DATE', 'TEXT',
-  'IFNA', 'ISNA', 'FIND',
+  'IFNA', 'ISNA', 'FIND', 'DAYS',
   // 3자
   'SUM', 'AVG', 'MIN', 'MAX', 'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT',
   'NOW', 'DAY', 'VAR', 'IFS',
@@ -327,6 +339,253 @@ function escapeStringLiterals(src: string): string {
   return out;
 }
 
+const SAFE_EVAL_IDENTIFIERS = new Set([
+  'true', 'false',
+  '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
+  '__sumif', '__countif', '__averageif', '__sumifs', '__countifs', '__averageifs', '__minifs', '__maxifs',
+  '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim',
+  '__concat', '__concatenate',
+  '__and', '__or', '__not',
+  '__today', '__now', '__year', '__month', '__day', '__weekday',
+  '__power', '__sqrt', '__mod', '__int', '__median',
+  '__vlookup', '__hlookup', '__index', '__match', '__image', '__sparkline',
+  '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
+  '__ifs', '__switch', '__xlookup',
+  '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
+  '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
+  '__stdev', '__var', '__rank',
+  '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
+  '__value',
+  '__text', '__regexmatch', '__regexextract', '__regexreplace',
+  '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
+  '__filter', '__sort', '__unique', '__sequence',
+]);
+
+function maskStringLiterals(src: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (const ch of src) {
+    if (!inString) {
+      if (ch === '"') {
+        inString = true;
+        out += '"';
+      } else {
+        out += ch;
+      }
+      continue;
+    }
+    if (escaped) {
+      escaped = false;
+      out += ' ';
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      out += ' ';
+      continue;
+    }
+    if (ch === '"') {
+      inString = false;
+      out += '"';
+      continue;
+    }
+    out += ' ';
+  }
+  return out;
+}
+
+function assertSafeEvalExpression(src: string): void {
+  const masked = maskStringLiterals(src);
+  if (/[;{}`]/.test(masked)) throw new Error('Unsafe formula token');
+  if (/=>|\/\*|\*\//.test(masked)) throw new Error('Unsafe formula token');
+  if (/(?<!\d)\.|\.(?!\d)/.test(masked)) throw new Error('Unsafe formula token');
+  if (/\]\s*\[|\)\s*\[|"\s*\[|[A-Za-z_$][\w$]*\s*\[/.test(masked)) {
+    throw new Error('Unsafe formula token');
+  }
+  const identifiers = masked.match(/[A-Za-z_$][\w$]*/g) ?? [];
+  for (const ident of identifiers) {
+    if (!SAFE_EVAL_IDENTIFIERS.has(ident)) throw new Error('Unsafe formula identifier');
+  }
+}
+
+function previousNonSpace(src: string): string {
+  for (let i = src.length - 1; i >= 0; i--) {
+    if (!/\s/.test(src[i])) return src[i];
+  }
+  return '';
+}
+
+function normalizeExcelComparisons(src: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inString) {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+
+    if (ch === '<' && src[i + 1] === '>') {
+      out += '!=';
+      i++;
+      continue;
+    }
+
+    if (ch === '=') {
+      const prev = previousNonSpace(out);
+      const next = src[i + 1] ?? '';
+      out += (prev === '>' || prev === '<' || prev === '!' || prev === '=' || next === '=')
+        ? ch
+        : '==';
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
+function normalizeExcelConcatenation(src: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inString) {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+
+    if (ch === '&') {
+      if (src[i + 1] === '&') {
+        out += '&&';
+        i++;
+      } else {
+        out += '+';
+      }
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
+function normalizeExcelPercentLiterals(src: string): string {
+  let out = '';
+  let chunk = '';
+  let inString = false;
+  let escaped = false;
+  const normalizeChunk = (value: string) =>
+    value.replace(/((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*%/gi, '($1/100)');
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inString) {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      out += normalizeChunk(chunk) + ch;
+      chunk = '';
+      inString = true;
+      continue;
+    }
+
+    chunk += ch;
+  }
+
+  return out + normalizeChunk(chunk);
+}
+
+function replaceOutsideStringLiterals(src: string, replaceChunk: (chunk: string) => string): string {
+  let out = '';
+  let chunk = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (!inString) {
+      if (ch === '"') {
+        out += replaceChunk(chunk) + ch;
+        chunk = '';
+        inString = true;
+      } else {
+        chunk += ch;
+      }
+      continue;
+    }
+
+    out += ch;
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"' && src[i + 1] === '"') {
+      out += '"';
+      i++;
+      continue;
+    }
+    if (ch === '"') inString = false;
+  }
+
+  return out + replaceChunk(chunk);
+}
+
+function parseSheetPrefix(sheetRaw: unknown, currentSheet: string): string {
+  if (!sheetRaw) return currentSheet;
+  const raw = String(sheetRaw);
+  if (raw.startsWith("'") && raw.endsWith("'")) {
+    return raw.slice(1, -1).replace(/''/g, "'");
+  }
+  return raw;
+}
+
 function evalExpr(
   expr: string,
   currentSheet: string,
@@ -337,7 +596,8 @@ function evalExpr(
   let work = expr;
 
   // -1. TRUE/FALSE 리터럴 — JS 식별자 아님(=undefined ReferenceError). 사전 치환.
-  work = work.replace(/\bTRUE\b/gi, 'true').replace(/\bFALSE\b/gi, 'false');
+  work = replaceOutsideStringLiterals(work, (chunk) =>
+    chunk.replace(/\bTRUE\b/gi, 'true').replace(/\bFALSE\b/gi, 'false'));
 
   // -0.5. 문자열 리터럴 전처리 — Excel/Sheets 식 "" escape + 백슬래시 보존.
   //   "abc""def"  → "abc\"def"   (Excel 스타일: 두 따옴표가 한 따옴표)
@@ -354,18 +614,16 @@ function evalExpr(
       const safe = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       // 한글·영문·_ 등 word 문자로 시작/끝나는 토큰만 매칭
       const re = new RegExp(`(?<![A-Za-z0-9_가-힣])${safe}(?![A-Za-z0-9_가-힣!])`, 'g');
-      work = work.replace(re, `(${namedRanges[name]})`);
+      work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(re, `(${namedRanges[name]})`));
     }
   }
 
   // 1. 범위 (sheet 옵셔널 + A1:B5) — $ 절대 참조 마커는 평가에서 무시
   //    Sheet1!$A$1:$B$5 또는 A1:B5
-  work = work.replace(
-    /(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)/g,
-    (_m, sheetRaw, c1, r1, c2, r2) => {
-      const sheet = sheetRaw
-        ? String(sheetRaw).replace(/^'|'$/g, '')
-        : currentSheet;
+  work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(
+    /(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+):(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)/g,
+    (_m, sheetRaw, c1, r1, sheetRaw2, c2, r2) => {
+      const sheet = parseSheetPrefix(sheetRaw ?? sheetRaw2, currentSheet);
       const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
       const tokens = refs.map((r) => {
         const v = evalWithGuard(sheet, r, allSheets, namedRanges, visiting);
@@ -377,16 +635,14 @@ function evalExpr(
       });
       return `[${tokens.join(',')}]`;
     },
-  );
+  ));
 
   // 2. 단일 셀 참조 — Sheet1!$A$1 또는 A1
   //    함수 이름과 혼동 방지: lookbehind 로 알파벳·_ 뒤가 아닐 때만 매칭
-  work = work.replace(
-    /(?<![A-Za-z_0-9$])(?:('[^']+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b/g,
+  work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(
+    /(?<![A-Za-z_0-9$])(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b/g,
     (_m, sheetRaw, c, r) => {
-      const sheet = sheetRaw
-        ? String(sheetRaw).replace(/^'|'$/g, '')
-        : currentSheet;
+      const sheet = parseSheetPrefix(sheetRaw, currentSheet);
       const ref = `${c}${r}`;
       const v = evalWithGuard(sheet, ref, allSheets, namedRanges, visiting);
       if (v.startsWith('#')) return '0';
@@ -395,16 +651,24 @@ function evalExpr(
       if (v === '') return '0';
       return JSON.stringify(v);
     },
-  );
+  ));
 
   // 3. 함수 이름 → __funcname (긴 이름부터 처리: AVERAGE 먼저)
-  for (const fn of FUNC_ORDER) {
-    const re = new RegExp(`\\b${fn}\\b`, 'gi');
-    work = work.replace(re, `__${fn.toLowerCase()}`);
-  }
+  work = replaceOutsideStringLiterals(work, (chunk) => {
+    let replaced = chunk;
+    for (const fn of FUNC_ORDER) {
+      const re = new RegExp(`\\b${fn}\\b`, 'gi');
+      replaced = replaced.replace(re, `__${fn.toLowerCase()}`);
+    }
+    return replaced;
+  });
 
   // 4. ^ → ** (지수)
-  work = work.replace(/\^/g, '**');
+  work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(/\^/g, '**'));
+  work = normalizeExcelComparisons(work);
+  work = normalizeExcelConcatenation(work);
+  work = normalizeExcelPercentLiterals(work);
+  assertSafeEvalExpression(work);
 
   // 5. 안전 함수들 정의
   const toArr = (v: unknown): unknown[] => (Array.isArray(v) ? v : [v]);
@@ -509,6 +773,42 @@ function evalExpr(
     return count;
   };
 
+  const __averageif = (range: unknown, criteria: unknown, averageRange?: unknown) => {
+    const arr = toArr(range);
+    const avgArr = averageRange !== undefined ? toArr(averageRange) : arr;
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < arr.length; i++) {
+      if (!matchCriteria(arr[i], criteria)) continue;
+      const n = Number(avgArr[i]);
+      if (Number.isFinite(n)) {
+        total += n;
+        count++;
+      }
+    }
+    return count === 0 ? '#DIV/0!' : total / count;
+  };
+
+  const conditionalValues = (valueRange: unknown, args: unknown[]): number[] => {
+    if (args.length < 2 || args.length % 2 !== 0) return [];
+    const values = toArr(valueRange);
+    const pairs: Array<{ range: unknown[]; criteria: unknown }> = [];
+    for (let i = 0; i < args.length; i += 2) {
+      pairs.push({ range: toArr(args[i]), criteria: args[i + 1] });
+    }
+    const out: number[] = [];
+    for (let i = 0; i < values.length; i++) {
+      let allMatch = true;
+      for (const p of pairs) {
+        if (!matchCriteria(p.range[i], p.criteria)) { allMatch = false; break; }
+      }
+      if (!allMatch) continue;
+      const n = Number(values[i]);
+      if (Number.isFinite(n)) out.push(n);
+    }
+    return out;
+  };
+
   const __countifs = (...args: unknown[]) => {
     // pairs: [range, criteria, range, criteria, ...]
     if (args.length < 2 || args.length % 2 !== 0) return 0;
@@ -529,24 +829,22 @@ function evalExpr(
   };
 
   const __sumifs = (sumRange: unknown, ...args: unknown[]) => {
-    if (args.length < 2 || args.length % 2 !== 0) return 0;
-    const sumArr = toArr(sumRange);
-    const pairs: Array<{ range: unknown[]; criteria: unknown }> = [];
-    for (let i = 0; i < args.length; i += 2) {
-      pairs.push({ range: toArr(args[i]), criteria: args[i + 1] });
-    }
-    let total = 0;
-    for (let i = 0; i < sumArr.length; i++) {
-      let allMatch = true;
-      for (const p of pairs) {
-        if (!matchCriteria(p.range[i], p.criteria)) { allMatch = false; break; }
-      }
-      if (allMatch) {
-        const n = Number(sumArr[i]);
-        if (Number.isFinite(n)) total += n;
-      }
-    }
-    return total;
+    return conditionalValues(sumRange, args).reduce((a, b) => a + b, 0);
+  };
+
+  const __averageifs = (averageRange: unknown, ...args: unknown[]) => {
+    const values = conditionalValues(averageRange, args);
+    return values.length === 0 ? '#DIV/0!' : values.reduce((a, b) => a + b, 0) / values.length;
+  };
+
+  const __minifs = (minRange: unknown, ...args: unknown[]) => {
+    const values = conditionalValues(minRange, args);
+    return values.length === 0 ? 0 : Math.min(...values);
+  };
+
+  const __maxifs = (maxRange: unknown, ...args: unknown[]) => {
+    const values = conditionalValues(maxRange, args);
+    return values.length === 0 ? 0 : Math.max(...values);
   };
 
   // ─── 문자열 함수 ───
@@ -565,6 +863,24 @@ function evalExpr(
   const __upper  = (s: unknown) => String(s ?? '').toUpperCase();
   const __lower  = (s: unknown) => String(s ?? '').toLowerCase();
   const __trim   = (s: unknown) => String(s ?? '').trim();
+  const __value = (text: unknown) => {
+    if (typeof text === 'number') return text;
+    if (typeof text === 'boolean') return text ? 1 : 0;
+    let s = String(text ?? '').trim();
+    if (!s) return '#VALUE!';
+    let negative = false;
+    if (/^\(.*\)$/.test(s)) {
+      negative = true;
+      s = s.slice(1, -1);
+    }
+    const percent = /%$/.test(s);
+    if (percent) s = s.slice(0, -1);
+    s = s.replace(/[$₩€£¥,\s]/g, '');
+    const n = Number(s);
+    if (!Number.isFinite(n)) return '#VALUE!';
+    const signed = negative ? -n : n;
+    return percent ? signed / 100 : signed;
+  };
   const __concat = (...args: unknown[]) => args.flatMap(toArr).map((x) => String(x ?? '')).join('');
   const __concatenate = __concat;
 
@@ -579,8 +895,15 @@ function evalExpr(
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const __now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const MS_PER_DAY = 86_400_000;
+  const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
+  const dateToExcelSerial = (d: Date) =>
+    Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EXCEL_EPOCH_UTC) / MS_PER_DAY);
+  const excelSerialToDate = (serial: number) =>
+    new Date(EXCEL_EPOCH_UTC + Math.floor(serial) * MS_PER_DAY);
   const parseDate = (v: unknown): Date | null => {
     if (v instanceof Date) return v;
+    if (typeof v === 'number' && Number.isFinite(v)) return excelSerialToDate(v);
     const s = String(v ?? '').trim();
     if (!s) return null;
     const d = new Date(s);
@@ -670,9 +993,7 @@ function evalExpr(
   const __image = (url: unknown) => {
     const u = String(url ?? '').trim();
     if (!u) return '#VALUE!';
-    // 보안: javascript: / data: text/html 스킴 차단
-    if (/^\s*javascript:/i.test(u)) return '#REF!';
-    if (/^\s*data:text\/html/i.test(u)) return '#REF!';
+    if (!isSafeImageSrc(u)) return '#REF!';
     return `${IMAGE_SENTINEL}${u}`;
   };
 
@@ -847,10 +1168,7 @@ function evalExpr(
   const __hyperlink = (url: unknown, label?: unknown) => {
     const u = String(url ?? '').trim();
     if (!u) return '#VALUE!';
-    // 안전한 스킴만 — javascript:/vbscript:/data: 통째로 차단 (이미지는 IMAGE 함수 따로).
-    // evaluator 가 string 내부 함수명도 치환하는 부수효과로 data:text/html 가
-    // data:__text/html 로 변형되는 케이스까지 한 번에 막음.
-    if (/^\s*(javascript|vbscript|data):/i.test(u)) return '#REF!';
+    if (!isSafeHref(u)) return '#REF!';
     const l = label === undefined || label === null || String(label).trim() === ''
       ? u : String(label);
     return `__CLOUDSHEET_LINK__:${JSON.stringify({ url: u, label: l })}`;
@@ -952,6 +1270,19 @@ function evalExpr(
   };
 
   // ─── 포맷 (단순 지원) ───
+  const __datevalue = (dateText: unknown) => {
+    const d = parseDate(dateText);
+    return d ? dateToExcelSerial(d) : '#VALUE!';
+  };
+  const __days = (endDate: unknown, startDate: unknown) => {
+    const end = parseDate(endDate), start = parseDate(startDate);
+    if (!end || !start) return '#VALUE!';
+    return Math.floor(
+      (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+        Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / MS_PER_DAY,
+    );
+  };
+
   const __text = (val: unknown, format: unknown) => {
     const f = String(format ?? '');
     const d = parseDate(val);
@@ -1034,25 +1365,33 @@ function evalExpr(
   // ─── AI 함수 (비동기 — 캐시 hit 면 결과, miss 면 sentinel 로 진행 알림) ───
   // sentinel 이 셀에 떠있는 동안 백그라운드 fetch 가 동작하고, 결과가 오면
   // AI_CHANGED 이벤트가 발행 → CloudSheetEditor 가 해당 셀 재평가 → 결과 표시.
+  const clampAiText = (value: unknown, limit = AI_CELL_TEXT_LIMIT) => {
+    const text = String(value ?? '');
+    return text.length > limit ? text.slice(0, limit) : text;
+  };
   const aiResolve = (fn: string, args: unknown): unknown => {
     const key = aiCacheKey(fn, args);
     const cached = aiCacheGet(key);
     if (cached !== undefined) return cached;
-    aiQueueFetch(key, fn, args);
+    const queued = aiQueueFetch(key, fn, args);
+    if (!queued) return `${AI_SEN}${AI_ERR}AI_LIMIT`;
     return `${AI_SEN}${AI_LOAD}${key}`;
   };
   const __ai = (prompt: unknown, model?: unknown) =>
-    aiResolve('ai', { prompt: String(prompt ?? ''), model: model !== undefined ? String(model) : undefined });
+    aiResolve('ai', {
+      prompt: clampAiText(prompt),
+      model: model !== undefined ? clampAiText(model, 120) : undefined,
+    });
   const __ai_classify = (text: unknown, categories: unknown) =>
-    aiResolve('ai_classify', { text: String(text ?? ''), categories: String(categories ?? '') });
+    aiResolve('ai_classify', { text: clampAiText(text), categories: clampAiText(categories, 1000) });
   const __ai_translate = (text: unknown, lang: unknown) =>
-    aiResolve('ai_translate', { text: String(text ?? ''), lang: String(lang ?? 'en') });
+    aiResolve('ai_translate', { text: clampAiText(text), lang: clampAiText(lang ?? 'en', 32) });
   const __ai_summarize = (text: unknown) => {
     // range 가 들어오면 join 해서 한 텍스트로.
     const joined = Array.isArray(text)
       ? text.filter((x) => x != null && String(x).trim() !== '').map(String).join('\n')
       : String(text ?? '');
-    return aiResolve('ai_summarize', { text: joined });
+    return aiResolve('ai_summarize', { text: clampAiText(joined) });
   };
 
   // ─── 정규표현식 ───
@@ -1085,8 +1424,8 @@ function evalExpr(
   // 6. 평가 (new Function — 단일 사용자 환경 가정)
   const fn = new Function(
     '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
-    '__sumif', '__countif', '__sumifs', '__countifs',
-    '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim',
+    '__sumif', '__countif', '__averageif', '__sumifs', '__countifs', '__averageifs', '__minifs', '__maxifs',
+    '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim', '__value',
     '__concat', '__concatenate',
     '__and', '__or', '__not',
     '__today', '__now', '__year', '__month', '__day', '__weekday',
@@ -1097,7 +1436,7 @@ function evalExpr(
     '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
     '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
     '__stdev', '__var', '__rank',
-    '__date', '__eomonth', '__edate', '__datedif', '__networkdays',
+    '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
     '__filter', '__sort', '__unique', '__sequence',
@@ -1105,8 +1444,8 @@ function evalExpr(
   );
   return fn(
     __sum, __avg, __average, __min, __max, __count, __if, __abs, __round,
-    __sumif, __countif, __sumifs, __countifs,
-    __left, __right, __mid, __len, __upper, __lower, __trim,
+    __sumif, __countif, __averageif, __sumifs, __countifs, __averageifs, __minifs, __maxifs,
+    __left, __right, __mid, __len, __upper, __lower, __trim, __value,
     __concat, __concatenate,
     __and, __or, __not,
     __today, __now, __year, __month, __day, __weekday,
@@ -1117,7 +1456,7 @@ function evalExpr(
     __textjoin, __substitute, __replace, __find, __search, __hyperlink,
     __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
     __stdev, __var, __rank,
-    __date, __eomonth, __edate, __datedif, __networkdays,
+    __date, __eomonth, __edate, __datedif, __networkdays, __datevalue, __days,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,
     __filter, __sort, __unique, __sequence,

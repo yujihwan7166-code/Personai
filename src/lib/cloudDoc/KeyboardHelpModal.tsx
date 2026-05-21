@@ -87,8 +87,8 @@ export function KeyboardHelpModal({ open, onClose }: { open: boolean; onClose: (
             <HelpRow keys={['종류']} label="도구바 select → 기본/Sans/Serif/Mono/돋움/바탕" />
             <HelpRow keys={['Ctrl', '.']} label="위 첨자 (x²)" />
             <HelpRow keys={['Ctrl', ',']} label="아래 첨자 (x₂)" />
-            <HelpRow keys={['Tab']} label="리스트 들여쓰기" />
-            <HelpRow keys={['Shift', 'Tab']} label="리스트 내어쓰기" />
+            <HelpRow keys={['Tab']} label="들여쓰기" />
+            <HelpRow keys={['Shift', 'Tab']} label="내어쓰기" />
           </HelpSection>
 
           <HelpSection title="페이지·문서">

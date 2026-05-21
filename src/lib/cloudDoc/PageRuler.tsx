@@ -17,10 +17,12 @@ import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface PageMargin {
+  top: number;
   /** px (96dpi 기준). 카드 안 좌측 본문 시작 거리. */
   left: number;
   /** px. 카드 안 우측 본문 끝까지 거리. */
   right: number;
+  bottom: number;
 }
 
 interface PageRulerProps {
@@ -30,12 +32,12 @@ interface PageRulerProps {
   onMarginChange?: (m: PageMargin) => void;
 }
 
-const CM_COUNT = 21;     // A4 폭 ≈ 21cm
 const MIN_BODY_WIDTH_PX = 80;  // 본문 폭 최소
 
 export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
   const rulerRef = useRef<HTMLDivElement>(null);
-  const pxPerCm = widthPx / CM_COUNT;
+  const cmCount = Math.max(1, Math.round(widthPx / (96 / 2.54)));
+  const pxPerCm = widthPx / cmCount;
 
   const startDrag = (side: 'left' | 'right') => (e: React.PointerEvent) => {
     if (!onMarginChange) return;
@@ -47,11 +49,11 @@ export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
       const x = Math.max(0, Math.min(widthPx, ev.clientX - rect.left));
       if (side === 'left') {
         const maxLeft = widthPx - margin.right - MIN_BODY_WIDTH_PX;
-        onMarginChange({ left: Math.max(0, Math.min(maxLeft, x)), right: margin.right });
+        onMarginChange({ ...margin, left: Math.max(0, Math.min(maxLeft, x)) });
       } else {
         const newRight = widthPx - x;
         const maxRight = widthPx - margin.left - MIN_BODY_WIDTH_PX;
-        onMarginChange({ left: margin.left, right: Math.max(0, Math.min(maxRight, newRight)) });
+        onMarginChange({ ...margin, right: Math.max(0, Math.min(maxRight, newRight)) });
       }
     };
     const onUp = () => {
@@ -80,7 +82,7 @@ export function PageRuler({ widthPx, margin, onMarginChange }: PageRulerProps) {
       />
 
       {/* 눈금 + 라벨 */}
-      {Array.from({ length: CM_COUNT + 1 }).map((_, i) => {
+      {Array.from({ length: cmCount + 1 }).map((_, i) => {
         const left = i * pxPerCm;
         const isMajor = i % 5 === 0;
         return (

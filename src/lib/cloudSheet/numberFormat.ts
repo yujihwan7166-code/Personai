@@ -1,6 +1,6 @@
 /** 시트 셀 숫자 포맷 토큰 + 적용 함수. */
 
-export type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal1' | 'decimal2' | 'decimal3' | 'decimal4' | 'date';
+export type NumberFmt = 'currency-krw' | 'percent' | 'integer' | 'decimal1' | 'decimal2' | 'decimal3' | 'decimal4' | 'date' | 'datetime';
 
 /** 자릿수 ±1 시 토큰 시퀀스. integer=0자리, decimal4=4자리. 통화/%/날짜는 별도 처리. */
 export const DECIMAL_SEQUENCE: NumberFmt[] = ['integer', 'decimal1', 'decimal2', 'decimal3', 'decimal4'];
@@ -21,6 +21,7 @@ export const NUMBER_FMT_OPTIONS: Array<{ value: '' | NumberFmt; label: string; e
   { value: 'currency-krw',  label: '₩ 통화',       example: '₩1,234' },
   { value: 'percent',       label: '%',            example: '12.3%' },
   { value: 'date',          label: '날짜',         example: '2026-05-16' },
+  { value: 'datetime',      label: '날짜 시간',    example: '2026-05-16 14:30' },
 ];
 
 export function applyNumberFormat(value: string, fmt: NumberFmt | undefined): string {
@@ -43,6 +44,14 @@ export function applyNumberFormat(value: string, fmt: NumberFmt | undefined): st
       else d = new Date(n);                          // 그 외
       if (isNaN(d.getTime())) return value;
       return d.toLocaleDateString('ko-KR');
+    }
+    case 'datetime': {
+      let d: Date | null = null;
+      if (n > 1e10) d = new Date(n);
+      else if (n > 25569) d = new Date((n - 25569) * 86400 * 1000);
+      else d = new Date(n);
+      if (isNaN(d.getTime())) return value;
+      return `${d.toLocaleDateString('ko-KR')} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
     }
     default: return value;
   }

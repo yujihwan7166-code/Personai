@@ -8,6 +8,7 @@ import { SPARKLINE_SENTINEL, buildSparklineSvg, type SparklinePayload } from '@/
 import { FONT_FAMILY_CSS } from '@/lib/cloudSheet/fontFamily';
 import { borderStyleFor } from '@/lib/cloudSheet/borderStyle';
 import { detectLink } from '@/lib/cloudSheet/sheetUtils';
+import { isSafeImageSrc, sanitizeHref } from '@/lib/safeUrl';
 import type { CellFormat } from '@/lib/cloudSheet/cellFormat';
 import { FuncHintPopover, getFuncSuggestionNames, applyFuncSuggestion } from '@/lib/cloudSheet/FuncHintPopover';
 import { ValidationDropdown } from '@/lib/cloudSheet/ValidationDropdown';
@@ -224,6 +225,7 @@ export const SheetCell = React.memo(function SheetCell({
         </div>
       ) : value.startsWith(IMAGE_SENTINEL) ? (() => {
         const url = value.slice(IMAGE_SENTINEL.length);
+        if (!isSafeImageSrc(url)) return <span className="text-xs text-destructive">#IMG</span>;
         return (
           <div
             className="w-full h-full flex items-center justify-center overflow-hidden relative group/img"
@@ -298,15 +300,17 @@ export const SheetCell = React.memo(function SheetCell({
           }
         } catch { /* fallthrough */ }
         if (!url) return <span className="text-xs text-destructive">#LINK</span>;
+        const safeUrl = sanitizeHref(url, '');
+        if (!safeUrl) return <span className="text-xs text-destructive">#LINK</span>;
         return (
           <a
-            href={url}
+            href={safeUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             className="text-blue-600 dark:text-blue-400 underline underline-offset-2 decoration-1 truncate inline-block max-w-full hover:opacity-80"
-            title={url}
+            title={safeUrl}
           >
             {label}
           </a>

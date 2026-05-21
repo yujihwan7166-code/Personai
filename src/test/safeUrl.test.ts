@@ -40,11 +40,15 @@ describe('isSafeImageSrc', () => {
   it('http(s) / data:image / 절대경로', () => {
     expect(isSafeImageSrc('https://x.com/a.png')).toBe(true);
     expect(isSafeImageSrc('data:image/png;base64,XXX')).toBe(true);
+    expect(isSafeImageSrc('data:image/bmp;base64,Qk0=')).toBe(true);
     expect(isSafeImageSrc('/static/a.png')).toBe(true);
   });
   it('차단', () => {
     expect(isSafeImageSrc('javascript:x')).toBe(false);
     expect(isSafeImageSrc('data:text/html,xx')).toBe(false);
+    expect(isSafeImageSrc('data:image/svg+xml,<svg/>')).toBe(false);
+    expect(isSafeImageSrc('file:///C:/secret.png')).toBe(false);
+    expect(isSafeImageSrc('ftp://example.com/a.png')).toBe(false);
     expect(isSafeImageSrc('')).toBe(false);
   });
 });

@@ -304,6 +304,16 @@
     --surface-2: 35 8% 10%;
     --surface-3: 35 7% 17%;
   }
+
+  .planner-theme .planner-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  @media (min-width: 640px) {
+    .planner-theme .planner-overview-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+  }
 }
 
 @layer base {
@@ -1203,6 +1213,40 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+  .doc-content .doc-comment-mark {
+    background: #fff2a8;
+    border-bottom: 2px solid #fbbc04;
+    cursor: pointer;
+  }
+  .doc-content .doc-comment-mark:hover {
+    background: #ffe873;
+  }
+  .doc-content .doc-revision-insert {
+    background: #dcfce7;
+    border-bottom: 2px solid #16a34a;
+  }
+  .doc-content .doc-revision-delete {
+    color: #b91c1c;
+    background: #fee2e2;
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+  .doc-content .docx-toc {
+    border-left: 3px solid #94a3b8;
+    background: #f8fafc;
+    padding: 10px 12px;
+    margin: 12px 0;
+    color: #334155;
+  }
+  .doc-content .docx-math {
+    display: inline-block;
+    padding: 1px 5px;
+    margin: 0 1px;
+    border-radius: 4px;
+    background: #eef2ff;
+    color: #312e81;
+    font-family: "Cambria Math", "Times New Roman", serif;
+  }
   .doc-content table {
     border-collapse: collapse;
     margin: 0.8rem 0;
@@ -1221,10 +1265,121 @@
     max-width: 100%;
     height: auto;
   }
+  .doc-content .doc-image-node {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    margin: 0.75rem 0;
+    line-height: 0;
+  }
+  .doc-content .doc-image-node img {
+    display: block;
+    max-width: 100%;
+    border-radius: 6px;
+  }
+  .doc-content .doc-image-node-selected img {
+    outline: 2px solid #1a73e8;
+    outline-offset: 2px;
+  }
+  .doc-content .doc-image-resize-handle {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #1a73e8;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+    cursor: nwse-resize;
+  }
   .doc-content hr {
     border: 0;
     border-top: 1px solid hsl(var(--border));
     margin: 1rem 0;
+  }
+  .doc-content [data-indent="1"] { margin-left: 48px; }
+  .doc-content [data-indent="2"] { margin-left: 96px; }
+  .doc-content [data-indent="3"] { margin-left: 144px; }
+  .doc-content [data-indent="4"] { margin-left: 192px; }
+  .doc-content [data-indent="5"] { margin-left: 240px; }
+  .doc-content [data-indent="6"] { margin-left: 288px; }
+  .doc-content [data-indent="7"] { margin-left: 336px; }
+  .doc-content [data-indent="8"] { margin-left: 384px; }
+  .doc-content [data-page-break-before="true"] {
+    break-before: page;
+    page-break-before: always;
+  }
+  .doc-content [data-keep-next="true"] {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .doc-content [data-keep-lines="true"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .doc-content .doc-page-break {
+    position: relative;
+    height: 28px;
+    margin: 1.25rem 0;
+    border: 0;
+    border-top: 1px dashed hsl(var(--border));
+    break-after: page;
+    page-break-after: always;
+  }
+  .doc-content .doc-page-break::after {
+    content: "Page break";
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    transform: translateX(-50%);
+    padding: 0 8px;
+    background: hsl(var(--background));
+    color: hsl(var(--muted-foreground));
+    font-size: 11px;
+    line-height: 18px;
+    letter-spacing: 0;
+  }
+  .doc-content .doc-column-break {
+    position: relative;
+    height: 24px;
+    margin: 1rem 0;
+    border: 0;
+    border-top: 1px dashed hsl(var(--primary));
+    break-after: column;
+  }
+  .doc-content .doc-column-break::after {
+    content: "Column break";
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    transform: translateX(-50%);
+    padding: 0 8px;
+    background: hsl(var(--background));
+    color: hsl(var(--primary));
+    font-size: 11px;
+    line-height: 18px;
+    letter-spacing: 0;
+  }
+  .doc-content .doc-section-break {
+    position: relative;
+    height: 28px;
+    margin: 1.25rem 0;
+    border: 0;
+    border-top: 1px double hsl(var(--border));
+  }
+  .doc-content .doc-section-break::after {
+    content: "Section break";
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    transform: translateX(-50%);
+    padding: 0 8px;
+    background: hsl(var(--background));
+    color: hsl(var(--muted-foreground));
+    font-size: 11px;
+    line-height: 18px;
+    letter-spacing: 0;
   }
   .doc-content .doc-title {
     font-size: 28px;

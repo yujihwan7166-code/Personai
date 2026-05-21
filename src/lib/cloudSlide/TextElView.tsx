@@ -51,6 +51,22 @@ export function TextElView({
     }
   }, [el.content, editing]);
 
+  const textClassName = cn(
+    'w-full h-full outline-none break-words overflow-hidden',
+    el.bold && 'font-semibold',
+    el.italic && 'italic',
+    el.underline && 'underline underline-offset-2',
+  );
+  const textStyle: React.CSSProperties = {
+    fontSize: `${el.fontSizeRem}rem`,
+    lineHeight: el.lineHeight ?? 1.25,
+    color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? 'rgba(0,0,0,0.8)'),
+    fontFamily: theme ? resolveTextFontFamily(theme, el.fontFamily) : el.fontFamily,
+    textAlign: el.align ?? 'left',
+    whiteSpace: 'pre-wrap',
+  };
+  const listLines = el.content.split(/\r?\n/).map((line) => line || '\u00a0');
+
   return (
     <div
       onPointerDown={editing ? undefined : onPointerDown}
@@ -75,7 +91,16 @@ export function TextElView({
         transformOrigin: 'center center',
       }}
     >
-      <div
+      {!editing && el.listStyle === 'bullet' ? (
+        <ul className={cn(textClassName, 'm-0 pl-5')} style={textStyle}>
+          {listLines.map((line, idx) => <li key={idx}>{line}</li>)}
+        </ul>
+      ) : !editing && el.listStyle === 'number' ? (
+        <ol className={cn(textClassName, 'm-0 pl-5')} style={textStyle} start={el.listStart ?? 1}>
+          {listLines.map((line, idx) => <li key={idx}>{line}</li>)}
+        </ol>
+      ) : (
+        <div
         ref={editableRef}
         contentEditable={editing}
         suppressContentEditableWarning
@@ -93,23 +118,12 @@ export function TextElView({
           const text = e.clipboardData.getData('text/plain');
           document.execCommand('insertText', false, text);
         }}
-        className={cn(
-          'w-full h-full outline-none break-words overflow-hidden',
-          el.bold && 'font-semibold',
-          el.italic && 'italic',
-          el.underline && 'underline underline-offset-2',
-        )}
-        style={{
-          fontSize: `${el.fontSizeRem}rem`,
-          lineHeight: el.lineHeight ?? 1.25,
-          color: theme ? resolveTextColor(el.textColor, theme) : (el.textColor ?? 'rgba(0,0,0,0.8)'),
-          fontFamily: theme ? resolveTextFontFamily(theme) : undefined,
-          textAlign: el.align ?? 'left',
-          whiteSpace: 'pre-wrap',
-        }}
+        className={textClassName}
+        style={textStyle}
       >
         {el.content}
       </div>
+      )}
       {selected && !editing && <ResizeHandles onStart={onStartResize} />}
       {selected && !editing && onStartRotate && <RotateHandle onStart={onStartRotate} />}
     </div>

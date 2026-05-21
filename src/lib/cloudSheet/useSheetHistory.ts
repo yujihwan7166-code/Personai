@@ -1,40 +1,89 @@
-/** 시트 undo/redo — 500ms 디바운스 snapshot + history stack (최대 100). */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AllCells, AllMerges } from './cellTypes';
 
 type AllFormats = Record<string, Record<string, unknown>>;
+type DimensionMap = Record<number, number>;
+type SheetRecord<T> = Record<string, T>;
+type NamedRanges = Record<string, string>;
 
 export interface SheetSnapshot {
   allCells: AllCells;
   allFormats: AllFormats;
   allMerges: AllMerges;
+  allCondRules?: SheetRecord<unknown[]>;
+  allValidations?: SheetRecord<unknown[]>;
+  allComments?: SheetRecord<Record<string, string>>;
+  allEmbeddedCharts?: SheetRecord<unknown[]>;
+  namedRanges?: NamedRanges;
   rowCount: number;
   colCount: number;
+  colWidths: DimensionMap;
+  rowHeights: DimensionMap;
+  freezeRows: number;
+  freezeCols: number;
+  allColWidths?: SheetRecord<DimensionMap>;
+  allRowHeights?: SheetRecord<DimensionMap>;
+  allFreezeRows?: SheetRecord<number>;
+  allFreezeCols?: SheetRecord<number>;
 }
 
 interface UseSheetHistoryOpts<F extends AllFormats> {
-  /** snapshot 시 기록할 현재 상태 */
   allCells: AllCells;
   allFormats: F;
   allMerges: AllMerges;
+  allCondRules?: SheetRecord<unknown[]>;
+  allValidations?: SheetRecord<unknown[]>;
+  allComments?: SheetRecord<Record<string, string>>;
+  allEmbeddedCharts?: SheetRecord<unknown[]>;
+  namedRanges?: NamedRanges;
   rowCount: number;
   colCount: number;
-  /** undo/redo 적용용 setters */
+  colWidths: DimensionMap;
+  rowHeights: DimensionMap;
+  freezeRows: number;
+  freezeCols: number;
+  allColWidths?: SheetRecord<DimensionMap>;
+  allRowHeights?: SheetRecord<DimensionMap>;
+  allFreezeRows?: SheetRecord<number>;
+  allFreezeCols?: SheetRecord<number>;
   setAllCells: (c: AllCells) => void;
   setAllFormats: (f: F) => void;
   setAllMerges: (m: AllMerges) => void;
+  setAllCondRules?: (v: SheetRecord<unknown[]>) => void;
+  setAllValidations?: (v: SheetRecord<unknown[]>) => void;
+  setAllComments?: (v: SheetRecord<Record<string, string>>) => void;
+  setAllEmbeddedCharts?: (v: SheetRecord<unknown[]>) => void;
+  setNamedRanges?: (v: NamedRanges) => void;
   setRowCount: (n: number) => void;
   setColCount: (n: number) => void;
-  /** snapshot 시작 트리거 — node 로드 전엔 push X */
+  setColWidths: (w: DimensionMap) => void;
+  setRowHeights: (h: DimensionMap) => void;
+  setFreezeRows: (n: number) => void;
+  setFreezeCols: (n: number) => void;
+  setAllColWidths?: (v: SheetRecord<DimensionMap>) => void;
+  setAllRowHeights?: (v: SheetRecord<DimensionMap>) => void;
+  setAllFreezeRows?: (v: SheetRecord<number>) => void;
+  setAllFreezeCols?: (v: SheetRecord<number>) => void;
   ready: boolean;
-  /** undo/redo 적용 후 디스크 저장 큐 */
   queueSave: (patch: {
     allCells: AllCells;
     allFormats: F;
     allMerges: AllMerges;
+    allCondRules?: SheetRecord<unknown[]>;
+    allValidations?: SheetRecord<unknown[]>;
+    allComments?: SheetRecord<Record<string, string>>;
+    allEmbeddedCharts?: SheetRecord<unknown[]>;
+    namedRanges?: NamedRanges;
     rowCount: number;
     colCount: number;
+    colWidths: DimensionMap;
+    rowHeights: DimensionMap;
+    freezeRows: number;
+    freezeCols: number;
+    allColWidths?: SheetRecord<DimensionMap>;
+    allRowHeights?: SheetRecord<DimensionMap>;
+    allFreezeRows?: SheetRecord<number>;
+    allFreezeCols?: SheetRecord<number>;
   }) => void;
 }
 
@@ -46,18 +95,51 @@ interface UseSheetHistoryResult {
 }
 
 export function useSheetHistory<F extends AllFormats>({
-  allCells, allFormats, allMerges, rowCount, colCount,
-  setAllCells, setAllFormats, setAllMerges, setRowCount, setColCount,
-  ready, queueSave,
+  allCells,
+  allFormats,
+  allMerges,
+  allCondRules,
+  allValidations,
+  allComments,
+  allEmbeddedCharts,
+  namedRanges,
+  rowCount,
+  colCount,
+  colWidths,
+  rowHeights,
+  freezeRows,
+  freezeCols,
+  allColWidths,
+  allRowHeights,
+  allFreezeRows,
+  allFreezeCols,
+  setAllCells,
+  setAllFormats,
+  setAllMerges,
+  setAllCondRules,
+  setAllValidations,
+  setAllComments,
+  setAllEmbeddedCharts,
+  setNamedRanges,
+  setRowCount,
+  setColCount,
+  setColWidths,
+  setRowHeights,
+  setFreezeRows,
+  setFreezeCols,
+  setAllColWidths,
+  setAllRowHeights,
+  setAllFreezeRows,
+  setAllFreezeCols,
+  ready,
+  queueSave,
 }: UseSheetHistoryOpts<F>): UseSheetHistoryResult {
   const [history, setHistory] = useState<SheetSnapshot[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const isApplyingHistoryRef = useRef(false);
   const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 변경 감지 → 500ms 후 snapshot 저장 (history 끝에 push, future 삭제)
   useEffect(() => {
-    // 로드 전이거나 undo/redo 중이면 push X
     if (!ready) return;
     if (isApplyingHistoryRef.current) {
       isApplyingHistoryRef.current = false;
@@ -67,26 +149,58 @@ export function useSheetHistory<F extends AllFormats>({
     snapshotTimerRef.current = setTimeout(() => {
       setHistory((h) => {
         const snap: SheetSnapshot = {
-          allCells, allFormats, allMerges, rowCount, colCount,
+          allCells,
+          allFormats,
+          allMerges,
+          allCondRules,
+          allValidations,
+          allComments,
+          allEmbeddedCharts,
+          namedRanges,
+          rowCount,
+          colCount,
+          colWidths,
+          rowHeights,
+          freezeRows,
+          freezeCols,
+          allColWidths,
+          allRowHeights,
+          allFreezeRows,
+          allFreezeCols,
         };
-        // 첫 snapshot
+
         if (historyIdx === -1) {
           setHistoryIdx(0);
           return [snap];
         }
-        // 현재가 마지막 snapshot 과 같으면 skip
+
         const last = h[historyIdx];
-        if (last
-          && last.allCells === snap.allCells
-          && last.allFormats === snap.allFormats
-          && last.allMerges === snap.allMerges
-          && last.rowCount === snap.rowCount
-          && last.colCount === snap.colCount) {
+        if (
+          last &&
+          last.allCells === snap.allCells &&
+          last.allFormats === snap.allFormats &&
+          last.allMerges === snap.allMerges &&
+          last.allCondRules === snap.allCondRules &&
+          last.allValidations === snap.allValidations &&
+          last.allComments === snap.allComments &&
+          last.allEmbeddedCharts === snap.allEmbeddedCharts &&
+          last.namedRanges === snap.namedRanges &&
+          last.rowCount === snap.rowCount &&
+          last.colCount === snap.colCount &&
+          last.colWidths === snap.colWidths &&
+          last.rowHeights === snap.rowHeights &&
+          last.freezeRows === snap.freezeRows &&
+          last.freezeCols === snap.freezeCols &&
+          last.allColWidths === snap.allColWidths &&
+          last.allRowHeights === snap.allRowHeights &&
+          last.allFreezeRows === snap.allFreezeRows &&
+          last.allFreezeCols === snap.allFreezeCols
+        ) {
           return h;
         }
+
         const next = h.slice(0, historyIdx + 1);
         next.push(snap);
-        // 최대 100 step
         if (next.length > 100) next.shift();
         setHistoryIdx(next.length - 1);
         return next;
@@ -95,7 +209,28 @@ export function useSheetHistory<F extends AllFormats>({
     return () => {
       if (snapshotTimerRef.current) clearTimeout(snapshotTimerRef.current);
     };
-  }, [ready, allCells, allFormats, allMerges, rowCount, colCount, historyIdx]);
+  }, [
+    ready,
+    allCells,
+    allFormats,
+    allMerges,
+    allCondRules,
+    allValidations,
+    allComments,
+    allEmbeddedCharts,
+    namedRanges,
+    rowCount,
+    colCount,
+    colWidths,
+    rowHeights,
+    freezeRows,
+    freezeCols,
+    allColWidths,
+    allRowHeights,
+    allFreezeRows,
+    allFreezeCols,
+    historyIdx,
+  ]);
 
   const canUndo = historyIdx > 0;
   const canRedo = historyIdx >= 0 && historyIdx < history.length - 1;
@@ -105,16 +240,63 @@ export function useSheetHistory<F extends AllFormats>({
     setAllCells(snap.allCells);
     setAllFormats(snap.allFormats as F);
     setAllMerges(snap.allMerges);
+    if (snap.allCondRules && setAllCondRules) setAllCondRules(snap.allCondRules);
+    if (snap.allValidations && setAllValidations) setAllValidations(snap.allValidations);
+    if (snap.allComments && setAllComments) setAllComments(snap.allComments);
+    if (snap.allEmbeddedCharts && setAllEmbeddedCharts) setAllEmbeddedCharts(snap.allEmbeddedCharts);
+    if (snap.namedRanges && setNamedRanges) setNamedRanges(snap.namedRanges);
     setRowCount(snap.rowCount);
     setColCount(snap.colCount);
-    queueSave({
+    if (snap.allColWidths && setAllColWidths) setAllColWidths(snap.allColWidths);
+    else setColWidths(snap.colWidths);
+    if (snap.allRowHeights && setAllRowHeights) setAllRowHeights(snap.allRowHeights);
+    else setRowHeights(snap.rowHeights);
+    if (snap.allFreezeRows && setAllFreezeRows) setAllFreezeRows(snap.allFreezeRows);
+    else setFreezeRows(snap.freezeRows);
+    if (snap.allFreezeCols && setAllFreezeCols) setAllFreezeCols(snap.allFreezeCols);
+    else setFreezeCols(snap.freezeCols);
+    const patch: Parameters<typeof queueSave>[0] = {
       allCells: snap.allCells,
       allFormats: snap.allFormats as F,
       allMerges: snap.allMerges,
       rowCount: snap.rowCount,
       colCount: snap.colCount,
-    });
-  }, [setAllCells, setAllFormats, setAllMerges, setRowCount, setColCount, queueSave]);
+      colWidths: snap.colWidths,
+      rowHeights: snap.rowHeights,
+      freezeRows: snap.freezeRows,
+      freezeCols: snap.freezeCols,
+      ...(snap.allCondRules ? { allCondRules: snap.allCondRules } : {}),
+      ...(snap.allValidations ? { allValidations: snap.allValidations } : {}),
+      ...(snap.allComments ? { allComments: snap.allComments } : {}),
+      ...(snap.allEmbeddedCharts ? { allEmbeddedCharts: snap.allEmbeddedCharts } : {}),
+      ...(snap.namedRanges ? { namedRanges: snap.namedRanges } : {}),
+      ...(snap.allColWidths ? { allColWidths: snap.allColWidths } : {}),
+      ...(snap.allRowHeights ? { allRowHeights: snap.allRowHeights } : {}),
+      ...(snap.allFreezeRows ? { allFreezeRows: snap.allFreezeRows } : {}),
+      ...(snap.allFreezeCols ? { allFreezeCols: snap.allFreezeCols } : {}),
+    };
+    queueSave(patch);
+  }, [
+    setAllCells,
+    setAllFormats,
+    setAllMerges,
+    setAllCondRules,
+    setAllValidations,
+    setAllComments,
+    setAllEmbeddedCharts,
+    setNamedRanges,
+    setRowCount,
+    setColCount,
+    setColWidths,
+    setRowHeights,
+    setFreezeRows,
+    setFreezeCols,
+    setAllColWidths,
+    setAllRowHeights,
+    setAllFreezeRows,
+    setAllFreezeCols,
+    queueSave,
+  ]);
 
   const undo = useCallback(() => {
     if (!canUndo) return;

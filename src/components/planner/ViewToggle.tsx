@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils';
 export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'goals' | 'habits';
 
 const OPTIONS: Array<{ id: PlannerView; label: string; key: string }> = [
-  { id: 'day',    label: '일',     key: 'D' },
-  { id: 'week',   label: '주',     key: 'W' },
-  { id: 'month',  label: '월',     key: 'M' },
-  { id: 'year',   label: '년',     key: 'Y' },
-  { id: 'habits', label: '습관',   key: 'H' },
+  { id: 'day',    label: '일',   key: 'D' },
+  { id: 'week',   label: '주',   key: 'W' },
+  { id: 'month',  label: '월',   key: 'M' },
+  { id: 'year',   label: '년',   key: 'Y' },
+  { id: 'goals',  label: '목표', key: 'G' },
+  { id: 'habits', label: '습관', key: 'H' },
 ];
 
 interface ViewToggleProps {
@@ -24,7 +25,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-secondary/60 border hairline"
+    className="flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-full border hairline bg-secondary/60 p-0.5 sm:inline-flex sm:w-auto sm:overflow-visible"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;

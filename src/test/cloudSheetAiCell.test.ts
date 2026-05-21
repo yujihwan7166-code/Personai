@@ -4,17 +4,21 @@
  * 실제 fetch 는 mock fetcher 로 대체 (네트워크 X). 캐시 효과·중복 enqueue
  * 방지·동시성·이벤트 발행을 검증.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   AI_SENTINEL,
   AI_LOADING_PREFIX,
+  AI_ERROR_PREFIX,
+  AI_CELL_TEXT_LIMIT,
   AI_CHANGED_EVENT,
+  AI_JOB_TIMEOUT_MS,
   aiCacheGet,
   aiCacheSet,
   aiCacheKey,
   aiCacheClear,
   aiQueueFetch,
   aiQueueClear,
+  DEFAULT_PER_SHEET_LIMIT,
   setAIFetcher,
 } from '@/lib/cloudSheet/aiCellEval';
 import { evalCell } from '@/lib/cloudSheet/formula';
@@ -22,6 +26,11 @@ import { evalCell } from '@/lib/cloudSheet/formula';
 beforeEach(() => {
   aiCacheClear();
   aiQueueClear();
+  vi.useRealTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('aiCellEval — 캐시', () => {
@@ -85,6 +94,14 @@ describe('aiCellEval — 큐 + fetcher', () => {
     expect(calls).toBe(1);
   });
 
+  it('caps pending AI jobs', () => {
+    setAIFetcher(async () => 'slow');
+    for (let i = 0; i < DEFAULT_PER_SHEET_LIMIT; i++) {
+      expect(aiQueueFetch(`k${i}`, 'ai', { prompt: String(i) })).toBe(true);
+    }
+    expect(aiQueueFetch('overflow', 'ai', { prompt: 'overflow' })).toBe(false);
+  });
+
   it('fetcher 에러 → 캐시에 ERROR sentinel 저장', async () => {
     setAIFetcher(async () => { throw new Error('네트워크 끊김'); });
     const key = aiCacheKey('ai', { prompt: 'fail' });
@@ -93,6 +110,30 @@ describe('aiCellEval — 큐 + fetcher', () => {
     const cached = aiCacheGet(key);
     expect(cached).toContain('ERROR');
     expect(cached).toContain('네트워크 끊김');
+  });
+
+  it('stuck fetcher times out and frees the AI queue', async () => {
+    vi.useFakeTimers();
+    setAIFetcher(async () => new Promise<string>(() => { /* never settles */ }));
+
+    const stuckKey = aiCacheKey('ai', { prompt: 'stuck' });
+    expect(aiQueueFetch(stuckKey, 'ai', { prompt: 'stuck' })).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(AI_JOB_TIMEOUT_MS);
+
+    expect(aiCacheGet(stuckKey)).toBe(`${AI_SENTINEL}${AI_ERROR_PREFIX}AI_TIMEOUT`);
+
+    let recoveredCalls = 0;
+    setAIFetcher(async () => {
+      recoveredCalls++;
+      return 'recovered';
+    });
+    const nextKey = aiCacheKey('ai', { prompt: 'next' });
+    expect(aiQueueFetch(nextKey, 'ai', { prompt: 'next' })).toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(recoveredCalls).toBe(1);
+    expect(aiCacheGet(nextKey)).toBe('recovered');
   });
 });
 
@@ -154,5 +195,22 @@ describe('formula 통합 — AI 함수', () => {
     expect(receivedText).toContain('문장1');
     expect(receivedText).toContain('문장2');
     expect(receivedText).toContain('문장3');
+  });
+
+  it('truncates oversized AI cell payloads before enqueueing', async () => {
+    let receivedText = '';
+    setAIFetcher(async (_fn, args) => {
+      receivedText = (args as { text: string }).text;
+      return '요약';
+    });
+    evalCell('B1', {
+      A1: '가'.repeat(AI_CELL_TEXT_LIMIT),
+      A2: '끝',
+      B1: '=AI_SUMMARIZE(A1:A2)',
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(receivedText).toHaveLength(AI_CELL_TEXT_LIMIT);
+    expect(receivedText).not.toContain('끝');
   });
 });

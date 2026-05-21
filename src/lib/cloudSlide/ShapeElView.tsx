@@ -37,6 +37,7 @@ export function ShapeElView({
         transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
         transformOrigin: 'center center',
       }}
+      title={el.hyperlink}
     >
       <ShapeRender el={el} />
       {selected && <ResizeHandles onStart={onStartResize} />}

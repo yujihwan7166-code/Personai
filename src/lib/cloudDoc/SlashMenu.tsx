@@ -30,6 +30,18 @@ const SLASH_ITEMS: SlashItem[] = [
     run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run(),
   },
   {
+    label: '제목 4', emoji: 'H4', keywords: ['제목4', 'heading4', 'h4'],
+    run: (e) => e.chain().focus().toggleHeading({ level: 4 }).run(),
+  },
+  {
+    label: '제목 5', emoji: 'H5', keywords: ['제목5', 'heading5', 'h5'],
+    run: (e) => e.chain().focus().toggleHeading({ level: 5 }).run(),
+  },
+  {
+    label: '제목 6', emoji: 'H6', keywords: ['제목6', 'heading6', 'h6'],
+    run: (e) => e.chain().focus().toggleHeading({ level: 6 }).run(),
+  },
+  {
     label: '글머리 기호 목록', emoji: '•', keywords: ['목록', 'list', 'bullet', '글머리'],
     run: (e) => e.chain().focus().toggleBulletList().run(),
   },
@@ -48,6 +60,10 @@ const SLASH_ITEMS: SlashItem[] = [
   {
     label: '구분선', emoji: '—', keywords: ['구분선', '구분', 'hr', 'divider'],
     run: (e) => e.chain().focus().setHorizontalRule().run(),
+  },
+  {
+    label: '페이지 나눔', emoji: 'Pg', keywords: ['페이지', '나눔', 'page', 'break'],
+    run: (e) => e.chain().focus().insertPageBreak().run(),
   },
   {
     label: '표 (3×3)', emoji: '⊞', keywords: ['표', 'table'],

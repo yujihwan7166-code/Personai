@@ -37,15 +37,49 @@ export function parseCsvLine(line: string, delimiter = ','): string[] {
 }
 
 /**
- * CSV 전체 텍스트 → 2D 배열. 빈 행 제거.
+ * CSV 전체 텍스트 → 2D 배열. 따옴표 안 줄바꿈과 UTF-8 BOM을 처리하고 빈 행은 제거한다.
  */
 export function parseCsv(text: string, delimiter = ','): string[][] {
-  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const normalized = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const out: string[][] = [];
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    out.push(parseCsvLine(line, delimiter));
+  let row: string[] = [];
+  let cur = '';
+  let inQuote = false;
+
+  const pushRow = () => {
+    row.push(cur);
+    cur = '';
+    if (row.some((cell) => cell.trim() !== '')) out.push(row);
+    row = [];
+  };
+
+  for (let i = 0; i < normalized.length; i++) {
+    const ch = normalized[i];
+    if (inQuote) {
+      if (ch === '"' && normalized[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuote = false;
+      } else {
+        cur += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inQuote = true;
+    } else if (ch === delimiter) {
+      row.push(cur);
+      cur = '';
+    } else if (ch === '\n') {
+      pushRow();
+    } else {
+      cur += ch;
+    }
   }
+
+  if (cur !== '' || row.length > 0) pushRow();
   return out;
 }
 

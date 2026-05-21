@@ -6,7 +6,7 @@
  * - Esc / X 로 닫힘
  * - 380px 너비
  */
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Sparkles, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAIChat } from '@/hooks/planner/ai/useAIChat';
@@ -72,6 +72,12 @@ export const PlannerAIPanel = ({
   // ── 좌측 가장자리 드래그로 너비 조정 ──
   // pointermove 로 viewport 우측 끝에서 마우스 X 좌표만큼 빼면 너비.
   const dragRef = useRef<{ active: boolean }>({ active: false });
+  const clearResizeSideEffects = useCallback(() => {
+    dragRef.current.active = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+  useEffect(() => () => clearResizeSideEffects(), [clearResizeSideEffects]);
   const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragRef.current.active = true;
@@ -85,10 +91,12 @@ export const PlannerAIPanel = ({
     onWidthChange(Math.max(minWidth, Math.min(maxWidth, Math.round(next))));
   };
   const stopResize = (e: React.PointerEvent<HTMLDivElement>) => {
-    dragRef.current.active = false;
-    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
+    try {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    } catch {
+      /* pointer capture may already be released by the browser */
+    }
+    clearResizeSideEffects();
   };
   // 더블클릭 → 기본값 복귀.
   const resetToDefault = () => onWidthChange(340);
@@ -102,7 +110,7 @@ export const PlannerAIPanel = ({
         'transition-transform duration-200 ease-out',
         // 모바일: 풀스크린, sm 이상: 사용자 지정 너비 (CSS 변수로).
         'w-full sm:w-[var(--ai-w)]',
-        open ? 'translate-x-0' : 'translate-x-full pointer-events-none',
+        open ? 'translate-x-0' : 'translate-x-full pointer-events-none max-sm:hidden',
       )}
       style={{ ['--ai-w' as string]: `${width}px` }}
     >
