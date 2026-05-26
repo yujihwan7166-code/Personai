@@ -1,10 +1,9 @@
 /**
- * AI 어시스턴트 - 음성 분석 모듈의 저장소.
+ * AI 녹음 분석 모듈의 저장소.
  * - 오디오 blob: IndexedDB ('voiceBlobs' DB)
  * - 메타/전사/요약/챕터/액션: Supabase (voice_recordings)
- * - 월 사용량: Supabase (voice_usage)
  *
- * 참고: voice_recordings / voice_usage 는 신규 테이블이므로 integrations/supabase/types.ts
+ * 참고: voice_recordings 는 신규 테이블이므로 integrations/supabase/types.ts
  *       (자동 생성) 에 아직 반영되지 않음. 이를 위해 typed 래퍼를 통해 generic Supabase
  *       client 로 우회해서 접근한다. 마이그레이션 후 types.ts 재생성 시 래퍼를 제거해도 됨.
  */
@@ -12,13 +11,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import type {
   VoiceRecording,
-  VoiceUsage,
   VoiceRecordingStatus,
   VoiceTranscriptSegment,
   VoiceChapter,
   VoiceActionItem,
 } from '@/types/voiceAnalysis';
-import { MONTHLY_FREE_SECONDS, currentYearMonthKST } from '@/types/voiceAnalysis';
 
 /* ───────────────────── IndexedDB: 오디오 blob ───────────────────── */
 
@@ -227,59 +224,3 @@ export async function deleteRecording(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/* ───────────────────── Supabase: 월 사용량 ───────────────────── */
-
-interface VoiceUsageRow {
-  user_id: string;
-  year_month: string;
-  seconds_used: number;
-}
-
-function rowToUsage(row: VoiceUsageRow): VoiceUsage {
-  return { userId: row.user_id, yearMonth: row.year_month, secondsUsed: row.seconds_used };
-}
-
-export async function getMonthlyUsage(userId: string): Promise<VoiceUsage> {
-  const ym = currentYearMonthKST();
-  const { data, error } = await supa
-    .from('voice_usage')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('year_month', ym)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return { userId, yearMonth: ym, secondsUsed: 0 };
-  return rowToUsage(data as VoiceUsageRow);
-}
-
-export async function addUsageSeconds(userId: string, seconds: number): Promise<void> {
-  if (seconds <= 0) return;
-  const ym = currentYearMonthKST();
-  const current = await getMonthlyUsage(userId);
-  const next = Math.round(current.secondsUsed + seconds);
-  const { error } = await supa
-    .from('voice_usage')
-    .upsert(
-      { user_id: userId, year_month: ym, seconds_used: next },
-      { onConflict: 'user_id,year_month' },
-    );
-  if (error) throw error;
-}
-
-/**
- * 요청한 녹음 길이(초)가 이번 달 한도 안에 들어가는지 체크.
- */
-export async function canUseSeconds(
-  userId: string,
-  requestedSec: number,
-): Promise<{ ok: boolean; usedSec: number; remainingSec: number; allowedSec: number }> {
-  const usage = await getMonthlyUsage(userId);
-  const remaining = Math.max(0, MONTHLY_FREE_SECONDS - usage.secondsUsed);
-  const allowed = Math.max(0, Math.min(requestedSec, remaining));
-  return {
-    ok: allowed >= requestedSec && requestedSec > 0,
-    usedSec: usage.secondsUsed,
-    remainingSec: remaining,
-    allowedSec: allowed,
-  };
-}

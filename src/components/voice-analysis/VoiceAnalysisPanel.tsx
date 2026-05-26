@@ -1,5 +1,5 @@
 /**
- * AI 어시스턴트 > 음성 분석 — 루트 패널.
+ * 전문 > AI 녹음 분석 — 루트 패널.
  * 좌측 리스트 + 우측 상세 (없으면 빈 상태).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,14 +11,11 @@ import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
 import {
   listRecordings,
-  getMonthlyUsage,
   deleteRecording,
   updateRecording,
 } from '@/lib/voiceRecordingStore';
 import { runVoicePipeline } from '@/lib/voiceRecordingPipeline';
 import {
-  MONTHLY_FREE_SECONDS,
-  formatDuration,
   type VoiceRecording,
 } from '@/types/voiceAnalysis';
 import { RecordingListItem } from './RecordingListItem';
@@ -43,7 +40,6 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
 
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [usedSec, setUsedSec] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showRecorder, setShowRecorder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -56,9 +52,8 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
   const refresh = useCallback(async () => {
     if (!userId) return;
     try {
-      const [list, usage] = await Promise.all([listRecordings(userId), getMonthlyUsage(userId)]);
+      const list = await listRecordings(userId);
       setRecordings(list);
-      setUsedSec(usage.secondsUsed);
     } catch (err) {
       notify.error('불러오지 못했어요', {
         description: err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
@@ -188,10 +183,6 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
     [handleUpsert, handleRenameTitleError],
   );
 
-  const remainingSec = Math.max(0, MONTHLY_FREE_SECONDS - usedSec);
-  const canStart = remainingSec > 0;
-  const usagePct = Math.min(100, Math.round((usedSec / MONTHLY_FREE_SECONDS) * 100));
-
   // 비로그인 — 풍부한 프리뷰 + 로그인 유도 (실제 녹음/전사는 Supabase 사용량 트래킹 때문에 로그인 필요)
   if (!userId) {
     return (
@@ -209,12 +200,12 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-base">🎙️</span>
             <h1 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-              녹음 노트
+              AI 녹음 분석
             </h1>
           </div>
           <div className="flex-1" />
           <span className="text-[10.5px] text-slate-400 hidden sm:inline">
-            로그인 필요 · 월 30분 무료
+            로그인 필요 · 녹음 분석
           </span>
         </div>
 
@@ -287,7 +278,7 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
             </div>
 
             <p className="text-[10.5px] text-slate-400 mt-5 leading-relaxed">
-              MP3 · M4A · WAV · WebM · 최대 25MB · 매월 30분 무료
+              MP3 · M4A · WAV · WebM · 최대 25MB
             </p>
           </div>
         </div>
@@ -310,27 +301,11 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-base">🎙️</span>
           <h1 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-            음성 분석
+            AI 녹음 분석
           </h1>
           <span className="text-[11px] text-slate-400 tabular-nums">{recordings.length}개</span>
         </div>
         <div className="flex-1" />
-        {/* 사용량 바 */}
-        <div className="flex items-center gap-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1">
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">이번 달</span>
-          <div className="w-24 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-            <div
-              className={cn(
-                'h-full transition-all',
-                usagePct >= 100 ? 'bg-red-500' : usagePct >= 80 ? 'bg-amber-500' : 'bg-indigo-500',
-              )}
-              style={{ width: `${usagePct}%` }}
-            />
-          </div>
-          <span className="text-[11px] tabular-nums text-slate-700 dark:text-slate-300">
-            {formatDuration(usedSec)} / {formatDuration(MONTHLY_FREE_SECONDS)}
-          </span>
-        </div>
       </div>
 
       {/* 본문: 데스크톱은 좌 리스트 + 우 상세, 모바일은 1뷰(리스트 ↔ 상세 토글) */}
@@ -348,33 +323,16 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
           <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
             <button
               onClick={() => setShowRecorder(true)}
-              disabled={!canStart}
-              className={cn(
-                'w-full rounded-lg px-3 py-2 text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition-colors',
-                canStart
-                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed',
-              )}
+              className="w-full rounded-lg bg-slate-900 px-3 py-2 text-[12.5px] font-semibold text-white transition-colors flex items-center justify-center gap-1.5 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
             >
               <Mic className="h-3.5 w-3.5" /> 새 녹음
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              disabled={!canStart}
-              className={cn(
-                'w-full rounded-lg px-3 py-2 text-[12px] font-medium flex items-center justify-center gap-1.5 transition-colors',
-                canStart
-                  ? 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900'
-                  : 'border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed',
-              )}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-medium text-slate-700 transition-colors flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
             >
               <Upload className="h-3.5 w-3.5" /> 파일 업로드
             </button>
-            {!canStart && (
-              <p className="text-[10.5px] text-red-600 dark:text-red-400 text-center">
-                이번 달 한도를 모두 사용했어요.
-              </p>
-            )}
           </div>
 
           {/* 리스트 */}
@@ -471,13 +429,7 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
                   <button
                     type="button"
                     onClick={() => setShowRecorder(true)}
-                    disabled={!canStart}
-                    className={cn(
-                      'h-10 px-5 rounded-lg inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold transition-colors',
-                      canStart
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed',
-                    )}
+                    className="h-10 rounded-lg bg-slate-900 px-5 text-[13px] font-semibold text-white transition-colors inline-flex items-center justify-center gap-1.5 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
                   >
                     <Mic className="h-4 w-4" />
                     녹음 시작
@@ -485,13 +437,7 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
                   <button
                     type="button"
                     onClick={() => setShowUpload(true)}
-                    disabled={!canStart}
-                    className={cn(
-                      'h-10 px-5 rounded-lg inline-flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors',
-                      canStart
-                        ? 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900'
-                        : 'border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed',
-                    )}
+                    className="h-10 rounded-lg border border-slate-200 px-5 text-[13px] font-medium text-slate-700 transition-colors inline-flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                   >
                     <Upload className="h-4 w-4" />
                     파일 업로드
@@ -499,7 +445,7 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
                 </div>
 
                 <p className="text-[10.5px] text-slate-400 mt-4">
-                  MP3 · M4A · WAV · WebM · 최대 25MB · 월 30분 무료
+                  MP3 · M4A · WAV · WebM · 최대 25MB
                 </p>
               </div>
             </div>
@@ -524,7 +470,6 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
 
       {showRecorder && (
         <RecorderDialog
-          remainingSec={remainingSec}
           onClose={() => setShowRecorder(false)}
           onComplete={(blob, duration) => {
             setShowRecorder(false);
@@ -534,7 +479,6 @@ export function VoiceAnalysisPanel({ onClose, onContinueChat, onSaveAsStudyNote 
       )}
       {showUpload && (
         <FileUploadDropzone
-          remainingSec={remainingSec}
           onClose={() => setShowUpload(false)}
           onAccept={(blob, duration, name) => {
             setShowUpload(false);

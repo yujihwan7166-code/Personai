@@ -10,12 +10,11 @@ interface RecorderError {
 }
 
 interface Props {
-  remainingSec: number;
   onClose: () => void;
   onComplete: (blob: Blob, durationSec: number) => void;
 }
 
-export function RecorderDialog({ remainingSec, onClose, onComplete }: Props) {
+export function RecorderDialog({ onClose, onComplete }: Props) {
   const [phase, setPhase] = useState<'idle' | 'recording' | 'finalizing'>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<RecorderError | null>(null);
@@ -140,8 +139,6 @@ export function RecorderDialog({ remainingSec, onClose, onComplete }: Props) {
       tickRef.current = window.setInterval(() => {
         const next = (Date.now() - startTsRef.current) / 1000;
         setElapsed(next);
-        // 한도 도달 시 자동 종료
-        if (next >= remainingSec) stopInternal();
       }, 250);
     } catch (err) {
       // 권한 거부 vs 일반 오류 분기 — NotAllowedError 가 권한 거부.
@@ -168,9 +165,6 @@ export function RecorderDialog({ remainingSec, onClose, onComplete }: Props) {
   };
 
   const stop = () => stopInternal();
-
-  const secLeft = Math.max(0, remainingSec - Math.floor(elapsed));
-  const warning = secLeft > 0 && secLeft <= 10 && phase === 'recording';
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" onClick={phase === 'idle' ? onClose : undefined}>
@@ -210,13 +204,12 @@ export function RecorderDialog({ remainingSec, onClose, onComplete }: Props) {
             )}
             <button
               onClick={phase === 'idle' ? start : phase === 'recording' ? stop : undefined}
-              disabled={phase === 'finalizing' || remainingSec <= 0}
+              disabled={phase === 'finalizing'}
               className={cn(
                 'relative h-20 w-20 rounded-full flex items-center justify-center transition-all',
                 phase === 'idle' && 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 hover:scale-105',
                 phase === 'recording' && 'bg-red-600 text-white shadow-lg shadow-red-500/30 hover:scale-105',
                 phase === 'finalizing' && 'bg-slate-300 text-slate-500 cursor-wait',
-                remainingSec <= 0 && 'opacity-50 cursor-not-allowed',
               )}
               aria-label={phase === 'recording' ? '녹음 중지' : '녹음 시작'}
             >
@@ -252,11 +245,8 @@ export function RecorderDialog({ remainingSec, onClose, onComplete }: Props) {
             <p className="text-[26px] font-bold tabular-nums text-slate-900 dark:text-slate-100">
               {formatDuration(elapsed)}
             </p>
-            <p className={cn(
-              'text-[11px] mt-0.5 tabular-nums',
-              warning ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-slate-400',
-            )}>
-              {warning ? `⚠ 한도 ${secLeft}초 남음` : `남은 시간 ${formatDuration(secLeft)}`}
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              원하는 만큼 녹음할 수 있어요
             </p>
           </div>
 

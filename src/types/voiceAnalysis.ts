@@ -1,5 +1,5 @@
 /**
- * AI 어시스턴트 - 음성 분석(녹음 분석) 기능 타입 정의.
+ * AI 녹음 분석 기능 타입 정의.
  * 공부 도우미와 별도 모듈. V2에서 공부 노트북이 이 녹음을 참조하는 방식으로 연결 예정.
  */
 
@@ -54,16 +54,6 @@ export interface VoiceRecording {
   updatedAt: number;
 }
 
-export interface VoiceUsage {
-  userId: string;
-  /** 'YYYY-MM' (KST 기준) */
-  yearMonth: string;
-  secondsUsed: number;
-}
-
-/** 월 무료 한도(초) */
-export const MONTHLY_FREE_SECONDS = 30 * 60;
-
 /** Whisper API 단일 파일 바이트 상한 */
 export const WHISPER_FILE_LIMIT = 25 * 1024 * 1024;
 
@@ -77,16 +67,6 @@ export const VOICE_STATUS_LABEL: Record<VoiceRecordingStatus, string> = {
   ready: '완료',
   error: '오류',
 };
-
-/** 현재 KST 기준 yyyy-MM 반환 */
-export function currentYearMonthKST(): string {
-  const now = new Date();
-  // KST = UTC+9
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const y = kst.getUTCFullYear();
-  const m = String(kst.getUTCMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
-}
 
 /* ── 창조물 생성(ArtifactKind) — AudioPen·Voicenotes·Fathom 패턴 ── */
 

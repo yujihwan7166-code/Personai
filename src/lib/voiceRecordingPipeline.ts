@@ -7,7 +7,6 @@ import {
   createRecording,
   updateRecording,
   putAudioBlob,
-  addUsageSeconds,
 } from '@/lib/voiceRecordingStore';
 import type {
   VoiceRecording,
@@ -85,7 +84,6 @@ export interface RunPipelineInput {
  * - Supabase 메타 insert (status: transcribing)
  * - /api/voice-transcribe 호출 → transcript 저장 (status: analyzing)
  * - /api/voice-analyze 호출 → 제목/요약/챕터/액션 저장 (status: ready)
- * - 사용량 카운터에 실제 duration 초 추가
  * - 실패 시 status: 'error' + errorMessage 저장
  */
 export async function runVoicePipeline(input: RunPipelineInput): Promise<VoiceRecording> {
@@ -126,7 +124,6 @@ export async function runVoicePipeline(input: RunPipelineInput): Promise<VoiceRe
         status: 'ready',
       });
       onProgress?.(rec);
-      await addUsageSeconds(userId, actualDuration).catch(() => {});
       return rec;
     }
 
@@ -145,9 +142,6 @@ export async function runVoicePipeline(input: RunPipelineInput): Promise<VoiceRe
       status: 'ready',
     });
     onProgress?.(rec);
-
-    // 5) 사용량 기록
-    await addUsageSeconds(userId, actualDuration).catch(() => {});
 
     return rec;
   } catch (err) {

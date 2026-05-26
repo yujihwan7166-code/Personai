@@ -4,11 +4,9 @@ import { cn } from '@/lib/utils';
 import {
   VOICE_ACCEPT_TYPES,
   WHISPER_FILE_LIMIT,
-  formatDuration,
 } from '@/types/voiceAnalysis';
 
 interface Props {
-  remainingSec: number;
   onClose: () => void;
   onAccept: (blob: Blob, durationSec: number, name: string) => void;
 }
@@ -49,7 +47,7 @@ function getAudioDuration(file: File): Promise<number | null> {
   });
 }
 
-export function FileUploadDropzone({ remainingSec, onClose, onAccept }: Props) {
+export function FileUploadDropzone({ onClose, onAccept }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [measuring, setMeasuring] = useState(false);
@@ -84,11 +82,6 @@ export function FileUploadDropzone({ remainingSec, onClose, onAccept }: Props) {
       return;
     }
     setDuration(d);
-    if (d > remainingSec) {
-      setError(
-        `이번 달 남은 시간(${formatDuration(remainingSec)})을 초과해요. 파일 길이: ${formatDuration(d)}`,
-      );
-    }
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -154,7 +147,7 @@ export function FileUploadDropzone({ remainingSec, onClose, onAccept }: Props) {
                 <p className="text-[10.5px] text-slate-400 tabular-nums">
                   {fmtBytes(file.size)}
                   {measuring && ' · 길이 확인 중…'}
-                  {duration !== null && ` · ${formatDuration(duration)}`}
+                  {duration !== null && ` · 분석 가능`}
                 </p>
               </div>
               <button
@@ -173,10 +166,6 @@ export function FileUploadDropzone({ remainingSec, onClose, onAccept }: Props) {
               <p className="text-[11.5px] text-red-700 dark:text-red-300">{error}</p>
             </div>
           )}
-
-          <p className="text-[10.5px] text-slate-400 leading-relaxed">
-            이번 달 남은 시간: <span className="tabular-nums">{formatDuration(remainingSec)}</span>
-          </p>
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-800">
