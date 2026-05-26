@@ -1,7 +1,7 @@
 /**
  * 클라우드 AI 사이드바 공통 훅.
  *
- *  - open 상태 + sessionStorage 영속 (kind 별)
+ *  - open 상태 + storage 영속 (kind 별, 기본 sessionStorage)
  *  - messages 상태 + localStorage 영속 (kind + persistKey 별, 보통 nodeId)
  *    persistKey 가 없으면 메모리만 (drive 등 임시 화면)
  *  - 로딩·에러 처리
@@ -18,6 +18,8 @@ import {
 interface UseAiSidebarOptions {
   /** localStorage 키에 들어갈 식별자. 보통 nodeId. 없으면 메모리만 */
   persistKey?: string;
+  /** 패널 열림 상태 저장 위치. 클라우드 문서는 session, 작업 공간 페이지는 local 권장. */
+  openStorage?: 'session' | 'local';
 }
 
 interface UseAiSidebarReturn {
@@ -72,19 +74,28 @@ export function useAiSidebar(
   getContext: () => AiContext,
   options: UseAiSidebarOptions = {},
 ): UseAiSidebarReturn {
-  const { persistKey } = options;
-  // open: sessionStorage 영속 — kind 마다 별도 key
+  const { persistKey, openStorage = 'session' } = options;
+  // open: kind 마다 별도 key. 작업 공간 페이지는 localStorage 로 재방문 상태를 맞춘다.
   const storageKey = `${STORAGE_KEY_OPEN}.${kind}`;
+  const getOpenStorage = useCallback((): Storage | null => {
+    if (typeof window === 'undefined') return null;
+    return openStorage === 'local' ? window.localStorage : window.sessionStorage;
+  }, [openStorage]);
   const [open, setOpenInner] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return window.sessionStorage.getItem(storageKey) === '1';
+    try {
+      const storage = openStorage === 'local' ? window.localStorage : window.sessionStorage;
+      return storage?.getItem(storageKey) === '1';
+    } catch {
+      return false;
+    }
   });
   const setOpen = useCallback((v: boolean) => {
     setOpenInner(v);
     try {
-      window.sessionStorage.setItem(storageKey, v ? '1' : '0');
+      getOpenStorage()?.setItem(storageKey, v ? '1' : '0');
     } catch { /* private mode etc. */ }
-  }, [storageKey]);
+  }, [getOpenStorage, storageKey]);
   const toggle = useCallback(() => setOpen(!open), [open, setOpen]);
 
   // messages — persistKey 가 바뀌면 새 history 로드

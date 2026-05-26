@@ -4,13 +4,11 @@
  * 각 미니: 월명 + 날짜 격자, 이벤트/할일 있는 날 도트.
  * 클릭 시 onMonthClick(monthIso) — 부모가 view='month' 로 이동시킬 수 있음.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlannerSection } from './PlannerSection';
-import { HabitHeatmap } from './HabitHeatmap';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -22,9 +20,9 @@ interface YearViewProps {
 }
 
 export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps) => {
-  const [mode, setMode] = useState<'months' | 'habits'>('months');
   const anchor = useMemo(() => new Date(anchorIso ?? new Date().toISOString()), [anchorIso]);
   const year = anchor.getFullYear();
+  const currentMonthRef = useRef<HTMLButtonElement | null>(null);
 
   // 1년 전체 범위.
   const { start, end } = useMemo(() => {
@@ -107,52 +105,21 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
     });
   }, [year, today, busyCounts]);
 
-  // ── 모드 토글 ──
-  const ModeToggle = (
-    <div
-      role="tablist"
-      className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-secondary/60 border hairline"
-    >
-      {([
-        ['months', '월 보기'],
-        ['habits', '습관'],
-      ] as const).map(([id, label]) => {
-        const active = mode === id;
-        return (
-          <button
-            key={id}
-            role="tab"
-            type="button"
-            aria-selected={active}
-            onClick={() => setMode(id)}
-            className={cn(
-              'px-3 h-6 rounded-full text-[11px] font-semibold transition-all',
-              active
-                ? 'bg-card text-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  if (mode === 'habits') {
-    return (
-      <PlannerSection label="년" count={`${year}`} action={ModeToggle} className="h-full">
-        <HabitHeatmap anchorIso={anchorIso ?? new Date().toISOString()} onDayClick={onDayClick} />
-      </PlannerSection>
-    );
-  }
+  useEffect(() => {
+    if (year !== today.getFullYear()) return;
+    const timer = window.setTimeout(() => {
+      currentMonthRef.current?.scrollIntoView({ block: 'start', inline: 'nearest' });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [year, today]);
 
   return (
-    <PlannerSection label="년" count={`${year}`} action={ModeToggle} className="h-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-1">
+    <div className="h-full min-h-0 overflow-y-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-1 pr-2">
         {months.map((mo) => (
           <button
             key={mo.index}
+            ref={mo.isCurrentMonth ? currentMonthRef : undefined}
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
@@ -242,6 +209,6 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
           </button>
         ))}
       </div>
-    </PlannerSection>
+    </div>
   );
 };

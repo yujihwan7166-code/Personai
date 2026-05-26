@@ -65,7 +65,6 @@ import {
   LazyGamePlayer,
   LazyMediaGenPanel,
   LazyMentalTestBrowserModal,
-  LazyModePaletteModal,
   LazyOnboardingTour,
   LazyPremiumConsultChat,
   LazyQuestionInput,
@@ -80,6 +79,15 @@ import {
   type GeneralImageRequestFile,
 } from './indexRuntime';
 
+const LAST_STUDY_MODE_KEY = 'personai.last_study_mode';
+
+function getInitialDiscussionMode(): DiscussionMode {
+  if (typeof window !== 'undefined' && window.localStorage.getItem(LAST_STUDY_MODE_KEY) === 'study') {
+    return 'study';
+  }
+  return 'general';
+}
+
 const Index = () => {
   const { user } = useAuth();
   const { experts, setExperts, selectedExpertIds, setSelectedExpertIds } = usePersistedExpertState();
@@ -87,8 +95,6 @@ const Index = () => {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [activeExpertId, setActiveExpertId] = useState<string | undefined>();
   const [isDiscussing, setIsDiscussing] = useState(false);
-  const [modePaletteOpen, setModePaletteOpen] = useState(false);
-  const [modePaletteAnchor, setModePaletteAnchor] = useState<{ top: number; left: number; right: number; bottom: number; width: number; height: number } | null>(null);
   // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
   const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
   // /wiki 등 외부 페이지에서 navigate('/', { state: { ... } }) 로 진입 시 처리.
@@ -99,6 +105,9 @@ const Index = () => {
     const state = location.state as {
       openModePalette?: boolean;
       selectMainMode?: import('@/types/expert').MainMode;
+      selectDebateSub?: import('@/types/expert').DebateSubMode;
+      selectPremiumDomain?: PremiumDomainId;
+      selectAssistantCard?: string;
     } | null;
     if (!state) return undefined;
 
@@ -118,12 +127,22 @@ const Index = () => {
           case 'translate_main':   return 'translate';
           case 'convert_main':     return 'convert';
           case 'study_main':       return 'study';
-          case 'voice_main':       return 'assistant';
-          case 'media_main':       return 'assistant';
+          case 'voice_main':       return 'voice';
+          case 'media_main':       return 'media';
         }
       };
       const t = window.setTimeout(() => {
-        setDiscussionMode(mainToDisc(state.selectMainMode!));
+        if (state.selectMainMode === 'debate' && state.selectDebateSub) {
+          setDiscussionMode(state.selectDebateSub);
+        } else {
+          setDiscussionMode(mainToDisc(state.selectMainMode!));
+        }
+        if (state.selectMainMode === 'premium_main' && state.selectPremiumDomain) {
+          handleSelectPremiumDomain(state.selectPremiumDomain);
+        }
+        if (state.selectMainMode === 'assistant' && state.selectAssistantCard) {
+          setSelectedAssistantCard(state.selectAssistantCard);
+        }
       }, 60);
       window.history.replaceState({}, '');
       return () => window.clearTimeout(t);
@@ -173,7 +192,7 @@ const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
-  const [discussionMode, setDiscussionMode] = useState<DiscussionMode>('general');
+  const [discussionMode, setDiscussionMode] = useState<DiscussionMode>(() => getInitialDiscussionMode());
   const [researchInitialQuestion, setResearchInitialQuestion] = useState<string | null>(null);
   const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
   const [proconDebateTopic, setProconDebateTopic] = useState('');
@@ -209,6 +228,15 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingFilesRef = useRef<AttachedFile[]>([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (getMainMode(discussionMode) === 'study_main') {
+      window.localStorage.setItem(LAST_STUDY_MODE_KEY, 'study');
+    } else {
+      window.localStorage.removeItem(LAST_STUDY_MODE_KEY);
+    }
+  }, [discussionMode]);
 
   // ── 스크롤 위치 기억 (모드 전환 시 현재 위치 저장, 돌아올 때 복원) ──
   useEffect(() => {
@@ -793,7 +821,7 @@ const Index = () => {
     setPremiumSteps([]);
   }, []);
 
-  // 'AI 법률 자문' 단일화 — premium_main 진입 시 도메인 랜딩 페이지를 건너뛰고 바로 'law' 챗으로.
+  // 프리미엄 AI 기본 진입 — 세부 도메인 지정이 없으면 법률 자문으로 바로 진입.
   useEffect(() => {
     if (discussionMode === 'expert' && !selectedPremiumDomain) {
       setSelectedPremiumDomain('law');
@@ -4617,17 +4645,22 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           aria-hidden
         >
           <MainModeTabs
-            modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+            modes={['general', 'research_main', 'study_main', 'voice_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
             labels={mainModeLabelMap}
             currentMode={getMainMode(discussionMode)}
+            currentPremiumDomain={selectedPremiumDomain}
             pendingMode={null}
             isDiscussing={false}
             transitionPhase={0}
             showPlayerBg={false}
             onChange={(m) => handleModeChange(mainToDiscussion(m))}
             onSelectDebateSub={(sub) => handleModeChange(sub)}
+            onSelectPremiumDomain={(domainId) => {
+              handleModeChange('expert');
+              handleSelectPremiumDomain(domainId);
+            }}
             onSelectAssistantCard={(cardId) => {
-              // 노트 허브 '녹음 노트' 슬롯 등 외부 진입로에서 voice-analysis 카드 트리거 → voice_main 모드로 직접 진입
+              // AI 녹음 분석 진입로에서 voice-analysis 카드 트리거 → voice_main 모드로 직접 진입
               if (cardId === 'voice-analysis') {
                 setDiscussionMode('voice');
                 return;
@@ -4662,30 +4695,12 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             }}
           />
         </Suspense>
-        {/* #7 첫 방문 온보딩 — localStorage 로 1회성. */}
-        <Suspense fallback={null}>
-          <LazyOnboardingTour />
-        </Suspense>
-        {/* 모드 팔레트 모달 — 사이드바 "모드" 버튼으로 트리거 */}
-        <Suspense fallback={null}>
-          <LazyModePaletteModal
-            open={modePaletteOpen}
-            onClose={() => setModePaletteOpen(false)}
-            anchorRect={modePaletteAnchor}
-            labels={Object.fromEntries(
-              Object.entries(MAIN_MODE_LABELS).map(([k, v]) => [k, v.label])
-            ) as Record<import('@/types/expert').MainMode, string>}
-            currentMode={getMainMode(discussionMode)}
-            onChange={(m) => handleModeChange(mainToDiscussion(m))}
-            currentDebateSub={getMainMode(discussionMode) === 'debate' ? (discussionMode as import('@/types/expert').DebateSubMode) : undefined}
-            onSelectDebateSub={(sub) => handleModeChange(sub)}
-            currentAssistantCard={getMainMode(discussionMode) === 'assistant' ? selectedAssistantCardId ?? null : null}
-            onSelectAssistantCard={(cardId) => {
-              if (getMainMode(discussionMode) !== 'assistant') handleModeChange(mainToDiscussion('assistant'));
-              setSelectedAssistantCard(cardId);
-            }}
-          />
-        </Suspense>
+        {/* #7 첫 방문 온보딩 — 학습/자료 화면에서는 전역 소개가 흐름을 가리지 않게 숨김. */}
+        {getMainMode(discussionMode) !== 'study_main' && (
+          <Suspense fallback={null}>
+            <LazyOnboardingTour />
+          </Suspense>
+        )}
         {/* 심리 테스트 모음 페이지 — "멘탈 테스트" 그룹 서브 뷰의 "심리 테스트 모음 →" 로 트리거 */}
         <Suspense fallback={null}>
           <LazyMentalTestBrowserModal
@@ -4778,7 +4793,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             </div>
           ) : getMainMode(discussionMode) === 'voice_main' ? (
             <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
-              <ModeErrorBoundary modeLabel="음성 분석" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
+              <ModeErrorBoundary modeLabel="AI 녹음 분석" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
                 <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
                   <LazyVoiceAnalysisPanel
                     onClose={() => setDiscussionMode('assistant')}

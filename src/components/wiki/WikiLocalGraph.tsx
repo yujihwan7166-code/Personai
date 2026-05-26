@@ -11,7 +11,7 @@ interface Props {
   onOpenInGlobal?: (centerId: string) => void;
 }
 
-type EdgeKind = 'refersTo' | 'cites' | 'inherits' | 'similarTo';
+type EdgeKind = 'refersTo' | 'cites' | 'inherits' | 'similarTo' | 'parentMocs';
 
 function edgeStrokeMini(kind: EdgeKind): { stroke: string; dash?: string } {
   switch (kind) {
@@ -19,6 +19,7 @@ function edgeStrokeMini(kind: EdgeKind): { stroke: string; dash?: string } {
     case 'cites':     return { stroke: 'hsl(var(--wiki-link-visited))' };
     case 'inherits':  return { stroke: 'hsl(var(--wiki-hairline-strong))', dash: '3 2' };
     case 'similarTo': return { stroke: 'hsl(var(--muted-foreground))', dash: '1.5 3' };
+    case 'parentMocs': return { stroke: 'hsl(var(--primary))', dash: '5 2' };
   }
 }
 
@@ -42,6 +43,7 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
       [page.cites,    'cites'],
       [page.inherits, 'inherits'],
       [page.similarTo,'similarTo'],
+      [page.parentMocs, 'parentMocs'],
     ];
     const seen = new Set<string>();
     for (const [arr, kind] of buckets) {
@@ -61,6 +63,7 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
       if (p.cites.includes(page.id))     incomingKinds.push('cites');
       if (p.inherits.includes(page.id))  incomingKinds.push('inherits');
       if (p.similarTo.includes(page.id)) incomingKinds.push('similarTo');
+      if (p.parentMocs.includes(page.id)) incomingKinds.push('parentMocs');
       for (const kind of incomingKinds) {
         const key = p.id + '|' + kind + '|in';
         if (seen.has(key)) continue;

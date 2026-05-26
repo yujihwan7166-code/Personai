@@ -70,11 +70,11 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
     <section
       ref={setDropRef}
       className={cn(
-        'h-full min-h-0 flex flex-col rounded-2xl border bg-card px-3 py-2.5 transition-colors shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
-        isOver ? 'border-primary/50 bg-primary/5' : 'hairline',
+        'w-full h-full min-h-0 flex flex-col rounded-2xl border bg-card/80 px-3 py-2.5 transition-colors shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
+        isOver ? 'border-primary/50 bg-primary/5' : 'border-foreground/10',
       )}
     >
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b hairline">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
         <ListTodo className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
         <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
           할 일
@@ -98,10 +98,21 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
           <button
             type="button"
             onClick={onAdd}
-            className="w-full rounded-lg px-3 py-4 text-left text-[12.5px] text-foreground/70 border border-dashed border-foreground/15 hover:bg-accent hover:text-foreground hover:border-foreground/30 transition-colors leading-snug"
+            className="group w-full rounded-lg border border-dashed border-foreground/12 bg-background/35 px-3 py-2.5 text-left transition-colors hover:border-foreground/25 hover:bg-accent/70 hover:text-foreground"
           >
-            오늘 할 일이 비어있어요.<br />
-            <span className="text-foreground/55">+ 로 첫 항목 추가</span>
+            <span className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent/65 text-muted-foreground group-hover:text-foreground">
+                <ListTodo className="h-3.5 w-3.5" strokeWidth={2} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[12.5px] font-semibold text-foreground/75">
+                  오늘 할 일이 비어있어요.
+                </span>
+                <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
+                  바로 할 일을 하나 추가
+                </span>
+              </span>
+            </span>
           </button>
         ) : (
           <div className="space-y-0.5 pb-1">
@@ -204,4 +215,3 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
     </section>
   );
 };
-

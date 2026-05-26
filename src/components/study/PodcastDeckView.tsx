@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Mic, Play, MoreHorizontal, RefreshCw, X, ChevronDown, Pencil } from 'lucide-react';
+import { Mic, Play, MoreHorizontal, RefreshCw, X, ChevronDown, Pencil, Target } from 'lucide-react';
 import type { StudyNotebook, PodcastEpisode } from '@/types/study';
 import { PODCAST_LENGTH_META, PODCAST_PURPOSE_META } from '@/types/study';
 import { PodcastPlayer } from './PodcastPlayer';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirmDialog';
 
 interface Props {
   notebook: StudyNotebook;
@@ -30,8 +31,14 @@ export function PodcastDeckView({ notebook, onChange, onCreateNew, onRegenerate,
     setRenameId(null);
   };
 
-  const deleteEpisode = (ep: PodcastEpisode) => {
-    if (!confirm(`"${ep.title}" 에피소드를 삭제할까요?`)) return;
+  const deleteEpisode = async (ep: PodcastEpisode) => {
+    const ok = await confirmDialog({
+      title: '에피소드를 삭제할까요?',
+      description: `"${ep.title}" 팟캐스트 에피소드와 재생 기록이 삭제됩니다.`,
+      confirmLabel: '삭제',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const next = episodes.filter((e) => e.id !== ep.id);
     onChange({ ...notebook, podcastEpisodes: next });
     if (openId === ep.id) setOpenId(next[0]?.id ?? null);
@@ -161,8 +168,9 @@ export function PodcastDeckView({ notebook, onChange, onCreateNew, onRegenerate,
             {isOpen && (
               <div className="px-3 pb-3">
                 {ep.focus && (
-                  <p className="mb-2 text-[10.5px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-md px-2 py-1.5">
-                    🎯 집중 범위: {ep.focus}
+                  <p className="mb-2 inline-flex max-w-full items-start gap-1.5 text-[10.5px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-md px-2 py-1.5">
+                    <Target className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" strokeWidth={1.8} />
+                    <span className="min-w-0 break-words">집중 범위: {ep.focus}</span>
                   </p>
                 )}
                 <PodcastPlayer

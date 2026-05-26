@@ -444,7 +444,7 @@ function botColor(bot) {
 }
 
 const APP_CARDS = [
-  { icon: "⚖️", title: "찬반 토론", desc: "찬성 vs 반대로 AI 토론", color: C.blue, dim: C.blueDim, tag: "Only Here" },
+  { icon: "⚖️", title: "찬반 토론", desc: "찬성 vs 반대로 AI 라운드테이블", color: C.blue, dim: C.blueDim, tag: "Only Here" },
   { icon: "🗣️", title: "자유 토론", desc: "주제 자유, AI끼리 대화", color: C.green, dim: C.greenDim, tag: null },
   { icon: "🔬", title: "심층 토론", desc: "깊이 있는 다각도 분석", color: C.primary, dim: C.primaryDim, tag: null },
   { icon: "💡", title: "브레인스토밍", desc: "AI 팀과 아이디어 폭풍", color: C.cyan, dim: C.cyanDim, tag: null },

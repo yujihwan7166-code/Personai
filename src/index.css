@@ -226,10 +226,10 @@
   }
 
   /* ──────────────────────────────────────────────────────────────────
-   * planner-theme — 통합 플래너 전용 Sunsama-inspired warm sage 톤.
+   * planner-theme — 통합 플래너 전용 warm neutral + violet 톤.
    * 기존 hard-coded `bg-[hsl(40_30%_97%)]` 한 곳을 토큰으로 수렴.
    * 철학: Things3 따뜻함 유지하되 정보 밀도와 공존하도록
-   *   채도 한 단계 낮추고, sage/teal 액센트로 차분함 강조.
+   *   채도 한 단계 낮추고, violet 액센트로 선택 상태를 명확하게 강조.
    * ────────────────────────────────────────────────────────────────── */
   .planner-theme {
     /* Page background — 따뜻한 sage-cream, 현재보다 살짝 차분 */
@@ -254,12 +254,12 @@
     --border: 35 14% 84%;
     --input: 35 14% 84%;
 
-    /* Sunsama-ish sage·teal 액센트 — indigo 대신 차분한 톤 */
-    --primary: 175 38% 36%;
+    /* Violet accent — 오늘/선택/주요 액션을 캘린더 전반에서 일관되게 표시 */
+    --primary: 262 64% 56%;
     --primary-foreground: 40 35% 99%;
 
-    --ring: 175 38% 42%;
-    --focus-ring: 175 45% 45%;
+    --ring: 262 62% 58%;
+    --focus-ring: 262 66% 60%;
     --focus-offset: 42 28% 96%;
 
     /* Surface — 카드/리스트/패널 3계층 */
@@ -292,11 +292,11 @@
     --border: 35 7% 22%;
     --input: 35 7% 22%;
 
-    --primary: 175 50% 58%;
+    --primary: 262 65% 68%;
     --primary-foreground: 35 8% 10%;
 
-    --ring: 175 50% 58%;
-    --focus-ring: 175 55% 60%;
+    --ring: 262 65% 68%;
+    --focus-ring: 262 70% 70%;
     --focus-offset: 35 8% 10%;
 
     --hairline:  35 7% 22%;
@@ -1169,6 +1169,8 @@
   }
   .doc-content p {
     margin: 0 0 0.6rem;
+    white-space: pre-wrap;
+    tab-size: 4;
   }
   .doc-content p:empty::before {
     content: '\200B';
@@ -1251,15 +1253,405 @@
     border-collapse: collapse;
     margin: 0.8rem 0;
     width: 100%;
+    table-layout: fixed;
+    border: 1px solid #cbd5e1;
+  }
+  .doc-content .tableWrapper {
+    overflow-x: auto;
+    margin: 1rem 0;
+    padding: 4px 2px 12px;
   }
   .doc-content table th, .doc-content table td {
-    border: 1px solid #d0d0d0;
+    position: relative;
+    min-width: 72px;
+    min-height: 32px;
+    border: 1px solid #d0d7de;
     padding: 6px 10px;
     vertical-align: top;
+  }
+  .doc-content table th:hover, .doc-content table td:hover {
+    box-shadow: inset 0 0 0 1px #94a3b8;
+  }
+  .doc-content table .selectedCell {
+    box-shadow: inset 0 0 0 2px #1a73e8;
+  }
+  .doc-content table .selectedCell::after {
+    content: none;
+  }
+  .doc-content table th:focus-within, .doc-content table td:focus-within {
+    box-shadow: inset 0 0 0 1.5px #1a73e8;
+  }
+  .doc-content .column-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: -2px;
+    z-index: 5;
+    width: 6px;
+    background: #1a73e8;
+    opacity: 0;
+    pointer-events: auto;
+    transition: opacity 120ms ease, box-shadow 120ms ease;
+  }
+  .doc-content table:hover .column-resize-handle {
+    opacity: 0.65;
+    box-shadow: 0 0 0 2px rgb(26 115 232 / 0.14);
+  }
+  .doc-content.resize-cursor {
+    cursor: col-resize;
   }
   .doc-content table th {
     background: #f3f3f3;
     font-weight: 600;
+  }
+  .doc-table-width-grip {
+    position: fixed;
+    z-index: 80;
+    width: 10px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px rgb(26 115 232 / 0.55), 0 1px 5px rgb(15 23 42 / 0.16);
+    cursor: ew-resize;
+    opacity: 0.85;
+    transition: opacity 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+  }
+  .doc-table-width-grip::before {
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    left: 4px;
+    width: 2px;
+    border-radius: 999px;
+    background: #1a73e8;
+    content: "";
+  }
+  .doc-table-width-grip:hover {
+    opacity: 1;
+    box-shadow: inset 0 0 0 1px #1a73e8, 0 2px 8px rgb(15 23 42 / 0.2);
+  }
+  .doc-table-width-grip-dragging {
+    opacity: 1;
+    transform: scaleX(1.18);
+  }
+  .doc-table-width-badge {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    display: none;
+    min-width: 48px;
+    transform: translateY(-50%);
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.16);
+    color: #334155;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .doc-table-width-grip-dragging .doc-table-width-badge {
+    display: block;
+  }
+  .doc-table-resizing, .doc-table-resizing * {
+    cursor: ew-resize !important;
+  }
+  .doc-table-row-resizing, .doc-table-row-resizing * {
+    cursor: ns-resize !important;
+    user-select: none;
+  }
+  .doc-table-column-resizing, .doc-table-column-resizing * {
+    cursor: col-resize !important;
+    user-select: none;
+  }
+  .doc-table-row-height-badge {
+    position: fixed;
+    z-index: 96;
+    min-width: 48px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.16);
+    color: #334155;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .doc-table-resize-guide {
+    position: fixed;
+    z-index: 94;
+    border-radius: 999px;
+    background: #1a73e8;
+    box-shadow: 0 0 0 2px rgb(26 115 232 / 0.12);
+    pointer-events: none;
+  }
+  .doc-table-resize-guide-column {
+    width: 2px;
+  }
+  .doc-table-resize-guide-row {
+    height: 2px;
+  }
+  .doc-table-quickbar {
+    position: fixed;
+    z-index: 90;
+    display: none;
+    align-items: center;
+    gap: 3px;
+    min-height: 34px;
+    max-width: calc(100vw - 16px);
+    overflow-x: auto;
+    border: 1px solid #d0d7de;
+    border-radius: 7px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.16);
+    padding: 4px 5px;
+    color: #111827;
+  }
+  .doc-table-quickbar-label {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 7px 0 4px;
+    border-right: 1px solid #e5e7eb;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .doc-table-quickbar-color {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .doc-table-quickbar-color:hover {
+    background: #eef4ff;
+  }
+  .doc-table-quickbar-color::before {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #94a3b8;
+    border-radius: 3px;
+    background: currentColor;
+    content: "";
+  }
+  .doc-table-quickbar-color-fill::after {
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    width: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: #1a73e8;
+    content: "";
+  }
+  .doc-table-quickbar-color-border::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px currentColor;
+  }
+  .doc-table-quickbar-color input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .doc-table-quickbar-button {
+    height: 24px;
+    min-width: 28px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    padding: 0 6px;
+    color: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .doc-table-quickbar-button:hover {
+    background: #eef4ff;
+    color: #174ea6;
+  }
+  .doc-table-quickbar-button:disabled,
+  .doc-table-quickbar-button[aria-disabled="true"] {
+    color: #9ca3af;
+    cursor: default;
+    opacity: 0.55;
+  }
+  .doc-table-quickbar-button:disabled:hover,
+  .doc-table-quickbar-button[aria-disabled="true"]:hover {
+    background: transparent;
+    color: #9ca3af;
+  }
+  .doc-table-quickbar-danger {
+    color: #dc2626;
+  }
+  .doc-table-quickbar-danger:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+  .doc-table-quickbar-separator {
+    width: 1px;
+    height: 18px;
+    margin: 0 2px;
+    background: #e5e7eb;
+    flex: 0 0 auto;
+  }
+  .doc-table-selecting, .doc-table-selecting * {
+    cursor: cell !important;
+    user-select: none;
+  }
+  .doc-table-handle-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 79;
+    pointer-events: none;
+  }
+  .doc-table-select-handle {
+    position: fixed;
+    border: 0;
+    border-radius: 4px;
+    background: #f8fbff;
+    box-shadow: inset 0 0 0 1px rgb(26 115 232 / 0.28);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 120ms ease, box-shadow 120ms ease;
+  }
+  .doc-table-select-handle:hover {
+    background: #d2e3fc;
+    box-shadow: inset 0 0 0 1px #1a73e8;
+  }
+  .doc-table-all-handle {
+    width: 14px;
+    height: 14px;
+  }
+  .doc-table-all-handle::before {
+    position: absolute;
+    inset: 3px;
+    border-radius: 2px;
+    background:
+      linear-gradient(#1a73e8, #1a73e8) 50% 33% / 8px 1px no-repeat,
+      linear-gradient(#1a73e8, #1a73e8) 50% 66% / 8px 1px no-repeat,
+      linear-gradient(90deg, #1a73e8, #1a73e8) 33% 50% / 1px 8px no-repeat,
+      linear-gradient(90deg, #1a73e8, #1a73e8) 66% 50% / 1px 8px no-repeat;
+    content: "";
+  }
+  .doc-table-col-handle {
+    height: 12px;
+  }
+  .doc-table-column-resize-handle {
+    position: fixed;
+    z-index: 2;
+    width: 10px;
+    margin-left: -2px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent 0 4px, #1a73e8 4px 6px, transparent 6px 100%);
+    opacity: 0.18;
+    cursor: col-resize;
+    pointer-events: auto;
+    transition: opacity 120ms ease, box-shadow 120ms ease;
+  }
+  .doc-table-column-resize-handle:hover,
+  .doc-table-column-resize-handle:focus-visible {
+    opacity: 0.86;
+    box-shadow: 0 0 0 2px rgb(26 115 232 / 0.14);
+  }
+  .doc-table-row-handle {
+    width: 12px;
+  }
+  .doc-table-row-resize-handle {
+    position: fixed;
+    z-index: 1;
+    height: 10px;
+    margin-top: -2px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(0deg, transparent 0 4px, #1a73e8 4px 6px, transparent 6px 100%);
+    opacity: 0.14;
+    cursor: ns-resize;
+    pointer-events: auto;
+    transition: opacity 120ms ease, box-shadow 120ms ease;
+  }
+  .doc-table-row-resize-handle:hover,
+  .doc-table-row-resize-handle:focus-visible {
+    opacity: 0.84;
+    box-shadow: 0 0 0 2px rgb(26 115 232 / 0.14);
+  }
+  .doc-table-context-menu {
+    position: fixed;
+    z-index: 95;
+    width: 208px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.18);
+    padding: 6px;
+    color: #111827;
+  }
+  .doc-table-context-item {
+    display: block;
+    width: 100%;
+    height: 28px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    padding: 0 8px;
+    color: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .doc-table-context-item:hover {
+    background: #f1f5f9;
+  }
+  .doc-table-context-item:disabled,
+  .doc-table-context-item[aria-disabled="true"] {
+    color: #9ca3af;
+    cursor: default;
+    opacity: 0.58;
+  }
+  .doc-table-context-item:disabled:hover,
+  .doc-table-context-item[aria-disabled="true"]:hover {
+    background: transparent;
+  }
+  .doc-table-context-item-danger {
+    color: #dc2626;
+  }
+  .doc-table-context-separator {
+    height: 1px;
+    margin: 5px 2px;
+    background: #e5e7eb;
+  }
+  .doc-export-mode .doc-content table .selectedCell,
+  .doc-export-mode .doc-content table th:hover,
+  .doc-export-mode .doc-content table td:hover,
+  .doc-export-mode .doc-content table th:focus-within,
+  .doc-export-mode .doc-content table td:focus-within {
+    box-shadow: none;
+  }
+  .doc-export-mode .doc-content .column-resize-handle,
+  .doc-export-mode .doc-image-resize-handle,
+  .doc-export-mode .doc-table-resize-guide,
+  .doc-export-mode .doc-table-row-height-badge,
+  .doc-export-mode .doc-table-row-resize-handle,
+  .doc-export-mode .doc-table-column-resize-handle,
+  .doc-export-mode .doc-table-quickbar {
+    display: none;
+  }
+  .doc-export-mode .doc-content table {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .doc-content img {
     max-width: 100%;
@@ -1306,6 +1698,9 @@
   .doc-content [data-indent="6"] { margin-left: 288px; }
   .doc-content [data-indent="7"] { margin-left: 336px; }
   .doc-content [data-indent="8"] { margin-left: 384px; }
+  .doc-content [data-paragraph-tabs] {
+    tab-size: 4;
+  }
   .doc-content [data-page-break-before="true"] {
     break-before: page;
     page-break-before: always;

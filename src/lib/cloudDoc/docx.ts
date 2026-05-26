@@ -942,7 +942,7 @@ function buildTable(block: PMNode, context: ExportContext): Table {
       ? rows
       : [new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun('')] })] })] })],
     width: tableWidthFromAttrs(block.attrs) ?? { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: tableColumnWidthsFromAttrs(block.attrs),
+    columnWidths: tableColumnWidthsFromTable(block),
     alignment: tableAlignmentFromAttrs(block.attrs),
     layout: tableLayoutFromAttrs(block.attrs),
     cellSpacing: tableCellSpacingFromAttrs(block.attrs),
@@ -1124,6 +1124,13 @@ function tableAlignmentFromAttrs(attrs: Record<string, unknown> | undefined): (t
   return undefined;
 }
 
+function tableColumnWidthsFromTable(block: PMNode): number[] | undefined {
+  const expectedColumns = tableColumnCount(block);
+  const fromAttrs = tableColumnWidthsFromAttrs(block.attrs);
+  if (fromAttrs) return normalizeTableGridWidths(fromAttrs, expectedColumns);
+  return inferTableColumnWidths(block);
+}
+
 function tableColumnWidthsFromAttrs(attrs: Record<string, unknown> | undefined): number[] | undefined {
   const raw = attrs?.tableColumnWidths;
   const values = Array.isArray(raw)
@@ -1135,6 +1142,56 @@ function tableColumnWidthsFromAttrs(attrs: Record<string, unknown> | undefined):
     .map((value) => pxNumericAttrToTwips(value))
     .filter((value): value is number => Boolean(value));
   return widths.length > 0 ? widths : undefined;
+}
+
+function normalizeTableGridWidths(widths: number[], expectedColumns: number): number[] {
+  if (expectedColumns <= 0) return widths;
+  return Array.from({ length: expectedColumns }, (_, index) => widths[index] ?? 1800);
+}
+
+function inferTableColumnWidths(block: PMNode): number[] | undefined {
+  const expectedColumns = tableColumnCount(block);
+  if (expectedColumns <= 0) return undefined;
+  const widths: number[] = [];
+  for (const row of block.content ?? []) {
+    if (row.type !== 'tableRow') continue;
+    let gridColumn = 0;
+    for (const cell of row.content ?? []) {
+      if (cell.type !== 'tableCell' && cell.type !== 'tableHeader') continue;
+      const colspan = positiveIntAttr(cell.attrs?.colspan) ?? 1;
+      const colwidth = Array.isArray(cell.attrs?.colwidth) ? cell.attrs.colwidth : [];
+      const twips = colwidth
+        .map((value) => pxNumericAttrToTwips(value))
+        .filter((value): value is number => Boolean(value));
+      if (twips.length === colspan) {
+        for (let index = 0; index < colspan; index++) widths[gridColumn + index] ??= twips[index];
+      } else if (twips.length === 1 && colspan > 1) {
+        const split = Math.max(1, Math.round(twips[0] / colspan));
+        for (let index = 0; index < colspan; index++) widths[gridColumn + index] ??= split;
+      } else if (twips.length > 0) {
+        widths[gridColumn] ??= twips.reduce((sum, item) => sum + item, 0);
+      }
+      gridColumn += colspan;
+    }
+    if (widths.some((width) => width > 0)) {
+      return Array.from({ length: expectedColumns }, (_, index) => widths[index] ?? 1800);
+    }
+  }
+  return undefined;
+}
+
+function tableColumnCount(block: PMNode): number {
+  let max = 0;
+  for (const row of block.content ?? []) {
+    if (row.type !== 'tableRow') continue;
+    let columns = 0;
+    for (const cell of row.content ?? []) {
+      if (cell.type !== 'tableCell' && cell.type !== 'tableHeader') continue;
+      columns += positiveIntAttr(cell.attrs?.colspan) ?? 1;
+    }
+    max = Math.max(max, columns);
+  }
+  return max;
 }
 
 function tableLayoutFromAttrs(attrs: Record<string, unknown> | undefined): (typeof TableLayoutType)[keyof typeof TableLayoutType] | undefined {
@@ -1708,16 +1765,33 @@ function fontOptionsFromTextStyle(
 ): ConstructorParameters<typeof TextRun>[0]['font'] {
   if (code) return 'Courier New';
   const family = typeof attrs?.fontFamily === 'string' && attrs.fontFamily.trim()
-    ? attrs.fontFamily.trim()
+    ? normalizeDocxFontFamily(attrs.fontFamily)
     : undefined;
   const complexScript = typeof attrs?.complexScriptFontFamily === 'string' && attrs.complexScriptFontFamily.trim()
-    ? attrs.complexScriptFontFamily.trim()
+    ? normalizeDocxFontFamily(attrs.complexScriptFontFamily)
     : undefined;
-  if (!complexScript) return family;
+  if (!family && !complexScript) return undefined;
   return {
-    ...(family ? { ascii: family, hAnsi: family, eastAsia: family } : {}),
-    cs: complexScript,
+    ...(family ? { ascii: family, hAnsi: family, eastAsia: eastAsiaFontFamily(family) } : {}),
+    cs: complexScript ?? family,
   };
+}
+
+function normalizeDocxFontFamily(value: string): string {
+  const first = value.split(',')[0]?.trim() ?? value.trim();
+  return first.replace(/^["']|["']$/g, '') || 'Malgun Gothic';
+}
+
+function eastAsiaFontFamily(family: string): string {
+  const lower = family.toLowerCase();
+  if (lower.includes('noto sans')) return 'Noto Sans CJK KR';
+  if (lower.includes('noto serif')) return 'Noto Serif CJK KR';
+  if (lower.includes('nanum gothic')) return 'NanumGothic';
+  if (lower.includes('nanum myeongjo')) return 'NanumMyeongjo';
+  if (lower.includes('batang')) return 'Batang';
+  if (lower.includes('gulim')) return 'Gulim';
+  if (lower.includes('malgun')) return 'Malgun Gothic';
+  return family;
 }
 
 function runBorderOptionsFromTextStyle(

@@ -2,9 +2,16 @@ import { useMemo } from 'react';
 import type { StudySource } from '@/types/study';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 
+export type CitationSource = Pick<StudySource, 'title'> & {
+  id?: string;
+  kind?: StudySource['kind'];
+  content?: string;
+  contentPreview?: string;
+};
+
 interface Props {
   text: string;
-  sources: StudySource[];
+  sources: CitationSource[];
   className?: string;
 }
 
@@ -44,7 +51,7 @@ function splitWithCitations(text: string): Segment[] {
   return out;
 }
 
-function CitationChip({ index, source }: { index: number; source?: StudySource }) {
+function CitationChip({ index, source }: { index: number; source?: CitationSource }) {
   if (!source) {
     return (
       <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 text-[10px] font-bold text-slate-500 align-middle">
@@ -52,7 +59,8 @@ function CitationChip({ index, source }: { index: number; source?: StudySource }
       </span>
     );
   }
-  const snippet = source.content.slice(0, 200) + (source.content.length > 200 ? '…' : '');
+  const rawSnippet = source.contentPreview ?? source.content ?? '';
+  const snippet = rawSnippet.slice(0, 200) + (rawSnippet.length > 200 ? '…' : '');
   return (
     <span className="group relative inline-block align-middle">
       <button
@@ -67,7 +75,7 @@ function CitationChip({ index, source }: { index: number; source?: StudySource }
       >
         <span className="block rounded-lg border border-slate-200 bg-white p-2.5 shadow-lg text-left">
           <span className="block text-[9.5px] font-bold uppercase tracking-wide text-indigo-600 mb-1">
-            소스 {index} · {source.title}
+            원본 {index} · {source.title}
           </span>
           <span className="block text-[11px] leading-relaxed text-slate-700">{snippet}</span>
         </span>

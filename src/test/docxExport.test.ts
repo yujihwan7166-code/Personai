@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import { exportDocxBlobFromJson } from '@/lib/cloudDoc/docx';
+import { createDocCompatibilitySampleJson } from '@/lib/cloudDoc/sampleDocs';
 
 const TINY_PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l5NrzwAAAABJRU5ErkJggg==';
 
@@ -43,6 +44,19 @@ function readBlobArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
 }
 
 describe('exportDocxBlobFromJson', () => {
+  it('exports the built-in compatibility sample without invalid table XML', async () => {
+    const blob = await exportDocxBlobFromJson(createDocCompatibilitySampleJson());
+    const { documentXml, footnotesXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:tbl');
+    expect(documentXml).toContain('w:vMerge');
+    expect(documentXml).toContain('w:tblGrid');
+    expect(documentXml).toContain('w:rFonts');
+    expect(documentXml).toContain('w:tabs');
+    expect(documentXml).toContain('w:firstLine="480"');
+    expect(footnotesXml).toContain('각주 export 확인용 샘플입니다.');
+  });
+
   it('preserves links, highlight, superscript, and footnotes', async () => {
     const blob = await exportDocxBlobFromJson({
       type: 'doc',
@@ -1123,5 +1137,305 @@ describe('exportDocxBlobFromJson', () => {
     expect(documentXml).toContain('<w:vMerge w:val="restart"');
     expect(continuationCell).toBeTruthy();
     expect(continuationCell).toContain('<w:p>');
+  });
+
+  it('exports resized and merged tables with a valid DOCX grid', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          attrs: {
+            tableWidth: 474,
+            tableWidthType: 'px',
+            tableColumnWidths: [194, 140, 140],
+            tableLayout: 'fixed',
+            tableAlign: 'center',
+          },
+          content: [
+            {
+              type: 'tableRow',
+              attrs: { rowHeight: 42, rowHeightRule: 'exact', rowHeader: true },
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: {
+                    colspan: 2,
+                    rowspan: 2,
+                    colwidth: [194, 140],
+                    backgroundColor: '#D9EAD3',
+                    borderColor: '#38761D',
+                    borderSize: 12,
+                  },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Merged area' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [140], backgroundColor: '#CFE2F3' },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Side' }] }],
+                },
+              ],
+            },
+            {
+              type: 'tableRow',
+              attrs: { rowHeight: 36, rowHeightRule: 'atLeast' },
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [140] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Continuation side' }] }],
+                },
+              ],
+            },
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [194] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [140] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'B' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [140] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'C' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+    const cells = documentXml.match(/<w:tc\b[\s\S]*?<\/w:tc>/g) ?? [];
+    const continuationCell = cells.find((cell) => cell.includes('<w:vMerge w:val="continue"'));
+
+    expect(documentXml).toContain('<w:tblW w:type="dxa" w:w="7110"');
+    expect(documentXml).toContain('<w:gridCol w:w="2910"');
+    expect(documentXml).toContain('<w:gridCol w:w="2100"');
+    expect(documentXml.match(/w:gridCol/g)).toHaveLength(3);
+    expect(documentXml).toContain('<w:gridSpan w:val="2"');
+    expect(documentXml).toContain('<w:tcW w:type="dxa" w:w="5010"');
+    expect(documentXml).toContain('<w:vMerge w:val="restart"');
+    expect(continuationCell).toBeTruthy();
+    expect(continuationCell).toContain('<w:gridSpan w:val="2"');
+    expect(continuationCell).toContain('<w:p>');
+    expect(documentXml).toContain('<w:trHeight w:val="630" w:hRule="exact"');
+    expect(documentXml).toContain('<w:trHeight w:val="540" w:hRule="atLeast"');
+    expect(documentXml).toContain('<w:tblHeader');
+    expect(documentXml).toContain('w:fill="D9EAD3"');
+    expect(documentXml).toContain('w:color="38761D"');
+  });
+
+  it('infers DOCX table grid widths from resized cell colwidths', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          attrs: { tableLayout: 'fixed' },
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [120] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [220] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'B' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:tblGrid');
+    expect(documentXml).toContain('w:gridCol w:w="1800"');
+    expect(documentXml).toContain('w:gridCol w:w="3300"');
+  });
+
+  it('fills missing DOCX table grid widths when only one resized column has colwidth', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          attrs: { tableLayout: 'fixed' },
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableCell',
+                  attrs: { colwidth: [258] },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'B' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'C' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:gridCol w:w="3870"');
+    expect(documentXml.match(/w:gridCol/g)).toHaveLength(3);
+  });
+
+  it('repairs short tableColumnWidths attrs before writing DOCX table grid', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          attrs: { tableLayout: 'fixed', tableColumnWidths: [90] },
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                {
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'B' }] }],
+                },
+                {
+                  type: 'tableCell',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'C' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:gridCol w:w="1350"');
+    expect(documentXml.match(/w:gridCol/g)).toHaveLength(3);
+  });
+
+  it('maps CSS font stacks to DOCX ascii, hAnsi, eastAsia, and cs fonts', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: '한글 English',
+              marks: [{
+                type: 'textStyle',
+                attrs: {
+                  fontFamily: '"Malgun Gothic", "Apple SD Gothic Neo", sans-serif',
+                  complexScriptFontFamily: 'Arial',
+                },
+              }],
+            },
+          ],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:ascii="Malgun Gothic"');
+    expect(documentXml).toContain('w:hAnsi="Malgun Gothic"');
+    expect(documentXml).toContain('w:eastAsia="Malgun Gothic"');
+    expect(documentXml).toContain('w:cs="Arial"');
+  });
+
+  it('exports mixed Korean font stacks with paragraph spacing, indents, and tabs', async () => {
+    const blob = await exportDocxBlobFromJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: {
+            lineHeight: 1.15,
+            spaceBefore: 12,
+            spaceAfter: 18,
+            firstLineIndent: 36,
+            rightIndent: 24,
+            tabStops: [
+              { type: 'left', positionTwips: 720 },
+              { type: 'center', positionTwips: 2880, leader: 'dot' },
+              { type: 'right', positionTwips: 5760, leader: 'underscore' },
+            ],
+          },
+          content: [
+            {
+              type: 'text',
+              text: 'Mixed font paragraph\tcenter\tright',
+              marks: [{
+                type: 'textStyle',
+                attrs: {
+                  fontFamily: '"Noto Serif CJK KR", Batang, serif',
+                  complexScriptFontFamily: 'Times New Roman',
+                  fontSize: '18px',
+                },
+              }],
+            },
+          ],
+        },
+        {
+          type: 'paragraph',
+          attrs: { indent: 1, hangingIndent: 24 },
+          content: [{ type: 'text', text: 'Hanging paragraph' }],
+        },
+      ],
+    });
+
+    const { documentXml } = await readDocxXml(blob);
+
+    expect(documentXml).toContain('w:ascii="Noto Serif CJK KR"');
+    expect(documentXml).toContain('w:hAnsi="Noto Serif CJK KR"');
+    expect(documentXml).toContain('w:eastAsia="Noto Serif CJK KR"');
+    expect(documentXml).toContain('w:cs="Times New Roman"');
+    expect(documentXml).toContain('w:sz w:val="27"');
+    expect(documentXml).toContain('w:line="276"');
+    expect(documentXml).toContain('w:before="240"');
+    expect(documentXml).toContain('w:after="360"');
+    expect(documentXml).toContain('w:firstLine="540"');
+    expect(documentXml).toContain('w:right="360"');
+    expect(documentXml).toContain('w:tabs');
+    expect(documentXml).toContain('w:val="left"');
+    expect(documentXml).toContain('w:pos="720"');
+    expect(documentXml).toContain('w:val="center"');
+    expect(documentXml).toContain('w:pos="2880"');
+    expect(documentXml).toContain('w:leader="dot"');
+    expect(documentXml).toContain('w:val="right"');
+    expect(documentXml).toContain('w:pos="5760"');
+    expect(documentXml).toContain('w:leader="underscore"');
+    expect(documentXml).toContain('w:left="720"');
+    expect(documentXml).toContain('w:hanging="360"');
+    expect(documentXml).toContain('<w:tab');
   });
 });

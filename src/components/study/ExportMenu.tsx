@@ -18,19 +18,19 @@ export function ExportMenu({ notebook, onClose }: Props) {
 
   const buildMarkdown = (r: ExportRange = range) => {
     const lines: string[] = [`# ${notebook.title}`, ''];
-    lines.push(`> 소스 ${notebook.sources.length}개 · ${new Date(notebook.updatedAt).toLocaleDateString('ko-KR')}`);
+    lines.push(`> 원본 ${notebook.sources.length}개 · ${new Date(notebook.updatedAt).toLocaleDateString('ko-KR')}`);
     lines.push('');
     if (r !== 'wrong-only') {
       for (const [lens, out] of Object.entries(notebook.lensOutputs)) {
         if (!out) continue;
         const meta = LENS_META[lens as keyof typeof LENS_META];
-        lines.push(`## ${meta.icon} ${meta.label}`, '');
+        lines.push(`## ${meta.label}`, '');
         lines.push(out.content);
         lines.push('');
       }
     }
     if ((r === 'all' || r === 'wrong-only') && notebook.wrongAnswers.length > 0) {
-      lines.push('## ❌ 오답노트', '');
+      lines.push('## 오답노트', '');
       for (const w of notebook.wrongAnswers) {
         lines.push(`- **${w.question}**`);
         lines.push(`  - 정답: ${w.correct}`);
@@ -50,7 +50,7 @@ export function ExportMenu({ notebook, onClose }: Props) {
     'lens-only': { label: '렌즈만', desc: '요약·핵심·퀴즈 등', count: lensCount },
     'wrong-only': {
       label: '오답만',
-      desc: '틀린 문제 복습용',
+      desc: '틀린 문제만 따로 정리',
       count: notebook.wrongAnswers.length,
     },
   };

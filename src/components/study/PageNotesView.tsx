@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { RefreshCw, Image as ImageIcon, ExternalLink, Copy, FileText } from 'lucide-react';
+import {
+  RefreshCw, Image as ImageIcon, ExternalLink, Copy, FileText, ClipboardList,
+  ListChecks, Search,
+} from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
 import type { PageNote, PageChunk, SummaryDensity } from '@/types/study';
@@ -227,9 +230,10 @@ export function PageNotesEmptyChooser({
         </p>
         <button
           onClick={onWhole}
-          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-[13px] font-bold shadow-sm"
         >
-          📋 전체 요약 시작
+          <ClipboardList className="h-4 w-4" />
+          전체 요약 시작
         </button>
       </div>
     );
@@ -266,9 +270,11 @@ export function PageNotesEmptyChooser({
           )}
         >
           {recommendPages && (
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">추천</span>
           )}
-          <div className="text-2xl mb-2">📑</div>
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <FileText className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </div>
           <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">페이지별 정리</p>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
             {pagesHint}.<br />PDF 와 1:1 로 따라보며 학습하기 좋아요.
@@ -284,9 +290,11 @@ export function PageNotesEmptyChooser({
           )}
         >
           {!recommendPages && (
-            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">⭐ 추천</span>
+            <span className="absolute top-2 right-2 text-[9.5px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">추천</span>
           )}
-          <div className="text-2xl mb-2">📋</div>
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <ListChecks className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </div>
           <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 mb-1">전체 한 번에 요약</p>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
             자료 전체를 6~10개 대주제로 묶은 한 덩어리 마크다운.<br />훑어보기·발표 도입부에 좋아요.
@@ -311,7 +319,7 @@ export function VisionProgressOverlay({
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 dark:border-slate-700">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 shrink-0">
-            <span className="text-xl">🔍</span>
+            <Search className="h-[18px] w-[18px] text-indigo-600 dark:text-indigo-300" strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100">{phaseLabel}…</h3>
@@ -389,4 +397,3 @@ export function buildFallbackChunks(notes: PageNote[]): PageChunk[] {
   }
   return out;
 }
-

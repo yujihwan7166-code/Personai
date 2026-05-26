@@ -946,6 +946,84 @@ async function makeMergedTableDocx(): Promise<File> {
   });
 }
 
+async function makeRoundTripComplexTableDocx(): Promise<File> {
+  const blob = await exportDocxBlobFromJson({
+    type: 'doc',
+    content: [
+      {
+        type: 'table',
+        attrs: {
+          tableWidth: 474,
+          tableWidthType: 'px',
+          tableColumnWidths: [194, 140, 140],
+          tableLayout: 'fixed',
+          tableAlign: 'center',
+        },
+        content: [
+          {
+            type: 'tableRow',
+            attrs: { rowHeight: 42, rowHeightRule: 'exact', rowHeader: true },
+            content: [
+              {
+                type: 'tableCell',
+                attrs: {
+                  colspan: 2,
+                  rowspan: 2,
+                  colwidth: [194, 140],
+                  backgroundColor: '#D9EAD3',
+                  borderColor: '#38761D',
+                  borderSize: 12,
+                  paddingLeft: 18,
+                },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Merged area' }] }],
+              },
+              {
+                type: 'tableCell',
+                attrs: { colwidth: [140], backgroundColor: '#CFE2F3' },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Side' }] }],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            attrs: { rowHeight: 36, rowHeightRule: 'atLeast' },
+            content: [
+              {
+                type: 'tableCell',
+                attrs: { colwidth: [140] },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Continuation side' }] }],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                attrs: { colwidth: [194] },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A' }] }],
+              },
+              {
+                type: 'tableCell',
+                attrs: { colwidth: [140] },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'B' }] }],
+              },
+              {
+                type: 'tableCell',
+                attrs: { colwidth: [140] },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'C' }] }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  return new File([blob], 'roundtrip-complex-table.docx', {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
 async function makeCommentedDocx(): Promise<File> {
   const blob = await exportDocxBlobFromJson({
     type: 'doc',
@@ -1498,6 +1576,30 @@ describe('importDocxFile', () => {
     expect(result.html).toContain('colspan="2"');
     expect(result.html).toContain('rowspan="2"');
     expect(result.html).toMatch(/<td[^>]*data-cell-background="#D9EAF7"[^>]*>[\s\S]*Bottom right/);
+  });
+
+  it('round-trips complex resized and merged table metadata from DOCX import', async () => {
+    const result = await importDocxFile(await makeRoundTripComplexTableDocx());
+
+    expect(result.html).toContain('Merged area');
+    expect(result.html).toContain('Continuation side');
+    expect(result.html).toContain('data-table-width="474"');
+    expect(result.html).toContain('data-table-width-type="px"');
+    expect(result.html).toContain('data-table-column-widths="194,140,140"');
+    expect(result.html).toContain('data-table-align="center"');
+    expect(result.html).toContain('data-table-layout="fixed"');
+    expect(result.html).toContain('colspan="2"');
+    expect(result.html).toContain('rowspan="2"');
+    expect(result.html).toContain('colwidth="334"');
+    expect(result.html).toContain('data-cell-background="#D9EAD3"');
+    expect(result.html).toContain('data-cell-border-color="#38761D"');
+    expect(result.html).toContain('data-cell-border-size="12"');
+    expect(result.html).toContain('data-cell-padding-left="18"');
+    expect(result.html).toContain('data-row-height="42"');
+    expect(result.html).toContain('data-row-height-rule="exact"');
+    expect(result.html).toContain('data-row-header="true"');
+    expect(result.html).toContain('data-row-height="36"');
+    expect(result.html).toContain('data-row-height-rule="atLeast"');
   });
 
   it('restores DOCX comments as editable comment marks', async () => {

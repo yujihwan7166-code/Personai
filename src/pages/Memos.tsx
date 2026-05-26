@@ -2,18 +2,22 @@
  * /memos — 인박스 zero 메모 페이지.
  *
  * 좌 사이드 (검색·필터·메모 리스트) + 본문 편집 (자동 저장).
- * 우상단 [→ 위키로 보내기] 버튼 — 모달에서 type 선택 + 보관 옵션.
+ * 메모 카드 메뉴의 [위키로 보내기] — 모달에서 type 선택 + 보관 옵션.
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
-  ArrowDownAZ, Clock as ClockIcon,
-  ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, Mic,
+  ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, ChevronDown, Mic,
+  PanelLeftClose, PanelLeftOpen, BookOpenText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
+import { PageStarterEmpty } from '@/components/PageStarterEmpty';
+import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
 import { useMemoImageSrc } from '@/hooks/useMemoImageSrc';
 import {
@@ -39,34 +43,35 @@ import {
 } from '@/lib/memoStore';
 import { upsertPage } from '@/lib/wikiStore';
 import { newWikiId, type WikiPage } from '@/types/wiki';
+import type { AiContext } from '@/lib/cloudAi/types';
 
 const Memos = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const memos = useMemos();
   const folders = useFolders();
-  const [activeId, setActiveId] = useState<string | null>(searchParams.get('id'));
+  const urlMemoId = searchParams.get('id');
+  const [activeId, setActiveId] = useState<string | null>(urlMemoId);
+  const lastSyncedUrlMemoIdRef = useRef<string | null>(urlMemoId);
 
-  // URL ?id= 변경 시 동기화 (위키 출처 칩에서 진입 등)
+  // URL <-> selection sync. Track the last synced id so auto-save rerenders
+  // do not bounce selection back to the previous memo.
   useEffect(() => {
-    const idFromUrl = searchParams.get('id');
-    if (idFromUrl && idFromUrl !== activeId) setActiveId(idFromUrl);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    if (urlMemoId === lastSyncedUrlMemoIdRef.current) return;
+    lastSyncedUrlMemoIdRef.current = urlMemoId;
+    setActiveId(urlMemoId);
+  }, [urlMemoId]);
 
-  // activeId 변경 시 URL 반영 (히스토리 깨끗하게)
   useEffect(() => {
-    if (activeId) {
-      if (searchParams.get('id') !== activeId) {
-        setSearchParams({ id: activeId }, { replace: true });
-      }
-    } else if (searchParams.has('id')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('id');
-      setSearchParams(next, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId]);
+    if (activeId === lastSyncedUrlMemoIdRef.current) return;
+    lastSyncedUrlMemoIdRef.current = activeId;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (activeId) next.set('id', activeId);
+      else next.delete('id');
+      return next;
+    }, { replace: true });
+  }, [activeId, setSearchParams]);
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | undefined>(undefined);
   const [exporting, setExporting] = useState<Memo | null>(null);
@@ -77,6 +82,7 @@ const Memos = () => {
   const [editingFolder, setEditingFolder] = useState<MemoFolder | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // 정렬 키 — localStorage 영속.
   const [sortKey, setSortKey] = useState<MemoSortKey>(() => {
     if (typeof window === 'undefined') return 'updated';
@@ -139,16 +145,54 @@ const Memos = () => {
   }, [isFiltered, activeMemos, query, activeTag, sortPinTime]);
 
   const tags = useMemo(() => tagFrequencies(memos), [memos]);
+  const sortLabel = sortKey === 'updated' ? '최근 수정' : sortKey === 'created' ? '생성순' : '제목순';
 
   const activeMemo = activeId ? memos.find((m) => m.id === activeId) ?? null : null;
 
+  const getMemoAiContext = useCallback((): AiContext => {
+    const folderName = (folderId?: string) => folders.find((f) => f.id === folderId)?.name ?? '미분류';
+    if (activeMemo) {
+      const tagsForMemo = extractMemoTags(activeMemo);
+      return {
+        kind: 'memo',
+        summary: `${memoTitle(activeMemo) || '선택한 메모'} · 현재 메모`,
+        fullText: [
+          `# ${memoTitle(activeMemo) || '제목 없음'}`,
+          `폴더: ${folderName(activeMemo.folderId)}`,
+          tagsForMemo.length > 0 ? `태그: ${tagsForMemo.map((t) => `#${t}`).join(' ')}` : '태그: 없음',
+          '',
+          activeMemo.body || '(빈 메모)',
+        ].join('\n'),
+      };
+    }
+
+    const source = isFiltered ? filteredMemos : activeMemos;
+    const rows = source.slice(0, 30).map((m, idx) => [
+      `## ${idx + 1}. ${memoTitle(m) || '제목 없음'}`,
+      `폴더: ${folderName(m.folderId)}`,
+      `수정: ${new Date(m.updatedAt).toLocaleDateString('ko-KR')}`,
+      m.body.slice(0, 700),
+    ].join('\n')).join('\n\n');
+
+    return {
+      kind: 'memo',
+      summary: isFiltered ? `필터된 메모 ${source.length}개` : `전체 메모 ${activeMemos.length}개`,
+      fullText: rows || '아직 메모가 없습니다.',
+    };
+  }, [activeMemo, activeMemos, filteredMemos, folders, isFiltered]);
+
+  const memoAi = useAiSidebar('memo', getMemoAiContext, {
+    persistKey: activeMemo?.id ?? (isFiltered ? 'filtered' : 'all'),
+    openStorage: 'local',
+  });
+
   // 활성 메모의 폴더는 자동 펼침 (선택 동기화 UX)
   useEffect(() => {
-    if (activeMemo?.folderId && !expandedFolders.has(activeMemo.folderId)) {
-      setExpandedFolders((prev) => new Set(prev).add(activeMemo.folderId!));
+    const folderId = activeMemo?.folderId;
+    if (folderId && !expandedFolders.has(folderId)) {
+      setExpandedFolders((prev) => new Set(prev).add(folderId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMemo?.folderId]);
+  }, [activeMemo?.folderId, expandedFolders]);
 
   // 활성 메모가 삭제됐으면 해제
   useEffect(() => {
@@ -166,8 +210,8 @@ const Memos = () => {
     });
   }, []);
 
-  const handleNewMemo = useCallback((folderId?: string) => {
-    const m = addMemo({ body: '' });
+  const handleNewMemo = useCallback((folderId?: string, initialBody = '') => {
+    const m = addMemo({ body: initialBody });
     if (folderId) {
       moveMemoToFolder(m.id, folderId);
       setExpandedFolders((prev) => new Set(prev).add(folderId));
@@ -220,84 +264,113 @@ const Memos = () => {
   }, []);
   const showSidebar = !isMobile || !activeMemo;
   const showBody = !isMobile || !!activeMemo;
+  const showStorageNav = !isMobile || activeMemos.length > 0 || archivedMemos.length > 0 || trashedMemos.length > 0;
 
   return (
     <div className="wiki-warm-theme min-h-screen flex bg-background">
+      <PageWorkspaceChrome
+        current="memos"
+        ai={{
+          label: '메모 AI',
+          title: '메모 AI 열기',
+          open: memoAi.open,
+          onOpen: () => memoAi.setOpen(true),
+        }}
+      />
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-foreground/25 bg-background flex flex-col',
-        isMobile ? 'w-full' : 'w-[268px]',
+        isMobile ? 'w-full' : sidebarCollapsed ? 'w-10 items-end py-2 pr-1 gap-1 border-foreground/20' : 'w-[292px]',
         !showSidebar && 'hidden',
       )}>
-        {/* 상단 — 제목 + 새 메모 */}
-        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1">
-          <h1 className="text-[19px] font-semibold text-foreground tracking-tight flex-1 flex items-baseline gap-2">
-            <span>메모</span>
-            <span className="text-[12px] font-normal text-muted-foreground tabular-nums">{activeMemos.length}</span>
-          </h1>
-          <button
-            onClick={() => setCreatingFolder(true)}
-            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            title="새 폴더"
-          >
-            <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
-            폴더
-          </button>
-          <button
-            onClick={() => handleNewMemo()}
-            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[12px] font-medium text-primary hover:bg-primary/10 transition-colors"
-            title="새 메모"
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-            메모
-          </button>
-        </div>
+        {!isMobile && sidebarCollapsed ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title="사이드바 펼치기"
+              aria-label="사이드바 펼치기"
+            >
+              <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNewMemo()}
+              className="w-8 h-9 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+              title="새 메모"
+              aria-label="새 메모"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="shrink-0 px-3 pt-3 pb-2.5 max-sm:pr-12">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate whitespace-nowrap text-[18px] leading-6 font-semibold text-foreground tracking-tight">
+                    메모
+                  </h1>
+                </div>
+                {!isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    title="사이드바 접기"
+                    aria-label="사이드바 접기"
+                  >
+                    <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleNewMemo()}
+                  className="h-8 rounded-md bg-primary/10 text-primary text-[12.5px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/15 transition-colors"
+                  title="새 메모 만들기"
+                >
+                  <Plus className="w-4 h-4" strokeWidth={2} />
+                  새 메모
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreatingFolder(true)}
+                  className="h-8 rounded-md bg-accent/55 text-muted-foreground text-[12.5px] font-semibold flex items-center justify-center gap-1.5 hover:bg-accent hover:text-foreground transition-colors"
+                  title="새 폴더 만들기"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  새 폴더
+                </button>
+              </div>
+            </div>
 
-        {/* 검색 + 정렬 */}
-        <div className="shrink-0 px-2.5 py-2 border-b border-foreground/22 flex items-center gap-1.5">
-          <div className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/50">
-            <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="검색..."
-              className="flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
-            />
-            {query && (
-              <button onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
-            )}
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="정렬"
-                title={`정렬: ${sortKey === 'updated' ? '최근 수정' : sortKey === 'created' ? '생성순' : '제목순'}`}
-                className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                {sortKey === 'title'
-                  ? <ArrowDownAZ className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  : <ClockIcon className="w-3.5 h-3.5" strokeWidth={1.75} />}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onSelect={() => setSortKey('updated')}>
-                최근 수정 {sortKey === 'updated' && <span className="ml-auto text-foreground/50">✓</span>}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setSortKey('created')}>
-                생성순 {sortKey === 'created' && <span className="ml-auto text-foreground/50">✓</span>}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setSortKey('title')}>
-                제목순 (가나다) {sortKey === 'title' && <span className="ml-auto text-foreground/50">✓</span>}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            <div className="shrink-0 px-3 pb-2.5 border-b border-foreground/10">
+              <label className="flex items-center gap-1.5 h-[30px] px-2 rounded-md bg-accent/40 border border-transparent focus-within:border-primary/35 transition-colors">
+                <Search className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="메모 검색"
+                  className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground outline-none"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="검색어 지우기"
+                  >
+                    <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </button>
+                )}
+              </label>
+            </div>
 
-        {/* 한 흐름 스크롤 리스트 — 폴더들 → 미분류 메모들 (헤더 없음) */}
-        <div className="flex-1 overflow-y-auto">
+            {/* 한 흐름 스크롤 리스트 — 폴더들 → 메모들 */}
+            <div className="flex-1 overflow-y-auto flex flex-col pb-24 sm:pb-0">
           {isFiltered ? (
             // ─── 검색·태그 활성 시 평면 결과 ───
             <>
@@ -341,9 +414,12 @@ const Memos = () => {
             </>
           ) : (
             <>
-              {/* 폴더들 — 헤더 없이 바로 */}
+              {/* 폴더들 */}
               {(folders.length > 0 || creatingFolder) && (
-                <div className="px-1.5 pt-1.5 pb-0.5 space-y-0.5">
+                <div className="px-2 pt-2 pb-1 space-y-0.5">
+                  <div className="px-1.5 pb-1 text-[11px] font-semibold text-muted-foreground/75">
+                    폴더
+                  </div>
                   {folders.map((f) => (
                     <FolderGroup
                       key={f.id}
@@ -390,34 +466,71 @@ const Memos = () => {
                 </div>
               )}
 
-              {/* 미분류 메모 — 헤더·분리선 없이 폴더 바로 아래 (작은 점으로 "폴더 밖" 표시) */}
+              {/* 미분류 메모 */}
               {unfiledMemos.length > 0 ? (
-                <ul className="px-1.5 pb-0.5">
-                  {unfiledMemos.map((m) => (
-                    <MemoRow
-                      key={m.id}
-                      memo={m}
-                      active={activeId === m.id}
-                      onClick={() => setActiveId(m.id)}
-                      loose
-                      onPin={() => togglePin(m.id)}
-                      onMoveFolder={() => setMovingMemo(m)}
-                      onDelete={() => handleDelete(m.id)}
-                      onSendToWiki={m.wikiPageId ? undefined : () => setExporting(m)}
-                      onOpenWiki={m.wikiPageId ? () => navigate('/wiki') : undefined}
-                      onExportMd={() => handleExportMd(m)}
-                      onCopyBody={() => void handleCopyBody(m)}
-                      onArchive={m.archivedAt ? undefined : () => { archiveMemo(m.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}
-                      onUnarchive={m.archivedAt ? () => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); } : undefined}
-                    />
-                  ))}
-                </ul>
+                <div className="px-2 pt-1.5 pb-1">
+                  <div className="flex items-center justify-between px-1.5 pb-1">
+                    <span className="text-[11px] font-semibold text-muted-foreground/75">메모</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-6 inline-flex items-center gap-1 rounded px-1.5 text-[11px] font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                          title="메모 정렬"
+                          aria-label="메모 정렬"
+                        >
+                          {sortLabel}
+                          <ChevronDown className="w-3 h-3 opacity-70" strokeWidth={2} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36">
+                        {([
+                          ['updated', '최근 수정'] as const,
+                          ['created', '생성순'] as const,
+                          ['title', '제목순'] as const,
+                        ]).map(([key, label]) => (
+                          <DropdownMenuItem
+                            key={key}
+                            onClick={() => setSortKey(key)}
+                            className={cn(sortKey === key && 'text-primary focus:text-primary')}
+                          >
+                            {label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <ul className="space-y-0.5">
+                    {unfiledMemos.map((m) => (
+                      <MemoRow
+                        key={m.id}
+                        memo={m}
+                        active={activeId === m.id}
+                        onClick={() => setActiveId(m.id)}
+                        loose
+                        onPin={() => togglePin(m.id)}
+                        onMoveFolder={() => setMovingMemo(m)}
+                        onDelete={() => handleDelete(m.id)}
+                        onSendToWiki={m.wikiPageId ? undefined : () => setExporting(m)}
+                        onOpenWiki={m.wikiPageId ? () => navigate('/wiki') : undefined}
+                        onExportMd={() => handleExportMd(m)}
+                        onCopyBody={() => void handleCopyBody(m)}
+                        onArchive={m.archivedAt ? undefined : () => { archiveMemo(m.id); notify.info('보관함으로 옮겼어요', { duration: 1200 }); }}
+                        onUnarchive={m.archivedAt ? () => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); } : undefined}
+                      />
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 folders.length === 0 && !creatingFolder && (
-                  <div className="px-4 py-10 text-center">
-                    <p className="text-[13px] text-foreground mb-1">비어있음</p>
-                    <p className="text-[12px] text-muted-foreground">+ 버튼으로 새 메모를 시작</p>
-                  </div>
+                  isMobile ? (
+                    <MemoListEmptyMobile onNew={(initialBody) => handleNewMemo(undefined, initialBody)} />
+                  ) : (
+                    <div className="px-4 py-10 text-center">
+                      <p className="text-[13px] text-foreground mb-1">비어있음</p>
+                      <p className="text-[12px] text-muted-foreground">+ 버튼으로 새 메모를 시작</p>
+                    </div>
+                  )
                 )
               )}
 
@@ -444,139 +557,145 @@ const Memos = () => {
                 </div>
               )}
 
-              {/* 보관함 — Apple Notes 식 사이드바 하단 nav row */}
-              <div className="mt-3 pt-2 border-t border-foreground/12">
-                <button
-                  type="button"
-                  onClick={() => setShowArchive((v) => !v)}
-                  className={cn(
-                    'mx-2 w-[calc(100%-1rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
-                    'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
-                    showArchive && 'text-foreground',
-                  )}
-                >
-                  <Archive className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
-                  <span className="text-[12.5px] font-medium">보관함</span>
-                  <span className="ml-auto text-[10.5px] tabular-nums">
-                    {archivedMemos.length}
-                  </span>
-                  <ChevronRight className={cn(
-                    'w-3 h-3 transition-transform shrink-0 opacity-60',
-                    showArchive && 'rotate-90',
-                  )} strokeWidth={2} />
-                </button>
-                {showArchive && (
-                  archivedMemos.length === 0 ? (
-                    <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
-                      보관된 메모 없음
-                    </p>
-                  ) : (
-                    <ul className="pl-3 pr-2 pb-1">
-                      {archivedMemos.map((m) => (
-                        <MemoRow
-                          key={m.id}
-                          memo={m}
-                          active={activeId === m.id}
-                          onClick={() => setActiveId(m.id)}
-                          loose
-                          archived
-                          onPin={() => togglePin(m.id)}
-                          onMoveFolder={() => setMovingMemo(m)}
-                          onDelete={() => handleDelete(m.id)}
-                          onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
-                          onExportMd={() => handleExportMd(m)}
-                          onCopyBody={() => void handleCopyBody(m)}
-                        />
-                      ))}
-                    </ul>
-                  )
-                )}
-              </div>
-
-              {/* 휴지통 — 30일 자동 영구 삭제 */}
-              <div className="mt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowTrash((v) => !v)}
-                  className={cn(
-                    'mx-2 w-[calc(100%-1rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
-                    'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
-                    showTrash && 'text-foreground',
-                  )}
-                >
-                  <Trash2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
-                  <span className="text-[12.5px] font-medium">휴지통</span>
-                  <span className="ml-auto text-[10.5px] tabular-nums">
-                    {trashedMemos.length}
-                  </span>
-                  <ChevronRight className={cn(
-                    'w-3 h-3 transition-transform shrink-0 opacity-60',
-                    showTrash && 'rotate-90',
-                  )} strokeWidth={2} />
-                </button>
-                {showTrash && (
-                  <>
-                    {trashedMemos.length > 0 && (
-                      <div className="px-5 pt-1 pb-1.5 flex items-center justify-between text-[10.5px] text-muted-foreground">
-                        <span>30일 후 자동 영구 삭제</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const ok = window.confirm(`${trashedMemos.length}개 메모를 영구 삭제할까요?`);
-                            if (!ok) return;
-                            const n = emptyTrash();
-                            notify.info(`${n}개 영구 삭제됨`, { duration: 1500 });
-                          }}
-                          className="text-rose-500 hover:underline"
-                        >
-                          비우기
-                        </button>
-                      </div>
+              {showStorageNav && (
+                <>
+                  {/* 보관함 — Apple Notes 식 사이드바 하단 nav row */}
+                  <div className="mt-auto pt-2 border-t border-foreground/12">
+                    <button
+                      type="button"
+                      onClick={() => setShowArchive((v) => !v)}
+                      className={cn(
+                        'mx-2 w-[calc(100%-1rem)] max-sm:ml-12 max-sm:w-[calc(100%-3.5rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
+                        'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
+                        showArchive && 'text-foreground',
+                      )}
+                    >
+                      <Archive className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                      <span className="text-[12.5px] font-medium">보관함</span>
+                      <span className="ml-auto text-[10.5px] tabular-nums">
+                        {archivedMemos.length}
+                      </span>
+                      <ChevronRight className={cn(
+                        'w-3 h-3 transition-transform shrink-0 opacity-60',
+                        showArchive && 'rotate-90',
+                      )} strokeWidth={2} />
+                    </button>
+                    {showArchive && (
+                      archivedMemos.length === 0 ? (
+                        <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
+                          보관된 메모 없음
+                        </p>
+                      ) : (
+                        <ul className="pl-3 pr-2 pb-1">
+                          {archivedMemos.map((m) => (
+                            <MemoRow
+                              key={m.id}
+                              memo={m}
+                              active={activeId === m.id}
+                              onClick={() => setActiveId(m.id)}
+                              loose
+                              archived
+                              onPin={() => togglePin(m.id)}
+                              onMoveFolder={() => setMovingMemo(m)}
+                              onDelete={() => handleDelete(m.id)}
+                              onUnarchive={() => { unarchiveMemo(m.id); notify.success('복원됐어요', { duration: 1200 }); }}
+                              onExportMd={() => handleExportMd(m)}
+                              onCopyBody={() => void handleCopyBody(m)}
+                            />
+                          ))}
+                        </ul>
+                      )
                     )}
-                    {trashedMemos.length === 0 ? (
-                      <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
-                        휴지통 비어있음
-                      </p>
-                    ) : (
-                      <ul className="pl-3 pr-2 pb-1 space-y-0.5">
-                        {trashedMemos.map((m) => (
-                          <li
-                            key={m.id}
-                            className="group flex items-center gap-1 px-2 py-1 rounded text-[12px] text-foreground/70 hover:bg-accent transition-colors"
-                          >
-                            <span className="flex-1 truncate">{memoTitle(m)}</span>
-                            <button
-                              type="button"
-                              onClick={() => { restoreMemo(m.id); notify.success('복구됨', { duration: 1200 }); }}
-                              aria-label="복구"
-                              title="복구"
-                              className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-all"
-                            >
-                              <RotateCcw className="h-3 w-3" />
-                            </button>
+                  </div>
+
+                  {/* 휴지통 — 30일 자동 영구 삭제 */}
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowTrash((v) => !v)}
+                      className={cn(
+                        'mx-2 w-[calc(100%-1rem)] max-sm:ml-12 max-sm:w-[calc(100%-3.5rem)] flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors',
+                        'text-foreground/55 hover:text-foreground hover:bg-foreground/5',
+                        showTrash && 'text-foreground',
+                      )}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                      <span className="text-[12.5px] font-medium">휴지통</span>
+                      <span className="ml-auto text-[10.5px] tabular-nums">
+                        {trashedMemos.length}
+                      </span>
+                      <ChevronRight className={cn(
+                        'w-3 h-3 transition-transform shrink-0 opacity-60',
+                        showTrash && 'rotate-90',
+                      )} strokeWidth={2} />
+                    </button>
+                    {showTrash && (
+                      <>
+                        {trashedMemos.length > 0 && (
+                          <div className="px-5 pt-1 pb-1.5 flex items-center justify-between text-[10.5px] text-muted-foreground">
+                            <span>30일 후 자동 영구 삭제</span>
                             <button
                               type="button"
                               onClick={() => {
-                                const ok = window.confirm('영구 삭제할까요?');
+                                const ok = window.confirm(`${trashedMemos.length}개 메모를 영구 삭제할까요?`);
                                 if (!ok) return;
-                                purgeMemo(m.id);
+                                const n = emptyTrash();
+                                notify.info(`${n}개 영구 삭제됨`, { duration: 1500 });
                               }}
-                              aria-label="영구 삭제"
-                              title="영구 삭제"
-                              className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                              className="text-rose-500 hover:underline"
                             >
-                              <X className="h-3 w-3" />
+                              비우기
                             </button>
-                          </li>
-                        ))}
-                      </ul>
+                          </div>
+                        )}
+                        {trashedMemos.length === 0 ? (
+                          <p className="px-5 py-1.5 text-[11px] text-muted-foreground italic">
+                            휴지통 비어있음
+                          </p>
+                        ) : (
+                          <ul className="pl-3 pr-2 pb-1 space-y-0.5">
+                            {trashedMemos.map((m) => (
+                              <li
+                                key={m.id}
+                                className="group flex items-center gap-1 px-2 py-1 rounded text-[12px] text-foreground/70 hover:bg-accent transition-colors"
+                              >
+                                <span className="flex-1 truncate">{memoTitle(m)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => { restoreMemo(m.id); notify.success('복구됨', { duration: 1200 }); }}
+                                  aria-label="복구"
+                                  title="복구"
+                                  className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-all"
+                                >
+                                  <RotateCcw className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const ok = window.confirm('영구 삭제할까요?');
+                                    if (!ok) return;
+                                    purgeMemo(m.id);
+                                  }}
+                                  aria-label="영구 삭제"
+                                  title="영구 삭제"
+                                  className="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </>
           )}
-        </div>
+            </div>
+          </>
+        )}
       </aside>
 
       {/* 본문 영역 */}
@@ -586,17 +705,38 @@ const Memos = () => {
             memo={activeMemo}
             onTagClick={(tag) => { setActiveTag(tag); }}
             onBackToList={isMobile ? () => setActiveId(null) : undefined}
+            onSendToWiki={activeMemo.wikiPageId ? undefined : () => setExporting(activeMemo)}
+            onOpenWiki={activeMemo.wikiPageId ? () => navigate('/wiki') : undefined}
           />
         ) : (
           <>
-            {/* 페이지 스위처 — 우측 상단 (빈 상태에서만 표시) */}
-            <div className="shrink-0 flex justify-end px-4 py-3">
-              <PageSwitcher current="memos" />
-            </div>
-            <EmptyState onNew={handleNewMemo} />
+            <EmptyState onNew={(initialBody) => handleNewMemo(undefined, initialBody)} />
           </>
         )}
       </main>
+
+      <div
+        className={cn(
+          PAGE_AI_PANEL_SLOT_CLASS,
+          !memoAi.open && 'pointer-events-none',
+        )}
+      >
+        <AiSidebar
+          open={memoAi.open}
+          onClose={() => memoAi.setOpen(false)}
+          title="메모 AI"
+          subtitle="캡처한 생각을 정리합니다"
+          emptyTitle="메모를 어떻게 정리할까요?"
+          emptyDescription="현재 메모와 목록을 참고해 요약, 태그, 실행 항목을 뽑습니다."
+          inputPlaceholder="메모 요약, 태그, 할 일 정리 요청..."
+          context={getMemoAiContext()}
+          messages={memoAi.messages}
+          sending={memoAi.sending}
+          onSend={memoAi.send}
+          onRetry={memoAi.retryLast}
+          onClear={memoAi.clear}
+        />
+      </div>
 
       {exporting && (
         <ExportToWikiModal
@@ -632,7 +772,7 @@ export default Memos;
 // 폴더 = 펼침형 그룹 — 헤더 클릭 시 안 메모 인라인 노출
 function FolderGroup({
   folder, memos, expanded, renaming, activeId,
-  onToggle, onSelectMemo, onAddMemo, onStartRename, onFinishRename, onDelete, onEdit,
+  onToggle, onSelectMemo, onAddMemo, onFinishRename, onEdit,
   onMemoPin, onMemoMove, onMemoDelete,
   onMemoSendToWiki, onMemoOpenWiki, onMemoExportMd, onMemoCopyBody, onMemoArchive,
 }: {
@@ -663,8 +803,8 @@ function FolderGroup({
 
   if (renaming) {
     return (
-      <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-accent/60">
-        <span className="text-[15px] leading-none">📁</span>
+      <div className="flex items-center gap-2 h-[34px] px-2 rounded-md bg-accent/60">
+        <Folder className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
         <input
           autoFocus
           value={draft}
@@ -674,7 +814,7 @@ function FolderGroup({
             if (e.key === 'Escape') onFinishRename(folder.name);
           }}
           onBlur={() => onFinishRename(draft)}
-          className="flex-1 bg-transparent text-[14px] text-foreground outline-none"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none"
         />
       </div>
     );
@@ -683,17 +823,19 @@ function FolderGroup({
   return (
     <div>
       <div
-        className="group flex items-center gap-2 h-9 px-2 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
+        className="group flex items-center gap-2 h-[34px] px-1.5 rounded-md cursor-pointer text-foreground hover:bg-foreground/5 transition-colors"
         onClick={onToggle}
       >
-        <span
-          className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[15px] leading-none shrink-0"
-          style={folderColor ? { backgroundColor: `color-mix(in oklab, ${folderColor} 25%, hsl(var(--background)))` } : { backgroundColor: 'hsl(var(--accent))' }}
-        >
-          📁
-        </span>
-        <span className="flex-1 text-[14.5px] font-bold truncate text-foreground">{folder.name}</span>
-        <span className="text-[11.5px] tabular-nums text-foreground/55 font-medium group-hover:hidden px-1.5 rounded bg-foreground/8">{memos.length}</span>
+        {expanded
+          ? <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65" strokeWidth={2} />
+          : <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-65" strokeWidth={2} />}
+        <Folder
+          className="w-4 h-4 shrink-0 text-muted-foreground"
+          strokeWidth={1.75}
+          style={folderColor ? { color: folderColor } : undefined}
+        />
+        <span className="flex-1 text-[13px] font-semibold truncate text-foreground">{folder.name}</span>
+        <span className="text-[11.5px] tabular-nums text-foreground/55 group-hover:hidden">{memos.length}</span>
         <div className="hidden group-hover:flex items-center gap-0.5">
           <button
             type="button"
@@ -764,8 +906,8 @@ function FolderGroup({
 function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('');
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/60">
-      <span className="text-[14px] leading-none">📁</span>
+    <div className="flex items-center gap-2 h-[34px] px-2 rounded-md bg-accent/60">
+      <Folder className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
       <input
         autoFocus
         value={name}
@@ -776,7 +918,7 @@ function NewFolderInput({ onSubmit, onCancel }: { onSubmit: (name: string) => vo
         }}
         onBlur={() => name.trim() ? onSubmit(name) : onCancel()}
         placeholder="폴더 이름"
-        className="flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
+        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
       />
     </div>
   );
@@ -1082,13 +1224,13 @@ function MemoRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             {onOpenWiki && (
-              <DropdownMenuItem onClick={onOpenWiki} className="text-primary focus:text-primary">
+              <DropdownMenuItem onClick={onOpenWiki} className="text-primary hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary">
                 <ExternalLink className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
                 위키 페이지 열기
               </DropdownMenuItem>
             )}
             {onSendToWiki && (
-              <DropdownMenuItem onClick={onSendToWiki} className="text-primary focus:text-primary">
+              <DropdownMenuItem onClick={onSendToWiki} className="text-primary hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary">
                 <ArrowRight className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
                 위키로 보내기
               </DropdownMenuItem>
@@ -1139,7 +1281,7 @@ function MemoRow({
             {onDelete && (
               <DropdownMenuItem
                 onClick={onDelete}
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-2" strokeWidth={1.75} />
                 삭제
@@ -1163,6 +1305,8 @@ function MemoEditor({
   memo: Memo;
   onTagClick: (tag: string) => void;
   onBackToList?: () => void;  // 모바일 — 목록으로 돌아가기
+  onSendToWiki?: () => void;
+  onOpenWiki?: () => void;
 }) {
   const [draft, setDraft] = useState(memo.body);
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
@@ -1256,9 +1400,6 @@ function MemoEditor({
             />
           )}
         </div>
-        {/* 페이지 스위처 — 에디터 우측 끝
-            (메모 단위 액션 = 사이드바 카드의 ⋯ 메뉴에서 처리 → 에디터 툴바는 깔끔하게) */}
-        <PageSwitcher current="memos" className="shrink-0" />
       </div>
 
       {/* 첨부 이미지 grid — 본문 위에. IDB blob 이면 비동기 object URL, 옛 dataUrl 은 즉시. */}
@@ -1284,6 +1425,7 @@ function MemoEditor({
             onChange={setDraft}
             allPages={[]}
             hideToolbar
+            linkMode="memo"
             onEditorReady={setTipTapEditor}
             firstPlaceholder="제목"
             restPlaceholder="여기에 자유롭게 적어보세요. / 로 명령"
@@ -1308,7 +1450,17 @@ function MemoEditor({
       </div>
 
       {/* 하단 메타 */}
-      <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-foreground/22 flex items-center gap-3 text-[12px] text-muted-foreground">
+      <div className="shrink-0 px-6 sm:px-10 py-2.5 border-t border-foreground/22 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-muted-foreground">
+        <span className={cn(
+          'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium',
+          saveState === 'saving' ? 'bg-amber-500/10 text-amber-700' : 'bg-emerald-500/10 text-emerald-700',
+        )} aria-live="polite">
+          <span className={cn(
+            'h-1.5 w-1.5 rounded-full',
+            saveState === 'saving' ? 'bg-amber-500' : 'bg-emerald-500',
+          )} />
+          {saveState === 'saving' ? '저장 중' : '저장됨'}
+        </span>
         <span className="tabular-nums">{charCount.toLocaleString()}자</span>
         {tags.length > 0 && (
           <>
@@ -1333,25 +1485,44 @@ function MemoEditor({
 }
 
 // ──────────────────────────────────────────
-function EmptyState({ onNew }: { onNew: () => void }) {
+function EmptyState({ onNew }: { onNew: (initialBody?: string) => void }) {
   return (
-    <div className="flex-1 flex items-center justify-center px-6">
-      <div className="text-center max-w-[360px]">
-        <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/60 text-[28px] leading-none">
-          ✏️
+    <PageStarterEmpty
+      icon={<BookOpenText className="h-6 w-6" strokeWidth={1.75} />}
+      title="지금 머리에 떠오른 한 가지를 적어보세요."
+      description="짧은 메모도 괜찮아요. 나중에 한 클릭으로 위키 페이지로 보낼 수 있어요."
+      primaryAction={{
+        label: '새 메모 시작',
+        icon: <Plus className="h-3.5 w-3.5" strokeWidth={2} />,
+        onClick: () => onNew(),
+      }}
+    />
+  );
+}
+
+function MemoListEmptyMobile({ onNew }: { onNew: (initialBody?: string) => void }) {
+  return (
+    <div className="px-4 py-8">
+      <div className="rounded-xl border border-[hsl(var(--hairline))] bg-card/55 px-4 py-5 text-center">
+        <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Plus className="h-5 w-5" strokeWidth={2} />
         </div>
-        <p className="text-[16px] font-semibold text-foreground mb-2">지금 머리에 떠오른 한 가지를 적어보세요.</p>
-        <p className="text-[13px] text-muted-foreground leading-relaxed mb-7">
-          짧은 메모도 괜찮아요. 나중에 한 클릭으로 위키 페이지로 보낼 수 있어요.
+        <p className="mb-1 text-[15px] font-semibold text-foreground">
+          첫 메모를 바로 시작해보세요
+        </p>
+        <p className="mx-auto mb-4 max-w-[260px] text-[12.5px] leading-relaxed text-muted-foreground">
+          빈 메모로 바로 시작할 수 있어요.
         </p>
         <button
-          onClick={onNew}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.3)]"
+          type="button"
+          onClick={() => onNew()}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.3)] transition-colors hover:bg-primary/90"
         >
-          <Plus className="w-4 h-4" />
-          새 메모 시작
+          <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+          빈 메모
         </button>
       </div>
+
     </div>
   );
 }

@@ -46,7 +46,7 @@ import type { WikiPage as WikiPageT } from '@/types/wiki';
 import {
   Bold, Italic, Strikethrough, Code, Link as LinkIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code2, Minus, ImagePlus, CheckSquare, BookOpen, Lightbulb,
-  Trash2, ChevronDown, Palette,
+  Trash2, ChevronDown, Palette, Table2,
 } from 'lucide-react';
 import type { Editor as TipTapEditor } from '@tiptap/react';
 import type { WikiPage } from '@/types/wiki';
@@ -64,6 +64,10 @@ interface Props {
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
   /** 상단 고정 툴바 숨김 — 외부에서 별도로 렌더할 때 (예: 메모 페이지 액션바). */
   hideToolbar?: boolean;
+  /** 슬래시 블록 메뉴 비활성화 — 일기처럼 단순 작성 경험이 필요한 곳에서 사용. */
+  disableSlashMenu?: boolean;
+  /** 링크 삽입 UX. wiki=페이지 picker, memo=간단한 페이지명/URL 입력. */
+  linkMode?: 'wiki' | 'memo';
   /** 에디터 인스턴스 노출 — 외부에서 툴바 따로 만들 때 사용. */
   onEditorReady?: (editor: ReturnType<typeof useEditor>) => void;
   /** 첫 노드 (빈 문서) placeholder — 미지정 시 위키 default. 메모 페이지에선 "제목" 등. */
@@ -97,7 +101,7 @@ function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, 
  *
  * 저장 형식: markdown (tiptap-markdown 변환). 기존 IDB body 와 100% 호환.
  */
-export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadImage, onCreateAndLink, hideToolbar, onEditorReady, firstPlaceholder, restPlaceholder, className }: Props) {
+export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadImage, onCreateAndLink, hideToolbar, disableSlashMenu, linkMode = 'wiki', onEditorReady, firstPlaceholder, restPlaceholder, className }: Props) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -143,7 +147,14 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       Underline,
       Superscript,
       Subscript,
-      Table.configure({ resizable: true, HTMLAttributes: { class: 'wiki-table' } }),
+      Table.configure({
+        resizable: true,
+        handleWidth: 6,
+        cellMinWidth: 96,
+        lastColumnResizable: true,
+        allowTableNodeSelection: true,
+        HTMLAttributes: { class: 'wiki-table' },
+      }),
       TableRow,
       TableHeader,
       TableCell,
@@ -188,6 +199,12 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
           }
         }
         // CSV/TSV 자동 표 변환 — 2줄 이상 + (탭 또는 쉼표) 구분
+        const tableHtml = plainTextTableToHtml(event.clipboardData?.getData('text/plain') ?? '');
+        if (tableHtml) {
+          event.preventDefault();
+          editorRef.current?.chain().focus().insertContent(tableHtml).run();
+          return true;
+        }
         return false;
       },
       handleDrop: (view, event) => {
@@ -262,6 +279,81 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSelText, setPickerSelText] = useState('');
   const pickerSelRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const isMemoLinkMode = linkMode === 'memo';
+  const [memoLinkOpen, setMemoLinkOpen] = useState(false);
+  const [memoLinkTarget, setMemoLinkTarget] = useState('');
+  const [memoLinkCoords, setMemoLinkCoords] = useState<{ left: number; top: number } | null>(null);
+  const memoLinkRangeRef = useRef<{ from: number; to: number } | null>(null);
+  const memoLinkInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isLikelyUrl = (value: string): boolean =>
+    /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value)
+    || /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(value);
+
+  const normalizeHref = (value: string): string =>
+    /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value) ? value : `https://${value}`;
+
+  const placeMemoLinkPanel = useCallback(() => {
+    if (!editor) return;
+    const coords = editor.view.coordsAtPos(editor.state.selection.from);
+    const editorRect = editor.view.dom.getBoundingClientRect();
+    setMemoLinkCoords({
+      left: Math.max(8, coords.left - editorRect.left),
+      top: coords.bottom - editorRect.top + 8,
+    });
+  }, [editor]);
+
+  const openLinkPicker = useCallback(() => {
+    if (!editor) return;
+    const { from, to, empty } = editor.state.selection;
+    const text = !empty ? editor.state.doc.textBetween(from, to, ' ') : '';
+    if (isMemoLinkMode) {
+      setMemoLinkTarget(text);
+      memoLinkRangeRef.current = !empty ? { from, to } : null;
+      placeMemoLinkPanel();
+      setMemoLinkOpen(true);
+      return;
+    }
+    setPickerSelText(text);
+    pickerSelRangeRef.current = !empty ? { from, to } : null;
+    setPickerOpen(true);
+  }, [editor, isMemoLinkMode, placeMemoLinkPanel]);
+
+  const submitMemoLink = () => {
+    if (!editor) return;
+    const target = memoLinkTarget.trim();
+    if (!target) return;
+    const range = memoLinkRangeRef.current;
+    const chain = editor.chain().focus();
+    if (isLikelyUrl(target)) {
+      const href = normalizeHref(target);
+      if (range) {
+        chain.setTextSelection(range).extendMarkRange('link').setLink({ href }).run();
+      } else {
+        chain.insertContent({
+          type: 'text',
+          text: target,
+          marks: [{ type: 'link', attrs: { href } }],
+        }).run();
+      }
+    } else {
+      const wikiText = `[[${target}]]`;
+      if (range) {
+        chain.insertContentAt(range, wikiText).run();
+      } else {
+        chain.insertContent(wikiText).run();
+      }
+    }
+    setMemoLinkOpen(false);
+    setMemoLinkTarget('');
+    memoLinkRangeRef.current = null;
+  };
+
+  useEffect(() => {
+    if (!memoLinkOpen) return;
+    const t = window.setTimeout(() => memoLinkInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(t);
+  }, [memoLinkOpen]);
 
   /* 표 사이즈 picker 상태 (슬래시 /표) */
   /* Ctrl+K — 페이지 picker (선택 범위 있으면 그 텍스트가 ID 링크로) */
@@ -273,20 +365,11 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       // 에디터에 포커스 있을 때만
       if (!editor.isFocused) return;
       e.preventDefault();
-      const { from, to, empty } = editor.state.selection;
-      if (!empty) {
-        const text = editor.state.doc.textBetween(from, to, ' ');
-        setPickerSelText(text);
-        pickerSelRangeRef.current = { from, to };
-      } else {
-        setPickerSelText('');
-        pickerSelRangeRef.current = null;
-      }
-      setPickerOpen(true);
+      openLinkPicker();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editor]);
+  }, [editor, openLinkPicker]);
 
   function handlePickPage(page: WikiPageT) {
     if (!editor) return;
@@ -304,7 +387,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
 
   // 키보드 — `/` 입력 감지, ESC 닫기
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || disableSlashMenu) return;
     const handler = (e: KeyboardEvent) => {
       if (slashOpen) {
         if (e.key === 'Escape') { setSlashOpen(false); return; }
@@ -312,11 +395,14 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editor, slashOpen]);
+  }, [editor, slashOpen, disableSlashMenu]);
 
   // 슬래시 트리거 — 빈 줄에서 `/` 입력 시
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || disableSlashMenu) {
+      setSlashOpen(false);
+      return;
+    }
     const onTransaction = () => {
       const { state } = editor;
       const { $from } = state.selection;
@@ -344,7 +430,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       editor.off('transaction', onTransaction);
       editor.off('selectionUpdate', onTransaction);
     };
-  }, [editor, slashOpen]);
+  }, [editor, slashOpen, disableSlashMenu]);
 
   /* 슬래시 명령 정의 */
   const slashCommands = useMemo(() => [
@@ -357,12 +443,17 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     { id: 'quote', label: '인용문', keys: ['인용', 'quote'], icon: <Quote className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().toggleBlockquote().run() },
     { id: 'code', label: '코드 블록', keys: ['코드', 'code'], icon: <Code2 className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().toggleCodeBlock().run() },
     { id: 'hr', label: '구분선', keys: ['구분선', 'hr', '구분', 'divider'], icon: <Minus className="w-4 h-4" />, run: (e: typeof editor) => e?.chain().focus().setHorizontalRule().run() },
-    { id: 'wikilink', label: '🔗 페이지 링크 (검색·ID·새로 만들기)', keys: ['링크', '페이지', '첨부', 'link', 'wiki'], icon: <BookOpen className="w-4 h-4" />, run: (_e: typeof editor) => {
-      // 새 picker 모달 (3 모드) 으로 — window.prompt 안 씀
-      setPickerSelText('');
-      pickerSelRangeRef.current = null;
-      setPickerOpen(true);
+    { id: 'table', label: '표', keys: ['표', 'table', 'grid'], icon: <Table2 className="w-4 h-4" />, run: (e: typeof editor) => {
+      e?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     } },
+    {
+      id: 'wikilink',
+      label: isMemoLinkMode ? '링크' : '🔗 페이지 링크 (검색·ID·새로 만들기)',
+      description: isMemoLinkMode ? '페이지명은 [[페이지명]], URL은 링크로 삽입' : undefined,
+      keys: ['링크', '페이지', '첨부', 'link', 'wiki'],
+      icon: isMemoLinkMode ? <LinkIcon className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />,
+      run: () => openLinkPicker(),
+    },
     { id: 'callout', label: '💡 콜아웃 (인용 박스)', keys: ['콜아웃', '박스', 'callout', '노트'], icon: <Lightbulb className="w-4 h-4" />, run: (e: typeof editor) => {
       e?.chain().focus().insertContent('> [!note]\n> 노트 내용을 입력하세요\n').run();
     } },
@@ -378,7 +469,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       };
       input.click();
     } },
-  ], [editor, onUploadImage]);
+  ], [editor, onUploadImage, isMemoLinkMode, openLinkPicker]);
 
   const filteredCommands = useMemo(() => {
     const q = slashQuery.trim().toLowerCase();
@@ -404,7 +495,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
 
   // 슬래시 메뉴 키보드 이동
   useEffect(() => {
-    if (!editor || !slashOpen) return;
+    if (!editor || !slashOpen || disableSlashMenu) return;
     const handler = (e: KeyboardEvent) => {
       if (!slashOpen) return;
       if (e.key === 'ArrowDown') {
@@ -426,7 +517,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     };
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [editor, slashOpen, filteredCommands, slashIndex, runSlashCommandCallback]);
+  }, [editor, slashOpen, filteredCommands, slashIndex, runSlashCommandCallback, disableSlashMenu]);
 
   function runSlashCommand(cmd: typeof slashCommands[number]) {
     if (!editor) return;
@@ -439,6 +530,20 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     setSlashOpen(false);
   }
 
+  const shouldShowInlineMenu = useCallback(({ from, to }: { editor: TipTapEditor; from: number; to: number }) => {
+    if (!editor) return false;
+    if (from === to) return false;
+    // CellSelection 식별 — 고유 프로퍼티 $anchorCell 으로 (constructor.name 은 빌드 시 mangling 위험)
+    const sel = editor.state.selection as unknown as { $anchorCell?: unknown };
+    if (sel.$anchorCell) return false;
+    // 표 안 텍스트 선택도 인라인 툴바 대신 표 메뉴 우선 — 충돌 방지
+    if (editor.isActive('table')) return false;
+    return true;
+  }, [editor]);
+
+  const shouldShowTableMenu = useCallback(({ editor: ed }: { editor: TipTapEditor }) => ed.isActive('table'), []);
+  const tableMenuOptions = useMemo(() => ({ placement: 'top-start' as const, offset: 8 }), []);
+
   if (!editor) return null;
 
   return (
@@ -448,17 +553,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
         <WikiEditorToolbar
           editor={editor}
           onPickPage={() => {
-            // 툴바 '페이지 링크' = Ctrl+K 와 동일 흐름. 선택 범위 있으면 ID 링크 변환.
-            const { from, to, empty } = editor.state.selection;
-            if (!empty) {
-              const text = editor.state.doc.textBetween(from, to, ' ');
-              setPickerSelText(text);
-              pickerSelRangeRef.current = { from, to };
-            } else {
-              setPickerSelText('');
-              pickerSelRangeRef.current = null;
-            }
-            setPickerOpen(true);
+            openLinkPicker();
           }}
           onPickImage={onUploadImage ? () => {
             const input = document.createElement('input');
@@ -485,15 +580,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       {/* 인라인 툴바 — 텍스트 선택 시 떠오름. 표 셀 드래그 (CellSelection) / 표 안에선 숨김 — 표 메뉴가 그 자리. */}
       <BubbleMenu
         editor={editor}
-        shouldShow={({ from, to }) => {
-          if (from === to) return false;
-          // CellSelection 식별 — 고유 프로퍼티 $anchorCell 으로 (constructor.name 은 빌드 시 mangling 위험)
-          const sel = editor.state.selection as unknown as { $anchorCell?: unknown };
-          if (sel.$anchorCell) return false;
-          // 표 안 텍스트 선택도 인라인 툴바 대신 표 메뉴 우선 — 충돌 방지
-          if (editor.isActive('table')) return false;
-          return true;
-        }}
+        shouldShow={shouldShowInlineMenu}
       >
         <div className="flex items-center gap-0.5 p-1 rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg">
           <ToolbarBtn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="굵게 (Ctrl+B)"><Bold className="w-3.5 h-3.5" /></ToolbarBtn>
@@ -508,17 +595,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
           <ToolbarBtn
             active={editor.isActive('link')}
             onClick={() => {
-              // 선택 범위 캡처 후 picker 열기 (3 모드 — 검색/ID/새로 만들기)
-              const { from, to, empty } = editor.state.selection;
-              if (!empty) {
-                const text = editor.state.doc.textBetween(from, to, ' ');
-                setPickerSelText(text);
-                pickerSelRangeRef.current = { from, to };
-              } else {
-                setPickerSelText('');
-                pickerSelRangeRef.current = null;
-              }
-              setPickerOpen(true);
+              openLinkPicker();
             }}
             title="하이퍼링크 (Ctrl+K)"
           >
@@ -526,17 +603,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
           </ToolbarBtn>
           <ToolbarBtn
             onClick={() => {
-              // 선택 텍스트 있으면 ID 링크, 없으면 [[제목]] 인라인
-              const { from, to, empty } = editor.state.selection;
-              if (!empty) {
-                const text = editor.state.doc.textBetween(from, to, ' ');
-                setPickerSelText(text);
-                pickerSelRangeRef.current = { from, to };
-              } else {
-                setPickerSelText('');
-                pickerSelRangeRef.current = null;
-              }
-              setPickerOpen(true);
+              openLinkPicker();
             }}
             title="페이지 첨부 (검색·ID·새로 만들기)"
           >
@@ -548,8 +615,8 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       {/* 표 메뉴 — 표 안 커서일 때 위쪽 floating, 노션 식 텍스트 레이블 + 그룹 */}
       <BubbleMenu
         editor={editor}
-        shouldShow={({ editor: ed }) => ed.isActive('table')}
-        options={{ placement: 'top-start', offset: 8 }}
+        shouldShow={shouldShowTableMenu}
+        options={tableMenuOptions}
       >
         <TableMenu editor={editor} />
       </BubbleMenu>
@@ -558,9 +625,12 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
       <EditorContent editor={editor} />
 
       {/* 슬래시 메뉴 */}
-      {slashOpen && slashCoords && filteredCommands.length > 0 && (
+      {!disableSlashMenu && slashOpen && slashCoords && filteredCommands.length > 0 && (
         <div
-          className="absolute wiki-z-popover w-[260px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1 max-h-[320px] overflow-y-auto"
+          className={cn(
+            'absolute wiki-z-popover max-h-[320px] overflow-y-auto border border-[hsl(var(--hairline))] bg-popover shadow-xl',
+            isMemoLinkMode ? 'w-[286px] rounded-md py-1.5' : 'w-[260px] rounded-lg py-1',
+          )}
           style={{ left: slashCoords.left, top: slashCoords.top }}
         >
           <p className="px-3 pt-1.5 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
@@ -573,12 +643,19 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
               onMouseEnter={() => setSlashIndex(i)}
               onMouseDown={(e) => { e.preventDefault(); runSlashCommand(cmd); }}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12.5px] wiki-trans-color',
+                'w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12.5px] outline-none wiki-trans-color',
                 i === slashIndex ? 'bg-accent text-foreground' : 'text-foreground/85 hover:bg-accent',
               )}
             >
               <span className="text-muted-foreground shrink-0">{cmd.icon}</span>
-              <span className="flex-1 truncate">{cmd.label}</span>
+              <span className="flex-1 min-w-0">
+                <span className="block truncate">{cmd.label}</span>
+                {'description' in cmd && cmd.description && (
+                  <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">
+                    {cmd.description}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
@@ -588,16 +665,88 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
 
       {/* 표 사이즈 picker — 슬래시 /표 클릭 시 */}
 
+      {isMemoLinkMode && memoLinkOpen && (
+        <div
+          className="absolute wiki-z-popover w-[320px] rounded-md border border-[hsl(var(--hairline))] bg-popover p-3 shadow-xl"
+          style={{
+            left: memoLinkCoords?.left ?? 16,
+            top: memoLinkCoords?.top ?? 48,
+          }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-semibold text-foreground">링크 삽입</p>
+              <p className="mt-0.5 text-[10.5px] text-muted-foreground">
+                페이지명은 [[페이지명]], URL은 일반 링크로 들어가요.
+              </p>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setMemoLinkOpen(false);
+              }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="링크 삽입 닫기"
+            >
+              ×
+            </button>
+          </div>
+          <input
+            ref={memoLinkInputRef}
+            value={memoLinkTarget}
+            onChange={(e) => setMemoLinkTarget(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submitMemoLink();
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setMemoLinkOpen(false);
+              }
+            }}
+            placeholder="페이지 이름 또는 https://..."
+            className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/65 focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
+          />
+          <div className="mt-2 flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setMemoLinkOpen(false);
+              }}
+              className="h-8 rounded-md px-2.5 text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                submitMemoLink();
+              }}
+              disabled={!memoLinkTarget.trim()}
+              className="h-8 rounded-md bg-primary px-3 text-[12px] font-semibold text-primary-foreground hover:opacity-90 disabled:pointer-events-none disabled:opacity-45"
+            >
+              삽입
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 페이지 picker — 3 모드 탭: 검색 / ID / 새로 만들기 */}
-      <WikiPagePickerModal
-        open={pickerOpen}
-        pages={allPages}
-        excludeId={currentId}
-        initialQuery={pickerSelText}
-        onPick={handlePickPage}
-        onCreateAndLink={onCreateAndLink}
-        onClose={() => setPickerOpen(false)}
-      />
+      {!isMemoLinkMode && (
+        <WikiPagePickerModal
+          open={pickerOpen}
+          pages={allPages}
+          excludeId={currentId}
+          initialQuery={pickerSelText}
+          onPick={handlePickPage}
+          onCreateAndLink={onCreateAndLink}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -787,3 +936,57 @@ function ToolbarBtn({
 }
 
 /* ── CSV/TSV → HTML 표 변환 (붙여넣기 자동 인식) ── */
+function plainTextTableToHtml(text: string): string | null {
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0);
+  if (lines.length < 2 || lines.length > 80) return null;
+
+  const delimiter = lines.some((line) => line.includes('\t')) ? '\t' : ',';
+  if (!lines.every((line) => line.includes(delimiter))) return null;
+
+  const rows = lines.map((line) => delimiter === '\t' ? line.split('\t') : parseCsvLine(line));
+  const colCount = rows[0]?.length ?? 0;
+  if (colCount < 2 || colCount > 20) return null;
+  if (!rows.every((row) => row.length === colCount)) return null;
+
+  const [header, ...body] = rows;
+  const head = `<tr>${header.map((cell) => `<th>${escapeTableCell(cell)}</th>`).join('')}</tr>`;
+  const bodyHtml = body
+    .map((row) => `<tr>${row.map((cell) => `<td>${escapeTableCell(cell)}</td>`).join('')}</tr>`)
+    .join('');
+  return `<table><tbody>${head}${bodyHtml}</tbody></table><p></p>`;
+}
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let current = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"' && line[i + 1] === '"') {
+      current += '"';
+      i += 1;
+    } else if (ch === '"') {
+      quoted = !quoted;
+    } else if (ch === ',' && !quoted) {
+      out.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  out.push(current);
+  return out;
+}
+
+function escapeTableCell(value: string): string {
+  return value
+    .trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

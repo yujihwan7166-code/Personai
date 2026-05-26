@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, FileText, Target, ListChecks } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { StudyNotebook, StudyLens, LensOutput, StudyQuizItem } from '@/types/study';
 import { LENS_META, newId } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
@@ -16,6 +17,12 @@ type TaskState = 'idle' | 'running' | 'done' | 'error';
 
 const QUICKSTART_LENSES: StudyLens[] = ['summary', 'keypoints', 'quiz'];
 
+const QUICKSTART_ICONS: Partial<Record<StudyLens, LucideIcon>> = {
+  summary: FileText,
+  keypoints: ListChecks,
+  quiz: Target,
+};
+
 export function QuickStartModal({ notebook, onApply, onClose }: Props) {
   const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
   const [states, setStates] = useState<Record<StudyLens, TaskState>>({
@@ -30,7 +37,7 @@ export function QuickStartModal({ notebook, onApply, onClose }: Props) {
 
   const run = async () => {
     if (enabledSources.length === 0) {
-      toast({ title: '소스가 없어요', description: '먼저 자료를 추가하고 활성화해주세요.' });
+      toast({ title: '원본 자료가 없어요', description: '먼저 자료를 추가하고 활성화해주세요.' });
       return;
     }
     setRunning(true);
@@ -104,6 +111,7 @@ export function QuickStartModal({ notebook, onApply, onClose }: Props) {
           {QUICKSTART_LENSES.map((lens) => {
             const meta = LENS_META[lens];
             const st = states[lens];
+            const Icon = QUICKSTART_ICONS[lens] ?? FileText;
             return (
               <div
                 key={lens}
@@ -115,8 +123,8 @@ export function QuickStartModal({ notebook, onApply, onClose }: Props) {
                   'border-slate-200',
                 )}
               >
-                <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl text-lg', meta.tintClass)}>
-                  {meta.icon}
+                <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', meta.tintClass)}>
+                  <Icon className="h-4 w-4 text-slate-700" strokeWidth={1.8} />
                 </div>
                 <div className="flex-1">
                   <p className="text-[12.5px] font-bold text-slate-800">{meta.label}</p>

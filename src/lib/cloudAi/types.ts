@@ -3,7 +3,7 @@
  * 4개 화면(Doc/Sheet/Slide/Drive)이 같은 채팅 컴포넌트를 공유한다.
  */
 
-export type AiKind = 'doc' | 'sheet' | 'slide' | 'drive';
+export type AiKind = 'doc' | 'sheet' | 'slide' | 'drive' | 'memo' | 'journal';
 
 export interface ChatMessage {
   id: string;
@@ -27,11 +27,12 @@ export interface AiContext {
 export interface QuickAction {
   id: string;
   label: string;
+  description?: string;
   /** 사용자가 입력했다고 가정할 짧은 프롬프트 — 컨텍스트는 자동 추가됨 */
   prompt: string;
 }
 
-/** sessionStorage 키 — 사이드바 open 상태 (kind 별) */
+/** 사이드바 open 상태 키 prefix (kind 별, 훅 옵션에 따라 session/local storage 사용) */
 export const STORAGE_KEY_OPEN = 'personai.cloud.aisidebar.open';
 /** localStorage 키 prefix — 채팅 history (kind + persistKey 별).
  *  persistKey 는 보통 nodeId, drive 는 'global' */

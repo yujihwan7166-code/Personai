@@ -18,6 +18,19 @@ interface ExportOptions {
   format?: 'a4' | 'a3' | [number, number];  // mm
   background?: string;
   scale?: number;
+  pageHeightPx?: number;
+  pageGapPx?: number;
+  avoidBreakSelectors?: string;
+}
+
+interface PageSlice {
+  sourceY: number;
+  height: number;
+}
+
+interface AvoidRange {
+  start: number;
+  end: number;
 }
 
 /** 단일 element → 1~N 페이지 PDF. element 가 페이지보다 길면 페이지 분할. */
@@ -37,6 +50,46 @@ export async function exportElementToPdf(el: HTMLElement, options: ExportOptions
 
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
+  if (options.pageHeightPx && canvas.height > options.pageHeightPx) {
+    const rect = el.getBoundingClientRect();
+    const scale = rect.width > 0 ? canvas.width / rect.width : (options.scale ?? 2);
+    const pageHeightCanvas = Math.max(1, Math.round(options.pageHeightPx * scale));
+    const pageGapCanvas = Math.max(0, Math.round((options.pageGapPx ?? 0) * scale));
+    const slices = computePdfPageSlices(
+      canvas.height,
+      pageHeightCanvas,
+      pageGapCanvas,
+      collectAvoidBreakRanges(el, scale, options.avoidBreakSelectors),
+    );
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = pageHeightCanvas;
+    const ctx = pageCanvas.getContext('2d');
+    if (!ctx) throw new Error('PDF 페이지 캔버스를 만들 수 없습니다.');
+
+    for (let pageIndex = 0; pageIndex < slices.length; pageIndex++) {
+      const { sourceY, height } = slices[pageIndex];
+      ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.fillStyle = options.background ?? '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(
+        canvas,
+        0,
+        sourceY,
+        canvas.width,
+        height,
+        0,
+        0,
+        pageCanvas.width,
+        height,
+      );
+      if (pageIndex > 0) pdf.addPage();
+      pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, pageH);
+    }
+    pdf.save(options.fileName.endsWith('.pdf') ? options.fileName : `${options.fileName}.pdf`);
+    return;
+  }
+
   const imgRatio = canvas.height / canvas.width;
   const imgW = pageW;
   const imgH = imgW * imgRatio;
@@ -101,3 +154,93 @@ export async function exportElementsToPdf(elements: HTMLElement[], options: Expo
 
 /** 파일명 안전 처리 — `@/lib/blob` 의 통합 헬퍼 re-export (호환 유지). */
 export { sanitizeFileName } from '@/lib/blob';
+
+export function computePdfPageSlices(
+  canvasHeight: number,
+  pageHeightCanvas: number,
+  pageGapCanvas = 0,
+  avoidRanges: AvoidRange[] = [],
+): PageSlice[] {
+  const safeCanvasHeight = Math.max(0, Math.round(canvasHeight));
+  const safePageHeight = Math.max(1, Math.round(pageHeightCanvas));
+  const safeGap = Math.max(0, Math.round(pageGapCanvas));
+  if (safeCanvasHeight <= 0) return [];
+
+  const sortedRanges = avoidRanges
+    .map((range) => ({
+      start: Math.max(0, Math.round(Math.min(range.start, range.end))),
+      end: Math.min(safeCanvasHeight, Math.round(Math.max(range.start, range.end))),
+    }))
+    .filter((range) => range.end > range.start && range.end - range.start < safePageHeight * 0.9)
+    .sort((a, b) => a.start - b.start);
+
+  const slices: PageSlice[] = [];
+  let sourceY = 0;
+  let guard = 0;
+  while (sourceY < safeCanvasHeight && guard < 10000) {
+    guard += 1;
+    const naturalEnd = Math.min(sourceY + safePageHeight, safeCanvasHeight);
+    const adjustedEnd = adjustSliceEndForAvoidRange(sourceY, naturalEnd, safePageHeight, sortedRanges);
+    const height = Math.max(1, adjustedEnd - sourceY);
+    slices.push({ sourceY, height });
+    if (adjustedEnd >= safeCanvasHeight) break;
+    const canSkipGap = adjustedEnd === naturalEnd
+      && safeGap > 0
+      && !avoidRangeStartsInsideGap(adjustedEnd, adjustedEnd + safeGap, sortedRanges);
+    sourceY = canSkipGap ? adjustedEnd + safeGap : adjustedEnd;
+  }
+  return slices;
+}
+
+function avoidRangeStartsInsideGap(gapStart: number, gapEnd: number, avoidRanges: AvoidRange[]): boolean {
+  if (gapEnd <= gapStart) return false;
+  return avoidRanges.some((range) => range.start < gapEnd && range.end > gapStart);
+}
+
+function adjustSliceEndForAvoidRange(
+  sourceY: number,
+  naturalEnd: number,
+  pageHeightCanvas: number,
+  avoidRanges: AvoidRange[],
+): number {
+  const minUsefulSlice = Math.max(24, Math.round(pageHeightCanvas * 0.18));
+  for (const range of avoidRanges) {
+    if (naturalEnd <= range.start || naturalEnd >= range.end) continue;
+    if (range.start - sourceY >= minUsefulSlice) return range.start;
+    if (range.end - sourceY <= pageHeightCanvas) return range.end;
+  }
+  return naturalEnd;
+}
+
+function collectAvoidBreakRanges(
+  root: HTMLElement,
+  scale: number,
+  selectors = [
+    '.doc-content table',
+    '.doc-content img',
+    '.doc-content p',
+    '.doc-content li',
+    '.doc-content blockquote',
+    '.doc-content pre',
+    '.doc-content h1',
+    '.doc-content h2',
+    '.doc-content h3',
+    '.doc-content h4',
+    '.doc-content h5',
+    '.doc-content h6',
+    '.doc-footnote-list',
+    'table',
+    'img',
+  ].join(', '),
+): AvoidRange[] {
+  const rootRect = root.getBoundingClientRect();
+  return Array.from(root.querySelectorAll<HTMLElement>(selectors))
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        start: (rect.top - rootRect.top) * scale,
+        end: (rect.bottom - rootRect.top) * scale,
+      };
+    })
+    .filter((range) => range.end > range.start);
+}

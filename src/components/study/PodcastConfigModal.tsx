@@ -2,7 +2,7 @@
  * PodcastConfigModal — 요청형 단일 입력 UX.
  *  - "무엇을 중심으로 들려드릴까요?" 프롬프트 인풋 하나
  *  - 프리셋 칩 4개 (문구 + 설정 동시 프리필)
- *  - 요약 바: ⏱ 길이 · 🎙 톤 · [바꾸기 ▾]
+ *  - 요약 바: 길이 · 톤 · [바꾸기]
  *  - 푸터 단일 CTA: 입력 유무로 라벨 변형
  *  - Cmd/Ctrl + Enter 제출
  */
@@ -346,7 +346,7 @@ export function PodcastConfigModal({
             title="Ctrl/Cmd + Enter"
           >
             {hasInput ? <Sparkles className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-            <span>🎧 {submitLabel}</span>
+            <span>{submitLabel}</span>
             <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded bg-white/15 dark:bg-slate-900/15 px-1 py-0.5 text-[9.5px] font-mono opacity-75">
               <CornerDownLeft className="h-2.5 w-2.5" />
             </kbd>

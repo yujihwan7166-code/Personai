@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Plus, Sparkles, ArrowRight, BookOpen, Star, LayoutGrid, List } from 'lucide-react';
+import { Plus, ArrowRight, BookOpen, Star, LayoutGrid, List, Inbox, Link2Off, GitMerge, Moon, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PageSwitcher } from '@/components/PageSwitcher';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
+import { buildWikiCleanupQueue, buildWikiRelations, getActiveWikiPages, getArchivedWikiPages, type WikiCleanupQueueItem } from '@/lib/wikiQuery';
+import { findDuplicateWikiCandidates, type DuplicateWikiCandidate } from '@/lib/wikiCleanup';
 
 interface Props {
   pages: WikiPage[];
@@ -21,6 +22,8 @@ interface Props {
   onCreateMainDoc?: () => void;
   /** 태그 chip 클릭 시 — 사이드바 검색에 반영 (그 태그로 필터링). */
   onTagClick?: (tag: string) => void;
+  /** 중복 후보 병합. 첫 번째 id 로 두 번째 id 문서를 흡수. */
+  onMergePages?: (primaryId: string, secondaryId: string) => void;
 }
 
 /** 30일 — 페이지 잠자는 임계 */
@@ -31,7 +34,7 @@ const MAIN_DOCS_VIEW_KEY = 'wiki.home.mainDocsView.v1';
 
 export function WikiHome({
   pages, favorites = [],
-  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc, onTagClick,
+  onSelect, onCreate, onPickStarterPack, onCreateMissing, onMakeMocFromTag, onCreateMainDoc, onTagClick, onMergePages,
 }: Props) {
   const favSet = new Set(favorites);
   // 메인 문서 보기 모드 — 카드 / 목록 (localStorage 영속).
@@ -46,22 +49,21 @@ export function WikiHome({
   const stats = useMemo(() => {
     const byStatus = { draft: 0, active: 0, stable: 0, archived: 0 };
     for (const p of pages) byStatus[p.status]++;
+    const activePages = getActiveWikiPages(pages);
+    const archived = getArchivedWikiPages(pages).slice(0, 5);
 
     // 활동 N건 = 7일내 수정 페이지
     const sevenDays = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recentEdits = pages.filter((p) => p.updatedAt > sevenDays).length;
+    const recentEdits = activePages.filter((p) => p.updatedAt > sevenDays).length;
 
-    const recent = pages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
-    // '작업중' = status active. '초안' (legacy draft) 도 fallback 으로 같이 노출 — 정리 대기 의미.
-    const active = pages.filter((p) => p.status === 'active' || p.status === 'draft').slice(0, 5);
-    const mocs = pages.filter((p) => isMainDoc(p));
+    const recent = activePages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
+    const inbox = activePages.filter((p) => p.status === 'draft' || p.tags.includes('inbox')).slice(0, 5);
+    const active = activePages.filter((p) => p.status === 'active').slice(0, 5);
+    const mocs = activePages.filter((p) => isMainDoc(p));
+    const relations = buildWikiRelations(activePages);
 
     // 제목·alias → 페이지 맵 (대소문자 무시)
-    const byTitle = new Map<string, WikiPage>();
-    for (const p of pages) {
-      byTitle.set(p.title.toLowerCase(), p);
-      for (const a of p.aliases) byTitle.set(a.toLowerCase(), p);
-    }
+    const byTitle = relations.byTitle;
     // 다른 메인 문서가 참조하는 메인 = sub-main
     const subMocIds = new Set<string>();
     for (const m of mocs) {
@@ -94,44 +96,27 @@ export function WikiHome({
       rootMocChildren.set(m.id, { mocs: childMocs, pages: childPages });
     }
 
-    // 연결 안 된 페이지 = refersTo 도 cites 도 비어있고, 아무도 참조하지 않는 페이지
-    const referencedIds = new Set<string>();
-    for (const p of pages) {
-      for (const r of [...p.refersTo, ...p.cites]) referencedIds.add(r);
-    }
-    const orphans = pages.filter(
-      (p) => p.refersTo.length === 0 && p.cites.length === 0 && !referencedIds.has(p.id)
-    ).slice(0, 5);
+    // 연결 안 된 페이지 = 메인/index 아님 + 본문 링크 없음 + 아무도 참조하지 않음.
+    const orphans = relations.orphans.slice(0, 5);
 
     // 태그 빈도
     const tagCount = new Map<string, number>();
-    for (const p of pages) for (const t of p.tags) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+    for (const p of activePages) for (const t of p.tags) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
     const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
 
     // 만들 페이지 (Wanted) — 본문에서 [[링크]] 추출 → 존재 X 인 제목들
-    const titleSet = new Set<string>();
-    for (const p of pages) {
-      titleSet.add(p.title.toLowerCase());
-      for (const a of p.aliases) titleSet.add(a.toLowerCase());
-    }
-    const wantedCount = new Map<string, number>();
-    for (const p of pages) {
-      for (const link of extractWikiLinks(p.body)) {
-        if (!titleSet.has(link.toLowerCase())) {
-          wantedCount.set(link, (wantedCount.get(link) ?? 0) + 1);
-        }
-      }
-    }
-    const wanted = [...wantedCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const wanted = relations.wanted.map(({ title, count }) => [title, count] as [string, number]).slice(0, 6);
 
     // 잠자는 페이지 — status='active' 인데 30일 미수정
     const cutoff = Date.now() - STALE_MS;
     const stale = pages
       .filter((p) => p.status === 'active' && p.updatedAt < cutoff)
       .slice(0, 5);
+    const duplicates = findDuplicateWikiCandidates(activePages, 5);
+    const cleanupQueue = buildWikiCleanupQueue(activePages, 5);
 
     // 일반 문서 = 메인 문서 아닌 페이지 (대문 'index' 도 메인성이라 제외)
-    const regulars = pages.filter((p) => !isMainDoc(p) && p.type !== 'index');
+    const regulars = activePages.filter((p) => !isMainDoc(p) && p.type !== 'index');
 
     // 메인 문서의 *직접 부모* 매핑 (sub-main → 그 sub 를 가리키는 메인들)
     const mainToParents = new Map<string, WikiPage[]>();
@@ -184,35 +169,13 @@ export function WikiHome({
 
     // ── 역링크 (backlinks) — 어떤 페이지가 누구한테 링크되는지 ──
     // body 위키링크 + refersTo/cites/inherits/similarTo 4종 모두 합산
-    const byId = new Map(pages.map((p) => [p.id, p]));
-    const backlinks = new Map<string, Set<string>>(); // targetId → linker pageIds
-
-    function addBacklink(targetId: string, linkerId: string) {
-      if (targetId === linkerId) return; // self-reference 무시
-      if (!backlinks.has(targetId)) backlinks.set(targetId, new Set());
-      backlinks.get(targetId)!.add(linkerId);
-    }
-
-    for (const p of pages) {
-      // 1) 본문 [[위키링크]] / ##wiki:id 링크
-      for (const link of extractWikiLinks(p.body)) {
-        let target: WikiPage | undefined;
-        if (byId.has(link)) target = byId.get(link);
-        else target = byTitle.get(link.toLowerCase());
-        if (target) addBacklink(target.id, p.id);
-      }
-      // 2) 명시적 4종 관계 (id 배열)
-      for (const arr of [p.refersTo, p.cites, p.inherits, p.similarTo]) {
-        for (const id of arr) {
-          if (byId.has(id)) addBacklink(id, p.id);
-        }
-      }
-    }
+    const byId = relations.byId;
+    const backlinks = relations.backlinks; // targetId → linker pageIds
 
     // 위키 정체성 표시용 — 'index' 페이지가 있으면 그 title 을 헤더에 활용
-    const indexPage = pages.find((p) => p.type === 'index');
+    const indexPage = activePages.find((p) => p.type === 'index');
 
-    return { byStatus, recentEdits, recent, active, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, regulars, regularToRoots, backlinks, byId, indexPage };
+    return { byStatus, recentEdits, recent, inbox, active, archived, mocs, rootMocs, mainCards, rootMocChildren, subMocIds, orphans, topTags, wanted, stale, duplicates, cleanupQueue, regulars, regularToRoots, backlinks, byId, indexPage };
   }, [pages]);
 
   /* ── 빈 위키 ── */
@@ -260,7 +223,51 @@ export function WikiHome({
     );
   }
 
-  const totalQueue = stats.active.length + stats.wanted.length + stats.orphans.length + stats.stale.length;
+  const totalQueue = stats.inbox.length + stats.active.length + stats.wanted.length + stats.orphans.length + stats.stale.length + stats.duplicates.length + stats.cleanupQueue.length;
+  const maintenanceItems = [
+    {
+      id: 'wiki-cleanup',
+      label: '정리 체크',
+      count: stats.cleanupQueue.length,
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      tone: stats.cleanupQueue.some((item) => item.warningCount > 0) ? 'warn' : 'default',
+    },
+    {
+      id: 'wiki-inbox',
+      label: 'Inbox',
+      count: stats.inbox.length,
+      icon: <Inbox className="w-3.5 h-3.5" />,
+      tone: 'default',
+    },
+    {
+      id: 'wiki-wanted',
+      label: '만들 페이지',
+      count: stats.wanted.length,
+      icon: <AlertTriangle className="w-3.5 h-3.5" />,
+      tone: stats.wanted.length > 0 ? 'warn' : 'default',
+    },
+    {
+      id: 'wiki-duplicates',
+      label: '중복 후보',
+      count: stats.duplicates.length,
+      icon: <GitMerge className="w-3.5 h-3.5" />,
+      tone: stats.duplicates.length > 0 ? 'warn' : 'default',
+    },
+    {
+      id: 'wiki-orphans',
+      label: '미연결',
+      count: stats.orphans.length,
+      icon: <Link2Off className="w-3.5 h-3.5" />,
+      tone: 'default',
+    },
+    {
+      id: 'wiki-stale',
+      label: '잠자는 문서',
+      count: stats.stale.length,
+      icon: <Moon className="w-3.5 h-3.5" />,
+      tone: 'default',
+    },
+  ].filter((item) => item.count > 0);
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-8 py-8">
@@ -277,8 +284,15 @@ export function WikiHome({
             {stats.indexPage ? stats.indexPage.title : '대문'}
           </h1>
         </div>
-        <div className="flex flex-col items-end gap-4 min-w-0 self-start">
-          <PageSwitcher current="wiki" />
+        <div className="flex flex-col items-end gap-2 min-w-0 self-end pb-0.5">
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.08)] transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            새 페이지
+          </button>
           <p className="text-[11.5px] text-muted-foreground inline-flex items-center gap-2 font-medium">
             <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
             <span className="text-muted-foreground/40">·</span>
@@ -296,6 +310,40 @@ export function WikiHome({
           </p>
         </div>
       </header>
+
+      {maintenanceItems.length > 0 && (
+        <section className="mb-5 rounded-xl border border-[hsl(var(--hairline))] bg-card/75 px-3 py-3 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[12px] font-bold text-foreground">정리 보드</h2>
+              <p className="text-[10.5px] text-muted-foreground">오늘 손보면 좋은 항목만 모았어요</p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] font-semibold text-primary">
+              {maintenanceItems.reduce((sum, item) => sum + item.count, 0)}개
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
+            {maintenanceItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={cn(
+                  'group rounded-lg border px-2 py-2 text-left wiki-trans-color',
+                  item.tone === 'warn'
+                    ? 'border-amber-500/25 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 dark:text-amber-200'
+                    : 'border-[hsl(var(--hairline))] bg-background/60 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
+                )}
+              >
+                <span className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground group-hover:text-current">{item.icon}</span>
+                  <span className="text-[13px] font-bold tabular-nums">{item.count}</span>
+                </span>
+                <span className="block truncate text-[10.5px] font-semibold">{item.label}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 📖 메인 문서 — 카드 그리드 / 목록 토글 */}
       <section className="mb-6">
@@ -431,6 +479,20 @@ export function WikiHome({
           ))}
         </Section>
 
+        {/* Inbox */}
+        <Section id="wiki-inbox" title="📥 Inbox" empty="미정리 캡처가 없어요">
+          {stats.inbox.map((p) => (
+            <PageRow key={p.id} page={p} onSelect={onSelect} />
+          ))}
+        </Section>
+
+        {/* 정리 체크 */}
+        <Section id="wiki-cleanup" title="✅ 정리 체크" empty="정리할 문서가 없어요 ✓">
+          {stats.cleanupQueue.map((item) => (
+            <CleanupQueueRow key={item.page.id} item={item} onSelect={onSelect} />
+          ))}
+        </Section>
+
         {/* 작업중 */}
         <Section title="🚀 작업중" empty="작업중인 페이지가 없어요">
           {stats.active.map((p) => (
@@ -438,8 +500,33 @@ export function WikiHome({
           ))}
         </Section>
 
+        {/* 만들 페이지 */}
+        <Section id="wiki-wanted" title="🔴 만들 페이지" empty="끊긴 위키링크가 없어요 ✓">
+          {stats.wanted.map(([title, count]) => (
+            <MissingPageRow
+              key={title}
+              title={title}
+              count={count}
+              onCreate={onCreateMissing}
+            />
+          ))}
+        </Section>
+
+        {/* 중복 후보 */}
+        <Section id="wiki-duplicates" title="🧬 중복 후보" empty="눈에 띄는 중복 후보가 없어요 ✓">
+          {stats.duplicates.map((candidate) => (
+            <DuplicateCandidateRow
+              key={`${candidate.a.id}-${candidate.b.id}`}
+              candidate={candidate}
+              onSelect={onSelect}
+              onMerge={onMergePages}
+            />
+          ))}
+        </Section>
+
         {/* 연결 안 된 페이지 */}
         <Section
+          id="wiki-orphans"
           title="🌱 연결 안 된 페이지"
           empty="모든 페이지가 연결됐어요 ✓"
         >
@@ -450,6 +537,7 @@ export function WikiHome({
 
         {/* 잠자는 페이지 (Stale) */}
         <Section
+          id="wiki-stale"
           title="🌙 잠자는 페이지"
           empty="모든 페이지가 신선해요 ✓"
         >
@@ -457,7 +545,33 @@ export function WikiHome({
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
         </Section>
+
+        {/* 보관 문서 */}
+        {stats.archived.length > 0 && (
+          <Section
+            title="📦 보관 문서"
+            empty="보관된 문서가 없어요"
+          >
+            {stats.archived.map((p) => (
+              <PageRow key={p.id} page={p} onSelect={onSelect} />
+            ))}
+          </Section>
+        )}
       </div>
+
+      {stats.recent.length === 0
+        && stats.inbox.length === 0
+        && stats.cleanupQueue.length === 0
+        && stats.active.length === 0
+        && stats.wanted.length === 0
+        && stats.duplicates.length === 0
+        && stats.orphans.length === 0
+        && stats.stale.length === 0
+        && stats.archived.length === 0 && (
+          <div className="mt-4 rounded-xl border border-[hsl(var(--hairline))] bg-card/65 px-4 py-3 text-[12px] text-muted-foreground">
+            지금은 따로 손볼 문서가 없어요. 새 페이지를 만들거나 메인 문서에 링크를 더해 흐름을 이어가면 됩니다.
+          </div>
+        )}
 
       {/* 인기 태그 */}
       {stats.topTags.length > 0 && (
@@ -498,34 +612,21 @@ export function WikiHome({
         ))}
       </div>
 
-      {/* 빠른 액션 */}
-      <div className="mt-7 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onCreate}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-3.5 h-3.5" /> 새 페이지
-        </button>
-        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-          <Sparkles className="w-3 h-3" />
-          본문에 <code className="px-1 rounded bg-accent">[[페이지명]]</code> 으로 위키링크
-        </span>
-      </div>
     </div>
   );
 }
 
 /* ── 카드 섹션 ── */
 function Section({
-  title, children, empty,
+  id, title, children, empty, showWhenEmpty = false,
 }: {
-  title: string; children: React.ReactNode; empty: string;
+  id?: string; title: string; children: React.ReactNode; empty: string; showWhenEmpty?: boolean;
 }) {
   const arr = Array.isArray(children) ? children : [children];
   const isEmpty = arr.length === 0 || arr.every((c) => !c);
+  if (isEmpty && !showWhenEmpty) return null;
   return (
-    <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
+    <div id={id} className="scroll-mt-4 rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
       <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2.5">
         {title}
       </h2>
@@ -786,20 +887,6 @@ function RegularDocsSection({
   );
 }
 
-/* ── 본문 [[링크]] 중 존재하는 페이지 카운트 ── */
-function countLinkedPages(page: WikiPage, allPages: WikiPage[]): number {
-  const titleSet = new Set<string>();
-  for (const p of allPages) {
-    titleSet.add(p.title.toLowerCase());
-    for (const a of p.aliases) titleSet.add(a.toLowerCase());
-  }
-  let n = 0;
-  for (const t of extractWikiLinks(page.body)) {
-    if (titleSet.has(t.toLowerCase())) n++;
-  }
-  return n;
-}
-
 /* ── 본문 미리보기 — markdown 부호 제거 ── */
 function cleanPreview(body: string): string {
   return body
@@ -988,6 +1075,138 @@ function PageRow({ page, onSelect }: { page: WikiPage; onSelect: (id: string) =>
         <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
         <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{page.title}</span>
       </button>
+    </li>
+  );
+}
+
+function MissingPageRow({
+  title,
+  count,
+  onCreate,
+}: {
+  title: string;
+  count: number;
+  onCreate?: (title: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onCreate?.(title)}
+      disabled={!onCreate}
+      className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      title={`본문에서 ${count}번 링크됐지만 아직 없는 페이지`}
+    >
+      <span className="text-[13px] leading-none shrink-0 text-[hsl(var(--wiki-link-missing))]" aria-hidden>?</span>
+      <span className="flex-1 min-w-0 truncate text-[12.5px] text-[hsl(var(--wiki-link-missing))]">{title}</span>
+      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{count}</span>
+    </button>
+  );
+}
+
+function CleanupQueueRow({
+  item,
+  onSelect,
+}: {
+  item: WikiCleanupQueueItem;
+  onSelect: (id: string) => void;
+}) {
+  const topIssues = item.issues.slice(0, 3);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(item.page.id)}
+        className="w-full rounded-md border border-[hsl(var(--hairline))] bg-background/50 px-2 py-1.5 text-left hover:border-primary/30 hover:bg-primary/5 wiki-trans-color"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[13px] leading-none shrink-0" aria-hidden>{WIKI_TYPE_META[item.page.type].icon}</span>
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-foreground/90">{item.page.title}</span>
+          {item.warningCount > 0 && (
+            <span className="shrink-0 rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+              주의 {item.warningCount}
+            </span>
+          )}
+        </span>
+        <span className="mt-1 flex flex-wrap gap-1">
+          {topIssues.map((issue) => (
+            <span
+              key={issue.id}
+              className={cn(
+                'rounded border px-1.5 py-0.5 text-[10px]',
+                issue.level === 'warning'
+                  ? 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                  : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground',
+              )}
+            >
+              {issue.label}
+            </span>
+          ))}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function DuplicateCandidateRow({
+  candidate,
+  onSelect,
+  onMerge,
+}: {
+  candidate: DuplicateWikiCandidate;
+  onSelect: (id: string) => void;
+  onMerge?: (primaryId: string, secondaryId: string) => void;
+}) {
+  const primary = candidate.a.updatedAt >= candidate.b.updatedAt ? candidate.a : candidate.b;
+  const secondary = primary.id === candidate.a.id ? candidate.b : candidate.a;
+
+  return (
+    <li>
+      <div className="rounded-md border border-[hsl(var(--hairline))] bg-background/50 px-2 py-1.5">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onSelect(primary.id)}
+            className="min-w-0 flex-1 truncate text-left text-[12.5px] font-semibold text-foreground/90 hover:text-primary hover:underline"
+            title={primary.title}
+          >
+            {primary.title}
+          </button>
+          <span className="shrink-0 text-[10px] font-mono text-primary">{candidate.score}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onSelect(secondary.id)}
+            className="min-w-0 flex-1 truncate text-left text-[11.5px] text-muted-foreground hover:text-primary hover:underline"
+            title={secondary.title}
+          >
+            ↔ {secondary.title}
+          </button>
+          <span className="shrink-0 text-[10px] text-muted-foreground truncate max-w-[120px]" title={candidate.reasons.join(', ')}>
+            {candidate.reasons.slice(0, 2).join(' · ')}
+          </span>
+        </div>
+        {onMerge && (
+          <div className="mt-1.5 flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => onMerge(primary.id, secondary.id)}
+              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={`${secondary.title} 내용을 ${primary.title}에 합치고 보관`}
+            >
+              위로 병합
+            </button>
+            <button
+              type="button"
+              onClick={() => onMerge(secondary.id, primary.id)}
+              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={`${primary.title} 내용을 ${secondary.title}에 합치고 보관`}
+            >
+              아래로 병합
+            </button>
+          </div>
+        )}
+      </div>
     </li>
   );
 }

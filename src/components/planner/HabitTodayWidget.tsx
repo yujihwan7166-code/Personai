@@ -45,9 +45,9 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
       <button
         type="button"
         onClick={onOpenAll}
-        className="w-full px-1.5 mb-2 flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground hover:text-primary transition-colors"
+        className="w-full px-1.5 mb-1 flex items-center gap-1.5 text-[12px] font-semibold tracking-tight text-foreground/85 hover:text-primary transition-colors"
       >
-        <Repeat className="h-3.5 w-3.5" strokeWidth={2} />
+        <Repeat className="h-3 w-3" strokeWidth={2} />
         오늘의 습관
         <span className="ml-auto text-[11px] font-mono tabular-nums text-foreground/55 font-semibold">
           {completed}/{todayHabits.length}
@@ -57,14 +57,14 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
         <p className="px-1.5 py-1 text-[12px] text-foreground/55">오늘 예정 없음</p>
       ) : (
         <ul className="flex flex-col gap-0.5">
-          {todayHabits.slice(0, 6).map((h) => {
+          {todayHabits.slice(0, 2).map((h) => {
             const stripe = (TASK_LIST_COLORS[h.color] ?? TASK_LIST_COLORS.blue).stripe;
             const ci = checkinMap.get(h.id);
             const tpd = Math.max(1, h.schedule.timesPerDay ?? 1);
             const done = (ci?.count ?? 0) >= tpd;
             return (
               <li key={h.id}>
-                <div className="flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-accent/40 transition-colors">
+                <div className="flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-accent/40 transition-colors">
                   <HabitDayDot
                     scheduled
                     count={ci?.count ?? 0}
@@ -75,11 +75,11 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
                     onClick={() => habitCheckinStore.toggle(h.id, todayKey, tpd)}
                     ariaLabel={`${h.title} ${done ? '체크 해제' : '체크'}`}
                   />
-                  <span className="text-[14px] shrink-0" aria-hidden style={{ filter: done ? 'none' : 'grayscale(0.4)' }}>
+                  <span className="text-[13px] shrink-0" aria-hidden style={{ filter: done ? 'none' : 'grayscale(0.4)' }}>
                     {h.emoji}
                   </span>
                   <span className={cn(
-                    'min-w-0 flex-1 truncate text-[13px] font-medium',
+                    'min-w-0 flex-1 truncate text-[12px] font-medium',
                     done ? 'text-foreground/50 line-through font-normal' : 'text-foreground',
                   )}>
                     {h.title}
@@ -94,9 +94,9 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
               </li>
             );
           })}
-          {todayHabits.length > 6 && (
+          {todayHabits.length > 2 && (
             <li className="px-1.5 text-[11px] text-foreground/55 tabular-nums">
-              +{todayHabits.length - 6}개 더 — 풀뷰에서
+              +{todayHabits.length - 2}개 더 — 풀뷰에서
             </li>
           )}
         </ul>

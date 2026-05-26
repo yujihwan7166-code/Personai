@@ -62,7 +62,7 @@ export const INTERNAL_FEATURE_PRESETS: Array<{
   { id: 'general',       label: '일반 채팅',     emoji: '💬', desc: 'AI 한 명과 1:1',         target: { type: 'mode', mode: 'general' } },
   { id: 'multi-chat',    label: '멀티 채팅',     emoji: '🔀', desc: '여러 AI 답변 비교',      target: { type: 'mode', mode: 'multi-chat' } },
   { id: 'deep-research', label: '심층 리서치',   emoji: '🧪', desc: 'AI 교차 검증 리포트',    target: { type: 'mode', mode: 'deep-research' } },
-  { id: 'debate',        label: 'AI 토론',       emoji: '⚔️', desc: '찬반·자유·심층·브레인',   target: { type: 'mode', mode: 'debate' } },
+  { id: 'debate',        label: 'AI 라운드테이블', emoji: '⚔️', desc: '찬반·자유·심층·브레인', target: { type: 'mode', mode: 'debate' } },
   { id: 'study',         label: 'AI 스터디룸',   emoji: '📚', desc: '노트북·퀴즈·팟캐스트',    target: { type: 'mode', mode: 'study' } },
   { id: 'assistant',     label: 'AI 어시스턴트', emoji: '✨', desc: '실무 도구 전체',           target: { type: 'mode', mode: 'assistant' } },
   { id: 'character',     label: '캐릭터 챗',     emoji: '🎭', desc: '가상 캐릭터와 대화',     target: { type: 'player', toolId: 'character-chat' } },
@@ -72,7 +72,7 @@ export const INTERNAL_FEATURE_PRESETS: Array<{
   { id: 'dream',         label: '꿈 해몽',       emoji: '🌙', desc: '꿈 내용 → 상징 해석',    target: { type: 'life', toolId: 'dream' } },
   { id: 'dating',        label: '연애 코치',     emoji: '💌', desc: '썸·데이트·이별',         target: { type: 'life', toolId: 'dating' } },
   { id: 'image',         label: '이미지·영상',   emoji: '🎨', desc: '멀티모달 미디어 생성',    target: { type: 'assistant', cardId: 'image' } },
-  { id: 'voice',         label: '음성',          emoji: '🎙️', desc: '음성 분석·전사',         target: { type: 'assistant', cardId: 'voice' } },
+  { id: 'voice',         label: 'AI 녹음 분석',  emoji: '🎙️', desc: '녹음 분석·전사',         target: { type: 'assistant', cardId: 'voice-analysis' } },
   { id: 'ppt',           label: 'PPT',           emoji: '📊', desc: '슬라이드 자동 생성',      target: { type: 'assistant', cardId: 'ppt' } },
   { id: 'translate',     label: '번역',          emoji: '🌐', desc: '다국어 번역 + 용어',     target: { type: 'assistant', cardId: 'translate' } },
 ];

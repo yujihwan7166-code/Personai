@@ -115,7 +115,7 @@ export interface PlannerTask {
   canceled?: boolean;
   /** Someday(보류) — 인박스 기본 보기에서 hide, 별도 'Someday' 탭에서만 표시. */
   someday?: boolean;
-  /** 녹음 노트 액션 아이템에서 승격된 경우 출처 녹음 id. */
+  /** AI 녹음 분석 액션 아이템에서 승격된 경우 출처 녹음 id. */
   sourceRecordingId?: string;
   /** 표시용 스냅샷 (녹음 삭제 후에도 라벨 유지). */
   sourceRecordingTitle?: string;

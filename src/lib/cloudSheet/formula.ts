@@ -25,6 +25,13 @@
 import { isSafeHref, isSafeImageSrc } from '@/lib/safeUrl';
 
 type Cells = Record<string, string>;
+interface FormulaTable {
+  name: string;
+  ref: string;
+  headerRow?: boolean;
+  totalsRow?: boolean;
+  columns?: Array<{ name: string }>;
+}
 
 /**
  * 함수 시그니처·설명 — 셀 수식 입력 시 popover 로 표시.
@@ -34,6 +41,13 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   DATEVALUE: { sig: 'DATEVALUE(date_text)', desc: 'Converts date text to an Excel serial date' },
   DAYS:      { sig: 'DAYS(end_date, start_date)', desc: 'Returns the number of days between two dates' },
   VALUE:     { sig: 'VALUE(text)', desc: 'Converts numeric text to a number' },
+  PRODUCT:   { sig: 'PRODUCT(range)', desc: 'Multiplies numbers together' },
+  SUMPRODUCT:{ sig: 'SUMPRODUCT(range1, range2, ...)', desc: 'Sums products of matching ranges' },
+  SUBTOTAL:  { sig: 'SUBTOTAL(function_num, ref1, ...)', desc: 'Excel subtotal aggregation by function number' },
+  LARGE:     { sig: 'LARGE(range, k)', desc: 'Returns the k-th largest numeric value' },
+  SMALL:     { sig: 'SMALL(range, k)', desc: 'Returns the k-th smallest numeric value' },
+  PERCENTILE:{ sig: 'PERCENTILE(range, k)', desc: 'Inclusive percentile, compatible with PERCENTILE.INC' },
+  QUARTILE:  { sig: 'QUARTILE(range, quart)', desc: 'Inclusive quartile, compatible with QUARTILE.INC' },
   SUM:       { sig: 'SUM(range)',                      desc: '범위의 합계' },
   AVG:       { sig: 'AVG(range)',                      desc: '범위의 평균' },
   AVERAGE:   { sig: 'AVERAGE(range)',                  desc: '범위의 평균 (AVG 와 동일)' },
@@ -74,10 +88,16 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   MONTH:     { sig: 'MONTH(날짜)',                     desc: '월 (1~12)' },
   DAY:       { sig: 'DAY(날짜)',                       desc: '일 (1~31)' },
   WEEKDAY:   { sig: 'WEEKDAY(날짜)',                   desc: '요일 (1=일, 7=토)' },
-  VLOOKUP:   { sig: 'VLOOKUP(key, range, returnCol, numCols)', desc: '세로 검색 (numCols 필수)' },
-  HLOOKUP:   { sig: 'HLOOKUP(key, range, returnRow, numCols)', desc: '가로 검색' },
-  INDEX:     { sig: 'INDEX(range, idx)',               desc: '1-based 평탄 인덱싱' },
-  MATCH:     { sig: 'MATCH(key, range)',               desc: 'key 위치 (1-based) 또는 #N/A' },
+  VLOOKUP:   { sig: 'VLOOKUP(key, range, returnCol, [range_lookup])', desc: '세로 검색' },
+  HLOOKUP:   { sig: 'HLOOKUP(key, range, returnRow, [range_lookup])', desc: '가로 검색' },
+  INDEX:     { sig: 'INDEX(range, row, [column])',      desc: '범위 내 값 반환' },
+  MATCH:     { sig: 'MATCH(key, range, [match_type])',  desc: 'key 위치 (1-based) 또는 #N/A' },
+  XMATCH:    { sig: 'XMATCH(key, range, [match_mode], [search_mode])', desc: 'Excel-compatible exact or nearest position' },
+  ROWS:      { sig: 'ROWS(range)', desc: 'Number of rows in a range' },
+  COLUMNS:   { sig: 'COLUMNS(range)', desc: 'Number of columns in a range' },
+  ROW:       { sig: 'ROW([range])', desc: 'Current row or first row of a range' },
+  COLUMN:    { sig: 'COLUMN([range])', desc: 'Current column or first column of a range' },
+  CHOOSE:    { sig: 'CHOOSE(index, value1, value2, ...)', desc: 'Returns the value at a 1-based index' },
   IMAGE:     { sig: 'IMAGE(url)',                      desc: '셀에 이미지 표시 (HTTPS 권장)' },
   // ── 에러 처리 ──
   IFERROR:   { sig: 'IFERROR(값, 대체값)',             desc: '에러면 대체값, 아니면 값 그대로' },
@@ -128,7 +148,7 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   FILTER:       { sig: 'FILTER(range, 조건range)',      desc: '조건이 참인 값만 (인접 셀로 spill)' },
   SORT:         { sig: 'SORT(range, [내림차순=0])',     desc: '정렬 (인접 셀로 spill)' },
   UNIQUE:       { sig: 'UNIQUE(range)',                 desc: '중복 제거 (인접 셀로 spill)' },
-  SEQUENCE:     { sig: 'SEQUENCE(n, [시작=1], [증분=1])', desc: '연속 숫자 n개 (인접 셀로 spill)' },
+  SEQUENCE:     { sig: 'SEQUENCE(rows, [columns], [start], [step])', desc: '연속 숫자 배열 (인접 셀로 spill)' },
   // ── AI (비동기 — 결과 캐시) ──
   AI:           { sig: 'AI("프롬프트", [모델])',         desc: 'AI 에 자연어 질문 → 결과 텍스트 (30일 캐시)' },
   AI_CLASSIFY:  { sig: 'AI_CLASSIFY(텍스트, "카테고리1,카테고리2,…")', desc: 'AI 가 텍스트를 카테고리 중 하나로 분류' },
@@ -173,10 +193,12 @@ import {
 const FUNC_ORDER = [
   // 12자
   'REGEXREPLACE', 'REGEXEXTRACT', 'AI_SUMMARIZE', 'AI_TRANSLATE',
+  'SUBTOTAL',
   // 11자
-  'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS',
+  'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS', 'SUMPRODUCT',
+  'TRANSPOSE',
   // 10자
-  'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE',
+  'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'PERCENTILE',
   // 9자
   'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE',
   // 8자
@@ -184,25 +206,29 @@ const FUNC_ORDER = [
   // 6자
   'FILTER', 'UNIQUE',
   // 4자
-  'SORT',
+  'SORT', 'TAKE', 'DROP',
   // 8자
   'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
   // 7자
   'AVERAGE', 'VLOOKUP', 'HLOOKUP', 'DATEDIF', 'CEILING', 'ROUNDUP', 'EOMONTH',
-  'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE',
+  'QUARTILEEXC', 'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE', 'QUARTILE',
   // 6자
   'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT',
   'MINIFS', 'MAXIFS',
   // 5자
   'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
-  'STDEV', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
-  'RIGHT', 'VALUE',
+  'STDEVP', 'STDEV', 'SMALL', 'LARGE', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
+  'XMATCH', 'CHOOSE', 'RIGHT', 'VALUE',
   // 4자
-  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'RANK', 'DATE', 'TEXT',
-  'IFNA', 'ISNA', 'FIND', 'DAYS',
+  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'RANK', 'VARP', 'DATE', 'TEXT',
+  'ROWS', 'IFNA', 'ISNA', 'FIND', 'DAYS',
+  // 7??
+  'PRODUCT', 'COLUMNS',
   // 3자
   'SUM', 'AVG', 'MIN', 'MAX', 'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT',
-  'NOW', 'DAY', 'VAR', 'IFS',
+  'NOW', 'DAY', 'VAR', 'IFS', 'ROW',
+  // 6??
+  'COLUMN',
   // 2자
   'IF', 'OR', 'ABS',
   // AI (특수 — '_' 포함). 위에서 긴 것부터 처리되지만 'AI' 는 'AI_*' 와 \b 경계 덕에 별 충돌 없음.
@@ -262,6 +288,8 @@ export interface EvalContext {
   currentName?: string;
   allSheets?: Record<string, Cells>;
   namedRanges?: Record<string, string>;
+  tables?: Record<string, FormulaTable[]>;
+  formulaCache?: Map<string, string>;
 }
 
 /** 셀 평가 — 수식이면 결과, 아니면 raw 값. */
@@ -273,7 +301,8 @@ export function evalCell(ref: string, cells: Cells, ctx?: EvalContext): string {
     allSheets[sheetName] = cells;
   }
   const namedRanges = ctx?.namedRanges ?? {};
-  return evalWithGuard(sheetName, ref, allSheets, namedRanges, new Set());
+  const tables = ctx?.tables ?? {};
+  return evalWithGuard(sheetName, ref, allSheets, namedRanges, tables, new Set(), ctx?.formulaCache, new Set());
 }
 
 function evalWithGuard(
@@ -281,18 +310,29 @@ function evalWithGuard(
   ref: string,
   allSheets: Record<string, Cells>,
   namedRanges: Record<string, string>,
+  tables: Record<string, FormulaTable[]>,
   visiting: Set<string>,
+  formulaCache?: Map<string, string>,
+  nonCacheable?: Set<string>,
 ): string {
   const cells = allSheets[sheetName] ?? {};
   const raw = cells[ref] ?? '';
   if (!raw.startsWith('=')) return raw;
   const key = `${sheetName}!${ref}`;
-  if (visiting.has(key)) return '#CIRCULAR';
+  if (visiting.has(key)) {
+    for (const activeKey of visiting) nonCacheable?.add(activeKey);
+    nonCacheable?.add(key);
+    return '#CIRCULAR';
+  }
+  const cached = formulaCache?.get(key);
+  if (cached !== undefined) return cached;
   const next = new Set(visiting);
   next.add(key);
   try {
-    const result = evalExpr(raw.slice(1), sheetName, allSheets, namedRanges, next);
-    return formatResult(result);
+    const result = evalExpr(raw.slice(1), sheetName, ref, allSheets, namedRanges, tables, next, formulaCache, nonCacheable);
+    const formatted = formatResult(result);
+    if (!nonCacheable?.has(key)) formulaCache?.set(key, formatted);
+    return formatted;
   } catch {
     return '#ERROR';
   }
@@ -341,24 +381,28 @@ function escapeStringLiterals(src: string): string {
 
 const SAFE_EVAL_IDENTIFIERS = new Set([
   'true', 'false',
-  '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
+  '__range',
+  '__sum', '__product', '__sumproduct', '__subtotal', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
   '__sumif', '__countif', '__averageif', '__sumifs', '__countifs', '__averageifs', '__minifs', '__maxifs',
   '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim',
   '__concat', '__concatenate',
   '__and', '__or', '__not',
   '__today', '__now', '__year', '__month', '__day', '__weekday',
-  '__power', '__sqrt', '__mod', '__int', '__median',
-  '__vlookup', '__hlookup', '__index', '__match', '__image', '__sparkline',
+  '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
+  '__vlookup', '__hlookup', '__index', '__match', '__xmatch',
+  '__rows', '__columns', '__row', '__column', '__choose',
+  '__image', '__sparkline',
   '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
   '__ifs', '__switch', '__xlookup',
   '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
   '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
-  '__stdev', '__var', '__rank',
+  '__stdev', '__stdevp', '__var', '__varp', '__rank',
   '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
   '__value',
   '__text', '__regexmatch', '__regexextract', '__regexreplace',
   '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
-  '__filter', '__sort', '__unique', '__sequence',
+  '__filter', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence',
+  '__cmp',
 ]);
 
 function maskStringLiterals(src: string): string {
@@ -503,6 +547,22 @@ function normalizeExcelConcatenation(src: string): string {
   return out;
 }
 
+function rewriteRangeComparisons(src: string): string {
+  const rangePattern = String.raw`__range\(\[[^\]]*\],[^)]*\)`;
+  const valuePattern = String.raw`(?:-?\d+(?:\.\d+)?|true|false|"(?:\\.|[^"])*")`;
+  return replaceOutsideStringLiterals(src, (chunk) => {
+    let out = chunk.replace(
+      new RegExp(`(${rangePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${valuePattern})`, 'g'),
+      (_match, range, op, value) => `__cmp(${range},${value},"${op}")`,
+    );
+    out = out.replace(
+      new RegExp(`(${valuePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${rangePattern})`, 'g'),
+      (_match, value, op, range) => `__cmp(${value},${range},"${op}")`,
+    );
+    return out;
+  });
+}
+
 function normalizeExcelPercentLiterals(src: string): string {
   let out = '';
   let chunk = '';
@@ -536,6 +596,18 @@ function normalizeExcelPercentLiterals(src: string): string {
   }
 
   return out + normalizeChunk(chunk);
+}
+
+function normalizeExcelFunctionAliases(src: string): string {
+  return replaceOutsideStringLiterals(src, (chunk) => chunk
+    .replace(/\bPERCENTILE\.INC\b/gi, 'PERCENTILE')
+    .replace(/\bPERCENTILE\.EXC\b/gi, 'PERCENTILEEXC')
+    .replace(/\bQUARTILE\.INC\b/gi, 'QUARTILE')
+    .replace(/\bQUARTILE\.EXC\b/gi, 'QUARTILEEXC')
+    .replace(/\bSTDEV\.S\b/gi, 'STDEV')
+    .replace(/\bSTDEV\.P\b/gi, 'STDEVP')
+    .replace(/\bVAR\.S\b/gi, 'VAR')
+    .replace(/\bVAR\.P\b/gi, 'VARP'));
 }
 
 function replaceOutsideStringLiterals(src: string, replaceChunk: (chunk: string) => string): string {
@@ -586,12 +658,304 @@ function parseSheetPrefix(sheetRaw: unknown, currentSheet: string): string {
   return raw;
 }
 
+function quoteSheetNameForFormulaLocal(name: string): string {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name)
+    ? name
+    : `'${name.replace(/'/g, "''")}'`;
+}
+
+function parseA1Range(raw: string): {
+  startCol: number;
+  endCol: number;
+  startRow: number;
+  endRow: number;
+} | null {
+  const m = raw.replace(/\$/g, '').match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!m) return null;
+  const c1 = colToIdx(m[1]);
+  const c2 = colToIdx(m[3]);
+  const r1 = Number(m[2]);
+  const r2 = Number(m[4]);
+  return {
+    startCol: Math.min(c1, c2),
+    endCol: Math.max(c1, c2),
+    startRow: Math.min(r1, r2),
+    endRow: Math.max(r1, r2),
+  };
+}
+
+function normalizeStructuredToken(raw: string): string {
+  return raw.trim().replace(/^'/, '').replace(/'$/, '');
+}
+
+function normalizeCurrentRowColumnToken(raw: string): string {
+  const token = normalizeStructuredToken(raw);
+  if (token.startsWith('@[') && token.endsWith(']')) return token.slice(2, -1).trim();
+  if (token.startsWith('@')) return token.slice(1).trim();
+  return token;
+}
+
+function findTableEntry(
+  tableName: string,
+  currentSheet: string,
+  tables: Record<string, FormulaTable[]>,
+): { sheetName: string; table: FormulaTable } | null {
+  const wanted = tableName.toLowerCase();
+  const current = (tables[currentSheet] ?? []).find((table) => table.name.toLowerCase() === wanted);
+  if (current) return { sheetName: currentSheet, table: current };
+  for (const [sheetName, sheetTables] of Object.entries(tables)) {
+    const table = sheetTables.find((candidate) => candidate.name.toLowerCase() === wanted);
+    if (table) return { sheetName, table };
+  }
+  return null;
+}
+
+function parseCellRef(raw: string): { row: number; col: number } | null {
+  const m = raw.toUpperCase().match(/^([A-Z]+)(\d+)$/);
+  if (!m) return null;
+  return { col: colToIdx(m[1]), row: Number(m[2]) };
+}
+
+function findCurrentRowTableEntry(
+  currentSheet: string,
+  currentRef: string,
+  tables: Record<string, FormulaTable[]>,
+): { sheetName: string; table: FormulaTable; bounds: NonNullable<ReturnType<typeof parseA1Range>> } | null {
+  const pos = parseCellRef(currentRef);
+  if (!pos) return null;
+  for (const table of tables[currentSheet] ?? []) {
+    const bounds = parseA1Range(table.ref);
+    if (!bounds) continue;
+    const hasHeader = table.headerRow !== false;
+    const hasTotals = table.totalsRow === true;
+    const dataStartRow = bounds.startRow + (hasHeader ? 1 : 0);
+    const dataEndRow = bounds.endRow - (hasTotals ? 1 : 0);
+    if (
+      pos.row >= dataStartRow &&
+      pos.row <= dataEndRow &&
+      pos.col >= bounds.startCol &&
+      pos.col <= bounds.endCol
+    ) {
+      return { sheetName: currentSheet, table, bounds };
+    }
+  }
+  return null;
+}
+
+function tableColumnName(table: FormulaTable, bounds: NonNullable<ReturnType<typeof parseA1Range>>, cells: Cells, headerRow: number, colOffset: number): string {
+  const fromMeta = table.columns?.[colOffset]?.name;
+  if (fromMeta && fromMeta.trim()) return fromMeta.trim();
+  return String(cells[`${idxToCol(bounds.startCol + colOffset)}${headerRow}`] ?? '').trim();
+}
+
+function tableColumnOffset(
+  table: FormulaTable,
+  bounds: NonNullable<ReturnType<typeof parseA1Range>>,
+  cells: Cells,
+  headerRow: number,
+  columnRaw: string,
+): number {
+  const wanted = normalizeCurrentRowColumnToken(columnRaw).toLowerCase();
+  const width = bounds.endCol - bounds.startCol + 1;
+  for (let i = 0; i < width; i++) {
+    if (tableColumnName(table, bounds, cells, headerRow, i).toLowerCase() === wanted) return i;
+  }
+  return -1;
+}
+
+function resolveStructuredTableRef(
+  tableName: string,
+  selectorRaw: string,
+  columnRaw: string | undefined,
+  endColumnRaw: string | undefined,
+  currentSheet: string,
+  currentRef: string,
+  tables: Record<string, FormulaTable[]>,
+  allSheets: Record<string, Cells>,
+): string | undefined {
+  const found = findTableEntry(tableName, currentSheet, tables);
+  if (!found) return undefined;
+  const bounds = parseA1Range(found.table.ref);
+  if (!bounds) return undefined;
+
+  const { sheetName, table } = found;
+  const cells = allSheets[sheetName] ?? {};
+  const hasHeader = table.headerRow !== false;
+  const hasTotals = table.totalsRow === true;
+  const headerRow = bounds.startRow;
+  const dataStartRow = bounds.startRow + (hasHeader ? 1 : 0);
+  const dataEndRow = bounds.endRow - (hasTotals ? 1 : 0);
+  const selector = normalizeStructuredToken(selectorRaw);
+  const column = columnRaw ? normalizeStructuredToken(columnRaw) : undefined;
+  const currentPos = parseCellRef(currentRef);
+
+  let startRow = dataStartRow;
+  let endRow = dataEndRow;
+  let isCurrentRowSelector = false;
+  if (selector.startsWith('@')) {
+    isCurrentRowSelector = true;
+    if (sheetName !== currentSheet) return undefined;
+    if (
+      !currentPos ||
+      currentPos.row < dataStartRow ||
+      currentPos.row > dataEndRow ||
+      currentPos.col < bounds.startCol ||
+      currentPos.col > bounds.endCol
+    ) return undefined;
+    startRow = currentPos.row;
+    endRow = currentPos.row;
+  } else if (selector.startsWith('#')) {
+    const key = selector.toLowerCase();
+    if (key === '#all') {
+      startRow = bounds.startRow;
+      endRow = bounds.endRow;
+    } else if (key === '#this row') {
+      isCurrentRowSelector = true;
+      if (sheetName !== currentSheet) return undefined;
+      if (
+        !currentPos ||
+        currentPos.row < dataStartRow ||
+        currentPos.row > dataEndRow ||
+        currentPos.col < bounds.startCol ||
+        currentPos.col > bounds.endCol
+      ) return undefined;
+      startRow = currentPos.row;
+      endRow = currentPos.row;
+    } else if (key === '#headers') {
+      if (!hasHeader) return undefined;
+      startRow = headerRow;
+      endRow = headerRow;
+    } else if (key === '#data') {
+      startRow = dataStartRow;
+      endRow = dataEndRow;
+    } else if (key === '#totals') {
+      if (!hasTotals) return undefined;
+      startRow = bounds.endRow;
+      endRow = bounds.endRow;
+    } else {
+      return undefined;
+    }
+  }
+  if (startRow > endRow) return undefined;
+
+  let startCol = bounds.startCol;
+  let endCol = bounds.endCol;
+  const wantedColumn = column
+    ? normalizeCurrentRowColumnToken(column)
+    : (selector.startsWith('#') ? undefined : normalizeCurrentRowColumnToken(selector));
+  if (wantedColumn) {
+    const colOffset = tableColumnOffset(table, bounds, cells, headerRow, wantedColumn);
+    if (colOffset < 0) return undefined;
+    startCol = bounds.startCol + colOffset;
+    endCol = startCol;
+  }
+  if (endColumnRaw) {
+    const startOffset = tableColumnOffset(table, bounds, cells, headerRow, wantedColumn ?? column ?? '');
+    const endOffset = tableColumnOffset(table, bounds, cells, headerRow, endColumnRaw);
+    if (startOffset < 0 || endOffset < 0) return undefined;
+    startCol = bounds.startCol + Math.min(startOffset, endOffset);
+    endCol = bounds.startCol + Math.max(startOffset, endOffset);
+  }
+
+  const prefix = `${quoteSheetNameForFormulaLocal(sheetName)}!`;
+  if (isCurrentRowSelector && startRow === endRow && startCol === endCol) {
+    return `${prefix}${idxToCol(startCol)}${startRow}`;
+  }
+  return `${prefix}${idxToCol(startCol)}${startRow}:${idxToCol(endCol)}${endRow}`;
+}
+
+function resolveCurrentRowStructuredRef(
+  columnRaw: string,
+  currentSheet: string,
+  currentRef: string,
+  tables: Record<string, FormulaTable[]>,
+  allSheets: Record<string, Cells>,
+): string | undefined {
+  const found = findCurrentRowTableEntry(currentSheet, currentRef, tables);
+  if (!found) return undefined;
+  return resolveStructuredTableRef(
+    found.table.name,
+    '@',
+    columnRaw,
+    undefined,
+    currentSheet,
+    currentRef,
+    tables,
+    allSheets,
+  );
+}
+
+function replaceStructuredReferences(
+  src: string,
+  currentSheet: string,
+  currentRef: string,
+  tables: Record<string, FormulaTable[]>,
+  allSheets: Record<string, Cells>,
+): string {
+  if (Object.keys(tables).length === 0) return src;
+  return replaceOutsideStringLiterals(src, (chunk) => {
+    let next = chunk.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[\[([^\]]+)\],\[([^\]]+)\]:\[([^\]]+)\]\]/g,
+      (match, tableName, selector, startColumn, endColumn) =>
+        resolveStructuredTableRef(tableName, selector, startColumn, endColumn, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[\[([^\]#][^\]]*)\]:\[([^\]]+)\]\]/g,
+      (match, tableName, startColumn, endColumn) =>
+        resolveStructuredTableRef(tableName, startColumn, undefined, endColumn, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[@\[([^\]]+)\]:\[([^\]]+)\]\]/g,
+      (match, tableName, startColumn, endColumn) =>
+        resolveStructuredTableRef(tableName, '@', startColumn, endColumn, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[@\[([^\]]+)\]\]/g,
+      (match, tableName, column) =>
+        resolveStructuredTableRef(tableName, '@', column, undefined, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[\[([^\]]+)\],\[([^\]]+)\]\]/g,
+      (match, tableName, selector, column) =>
+        resolveStructuredTableRef(tableName, selector, column, undefined, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /\b([A-Za-z_][A-Za-z0-9_]*)\[([^\]]+)\]/g,
+      (match, tableName, selector) =>
+        resolveStructuredTableRef(tableName, selector, undefined, undefined, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /(?<![A-Za-z0-9_])\[@\[([^\]]+)\]:\[([^\]]+)\]\]/g,
+      (match, startColumn, endColumn) => {
+        const found = findCurrentRowTableEntry(currentSheet, currentRef, tables);
+        if (!found) return match;
+        return resolveStructuredTableRef(found.table.name, '@', startColumn, endColumn, currentSheet, currentRef, tables, allSheets) ?? match;
+      },
+    );
+    next = next.replace(
+      /(?<![A-Za-z0-9_])\[@\[([^\]]+)\]\]/g,
+      (match, column) =>
+        resolveCurrentRowStructuredRef(column, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    next = next.replace(
+      /(?<![A-Za-z0-9_])\[@([^\]]+)\]/g,
+      (match, column) =>
+        resolveCurrentRowStructuredRef(column, currentSheet, currentRef, tables, allSheets) ?? match,
+    );
+    return next;
+  });
+}
+
 function evalExpr(
   expr: string,
   currentSheet: string,
+  currentRef: string,
   allSheets: Record<string, Cells>,
   namedRanges: Record<string, string>,
+  tables: Record<string, FormulaTable[]>,
   visiting: Set<string>,
+  formulaCache?: Map<string, string>,
+  nonCacheable?: Set<string>,
 ): unknown {
   let work = expr;
 
@@ -604,6 +968,11 @@ function evalExpr(
   //   "\d+"       → "\\d+"       (정규표현식 \d 가 JS 파서에서 사라지지 않게)
   //   둘을 동시에 정확히 처리하려면 단순 regex 로는 안 되므로 작은 state machine.
   work = escapeStringLiterals(work);
+  work = normalizeExcelFunctionAliases(work);
+
+  // -0.25. Excel table structured references: Table1[Column], Table1[#Data],
+  // Table1[[#All],[Column]] -> ordinary A1 ranges before the standard range pass.
+  work = replaceStructuredReferences(work, currentSheet, currentRef, tables, allSheets);
 
   // 0. Named Range 치환 — 가장 먼저. 이름이 함수명·기존 ref 와 안 겹친다 가정.
   //    토큰 경계: 앞뒤가 알파뉴 X. case-insensitive.
@@ -624,16 +993,20 @@ function evalExpr(
     /(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+):(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)/g,
     (_m, sheetRaw, c1, r1, sheetRaw2, c2, r2) => {
       const sheet = parseSheetPrefix(sheetRaw ?? sheetRaw2, currentSheet);
+      const minC = Math.min(colToIdx(c1 as string), colToIdx(c2 as string));
+      const maxC = Math.max(colToIdx(c1 as string), colToIdx(c2 as string));
+      const minR = Math.min(Number(r1), Number(r2));
+      const maxR = Math.max(Number(r1), Number(r2));
       const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
       const tokens = refs.map((r) => {
-        const v = evalWithGuard(sheet, r, allSheets, namedRanges, visiting);
+        const v = evalWithGuard(sheet, r, allSheets, namedRanges, tables, visiting, formulaCache, nonCacheable);
         if (v.startsWith('#')) return '0';
         const n = Number(v);
         if (Number.isFinite(n) && v.trim() !== '') return String(n);
         if (v === '') return '""';
         return JSON.stringify(v);
       });
-      return `[${tokens.join(',')}]`;
+      return `__range([${tokens.join(',')}],${maxC - minC + 1},${maxR - minR + 1},${minR},${minC + 1})`;
     },
   ));
 
@@ -644,7 +1017,7 @@ function evalExpr(
     (_m, sheetRaw, c, r) => {
       const sheet = parseSheetPrefix(sheetRaw, currentSheet);
       const ref = `${c}${r}`;
-      const v = evalWithGuard(sheet, ref, allSheets, namedRanges, visiting);
+      const v = evalWithGuard(sheet, ref, allSheets, namedRanges, tables, visiting, formulaCache, nonCacheable);
       if (v.startsWith('#')) return '0';
       const n = Number(v);
       if (Number.isFinite(n) && v.trim() !== '') return String(n);
@@ -667,12 +1040,70 @@ function evalExpr(
   work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(/\^/g, '**'));
   work = normalizeExcelComparisons(work);
   work = normalizeExcelConcatenation(work);
+  work = rewriteRangeComparisons(work);
   work = normalizeExcelPercentLiterals(work);
   assertSafeEvalExpression(work);
 
   // 5. 안전 함수들 정의
+  type RangeArray = unknown[] & { __cols?: number; __rows?: number; __startRow?: number; __startCol?: number };
+  const __range = (values: unknown[], cols: unknown, rows: unknown, startRow?: unknown, startCol?: unknown): RangeArray => {
+    const arr = Array.isArray(values) ? values as RangeArray : [values] as RangeArray;
+    const colCount = Math.max(1, Math.floor(Number(cols) || arr.length || 1));
+    const rowCount = Math.max(1, Math.floor(Number(rows) || Math.ceil(arr.length / colCount) || 1));
+    const firstRow = Math.max(1, Math.floor(Number(startRow) || 1));
+    const firstCol = Math.max(1, Math.floor(Number(startCol) || 1));
+    Object.defineProperties(arr, {
+      __cols: { value: colCount, enumerable: false, configurable: true },
+      __rows: { value: rowCount, enumerable: false, configurable: true },
+      __startRow: { value: firstRow, enumerable: false, configurable: true },
+      __startCol: { value: firstCol, enumerable: false, configurable: true },
+    });
+    return arr;
+  };
   const toArr = (v: unknown): unknown[] => (Array.isArray(v) ? v : [v]);
-  const toNums = (v: unknown): number[] => toArr(v).map((x) => {
+  const rangeCols = (v: unknown, fallback = 1): number => {
+    if (!Array.isArray(v)) return fallback;
+    const cols = (v as RangeArray).__cols;
+    return typeof cols === 'number' && Number.isFinite(cols) && cols > 0 ? cols : fallback;
+  };
+  const rangeRows = (v: unknown, fallback = 1): number => {
+    if (!Array.isArray(v)) return fallback;
+    const rows = (v as RangeArray).__rows;
+    return typeof rows === 'number' && Number.isFinite(rows) && rows > 0 ? rows : fallback;
+  };
+  const compareValues = (a: unknown, b: unknown, op: unknown): boolean => {
+    const leftNum = Number(a);
+    const rightNum = Number(b);
+    const useNumber = Number.isFinite(leftNum) && Number.isFinite(rightNum);
+    const left = useNumber ? leftNum : String(a ?? '');
+    const right = useNumber ? rightNum : String(b ?? '');
+    switch (String(op)) {
+      case '>': return left > right;
+      case '<': return left < right;
+      case '>=': return left >= right;
+      case '<=': return left <= right;
+      case '!=': return left !== right;
+      default: return left === right;
+    }
+  };
+  const __cmp = (left: unknown, right: unknown, op: unknown): unknown => {
+    const leftArr = toArr(left);
+    const rightArr = toArr(right);
+    const len = Math.max(leftArr.length, rightArr.length);
+    const values = Array.from({ length: len }, (_, idx) => (
+      compareValues(leftArr[idx % leftArr.length], rightArr[idx % rightArr.length], op)
+    ));
+    const cols = Array.isArray(left) ? rangeCols(left, values.length) : rangeCols(right, values.length);
+    const rows = Array.isArray(left) ? rangeRows(left, Math.ceil(values.length / cols)) : rangeRows(right, Math.ceil(values.length / cols));
+    return __range(values, cols, rows);
+  };
+  const toNums = (v: unknown): number[] => toArr(v).flatMap((x) => {
+    if (x === null || x === undefined || x === '') return [];
+    const n = Number(x);
+    return Number.isFinite(n) ? [n] : [];
+  });
+  const toNumsOrZero = (v: unknown): number[] => toArr(v).map((x) => {
+    if (x === null || x === undefined || x === '') return 0;
     const n = Number(x);
     return Number.isFinite(n) ? n : 0;
   });
@@ -680,6 +1111,20 @@ function evalExpr(
   const __sum = (...args: unknown[]) => {
     const flat = args.flatMap(toNums);
     return flat.reduce((a, b) => a + b, 0);
+  };
+  const __product = (...args: unknown[]) => {
+    const flat = args.flatMap(toNums);
+    return flat.length ? flat.reduce((a, b) => a * b, 1) : 0;
+  };
+  const __sumproduct = (...args: unknown[]) => {
+    const arrays = args.map(toNumsOrZero);
+    if (arrays.length === 0) return 0;
+    const len = Math.min(...arrays.map((arr) => arr.length));
+    let total = 0;
+    for (let i = 0; i < len; i++) {
+      total += arrays.reduce((prod, arr) => prod * (arr[i] ?? 0), 1);
+    }
+    return total;
   };
   const __avg = (...args: unknown[]) => {
     const flat = args.flatMap(toNums);
@@ -702,11 +1147,106 @@ function evalExpr(
       return Number.isFinite(n) && String(x).trim() !== '';
     }).length;
   };
+  const subtotalNums = (...args: unknown[]): number[] => args.flatMap(toArr).flatMap((x) => {
+    if (x === null || x === undefined || x === '') return [];
+    const n = Number(x);
+    return Number.isFinite(n) ? [n] : [];
+  });
+  const __subtotal = (functionNum: unknown, ...args: unknown[]) => {
+    const rawCode = Math.floor(Number(functionNum));
+    if (!Number.isFinite(rawCode)) return '#VALUE!';
+    const code = rawCode >= 100 ? rawCode - 100 : rawCode;
+    const nums = subtotalNums(...args);
+    switch (code) {
+      case 1:
+        return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : '#DIV/0!';
+      case 2:
+        return __count(...args);
+      case 3:
+        return __counta(...args);
+      case 4:
+        return nums.length ? Math.max(...nums) : 0;
+      case 5:
+        return nums.length ? Math.min(...nums) : 0;
+      case 6:
+        return nums.length ? nums.reduce((a, b) => a * b, 1) : 0;
+      case 7:
+      case 107:
+        return __stdev(...args);
+      case 8:
+      case 108: {
+        if (nums.length === 0) return '#DIV/0!';
+        const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+        const variance = nums.reduce((acc, n) => acc + Math.pow(n - mean, 2), 0) / nums.length;
+        return Math.sqrt(variance);
+      }
+      case 9:
+        return nums.reduce((a, b) => a + b, 0);
+      case 10:
+      case 110:
+        return __var(...args);
+      case 11:
+      case 111: {
+        if (nums.length === 0) return '#DIV/0!';
+        const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+        return nums.reduce((acc, n) => acc + Math.pow(n - mean, 2), 0) / nums.length;
+      }
+      default:
+        return '#VALUE!';
+    }
+  };
   const __if = (cond: unknown, a: unknown, b: unknown) => (cond ? a : b);
   const __abs = (n: unknown) => Math.abs(Number(n));
   const __round = (n: unknown, d: unknown = 0) => {
     const p = Math.pow(10, Number(d));
     return Math.round(Number(n) * p) / p;
+  };
+
+  const escapeCriteriaRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const criteriaHasWildcard = (text: string): boolean => {
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '~') {
+        i += 1;
+      } else if (text[i] === '*' || text[i] === '?') {
+        return true;
+      }
+    }
+    return false;
+  };
+  const criteriaWildcardRegex = (text: string): RegExp => {
+    let pattern = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '~' && i + 1 < text.length) {
+        pattern += escapeCriteriaRegex(text[++i]);
+      } else if (ch === '*') {
+        pattern += '.*';
+      } else if (ch === '?') {
+        pattern += '.';
+      } else {
+        pattern += escapeCriteriaRegex(ch);
+      }
+    }
+    return new RegExp(`^${pattern}$`, 'i');
+  };
+  const unescapeCriteriaText = (text: string): string => {
+    let out = '';
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '~' && i + 1 < text.length) out += text[++i];
+      else out += text[i];
+    }
+    return out;
+  };
+  const textCriteriaEquals = (value: unknown, criteriaText: string): boolean => {
+    const valStr = String(value ?? '');
+    if (criteriaHasWildcard(criteriaText)) return criteriaWildcardRegex(criteriaText).test(valStr);
+    const plainCriteria = unescapeCriteriaText(criteriaText);
+    const rhsNum = Number(plainCriteria);
+    const valueNum = Number(value);
+    if (plainCriteria.trim() !== '' && Number.isFinite(rhsNum) && Number.isFinite(valueNum)) {
+      return valueNum === rhsNum;
+    }
+    return valStr.toLowerCase() === plainCriteria.toLowerCase();
   };
 
   /** 단일 값이 엑셀식 criteria 매치하는지 */
@@ -736,21 +1276,12 @@ function evalExpr(
           default: return v === rhsNum;
         }
       }
-      // 문자열 비교 (= 와 <> 만)
-      if (op === '=') return valStr === rhsStr;
-      if (op === '<>') return valStr !== rhsStr;
+      // 문자열 비교 (= 와 <>): Excel처럼 대소문자를 무시하고 wildcard도 처리.
+      if (op === '=') return textCriteriaEquals(valStr, rhsStr);
+      if (op === '<>') return !textCriteriaEquals(valStr, rhsStr);
       return false;
     }
-    // 와일드카드: * (여러 문자) / ? (한 문자)
-    if (criteria.includes('*') || criteria.includes('?')) {
-      const pattern = criteria
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
-      return new RegExp(`^${pattern}$`, 'i').test(String(value));
-    }
-    // 단순 같음
-    return String(value) === criteria;
+    return textCriteriaEquals(value, criteria);
   };
 
   const __sumif = (range: unknown, criteria: unknown, sumRange?: unknown) => {
@@ -928,8 +1459,101 @@ function evalExpr(
     const mid = Math.floor(nums.length / 2);
     return nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
   };
+  const percentileInclusive = (values: number[], k: unknown): number | string => {
+    const nums = [...values].sort((a, b) => a - b);
+    const p = Number(k);
+    if (nums.length === 0 || !Number.isFinite(p) || p < 0 || p > 1) return '#NUM!';
+    if (nums.length === 1) return nums[0];
+    const rank = (nums.length - 1) * p;
+    const lo = Math.floor(rank);
+    const hi = Math.ceil(rank);
+    return lo === hi ? nums[lo] : nums[lo] + (nums[hi] - nums[lo]) * (rank - lo);
+  };
+  const percentileExclusive = (values: number[], k: unknown): number | string => {
+    const nums = [...values].sort((a, b) => a - b);
+    const p = Number(k);
+    if (nums.length < 2 || !Number.isFinite(p) || p <= 0 || p >= 1) return '#NUM!';
+    const rank = (nums.length + 1) * p;
+    if (rank <= 1 || rank >= nums.length) return '#NUM!';
+    const lo = Math.floor(rank);
+    const hi = Math.ceil(rank);
+    return lo === hi ? nums[lo - 1] : nums[lo - 1] + (nums[hi - 1] - nums[lo - 1]) * (rank - lo);
+  };
+  const __large = (range: unknown, k: unknown) => {
+    const nums = toNums(range).sort((a, b) => b - a);
+    const idx = Math.floor(Number(k)) - 1;
+    return idx >= 0 && idx < nums.length ? nums[idx] : '#NUM!';
+  };
+  const __small = (range: unknown, k: unknown) => {
+    const nums = toNums(range).sort((a, b) => a - b);
+    const idx = Math.floor(Number(k)) - 1;
+    return idx >= 0 && idx < nums.length ? nums[idx] : '#NUM!';
+  };
+  const __percentile = (range: unknown, k: unknown) => percentileInclusive(toNums(range), k);
+  const __percentileexc = (range: unknown, k: unknown) => percentileExclusive(toNums(range), k);
+  const __quartile = (range: unknown, quart: unknown) => {
+    const q = Math.floor(Number(quart));
+    return q >= 0 && q <= 4 ? percentileInclusive(toNums(range), q / 4) : '#NUM!';
+  };
+  const __quartileexc = (range: unknown, quart: unknown) => {
+    const q = Math.floor(Number(quart));
+    return q >= 1 && q <= 3 ? percentileExclusive(toNums(range), q / 4) : '#NUM!';
+  };
 
   // ─── 조회 함수 ───
+  const lookupExactMatch = (key: unknown, cell: unknown): boolean => {
+    const keyNum = Number(key);
+    const cellNum = Number(cell);
+    return Number.isFinite(keyNum) && Number.isFinite(cellNum)
+      ? cellNum === keyNum
+      : String(cell ?? '') === String(key ?? '');
+  };
+  const lookupWildcardMatch = (pattern: unknown, cell: unknown): boolean => {
+    const source = String(pattern ?? '');
+    let escaped = '';
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === '~' && i + 1 < source.length) {
+        escaped += source[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      } else if (ch === '*') {
+        escaped += '.*';
+      } else if (ch === '?') {
+        escaped += '.';
+      } else {
+        escaped += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+    }
+    return new RegExp(`^${escaped}$`, 'i').test(String(cell ?? ''));
+  };
+  const orderedIndexes = (length: number, reverse = false): number[] => {
+    const indexes = Array.from({ length }, (_, idx) => idx);
+    if (reverse) indexes.reverse();
+    return indexes;
+  };
+  const approximateLookupIndex = (key: unknown, values: unknown[], mode: -1 | 1): number => {
+    const keyNum = Number(key);
+    if (!Number.isFinite(keyNum)) return -1;
+    let bestIdx = -1;
+    let bestValue = mode === -1 ? -Infinity : Infinity;
+    for (let i = 0; i < values.length; i++) {
+      const value = Number(values[i]);
+      if (!Number.isFinite(value)) continue;
+      if (mode === -1 && value <= keyNum && value > bestValue) {
+        bestValue = value;
+        bestIdx = i;
+      } else if (mode === 1 && value >= keyNum && value < bestValue) {
+        bestValue = value;
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  };
+  const isExactLookup = (rangeLookup: unknown): boolean => (
+    rangeLookup === false ||
+    rangeLookup === 0 ||
+    (typeof rangeLookup === 'string' && rangeLookup.trim().toLowerCase() === 'false')
+  );
+
   /** VLOOKUP(search, range, colIdx, exactOnly=true)
    *  range 는 2D 가 아니라 1D 배열 (셀 값들이 행 우선 평탄화됨).
    *  단순 v1: range 의 첫 col 만 검색하고 colIdx 번째 col 값 반환.
@@ -942,50 +1566,49 @@ function evalExpr(
    *    VLOOKUP(key, range, returnColIdx, numCols)
    *  엑셀과 시그니처 차이 있지만 v1 한계.
    */
-  const __vlookup = (key: unknown, range: unknown, returnColIdx: unknown, numCols: unknown = 2) => {
+  const __vlookup = (key: unknown, range: unknown, returnColIdx: unknown, rangeLookup: unknown = true) => {
     const arr = toArr(range);
-    const cols = Math.max(1, Math.floor(Number(numCols) || 2));
+    const cols = rangeCols(range, 2);
     const ret = Math.max(1, Math.floor(Number(returnColIdx) || 1));
     if (ret > cols) return '#REF!';
-    const keyStr = String(key ?? '');
-    const keyNum = Number(key);
-    for (let r = 0; r < arr.length; r += cols) {
-      const cell = arr[r];
-      const cellNum = Number(cell);
-      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
-        ? cellNum === keyNum
-        : String(cell ?? '') === keyStr;
-      if (match) return arr[r + ret - 1];
+    const firstCol = Array.from({ length: Math.ceil(arr.length / cols) }, (_, row) => arr[row * cols]);
+    const rowIndexes = isExactLookup(rangeLookup)
+      ? orderedIndexes(firstCol.length)
+      : [approximateLookupIndex(key, firstCol, -1)];
+    if (rowIndexes[0] < 0) return '#N/A';
+    for (const rowIdx of rowIndexes) {
+      const r = rowIdx * cols;
+      if (!isExactLookup(rangeLookup) || lookupExactMatch(key, arr[r])) return arr[r + ret - 1];
     }
     return '#N/A';
   };
   /** HLOOKUP: 같은 사상으로 row-major 1D. 첫 row 에서 검색.
    *  HLOOKUP(key, range, returnRowIdx, numCols)
    */
-  const __hlookup = (key: unknown, range: unknown, returnRowIdx: unknown, numCols: unknown = 2) => {
+  const __hlookup = (key: unknown, range: unknown, returnRowIdx: unknown, rangeLookup: unknown = true) => {
     const arr = toArr(range);
-    const cols = Math.max(1, Math.floor(Number(numCols) || 2));
+    const cols = rangeCols(range, 2);
     const ret = Math.max(1, Math.floor(Number(returnRowIdx) || 1));
-    const keyStr = String(key ?? '');
-    const keyNum = Number(key);
-    for (let c = 0; c < cols; c++) {
-      const cell = arr[c];
-      const cellNum = Number(cell);
-      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
-        ? cellNum === keyNum
-        : String(cell ?? '') === keyStr;
-      if (match) {
-        const idx = (ret - 1) * cols + c;
-        if (idx < arr.length) return arr[idx];
-        return '#REF!';
-      }
+    const firstRow = arr.slice(0, cols);
+    const colIndexes = isExactLookup(rangeLookup)
+      ? orderedIndexes(firstRow.length)
+      : [approximateLookupIndex(key, firstRow, -1)];
+    if (colIndexes[0] < 0) return '#N/A';
+    for (const c of colIndexes) {
+      if (isExactLookup(rangeLookup) && !lookupExactMatch(key, arr[c])) continue;
+      const idx = (ret - 1) * cols + c;
+      if (idx < arr.length) return arr[idx];
+      return '#REF!';
     }
     return '#N/A';
   };
   /** INDEX(range, idx) — 단순 1-based 인덱싱 (평탄화 배열) */
-  const __index = (range: unknown, idx: unknown) => {
+  const __index = (range: unknown, idx: unknown, colIdx?: unknown) => {
     const arr = toArr(range);
-    const i = Math.max(1, Math.floor(Number(idx) || 1));
+    const cols = rangeCols(range, arr.length || 1);
+    const row = Math.max(1, Math.floor(Number(idx) || 1));
+    const col = colIdx === undefined ? 1 : Math.max(1, Math.floor(Number(colIdx) || 1));
+    const i = colIdx === undefined ? row : ((row - 1) * cols) + col;
     if (i > arr.length) return '#REF!';
     return arr[i - 1];
   };
@@ -1028,23 +1651,56 @@ function evalExpr(
     return `__CLOUDSHEET_SPARKLINE__:${payload}`;
   };
 
-  /** MATCH(key, range) — 1-based 위치 반환. 못 찾으면 #N/A */
-  const __match = (key: unknown, range: unknown) => {
+  /** MATCH(key, range, [match_type]) — 1-based 위치 반환. 못 찾으면 #N/A */
+  const __match = (key: unknown, range: unknown, matchType: unknown = 1) => {
     const arr = toArr(range);
-    const keyStr = String(key ?? '');
-    const keyNum = Number(key);
-    for (let i = 0; i < arr.length; i++) {
-      const cell = arr[i];
-      const cellNum = Number(cell);
-      const found = Number.isFinite(keyNum) && Number.isFinite(cellNum)
-        ? cellNum === keyNum
-        : String(cell ?? '') === keyStr;
-      if (found) return i + 1;
+    const mode = Math.floor(Number(matchType));
+    if (mode === 0) {
+      for (let i = 0; i < arr.length; i++) {
+        if (lookupExactMatch(key, arr[i])) return i + 1;
+      }
+      return '#N/A';
     }
-    return '#N/A';
+    const idx = approximateLookupIndex(key, arr, mode < 0 ? 1 : -1);
+    return idx < 0 ? '#N/A' : idx + 1;
   };
 
   // ─── 에러 처리 ───
+  const __xmatch = (key: unknown, range: unknown, matchMode: unknown = 0, searchMode: unknown = 1) => {
+    const arr = toArr(range);
+    const mode = Math.floor(Number(matchMode) || 0);
+    const reverse = Math.floor(Number(searchMode) || 1) < 0;
+    if (mode === 0 || mode === 2) {
+      for (const i of orderedIndexes(arr.length, reverse)) {
+        const found = mode === 2 ? lookupWildcardMatch(key, arr[i]) : lookupExactMatch(key, arr[i]);
+        if (found) return i + 1;
+      }
+      return '#N/A';
+    }
+    const idx = approximateLookupIndex(key, arr, mode < 0 ? -1 : 1);
+    return idx < 0 ? '#N/A' : idx + 1;
+  };
+
+  const __rows = (range: unknown) => rangeRows(range, Array.isArray(range) ? range.length : 1);
+  const __columns = (range: unknown) => rangeCols(range, 1);
+  const currentRefMatch = currentRef.toUpperCase().match(/^([A-Z]+)([0-9]+)$/);
+  const currentRow = currentRefMatch ? Number(currentRefMatch[2]) : 1;
+  const currentCol = currentRefMatch ? colToIdx(currentRefMatch[1]) + 1 : 1;
+  const __row = (range?: unknown) => (
+    Array.isArray(range) && typeof (range as RangeArray).__startRow === 'number'
+      ? (range as RangeArray).__startRow
+      : currentRow
+  );
+  const __column = (range?: unknown) => (
+    Array.isArray(range) && typeof (range as RangeArray).__startCol === 'number'
+      ? (range as RangeArray).__startCol
+      : currentCol
+  );
+  const __choose = (idx: unknown, ...values: unknown[]) => {
+    const i = Math.floor(Number(idx));
+    return i >= 1 && i <= values.length ? values[i - 1] : '#VALUE!';
+  };
+
   const isErrorStr = (v: unknown): boolean =>
     typeof v === 'string' && /^#(?:REF|VALUE|N\/A|NUM|DIV\/0|ERROR|CIRCULAR)!?$/.test(v);
   // IFERROR — 문자열 에러 + JS 수준 Infinity/NaN 도 fallback.
@@ -1094,22 +1750,105 @@ function evalExpr(
   };
 
   // ─── XLOOKUP — VLOOKUP 상위호환 ───
+  const exactLookupMatch = (key: unknown, cell: unknown): boolean => {
+    const keyNum = Number(key);
+    const cellNum = Number(cell);
+    return Number.isFinite(keyNum) && Number.isFinite(cellNum)
+      ? cellNum === keyNum
+      : String(cell ?? '') === String(key ?? '');
+  };
+  const wildcardLookupMatch = (pattern: unknown, cell: unknown): boolean => {
+    const source = String(pattern ?? '');
+    let escaped = '';
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === '~' && i + 1 < source.length) {
+        escaped += source[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      } else if (ch === '*') {
+        escaped += '.*';
+      } else if (ch === '?') {
+        escaped += '.';
+      } else {
+        escaped += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+    }
+    return new RegExp(`^${escaped}$`, 'i').test(String(cell ?? ''));
+  };
+  const spillGrid = (grid: unknown[][]): string =>
+    `${SPILL_SENTINEL}${JSON.stringify(grid.map((row) => row.map((v) => (v == null ? '' : String(v)))))}`;
+  const spillVertical = (arr: unknown[]): string => spillGrid(arr.map((v) => [v]));
+  const rangeGrid = (range: unknown): unknown[][] => {
+    const arr = toArr(range);
+    const cols = rangeCols(range, 1);
+    const rows = rangeRows(range, Math.max(1, Math.ceil(arr.length / Math.max(1, cols))));
+    return Array.from({ length: rows }, (_, row) => (
+      Array.from({ length: cols }, (_, col) => arr[row * cols + col] ?? '')
+    ));
+  };
+  const spillTruthy = (value: unknown): boolean => (
+    value === true ||
+    (typeof value === 'number' && value !== 0) ||
+    (typeof value === 'string' && value !== '' && value !== '0' && value.toLowerCase() !== 'false')
+  );
+  const compareSpreadsheetValues = (a: unknown, b: unknown): number => {
+    const na = Number(a);
+    const nb = Number(b);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a ?? '').localeCompare(String(b ?? ''));
+  };
+  const xlookupReturnValue = (lookupRange: unknown, returnRange: unknown, index: number): unknown => {
+    const ret = toArr(returnRange);
+    const lookup = toArr(lookupRange);
+    const lookupRows = rangeRows(lookupRange, lookup.length || 1);
+    const lookupCols = rangeCols(lookupRange, 1);
+    const returnRows = rangeRows(returnRange, ret.length || 1);
+    const returnCols = rangeCols(returnRange, 1);
+    if (lookupCols === 1 && lookupRows === lookup.length && returnRows === lookup.length && returnCols > 1) {
+      const row = ret.slice(index * returnCols, index * returnCols + returnCols);
+      return row.length === returnCols ? spillGrid([row]) : '#N/A';
+    }
+    if (lookupRows === 1 && lookupCols === lookup.length && returnCols === lookup.length && returnRows > 1) {
+      return spillVertical(Array.from({ length: returnRows }, (_, row) => ret[row * returnCols + index]));
+    }
+    return index < ret.length ? ret[index] : '#N/A';
+  };
   const __xlookup = (
-    key: unknown, lookupRange: unknown, returnRange: unknown, notFound: unknown = '#N/A',
+    key: unknown,
+    lookupRange: unknown,
+    returnRange: unknown,
+    notFound: unknown = '#N/A',
+    matchMode: unknown = 0,
+    searchMode: unknown = 1,
   ) => {
     const lookup = toArr(lookupRange);
-    const ret = toArr(returnRange);
-    const keyStr = String(key ?? '');
-    const keyNum = Number(key);
-    for (let i = 0; i < lookup.length; i++) {
-      const cell = lookup[i];
-      const cellNum = Number(cell);
-      const match = Number.isFinite(keyNum) && Number.isFinite(cellNum)
-        ? cellNum === keyNum
-        : String(cell ?? '') === keyStr;
-      if (match) return i < ret.length ? ret[i] : '#N/A';
+    if (lookup.length === 0) return notFound;
+    const mode = Math.floor(Number(matchMode) || 0);
+    const reverse = Math.floor(Number(searchMode) || 1) < 0;
+    const orderedIndexes = Array.from({ length: lookup.length }, (_, i) => i);
+    if (reverse) orderedIndexes.reverse();
+    for (const i of orderedIndexes) {
+      const found = mode === 2
+        ? wildcardLookupMatch(key, lookup[i])
+        : exactLookupMatch(key, lookup[i]);
+      if (found) return xlookupReturnValue(lookupRange, returnRange, i);
     }
-    return notFound;
+    if (mode !== -1 && mode !== 1) return notFound;
+    const keyNum = Number(key);
+    if (!Number.isFinite(keyNum)) return notFound;
+    let bestIdx = -1;
+    let bestValue = mode === -1 ? -Infinity : Infinity;
+    for (let i = 0; i < lookup.length; i++) {
+      const value = Number(lookup[i]);
+      if (!Number.isFinite(value)) continue;
+      if (mode === -1 && value <= keyNum && value > bestValue) {
+        bestValue = value;
+        bestIdx = i;
+      } else if (mode === 1 && value >= keyNum && value < bestValue) {
+        bestValue = value;
+        bestIdx = i;
+      }
+    }
+    return bestIdx < 0 ? notFound : xlookupReturnValue(lookupRange, returnRange, bestIdx);
   };
 
   // ─── 텍스트 ───
@@ -1207,11 +1946,24 @@ function evalExpr(
     const variance = nums.reduce((a, b) => a + (b - m) ** 2, 0) / (nums.length - 1);
     return Math.sqrt(variance);
   };
+  const __stdevp = (...args: unknown[]) => {
+    const nums = args.flatMap(toNums);
+    if (nums.length === 0) return 0;
+    const m = nums.reduce((a, b) => a + b, 0) / nums.length;
+    const variance = nums.reduce((a, b) => a + (b - m) ** 2, 0) / nums.length;
+    return Math.sqrt(variance);
+  };
   const __var = (...args: unknown[]) => {
     const nums = args.flatMap(toNums);
     if (nums.length < 2) return 0;
     const m = nums.reduce((a, b) => a + b, 0) / nums.length;
     return nums.reduce((a, b) => a + (b - m) ** 2, 0) / (nums.length - 1);
+  };
+  const __varp = (...args: unknown[]) => {
+    const nums = args.flatMap(toNums);
+    if (nums.length === 0) return 0;
+    const m = nums.reduce((a, b) => a + b, 0) / nums.length;
+    return nums.reduce((a, b) => a + (b - m) ** 2, 0) / nums.length;
   };
   const __rank = (val: unknown, range: unknown, ascending: unknown = 0) => {
     const nums = toNums(range);
@@ -1314,24 +2066,37 @@ function evalExpr(
 
   // ─── 동적 배열 (spill) ───
   // 1D 결과를 SPILL_SENTINEL + JSON 2D 배열로 직렬화. displayValues 가 인접 셀로 펼침.
-  const spillVertical = (arr: unknown[]): string => {
-    const grid = arr.map((v) => [v == null ? '' : String(v)]);
-    return `__CLOUDSHEET_SPILL__:${JSON.stringify(grid)}`;
-  };
-  const __filter = (range: unknown, condition: unknown) => {
-    const data = toArr(range);
+  const __filter = (range: unknown, condition: unknown, ifEmpty: unknown = '#N/A') => {
+    const grid = rangeGrid(range);
     const cond = toArr(condition);
-    const out: unknown[] = [];
-    for (let i = 0; i < data.length; i++) {
-      const c = cond[i];
-      // truthy 판정 — 숫자 0/"" 제외, 그 외 truthy
-      const truthy = c === true || (typeof c === 'number' && c !== 0) || (typeof c === 'string' && c !== '' && c !== '0' && c.toLowerCase() !== 'false');
-      if (truthy) out.push(data[i]);
+    if (grid.length === 0 || grid[0]?.length === 0) return ifEmpty;
+    let filteredGrid: unknown[][] = [];
+    if (cond.length === grid.length) {
+      filteredGrid = grid.filter((_, row) => spillTruthy(cond[row]));
+    } else if (cond.length === grid[0].length) {
+      filteredGrid = grid.map((row) => row.filter((_, col) => spillTruthy(cond[col])));
+      if (filteredGrid.every((row) => row.length === 0)) filteredGrid = [];
+    } else {
+      filteredGrid = toArr(range).filter((_, idx) => spillTruthy(cond[idx])).map((value) => [value]);
     }
-    if (out.length === 0) return '#N/A';
-    return spillVertical(out);
+    return filteredGrid.length === 0 ? ifEmpty : spillGrid(filteredGrid);
   };
-  const __sort = (range: unknown, descending: unknown = 0) => {
+  const __sort = (range: unknown, descending: unknown = 0, sortOrder?: unknown, byCol: unknown = false) => {
+    const grid = rangeGrid(range);
+    if (grid.length > 0 && (grid[0]?.length ?? 0) > 1) {
+      const sortIndex = Math.max(1, Math.floor(Number(descending) || 1));
+      const orderArg = sortOrder ?? 1;
+      const order = Number(orderArg) < 0 ? -1 : 1;
+      const cols = grid[0].length;
+      if (byCol) {
+        const rowIdx = Math.min(grid.length - 1, sortIndex - 1);
+        const colIndexes = Array.from({ length: cols }, (_, idx) => idx)
+          .sort((a, b) => compareSpreadsheetValues(grid[rowIdx]?.[a], grid[rowIdx]?.[b]) * order);
+        return spillGrid(grid.map((row) => colIndexes.map((idx) => row[idx])));
+      }
+      const colIdx = Math.min(cols - 1, sortIndex - 1);
+      return spillGrid([...grid].sort((a, b) => compareSpreadsheetValues(a[colIdx], b[colIdx]) * order));
+    }
     const data = [...toArr(range)];
     const desc = Boolean(Number(descending));
     data.sort((a, b) => {
@@ -1344,6 +2109,19 @@ function evalExpr(
     return spillVertical(data);
   };
   const __unique = (range: unknown) => {
+    const grid = rangeGrid(range);
+    if (grid.length > 0 && (grid[0]?.length ?? 0) > 1) {
+      const seenRows = new Set<string>();
+      const uniqueRows: unknown[][] = [];
+      for (const row of grid) {
+        const key = JSON.stringify(row);
+        if (!seenRows.has(key)) {
+          seenRows.add(key);
+          uniqueRows.push(row);
+        }
+      }
+      return spillGrid(uniqueRows);
+    }
     const data = toArr(range);
     const seen = new Set<string>();
     const out: unknown[] = [];
@@ -1353,13 +2131,38 @@ function evalExpr(
     }
     return spillVertical(out);
   };
-  const __sequence = (n: unknown, start: unknown = 1, step: unknown = 1) => {
-    const count = Math.max(0, Math.floor(Number(n) || 0));
+  const __transpose = (range: unknown) => {
+    const grid = rangeGrid(range);
+    const rows = grid.length;
+    const cols = grid[0]?.length ?? 0;
+    return spillGrid(Array.from({ length: cols }, (_, c) => (
+      Array.from({ length: rows }, (_, r) => grid[r]?.[c] ?? '')
+    )));
+  };
+  const sliceBySignedCount = <T,>(items: T[], count: unknown, drop = false): T[] => {
+    const n = Math.trunc(Number(count) || 0);
+    if (n === 0) return drop ? items : [];
+    if (!drop) return n > 0 ? items.slice(0, n) : items.slice(n);
+    return n > 0 ? items.slice(n) : items.slice(0, Math.max(0, items.length + n));
+  };
+  const __take = (range: unknown, rows: unknown, cols?: unknown) => {
+    let grid = sliceBySignedCount(rangeGrid(range), rows);
+    if (cols !== undefined) grid = grid.map((row) => sliceBySignedCount(row, cols));
+    return spillGrid(grid);
+  };
+  const __drop = (range: unknown, rows: unknown, cols?: unknown) => {
+    let grid = sliceBySignedCount(rangeGrid(range), rows, true);
+    if (cols !== undefined) grid = grid.map((row) => sliceBySignedCount(row, cols, true));
+    return spillGrid(grid);
+  };
+  const __sequence = (rows: unknown, columns: unknown = 1, start: unknown = 1, step: unknown = 1) => {
+    const rowCount = Math.max(0, Math.floor(Number(rows) || 0));
+    const colCount = Math.max(0, Math.floor(Number(columns) || 0));
     const s = Number(start) || 0;
     const st = Number(step) || 1;
-    const out: number[] = [];
-    for (let i = 0; i < count; i++) out.push(s + i * st);
-    return spillVertical(out);
+    return spillGrid(Array.from({ length: rowCount }, (_, r) => (
+      Array.from({ length: colCount }, (_, c) => s + (r * colCount + c) * st)
+    )));
   };
 
   // ─── AI 함수 (비동기 — 캐시 hit 면 결과, miss 면 sentinel 로 진행 알림) ───
@@ -1423,43 +2226,49 @@ function evalExpr(
 
   // 6. 평가 (new Function — 단일 사용자 환경 가정)
   const fn = new Function(
-    '__sum', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
+    '__range',
+    '__sum', '__product', '__sumproduct', '__subtotal', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
     '__sumif', '__countif', '__averageif', '__sumifs', '__countifs', '__averageifs', '__minifs', '__maxifs',
     '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim', '__value',
     '__concat', '__concatenate',
     '__and', '__or', '__not',
     '__today', '__now', '__year', '__month', '__day', '__weekday',
-    '__power', '__sqrt', '__mod', '__int', '__median',
-    '__vlookup', '__hlookup', '__index', '__match', '__image', '__sparkline',
+    '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
+    '__vlookup', '__hlookup', '__index', '__match', '__xmatch',
+    '__rows', '__columns', '__row', '__column', '__choose',
+    '__image', '__sparkline',
     '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
     '__ifs', '__switch', '__xlookup',
     '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
     '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
-    '__stdev', '__var', '__rank',
+    '__stdev', '__stdevp', '__var', '__varp', '__rank',
     '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
-    '__filter', '__sort', '__unique', '__sequence',
+    '__filter', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence', '__cmp',
     `"use strict"; return (${work});`,
   );
   return fn(
-    __sum, __avg, __average, __min, __max, __count, __if, __abs, __round,
+    __range,
+    __sum, __product, __sumproduct, __subtotal, __avg, __average, __min, __max, __count, __if, __abs, __round,
     __sumif, __countif, __averageif, __sumifs, __countifs, __averageifs, __minifs, __maxifs,
     __left, __right, __mid, __len, __upper, __lower, __trim, __value,
     __concat, __concatenate,
     __and, __or, __not,
     __today, __now, __year, __month, __day, __weekday,
-    __power, __sqrt, __mod, __int, __median,
-    __vlookup, __hlookup, __index, __match, __image, __sparkline,
+    __power, __sqrt, __mod, __int, __median, __large, __small, __percentile, __percentileexc, __quartile, __quartileexc,
+    __vlookup, __hlookup, __index, __match, __xmatch,
+    __rows, __columns, __row, __column, __choose,
+    __image, __sparkline,
     __iferror, __ifna, __isnumber, __isblank, __istext, __iserror, __isna,
     __ifs, __switch, __xlookup,
     __textjoin, __substitute, __replace, __find, __search, __hyperlink,
     __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
-    __stdev, __var, __rank,
+    __stdev, __stdevp, __var, __varp, __rank,
     __date, __eomonth, __edate, __datedif, __networkdays, __datevalue, __days,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,
-    __filter, __sort, __unique, __sequence,
+    __filter, __sort, __unique, __transpose, __take, __drop, __sequence, __cmp,
   );
 }
 

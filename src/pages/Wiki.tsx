@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, BookOpen, LayoutGrid, Shuffle, Plus, Bot } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, BookOpen, LayoutGrid, Shuffle, Plus } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
-import type { WikiPage } from '@/types/wiki';
+import { createEmptyWikiPage, type WikiPage } from '@/types/wiki';
 import { MainModeTabs } from '@/components/MainModeTabs';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
+import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { WikiSidebar } from '@/components/wiki/WikiSidebar';
 import { WikiPageView } from '@/components/wiki/WikiPageView';
 import { WikiHome } from '@/components/wiki/WikiHome';
@@ -27,7 +28,7 @@ const AI_PANEL_KEY = 'wiki_ai_panel_open';
 
 const Wiki = () => {
   const navigate = useNavigate();
-  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle, findByIdOrTitle, reload, restoreRevision } = useWikiPages();
+  const { pages, loading, upsertPage, deletePage, archivePage, restoreArchivedPage, mergePages, getBacklinks, findByTitle, findByIdOrTitle, reload, restoreRevision } = useWikiPages();
   const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
   // 위키링크 visited 색상용 — 최근 본 + 즐겨찾기 합집합
   const visitedIds = new Set([...recent, ...favorites]);
@@ -40,6 +41,7 @@ const Wiki = () => {
   const [storageOpen, setStorageOpen] = useState(false);
   // ⊞ 모드 전환 패널 — Wiki 페이지 위에 직접 띄우기 (페이지 이동 X)
   const modeApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const goToMainWith = useCallback((state: Record<string, unknown>) => {
     navigate('/', { state });
@@ -74,6 +76,12 @@ const Wiki = () => {
   useEffect(() => {
     if (activeId) recordView(activeId);
   }, [activeId, recordView]);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    (sidebar as HTMLElement & { inert: boolean }).inert = !sidebarOpen;
+  }, [sidebarOpen]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -190,7 +198,11 @@ const Wiki = () => {
   }, [upsertPage, isMobile]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 페이지를 삭제할까요?')) return;
+    const target = pages.find((p) => p.id === id);
+    const backlinks = getBacklinks(id);
+    const title = target?.title ?? '이 페이지';
+    const backlinkText = backlinks.length > 0 ? `\n\n주의: 이 문서를 가리키는 문서가 ${backlinks.length}개 있습니다.` : '';
+    if (!confirm(`'${title}' 문서를 완전히 삭제할까요?${backlinkText}\n\n보관이 아니라 실제 삭제라서 백업 없이는 되돌리기 어렵습니다.`)) return;
     await deletePage(id);
     purge(id);  // 즐겨찾기·최근 정리
     if (activeId === id) {
@@ -198,6 +210,53 @@ const Wiki = () => {
       setEditing(false);
     }
   };
+
+  const handleArchivePage = useCallback(async (id: string) => {
+    const target = pages.find((p) => p.id === id);
+    if (!target) return;
+    try {
+      const archived = await archivePage(id);
+      setActiveId(archived.id);
+      setEditing(false);
+      setView('page');
+      notify.success('문서를 보관했어요', { description: target.title });
+    } catch (error) {
+      notify.error('보관에 실패했어요', { description: (error as Error).message });
+    }
+  }, [pages, archivePage]);
+
+  const handleRestoreArchivedPage = useCallback(async (id: string) => {
+    const target = pages.find((p) => p.id === id);
+    if (!target) return;
+    try {
+      const restored = await restoreArchivedPage(id);
+      setActiveId(restored.id);
+      setEditing(false);
+      setView('page');
+      notify.success('문서를 복원했어요', { description: target.title });
+    } catch (error) {
+      notify.error('복원에 실패했어요', { description: (error as Error).message });
+    }
+  }, [pages, restoreArchivedPage]);
+
+  const handleMergePages = useCallback(async (primaryId: string, secondaryId: string) => {
+    const primary = pages.find((p) => p.id === primaryId);
+    const secondary = pages.find((p) => p.id === secondaryId);
+    if (!primary || !secondary) return;
+    if (!confirm(`'${secondary.title}' 문서를 '${primary.title}' 문서로 병합할까요?\n\n병합 후 '${secondary.title}' 문서는 보관 상태로 남습니다.`)) return;
+    try {
+      const merged = await mergePages(primaryId, secondaryId);
+      if (merged) {
+        setActiveId(merged.id);
+        setEditing(false);
+        setView('page');
+        notify.success('문서를 병합했어요', { description: `${secondary.title} → ${primary.title}` });
+      }
+    } catch (error) {
+      notify.error('병합에 실패했어요', { description: (error as Error).message });
+    }
+  }, [pages, mergePages]);
+
 
   const handleOpenByTitleOrId = useCallback((titleOrId: string) => {
     const byId = pages.find((p) => p.id === titleOrId);
@@ -226,9 +285,35 @@ const Wiki = () => {
         await upsertPage(next);
         setActiveId(next.id);
         setEditing(true);
+        setView('page');
+        if (isMobile) setSidebarOpen(false);
       })();
     }
   }, [pages, findByTitle, upsertPage, isMobile]);
+
+  const handleCreateFromSidebarSearch = useCallback(async (title: string) => {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return;
+    const found = findByTitle(cleanTitle);
+    if (found) {
+      setActiveId(found.id);
+      setEditing(false);
+      setView('page');
+      if (isMobile) setSidebarOpen(false);
+      return;
+    }
+
+    const next = createEmptyWikiPage({
+      title: cleanTitle,
+      status: 'draft',
+    });
+    await upsertPage(next);
+    setActiveId(next.id);
+    setEditing(true);
+    setView('page');
+    setSidebarQuery('');
+    if (isMobile) setSidebarOpen(false);
+  }, [findByTitle, upsertPage, isMobile]);
 
   const handleClearAll = async () => {
     if (!confirm('정말 모든 위키 페이지를 삭제할까요?')) return;
@@ -270,6 +355,15 @@ const Wiki = () => {
 
   return (
     <div className="wiki-warm-theme flex h-screen w-full bg-background overflow-hidden relative">
+      <PageWorkspaceChrome
+        current="wiki"
+        ai={{
+          label: '위키 AI',
+          title: '마이위키 AI 도우미 (Ctrl/Cmd+J)',
+          open: aiOpen,
+          onOpen: () => setAiOpen(true),
+        }}
+      />
       {/* 모바일: 사이드바 열렸을 때 백드롭 */}
       {isMobile && sidebarOpen && (
         <div
@@ -280,7 +374,9 @@ const Wiki = () => {
       )}
 
       {/* 사이드바 */}
+      {(!isMobile || sidebarOpen) && (
       <aside
+        ref={sidebarRef}
         className={cn(
           'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
           isMobile
@@ -288,15 +384,10 @@ const Wiki = () => {
             : (sidebarOpen
                 ? 'w-[260px] border-[hsl(var(--hairline))]'
                 : 'w-0 border-r-0'),
-          isMobile && !sidebarOpen && '-translate-x-full',
         )}
         aria-hidden={!sidebarOpen}
       >
         <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
-          {/* 페이지 스위처 — 사이드바 최상단 (compact) */}
-          <div className="px-2 pt-2 pb-1.5">
-            <PageSwitcher current="wiki" compact className="w-full justify-between" />
-          </div>
           {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
           <div className="px-2 h-12 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
             <span
@@ -387,10 +478,10 @@ const Wiki = () => {
             pages={pages}
             loading={loading}
             activeId={activeId}
-            favorites={favorites}
             externalQuery={sidebarQuery}
             onQueryChange={setSidebarQuery}
             onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
+            onCreateByTitle={(title) => { void handleCreateFromSidebarSearch(title); }}
           />
           {/* 사이드바 footer — 좌측: 페이지 카운트 / 우측: 설정 (같은 줄) */}
           <div className="px-3 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-between shrink-0">
@@ -404,6 +495,7 @@ const Wiki = () => {
           </div>
         </div>
       </aside>
+      )}
 
       {/* 사이드바 닫혔을 때 — 데스크탑은 세로 아이콘 스트립(activity bar), 모바일은 햄버거 1개 */}
       {!sidebarOpen && isMobile && (
@@ -511,18 +603,6 @@ const Wiki = () => {
       )}
 
       <main className="flex-1 min-w-0 overflow-y-auto relative">
-        {!aiOpen && (
-          <button
-            type="button"
-            onClick={() => setAiOpen(true)}
-            className="absolute top-2 right-2 sm:top-3 sm:right-4 z-10 h-8 w-8 sm:w-auto sm:px-2.5 inline-flex items-center justify-center sm:justify-start gap-1 rounded-md border border-[hsl(var(--hairline))] bg-background/80 backdrop-blur text-muted-foreground hover:text-primary hover:border-primary/40 wiki-trans-color"
-            title="마이위키 AI 도우미 (Ctrl/Cmd+J)"
-            aria-label="마이위키 AI 도우미 열기"
-          >
-            <Bot className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline text-[11.5px] font-medium">AI 도우미</span>
-          </button>
-        )}
         {view === 'graph' ? (
           pages.length === 0 ? (
             <WikiHome
@@ -531,9 +611,10 @@ const Wiki = () => {
               onSelect={(id) => setActiveId(id)}
               onCreate={openTemplatePicker}
               onCreateMissing={(title) => handleOpenByTitleOrId(title)}
-              onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
-              onCreateMainDoc={() => { void createMainDoc(); }}
-              onPickStarterPack={async (pack) => {
+            onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
+            onCreateMainDoc={() => { void createMainDoc(); }}
+            onMergePages={(primaryId, secondaryId) => { void handleMergePages(primaryId, secondaryId); }}
+            onPickStarterPack={async (pack) => {
                 const built = pack.build();
                 for (const p of built) await upsertPage(p);
                 // 시드 후 첫 페이지로 직진 X — 홈에 머물러 메인 문서 미리보기
@@ -576,6 +657,8 @@ const Wiki = () => {
             visitedIds={visitedIds}
             onChange={(next) => { void upsertPage(next); }}
             onRestore={(snapshot) => { void restoreRevision(snapshot); }}
+            onArchive={() => { void handleArchivePage(activePage.id); }}
+            onRestoreArchived={() => { void handleRestoreArchivedPage(activePage.id); }}
             onDelete={() => handleDelete(activePage.id)}
             onToggleEdit={() => setEditing((v) => !v)}
             onOpenLink={handleOpenByTitleOrId}
@@ -628,6 +711,7 @@ const Wiki = () => {
             onCreateMissing={(title) => handleOpenByTitleOrId(title)}
             onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
             onCreateMainDoc={() => { void createMainDoc(); }}
+            onMergePages={(primaryId, secondaryId) => { void handleMergePages(primaryId, secondaryId); }}
             onTagClick={(tag) => {
               setSidebarQuery(tag);
               if (isMobile) setSidebarOpen(true);
@@ -652,6 +736,7 @@ const Wiki = () => {
         pages={pages}
         onOpen={(id) => { setActiveId(id); setView('page'); setEditing(false); }}
         onCreate={openTemplatePicker}
+        onCreateByTitle={(title) => { void handleCreateFromSidebarSearch(title); }}
         onGoHome={() => { setActiveId(null); setView('page'); }}
         onGoGraph={() => { setView('graph'); setActiveId(null); }}
         onImport={() => {
@@ -687,6 +772,12 @@ const Wiki = () => {
           await upsertPage(page);
           notify.info(`Inbox 에 새 페이지: ${page.title}`, { duration: 2200 });
         }}
+        onOpenPage={(id) => {
+          setActiveId(id);
+          setEditing(true);
+          setView('page');
+          if (isMobile) setSidebarOpen(false);
+        }}
       />
 
       {/* 마이위키 AI 도우미 패널 — 활성 페이지가 있으면 그 컨텍스트, 없으면 위키 전체 메타 */}
@@ -697,8 +788,14 @@ const Wiki = () => {
         allPages={pages}
         totalPages={pages.length}
         onAppendToBody={activePage ? (snippet) => {
-          const quoted = snippet.split('\n').map((l) => `> ${l}`).join('\n');
-          const next: WikiPage = { ...activePage, body: `${activePage.body}\n\n${quoted}\n`, updatedAt: Date.now() };
+          const block = [
+            '',
+            '## AI 메모',
+            '',
+            snippet.split('\n').map((line) => `> ${line}`).join('\n'),
+            '',
+          ].join('\n');
+          const next: WikiPage = { ...activePage, body: `${activePage.body}${block}`, updatedAt: Date.now() };
           void upsertPage(next);
           notify.success('현재 페이지 본문에 추가했어요');
         } : undefined}
@@ -719,15 +816,12 @@ const Wiki = () => {
         }}
       />
 
-      {/* 메인 모드 전환 패널 — 트리거 pill 은 화면 밖으로 완전 이동 (left: -9999px).
+      {/* 메인 모드 전환 패널 — 트리거 pill 은 시각적으로 숨기고 apiRef 만 유지.
           panel 만 portal 로 body 에 노출되어 viewport 정중앙에 등장.
           모드 선택 시 그 모드의 default DiscussionMode 를 state 로 넘겨 메인으로 이동. */}
-      <div
-        style={{ position: 'fixed', left: -9999, top: -9999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
-        aria-hidden
-      >
+      <HiddenInteractiveMount>
         <MainModeTabs
-          modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+          modes={['general', 'research_main', 'study_main', 'voice_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
           labels={mainModeLabelMap}
           currentMode="general"
           pendingMode={null}
@@ -736,14 +830,15 @@ const Wiki = () => {
           showPlayerBg={false}
           onChange={(mode) => goToMainWith({ selectMainMode: mode })}
           onSelectDebateSub={(sub) => goToMainWith({ selectMainMode: 'debate', selectDebateSub: sub })}
-          onSelectAssistantCard={(cardId) => goToMainWith({ selectMainMode: 'assistant', selectAssistantCard: cardId })}
+          onSelectPremiumDomain={(domainId) => goToMainWith({ selectMainMode: 'premium_main', selectPremiumDomain: domainId })}
+          onSelectAssistantCard={(cardId) => goToMainWith({ selectMainMode: cardId === 'voice-analysis' ? 'voice_main' : 'assistant', selectAssistantCard: cardId })}
           onSelectLifeTool={(toolId) => goToMainWith({ selectMainMode: 'general', selectLifeTool: toolId })}
           onOpenMentalTests={() => goToMainWith({ openMentalTests: true })}
           onOpenBookmarks={() => goToMainWith({ openBookmarks: true })}
           onSelectPlayerTool={(toolId) => goToMainWith({ selectMainMode: 'player', selectPlayerTool: toolId })}
           apiRef={modeApiRef}
         />
-      </div>
+      </HiddenInteractiveMount>
     </div>
   );
 };

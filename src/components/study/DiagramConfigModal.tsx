@@ -6,7 +6,10 @@
  *  - 푸터 단일 CTA (입력 유무로 라벨 변형)
  */
 import { useEffect, useRef, useState } from 'react';
-import { X, BarChart3, Sparkles, ChevronDown, CornerDownLeft } from 'lucide-react';
+import {
+  X, BarChart3, Sparkles, ChevronDown, CornerDownLeft, Workflow, CalendarDays,
+  Scale, Link2, Network, ArrowRightLeft,
+} from 'lucide-react';
 import type { DiagramKind, DiagramConceptSuggestion } from '@/types/study';
 import { DIAGRAM_KIND_META } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -26,6 +29,23 @@ interface Props {
 }
 
 const ADVANCED_KEY = 'study.diagram.advancedOpen';
+
+function DiagramKindIcon({ kind, className }: { kind: DiagramKind | 'auto'; className?: string }) {
+  const Icon = kind === 'auto'
+    ? Sparkles
+    : kind === 'flowchart'
+      ? Workflow
+      : kind === 'timeline'
+        ? CalendarDays
+        : kind === 'comparison'
+          ? Scale
+          : kind === 'cause'
+            ? Link2
+            : kind === 'sequence'
+              ? ArrowRightLeft
+              : Network;
+  return <Icon className={cn('h-3.5 w-3.5', className)} strokeWidth={1.9} />;
+}
 
 export function DiagramConfigModal({ sources, initial, onSubmit, onClose }: Props) {
   const [concept, setConcept] = useState<string>(initial?.concept ?? '');
@@ -87,7 +107,7 @@ export function DiagramConfigModal({ sources, initial, onSubmit, onClose }: Prop
 
   const submit = () => {
     if (sources.length === 0) {
-      toast({ title: '소스가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해 주세요.' });
+      toast({ title: '원본 자료가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해 주세요.' });
       return;
     }
     onSubmit({ concept: concept.trim(), kind, focus: focus.trim() });
@@ -181,7 +201,9 @@ export function DiagramConfigModal({ sources, initial, onSubmit, onClose }: Prop
                         className="group inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/30 hover:border-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 px-2.5 py-2 text-left transition-colors"
                         title={s.reason}
                       >
-                        <span className="shrink-0 text-[13px]">{meta?.emoji ?? '📊'}</span>
+                        <span className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-md bg-white dark:bg-slate-900 text-indigo-600 border border-slate-200 dark:border-slate-700">
+                          <DiagramKindIcon kind={s.kind} />
+                        </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-[11.5px] font-semibold text-slate-800 dark:text-slate-200 truncate">{s.concept}</div>
                           <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{meta?.label ?? s.kind}</div>
@@ -228,7 +250,8 @@ export function DiagramConfigModal({ sources, initial, onSubmit, onClose }: Prop
                       )}
                     >
                       <div className={cn('text-[11.5px] font-semibold inline-flex items-center gap-1', active ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200')}>
-                        {meta ? <>{meta.emoji} {meta.label}</> : <>✨ 자동</>}
+                        <DiagramKindIcon kind={k} className="h-3 w-3" />
+                        <span>{meta ? meta.label : '자동'}</span>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                         {meta ? meta.example : '자료에 맞춰'}
@@ -267,7 +290,7 @@ export function DiagramConfigModal({ sources, initial, onSubmit, onClose }: Prop
             title="Ctrl/Cmd + Enter"
           >
             {hasInput ? <Sparkles className="h-3.5 w-3.5" /> : <BarChart3 className="h-3.5 w-3.5" />}
-            <span>🎨 {submitLabel}</span>
+            <span>{submitLabel}</span>
             <kbd className="hidden sm:inline-flex items-center rounded bg-white/15 dark:bg-slate-900/15 px-1 py-0.5 text-[9.5px] font-mono opacity-75">
               <CornerDownLeft className="h-2.5 w-2.5" />
             </kbd>

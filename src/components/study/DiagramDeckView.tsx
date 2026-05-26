@@ -4,19 +4,36 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BarChart3, Play, MoreHorizontal, RefreshCw, X, ChevronDown, Pencil, Target as TargetIcon,
-  Layers, MessageSquarePlus, Check,
+  Layers, MessageSquarePlus, Check, Workflow, CalendarDays, Scale, Link2, Network,
+  ArrowRightLeft, Plus,
 } from 'lucide-react';
 import type { StudyNotebook, DiagramItem, DiagramKind, DiagramVariant, MindmapNodeStatus } from '@/types/study';
 import { DIAGRAM_KIND_META } from '@/types/study';
 import { MermaidView } from './MermaidView';
 import { ComparisonTable } from './ComparisonTable';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirmDialog';
 
 const STATUS_META: Record<MindmapNodeStatus, { dot: string; label: string; glyph: string }> = {
   unknown: { dot: '#CBD5E1', label: '모름',   glyph: '●' },
   shaky:   { dot: '#F59E0B', label: '헷갈림', glyph: '◐' },
   'got-it':{ dot: '#10B981', label: '이해함', glyph: '✓' },
 };
+
+function DiagramKindIcon({ kind, className }: { kind: DiagramKind; className?: string }) {
+  const Icon = kind === 'flowchart'
+    ? Workflow
+    : kind === 'timeline'
+      ? CalendarDays
+      : kind === 'comparison'
+        ? Scale
+        : kind === 'cause'
+          ? Link2
+          : kind === 'sequence'
+            ? ArrowRightLeft
+            : Network;
+  return <Icon className={cn('h-4 w-4', className)} strokeWidth={1.9} />;
+}
 
 interface Props {
   notebook: StudyNotebook;
@@ -37,8 +54,14 @@ export function DiagramDeckView({
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState<string>('');
 
-  const deleteDiagram = (d: DiagramItem) => {
-    if (!confirm(`"${d.title}" 도식을 삭제할까요?`)) return;
+  const deleteDiagram = async (d: DiagramItem) => {
+    const ok = await confirmDialog({
+      title: '도식을 삭제할까요?',
+      description: `"${d.title}" 도식은 다시 생성하기 전까지 목록에서 사라집니다.`,
+      confirmLabel: '삭제',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const next = diagrams.filter((x) => x.id !== d.id);
     onChange({ ...notebook, diagrams: next });
     if (openId === d.id) setOpenId(next[0]?.id ?? null);
@@ -75,8 +98,8 @@ export function DiagramDeckView({
             )}
           >
             <div className="flex items-center gap-2 px-3 py-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-950/60 shrink-0 text-[15px]">
-                {kindMeta?.emoji ?? '📊'}
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-950/60 shrink-0 text-indigo-700 dark:text-indigo-300">
+                <DiagramKindIcon kind={d.kind} />
               </div>
               <div className="flex-1 min-w-0">
                 {renameId === d.id ? (
@@ -238,7 +261,7 @@ function DiagramInlineView({
               )}
               title={`${meta?.label} 로 보기`}
             >
-              <span>{meta?.emoji}</span>
+              <DiagramKindIcon kind={kind} className="h-3 w-3" />
               <span>{meta?.label}</span>
             </button>
           );
@@ -253,7 +276,9 @@ function DiagramInlineView({
               className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 dark:border-slate-700 px-2.5 py-1 text-[10.5px] text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-700"
               title={`${meta?.label} 로 새로 생성`}
             >
-              <span>＋</span><span>{meta?.emoji}</span><span>{meta?.label}</span>
+              <Plus className="h-3 w-3" />
+              <DiagramKindIcon kind={k} className="h-3 w-3" />
+              <span>{meta?.label}</span>
             </button>
           );
         })}

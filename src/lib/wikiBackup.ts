@@ -6,23 +6,23 @@
  */
 
 import type { WikiPage } from '@/types/wiki';
-import { loadAllPages, upsertPage, clearAllPages } from '@/lib/wikiStore';
+import { loadAllPages, upsertPage, clearAllPages, normalizeWikiPage } from '@/lib/wikiStore';
 import { saveImage, getImage } from '@/lib/wikiImageStore';
-import { listRevisions, recordRevision, type Revision } from '@/lib/wikiHistory';
+import { clearAllHistory, listRevisions, restoreRevisionRecord, type Revision } from '@/lib/wikiHistory';
 import { setLastBackupAt } from '@/lib/wikiBackupMeta';
 import { downloadJson } from '@/lib/blob';
 
 const SCHEMA_V2 = 'wiki-v2';
 const SCHEMA_V1 = 'wiki-v1';
 
-interface BackupImage {
+export interface BackupImage {
   id: string;
   /** data URL — base64 encoded blob. */
   dataUrl: string;
   type: string;
 }
 
-interface BackupFileV2 {
+export interface BackupFileV2 {
   schema: typeof SCHEMA_V2;
   exportedAt: number;
   pages: WikiPage[];
@@ -30,13 +30,24 @@ interface BackupFileV2 {
   revisions: Revision[];
 }
 
-interface BackupFileV1 {
+export interface BackupFileV1 {
   schema: typeof SCHEMA_V1;
   exportedAt: number;
   pages: WikiPage[];
 }
 
-type BackupFile = BackupFileV1 | BackupFileV2;
+export type BackupFile = BackupFileV1 | BackupFileV2;
+
+export interface NormalizedBackupFile {
+  schema: typeof SCHEMA_V1 | typeof SCHEMA_V2;
+  exportedAt: number;
+  pages: WikiPage[];
+  images: BackupImage[];
+  revisions: Revision[];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
 
 /* ── 본문에서 사용 중인 이미지 id 추출 ── */
 function collectImageIds(pages: WikiPage[]): Set<string> {
@@ -69,6 +80,79 @@ function dataUrlToBlob(dataUrl: string): Blob {
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
   return new Blob([bytes], { type });
+}
+
+export function parseWikiBackupText(text: string): NormalizedBackupFile {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('JSON 파싱 실패. 백업 파일이 손상됐거나 형식이 다릅니다.');
+  }
+  const backup = normalizeBackupFile(parsed);
+  if (!backup) {
+    throw new Error('백업 파일 형식이 올바르지 않습니다 (schema, pages 필드 확인).');
+  }
+  return backup;
+}
+
+export function normalizeBackupFile(value: unknown): NormalizedBackupFile | null {
+  if (!isRecord(value)) return null;
+  if (value.schema !== SCHEMA_V1 && value.schema !== SCHEMA_V2) return null;
+  if (!Array.isArray(value.pages)) return null;
+
+  const now = Date.now();
+  const pages = value.pages
+    .map((page, index) => normalizeWikiPage(page, index))
+    .filter((page): page is WikiPage => page !== null);
+  const pageIds = new Set(pages.map((page) => page.id));
+
+  const exportedAt = typeof value.exportedAt === 'number' && Number.isFinite(value.exportedAt)
+    ? value.exportedAt
+    : now;
+
+  if (value.schema === SCHEMA_V1) {
+    return { schema: SCHEMA_V1, exportedAt, pages, images: [], revisions: [] };
+  }
+
+  if (!Array.isArray(value.images) || !Array.isArray(value.revisions)) return null;
+  const images = value.images
+    .map(normalizeBackupImage)
+    .filter((image): image is BackupImage => image !== null);
+  const revisions = value.revisions
+    .map((revision, index) => normalizeBackupRevision(revision, index, pageIds))
+    .filter((revision): revision is Revision => revision !== null);
+
+  return { schema: SCHEMA_V2, exportedAt, pages, images, revisions };
+}
+
+function normalizeBackupImage(value: unknown): BackupImage | null {
+  if (!isRecord(value)) return null;
+  const id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : '';
+  const dataUrl = typeof value.dataUrl === 'string' && /^data:[^;]+;base64,/.test(value.dataUrl)
+    ? value.dataUrl
+    : '';
+  if (!id || !dataUrl) return null;
+  const type = typeof value.type === 'string' && value.type.trim()
+    ? value.type.trim()
+    : dataUrl.slice('data:'.length, dataUrl.indexOf(';base64,'));
+  return { id, dataUrl, type };
+}
+
+function normalizeBackupRevision(value: unknown, index: number, pageIds: Set<string>): Revision | null {
+  if (!isRecord(value)) return null;
+  const snapshot = normalizeWikiPage(value.snapshot, index);
+  if (!snapshot || !pageIds.has(snapshot.id)) return null;
+  const pageId = typeof value.pageId === 'string' && pageIds.has(value.pageId)
+    ? value.pageId
+    : snapshot.id;
+  const takenAt = typeof value.takenAt === 'number' && Number.isFinite(value.takenAt)
+    ? value.takenAt
+    : snapshot.updatedAt;
+  const id = typeof value.id === 'string' && value.id.trim()
+    ? value.id
+    : `rev_import_${index}`;
+  return { id, pageId, snapshot, takenAt };
 }
 
 /* ── Export ── */
@@ -116,19 +200,11 @@ export interface ImportResult {
 }
 
 export async function importFromJson(file: File, mode: ImportMode): Promise<ImportResult> {
-  const text = await file.text();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error('JSON 파싱 실패. 백업 파일이 손상됐거나 형식이 다릅니다.');
-  }
-  if (!isBackupFile(parsed)) {
-    throw new Error('백업 파일 형식이 올바르지 않습니다 (schema, pages 필드 확인).');
-  }
+  const parsed = parseWikiBackupText(await file.text());
 
   if (mode === 'replace') {
     await clearAllPages();
+    await clearAllHistory();
     // 이미지·히스토리는 어차피 page 참조 기반이므로 page clear 후 새로 들어감.
   }
 
@@ -162,7 +238,7 @@ export async function importFromJson(file: File, mode: ImportMode): Promise<Impo
     for (const rev of parsed.revisions) {
       // 페이지가 import 됐으면 함께 복원
       if (mode === 'replace' || !existing.has(rev.pageId)) {
-        await recordRevision(rev.snapshot);
+        await restoreRevisionRecord(rev);
         revCount++;
       }
     }
@@ -201,15 +277,4 @@ async function saveImageWithId(id: string, blob: Blob): Promise<void> {
   });
   // saveImage 도 export 사용처에서 살아있도록 import 만 (no-op call로 초기화 안전).
   void saveImage;
-}
-
-function isBackupFile(x: unknown): x is BackupFile {
-  if (!x || typeof x !== 'object') return false;
-  const o = x as Record<string, unknown>;
-  if (o.schema !== SCHEMA_V1 && o.schema !== SCHEMA_V2) return false;
-  if (!Array.isArray(o.pages)) return false;
-  if (o.schema === SCHEMA_V2) {
-    if (!Array.isArray(o.images) || !Array.isArray(o.revisions)) return false;
-  }
-  return true;
 }

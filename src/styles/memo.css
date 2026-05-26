@@ -140,12 +140,15 @@
 /* 표 — 노션 식 깔끔한 격자 + 현재 셀 강조 + 리사이즈 핸들 */
 .memo-prose .ProseMirror .tableWrapper {
   overflow-x: auto;
+  max-width: 100%;
   margin: 1.1em 0;
   padding: 2px;
+  border-radius: 8px;
 }
 .memo-prose .ProseMirror table {
   border-collapse: collapse;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   table-layout: fixed;
   border: 1px solid hsl(var(--foreground) / 0.22);
   border-radius: 6px;
@@ -158,8 +161,9 @@
   text-align: left;
   vertical-align: top;
   position: relative;
-  min-width: 80px;
-  min-height: 36px;
+  min-width: 96px;
+  height: 38px;
+  line-height: 1.45;
 }
 .memo-prose .ProseMirror th {
   background: hsl(var(--foreground) / 0.06);
@@ -178,17 +182,17 @@
 /* 열 리사이즈 핸들 — 평소엔 옅게, hover 시 선명하게 (발견성) */
 .memo-prose .ProseMirror .column-resize-handle {
   position: absolute;
-  right: -2px;
+  right: -3px;
   top: 0;
   bottom: -2px;
-  width: 4px;
+  width: 6px;
   background: hsl(var(--primary));
-  opacity: 0.35;
+  opacity: 0.28;
   pointer-events: none;
   z-index: 5;
   transition: opacity 120ms;
 }
-.memo-prose .ProseMirror table:hover .column-resize-handle { opacity: 0.7; }
+.memo-prose .ProseMirror table:hover .column-resize-handle { opacity: 0.82; }
 .memo-prose .ProseMirror.resize-cursor { cursor: col-resize; }
 .memo-prose .ProseMirror.resize-cursor .column-resize-handle { opacity: 1; }
 /* 셀 우측 경계 hover 시 col-resize 커서 — 사용자가 드래그 가능함을 알 수 있게 */
@@ -197,6 +201,8 @@
 /* 표 셀 안 paragraph margin 제거 */
 .memo-prose .ProseMirror td > p,
 .memo-prose .ProseMirror th > p { margin: 0; }
+.memo-prose .ProseMirror td > p + p,
+.memo-prose .ProseMirror th > p + p { margin-top: 0.35em; }
 
 /* placeholder — 회색, 첫 줄(제목)도 같은 톤 */
 .memo-prose .ProseMirror p.is-editor-empty:first-child::before,

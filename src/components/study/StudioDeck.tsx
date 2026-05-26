@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   RefreshCw, Copy, Play, Users, FileText, Sparkles, GitBranch, Target, Map, MessagesSquare,
-  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic, BarChart3,
+  ChevronDown, X, RotateCcw, Layers, MoreHorizontal, Star, Mic, BarChart3, Highlighter, Trash2,
+  FileUp, MessageSquarePlus, BookOpenCheck, CheckCircle2,
 } from 'lucide-react';
 import type { StudyNotebook, StudyLens, StudyTone, StudyLevel, LensOutput, StudyQuizItem, Flashcard, FlashcardDeck, FlashcardCardType, QuizDeck, PodcastEpisode, PodcastLine, PodcastLength, PodcastTone, PodcastPurpose, DiagramItem, DiagramKind, DiagramVariant, SummaryStructured, SummaryDensity, PageNote, PageChunk } from '@/types/study';
-import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META } from '@/types/study';
+import { TONE_META, LEVEL_META, newId, FLASHCARD_CARD_TYPE_META, migrateQuizDecks, PODCAST_LENGTH_META, HIGHLIGHT_META } from '@/types/study';
 import { PodcastConfigModal, type PodcastConfig } from './PodcastConfigModal';
 import { PodcastDeckView } from './PodcastDeckView';
 import { DiagramConfigModal, type DiagramConfig } from './DiagramConfigModal';
@@ -14,6 +15,7 @@ import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 import { ExpertPickerModal } from './ExpertPickerModal';
 import { DebateLayout } from './DebateLayout';
+import { StudyExpertAvatar } from './StudyExpertAvatar';
 import { KeypointsLayout, MindmapLayout, GuideLayout, SummaryLayout } from './LensLayouts';
 // PageNotesEmptyChooser, VisionProgressOverlay 는 chooser 제거(2026-04-28)로 미사용 — 다음 PR 에서 PageNotesView 자체에서 export 도 제거 예정
 import { PageNotesView, buildFallbackChunks } from './PageNotesView';
@@ -22,6 +24,9 @@ import type { MindmapMeta, MindmapNode } from '@/types/study';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { getBlob } from '@/lib/studyBlobStore';
+import { getStudySourceReadiness, getUsableStudySources } from '@/lib/studySourceReadiness';
+import { confirmDialog } from '@/lib/confirmDialog';
+import { getEffectiveOcrPageCount } from '@/lib/studyOcrPages';
 
 interface Props {
   notebook: StudyNotebook;
@@ -51,12 +56,13 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
   }, [notebook.id]);
 
   const [loadingLens, setLoadingLens] = useState<StudyLens | null>(null);
-  const [activeLens, setActiveLens] = useState<StudyLens | null>(null);
+  const [activeLens, setActiveLens] = useState<StudyLens>('summary');
   const [quizSubView, setQuizSubView] = useState<'quiz' | 'wrong'>('quiz');
   const [showExpertPicker, setShowExpertPicker] = useState(false);
   const [pendingDebateAfterPick, setPendingDebateAfterPick] = useState(false);
 
-  const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
+  const readiness = getStudySourceReadiness(notebook.sources);
+  const enabledSources = getUsableStudySources(notebook.sources);
   const expertA = notebook.debatePartners?.expertAId
     ? DEFAULT_EXPERTS.find((e) => e.id === notebook.debatePartners!.expertAId)
     : undefined;
@@ -102,7 +108,10 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
     },
   ) => {
     if (enabledSources.length === 0) {
-      toast({ title: '소스가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해주세요.' });
+      toast({
+        title: readiness.hasOnlyPendingSources ? '자료 분석 중이에요' : '원본 자료가 필요해요',
+        description: readiness.hasOnlyPendingSources ? '텍스트 분석이 끝나면 노트와 퀴즈를 만들 수 있어요.' : '먼저 자료를 하나 이상 추가하고 활성화해주세요.',
+      });
       return;
     }
     if (lens === 'debate' && (!expertA || !expertB)) {
@@ -394,12 +403,24 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
 
   const activeOutput = activeLens ? notebook.lensOutputs[activeLens] : undefined;
   const activeLoading = activeLens ? loadingLens === activeLens : false;
-  const anyOutput = Object.values(notebook.lensOutputs).some((v) => !!v);
+  const shouldShowSourceRequired =
+    !(activeLens === 'quiz' && quizSubView === 'wrong')
+    && !readiness.hasUsableSources
+    && !activeOutput;
 
   return (
-    <div className="flex h-full flex-col bg-white dark:bg-slate-900">
-      <div className="border-b border-slate-200 dark:border-slate-800 px-3 py-1.5 flex items-center flex-wrap gap-1.5">
-        <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 shrink-0 pl-2 pr-1">스튜디오</h3>
+    <div className="flex h-full w-full min-w-0 flex-col overflow-hidden bg-white dark:bg-slate-900">
+      <div className="border-b border-slate-200 px-3 py-2 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="shrink-0 pl-1 text-[13px] font-bold text-slate-900 dark:text-slate-100">스튜디오</h3>
+          <span className="hidden truncate text-[10.5px] font-semibold text-slate-400 dark:text-slate-500 sm:block">
+            {LENSES.find((item) => item.id === activeLens)?.label ?? '결과 보기'}
+          </span>
+        </div>
+        <div
+          className="study-scroll-row -mx-1 mt-1.5 flex flex-nowrap items-center gap-1 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible"
+          aria-label="스튜디오 기능"
+        >
         {LENSES.map((l) => {
           // 퀴즈 위치에서는 [퀴즈 | 오답노트] 세그먼트 칩 하나로 출력
           if (l.id === 'quiz') {
@@ -407,11 +428,13 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
             const wrongActive = activeLens === 'quiz' && quizSubView === 'wrong';
             const loading = loadingLens === 'quiz';
             const wrongCount = notebook.wrongAnswers.length;
+            const quizOutput = notebook.lensOutputs.quiz;
+            const quizNeedsSource = !readiness.hasUsableSources && !quizOutput;
             return (
               <div
                 key="quiz-wrong"
                 className={cn(
-                  'inline-flex items-stretch rounded-full border text-[11px] font-semibold overflow-hidden transition-colors',
+                  'inline-flex shrink-0 items-stretch overflow-hidden rounded-full border text-[11px] font-semibold transition-colors',
                   (quizActive || wrongActive)
                     ? 'border-indigo-600'
                     : 'border-slate-200 dark:border-slate-700',
@@ -420,12 +443,13 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
                 <button
                   onClick={() => { setQuizSubView('quiz'); handleLensClick('quiz'); }}
                   disabled={loading}
-                  title={l.hint}
+                  title={quizNeedsSource ? getSourceRequiredTitle(readiness) : l.hint}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-1 transition-colors',
                     quizActive
                       ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                       : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-indigo-700',
+                    quizNeedsSource && !quizActive && 'text-slate-400 hover:text-slate-500 dark:text-slate-500',
                     loading && 'cursor-wait opacity-70',
                   )}
                 >
@@ -461,17 +485,19 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
           const done = !!existing;
           const loading = loadingLens === l.id;
           const active = activeLens === l.id;
+          const needsSource = !readiness.hasUsableSources && !done;
           return (
             <button
               key={l.id}
               onClick={() => handleLensClick(l.id)}
               disabled={loading}
-              title={done ? `${l.hint} · ${formatRelative(existing!.generatedAt)}` : l.hint}
+              title={needsSource ? getSourceRequiredTitle(readiness) : done ? `${l.hint} · ${formatRelative(existing!.generatedAt)}` : l.hint}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors',
                 active
                   ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-500'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-700',
+                needsSource && !active && 'border-dashed text-slate-400 hover:border-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:border-slate-600',
                 loading && 'cursor-wait opacity-70',
               )}
             >
@@ -480,21 +506,12 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
             </button>
           );
         })}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {!activeLens ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-3">
-              <Sparkles className="h-5 w-5 text-indigo-400" strokeWidth={1.8} />
-            </div>
-            <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 mb-1">
-              {anyOutput ? '위 칩을 눌러 결과를 확인하세요' : '아직 생성된 게 없어요'}
-            </p>
-            <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              {anyOutput ? '원하는 렌즈를 선택하면 해당 결과만 보여드릴게요' : '위 칩을 눌러 첫 결과를 만들어 보세요'}
-            </p>
-          </div>
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {shouldShowSourceRequired ? (
+          <StudioSourceRequiredPanel lens={activeLens} readiness={readiness} />
         ) : activeLens === 'summary' ? (
           <SummarySection
             notebook={notebook}
@@ -539,6 +556,486 @@ export function StudioDeck({ notebook, onChange, onStartSession, onJumpToPage }:
       )}
     </div>
   );
+}
+
+function getSourceRequiredTitle(readiness: ReturnType<typeof getStudySourceReadiness>) {
+  if (readiness.hasOnlyPendingSources) return '자료 분석이 끝나면 생성할 수 있어요';
+  if (readiness.hasEnabledSources) return '활성화된 원본에 읽을 수 있는 텍스트가 필요해요';
+  return '원본을 먼저 추가해 주세요';
+}
+
+function StudioSourceRequiredPanel({
+  lens,
+  readiness,
+}: {
+  lens: StudyLens;
+  readiness: ReturnType<typeof getStudySourceReadiness>;
+}) {
+  const lensLabel = LENSES.find((item) => item.id === lens)?.label ?? '결과';
+  const pending = readiness.hasOnlyPendingSources;
+
+  return (
+    <div className="flex min-h-full items-center justify-center px-5 py-10">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-center dark:border-slate-800 dark:bg-slate-950/30">
+        <div className={cn(
+          'mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl',
+          pending
+            ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300'
+            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+        )}>
+          {pending ? <RefreshCw className="h-5 w-5 animate-spin" strokeWidth={1.8} /> : <FileUp className="h-5 w-5" strokeWidth={1.8} />}
+        </div>
+        <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">
+          {pending ? '자료를 읽는 중이에요' : '원본을 먼저 추가해 주세요'}
+        </p>
+        <p className="mx-auto mt-1 max-w-[320px] text-[11.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+          {pending
+            ? `${lensLabel} 생성은 텍스트 분석이 끝난 뒤 열려요. 분석 전 빈 결과가 만들어지지 않도록 잠시 막아둘게요.`
+            : `${lensLabel}을 만들려면 PDF, PPTX, 링크, 붙여넣기, 녹음 중 하나의 원본이 필요해요.`}
+        </p>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('study:openSourceAdd'))}
+          className="mt-4 inline-flex h-8 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[11.5px] font-bold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/30"
+        >
+          {pending ? <RefreshCw className="h-3.5 w-3.5" /> : <FileUp className="h-3.5 w-3.5" />}
+          {pending ? '원본 진행률 보기' : '원본 패널 열기'}
+        </button>
+        {pending && (
+          <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-[11.5px] font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-slate-900 dark:text-indigo-200">
+            <span className="study-shimmer h-3.5 w-3.5 rounded-full" />
+            원본 {readiness.pendingCount}개를 읽는 중이에요. 완료되면 생성이 자동으로 열려요.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StudioStartPanel({
+  notebook,
+  onChange,
+  anyOutput,
+  readiness,
+  loadingLens,
+  onGenerate,
+  onOpenLens,
+  onStartSession,
+  onJumpToPage,
+}: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+  anyOutput: boolean;
+  readiness: ReturnType<typeof getStudySourceReadiness>;
+  loadingLens: StudyLens | null;
+  onGenerate: (lens: StudyLens) => void;
+  onOpenLens: (lens: StudyLens) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string }) => void;
+  onJumpToPage?: (page: number) => void;
+}) {
+  const sourceCount = readiness.usableCount;
+  const hasPendingSources = readiness.hasOnlyPendingSources;
+  const canGenerate = sourceCount > 0;
+  const generated = LENSES
+    .map((lens) => ({ ...lens, output: notebook.lensOutputs[lens.id] }))
+    .filter((lens) => !!lens.output);
+  const quickActions = [
+    { lens: 'summary' as StudyLens, label: '노트정리', hint: '핵심 요약과 페이지별 문장', icon: FileText, tone: 'primary' },
+    { lens: 'quiz' as StudyLens, label: '퀴즈', hint: '바로 풀 수 있는 점검 문제', icon: Target, tone: 'plain' },
+    { lens: 'flashcards' as StudyLens, label: '플래시카드', hint: '외워야 할 개념 카드', icon: Layers, tone: 'plain' },
+    { lens: 'mindmap' as StudyLens, label: '마인드맵', hint: '개념 관계를 한 장으로', icon: GitBranch, tone: 'plain' },
+  ];
+
+  if (sourceCount === 0) {
+    return (
+      <div className="flex min-h-full items-center justify-center px-5 py-8">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-left dark:border-slate-800 dark:bg-slate-950/25">
+          <div className="flex items-start gap-3">
+            <span className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 dark:bg-slate-900',
+              hasPendingSources
+                ? 'text-indigo-600 ring-indigo-100 dark:text-indigo-300 dark:ring-indigo-900/50'
+                : 'text-slate-500 ring-slate-200 dark:text-slate-300 dark:ring-slate-800',
+            )}>
+              {hasPendingSources ? <RefreshCw className="h-[18px] w-[18px] animate-spin" strokeWidth={1.8} /> : <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100">
+                {hasPendingSources ? '자료를 읽고 있어요' : '스튜디오는 다음 단계예요'}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+                {hasPendingSources
+                  ? '텍스트 준비가 끝나면 노트정리, 퀴즈, 플래시카드가 자동으로 열려요.'
+                  : '왼쪽 원본 패널에서 자료를 넣으면 여기에서 바로 학습 결과를 만들 수 있어요.'}
+              </p>
+            </div>
+          </div>
+          {!hasPendingSources && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('study:openSourceAdd'))}
+              className="mt-4 inline-flex h-8 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[11.5px] font-bold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/30 sm:hidden"
+            >
+              <FileUp className="h-3.5 w-3.5" />
+              원본 추가하기
+            </button>
+          )}
+          {hasPendingSources && (
+            <div className="mt-3 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-[11.5px] font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-slate-900 dark:text-indigo-200">
+              원본 {readiness.pendingCount}개 분석 중
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-full min-w-0 px-5 py-6">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/25">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-indigo-300 dark:ring-slate-800">
+            <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[14px] font-bold text-slate-900 dark:text-slate-100">
+              {anyOutput ? '만든 결과를 이어서 활용하세요' : '자료를 학습 결과로 바꿔보세요'}
+            </p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+              {sourceCount > 0
+                ? `${sourceCount}개 자료를 기준으로 노트, 문제, 암기카드를 만들 수 있어요.`
+                : hasPendingSources
+                ? `원본 ${readiness.pendingCount}개를 분석하고 있어요. 끝나면 바로 생성할 수 있어요.`
+                : '원본을 먼저 넣으면 노트정리, 퀴즈, 플래시카드 생성이 바로 열려요.'}
+            </p>
+          </div>
+        </div>
+
+        {sourceCount === 0 && !hasPendingSources && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('study:openSourceAdd'))}
+              className="inline-flex h-8 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[11.5px] font-bold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/30"
+            >
+              <FileUp className="h-3.5 w-3.5" />
+              원본 패널 열기
+            </button>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              먼저 왼쪽 원본 패널에서 자료를 넣어주세요
+            </span>
+          </div>
+        )}
+
+        {sourceCount === 0 && hasPendingSources && (
+          <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-[11.5px] font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-slate-900 dark:text-indigo-200">
+            <span className="study-shimmer h-3.5 w-3.5 rounded-full" />
+            분석 중에는 빈 결과 생성을 잠시 막아둘게요.
+          </div>
+        )}
+
+        {generated.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-indigo-100 bg-white p-3 dark:border-indigo-900/50 dark:bg-slate-900">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">생성된 결과</p>
+            </div>
+            <div className="grid gap-2">
+              {generated.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onOpenLens(item.id)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/20"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-500 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-indigo-300 dark:ring-slate-800">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px] font-bold text-slate-800 dark:text-slate-100">{item.label}</span>
+                      <span className="mt-0.5 block truncate text-[10.5px] text-slate-500 dark:text-slate-400">
+                        {formatRelative(item.output!.generatedAt)} 생성
+                      </span>
+                    </span>
+                    <ChevronDown className="-rotate-90 h-3.5 w-3.5 text-slate-300" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {sourceCount > 0 && generated.length === 0 && (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">추천 흐름</p>
+              <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
+                <span className="sm:hidden">준비됨</span>
+                <span className="hidden sm:inline">원본 {sourceCount}개 준비됨</span>
+              </span>
+            </div>
+            <div className="grid gap-2">
+              {[
+                ['1', '노트정리', '먼저 전체 구조를 잡기'],
+                ['2', '퀴즈', '이해한 부분 점검'],
+                ['3', '플래시카드', '외울 것만 따로 저장'],
+              ].map(([step, title, hint]) => (
+                <div key={step} className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-950/50">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white dark:bg-slate-100 dark:text-slate-900">{step}</span>
+                    <span className="text-[11.5px] font-bold text-slate-800 dark:text-slate-100">{title}</span>
+                  </div>
+                  <p className="mt-1 text-[10.5px] text-slate-500 dark:text-slate-400">{hint}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {generated.length > 0 && (
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">새로 만들기</p>
+            <span className="text-[10.5px] font-medium text-slate-400 dark:text-slate-500">필요한 결과만 추가 생성</span>
+          </div>
+        )}
+
+        <div className={cn('grid gap-2', generated.length > 0 ? 'mt-2' : 'mt-4')}>
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            const loading = loadingLens === action.lens;
+            return (
+              <button
+                key={action.lens}
+                onClick={() => onGenerate(action.lens)}
+                disabled={!!loadingLens || !canGenerate}
+                title={!canGenerate ? (hasPendingSources ? '자료 분석이 끝나면 생성할 수 있어요' : '원본을 먼저 추가해 주세요') : action.hint}
+                className={cn(
+                  'group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-60',
+                  !canGenerate ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait',
+                  action.tone === 'primary'
+                    ? 'border-indigo-200 bg-white text-slate-900 hover:border-indigo-400 dark:border-indigo-900/60 dark:bg-slate-900 dark:text-slate-100'
+                    : 'border-slate-200 bg-white text-slate-800 hover:border-indigo-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100',
+                )}
+              >
+                <span className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                  action.tone === 'primary'
+                    ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300'
+                    : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-300',
+                )}>
+                  {loading ? <span className="study-shimmer h-4 w-4 rounded-full" /> : <Icon className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12.5px] font-bold">{action.label}</span>
+                  <span className="mt-0.5 block truncate text-[10.5px] font-normal text-slate-500 dark:text-slate-400">{action.hint}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <HighlightReviewPanel notebook={notebook} onChange={onChange} onJumpToPage={onJumpToPage} onStartSession={onStartSession} />
+    </div>
+  );
+}
+
+function HighlightReviewPanel({
+  notebook,
+  onChange,
+  onJumpToPage,
+  onStartSession,
+}: {
+  notebook: StudyNotebook;
+  onChange: (nb: StudyNotebook) => void;
+  onJumpToPage?: (page: number) => void;
+  onStartSession: (opts?: { filter?: 'saved' | 'deck' | 'quizDeck'; deckId?: string }) => void;
+}) {
+  const allHighlights = notebook.highlights ?? [];
+  const highlights = [...allHighlights].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
+  const savedHighlightCards = notebook.flashcards.filter((card) => card.concept?.startsWith('highlight:'));
+  const unsavedHighlights = allHighlights.filter(
+    (highlight) => !notebook.flashcards.some((card) => card.concept === `highlight:${highlight.id}`),
+  );
+  if (highlights.length === 0) {
+    return (
+      <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-300">
+            <Highlighter className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100">중요 문장을 저장해두세요</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+              원문이나 답변에서 문장을 선택하면 여기에 모이고, 질문·암기카드·원문 확인으로 바로 이어갈 수 있어요.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const removeHighlight = (id: string) => {
+    onChange({
+      ...notebook,
+      highlights: (notebook.highlights ?? []).filter((h) => h.id !== id),
+      updatedAt: Date.now(),
+    });
+  };
+
+  const sendToQuestion = (text: string) => {
+    window.dispatchEvent(new CustomEvent('study:askSelection', { detail: { text } }));
+  };
+
+  const createCardFromHighlight = (highlight: NonNullable<StudyNotebook['highlights']>[number]): Flashcard => {
+    const page = getHighlightPage(highlight.turnId);
+    return {
+      id: newId('fc'),
+      front: page ? `p.${page} 핵심 문장` : '저장한 핵심 문장',
+      back: highlight.text,
+      concept: `highlight:${highlight.id}`,
+      ease: 2.3,
+      intervalDays: 1,
+      dueAt: Date.now(),
+      reviewsCount: 0,
+      source: 'user',
+      saved: true,
+      savedAt: Date.now(),
+    };
+  };
+
+  const makeFlashcard = (highlightId: string) => {
+    const highlight = allHighlights.find((h) => h.id === highlightId);
+    if (!highlight) return;
+    const exists = notebook.flashcards.some((card) => card.concept === `highlight:${highlight.id}`);
+    if (exists) {
+      toast({ title: '이미 암기카드로 만들었어요', description: '저장한 카드 섹션에서 확인할 수 있어요.' });
+      return;
+    }
+    onChange({
+      ...notebook,
+      flashcards: [createCardFromHighlight(highlight), ...notebook.flashcards],
+      updatedAt: Date.now(),
+    });
+    toast({ title: '암기카드로 저장했어요', description: '저장한 카드에서 바로 확인할 수 있어요.' });
+  };
+
+  const makeAllFlashcards = () => {
+    if (unsavedHighlights.length === 0) {
+      toast({ title: '모두 암기카드로 저장되어 있어요', description: '저장한 카드에서 확인할 수 있어요.' });
+      return;
+    }
+    const cards = unsavedHighlights.map(createCardFromHighlight);
+    onChange({
+      ...notebook,
+      flashcards: [...cards, ...notebook.flashcards],
+      updatedAt: Date.now(),
+    });
+    toast({ title: `${cards.length}개 문장을 암기카드로 저장했어요`, description: '저장한 카드 목록에서 이어서 볼 수 있어요.' });
+  };
+
+  const startSavedReview = () => {
+    if (savedHighlightCards.length === 0) {
+      toast({ title: '아직 암기카드가 없어요', description: '먼저 저장한 문장을 암기카드로 만들어주세요.' });
+      return;
+    }
+    onStartSession({ filter: 'saved' });
+  };
+
+  return (
+    <div className="mt-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            저장한 하이라이트 <span className="tabular-nums">{allHighlights.length}</span>
+          </p>
+          <p className="mt-0.5 text-[10.5px] text-slate-500 dark:text-slate-400">
+            암기카드 <span className="tabular-nums">{savedHighlightCards.length}</span>개 · 미변환 <span className="tabular-nums">{unsavedHighlights.length}</span>개
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={makeAllFlashcards}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-[10.5px] font-bold text-slate-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <BookOpenCheck className="h-3.5 w-3.5" />
+            모두 카드화
+          </button>
+          <button
+            onClick={startSavedReview}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-slate-900 px-2.5 text-[10.5px] font-bold text-white transition-colors hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+          >
+            <Play className="h-3.5 w-3.5" />
+            저장 카드 보기
+          </button>
+        </div>
+      </div>
+      <div className="grid gap-2">
+        {highlights.map((highlight) => {
+          const meta = HIGHLIGHT_META[highlight.color];
+          const page = getHighlightPage(highlight.turnId);
+          const alreadyCard = notebook.flashcards.some((card) => card.concept === `highlight:${highlight.id}`);
+          return (
+            <div
+              key={highlight.id}
+              className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className={cn('h-2.5 w-2.5 rounded-full', meta.swatch)} />
+                <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">{meta.label}</span>
+                {page && <span className="text-[10.5px] text-slate-400">p.{page}</span>}
+                {alreadyCard && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9.5px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    <CheckCircle2 className="h-3 w-3" />
+                    카드
+                  </span>
+                )}
+                <button
+                  onClick={() => removeHighlight(highlight.id)}
+                  className="ml-auto rounded-md p-1 text-slate-300 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
+                  aria-label="하이라이트 삭제"
+                  title="삭제"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="line-clamp-3 text-[11.5px] leading-relaxed text-slate-700 dark:text-slate-200">
+                {highlight.text}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => sendToQuestion(highlight.text)}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 text-[10.5px] font-semibold text-slate-600 transition-colors hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5" />
+                  질문으로
+                </button>
+                <button
+                  onClick={() => makeFlashcard(highlight.id)}
+                  disabled={alreadyCard}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 text-[10.5px] font-semibold text-slate-600 transition-colors hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55 dark:border-slate-700 dark:text-slate-300"
+                >
+                  <BookOpenCheck className="h-3.5 w-3.5" />
+                  {alreadyCard ? '카드 완료' : '암기카드'}
+                </button>
+                {page && onJumpToPage && (
+                  <button
+                    onClick={() => onJumpToPage(page)}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 text-[10.5px] font-semibold text-slate-600 transition-colors hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    원문 보기
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function getHighlightPage(turnId: string) {
+  const match = turnId.match(/^source:p(\d+)$/);
+  return match ? Number(match[1]) : null;
 }
 
 /* ── 단일 렌즈 뷰 (요약 외) ── */
@@ -587,7 +1084,7 @@ function LensSoloView({
   const [podcastEditing, setPodcastEditing] = useState<PodcastEpisode | null>(null);
   const [diagramEditing, setDiagramEditing] = useState<DiagramItem | null>(null);
 
-  const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready')
+  const enabledSources = getUsableStudySources(notebook.sources)
     .map((s) => ({ title: s.title, content: s.content }));
 
   if (loading && !output) {
@@ -1166,7 +1663,8 @@ function SummarySection({
   const [loadingChunkId, setLoadingChunkId] = useState<string | null>(null);
   const [visionProgress, setVisionProgress] = useState<{ phase: 'render' | 'ai'; done: number; total: number } | null>(null);
 
-  const enabledSources = notebook.sources.filter((s) => s.enabled && s.status === 'ready');
+  const enabledSources = getUsableStudySources(notebook.sources);
+  const readiness = getStudySourceReadiness(notebook.sources);
   const aggregatePageCount = enabledSources.reduce((acc, s) => acc + (s.pageCount ?? 0), 0) || undefined;
 
   // 페이지 마커가 소스에 있는지 빠르게 검사 (없으면 페이지 모드 비활성화)
@@ -1192,11 +1690,18 @@ function SummarySection({
     const pdfSources = enabledSources.filter((s) => s.kind === 'pdf' && s.pageCount);
     if (pdfSources.length === 0) return false;
     const totalPages = pdfSources.reduce((a, s) => a + (s.pageCount ?? 0), 0);
-    const scanned = pdfSources.reduce((a, s) => a + (s.scanPages?.length ?? 0), 0);
+    const scanned = pdfSources.reduce((a, s) => a + getEffectiveOcrPageCount(s), 0);
     return totalPages > 0 && scanned / totalPages > 0.5;
   }, [enabledSources]);
 
   const showPageUnavailableToast = () => {
+    if (readiness.hasOnlyPendingSources) {
+      toast({
+        title: '자료 분석 중이에요',
+        description: 'OCR/비전 분석이 끝나면 페이지별 정리를 만들 수 있어요.',
+      });
+      return;
+    }
     if (isEmptyOrPlaceholder || isMostlyScanned) {
       toast({
         title: '텍스트가 인식되지 않은 자료에요',
@@ -1214,6 +1719,13 @@ function SummarySection({
   /** "전체 요약" 등 LLM 호출 직전 빈/placeholder 소스 가드.
    *  true 반환이면 호출 막힘(이미 toast 띄움), false 면 정상 진행 OK. */
   const blockIfSourceUnready = (): boolean => {
+    if (readiness.hasOnlyPendingSources) {
+      toast({
+        title: '자료 분석 중이에요',
+        description: '텍스트 분석이 끝나면 요약과 퀴즈를 만들 수 있어요.',
+      });
+      return true;
+    }
     if (isEmptyOrPlaceholder || isMostlyScanned) {
       toast({
         title: '아직 텍스트 추출 중이에요',
@@ -1250,7 +1762,10 @@ function SummarySection({
 
   const fetchPagesIndex = async () => {
     if (enabledSources.length === 0) {
-      toast({ title: '소스가 필요해요', description: '먼저 자료를 하나 이상 추가하고 활성화해주세요.' });
+      toast({
+        title: readiness.hasOnlyPendingSources ? '자료 분석 중이에요' : '원본 자료가 필요해요',
+        description: readiness.hasOnlyPendingSources ? 'OCR/비전 분석이 끝나면 페이지별 정리를 만들 수 있어요.' : '먼저 자료를 하나 이상 추가하고 활성화해주세요.',
+      });
       return;
     }
     setPagesIndexLoading(true);
@@ -1553,7 +2068,7 @@ function SummarySection({
         >
           {pagesIndexLoading
             ? <span className="study-shimmer h-3 w-3 rounded-full" />
-            : <span>📑</span>}
+            : <FileText className="h-3 w-3" />}
           페이지별
         </button>
         <button
@@ -1570,7 +2085,7 @@ function SummarySection({
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
           )}
         >
-          <span>📋</span>
+          <BookOpenCheck className="h-3 w-3" />
           전체 요약
         </button>
         <div className="flex-1" />
@@ -1770,10 +2285,10 @@ function ResultItem({
           {lens === 'debate' && expertA && expertB && (
             <div className="flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-1.5">
-                <span>{expertA.icon}</span>
+                <StudyExpertAvatar expert={expertA} size="sm" />
                 <span className="font-semibold text-slate-700 dark:text-slate-200">{expertA.nameKo || expertA.name}</span>
                 <span className="text-slate-400">vs</span>
-                <span>{expertB.icon}</span>
+                <StudyExpertAvatar expert={expertB} size="sm" />
                 <span className="font-semibold text-slate-700 dark:text-slate-200">{expertB.nameKo || expertB.name}</span>
               </div>
               <button onClick={onOpenExpertPicker} className="flex items-center gap-1 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100">
@@ -2075,7 +2590,6 @@ function FlashcardDeckView({
 }) {
   const cards = notebook.flashcards;
   const decks = notebook.flashcardDecks ?? [];
-  const now = Date.now();
 
   // 덱별로 카드 그룹핑
   const grouped: Array<{ deck: FlashcardDeck | null; cards: Flashcard[] }> = [];
@@ -2113,8 +2627,14 @@ function FlashcardDeckView({
     );
   }
 
-  const deleteDeck = (deck: FlashcardDeck) => {
-    if (!confirm(`"${deck.name}" 덱을 삭제할까요? 덱 안의 AI 카드도 함께 삭제됩니다.`)) return;
+  const deleteDeck = async (deck: FlashcardDeck) => {
+    const ok = await confirmDialog({
+      title: '플래시카드 덱을 삭제할까요?',
+      description: `"${deck.name}" 덱 안의 AI 카드도 함께 삭제됩니다. 직접 저장한 카드는 유지됩니다.`,
+      confirmLabel: '삭제',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const keptCards = cards.filter((c) => c.deckId !== deck.id || c.source === 'user');
     const nextDecks = decks.filter((d) => d.id !== deck.id);
     onChange({ ...notebook, flashcards: keptCards, flashcardDecks: nextDecks });
@@ -2130,11 +2650,10 @@ function FlashcardDeckView({
         <Layers className="h-3.5 w-3.5" /> 새 플래시카드 덱 만들기
       </button>
 
-      {/* 덱 리스트 — 한 줄 카드 + 공부 시작 버튼 */}
+      {/* 덱 리스트 — 한 줄 카드 + 확인 버튼 */}
       {grouped.map(({ deck, cards: dCards }) => {
         const key = deck?.id ?? 'default';
         const name = deck?.name ?? '기본';
-        const dueCount = dCards.filter((c) => c.dueAt <= now).length;
         const aiCount = dCards.filter((c) => c.source === 'ai').length;
         const userCount = dCards.filter((c) => c.source === 'user').length;
 
@@ -2149,9 +2668,6 @@ function FlashcardDeckView({
             <div className="flex-1 min-w-0">
               <p className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 truncate">
                 {name}
-                {dueCount > 0 && (
-                  <span className="ml-1.5 text-[10.5px] font-semibold text-indigo-600 dark:text-indigo-300">· 복습 {dueCount}장</span>
-                )}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate tabular-nums">
                 {dCards.length}장
@@ -2163,16 +2679,16 @@ function FlashcardDeckView({
 
             <button
               onClick={() => onStartSession(deck?.id)}
-              disabled={dueCount === 0}
+              disabled={dCards.length === 0}
               className={cn(
                 'shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-semibold transition-colors',
-                dueCount === 0
+                dCards.length === 0
                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white',
               )}
-              title={dueCount === 0 ? '모든 카드가 복습 예약 상태' : '공부 시작'}
+              title={dCards.length === 0 ? '카드가 없어요' : '카드 확인'}
             >
-              <Play className="h-3 w-3" /> 시작
+              <Play className="h-3 w-3" /> 확인
             </button>
 
             {deck && (
@@ -2271,7 +2787,7 @@ function SavedCardsSection({
               onClick={onStartSaved}
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-white px-3 py-1.5 text-[11.5px] font-semibold"
             >
-              <Play className="h-3 w-3" /> 저장한 카드로 세션 시작
+              <Play className="h-3 w-3" /> 저장한 카드 보기
             </button>
           </div>
 
@@ -2322,8 +2838,14 @@ function QuizDeckView({
   const decks = (notebook.quizDecks ?? []).slice().sort((a, b) => b.createdAt - a.createdAt);
   const [menuOpenKey, setMenuOpenKey] = useState<string | null>(null);
 
-  const deleteDeck = (deck: QuizDeck) => {
-    if (!confirm(`"${deck.name}" 퀴즈 덱을 삭제할까요?`)) return;
+  const deleteDeck = async (deck: QuizDeck) => {
+    const ok = await confirmDialog({
+      title: '퀴즈 덱을 삭제할까요?',
+      description: `"${deck.name}" 퀴즈 덱과 문항 목록이 삭제됩니다.`,
+      confirmLabel: '삭제',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const next = decks.filter((d) => d.id !== deck.id);
     onChange({ ...notebook, quizDecks: next });
   };
@@ -2462,8 +2984,14 @@ function WrongNoteView({
   const removeOne = (id: string) => {
     onChange({ ...notebook, wrongAnswers: notebook.wrongAnswers.filter((w) => w.id !== id) });
   };
-  const clearAll = () => {
-    if (!confirm('오답노트를 모두 비울까요?')) return;
+  const clearAll = async () => {
+    const ok = await confirmDialog({
+      title: '오답노트를 모두 비울까요?',
+      description: '저장된 오답 항목이 모두 삭제됩니다. 복구할 수 없어요.',
+      confirmLabel: '비우기',
+      tone: 'danger',
+    });
+    if (!ok) return;
     onChange({ ...notebook, wrongAnswers: [] });
   };
 

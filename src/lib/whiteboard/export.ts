@@ -114,16 +114,48 @@ async function buildExportSVGAsync(svgEl: SVGSVGElement, elements: WBElement[]):
   return new XMLSerializer().serializeToString(clone);
 }
 
+async function buildExportSVGFilteredAsync(svgEl: SVGSVGElement, elements: WBElement[], selectedIds?: Set<string>): Promise<string> {
+  const sourceElements = selectedIds ? elements.filter((el) => selectedIds.has(el.id)) : elements;
+  const bbox = computeExportBBox(sourceElements);
+  const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.w} ${bbox.h}`);
+  clone.setAttribute('width', String(bbox.w));
+  clone.setAttribute('height', String(bbox.h));
+  clone.querySelector('defs')?.remove();
+  clone.querySelectorAll('rect[fill="url(#wb-dotgrid)"], rect[fill="url(#wb-linegrid)"]').forEach((r) => r.remove());
+  if (selectedIds) {
+    clone.querySelectorAll('[data-wb-element-id]').forEach((node) => {
+      const id = node.getAttribute('data-wb-element-id');
+      if (!id || !selectedIds.has(id)) node.remove();
+    });
+  }
+  clone.querySelectorAll('[data-wb-aux="true"]').forEach((node) => node.remove());
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', String(bbox.x));
+  bg.setAttribute('y', String(bbox.y));
+  bg.setAttribute('width', String(bbox.w));
+  bg.setAttribute('height', String(bbox.h));
+  bg.setAttribute('fill', 'hsl(40 25% 97%)');
+  clone.insertBefore(bg, clone.firstChild);
+  await inlineImagesInSVG(clone);
+  return new XMLSerializer().serializeToString(clone);
+}
+
 /** SVG export (이미지 inline 포함) */
-export async function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
-  const svgString = await buildExportSVGAsync(svgEl, elements);
+export async function exportSVG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string, selectedIds?: Set<string>): Promise<void> {
+  const svgString = selectedIds
+    ? await buildExportSVGFilteredAsync(svgEl, elements, selectedIds)
+    : await buildExportSVGAsync(svgEl, elements);
   downloadBlob(new Blob([svgString], { type: 'image/svg+xml' }), `${sanitizeFileName(baseName)}.svg`);
 }
 
 /** PNG export — 2× DPI */
-export async function exportPNG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string): Promise<void> {
-  const svgString = await buildExportSVGAsync(svgEl, elements);
-  const bbox = computeExportBBox(elements);
+export async function exportPNG(svgEl: SVGSVGElement, elements: WBElement[], baseName: string, selectedIds?: Set<string>): Promise<void> {
+  const sourceElements = selectedIds ? elements.filter((el) => selectedIds.has(el.id)) : elements;
+  const svgString = selectedIds
+    ? await buildExportSVGFilteredAsync(svgEl, elements, selectedIds)
+    : await buildExportSVGAsync(svgEl, elements);
+  const bbox = computeExportBBox(sourceElements);
   const scale = 2;
   const W = Math.ceil(bbox.w * scale);
   const H = Math.ceil(bbox.h * scale);

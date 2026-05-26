@@ -11,9 +11,9 @@ import type { PlannerDropData } from './plannerDndTypes';
 interface DroppableTimeSlotProps {
   /** 슬롯 시작 ISO. */
   startIso: string;
-  /** 슬롯 클릭 핸들러 (드래그가 아닌 클릭일 때). */
+  /** 슬롯 클릭 핸들러 (드래그가 아닌 포인터 클릭일 때). */
   onClick?: () => void;
-  /** 시각 보조: aria 라벨용 시간 텍스트. */
+  /** 개발/테스트 보조: 슬롯 시간 텍스트. */
   ariaLabel?: string;
   className?: string;
 }
@@ -25,22 +25,13 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
     data,
   });
 
-  // <button> 안에 다른 <button>(부유하는 시간 블록) 이 들어가는 a11y 위반을 피하기 위해
-  // div + role="button" 으로 표현. 키보드 동등성 유지(Enter/Space → onClick).
+  // 빈 슬롯 48개를 모두 탭 가능한 버튼으로 만들면 키보드 탐색이 과해진다.
+  // 키보드 일정 추가는 "일정" 카드의 + 버튼이 담당하고, 이 표면은 포인터/드롭 전용으로 둔다.
   return (
     <div
       ref={setNodeRef}
-      role="button"
-      tabIndex={onClick ? 0 : -1}
+      data-time-slot={ariaLabel}
       onClick={onClick}
-      onKeyDown={(e) => {
-        if (!onClick) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      aria-label={ariaLabel}
       className={cn(
         'group relative transition-colors cursor-pointer',
         isOver

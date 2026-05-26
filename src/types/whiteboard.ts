@@ -56,6 +56,8 @@ export interface WBElementBase {
 
 export type WBElementType =
   | 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'speech'
+  | 'capsule' | 'database' | 'document'
+  | 'table'
   | 'line' | 'arrow'
   | 'freedraw'
   | 'text'
@@ -71,28 +73,28 @@ export interface WBRect extends WBElementBase, WBStyleStroke, WBStyleFill {
   cornerRadius: number;
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
-  fontSize?: 14 | 16 | 20 | 28;
+  fontSize?: WBShapeTextSize;
 }
 
 export interface WBEllipse extends WBElementBase, WBStyleStroke, WBStyleFill {
   type: 'ellipse';
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
-  fontSize?: 14 | 16 | 20 | 28;
+  fontSize?: WBShapeTextSize;
 }
 
 export interface WBDiamond extends WBElementBase, WBStyleStroke, WBStyleFill {
   type: 'diamond';
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
-  fontSize?: 14 | 16 | 20 | 28;
+  fontSize?: WBShapeTextSize;
 }
 
 export interface WBTriangle extends WBElementBase, WBStyleStroke, WBStyleFill {
   type: 'triangle';
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
-  fontSize?: 14 | 16 | 20 | 28;
+  fontSize?: WBShapeTextSize;
 }
 
 export interface WBSpeech extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -100,7 +102,52 @@ export interface WBSpeech extends WBElementBase, WBStyleStroke, WBStyleFill {
   tailDirection: 'bl' | 'br' | 'tl' | 'tr';
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
-  fontSize?: 14 | 16 | 20 | 28;
+  fontSize?: WBShapeTextSize;
+}
+
+export interface WBCapsule extends WBElementBase, WBStyleStroke, WBStyleFill {
+  type: 'capsule';
+  text?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  fontSize?: WBShapeTextSize;
+}
+
+export interface WBDatabase extends WBElementBase, WBStyleStroke, WBStyleFill {
+  type: 'database';
+  text?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  fontSize?: WBShapeTextSize;
+}
+
+export interface WBDocument extends WBElementBase, WBStyleStroke, WBStyleFill {
+  type: 'document';
+  text?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  fontSize?: WBShapeTextSize;
+}
+
+export interface WBTable extends WBElementBase {
+  type: 'table';
+  rows: number;
+  cols: number;
+  cells: string[];
+  cellStyles?: WBTableCellStyle[];
+  headerRow: boolean;
+  borderColor: WBColor;
+  headerFill: WBColor;
+  textColor: WBColor;
+  fontSize: WBShapeTextSize;
+  textAlign?: 'left' | 'center' | 'right';
+  cellPadding?: number;
+  stripedRows?: boolean;
+}
+
+export interface WBTableCellStyle {
+  fillColor?: WBColor | 'none';
+  textColor?: WBColor;
+  bold?: boolean;
+  italic?: boolean;
+  textAlign?: 'left' | 'center' | 'right';
 }
 
 // ──────────────────────────────────────────
@@ -133,17 +180,21 @@ export type WBAnchor =
 // 자유 펜
 export interface WBFreedraw extends WBElementBase, WBStyleStroke {
   type: 'freedraw';
+  strokeSize?: number;
   points: Array<[number, number, number?]>;   // [x, y, pressure?]
 }
 
 // ──────────────────────────────────────────
 // 텍스트
 export type WBFontFamily = 'sans' | 'serif' | 'mono';
+export type WBTextSize = 10 | 12 | 14 | 16 | 18 | 20 | 24 | 28 | 32 | 40 | 48 | 56;
+export type WBShapeTextSize = 10 | 12 | 14 | 16 | 18 | 20 | 24 | 28 | 32;
+export type WBStickyTextSize = 12 | 14 | 16 | 18 | 20 | 24 | 28;
 
 export interface WBText extends WBElementBase {
   type: 'text';
   content: string;
-  fontSize: 12 | 14 | 16 | 20 | 28 | 40;
+  fontSize: WBTextSize;
   fontFamily: WBFontFamily;
   textColor: WBColor;
   textAlign: 'left' | 'center' | 'right';
@@ -155,7 +206,7 @@ export interface WBSticky extends WBElementBase {
   type: 'sticky';
   content: string;
   color: WBStickyColor;
-  fontSize: 14 | 16 | 20;
+  fontSize: WBStickyTextSize;
   textAlign: 'left' | 'center';
   tags?: string[];
   // 사이트 통합 — Phase 3 자리잡이
@@ -191,6 +242,7 @@ export interface WBBracket extends WBElementBase, WBStyleStroke {
 // 요소 union
 export type WBElement =
   | WBRect | WBEllipse | WBDiamond | WBTriangle | WBSpeech
+  | WBCapsule | WBDatabase | WBDocument | WBTable
   | WBLine | WBArrow
   | WBFreedraw | WBText | WBSticky
   | WBImage | WBFrame | WBBracket;
@@ -232,7 +284,9 @@ export type WBToolKind =
   | 'shape' | 'line' | 'pen' | 'eraser'
   | 'frame';
 
-export type WBShapeKind = 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'speech';
+export type WBShapeKind =
+  | 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'speech'
+  | 'capsule' | 'database' | 'document';
 export type WBLineKind = 'line' | 'arrow-solid' | 'arrow-dashed' | 'arrow-curved' | 'arrow-elbow';
 
 export interface WBToolState {
@@ -241,6 +295,7 @@ export interface WBToolState {
   shapeKind: WBShapeKind;
   lineKind: WBLineKind;
   penWidth: 'thin' | 'normal' | 'thick';
+  penSize: number;
   penColor: WBColor;
   strokeColor: WBColor;
   fillColor: WBColor | 'none';

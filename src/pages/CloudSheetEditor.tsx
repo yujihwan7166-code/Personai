@@ -34,8 +34,8 @@ import {
   shiftFormatsRow, shiftFormatsCol,
   shiftMergesRow, shiftMergesCol,
 } from '@/lib/cloudSheet/axisShift';
-import { compareCellValues } from '@/lib/cloudSheet/cellCompare';
 import { detectHeaderRow } from '@/lib/cloudSheet/detectHeader';
+import { sortSheetRange } from '@/lib/cloudSheet/sortRange';
 import { computeSelBounds, buildMergeMaps } from '@/lib/cloudSheet/selBounds';
 import { buildFormulaRefHighlights } from '@/lib/cloudSheet/formulaRefHighlights';
 import { findAutocomplete } from '@/lib/cloudSheet/autocompleteCell';
@@ -46,8 +46,21 @@ import {
 import { evalCell, idxToCol, colToIdx, SPILL_SENTINEL } from '@/lib/cloudSheet/formula';
 import { AI_CHANGED_EVENT } from '@/lib/cloudSheet/aiCellEval';
 import { shiftFormulasInCells } from '@/lib/cloudSheet/formulaShift';
+import { parseA1RangeReference, shiftA1RangeReference, type ShiftAxis } from '@/lib/cloudSheet/rangeShift';
 import { remapNamedRangeSheet, rewriteCellsFormulaSheetNames } from '@/lib/cloudSheet/sheetNameRewrite';
-import { importXlsxFile, exportXlsxFile } from '@/lib/cloudSheet/xlsx';
+import {
+  importXlsxFile,
+  exportXlsxFile,
+  type SheetHeaderFooter,
+  type SheetOutlineOptions,
+  type SheetPageSetup,
+  type SheetProtection,
+  type SheetSortState,
+  type SheetTable,
+  type SheetViewOptions,
+  type TableColumnFilter,
+} from '@/lib/cloudSheet/xlsx';
+import { buildSheetTableFromRange } from '@/lib/cloudSheet/tableMeta';
 import { isSafeImageSrc } from '@/lib/safeUrl';
 import { cellsToCsv, sheetSummarize, sheetSuggestFormula, sheetExplainSelection } from '@/lib/cloudSheet/ai';
 import {
@@ -70,7 +83,7 @@ import { NameBox } from '@/lib/cloudSheet/NameBox';
 // ColResizeHandle / RowResizeHandle / ValidationDropdown 는 SheetGrid/SheetCell 내부 사용
 // FuncHintPopover / getFuncSuggestionNames / applyFuncSuggestion 는 SheetCell 내부 사용
 import { FormulaBarInput } from '@/lib/cloudSheet/FormulaBarInput';
-import { SheetTab, type SheetTabColor } from '@/lib/cloudSheet/SheetTab';
+import { SheetTab, SHEET_TAB_COLOR_HEX, type SheetTabColor } from '@/lib/cloudSheet/SheetTab';
 import { SheetHelpModal } from '@/lib/cloudSheet/SheetHelpModal';
 import { EmbeddedChartCard } from '@/lib/cloudSheet/EmbeddedChartCard';
 import { ChartModal } from '@/lib/cloudSheet/ChartModal';
@@ -121,11 +134,24 @@ interface SheetMeta {
   name: string;
   /** 탭 색상 (PR #7) — 빠른 시각 구분. 미설정 = 기본. */
   color?: SheetTabColor;
+  tabColor?: string;
+  visibility?: 'visible' | 'hidden' | 'veryHidden';
 }
 type AllFormats = Record<string, CellFormats>;
 type DimensionMap = Record<number, number>;
 type AllDimensionMaps = Record<string, DimensionMap>;
 type AllFreezeCounts = Record<string, number>;
+type AllSheetViews = Record<string, SheetViewOptions | undefined>;
+type AllSheetPageSetups = Record<string, SheetPageSetup | undefined>;
+type AllSheetHeaderFooters = Record<string, SheetHeaderFooter | undefined>;
+type AllSheetOutlines = Record<string, SheetOutlineOptions | undefined>;
+type HiddenDimensionMap = Record<number, boolean>;
+type AllHiddenDimensionMaps = Record<string, HiddenDimensionMap>;
+type AllAutoFilterRefs = Record<string, string | undefined>;
+type AllAutoFilterColumns = Record<string, Array<TableColumnFilter | undefined>>;
+type AllSheetSortStates = Record<string, SheetSortState | undefined>;
+type AllSheetTables = Record<string, SheetTable[]>;
+type AllSheetProtections = Record<string, SheetProtection | undefined>;
 
 // Cells / AllCells / Merge / AllMerges / Comments / AllComments 는 lib/cloudSheet/cellTypes 공용
 
@@ -192,6 +218,429 @@ function normalizeAllFreezeCounts(raw: unknown): AllFreezeCounts {
   return out;
 }
 
+function normalizeSheetView(raw: unknown): SheetViewOptions | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: SheetViewOptions = {};
+  if (typeof source.showGridLines === 'boolean') out.showGridLines = source.showGridLines;
+  if (typeof source.showRowColHeaders === 'boolean') out.showRowColHeaders = source.showRowColHeaders;
+  if (typeof source.rightToLeft === 'boolean') out.rightToLeft = source.rightToLeft;
+  if (typeof source.zoomScale === 'number' && Number.isFinite(source.zoomScale)) {
+    out.zoomScale = Math.max(10, Math.min(400, Math.round(source.zoomScale)));
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeAllSheetViews(raw: unknown): AllSheetViews {
+  const out: AllSheetViews = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const view = normalizeSheetView(value);
+    if (view) out[sheetId] = view;
+  }
+  return out;
+}
+
+function finiteNumber(value: unknown, min?: number, max?: number): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return Math.max(min ?? value, Math.min(max ?? value, value));
+}
+
+function normalizeSheetPageSetup(raw: unknown): SheetPageSetup | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: SheetPageSetup = {};
+  const marginsRaw = source.margins;
+  if (marginsRaw && typeof marginsRaw === 'object') {
+    const marginsSource = marginsRaw as Record<string, unknown>;
+    const margins: NonNullable<SheetPageSetup['margins']> = {};
+    for (const key of ['left', 'right', 'top', 'bottom', 'header', 'footer'] as const) {
+      const value = finiteNumber(marginsSource[key], 0, 10);
+      if (value !== undefined) margins[key] = value;
+    }
+    if (Object.keys(margins).length > 0) out.margins = margins;
+  }
+  if (source.orientation === 'portrait' || source.orientation === 'landscape') out.orientation = source.orientation;
+  for (const key of ['paperSize', 'fitToWidth', 'fitToHeight', 'firstPageNumber', 'horizontalDpi', 'verticalDpi'] as const) {
+    const value = finiteNumber(source[key], 0);
+    if (value !== undefined) out[key] = Math.floor(value);
+  }
+  const scale = finiteNumber(source.scale, 10, 400);
+  if (scale !== undefined) out.scale = Math.round(scale);
+  for (const key of ['fitToPage', 'blackAndWhite', 'draft', 'horizontalCentered', 'verticalCentered', 'showRowColHeaders', 'showGridLines'] as const) {
+    if (typeof source[key] === 'boolean') out[key] = source[key];
+  }
+  if (source.pageOrder === 'downThenOver' || source.pageOrder === 'overThenDown') out.pageOrder = source.pageOrder;
+  if (source.cellComments === 'atEnd' || source.cellComments === 'asDisplayed' || source.cellComments === 'None') out.cellComments = source.cellComments;
+  if (source.errors === 'dash' || source.errors === 'blank' || source.errors === 'NA' || source.errors === 'displayed') out.errors = source.errors;
+  for (const key of ['printArea', 'printTitlesRow', 'printTitlesColumn'] as const) {
+    if (typeof source[key] === 'string' && source[key].trim()) out[key] = source[key];
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeAllSheetPageSetups(raw: unknown): AllSheetPageSetups {
+  const out: AllSheetPageSetups = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const pageSetup = normalizeSheetPageSetup(value);
+    if (pageSetup) out[sheetId] = pageSetup;
+  }
+  return out;
+}
+
+function normalizeSheetHeaderFooter(raw: unknown): SheetHeaderFooter | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: SheetHeaderFooter = {};
+  for (const key of ['differentFirst', 'differentOddEven'] as const) {
+    if (typeof source[key] === 'boolean') out[key] = source[key];
+  }
+  for (const key of ['oddHeader', 'oddFooter', 'evenHeader', 'evenFooter', 'firstHeader', 'firstFooter'] as const) {
+    if (typeof source[key] === 'string' && source[key] !== '') out[key] = source[key];
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeAllSheetHeaderFooters(raw: unknown): AllSheetHeaderFooters {
+  const out: AllSheetHeaderFooters = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const headerFooter = normalizeSheetHeaderFooter(value);
+    if (headerFooter) out[sheetId] = headerFooter;
+  }
+  return out;
+}
+
+function normalizeOutlineLevelMap(raw: unknown): Record<number, number> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const out: Record<number, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const idx = Number(key);
+    const level = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : undefined;
+    if (Number.isInteger(idx) && idx >= 0 && level !== undefined && level > 0) out[idx] = Math.min(7, level);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeSheetOutline(raw: unknown): SheetOutlineOptions | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: SheetOutlineOptions = {};
+  const rowLevels = normalizeOutlineLevelMap(source.rowLevels);
+  const colLevels = normalizeOutlineLevelMap(source.colLevels);
+  if (rowLevels) out.rowLevels = rowLevels;
+  if (colLevels) out.colLevels = colLevels;
+  if (typeof source.summaryBelow === 'boolean') out.summaryBelow = source.summaryBelow;
+  if (typeof source.summaryRight === 'boolean') out.summaryRight = source.summaryRight;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeAllSheetOutlines(raw: unknown): AllSheetOutlines {
+  const out: AllSheetOutlines = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const outline = normalizeSheetOutline(value);
+    if (outline) out[sheetId] = outline;
+  }
+  return out;
+}
+
+function normalizeHiddenDimensionMap(raw: unknown): HiddenDimensionMap {
+  const out: HiddenDimensionMap = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const idx = Number(k);
+    if (Number.isFinite(idx) && v === true) out[idx] = true;
+  }
+  return out;
+}
+
+function normalizeAllHiddenDimensionMaps(raw: unknown): AllHiddenDimensionMaps {
+  const out: AllHiddenDimensionMaps = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    out[sheetId] = normalizeHiddenDimensionMap(value);
+  }
+  return out;
+}
+
+function shiftHiddenDimensionMap(map: HiddenDimensionMap, at: number, delta: number): HiddenDimensionMap {
+  const out: HiddenDimensionMap = {};
+  for (const [key, hidden] of Object.entries(map)) {
+    if (!hidden) continue;
+    const idx = Number(key);
+    if (!Number.isFinite(idx)) continue;
+    if (delta < 0 && idx === at) continue;
+    const nextIdx = idx >= at ? idx + delta : idx;
+    if (nextIdx >= 0) out[nextIdx] = true;
+  }
+  return out;
+}
+
+function shiftRangeByAxis(range: SelRange, axis: 'row' | 'col', at: number, delta: number): SelRange | null {
+  const minKey = axis === 'row' ? 'minR' : 'minC';
+  const maxKey = axis === 'row' ? 'maxR' : 'maxC';
+  const min = range[minKey];
+  const max = range[maxKey];
+  let nextMin = min;
+  let nextMax = max;
+
+  if (delta > 0) {
+    if (at <= min) {
+      nextMin += delta;
+      nextMax += delta;
+    } else if (at <= max) {
+      nextMax += delta;
+    }
+  } else if (delta < 0) {
+    if (at < min) {
+      nextMin += delta;
+      nextMax += delta;
+    } else if (at <= max) {
+      if (min === max) return null;
+      nextMax += delta;
+    }
+  }
+
+  if (nextMin < 0 || nextMax < nextMin) return null;
+  return { ...range, [minKey]: nextMin, [maxKey]: nextMax };
+}
+
+function shiftRangedItems<T extends { range: SelRange }>(
+  items: T[],
+  axis: 'row' | 'col',
+  at: number,
+  delta: number,
+): T[] {
+  return items
+    .map((item) => {
+      const range = shiftRangeByAxis(item.range, axis, at, delta);
+      return range ? { ...item, range } : null;
+    })
+    .filter((item): item is T => Boolean(item));
+}
+
+function isReferenceOnShiftedSheet(ref: string | undefined, currentSheetName: string): boolean {
+  const parsed = parseA1RangeReference(ref);
+  return Boolean(parsed && (!parsed.sheetName || parsed.sheetName === currentSheetName));
+}
+
+function shiftNamedRangesByAxis(
+  ranges: Record<string, string>,
+  axis: ShiftAxis,
+  at: number,
+  delta: number,
+  currentSheetName: string,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, ref] of Object.entries(ranges)) {
+    const shifted = shiftA1RangeReference(ref, axis, at, delta, currentSheetName);
+    if (shifted) out[name] = shifted;
+  }
+  return out;
+}
+
+function shiftAutoFilterColumnsByRef(
+  columns: Array<TableColumnFilter | undefined>,
+  ref: string | undefined,
+  axis: ShiftAxis,
+  at: number,
+  delta: number,
+  currentSheetName: string,
+): Array<TableColumnFilter | undefined> {
+  if (axis !== 'col' || !isReferenceOnShiftedSheet(ref, currentSheetName)) return columns;
+  const parsed = parseA1RangeReference(ref);
+  if (!parsed) return columns;
+  const startCol = colToIdx(parsed.startCol);
+  const endCol = colToIdx(parsed.endCol);
+  const next = columns.slice();
+  if (delta > 0 && at > startCol && at <= endCol) {
+    next.splice(at - startCol, 0, undefined);
+  } else if (delta < 0 && at >= startCol && at <= endCol) {
+    next.splice(at - startCol, 1);
+  }
+  return next;
+}
+
+function shiftSortStateByAxis(
+  sortState: SheetSortState | undefined,
+  axis: ShiftAxis,
+  at: number,
+  delta: number,
+  currentSheetName: string,
+): SheetSortState | undefined {
+  if (!sortState) return undefined;
+  const conditions = sortState.conditions
+    .map((condition) => {
+      const ref = shiftA1RangeReference(condition.ref, axis, at, delta, currentSheetName);
+      return ref ? { ...condition, ref } : null;
+    })
+    .filter((condition): condition is SheetSortState['conditions'][number] => Boolean(condition));
+  if (conditions.length === 0) return undefined;
+  const shiftedRef = shiftA1RangeReference(sortState.ref, axis, at, delta, currentSheetName);
+  return {
+    ...sortState,
+    ...(shiftedRef ? { ref: shiftedRef } : {}),
+    conditions,
+  };
+}
+
+function shiftTablesByAxis(
+  tables: SheetTable[],
+  axis: ShiftAxis,
+  at: number,
+  delta: number,
+  currentSheetName: string,
+): SheetTable[] {
+  return tables
+    .map((table) => {
+      const parsed = parseA1RangeReference(table.ref);
+      const ref = shiftA1RangeReference(table.ref, axis, at, delta, currentSheetName);
+      if (!ref) return null;
+      let columns = table.columns;
+      if (axis === 'col' && columns && parsed && (!parsed.sheetName || parsed.sheetName === currentSheetName)) {
+        const startCol = colToIdx(parsed.startCol);
+        const endCol = colToIdx(parsed.endCol);
+        columns = columns.slice();
+        if (delta > 0 && at > startCol && at <= endCol) {
+          columns.splice(at - startCol, 0, { name: '' });
+        } else if (delta < 0 && at >= startCol && at <= endCol) {
+          columns.splice(at - startCol, 1);
+        }
+      }
+      return { ...table, ref, ...(columns ? { columns } : {}) };
+    })
+    .filter((table): table is SheetTable => Boolean(table));
+}
+
+function normalizeAllAutoFilterRefs(raw: unknown): AllAutoFilterRefs {
+  const out: AllAutoFilterRefs = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string' && value.trim()) out[sheetId] = value;
+  }
+  return out;
+}
+
+function normalizeAllAutoFilterColumns(raw: unknown): AllAutoFilterColumns {
+  const out: AllAutoFilterColumns = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, columns] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(columns)) continue;
+    const normalized = columns.map((filter) => {
+      if (!filter || typeof filter !== 'object') return undefined;
+      const source = filter as Record<string, unknown>;
+      const values = Array.isArray(source.values)
+        ? source.values.filter((value): value is string => typeof value === 'string')
+        : undefined;
+      const customFilters = Array.isArray(source.customFilters)
+        ? source.customFilters.map((item) => {
+          if (!item || typeof item !== 'object') return undefined;
+          const custom = item as Record<string, unknown>;
+          if (typeof custom.val !== 'string') return undefined;
+          return {
+            val: custom.val,
+            ...(typeof custom.operator === 'string' ? { operator: custom.operator } : {}),
+          };
+        }).filter((value): value is NonNullable<typeof value> => Boolean(value))
+        : undefined;
+      if ((values?.length ?? 0) === 0 && (customFilters?.length ?? 0) === 0) return undefined;
+      return {
+        ...(values && values.length > 0 ? { values } : {}),
+        ...(customFilters && customFilters.length > 0 ? { customFilters } : {}),
+        ...(source.and === true ? { and: true } : {}),
+      };
+    });
+    if (normalized.some(Boolean)) out[sheetId] = normalized;
+  }
+  return out;
+}
+
+function normalizeAllSheetSortStates(raw: unknown): AllSheetSortStates {
+  const out: AllSheetSortStates = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') continue;
+    const source = value as Record<string, unknown>;
+    const conditions = Array.isArray(source.conditions)
+      ? source.conditions.map((item) => {
+        if (!item || typeof item !== 'object') return undefined;
+        const condition = item as Record<string, unknown>;
+        if (typeof condition.ref !== 'string' || !condition.ref.trim()) return undefined;
+        return {
+          ref: condition.ref,
+          ...(condition.descending === true ? { descending: true } : {}),
+          ...(typeof condition.sortBy === 'string' ? { sortBy: condition.sortBy } : {}),
+          ...(typeof condition.customList === 'string' ? { customList: condition.customList } : {}),
+          ...(Number.isInteger(condition.dxfId) ? { dxfId: condition.dxfId as number } : {}),
+          ...(typeof condition.iconSet === 'string' ? { iconSet: condition.iconSet } : {}),
+          ...(Number.isInteger(condition.iconId) ? { iconId: condition.iconId as number } : {}),
+        };
+      }).filter((item): item is NonNullable<typeof item> => Boolean(item))
+      : [];
+    if (conditions.length === 0) continue;
+    out[sheetId] = {
+      ...(typeof source.ref === 'string' ? { ref: source.ref } : {}),
+      ...(source.caseSensitive === true ? { caseSensitive: true } : {}),
+      ...(source.columnSort === true ? { columnSort: true } : {}),
+      ...(typeof source.sortMethod === 'string' ? { sortMethod: source.sortMethod } : {}),
+      conditions,
+    };
+  }
+  return out;
+}
+
+function normalizeSheetProtection(raw: unknown): SheetProtection | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: SheetProtection = {};
+  const boolKeys: Array<keyof SheetProtection> = [
+    'sheet',
+    'objects',
+    'scenarios',
+    'selectLockedCells',
+    'selectUnlockedCells',
+    'formatCells',
+    'formatColumns',
+    'formatRows',
+    'insertColumns',
+    'insertRows',
+    'insertHyperlinks',
+    'deleteColumns',
+    'deleteRows',
+    'sort',
+    'autoFilter',
+    'pivotTables',
+  ];
+  for (const key of boolKeys) {
+    if (typeof source[key] === 'boolean') (out as Record<string, unknown>)[key] = source[key];
+  }
+  if (typeof source.algorithmName === 'string') out.algorithmName = source.algorithmName;
+  if (typeof source.hashValue === 'string') out.hashValue = source.hashValue;
+  if (typeof source.saltValue === 'string') out.saltValue = source.saltValue;
+  if (typeof source.spinCount === 'number' && Number.isFinite(source.spinCount)) out.spinCount = source.spinCount;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function normalizeAllSheetProtections(raw: unknown): AllSheetProtections {
+  const out: AllSheetProtections = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [sheetId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const protection = normalizeSheetProtection(value);
+    if (protection) out[sheetId] = protection;
+  }
+  return out;
+}
+
+function sheetTabColorFromHex(hex: string | undefined): SheetTabColor | undefined {
+  if (!hex) return undefined;
+  const normalized = hex.toUpperCase();
+  const entry = Object.entries(SHEET_TAB_COLOR_HEX)
+    .find(([, value]) => value.toUpperCase() === normalized);
+  return entry?.[0] as SheetTabColor | undefined;
+}
+
 export default function CloudSheetEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -231,6 +680,17 @@ export default function CloudSheetEditor() {
   const [allRowHeights, setAllRowHeights] = useState<AllDimensionMaps>({ s_initial: {} });
   const [allFreezeRows, setAllFreezeRows] = useState<AllFreezeCounts>({ s_initial: 0 });
   const [allFreezeCols, setAllFreezeCols] = useState<AllFreezeCounts>({ s_initial: 0 });
+  const [allSheetViews, setAllSheetViews] = useState<AllSheetViews>({ s_initial: undefined });
+  const [allSheetPageSetups, setAllSheetPageSetups] = useState<AllSheetPageSetups>({ s_initial: undefined });
+  const [allSheetHeaderFooters, setAllSheetHeaderFooters] = useState<AllSheetHeaderFooters>({ s_initial: undefined });
+  const [allSheetOutlines, setAllSheetOutlines] = useState<AllSheetOutlines>({ s_initial: undefined });
+  const [allHiddenCols, setAllHiddenCols] = useState<AllHiddenDimensionMaps>({ s_initial: {} });
+  const [allHiddenRows, setAllHiddenRows] = useState<AllHiddenDimensionMaps>({ s_initial: {} });
+  const [allAutoFilterRefs, setAllAutoFilterRefs] = useState<AllAutoFilterRefs>({ s_initial: undefined });
+  const [allAutoFilterColumns, setAllAutoFilterColumns] = useState<AllAutoFilterColumns>({ s_initial: [] });
+  const [allSortStates, setAllSortStates] = useState<AllSheetSortStates>({ s_initial: undefined });
+  const [allTables, setAllTables] = useState<AllSheetTables>({ s_initial: [] });
+  const [allSheetProtections, setAllSheetProtections] = useState<AllSheetProtections>({ s_initial: undefined });
   // 필터 — col idx → substring 검색어 (대소문자 무시, 포함 매칭)
   const [filterOn, setFilterOn] = useState(false);
   const [filters, setFilters] = useState<Record<number, string>>({});
@@ -276,10 +736,13 @@ export default function CloudSheetEditor() {
   const validations = allValidations[currentSheetId] ?? [];
   const comments = allComments[currentSheetId] ?? {};
   const embeddedCharts = allEmbeddedCharts[currentSheetId] ?? [];
+  const sheetTables = allTables[currentSheetId] ?? [];
   const colWidths = allColWidths[currentSheetId] ?? {};
   const rowHeights = allRowHeights[currentSheetId] ?? {};
   const freezeRows = allFreezeRows[currentSheetId] ?? 0;
   const freezeCols = allFreezeCols[currentSheetId] ?? 0;
+  const hiddenCols = allHiddenCols[currentSheetId] ?? {};
+  const hiddenRows = allHiddenRows[currentSheetId] ?? {};
 
   const setColWidths = useCallback((next: DimensionMap | ((prev: DimensionMap) => DimensionMap)) => {
     setAllColWidths((all) => {
@@ -317,7 +780,18 @@ export default function CloudSheetEditor() {
     }
     return out;
   }, [sheetsMeta, allCells]);
+  const tablesForEval = useMemo(() => {
+    const out: Record<string, SheetTable[]> = {};
+    for (const s of sheetsMeta) {
+      out[s.name] = allTables[s.id] ?? [];
+    }
+    return out;
+  }, [sheetsMeta, allTables]);
   const currentSheetName = currentSheet?.name ?? 'Sheet1';
+  const formulaEvalContext = useMemo(
+    () => ({ currentName: currentSheetName, allSheets: sheetsForEval, namedRanges, tables: tablesForEval }),
+    [currentSheetName, sheetsForEval, namedRanges, tablesForEval],
+  );
 
   /** editing 중 수식 입력 시 참조된 셀들을 다른 색으로 outline. */
   const formulaRefHighlights = useMemo<Map<string, string>>(
@@ -348,10 +822,9 @@ export default function CloudSheetEditor() {
   // 페이로드를 반환 → 여기서 인접 셀로 펼침. 기존 셀과 충돌하면 anchor 에 #SPILL! 표시.
   const displayValues = useMemo<Cells>(() => {
     const out: Cells = {};
-    const ctx = { currentName: currentSheetName, allSheets: sheetsForEval, namedRanges };
     const spilledInto = new Set<string>();
     for (const [ref, raw] of Object.entries(cells)) {
-      const v = raw.startsWith('=') ? evalCell(ref, cells, ctx) : raw;
+      const v = raw.startsWith('=') ? evalCell(ref, cells, formulaEvalContext) : raw;
       if (!v.startsWith(SPILL_SENTINEL)) {
         out[ref] = v;
         continue;
@@ -392,7 +865,7 @@ export default function CloudSheetEditor() {
     return out;
     // aiVersion 은 의도된 의존 — AI 캐시 변화 → 같은 cells 재평가 트리거.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cells, sheetsForEval, currentSheetName, namedRanges, aiVersion]);
+  }, [cells, formulaEvalContext, aiVersion]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   /** main 컨테이너 ref — Ctrl+휠 줌 native listener 부착용 (passive 회피). */
@@ -441,6 +914,17 @@ export default function CloudSheetEditor() {
         const storedAllRowHeights = meta.allRowHeights as Record<string, Record<string, number>> | undefined;
         const storedAllFreezeRows = meta.allFreezeRows as Record<string, number> | undefined;
         const storedAllFreezeCols = meta.allFreezeCols as Record<string, number> | undefined;
+        const storedAllSheetViews = meta.allSheetViews as Record<string, unknown> | undefined;
+        const storedAllSheetPageSetups = meta.allSheetPageSetups as Record<string, unknown> | undefined;
+        const storedAllSheetHeaderFooters = meta.allSheetHeaderFooters as Record<string, unknown> | undefined;
+        const storedAllSheetOutlines = meta.allSheetOutlines as Record<string, unknown> | undefined;
+        const storedAllHiddenCols = meta.allHiddenCols as Record<string, Record<string, boolean>> | undefined;
+        const storedAllHiddenRows = meta.allHiddenRows as Record<string, Record<string, boolean>> | undefined;
+        const storedAllAutoFilterRefs = meta.allAutoFilterRefs as Record<string, string | undefined> | undefined;
+        const storedAllAutoFilterColumns = meta.allAutoFilterColumns as Record<string, unknown> | undefined;
+        const storedAllSortStates = meta.allSortStates as Record<string, unknown> | undefined;
+        const storedAllTables = meta.allTables as AllSheetTables | undefined;
+        const storedAllSheetProtections = meta.allSheetProtections as Record<string, unknown> | undefined;
         // freeze: number(신) 또는 boolean(구) 둘 다 호환
         if (Array.isArray(storedSheets) && storedSheets.length > 0) {
           // 다중 시트 형식 (현재 모델)
@@ -454,6 +938,7 @@ export default function CloudSheetEditor() {
           if (storedAllValidations) setAllValidations(storedAllValidations);
           if (storedAllComments) setAllComments(storedAllComments);
           if (storedAllEmbeddedCharts) setAllEmbeddedCharts(storedAllEmbeddedCharts);
+          if (storedAllTables) setAllTables(storedAllTables);
           if (storedNamedRanges && typeof storedNamedRanges === 'object') {
             setNamedRanges(storedNamedRanges);
           }
@@ -461,6 +946,16 @@ export default function CloudSheetEditor() {
           const loadedAllRowHeights = normalizeAllDimensionMaps(storedAllRowHeights);
           const loadedAllFreezeRows = normalizeAllFreezeCounts(storedAllFreezeRows);
           const loadedAllFreezeCols = normalizeAllFreezeCounts(storedAllFreezeCols);
+          const loadedAllSheetViews = normalizeAllSheetViews(storedAllSheetViews);
+          const loadedAllSheetPageSetups = normalizeAllSheetPageSetups(storedAllSheetPageSetups);
+          const loadedAllSheetHeaderFooters = normalizeAllSheetHeaderFooters(storedAllSheetHeaderFooters);
+          const loadedAllSheetOutlines = normalizeAllSheetOutlines(storedAllSheetOutlines);
+          const loadedAllHiddenCols = normalizeAllHiddenDimensionMaps(storedAllHiddenCols);
+          const loadedAllHiddenRows = normalizeAllHiddenDimensionMaps(storedAllHiddenRows);
+          const loadedAllAutoFilterRefs = normalizeAllAutoFilterRefs(storedAllAutoFilterRefs);
+          const loadedAllAutoFilterColumns = normalizeAllAutoFilterColumns(storedAllAutoFilterColumns);
+          const loadedAllSortStates = normalizeAllSheetSortStates(storedAllSortStates);
+          const loadedAllSheetProtections = normalizeAllSheetProtections(storedAllSheetProtections);
           if (Object.keys(loadedAllColWidths).length > 0) {
             setAllColWidths(loadedAllColWidths);
           } else {
@@ -493,6 +988,16 @@ export default function CloudSheetEditor() {
               : meta.freezeFirstCol ? 1 : 0;
             setAllFreezeCols(Object.fromEntries(storedSheets.map((s) => [s.id, legacy])));
           }
+          if (Object.keys(loadedAllHiddenCols).length > 0) setAllHiddenCols(loadedAllHiddenCols);
+          if (Object.keys(loadedAllHiddenRows).length > 0) setAllHiddenRows(loadedAllHiddenRows);
+          if (Object.keys(loadedAllSheetViews).length > 0) setAllSheetViews(loadedAllSheetViews);
+          if (Object.keys(loadedAllSheetPageSetups).length > 0) setAllSheetPageSetups(loadedAllSheetPageSetups);
+          if (Object.keys(loadedAllSheetHeaderFooters).length > 0) setAllSheetHeaderFooters(loadedAllSheetHeaderFooters);
+          if (Object.keys(loadedAllSheetOutlines).length > 0) setAllSheetOutlines(loadedAllSheetOutlines);
+          if (Object.keys(loadedAllAutoFilterRefs).length > 0) setAllAutoFilterRefs(loadedAllAutoFilterRefs);
+          if (Object.keys(loadedAllAutoFilterColumns).length > 0) setAllAutoFilterColumns(loadedAllAutoFilterColumns);
+          if (Object.keys(loadedAllSortStates).length > 0) setAllSortStates(loadedAllSortStates);
+          if (Object.keys(loadedAllSheetProtections).length > 0) setAllSheetProtections(loadedAllSheetProtections);
           // 데이터 기반 최소 그리드 크기 보장
           const { row: maxR, col: maxC } = maxRowColFromAll(cellsAll, mergesAll);
           const rc = Math.max(storedRowCount ?? DEFAULT_ROWS, maxR + 1, MIN_ROWS);
@@ -558,6 +1063,17 @@ export default function CloudSheetEditor() {
               ? Math.max(0, meta.freezeCols)
               : meta.freezeFirstCol ? 1 : 0,
           });
+          setAllSheetViews({ [id]: undefined });
+          setAllSheetPageSetups({ [id]: undefined });
+          setAllSheetHeaderFooters({ [id]: undefined });
+          setAllSheetOutlines({ [id]: undefined });
+          setAllHiddenCols({ [id]: {} });
+          setAllHiddenRows({ [id]: {} });
+          setAllAutoFilterRefs({ [id]: undefined });
+          setAllAutoFilterColumns({ [id]: [] });
+          setAllSortStates({ [id]: undefined });
+          setAllTables({ [id]: [] });
+          setAllSheetProtections({ [id]: undefined });
           setCurrentSheetIdx(0);
           const { row: maxR, col: maxC } = maxRowColFromCells(safe);
           setRowCount(Math.max(DEFAULT_ROWS, maxR + 1, MIN_ROWS));
@@ -603,6 +1119,17 @@ export default function CloudSheetEditor() {
     allRowHeights?: AllDimensionMaps;
     allFreezeRows?: AllFreezeCounts;
     allFreezeCols?: AllFreezeCounts;
+    allSheetViews?: AllSheetViews;
+    allSheetPageSetups?: AllSheetPageSetups;
+    allSheetHeaderFooters?: AllSheetHeaderFooters;
+    allSheetOutlines?: AllSheetOutlines;
+    allHiddenCols?: AllHiddenDimensionMaps;
+    allHiddenRows?: AllHiddenDimensionMaps;
+    allAutoFilterRefs?: AllAutoFilterRefs;
+    allAutoFilterColumns?: AllAutoFilterColumns;
+    allSortStates?: AllSheetSortStates;
+    allTables?: AllSheetTables;
+    allSheetProtections?: AllSheetProtections;
     colWidths?: Record<number, number>;
     rowHeights?: Record<number, number>;
     freezeRows?: number;
@@ -636,13 +1163,24 @@ export default function CloudSheetEditor() {
         allRowHeights: nextAllRowHeights,
         allFreezeRows: nextAllFreezeRows,
         allFreezeCols: nextAllFreezeCols,
+        allSheetViews: patch.allSheetViews ?? allSheetViews,
+        allSheetPageSetups: patch.allSheetPageSetups ?? allSheetPageSetups,
+        allSheetHeaderFooters: patch.allSheetHeaderFooters ?? allSheetHeaderFooters,
+        allSheetOutlines: patch.allSheetOutlines ?? allSheetOutlines,
+        allHiddenCols: patch.allHiddenCols ?? allHiddenCols,
+        allHiddenRows: patch.allHiddenRows ?? allHiddenRows,
+        allAutoFilterRefs: patch.allAutoFilterRefs ?? allAutoFilterRefs,
+        allAutoFilterColumns: patch.allAutoFilterColumns ?? allAutoFilterColumns,
+        allSortStates: patch.allSortStates ?? allSortStates,
+        allTables: patch.allTables ?? allTables,
+        allSheetProtections: patch.allSheetProtections ?? allSheetProtections,
         colWidths: nextAllColWidths[nextCurrentSheetId] ?? {},
         rowHeights: nextAllRowHeights[nextCurrentSheetId] ?? {},
         freezeRows: nextAllFreezeRows[nextCurrentSheetId] ?? 0,
         freezeCols: nextAllFreezeCols[nextCurrentSheetId] ?? 0,
       },
     });
-  }, [queueSaveRaw, sheetsMeta, currentSheetId, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, allColWidths, allRowHeights, allFreezeRows, allFreezeCols]);
+  }, [queueSaveRaw, sheetsMeta, currentSheetId, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges, currentSheetIdx, rowCount, colCount, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections]);
 
   // ─── 셀 값 변경 (현재 시트) ───
   const setCellValue = useCallback((ref: string, value: string) => {
@@ -752,27 +1290,62 @@ export default function CloudSheetEditor() {
     const nextCells: AllCells = { ...allCells, [id]: {} };
     const nextFormats: AllFormats = { ...allFormats, [id]: {} };
     const nextMerges: AllMerges = { ...allMerges, [id]: [] };
+    const nextCondRules: AllCondRules = { ...allCondRules, [id]: [] };
     const nextAllColWidths = { ...allColWidths, [id]: {} };
     const nextAllRowHeights = { ...allRowHeights, [id]: {} };
     const nextAllFreezeRows = { ...allFreezeRows, [id]: 0 };
     const nextAllFreezeCols = { ...allFreezeCols, [id]: 0 };
+    const nextAllSheetViews = { ...allSheetViews, [id]: undefined };
+    const nextAllSheetPageSetups = { ...allSheetPageSetups, [id]: undefined };
+    const nextAllSheetHeaderFooters = { ...allSheetHeaderFooters, [id]: undefined };
+    const nextAllSheetOutlines = { ...allSheetOutlines, [id]: undefined };
+    const nextAllHiddenCols = { ...allHiddenCols, [id]: {} };
+    const nextAllHiddenRows = { ...allHiddenRows, [id]: {} };
+    const nextAllAutoFilterRefs = { ...allAutoFilterRefs, [id]: undefined };
+    const nextAllAutoFilterColumns = { ...allAutoFilterColumns, [id]: [] };
+    const nextAllSortStates = { ...allSortStates, [id]: undefined };
+    const nextAllTables = { ...allTables, [id]: [] };
+    const nextAllSheetProtections = { ...allSheetProtections, [id]: undefined };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllCondRules(nextCondRules);
     setAllColWidths(nextAllColWidths);
     setAllRowHeights(nextAllRowHeights);
     setAllFreezeRows(nextAllFreezeRows);
     setAllFreezeCols(nextAllFreezeCols);
+    setAllSheetViews(nextAllSheetViews);
+    setAllSheetPageSetups(nextAllSheetPageSetups);
+    setAllSheetHeaderFooters(nextAllSheetHeaderFooters);
+    setAllSheetOutlines(nextAllSheetOutlines);
+    setAllHiddenCols(nextAllHiddenCols);
+    setAllHiddenRows(nextAllHiddenRows);
+    setAllAutoFilterRefs(nextAllAutoFilterRefs);
+    setAllAutoFilterColumns(nextAllAutoFilterColumns);
+    setAllSortStates(nextAllSortStates);
+    setAllTables(nextAllTables);
+    setAllSheetProtections(nextAllSheetProtections);
     setCurrentSheetIdx(nextSheets.length - 1);
     setSelected({ row: 0, col: 0 });
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allCondRules: nextCondRules,
       allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
       allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
+      allSheetViews: nextAllSheetViews,
+      allSheetPageSetups: nextAllSheetPageSetups,
+      allSheetHeaderFooters: nextAllSheetHeaderFooters,
+      allSheetOutlines: nextAllSheetOutlines,
+      allHiddenCols: nextAllHiddenCols, allHiddenRows: nextAllHiddenRows,
+      allAutoFilterRefs: nextAllAutoFilterRefs,
+      allAutoFilterColumns: nextAllAutoFilterColumns,
+      allSortStates: nextAllSortStates,
+      allTables: nextAllTables,
+      allSheetProtections: nextAllSheetProtections,
       currentSheetIdx: nextSheets.length - 1,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allCondRules, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections, queueSave]);
 
   const removeSheet = useCallback((idx: number) => {
     if (sheetsMeta.length <= 1) {
@@ -785,34 +1358,81 @@ export default function CloudSheetEditor() {
     const nextCells: AllCells = { ...allCells };
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
+    const nextCondRules: AllCondRules = { ...allCondRules };
     const nextAllColWidths = { ...allColWidths };
     const nextAllRowHeights = { ...allRowHeights };
     const nextAllFreezeRows = { ...allFreezeRows };
     const nextAllFreezeCols = { ...allFreezeCols };
+    const nextAllSheetViews = { ...allSheetViews };
+    const nextAllSheetPageSetups = { ...allSheetPageSetups };
+    const nextAllSheetHeaderFooters = { ...allSheetHeaderFooters };
+    const nextAllSheetOutlines = { ...allSheetOutlines };
+    const nextAllHiddenCols = { ...allHiddenCols };
+    const nextAllHiddenRows = { ...allHiddenRows };
+    const nextAllAutoFilterRefs = { ...allAutoFilterRefs };
+    const nextAllAutoFilterColumns = { ...allAutoFilterColumns };
+    const nextAllSortStates = { ...allSortStates };
+    const nextAllTables = { ...allTables };
+    const nextAllSheetProtections = { ...allSheetProtections };
     delete nextCells[target.id];
     delete nextFormats[target.id];
     delete nextMerges[target.id];
+    delete nextCondRules[target.id];
     delete nextAllColWidths[target.id];
     delete nextAllRowHeights[target.id];
     delete nextAllFreezeRows[target.id];
     delete nextAllFreezeCols[target.id];
+    delete nextAllSheetViews[target.id];
+    delete nextAllSheetPageSetups[target.id];
+    delete nextAllSheetHeaderFooters[target.id];
+    delete nextAllSheetOutlines[target.id];
+    delete nextAllHiddenCols[target.id];
+    delete nextAllHiddenRows[target.id];
+    delete nextAllAutoFilterRefs[target.id];
+    delete nextAllAutoFilterColumns[target.id];
+    delete nextAllSortStates[target.id];
+    delete nextAllTables[target.id];
+    delete nextAllSheetProtections[target.id];
     const newIdx = Math.max(0, Math.min(currentSheetIdx, nextSheets.length - 1));
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllCondRules(nextCondRules);
     setAllColWidths(nextAllColWidths);
     setAllRowHeights(nextAllRowHeights);
     setAllFreezeRows(nextAllFreezeRows);
     setAllFreezeCols(nextAllFreezeCols);
+    setAllSheetViews(nextAllSheetViews);
+    setAllSheetPageSetups(nextAllSheetPageSetups);
+    setAllSheetHeaderFooters(nextAllSheetHeaderFooters);
+    setAllSheetOutlines(nextAllSheetOutlines);
+    setAllHiddenCols(nextAllHiddenCols);
+    setAllHiddenRows(nextAllHiddenRows);
+    setAllAutoFilterRefs(nextAllAutoFilterRefs);
+    setAllAutoFilterColumns(nextAllAutoFilterColumns);
+    setAllSortStates(nextAllSortStates);
+    setAllTables(nextAllTables);
+    setAllSheetProtections(nextAllSheetProtections);
     setCurrentSheetIdx(newIdx);
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allCondRules: nextCondRules,
       allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
       allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
+      allSheetViews: nextAllSheetViews,
+      allSheetPageSetups: nextAllSheetPageSetups,
+      allSheetHeaderFooters: nextAllSheetHeaderFooters,
+      allSheetOutlines: nextAllSheetOutlines,
+      allHiddenCols: nextAllHiddenCols, allHiddenRows: nextAllHiddenRows,
+      allAutoFilterRefs: nextAllAutoFilterRefs,
+      allAutoFilterColumns: nextAllAutoFilterColumns,
+      allSortStates: nextAllSortStates,
+      allTables: nextAllTables,
+      allSheetProtections: nextAllSheetProtections,
       currentSheetIdx: newIdx,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, currentSheetIdx, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allCondRules, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections, currentSheetIdx, queueSave]);
 
   const renameSheet = useCallback((idx: number, name: string) => {
     const trimmed = name.trim();
@@ -824,7 +1444,9 @@ export default function CloudSheetEditor() {
 
   /** 탭 색상 변경 — undefined 면 색상 해제. (PR #7) */
   const setSheetColor = useCallback((idx: number, color: SheetTabColor | undefined) => {
-    const nextSheets = sheetsMeta.map((s, i) => (i === idx ? { ...s, color } : s));
+    const nextSheets = sheetsMeta.map((s, i) => (
+      i === idx ? { ...s, color, tabColor: color ? SHEET_TAB_COLOR_HEX[color] : undefined } : s
+    ));
     setSheetsMeta(nextSheets);
     queueSave({ sheets: nextSheets });
   }, [sheetsMeta, queueSave]);
@@ -885,54 +1507,125 @@ export default function CloudSheetEditor() {
       }
 
       // 행 수집
-      const rows: Array<{ values: string[]; formats: Array<CellFormat | undefined> }> = [];
-      for (let r = startRow; r <= area.maxR; r++) {
-        const values: string[] = [];
-        const formats: Array<CellFormat | undefined> = [];
-        for (let c = area.minC; c <= area.maxC; c++) {
-          values.push(cells[cellRef(r, c)] ?? '');
-          formats.push(cellFormats[cellRef(r, c)]);
-        }
-        rows.push({ values, formats });
-      }
-
-      // 정렬
-      const keyIdx = colIdx - area.minC;
-      rows.sort((a, b) => compareCellValues(a.values[keyIdx], b.values[keyIdx], dir));
-
-      // 다시 쓰기
-      const nextCells: Cells = { ...cells };
-      const nextFormats: CellFormats = { ...cellFormats };
-      let i = 0;
-      for (let r = startRow; r <= area.maxR; r++) {
-        const row = rows[i++];
-        for (let c = area.minC; c <= area.maxC; c++) {
-          const ref = cellRef(r, c);
-          const v = row.values[c - area.minC];
-          const fmt = row.formats[c - area.minC];
-          if (v === '') delete nextCells[ref]; else nextCells[ref] = v;
-          if (!fmt) delete nextFormats[ref]; else nextFormats[ref] = fmt;
-        }
-      }
-      const nextAllCells: AllCells = { ...allCells, [currentSheetId]: nextCells };
-      const nextAllFormats: AllFormats = { ...allFormats, [currentSheetId]: nextFormats };
+      const sorted = sortSheetRange<CellFormat>({
+        cells,
+        formats: cellFormats,
+        comments,
+        displayValues,
+        range: area,
+        keyCol: colIdx,
+        startRow,
+        dir,
+      });
+      const nextAllCells: AllCells = { ...allCells, [currentSheetId]: sorted.cells };
+      const nextAllFormats: AllFormats = { ...allFormats, [currentSheetId]: sorted.formats as CellFormats };
+      const nextAllComments: AllComments = { ...allComments, [currentSheetId]: sorted.comments ?? comments };
+      const sortRef = `${idxToCol(area.minC)}${area.minR + 1}:${idxToCol(area.maxC)}${area.maxR + 1}`;
+      const conditionRef = `${idxToCol(colIdx)}${startRow + 1}:${idxToCol(colIdx)}${area.maxR + 1}`;
+      const nextSortStates: AllSheetSortStates = {
+        ...allSortStates,
+        [currentSheetId]: {
+          ref: sortRef,
+          conditions: [{ ref: conditionRef, ...(dir === 'desc' ? { descending: true } : {}) }],
+        },
+      };
       setAllCells(nextAllCells);
       setAllFormats(nextAllFormats);
-      queueSave({ allCells: nextAllCells, allFormats: nextAllFormats });
+      setAllComments(nextAllComments);
+      setAllSortStates(nextSortStates);
+      queueSave({ allCells: nextAllCells, allFormats: nextAllFormats, allComments: nextAllComments, allSortStates: nextSortStates });
       toast({
         title: `${idxToCol(colIdx)}열 ${dir === 'asc' ? '오름차순' : '내림차순'} 정렬`,
-        description: `${rows.length}행 정렬 · ${hasHeader ? '첫 행은 헤더로 유지' : '헤더 없음'}`,
+        description: `${sorted.sortedRows}행 정렬 · ${hasHeader ? '첫 행은 헤더로 유지' : '헤더 없음'}`,
       });
+
+
+      // 정렬
+
+      // 다시 쓰기
     },
-    [hasRange, selBounds, cells, cellFormats, merges, allCells, allFormats, currentSheetId, queueSave],
+    [hasRange, selBounds, cells, cellFormats, comments, displayValues, merges, allCells, allFormats, allComments, allSortStates, currentSheetId, queueSave],
   );
 
   // ─── Undo / Redo (lib/cloudSheet/useSheetHistory 공용 훅) ───
+  const createTableFromSelection = useCallback(() => {
+    const range = { ...selBounds };
+    if (range.maxR - range.minR < 1) {
+      toast({ title: '표 범위가 너무 작아요', description: '헤더 행과 데이터 행을 포함해 최소 2행 이상 선택해주세요.' });
+      return;
+    }
+    const overlaps = (a: SelRange, b: SelRange) =>
+      !(a.maxR < b.minR || a.minR > b.maxR || a.maxC < b.minC || a.minC > b.maxC);
+    const blockedByMerge = merges.some((m) => overlaps(range, m));
+    if (blockedByMerge) {
+      toast({ title: '병합 셀이 있어 표로 만들 수 없어요', description: '선택 영역의 병합을 해제한 뒤 다시 시도해주세요.' });
+      return;
+    }
+    const tableRanges = sheetTables.flatMap((table): SelRange[] => {
+      const match = table.ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+      if (!match) return [];
+      return [{
+        minR: Math.min(Number(match[2]), Number(match[4])) - 1,
+        maxR: Math.max(Number(match[2]), Number(match[4])) - 1,
+        minC: Math.min(colToIdx(match[1]), colToIdx(match[3])),
+        maxC: Math.max(colToIdx(match[1]), colToIdx(match[3])),
+      }];
+    });
+    if (tableRanges.some((tableRange) => overlaps(range, tableRange))) {
+      toast({ title: '이미 표와 겹쳐요', description: '기존 표와 겹치지 않는 범위를 선택해주세요.' });
+      return;
+    }
+    const built = buildSheetTableFromRange(cells, range, sheetTables, `Table${sheetTables.length + 1}`);
+    if (!built) {
+      toast({ title: '표를 만들 수 없어요', description: '최소 1열, 2행 이상의 범위를 선택해주세요.' });
+      return;
+    }
+    const nextCells: Cells = { ...cells, ...built.patchedCells };
+    const nextFormats: CellFormats = { ...cellFormats };
+    for (let r = range.minR; r <= range.maxR; r++) {
+      for (let c = range.minC; c <= range.maxC; c++) {
+        const ref = cellRef(r, c);
+        nextFormats[ref] = {
+          ...(nextFormats[ref] ?? {}),
+          border: 'all',
+          ...(r === range.minR ? { bold: true, bgColor: '#E0F2FE' } : {}),
+        };
+      }
+    }
+    const nextTables: AllSheetTables = {
+      ...allTables,
+      [currentSheetId]: [...sheetTables, built.table],
+    };
+    const nextAllCells: AllCells = { ...allCells, [currentSheetId]: nextCells };
+    const nextAllFormats: AllFormats = { ...allFormats, [currentSheetId]: nextFormats };
+    const nextAutoFilters: AllAutoFilterRefs = { ...allAutoFilterRefs, [currentSheetId]: built.table.ref };
+    const nextAutoFilterColumns: AllAutoFilterColumns = { ...allAutoFilterColumns, [currentSheetId]: [] };
+    const nextSortStates: AllSheetSortStates = { ...allSortStates, [currentSheetId]: undefined };
+    setAllCells(nextAllCells);
+    setAllFormats(nextAllFormats);
+    setAllTables(nextTables);
+    setAllAutoFilterRefs(nextAutoFilters);
+    setAllAutoFilterColumns(nextAutoFilterColumns);
+    setAllSortStates(nextSortStates);
+    setFilterOn(true);
+    queueSave({
+      allCells: nextAllCells,
+      allFormats: nextAllFormats,
+      allTables: nextTables,
+      allAutoFilterRefs: nextAutoFilters,
+      allAutoFilterColumns: nextAutoFilterColumns,
+      allSortStates: nextSortStates,
+    });
+    toast({ title: '표를 만들었어요', description: `${built.table.name} · ${built.table.ref}` });
+  }, [selBounds, merges, sheetTables, cells, cellFormats, allTables, currentSheetId, allCells, allFormats, allAutoFilterRefs, allAutoFilterColumns, allSortStates, queueSave]);
+
   const { canUndo, canRedo, undo, redo } = useSheetHistory({
     allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, namedRanges,
+    allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections,
     rowCount, colCount, colWidths, rowHeights, freezeRows, freezeCols,
     allColWidths, allRowHeights, allFreezeRows, allFreezeCols,
     setAllCells, setAllFormats, setAllMerges, setAllCondRules, setAllValidations, setAllComments, setAllEmbeddedCharts, setNamedRanges,
+    setAllHiddenCols, setAllHiddenRows, setAllAutoFilterRefs, setAllAutoFilterColumns, setAllSortStates, setAllTables, setAllSheetProtections,
     setRowCount, setColCount, setColWidths, setRowHeights, setFreezeRows, setFreezeCols,
     setAllColWidths, setAllRowHeights, setAllFreezeRows, setAllFreezeCols,
     ready: !!node,
@@ -1321,8 +2014,8 @@ export default function CloudSheetEditor() {
   const validationItemsMap = useMemo(() => buildValidationItemsMap(validations), [validations]);
   const checkboxRefSet = useMemo(() => buildCheckboxRefSet(validations), [validations]);
   const invalidRefSet = useMemo(
-    () => buildInvalidRefSet(validationItemsMap, cells, displayValues),
-    [validationItemsMap, cells, displayValues],
+    () => buildInvalidRefSet(validationItemsMap, cells, displayValues, validations),
+    [validationItemsMap, cells, displayValues, validations],
   );
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
@@ -1513,13 +2206,26 @@ export default function CloudSheetEditor() {
         const newAllCells: AllCells = { ...allCells };
         const newAllFormats: AllFormats = { ...allFormats };
         const newAllMerges: AllMerges = { ...allMerges };
+        const newAllCondRules: AllCondRules = { ...allCondRules };
         const newAllValidations: AllValidations = { ...allValidations };
         const newAllComments: AllComments = { ...allComments };
+        const newAllEmbeddedCharts: AllEmbeddedCharts = { ...allEmbeddedCharts };
         // 첫 import 된 시트의 col/row/freeze 만 전체 그리드에 반영 (단일 그리드 한계 — v1).
         const newAllColWidths: AllDimensionMaps = { ...allColWidths };
         const newAllRowHeights: AllDimensionMaps = { ...allRowHeights };
         const newAllFreezeRows: AllFreezeCounts = { ...allFreezeRows };
         const newAllFreezeCols: AllFreezeCounts = { ...allFreezeCols };
+        const newAllSheetViews: AllSheetViews = { ...allSheetViews };
+        const newAllSheetPageSetups: AllSheetPageSetups = { ...allSheetPageSetups };
+        const newAllSheetHeaderFooters: AllSheetHeaderFooters = { ...allSheetHeaderFooters };
+        const newAllSheetOutlines: AllSheetOutlines = { ...allSheetOutlines };
+        const newAllHiddenCols: AllHiddenDimensionMaps = { ...allHiddenCols };
+        const newAllHiddenRows: AllHiddenDimensionMaps = { ...allHiddenRows };
+        const newAllAutoFilterRefs: AllAutoFilterRefs = { ...allAutoFilterRefs };
+        const newAllAutoFilterColumns: AllAutoFilterColumns = { ...allAutoFilterColumns };
+        const newAllSortStates: AllSheetSortStates = { ...allSortStates };
+        const newAllTables: AllSheetTables = { ...allTables };
+        const newAllSheetProtections: AllSheetProtections = { ...allSheetProtections };
         let importedDimensionCount = 0;
         let importedFreezeCount = 0;
         const importedNameMap = new Map<string, string>();
@@ -1539,16 +2245,35 @@ export default function CloudSheetEditor() {
           }
           importedNameMap.set(sheet.name, name);
           importedSheetIds.push(id);
-          newMetas.push({ id, name });
+          newMetas.push({
+            id,
+            name,
+            color: sheetTabColorFromHex(sheet.tabColor),
+            tabColor: sheet.tabColor,
+            visibility: sheet.sheetState,
+          });
           newAllCells[id] = sheet.cells;
           newAllFormats[id] = sheet.cellFormats ?? {};
           newAllMerges[id] = sheet.merges ?? [];
+          newAllCondRules[id] = sheet.condRules ?? [];
           newAllValidations[id] = sheet.validations ?? [];
           newAllComments[id] = sheet.comments ?? {};
+          newAllEmbeddedCharts[id] = sheet.embeddedCharts ?? [];
           newAllColWidths[id] = sheet.colWidths ?? {};
           newAllRowHeights[id] = sheet.rowHeights ?? {};
           newAllFreezeRows[id] = sheet.freezeRows ?? 0;
           newAllFreezeCols[id] = sheet.freezeCols ?? 0;
+          newAllSheetViews[id] = sheet.sheetView;
+          newAllSheetPageSetups[id] = sheet.pageSetup;
+          newAllSheetHeaderFooters[id] = sheet.headerFooter;
+          newAllSheetOutlines[id] = sheet.sheetOutline;
+          newAllHiddenCols[id] = sheet.hiddenCols ?? {};
+          newAllHiddenRows[id] = sheet.hiddenRows ?? {};
+          newAllAutoFilterRefs[id] = sheet.autoFilterRef;
+          newAllAutoFilterColumns[id] = sheet.autoFilterColumns ?? [];
+          newAllSortStates[id] = sheet.sortState;
+          newAllTables[id] = sheet.tables ?? [];
+          newAllSheetProtections[id] = sheet.sheetProtection;
           if (sheet.cellFormats && Object.keys(sheet.cellFormats).length > 0) preservedCount++;
           if (sheet.colWidths || sheet.rowHeights) importedDimensionCount++;
           if (sheet.freezeRows || sheet.freezeCols) importedFreezeCount++;
@@ -1566,12 +2291,25 @@ export default function CloudSheetEditor() {
         setAllCells(newAllCells);
         setAllFormats(newAllFormats);
         setAllMerges(newAllMerges);
+        setAllCondRules(newAllCondRules);
         setAllValidations(newAllValidations);
         setAllComments(newAllComments);
+        setAllEmbeddedCharts(newAllEmbeddedCharts);
         setAllColWidths(newAllColWidths);
         setAllRowHeights(newAllRowHeights);
         setAllFreezeRows(newAllFreezeRows);
         setAllFreezeCols(newAllFreezeCols);
+        setAllSheetViews(newAllSheetViews);
+        setAllSheetPageSetups(newAllSheetPageSetups);
+        setAllSheetHeaderFooters(newAllSheetHeaderFooters);
+        setAllSheetOutlines(newAllSheetOutlines);
+        setAllHiddenCols(newAllHiddenCols);
+        setAllHiddenRows(newAllHiddenRows);
+        setAllAutoFilterRefs(newAllAutoFilterRefs);
+        setAllAutoFilterColumns(newAllAutoFilterColumns);
+        setAllSortStates(newAllSortStates);
+        setAllTables(newAllTables);
+        setAllSheetProtections(newAllSheetProtections);
         if (Object.keys(importedNamedRanges).length > 0) setNamedRanges(nextNamedRanges);
         setCurrentSheetIdx(sheetsMeta.length); // 첫 새 시트로 전환
         // 가져온 시트가 현재 그리드보다 크면 자동 확장
@@ -1582,10 +2320,22 @@ export default function CloudSheetEditor() {
         if (nextColCount !== colCount) setColCount(nextColCount);
         queueSave({
           sheets: nextSheets, allCells: newAllCells, allFormats: newAllFormats, allMerges: newAllMerges,
+          allCondRules: newAllCondRules,
           allValidations: newAllValidations,
           allComments: newAllComments,
+          allEmbeddedCharts: newAllEmbeddedCharts,
           allColWidths: newAllColWidths, allRowHeights: newAllRowHeights,
           allFreezeRows: newAllFreezeRows, allFreezeCols: newAllFreezeCols,
+          allSheetViews: newAllSheetViews,
+          allSheetPageSetups: newAllSheetPageSetups,
+          allSheetHeaderFooters: newAllSheetHeaderFooters,
+          allSheetOutlines: newAllSheetOutlines,
+          allHiddenCols: newAllHiddenCols, allHiddenRows: newAllHiddenRows,
+          allAutoFilterRefs: newAllAutoFilterRefs,
+          allAutoFilterColumns: newAllAutoFilterColumns,
+          allSortStates: newAllSortStates,
+          allTables: newAllTables,
+          allSheetProtections: newAllSheetProtections,
           currentSheetIdx: sheetsMeta.length,
           rowCount: nextRowCount, colCount: nextColCount,
           namedRanges: nextNamedRanges,
@@ -1604,7 +2354,7 @@ export default function CloudSheetEditor() {
       }
     };
     input.click();
-  }, [allCells, allFormats, allMerges, allValidations, allComments, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, namedRanges, sheetsMeta, rowCount, colCount, queueSave]);
+  }, [allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections, namedRanges, sheetsMeta, rowCount, colCount, queueSave]);
 
   // ─── PDF export: 현재 시트 그리드 ───
   const exportPdf = useCallback(async () => {
@@ -1628,14 +2378,29 @@ export default function CloudSheetEditor() {
       const exportSheets = sheetsMeta.map((s) => ({
         name: s.name,
         cells: allCells[s.id] ?? {},
+        sheetState: s.visibility,
+        tabColor: s.tabColor ?? (s.color ? SHEET_TAB_COLOR_HEX[s.color] : undefined),
         cellFormats: allFormats[s.id] ?? {},
         merges: allMerges[s.id] ?? [],
+        condRules: allCondRules[s.id] ?? [],
         validations: allValidations[s.id] ?? [],
         comments: allComments[s.id] ?? {},
         colWidths: allColWidths[s.id] ?? {},
         rowHeights: allRowHeights[s.id] ?? {},
+        hiddenCols: allHiddenCols[s.id] ?? {},
+        hiddenRows: allHiddenRows[s.id] ?? {},
         freezeRows: allFreezeRows[s.id] ?? 0,
         freezeCols: allFreezeCols[s.id] ?? 0,
+        sheetView: allSheetViews[s.id],
+        pageSetup: allSheetPageSetups[s.id],
+        headerFooter: allSheetHeaderFooters[s.id],
+        sheetOutline: allSheetOutlines[s.id],
+        autoFilterRef: allAutoFilterRefs[s.id],
+        autoFilterColumns: allAutoFilterColumns[s.id] ?? [],
+        sortState: allSortStates[s.id],
+        tables: allTables[s.id] ?? [],
+        embeddedCharts: allEmbeddedCharts[s.id] ?? [],
+        sheetProtection: allSheetProtections[s.id],
       }));
       const fileName = sanitizeFileName(node?.name ?? '시트', '시트');
       await exportXlsxFile(exportSheets, fileName, { namedRanges });
@@ -1644,7 +2409,7 @@ export default function CloudSheetEditor() {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: '내보내기 실패', description: msg });
     }
-  }, [sheetsMeta, allCells, allFormats, allMerges, allValidations, allComments, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, namedRanges, node?.name]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allCondRules, allValidations, allComments, allEmbeddedCharts, allColWidths, allRowHeights, allHiddenCols, allHiddenRows, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections, namedRanges, node?.name]);
 
   /** 현재 시트만 CSV 다운로드 — 서식·병합·다른 시트 손실 (UTF-8 BOM 포함, Excel 한글 호환). */
   const exportCsv = useCallback(() => {
@@ -1670,32 +2435,112 @@ export default function CloudSheetEditor() {
     const src = sheetsMeta[idx];
     if (!src) return;
     const id = newId('s');
-    const newMeta: SheetMeta = { id, name: `${src.name} 복사본` };
+    const newMeta: SheetMeta = { id, name: `${src.name} 복사본`, color: src.color, tabColor: src.tabColor, visibility: src.visibility };
     const nextSheets = [...sheetsMeta.slice(0, idx + 1), newMeta, ...sheetsMeta.slice(idx + 1)];
     const nextCells: AllCells = { ...allCells, [id]: { ...(allCells[src.id] ?? {}) } };
     const nextFormats: AllFormats = { ...allFormats, [id]: { ...(allFormats[src.id] ?? {}) } };
     const srcMerges = allMerges[src.id] ?? [];
     const nextMerges: AllMerges = { ...allMerges, [id]: srcMerges.map((m) => ({ ...m })) };
+    const nextCondRules: AllCondRules = {
+      ...allCondRules,
+      [id]: (allCondRules[src.id] ?? []).map((rule) => ({
+        ...rule,
+        id: newCondRuleId(),
+        range: { ...rule.range },
+        format: { ...rule.format },
+      })),
+    };
     const nextAllColWidths = { ...allColWidths, [id]: { ...(allColWidths[src.id] ?? {}) } };
     const nextAllRowHeights = { ...allRowHeights, [id]: { ...(allRowHeights[src.id] ?? {}) } };
     const nextAllFreezeRows = { ...allFreezeRows, [id]: allFreezeRows[src.id] ?? 0 };
     const nextAllFreezeCols = { ...allFreezeCols, [id]: allFreezeCols[src.id] ?? 0 };
+    const nextAllSheetViews = {
+      ...allSheetViews,
+      [id]: allSheetViews[src.id] ? { ...allSheetViews[src.id] } : undefined,
+    };
+    const nextAllSheetPageSetups = {
+      ...allSheetPageSetups,
+      [id]: allSheetPageSetups[src.id]
+        ? {
+          ...allSheetPageSetups[src.id],
+          margins: allSheetPageSetups[src.id]!.margins ? { ...allSheetPageSetups[src.id]!.margins } : undefined,
+        }
+        : undefined,
+    };
+    const nextAllSheetHeaderFooters = {
+      ...allSheetHeaderFooters,
+      [id]: allSheetHeaderFooters[src.id] ? { ...allSheetHeaderFooters[src.id] } : undefined,
+    };
+    const nextAllSheetOutlines = {
+      ...allSheetOutlines,
+      [id]: allSheetOutlines[src.id]
+        ? {
+          ...allSheetOutlines[src.id],
+          rowLevels: allSheetOutlines[src.id]!.rowLevels ? { ...allSheetOutlines[src.id]!.rowLevels } : undefined,
+          colLevels: allSheetOutlines[src.id]!.colLevels ? { ...allSheetOutlines[src.id]!.colLevels } : undefined,
+        }
+        : undefined,
+    };
+    const nextAllHiddenCols = { ...allHiddenCols, [id]: { ...(allHiddenCols[src.id] ?? {}) } };
+    const nextAllHiddenRows = { ...allHiddenRows, [id]: { ...(allHiddenRows[src.id] ?? {}) } };
+    const nextAllAutoFilterRefs = { ...allAutoFilterRefs, [id]: allAutoFilterRefs[src.id] };
+    const nextAllAutoFilterColumns = {
+      ...allAutoFilterColumns,
+      [id]: (allAutoFilterColumns[src.id] ?? []).map((filter) => (filter ? { ...filter } : undefined)),
+    };
+    const nextAllSortStates = {
+      ...allSortStates,
+      [id]: allSortStates[src.id]
+        ? {
+          ...allSortStates[src.id],
+          conditions: allSortStates[src.id]!.conditions.map((condition) => ({ ...condition })),
+        }
+        : undefined,
+    };
+    const nextAllTables = { ...allTables, [id]: (allTables[src.id] ?? []).map((table) => ({ ...table })) };
+    const nextAllSheetProtections = {
+      ...allSheetProtections,
+      [id]: allSheetProtections[src.id] ? { ...allSheetProtections[src.id] } : undefined,
+    };
     setSheetsMeta(nextSheets);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllCondRules(nextCondRules);
     setAllColWidths(nextAllColWidths);
     setAllRowHeights(nextAllRowHeights);
     setAllFreezeRows(nextAllFreezeRows);
     setAllFreezeCols(nextAllFreezeCols);
+    setAllSheetViews(nextAllSheetViews);
+    setAllSheetPageSetups(nextAllSheetPageSetups);
+    setAllSheetHeaderFooters(nextAllSheetHeaderFooters);
+    setAllSheetOutlines(nextAllSheetOutlines);
+    setAllHiddenCols(nextAllHiddenCols);
+    setAllHiddenRows(nextAllHiddenRows);
+    setAllAutoFilterRefs(nextAllAutoFilterRefs);
+    setAllAutoFilterColumns(nextAllAutoFilterColumns);
+    setAllSortStates(nextAllSortStates);
+    setAllTables(nextAllTables);
+    setAllSheetProtections(nextAllSheetProtections);
     setCurrentSheetIdx(idx + 1);
     queueSave({
       sheets: nextSheets, allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges,
+      allCondRules: nextCondRules,
       allColWidths: nextAllColWidths, allRowHeights: nextAllRowHeights,
       allFreezeRows: nextAllFreezeRows, allFreezeCols: nextAllFreezeCols,
+      allSheetViews: nextAllSheetViews,
+      allSheetPageSetups: nextAllSheetPageSetups,
+      allSheetHeaderFooters: nextAllSheetHeaderFooters,
+      allSheetOutlines: nextAllSheetOutlines,
+      allHiddenCols: nextAllHiddenCols, allHiddenRows: nextAllHiddenRows,
+      allAutoFilterRefs: nextAllAutoFilterRefs,
+      allAutoFilterColumns: nextAllAutoFilterColumns,
+      allSortStates: nextAllSortStates,
+      allTables: nextAllTables,
+      allSheetProtections: nextAllSheetProtections,
       currentSheetIdx: idx + 1,
     });
-  }, [sheetsMeta, allCells, allFormats, allMerges, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, queueSave]);
+  }, [sheetsMeta, allCells, allFormats, allMerges, allCondRules, allColWidths, allRowHeights, allFreezeRows, allFreezeCols, allSheetViews, allSheetPageSetups, allSheetHeaderFooters, allSheetOutlines, allHiddenCols, allHiddenRows, allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, allSheetProtections, queueSave]);
 
   // ─── Freeze pane 설정 ───
   const applyFreezeRows = useCallback((n: number) => {
@@ -1708,6 +2553,38 @@ export default function CloudSheetEditor() {
     setFreezeCols(clamped);
     queueSave({ freezeCols: clamped });
   }, [queueSave]);
+
+  const hideRow = useCallback((rowIdx: number) => {
+    const nextAll: AllHiddenDimensionMaps = {
+      ...allHiddenRows,
+      [currentSheetId]: { ...(allHiddenRows[currentSheetId] ?? {}), [rowIdx]: true },
+    };
+    setAllHiddenRows(nextAll);
+    setSelected((s) => ({ ...s, row: Math.max(0, Math.min(rowCount - 1, rowIdx + 1)) }));
+    queueSave({ allHiddenRows: nextAll });
+  }, [allHiddenRows, currentSheetId, rowCount, queueSave]);
+
+  const hideCol = useCallback((colIdx: number) => {
+    const nextAll: AllHiddenDimensionMaps = {
+      ...allHiddenCols,
+      [currentSheetId]: { ...(allHiddenCols[currentSheetId] ?? {}), [colIdx]: true },
+    };
+    setAllHiddenCols(nextAll);
+    setSelected((s) => ({ ...s, col: Math.max(0, Math.min(colCount - 1, colIdx + 1)) }));
+    queueSave({ allHiddenCols: nextAll });
+  }, [allHiddenCols, currentSheetId, colCount, queueSave]);
+
+  const unhideAllRows = useCallback(() => {
+    const nextAll: AllHiddenDimensionMaps = { ...allHiddenRows, [currentSheetId]: {} };
+    setAllHiddenRows(nextAll);
+    queueSave({ allHiddenRows: nextAll });
+  }, [allHiddenRows, currentSheetId, queueSave]);
+
+  const unhideAllCols = useCallback(() => {
+    const nextAll: AllHiddenDimensionMaps = { ...allHiddenCols, [currentSheetId]: {} };
+    setAllHiddenCols(nextAll);
+    queueSave({ allHiddenCols: nextAll });
+  }, [allHiddenCols, currentSheetId, queueSave]);
 
   // 필터 — 토글 + 단일 col 검색어 갱신 + 모두 지우기
   const toggleFilterOn = useCallback(() => {
@@ -1790,8 +2667,49 @@ export default function CloudSheetEditor() {
     [currentSheetId, currentSheetName, shiftCellsRow, shiftCellsCol],
   );
 
+  const shiftCurrentSheetMetadata = useCallback((axis: ShiftAxis, at: number, delta: number) => {
+    const previousAutoFilterRef = allAutoFilterRefs[currentSheetId];
+    const shiftedAutoFilterRef = shiftA1RangeReference(previousAutoFilterRef, axis, at, delta, currentSheetName);
+    const nextAutoFilterRefs: AllAutoFilterRefs = { ...allAutoFilterRefs };
+    const nextAutoFilterColumns: AllAutoFilterColumns = { ...allAutoFilterColumns };
+    if (shiftedAutoFilterRef) {
+      nextAutoFilterRefs[currentSheetId] = shiftedAutoFilterRef;
+      nextAutoFilterColumns[currentSheetId] = shiftAutoFilterColumnsByRef(
+        allAutoFilterColumns[currentSheetId] ?? [],
+        previousAutoFilterRef,
+        axis,
+        at,
+        delta,
+        currentSheetName,
+      );
+    } else {
+      delete nextAutoFilterRefs[currentSheetId];
+      delete nextAutoFilterColumns[currentSheetId];
+    }
+
+    const shiftedSortState = shiftSortStateByAxis(allSortStates[currentSheetId], axis, at, delta, currentSheetName);
+    const nextSortStates: AllSheetSortStates = { ...allSortStates };
+    if (shiftedSortState) nextSortStates[currentSheetId] = shiftedSortState;
+    else delete nextSortStates[currentSheetId];
+
+    return {
+      allAutoFilterRefs: nextAutoFilterRefs,
+      allAutoFilterColumns: nextAutoFilterColumns,
+      allSortStates: nextSortStates,
+      allTables: {
+        ...allTables,
+        [currentSheetId]: shiftTablesByAxis(allTables[currentSheetId] ?? [], axis, at, delta, currentSheetName),
+      },
+      namedRanges: shiftNamedRangesByAxis(namedRanges, axis, at, delta, currentSheetName),
+    };
+  }, [allAutoFilterRefs, allAutoFilterColumns, allSortStates, allTables, namedRanges, currentSheetId, currentSheetName]);
+
   const insertRow = useCallback((atRow: number) => {
     const nextRowCount = Math.min(MAX_ROWS, rowCount + 1);
+    if (nextRowCount === rowCount) {
+      toast({ title: `최대 ${MAX_ROWS}행까지 지원합니다` });
+      return;
+    }
     const nextCells = applyAxisShift(allCells, 'row', atRow, +1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
@@ -1808,16 +2726,55 @@ export default function CloudSheetEditor() {
       const nr = r >= atRow ? r + 1 : r;
       nextHeights[nr] = v;
     }
+    const nextHiddenRows: AllHiddenDimensionMaps = {
+      ...allHiddenRows,
+      [currentSheetId]: shiftHiddenDimensionMap(allHiddenRows[currentSheetId] ?? {}, atRow, +1),
+    };
+    const nextComments: AllComments = { ...allComments, [currentSheetId]: shiftCellsRow(comments, atRow, +1) };
+    const nextValidations: AllValidations = { ...allValidations, [currentSheetId]: shiftRangedItems(validations, 'row', atRow, +1) };
+    const nextCondRules: AllCondRules = { ...allCondRules, [currentSheetId]: shiftRangedItems(condRules, 'row', atRow, +1) };
+    const nextEmbeddedCharts: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: shiftRangedItems(embeddedCharts, 'row', atRow, +1) };
+    const nextMetadata = shiftCurrentSheetMetadata('row', atRow, +1);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllHiddenRows(nextHiddenRows);
+    setAllComments(nextComments);
+    setAllValidations(nextValidations);
+    setAllCondRules(nextCondRules);
+    setAllEmbeddedCharts(nextEmbeddedCharts);
+    setAllAutoFilterRefs(nextMetadata.allAutoFilterRefs);
+    setAllAutoFilterColumns(nextMetadata.allAutoFilterColumns);
+    setAllSortStates(nextMetadata.allSortStates);
+    setAllTables(nextMetadata.allTables);
+    setNamedRanges(nextMetadata.namedRanges);
     setRowCount(nextRowCount);
     setRowHeights(nextHeights);
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount, rowHeights: nextHeights });
-  }, [rowCount, allCells, allFormats, allMerges, rowHeights, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
+    queueSave({
+      allCells: nextCells,
+      allFormats: nextFormats,
+      allMerges: nextMerges,
+      allHiddenRows: nextHiddenRows,
+      allComments: nextComments,
+      allValidations: nextValidations,
+      allCondRules: nextCondRules,
+      allEmbeddedCharts: nextEmbeddedCharts,
+      allAutoFilterRefs: nextMetadata.allAutoFilterRefs,
+      allAutoFilterColumns: nextMetadata.allAutoFilterColumns,
+      allSortStates: nextMetadata.allSortStates,
+      allTables: nextMetadata.allTables,
+      namedRanges: nextMetadata.namedRanges,
+      rowCount: nextRowCount,
+      rowHeights: nextHeights,
+    });
+  }, [rowCount, allCells, allFormats, allMerges, rowHeights, allHiddenRows, allComments, comments, allValidations, validations, allCondRules, condRules, allEmbeddedCharts, embeddedCharts, currentSheetId, applyAxisShift, shiftFormatsRow, shiftMergesRow, shiftCurrentSheetMetadata, queueSave]);
 
   const insertCol = useCallback((atCol: number) => {
     const nextColCount = Math.min(MAX_COLS, colCount + 1);
+    if (nextColCount === colCount) {
+      toast({ title: `최대 ${MAX_COLS}열까지 지원합니다` });
+      return;
+    }
     const nextCells = applyAxisShift(allCells, 'col', atCol, +1);
     const nextFormats: AllFormats = { ...allFormats };
     const nextMerges: AllMerges = { ...allMerges };
@@ -1827,12 +2784,54 @@ export default function CloudSheetEditor() {
     for (const sid of Object.keys(allMerges)) {
       nextMerges[sid] = shiftMergesCol(allMerges[sid] ?? [], atCol, +1);
     }
+    const nextWidths: Record<number, number> = {};
+    for (const [k, v] of Object.entries(colWidths)) {
+      const c = Number(k);
+      const nc = c >= atCol ? c + 1 : c;
+      nextWidths[nc] = v;
+    }
+    const nextHiddenCols: AllHiddenDimensionMaps = {
+      ...allHiddenCols,
+      [currentSheetId]: shiftHiddenDimensionMap(allHiddenCols[currentSheetId] ?? {}, atCol, +1),
+    };
+    const nextComments: AllComments = { ...allComments, [currentSheetId]: shiftCellsCol(comments, atCol, +1) };
+    const nextValidations: AllValidations = { ...allValidations, [currentSheetId]: shiftRangedItems(validations, 'col', atCol, +1) };
+    const nextCondRules: AllCondRules = { ...allCondRules, [currentSheetId]: shiftRangedItems(condRules, 'col', atCol, +1) };
+    const nextEmbeddedCharts: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: shiftRangedItems(embeddedCharts, 'col', atCol, +1) };
+    const nextMetadata = shiftCurrentSheetMetadata('col', atCol, +1);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllHiddenCols(nextHiddenCols);
+    setAllComments(nextComments);
+    setAllValidations(nextValidations);
+    setAllCondRules(nextCondRules);
+    setAllEmbeddedCharts(nextEmbeddedCharts);
+    setAllAutoFilterRefs(nextMetadata.allAutoFilterRefs);
+    setAllAutoFilterColumns(nextMetadata.allAutoFilterColumns);
+    setAllSortStates(nextMetadata.allSortStates);
+    setAllTables(nextMetadata.allTables);
+    setNamedRanges(nextMetadata.namedRanges);
     setColCount(nextColCount);
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount });
-  }, [colCount, allCells, allFormats, allMerges, applyAxisShift, shiftFormatsCol, shiftMergesCol, queueSave]);
+    setColWidths(nextWidths);
+    queueSave({
+      allCells: nextCells,
+      allFormats: nextFormats,
+      allMerges: nextMerges,
+      allHiddenCols: nextHiddenCols,
+      allComments: nextComments,
+      allValidations: nextValidations,
+      allCondRules: nextCondRules,
+      allEmbeddedCharts: nextEmbeddedCharts,
+      allAutoFilterRefs: nextMetadata.allAutoFilterRefs,
+      allAutoFilterColumns: nextMetadata.allAutoFilterColumns,
+      allSortStates: nextMetadata.allSortStates,
+      allTables: nextMetadata.allTables,
+      namedRanges: nextMetadata.namedRanges,
+      colCount: nextColCount,
+      colWidths: nextWidths,
+    });
+  }, [colCount, allCells, allFormats, allMerges, colWidths, allHiddenCols, allComments, comments, allValidations, validations, allCondRules, condRules, allEmbeddedCharts, embeddedCharts, currentSheetId, applyAxisShift, shiftFormatsCol, shiftMergesCol, shiftCurrentSheetMetadata, queueSave]);
 
   const deleteRow = useCallback((atRow: number) => {
     if (rowCount <= MIN_ROWS) {
@@ -1857,14 +2856,49 @@ export default function CloudSheetEditor() {
       const nr = r > atRow ? r - 1 : r;
       nextHeights[nr] = v;
     }
+    const nextHiddenRows: AllHiddenDimensionMaps = {
+      ...allHiddenRows,
+      [currentSheetId]: shiftHiddenDimensionMap(allHiddenRows[currentSheetId] ?? {}, atRow, -1),
+    };
+    const nextComments: AllComments = { ...allComments, [currentSheetId]: shiftCellsRow(comments, atRow, -1) };
+    const nextValidations: AllValidations = { ...allValidations, [currentSheetId]: shiftRangedItems(validations, 'row', atRow, -1) };
+    const nextCondRules: AllCondRules = { ...allCondRules, [currentSheetId]: shiftRangedItems(condRules, 'row', atRow, -1) };
+    const nextEmbeddedCharts: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: shiftRangedItems(embeddedCharts, 'row', atRow, -1) };
+    const nextMetadata = shiftCurrentSheetMetadata('row', atRow, -1);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllHiddenRows(nextHiddenRows);
+    setAllComments(nextComments);
+    setAllValidations(nextValidations);
+    setAllCondRules(nextCondRules);
+    setAllEmbeddedCharts(nextEmbeddedCharts);
+    setAllAutoFilterRefs(nextMetadata.allAutoFilterRefs);
+    setAllAutoFilterColumns(nextMetadata.allAutoFilterColumns);
+    setAllSortStates(nextMetadata.allSortStates);
+    setAllTables(nextMetadata.allTables);
+    setNamedRanges(nextMetadata.namedRanges);
     setRowCount(nextRowCount);
     setRowHeights(nextHeights);
     setSelected((s) => ({ ...s, row: Math.min(s.row, nextRowCount - 1) }));
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, rowCount: nextRowCount, rowHeights: nextHeights });
-  }, [rowCount, allCells, allFormats, allMerges, rowHeights, applyAxisShift, shiftFormatsRow, shiftMergesRow, queueSave]);
+    queueSave({
+      allCells: nextCells,
+      allFormats: nextFormats,
+      allMerges: nextMerges,
+      allHiddenRows: nextHiddenRows,
+      allComments: nextComments,
+      allValidations: nextValidations,
+      allCondRules: nextCondRules,
+      allEmbeddedCharts: nextEmbeddedCharts,
+      allAutoFilterRefs: nextMetadata.allAutoFilterRefs,
+      allAutoFilterColumns: nextMetadata.allAutoFilterColumns,
+      allSortStates: nextMetadata.allSortStates,
+      allTables: nextMetadata.allTables,
+      namedRanges: nextMetadata.namedRanges,
+      rowCount: nextRowCount,
+      rowHeights: nextHeights,
+    });
+  }, [rowCount, allCells, allFormats, allMerges, rowHeights, allHiddenRows, allComments, comments, allValidations, validations, allCondRules, condRules, allEmbeddedCharts, embeddedCharts, currentSheetId, applyAxisShift, shiftFormatsRow, shiftMergesRow, shiftCurrentSheetMetadata, queueSave]);
 
   const deleteCol = useCallback((atCol: number) => {
     if (colCount <= MIN_COLS) {
@@ -1889,14 +2923,49 @@ export default function CloudSheetEditor() {
       const nc = c > atCol ? c - 1 : c;
       nextWidths[nc] = v;
     }
+    const nextHiddenCols: AllHiddenDimensionMaps = {
+      ...allHiddenCols,
+      [currentSheetId]: shiftHiddenDimensionMap(allHiddenCols[currentSheetId] ?? {}, atCol, -1),
+    };
+    const nextComments: AllComments = { ...allComments, [currentSheetId]: shiftCellsCol(comments, atCol, -1) };
+    const nextValidations: AllValidations = { ...allValidations, [currentSheetId]: shiftRangedItems(validations, 'col', atCol, -1) };
+    const nextCondRules: AllCondRules = { ...allCondRules, [currentSheetId]: shiftRangedItems(condRules, 'col', atCol, -1) };
+    const nextEmbeddedCharts: AllEmbeddedCharts = { ...allEmbeddedCharts, [currentSheetId]: shiftRangedItems(embeddedCharts, 'col', atCol, -1) };
+    const nextMetadata = shiftCurrentSheetMetadata('col', atCol, -1);
     setAllCells(nextCells);
     setAllFormats(nextFormats);
     setAllMerges(nextMerges);
+    setAllHiddenCols(nextHiddenCols);
+    setAllComments(nextComments);
+    setAllValidations(nextValidations);
+    setAllCondRules(nextCondRules);
+    setAllEmbeddedCharts(nextEmbeddedCharts);
+    setAllAutoFilterRefs(nextMetadata.allAutoFilterRefs);
+    setAllAutoFilterColumns(nextMetadata.allAutoFilterColumns);
+    setAllSortStates(nextMetadata.allSortStates);
+    setAllTables(nextMetadata.allTables);
+    setNamedRanges(nextMetadata.namedRanges);
     setColCount(nextColCount);
     setColWidths(nextWidths);
     setSelected((s) => ({ ...s, col: Math.min(s.col, nextColCount - 1) }));
-    queueSave({ allCells: nextCells, allFormats: nextFormats, allMerges: nextMerges, colCount: nextColCount, colWidths: nextWidths });
-  }, [colCount, allCells, allFormats, allMerges, colWidths, applyAxisShift, shiftFormatsCol, shiftMergesCol, queueSave]);
+    queueSave({
+      allCells: nextCells,
+      allFormats: nextFormats,
+      allMerges: nextMerges,
+      allHiddenCols: nextHiddenCols,
+      allComments: nextComments,
+      allValidations: nextValidations,
+      allCondRules: nextCondRules,
+      allEmbeddedCharts: nextEmbeddedCharts,
+      allAutoFilterRefs: nextMetadata.allAutoFilterRefs,
+      allAutoFilterColumns: nextMetadata.allAutoFilterColumns,
+      allSortStates: nextMetadata.allSortStates,
+      allTables: nextMetadata.allTables,
+      namedRanges: nextMetadata.namedRanges,
+      colCount: nextColCount,
+      colWidths: nextWidths,
+    });
+  }, [colCount, allCells, allFormats, allMerges, colWidths, allHiddenCols, allComments, comments, allValidations, validations, allCondRules, condRules, allEmbeddedCharts, embeddedCharts, currentSheetId, applyAxisShift, shiftFormatsCol, shiftMergesCol, shiftCurrentSheetMetadata, queueSave]);
 
   // ─── 열 너비 / 행 높이 변경 ───
   const setColWidth = useCallback((colIdx: number, w: number) => {
@@ -2850,8 +3919,9 @@ export default function CloudSheetEditor() {
             numberFmt: undefined, border: undefined,
           })}
           toggleFilter={() => setFilterOn((v) => !v)}
-          sortSelectionAsc={() => toast({ title: '선택 영역 정렬', description: '곧 추가됩니다 (PR 후속).' })}
-          sortSelectionDesc={() => toast({ title: '선택 영역 정렬', description: '곧 추가됩니다 (PR 후속).' })}
+          createTable={createTableFromSelection}
+          sortSelectionAsc={() => sortByColumn(hasRange ? selBounds.minC : selected.col, 'asc')}
+          sortSelectionDesc={() => sortByColumn(hasRange ? selBounds.minC : selected.col, 'desc')}
           toggleAiPanel={ai.toggle}
           openShortcutHelp={() => setHelpOpen(true)}
           openFunctionList={() => setHelpOpen(true)}
@@ -3434,6 +4504,8 @@ export default function CloudSheetEditor() {
             colCount={colCount}
             colWidths={colWidths}
             rowHeights={rowHeights}
+            hiddenCols={hiddenCols}
+            hiddenRows={hiddenRows}
             onColResize={setColWidth}
             onRowResize={setRowHeight}
             onRowAutoFit={autoFitRowHeight}
@@ -3509,6 +4581,7 @@ export default function CloudSheetEditor() {
                 key={c.id}
                 chart={c}
                 cells={cells}
+                evalContext={formulaEvalContext}
                 onRemove={() => removeEmbeddedChart(c.id)}
                 onMovePrev={idx > 0 ? () => moveEmbeddedChart(c.id, -1) : undefined}
                 onMoveNext={idx < embeddedCharts.length - 1 ? () => moveEmbeddedChart(c.id, +1) : undefined}
@@ -3559,6 +4632,23 @@ export default function CloudSheetEditor() {
               <div className="h-px bg-border my-1" />
               <button
                 type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { hideRow(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                {ctxMenu.idx + 1}행 숨기기
+              </button>
+              {Object.keys(hiddenRows).length > 0 && (
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                  onClick={() => { unhideAllRows(); setCtxMenu(null); }}
+                >
+                  숨긴 행 모두 표시
+                </button>
+              )}
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
                 className="w-full text-left px-3 py-1.5 hover:bg-muted text-destructive"
                 onClick={() => { deleteRow(ctxMenu.idx); setCtxMenu(null); }}
               >
@@ -3598,6 +4688,23 @@ export default function CloudSheetEditor() {
               >
                 오른쪽에 열 삽입
               </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { hideCol(ctxMenu.idx); setCtxMenu(null); }}
+              >
+                {idxToCol(ctxMenu.idx)}열 숨기기
+              </button>
+              {Object.keys(hiddenCols).length > 0 && (
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                  onClick={() => { unhideAllCols(); setCtxMenu(null); }}
+                >
+                  숨긴 열 모두 표시
+                </button>
+              )}
               <div className="h-px bg-border my-1" />
               <button
                 type="button"
@@ -3899,6 +5006,7 @@ export default function CloudSheetEditor() {
         open={chartOpen}
         onClose={() => setChartOpen(false)}
         cells={cells}
+        evalContext={formulaEvalContext}
         range={selBounds}
         onEmbed={(c) => {
           addEmbeddedChart(c);

@@ -8,6 +8,11 @@ export type VAlign = 'top' | 'middle' | 'bottom';
 export type Wrap = 'overflow' | 'wrap' | 'clip';
 export type HAlign = 'left' | 'center' | 'right';
 
+export interface CellProtection {
+  locked?: boolean;
+  hidden?: boolean;
+}
+
 export interface CellFormat {
   bold?: boolean;
   italic?: boolean;
@@ -23,6 +28,7 @@ export interface CellFormat {
   fontSize?: number;
   numberFmt?: NumberFmt;
   border?: BorderStyle;
+  protection?: CellProtection;
 }
 
 export type CellFormats = Record<string, CellFormat>;
@@ -32,5 +38,5 @@ export const CLEARED_FORMAT: Partial<CellFormat> = {
   bold: undefined, italic: undefined, underline: undefined, strikethrough: undefined,
   textColor: undefined, bgColor: undefined, align: undefined, vAlign: undefined,
   wrap: undefined, fontFamily: undefined, fontSize: undefined,
-  numberFmt: undefined, border: undefined,
+  numberFmt: undefined, border: undefined, protection: undefined,
 };

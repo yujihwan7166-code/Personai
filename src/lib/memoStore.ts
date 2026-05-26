@@ -32,7 +32,7 @@ export interface Memo {
   wikiPageId?: string;          // 위키로 보낸 후 그 페이지 id
   /** 첨부 이미지 — paste / drag-drop. 본문 위에 grid 로 표시. */
   images?: MemoImage[];
-  // 녹음 노트 → 메모 승격 시 출처 (단방향 단서 — 메모 → 부모 가리킴)
+  // AI 녹음 분석 → 메모 승격 시 출처 (단방향 단서 — 메모 → 부모 가리킴)
   sourceRecordingId?: string;   // 출처 녹음 id (Supabase voice_recording.id)
   sourceRecordingTitle?: string;// 표시용 스냅샷 (녹음 삭제 후에도 라벨 유지)
   sourceChapterIndex?: number;  // 그 녹음의 몇 번째 챕터에서 왔는지

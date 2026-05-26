@@ -3,12 +3,19 @@ import type { StudyNotebook, StudyStreak, StudyFolder } from '@/types/study';
 import { newId, todayKey } from '@/types/study';
 import { deleteBlob, pruneOrphans } from '@/lib/studyBlobStore';
 import { deleteOcrForBlob } from '@/lib/studyOcrStore';
-import { SAMPLE_NOTEBOOKS, SAMPLE_FOLDER, isSeeded, markSeeded } from '@/lib/studySamples';
+import { SAMPLE_NOTEBOOKS, SAMPLE_FOLDER, isSeeded, markSeeded, isSampleNotebook } from '@/lib/studySamples';
 
 const KEY_NOTEBOOKS = 'study_notebooks_v1';
 const KEY_STREAK = 'study_streak_v1';
 const KEY_FOLDERS = 'study_folders_v1';
 const KEY_MIGRATION_V2 = 'study_migration_v2_done';
+
+const LEGACY_SAMPLE_ICON_MAP: Record<string, string> = {
+  '🧠': 'Brain',
+  '🤖': 'Bot',
+  '📚': 'GraduationCap',
+  '🌌': 'Sparkles',
+};
 
 /**
  * v2 마이그레이션: 다중 소스 노트북을 "파일 = 1소스" 모델로 분할.
@@ -128,6 +135,31 @@ function seedIfFirstVisit(notebooks: StudyNotebook[], folders: StudyFolder[]): {
   return { notebooks: seededNotebooks, folders: seededFolders, seeded: true };
 }
 
+function sanitizeSampleVisuals(notebooks: StudyNotebook[], folders: StudyFolder[]) {
+  let notebookChanged = false;
+  let folderChanged = false;
+  const nextNotebooks = notebooks.map((nb) => {
+    if (!isSampleNotebook(nb)) return nb;
+    const nextIcon = LEGACY_SAMPLE_ICON_MAP[nb.icon] ?? nb.icon;
+    if (nextIcon === nb.icon) return nb;
+    notebookChanged = true;
+    return { ...nb, icon: nextIcon };
+  });
+  const nextFolders = folders.map((folder) => {
+    const looksLikeLegacySampleFolder = folder.name.includes('둘러보기') || (folder.name.includes('📚') && folder.color === SAMPLE_FOLDER.color);
+    if (!looksLikeLegacySampleFolder) return folder;
+    if (folder.name === SAMPLE_FOLDER.name) return folder;
+    folderChanged = true;
+    return { ...folder, name: SAMPLE_FOLDER.name };
+  });
+  return {
+    notebooks: nextNotebooks,
+    folders: nextFolders,
+    notebookChanged,
+    folderChanged,
+  };
+}
+
 export function usePersistedStudyNotebooks() {
   const [notebooks, setNotebooks] = useState<StudyNotebook[]>(() => {
     const nbs = loadNotebooks();
@@ -139,7 +171,14 @@ export function usePersistedStudyNotebooks() {
     if (migrated.folders !== fds) {
       try { localStorage.setItem(KEY_FOLDERS, JSON.stringify(migrated.folders)); } catch { /* noop */ }
     }
-    const seeded = seedIfFirstVisit(migrated.notebooks, migrated.folders);
+    const sanitized = sanitizeSampleVisuals(migrated.notebooks, migrated.folders);
+    if (sanitized.notebookChanged) {
+      try { localStorage.setItem(KEY_NOTEBOOKS, JSON.stringify(sanitized.notebooks)); } catch { /* noop */ }
+    }
+    if (sanitized.folderChanged) {
+      try { localStorage.setItem(KEY_FOLDERS, JSON.stringify(sanitized.folders)); } catch { /* noop */ }
+    }
+    const seeded = seedIfFirstVisit(sanitized.notebooks, sanitized.folders);
     if (seeded.seeded) {
       try {
         localStorage.setItem(KEY_NOTEBOOKS, JSON.stringify(seeded.notebooks));
@@ -152,7 +191,8 @@ export function usePersistedStudyNotebooks() {
   const [folders, setFolders] = useState<StudyFolder[]>(() => {
     const fds = loadFolders();
     const nbs = loadNotebooks();
-    const seeded = seedIfFirstVisit(nbs, fds);
+    const sanitized = sanitizeSampleVisuals(nbs, fds);
+    const seeded = seedIfFirstVisit(sanitized.notebooks, sanitized.folders);
     return seeded.folders;
   });
   const [streak, setStreak] = useState<StudyStreak>(() => loadStreak());

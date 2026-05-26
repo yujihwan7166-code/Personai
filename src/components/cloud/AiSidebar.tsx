@@ -1,79 +1,165 @@
-/**
- * AI 사이드바 — 4개 화면 공통.
- *
- * 구조:
- *  - 헤더: 제목 + 컨텍스트 칩 + 닫기
- *  - 본문: 메시지 목록 (스크롤) / 빈 상태일 때 빠른 액션 칩 + 안내
- *  - 푸터: textarea + 보내기 + 대화 초기화
- *
- * - lg 이상: 우측 inline 사이드바 320px
- * - lg 미만: fixed 풀스크린 overlay + backdrop (Esc 또는 backdrop 클릭으로 닫기)
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, X, Send, RefreshCw, AlertTriangle, Copy as CopyIcon, Check } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  Copy as CopyIcon,
+  FileText,
+  Heading,
+  ListChecks,
+  MessageCircleQuestion,
+  Search,
+  Sparkles,
+  Tags,
+  Trash2,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { PageAiPanelHeader } from '@/components/PageAiPanelHeader';
+import {
+  PAGE_AI_PANEL_WIDTH,
+  PAGE_AI_PANEL_SCROLL_CLASS,
+  PAGE_AI_PANEL_SURFACE_CLASS,
+  PAGE_AI_PANEL_TRANSITION_CLASS,
+  PAGE_AI_TONE_DOT,
+  PAGE_AI_TONE_ICON,
+  clampPageAiPanelWidth,
+  type PageAiTone,
+} from '@/components/PageAiTokens';
+import {
+  PageAiComposer,
+  PageAiContextStrip,
+  PageAiEmptyState,
+  PageAiMessageActionButton,
+  PageAiMessageActions,
+  PageAiMessageBubble,
+  PageAiPromptSet,
+  PageAiQuickAction,
+  PageAiResizeHandle,
+  PageAiTypingIndicator,
+} from '@/components/PageAiScaffold';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
-import type { AiContext, ChatMessage } from '@/lib/cloudAi/types';
+import type { AiContext, AiKind, ChatMessage } from '@/lib/cloudAi/types';
+
+interface QuickActionVisual {
+  icon: LucideIcon;
+  tone: PageAiTone;
+  emphasized?: boolean;
+}
+
+const QUICK_ACTION_VISUALS: Partial<Record<AiKind, Record<string, QuickActionVisual>>> = {
+  memo: {
+    summarize: { icon: FileText, tone: 'blue', emphasized: true },
+    tasks: { icon: ListChecks, tone: 'amber', emphasized: true },
+    title: { icon: Heading, tone: 'violet' },
+    tags: { icon: Tags, tone: 'emerald' },
+  },
+  journal: {
+    reflect: { icon: BookOpen, tone: 'emerald', emphasized: true },
+    question: { icon: MessageCircleQuestion, tone: 'blue', emphasized: true },
+    title: { icon: Heading, tone: 'violet' },
+    pattern: { icon: Search, tone: 'amber' },
+  },
+};
+
+function getQuickActionVisual(kind: AiKind, id: string, index: number): QuickActionVisual {
+  return QUICK_ACTION_VISUALS[kind]?.[id] ?? {
+    icon: Sparkles,
+    tone: index === 0 ? 'blue' : index === 1 ? 'amber' : index === 2 ? 'violet' : 'emerald',
+    emphasized: index < 2,
+  };
+}
+
+function getHeaderVisual(kind: AiKind): QuickActionVisual {
+  if (kind === 'memo') return { icon: FileText, tone: 'blue' };
+  if (kind === 'journal') return { icon: BookOpen, tone: 'emerald' };
+  return { icon: Sparkles, tone: 'violet' };
+}
+
+function aiWidthStorageKey(kind: AiKind): string {
+  return `personai.ai-panel.width.${kind}`;
+}
+
+function clampAiWidth(next: number): number {
+  return clampPageAiPanelWidth(next);
+}
+
+function loadAiWidth(kind: AiKind): number {
+  if (typeof window === 'undefined') return PAGE_AI_PANEL_WIDTH.default;
+  try {
+    const raw = window.localStorage.getItem(aiWidthStorageKey(kind));
+    if (raw === null || raw.trim() === '') return PAGE_AI_PANEL_WIDTH.default;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? clampAiWidth(parsed) : PAGE_AI_PANEL_WIDTH.default;
+  } catch {
+    return PAGE_AI_PANEL_WIDTH.default;
+  }
+}
+
+function saveAiWidth(kind: AiKind, width: number): void {
+  try {
+    window.localStorage.setItem(aiWidthStorageKey(kind), String(clampAiWidth(width)));
+  } catch {
+    /* private mode / quota */
+  }
+}
 
 interface AiSidebarProps {
   open: boolean;
   onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  inputPlaceholder?: string;
   context: AiContext;
   messages: ChatMessage[];
   sending: boolean;
   onSend: (text: string) => void | Promise<void>;
-  /** 마지막 user 메시지로 응답 재생성. 미제공이면 retry 버튼 X. */
   onRetry?: () => void | Promise<void>;
   onClear: () => void;
-  /** 컨텍스트 칩 클릭 시 화면별 동작 (예: 시트 → selBounds 로 jump). 선택 사항 */
   onContextClick?: () => void;
 }
 
 export function AiSidebar({
-  open, onClose, context, messages, sending, onSend, onRetry, onClear, onContextClick,
+  open,
+  onClose,
+  title = 'AI 어시스턴트',
+  subtitle,
+  emptyTitle = '무엇을 도와드릴까요?',
+  emptyDescription = '현재 화면의 내용을 참고해 답합니다.',
+  inputPlaceholder = '질문하거나 정리할 내용을 입력...',
+  context,
+  messages,
+  sending,
+  onSend,
+  onRetry,
+  onClear,
+  onContextClick,
 }: AiSidebarProps) {
   const [draft, setDraft] = useState('');
+  const [width, setWidth] = useState(() => loadAiWidth(context.kind));
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // 새 메시지 / 로딩 → 자동 스크롤
+  useEffect(() => {
+    setWidth(loadAiWidth(context.kind));
+  }, [context.kind]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
-  // 사이드바 열리면 입력창 포커스
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [open]);
+  useEscapeKey(() => onClose(), { enabled: open });
 
-  // Esc 닫기 (모바일 풀스크린 시 특히 유용)
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const t = e.target as HTMLElement | null;
-        // 입력창 안에서 esc 면 닫지 말고 그냥 blur 만
-        if (t?.tagName === 'TEXTAREA' || t?.tagName === 'INPUT') return;
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  const handleSend = useCallback(() => {
-    const text = draft.trim();
-    if (!text || sending) return;
-    setDraft('');
+  const handleSend = useCallback((text: string) => {
+    if (!text.trim() || sending) return;
     void onSend(text);
-  }, [draft, sending, onSend]);
+  }, [sending, onSend]);
 
   const handleQuickAction = useCallback((prompt: string) => {
     if (sending) return;
@@ -82,175 +168,130 @@ export function AiSidebar({
 
   if (!open) return null;
 
-  const quickActions = QUICK_ACTIONS[context.kind];
+  const quickActions = QUICK_ACTIONS[context.kind] ?? [];
   const isEmpty = messages.length === 0;
+  const headerVisual = getHeaderVisual(context.kind);
+  const HeaderIcon = headerVisual.icon;
 
   return (
     <>
-      {/* 모바일 backdrop — lg 미만에서만 보임 */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        className="fixed inset-0 z-40 bg-black/35 lg:hidden"
         onClick={onClose}
         aria-hidden
       />
       <aside
+        data-page-ai-panel={context.kind}
+        data-page-ai-panel-open="true"
         className={cn(
-          'bg-background flex flex-col shrink-0',
-          // 모바일: fixed 풀스크린
-          'fixed inset-0 z-50',
-          // lg 이상: in-flow column. 화면이 클수록 더 넓게 (본문 가독성 유지하면서 채팅 영역 확보).
-          // lg: 384px, xl: 448px, 2xl: 512px. min-h-0 로 자식 flex-1 overflow 가 부모 높이를 넘지 않도록 강제.
-          'lg:static lg:inset-auto lg:z-auto lg:border-l lg:border-border lg:h-full lg:min-h-0',
-          'lg:w-96 xl:w-[28rem] 2xl:w-[32rem]',
+          'fixed inset-0 z-50 flex shrink-0 flex-col overflow-hidden',
+          PAGE_AI_PANEL_SURFACE_CLASS,
+          PAGE_AI_PANEL_TRANSITION_CLASS,
+          'lg:relative lg:inset-auto lg:z-auto lg:h-full lg:min-h-0 lg:w-[var(--ai-sidebar-w)]',
         )}
+        style={{ ['--ai-sidebar-w' as string]: `${width}px` }}
         role="complementary"
-        aria-label="AI 어시스턴트"
+        aria-label={title}
       >
-      {/* 헤더 */}
-      <div className="border-b border-border px-3 py-2 flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-violet-500" aria-hidden />
-        <span className="text-sm font-medium">AI 어시스턴트</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="ml-auto p-1 rounded hover:bg-muted"
-          aria-label="사이드바 닫기"
-          title="닫기"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+        <PageAiResizeHandle
+          open={open}
+          width={width}
+          minWidth={PAGE_AI_PANEL_WIDTH.min}
+          maxWidth={PAGE_AI_PANEL_WIDTH.max}
+          defaultWidth={PAGE_AI_PANEL_WIDTH.default}
+          onWidthChange={setWidth}
+          onWidthCommit={(next) => saveAiWidth(context.kind, next)}
+        />
 
-      {/* 컨텍스트 칩 */}
-      {context.summary && (
-        <button
-          type="button"
-          onClick={onContextClick}
-          disabled={!onContextClick}
-          className={cn(
-            'text-left text-xs px-3 py-1.5 border-b border-border bg-muted/30 truncate',
-            onContextClick && 'hover:bg-muted cursor-pointer',
-            !onContextClick && 'cursor-default',
+        <PageAiPanelHeader
+          title={title}
+          subtitle={subtitle ?? context.summary}
+          icon={<HeaderIcon className="h-3.5 w-3.5" aria-hidden />}
+          iconTone={headerVisual.tone}
+          onClose={onClose}
+          actions={!isEmpty && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`대화의 메시지 ${messages.length}개를 모두 삭제할까요?`)) onClear();
+              }}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="대화 비우기"
+              aria-label="대화 비우기"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           )}
-          title={`현재 컨텍스트: ${context.summary}`}
-        >
-          <span className="text-muted-foreground">컨텍스트: </span>
-          <span className="font-medium">{context.summary}</span>
-        </button>
-      )}
+        />
 
-      {/* 본문 — 메시지 목록 또는 빈 상태.
-          overscroll-contain: 메시지 끝까지 스크롤 후 휠이 부모(클라우드 본문)로 전파되는 걸 막아 스크롤 분리.
-          min-h-0: 부모 flex column 안에서 자체 스크롤이 정상 작동하도록 보장. */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 space-y-3">
-        {isEmpty ? (
-          <div className="space-y-3 py-4">
-            <div className="text-center text-sm text-muted-foreground">
-              👋 무엇을 도와드릴까요?
-            </div>
-            {context.summary && (
-              <div className="text-center text-[11px] text-muted-foreground/80 px-2">
-                현재 컨텍스트로 바로 시작할 수 있어요
-              </div>
-            )}
-            <div className="flex flex-col gap-1.5">
-              {quickActions.map((qa) => (
-                <button
-                  key={qa.id}
-                  type="button"
-                  onClick={() => handleQuickAction(qa.prompt)}
-                  disabled={sending}
-                  className="text-left px-3 py-2 rounded border border-border bg-background hover:bg-muted hover:border-foreground/30 text-sm disabled:opacity-50 transition-colors"
-                >
-                  <Sparkles className="w-3 h-3 text-violet-500 inline mr-1.5 -mt-0.5" aria-hidden />
-                  {qa.label}
-                </button>
-              ))}
-            </div>
-            <div className="text-xs text-muted-foreground text-center pt-2">
-              또는 아래에 자유롭게 질문하세요.
-            </div>
-          </div>
-        ) : (
-          messages.map((m) =>
-            // 빈 assistant 메시지 (streaming 시작 직전) 는 bubble 숨김 — spinner 가 대신
-            m.role === 'assistant' && m.content === '' ? null : (
-              <MessageBubble key={m.id} message={m} />
-            ),
-          )
+        {context.summary && (
+          <PageAiContextStrip
+            summary={context.summary}
+            title={`현재 참조: ${context.summary}`}
+            onClick={onContextClick}
+            className={!onContextClick ? 'cursor-default' : undefined}
+          />
         )}
-        {/* 응답 시작 전 spinner — 마지막 assistant 메시지가 아직 비어 있을 때만 */}
-        {sending && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground pl-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '120ms' }} />
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '240ms' }} />
-          </div>
-        )}
-      </div>
 
-      {/* 푸터 — 입력창 */}
-      <div className="border-t border-border p-2">
-        {!isEmpty && (
-          <div className="flex justify-between items-center pb-1.5">
-            <span className="text-[10px] text-muted-foreground">{messages.length}개 메시지</span>
-            <div className="flex items-center gap-0.5">
-              {onRetry && messages.some((m) => m.role === 'user') && (
-                <button
-                  type="button"
-                  onClick={() => { void onRetry(); }}
-                  disabled={sending}
-                  className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1 disabled:opacity-40"
-                  title="마지막 질문을 다시 보내 응답 재생성"
-                >
-                  ↻ 재시도
-                </button>
-              )}
+        <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>
+          {isEmpty ? (
+            <PageAiEmptyState title={emptyTitle} description={emptyDescription}>
+              <PageAiPromptSet label={`${title} 추천 요청`}>
+                {quickActions.map((qa, index) => {
+                  const visual = getQuickActionVisual(context.kind, qa.id, index);
+                  const Icon = visual.icon;
+                  return (
+                    <PageAiQuickAction
+                      key={qa.id}
+                      label={qa.label}
+                      description={qa.description}
+                      icon={<Icon className="h-3.5 w-3.5" aria-hidden />}
+                      iconClassName={PAGE_AI_TONE_ICON[visual.tone]}
+                      accentClassName={cn(PAGE_AI_TONE_DOT[visual.tone], visual.emphasized ? 'opacity-90' : 'opacity-55')}
+                      emphasized={visual.emphasized}
+                      onClick={() => handleQuickAction(qa.prompt)}
+                      disabled={sending}
+                      showArrow
+                    />
+                  );
+                })}
+              </PageAiPromptSet>
+            </PageAiEmptyState>
+          ) : (
+            messages.map((m) =>
+              m.role === 'assistant' && m.content === '' ? null : (
+                <MessageBubble key={m.id} message={m} />
+              ),
+            )
+          )}
+          {sending && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
+            <PageAiTypingIndicator />
+          )}
+        </div>
+
+        {!isEmpty && onRetry && messages.some((m) => m.role === 'user') && (
+          <div className="shrink-0 border-t border-[hsl(var(--hairline))] bg-card/45 px-2.5 pt-2.5">
+            <div className="mb-1.5 flex justify-end">
               <button
                 type="button"
-                onClick={() => {
-                  if (messages.length === 0) return;
-                  if (window.confirm(`이 대화의 메시지 ${messages.length}개를 모두 삭제할까요? 되돌릴 수 없습니다.`)) {
-                    onClear();
-                  }
-                }}
-                className="text-[11px] px-1.5 py-0.5 rounded hover:bg-muted text-muted-foreground flex items-center gap-1"
-                title="대화 초기화 (모든 메시지 삭제)"
+                onClick={() => { void onRetry(); }}
+                disabled={sending}
+                className="rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
               >
-                <RefreshCw className="w-3 h-3" /> 새 대화
+                다시 생성
               </button>
             </div>
           </div>
         )}
-        <div className="flex items-end gap-1.5">
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="질문 또는 명령을 입력…"
-            rows={2}
-            disabled={sending}
-            className="flex-1 min-h-[36px] max-h-[120px] resize-none px-2 py-1.5 rounded border border-border bg-background outline-none focus:border-foreground/40 text-sm disabled:opacity-60"
-            aria-label="AI 입력"
-          />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!draft.trim() || sending}
-            className="p-2 rounded bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label="보내기"
-            title="보내기 (Enter)"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        <PageAiComposer
+          draft={draft}
+          onDraftChange={setDraft}
+          onSend={handleSend}
+          loading={sending}
+          placeholder={inputPlaceholder}
+          autoFocus={open}
+          className={cn(!isEmpty && onRetry && messages.some((m) => m.role === 'user') && 'border-t-0 pt-0')}
+        />
       </aside>
     </>
   );
@@ -265,53 +306,45 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      toast({ title: 'AI 응답 복사됨' });
-      setTimeout(() => setCopied(false), 1200);
+      toast({ title: 'AI 답변을 복사했어요' });
+      window.setTimeout(() => setCopied(false), 1200);
     } catch {
-      toast({ title: '클립보드 접근 실패' });
+      toast({ title: '클립보드 접근에 실패했어요' });
     }
   };
 
   return (
-    <div className={cn('flex group', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[85%] rounded-lg px-3 py-2 text-sm break-words relative',
-          isUser
-            ? 'bg-foreground text-background whitespace-pre-wrap'
-            : message.error
-              ? 'bg-destructive/10 text-destructive border border-destructive/30 whitespace-pre-wrap'
-              : 'bg-muted text-foreground',
-        )}
-      >
+    <div className="flex flex-col gap-1">
+      <PageAiMessageBubble role={isUser ? 'user' : 'assistant'} tone={message.error ? 'error' : 'default'}>
         {message.error && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium mb-1">
-            <AlertTriangle className="w-3 h-3" />
-            에러
-          </span>
+          <AlertTriangle className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden />
         )}
-        {isUser || message.error ? (
-          message.content
+        {isUser ? (
+          <div className="whitespace-pre-wrap">{message.content}</div>
         ) : (
-          <div className="markdown-msg [&>*+*]:mt-1.5 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-foreground/10 [&_code]:text-[0.85em] [&_code]:font-mono [&_pre]:p-2 [&_pre]:rounded [&_pre]:bg-foreground/10 [&_pre]:overflow-x-auto [&_pre>code]:bg-transparent [&_pre>code]:p-0 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold [&_strong]:font-semibold [&_em]:italic [&_a]:underline [&_a]:text-violet-600 [&_blockquote]:border-l-2 [&_blockquote]:border-foreground/30 [&_blockquote]:pl-2 [&_blockquote]:text-muted-foreground">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
-        )}
-        {canCopy && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={cn(
-              'absolute -top-2 -right-2 p-1 rounded border border-border bg-background shadow-sm transition-opacity',
-              copied ? 'opacity-100 text-emerald-600' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground',
-            )}
-            title={copied ? '복사됨' : 'AI 응답 복사'}
-            aria-label="AI 응답 복사"
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="mb-2 list-disc pl-5 last:mb-0">{children}</ul>,
+              ol: ({ children }) => <ol className="mb-2 list-decimal pl-5 last:mb-0">{children}</ol>,
+              code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 text-[12px]">{children}</code>,
+            }}
           >
-            {copied ? <Check className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
-          </button>
+            {message.content}
+          </ReactMarkdown>
         )}
-      </div>
+      </PageAiMessageBubble>
+      {canCopy && (
+        <PageAiMessageActions>
+          <PageAiMessageActionButton
+            onClick={handleCopy}
+            title="AI 답변 복사"
+            icon={copied ? <Check className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
+          >
+            {copied ? '복사됨' : '복사'}
+          </PageAiMessageActionButton>
+        </PageAiMessageActions>
+      )}
     </div>
   );
 }

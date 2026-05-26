@@ -6,10 +6,16 @@
  * - streaming: 끝에 깜빡이는 dot
  * - error: 빨간 톤 + 재시도 버튼
  */
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { AIMessage as AIMessageType } from '@/types/plannerAI';
-import { RefreshCw } from 'lucide-react';
+import { Check, Copy as CopyIcon, RefreshCw } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
+import {
+  PageAiMessageActionButton,
+  PageAiMessageActions,
+  PageAiMessageBubble,
+} from '@/components/PageAiScaffold';
 import { AIActionCard } from './AIActionCard';
 
 interface AIMessageProps {
@@ -23,17 +29,25 @@ interface AIMessageProps {
 export const AIMessage = ({ message, onRetry, onApplyAction, onCancelAction, onUndoAction }: AIMessageProps) => {
   const isUser = message.role === 'user';
   const hasError = Boolean(message.error);
+  const [copied, setCopied] = useState(false);
+  const canCopy = !isUser && !hasError && message.content.trim().length > 0;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
-    <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed break-words',
-          isUser
-            ? 'bg-primary/12 text-foreground whitespace-pre-wrap'
-            : 'bg-card border hairline text-foreground',
-          hasError && 'border-destructive/40 bg-destructive/5 text-foreground',
-        )}
+    <div className="flex flex-col gap-1">
+      <PageAiMessageBubble
+        role={isUser ? 'user' : 'assistant'}
+        tone={hasError ? 'error' : 'default'}
+        bubbleClassName={cn(hasError && 'text-foreground')}
       >
         {hasError ? (
           <div className="flex items-start gap-2">
@@ -81,7 +95,18 @@ export const AIMessage = ({ message, onRetry, onApplyAction, onCancelAction, onU
             )}
           </div>
         )}
-      </div>
+      </PageAiMessageBubble>
+      {canCopy && (
+        <PageAiMessageActions>
+          <PageAiMessageActionButton
+            onClick={handleCopy}
+            title="AI 답변 복사"
+            icon={copied ? <Check className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
+          >
+            {copied ? '복사됨' : '복사'}
+          </PageAiMessageActionButton>
+        </PageAiMessageActions>
+      )}
     </div>
   );
 };

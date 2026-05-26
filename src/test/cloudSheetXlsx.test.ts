@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { exportXlsxBuffer, importCsvText, importXlsxBuffer, importXlsxFile } from '@/lib/cloudSheet/xlsx';
 import { excelNumFmtToToken, tokenToExcelNumFmt } from '@/lib/cloudSheet/numFmtMap';
 
@@ -18,6 +19,59 @@ async function buildWorkbookBuffer(setup: (ws: ExcelJS.Worksheet) => void, sheet
   const buf = await wb.xlsx.writeBuffer();
   const u8 = new Uint8Array(buf as ArrayBufferLike);
   return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+}
+
+async function addNativeChartFixture(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+  const zip = await JSZip.loadAsync(buffer);
+  const sheetPath = 'xl/worksheets/sheet1.xml';
+  const sheetXml = await zip.file(sheetPath)!.async('string');
+  zip.file(sheetPath, sheetXml.includes('<drawing ')
+    ? sheetXml
+    : sheetXml.replace('</worksheet>', '<drawing r:id="rIdChartDrawing1"/></worksheet>'));
+  zip.file('xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdChartDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+</Relationships>`);
+  zip.file('xl/drawings/drawing1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:twoCellAnchor>
+    <xdr:from><xdr:col>3</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+    <xdr:to><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>12</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+    <xdr:graphicFrame>
+      <xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="Chart 1"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>
+      <xdr:xfrm/>
+      <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart r:id="rIdChart1"/></a:graphicData></a:graphic>
+    </xdr:graphicFrame>
+    <xdr:clientData/>
+  </xdr:twoCellAnchor>
+</xdr:wsDr>`);
+  zip.file('xl/drawings/_rels/drawing1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdChart1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/>
+</Relationships>`);
+  zip.file('xl/charts/chart1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <c:chart>
+    <c:title><c:tx><c:rich><a:p><a:r><a:t>Revenue</a:t></a:r></a:p></c:rich></c:tx></c:title>
+    <c:plotArea>
+      <c:barChart>
+        <c:barDir val="col"/>
+        <c:ser>
+          <c:idx val="0"/><c:order val="0"/>
+          <c:tx><c:strRef><c:f>'Charts'!$B$1</c:f></c:strRef></c:tx>
+          <c:cat><c:strRef><c:f>'Charts'!$A$2:$A$3</c:f></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>'Charts'!$B$2:$B$3</c:f></c:numRef></c:val>
+        </c:ser>
+      </c:barChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>`);
+  const out = await zip.generateAsync({ type: 'uint8array' });
+  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
 }
 
 describe('xlsx import — 기본 값/수식/병합 (회귀)', () => {
@@ -40,6 +94,20 @@ describe('xlsx import — 기본 값/수식/병합 (회귀)', () => {
     });
     const [sheet] = await importXlsxBuffer(file);
     expect(sheet.cells.B1).toBe('=AVG(A1:A3)');
+  });
+
+  it('normalizes Excel future-function prefixes on import', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'a';
+      ws.getCell('B1').value = '10';
+      ws.getCell('A2').value = 'b';
+      ws.getCell('B2').value = '20';
+      ws.getCell('C1').value = { formula: '_xlfn.XLOOKUP("b",A1:A2,B1:B2)', result: 20 };
+      ws.getCell('C2').value = { formula: '_xlfn._xlws.FILTER(B1:B2,A1:A2="b")', result: 20 };
+    });
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.cells.C1).toBe('=XLOOKUP("b",A1:A2,B1:B2)');
+    expect(sheet.cells.C2).toBe('=FILTER(B1:B2,A1:A2="b")');
   });
 
   it('셀 병합 보존', async () => {
@@ -262,6 +330,164 @@ describe('xlsx import — 열너비 / 행높이 / freeze (신규)', () => {
     expect(sheet.freezeRows).toBe(1);
     expect(sheet.freezeCols).toBe(2);
   });
+
+  it('imports sheet visibility, tab color, hidden rows/columns, and auto filter', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.state = 'hidden';
+      ws.properties.tabColor = { argb: 'FF22AA99' };
+      ws.getCell('A1').value = 'Name';
+      ws.getCell('B1').value = 'Score';
+      ws.getCell('A2').value = 'Ada';
+      ws.getColumn(2).hidden = true;
+      ws.getRow(3).hidden = true;
+      ws.getRow(3).height = 15;
+      ws.autoFilter = 'A1:B10';
+    }, 'Meta');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.name).toBe('Meta');
+    expect(sheet.sheetState).toBe('hidden');
+    expect(sheet.tabColor).toBe('#22AA99');
+    expect(sheet.hiddenCols?.[1]).toBe(true);
+    expect(sheet.hiddenRows?.[2]).toBe(true);
+    expect(sheet.autoFilterRef).toBe('A1:B10');
+  });
+
+  it('imports worksheet view options used by Excel', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'View';
+      ws.views = [{
+        state: 'normal',
+        showGridLines: false,
+        showRowColHeaders: false,
+        rightToLeft: true,
+        zoomScale: 125,
+      } as ExcelJS.WorksheetView];
+    }, 'ViewMeta');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.sheetView).toEqual({
+      showGridLines: false,
+      showRowColHeaders: false,
+      rightToLeft: true,
+      zoomScale: 125,
+    });
+  });
+
+  it('imports page setup and header/footer metadata used by Excel printing', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'Print';
+      ws.pageSetup = {
+        orientation: 'landscape',
+        paperSize: 9,
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        horizontalCentered: true,
+        verticalCentered: false,
+        printArea: 'A1:D20',
+        printTitlesRow: '1:2',
+        printTitlesColumn: 'A:B',
+        margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+      };
+      ws.headerFooter = {
+        oddHeader: '&CQuarterly Report',
+        oddFooter: '&RPage &P of &N',
+      };
+    }, 'PrintMeta');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.pageSetup).toMatchObject({
+      orientation: 'landscape',
+      paperSize: 9,
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      horizontalCentered: true,
+      verticalCentered: false,
+      printArea: 'A1:D20',
+      printTitlesRow: '1:2',
+      printTitlesColumn: 'A:B',
+      margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+    });
+    expect(sheet.headerFooter).toMatchObject({
+      oddHeader: '&CQuarterly Report',
+      oddFooter: '&RPage &P of &N',
+    });
+  });
+
+  it('imports row and column outline grouping metadata', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'Outline';
+      ws.getCell('A3').value = 'Level 1';
+      ws.getCell('A4').value = 'Level 2';
+      ws.getRow(3).outlineLevel = 1;
+      ws.getRow(4).outlineLevel = 2;
+      ws.getColumn(2).outlineLevel = 1;
+      ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false };
+    }, 'OutlineMeta');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.sheetOutline).toEqual({
+      rowLevels: { 2: 1, 3: 2 },
+      colLevels: { 1: 1 },
+      summaryBelow: false,
+      summaryRight: false,
+    });
+  });
+
+  it('imports sheet protection and cell protection metadata', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'editable';
+      ws.getCell('A1').protection = { locked: false };
+      ws.getCell('B1').value = { formula: 'A1*2', result: 4 };
+      ws.getCell('B1').protection = { locked: true, hidden: true };
+      (ws as unknown as { sheetProtection?: unknown }).sheetProtection = {
+        sheet: true,
+        selectUnlockedCells: false,
+        formatCells: true,
+        autoFilter: true,
+        algorithmName: 'SHA-512',
+        hashValue: 'hash',
+        saltValue: 'salt',
+        spinCount: 100000,
+      };
+    }, 'Protected');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.sheetProtection).toMatchObject({
+      sheet: true,
+      selectUnlockedCells: false,
+      formatCells: true,
+      autoFilter: true,
+      algorithmName: 'SHA-512',
+      hashValue: 'hash',
+      saltValue: 'salt',
+      spinCount: 100000,
+    });
+    expect(sheet.cellFormats?.A1?.protection).toMatchObject({ locked: false });
+    expect(sheet.cellFormats?.B1?.protection).toMatchObject({ hidden: true });
+  });
+
+  it('imports Excel table metadata', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.addTable({
+        name: 'Scores',
+        ref: 'A1',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: [{ name: 'Name', filterButton: true }, { name: 'Score', filterButton: true }],
+        rows: [['Ada', 10], ['Lin', 20]],
+      });
+    }, 'Tables');
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.tables?.[0]?.name).toBe('Scores');
+    expect(sheet.tables?.[0]?.ref).toBe('A1:B3');
+    expect(sheet.tables?.[0]?.columns?.map((col) => col.name)).toEqual(['Name', 'Score']);
+    expect(sheet.tables?.[0]?.style?.showRowStripes).toBe(true);
+  });
 });
 
 describe('xlsx export/import round-trip — layout metadata', () => {
@@ -293,6 +519,344 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     expect(sheet.rowHeights?.[0]).toBeGreaterThan(30);
     expect(sheet.freezeRows).toBe(1);
     expect(sheet.freezeCols).toBe(1);
+  });
+
+  it('preserves sheet metadata across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Meta',
+      cells: {
+        A1: 'Name',
+        B1: 'Score',
+        A2: 'Ada',
+      },
+      sheetState: 'veryHidden',
+      tabColor: '#3366CC',
+      hiddenCols: { 1: true },
+      hiddenRows: { 4: true },
+      autoFilterRef: 'A1:B20',
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Meta')!;
+    expect(ws.state).toBe('veryHidden');
+    expect(ws.properties.tabColor?.argb).toBe('FF3366CC');
+    expect(ws.getColumn(2).hidden).toBe(true);
+    expect(ws.getRow(5).hidden).toBe(true);
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.sheetState).toBe('veryHidden');
+    expect(sheet.tabColor).toBe('#3366CC');
+    expect(sheet.hiddenCols?.[1]).toBe(true);
+    expect(sheet.hiddenRows?.[4]).toBe(true);
+    expect(sheet.autoFilterRef).toBe('A1:B20');
+  });
+
+  it('preserves worksheet view options across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'ViewMeta',
+      cells: { A1: 'View' },
+      freezeRows: 1,
+      freezeCols: 1,
+      sheetView: {
+        showGridLines: false,
+        showRowColHeaders: false,
+        rightToLeft: true,
+        zoomScale: 135,
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    expect(wb.getWorksheet('ViewMeta')!.views[0]).toMatchObject({
+      state: 'frozen',
+      showGridLines: false,
+      showRowColHeaders: false,
+      rightToLeft: true,
+      zoomScale: 135,
+    });
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.freezeRows).toBe(1);
+    expect(sheet.freezeCols).toBe(1);
+    expect(sheet.sheetView).toEqual({
+      showGridLines: false,
+      showRowColHeaders: false,
+      rightToLeft: true,
+      zoomScale: 135,
+    });
+  });
+
+  it('preserves page setup and header/footer metadata across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'PrintMeta',
+      cells: { A1: 'Print' },
+      pageSetup: {
+        orientation: 'landscape',
+        paperSize: 9,
+        scale: 85,
+        horizontalCentered: true,
+        verticalCentered: true,
+        showGridLines: true,
+        showRowColHeaders: true,
+        blackAndWhite: true,
+        cellComments: 'asDisplayed',
+        errors: 'blank',
+        printArea: 'A1:D20',
+        printTitlesRow: '1:2',
+        printTitlesColumn: 'A:B',
+        margins: { left: 0.4, right: 0.4, top: 0.6, bottom: 0.6, header: 0.25, footer: 0.25 },
+      },
+      headerFooter: {
+        differentFirst: true,
+        oddHeader: '&CQuarterly Report',
+        oddFooter: '&RPage &P of &N',
+        firstHeader: '&LFirst page',
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('PrintMeta')!;
+    expect(ws.pageSetup).toMatchObject({
+      orientation: 'landscape',
+      paperSize: 9,
+      scale: 85,
+      horizontalCentered: true,
+      verticalCentered: true,
+      showGridLines: true,
+      showRowColHeaders: true,
+      blackAndWhite: true,
+      cellComments: 'asDisplayed',
+      errors: 'blank',
+      printArea: 'A1:D20',
+      printTitlesRow: '1:2',
+      printTitlesColumn: 'A:B',
+    });
+    expect(ws.pageSetup.margins).toMatchObject({ left: 0.4, right: 0.4, top: 0.6, bottom: 0.6 });
+    expect(ws.headerFooter).toMatchObject({
+      differentFirst: true,
+      oddHeader: '&CQuarterly Report',
+      oddFooter: '&RPage &P of &N',
+      firstHeader: '&LFirst page',
+    });
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.pageSetup).toMatchObject({
+      orientation: 'landscape',
+      paperSize: 9,
+      scale: 85,
+      horizontalCentered: true,
+      verticalCentered: true,
+      printArea: 'A1:D20',
+      printTitlesRow: '1:2',
+      printTitlesColumn: 'A:B',
+    });
+    expect(sheet.headerFooter).toMatchObject({
+      oddHeader: '&CQuarterly Report',
+      oddFooter: '&RPage &P of &N',
+      firstHeader: '&LFirst page',
+    });
+  });
+
+  it('preserves row and column outline grouping metadata across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'OutlineMeta',
+      cells: { A1: 'Outline', B3: 'Group child' },
+      sheetOutline: {
+        rowLevels: { 2: 1, 3: 2 },
+        colLevels: { 1: 1 },
+        summaryBelow: false,
+        summaryRight: false,
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('OutlineMeta')!;
+    expect(ws.getRow(3).outlineLevel).toBe(1);
+    expect(ws.getRow(4).outlineLevel).toBe(2);
+    expect(ws.getColumn(2).outlineLevel).toBe(1);
+    expect(ws.properties.outlineProperties).toMatchObject({
+      summaryBelow: false,
+      summaryRight: false,
+    });
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.sheetOutline).toEqual({
+      rowLevels: { 2: 1, 3: 2 },
+      colLevels: { 1: 1 },
+      summaryBelow: false,
+      summaryRight: false,
+    });
+  });
+
+  it('preserves worksheet auto filter criteria across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Filtered',
+      cells: {
+        A1: 'Name',
+        B1: 'Score',
+        A2: 'Ada',
+        B2: '10',
+        A3: 'Lin',
+        B3: '20',
+        A4: 'Max',
+        B4: '30',
+      },
+      autoFilterRef: 'A1:B4',
+      autoFilterColumns: [
+        { values: ['Ada', 'Lin'] },
+        { customFilters: [{ operator: 'greaterThan', val: '10' }, { operator: 'lessThan', val: '30' }], and: true },
+      ],
+      sortState: {
+        ref: 'A2:B4',
+        conditions: [{ ref: 'B2:B4', descending: true }],
+      },
+    }]);
+
+    const zip = await JSZip.loadAsync(exported);
+    const sheetXml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+    expect(sheetXml).toContain('<autoFilter ref="A1:B4">');
+    expect(sheetXml).toContain('<filters>');
+    expect(sheetXml).toContain('val="Ada"');
+    expect(sheetXml).toContain('<customFilters and="1">');
+    expect(sheetXml).toContain('operator="greaterThan"');
+    expect(sheetXml).toContain('<sortState ref="A2:B4">');
+    expect(sheetXml).toContain('<sortCondition ref="B2:B4" descending="1"/>');
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.autoFilterRef).toBe('A1:B4');
+    expect(sheet.autoFilterColumns?.[0]?.values).toEqual(['Ada', 'Lin']);
+    expect(sheet.autoFilterColumns?.[1]?.customFilters).toEqual([
+      { val: '10', operator: 'greaterThan' },
+      { val: '30', operator: 'lessThan' },
+    ]);
+    expect(sheet.autoFilterColumns?.[1]?.and).toBe(true);
+    expect(sheet.sortState).toEqual({
+      ref: 'A2:B4',
+      conditions: [{ ref: 'B2:B4', descending: true }],
+    });
+  });
+
+  it('preserves sheet protection and protected cell formats across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Protected',
+      cells: {
+        A1: 'editable',
+        B1: '=A1*2',
+      },
+      cellFormats: {
+        A1: { protection: { locked: false } },
+        B1: { protection: { hidden: true } },
+        C3: { protection: { locked: false } },
+      },
+      sheetProtection: {
+        sheet: true,
+        selectUnlockedCells: false,
+        formatCells: true,
+        autoFilter: true,
+        algorithmName: 'SHA-512',
+        hashValue: 'hash',
+        saltValue: 'salt',
+        spinCount: 100000,
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Protected')!;
+    expect((ws as unknown as { sheetProtection?: unknown }).sheetProtection).toMatchObject({
+      sheet: true,
+      selectUnlockedCells: false,
+      formatCells: true,
+      autoFilter: true,
+      algorithmName: 'SHA-512',
+      hashValue: 'hash',
+      saltValue: 'salt',
+      spinCount: 100000,
+    });
+    expect(ws.getCell('A1').protection).toMatchObject({ locked: false });
+    expect(ws.getCell('B1').protection).toMatchObject({ hidden: true });
+    expect(ws.getCell('C3').protection).toMatchObject({ locked: false });
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.sheetProtection).toMatchObject({ sheet: true, selectUnlockedCells: false });
+    expect(sheet.cellFormats?.A1?.protection).toMatchObject({ locked: false });
+    expect(sheet.cellFormats?.B1?.protection).toMatchObject({ hidden: true });
+    expect(sheet.cellFormats?.C3?.protection).toMatchObject({ locked: false });
+  });
+
+  it('preserves Excel table metadata across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Tables',
+      cells: {
+        A1: 'Name',
+        B1: 'Score',
+        A2: 'Ada',
+        B2: '10',
+        A3: 'Lin',
+        B3: '20',
+      },
+      tables: [{
+        name: 'Scores',
+        ref: 'A1:B3',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: [{ name: 'Name', filterButton: true }, { name: 'Score', filterButton: true }],
+      }],
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Tables')!;
+    expect((ws.model as { tables?: Array<{ name?: string; tableRef?: string }> }).tables?.[0]?.name).toBe('Scores');
+    expect((ws.model as { tables?: Array<{ tableRef?: string }> }).tables?.[0]?.tableRef).toBe('A1:B3');
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.tables?.[0]?.name).toBe('Scores');
+    expect(sheet.tables?.[0]?.ref).toBe('A1:B3');
+    expect(sheet.tables?.[0]?.columns?.map((col) => col.name)).toEqual(['Name', 'Score']);
+  });
+
+  it('preserves Excel table filter criteria across xlsx export and import', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'FilteredTable',
+      cells: {
+        A1: 'Name',
+        B1: 'Score',
+        A2: 'Ada',
+        B2: '10',
+        A3: 'Lin',
+        B3: '20',
+        A4: 'Max',
+        B4: '30',
+      },
+      tables: [{
+        name: 'FilteredScores',
+        ref: 'A1:B4',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: [
+          { name: 'Name', filterButton: true, filter: { values: ['Ada', 'Lin'] } },
+          { name: 'Score', filterButton: true, filter: { customFilters: [{ operator: 'greaterThan', val: '10' }] } },
+        ],
+      }],
+    }]);
+
+    const zip = await JSZip.loadAsync(exported);
+    const tableXml = await zip.file('xl/tables/table1.xml')!.async('string');
+    expect(tableXml).toContain('<filters>');
+    expect(tableXml).toContain('val="Ada"');
+    expect(tableXml).toContain('operator="greaterThan"');
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.tables?.[0]?.columns?.[0]?.filter?.values).toEqual(['Ada', 'Lin']);
+    expect(sheet.tables?.[0]?.columns?.[1]?.filter?.customFilters).toEqual([
+      { val: '10', operator: 'greaterThan' },
+    ]);
   });
 
   it('sanitizes invalid and duplicate sheet names on export', async () => {
@@ -328,9 +892,48 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(exported);
     const ws = wb.getWorksheet('Sheet1')!;
+    const zip = await JSZip.loadAsync(exported);
+    const workbookXml = await zip.file('xl/workbook.xml')!.async('string');
+    expect(workbookXml).toContain('fullCalcOnLoad="1"');
     expect((ws.getCell('A3').value as ExcelJS.CellFormulaValue).result).toBe(30);
     expect((ws.getCell('A4').value as ExcelJS.CellFormulaValue).result).toBe(true);
     expect((ws.getCell('A5').value as ExcelJS.CellFormulaValue).result).toBe(3);
+  });
+
+  it('preserves literal Excel error cells on import', async () => {
+    const buf = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = { error: '#DIV/0!' };
+      ws.getCell('A2').value = { error: '#N/A' };
+    });
+
+    const [sheet] = await importXlsxBuffer(buf);
+    expect(sheet.cells.A1).toBe('#DIV/0!');
+    expect(sheet.cells.A2).toBe('#N/A');
+  });
+
+  it('exports literal error cells and formula cached error results as native Excel errors', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Errors',
+      cells: {
+        A1: '#DIV/0!',
+        A2: '=1/0',
+        A3: '=MATCH("missing",B1:B2,0)',
+        B1: 'ok',
+        B2: 'done',
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Errors')!;
+    expect(ws.getCell('A1').value).toEqual({ error: '#DIV/0!' });
+    expect((ws.getCell('A2').value as ExcelJS.CellFormulaValue).result).toEqual({ error: '#DIV/0!' });
+    expect((ws.getCell('A3').value as ExcelJS.CellFormulaValue).result).toEqual({ error: '#N/A' });
+
+    const [sheet] = await importXlsxBuffer(exported);
+    expect(sheet.cells.A1).toBe('#DIV/0!');
+    expect(sheet.cells.A2).toBe('=1/0');
+    expect(sheet.cells.A3).toBe('=MATCH("missing",B1:B2,0)');
   });
 
   it('writes cached results for common Excel conditional aggregation formulas', async () => {
@@ -347,6 +950,18 @@ describe('xlsx export/import round-trip — layout metadata', () => {
         D4: '=VALUE("1,234.5")',
         D5: '=DAYS("2026-05-11","2026-05-01")',
         D6: '=DATEVALUE("2026-05-11")',
+        D7: '=SUMPRODUCT(C1:C4, E1:E4)',
+        D8: '=PRODUCT(E1:E3)',
+        D9: '=ROWS(A1:C4)+COLUMNS(A1:C4)',
+        D10: '=CHOOSE(2,"low","mid","high")',
+        D11: '=SUBTOTAL(9,C1:C4)',
+        D12: '=LARGE(C1:C4,2)',
+        D13: '=SMALL(C1:C4,2)',
+        D14: '=PERCENTILE.INC(E1:E4,0.75)',
+        D15: '=QUARTILE.INC(E1:E4,1)',
+        D16: '=STDEV.P(E1:E4)',
+        D17: '=VAR.P(E1:E4)',
+        E1: '1', E2: '2', E3: '3', E4: '4',
       },
     }]);
 
@@ -359,6 +974,80 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     expect((ws.getCell('D4').value as ExcelJS.CellFormulaValue).result).toBe(1234.5);
     expect((ws.getCell('D5').value as ExcelJS.CellFormulaValue).result).toBe(10);
     expect((ws.getCell('D6').value as ExcelJS.CellFormulaValue).result).toBe(46153);
+    expect((ws.getCell('D7').value as ExcelJS.CellFormulaValue).result).toBe(340);
+    expect((ws.getCell('D8').value as ExcelJS.CellFormulaValue).result).toBe(6);
+    expect((ws.getCell('D9').value as ExcelJS.CellFormulaValue).result).toBe(7);
+    expect((ws.getCell('D10').value as ExcelJS.CellFormulaValue).result).toBe('mid');
+    expect((ws.getCell('D11').value as ExcelJS.CellFormulaValue).result).toBe(110);
+    expect((ws.getCell('D12').value as ExcelJS.CellFormulaValue).result).toBe(30);
+    expect((ws.getCell('D13').value as ExcelJS.CellFormulaValue).result).toBe(20);
+    expect((ws.getCell('D14').value as ExcelJS.CellFormulaValue).result).toBe(3.25);
+    expect((ws.getCell('D15').value as ExcelJS.CellFormulaValue).result).toBe(1.75);
+    expect((ws.getCell('D16').value as ExcelJS.CellFormulaValue).result).toBe(1.118034);
+    expect((ws.getCell('D17').value as ExcelJS.CellFormulaValue).result).toBe(1.25);
+  });
+
+  it('writes cached results for standard Excel lookup formulas', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Sheet1',
+      cells: {
+        A1: 'Item', B1: 'Color', C1: 'Qty',
+        A2: 'a', B2: 'red', C2: '10',
+        A3: 'b', B3: 'blue', C3: '20',
+        A4: 'c', B4: 'green', C4: '30',
+        E1: '=VLOOKUP("b",A2:C4,3,FALSE)',
+        E2: '=HLOOKUP("Color",A1:C4,3,FALSE)',
+        E3: '=INDEX(A2:C4,2,2)',
+      },
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Sheet1')!;
+    expect((ws.getCell('E1').value as ExcelJS.CellFormulaValue).result).toBe(20);
+    expect((ws.getCell('E2').value as ExcelJS.CellFormulaValue).result).toBe('blue');
+    expect((ws.getCell('E3').value as ExcelJS.CellFormulaValue).result).toBe('blue');
+  });
+
+  it('writes cached results for Excel table structured reference formulas', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Sheet1',
+      cells: {
+        A1: 'Name', B1: 'Score', C1: 'Adjusted',
+        A2: 'Ada', B2: '10', C2: '=[@Score]*2',
+        A3: 'Lin', B3: '20', C3: '=Scores[@Score]+5',
+        D1: '=SUM(Scores[Score])',
+        D2: '=ROWS(Scores[#Data])',
+        D3: '=INDEX(Scores[[#All],[Score]],1)',
+        D4: '=SUM(Scores[[Score]:[Adjusted]])',
+        D5: '=COLUMNS(Scores[[#Headers],[Score]:[Adjusted]])',
+      },
+      tables: [{
+        name: 'Scores',
+        ref: 'A1:C3',
+        headerRow: true,
+        totalsRow: false,
+        columns: [
+          { name: 'Name', filterButton: true },
+          { name: 'Score', filterButton: true },
+          { name: 'Adjusted', filterButton: true },
+        ],
+      }],
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Sheet1')!;
+    expect((ws.getCell('C2').value as ExcelJS.CellFormulaValue).formula).toBe('[@Score]*2');
+    expect((ws.getCell('C2').value as ExcelJS.CellFormulaValue).result).toBe(20);
+    expect((ws.getCell('C3').value as ExcelJS.CellFormulaValue).formula).toBe('Scores[@Score]+5');
+    expect((ws.getCell('C3').value as ExcelJS.CellFormulaValue).result).toBe(25);
+    expect((ws.getCell('D1').value as ExcelJS.CellFormulaValue).formula).toBe('SUM(Scores[Score])');
+    expect((ws.getCell('D1').value as ExcelJS.CellFormulaValue).result).toBe(30);
+    expect((ws.getCell('D2').value as ExcelJS.CellFormulaValue).result).toBe(2);
+    expect((ws.getCell('D3').value as ExcelJS.CellFormulaValue).result).toBe('Score');
+    expect((ws.getCell('D4').value as ExcelJS.CellFormulaValue).result).toBe(75);
+    expect((ws.getCell('D5').value as ExcelJS.CellFormulaValue).result).toBe(2);
   });
 
   it('exports formula cached results without leaking internal renderer sentinels', async () => {
@@ -581,6 +1270,164 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     ]);
   });
 
+  it('imports Excel numeric data validations', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('C1').value = 5;
+      ws.getCell('C1').dataValidation = {
+        type: 'whole',
+        operator: 'between',
+        allowBlank: true,
+        formulae: [1, 10],
+      };
+      ws.getCell('D1').value = 12.5;
+      ws.getCell('D1').dataValidation = {
+        type: 'decimal',
+        operator: 'greaterThanOrEqual',
+        allowBlank: true,
+        formulae: [10],
+      };
+    });
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.validations).toEqual([
+      {
+        id: 'xlsx_vd_0',
+        range: { minR: 0, maxR: 0, minC: 2, maxC: 2 },
+        kind: 'integer',
+        operator: 'between',
+        formula1: '1',
+        formula2: '10',
+      },
+      {
+        id: 'xlsx_vd_1',
+        range: { minR: 0, maxR: 0, minC: 3, maxC: 3 },
+        kind: 'number',
+        operator: 'greaterThanOrEqual',
+        formula1: '10',
+        formula2: undefined,
+      },
+    ]);
+  });
+
+  it('round-trips Excel data validation prompts and error messages', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'Open';
+      ws.getCell('A1').dataValidation = {
+        type: 'list',
+        allowBlank: false,
+        showInputMessage: true,
+        promptTitle: 'Status help',
+        prompt: 'Choose a status',
+        showErrorMessage: false,
+        errorStyle: 'warning',
+        errorTitle: 'Invalid status',
+        error: 'Pick from the list',
+        formulae: ['"Open,Closed"'],
+      } as ExcelJS.DataValidation;
+    });
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.validations?.[0]).toMatchObject({
+      kind: 'list',
+      showInputMessage: true,
+      promptTitle: 'Status help',
+      prompt: 'Choose a status',
+      errorStyle: 'warning',
+      errorTitle: 'Invalid status',
+      error: 'Pick from the list',
+    });
+
+    const validation = {
+      ...sheet.validations![0],
+      allowBlank: false,
+      showErrorMessage: false,
+    };
+    const exported = await exportXlsxBuffer([{
+      name: 'ValidationMeta',
+      cells: { A1: 'Open' },
+      validations: [validation],
+    }]);
+    const zip = await JSZip.loadAsync(exported);
+    const xml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+    expect(xml).toContain('allowBlank="0"');
+    expect(xml).toContain('showErrorMessage="0"');
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const dv = wb.getWorksheet('ValidationMeta')!.getCell('A1').dataValidation as ExcelJS.DataValidation & {
+      promptTitle?: string;
+      prompt?: string;
+      errorTitle?: string;
+      error?: string;
+    };
+    expect(dv).toMatchObject({
+      type: 'list',
+      showInputMessage: true,
+      promptTitle: 'Status help',
+      prompt: 'Choose a status',
+      errorStyle: 'warning',
+      errorTitle: 'Invalid status',
+      error: 'Pick from the list',
+    });
+
+    const [roundTripped] = await importXlsxBuffer(exported);
+    expect(roundTripped.validations?.[0]).toMatchObject({
+      allowBlank: false,
+      showErrorMessage: false,
+    });
+  });
+
+  it('imports Excel date, text length, and custom data validations', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.getCell('E1').value = '2026-05-22';
+      ws.getCell('E1').dataValidation = {
+        type: 'date',
+        operator: 'between',
+        allowBlank: true,
+        formulae: ['2026-01-01', '2026-12-31'],
+      };
+      ws.getCell('F1').value = 'ABC';
+      ws.getCell('F1').dataValidation = {
+        type: 'textLength',
+        operator: 'lessThanOrEqual',
+        allowBlank: true,
+        formulae: [5],
+      };
+      ws.getCell('G1').value = 'ABC-123';
+      ws.getCell('G1').dataValidation = {
+        type: 'custom',
+        allowBlank: true,
+        formulae: ['ISNUMBER(SEARCH("-",G1))'],
+      };
+    });
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.validations).toEqual([
+      {
+        id: 'xlsx_vd_0',
+        range: { minR: 0, maxR: 0, minC: 4, maxC: 4 },
+        kind: 'date',
+        operator: 'between',
+        formula1: '2026-01-01',
+        formula2: '2026-12-31',
+      },
+      {
+        id: 'xlsx_vd_1',
+        range: { minR: 0, maxR: 0, minC: 5, maxC: 5 },
+        kind: 'textLength',
+        operator: 'lessThanOrEqual',
+        formula1: '5',
+        formula2: undefined,
+      },
+      {
+        id: 'xlsx_vd_2',
+        range: { minR: 0, maxR: 0, minC: 6, maxC: 6 },
+        kind: 'custom',
+        formula1: 'ISNUMBER(SEARCH("-",G1))',
+      },
+    ]);
+  });
+
   it('exports list and checkbox data validations', async () => {
     const exported = await exportXlsxBuffer([{
       name: 'Sheet1',
@@ -615,6 +1462,97 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     expect(ws.getCell('B1').dataValidation).toMatchObject({
       type: 'list',
       formulae: ['"TRUE,FALSE"'],
+    });
+  });
+
+  it('exports numeric data validations', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Sheet1',
+      cells: { C1: '5', D1: '12.5' },
+      validations: [
+        {
+          id: 'whole-range',
+          range: { minR: 0, maxR: 1, minC: 2, maxC: 2 },
+          kind: 'integer',
+          operator: 'between',
+          formula1: '1',
+          formula2: '10',
+        },
+        {
+          id: 'decimal-min',
+          range: { minR: 0, maxR: 0, minC: 3, maxC: 3 },
+          kind: 'number',
+          operator: 'greaterThanOrEqual',
+          formula1: '10',
+        },
+      ],
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Sheet1')!;
+    expect(ws.getCell('C1').dataValidation).toMatchObject({
+      type: 'whole',
+      operator: 'between',
+      formulae: [1, 10],
+    });
+    expect(ws.getCell('C2').dataValidation).toMatchObject({
+      type: 'whole',
+      operator: 'between',
+      formulae: [1, 10],
+    });
+    expect(ws.getCell('D1').dataValidation).toMatchObject({
+      type: 'decimal',
+      operator: 'greaterThanOrEqual',
+      formulae: [10],
+    });
+  });
+
+  it('exports date, text length, and custom data validations', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Sheet1',
+      cells: { E1: '2026-05-22', F1: 'ABC', G1: 'ABC-123' },
+      validations: [
+        {
+          id: 'date-range',
+          range: { minR: 0, maxR: 0, minC: 4, maxC: 4 },
+          kind: 'date',
+          operator: 'between',
+          formula1: '2026-01-01',
+          formula2: '2026-12-31',
+        },
+        {
+          id: 'length-max',
+          range: { minR: 0, maxR: 0, minC: 5, maxC: 5 },
+          kind: 'textLength',
+          operator: 'lessThanOrEqual',
+          formula1: '5',
+        },
+        {
+          id: 'custom-dash',
+          range: { minR: 0, maxR: 0, minC: 6, maxC: 6 },
+          kind: 'custom',
+          formula1: 'ISNUMBER(SEARCH("-",G1))',
+        },
+      ],
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Sheet1')!;
+    expect(ws.getCell('E1').dataValidation).toMatchObject({
+      type: 'date',
+      operator: 'between',
+      formulae: [new Date(Date.UTC(2026, 0, 1)), new Date(Date.UTC(2026, 11, 31))],
+    });
+    expect(ws.getCell('F1').dataValidation).toMatchObject({
+      type: 'textLength',
+      operator: 'lessThanOrEqual',
+      formulae: [5],
+    });
+    expect(ws.getCell('G1').dataValidation).toMatchObject({
+      type: 'custom',
+      formulae: ['ISNUMBER(SEARCH("-",G1))'],
     });
   });
 
@@ -784,6 +1722,202 @@ describe('xlsx export/import round-trip — layout metadata', () => {
     expect(sheet.cellFormats?.A5?.numberFmt).toBe('datetime');
     expect(sheet.cellFormats?.A6?.numberFmt).toBe('currency-krw');
     expect(sheet.cellFormats?.A7?.numberFmt).toBe('percent');
+  });
+
+  it('imports Excel conditional formatting rules into sheet rules', async () => {
+    const file = await buildWorkbookBuffer((ws) => {
+      ws.addConditionalFormatting({
+        ref: 'A1:A5',
+        rules: [{
+          type: 'cellIs',
+          operator: 'greaterThan',
+          formulae: ['10'],
+          priority: 1,
+          style: {
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0E0' } },
+            font: { bold: true, color: { argb: 'FFAA0000' } },
+          },
+        }],
+      });
+      ws.addConditionalFormatting({
+        ref: 'B1:B5',
+        rules: [{
+          type: 'containsText',
+          operator: 'containsText',
+          text: 'urgent',
+          priority: 2,
+          style: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } } },
+        } as ExcelJS.ConditionalFormattingRule],
+      });
+      ws.addConditionalFormatting({
+        ref: 'C1:C5',
+        rules: [{
+          type: 'expression',
+          formulae: ['LEN(TRIM(C1))=0'],
+          priority: 3,
+          style: { font: { color: { argb: 'FF777777' } } },
+        }],
+      });
+    });
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.condRules).toHaveLength(3);
+    expect(sheet.condRules?.[0]).toMatchObject({
+      range: { minR: 0, maxR: 4, minC: 0, maxC: 0 },
+      op: '>',
+      value: '10',
+      format: { bgColor: '#FFE0E0', textColor: '#AA0000', bold: true },
+    });
+    expect(sheet.condRules?.[1]).toMatchObject({
+      range: { minR: 0, maxR: 4, minC: 1, maxC: 1 },
+      op: 'contains',
+      value: 'urgent',
+      format: { bgColor: '#FFFF99' },
+    });
+    expect(sheet.condRules?.[2]).toMatchObject({
+      range: { minR: 0, maxR: 4, minC: 2, maxC: 2 },
+      op: 'empty',
+      format: { textColor: '#777777' },
+    });
+  });
+
+  it('exports app conditional formatting and round-trips supported rules', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Sheet1',
+      cells: { A1: '11', B1: 'urgent fix', C1: '' },
+      condRules: [
+        {
+          id: 'gt',
+          range: { minR: 0, maxR: 9, minC: 0, maxC: 0 },
+          op: '>',
+          value: '10',
+          format: { bgColor: '#FFE0E0', textColor: '#AA0000', bold: true },
+        },
+        {
+          id: 'contains',
+          range: { minR: 0, maxR: 9, minC: 1, maxC: 1 },
+          op: 'contains',
+          value: 'urgent',
+          format: { bgColor: '#FFF3BF' },
+        },
+        {
+          id: 'empty',
+          range: { minR: 0, maxR: 9, minC: 2, maxC: 2 },
+          op: 'empty',
+          value: '',
+          format: { textColor: '#777777' },
+        },
+      ],
+    }]);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported);
+    const ws = wb.getWorksheet('Sheet1')!;
+    const exportedCf = (ws as unknown as { conditionalFormattings?: ExcelJS.ConditionalFormattingOptions[] }).conditionalFormattings ?? [];
+    expect(exportedCf).toHaveLength(3);
+    expect(exportedCf.map((cf) => cf.ref)).toEqual(['A1:A10', 'B1:B10', 'C1:C10']);
+
+    const [roundTrip] = await importXlsxBuffer(exported);
+    expect(roundTrip.condRules?.map((rule) => rule.op)).toEqual(['>', 'contains', 'empty']);
+    expect(roundTrip.condRules?.[0].format).toMatchObject({ bgColor: '#FFE0E0', textColor: '#AA0000', bold: true });
+  });
+
+  it('stores app embedded charts in hidden xlsx metadata and round-trips them', async () => {
+    const exported = await exportXlsxBuffer([{
+      name: 'Charts',
+      cells: { A1: 'Name', B1: 'Score', A2: 'Ada', B2: '10', A3: 'Lin', B3: '20' },
+      embeddedCharts: [{
+        id: 'chart_1',
+        type: 'line',
+        orientation: 'columns',
+        range: { minR: 0, maxR: 2, minC: 0, maxC: 1 },
+        title: 'Scores',
+        palette: 'warm',
+        collapsed: false,
+      }],
+    }]);
+
+    const zip = await JSZip.loadAsync(exported);
+    const workbookXml = await zip.file('xl/workbook.xml')!.async('string');
+    const contentTypesXml = await zip.file('[Content_Types].xml')!.async('string');
+    const sheetXml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+    const chartXml = await zip.file('xl/charts/chart1.xml')!.async('string');
+    expect(workbookXml).toContain('__cloudsheet_charts');
+    expect(contentTypesXml).toContain('/xl/charts/chart1.xml');
+    expect(sheetXml).toContain('<drawing ');
+    expect(chartXml).toContain('<c:lineChart>');
+    expect(chartXml).toContain('<c:f>Charts!$A$2:$A$3</c:f>');
+    expect(chartXml).toContain('<c:f>Charts!$B$2:$B$3</c:f>');
+
+    const imported = await importXlsxBuffer(exported);
+    expect(imported.map((sheet) => sheet.name)).toEqual(['Charts']);
+    expect(imported[0].embeddedCharts).toEqual([{
+      id: 'chart_1',
+      type: 'line',
+      orientation: 'columns',
+      range: { minR: 0, maxR: 2, minC: 0, maxC: 1 },
+      title: 'Scores',
+      palette: 'warm',
+      collapsed: false,
+    }]);
+  });
+
+  it('imports basic native Excel charts as embedded cloud sheet charts', async () => {
+    const base = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'Name';
+      ws.getCell('B1').value = 'Revenue';
+      ws.getCell('A2').value = 'Ada';
+      ws.getCell('B2').value = 10;
+      ws.getCell('A3').value = 'Lin';
+      ws.getCell('B3').value = 20;
+    }, 'Charts');
+    const file = await addNativeChartFixture(base);
+
+    const [sheet] = await importXlsxBuffer(file);
+    expect(sheet.embeddedCharts?.[0]).toMatchObject({
+      id: 'xlsx_chart_1_1',
+      type: 'bar',
+      orientation: 'columns',
+      range: { minR: 0, maxR: 2, minC: 0, maxC: 1 },
+      title: 'Revenue',
+      collapsed: false,
+    });
+  });
+
+  it('rejects XLSX imports that exceed configured workbook safety limits', async () => {
+    const tooManyCells = await buildWorkbookBuffer((ws) => {
+      ws.getCell('A1').value = 'one';
+      ws.getCell('A2').value = 'two';
+    });
+    await expect(importXlsxBuffer(tooManyCells, { limits: { maxCells: 1 } }))
+      .rejects.toThrow(/too many populated cells/i);
+
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('One').getCell('A1').value = '1';
+    wb.addWorksheet('Two').getCell('A1').value = '2';
+    const buf = await wb.xlsx.writeBuffer();
+    const u8 = new Uint8Array(buf as ArrayBufferLike);
+    const tooManySheets = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+    await expect(importXlsxBuffer(tooManySheets, { limits: { maxSheets: 1 } }))
+      .rejects.toThrow(/too many sheets/i);
+
+    await expect(importXlsxBuffer(tooManyCells, { limits: { maxFileBytes: 1 } }))
+      .rejects.toThrow(/too large/i);
+
+    const manyEntries = new JSZip();
+    manyEntries.file('[Content_Types].xml', '<Types/>');
+    manyEntries.file('xl/workbook.xml', '<workbook/>');
+    manyEntries.file('xl/worksheets/sheet1.xml', '<worksheet/>');
+    const manyEntriesBuffer = await manyEntries.generateAsync({ type: 'arraybuffer' });
+    await expect(importXlsxBuffer(manyEntriesBuffer, { limits: { maxZipEntries: 2 } }))
+      .rejects.toThrow(/too many ZIP entries/i);
+
+    const oversizedEntry = new JSZip();
+    oversizedEntry.file('[Content_Types].xml', '<Types/>');
+    oversizedEntry.file('xl/workbook.xml', 'x'.repeat(128));
+    const oversizedEntryBuffer = await oversizedEntry.generateAsync({ type: 'arraybuffer' });
+    await expect(importXlsxBuffer(oversizedEntryBuffer, { limits: { maxZipEntryBytes: 16 } }))
+      .rejects.toThrow(/oversized ZIP entry/i);
   });
 });
 

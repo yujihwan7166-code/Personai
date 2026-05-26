@@ -5,6 +5,7 @@ import { newId } from '@/types/study';
 import { filesToStudySources } from '@/lib/studySourceFromFile';
 import { StudyBtn, StatusDot } from './ui/primitives';
 import { cn } from '@/lib/utils';
+import { formatStudyCharCount } from '@/lib/studyFormat';
 
 interface Props {
   sources: StudySource[];
@@ -20,9 +21,12 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
   const [pasteText, setPasteText] = useState('');
   const [urlValue, setUrlValue] = useState('');
   const [loadingUrl, setLoadingUrl] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [draggingFiles, setDraggingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragDepthRef = useRef(0);
 
   const addPaste = () => {
     if (!pasteText.trim()) return;
@@ -55,18 +59,56 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
     finally { setLoadingUrl(false); }
   };
 
-  const addFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const addFiles = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0 || loadingFiles) return;
     setFileError(null);
-    const { sources: added, errors } = await filesToStudySources(Array.from(files));
-    if (errors.length > 0) setFileError(errors[errors.length - 1]);
-    if (added.length > 0) onChange([...added, ...sources]);
-    setAddMode(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setLoadingFiles(true);
+    try {
+      const { sources: added, errors } = await filesToStudySources(Array.from(files));
+      if (errors.length > 0) setFileError(errors[errors.length - 1]);
+      if (added.length > 0) onChange([...added, ...sources]);
+      setAddMode(null);
+    } finally {
+      setLoadingFiles(false);
+      setDraggingFiles(false);
+      dragDepthRef.current = 0;
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const toggle = (id: string) => onChange(sources.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
   const remove = (id: string) => onChange(sources.filter((s) => s.id !== id));
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setDraggingFiles(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!draggingFiles) return;
+    e.preventDefault();
+    dragDepthRef.current -= 1;
+    if (dragDepthRef.current <= 0) {
+      dragDepthRef.current = 0;
+      setDraggingFiles(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = loadingFiles ? 'none' : 'copy';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setDraggingFiles(false);
+    void addFiles(e.dataTransfer.files);
+  };
 
   const hiddenFileInput = (
     <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.docx,.xlsx,.csv,.pdf,.pptx"
@@ -75,17 +117,25 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
 
   if (sources.length === 0 && addMode === null) {
     return (
-      <div className="flex h-full flex-col bg-white dark:bg-slate-900">
+      <div
+        className="relative flex h-full flex-col bg-white dark:bg-slate-900"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         {hiddenFileInput}
+        <DropOverlay active={draggingFiles} loading={loadingFiles} />
         <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3">
-          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">소스</h3>
+          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">원본</h3>
         </div>
         <div className="flex-1 flex flex-col px-4 py-6">
           <button
             onClick={() => setAddMode('menu')}
+            disabled={loadingFiles}
             className="w-full flex items-center justify-center gap-1.5 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 px-4 py-2.5 text-[12.5px] font-semibold transition-colors shadow-sm"
           >
-            <Plus className="h-3.5 w-3.5" /> 소스 추가
+            <Plus className="h-3.5 w-3.5" /> {loadingFiles ? '불러오는 중...' : '원본 추가'}
           </button>
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-4">
@@ -95,7 +145,8 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
             <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed">
               파일 · 웹 링크 · 유튜브 · 강의 녹음<br />어떤 형식이든 괜찮아요
             </p>
-            <p className="mt-5 text-[10.5px] text-slate-400">파일을 이 창에 끌어다 놓아도 돼요</p>
+            <p className="mt-5 text-[10.5px] text-slate-400">PDF/PPTX도 이 창에 바로 끌어다 놓을 수 있어요</p>
+            {fileError && <p className="mt-3 max-w-[220px] text-[11px] leading-relaxed text-red-600">{fileError}</p>}
           </div>
         </div>
       </div>
@@ -103,22 +154,37 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white dark:bg-slate-900">
+    <div
+      className="relative flex h-full flex-col bg-white dark:bg-slate-900"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {hiddenFileInput}
+      <DropOverlay active={draggingFiles} loading={loadingFiles} />
       <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-3 flex items-center justify-between">
         <div>
-          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">소스</h3>
-          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">탭해서 켜고 끄기</p>
+          <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">원본</h3>
+          <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
+            {loadingFiles ? '원본을 불러오는 중...' : '탭해서 켜고 끄기'}
+          </p>
         </div>
         <button
           onClick={() => setAddMode('menu')}
+          disabled={loadingFiles}
           className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-          aria-label="소스 추가"
-          title="소스 추가"
+          aria-label="원본 추가"
+          title={loadingFiles ? '불러오는 중...' : '원본 추가'}
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
+      {fileError && (
+        <div className="border-b border-red-100 bg-red-50 px-5 py-2 text-[11px] leading-relaxed text-red-700 dark:border-red-950/40 dark:bg-red-950/25 dark:text-red-200">
+          {fileError}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {sources.map((s) => (
@@ -136,7 +202,7 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[12.5px] font-semibold text-slate-900 dark:text-slate-100 truncate">{s.title}</p>
               <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {s.kind.toUpperCase()} · {Math.round(s.content.length / 100) / 10}K자
+                {s.kind.toUpperCase()} · {formatStudyCharCount(s.content.length)}
               </p>
               {s.errorMessage && <p className="text-[10.5px] text-red-600 mt-0.5">{s.errorMessage}</p>}
             </div>
@@ -168,8 +234,28 @@ export function SourcePanel({ sources, onChange, onStartRecording }: Props) {
           onPickFile={() => fileInputRef.current?.click()}
           onStartRecording={() => { onStartRecording(); setAddMode(null); }}
           fileError={fileError}
+          loadingFiles={loadingFiles}
         />
       )}
+    </div>
+  );
+}
+
+function DropOverlay({ active, loading }: { active: boolean; loading: boolean }) {
+  if (!active && !loading) return null;
+  return (
+    <div className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-indigo-400 bg-indigo-50/85 text-center shadow-inner backdrop-blur-sm dark:bg-indigo-950/45">
+      <div className="px-5">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm dark:bg-slate-900 dark:text-indigo-300">
+          <Upload className="h-5 w-5" strokeWidth={1.8} />
+        </div>
+        <p className="mt-3 text-[13px] font-bold text-indigo-800 dark:text-indigo-100">
+          {loading ? '원본을 불러오는 중...' : '놓으면 원본으로 추가돼요'}
+        </p>
+        <p className="mt-1 text-[11px] text-indigo-700/75 dark:text-indigo-200/75">
+          PDF, PPTX, DOCX, TXT 파일을 최대 5개까지 처리합니다
+        </p>
+      </div>
     </div>
   );
 }
@@ -187,6 +273,7 @@ function AddSheet(props: {
   onPickFile: () => void;
   onStartRecording: () => void;
   fileError: string | null;
+  loadingFiles: boolean;
 }) {
   const { mode } = props;
   useEffect(() => {
@@ -203,7 +290,7 @@ function AddSheet(props: {
       >
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100">
-            {mode === 'menu' ? '소스 추가' : mode === 'paste' ? '텍스트 붙여넣기' : 'URL · 유튜브'}
+            {mode === 'menu' ? '원본 추가' : mode === 'paste' ? '텍스트 붙여넣기' : 'URL · 유튜브'}
           </h4>
           <button onClick={props.onClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 p-1">
             <X className="h-4 w-4" />
@@ -212,7 +299,7 @@ function AddSheet(props: {
 
         {mode === 'menu' && (
           <div className="grid grid-cols-2 gap-2">
-            <SheetOpt icon={<Upload className="h-4 w-4" />} label="파일" hint="TXT · MD · DOCX · XLSX" onClick={props.onPickFile} />
+            <SheetOpt icon={<Upload className="h-4 w-4" />} label="파일" hint="PDF · PPTX · DOCX · TXT" onClick={props.onPickFile} disabled={props.loadingFiles} />
             <SheetOpt icon={<Link2 className="h-4 w-4" />} label="웹 링크" hint="기사 · 문서 URL" onClick={() => props.onSelectMode('url')} />
             <SheetOpt icon={<Youtube className="h-4 w-4" />} label="유튜브" hint="자막을 가져와요" onClick={() => props.onSelectMode('url')} />
             <SheetOpt icon={<Clipboard className="h-4 w-4" />} label="붙여넣기" hint="바로 텍스트 입력" onClick={() => props.onSelectMode('paste')} />
@@ -252,12 +339,18 @@ function AddSheet(props: {
 }
 
 function SheetOpt({
-  icon, label, hint, onClick, className,
-}: { icon: React.ReactNode; label: string; hint: string; onClick: () => void; className?: string }) {
+  icon, label, hint, onClick, className, disabled,
+}: { icon: React.ReactNode; label: string; hint: string; onClick: () => void; className?: string; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className={cn('flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-left hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-colors', className)}
+      disabled={disabled}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-left transition-colors',
+        'hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30',
+        disabled && 'cursor-not-allowed opacity-55 hover:border-slate-200 hover:bg-transparent dark:hover:border-slate-700 dark:hover:bg-transparent',
+        className,
+      )}
     >
       <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{icon}</span>
       <div className="flex-1 min-w-0">

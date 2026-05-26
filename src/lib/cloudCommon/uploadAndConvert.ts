@@ -13,7 +13,20 @@
 
 import { importDocxFile } from '@/lib/cloudDoc/docx';
 import { readMarkdownFile } from '@/lib/cloudDoc/markdown';
-import { importXlsxFile } from '@/lib/cloudSheet/xlsx';
+import {
+  importXlsxFile,
+  type SheetHeaderFooter,
+  type SheetOutlineOptions,
+  type SheetPageSetup,
+  type SheetProtection,
+  type SheetSortState,
+  type SheetTable,
+  type SheetViewOptions,
+  type TableColumnFilter,
+  type XlsxEmbeddedChart,
+} from '@/lib/cloudSheet/xlsx';
+import type { CondRule } from '@/lib/cloudSheet/condFormat';
+import { SHEET_TAB_COLOR_HEX, type SheetTabColor } from '@/lib/cloudSheet/SheetTab';
 import { importPptxDeck } from '@/lib/cloudSlide/pptx';
 import { createEmptyFile, updateFileBody } from '@/lib/cloudClient';
 import type { CloudFileType } from '@/types/cloud';
@@ -26,6 +39,14 @@ export interface UploadResult {
 }
 
 const newSheetId = () => newId('s');
+
+function sheetTabColorFromHex(hex: string | undefined): SheetTabColor | undefined {
+  if (!hex) return undefined;
+  const normalized = hex.toUpperCase();
+  const entry = Object.entries(SHEET_TAB_COLOR_HEX)
+    .find(([, value]) => value.toUpperCase() === normalized);
+  return entry?.[0] as SheetTabColor | undefined;
+}
 
 function getExt(name: string): string {
   const i = name.lastIndexOf('.');
@@ -75,7 +96,13 @@ export async function uploadAndConvert(
   // ── 시트 ──
   if (ext === 'xlsx' || ext === 'xls' || ext === 'csv' || ext === 'tsv') {
     const imported = await importXlsxFile(file);
-    const sheetsMeta: Array<{ id: string; name: string }> = [];
+    const sheetsMeta: Array<{
+      id: string;
+      name: string;
+      color?: SheetTabColor;
+      tabColor?: string;
+      visibility?: 'visible' | 'hidden' | 'veryHidden';
+    }> = [];
     const allCells: Record<string, Record<string, string>> = {};
     const allFormats: Record<string, Record<string, unknown>> = {};
     const allMerges: Record<string, Array<{ minR: number; maxR: number; minC: number; maxC: number }>> = {};
@@ -85,6 +112,19 @@ export async function uploadAndConvert(
     const allRowHeights: Record<string, Record<number, number>> = {};
     const allFreezeRows: Record<string, number> = {};
     const allFreezeCols: Record<string, number> = {};
+    const allSheetViews: Record<string, SheetViewOptions | undefined> = {};
+    const allSheetPageSetups: Record<string, SheetPageSetup | undefined> = {};
+    const allSheetHeaderFooters: Record<string, SheetHeaderFooter | undefined> = {};
+    const allSheetOutlines: Record<string, SheetOutlineOptions | undefined> = {};
+    const allHiddenCols: Record<string, Record<number, boolean>> = {};
+    const allHiddenRows: Record<string, Record<number, boolean>> = {};
+    const allAutoFilterRefs: Record<string, string | undefined> = {};
+    const allAutoFilterColumns: Record<string, Array<TableColumnFilter | undefined>> = {};
+    const allSortStates: Record<string, SheetSortState | undefined> = {};
+    const allTables: Record<string, SheetTable[]> = {};
+    const allEmbeddedCharts: Record<string, XlsxEmbeddedChart[]> = {};
+    const allSheetProtections: Record<string, SheetProtection | undefined> = {};
+    const allCondRules: Record<string, CondRule[]> = {};
     const namedRanges: Record<string, string> = {};
     let colWidths: Record<number, number> | undefined;
     let rowHeights: Record<number, number> | undefined;
@@ -92,7 +132,13 @@ export async function uploadAndConvert(
     let freezeCols: number | undefined;
     for (const s of imported.length > 0 ? imported : [{ name: 'Sheet1', cells: {}, cellFormats: {}, merges: [] }]) {
       const id = newSheetId();
-      sheetsMeta.push({ id, name: s.name });
+      sheetsMeta.push({
+        id,
+        name: s.name,
+        color: sheetTabColorFromHex(s.tabColor),
+        tabColor: s.tabColor,
+        visibility: s.sheetState,
+      });
       allCells[id] = s.cells;
       allFormats[id] = s.cellFormats ?? {};
       allMerges[id] = s.merges ?? [];
@@ -102,6 +148,19 @@ export async function uploadAndConvert(
       allRowHeights[id] = s.rowHeights ?? {};
       allFreezeRows[id] = s.freezeRows ?? 0;
       allFreezeCols[id] = s.freezeCols ?? 0;
+      allSheetViews[id] = s.sheetView;
+      allSheetPageSetups[id] = s.pageSetup;
+      allSheetHeaderFooters[id] = s.headerFooter;
+      allSheetOutlines[id] = s.sheetOutline;
+      allHiddenCols[id] = s.hiddenCols ?? {};
+      allHiddenRows[id] = s.hiddenRows ?? {};
+      allAutoFilterRefs[id] = s.autoFilterRef;
+      allAutoFilterColumns[id] = s.autoFilterColumns ?? [];
+      allSortStates[id] = s.sortState;
+      allTables[id] = s.tables ?? [];
+      allEmbeddedCharts[id] = s.embeddedCharts ?? [];
+      allSheetProtections[id] = s.sheetProtection;
+      allCondRules[id] = s.condRules ?? [];
       Object.assign(namedRanges, s.namedRanges ?? {});
       if (!colWidths && s.colWidths) colWidths = s.colWidths;
       if (!rowHeights && s.rowHeights) rowHeights = s.rowHeights;
@@ -121,6 +180,19 @@ export async function uploadAndConvert(
         allRowHeights,
         allFreezeRows,
         allFreezeCols,
+        allSheetViews,
+        allSheetPageSetups,
+        allSheetHeaderFooters,
+        allSheetOutlines,
+        allHiddenCols,
+        allHiddenRows,
+        allAutoFilterRefs,
+        allAutoFilterColumns,
+        allSortStates,
+        allTables,
+        allEmbeddedCharts,
+        allSheetProtections,
+        allCondRules,
         ...(Object.keys(namedRanges).length > 0 ? { namedRanges } : {}),
         currentSheetIdx: 0,
         ...(colWidths ? { colWidths } : {}),

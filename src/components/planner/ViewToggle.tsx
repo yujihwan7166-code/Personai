@@ -1,18 +1,17 @@
 /**
- * 뷰 전환 — Day / Week / Month / Year 4 버튼 segmented control.
+ * 뷰 전환 — Day / Week / Month / Year / Habits 5 버튼 segmented control.
  *
- * 단축키 D/W/M/Y 는 Planner.tsx 에서 처리.
+ * 단축키 D/W/M/Y/H 는 Planner.tsx 에서 처리.
  */
 import { cn } from '@/lib/utils';
 
-export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'goals' | 'habits';
+export type PlannerView = 'day' | 'week' | 'month' | 'year' | 'habits';
 
 const OPTIONS: Array<{ id: PlannerView; label: string; key: string }> = [
   { id: 'day',    label: '일',   key: 'D' },
   { id: 'week',   label: '주',   key: 'W' },
   { id: 'month',  label: '월',   key: 'M' },
   { id: 'year',   label: '년',   key: 'Y' },
-  { id: 'goals',  label: '목표', key: 'G' },
   { id: 'habits', label: '습관', key: 'H' },
 ];
 

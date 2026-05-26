@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useReducer, useCallback } from 'r
 import { Search, X, Maximize2, Route, Layers, Filter as FilterIcon, SlidersHorizontal, Pause, Play, Group } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
 import { cn } from '@/lib/utils';
+import { buildWikiGraphModel, searchWikiPages, shortestWikiPath, type WikiGraphEdge, type WikiGraphEdgeKind } from '@/lib/wikiQuery';
 
 interface Props {
   pages: WikiPage[];
@@ -10,8 +11,8 @@ interface Props {
   initialFocusId?: string | null;
 }
 
-type EdgeKind = 'refersTo' | 'cites' | 'inherits' | 'similarTo';
-interface Edge { from: string; to: string; kind: EdgeKind; }
+type EdgeKind = WikiGraphEdgeKind;
+type Edge = WikiGraphEdge;
 type ColorBy = 'type' | 'status' | 'tag';
 type LayoutMode = 'cluster' | 'force';
 
@@ -178,31 +179,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
 
   /* ── 페이지/엣지 → 그래프 ── */
   useEffect(() => {
-    // 엣지·이웃맵 빌드
-    const edgeSet = new Set<string>();
-    const edges: Edge[] = [];
-    const neighborMap = new Map<string, Set<string>>();
-    const idSet = new Set(pages.map((p) => p.id));
-    const degree = new Map<string, number>();
-    function add(from: string, to: string, kind: EdgeKind) {
-      if (from === to || !idSet.has(from) || !idSet.has(to)) return;
-      const key = from < to ? `${from}|${to}|${kind}` : `${to}|${from}|${kind}`;
-      if (edgeSet.has(key)) return;
-      edgeSet.add(key);
-      edges.push({ from, to, kind });
-      degree.set(from, (degree.get(from) ?? 0) + 1);
-      degree.set(to, (degree.get(to) ?? 0) + 1);
-      if (!neighborMap.has(from)) neighborMap.set(from, new Set());
-      if (!neighborMap.has(to)) neighborMap.set(to, new Set());
-      neighborMap.get(from)!.add(to);
-      neighborMap.get(to)!.add(from);
-    }
-    for (const p of pages) {
-      for (const t of p.refersTo)  add(p.id, t, 'refersTo');
-      for (const t of p.cites)     add(p.id, t, 'cites');
-      for (const t of p.inherits)  add(p.id, t, 'inherits');
-      for (const t of p.similarTo) add(p.id, t, 'similarTo');
-    }
+    const graph = buildWikiGraphModel(pages);
+    const { edges, neighborMap, degree } = graph;
     edgesRef.current = edges;
     neighborMapRef.current = neighborMap;
 
@@ -289,8 +267,14 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
 
   const pathSet = useMemo(() => {
     if (!pathStart || !pathEnd) return null;
-    return bfsPath(neighborMapRef.current, pathStart, pathEnd);
+    const path = shortestWikiPath(neighborMapRef.current, pathStart, pathEnd);
+    return path ? new Set(path) : null;
   }, [pathStart, pathEnd]);
+
+  const graphSearchResults = useMemo(() => {
+    if (!query.trim()) return [];
+    return searchWikiPages(pages, query).slice(0, 6);
+  }, [pages, query]);
 
   /* ── rAF 시뮬레이션 루프 ── */
   const [, bumpTick] = useReducer((x: number) => (x + 1) | 0, 0);
@@ -464,6 +448,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
       case 'cites':     return { stroke: 'hsl(var(--wiki-link-visited))', opacity: 0.6 };
       case 'inherits':  return { stroke: 'hsl(var(--wiki-hairline-strong))', dash: '4 3', opacity: 0.7 };
       case 'similarTo': return { stroke: 'hsl(var(--muted-foreground))', dash: '2 4', opacity: 0.4 };
+      case 'parentMocs': return { stroke: 'hsl(var(--primary))', dash: '6 2', opacity: 0.65 };
     }
   }
 
@@ -497,6 +482,17 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
       if (t < 1) fitAnimRef.current = requestAnimationFrame(step);
     };
     fitAnimRef.current = requestAnimationFrame(step);
+  }
+
+  function focusNode(id: string) {
+    const n = nodesRef.current.get(id);
+    if (!n) return;
+    setFocusId(id);
+    setStickyId(id);
+    setTx(VB_W / 2 - n.x);
+    setTy(VB_H / 2 - n.y);
+    setScale((s) => Math.max(s, 1.2));
+    reheat(0.25);
   }
 
   /* ── SVG pointer 좌표 → viewBox 좌표 ── */
@@ -678,7 +674,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
     <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden">
       {/* 헤더 */}
       <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background focus-within:border-primary/50 wiki-trans-color">
+        <div className="relative flex items-center gap-1.5 px-2 h-7 rounded-md border border-[hsl(var(--hairline))] bg-background focus-within:border-primary/50 wiki-trans-color">
           <Search className="w-3 h-3 text-muted-foreground shrink-0" />
           <input
             value={query}
@@ -690,6 +686,35 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
             <button type="button" onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground" aria-label="검색 비우기">
               <X className="w-3 h-3" />
             </button>
+          )}
+          {query.trim() && (
+            <div className="absolute left-0 top-[calc(100%+6px)] z-20 w-[260px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+              {graphSearchResults.length === 0 ? (
+                <p className="px-3 py-2 text-[11px] text-muted-foreground">그래프에서 찾을 수 없어요</p>
+              ) : (
+                graphSearchResults.map(({ page: result, hit, matchedTag, matchedAlias, matchedLink, bodySnippet }) => (
+                  <div key={result.id} className="group flex items-center gap-1 px-1.5 py-1 hover:bg-accent/70">
+                    <button
+                      type="button"
+                      onClick={() => focusNode(result.id)}
+                      className="flex-1 min-w-0 text-left rounded px-1.5 py-1"
+                    >
+                      <span className="block truncate text-[12px] font-semibold text-foreground">{result.title}</span>
+                      <span className="block truncate text-[10.5px] text-muted-foreground">
+                        {formatSearchHit(hit, matchedTag ?? matchedAlias ?? matchedLink ?? bodySnippet)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(result.id)}
+                      className="shrink-0 h-6 px-2 rounded text-[10.5px] text-primary opacity-0 group-hover:opacity-100 hover:bg-primary/10"
+                    >
+                      열기
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
 
@@ -839,6 +864,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
         )}
         <span className="hidden md:inline text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80 ml-2">엣지</span>
         <span className="hidden md:inline-flex items-center gap-2">
+          <EdgeLegend kind="parentMocs" label="소속" />
           <EdgeLegend kind="refersTo" label="참조" />
           <EdgeLegend kind="cites" label="인용" />
           <EdgeLegend kind="inherits" label="계승" />
@@ -1109,12 +1135,22 @@ function ForceSlider({ label, value, min, max, step, onChange }: {
   );
 }
 
+function formatSearchHit(hit: string, value?: string): string {
+  if (hit === 'title') return '제목 일치';
+  if (hit === 'alias') return `별칭: ${value ?? ''}`;
+  if (hit === 'tag') return `태그: #${value ?? ''}`;
+  if (hit === 'link') return `링크: ${value ?? ''}`;
+  if (hit === 'body') return value ?? '본문 일치';
+  return '페이지';
+}
+
 function EdgeLegend({ kind, label }: { kind: EdgeKind; label: string }) {
   const colorMap: Record<EdgeKind, { stroke: string; dash?: string }> = {
     refersTo:  { stroke: 'hsl(var(--hairline))' },
     cites:     { stroke: 'hsl(var(--wiki-link-visited))' },
     inherits:  { stroke: 'hsl(var(--wiki-hairline-strong))', dash: '4 3' },
     similarTo: { stroke: 'hsl(var(--muted-foreground))', dash: '2 4' },
+    parentMocs: { stroke: 'hsl(var(--primary))', dash: '6 2' },
   };
   const c = colorMap[kind];
   return (
@@ -1125,35 +1161,6 @@ function EdgeLegend({ kind, label }: { kind: EdgeKind; label: string }) {
       {label}
     </span>
   );
-}
-
-/* ── BFS ── */
-function bfsPath(neighborMap: Map<string, Set<string>>, start: string, end: string): Set<string> | null {
-  if (start === end) return new Set([start]);
-  const visited = new Set<string>([start]);
-  const parent = new Map<string, string>();
-  const queue = [start];
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
-    const nb = neighborMap.get(cur);
-    if (!nb) continue;
-    for (const next of nb) {
-      if (visited.has(next)) continue;
-      visited.add(next);
-      parent.set(next, cur);
-      if (next === end) {
-        const out = new Set<string>([end]);
-        let p: string | undefined = end;
-        while ((p = parent.get(p!)) !== undefined) {
-          out.add(p);
-          if (p === start) break;
-        }
-        return out;
-      }
-      queue.push(next);
-    }
-  }
-  return null;
 }
 
 /* ── Soft Hull (Catmull-Rom spline through padded points) ── */

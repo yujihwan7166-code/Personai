@@ -45,7 +45,7 @@ function BodyPreview({ text }: { text: string }) {
           />
           {/* "더" 시그널 */}
           <span className="pointer-events-none absolute bottom-0 right-0 text-[11px] font-medium text-muted-foreground bg-card px-2 py-0.5 rounded">
-            … 더
+            ... 더
           </span>
         </>
       )}
@@ -66,7 +66,6 @@ export const JournalCard = ({ entry, onEdit, onDelete }: JournalCardProps) => {
   const day = d.getDate();                              // 29
   const month = d.getMonth() + 1;                        // 4
   const weekday = WEEKDAY_KO[d.getDay()];                // 수
-
   const moodKey = entry.mood !== undefined ? (entry.mood as Mood) : null;
   const moodEmoji = moodKey ? MOOD_EMOJI[moodKey] : null;
   const moodLabel = moodKey ? MOOD_LABELS[moodKey] : null;

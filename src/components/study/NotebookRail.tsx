@@ -2,6 +2,8 @@ import { Home, Plus } from 'lucide-react';
 import type { StudyNotebook } from '@/types/study';
 import { createEmptyNotebook } from '@/types/study';
 import { cn } from '@/lib/utils';
+import { NotebookIcon } from './NotebookIcon';
+import { textInputDialog } from '@/lib/textInputDialog';
 
 interface Props {
   notebooks: StudyNotebook[];
@@ -48,19 +50,25 @@ export function NotebookRail({ notebooks, activeId, onSelect, onGoHome, onCreate
               {active && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 -translate-x-2 rounded-full bg-indigo-500" />
               )}
-              {nb.icon}
+              <NotebookIcon icon={nb.icon} className="h-5 w-5" />
             </button>
           );
         })}
       </div>
       <button
-        onClick={() => {
-          const title = prompt('노트북 이름', '새 노트북');
+        onClick={async () => {
+          const title = await textInputDialog({
+            title: '새 자료',
+            label: '자료 이름',
+            defaultValue: '새 자료',
+            confirmLabel: '만들기',
+            required: true,
+          });
           if (title) onCreate(createEmptyNotebook(title));
         }}
         className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600"
-        title="새 노트북"
-        aria-label="새 노트북"
+        title="새 자료"
+        aria-label="새 자료"
       >
         <Plus className="h-4 w-4" />
       </button>

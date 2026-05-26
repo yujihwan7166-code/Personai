@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import type { WikiPage } from '@/types/wiki';
 import { WIKI_TYPE_META } from '@/types/wiki';
 import { WikiImage } from './WikiImage';
+import { buildWikiHeadingIdMap, nextWikiHeadingId } from '@/lib/wikiHeadings';
 
 interface Props {
   body: string;
@@ -30,6 +31,10 @@ function transformWikiLinks(body: string): string {
 
 export function WikiBody({ body, onOpenLink, findByTitle, visitedIds }: Props) {
   const transformed = useMemo(() => transformWikiLinks(body), [body]);
+  const headingIdMap = useMemo(() => buildWikiHeadingIdMap(body), [body]);
+  const headingCounters = new Map<string, number>();
+  const resolveHeadingId = (children: React.ReactNode) =>
+    nextWikiHeadingId(stringifyChildren(children), headingIdMap, headingCounters);
 
   return (
     <ReactMarkdown
@@ -37,13 +42,13 @@ export function WikiBody({ body, onOpenLink, findByTitle, visitedIds }: Props) {
       components={{
         // 위키 톤: 헤딩에 anchor id 자동 부여 (TOC 점프용)
         h1: ({ children, ...rest }) => (
-          <h1 id={slug(stringifyChildren(children))} {...rest}>{children}</h1>
+          <h1 id={resolveHeadingId(children)} {...rest}>{children}</h1>
         ),
         h2: ({ children, ...rest }) => (
-          <h2 id={slug(stringifyChildren(children))} {...rest}>{children}</h2>
+          <h2 id={resolveHeadingId(children)} {...rest}>{children}</h2>
         ),
         h3: ({ children, ...rest }) => (
-          <h3 id={slug(stringifyChildren(children))} {...rest}>{children}</h3>
+          <h3 id={resolveHeadingId(children)} {...rest}>{children}</h3>
         ),
         img: ({ src, alt }) => {
           if (typeof src !== 'string') return null;
@@ -107,6 +112,8 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
         onClick={(e) => { e.preventDefault(); onOpen(title); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         className={cn(
           'wiki-link',
           !exists && 'wiki-link-missing',
@@ -133,6 +140,20 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
           </span>
         </span>
       )}
+      {hovered && pos && !exists && (
+        <span
+          className="fixed z-50 pointer-events-none rounded-lg border border-[hsl(var(--wiki-link-missing)/0.30)] bg-popover text-popover-foreground shadow-xl px-3 py-2 max-w-xs animate-in fade-in slide-in-from-top-1 duration-150"
+          style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+        >
+          <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--wiki-link-missing))] mb-1">
+            아직 없는 문서
+          </span>
+          <span className="block text-[12.5px] font-bold text-foreground mb-0.5">{title}</span>
+          <span className="block text-[11px] text-muted-foreground leading-relaxed">
+            클릭하면 이 제목으로 새 draft 문서를 만들고 바로 편집합니다.
+          </span>
+        </span>
+      )}
     </>
   );
 }
@@ -145,12 +166,4 @@ function stringifyChildren(children: React.ReactNode): string {
     return stringifyChildren((children as { props: { children: React.ReactNode } }).props.children);
   }
   return '';
-}
-
-function slug(text: string): string {
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w가-힣-]/g, '');
 }

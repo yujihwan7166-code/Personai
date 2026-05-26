@@ -56,26 +56,39 @@ function newRevId(): string {
 export async function recordRevision(snapshot: WikiPage): Promise<void> {
   if (typeof indexedDB === 'undefined') return;
   try {
-    const db = await openDb();
-    const tx = db.transaction(STORE, 'readwrite');
-    const store = tx.objectStore(STORE);
     const rev: Revision = {
       id: newRevId(),
       pageId: snapshot.id,
       snapshot,
       takenAt: snapshot.updatedAt,
     };
-    await reqToPromise(store.put(rev));
-    // 정원 초과 시 오래된 것부터 정리
-    const idx = store.index('pageId');
-    const all = (await reqToPromise(idx.getAll(snapshot.id))) as Revision[];
-    if (all.length > MAX_PER_PAGE) {
-      const sorted = all.sort((a, b) => b.takenAt - a.takenAt);
-      const toDelete = sorted.slice(MAX_PER_PAGE);
-      for (const r of toDelete) await reqToPromise(store.delete(r.id));
-    }
+    await putRevision(rev);
   } catch (e) {
     console.warn('[wiki-history] record failed', e);
+  }
+}
+
+export async function restoreRevisionRecord(revision: Revision): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
+  try {
+    await putRevision(revision);
+  } catch (e) {
+    console.warn('[wiki-history] restore failed', e);
+  }
+}
+
+async function putRevision(revision: Revision): Promise<void> {
+  const db = await openDb();
+  const tx = db.transaction(STORE, 'readwrite');
+  const store = tx.objectStore(STORE);
+  await reqToPromise(store.put(revision));
+  // 정원 초과 시 오래된 것부터 정리
+  const idx = store.index('pageId');
+  const all = (await reqToPromise(idx.getAll(revision.pageId))) as Revision[];
+  if (all.length > MAX_PER_PAGE) {
+    const sorted = all.sort((a, b) => b.takenAt - a.takenAt);
+    const toDelete = sorted.slice(MAX_PER_PAGE);
+    for (const r of toDelete) await reqToPromise(store.delete(r.id));
   }
 }
 

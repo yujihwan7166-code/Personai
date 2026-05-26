@@ -21,16 +21,32 @@ interface Preset {
   hint: string;
   mode: StudyLayoutMode;
   slots: StudyPaneKind[];
+  weights?: number[];
 }
 
 // 2칸·3칸 프리셋 5개 — 중복 허용 구성 포함
 const PRESETS: Preset[] = [
   { id: 'study', label: '공부', hint: '원본 + 대화', mode: 2, slots: ['sources', 'chat'] },
   { id: 'create', label: '창작', hint: '원본 + 스튜디오', mode: 2, slots: ['sources', 'studio'] },
-  { id: 'review', label: '복습', hint: '대화 + 스튜디오', mode: 2, slots: ['chat', 'studio'] },
+  { id: 'workbench', label: '작업', hint: '대화 + 스튜디오', mode: 2, slots: ['chat', 'studio'] },
   { id: 'all', label: '전체', hint: '세 패널 모두', mode: 3, slots: ['sources', 'chat', 'studio'] },
   { id: 'compare', label: '비교', hint: '원본 + 스튜디오 둘', mode: 3, slots: ['sources', 'studio', 'studio'] },
 ];
+
+const FLOW_PRESETS: Preset[] = [
+  { id: 'read', label: '읽기', hint: '원본 크게 + 대화', mode: 2, slots: ['sources', 'chat'], weights: [48, 52] },
+  { id: 'ask', label: '질문', hint: '대화 크게 + 원본', mode: 2, slots: ['chat', 'sources'], weights: [58, 42] },
+  { id: 'make', label: '만들기', hint: '원본 + 스튜디오', mode: 2, slots: ['sources', 'studio'], weights: [54, 46] },
+  { id: 'workbench', label: '작업', hint: '대화 + 스튜디오', mode: 2, slots: ['chat', 'studio'], weights: [50, 50] },
+  { id: 'all', label: '전체', hint: '원본 · 대화 · 스튜디오', mode: 3, slots: ['sources', 'chat', 'studio'], weights: [30, 42, 28] },
+  { id: 'focus', label: '집중', hint: '대화만 보기', mode: 1, slots: ['chat'], weights: [100] },
+];
+
+const DEFAULT_WEIGHTS: Record<StudyLayoutMode, number[]> = {
+  1: [100],
+  2: [48, 52],
+  3: [30, 42, 28],
+};
 
 const PANE_FILL: Record<StudyPaneKind, string> = {
   sources: 'bg-slate-300 dark:bg-slate-600',
@@ -67,6 +83,11 @@ function persistCustom(v: CustomLayout | null) {
   } catch { /* noop */ }
 }
 
+function sameWeights(a: number[] | undefined, b: number[] | undefined) {
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((value, index) => Math.abs(value - b[index]) < 0.001);
+}
+
 export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights }: Props) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'presets' | 'editor'>('presets');
@@ -89,7 +110,7 @@ export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights
   // 닫힐 때 뷰 초기화
   useEffect(() => { if (!open) setView('presets'); }, [open]);
 
-  const currentPreset = PRESETS.find((p) =>
+  const currentPreset = FLOW_PRESETS.find((p) =>
     p.mode === prefs.mode && p.slots.length === prefs.slots.length && p.slots.every((s, i) => s === prefs.slots[i])
   );
 
@@ -98,10 +119,12 @@ export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights
     if (custom.mode !== prefs.mode) return false;
     if (custom.slots.length !== prefs.slots.length) return false;
     if (!custom.slots.every((s, i) => s === prefs.slots[i])) return false;
+    if (custom.weights && !sameWeights(custom.weights, prefs.weights)) return false;
     return true;
   }, [custom, prefs]);
 
   const currentLabel = isCustomActive ? '커스텀' : (currentPreset?.label ?? '사용자 설정');
+  const currentLayoutSummary = prefs.slots.map((slot) => PANE_META[slot].label).join(' · ');
 
   const applyPreset = (p: Preset) => {
     onModeChange(p.mode);
@@ -109,6 +132,7 @@ export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights
       p.slots.forEach((kind, i) => {
         if (prefs.slots[i] !== kind) onSlotChange(i, kind);
       });
+      if (p.weights && onSetWeights) onSetWeights(p.weights);
     }, 0);
     setOpen(false);
   };
@@ -169,7 +193,15 @@ export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights
   };
 
   const saveDraft = () => {
-    const v: CustomLayout = { mode: draft.mode, slots: draft.slots.slice() };
+    const keepsCurrentWidths = draft.mode === prefs.mode
+      && draft.slots.length === prefs.slots.length
+      && draft.slots.every((kind, i) => kind === prefs.slots[i])
+      && prefs.weights?.length === draft.mode;
+    const v: CustomLayout = {
+      mode: draft.mode,
+      slots: draft.slots.slice(),
+      weights: keepsCurrentWidths ? prefs.weights!.slice() : DEFAULT_WEIGHTS[draft.mode].slice(),
+    };
     persistCustom(v);
     setCustom(v);
     onModeChange(v.mode);
@@ -177,56 +209,68 @@ export function LayoutSwitcher({ prefs, onModeChange, onSlotChange, onSetWeights
       v.slots.forEach((kind, i) => {
         if (prefs.slots[i] !== kind) onSlotChange(i, kind);
       });
+      if (onSetWeights) onSetWeights(v.weights ?? DEFAULT_WEIGHTS[v.mode]);
     }, 0);
     setView('presets');
     setOpen(false);
   };
 
   return (
-    <div className="hidden sm:block relative" ref={ref}>
+    <div className="relative hidden xl:block" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex h-7 items-center gap-1.5 rounded-md px-2 text-[11.5px] font-semibold transition-colors',
+          'flex h-9 min-w-[150px] items-center gap-2 rounded-xl border px-2.5 text-left text-[11.5px] font-semibold shadow-sm transition-colors',
           open
-            ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900',
+            ? 'border-indigo-200 bg-indigo-50 text-slate-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-slate-100'
+            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800',
         )}
         aria-haspopup="menu"
         aria-expanded={open}
         title="레이아웃 설정"
       >
-        <LayoutGrid className="h-3.5 w-3.5" />
-        <span>레이아웃</span>
-        <span className="text-slate-400 dark:text-slate-500">· {currentLabel}</span>
+        <InlineLayoutBars slots={prefs.slots} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[11.5px] leading-tight">레이아웃 · {currentLabel}</span>
+          <span className="block truncate text-[10px] leading-tight text-slate-400 dark:text-slate-500">{currentLayoutSummary}</span>
+        </span>
         <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 top-full w-[380px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-3 z-40" role="menu">
+        <div className="absolute right-0 mt-1 top-full w-[420px] rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900 z-40" role="menu">
           {view === 'presets' ? (
-            <div className="grid grid-cols-3 gap-1.5">
-              {PRESETS.map((p) => {
-                const active = !isCustomActive && currentPreset?.id === p.id;
-                return (
-                  <PresetCard
-                    key={p.id}
-                    label={p.label}
-                    hint={p.hint}
-                    slots={p.slots}
-                    active={active}
-                    onClick={() => applyPreset(p)}
-                  />
-                );
-              })}
+            <div>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-slate-900 dark:text-slate-100">작업 흐름 선택</p>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{currentLayoutSummary}</p>
+                </div>
+                <LayoutGrid className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {FLOW_PRESETS.map((p) => {
+                  const active = !isCustomActive && currentPreset?.id === p.id;
+                  return (
+                    <PresetCard
+                      key={p.id}
+                      label={p.label}
+                      hint={p.hint}
+                      slots={p.slots}
+                      active={active}
+                      onClick={() => applyPreset(p)}
+                    />
+                  );
+                })}
 
-              <CustomCard
-                saved={custom}
-                active={isCustomActive}
-                onApply={applyCustom}
-                onEdit={openEditor}
-                onClear={clearCustom}
-              />
+                <CustomCard
+                  saved={custom}
+                  active={isCustomActive}
+                  onApply={applyCustom}
+                  onEdit={openEditor}
+                  onClear={clearCustom}
+                />
+              </div>
             </div>
           ) : (
             <EditorView
@@ -250,7 +294,7 @@ function PresetCard({
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-start gap-1.5 rounded-lg border p-2 transition-colors text-left',
+        'flex min-h-[94px] flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-colors',
         active
           ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 ring-1 ring-indigo-300'
           : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/40',
@@ -283,7 +327,7 @@ function CustomCard({
     return (
       <button
         onClick={onEdit}
-        className="flex flex-col items-start gap-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 p-2 transition-colors text-left hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20"
+        className="flex min-h-[94px] flex-col items-start gap-2 rounded-xl border border-dashed border-slate-300 p-2.5 text-left transition-colors hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-slate-600 dark:hover:bg-indigo-950/20"
         title="커스텀 배치 만들기"
       >
         <div className="w-full aspect-[16/9] rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
@@ -301,7 +345,7 @@ function CustomCard({
       <button
         onClick={onApply}
         className={cn(
-          'w-full flex flex-col items-start gap-1.5 rounded-lg border p-2 transition-colors text-left',
+          'flex min-h-[94px] w-full flex-col items-start gap-2 rounded-xl border p-2.5 text-left transition-colors',
           active
             ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 ring-1 ring-indigo-300'
             : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/40',
@@ -465,5 +509,15 @@ function PresetMiniature({ slots, active }: { slots: StudyPaneKind[]; active: bo
         />
       ))}
     </div>
+  );
+}
+
+function InlineLayoutBars({ slots }: { slots: StudyPaneKind[] }) {
+  return (
+    <span className="flex h-5 w-8 shrink-0 items-center gap-0.5 rounded-md border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-800/60" aria-hidden>
+      {slots.map((kind, index) => (
+        <span key={`${kind}-${index}`} className={cn('h-full min-w-0 flex-1 rounded-[2px]', PANE_FILL[kind])} />
+      ))}
+    </span>
   );
 }

@@ -15,10 +15,10 @@ interface HabitDayProgressProps {
 }
 
 const WEEKDAY_TONE = {
-  sun: 'text-rose-500/70',
-  sat: 'text-blue-500/70',
-  base: 'text-foreground/45',
-  today: 'text-blue-500',
+  sun: 'text-rose-500/80',
+  sat: 'text-blue-500/80',
+  base: 'text-foreground/65',
+  today: 'text-primary',
 } as const;
 
 export const HabitDayProgress = ({
@@ -29,9 +29,9 @@ export const HabitDayProgress = ({
   const c = 2 * Math.PI * r;   // 둘레
   const dashOffset = c * (1 - ratio);
 
-  // 색조: 오늘=파란, 과거 완료=초록계열, 미완 = 옅은 회색
+  // 색조: 오늘은 주말 색과 헷갈리지 않게 보라 포인트로, 완료/진행은 진행 상태 색으로 표시한다.
   const ringColor = isToday
-    ? 'hsl(220 70% 55%)'
+    ? 'hsl(var(--primary))'
     : ratio === 1
       ? 'hsl(160 60% 45%)'
       : ratio > 0
@@ -39,9 +39,9 @@ export const HabitDayProgress = ({
         : 'hsl(220 10% 60% / 0.25)';
 
   const wdToneClass =
-    weekday === '일' ? WEEKDAY_TONE.sun
+    isToday ? WEEKDAY_TONE.today
+    : weekday === '일' ? WEEKDAY_TONE.sun
     : weekday === '토' ? WEEKDAY_TONE.sat
-    : isToday ? WEEKDAY_TONE.today
     : WEEKDAY_TONE.base;
 
   return (
@@ -53,7 +53,7 @@ export const HabitDayProgress = ({
         <svg
           width={26} height={26}
           viewBox="0 0 26 26"
-          className={cn(isPast && !isToday && ratio === 0 && 'opacity-50')}
+          className={cn(isPast && !isToday && ratio === 0 && 'opacity-70')}
           aria-hidden
         >
           {/* 배경 원 */}
@@ -81,7 +81,7 @@ export const HabitDayProgress = ({
         {/* 날짜 — 도넛 가운데 */}
         <span className={cn(
           'absolute inset-0 flex items-center justify-center text-[11.5px] tabular-nums leading-none',
-          isToday ? 'text-blue-500 font-bold' : 'text-foreground/75 font-medium',
+          isToday ? 'text-primary font-bold' : 'text-foreground/82 font-medium',
         )}>
           {day}
         </span>

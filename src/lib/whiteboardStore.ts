@@ -37,10 +37,11 @@ const DEFAULT_TOOL: WBToolState = {
   shapeKind: 'rect',
   lineKind: 'arrow-solid',
   penWidth: 'normal',
+  penSize: 4,
   penColor: 'ink',
   strokeColor: 'ink',
   fillColor: 'none',
-  roughness: 1,
+  roughness: 0,
 };
 
 const DEFAULT_VIEWPORT: WBViewport = { x: 0, y: 0, zoom: 1 };
@@ -109,6 +110,8 @@ function ensureSettings(): WBSettings {
   if (settingsCache === null) {
     settingsCache = { ...DEFAULT_SETTINGS, ...loadJSON<Partial<WBSettings>>(K_SETTINGS, {}) };
     settingsCache.tool = { ...DEFAULT_TOOL, ...(settingsCache.tool ?? {}) };
+    const validTools = new Set(['select', 'pan', 'text', 'sticky', 'shape', 'line', 'pen', 'eraser', 'frame']);
+    if (!validTools.has(settingsCache.tool.kind)) settingsCache.tool.kind = 'select';
   }
   return settingsCache;
 }
@@ -299,7 +302,9 @@ function invalidateFoldersDerived(): void {
 
 export function listBoards(): WBBoard[] {
   if (boardsActiveDerived === null) {
-    boardsActiveDerived = ensureBoards().filter((b) => !b.trashedAt);
+    boardsActiveDerived = ensureBoards()
+      .filter((b) => !b.trashedAt)
+      .sort((a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)));
   }
   return boardsActiveDerived;
 }
@@ -337,6 +342,13 @@ export function addBoard(name?: string, folderId: string | null = null): WBBoard
 export function renameBoard(id: string, name: string): void {
   const next = ensureBoards().map((b) =>
     b.id === id ? { ...b, name: name.trim() || b.name, updatedAt: Date.now() } : b,
+  );
+  commitBoards(next);
+}
+
+export function updateBoardThumbnail(id: string, thumbnail: string | undefined): void {
+  const next = ensureBoards().map((b) =>
+    b.id === id ? { ...b, thumbnail } : b,
   );
   commitBoards(next);
 }

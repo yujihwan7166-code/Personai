@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, Download, Upload, Trash2, HardDrive } from 'lucide-react';
+import { Settings, Download, Upload, Trash2, HardDrive, FileText } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
+import { exportAllAsMarkdownZip } from '@/lib/wikiExport';
+import { importMarkdownFiles } from '@/lib/wikiMarkdownImport';
 import { clearAllPages } from '@/lib/wikiStore';
 import { notify } from '@/lib/notify';
 
@@ -18,7 +20,10 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pos, setPos] = useState<MenuPos | null>(null);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const markdownFileRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +34,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    const menuW = 220, menuH = 200;
+    const menuW = 220, menuH = 232;
     const margin = 8;
     let left = rect.right - menuW;
     if (left < margin) left = margin;
@@ -83,16 +88,54 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   };
 
   const handlePickFile = () => fileRef.current?.click();
+  const handlePickMarkdownFile = () => markdownFileRef.current?.click();
+
+  const handleMarkdownExport = async () => {
+    setBusy(true);
+    try {
+      await exportAllAsMarkdownZip();
+      notify.success('Markdown 묶음 다운로드 완료');
+    } catch (e) {
+      notify.error(`Markdown 내보내기 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const choice = confirm(
-      `'${file.name}' 가져오기\n\n[확인] = 병합 (기존 유지)\n[취소] = 덮어쓰기 (기존 전체 삭제 후 가져오기)`
-    );
-    const mode: ImportMode = choice ? 'merge' : 'replace';
-    if (!choice && !confirm('정말 기존 페이지를 모두 지우고 덮어쓸까요?')) return;
+    setOpen(false);
+    setPendingImportFile(file);
+  };
+
+  const handleMarkdownImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    e.target.value = '';
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    setOpen(false);
+    try {
+      const result = await importMarkdownFiles(files);
+      if (result.imported > 0) {
+        notify.success(
+          'Markdown 가져오기 완료',
+          { description: `${result.imported}개 가져옴${result.failed ? ` · 실패 ${result.failed}개` : ''}` },
+        );
+        onMutated();
+      } else {
+        notify.error('Markdown 가져오기 실패', { description: result.errors[0]?.message ?? '가져올 수 있는 파일이 없습니다.' });
+      }
+    } catch (err) {
+      notify.error('Markdown 가져오기 실패', { description: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runImport = async (file: File, mode: ImportMode) => {
     setBusy(true);
     try {
       const result = await importFromJson(file, mode);
@@ -105,13 +148,17 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       notify.error('가져오기 실패', { description: (err as Error).message });
     } finally {
       setBusy(false);
+      setPendingImportFile(null);
       setOpen(false);
     }
   };
 
   const handleClearAll = async () => {
-    if (!confirm('정말 모든 위키 페이지를 삭제할까요? 되돌릴 수 없어요.')) return;
-    if (!confirm('한 번 더 확인 — 모든 페이지가 사라집니다.')) return;
+    setOpen(false);
+    setClearConfirmOpen(true);
+  };
+
+  const runClearAll = async () => {
     setBusy(true);
     try {
       await clearAllPages();
@@ -119,6 +166,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       onMutated();
     } finally {
       setBusy(false);
+      setClearConfirmOpen(false);
       setOpen(false);
     }
   };
@@ -148,7 +196,9 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
             ⚙ 위키 설정
           </p>
           <MenuItem icon={<Download className="w-3.5 h-3.5" />} onClick={handleExport} label="전체 백업 (.json)" />
+          <MenuItem icon={<FileText className="w-3.5 h-3.5" />} onClick={handleMarkdownExport} label="전체 Markdown (.zip)" />
           <MenuItem icon={<Upload className="w-3.5 h-3.5" />} onClick={handlePickFile} label="백업 가져오기" />
+          <MenuItem icon={<FileText className="w-3.5 h-3.5" />} onClick={handlePickMarkdownFile} label="Markdown/ZIP 가져오기" />
           <MenuItem
             icon={<HardDrive className="w-3.5 h-3.5" />}
             onClick={() => { setOpen(false); onOpenStorage(); }}
@@ -172,6 +222,36 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         className="hidden"
         onChange={handleImport}
       />
+      <input
+        ref={markdownFileRef}
+        type="file"
+        accept=".md,.markdown,.zip,text/markdown,text/plain,application/zip"
+        multiple
+        className="hidden"
+        onChange={handleMarkdownImport}
+      />
+
+      {pendingImportFile && createPortal(
+        <ImportChoiceDialog
+          file={pendingImportFile}
+          busy={busy}
+          onCancel={() => setPendingImportFile(null)}
+          onPick={(mode) => { void runImport(pendingImportFile, mode); }}
+        />,
+        document.body,
+      )}
+
+      {clearConfirmOpen && createPortal(
+        <DangerConfirmDialog
+          title="전체 위키를 삭제할까요?"
+          body="모든 페이지가 삭제됩니다. 백업 파일 없이 진행하면 복구할 수 없어요."
+          busy={busy}
+          confirmLabel="전체 삭제"
+          onCancel={() => setClearConfirmOpen(false)}
+          onConfirm={() => { void runClearAll(); }}
+        />,
+        document.body,
+      )}
     </>
   );
 }
@@ -199,5 +279,115 @@ function MenuItem({
       {icon}
       {label}
     </button>
+  );
+}
+
+function ImportChoiceDialog({
+  file, busy, onCancel, onPick,
+}: {
+  file: File;
+  busy: boolean;
+  onCancel: () => void;
+  onPick: (mode: ImportMode) => void;
+}) {
+  return (
+    <ModalShell ariaLabel="백업 가져오기 방식 선택" onBackdrop={busy ? undefined : onCancel}>
+      <p className="text-[11px] font-semibold text-muted-foreground">백업 가져오기</p>
+      <h2 className="mt-1 text-[15px] font-bold truncate">{file.name}</h2>
+      <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
+        기존 위키를 유지하려면 병합을 선택하세요. 덮어쓰기는 현재 페이지와 히스토리를 지운 뒤 백업 내용으로 교체합니다.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onPick('merge')}
+          className="rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-left hover:bg-primary/15 disabled:opacity-50"
+        >
+          <span className="block text-[12.5px] font-bold text-primary">병합</span>
+          <span className="block text-[11px] text-muted-foreground mt-0.5">기존 페이지를 유지하고, 없는 페이지만 가져옵니다.</span>
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onPick('replace')}
+          className="rounded-lg border border-destructive/30 px-3 py-2 text-left text-destructive hover:bg-destructive/10 disabled:opacity-50"
+        >
+          <span className="block text-[12.5px] font-bold">덮어쓰기</span>
+          <span className="block text-[11px] text-destructive/75 mt-0.5">현재 위키를 지우고 백업으로 교체합니다.</span>
+        </button>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCancel}
+          className="h-8 px-3 rounded-md border border-[hsl(var(--hairline))] text-[12px] font-semibold hover:bg-accent disabled:opacity-50"
+        >
+          취소
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function DangerConfirmDialog({
+  title, body, busy, confirmLabel, onCancel, onConfirm,
+}: {
+  title: string;
+  body: string;
+  busy: boolean;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <ModalShell ariaLabel={title} onBackdrop={busy ? undefined : onCancel}>
+      <p className="text-[11px] font-semibold text-destructive">위험한 작업</p>
+      <h2 className="mt-1 text-[15px] font-bold">{title}</h2>
+      <p className="mt-2 text-[12px] leading-5 text-muted-foreground">{body}</p>
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCancel}
+          className="h-8 px-3 rounded-md border border-[hsl(var(--hairline))] text-[12px] font-semibold hover:bg-accent disabled:opacity-50"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onConfirm}
+          className="h-8 px-3 rounded-md bg-destructive text-destructive-foreground text-[12px] font-semibold hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? '처리 중…' : confirmLabel}
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function ModalShell({
+  ariaLabel, children, onBackdrop,
+}: {
+  ariaLabel: string;
+  children: React.ReactNode;
+  onBackdrop?: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 wiki-z-modal-backdrop flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
+      role="dialog"
+      aria-label={ariaLabel}
+      onClick={onBackdrop}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-[hsl(var(--hairline))] bg-popover p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
   );
 }

@@ -26,7 +26,6 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ['W'], desc: '주' },
       { keys: ['M'], desc: '월' },
       { keys: ['Y'], desc: '년' },
-      { keys: ['G'], desc: '목표' },
       { keys: ['H'], desc: '습관' },
     ],
   },

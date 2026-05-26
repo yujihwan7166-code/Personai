@@ -17,7 +17,7 @@ import {
   CHART_PALETTES, CHART_PALETTE_LABELS,
   type SelRange,
 } from '@/lib/cloudSheet/chart';
-import { idxToCol } from '@/lib/cloudSheet/formula';
+import { idxToCol, type EvalContext } from '@/lib/cloudSheet/formula';
 
 type ChartType = 'bar' | 'line' | 'area' | 'pie';
 type Cells = Record<string, string>;
@@ -26,18 +26,19 @@ interface ChartModalProps {
   open: boolean;
   onClose: () => void;
   cells: Cells;
+  evalContext?: EvalContext;
   range: SelRange;
   /** "시트에 추가" — 클릭 시 영구 차트로 embed (palette 포함) */
   onEmbed?: (c: { type: ChartType; orientation: 'columns' | 'rows'; range: SelRange; palette: string }) => void;
 }
 
-export function ChartModal({ open, onClose, cells, range, onEmbed }: ChartModalProps) {
+export function ChartModal({ open, onClose, cells, evalContext, range, onEmbed }: ChartModalProps) {
   const [type, setType] = useState<ChartType>('bar');
   const [orientation, setOrientation] = useState<'columns' | 'rows'>('columns');
   const [paletteName, setPaletteName] = useState<string>('default');
   const data = useMemo(
-    () => buildChartData(cells, range, orientation),
-    [cells, range, orientation],
+    () => buildChartData(cells, range, orientation, evalContext),
+    [cells, evalContext, range, orientation],
   );
   const palette = useMemo(() => getChartPalette(paletteName), [paletteName]);
   const chartRef = useRef<HTMLDivElement>(null);

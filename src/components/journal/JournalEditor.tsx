@@ -1,45 +1,41 @@
-/**
- * 일기 편집기 — shadcn Dialog 모달.
- *
- * 모드:
- * - create: 새 일기 추가 (date=오늘, body 빈 상태에서 시작)
- * - edit:   기존 항목 수정 (id + initialBody + initialMood)
- *
- * UX (TaskScheduleDialog 패턴):
- * - autoFocus textarea
- * - Ctrl/Cmd + Enter 저장
- * - Esc 닫기
- * - placeholder = AI 가이드 정적 질문 3종 랜덤
- */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Editor as TipTapEditor } from '@tiptap/react';
+import {
+  Bold,
+  ImagePlus,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { journalStore } from '@/services/journalStore';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { MoodPicker } from './MoodPicker';
 import { TagInput } from './TagInput';
-import { ActivityPicker } from './ActivityPicker';
 import { WikiBlockEditor } from '@/components/wiki/WikiBlockEditor';
 import { compressImage } from '@/lib/journalImage';
-import { extractTagsFromBody, mergeTags, getTopTags } from '@/lib/journalTags';
+import { extractTagsFromBody, getTopTags, mergeTags } from '@/lib/journalTags';
 import { pickPrompt, type JournalPrompt } from '@/lib/journalPrompts';
 import {
+  DEFAULT_ACTIVITIES,
   WEATHER_META,
-  type Mood,
-  type JournalEntry,
   type BodyFormat,
+  type JournalEntry,
   type JournalImage,
+  type Mood,
   type Weather,
 } from '@/types/journal';
 
 type Mode =
-  | { kind: 'create'; date?: string /* YYYY-MM-DD — 미지정 시 오늘 */ }
+  | { kind: 'create'; date?: string; initialBody?: string }
   | {
       kind: 'edit';
       id: string;
@@ -68,7 +64,6 @@ interface DraftSnapshot {
   manualTags: string[];
   format: BodyFormat;
   activities: string[];
-  // images 는 base64 라 너무 무거워서 draft 에서 제외 (저장 시 다시 첨부)
   savedAt: number;
 }
 
@@ -81,7 +76,7 @@ const normalizeStringArray = (value: unknown): string[] =>
     : [];
 
 const normalizeMood = (value: unknown): Mood | undefined =>
-  typeof value === 'number' && value >= 1 && value <= 5 ? value as Mood : undefined;
+  typeof value === 'number' && value >= 1 && value <= 5 ? (value as Mood) : undefined;
 
 const normalizeFormat = (value: unknown): BodyFormat =>
   value === 'plain' || value === 'markdown' ? value : 'markdown';
@@ -99,7 +94,9 @@ const loadDraft = (): DraftSnapshot | null => {
       manualTags: normalizeStringArray(parsed.manualTags),
       format: normalizeFormat(parsed.format),
       activities: normalizeStringArray(parsed.activities),
-      savedAt: typeof parsed.savedAt === 'number' && Number.isFinite(parsed.savedAt) ? parsed.savedAt : Date.now(),
+      savedAt: typeof parsed.savedAt === 'number' && Number.isFinite(parsed.savedAt)
+        ? parsed.savedAt
+        : Date.now(),
     };
   } catch {
     return null;
@@ -111,7 +108,7 @@ const saveDraft = (snap: DraftSnapshot): void => {
   try {
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
   } catch {
-    /* quota silent */
+    // LocalStorage can be full when users paste large content.
   }
 };
 
@@ -120,38 +117,47 @@ const clearDraft = (): void => {
   try {
     window.localStorage.removeItem(DRAFT_KEY);
   } catch {
-    /* silent */
+    // ignore
   }
+};
+
+const formatDateLabel = (date: Date): string =>
+  date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+
+const localDateKey = (): string => {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
 };
 
 export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   const [body, setBody] = useState('');
   const [mood, setMood] = useState<Mood | undefined>(undefined);
   const [manualTags, setManualTags] = useState<string[]>([]);
-  // 본문 형식은 항상 markdown (풍부) — 사용자 요청. 토글 제거.
-  const format: BodyFormat = 'markdown';
   const [images, setImages] = useState<JournalImage[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
-  // v4 새 사이드 기능
   const [weather, setWeather] = useState<Weather | undefined>(undefined);
   const [sleepHours, setSleepHours] = useState<number | undefined>(undefined);
   const [energy, setEnergy] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
-  // 현재 프롬프트 (랜덤 회전 — placeholder 에만 사용, 헤더 chip 제거)
   const [currentPrompt, setCurrentPrompt] = useState<JournalPrompt | null>(null);
-  const [seenPromptIds, setSeenPromptIds] = useState<string[]>([]);
-  // 자동 저장 — 마지막 저장 시각
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [richEditor, setRichEditor] = useState<TipTapEditor | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 모달 닫을 때 draft 처리 결정 (정상 저장 시 clearDraft, 그렇지 않으면 유지)
   const submittedRef = useRef(false);
+  const seenPromptIdsRef = useRef<string[]>([]);
+  const format: BodyFormat = 'markdown';
 
-  const suggestions = useMemo(() => {
-    return getTopTags(journalStore.list(), 8).map((t) => t.tag);
-  }, []);
+  const suggestions = useMemo(() => getTopTags(journalStore.list(), 8).map((t) => t.tag), []);
 
   useEffect(() => {
     if (!mode) return;
     submittedRef.current = false;
+
     if (mode.kind === 'edit') {
       setBody(mode.initialBody);
       setMood(mode.initialMood);
@@ -163,20 +169,34 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       setEnergy(mode.initialEnergy);
       setCurrentPrompt(null);
       setDraftSavedAt(null);
+      return;
+    }
+
+    const initialBody = typeof mode.initialBody === 'string' ? mode.initialBody.trim() : '';
+
+    if (initialBody) {
+      setBody(`${initialBody}\n\n`);
+      setMood(undefined);
+      setManualTags([]);
+      setActivities([]);
+      setImages([]);
+      setWeather(undefined);
+      setSleepHours(undefined);
+      setEnergy(undefined);
+      setDraftSavedAt(null);
     } else {
-      // create 모드 — draft 복구 시도
       const draft = open ? loadDraft() : null;
       if (draft && draft.body.trim().length > 0) {
         setBody(draft.body);
         setMood(draft.mood);
-        setManualTags(draft.manualTags ?? []);
-        setActivities(draft.activities ?? []);
+        setManualTags(draft.manualTags);
+        setActivities(draft.activities);
         setImages([]);
         setWeather(undefined);
         setSleepHours(undefined);
         setEnergy(undefined);
         setDraftSavedAt(draft.savedAt);
-        notify.info('이전 작성 중 내용을 복구했어요', { duration: 2200 });
+        notify.info('작성 중이던 내용을 불러왔어요', { duration: 2200 });
       } else {
         setBody('');
         setMood(undefined);
@@ -188,75 +208,75 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         setEnergy(undefined);
         setDraftSavedAt(null);
       }
-      // 새 모달 진입 시 시간대 자동 감지 + 카테고리 회전 (placeholder 용)
-      const fresh = pickPrompt({ excludeIds: seenPromptIds });
-      setCurrentPrompt(fresh);
-      setSeenPromptIds((prev) => [...prev, fresh.id].slice(-15)); // 최근 15개만 기억
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
 
-  // 자동 저장 (create 모드만, 30초 debounce)
+    const fresh = pickPrompt({ excludeIds: seenPromptIdsRef.current });
+    seenPromptIdsRef.current = [...seenPromptIdsRef.current, fresh.id].slice(-15);
+    setCurrentPrompt(fresh);
+  }, [mode, open]);
+
   useEffect(() => {
     if (!open || mode?.kind !== 'create') return;
     if (body.trim().length === 0) return;
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       const now = Date.now();
-      saveDraft({
-        body,
-        mood,
-        manualTags,
-        format,
-        activities,
-        savedAt: now,
-      });
+      saveDraft({ body, mood, manualTags, format, activities, savedAt: now });
       setDraftSavedAt(now);
     }, 30_000);
     return () => {
       if (draftTimer.current) clearTimeout(draftTimer.current);
     };
-  }, [body, mood, manualTags, format, activities, mode, open]);
-
-  // 닫기 핸들러 — 정상 저장 X 인데 본문 있으면 draft 보존
-  const handleClose = () => {
-    if (mode?.kind === 'create' && !submittedRef.current && body.trim().length > 0) {
-      saveDraft({
-        body,
-        mood,
-        manualTags,
-        format,
-        activities,
-        savedAt: Date.now(),
-      });
-      notify.info('작성 중 내용 임시 저장됨', { duration: 1800 });
-    }
-    onClose();
-  };
-
-  // placeholder 텍스트
-  const placeholder = currentPrompt?.text ?? '오늘 어떤 하루였나요?';
+  }, [activities, body, format, manualTags, mode, mood, open]);
 
   const dateLabel = useMemo(() => {
     if (mode?.kind === 'edit') {
-      const e: JournalEntry | undefined = journalStore
-        .list()
-        .find((x) => x.id === mode.id);
-      const target = e ? new Date(e.createdAt) : new Date();
-      return target.toLocaleDateString('ko-KR', {
-        year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
-      });
+      const entry: JournalEntry | undefined = journalStore.list().find((item) => item.id === mode.id);
+      return formatDateLabel(entry ? new Date(entry.createdAt) : new Date());
     }
-    // create — date 지정 시 그 날짜, 아니면 오늘
     const target = mode?.kind === 'create' && mode.date
       ? new Date(`${mode.date}T00:00:00`)
       : new Date();
-    return target.toLocaleDateString('ko-KR', {
-      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
-    });
+    return formatDateLabel(target);
   }, [mode]);
 
   if (!mode) return null;
+
+  const placeholder = currentPrompt?.text ?? '오늘 마음에 가장 오래 남은 장면을 적어보세요.';
+  const charCount = body.replace(/\s+/g, '').length;
+  const readMinutes = charCount > 0 ? Math.max(1, Math.round(charCount / 250)) : 0;
+
+  const uploadJournalImage = async (file: File): Promise<string> => {
+    try {
+      const { src } = await compressImage(file);
+      return src;
+    } catch (err) {
+      console.error('[journal] image compression failed:', err);
+      notify.error('이미지 추가에 실패했어요', { duration: 2000 });
+      throw err;
+    }
+  };
+
+  const pickImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file || !richEditor) return;
+      const src = await uploadJournalImage(file);
+      richEditor.chain().focus().setImage({ src }).run();
+    };
+    input.click();
+  };
+
+  const handleClose = () => {
+    if (mode.kind === 'create' && !submittedRef.current && body.trim().length > 0) {
+      saveDraft({ body, mood, manualTags, format, activities, savedAt: Date.now() });
+      notify.info('작성 중인 내용을 임시 저장했어요', { duration: 1800 });
+    }
+    onClose();
+  };
 
   const handleSubmit = () => {
     const trimmed = body.trim();
@@ -264,15 +284,23 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
       notify.warning('한 줄이라도 적어주세요', { duration: 1500 });
       return;
     }
-    // 본문 #태그 자동 추출 + 수동 태그 합치기
+
     const bodyTags = extractTagsFromBody(trimmed);
     const finalTags = mergeTags(bodyTags, manualTags);
     const tagsToSave = finalTags.length > 0 ? finalTags : undefined;
-
-    const formatToSave = format === 'plain' ? undefined : format;
-
     const imagesToSave = images.length > 0 ? images : undefined;
     const activitiesToSave = activities.length > 0 ? activities : undefined;
+    const targetDate = mode.kind === 'create'
+      ? (mode.date ?? localDateKey())
+      : undefined;
+
+    if (targetDate && journalStore.listByDate(targetDate).length >= 2) {
+      notify.info('오늘 일기는 하루에 최대 2번까지 쓸 수 있어요', {
+        description: '작성 중인 내용은 그대로 남겨둘게요.',
+        duration: 2200,
+      });
+      return;
+    }
 
     submittedRef.current = true;
     if (mode.kind === 'edit') {
@@ -280,36 +308,34 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
         body: trimmed,
         mood,
         tags: tagsToSave,
-        bodyFormat: formatToSave,
+        bodyFormat: format,
         images: imagesToSave,
         activities: activitiesToSave,
         weather,
         sleepHours,
         energy,
       });
-      notify.success('수정됐어요', { duration: 1500 });
+      notify.success('일기를 수정했어요', { duration: 1500 });
     } else {
       journalStore.add({
         body: trimmed,
         mood,
         tags: tagsToSave,
-        bodyFormat: formatToSave,
+        bodyFormat: format,
         images: imagesToSave,
         activities: activitiesToSave,
         weather,
         sleepHours,
         energy,
-        // create 모드에서 date 지정된 경우 그 날짜로 저장 (WeekSpotlight 과거 빈 날 채우기)
-        date: mode.kind === 'create' ? mode.date : undefined,
+        date: targetDate,
       });
       clearDraft();
       setDraftSavedAt(null);
-      notify.success('일기 저장됐어요', { duration: 1500 });
+      notify.success('일기를 저장했어요', { duration: 1500 });
     }
     onClose();
   };
 
-  // 사용자가 명시적으로 draft 버리기
   const handleDiscardDraft = () => {
     clearDraft();
     setBody('');
@@ -317,7 +343,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     setManualTags([]);
     setActivities([]);
     setDraftSavedAt(null);
-    notify.info('임시 저장 비웠어요', { duration: 1500 });
+    notify.info('임시 저장을 비웠어요', { duration: 1500 });
   };
 
   const handleKeyDownGlobal = (e: React.KeyboardEvent) => {
@@ -328,68 +354,99 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleClose()}>
       <DialogContent
         className={cn(
-          'journal-warm-theme transition-all max-w-3xl md:max-w-4xl',
-          // 모달 자체 높이 제한 + 내부 스크롤 (헤더/푸터는 고정, 본문만 스크롤)
-          'max-h-[90vh] flex flex-col p-0 gap-0',
-          'bg-card border-[hsl(var(--hairline))]',
+          'journal-warm-theme flex max-h-[90vh] max-w-[960px] flex-col overflow-hidden p-0 gap-0',
+          'bg-card border-[hsl(var(--hairline))] shadow-2xl',
         )}
         onKeyDown={handleKeyDownGlobal}
       >
-        <DialogHeader className="px-7 pt-6 pb-4 border-b border-[hsl(var(--hairline))] shrink-0">
-          <DialogTitle className="flex items-baseline gap-3 pr-8 min-w-0 flex-wrap">
-            <span className="text-[18px] font-bold shrink-0 tracking-[-0.01em]">
+        <DialogHeader className="shrink-0 border-b border-[hsl(var(--hairline))] px-6 py-4">
+          <DialogTitle className="flex min-w-0 flex-wrap items-baseline gap-3 pr-8">
+            <span className="text-[18px] font-bold tracking-[-0.01em]">
               {mode.kind === 'edit' ? '일기 수정' : '오늘의 일기'}
             </span>
-            <span className="text-[11.5px] font-medium tracking-[-0.005em] text-muted-foreground shrink-0">
+            <span className="text-[11.5px] font-medium text-muted-foreground">
               {dateLabel}
             </span>
           </DialogTitle>
         </DialogHeader>
 
-        {/* 본문 + 메타 — 2 컬럼 (가로로 길게, 세로 압축) */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 md:gap-5">
-            {/* 좌측: 본문 — 항상 풍부 (markdown) */}
-            <div className="min-w-0 flex flex-col">
-              <div className="rounded-md border border-[hsl(var(--hairline))] bg-card min-h-[320px]">
-                <WikiBlockEditor
-                  body={body}
-                  onChange={setBody}
-                  allPages={[]}
-                  firstPlaceholder={placeholder}
-                  restPlaceholder={placeholder}
-                  onUploadImage={async (file: File) => {
-                    // 클라이언트 압축 (~1280px max, JPEG quality 0.8) 후 base64 반환
-                    try {
-                      const { src } = await compressImage(file);
-                      return src;
-                    } catch (err) {
-                      console.error('이미지 압축 실패', err);
-                      notify.error('이미지 압축 실패', { duration: 2000 });
-                      throw err;
-                    }
-                  }}
-                />
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_270px]">
+            <section className="min-w-0">
+              <div className="overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card">
+                <JournalMiniToolbar editor={richEditor} onPickImage={pickImage} />
+                <div className="min-h-[410px] px-4 py-3">
+                  <WikiBlockEditor
+                    body={body}
+                    onChange={setBody}
+                    allPages={[]}
+                    hideToolbar
+                    disableSlashMenu
+                    onEditorReady={(editor) => setRichEditor(editor ?? null)}
+                    firstPlaceholder={placeholder}
+                    restPlaceholder="조금 더 이어서 적어볼까요?"
+                    onUploadImage={uploadJournalImage}
+                  />
+                </div>
               </div>
-            </div>
+            </section>
 
-            {/* 우측: 메타 — 기분 / 날씨 / 컨디션 / 수면 / 활동 / 태그 */}
-            <aside className="flex flex-col gap-3.5 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                  기분
-                </span>
+            <aside className="flex flex-col gap-4 md:border-l md:border-[hsl(var(--hairline))] md:pl-5">
+              <section className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[12px] font-semibold text-foreground">오늘 기분</h3>
+                  <span className="text-[10.5px] text-muted-foreground">선택 사항</span>
+                </div>
                 <MoodPicker value={mood} onChange={setMood} />
-              </div>
+              </section>
 
-              {/* 날씨 — 6 emoji chip */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                  날씨
-                </span>
+              <section className="space-y-2">
+                <h3 className="text-[12px] font-semibold text-foreground">컨디션</h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-8 text-[10.5px] text-muted-foreground">낮음</span>
+                  <div className="flex flex-1 gap-1">
+                    {[1, 2, 3, 4, 5].map((n) => {
+                      const active = energy === n;
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setEnergy(active ? undefined : (n as 1 | 2 | 3 | 4 | 5))}
+                          aria-pressed={active}
+                          className={cn(
+                            'h-8 flex-1 rounded-md border text-[11px] font-semibold tabular-nums transition-colors',
+                            active
+                              ? 'border-primary/40 bg-primary/12 text-primary'
+                              : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+                          )}
+                        >
+                          {n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className="w-8 text-right text-[10.5px] text-muted-foreground">높음</span>
+                </div>
+              </section>
+
+              <section className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[12px] font-semibold text-foreground">날씨</h3>
+                  {weather ? (
+                    <button
+                      type="button"
+                      onClick={() => setWeather(undefined)}
+                      className="text-[10.5px] text-muted-foreground/70 hover:text-foreground"
+                    >
+                      {WEATHER_META[weather].label} 지우기
+                    </button>
+                  ) : (
+                    <span className="text-[10.5px] text-muted-foreground">선택 사항</span>
+                  )}
+                </div>
                 <div className="grid grid-cols-6 gap-1">
                   {(Object.keys(WEATHER_META) as Weather[]).map((key) => {
                     const meta = WEATHER_META[key];
@@ -402,134 +459,102 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
                         title={meta.label}
                         aria-pressed={active}
                         className={cn(
-                          'inline-flex items-center justify-center h-8 rounded-md border text-[16px] transition-colors',
+                          'flex h-8 items-center justify-center rounded-lg border transition-colors',
                           active
-                            ? 'border-primary/40 bg-primary/10 text-primary'
-                            : 'border-[hsl(var(--hairline))] bg-card hover:border-foreground/20',
+                            ? 'border-primary/40 bg-primary/10 text-primary shadow-[0_6px_16px_-14px_hsl(var(--primary)/0.6)]'
+                            : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
                         )}
                       >
-                        <span aria-hidden>{meta.emoji}</span>
+                        <span className="text-[15px]" aria-hidden>{meta.emoji}</span>
+                        <span className="sr-only">{meta.label}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </section>
 
-              {/* 컨디션 (energy) + 수면 — 2 컬럼 한 줄 */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1.5 min-w-0">
-                  <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                    컨디션
+              <label className="block space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-semibold text-foreground">수면</span>
+                  <span className="text-[10.5px] text-muted-foreground">
+                    {sleepHours != null ? `${sleepHours}시간` : '선택 사항'}
                   </span>
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((n) => {
-                      const active = energy === n;
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setEnergy(active ? undefined : (n as 1 | 2 | 3 | 4 | 5))}
-                          title={`컨디션 ${n}`}
-                          aria-pressed={active}
-                          className={cn(
-                            'flex-1 h-8 rounded-md border text-[11px] font-semibold tabular-nums transition-colors',
-                            active
-                              ? 'border-primary/40 bg-primary/12 text-primary'
-                              : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
-                          )}
-                        >
-                          {n}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5 min-w-0">
-                  <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                    수면
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={0}
+                    max={24}
+                    step={0.5}
+                    value={sleepHours ?? ''}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === '') {
+                        setSleepHours(undefined);
+                        return;
+                      }
+                      const next = Number.parseFloat(value);
+                      if (Number.isFinite(next) && next >= 0 && next <= 24) setSleepHours(next);
+                    }}
+                    placeholder="예: 7.5"
+                    className="h-9 w-full rounded-lg border border-[hsl(var(--hairline))] bg-card pl-3 pr-10 text-[12px] tabular-nums outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/35 focus:ring-2 focus:ring-primary/10"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10.5px] text-muted-foreground">
+                    시간
                   </span>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={0}
-                      max={24}
-                      step={0.5}
-                      value={sleepHours ?? ''}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === '') {
-                          setSleepHours(undefined);
-                          return;
-                        }
-                        const n = parseFloat(v);
-                        if (Number.isFinite(n) && n >= 0 && n <= 24) setSleepHours(n);
-                      }}
-                      placeholder="–"
-                      className="w-full h-8 pl-2 pr-8 text-[12px] tabular-nums rounded-md border border-[hsl(var(--hairline))] bg-card focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-muted-foreground/60"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] text-muted-foreground pointer-events-none">
-                      시간
-                    </span>
-                  </div>
                 </div>
-              </div>
+              </label>
 
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                  활동
-                </span>
-                <ActivityPicker value={activities} onChange={setActivities} />
-              </div>
+              <section className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[12px] font-semibold text-foreground">활동</h3>
+                  <span className="text-[10.5px] text-muted-foreground">
+                    {activities.length > 0 ? `${activities.length}개 선택` : '선택 사항'}
+                  </span>
+                </div>
+                <JournalActivityChips value={activities} onChange={setActivities} />
+              </section>
 
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11.5px] font-semibold tracking-[-0.005em] text-foreground">
-                  태그
-                </span>
+              <section className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[12px] font-semibold text-foreground">태그</h3>
+                  <span className="text-[10.5px] text-muted-foreground">
+                    {manualTags.length > 0 ? `${manualTags.length}개` : '선택 사항'}
+                  </span>
+                </div>
                 <TagInput value={manualTags} onChange={setManualTags} suggestions={suggestions} />
-              </div>
+              </section>
             </aside>
           </div>
         </div>
 
-        <DialogFooter className="flex-row items-center sm:justify-between gap-1.5 px-6 py-3 border-t border-[hsl(var(--hairline))] shrink-0">
-          {/* 좌측 — 글자수·읽기 시간 + 자동 저장 상태 */}
-          <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
-            {/* 글자수·읽기 시간 — 항상 표시 (한국어 친화: 공백 제외 글자, 250자/분 읽기 속도) */}
-            <span className="inline-flex items-center gap-2 text-[10.5px] text-muted-foreground tabular-nums">
-              <span>
-                {body.replace(/\s+/g, '').length.toLocaleString()}자
-              </span>
-              <span aria-hidden className="text-muted-foreground/40">·</span>
-              <span>
-                {(() => {
-                  const chars = body.replace(/\s+/g, '').length;
-                  const mins = chars > 0 ? Math.max(1, Math.round(chars / 250)) : 0;
-                  return mins > 0 ? `${mins}분 읽기` : '—';
-                })()}
-              </span>
-            </span>
-            {/* 자동 저장 상태 — create 모드 + draft 있을 때 */}
+        <DialogFooter className="flex-row items-center gap-2 border-t border-[hsl(var(--hairline))] px-5 py-3 sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[10.5px] text-muted-foreground">
+            <span className="tabular-nums">{charCount.toLocaleString()}자</span>
+            <span aria-hidden className="text-muted-foreground/40">·</span>
+            <span>{readMinutes > 0 ? `${readMinutes}분 읽기` : '아직 비어 있음'}</span>
             {mode.kind === 'create' && draftSavedAt && (
-              <div className="inline-flex items-center gap-2 text-[10.5px] text-muted-foreground">
+              <>
                 <span aria-hidden className="text-muted-foreground/40">·</span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" aria-hidden />
-                  자동 저장됨
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/70" aria-hidden />
+                  임시 저장됨
                 </span>
                 <button
                   type="button"
                   onClick={handleDiscardDraft}
-                  className="text-muted-foreground/70 hover:text-foreground underline-offset-2 hover:underline"
+                  className="text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
                 >
                   비우기
                 </button>
-              </div>
+              </>
             )}
           </div>
+
           <button
             type="button"
             onClick={handleClose}
-            className="px-3 py-1.5 text-[12px] rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="rounded-md px-3 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             취소
           </button>
@@ -537,7 +562,7 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
             type="button"
             onClick={handleSubmit}
             title="Ctrl/Cmd + Enter"
-            className="px-4 py-1.5 text-[12px] rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            className="rounded-md bg-primary px-4 py-1.5 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             저장
           </button>
@@ -546,3 +571,151 @@ export const JournalEditor = ({ open, mode, onClose }: JournalEditorProps) => {
     </Dialog>
   );
 };
+
+function JournalMiniToolbar({
+  editor,
+  onPickImage,
+}: {
+  editor: TipTapEditor | null;
+  onPickImage: () => void;
+}) {
+  const disabled = !editor;
+
+  return (
+    <div className="flex min-h-11 flex-wrap items-center gap-1 border-b border-[hsl(var(--hairline))] bg-background/45 px-2 py-1.5">
+      <MiniTool
+        active={Boolean(editor?.isActive('bold'))}
+        disabled={disabled}
+        label="굵게"
+        onClick={() => editor?.chain().focus().toggleBold().run()}
+      >
+        <Bold className="h-3.5 w-3.5" />
+      </MiniTool>
+      <MiniTool
+        active={Boolean(editor?.isActive('italic'))}
+        disabled={disabled}
+        label="기울임"
+        onClick={() => editor?.chain().focus().toggleItalic().run()}
+      >
+        <Italic className="h-3.5 w-3.5" />
+      </MiniTool>
+      <span className="mx-1 h-4 w-px bg-[hsl(var(--hairline))]" aria-hidden />
+      <MiniTool
+        active={Boolean(editor?.isActive('bulletList'))}
+        disabled={disabled}
+        label="목록"
+        onClick={() => editor?.chain().focus().toggleBulletList().run()}
+      >
+        <List className="h-3.5 w-3.5" />
+      </MiniTool>
+      <MiniTool
+        active={Boolean(editor?.isActive('orderedList'))}
+        disabled={disabled}
+        label="번호 목록"
+        onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+      >
+        <ListOrdered className="h-3.5 w-3.5" />
+      </MiniTool>
+      <MiniTool
+        active={Boolean(editor?.isActive('blockquote'))}
+        disabled={disabled}
+        label="인용"
+        onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+      >
+        <Quote className="h-3.5 w-3.5" />
+      </MiniTool>
+      <span className="mx-1 h-4 w-px bg-[hsl(var(--hairline))]" aria-hidden />
+      <MiniTool disabled={disabled} label="사진" onClick={onPickImage}>
+        <ImagePlus className="h-3.5 w-3.5" />
+      </MiniTool>
+    </div>
+  );
+}
+
+function MiniTool({
+  active,
+  children,
+  disabled,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+        active
+          ? 'bg-primary/12 text-primary'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        disabled && 'cursor-not-allowed opacity-40 hover:bg-transparent',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function JournalActivityChips({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const selected = new Set(value);
+  const visibleActivities = expanded ? DEFAULT_ACTIVITIES : DEFAULT_ACTIVITIES.slice(0, 4);
+  const hiddenCount = DEFAULT_ACTIVITIES.length - visibleActivities.length;
+
+  const toggle = (key: string) => {
+    const next = new Set(selected);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onChange([...next]);
+  };
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {visibleActivities.map((activity) => {
+        const active = selected.has(activity.key);
+        return (
+          <button
+            key={activity.key}
+            type="button"
+            onClick={() => toggle(activity.key)}
+            aria-pressed={active}
+            className={cn(
+              'inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition-colors',
+              active
+                ? 'border-primary/35 bg-primary/10 text-primary shadow-[0_6px_16px_-14px_hsl(var(--primary)/0.55)]'
+                : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+            )}
+          >
+            <span className="text-[13px]" aria-hidden>{activity.emoji}</span>
+            {activity.label}
+          </button>
+        );
+      })}
+
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="inline-flex h-8 items-center rounded-full border border-dashed border-[hsl(var(--hairline))] bg-card px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+        >
+          +{hiddenCount}
+        </button>
+      )}
+    </div>
+  );
+}

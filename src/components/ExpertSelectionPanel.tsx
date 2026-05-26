@@ -94,7 +94,7 @@ interface Props {
   mainModeTabsApiRef?: React.MutableRefObject<{ open: () => void; close: () => void } | null>;
 }
 
-const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
+const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'voice_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant'];
 const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
 /** 1차 탭에서 빼고 "더보기" 드롭다운으로 보낼 카테고리들. */
 const MORE_DROPDOWN_CATS: string[] = ['region', 'mythology', 'lifestyle', 'religion', 'perspective'];
@@ -110,17 +110,17 @@ const debateSubModes: DebateSubMode[] = ['standard', 'procon', 'brainstorm', 'fr
 const mainModeLabels: Record<MainMode, string> = {
   general: '일반 채팅',
   multi: '멀티 채팅',
-  debate: 'AI 토론',
+  debate: 'AI 라운드테이블',
   stakeholder_main: 'AI 리허설',
   brainstorm_main: '브레인스토밍',
-  premium_main: 'AI 법률 자문',
+  premium_main: '프리미엄 AI',
   assistant: '어시스턴트',
   player: '플레이어',
   research_main: '심층 리서치',
   study_main: 'AI 스터디룸',
   translate_main: '다국어 번역',
   convert_main: '파일 변환',
-  voice_main: '음성 분석',
+  voice_main: 'AI 녹음 분석',
   media_main: '이미지·동영상 생성',
 };
 
@@ -1981,7 +1981,7 @@ export function ExpertSelectionPanel({
 }: Props) {
   // Phase C: 히어로 개인화 인사에 사용. AccountStatus 서브컴포넌트가 쓰던 것과 별개로 여기서도 호출.
   const { user, profile } = useAuth();
-  const [activeCategory, setActiveCategory] = useState<string>('ai');
+  const [activeCategory, setActiveCategory] = useState<string>('ai_recommended');
   const [activeSubCategory, setActiveSubCategory] = useState<string>('전체');
   // 전체 모델 탭의 2차 브랜드 필터: 'all' | ModelBrand | 'opensource'
   const [activeBrandFilter, setActiveBrandFilter] = useState<'all' | ModelBrand | 'opensource'>('all');
@@ -2283,6 +2283,7 @@ export function ExpertSelectionPanel({
     else if (m === 'player') onModeChange('player');
     else if (m === 'research_main') onModeChange('research');
     else if (m === 'study_main') onModeChange('study');
+    else if (m === 'voice_main') onModeChange('voice');
     else onModeChange('procon');
   }, [onModeChange]);
 
@@ -2401,10 +2402,19 @@ export function ExpertSelectionPanel({
               onSelectDebateSub={(sub) => onModeChange(sub)}
               currentAssistantCard={mainMode === 'assistant' ? selectedAssistantCardId ?? null : null}
               onSelectAssistantCard={(cardId) => {
+                if (cardId === 'voice-analysis') {
+                  handleMainModeChange('voice_main');
+                  return;
+                }
                 // 어시스턴트 모드 진입 + 해당 카드 선택
                 if (mainMode !== 'assistant') handleMainModeChange('assistant');
                 onAssistantCardChange?.(cardId);
               }}
+              onSelectPremiumDomain={(domainId) => {
+                if (mainMode !== 'premium_main') handleMainModeChange('premium_main');
+                onSelectPremiumDomain?.(domainId);
+              }}
+              currentPremiumDomain={selectedPremiumDomain ?? null}
               onOpenMentalTests={onOpenMentalTests}
               onOpenBookmarks={onOpenBookmarks}
               apiRef={mainModeTabsApiRef}
@@ -2485,7 +2495,7 @@ export function ExpertSelectionPanel({
             · 탭 그룹 max-w-[640px] 로 중심감 유지
             · 히어로와의 mt-6 여유 */}
       {/* 기존 하단 메인 탭 바는 Eyebrow pill 드롭다운으로 승격되어 완전히 제거됨.
-          debate 서브 모드도 이제 드롭다운 내부의 AI 토론 하위 항목에서 선택. */}
+          debate 서브 모드도 이제 드롭다운 내부의 AI 라운드테이블 하위 항목에서 선택. */}
 
       {/* Content transition wrapper — fades content when switching modes */}
       <div className={cn(

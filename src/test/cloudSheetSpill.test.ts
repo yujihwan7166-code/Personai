@@ -58,8 +58,11 @@ describe('SEQUENCE', () => {
     expect(parseSpill(evalIt('SEQUENCE(5)'))).toEqual([['1'], ['2'], ['3'], ['4'], ['5']]);
   });
 
-  it('SEQUENCE(3, 10, 5) — 시작 10, 증분 5', () => {
-    expect(parseSpill(evalIt('SEQUENCE(3, 10, 5)'))).toEqual([['10'], ['15'], ['20']]);
+  it('SEQUENCE(rows, columns, start, step)', () => {
+    expect(parseSpill(evalIt('SEQUENCE(2, 3, 10, 5)'))).toEqual([
+      ['10', '15', '20'],
+      ['25', '30', '35'],
+    ]);
   });
 
   it('SEQUENCE(0) → 빈 spill', () => {

@@ -566,7 +566,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                 style={{ top: i * HOUR_PX, height: HOUR_PX }}
               >
                 <div className="w-10 shrink-0 pr-1.5 text-right">
-                  <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground leading-none font-semibold">
+                    <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground/70 leading-none font-medium">
                     {String(hour).padStart(2, '0')}:00
                   </span>
                 </div>
@@ -582,13 +582,13 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
                           startIso={slot0.toISOString()}
                           onClick={() => handleSlotClick(hour, 0)}
                           ariaLabel={`${hour}:00`}
-                          className="absolute inset-x-0 top-0 h-1/2 border-t border-foreground/25"
+                          className="absolute inset-x-0 top-0 h-1/2 border-t border-foreground/12"
                         />
                         <DroppableTimeSlot
                           startIso={slot30.toISOString()}
                           onClick={() => handleSlotClick(hour, 30)}
                           ariaLabel={`${hour}:30`}
-                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-foreground/15"
+                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-foreground/8"
                         />
                       </>
                     );
@@ -953,8 +953,8 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
   if (hideHeader) {
     // 좌측 "계획"/"할 일" 카드들과 짝 맞춰 우측 "타임라인" 도 자체 카드.
     return (
-      <section className="h-full min-h-0 flex flex-col rounded-2xl border hairline bg-card px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
-        <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b hairline">
+      <section className="h-full min-h-0 flex flex-col rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]">
+        <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
           <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
           <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
             타임라인

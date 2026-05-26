@@ -20,10 +20,11 @@ export interface StudySource {
   pageCount?: number;
   /** 'native' = 원본 렌더, 'text' = 텍스트 폴백. blobRef 없거나 파싱 실패 시 'text'. */
   renderMode?: 'native' | 'text';
-  /** 업로드 시 감지된, 텍스트가 거의 없는 스캔본 페이지 번호들. OCR 대상.
-   *  Phase 4 변경: PDF 는 모든 페이지를 OCR 대상으로 설정 (글자 + 그림 라벨 모두 추출 위해). */
+  /** 업로드 시 감지된, 텍스트가 거의 없는 스캔본 페이지 번호들. OCR 대상. */
   scanPages?: number[];
-  /** OCR 자동 시작 여부. PDF 면 기본 true (Phase 4). */
+  /** User-requested OCR pages. These bypass automatic scan-page detection for manual recovery. */
+  forcedOcrPages?: number[];
+  /** OCR 자동 시작 여부. 스캔/이미지 페이지가 있는 PDF 면 true. */
   ocrEnabled?: boolean;
   /** PDF native 텍스트(extractPdfMeta 원본). OCR/Vision 으로 덮어쓰지 않는 보존 필드.
    *  page-level merge 시 native 가 OCR 보다 정확한 페이지에서 fallback 으로 사용. */
@@ -151,12 +152,12 @@ export interface DiagramConceptSuggestion {
 }
 
 export const DIAGRAM_KIND_META: Record<DiagramKind, { label: string; hint: string; emoji: string; example: string }> = {
-  flowchart:  { label: '플로우',   hint: '프로세스·절차·의사결정 흐름', emoji: '🔄', example: '혈액 순환' },
-  timeline:   { label: '타임라인', hint: '시간 순서·연대기',            emoji: '📅', example: '프랑스 혁명' },
-  comparison: { label: '비교표',   hint: 'A vs B 대조',                 emoji: '⚖️', example: '자본주의 vs 공산주의' },
-  cause:      { label: '인과',     hint: '원인 → 결과 체인',            emoji: '🔗', example: '인플레이션 원인' },
-  tree:       { label: '트리',     hint: '계층·분류 구조',              emoji: '🌳', example: '조직 구조' },
-  sequence:   { label: '시퀀스',   hint: '상호작용·주고받음 순서',      emoji: '↔️', example: '요청·응답' },
+  flowchart:  { label: '플로우',   hint: '프로세스·절차·의사결정 흐름', emoji: '', example: '혈액 순환' },
+  timeline:   { label: '타임라인', hint: '시간 순서·연대기',            emoji: '', example: '프랑스 혁명' },
+  comparison: { label: '비교표',   hint: 'A vs B 대조',                 emoji: '', example: '자본주의 vs 공산주의' },
+  cause:      { label: '인과',     hint: '원인 → 결과 체인',            emoji: '', example: '인플레이션 원인' },
+  tree:       { label: '트리',     hint: '계층·분류 구조',              emoji: '', example: '조직 구조' },
+  sequence:   { label: '시퀀스',   hint: '상호작용·주고받음 순서',      emoji: '', example: '요청·응답' },
 };
 
 /* ── 팟캐스트 ── */
@@ -192,7 +193,7 @@ export interface PodcastEpisode {
 export const PODCAST_PURPOSE_META: Record<PodcastPurpose | 'auto', { label: string; hint: string }> = {
   exam:       { label: '시험 대비', hint: '출제 포인트·틀리기 쉬운 지점' },
   overview:   { label: '개요',       hint: '균형 잡힌 입문 설명' },
-  review:     { label: '복습',       hint: '강의 구조 재강조' },
+  review:     { label: '재정리',     hint: '강의 구조 다시 정리' },
   briefing:   { label: '브리핑',     hint: '짧은 요점 전달' },
   'deep-dive':{ label: '심화',       hint: '배경·응용까지 깊이' },
   auto:       { label: '자동',       hint: '자료에 맞춰 선택' },
@@ -286,6 +287,12 @@ export interface StudyChatTurn {
   name?: string;
   createdAt: number;
   citations?: number[];
+  citationSources?: Array<{
+    id: string;
+    title: string;
+    kind: StudySource['kind'];
+    contentPreview: string;
+  }>;
 }
 
 /* ── 마인드맵 ── */
@@ -365,10 +372,9 @@ export interface StudyNotebook {
 }
 
 export const NOTEBOOK_ICON_PRESETS = [
-  '📘', '📗', '📕', '📙', '📒', '📓',
-  '📔', '📖', '🔤', '📐', '📝', '🎓',
-  '🎨', '💻', '🔬', '⚖️', '💊', '💰',
-  '📊', '🌐', '🎵', '🏃', '🗺️', '🧠',
+  'BookOpen', 'Book', 'BookOpenCheck', 'Library', 'Bookmark', 'FileText',
+  'ClipboardList', 'PenLine', 'ScrollText', 'GraduationCap', 'Brain', 'Sparkles',
+  'Bot', 'Code2', 'Calculator', 'FlaskConical', 'Globe2', 'Mic', 'Youtube',
 ] as const;
 
 export interface StudyFolder {
@@ -407,7 +413,7 @@ export function newId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function createEmptyNotebook(title = '새 노트북', icon = '📘'): StudyNotebook {
+export function createEmptyNotebook(title = '새 자료', icon = 'BookOpen'): StudyNotebook {
   const now = Date.now();
   return {
     id: newId('nb'),
@@ -426,15 +432,15 @@ export function createEmptyNotebook(title = '새 노트북', icon = '📘'): Stu
 }
 
 export const LENS_META: Record<StudyLens, { label: string; icon: string; tintClass: string; ringClass: string; accentText: string; lucide: string }> = {
-  summary: { label: '노트정리', icon: '📝', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'FileText' },
-  keypoints: { label: '핵심 포인트', icon: '⭐', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Sparkles' },
-  mindmap: { label: '마인드맵', icon: '🧠', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'GitBranch' },
-  quiz: { label: '퀴즈', icon: '🎯', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Target' },
-  guide: { label: '학습 가이드', icon: '🗺️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Map' },
-  debate: { label: '2인 토론', icon: '💬', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'MessagesSquare' },
-  flashcards: { label: '플래시카드', icon: '🃏', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Layers' },
-  podcast: { label: '팟캐스트', icon: '🎙️', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Mic' },
-  diagram: { label: '도식', icon: '📊', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'BarChart3' },
+  summary: { label: '노트정리', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'FileText' },
+  keypoints: { label: '핵심 포인트', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Sparkles' },
+  mindmap: { label: '마인드맵', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'GitBranch' },
+  quiz: { label: '퀴즈', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Target' },
+  guide: { label: '학습 가이드', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Map' },
+  debate: { label: '2인 토론', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'MessagesSquare' },
+  flashcards: { label: '플래시카드', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Layers' },
+  podcast: { label: '팟캐스트', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'Mic' },
+  diagram: { label: '도식', icon: '', tintClass: 'bg-slate-100', ringClass: 'ring-slate-200', accentText: 'text-slate-900', lucide: 'BarChart3' },
 };
 
 export const TONE_META: Record<StudyTone, string> = {
@@ -472,10 +478,6 @@ export function migrateQuizDecks(nb: StudyNotebook): StudyNotebook {
   return { ...nb, quizDecks: [deck], quizItems: [] };
 }
 
-export function countDueCards(nb: StudyNotebook, now = Date.now()): number {
-  return nb.flashcards.filter((c) => c.dueAt <= now).length;
-}
-
 export type StudyPaneKind = 'sources' | 'chat' | 'studio';
 export type StudyLayoutMode = 1 | 2 | 3;
 
@@ -491,13 +493,13 @@ export const DEFAULT_LAYOUT_PREFS: StudyLayoutPrefs = {
   mode: 3,
   slots: ['sources', 'chat', 'studio'],
   lockSourceLeft: false,
-  weights: [22, 50, 28],
+  weights: [30, 42, 28],
 };
 
 export const PANE_META: Record<StudyPaneKind, { label: string; icon: string }> = {
-  sources: { label: '원본', icon: '📄' },
-  chat: { label: '대화', icon: '💬' },
-  studio: { label: '스튜디오', icon: '✨' },
+  sources: { label: '원본', icon: '' },
+  chat: { label: '대화', icon: '' },
+  studio: { label: '스튜디오', icon: '' },
 };
 
 export function todayKey(d = new Date()): string {

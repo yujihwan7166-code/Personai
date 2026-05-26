@@ -4,11 +4,20 @@
  * - 본문 100% 밝기 유지, 클릭 가능 (메모 drawer 와 의도적으로 다름)
  * - rail ✨ 클릭으로 토글
  * - Esc / X 로 닫힘
- * - 380px 너비
+ * - 공통 AI 패널 폭 토큰 사용
  */
-import { useCallback, useEffect, useRef } from 'react';
-import { Sparkles, X, Trash2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { CalendarCheck, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { PageAiPanelHeader } from '@/components/PageAiPanelHeader';
+import { PageAiContextStrip, PageAiEmptyState, PageAiResizeHandle, PageAiTypingIndicator } from '@/components/PageAiScaffold';
+import {
+  PAGE_AI_PANEL_SCROLL_CLASS,
+  PAGE_AI_PANEL_SURFACE_CLASS,
+  PAGE_AI_PANEL_TRANSITION_CLASS,
+  PAGE_AI_PANEL_WIDTH,
+} from '@/components/PageAiTokens';
 import { useAIChat } from '@/hooks/planner/ai/useAIChat';
 import { AI_NAME } from '@/lib/planner/ai/aiName';
 import type { PlannerView } from '@/components/planner/ViewToggle';
@@ -37,15 +46,22 @@ export const PlannerAIPanel = ({
   anchorIso,
   width,
   onWidthChange,
-  minWidth = 280,
-  maxWidth = 560,
+  minWidth = PAGE_AI_PANEL_WIDTH.min,
+  maxWidth = PAGE_AI_PANEL_WIDTH.max,
 }: PlannerAIPanelProps) => {
   const { state, send, stop, clear, applyAction, cancelAction, undoAction } = useAIChat({ view, anchorIso });
+  const panelRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 새 메시지 도착 + 스트리밍 중 본문 변경 시 자동 스크롤 끝.
   // 사용자가 스크롤을 위로 올렸으면 (끝에서 80px 이상) 따라가지 않음 — 읽기 방해 X.
   const lastContentLenRef = useRef(0);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    (panel as HTMLElement & { inert: boolean }).inert = !open;
+  }, [open]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -59,152 +75,112 @@ export const PlannerAIPanel = ({
     }
   }, [state.messages]);
 
-  // Esc 닫기.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  // ── 좌측 가장자리 드래그로 너비 조정 ──
-  // pointermove 로 viewport 우측 끝에서 마우스 X 좌표만큼 빼면 너비.
-  const dragRef = useRef<{ active: boolean }>({ active: false });
-  const clearResizeSideEffects = useCallback(() => {
-    dragRef.current.active = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-  useEffect(() => () => clearResizeSideEffects(), [clearResizeSideEffects]);
-  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    dragRef.current.active = true;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-  const onResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current.active) return;
-    const next = window.innerWidth - e.clientX;
-    onWidthChange(Math.max(minWidth, Math.min(maxWidth, Math.round(next))));
-  };
-  const stopResize = (e: React.PointerEvent<HTMLDivElement>) => {
-    try {
-      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    } catch {
-      /* pointer capture may already be released by the browser */
-    }
-    clearResizeSideEffects();
-  };
-  // 더블클릭 → 기본값 복귀.
-  const resetToDefault = () => onWidthChange(340);
+  // 입력 중 Esc는 텍스트 편집을 우선하고, 그 외 영역에서만 패널을 닫는다.
+  useEscapeKey(() => onClose(), { enabled: open });
 
   return (
     <aside
+      ref={panelRef}
+      data-page-ai-panel="planner"
+      data-page-ai-panel-open={open ? 'true' : 'false'}
       aria-hidden={!open}
-      aria-label={`${AI_NAME} — AI 컴패니언`}
+      aria-label={AI_NAME}
       className={cn(
-        'fixed top-0 right-0 h-screen z-30 bg-background border-l hairline shadow-[-4px_0_20px_hsl(30_15%_8%/0.04)]',
-        'transition-transform duration-200 ease-out',
+        'fixed inset-y-0 right-0 z-50 flex h-full shrink-0 flex-col overflow-hidden',
+        PAGE_AI_PANEL_SURFACE_CLASS,
+        PAGE_AI_PANEL_TRANSITION_CLASS,
         // 모바일: 풀스크린, sm 이상: 사용자 지정 너비 (CSS 변수로).
         'w-full sm:w-[var(--ai-w)]',
-        open ? 'translate-x-0' : 'translate-x-full pointer-events-none max-sm:hidden',
+        open
+          ? 'translate-x-0'
+          : 'translate-x-full pointer-events-none border-l-0 bg-transparent shadow-none max-sm:hidden sm:w-0 sm:translate-x-0',
       )}
       style={{ ['--ai-w' as string]: `${width}px` }}
+      role="complementary"
     >
-      {/* 좌측 가장자리 — 드래그로 너비 조정. 모바일에선 숨김 (풀스크린이라 의미 X). */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="AI 패널 너비 조정"
-        title="드래그로 너비 조정 · 더블클릭으로 기본값"
-        className="hidden sm:block absolute top-0 left-0 h-full w-1.5 -ml-0.5 cursor-col-resize hover:bg-primary/30 active:bg-primary/50 transition-colors z-10"
-        onPointerDown={startResize}
-        onPointerMove={onResizeMove}
-        onPointerUp={stopResize}
-        onPointerCancel={stopResize}
-        onDoubleClick={resetToDefault}
+      <PageAiResizeHandle
+        open={open}
+        width={width}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        defaultWidth={PAGE_AI_PANEL_WIDTH.default}
+        onWidthChange={onWidthChange}
       />
 
-      <div className="flex h-full flex-col">
-        {/* ── 헤더 ── */}
-        <div className="shrink-0 flex items-center justify-between px-3.5 pt-3 pb-2.5 border-b hairline">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />
-            <h2 className="text-[13.5px] font-semibold text-foreground truncate">{AI_NAME}</h2>
-          </div>
-          <div className="flex items-center gap-0.5">
-            {state.messages.length > 0 && (
+      {open && (
+        <div className="flex h-full flex-col">
+          {/* ── 헤더 ── */}
+          <PageAiPanelHeader
+            title={AI_NAME}
+            subtitle="현재 플래너를 참고합니다"
+            icon={<CalendarCheck className="h-3.5 w-3.5" aria-hidden />}
+            iconTone="amber"
+            onClose={onClose}
+            actions={state.messages.length > 0 && (
               <button
                 type="button"
                 onClick={clear}
                 aria-label="대화 비우기"
                 title="대화 비우기"
-                className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="패널 닫기"
-              title="닫기 (Esc)"
-              className="inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+          />
 
-        {/* ── 메시지 영역 ── */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2.5">
-          {state.messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center px-3 py-4">
-              <div className="text-center mb-4">
-                <div className="text-[13.5px] font-semibold text-foreground mb-1">무엇을 도와드릴까요?</div>
-                <div className="text-[11.5px] text-muted-foreground leading-relaxed">
-                  현재 화면 데이터를 참고해 답합니다.<br />
-                  <span className="text-muted-foreground/75">일정·할 일 추가는 카드로 제안 → 확인 누르면 적용.</span>
-                </div>
-              </div>
-              <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} />
+          {/* ── 메시지 영역 ── */}
+          <PageAiContextStrip
+            summary={`${view} · ${new Date(anchorIso).toLocaleDateString('ko-KR')}`}
+          />
+
+          <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
+            {state.messages.length === 0 ? (
+              <PageAiEmptyState
+                title="오늘 계획을 어떻게 다듬을까요?"
+                description="현재 화면의 일정과 할 일을 참고해 다음 행동을 제안합니다."
+              >
+                <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} />
+              </PageAiEmptyState>
+            ) : (
+              state.messages.map((m) => (
+                <AIMessage
+                  key={m.id}
+                  message={m}
+                  onRetry={m.error ? () => {
+                    // 직전 user 메시지를 재전송.
+                    const idx = state.messages.findIndex((x) => x.id === m.id);
+                    const prev = state.messages.slice(0, idx).reverse().find((x) => x.role === 'user');
+                    if (prev) void send(prev.content);
+                  } : undefined}
+                  onApplyAction={(i) => applyAction(m.id, i)}
+                  onCancelAction={(i) => cancelAction(m.id, i)}
+                  onUndoAction={(i) => undoAction(m.id, i)}
+                />
+              ))
+            )}
+            {state.loading && state.messages[state.messages.length - 1]?.role !== 'assistant' && (
+              <PageAiTypingIndicator />
+            )}
+          </div>
+
+          {/* ── 메시지 있을 때만 하단 quick actions (컴팩트 칩 모드) ── */}
+          {state.messages.length > 0 && !state.loading && (
+            <div className="shrink-0 px-3 pb-2">
+              <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} compact />
             </div>
-          ) : (
-            state.messages.map((m) => (
-              <AIMessage
-                key={m.id}
-                message={m}
-                onRetry={m.error ? () => {
-                  // 직전 user 메시지를 재전송.
-                  const idx = state.messages.findIndex((x) => x.id === m.id);
-                  const prev = state.messages.slice(0, idx).reverse().find((x) => x.role === 'user');
-                  if (prev) void send(prev.content);
-                } : undefined}
-                onApplyAction={(i) => applyAction(m.id, i)}
-                onCancelAction={(i) => cancelAction(m.id, i)}
-                onUndoAction={(i) => undoAction(m.id, i)}
-              />
-            ))
           )}
+
+          {/* ── 입력창 ── */}
+          <AIComposer
+            onSend={(t) => void send(t)}
+            onStop={state.loading ? stop : undefined}
+            loading={state.loading}
+            placeholder="일정 정리, 빈 시간, 다음 행동을 물어보세요..."
+            autoFocus={open}
+          />
         </div>
-
-        {/* ── 메시지 있을 때만 하단 quick actions (컴팩트 칩 모드) ── */}
-        {state.messages.length > 0 && !state.loading && (
-          <div className="shrink-0 px-3 pb-2">
-            <AIQuickActions view={view} onPick={(p) => void send(p)} disabled={state.loading} compact />
-          </div>
-        )}
-
-        {/* ── 입력창 ── */}
-        <AIComposer
-          onSend={(t) => void send(t)}
-          onStop={state.loading ? stop : undefined}
-          loading={state.loading}
-        />
-      </div>
+      )}
     </aside>
   );
 };

@@ -135,6 +135,21 @@ function parseCellPaddingAttr(attributeName: string, cssProperty: keyof CSSStyle
   );
 }
 
+function parseCellColwidth(element: HTMLElement): number[] | null {
+  const colwidth = element.getAttribute('colwidth');
+  const explicit = colwidth
+    ? colwidth.split(',').map((width) => parseInt(width, 10)).filter((width) => Number.isFinite(width) && width > 0)
+    : [];
+  if (explicit.length > 0) return explicit;
+
+  const cols = element.closest('table')?.querySelectorAll('colgroup > col');
+  const cellIndex = Array.from(element.parentElement?.children || []).indexOf(element);
+  if (!cols || cellIndex < 0) return null;
+  const width = cols[cellIndex]?.getAttribute('width') ?? (cols[cellIndex] as HTMLElement | undefined)?.style.width;
+  const parsed = width ? parseInt(width, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? [parsed] : null;
+}
+
 function renderCellPaddingAttr(attributeKey: string, attributeName: string) {
   return (attributes: Record<string, unknown>) => {
     const padding = parseCellPadding(attributes[attributeKey]);
@@ -236,6 +251,10 @@ export const RichTableCell = BaseTableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      colwidth: {
+        default: null,
+        parseHTML: parseCellColwidth,
+      },
       backgroundColor: {
         default: null,
         parseHTML: parseCellBackground,
@@ -318,6 +337,10 @@ export const RichTableHeader = BaseTableHeader.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      colwidth: {
+        default: null,
+        parseHTML: parseCellColwidth,
+      },
       backgroundColor: {
         default: null,
         parseHTML: parseCellBackground,

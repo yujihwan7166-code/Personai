@@ -32,10 +32,10 @@ export function roughCached({ el, cacheKey, build }: RoughInput): Drawable {
 }
 
 export function roughOptions(roughness: 0 | 1 | 2, fillColor?: string, fillStyle?: 'solid' | 'hachure' | 'cross-hatch'): Options {
-  const r = roughness === 0 ? 0.3 : roughness === 1 ? 1.2 : 2.4;
+  const r = roughness === 0 ? 0.25 : roughness === 1 ? 0.55 : 1.6;
   return {
     roughness: r,
-    bowing: roughness === 0 ? 0 : 1,
+    bowing: roughness === 0 ? 0 : roughness === 1 ? 0.2 : 0.8,
     fill: fillColor && fillColor !== 'none' ? fillColor : undefined,
     fillStyle: fillStyle === 'hachure' ? 'hachure'
              : fillStyle === 'cross-hatch' ? 'cross-hatch'

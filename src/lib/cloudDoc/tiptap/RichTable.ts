@@ -77,7 +77,7 @@ export const RichTable = BaseTable.extend({
       },
       tableColumnWidths: {
         default: null,
-        parseHTML: (element: HTMLElement) => parseTableColumnWidths(element.getAttribute(TABLE_COLUMN_WIDTHS_ATTR)),
+        parseHTML: (element: HTMLElement) => parseTableColumnWidthsFromElement(element),
         renderHTML: (attributes) => {
           const tableColumnWidths = parseTableColumnWidths(attributes.tableColumnWidths);
           return tableColumnWidths ? { [TABLE_COLUMN_WIDTHS_ATTR]: tableColumnWidths.join(',') } : {};
@@ -128,3 +128,22 @@ export const RichTable = BaseTable.extend({
     return ['table', attrs, ['tbody', 0]];
   },
 });
+
+function parseTableColumnWidthsFromElement(element: HTMLElement): number[] | null {
+  const dataWidths = parseTableColumnWidths(element.getAttribute(TABLE_COLUMN_WIDTHS_ATTR));
+  if (dataWidths) return dataWidths;
+
+  const colWidths = Array.from(element.querySelectorAll('colgroup > col'))
+    .map((col) => parseTableWidth(col.getAttribute('width') ?? (col as HTMLElement).style.width))
+    .filter((width): width is number => width != null);
+  if (colWidths.length > 0) return colWidths;
+
+  const firstRow = element.querySelector('tr');
+  if (!firstRow) return null;
+  const cellWidths: number[] = [];
+  for (const cell of Array.from(firstRow.querySelectorAll<HTMLElement>('td, th'))) {
+    const colwidth = parseTableColumnWidths(cell.getAttribute('colwidth'));
+    if (colwidth?.length) cellWidths.push(...colwidth);
+  }
+  return cellWidths.length > 0 ? cellWidths : null;
+}

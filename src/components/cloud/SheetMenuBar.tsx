@@ -45,6 +45,8 @@ export interface SheetMenuActions {
   clearFormat: () => void;
   // 데이터
   toggleFilter: () => void;
+  toggleFilter: () => void;
+  createTable: () => void;
   sortSelectionAsc: () => void;
   sortSelectionDesc: () => void;
   // 보기 — 줌
@@ -218,8 +220,8 @@ export function SheetMenuBar(p: SheetMenuBarProps) {
             </MenubarSubContent>
           </MenubarSub>
           <MenubarSeparator />
-          <MenubarItem disabled>
-            <Table2 className="w-4 h-4 mr-2" /> 피벗 만들기 (v2 — 엔진 준비됨)
+          <MenubarItem onSelect={p.createTable}>
+            <Table2 className="w-4 h-4 mr-2" /> 선택 영역을 표로 만들기
           </MenubarItem>
         </MenubarContent>
       </MenubarMenu>

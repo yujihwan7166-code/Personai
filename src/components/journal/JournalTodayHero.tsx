@@ -1,31 +1,31 @@
-/**
- * 오늘 Hero — 일기 페이지 최상단의 "오늘" 섹션.
- *
- * - 오늘 entry 있음: 'TODAY' eyebrow + entries 카드들 (살짝 강조 톤)
- * - 오늘 entry 없음: 큰 prompt 카드 — "오늘은 어떤 하루였나요?" + 빠른 시작
- *
- * 단일 view feed 의 책 톤: 이 hero 가 첫 페이지(today) 역할.
- */
-import { Pencil } from 'lucide-react';
+import { PenLine, Sparkles } from 'lucide-react';
 import { JournalCard } from './JournalCard';
 import type { JournalEntry } from '@/types/journal';
 
 interface Props {
   todayEntries: JournalEntry[];
-  onCreate: () => void;
+  onCreate: (starter?: string) => void;
   onEdit: (entry: JournalEntry) => void;
   onDelete: (entry: JournalEntry) => void;
 }
 
+const PROMPTS = [
+  '오늘 가장 오래 남은 장면은?',
+  '지금 감정을 색으로 말하면?',
+  '내일의 나에게 한마디',
+] as const;
+
 export const JournalTodayHero = ({ todayEntries, onCreate, onEdit, onDelete }: Props) => {
-  const has = todayEntries.length > 0;
+  const hasToday = todayEntries.length > 0;
 
   return (
     <section className="flex flex-col gap-3" aria-label="오늘">
-      {/* 이전엔 TODAY eyebrow + 큰 '오늘의 일기' 헤더가 여기 있었음 — 페이지 헤더로 이동 (중복 제거). */}
-
-      {has ? (
-        <div className="flex flex-col gap-4">
+      {hasToday ? (
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">Today</p>
+            <h2 className="mt-1 text-[15px] font-semibold text-foreground">오늘 기록</h2>
+          </div>
           {todayEntries.map((entry) => (
             <JournalCard
               key={entry.id}
@@ -36,21 +36,44 @@ export const JournalTodayHero = ({ todayEntries, onCreate, onEdit, onDelete }: P
           ))}
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={onCreate}
-          className="group w-full rounded-2xl border border-dashed border-primary/25 bg-primary/[0.03] hover:bg-primary/[0.07] hover:border-primary/40 transition-colors py-10 sm:py-14 px-6 flex flex-col items-center justify-center gap-3 text-center"
-        >
-          <span className="inline-flex items-center justify-center h-11 w-11 rounded-2xl bg-primary/10 text-primary/85 group-hover:bg-primary/15 group-hover:text-primary transition-colors">
-            <Pencil className="h-[18px] w-[18px]" strokeWidth={1.6} />
-          </span>
-          <p className="font-display text-[18px] sm:text-[20px] text-foreground/85 tracking-[-0.01em] group-hover:text-foreground transition-colors">
-            오늘은 어떤 하루였나요?
-          </p>
-          <span className="text-[11.5px] text-muted-foreground/75">
-            클릭해서 첫 줄 적기 · <kbd className="font-mono text-[10.5px] px-1 py-px rounded bg-muted/60 text-muted-foreground">N</kbd>
-          </span>
-        </button>
+        <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-card shadow-[0_8px_24px_-22px_hsl(30_30%_8%/0.24)]">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px]">
+            <button
+              type="button"
+              onClick={() => onCreate()}
+              className="group flex min-h-[190px] flex-col items-start justify-center px-6 py-7 text-left transition-colors hover:bg-primary/[0.035]"
+            >
+              <span className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/15">
+                <PenLine className="h-5 w-5" strokeWidth={1.7} />
+              </span>
+              <p className="font-display text-[24px] font-bold leading-tight tracking-[-0.03em] text-foreground">
+                오늘을 한 문장으로 붙잡아볼까요?
+              </p>
+              <p className="mt-3 max-w-[520px] text-[13px] leading-6 text-muted-foreground">
+                길게 쓰지 않아도 괜찮아요. 한 장면, 한 감정, 한 문장만 남겨도 오늘은 기록됩니다.
+              </p>
+            </button>
+
+            <div className="border-t border-[hsl(var(--hairline))] bg-background/45 p-4 md:border-l md:border-t-0">
+              <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
+                빠른 질문
+              </div>
+              <div className="flex flex-col gap-2">
+                {PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => onCreate(prompt)}
+                    className="rounded-lg border border-[hsl(var(--hairline))] bg-card/75 px-3 py-2 text-left text-[12px] font-medium text-foreground/80 transition-colors hover:border-primary/30 hover:bg-primary/[0.045] hover:text-foreground"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

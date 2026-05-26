@@ -13,7 +13,7 @@
  * - 빈 범위 → 빈 결과
  */
 
-import { evalCell } from './formula';
+import { evalCell, type EvalContext } from './formula';
 
 type Cells = Record<string, string>;
 
@@ -48,11 +48,11 @@ function colLabel(i: number): string {
   return s;
 }
 
-function readCell(cells: Cells, row: number, col: number): string {
+function readCell(cells: Cells, row: number, col: number, evalContext?: EvalContext): string {
   const ref = `${colLabel(col)}${row + 1}`;
   const raw = cells[ref];
   if (!raw) return '';
-  if (raw.startsWith('=')) return evalCell(ref, cells);
+  if (raw.startsWith('=')) return evalCell(ref, cells, evalContext);
   return raw;
 }
 
@@ -62,21 +62,21 @@ function toNumberOrZero(v: string): number {
 }
 
 /** 시리즈가 column 방향: 첫 행이 시리즈 라벨, 첫 열이 카테고리 */
-function buildColumnsOriented(cells: Cells, r: SelRange): ChartData {
+function buildColumnsOriented(cells: Cells, r: SelRange, evalContext?: EvalContext): ChartData {
   const rows: ChartData['rows'] = [];
   const seriesKeys: string[] = [];
   // 첫 행에서 시리즈 라벨 (minC+1..maxC)
   for (let c = r.minC + 1; c <= r.maxC; c++) {
-    const label = readCell(cells, r.minR, c).trim() || colLabel(c);
+    const label = readCell(cells, r.minR, c, evalContext).trim() || colLabel(c);
     seriesKeys.push(label);
   }
   // minR+1..maxR : 각 행이 하나의 카테고리
   for (let row = r.minR + 1; row <= r.maxR; row++) {
-    const name = readCell(cells, row, r.minC).trim() || `${row + 1}`;
+    const name = readCell(cells, row, r.minC, evalContext).trim() || `${row + 1}`;
     const entry: { name: string } & Record<string, number> = { name };
     let i = 0;
     for (let c = r.minC + 1; c <= r.maxC; c++) {
-      entry[seriesKeys[i] ?? colLabel(c)] = toNumberOrZero(readCell(cells, row, c));
+      entry[seriesKeys[i] ?? colLabel(c)] = toNumberOrZero(readCell(cells, row, c, evalContext));
       i++;
     }
     rows.push(entry);
@@ -85,21 +85,21 @@ function buildColumnsOriented(cells: Cells, r: SelRange): ChartData {
 }
 
 /** 시리즈가 row 방향: 첫 열이 시리즈 라벨, 첫 행이 카테고리 */
-function buildRowsOriented(cells: Cells, r: SelRange): ChartData {
+function buildRowsOriented(cells: Cells, r: SelRange, evalContext?: EvalContext): ChartData {
   const rows: ChartData['rows'] = [];
   const seriesKeys: string[] = [];
   // 첫 열의 minR+1..maxR : 시리즈 라벨
   for (let row = r.minR + 1; row <= r.maxR; row++) {
-    const label = readCell(cells, row, r.minC).trim() || `${row + 1}`;
+    const label = readCell(cells, row, r.minC, evalContext).trim() || `${row + 1}`;
     seriesKeys.push(label);
   }
   // minC+1..maxC : 각 열이 하나의 카테고리
   for (let c = r.minC + 1; c <= r.maxC; c++) {
-    const name = readCell(cells, r.minR, c).trim() || colLabel(c);
+    const name = readCell(cells, r.minR, c, evalContext).trim() || colLabel(c);
     const entry: { name: string } & Record<string, number> = { name };
     let i = 0;
     for (let row = r.minR + 1; row <= r.maxR; row++) {
-      entry[seriesKeys[i] ?? `${row + 1}`] = toNumberOrZero(readCell(cells, row, c));
+      entry[seriesKeys[i] ?? `${row + 1}`] = toNumberOrZero(readCell(cells, row, c, evalContext));
       i++;
     }
     rows.push(entry);
@@ -111,14 +111,15 @@ export function buildChartData(
   cells: Cells,
   range: SelRange,
   orientation: 'columns' | 'rows',
+  evalContext?: EvalContext,
 ): ChartData {
   // 범위가 1×1 이면 빈 결과
   if (range.minR === range.maxR || range.minC === range.maxC) {
     return { rows: [], seriesKeys: [] };
   }
   return orientation === 'columns'
-    ? buildColumnsOriented(cells, range)
-    : buildRowsOriented(cells, range);
+    ? buildColumnsOriented(cells, range, evalContext)
+    : buildRowsOriented(cells, range, evalContext);
 }
 
 /** 원형 차트용: 시리즈 1개를 카테고리·값 페어로 평탄화 */

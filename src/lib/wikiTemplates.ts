@@ -427,3 +427,105 @@ export function makePageFromTemplate(t: WikiTemplate, titleOverride?: string): W
     updatedAt: now,
   };
 }
+
+export type WikiEditorTemplateId = 'daily' | 'meeting' | 'source' | 'concept' | 'moc';
+
+export interface WikiEditorTemplate {
+  id: WikiEditorTemplateId;
+  title: string;
+  description: string;
+  html: string;
+}
+
+export const WIKI_EDITOR_TEMPLATES: WikiEditorTemplate[] = [
+  {
+    id: 'daily',
+    title: '데일리 노트',
+    description: '오늘 할 일, 기록, 내일로 넘길 일을 빠르게 정리',
+    html: [
+      '<h2>오늘의 초점</h2>',
+      '<ul><li>가장 중요한 일:</li><li>막힌 것:</li></ul>',
+      '<h2>기록</h2>',
+      '<ul><li></li></ul>',
+      '<h2>내일로 넘길 것</h2>',
+      '<ul><li></li></ul>',
+      '<p></p>',
+    ].join(''),
+  },
+  {
+    id: 'meeting',
+    title: '회의 노트',
+    description: '안건, 결정, 액션 아이템을 한 번에 남김',
+    html: [
+      '<h2>안건</h2>',
+      '<ul><li></li></ul>',
+      '<h2>결정 사항</h2>',
+      '<ul><li></li></ul>',
+      '<h2>액션 아이템</h2>',
+      '<ul><li>[ ] 담당자 - 할 일 - 기한</li></ul>',
+      '<h2>연결 문서</h2>',
+      '<p>[[관련 문서]]</p>',
+      '<p></p>',
+    ].join(''),
+  },
+  {
+    id: 'source',
+    title: '출처 카드',
+    description: '책, 논문, 링크에서 뽑은 근거를 위키로 정리',
+    html: [
+      '<h2>출처</h2>',
+      '<p>링크 또는 서지 정보:</p>',
+      '<h2>핵심 주장</h2>',
+      '<ul><li></li></ul>',
+      '<h2>인용/메모</h2>',
+      '<blockquote><p>중요한 문장을 여기에 정리</p></blockquote>',
+      '<h2>연결할 개념</h2>',
+      '<p>[[개념]]</p>',
+      '<p></p>',
+    ].join(''),
+  },
+  {
+    id: 'concept',
+    title: '개념 정리',
+    description: '정의, 예시, 반례, 관련 문서를 한 페이지에 정리',
+    html: [
+      '<h2>한 줄 정의</h2>',
+      '<p></p>',
+      '<h2>핵심 설명</h2>',
+      '<ul><li></li></ul>',
+      '<h2>예시</h2>',
+      '<ul><li></li></ul>',
+      '<h2>반례/주의점</h2>',
+      '<ul><li></li></ul>',
+      '<h2>관련 문서</h2>',
+      '<p>[[상위 개념]] · [[비슷한 개념]]</p>',
+      '<p></p>',
+    ].join(''),
+  },
+  {
+    id: 'moc',
+    title: 'MOC 지도',
+    description: '큰 주제의 목차와 하위 문서를 만드는 뼈대',
+    html: [
+      '<h2>개요</h2>',
+      '<p>이 주제에서 다룰 범위:</p>',
+      '<h2>핵심 문서</h2>',
+      '<ul><li>[[핵심 문서 1]]</li><li>[[핵심 문서 2]]</li></ul>',
+      '<h2>출처/근거</h2>',
+      '<ul><li>[[출처]]</li></ul>',
+      '<h2>다음에 정리할 것</h2>',
+      '<ul><li></li></ul>',
+      '<p></p>',
+    ].join(''),
+  },
+];
+
+export function getWikiEditorTemplate(id: WikiEditorTemplateId): WikiEditorTemplate {
+  const template = WIKI_EDITOR_TEMPLATES.find((item) => item.id === id);
+  if (!template) throw new Error(`Unknown wiki editor template: ${id}`);
+  return template;
+}
+
+export function buildWikiTemplateHtml(id: WikiEditorTemplateId): string {
+  return getWikiEditorTemplate(id).html;
+}

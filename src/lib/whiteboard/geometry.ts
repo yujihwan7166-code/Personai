@@ -112,12 +112,16 @@ export function hitsElement(px: number, py: number, el: WBElement): boolean {
   return rx >= el.x && rx <= el.x + el.w && ry >= el.y && ry <= el.y + el.h;
 }
 
+interface HitTestOptions {
+  includeLocked?: boolean;
+}
+
 /** 좌표에서 가장 위 요소 (zIndex 내림차순 → 마지막 추가가 위) */
-export function findElementAt(elements: WBElement[], px: number, py: number): WBElement | null {
+export function findElementAt(elements: WBElement[], px: number, py: number, options: HitTestOptions = {}): WBElement | null {
   // zIndex 큰 게 위. 동일 zIndex면 배열 뒤가 위.
   const sorted = [...elements].sort((a, b) => b.zIndex - a.zIndex);
   for (const el of sorted) {
-    if (el.locked) continue;
+    if (el.locked && !options.includeLocked) continue;
     if (hitsElement(px, py, el)) return el;
   }
   return null;

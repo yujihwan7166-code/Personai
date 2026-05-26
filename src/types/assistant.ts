@@ -117,7 +117,7 @@ export const ASSISTANT_CARDS: AssistantCard[] = [
   { id: 'ppt', name: 'PPT 생성', icon: '📊', description: '프레젠테이션 슬라이드 구조 설계 및 내용 생성', color: 'text-emerald-600', gradient: 'from-emerald-50 to-green-50', category: 'work', features: ['슬라이드 구조', '핵심 메시지', '스크립트'], placeholder: '발표 주제가 무엇인가요?', sampleQuestions: ['AI 트렌드 발표자료 만들어줘', '10장짜리 사업 제안 PPT 구성해줘'], runtime: 'chat', supportsFiles: true },
 
   // ── 분석 ──
-  { id: 'voice-analysis', name: '음성 분석', icon: '🎙️', description: '녹음을 전사하고 요약·챕터·액션아이템까지 자동 정리', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['전사', '요약·챕터', '액션아이템'], placeholder: '녹음을 시작하거나 오디오 파일을 올려주세요', sampleQuestions: ['회의 녹음 정리해줘', '강의 녹음에서 핵심만 뽑아줘'], runtime: 'recording', supportsFiles: true },
+  { id: 'voice-analysis', name: 'AI 녹음 분석', icon: '🎙️', description: '녹음을 전사하고 요약·챕터·액션아이템까지 자동 정리', color: 'text-pink-600', gradient: 'from-pink-50 to-rose-50', category: 'analysis', features: ['전사', '요약·챕터', '액션아이템'], placeholder: '녹음을 시작하거나 오디오 파일을 올려주세요', sampleQuestions: ['회의 녹음 정리해줘', '강의 녹음에서 핵심만 뽑아줘'], runtime: 'recording', supportsFiles: true },
 
   // ── 콘텐츠 ──
   { id: 'image-gen', name: '이미지·동영상 생성', icon: '🎨', description: '프롬프트만 입력하면 이미지와 5초 동영상을 만들어드려요', color: 'text-amber-600', gradient: 'from-amber-50 to-yellow-50', category: 'content', features: ['이미지 생성', '동영상 생성', '스타일 프리셋'], placeholder: '어떤 걸 만들까요?', sampleQuestions: ['미니멀한 로고 만들어줘', '고양이가 달을 바라보는 5초 영상 만들어줘'], runtime: 'media-gen' },

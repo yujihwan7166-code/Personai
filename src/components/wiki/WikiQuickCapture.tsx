@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Inbox, X, Send, Link2 } from 'lucide-react';
-import { newWikiId, type WikiPage } from '@/types/wiki';
+import { Inbox, X, Send, Link2, FileText } from 'lucide-react';
+import { type WikiPage } from '@/types/wiki';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { buildQuickCapturePage } from '@/lib/wikiCapture';
 
 /**
  * 빠른 캡처 모달 — Ctrl/Cmd+Shift+; 로 어디서든 호출.
@@ -15,34 +16,22 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (page: WikiPage) => Promise<void> | void;
+  onOpenPage?: (id: string) => void;
 }
 
-const URL_RE = /(https?:\/\/[^\s)]+)/i;
-
-function deriveTitle(text: string, urls: string[]): string {
-  const firstLine = text.split('\n').find((l) => l.trim().length > 0)?.trim() ?? '';
-  if (firstLine && firstLine.length <= 60) return firstLine;
-  if (firstLine) return firstLine.slice(0, 50) + '…';
-  if (urls.length > 0) {
-    try {
-      const u = new URL(urls[0]);
-      return u.hostname.replace(/^www\./, '') + (u.pathname && u.pathname !== '/' ? u.pathname : '');
-    } catch {
-      return urls[0].slice(0, 60);
-    }
-  }
-  const d = new Date();
-  return `Inbox ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-export function WikiQuickCapture({ open, onClose, onCreate }: Props) {
+export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props) {
   const [text, setText] = useState('');
+  const [title, setTitle] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [openAfterSave, setOpenAfterSave] = useState(true);
   const [busy, setBusy] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) {
       setText('');
+      setTitle('');
+      setTagInput('');
       setBusy(false);
       const t = window.setTimeout(() => taRef.current?.focus(), 60);
       return () => window.clearTimeout(t);
@@ -60,37 +49,21 @@ export function WikiQuickCapture({ open, onClose, onCreate }: Props) {
 
   if (!open) return null;
 
-  const urls: string[] = [];
-  let m: RegExpExecArray | null;
-  const re = new RegExp(URL_RE.source, 'gi');
-  while ((m = re.exec(text)) !== null) urls.push(m[1]);
+  const draft = buildQuickCapturePage({
+    text: text.trim(),
+    title,
+    extraTags: tagInput.split(/[,\s]+/),
+  });
 
   async function save(): Promise<void> {
     const t = text.trim();
     if (!t || busy) return;
     setBusy(true);
-    const now = Date.now();
-    const title = deriveTitle(text, urls);
-    const page: WikiPage = {
-      id: newWikiId(),
-      title,
-      aliases: [],
-      type: 'concept',
-      status: 'draft',
-      tags: ['inbox'],
-      body: text,
-      refersTo: [],
-      cites: [],
-      inherits: [],
-      similarTo: [],
-      parentMocs: [],
-      createdAt: now,
-      updatedAt: now,
-    };
     try {
-      await onCreate(page);
+      await onCreate(draft.page);
       notify.success('Inbox 에 저장됐어요', { duration: 1800 });
       onClose();
+      if (openAfterSave) onOpenPage?.(draft.page.id);
     } catch {
       notify.error('저장에 실패했어요');
     } finally {
@@ -124,6 +97,26 @@ export function WikiQuickCapture({ open, onClose, onCreate }: Props) {
         </header>
 
         <div className="p-3">
+          <div className="mb-2 grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-2">
+            <label className="block">
+              <span className="sr-only">제목</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={draft.title}
+                className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
+              />
+            </label>
+            <label className="block">
+              <span className="sr-only">태그</span>
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="태그 추가"
+                className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
+              />
+            </label>
+          </div>
           <textarea
             ref={taRef}
             value={text}
@@ -138,19 +131,43 @@ export function WikiQuickCapture({ open, onClose, onCreate }: Props) {
             rows={6}
             className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color leading-relaxed"
           />
-          {urls.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {urls.map((u) => (
-                <span
-                  key={u}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-accent/60 text-[10.5px] text-foreground/80 max-w-full"
-                >
-                  <Link2 className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{u}</span>
-                </span>
-              ))}
-            </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary text-[10.5px] font-semibold max-w-full">
+              <FileText className="h-3 w-3 shrink-0" />
+              <span className="truncate">{draft.title}</span>
+            </span>
+            {draft.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-2 py-0.5 rounded bg-accent/60 text-[10.5px] text-foreground/80"
+              >
+                #{tag}
+              </span>
+            ))}
+            {draft.urls.map((url) => (
+              <span
+                key={url}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-accent/60 text-[10.5px] text-foreground/80 max-w-full"
+              >
+                <Link2 className="h-3 w-3 shrink-0" />
+                <span className="truncate">{url}</span>
+              </span>
+            ))}
+          </div>
+          {draft.urls.length > 0 && (
+            <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+              URL은 본문 아래 출처 섹션에도 자동으로 정리됩니다.
+            </p>
           )}
+          <label className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={openAfterSave}
+              onChange={(e) => setOpenAfterSave(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary"
+            />
+            저장 후 바로 열기
+          </label>
         </div>
 
         <footer className="px-3 py-2 border-t border-[hsl(var(--hairline))] flex items-center justify-between bg-muted/20">

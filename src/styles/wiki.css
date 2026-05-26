@@ -172,6 +172,20 @@
   text-decoration-style: dashed;
   text-underline-offset: 3px;
 }
+.wiki-link-missing::after {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.12em;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--wiki-link-missing) / 0.35);
+  font-size: 0.68em;
+  line-height: 1;
+  vertical-align: 0.08em;
+}
 
 /* ── 상태 칩 ── */
 .wiki-status-chip {

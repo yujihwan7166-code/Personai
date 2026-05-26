@@ -6,20 +6,30 @@
  * compact=true 면 칩 모드 (메시지 영역 하단).
  */
 import {
-  AlertTriangle, Zap, Inbox, RotateCcw, Coffee, ListPlus,
+  AlertTriangle, Zap, RotateCcw, Coffee, ListPlus,
   Scale, ListChecks, Repeat, CalendarRange,
   PieChart, Activity, Sparkles,
   ShieldAlert, TrendingUp, Clock,
-  Target, Flame, ArrowRight, type LucideIcon,
+  Flame, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  PAGE_AI_TONE_DOT,
+  PAGE_AI_TONE_ICON,
+  PAGE_AI_TONE_RING,
+  type PageAiTone,
+} from '@/components/PageAiTokens';
+import {
+  PageAiPromptSet,
+  PageAiQuickAction,
+} from '@/components/PageAiScaffold';
 import type { AIQuickAction } from '@/types/plannerAI';
 import type { PlannerView } from '@/components/planner/ViewToggle';
 
 interface QuickActionItem extends AIQuickAction {
   icon: LucideIcon;
   desc?: string;
-  tint?: 'blue' | 'amber' | 'emerald' | 'violet' | 'rose';
+  tint?: PageAiTone;
   /** 강조 표시 — 가장 자주 쓰일 핵심 액션. */
   primary?: boolean;
 }
@@ -230,52 +240,7 @@ const ALL_ACTIONS: QuickActionItem[] = [
     visibleOn: ['habits'],
   },
 
-  // ── GOALS (3개) ──
-  {
-    id: 'goals-stalled',
-    icon: ShieldAlert,
-    label: '정체된 목표',
-    desc: '진척 없음',
-    prompt: '최근에 진척이 거의 없는 목표 있어? 이유 추측이랑 다음 작은 행동 1개 제안.',
-    tint: 'rose',
-    primary: true,
-    visibleOn: ['goals'],
-  },
-  {
-    id: 'goals-time',
-    icon: PieChart,
-    label: '목표별 시간',
-    desc: '이번 주 투입',
-    prompt: '이번 주 각 목표에 시간 얼마나 투입했어? 균형 평가.',
-    tint: 'blue',
-    visibleOn: ['goals'],
-  },
-  {
-    id: 'goals-next',
-    icon: Target,
-    label: '이번 주 행동',
-    desc: '작은 다음 단계',
-    prompt: '목표 진척을 위해 이번 주에 할 만한 작은 행동 3개만 추천해줘.',
-    tint: 'violet',
-    visibleOn: ['goals'],
-  },
 ];
-
-const TINT_DOT: Record<NonNullable<QuickActionItem['tint']>, string> = {
-  blue:    'bg-blue-500',
-  amber:   'bg-amber-500',
-  emerald: 'bg-emerald-500',
-  violet:  'bg-violet-500',
-  rose:    'bg-rose-500',
-};
-
-const TINT_RING: Record<NonNullable<QuickActionItem['tint']>, string> = {
-  blue:    'group-hover:ring-blue-400/30',
-  amber:   'group-hover:ring-amber-400/30',
-  emerald: 'group-hover:ring-emerald-400/30',
-  violet:  'group-hover:ring-violet-400/30',
-  rose:    'group-hover:ring-rose-400/30',
-};
 
 interface AIQuickActionsProps {
   view: PlannerView;
@@ -307,48 +272,48 @@ export const AIQuickActions = ({ view, onPick, disabled, compact = false }: AIQu
     );
   }
 
-  // 카드 그리드 (빈 상태).
+  const primaryActions = actions.slice(0, 4);
+  const secondaryActions = actions.slice(4);
+
+  // 빈 상태에서는 메모/위키 AI와 같은 세로 리듬을 유지한다.
   return (
-    <div className="w-full max-w-[320px] grid grid-cols-2 gap-1.5">
-      {actions.map((a) => {
+    <PageAiPromptSet label="플래너 추천 요청">
+      {primaryActions.map((a) => {
         const Icon = a.icon;
         const tint = a.tint ?? 'blue';
         return (
-          <button
+          <PageAiQuickAction
             key={a.id}
-            type="button"
+            label={a.label}
+            description={a.desc}
+            icon={<Icon className="h-3.5 w-3.5" strokeWidth={1.75} />}
+            iconClassName={PAGE_AI_TONE_ICON[tint]}
             onClick={() => onPick(a.prompt)}
             disabled={disabled}
+            emphasized={a.primary}
+            accentClassName={cn(PAGE_AI_TONE_DOT[tint], a.primary ? 'opacity-90' : 'opacity-55')}
+            showArrow
             className={cn(
-              'group relative flex flex-col items-start text-left gap-1 px-2.5 py-2.5 rounded-xl',
-              'border hairline bg-card hover:bg-accent/40 hover:border-foreground/15',
-              'ring-0 ring-inset hover:ring-1',
-              TINT_RING[tint],
-              a.primary && 'border-foreground/15 bg-accent/20',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-              'transition-all duration-150',
+              PAGE_AI_TONE_RING[tint],
             )}
-          >
-            <div className="flex items-center gap-1.5 w-full">
-              <Icon className={cn(
-                'h-3.5 w-3.5 shrink-0',
-                a.primary ? 'text-foreground/85' : 'text-foreground/65',
-              )} strokeWidth={1.75} />
-              <span className={cn('h-1 w-1 rounded-full shrink-0', TINT_DOT[tint], a.primary ? 'opacity-90' : 'opacity-55')} aria-hidden />
-              <ArrowRight className="ml-auto h-3 w-3 text-muted-foreground/40 group-hover:text-foreground/60 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </div>
-            <div className={cn(
-              'text-[12px] leading-tight',
-              a.primary ? 'font-bold text-foreground' : 'font-semibold text-foreground',
-            )}>
-              {a.label}
-            </div>
-            {a.desc && (
-              <div className="text-[10.5px] text-muted-foreground leading-tight">{a.desc}</div>
-            )}
-          </button>
+          />
         );
       })}
-    </div>
+      {secondaryActions.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1.5 px-0.5">
+          {secondaryActions.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onPick(a.prompt)}
+              disabled={disabled}
+              className="inline-flex h-7 items-center rounded-full border border-[hsl(var(--hairline))] bg-background px-2.5 text-[11.5px] font-medium text-foreground/75 transition-colors hover:border-primary/25 hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </PageAiPromptSet>
   );
 };

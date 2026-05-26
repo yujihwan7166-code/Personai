@@ -11,7 +11,7 @@
  */
 import { Command } from 'cmdk';
 import { useEffect, useState, ReactNode } from 'react';
-import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag, Target } from 'lucide-react';
+import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import type { Priority } from '@/types/planner';
@@ -132,7 +132,6 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
             <Item label="주 뷰" hint="W" onSelect={() => run({ kind: 'view', view: 'week' })} />
             <Item label="월 뷰" hint="M" onSelect={() => run({ kind: 'view', view: 'month' })} />
             <Item label="년 뷰" hint="Y" onSelect={() => run({ kind: 'view', view: 'year' })} />
-            <Item icon={<Target className="h-3.5 w-3.5" />} label="목표" hint="G" onSelect={() => run({ kind: 'view', view: 'goals' })} />
           </Command.Group>
 
           {hasQuery && allTasks.length > 0 && (

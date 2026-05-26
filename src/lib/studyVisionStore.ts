@@ -12,12 +12,26 @@
 const DB_NAME = 'studyVision';
 const STORE = 'vision';
 const DB_VERSION = 1;
+export const CURRENT_VISION_ENGINE_VERSION = 4;
+
+export interface VisionTextBlock {
+  text: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
 
 export interface VisionRecord {
   key: string; // `${blobRef}:${pageNum}`
   blobRef: string;
   page: number;
+  /** Vision prompt/model pipeline version. Old summary-like cache must not be reused as exact OCR text. */
+  version?: number;
+  model?: string;
+  durationMs?: number;
   text: string;
+  blocks?: VisionTextBlock[];
   doneAt: number;
 }
 
@@ -51,7 +65,7 @@ function makeKey(blobRef: string, page: number) {
 
 export async function putVision(rec: Omit<VisionRecord, 'key'>): Promise<void> {
   const store = await tx('readwrite');
-  const full: VisionRecord = { ...rec, key: makeKey(rec.blobRef, rec.page) };
+  const full: VisionRecord = { ...rec, version: rec.version ?? CURRENT_VISION_ENGINE_VERSION, key: makeKey(rec.blobRef, rec.page) };
   await new Promise<void>((resolve, reject) => {
     const r = store.put(full);
     r.onsuccess = () => resolve();
@@ -64,7 +78,10 @@ export async function getVision(blobRef: string, page: number): Promise<VisionRe
     const store = await tx('readonly');
     return await new Promise<VisionRecord | null>((resolve, reject) => {
       const r = store.get(makeKey(blobRef, page));
-      r.onsuccess = () => resolve((r.result as VisionRecord | undefined) ?? null);
+      r.onsuccess = () => {
+        const rec = (r.result as VisionRecord | undefined) ?? null;
+        resolve(rec && (rec.version ?? 1) === CURRENT_VISION_ENGINE_VERSION ? rec : null);
+      };
       r.onerror = () => reject(r.error);
     });
   } catch {
@@ -80,7 +97,9 @@ export async function getCompletedVisionPages(blobRef: string): Promise<Set<numb
       const r = idx.getAll(blobRef);
       r.onsuccess = () => {
         const set = new Set<number>();
-        for (const rec of (r.result as VisionRecord[] | undefined) ?? []) set.add(rec.page);
+        for (const rec of (r.result as VisionRecord[] | undefined) ?? []) {
+          if ((rec.version ?? 1) === CURRENT_VISION_ENGINE_VERSION) set.add(rec.page);
+        }
         resolve(set);
       };
       r.onerror = () => reject(r.error);
@@ -96,7 +115,11 @@ export async function getAllVisionForBlob(blobRef: string): Promise<VisionRecord
     const idx = store.index('byBlob');
     return await new Promise<VisionRecord[]>((resolve, reject) => {
       const r = idx.getAll(blobRef);
-      r.onsuccess = () => resolve(((r.result as VisionRecord[] | undefined) ?? []).sort((a, b) => a.page - b.page));
+      r.onsuccess = () => resolve(
+        ((r.result as VisionRecord[] | undefined) ?? [])
+          .filter((rec) => (rec.version ?? 1) === CURRENT_VISION_ENGINE_VERSION)
+          .sort((a, b) => a.page - b.page),
+      );
       r.onerror = () => reject(r.error);
     });
   } catch {
@@ -118,5 +141,18 @@ export async function deleteVisionForBlob(blobRef: string): Promise<void> {
       };
       r.onerror = () => reject(r.error);
     });
+  } catch { /* noop */ }
+}
+
+export async function deleteVisionPages(blobRef: string, pages: number[]): Promise<void> {
+  const uniquePages = Array.from(new Set(pages)).filter((page) => Number.isFinite(page) && page > 0);
+  if (uniquePages.length === 0) return;
+  try {
+    const store = await tx('readwrite');
+    await Promise.all(uniquePages.map((page) => new Promise<void>((resolve, reject) => {
+      const r = store.delete(makeKey(blobRef, page));
+      r.onsuccess = () => resolve();
+      r.onerror = () => reject(r.error);
+    })));
   } catch { /* noop */ }
 }

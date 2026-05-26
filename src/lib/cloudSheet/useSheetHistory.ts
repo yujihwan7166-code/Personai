@@ -15,6 +15,13 @@ export interface SheetSnapshot {
   allComments?: SheetRecord<Record<string, string>>;
   allEmbeddedCharts?: SheetRecord<unknown[]>;
   namedRanges?: NamedRanges;
+  allHiddenCols?: SheetRecord<Record<number, boolean>>;
+  allHiddenRows?: SheetRecord<Record<number, boolean>>;
+  allAutoFilterRefs?: SheetRecord<string | undefined>;
+  allAutoFilterColumns?: SheetRecord<unknown[]>;
+  allSortStates?: SheetRecord<unknown>;
+  allTables?: SheetRecord<unknown[]>;
+  allSheetProtections?: SheetRecord<unknown>;
   rowCount: number;
   colCount: number;
   colWidths: DimensionMap;
@@ -36,6 +43,13 @@ interface UseSheetHistoryOpts<F extends AllFormats> {
   allComments?: SheetRecord<Record<string, string>>;
   allEmbeddedCharts?: SheetRecord<unknown[]>;
   namedRanges?: NamedRanges;
+  allHiddenCols?: SheetRecord<Record<number, boolean>>;
+  allHiddenRows?: SheetRecord<Record<number, boolean>>;
+  allAutoFilterRefs?: SheetRecord<string | undefined>;
+  allAutoFilterColumns?: SheetRecord<unknown[]>;
+  allSortStates?: SheetRecord<unknown>;
+  allTables?: SheetRecord<unknown[]>;
+  allSheetProtections?: SheetRecord<unknown>;
   rowCount: number;
   colCount: number;
   colWidths: DimensionMap;
@@ -54,6 +68,13 @@ interface UseSheetHistoryOpts<F extends AllFormats> {
   setAllComments?: (v: SheetRecord<Record<string, string>>) => void;
   setAllEmbeddedCharts?: (v: SheetRecord<unknown[]>) => void;
   setNamedRanges?: (v: NamedRanges) => void;
+  setAllHiddenCols?: (v: SheetRecord<Record<number, boolean>>) => void;
+  setAllHiddenRows?: (v: SheetRecord<Record<number, boolean>>) => void;
+  setAllAutoFilterRefs?: (v: SheetRecord<string | undefined>) => void;
+  setAllAutoFilterColumns?: (v: SheetRecord<unknown[]>) => void;
+  setAllSortStates?: (v: SheetRecord<unknown>) => void;
+  setAllTables?: (v: SheetRecord<unknown[]>) => void;
+  setAllSheetProtections?: (v: SheetRecord<unknown>) => void;
   setRowCount: (n: number) => void;
   setColCount: (n: number) => void;
   setColWidths: (w: DimensionMap) => void;
@@ -74,6 +95,13 @@ interface UseSheetHistoryOpts<F extends AllFormats> {
     allComments?: SheetRecord<Record<string, string>>;
     allEmbeddedCharts?: SheetRecord<unknown[]>;
     namedRanges?: NamedRanges;
+    allHiddenCols?: SheetRecord<Record<number, boolean>>;
+    allHiddenRows?: SheetRecord<Record<number, boolean>>;
+    allAutoFilterRefs?: SheetRecord<string | undefined>;
+    allAutoFilterColumns?: SheetRecord<unknown[]>;
+    allSortStates?: SheetRecord<unknown>;
+    allTables?: SheetRecord<unknown[]>;
+    allSheetProtections?: SheetRecord<unknown>;
     rowCount: number;
     colCount: number;
     colWidths: DimensionMap;
@@ -103,6 +131,13 @@ export function useSheetHistory<F extends AllFormats>({
   allComments,
   allEmbeddedCharts,
   namedRanges,
+  allHiddenCols,
+  allHiddenRows,
+  allAutoFilterRefs,
+  allAutoFilterColumns,
+  allSortStates,
+  allTables,
+  allSheetProtections,
   rowCount,
   colCount,
   colWidths,
@@ -121,6 +156,13 @@ export function useSheetHistory<F extends AllFormats>({
   setAllComments,
   setAllEmbeddedCharts,
   setNamedRanges,
+  setAllHiddenCols,
+  setAllHiddenRows,
+  setAllAutoFilterRefs,
+  setAllAutoFilterColumns,
+  setAllSortStates,
+  setAllTables,
+  setAllSheetProtections,
   setRowCount,
   setColCount,
   setColWidths,
@@ -157,6 +199,13 @@ export function useSheetHistory<F extends AllFormats>({
           allComments,
           allEmbeddedCharts,
           namedRanges,
+          allHiddenCols,
+          allHiddenRows,
+          allAutoFilterRefs,
+          allAutoFilterColumns,
+          allSortStates,
+          allTables,
+          allSheetProtections,
           rowCount,
           colCount,
           colWidths,
@@ -185,6 +234,13 @@ export function useSheetHistory<F extends AllFormats>({
           last.allComments === snap.allComments &&
           last.allEmbeddedCharts === snap.allEmbeddedCharts &&
           last.namedRanges === snap.namedRanges &&
+          last.allHiddenCols === snap.allHiddenCols &&
+          last.allHiddenRows === snap.allHiddenRows &&
+          last.allAutoFilterRefs === snap.allAutoFilterRefs &&
+          last.allAutoFilterColumns === snap.allAutoFilterColumns &&
+          last.allSortStates === snap.allSortStates &&
+          last.allTables === snap.allTables &&
+          last.allSheetProtections === snap.allSheetProtections &&
           last.rowCount === snap.rowCount &&
           last.colCount === snap.colCount &&
           last.colWidths === snap.colWidths &&
@@ -219,6 +275,13 @@ export function useSheetHistory<F extends AllFormats>({
     allComments,
     allEmbeddedCharts,
     namedRanges,
+    allHiddenCols,
+    allHiddenRows,
+    allAutoFilterRefs,
+    allAutoFilterColumns,
+    allSortStates,
+    allTables,
+    allSheetProtections,
     rowCount,
     colCount,
     colWidths,
@@ -245,6 +308,13 @@ export function useSheetHistory<F extends AllFormats>({
     if (snap.allComments && setAllComments) setAllComments(snap.allComments);
     if (snap.allEmbeddedCharts && setAllEmbeddedCharts) setAllEmbeddedCharts(snap.allEmbeddedCharts);
     if (snap.namedRanges && setNamedRanges) setNamedRanges(snap.namedRanges);
+    if (snap.allHiddenCols && setAllHiddenCols) setAllHiddenCols(snap.allHiddenCols);
+    if (snap.allHiddenRows && setAllHiddenRows) setAllHiddenRows(snap.allHiddenRows);
+    if (snap.allAutoFilterRefs && setAllAutoFilterRefs) setAllAutoFilterRefs(snap.allAutoFilterRefs);
+    if (snap.allAutoFilterColumns && setAllAutoFilterColumns) setAllAutoFilterColumns(snap.allAutoFilterColumns);
+    if (snap.allSortStates && setAllSortStates) setAllSortStates(snap.allSortStates);
+    if (snap.allTables && setAllTables) setAllTables(snap.allTables);
+    if (snap.allSheetProtections && setAllSheetProtections) setAllSheetProtections(snap.allSheetProtections);
     setRowCount(snap.rowCount);
     setColCount(snap.colCount);
     if (snap.allColWidths && setAllColWidths) setAllColWidths(snap.allColWidths);
@@ -270,6 +340,13 @@ export function useSheetHistory<F extends AllFormats>({
       ...(snap.allComments ? { allComments: snap.allComments } : {}),
       ...(snap.allEmbeddedCharts ? { allEmbeddedCharts: snap.allEmbeddedCharts } : {}),
       ...(snap.namedRanges ? { namedRanges: snap.namedRanges } : {}),
+      ...(snap.allHiddenCols ? { allHiddenCols: snap.allHiddenCols } : {}),
+      ...(snap.allHiddenRows ? { allHiddenRows: snap.allHiddenRows } : {}),
+      ...(snap.allAutoFilterRefs ? { allAutoFilterRefs: snap.allAutoFilterRefs } : {}),
+      ...(snap.allAutoFilterColumns ? { allAutoFilterColumns: snap.allAutoFilterColumns } : {}),
+      ...(snap.allSortStates ? { allSortStates: snap.allSortStates } : {}),
+      ...(snap.allTables ? { allTables: snap.allTables } : {}),
+      ...(snap.allSheetProtections ? { allSheetProtections: snap.allSheetProtections } : {}),
       ...(snap.allColWidths ? { allColWidths: snap.allColWidths } : {}),
       ...(snap.allRowHeights ? { allRowHeights: snap.allRowHeights } : {}),
       ...(snap.allFreezeRows ? { allFreezeRows: snap.allFreezeRows } : {}),
@@ -285,6 +362,13 @@ export function useSheetHistory<F extends AllFormats>({
     setAllComments,
     setAllEmbeddedCharts,
     setNamedRanges,
+    setAllHiddenCols,
+    setAllHiddenRows,
+    setAllAutoFilterRefs,
+    setAllAutoFilterColumns,
+    setAllSortStates,
+    setAllTables,
+    setAllSheetProtections,
     setRowCount,
     setColCount,
     setColWidths,

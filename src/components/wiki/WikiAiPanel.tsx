@@ -1,13 +1,39 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Bot, X, Send, Trash2, FileText, Plus as PlusIcon,
-  BookOpen, MessageSquarePlus, History, Library,
+  Trash2, FileText, Plus as PlusIcon, Check, Copy as CopyIcon,
+  BookOpen, MessageSquarePlus, History, Library, Network,
+  type LucideIcon,
 } from 'lucide-react';
 import type { WikiPage } from '@/types/wiki';
 import type { Expert } from '@/types/expert';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { PageAiPanelHeader } from '@/components/PageAiPanelHeader';
+import {
+  PAGE_AI_PANEL_WIDTH,
+  PAGE_AI_PANEL_SCROLL_CLASS,
+  PAGE_AI_PANEL_SURFACE_CLASS,
+  PAGE_AI_PANEL_TRANSITION_CLASS,
+  PAGE_AI_TONE_DOT,
+  PAGE_AI_TONE_ICON,
+  clampPageAiPanelWidth,
+  type PageAiTone,
+} from '@/components/PageAiTokens';
+import {
+  PageAiComposer,
+  PageAiContextStrip,
+  PageAiEmptyState,
+  PageAiMessageActionButton,
+  PageAiMessageActions,
+  PageAiMessageBubble,
+  PageAiPromptSet,
+  PageAiQuickAction,
+  PageAiResizeHandle,
+  PageAiTypingIndicator,
+} from '@/components/PageAiScaffold';
 import { streamExpert } from '@/pages/indexRuntime';
+import { buildWikiAiContext, deriveWikiPageTitleFromAnswer } from '@/lib/wikiAiContext';
 
 /**
  * 마이위키 AI 사이드 패널
@@ -51,11 +77,7 @@ interface Props {
 const THREADS_KEY = 'wiki_ai_threads_v2';
 const THREAD_PREFIX = 'wiki_ai_thread_v2:';
 const ACTIVE_KEY = 'wiki_ai_active_v2';
-// v2: 기본 너비 다이어트 — 380 → 336 (사용자 피드백)
-const WIDTH_KEY = 'wiki_ai_panel_w_v2';
-const MIN_W = 280;
-const MAX_W = 720;
-const DEFAULT_W = 336;
+const WIDTH_KEY = 'personai.ai-panel.width.wiki';
 
 function loadThreads(): ThreadMeta[] {
   try {
@@ -87,8 +109,10 @@ function dropMsgs(id: string): void {
   try { window.localStorage.removeItem(THREAD_PREFIX + id); } catch { /* */ }
 }
 function loadWidth(): number {
-  const r = Number(window.localStorage.getItem(WIDTH_KEY));
-  return Number.isFinite(r) && r >= MIN_W && r <= MAX_W ? r : DEFAULT_W;
+  const raw = window.localStorage.getItem(WIDTH_KEY);
+  if (raw === null || raw.trim() === '') return PAGE_AI_PANEL_WIDTH.default;
+  const r = Number(raw);
+  return Number.isFinite(r) ? clampPageAiPanelWidth(r) : PAGE_AI_PANEL_WIDTH.default;
 }
 
 function newId(): string {
@@ -106,11 +130,44 @@ function deriveTitle(msgs: AiMsg[]): string {
 }
 
 const EXAMPLES = [
-  '이 페이지 핵심 3줄로 요약해줘',
-  '내 위키 전체 흐름 한눈에 정리해줘',
-  '요즘 글쓰기 막막한데 도와줄래?',
-  '관련된 위키 페이지 추천해줘',
-];
+  {
+    label: '페이지 요약',
+    description: '핵심을 3줄로 압축',
+    prompt: '이 페이지 핵심 3줄로 요약해줘',
+    icon: FileText,
+    tone: 'blue',
+    emphasized: true,
+  },
+  {
+    label: '위키 흐름 정리',
+    description: '전체 주제와 연결 보기',
+    prompt: '내 위키 전체 흐름 한눈에 정리해줘',
+    icon: Network,
+    tone: 'violet',
+    emphasized: true,
+  },
+  {
+    label: '글쓰기 도움',
+    description: '막힌 생각 이어가기',
+    prompt: '요즘 글쓰기 막막한데 도와줄래?',
+    icon: BookOpen,
+    tone: 'amber',
+  },
+  {
+    label: '관련 문서 추천',
+    description: '이어볼 페이지 찾기',
+    prompt: '관련된 위키 페이지 추천해줘',
+    icon: Library,
+    tone: 'emerald',
+  },
+] satisfies ReadonlyArray<{
+  label: string;
+  description: string;
+  prompt: string;
+  icon: LucideIcon;
+  tone: PageAiTone;
+  emphasized?: boolean;
+}>;
 
 const WIKI_AI_EXPERT: Expert = {
   id: 'wiki-ai',
@@ -154,8 +211,14 @@ export function WikiAiPanel({
   }, [page, ctxScope]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [width, setWidth] = useState<number>(() => loadWidth());
+  const panelRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    (panel as HTMLElement & { inert: boolean }).inert = !open;
+  }, [open]);
 
   // 빈 상태 → 첫 스레드 자동 생성
   useEffect(() => {
@@ -198,66 +261,21 @@ export function WikiAiPanel({
     });
   }, [msgs, activeId]);
 
-  // 열릴 때 자동 포커스
-  useEffect(() => {
-    if (open) {
-      const t = window.setTimeout(() => inputRef.current?.focus(), 60);
-      return () => window.clearTimeout(t);
-    }
-  }, [open]);
+  // 입력 중 Esc는 텍스트 편집을 우선하고, 그 외 영역에서만 패널/히스토리를 닫는다.
+  useEscapeKey(() => {
+    if (historyOpen) setHistoryOpen(false);
+    else onClose();
+  }, { enabled: open });
 
-  // ESC — history 열려 있으면 닫기, 아니면 패널 닫기
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (historyOpen) setHistoryOpen(false);
-        else onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, historyOpen]);
+  const ctxPageCount = allPages?.length ?? totalPages;
 
-  // 리사이즈 — 좌측 핸들 드래그
-  const onResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startW = width;
-    const onMove = (ev: MouseEvent) => {
-      const next = Math.min(MAX_W, Math.max(MIN_W, startW + (startX - ev.clientX)));
-      setWidth(next);
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      setWidth((w) => {
-        try { window.localStorage.setItem(WIDTH_KEY, String(w)); } catch { /* */ }
-        return w;
-      });
-    };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [width]);
-
-  const ctxPayload = useMemo(() => {
-    if (ctxScope === 'page' && page) {
-      return `현재 보고 있는 페이지:\n제목: ${page.title}\n\n${page.body.slice(0, 800)}`;
-    }
-    if (allPages && allPages.length > 0) {
-      const lines = allPages.slice(0, 30).map((p) => {
-        const firstLine = p.body.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '';
-        return `- ${p.title}${firstLine ? ` — ${firstLine.slice(0, 80)}` : ''}`;
-      });
-      const more = allPages.length > 30 ? `\n(외 ${allPages.length - 30}개 더)` : '';
-      return `사용자의 위키 페이지 목록 (${allPages.length}개):\n${lines.join('\n')}${more}`;
-    }
-    return totalPages > 0 ? `위키 페이지 ${totalPages}개` : '';
-  }, [ctxScope, page, allPages, totalPages]);
+  const makeContextPayload = useCallback((question: string) =>
+    buildWikiAiContext({
+      scope: ctxScope,
+      page,
+      pages: allPages ?? [],
+      question,
+    }), [ctxScope, page, allPages]);
 
   async function send(text: string): Promise<void> {
     const q = text.trim();
@@ -270,6 +288,7 @@ export function WikiAiPanel({
     setInput('');
     setBusy(true);
 
+    const ctxPayload = makeContextPayload(q);
     const previousResponses = ctxPayload ? [{ name: '컨텍스트', content: ctxPayload }] : [];
     let accumulated = '';
 
@@ -314,7 +333,10 @@ export function WikiAiPanel({
     setActiveId(id);
     setMsgs([]);
     setHistoryOpen(false);
-    window.setTimeout(() => inputRef.current?.focus(), 30);
+    window.setTimeout(() => {
+      const composer = panelRef.current?.querySelector<HTMLTextAreaElement>('textarea[aria-label="AI 입력"]');
+      composer?.focus();
+    }, 30);
   }
 
   function switchThread(id: string): void {
@@ -351,65 +373,77 @@ export function WikiAiPanel({
 
   return (
     <aside
-      style={{ width: open ? width : 0 }}
+      ref={panelRef}
+      data-page-ai-panel="wiki"
+      data-page-ai-panel-open={open ? 'true' : 'false'}
+      style={{ ['--wiki-ai-w' as string]: `${width}px` }}
       className={cn(
-        'h-full shrink-0 overflow-hidden',
-        'transition-[width] duration-200 ease-out',
+        'fixed inset-0 z-50 h-full w-full overflow-hidden sm:static sm:inset-auto sm:z-auto sm:shrink-0',
+        PAGE_AI_PANEL_TRANSITION_CLASS,
+        open
+          ? 'translate-x-0 sm:w-[var(--wiki-ai-w)]'
+          : 'translate-x-full pointer-events-none max-sm:hidden sm:w-0 sm:translate-x-0',
       )}
       role="complementary"
-      aria-label="마이위키 AI 도우미 패널"
+      aria-label="위키 AI"
       aria-hidden={!open}
     >
+      {open && (
       <div
-        style={{ width }}
-        className="relative h-full flex flex-col bg-background border-l border-[hsl(var(--hairline))]"
+        className={cn(
+          'relative h-full w-full flex flex-col sm:w-[var(--wiki-ai-w)]',
+          PAGE_AI_PANEL_SURFACE_CLASS,
+        )}
       >
-      {/* 좌측 리사이즈 핸들 */}
-      <div
-        onMouseDown={onResizeStart}
-        className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 wiki-trans-color z-10"
-        title="드래그해서 너비 조절"
-        aria-label="너비 조절"
-        role="separator"
+      <PageAiResizeHandle
+        open={open}
+        width={width}
+        minWidth={PAGE_AI_PANEL_WIDTH.min}
+        maxWidth={PAGE_AI_PANEL_WIDTH.max}
+        defaultWidth={PAGE_AI_PANEL_WIDTH.default}
+        onWidthChange={setWidth}
+        onWidthCommit={(next) => {
+          try { window.localStorage.setItem(WIDTH_KEY, String(next)); } catch { /* */ }
+        }}
+        title="드래그해서 너비 조절 · Enter로 기본값"
+        className="wiki-trans-color"
       />
 
       {/* 헤더 */}
-      <header className="h-9 px-2.5 border-b border-[hsl(var(--hairline))] flex items-center gap-1 shrink-0">
-        <Bot className="h-3.5 w-3.5 text-primary shrink-0" />
-        <h2 className="flex-1 text-[12.5px] font-bold truncate">마이위키 AI 도우미</h2>
-        <button
-          type="button"
-          onClick={() => setHistoryOpen((v) => !v)}
-          className={cn(
-            'h-6 px-1.5 inline-flex items-center gap-1 rounded text-[10.5px] wiki-trans-color',
-            historyOpen
-              ? 'bg-accent text-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-          )}
-          title="대화 목록"
-        >
-          <History className="h-3 w-3" />
-          <span>대화 {threads.length > 0 && `(${threads.length})`}</span>
-        </button>
-        <button
-          type="button"
-          onClick={newThread}
-          className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-          title="새 대화 시작"
-          aria-label="새 대화"
-        >
-          <MessageSquarePlus className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-          title="닫기 (Esc)"
-          aria-label="닫기"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </header>
+      <PageAiPanelHeader
+        title="위키 AI"
+        subtitle={`${page ? page.title : '전체 위키'}를 참고합니다`}
+        icon={<Network className="h-3.5 w-3.5" aria-hidden />}
+        iconTone="violet"
+        onClose={onClose}
+        actions={(
+          <>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((v) => !v)}
+              className={cn(
+                'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                historyOpen
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+              title="대화 목록"
+              aria-label={`대화 목록 ${threads.length}개`}
+            >
+              <History className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={newThread}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="새 대화 시작"
+              aria-label="새 대화"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+      />
 
       {/* 대화 목록 시트 — 아래 영역과 구분 강화 (bg + 라벨 + inset shadow) */}
       {historyOpen && (
@@ -473,30 +507,30 @@ export function WikiAiPanel({
         </div>
       )}
 
-      {/* 참조 범위 — 컴팩트: 라벨 inline + h-6 pills */}
-      <div className="px-2.5 py-1 border-b border-[hsl(var(--hairline))] flex items-center gap-1.5 shrink-0 bg-primary/[0.03]">
-        <span className="text-[10.5px] font-semibold text-foreground/75 shrink-0">참조</span>
+      {/* 참조 범위 */}
+      <PageAiContextStrip label="참조" className="items-start">
+        <div className="flex min-w-0 flex-1 gap-1.5">
         <button
           type="button"
           onClick={() => setCtxScope('all')}
           className={cn(
-            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] border wiki-trans-color',
+            'inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-[11px] wiki-trans-color',
             ctxScope === 'all'
               ? 'bg-primary text-primary-foreground border-primary font-semibold'
               : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
           )}
-          title={`전체 위키 — ${totalPages}페이지`}
+          title={`전체 위키 — ${ctxPageCount}페이지`}
         >
-          <Library className="h-3 w-3" />
-          <span>전체 위키</span>
-          {totalPages > 0 && (
+          <Library className="h-3 w-3 shrink-0" />
+          <span className="min-w-0 truncate">전체 위키</span>
+          {ctxPageCount > 0 && (
             <span className={cn(
-              'tabular-nums text-[10px] px-1 rounded-full',
+              'shrink-0 rounded-full px-1 text-[10px] tabular-nums',
               ctxScope === 'all'
                 ? 'bg-primary-foreground/20 text-primary-foreground'
                 : 'bg-muted text-muted-foreground',
             )}>
-              {totalPages}
+              {ctxPageCount}
             </span>
           )}
         </button>
@@ -505,7 +539,7 @@ export function WikiAiPanel({
           onClick={() => page && setCtxScope('page')}
           disabled={!page}
           className={cn(
-            'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] border wiki-trans-color min-w-0',
+            'inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-[11px] wiki-trans-color',
             ctxScope === 'page' && page
               ? 'bg-primary text-primary-foreground border-primary font-semibold'
               : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
@@ -514,32 +548,39 @@ export function WikiAiPanel({
           title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
         >
           <FileText className="h-3 w-3 shrink-0" />
-          <span className="truncate max-w-[140px]">
+          <span className="min-w-0 truncate">
             {page ? page.title : '현재 문서'}
           </span>
         </button>
-      </div>
+        </div>
+      </PageAiContextStrip>
 
       {/* 메시지 영역 */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>
         {msgs.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-[12px] text-muted-foreground leading-relaxed">
-              사이드바 AI 비서예요. 일반 질문도 받고, 위키 페이지를 보고 있으면 그 내용도 참고해 답해요.
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  onClick={() => void send(ex)}
-                  className="text-left px-2.5 py-1.5 rounded-md text-[11.5px] bg-accent/40 hover:bg-accent text-foreground/80 wiki-trans-color"
-                >
-                  {ex}
-                </button>
-              ))}
-            </div>
-          </div>
+          <PageAiEmptyState
+            title="위키 흐름을 어떻게 정리할까요?"
+            description="현재 위키 내용을 참고해 답합니다."
+          >
+            <PageAiPromptSet label="위키 추천 요청">
+              {EXAMPLES.map((ex) => {
+                const Icon = ex.icon;
+                return (
+                  <PageAiQuickAction
+                    key={ex.prompt}
+                    label={ex.label}
+                    description={ex.description}
+                    icon={<Icon className="h-3.5 w-3.5" aria-hidden />}
+                    iconClassName={PAGE_AI_TONE_ICON[ex.tone]}
+                    accentClassName={cn(PAGE_AI_TONE_DOT[ex.tone], ex.emphasized ? 'opacity-90' : 'opacity-55')}
+                    emphasized={ex.emphasized}
+                    onClick={() => void send(ex.prompt)}
+                    showArrow
+                  />
+                );
+              })}
+            </PageAiPromptSet>
+          </PageAiEmptyState>
         ) : (
           msgs.map((m) => (
             <MsgBubble
@@ -548,48 +589,26 @@ export function WikiAiPanel({
               canAppend={!!onAppendToBody && !!page}
               canCreate={!!onCreatePageFromAnswer}
               onAppend={() => onAppendToBody?.(m.text)}
-              onCreate={() => onCreatePageFromAnswer?.(m.text.slice(0, 40).replace(/\n/g, ' '), m.text)}
+              onCreate={() => onCreatePageFromAnswer?.(deriveWikiPageTitleFromAnswer(m.text), m.text)}
             />
           ))
         )}
         {busy && (
-          <div className="text-[11px] text-muted-foreground italic">생각하는 중…</div>
+          <PageAiTypingIndicator />
         )}
       </div>
 
       {/* 입력 */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send(input);
-        }}
-        className="border-t border-[hsl(var(--hairline))] p-2 flex items-end gap-2 shrink-0"
-      >
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              void send(input);
-            }
-          }}
-          placeholder="무엇이든 물어보세요…"
-          rows={2}
-          className="flex-1 resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-2 py-1.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || busy}
-          className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 wiki-trans-color"
-          title="보내기 (Enter)"
-          aria-label="보내기"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </form>
+      <PageAiComposer
+        draft={input}
+        onDraftChange={setInput}
+        onSend={(text) => { void send(text); }}
+        loading={busy}
+        placeholder="문서 요약, 연결 추천, 위키 흐름을 물어보세요..."
+        autoFocus={open}
+      />
       </div>
+      )}
     </aside>
   );
 }
@@ -710,41 +729,55 @@ function MsgBubble({
   onCreate: () => void;
 }) {
   const isUser = msg.role === 'user';
+  const [copied, setCopied] = useState(false);
+  const canCopy = !isUser && msg.text.trim().length > 0;
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(msg.text);
+      setCopied(true);
+      notify.success('AI 답변을 복사했어요', { duration: 1200 });
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      notify.error('클립보드 접근에 실패했어요');
+    }
+  };
+
   return (
-    <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
-      <div
-        className={cn(
-          'max-w-[90%] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed',
-          isUser
-            ? 'bg-primary/10 text-foreground whitespace-pre-wrap'
-            : 'bg-accent/60 text-foreground/90 wiki-ai-md',
-        )}
+    <div className="flex flex-col gap-1">
+      <PageAiMessageBubble
+        role={isUser ? 'user' : 'assistant'}
+        bubbleClassName={cn(!isUser && 'wiki-ai-md')}
       >
         {isUser ? msg.text : <MdLite text={msg.text} />}
-      </div>
-      {!isUser && msg.text.trim().length > 0 && (canAppend || canCreate) && (
-        <div className="flex items-center gap-1.5 pl-1 pt-0.5">
+      </PageAiMessageBubble>
+      {canCopy && (
+        <PageAiMessageActions>
+          <PageAiMessageActionButton
+            onClick={handleCopy}
+            title="AI 답변 복사"
+            icon={copied ? <Check className="h-3 w-3" /> : <CopyIcon className="h-3 w-3" />}
+          >
+            {copied ? '복사됨' : '복사'}
+          </PageAiMessageActionButton>
           {canAppend && (
-            <button
-              type="button"
+            <PageAiMessageActionButton
               onClick={onAppend}
-              className="inline-flex items-center gap-1 px-2 h-6 rounded-full border border-[hsl(var(--hairline))] bg-background text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/30 wiki-trans-color"
               title="현재 페이지 본문 끝에 추가"
+              icon={<BookOpen className="h-3 w-3" />}
             >
-              <BookOpen className="h-3 w-3" /> 본문에 추가
-            </button>
+              본문에 추가
+            </PageAiMessageActionButton>
           )}
           {canCreate && (
-            <button
-              type="button"
+            <PageAiMessageActionButton
               onClick={onCreate}
-              className="inline-flex items-center gap-1 px-2 h-6 rounded-full border border-[hsl(var(--hairline))] bg-background text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/30 wiki-trans-color"
               title="이 답변으로 새 페이지 만들기"
+              icon={<PlusIcon className="h-3 w-3" />}
             >
-              <PlusIcon className="h-3 w-3" /> 새 페이지로
-            </button>
+              새 페이지로
+            </PageAiMessageActionButton>
           )}
-        </div>
+        </PageAiMessageActions>
       )}
     </div>
   );

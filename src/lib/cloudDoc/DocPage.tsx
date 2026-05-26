@@ -64,7 +64,7 @@ export function DocPage({
 
   return (
     <div
-      className={exportMode ? 'mx-auto my-0 relative' : 'mx-auto my-8 relative'}
+      className={exportMode ? 'doc-export-mode mx-auto my-0 relative' : 'mx-auto my-8 relative'}
       style={{
         width: `${pageWidth}px`,
         minHeight: `${containerHeight}px`,

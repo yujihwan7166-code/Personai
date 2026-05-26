@@ -8,7 +8,7 @@
  *
  * 단축키 (input/textarea/contentEditable 안에서는 비활성):
  * - n: 인박스 빠른 추가 포커스 (필요 시 day 뷰로 전환)
- * - d/w/m/y/g/h: 뷰 전환 (day/week/month/year/goals/habits)
+ * - d/w/m/y/h: 뷰 전환 (day/week/month/year/habits)
  * - ← / →: 이전 / 다음 (시간 네비)
  * - t: 오늘로
  * - ?: 단축키 도움말
@@ -16,11 +16,12 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Bot } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
+import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
-import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
+import { MAIN_MODE_LABELS, type MainMode, type PremiumDomainId } from '@/types/expert';
 import {
   DndContext,
   DragOverlay,
@@ -33,7 +34,8 @@ import {
   type DragMoveEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
-import { PlannerLeftRail, RAIL_EVENT } from '@/components/planner/PlannerLeftRail';
+import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
+import { RAIL_EVENT } from '@/components/planner/plannerRailEvents';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
@@ -43,7 +45,6 @@ import { usePlannerNotifications } from '@/hooks/planner/usePlannerNotifications
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
-import { GoalProgressView } from '@/components/planner/GoalProgressView';
 import { HabitsView } from '@/components/planner/HabitsView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
 import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
@@ -51,7 +52,6 @@ import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerMatrixPopover } from '@/components/planner/PlannerMatrixPopover';
 import { PlannerAgendaPopover } from '@/components/planner/PlannerAgendaPopover';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
-import { PlannerOverviewBar } from '@/components/planner/PlannerOverviewBar';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
@@ -60,6 +60,8 @@ import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
 import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
 import { useWindowEvent } from '@/hooks/useWindowEvent';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { PAGE_AI_PANEL_WIDTH, clampPageAiPanelWidth } from '@/components/PageAiTokens';
 import {
   DRAG_ACTIVATION_DISTANCE,
   transposeTimeToDate,
@@ -70,11 +72,11 @@ import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
 const PLANNER_VIEW_STORAGE_KEY = 'planner.view.v1';
-const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'goals', 'habits'];
+const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'habits'];
 const isPlannerView = (value: string | null): value is PlannerView =>
   !!value && PLANNER_VIEWS.includes(value as PlannerView);
 
-import type { PlannerTask, Priority } from '@/types/planner';
+import type { Priority } from '@/types/planner';
 
 type DialogMode =
   | {
@@ -97,6 +99,7 @@ const Planner = () => {
   const dayInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const showTimeline = useMediaQuery('(min-width: 1024px)');
   const [view, setViewState] = useState<PlannerView>(() => {
     const viewParam = searchParams.get('view');
     if (isPlannerView(viewParam)) return viewParam;
@@ -169,24 +172,22 @@ const Planner = () => {
     try { window.localStorage.setItem('planner.ai-panel.open', aiPanelOpen ? '1' : '0'); } catch { /* silent */ }
   }, [aiPanelOpen]);
 
-  // AI 패널 너비 — 사용자가 좌측 가장자리 드래그로 조정. 280~560 범위.
-  const AI_WIDTH_MIN = 280;
-  const AI_WIDTH_MAX = 560;
-  const AI_WIDTH_DEFAULT = 340;
+  // AI 패널 너비 — 메모/일기 AI와 같은 기본 폭으로 시작하되 사용자가 줄인 폭도 보존.
   const [aiPanelWidth, setAiPanelWidth] = useState<number>(() => {
-    if (typeof window === 'undefined') return AI_WIDTH_DEFAULT;
+    if (typeof window === 'undefined') return PAGE_AI_PANEL_WIDTH.default;
     try {
       const raw = window.localStorage.getItem('planner.ai-panel.width');
       const n = raw ? Number(raw) : NaN;
-      if (!Number.isFinite(n)) return AI_WIDTH_DEFAULT;
-      return Math.max(AI_WIDTH_MIN, Math.min(AI_WIDTH_MAX, Math.round(n)));
-    } catch { return AI_WIDTH_DEFAULT; }
+      if (!Number.isFinite(n)) return PAGE_AI_PANEL_WIDTH.default;
+      return clampPageAiPanelWidth(n);
+    } catch { return PAGE_AI_PANEL_WIDTH.default; }
   });
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try { window.localStorage.setItem('planner.ai-panel.width', String(aiPanelWidth)); } catch { /* silent */ }
   }, [aiPanelWidth]);
   const todayTasks = useTodayTasks();
+  const showTimelinePanel = showTimeline;
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
   usePlannerNotifications();
 
@@ -207,12 +208,12 @@ const Planner = () => {
   const handleDayClick = useCallback((dayIso: string) => {
     setAnchorIso(dayIso);
     setView('day');
-  }, []);
+  }, [setView]);
 
   const handleMonthClick = useCallback((monthIso: string) => {
     setAnchorIso(monthIso);
     setView('month');
-  }, []);
+  }, [setView]);
 
   const handleInboxClick = useCallback((task: { id: string; title: string }) => {
     const full = taskStore.list().find((t) => t.id === task.id);
@@ -246,34 +247,6 @@ const Planner = () => {
   const handleSlotClick = useCallback((slotIso: string) => {
     setDialogMode({ kind: 'create', presetStartIso: slotIso });
   }, []);
-
-  /**
-   * Day 뷰 공통 입력 핸들러 — NL 라우팅.
-   * 시간(startAt) 있으면 계획/타임라인으로, 없으면 anchor 날짜의 할 일(plannedFor) 로.
-   */
-  const handleDayAdd = useCallback((
-    title: string,
-    parsed?: {
-      startAt?: string;
-      endAt?: string;
-      recurrence?: PlannerTask['recurrence'];
-      tags?: string[];
-      priority?: PlannerTask['priority'];
-    },
-  ) => {
-    const day = new Date(anchorIso);
-    const dayKey = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
-    taskStore.add({
-      title,
-      startAt: parsed?.startAt,
-      endAt: parsed?.endAt,
-      recurrence: parsed?.recurrence,
-      tags: parsed?.tags,
-      priority: parsed?.priority,
-      plannedFor: parsed?.startAt ? undefined : dayKey,
-    });
-    notify.success(parsed?.startAt ? '일정에 추가했어요' : '할 일에 추가했어요', { duration: 1200 });
-  }, [anchorIso]);
 
   const handleItemClick = useCallback(
     (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => {
@@ -324,7 +297,7 @@ const Planner = () => {
       if (view === 'day') d.setDate(d.getDate() + direction);
       else if (view === 'week') d.setDate(d.getDate() + 7 * direction);
       else if (view === 'month') d.setMonth(d.getMonth() + direction);
-      else if (view === 'year' || view === 'goals') d.setFullYear(d.getFullYear() + direction);
+      else if (view === 'year') d.setFullYear(d.getFullYear() + direction);
       return d.toISOString();
     });
   }, [view]);
@@ -377,7 +350,7 @@ const Planner = () => {
         setView('day');
         break;
     }
-  }, []);
+  }, [setView]);
 
   // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
   const anchorIsToday = useMemo(() => {
@@ -466,7 +439,6 @@ const Planner = () => {
         case 'w': e.preventDefault(); setView('week'); break;
         case 'm': e.preventDefault(); setView('month'); break;
         case 'y': e.preventDefault(); setView('year'); break;
-        case 'g': e.preventDefault(); setView('goals'); break;
         case 'h': e.preventDefault(); setView('habits'); break;
         case 't': e.preventDefault(); goToday(); break;
         case 'arrowleft':  e.preventDefault(); goPrev(); break;
@@ -476,17 +448,17 @@ const Planner = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, aiPanelOpen, goPrev, goNext, goToday]);
+  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
 
   // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
   const handleOpenPalette = useCallback(() => setPaletteOpen(true), []);
   const handleOpenMatrix = useCallback(() => setMatrixPopoverOpen(true), []);
   const handleOpenAgenda = useCallback(() => setAgendaPopoverOpen(true), []);
-  const handleOpenHabits = useCallback(() => setView('habits'), []);
+  const handleOpenHabits = useCallback(() => setView('habits'), [setView]);
   const handleGoToday = useCallback(() => {
     setView('day');
     goToday();
-  }, [goToday]);
+  }, [goToday, setView]);
   const handleToggleAI = useCallback(() => setAiPanelOpen((v) => !v), []);
   // 모드 — apiRef 가 첫 렌더 직후라 미주입 가능 → rAF 3회 retry 후 안내.
   const handleOpenModePalette = useCallback(() => {
@@ -526,14 +498,11 @@ const Planner = () => {
     navigate('/', { state: { selectMainMode: m } });
   }, [navigate]);
 
-  const openPlannerCommand = useCallback(() => setPaletteOpen(true), []);
-  const openGoalsView = useCallback(() => setView('goals'), [setView]);
-  const focusQuickAdd = useCallback(() => {
-    if (view !== 'day') setView('day');
-    setTimeout(() => dayInputRef.current?.focus(), 50);
-  }, [setView, view]);
+  const handleSelectPremiumDomain = useCallback((domainId: PremiumDomainId) => {
+    navigate('/', { state: { selectMainMode: 'premium_main', selectPremiumDomain: domainId } });
+  }, [navigate]);
 
-  const isFullscreen = view === 'month' || view === 'year' || view === 'goals' || view === 'habits';
+  const isFullscreen = view === 'year' || view === 'habits';
 
   // ────── DnD ──────
   // 드래그 기준점 (5px) 으로 클릭과 분리.
@@ -850,30 +819,38 @@ const Planner = () => {
       >
         <PlannerLeftRail aiOpen={aiPanelOpen} orientation="horizontal" />
       </nav>
-      <main className="flex-1 min-w-0 px-4 sm:px-8 pt-5 sm:pt-8 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
+      <PageWorkspaceChrome
+        current="planner"
+        ai={{
+          label: '플래너 AI',
+          title: '플래너 AI 열기',
+          open: aiPanelOpen,
+          onOpen: () => setAiPanelOpen(true),
+        }}
+      />
+      <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
             [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
-        <div className="mb-3 pt-1 flex flex-wrap items-center gap-3 px-0.5">
-          {/* 시간 네비 cluster — goals 외 모든 뷰. habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
-          {view !== 'goals' && (
-            <div className="shrink-0 flex items-center gap-2">
+        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center lg:justify-between">
+          {/* 시간 네비 cluster — habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
+          <div className="shrink-0 flex max-w-full items-center gap-1.5">
               {view !== 'habits' && (
                 <button
                   type="button"
                   onClick={goPrev}
                   aria-label="이전"
                   title="이전 (←)"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
                   <ChevronLeft className="h-[18px] w-[18px]" />
                 </button>
               )}
-              <div className="min-w-0 flex items-baseline gap-3">
-                <h2 className="font-display text-[28px] sm:text-[32px] font-semibold tracking-tight text-foreground leading-tight truncate">
+              <div className="min-w-0 flex items-baseline gap-2 px-1">
+                <h2 className="font-display text-[30px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-tight truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[15px] sm:text-[16px] text-muted-foreground tabular-nums font-medium leading-tight">
+                  <span className="hidden sm:inline text-[14px] sm:text-[15px] text-muted-foreground tabular-nums font-medium leading-tight">
                     {headerLabels.secondary}
                   </span>
                 )}
@@ -895,61 +872,33 @@ const Planner = () => {
                   onClick={goNext}
                   aria-label="다음"
                   title="다음 (→)"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
                   <ChevronRight className="h-[18px] w-[18px]" />
                 </button>
               )}
-              {view === 'day' && (
+              {view === 'day' && !anchorIsToday && (
                 <button
                   type="button"
                   onClick={goToday}
-                  disabled={anchorIsToday}
                   aria-label="오늘로"
                   title="오늘로 (T)"
-                  className={cn(
-                    'ml-1.5 h-8 px-3.5 text-[12.5px] font-semibold rounded-full transition-all',
-                    anchorIsToday
-                      ? 'text-muted-foreground/40 cursor-default'
-                      : 'border hairline bg-card text-foreground hover:bg-accent hover:border-foreground/30',
-                  )}
+                  className="ml-1 h-7 px-2.5 text-[12px] font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
                   오늘로
                 </button>
               )}
-            </div>
-          )}
+          </div>
 
           {/* 뷰 토글 — 날짜 nav 바로 옆. */}
-          <ViewToggle value={view} onChange={setView} />
-
-          {/* AI 챗봇 — 뷰 토글 오른쪽. 패널 열려있으면 숨김 (rail ✨ 와 중복 방지). */}
-          {!aiPanelOpen && (
-            <button
-              type="button"
-              onClick={() => setAiPanelOpen(true)}
-              className="hidden sm:inline-flex shrink-0 h-8 w-auto px-3 items-center justify-start gap-1.5 rounded-full border border-primary/30 bg-primary/8 text-foreground hover:bg-primary/15 hover:border-primary/50 transition-colors"
-              title="AI 챗봇"
-              aria-label="AI 챗봇 열기"
-            >
-              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="hidden sm:inline text-[12px] font-semibold">AI 챗봇</span>
-            </button>
-          )}
+          <div className="flex min-w-0 lg:justify-center">
+            <ViewToggle value={view} onChange={setView} />
+          </div>
 
           {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
           <div className="hidden lg:block flex-1" />
 
-          {/* 페이지 스위처 — 우측 끝. 시각적으로 살짝 위로. */}
-          <PageSwitcher current="planner" className="hidden lg:inline-flex -mt-3 self-start" />
         </div>
-
-        <PlannerOverviewBar
-          anchorIso={anchorIso}
-          onOpenCommand={openPlannerCommand}
-          onOpenGoals={openGoalsView}
-          onFocusQuickAdd={focusQuickAdd}
-        />
 
         <ModeErrorBoundary
           modeLabel="통합 플래너"
@@ -961,27 +910,10 @@ const Planner = () => {
         >
         {isFullscreen ? (
           <div className={cn(
-            'rounded-2xl border hairline bg-card min-h-[520px] h-[calc(100vh-270px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
+            'rounded-2xl border hairline bg-card min-h-[560px] h-[calc(100vh-235px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
             // habits 는 자체 헤더·배경이 있어 외곽 패딩 줄임 (다른 풀뷰 p-4/p-5 보다 슬림)
             view === 'habits' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5',
           )}>
-            {view === 'month' && (
-              <MonthView
-                anchorIso={anchorIso}
-                onDayClick={handleDayClick}
-                onItemClick={handleItemClick}
-                onAddForDate={(dayIso) => {
-                  // 그 날짜 09:00 default + 일정 모달
-                  const day = new Date(dayIso);
-                  day.setHours(9, 0, 0, 0);
-                  setDialogMode({
-                    kind: 'create',
-                    presetStartIso: day.toISOString(),
-                    presetIsEvent: true,
-                  });
-                }}
-              />
-            )}
             {view === 'year' && (
               <YearView
                 anchorIso={anchorIso}
@@ -989,16 +921,11 @@ const Planner = () => {
                 onDayClick={handleDayClick}
               />
             )}
-            {view === 'goals' && (
-              <GoalProgressView
-                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-              />
-            )}
             {view === 'habits' && <HabitsView />}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[228px_minmax(0,1fr)] gap-4 sm:gap-5 h-[calc(100vh-270px)] min-h-[520px]">
-            <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-[232px_minmax(0,1fr)] lg:grid-cols-[236px_minmax(0,1fr)] md:h-[calc(100vh-258px)] md:min-h-[540px]">
+            <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto rounded-2xl border border-foreground/10 bg-card/75 px-3 py-3 shadow-[0_1px_1px_hsl(30_15%_8%/0.018)]">
               <PlannerSidebar
                 anchorIso={anchorIso}
                 onSelectDay={(dayIso) => {
@@ -1012,11 +939,19 @@ const Planner = () => {
             {view === 'day' ? (
               <div className="min-h-0 flex flex-col">
                 {/* 헤더는 universal topbar 로 이동됨. day content 만 여기 — 좌측 계획/할일 + 우측 타임라인. */}
-                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-3">
+                <div
+                  className={cn(
+                    'flex-1 min-h-0 grid grid-cols-1 gap-3 sm:gap-4',
+                    showTimelinePanel
+                      ? 'lg:grid-cols-[390px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]'
+                      : 'lg:grid-cols-[minmax(0,760px)]',
+                  )}
+                >
                   <div className="grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0">
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                      emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
                       onAdd={() => {
                         // anchor 오늘/과거 → 지금 다음 30분 슬롯, 미래 → anchor 09:00.
                         const anchor = new Date(anchorIso);
@@ -1048,20 +983,44 @@ const Planner = () => {
                       }}
                     />
                   </div>
-                  <TodayTimeline
-                    dateIso={anchorIso}
-                    onItemClick={handleItemClick}
-                    onSlotClick={handleSlotClick}
-                    hideHeader
-                  />
+                  {showTimelinePanel && (
+                  <div className="min-h-0">
+                    <TodayTimeline
+                      dateIso={anchorIso}
+                      onItemClick={handleItemClick}
+                      onSlotClick={handleSlotClick}
+                      hideHeader
+                    />
+                  </div>
+                  )}
                 </div>
               </div>
             ) : view === 'week' ? (
-              <div className="rounded-2xl border hairline bg-card p-4 sm:p-5 min-h-0 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
+              <div className="rounded-2xl border hairline bg-card px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-2 min-h-0 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
                 <WeekView
                   anchorIso={anchorIso}
                   onDayClick={handleDayClick}
                   onItemClick={handleItemClick}
+                  onTaskClick={handleInboxClick}
+                />
+              </div>
+            ) : view === 'month' ? (
+              <div className="min-h-0 h-full">
+                <MonthView
+                  anchorIso={anchorIso}
+                  onDayClick={handleDayClick}
+                  onItemClick={handleItemClick}
+                  onTaskClick={handleInboxClick}
+                  onAddForDate={(dayIso) => {
+                    // 그 날짜 09:00 default + 일정 모달
+                    const day = new Date(dayIso);
+                    day.setHours(9, 0, 0, 0);
+                    setDialogMode({
+                      kind: 'create',
+                      presetStartIso: day.toISOString(),
+                      presetIsEvent: true,
+                    });
+                  }}
                 />
               </div>
             ) : null}
@@ -1134,17 +1093,14 @@ const Planner = () => {
       anchorIso={anchorIso}
       width={aiPanelWidth}
       onWidthChange={setAiPanelWidth}
-      minWidth={AI_WIDTH_MIN}
-      maxWidth={AI_WIDTH_MAX}
+      minWidth={PAGE_AI_PANEL_WIDTH.min}
+      maxWidth={PAGE_AI_PANEL_WIDTH.max}
     />
-    {/* MainModeTabs (offscreen) — rail "모드" 클릭 시 apiRef 로 패널 오픈.
-        트리거 pill 자체는 화면 밖, dropdown panel 만 portal 로 등장 (Index.tsx 동일 패턴). */}
-    <div
-      style={{ position: 'fixed', left: -9999, top: -9999, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
-      aria-hidden
-    >
+    {/* MainModeTabs — rail "모드" 클릭 시 apiRef 로 패널 오픈.
+        트리거 pill 자체는 시각적으로 숨기고 dropdown panel 만 portal 로 등장. */}
+    <HiddenInteractiveMount>
       <MainModeTabs
-        modes={['general', 'research_main', 'study_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
+        modes={['general', 'research_main', 'study_main', 'voice_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
         labels={mainModeLabelMap}
         currentMode={'general'}
         pendingMode={null}
@@ -1153,12 +1109,13 @@ const Planner = () => {
         showPlayerBg={false}
         onChange={handleSelectMainMode}
         onSelectDebateSub={() => handleSelectMainMode('debate')}
-        onSelectAssistantCard={() => handleSelectMainMode('assistant')}
+        onSelectPremiumDomain={handleSelectPremiumDomain}
+        onSelectAssistantCard={(cardId) => handleSelectMainMode(cardId === 'voice-analysis' ? 'voice_main' : 'assistant')}
         onSelectLifeTool={() => handleSelectMainMode('general')}
         onSelectPlayerTool={() => handleSelectMainMode('player')}
         apiRef={mainModeTabsApiRef}
       />
-    </div>
+    </HiddenInteractiveMount>
     </DndContext>
   );
 };

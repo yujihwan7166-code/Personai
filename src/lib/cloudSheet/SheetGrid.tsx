@@ -27,6 +27,8 @@ interface SheetGridProps {
   colCount: number;
   colWidths: Record<number, number>;
   rowHeights: Record<number, number>;
+  hiddenCols?: Record<number, boolean>;
+  hiddenRows?: Record<number, boolean>;
   onColResize: (colIdx: number, newWidth: number) => void;
   onRowResize: (rowIdx: number, newHeight: number) => void;
   onColAutoFit?: (colIdx: number) => void;
@@ -81,7 +83,7 @@ interface SheetGridProps {
 
 export function SheetGrid({
   cells, displayValues, cellFormats, showFormulas, selected, selBounds, hasRange, mergeAtMap, coveredSet,
-  rowCount, colCount, colWidths, rowHeights, onColResize, onRowResize, onColAutoFit, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
+  rowCount, colCount, colWidths, rowHeights, hiddenCols, hiddenRows, onColResize, onRowResize, onColAutoFit, onRowAutoFit, onHeaderClick, onHeaderContextMenu,
   onCellContextMenu, onSelectAll, onAutoFitAllCols,
   matchedRefs, currentMatchRef,
   freezeRows = 0, freezeCols = 0,
@@ -95,28 +97,51 @@ export function SheetGrid({
 }: SheetGridProps) {
   const cols = useMemo(() => Array.from({ length: colCount }, (_, i) => colLabel(i)), [colCount]);
   const rows = useMemo(() => Array.from({ length: rowCount }, (_, i) => i), [rowCount]);
+  const visibleCols = useMemo(
+    () => cols.map((label, idx) => ({ label, idx })).filter(({ idx }) => !hiddenCols?.[idx]),
+    [cols, hiddenCols],
+  );
+  const visibleRows = useMemo(
+    () => rows.filter((idx) => !hiddenRows?.[idx] && (!visibleRowSet || visibleRowSet.has(idx))),
+    [rows, hiddenRows, visibleRowSet],
+  );
 
   /** sticky top 누적 — freezeRows 안 각 행의 top px 값 */
   const stickyRowTops = useMemo(() => {
     const out: number[] = [];
     let acc = HEADER_H;
     for (let r = 0; r < freezeRows; r++) {
-      out.push(acc);
+      if (hiddenRows?.[r]) continue;
+      out[r] = acc;
       acc += rowHeights[r] ?? DEFAULT_ROW_HEIGHT;
     }
     return out;
-  }, [freezeRows, rowHeights]);
+  }, [freezeRows, rowHeights, hiddenRows]);
 
   /** sticky left 누적 — freezeCols 안 각 열의 left px 값 */
   const stickyColLefts = useMemo(() => {
     const out: number[] = [];
     let acc = ROW_HEADER_W;
     for (let c = 0; c < freezeCols; c++) {
-      out.push(acc);
+      if (hiddenCols?.[c]) continue;
+      out[c] = acc;
       acc += colWidths[c] ?? DEFAULT_COL_WIDTH;
     }
     return out;
-  }, [freezeCols, colWidths]);
+  }, [freezeCols, colWidths, hiddenCols]);
+
+  const visibleSpan = useMemo(() => ({
+    cols: (start: number, span = 1) => {
+      let count = 0;
+      for (let c = start; c < start + span; c++) if (!hiddenCols?.[c]) count++;
+      return Math.max(1, count);
+    },
+    rows: (start: number, span = 1) => {
+      let count = 0;
+      for (let r = start; r < start + span; r++) if (!hiddenRows?.[r] && (!visibleRowSet || visibleRowSet.has(r))) count++;
+      return Math.max(1, count);
+    },
+  }), [hiddenCols, hiddenRows, visibleRowSet]);
 
   return (
     <div className="inline-block min-w-full">
@@ -132,7 +157,7 @@ export function SheetGrid({
             >
               <span className="absolute right-1 bottom-1 text-[8px] text-muted-foreground leading-none" aria-hidden>◢</span>
             </th>
-            {cols.map((c, i) => (
+            {visibleCols.map(({ label: c, idx: i }) => (
               <th
                 key={c}
                 className="border border-border bg-muted/40 px-2 py-1 text-xs font-normal text-muted-foreground relative group cursor-pointer hover:bg-muted/60"
@@ -157,7 +182,7 @@ export function SheetGrid({
           <thead>
             <tr>
               <th className="w-10 h-7 border border-border bg-amber-50 dark:bg-amber-950/30 sticky left-0 z-20" />
-              {cols.map((_, ci) => (
+              {visibleCols.map(({ idx: ci }) => (
                 <th
                   key={ci}
                   className="border border-border bg-amber-50 dark:bg-amber-950/30 px-1 py-0.5"
@@ -177,7 +202,7 @@ export function SheetGrid({
           </thead>
         )}
         <tbody>
-          {rows.map((rowIdx) => visibleRowSet && !visibleRowSet.has(rowIdx) ? null : (
+          {visibleRows.map((rowIdx) => (
             <tr key={rowIdx} style={{ height: rowHeights[rowIdx] ?? DEFAULT_ROW_HEIGHT }}>
               <th
                 className="w-10 border border-border bg-muted/40 text-xs font-normal text-muted-foreground sticky left-0 z-10 relative group cursor-pointer hover:bg-muted/60"
@@ -194,7 +219,7 @@ export function SheetGrid({
                   onAutoFit={onRowAutoFit}
                 />
               </th>
-              {cols.map((_, colIdx) => {
+              {visibleCols.map(({ idx: colIdx }) => {
                 const key = `${rowIdx},${colIdx}`;
                 // 병합으로 가려진 셀은 렌더 X (rowSpan/colSpan 으로 위쪽 셀이 채움)
                 if (coveredSet.has(key)) return null;
@@ -258,8 +283,8 @@ export function SheetGrid({
                     formulaRefColor={formulaRefHighlights?.get(ref)}
                     stickyTop={isStickyRow ? stickyRowTops[rowIdx] : undefined}
                     stickyLeft={isStickyCol ? stickyColLefts[colIdx] : undefined}
-                    rowSpan={span?.rows}
-                    colSpan={span?.cols}
+                    rowSpan={span ? visibleSpan.rows(rowIdx, span.rows) : undefined}
+                    colSpan={span ? visibleSpan.cols(colIdx, span.cols) : undefined}
                     editing={isEditing}
                     editingValue={editingValue}
                     onPointerDown={onPointerDown}

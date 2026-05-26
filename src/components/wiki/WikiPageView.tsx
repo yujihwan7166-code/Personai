@@ -1,21 +1,23 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, Save, X, Download, Star, Check, ImagePlus, History, Home, ChevronDown, FileText, FileType, FileCode, Pencil as PencilIcon } from 'lucide-react';
+import { Archive, Copy, Link2, Pencil, PlusCircle, Trash2, Save, X, Download, Star, Check, History, Home, ChevronDown, ChevronRight, FileText, FileType, FileCode, Pencil as PencilIcon, RotateCcw, Sparkles, ListChecks, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMemos } from '@/lib/memoStore';
 import {
-  type WikiPage, type WikiPageStatus,
-  WIKI_TYPE_META, WIKI_STATUS_META, VISIBLE_WIKI_STATUSES, isMainDoc,
+  type WikiPage, type WikiPageStatus, type WikiPageType,
+  WIKI_TYPE_META, WIKI_STATUS_META, VISIBLE_WIKI_STATUSES, USER_FACING_TYPES, isMainDoc,
   extractWikiLinks,
 } from '@/types/wiki';
 import { WikiBody } from './WikiBody';
 import { WikiToc } from './WikiToc';
 import { WikiInfobox } from './WikiInfobox';
 import { WikiLocalGraph } from './WikiLocalGraph';
-import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import { WikiBlockEditor } from './WikiBlockEditor';
 import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
+import { buildWikiExportHtml, wikiPageToMarkdown } from '@/lib/wikiExport';
+import { formatWikiTitleLink, linkFirstUnlinkedMention, linkUnlinkedMentions } from '@/lib/wikiLinks';
+import { analyzeWikiPageHealth, buildWikiBacklinkPreviews, collectWikiManualRelations, collectWikiOutgoingLinks, findUnlinkedWikiMentions, suggestRelatedWikiPages, type WikiBacklinkPreview, type WikiLinkMentionSuggestion, type WikiManualRelationGroup, type WikiPageHealthItem, type WikiRelatedSuggestion } from '@/lib/wikiQuery';
 
 interface Props {
   page: WikiPage;
@@ -27,6 +29,8 @@ interface Props {
   onToggleFavorite: () => void;
   onChange: (next: WikiPage) => void;
   onRestore: (snapshot: WikiPage) => void;
+  onArchive: () => void;
+  onRestoreArchived: () => void;
   onDelete: () => void;
   onToggleEdit: () => void;
   onOpenLink: (titleOrId: string) => void;
@@ -63,13 +67,13 @@ function relativeTime(ts: number): string {
 export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
-  onChange, onRestore, onDelete, onToggleEdit, onOpenLink, onGoHome, onOpenInGlobalGraph, onCreateAndLink,
+  onChange, onRestore, onArchive, onRestoreArchived, onDelete, onToggleEdit, onOpenLink, onGoHome, onOpenInGlobalGraph, onCreateAndLink,
   onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [historyOpen, setHistoryOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [copiedWikiLink, setCopiedWikiLink] = useState(false);
   const saveTimerRef = useRef<number | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -101,6 +105,20 @@ export function WikiPageView({
   }, [draft, editing, page]);
 
   const typeMeta = WIKI_TYPE_META[page.type];
+  const outgoingLinks = useMemo(() => collectWikiOutgoingLinks(page, allPages), [page, allPages]);
+  const manualRelations = useMemo(() => collectWikiManualRelations(page, allPages), [page, allPages]);
+  const relatedSuggestions = useMemo(() => suggestRelatedWikiPages(page, allPages), [page, allPages]);
+  const linkMentionSuggestions = useMemo(() => findUnlinkedWikiMentions(page, allPages), [page, allPages]);
+  const healthItems = useMemo(() => analyzeWikiPageHealth(page, allPages), [page, allPages]);
+  const backlinkPreviews = useMemo(() => {
+    const previews = buildWikiBacklinkPreviews(page, allPages);
+    if (previews.length > 0 || backlinks.length === 0) return previews;
+    return backlinks.map((source) => ({
+      page: source,
+      reasons: ['백링크'],
+      snippet: '문서 관계로 연결되어 있습니다.',
+    }));
+  }, [page, allPages, backlinks]);
 
   const save = () => {
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
@@ -113,78 +131,9 @@ export function WikiPageView({
     onToggleEdit();
   };
 
-  /** caret 위치에 텍스트 삽입. */
-  const insertAtCaret = (text: string) => {
-    const ta = textareaRef.current;
-    const before = ta?.selectionStart ?? draft.body.length;
-    const after = ta?.selectionEnd ?? draft.body.length;
-    const next = draft.body.slice(0, before) + text + draft.body.slice(after);
-    setDraft({ ...draft, body: next });
-    requestAnimationFrame(() => {
-      if (!ta) return;
-      const newCaret = before + text.length;
-      ta.setSelectionRange(newCaret, newCaret);
-      ta.focus();
-    });
-  };
-
-  /** File 들을 IDB 에 저장 후 caret 에 markdown 이미지 삽입. */
-  const handleImageFiles = async (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    if (arr.length === 0) return;
-    const inserts: string[] = [];
-    for (const f of arr) {
-      const id = await saveImage(f);
-      const alt = f.name.replace(/\.[^.]+$/, '');
-      inserts.push(`![${alt}](wiki-image:${id})`);
-    }
-    insertAtCaret('\n\n' + inserts.join('\n\n') + '\n\n');
-  };
-
-  const onDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
-    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
-    const hasImage = Array.from(e.dataTransfer.files).some((f) => f.type.startsWith('image/'));
-    if (!hasImage) return;
-    e.preventDefault();
-    void handleImageFiles(e.dataTransfer.files);
-  };
-
-  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    const files: File[] = [];
-    for (const it of items) {
-      if (it.kind === 'file') {
-        const f = it.getAsFile();
-        if (f && f.type.startsWith('image/')) files.push(f);
-      }
-    }
-    if (files.length === 0) return;
-    e.preventDefault();
-    void handleImageFiles(files);
-  };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const onPickImage = () => fileInputRef.current?.click();
-  const onFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files;
-    e.target.value = '';
-    if (f) void handleImageFiles(f);
-  };
-
   /** 페이지를 frontmatter + 본문 형식의 .md 파일로 다운로드. */
   const exportMd = () => {
-    const fm: string[] = ['---'];
-    fm.push(`title: ${page.title}`);
-    if (page.aliases.length) fm.push(`aliases: [${page.aliases.map((a) => JSON.stringify(a)).join(', ')}]`);
-    fm.push(`type: ${page.type}`);
-    if (page.category) fm.push(`category: ${page.category}`);
-    fm.push(`status: ${page.status}`);
-    if (page.tags.length) fm.push(`tags: [${page.tags.map((t) => JSON.stringify(t)).join(', ')}]`);
-    fm.push(`created: ${new Date(page.createdAt).toISOString()}`);
-    fm.push(`updated: ${new Date(page.updatedAt).toISOString()}`);
-    fm.push('---', '');
-    const md = fm.join('\n') + page.body;
+    const md = wikiPageToMarkdown(page);
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -194,6 +143,34 @@ export function WikiPageView({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const copyWikiLink = () => {
+    const link = formatWikiTitleLink(page.title);
+    if (!link) return;
+    void navigator.clipboard.writeText(link).then(() => {
+      setCopiedWikiLink(true);
+      window.setTimeout(() => setCopiedWikiLink(false), 1400);
+    }).catch(() => {});
+  };
+
+  const applyMentionLink = (suggestion: WikiLinkMentionSuggestion) => {
+    const nextBody = linkFirstUnlinkedMention(page.body, suggestion.matchedText, suggestion.page.title);
+    if (nextBody === page.body) return;
+    onChange({ ...page, body: nextBody, updatedAt: Date.now() });
+  };
+
+  const applyAllMentionLinks = () => {
+    const nextBody = linkUnlinkedMentions(
+      page.body,
+      linkMentionSuggestions.map((suggestion) => ({
+        matchedText: suggestion.matchedText,
+        targetTitle: suggestion.page.title,
+        index: suggestion.index,
+      })),
+    );
+    if (nextBody === page.body) return;
+    onChange({ ...page, body: nextBody, updatedAt: Date.now() });
   };
 
   return (
@@ -225,13 +202,20 @@ export function WikiPageView({
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 {editing ? (
-                  <input
-                    value={draft.title}
-                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                    className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
-                    placeholder="페이지 제목"
-                    style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-                  />
+                  <>
+                    <input
+                      value={draft.title}
+                      onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                      className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
+                      placeholder="페이지 제목"
+                      style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+                    />
+                    {draft.title.trim() && draft.title.trim() !== page.title.trim() && (
+                      <p className="mt-1 text-[11px] text-primary/80">
+                        저장하면 기존 제목은 별칭으로 남기고, 다른 문서의 위키링크를 새 제목으로 보정합니다.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <h1
                     className="text-[28px] sm:text-[32px] leading-[1.2] font-semibold text-foreground tracking-tight"
@@ -309,8 +293,20 @@ export function WikiPageView({
                     <button onClick={() => setHistoryOpen(true)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="버전 히스토리" aria-label="버전 히스토리">
                       <History className="w-3.5 h-3.5" />
                     </button>
+                    <button onClick={copyWikiLink} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="위키링크 복사" aria-label="위키링크 복사">
+                      {copiedWikiLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                     <DownloadMenu page={page} exportMd={exportMd} />
-                    <button onClick={onDelete} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive wiki-trans-color" title="삭제" aria-label="삭제">
+                    {page.status === 'archived' ? (
+                      <button onClick={onRestoreArchived} className="h-8 px-2.5 inline-flex items-center gap-1 rounded-md text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color" title="보관 문서 복원">
+                        <RotateCcw className="w-3.5 h-3.5" /> 복원
+                      </button>
+                    ) : (
+                      <button onClick={onArchive} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color" title="보관" aria-label="보관">
+                        <Archive className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button onClick={onDelete} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive wiki-trans-color" title="완전 삭제" aria-label="완전 삭제">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </>
@@ -320,27 +316,43 @@ export function WikiPageView({
 
             {/* 모바일 인포 (lg 이하에서만 노출) */}
             <div className="lg:hidden mt-3">
-              <MetaChips
-                page={editing ? draft : page}
-                editing={editing}
-                onChange={(d) => setDraft(d)}
-                draft={draft}
-                allPages={allPages}
-              />
+              {editing ? (
+                <WikiEditMetaPanel
+                  draft={draft}
+                  onChange={setDraft}
+                  allPages={allPages}
+                />
+              ) : (
+                <MetaChips page={page} />
+              )}
             </div>
           </header>
+
+          {!editing && page.body && (
+            <div className="lg:hidden mb-4">
+              <WikiToc body={page.body} variant="inline" />
+            </div>
+          )}
 
           {/* 편집 모드 — 메타 폼 */}
           {editing && (
             <div className="hidden lg:block mb-3">
-              <MetaChips
-                page={draft}
-                editing
-                onChange={setDraft}
+              <WikiEditMetaPanel
                 draft={draft}
+                onChange={setDraft}
                 allPages={allPages}
               />
             </div>
+          )}
+
+          {!editing && page.status === 'archived' && (
+            <div className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[12px] leading-5 text-amber-800 dark:text-amber-200">
+              보관된 문서입니다. 검색과 링크는 유지되지만, 다시 작업하려면 상단의 복원을 눌러 활성 문서로 되돌리세요.
+            </div>
+          )}
+
+          {!editing && healthItems.length > 0 && (
+            <PageHealthSection items={healthItems} />
           )}
 
           {/* 본문 — 블록 에디터 (모든 페이지 동일) */}
@@ -367,31 +379,34 @@ export function WikiPageView({
             )}
           </section>
 
+          {!editing && linkMentionSuggestions.length > 0 && (
+            <LinkMentionSection
+              suggestions={linkMentionSuggestions}
+              onOpen={onOpenLink}
+              onApply={applyMentionLink}
+              onApplyAll={applyAllMentionLinks}
+            />
+          )}
+
+          {!editing && manualRelations.length > 0 && (
+            <ManualRelationsSection groups={manualRelations} onOpen={onOpenLink} />
+          )}
+
+          {!editing && (outgoingLinks.existing.length > 0 || outgoingLinks.missing.length > 0) && (
+            <OutgoingLinksSection
+              existing={outgoingLinks.existing}
+              missing={outgoingLinks.missing}
+              onOpen={onOpenLink}
+            />
+          )}
+
+          {!editing && relatedSuggestions.length > 0 && (
+            <RelatedPagesSection suggestions={relatedSuggestions} onOpen={onOpenLink} />
+          )}
+
           {/* 백링크 */}
-          {!editing && backlinks.length > 0 && (
-            <section className="mt-12 pt-5 border-t border-[hsl(var(--hairline))]">
-              <h2
-                className="text-base font-serif font-bold text-foreground mb-2"
-                style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
-              >
-                이 문서를 인용한 곳
-                <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
-                  · {backlinks.length}건
-                </span>
-              </h2>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                {backlinks.map((b) => (
-                  <li key={b.id}>
-                    <button
-                      onClick={() => onOpenLink(b.id)}
-                      className="w-full text-left px-2 py-1 rounded hover:bg-accent transition-colors text-[12.5px] text-blue-700 dark:text-blue-300 hover:underline"
-                    >
-                      {WIKI_TYPE_META[b.type].icon} {b.title}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {!editing && backlinkPreviews.length > 0 && (
+            <BacklinkPreviewSection previews={backlinkPreviews} onOpen={onOpenLink} />
           )}
         </article>
 
@@ -415,6 +430,320 @@ export function WikiPageView({
   );
 }
 
+function OutgoingLinksSection({
+  existing,
+  missing,
+  onOpen,
+}: {
+  existing: WikiPage[];
+  missing: string[];
+  onOpen: (titleOrId: string) => void;
+}) {
+  return (
+    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+      <h2
+        className="text-base font-serif font-bold text-foreground mb-2"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        이 문서가 연결한 곳
+        <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
+          · {existing.length + missing.length}건
+        </span>
+      </h2>
+      <div className="flex flex-wrap gap-1.5">
+        {existing.map((target) => (
+          <button
+            key={target.id}
+            type="button"
+            onClick={() => onOpen(target.id)}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-[hsl(var(--hairline))] bg-card px-2 py-1 text-[12px] text-foreground/85 hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
+            title={target.title}
+          >
+            <Link2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{WIKI_TYPE_META[target.type].icon} {target.title}</span>
+          </button>
+        ))}
+        {missing.map((title) => (
+          <button
+            key={title}
+            type="button"
+            onClick={() => onOpen(title)}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-[hsl(var(--wiki-link-missing)/0.28)] bg-[hsl(var(--wiki-link-missing)/0.06)] px-2 py-1 text-[12px] text-[hsl(var(--wiki-link-missing))] hover:bg-[hsl(var(--wiki-link-missing)/0.10)] wiki-trans-color"
+            title={`${title} 문서 만들기`}
+          >
+            <PlusCircle className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{title}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PageHealthSection({ items }: { items: WikiPageHealthItem[] }) {
+  const warningCount = items.filter((item) => item.level === 'warning').length;
+  return (
+    <section className="mb-5 rounded-md border border-[hsl(var(--hairline))] bg-card/65 px-3 py-2.5">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-foreground/90">
+          <ListChecks className="h-3.5 w-3.5 text-primary/75" />
+          정리 체크
+        </h2>
+        <span className={cn(
+          'rounded border px-1.5 py-0.5 text-[10.5px]',
+          warningCount > 0
+            ? 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+            : 'border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground',
+        )}
+        >
+          {warningCount > 0 ? `주의 ${warningCount}개` : '가벼운 정리'}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className={cn(
+              'rounded-md border px-2 py-1.5',
+              item.level === 'warning'
+                ? 'border-amber-500/25 bg-amber-500/8'
+                : 'border-[hsl(var(--hairline))] bg-background/55',
+            )}
+          >
+            <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-foreground/85">
+              {item.level === 'warning' && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />}
+              <span className="truncate">{item.label}</span>
+            </p>
+            <p className="mt-0.5 text-[10.5px] leading-4 text-muted-foreground">
+              {item.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ManualRelationsSection({
+  groups,
+  onOpen,
+}: {
+  groups: WikiManualRelationGroup[];
+  onOpen: (titleOrId: string) => void;
+}) {
+  const total = groups.reduce((sum, group) => sum + group.pages.length + group.missingIds.length, 0);
+  return (
+    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+      <h2
+        className="text-base font-serif font-bold text-foreground mb-2"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        문서 관계
+        <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
+          · {total}건
+        </span>
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {groups.map((group) => (
+          <div key={group.kind} className="rounded-md border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2">
+            <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">{group.label}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {group.pages.map((target) => (
+                <button
+                  key={target.id}
+                  type="button"
+                  onClick={() => onOpen(target.id)}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-[hsl(var(--hairline))] bg-background/70 px-2 py-1 text-[12px] text-foreground/85 hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
+                  title={target.title}
+                >
+                  <Link2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{WIKI_TYPE_META[target.type].icon} {target.title}</span>
+                </button>
+              ))}
+              {group.missingIds.map((id) => (
+                <span
+                  key={id}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[12px] text-amber-700 dark:text-amber-300"
+                  title="현재 찾을 수 없는 관계 ID"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{id}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LinkMentionSection({
+  suggestions,
+  onOpen,
+  onApply,
+  onApplyAll,
+}: {
+  suggestions: WikiLinkMentionSuggestion[];
+  onOpen: (titleOrId: string) => void;
+  onApply: (suggestion: WikiLinkMentionSuggestion) => void;
+  onApplyAll: () => void;
+}) {
+  return (
+    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2
+          className="text-base font-serif font-bold text-foreground"
+          style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+        >
+          링크 추천
+          <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
+            · {suggestions.length}건
+          </span>
+        </h2>
+        {suggestions.length > 1 && (
+          <button
+            type="button"
+            onClick={onApplyAll}
+            className="h-7 rounded-md border border-primary/30 bg-primary/5 px-2.5 text-[11px] font-semibold text-primary hover:bg-primary hover:text-primary-foreground wiki-trans-color"
+          >
+            모두 링크로 바꾸기
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {suggestions.map((suggestion) => (
+          <div
+            key={`${suggestion.page.id}-${suggestion.index}`}
+            className="rounded-md border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2"
+          >
+            <p className="flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold text-foreground/90">
+              <Link2 className="h-3.5 w-3.5 shrink-0 text-primary/75" />
+              <span className="truncate">{suggestion.matchedText}</span>
+              <span className="shrink-0 text-[10.5px] font-normal text-muted-foreground">→</span>
+              <span className="truncate text-primary">{suggestion.page.title}</span>
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="rounded border border-[hsl(var(--hairline))] bg-background/70 px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                {suggestion.reason}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onOpen(suggestion.page.id)}
+                  className="h-6 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+                >
+                  열기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onApply(suggestion)}
+                  className="h-6 rounded-md border border-primary/30 bg-primary/5 px-2 text-[11px] font-semibold text-primary hover:bg-primary hover:text-primary-foreground wiki-trans-color"
+                >
+                  링크로 바꾸기
+                </button>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RelatedPagesSection({
+  suggestions,
+  onOpen,
+}: {
+  suggestions: WikiRelatedSuggestion[];
+  onOpen: (titleOrId: string) => void;
+}) {
+  return (
+    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+      <h2
+        className="text-base font-serif font-bold text-foreground mb-2"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        관련 문서
+        <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
+          · {suggestions.length}건
+        </span>
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {suggestions.map(({ page: target, reasons }) => (
+          <button
+            key={target.id}
+            type="button"
+            onClick={() => onOpen(target.id)}
+            className="group min-w-0 rounded-md border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2 text-left hover:border-primary/30 hover:bg-primary/5 wiki-trans-color"
+            title={target.title}
+          >
+            <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-foreground/90 group-hover:text-primary">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary/75" />
+              <span className="truncate">{WIKI_TYPE_META[target.type].icon} {target.title}</span>
+            </span>
+            <span className="mt-1 flex flex-wrap gap-1">
+              {reasons.map((reason) => (
+                <span key={reason} className="rounded border border-[hsl(var(--hairline))] bg-background/70 px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                  {reason}
+                </span>
+              ))}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BacklinkPreviewSection({
+  previews,
+  onOpen,
+}: {
+  previews: WikiBacklinkPreview[];
+  onOpen: (titleOrId: string) => void;
+}) {
+  return (
+    <section className="mt-12 pt-5 border-t border-[hsl(var(--hairline))]">
+      <h2
+        className="text-base font-serif font-bold text-foreground mb-2"
+        style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
+      >
+        이 문서를 인용한 곳
+        <span className="ml-2 text-[11px] font-sans font-normal text-muted-foreground">
+          · {previews.length}건
+        </span>
+      </h2>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {previews.map(({ page: source, reasons, snippet }) => (
+          <li key={source.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(source.id)}
+              className="group w-full rounded-md border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2 text-left hover:border-primary/30 hover:bg-primary/5 wiki-trans-color"
+            >
+              <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] font-semibold text-foreground/90 group-hover:text-primary">
+                <Link2 className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                <span className="truncate">{WIKI_TYPE_META[source.type].icon} {source.title}</span>
+              </span>
+              <span className="mt-1 line-clamp-2 block text-[11.5px] leading-5 text-muted-foreground">
+                {snippet}
+              </span>
+              <span className="mt-2 flex flex-wrap gap-1">
+                {reasons.slice(0, 3).map((reason) => (
+                  <span key={reason} className="rounded border border-[hsl(var(--hairline))] bg-background/70 px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                    {reason}
+                  </span>
+                ))}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /* ── 자동 저장 상태 배지 ── */
 function SaveStatusBadge({ status }: { status: SaveStatus }) {
   if (status === 'idle') return null;
@@ -433,92 +762,440 @@ function SaveStatusBadge({ status }: { status: SaveStatus }) {
 }
 
 /* ── 메타 칩/폼 ── */
-function MetaChips({
-  page, editing, draft, onChange, allPages,
-}: {
-  page: WikiPage;
-  editing: boolean;
-  draft: WikiPage;
-  onChange: (d: WikiPage) => void;
-  allPages?: WikiPage[];
-}) {
+/* Meta chips for read mode */
+function MetaChips({ page }: { page: WikiPage }) {
   const typeMeta = WIKI_TYPE_META[page.type];
   const statusMeta = WIKI_STATUS_META[page.status];
-
-  if (!editing) {
-    return (
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {isMainDoc(page) && (
-          <span className="text-[10.5px] px-2 h-5 rounded-full font-semibold tracking-[0.04em] bg-primary/10 text-primary inline-flex items-center gap-1">
-            📖 메인
-          </span>
-        )}
-        <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${typeMeta.tint}40`, color: typeMeta.tint, backgroundColor: `${typeMeta.tint}0D` }}>
-          {typeMeta.icon} {typeMeta.label}
-        </span>
-        <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${statusMeta.tint}40`, color: statusMeta.tint, backgroundColor: `${statusMeta.tint}0D` }}>
-          {statusMeta.label}
-        </span>
-        {page.tags.map((t) => (
-          <span key={t} className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full bg-accent/60 text-muted-foreground font-medium">
-            #{t}
-          </span>
-        ))}
-      </div>
-    );
-  }
-
-  // 편집 모드 — 슬림 메타 바: [메인 문서 토글] [상태] [태그 칩+자동완성]
-  const isMainOn = !!draft.isMain || draft.type === 'moc';
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* 메인 문서 토글 (chip 형태) */}
-      <button
-        type="button"
-        onClick={() => onChange({
-          ...draft,
-          isMain: !isMainOn,
-          // 토글 끄면 legacy 'moc' type 도 일반으로 정리
-          type: isMainOn && draft.type === 'moc' ? 'concept' : draft.type,
-        })}
-        title={isMainOn ? '메인 문서 해제' : '메인 문서로 지정'}
-        className={cn(
-          'inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11.5px] font-semibold transition-colors border',
-          isMainOn
-            ? 'bg-violet-500/12 border-violet-300 text-violet-700 dark:text-violet-300'
-            : 'bg-card border-[hsl(var(--hairline))] text-muted-foreground hover:border-violet-200 hover:text-foreground',
-        )}
-      >
-        <span>📖</span>
-        <span>메인 문서</span>
-        {isMainOn && <Check className="w-3 h-3" />}
-      </button>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {isMainDoc(page) && (
+        <span className="text-[10.5px] px-2 h-5 rounded-full font-semibold tracking-[0.04em] bg-primary/10 text-primary inline-flex items-center gap-1">
+          메인
+        </span>
+      )}
+      <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${typeMeta.tint}40`, color: typeMeta.tint, backgroundColor: `${typeMeta.tint}0D` }}>
+        {typeMeta.icon} {typeMeta.label}
+      </span>
+      <span className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full font-medium border" style={{ borderColor: `${statusMeta.tint}40`, color: statusMeta.tint, backgroundColor: `${statusMeta.tint}0D` }}>
+        {statusMeta.label}
+      </span>
+      {page.tags.map((tag) => (
+        <span key={tag} className="text-[10.5px] px-2 h-5 inline-flex items-center rounded-full bg-accent/60 text-muted-foreground font-medium">
+          #{tag}
+        </span>
+      ))}
+    </div>
+  );
+}
 
-      {/* 상태 dropdown — 일반 3 단계. archived 페이지는 유지(데이터 손실 방지) 후 사용자가 명시 변경 시에만 전환. */}
-      <select
-        value={draft.status}
-        onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
-        className="h-7 px-2 rounded-md border border-[hsl(var(--hairline))] bg-card text-[11.5px] font-medium text-foreground focus:outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-      >
-        {/* legacy draft / archived 는 current 일 때만 fallback option 노출. */}
-        {draft.status === 'draft' && (
-          <option value="draft">{WIKI_STATUS_META.draft.label}</option>
-        )}
-        {VISIBLE_WIKI_STATUSES.map((k) => (
-          <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
-        ))}
-        {draft.status === 'archived' && (
-          <option value="archived">{WIKI_STATUS_META.archived.label}</option>
-        )}
-      </select>
+function WikiEditMetaPanel({
+  draft,
+  onChange,
+  allPages,
+}: {
+  draft: WikiPage;
+  onChange: (next: WikiPage) => void;
+  allPages: WikiPage[];
+}) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [findInfoOpen, setFindInfoOpen] = useState(false);
+  const [relationsOpen, setRelationsOpen] = useState(false);
+  const isMainOn = !!draft.isMain || draft.type === 'moc';
+  const typeValue = draft.type === 'moc' ? 'concept' : draft.type;
+  const relationCount =
+    draft.cites.length + draft.inherits.length + draft.similarTo.length + draft.parentMocs.length;
+  const tagAliasCount = draft.tags.length + draft.aliases.length;
+  const detailSummary = [
+    isMainOn ? '메인' : null,
+    WIKI_TYPE_META[typeValue].label,
+    WIKI_STATUS_META[draft.status].label,
+    draft.category?.trim() ? draft.category.trim() : null,
+  ].filter(Boolean).join(' · ');
+  const countSummary = [
+    tagAliasCount > 0 ? `별칭/태그 ${tagAliasCount}` : null,
+    relationCount > 0 ? `연결 ${relationCount}` : null,
+  ].filter(Boolean).join(' · ');
 
-      {/* 태그 칩 + 자동완성 */}
-      <WikiTagChipInput
-        tags={draft.tags}
-        onChange={(next) => onChange({ ...draft, tags: next })}
-        allPages={allPages ?? []}
-        currentId={draft.id}
+  return (
+    <div
+      data-wiki-edit-meta-panel="true"
+      className={cn(
+        'overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card/72 shadow-[0_8px_24px_-22px_hsl(30_15%_8%/0.45)]',
+        !settingsOpen && 'bg-card/55',
+      )}
+    >
+      <div className="flex min-h-10 items-center gap-2 px-2.5 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">문서 설정</span>
+            <span className="min-w-0 truncate text-[11.5px] font-medium text-foreground/80">
+              {detailSummary}
+            </span>
+          </div>
+          {countSummary && (
+            <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+              {countSummary}
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen((v) => !v)}
+          className={cn(
+            'inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11.5px] font-semibold transition-colors',
+            settingsOpen
+              ? 'bg-accent text-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+          aria-expanded={settingsOpen}
+          aria-label={settingsOpen ? '문서 설정 접기' : '문서 설정 열기'}
+          title={settingsOpen ? '문서 설정 접기' : '문서 설정 열기'}
+        >
+          {settingsOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+          <span>{settingsOpen ? '접기' : '설정'}</span>
+        </button>
+      </div>
+
+      {settingsOpen && (
+        <div className="border-t border-[hsl(var(--hairline))] bg-background/35 p-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onChange({
+                ...draft,
+                isMain: !isMainOn,
+                type: isMainOn && draft.type === 'moc' ? 'concept' : draft.type,
+              })}
+              title={isMainOn ? '메인 문서 해제' : '메인 문서로 지정'}
+              className={cn(
+                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11.5px] font-semibold transition-colors',
+                isMainOn
+                  ? 'border-violet-300 bg-violet-500/12 text-violet-700 dark:text-violet-300'
+                  : 'border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground hover:border-violet-200 hover:text-foreground',
+              )}
+            >
+              <span>메인</span>
+              {isMainOn && <Check className="h-3 w-3" />}
+            </button>
+
+            <label className="min-w-[132px] flex-1 sm:flex-none">
+              <span className="sr-only">유형</span>
+              <select
+                value={typeValue}
+                onChange={(e) => onChange({ ...draft, type: e.target.value as WikiPageType })}
+                className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12px] font-medium text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+                title="문서 유형"
+              >
+                {USER_FACING_TYPES.map((k) => (
+                  <option key={k} value={k}>{WIKI_TYPE_META[k].icon} {WIKI_TYPE_META[k].label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="min-w-[116px] flex-1 sm:flex-none">
+              <span className="sr-only">상태</span>
+              <select
+                value={draft.status}
+                onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
+                className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12px] font-medium text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+                title="문서 상태"
+              >
+                {draft.status === 'draft' && (
+                  <option value="draft">{WIKI_STATUS_META.draft.label}</option>
+                )}
+                {VISIBLE_WIKI_STATUSES.map((k) => (
+                  <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
+                ))}
+                {draft.status === 'archived' && (
+                  <option value="archived">{WIKI_STATUS_META.archived.label}</option>
+                )}
+              </select>
+            </label>
+
+            <label className="min-w-[150px] flex-[1.4]">
+              <span className="sr-only">분류</span>
+              <input
+                type="text"
+                value={draft.category ?? ''}
+                onChange={(e) => onChange({ ...draft, category: e.target.value.trim() ? e.target.value : undefined })}
+                className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/55 focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+                placeholder="분류"
+                title="문서 분류"
+              />
+            </label>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setFindInfoOpen((v) => !v)}
+              className={cn(
+                'inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] font-semibold transition-colors',
+                findInfoOpen
+                  ? 'border-primary/25 bg-primary/7 text-foreground'
+                  : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+              )}
+              aria-expanded={findInfoOpen}
+            >
+              {findInfoOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              별칭·태그
+              <span className="tabular-nums opacity-70">{tagAliasCount}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRelationsOpen((v) => !v)}
+              className={cn(
+                'inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] font-semibold transition-colors',
+                relationsOpen
+                  ? 'border-primary/25 bg-primary/7 text-foreground'
+                  : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+              )}
+              aria-expanded={relationsOpen}
+            >
+              {relationsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              문서 연결
+              <span className="tabular-nums opacity-70">{relationCount}</span>
+            </button>
+          </div>
+
+          {(findInfoOpen || relationsOpen) && (
+        <div className="mt-2 space-y-2 rounded-md border border-[hsl(var(--hairline))] bg-card p-2">
+          {findInfoOpen && (
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              <div className="space-y-1">
+                <div className="text-[10.5px] font-semibold text-muted-foreground">별칭</div>
+                <WikiTextChipInput
+                  values={draft.aliases}
+                  onChange={(next) => onChange({ ...draft, aliases: next })}
+                  placeholder="별칭 입력 후 Enter"
+                  prefix="="
+                  ariaLabel="별칭"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-[10.5px] font-semibold text-muted-foreground">태그</div>
+                <WikiTagChipInput
+                  tags={draft.tags}
+                  onChange={(next) => onChange({ ...draft, tags: next })}
+                  allPages={allPages}
+                  currentId={draft.id}
+                />
+              </div>
+            </div>
+          )}
+
+          {findInfoOpen && relationsOpen && <div className="h-px bg-[hsl(var(--hairline))]" />}
+
+          {relationsOpen && (
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              <WikiRelationPicker
+                label="인용"
+                pages={allPages}
+                currentId={draft.id}
+                values={draft.cites}
+                onChange={(next) => onChange({ ...draft, cites: next })}
+                preferredType="source"
+              />
+              <WikiRelationPicker
+                label="상위 개념"
+                pages={allPages}
+                currentId={draft.id}
+                values={draft.inherits}
+                onChange={(next) => onChange({ ...draft, inherits: next })}
+              />
+              <WikiRelationPicker
+                label="유사 문서"
+                pages={allPages}
+                currentId={draft.id}
+                values={draft.similarTo}
+                onChange={(next) => onChange({ ...draft, similarTo: next })}
+              />
+              <WikiRelationPicker
+                label="소속 메인"
+                pages={allPages}
+                currentId={draft.id}
+                values={draft.parentMocs}
+                onChange={(next) => onChange({ ...draft, parentMocs: next })}
+                onlyMain
+              />
+            </div>
+          )}
+        </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WikiTextChipInput({
+  values,
+  onChange,
+  placeholder,
+  prefix,
+  ariaLabel,
+}: {
+  values: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+  prefix?: string;
+  ariaLabel: string;
+}) {
+  const [input, setInput] = useState('');
+
+  const addValue = (raw: string) => {
+    const value = raw.trim().replace(/\s+/g, ' ');
+    if (!value) return;
+    if (values.some((existing) => existing.toLowerCase() === value.toLowerCase())) {
+      setInput('');
+      return;
+    }
+    onChange([...values, value]);
+    setInput('');
+  };
+
+  const removeValue = (idx: number) => {
+    const next = values.slice();
+    next.splice(idx, 1);
+    onChange(next);
+  };
+
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addValue(input);
+    } else if (e.key === 'Backspace' && !input && values.length > 0) {
+      e.preventDefault();
+      removeValue(values.length - 1);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 min-h-7 px-1.5 py-0.5 rounded-md border border-[hsl(var(--hairline))] bg-card focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-colors" aria-label={ariaLabel}>
+      {values.map((value, i) => (
+        <span
+          key={`${value}-${i}`}
+          className="inline-flex items-center gap-0.5 h-5 pl-1.5 pr-1 rounded bg-accent text-foreground text-[10.5px] font-medium"
+        >
+          {prefix && <span className="text-muted-foreground">{prefix}</span>}
+          {value}
+          <button
+            type="button"
+            onClick={() => removeValue(i)}
+            aria-label={`${value} 삭제`}
+            className="ml-0.5 inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors"
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={onKey}
+        onBlur={() => {
+          if (input.trim()) addValue(input);
+        }}
+        placeholder={values.length === 0 ? placeholder : ''}
+        className="flex-1 min-w-[90px] h-6 px-1 bg-transparent text-[11.5px] outline-none placeholder:text-muted-foreground/55"
       />
+    </div>
+  );
+}
+
+function WikiRelationPicker({
+  label,
+  pages,
+  currentId,
+  values,
+  onChange,
+  preferredType,
+  onlyMain = false,
+}: {
+  label: string;
+  pages: WikiPage[];
+  currentId: string;
+  values: string[];
+  onChange: (next: string[]) => void;
+  preferredType?: WikiPageType;
+  onlyMain?: boolean;
+}) {
+  const candidates = useMemo(() => {
+    const picked = new Set(values);
+    return pages
+      .filter((page) => page.id !== currentId && page.status !== 'archived' && !picked.has(page.id))
+      .filter((page) => !onlyMain || isMainDoc(page))
+      .sort((a, b) => {
+        const preferredA = preferredType && a.type === preferredType ? 0 : 1;
+        const preferredB = preferredType && b.type === preferredType ? 0 : 1;
+        return preferredA - preferredB || a.title.localeCompare(b.title);
+      });
+  }, [pages, currentId, values, preferredType, onlyMain]);
+
+  const byId = useMemo(() => new Map(pages.map((page) => [page.id, page])), [pages]);
+
+  const add = (id: string) => {
+    if (!id || values.includes(id)) return;
+    onChange([...values, id]);
+  };
+
+  const remove = (id: string) => {
+    onChange(values.filter((value) => value !== id));
+  };
+
+  return (
+    <div className="rounded-md border border-[hsl(var(--hairline))] bg-background/55 px-2 py-1.5">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[10.5px] font-semibold text-muted-foreground">{label}</span>
+        <select
+          value=""
+          onChange={(e) => {
+            add(e.target.value);
+            e.currentTarget.value = '';
+          }}
+          className="h-6 min-w-[118px] rounded-md border border-[hsl(var(--hairline))] bg-card px-1.5 text-[10.5px] text-foreground outline-none focus:border-primary/45 focus:ring-1 focus:ring-primary/15"
+          aria-label={`${label} 추가`}
+          disabled={candidates.length === 0}
+        >
+          <option value="">{candidates.length === 0 ? '추가 없음' : '추가'}</option>
+          {candidates.map((page) => (
+            <option key={page.id} value={page.id}>
+              {WIKI_TYPE_META[page.type].icon} {page.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      {values.length === 0 ? (
+        <p className="text-[10.5px] text-muted-foreground/65">아직 지정된 문서가 없습니다.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {values.map((id) => {
+            const page = byId.get(id);
+            return (
+              <span
+                key={id}
+                className="inline-flex max-w-full items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-[10.5px] text-foreground"
+              >
+                <span className="truncate">{page ? `${WIKI_TYPE_META[page.type].icon} ${page.title}` : id}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(id)}
+                  className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                  aria-label={`${page?.title ?? id} 관계 제거`}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -645,6 +1322,7 @@ function WikiTagChipInput({
 /* ── 다운로드 양식 선택 dropdown — Markdown / HTML / PDF ── */
 function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void }) {
   const [open, setOpen] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -666,51 +1344,7 @@ function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void
   }
 
   function exportHtml() {
-    const styles = `<style>
-      body { max-width: 720px; margin: 2.5rem auto; padding: 0 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", system-ui, sans-serif; line-height: 1.78; color: #111; }
-      h1, h2, h3 { font-family: "Newsreader", "Noto Serif KR", Georgia, serif; }
-      h1 { font-size: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.4rem; }
-      h2 { font-size: 1.4rem; margin-top: 2rem; }
-      h3 { font-size: 1.15rem; }
-      p, li { font-size: 1rem; }
-      a { color: #2563eb; text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      blockquote { border-left: 3px solid #d1d5db; margin: 1rem 0; padding: 0.4rem 0.8rem; color: #4b5563; }
-      code { background: #f3f4f6; padding: 0 0.3rem; border-radius: 3px; font-size: 0.92em; }
-      pre { background: #f9fafb; padding: 0.8rem; border-radius: 6px; overflow-x: auto; }
-      table { border-collapse: collapse; margin: 1rem 0; }
-      th, td { border: 1px solid #d1d5db; padding: 0.4rem 0.7rem; text-align: left; }
-      th { background: #f3f4f6; }
-      hr { border: 0; border-top: 1px solid #d1d5db; margin: 1.5rem 0; }
-      .meta { color: #6b7280; font-size: 0.85rem; margin-bottom: 1.5rem; padding-bottom: 0.8rem; border-bottom: 1px solid #e5e7eb; }
-    </style>`;
-    // 본문은 markdown raw — 사용자가 브라우저에서 보면 그대로. 마크다운 렌더는 별도로.
-    // 간단히 line-by-line 변환 (헤딩/리스트/문단)
-    const lines = page.body.split('\n');
-    const htmlLines: string[] = [];
-    let inList = false;
-    for (const ln of lines) {
-      if (/^#{1,3}\s/.test(ln)) {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        const m = /^(#{1,3})\s+(.*)$/.exec(ln)!;
-        htmlLines.push(`<h${m[1].length}>${escapeHtml(m[2])}</h${m[1].length}>`);
-      } else if (/^[-*]\s/.test(ln)) {
-        if (!inList) { htmlLines.push('<ul>'); inList = true; }
-        htmlLines.push(`<li>${escapeHtml(ln.replace(/^[-*]\s+/, ''))}</li>`);
-      } else if (ln.trim() === '') {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        htmlLines.push('');
-      } else {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        htmlLines.push(`<p>${escapeHtml(ln)}</p>`);
-      }
-    }
-    if (inList) htmlLines.push('</ul>');
-    const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(page.title)}</title>${styles}</head><body>
-      <div class="meta">${page.type} · ${page.status} · ${new Date(page.updatedAt).toISOString().slice(0,10)}${page.tags.length ? ' · ' + page.tags.map((t) => `#${t}`).join(' ') : ''}</div>
-      <h1>${escapeHtml(page.title)}</h1>
-      ${htmlLines.join('\n')}
-    </body></html>`;
+    const html = buildWikiExportHtml(page);
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -725,45 +1359,28 @@ function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void
     // 별도 jspdf 의존성 없이 가장 안정
     const win = window.open('', '_blank', 'width=900,height=1100');
     if (!win) return;
-    const lines = page.body.split('\n');
-    const htmlLines: string[] = [];
-    let inList = false;
-    for (const ln of lines) {
-      if (/^#{1,3}\s/.test(ln)) {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        const m = /^(#{1,3})\s+(.*)$/.exec(ln)!;
-        htmlLines.push(`<h${m[1].length}>${escapeHtml(m[2])}</h${m[1].length}>`);
-      } else if (/^[-*]\s/.test(ln)) {
-        if (!inList) { htmlLines.push('<ul>'); inList = true; }
-        htmlLines.push(`<li>${escapeHtml(ln.replace(/^[-*]\s+/, ''))}</li>`);
-      } else if (ln.trim() === '') {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        htmlLines.push('');
-      } else {
-        if (inList) { htmlLines.push('</ul>'); inList = false; }
-        htmlLines.push(`<p>${escapeHtml(ln)}</p>`);
-      }
-    }
-    if (inList) htmlLines.push('</ul>');
-    win.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(page.title)}</title>
-      <style>
-        @page { size: A4; margin: 22mm; }
-        body { font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif; line-height: 1.7; color: #111; }
-        h1, h2, h3 { font-family: "Noto Serif KR", Georgia, serif; }
-        h1 { font-size: 1.8rem; border-bottom: 1px solid #aaa; padding-bottom: 0.3rem; }
-        h2 { font-size: 1.3rem; margin-top: 1.5rem; }
-        h3 { font-size: 1.1rem; }
-        blockquote { border-left: 3px solid #999; margin: 0.8rem 0; padding: 0.3rem 0.8rem; color: #555; }
-        code { background: #f3f3f3; padding: 0 0.3rem; border-radius: 3px; }
-        .meta { color: #666; font-size: 0.85rem; margin-bottom: 1rem; }
-      </style>
-    </head><body>
-      <div class="meta">${page.type} · ${page.status} · ${new Date(page.updatedAt).toISOString().slice(0,10)}</div>
-      <h1>${escapeHtml(page.title)}</h1>
-      ${htmlLines.join('\n')}
-      <script>setTimeout(() => window.print(), 200);</script>
-    </body></html>`);
+    win.document.write(buildWikiExportHtml(page, { print: true }));
     win.document.close();
+  }
+
+  async function copyMarkdown() {
+    const markdown = wikiPageToMarkdown(page);
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = markdown;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setCopiedMarkdown(true);
+    window.setTimeout(() => setCopiedMarkdown(false), 1400);
   }
 
   return (
@@ -778,10 +1395,11 @@ function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void
         <ChevronDown className="w-2.5 h-2.5" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 wiki-z-popover w-[180px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+        <div className="absolute right-0 top-full mt-1 wiki-z-popover w-[198px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
           <p className="px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             다운로드 양식
           </p>
+          <DownloadOption icon={copiedMarkdown ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />} label={copiedMarkdown ? 'Markdown 복사됨' : 'Markdown 복사'} onClick={() => { void copyMarkdown(); }} hint="클립보드에 복사" />
           <DownloadOption icon={<FileText className="w-3.5 h-3.5" />} label="Markdown (.md)" onClick={() => { exportMd(); setOpen(false); }} hint="원본·옵시디언 호환" />
           <DownloadOption icon={<FileCode className="w-3.5 h-3.5" />} label="HTML (.html)" onClick={() => { exportHtml(); setOpen(false); }} hint="브라우저로 보기" />
           <DownloadOption icon={<FileType className="w-3.5 h-3.5" />} label="PDF (인쇄)" onClick={() => { exportPdf(); setOpen(false); }} hint="인쇄 → PDF 저장" />
@@ -807,10 +1425,6 @@ function DownloadOption({
       </span>
     </button>
   );
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
 }
 
 /* ── 부모 메인 줄 — 나무위키 톤: "상위 문서: 페이지A, 페이지B" ── */

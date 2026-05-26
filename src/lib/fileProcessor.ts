@@ -279,7 +279,8 @@ export async function processFile(file: File): Promise<AttachedFile> {
       const { text, pageCount, scanPages } = await extractPdfMeta(file, MAX_EXTRACTED_TEXT_LENGTH);
       result.pageCount = pageCount;
       result.scanPages = scanPages;
-      if (text.trim().length < 20) {
+      const nativeBody = text.replace(/\[p\.\d+\]/g, '').replace(/\s/g, '');
+      if (nativeBody.length < 20 || (pageCount > 0 && scanPages.length >= pageCount)) {
         // Phase 1: 스캔본도 거부하지 않음. OCR 자동 트리거 (ocrEnabled = true).
         result.extractedText = '[스캔본 PDF — 원본에서 OCR 로 텍스트를 추출하는 중입니다. 잠시 후 자동으로 채워집니다.]';
       } else {

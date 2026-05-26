@@ -1,6 +1,7 @@
 import type { Expert } from '@/types/expert';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
+import { StudyExpertAvatar } from './StudyExpertAvatar';
 
 interface Props {
   content: string;
@@ -57,7 +58,7 @@ function SpeakerBadge({ expert, side }: { expert: Expert; side: 'A' | 'B' }) {
   const text = side === 'A' ? 'text-indigo-700' : 'text-rose-700';
   return (
     <div className={cn('flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1', ring)}>
-      <span className="text-sm">{expert.icon}</span>
+      <StudyExpertAvatar expert={expert} size="sm" />
       <span className={cn('text-[11px] font-bold', text)}>{expert.nameKo || expert.name}</span>
     </div>
   );
@@ -97,9 +98,7 @@ function DebateTurnBubble({
 
 function Avatar({ expert }: { expert: Expert }) {
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 text-lg shrink-0">
-      {expert.icon}
-    </div>
+    <StudyExpertAvatar expert={expert} />
   );
 }
 

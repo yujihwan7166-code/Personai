@@ -1,165 +1,177 @@
-/**
- * 사이드바 미니 월 캘린더 — 빠른 날짜 점프.
- *
- * - 클릭 = 그 날로 anchor 점프
- * - 셀 아래 도트 = 그 날 활성 항목 카운트(시간 잡힌 + plannedFor)
- * - ◀ ▶ = 표시 월만 변경 (anchor 는 유지). anchor 가 다른 월로 바뀌면 자동 동기화.
- * - 오늘 셀 = 외곽선 강조
- * - selected (=anchor) 셀 = filled 배경
- */
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { taskStore } from '@/services/planner/taskStore';
-import { eventStore } from '@/services/planner/eventStore';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { PLANNER_EVENT_CHANGED, PLANNER_TASK_CHANGED } from '@/types/planner';
 
 interface PlannerMiniMonthProps {
   anchorIso: string;
   onSelectDay: (dayIso: string) => void;
 }
 
-const localDateKey = (d: Date) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const MONTH_LABELS = Array.from({ length: 12 }, (_, index) => `${index + 1}월`);
+
+const localDateKey = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthProps) => {
   const anchor = useMemo(() => new Date(anchorIso), [anchorIso]);
   const anchorYM = `${anchor.getFullYear()}-${anchor.getMonth()}`;
   const [viewMonth, setViewMonth] = useState(() => new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
-  // anchor 의 year+month 가 바뀌면 표시 월도 따라감 — 외부 점프 시 동기화.
-  // deps 는 anchorYM (string) 만 — Date 객체 reference 변동으로 인한 무한 루프 방지.
   useEffect(() => {
-    const [y, m] = anchorYM.split('-').map(Number);
-    setViewMonth(new Date(y, m, 1));
-     
+    const [year, month] = anchorYM.split('-').map(Number);
+    setViewMonth(new Date(year, month, 1));
   }, [anchorYM]);
 
-  // 그 달 셀 계산 — 일요일 시작 7x6 grid.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPickerOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [pickerOpen]);
+
   const cells = useMemo(() => {
     const firstOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
-    const startWeekday = firstOfMonth.getDay(); // 0=일
     const gridStart = new Date(firstOfMonth);
-    gridStart.setDate(firstOfMonth.getDate() - startWeekday);
-    return Array.from({ length: 42 }, (_, i) => {
-      const d = new Date(gridStart);
-      d.setDate(gridStart.getDate() + i);
-      return d;
+    gridStart.setDate(firstOfMonth.getDate() - firstOfMonth.getDay());
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + index);
+      return date;
     });
   }, [viewMonth]);
 
-  // 도트 카운트 — task plannedFor + startAt + event startAt 기준 dayKey 별 합산.
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const refresh = () => setTick((t) => t + 1);
-    window.addEventListener(PLANNER_TASK_CHANGED, refresh);
-    window.addEventListener(PLANNER_EVENT_CHANGED, refresh);
-    return () => {
-      window.removeEventListener(PLANNER_TASK_CHANGED, refresh);
-      window.removeEventListener(PLANNER_EVENT_CHANGED, refresh);
-    };
-  }, []);
-
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    const bump = (key: string) => map.set(key, (map.get(key) ?? 0) + 1);
-    for (const t of taskStore.list()) {
-      if (t.done || t.canceled || t.someday) continue;
-      if (t.startAt) bump(localDateKey(new Date(t.startAt)));
-      else if (t.plannedFor) bump(t.plannedFor);
-    }
-    for (const e of eventStore.list()) {
-      if (e.startAt) bump(localDateKey(new Date(e.startAt)));
-    }
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick]);
-
   const todayKey = localDateKey(new Date());
   const anchorKey = localDateKey(anchor);
-
+  const viewYear = viewMonth.getFullYear();
+  const viewMonthIndex = viewMonth.getMonth();
   const monthLabel = viewMonth.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
 
+  const setYear = (year: number) => {
+    setViewMonth(new Date(year, viewMonthIndex, 1));
+  };
+
+  const setMonth = (monthIndex: number) => {
+    setViewMonth(new Date(viewYear, monthIndex, 1));
+    setPickerOpen(false);
+  };
+
   return (
-    <section className="px-1">
-      {/* 월 네비 */}
-      <div className="flex items-center justify-between px-1 mb-1.5">
+    <section className="relative px-1">
+      <div ref={pickerRef} className="relative mb-1.5 flex items-center justify-center px-1">
         <button
           type="button"
-          onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
-          aria-label="이전 월"
-          className="flex h-6 w-6 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
+          onClick={() => setPickerOpen((open) => !open)}
+          aria-haspopup="dialog"
+          aria-expanded={pickerOpen}
+          aria-label="달력 년월 선택"
+          className="h-7 rounded-md px-3 text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-violet-500/10"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          {monthLabel}
         </button>
-        <span className="text-[12.5px] font-semibold text-foreground tabular-nums">{monthLabel}</span>
-        <button
-          type="button"
-          onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
-          aria-label="다음 월"
-          className="flex h-6 w-6 items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+
+        {pickerOpen && (
+          <div
+            role="dialog"
+            aria-label="년월 선택"
+            className="absolute left-1/2 top-8 z-20 w-[210px] -translate-x-1/2 rounded-xl border border-violet-500/15 bg-card p-2.5 shadow-[0_10px_30px_hsl(30_15%_8%/0.14)]"
+          >
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setYear(viewYear - 1)}
+                aria-label="이전 년도"
+                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-violet-500/10 hover:text-foreground"
+              >
+                -
+              </button>
+              <div className="text-[13px] font-semibold tabular-nums text-foreground">{viewYear}년</div>
+              <button
+                type="button"
+                onClick={() => setYear(viewYear + 1)}
+                aria-label="다음 년도"
+                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-violet-500/10 hover:text-foreground"
+              >
+                +
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-1">
+              {MONTH_LABELS.map((label, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setMonth(index)}
+                  className={cn(
+                    'h-8 rounded-md text-[12px] font-medium tabular-nums transition-colors',
+                    index === viewMonthIndex
+                      ? 'bg-violet-500 text-white'
+                      : 'text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 gap-y-0.5 px-0.5 mb-0.5">
-        {['일', '월', '화', '수', '목', '금', '토'].map((w, i) => (
+      <div className="mb-0.5 grid grid-cols-7 gap-y-0.5 px-0.5">
+        {WEEKDAY_LABELS.map((label, index) => (
           <span
-            key={w}
+            key={label}
             className={cn(
-              'text-[10px] font-mono text-center text-foreground/55',
-              i === 0 && 'text-rose-500/70',
-              i === 6 && 'text-blue-500/70',
+              'text-center font-mono text-[10px] text-foreground/55',
+              index === 0 && 'text-rose-500/70',
+              index === 6 && 'text-blue-500/70',
             )}
           >
-            {w}
+            {label}
           </span>
         ))}
       </div>
 
-      {/* 셀 grid */}
       <div className="grid grid-cols-7 gap-y-0.5 px-0.5">
-        {cells.map((d, i) => {
-          const key = localDateKey(d);
-          const inMonth = d.getMonth() === viewMonth.getMonth();
+        {cells.map((date, index) => {
+          const key = localDateKey(date);
+          const inMonth = date.getMonth() === viewMonthIndex;
           const isToday = key === todayKey;
           const isSelected = key === anchorKey;
-          const count = counts.get(key) ?? 0;
-          const dow = d.getDay();
+          const dayOfWeek = date.getDay();
           return (
             <button
-              key={`${key}-${i}`}
+              key={`${key}-${index}`}
               type="button"
-              onClick={() => onSelectDay(d.toISOString())}
-              aria-label={`${d.toLocaleDateString('ko-KR')} 선택`}
+              onClick={() => onSelectDay(date.toISOString())}
+              aria-label={`${date.toLocaleDateString('ko-KR')} 선택`}
               className={cn(
-                'relative h-7 rounded text-[11.5px] tabular-nums font-medium transition-colors',
-                'flex items-center justify-center',
+                'relative flex h-7 items-center justify-center rounded text-[11.5px] font-medium tabular-nums transition-colors',
                 !inMonth && 'text-foreground/25',
                 inMonth && !isSelected && !isToday && 'text-foreground/85 hover:bg-accent',
-                inMonth && !isSelected && dow === 0 && 'text-rose-500/80',
-                inMonth && !isSelected && dow === 6 && 'text-blue-500/80',
-                isToday && !isSelected && 'ring-1 ring-foreground/40 text-foreground',
-                isSelected && 'bg-foreground text-background hover:bg-foreground/90',
+                inMonth && !isSelected && dayOfWeek === 0 && 'text-rose-500/80',
+                inMonth && !isSelected && dayOfWeek === 6 && 'text-blue-500/80',
+                isToday && !isSelected && 'text-violet-700 ring-1 ring-violet-400/70',
+                isSelected && 'bg-violet-500 text-white hover:bg-violet-600',
               )}
             >
-              <span className="leading-none">{d.getDate()}</span>
-              {count > 0 && (
-                <span
-                  className={cn(
-                    'absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full',
-                    isSelected ? 'bg-background/80' : 'bg-foreground/55',
-                  )}
-                  aria-label={`${count}개 항목`}
-                />
-              )}
+              <span className="leading-none">{date.getDate()}</span>
             </button>
           );
         })}

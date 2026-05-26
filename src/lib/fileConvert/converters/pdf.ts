@@ -1,6 +1,8 @@
 // PDF 관련 변환: 병합·분할·이미지·텍스트 추출·이미지→PDF
 // 라이브러리: pdf-lib (병합/분할/생성), pdfjs-dist (읽기/렌더링), jspdf (이미지→PDF)
 
+import { shouldInspectPdfPageImagesForOcr, shouldOcrExtractedPdfPageText } from '../../studyOcrPages';
+
 let pdfLibPromise: Promise<typeof import('pdf-lib')> | null = null;
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
 let jspdfPromise: Promise<typeof import('jspdf')> | null = null;
@@ -35,6 +37,177 @@ function yieldToMain(): Promise<void> {
   const sch = (globalThis as unknown as { scheduler?: SchedulerLike }).scheduler;
   if (sch?.yield) return sch.yield();
   return new Promise((r) => setTimeout(r, 0));
+}
+
+type PdfTextItemLike = {
+  str?: string;
+  transform?: number[];
+  width?: number;
+  height?: number;
+};
+
+type PdfTextContentLike = {
+  items?: unknown[];
+};
+
+type PlacedPdfTextItem = {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+};
+
+type PdfTextLine = {
+  text: string;
+  y: number;
+  minX: number;
+  maxX: number;
+};
+
+export function extractPdfTextContentForStudy(content: PdfTextContentLike): string {
+  const rawItems = Array.isArray(content.items) ? content.items : [];
+  const items = rawItems
+    .map((item): PdfTextItemLike | null => {
+      if (!item || typeof item !== 'object') return null;
+      const value = item as PdfTextItemLike;
+      if (typeof value.str !== 'string' || !value.str.trim()) return null;
+      const transform = Array.isArray(value.transform) ? value.transform : [];
+      return {
+        str: value.str,
+        transform,
+        width: typeof value.width === 'number' ? value.width : undefined,
+        height: typeof value.height === 'number' ? value.height : undefined,
+      };
+    })
+    .filter((item): item is PdfTextItemLike => item !== null);
+
+  if (items.length === 0) return '';
+
+  const heights = items
+    .map((item) => Math.abs(item.height ?? item.transform?.[3] ?? item.transform?.[0] ?? 0))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+  const medianHeight = heights.length > 0 ? heights[Math.floor(heights.length / 2)] : 10;
+  const lineTolerance = Math.max(2, medianHeight * 0.58);
+  const gapTolerance = Math.max(1.5, medianHeight * 0.22);
+
+  const placed: PlacedPdfTextItem[] = items
+    .map((item) => ({
+      text: item.str ?? '',
+      x: Number(item.transform?.[4] ?? 0),
+      y: Number(item.transform?.[5] ?? 0),
+      width: Number(item.width ?? 0),
+    }))
+    .filter((item) => Number.isFinite(item.x) && Number.isFinite(item.y))
+    .sort((a, b) => (Math.abs(b.y - a.y) > lineTolerance ? b.y - a.y : a.x - b.x));
+
+  const lines: Array<{ y: number; items: PlacedPdfTextItem[] }> = [];
+  for (const item of placed) {
+    const line = lines.find((candidate) => Math.abs(candidate.y - item.y) <= lineTolerance);
+    if (line) {
+      line.items.push(item);
+      line.y = (line.y * (line.items.length - 1) + item.y) / line.items.length;
+    } else {
+      lines.push({ y: item.y, items: [item] });
+    }
+  }
+
+  const textLines = lines
+    .flatMap((line) => buildPdfTextLinesFromRow(line.items, gapTolerance, medianHeight));
+
+  return orderPdfTextLinesForReading(textLines, medianHeight)
+    .map((line) => line.text)
+    .filter(Boolean)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildPdfTextLinesFromRow(
+  items: PlacedPdfTextItem[],
+  gapTolerance: number,
+  medianHeight: number,
+): PdfTextLine[] {
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+  const splitGap = Math.max(48, medianHeight * 4.8);
+  const segments: PlacedPdfTextItem[][] = [];
+  let current: PlacedPdfTextItem[] = [];
+  let prevRight: number | null = null;
+
+  for (const item of sorted) {
+    const gap = prevRight === null ? 0 : item.x - prevRight;
+    if (current.length > 0 && gap > splitGap) {
+      segments.push(current);
+      current = [];
+    }
+    current.push(item);
+    prevRight = item.x + Math.max(0, item.width);
+  }
+  if (current.length > 0) segments.push(current);
+
+  return segments
+    .map((segment) => buildPdfTextLineSegment(segment, gapTolerance))
+    .filter((line): line is PdfTextLine => line !== null);
+}
+
+function buildPdfTextLineSegment(items: PlacedPdfTextItem[], gapTolerance: number): PdfTextLine | null {
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+  let out = '';
+  let prevRight: number | null = null;
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+
+  for (const item of sorted) {
+    const text = item.text.replace(/\s+/g, ' ');
+    if (!text.trim()) continue;
+    const gap = prevRight === null ? 0 : item.x - prevRight;
+    if (out && gap > gapTolerance && !/\s$/.test(out) && !/^\s/.test(text)) out += ' ';
+    out += text;
+    minX = Math.min(minX, item.x);
+    maxX = Math.max(maxX, item.x + Math.max(0, item.width));
+    prevRight = item.x + Math.max(0, item.width);
+  }
+
+  const text = out.trim();
+  if (!text) return null;
+  const y = sorted.reduce((sum, item) => sum + item.y, 0) / sorted.length;
+  return { text, y, minX, maxX };
+}
+
+function orderPdfTextLinesForReading(lines: PdfTextLine[], medianHeight: number): PdfTextLine[] {
+  const topDown = [...lines].sort((a, b) => b.y - a.y || a.minX - b.minX);
+  if (lines.length < 8) return topDown;
+
+  const pageMinX = Math.min(...lines.map((line) => line.minX));
+  const pageMaxX = Math.max(...lines.map((line) => line.maxX));
+  const pageWidth = pageMaxX - pageMinX;
+  if (!Number.isFinite(pageWidth) || pageWidth < medianHeight * 24) return topDown;
+
+  const separator = pageMinX + pageWidth / 2;
+  const slack = Math.max(8, medianHeight * 0.8);
+  const left = lines.filter((line) => line.maxX <= separator - slack);
+  const right = lines.filter((line) => line.minX >= separator + slack);
+  const spanning = lines.filter((line) => !left.includes(line) && !right.includes(line));
+
+  if (left.length < 3 || right.length < 3) return topDown;
+  const columnGap = Math.min(...right.map((line) => line.minX)) - Math.max(...left.map((line) => line.maxX));
+  if (columnGap < Math.max(18, medianHeight * 2.2)) return topDown;
+
+  const columnTop = Math.max(...left.map((line) => line.y), ...right.map((line) => line.y));
+  const columnBottom = Math.min(...left.map((line) => line.y), ...right.map((line) => line.y));
+  const topSpanning = spanning.filter((line) => line.y > columnTop + medianHeight * 0.9);
+  const bottomSpanning = spanning.filter((line) => line.y < columnBottom - medianHeight * 0.9);
+  const middleSpanning = spanning.filter((line) => !topSpanning.includes(line) && !bottomSpanning.includes(line));
+
+  if (middleSpanning.length > Math.max(2, Math.floor(lines.length * 0.18))) return topDown;
+
+  const byY = (a: PdfTextLine, b: PdfTextLine) => b.y - a.y || a.minX - b.minX;
+  return [
+    ...topSpanning.sort(byY),
+    ...left.sort(byY),
+    ...right.sort(byY),
+    ...bottomSpanning.sort(byY),
+  ];
 }
 
 function baseName(name: string): string {
@@ -123,7 +296,7 @@ export async function renderPdfThumbnail(
 export async function renderPdfPagesToImages(
   file: File | Blob,
   pages: number[],
-  opts: { maxWidth?: number; quality?: number; onProgress?: (done: number, total: number) => void } = {},
+  opts: { maxWidth?: number; maxScale?: number; quality?: number; onProgress?: (done: number, total: number) => void } = {},
 ): Promise<Array<{ page: number; dataUrl: string }>> {
   if (pages.length === 0) return [];
   const pdfjs = await loadPdfJs();
@@ -131,13 +304,14 @@ export async function renderPdfPagesToImages(
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const out: Array<{ page: number; dataUrl: string }> = [];
   const maxW = opts.maxWidth ?? 1024;
+  const maxScale = opts.maxScale ?? 2;
   const quality = opts.quality ?? 0.72;
   let done = 0;
   for (const p of pages) {
     if (p < 1 || p > doc.numPages) { done++; opts.onProgress?.(done, pages.length); continue; }
     const page = await doc.getPage(p);
     const baseViewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(2, maxW / baseViewport.width);
+    const scale = Math.min(maxScale, maxW / baseViewport.width);
     const viewport = page.getViewport({ scale });
     const canvas = document.createElement('canvas');
     canvas.width = Math.floor(viewport.width);
@@ -221,7 +395,7 @@ export async function extractPdfText(file: File, maxLen = 15000): Promise<string
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ');
+    const text = extractPdfTextContentForStudy(content);
     parts.push(text);
     if (parts.join('\n\n').length >= maxLen) break;
   }
@@ -240,18 +414,55 @@ export async function extractPdfMeta(
   const scanPages: number[] = [];
   // 전체 페이지는 순회해야 scanPages 집계 정확. 다만 parts 는 maxLen 도달 시 중단.
   let capped = false;
+  let partsLength = 0;
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ').trim();
+    const text = extractPdfTextContentForStudy(content);
+    const nativeItemCount = content.items.length;
+    const paintedImageCount = shouldInspectPdfPageImagesForOcr(text, nativeItemCount)
+      ? await countPaintedImages(page, pdfjs)
+      : 0;
     // 페이지당 텍스트가 거의 없으면 스캔본 후보
-    if (text.length < 20) scanPages.push(i);
-    if (!capped) {
-      parts.push(`[p.${i}] ${text}`);
-      if (parts.join('\n\n').length >= maxLen) capped = true;
+    if (shouldOcrExtractedPdfPageText(text, {
+      nativeItemCount,
+      hasPaintedImage: paintedImageCount > 0,
+      paintedImageCount,
+    })) {
+      scanPages.push(i);
     }
+    if (!capped) {
+      const pageText = `[p.${i}]\n${text}`;
+      parts.push(pageText);
+      partsLength += pageText.length + 2;
+      if (partsLength >= maxLen) capped = true;
+    }
+    if (i % 4 === 0) await yieldToMain();
   }
   return { text: parts.join('\n\n').slice(0, maxLen), pageCount: doc.numPages, scanPages };
+}
+
+async function countPaintedImages(
+  page: { getOperatorList?: () => Promise<{ fnArray?: number[] }> },
+  pdfjs: { OPS?: Record<string, number> },
+): Promise<number> {
+  if (!page.getOperatorList || !pdfjs.OPS) return 0;
+  try {
+    const imageOps = new Set([
+      pdfjs.OPS.paintImageXObject,
+      pdfjs.OPS.paintImageXObjectRepeat,
+      pdfjs.OPS.paintJpegXObject,
+      pdfjs.OPS.paintInlineImageXObject,
+      pdfjs.OPS.paintInlineImageXObjectGroup,
+      pdfjs.OPS.paintImageMaskXObject,
+      pdfjs.OPS.paintImageMaskXObjectGroup,
+    ].filter((value): value is number => typeof value === 'number'));
+    if (imageOps.size === 0) return 0;
+    const opList = await page.getOperatorList();
+    return (opList.fnArray ?? []).filter((fn) => imageOps.has(fn)).length;
+  } catch {
+    return 0;
+  }
 }
 
 // ───── PDF → 텍스트 (pdfjs-dist) ─────
@@ -267,7 +478,7 @@ export async function pdfToText(
     onProgress?.(i, doc.numPages);
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items.map((it) => ('str' in it ? it.str : '')).join(' ');
+    const text = extractPdfTextContentForStudy(content);
     parts.push(text);
     if (i % 4 === 0) await yieldToMain();
   }

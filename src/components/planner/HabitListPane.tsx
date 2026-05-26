@@ -251,7 +251,7 @@ export const HabitListPane = ({
               key={d.toISOString()}
               className={cn(
                 'self-stretch flex items-center justify-center',
-                isToday && 'bg-amber-400/[0.09]',
+                isToday && 'bg-amber-300/[0.22]',
               )}
             >
               <HabitDayProgress
@@ -267,7 +267,7 @@ export const HabitListPane = ({
         })}
 
         {/* col 9: "최근 30일" — 카드 행의 heat strip 위 */}
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 text-center whitespace-nowrap">최근 30일</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/60 text-center whitespace-nowrap">최근 30일</div>
 
         {/* col 10: ⋯ 메뉴 자리 — 카드 행의 메뉴 컬럼과 정렬 */}
         <div />
@@ -396,7 +396,7 @@ export const HabitListPane = ({
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
                         'self-stretch flex items-center justify-center -my-3 py-3',
-                        isToday && 'bg-amber-400/[0.09]',
+                        isToday && 'bg-amber-300/[0.22]',
                       )}
                     >
                       <HabitDayDot

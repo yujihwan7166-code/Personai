@@ -7,7 +7,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ExternalLink, Search, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { loadAllPages } from '@/lib/wikiStore';
 import type { WikiPage } from '@/types/wiki';
 import { cn } from '@/lib/utils';
@@ -65,7 +64,6 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
   }, [open]);
 
   // Esc 2 단계 처리: detail view 면 목록으로, 목록 view 면 drawer 닫기.
-  // Sheet 의 기본 onOpenChange(false) 로 한 번에 닫히던 흐름을 분리.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -74,13 +72,13 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
         e.preventDefault();
         e.stopPropagation();
         setSelectedId(null);
+      } else {
+        onOpenChange(false);
       }
-      // selectedId 없으면 Radix Sheet 기본 동작에 위임 — close.
     };
-    // capture 단계로 등록 — Radix 기본 핸들러보다 먼저 잡힘.
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [open, selectedId]);
+  }, [open, selectedId, onOpenChange]);
 
   const selected = useMemo(
     () => pages.find((p) => p.id === selectedId) ?? null,
@@ -100,10 +98,15 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
       .slice(0, 30);
   }, [pages, query]);
 
+  if (!open) return null;
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md w-[460px] p-0 flex flex-col">
-        <SheetTitle className="sr-only">위키</SheetTitle>
+    <aside
+      role="dialog"
+      aria-modal="false"
+      aria-label="위키"
+      className="fixed inset-y-0 right-0 z-[70] flex w-[460px] max-w-[calc(100vw-56px)] flex-col border-l border-foreground/15 bg-background shadow-2xl"
+    >
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-foreground/20">
           {selected ? (
             <button
@@ -243,7 +246,6 @@ export const WikiDrawer = ({ open, onOpenChange }: WikiDrawerProps) => {
         </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+    </aside>
   );
 };

@@ -27,16 +27,16 @@ export const PlannerSidebar = ({
   onOpenHabits,
 }: PlannerSidebarProps) => {
   return (
-    <div className="h-full flex flex-col gap-3">
+    <div className="h-full flex flex-col gap-2.5">
       {/* 미니 월 캘린더 */}
       <PlannerMiniMonth anchorIso={anchorIso} onSelectDay={onSelectDay} />
 
-      <div className="border-t hairline pt-3" />
+      <div className="border-t border-foreground/10 pt-2.5" />
 
       {/* D-day — 시험·발표·생일·마감 등 카운트다운 */}
       <PlannerDday />
 
-      <div className="border-t hairline pt-3" />
+      <div className="border-t border-foreground/10 pt-2.5" />
 
       {/* 오늘의 습관 — 인라인 체크 + 풀뷰 점프 */}
       <HabitTodayWidget onOpenAll={onOpenHabits} />

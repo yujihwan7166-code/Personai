@@ -4,6 +4,7 @@ import { DEFAULT_EXPERTS, EXPERT_CATEGORY_LABELS } from '@/types/expert';
 import type { Expert, ExpertCategory } from '@/types/expert';
 import { StudyBtn } from './ui/primitives';
 import { cn } from '@/lib/utils';
+import { StudyExpertAvatar } from './StudyExpertAvatar';
 
 interface Props {
   selectedAId?: string;
@@ -140,7 +141,7 @@ export function ExpertPickerModal({ selectedAId, selectedBId, onConfirm, onClose
                       {isA ? 'A' : 'B'}
                     </span>
                   )}
-                  <div className="text-2xl mb-1.5">{e.icon}</div>
+                  <StudyExpertAvatar expert={e} size="lg" className="mb-1.5" />
                   <p className="text-[11.5px] font-bold text-slate-800 truncate">
                     {e.nameKo || e.name}
                   </p>
@@ -196,7 +197,7 @@ function SelectedSlot({
     <div className={cn('rounded-xl border-2 p-3 flex items-center gap-3', expert ? ring : 'border-dashed border-slate-300 bg-slate-50/50')}>
       {expert ? (
         <>
-          <div className="text-2xl">{expert.icon}</div>
+          <StudyExpertAvatar expert={expert} />
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wide text-slate-500">{label}</p>
             <p className="text-[12.5px] font-bold text-slate-800 truncate">{expert.nameKo || expert.name}</p>

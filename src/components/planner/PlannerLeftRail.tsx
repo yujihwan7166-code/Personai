@@ -14,13 +14,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock, CalendarDays, FileText, Grid2x2, Home, LayoutGrid, Network, Repeat,
-  Search, Settings, Sparkles,
+  Search, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MemoDrawer } from './MemoDrawer';
 import { WikiDrawer } from './WikiDrawer';
+import { RAIL_EVENT } from './plannerRailEvents';
 
 type DrawerKind = 'memos' | 'wiki';
 
@@ -31,21 +32,10 @@ type RailItem =
   | { kind: 'soon'; label: string; Icon: typeof FileText };
 
 /** Planner 가 listen 하는 커스텀 이벤트 이름들 — 결합도 낮추기. */
-export const RAIL_EVENT = {
-  openPalette: 'planner:open-palette',
-  openMatrix: 'planner:open-matrix',
-  openAgenda: 'planner:open-agenda',
-  openHabits: 'planner:open-habits',
-  goToday: 'planner:go-today',
-  openModePalette: 'planner:open-mode-palette',
-  toggleAI: 'planner:toggle-ai',
-} as const;
-
 /** 1그룹 — 플래너 핵심(시간·일정·검색). */
 const TOP_ITEMS_PRIMARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.goToday,         label: '오늘',         Icon: CalendarDays },
   { kind: 'event',  eventName: RAIL_EVENT.openHabits,      label: '습관',         Icon: Repeat },
-  { kind: 'event',  eventName: RAIL_EVENT.toggleAI,        label: 'AI',           Icon: Sparkles },
   { kind: 'event',  eventName: RAIL_EVENT.openPalette,     label: '검색',         Icon: Search },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,      label: '매트릭스',     Icon: Grid2x2 },
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
@@ -94,7 +84,7 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
             onClick={onClick}
             aria-label={item.label}
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all',
               isActive
                 ? 'bg-card text-primary shadow-[0_1px_2px_hsl(30_15%_8%/0.06)]'
                 : 'text-foreground/50 hover:text-foreground hover:bg-accent/70',
@@ -117,7 +107,7 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
       <div
         className={cn(
           horizontal
-            ? 'flex h-full w-full items-center gap-1 overflow-x-auto px-3 py-2'
+            ? 'flex h-full w-full items-center gap-1 overflow-x-auto px-2 py-2'
             : 'h-full flex flex-col items-center gap-1 py-3',
         )}
       >
@@ -128,7 +118,7 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
               type="button"
               onClick={() => navigate('/')}
               aria-label="사이트 홈으로"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground/70 hover:text-foreground hover:bg-accent/70 transition-all"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground/70 hover:text-foreground hover:bg-accent/70 transition-all"
             >
               <Home className="h-[16px] w-[16px]" strokeWidth={1.75} />
             </button>
@@ -143,7 +133,7 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent(RAIL_EVENT.openModePalette))}
               aria-label="모드"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground/50 hover:text-foreground hover:bg-accent/70 transition-all"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground/50 hover:text-foreground hover:bg-accent/70 transition-all"
             >
               <LayoutGrid className="h-[16px] w-[16px]" strokeWidth={1.75} />
             </button>
@@ -152,21 +142,23 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
             모드
           </TooltipContent>
         </Tooltip>
-        <div className={cn(horizontal ? 'mx-1 h-5 w-px bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />
+        <div className={cn(horizontal ? 'mx-1 h-5 w-px shrink-0 bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />
 
         {TOP_ITEMS_PRIMARY.map(renderItem)}
-        <div className={cn(horizontal ? 'mx-1 h-5 w-px bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />
+        <div className={cn(horizontal ? 'mx-1 h-5 w-px shrink-0 bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />
         {TOP_ITEMS_SECONDARY.map((item, idx) =>
           renderItem(item, TOP_ITEMS_PRIMARY.length + idx),
         )}
 
         {/* 하단 그룹 — 메타/글로벌 (설정 등). 위 그룹과 자동 분리. */}
-        <div className={cn(horizontal ? 'ml-auto flex items-center gap-1' : 'mt-auto flex flex-col items-center gap-1')}>
-          <div className={cn(horizontal ? 'mx-1 h-5 w-px bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />
-          {BOTTOM_ITEMS.map((item, idx) =>
-            renderItem(item, TOP_ITEMS_PRIMARY.length + TOP_ITEMS_SECONDARY.length + idx),
-          )}
-        </div>
+        {!horizontal && (
+          <div className="mt-auto flex flex-col items-center gap-1">
+            <div className="my-1 h-px w-5 bg-border/60" aria-hidden />
+            {BOTTOM_ITEMS.map((item, idx) =>
+              renderItem(item, TOP_ITEMS_PRIMARY.length + TOP_ITEMS_SECONDARY.length + idx),
+            )}
+          </div>
+        )}
       </div>
 
       <MemoDrawer

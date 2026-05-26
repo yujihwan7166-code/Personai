@@ -1,5 +1,7 @@
-import { ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Copy, ExternalLink } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
+import { formatWikiIdMarkdownLink, formatWikiTitleLink } from '@/lib/wikiLinks';
 
 interface Props {
   page: WikiPage;
@@ -29,6 +31,15 @@ export function WikiInfobox({ page, onTagClick }: Props) {
   const typeMeta = WIKI_TYPE_META[page.type];
   const statusKey = page.status; // 'draft'|'active'|'stable'|'archived'
   const sourceUrl = page.type === 'source' ? firstUrl(page.body) : null;
+  const [copied, setCopied] = useState<'title' | 'id' | null>(null);
+
+  const copy = (kind: 'title' | 'id', text: string) => {
+    if (!text) return;
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(kind);
+      window.setTimeout(() => setCopied((current) => (current === kind ? null : current)), 1400);
+    }).catch(() => {});
+  };
 
   return (
     <aside
@@ -76,6 +87,28 @@ export function WikiInfobox({ page, onTagClick }: Props) {
             {WIKI_STATUS_META[statusKey].label}
           </span>
         </Row>
+        <Row label="링크">
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => copy('title', formatWikiTitleLink(page.title))}
+              className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
+              title="[[문서명]] 위키링크 복사"
+            >
+              {copied === 'title' ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
+              <span className="truncate">{formatWikiTitleLink(page.title)}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => copy('id', formatWikiIdMarkdownLink(page.id, page.title))}
+              className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+              title="ID 기반 마크다운 링크 복사"
+            >
+              {copied === 'id' ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
+              <span className="truncate">ID 링크</span>
+            </button>
+          </div>
+        </Row>
         {page.category && <Row label="분류">{page.category}</Row>}
         {page.aliases.length > 0 && (
           <Row label="별칭">
@@ -110,13 +143,11 @@ export function WikiInfobox({ page, onTagClick }: Props) {
         <Row label="ID">
           <button
             type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(page.id).catch(() => {});
-            }}
+            onClick={() => copy('id', page.id)}
             className="font-mono text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent rounded px-1 wiki-trans-color"
             title="고유 ID 복사 — 다른 페이지 본문에 붙이면 ID 기반 링크"
           >
-            📋 {page.id}
+            {copied === 'id' ? '복사됨 ' : '복사 '} {page.id}
           </button>
         </Row>
       </dl>

@@ -67,9 +67,8 @@ export function ProgressStrip({
   accuracy: number | null;
 }) {
   const items: { label: string; value: string; tone: string }[] = [
-    { label: '소스', value: String(sources), tone: 'text-slate-700' },
+    { label: '원본', value: String(sources), tone: 'text-slate-700' },
     { label: '생성', value: `${lensDone}/${lensTotal}`, tone: 'text-blue-700' },
-    { label: '복습', value: String(due), tone: 'text-violet-700' },
     { label: '오답', value: String(wrong), tone: 'text-rose-700' },
     {
       label: '정답률',

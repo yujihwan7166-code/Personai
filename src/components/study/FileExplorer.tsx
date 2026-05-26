@@ -6,6 +6,7 @@ import {
 import type { StudyNotebook, StudyFolder } from '@/types/study';
 import { cn } from '@/lib/utils';
 import { confirmDialog } from '@/lib/confirmDialog';
+import { NotebookIcon } from './NotebookIcon';
 
 interface Props {
   notebooks: StudyNotebook[];
@@ -124,8 +125,8 @@ export function FileExplorer({
         <button
           onClick={() => onCreateFile()}
           className="h-6 w-6 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-          title="새 파일"
-          aria-label="새 파일"
+          title="새 자료"
+          aria-label="새 자료"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -156,7 +157,7 @@ export function FileExplorer({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="파일 검색..."
+            placeholder="자료 검색..."
             className="flex-1 bg-transparent outline-none text-[12px] placeholder:text-slate-400"
           />
           {query && (
@@ -171,12 +172,12 @@ export function FileExplorer({
       <div className="flex-1 overflow-y-auto py-1">
         {folders.length === 0 && notebooks.length === 0 ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-[12px] text-slate-500 mb-3">아직 파일이 없어요</p>
+            <p className="text-[12px] text-slate-500 mb-3">아직 자료가 없어요</p>
             <button
               onClick={() => onCreateFile()}
               className="inline-flex items-center gap-1 rounded-full bg-indigo-600 text-white px-3 py-1.5 text-[11.5px] font-semibold hover:bg-indigo-500"
             >
-              <Plus className="h-3 w-3" /> 첫 파일 추가
+              <Plus className="h-3 w-3" /> 첫 자료 추가
             </button>
           </div>
         ) : (
@@ -295,7 +296,7 @@ export function FileExplorer({
               <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="삭제" destructive onClick={async () => {
                 const id = contextMenu.id;
                 setContextMenu(null);
-                const ok = await confirmDialog({ title: '이 파일을 삭제할까요?', confirmLabel: '삭제', tone: 'danger' });
+                const ok = await confirmDialog({ title: '이 자료를 삭제할까요?', confirmLabel: '삭제', tone: 'danger' });
                 if (ok) onDeleteNotebook(id);
               }} />
             </>
@@ -305,14 +306,14 @@ export function FileExplorer({
                 const f = folders.find((x) => x.id === contextMenu.id);
                 if (f) beginRename('folder', contextMenu.id, f.name);
               }} />
-              <CtxItem icon={<Plus className="h-3.5 w-3.5" />} label="이 폴더에 새 파일" onClick={() => { onCreateFile(contextMenu.id); setContextMenu(null); }} />
+              <CtxItem icon={<Plus className="h-3.5 w-3.5" />} label="이 폴더에 새 자료" onClick={() => { onCreateFile(contextMenu.id); setContextMenu(null); }} />
               <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
               <CtxItem icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />} label="폴더 삭제" destructive onClick={async () => {
                 const id = contextMenu.id;
                 setContextMenu(null);
                 const ok = await confirmDialog({
                   title: '폴더를 삭제할까요?',
-                  description: '안의 파일은 루트로 이동합니다.',
+                  description: '안의 자료는 루트로 이동합니다.',
                   confirmLabel: '삭제',
                   tone: 'danger',
                 });
@@ -356,7 +357,7 @@ function FileRow({
       onDragStart={onDragStart}
       title={nb.title}
     >
-      <span className="text-[14px] leading-none">{nb.icon || '📘'}</span>
+      <NotebookIcon icon={nb.icon} className="h-4 w-4 text-slate-500 dark:text-slate-400" />
       {renaming !== null ? (
         <input
           autoFocus

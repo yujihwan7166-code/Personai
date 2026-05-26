@@ -84,6 +84,15 @@
   box-shadow: inset 4px 0 0 var(--accent);
 }
 
+.study-scroll-row {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.study-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .study-shimmer, .study-rec-dot, .study-card-flip-inner { animation: none; transition: none; }
 }
@@ -96,15 +105,21 @@
 
 .source-hub-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+}
+
+.source-hub-steps {
   grid-template-columns: 1fr;
 }
 
 @container source-hub (min-width: 280px) {
-  .source-hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .source-hub-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 }
 
 @container source-hub (min-width: 520px) {
-  .source-hub-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .source-hub-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .source-hub .hub-card-accent { grid-column: span 2; }
+  .source-hub .source-hub-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* 매우 좁은 폭일 땐 힌트 텍스트 숨김 */
@@ -112,4 +127,3 @@
   .source-hub .hub-card-hint { display: none; }
   .source-hub .hub-card { padding: 0.75rem; }
 }
-

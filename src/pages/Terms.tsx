@@ -41,7 +41,7 @@ const Terms = () => {
           <section>
             <h2 className="text-base font-bold mb-2">제3조 (서비스 제공)</h2>
             <p className="text-[13.5px]">
-              서비스는 AI 채팅, 멀티 AI 토론, 시뮬레이션 리허설, 법률·금융 등 자문 모드, 음성 분석, 학습 노트북, 이미지·동영상 생성 등을 제공합니다. 일부 기능은 외부 LLM 제공자(OpenRouter·OpenAI 등)에 의존하며, 외부 서비스 장애 시 일시 제한될 수 있습니다.
+              서비스는 AI 채팅, 멀티 AI 라운드테이블, 시뮬레이션 리허설, 법률·금융 등 자문 모드, AI 녹음 분석, 학습 노트북, 이미지·동영상 생성 등을 제공합니다. 일부 기능은 외부 LLM 제공자(OpenRouter·OpenAI 등)에 의존하며, 외부 서비스 장애 시 일시 제한될 수 있습니다.
             </p>
           </section>
 

@@ -29,6 +29,16 @@ export function ValidationModal({ open, onClose, currentRange, rules, onAdd, onR
     () => itemsText.split(/\n|,/).map((s) => s.trim()).filter((s) => s !== ''),
     [itemsText],
   );
+  const ruleLabel = (r: Validation): string => {
+    if (r.kind === 'checkbox') return 'TRUE/FALSE';
+    if (r.kind === 'list') {
+      return `${r.items.slice(0, 4).join(', ')}${r.items.length > 4 ? ` ... (+${r.items.length - 4})` : ''}`;
+    }
+    if (r.kind === 'custom') return `custom ${r.formula1}`;
+    const second = r.formula2 ? `, ${r.formula2}` : '';
+    const kind = r.kind === 'integer' ? 'integer' : r.kind === 'number' ? 'number' : r.kind;
+    return `${kind} ${r.operator} ${r.formula1}${second}`;
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -89,7 +99,7 @@ export function ValidationModal({ open, onClose, currentRange, rules, onAdd, onR
                   <ChevronDown className="w-3 h-3 text-muted-foreground" />
                   <span className="font-mono">{rangeLabel(r.range)}</span>
                   <span className="text-muted-foreground truncate flex-1">
-                    {r.items.slice(0, 4).join(', ')}{r.items.length > 4 ? ` … (+${r.items.length - 4})` : ''}
+                    {ruleLabel(r)}
                   </span>
                   <button
                     type="button"

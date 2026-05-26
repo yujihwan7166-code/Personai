@@ -1,4 +1,4 @@
-import { Extension } from '@tiptap/core';
+import { Extension, type CommandProps } from '@tiptap/core';
 
 type TabStop = {
   type: 'left' | 'right' | 'center' | 'decimal' | 'bar';
@@ -7,6 +7,14 @@ type TabStop = {
 };
 
 const TABS_ATTR = 'data-paragraph-tabs';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    paragraphTabs: {
+      setParagraphTabs: (tabStops: TabStop[] | null) => ReturnType;
+    };
+  }
+}
 
 export const ParagraphTabs = Extension.create({
   name: 'paragraphTabs',
@@ -30,7 +38,38 @@ export const ParagraphTabs = Extension.create({
       },
     ];
   },
+
+  addCommands() {
+    return {
+      setParagraphTabs:
+        (tabStops) =>
+        (props) =>
+          updateSelectedBlocks(props, {
+            tabStops: normalizeTabStops(tabStops),
+          }),
+    };
+  },
 });
+
+function updateSelectedBlocks(
+  { state, tr, dispatch }: CommandProps,
+  attrs: Record<string, unknown>,
+): boolean {
+  const { from, to } = state.selection;
+  let changed = false;
+
+  state.doc.nodesBetween(from, to, (node, pos) => {
+    if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return;
+    tr.setNodeMarkup(pos, undefined, {
+      ...node.attrs,
+      ...attrs,
+    });
+    changed = true;
+  });
+
+  if (changed && dispatch) dispatch(tr.scrollIntoView());
+  return changed;
+}
 
 function parseTabStops(value: string | null): TabStop[] | null {
   if (!value) return null;

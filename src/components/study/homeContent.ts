@@ -4,7 +4,7 @@ export interface DailyTip {
 }
 
 export const DAILY_TIPS: DailyTip[] = [
-  { title: '간격 반복', body: '같은 개념을 1시간 · 1일 · 1주 간격으로 복습하면 망각 곡선을 이긴다.' },
+  { title: '핵심 질문', body: '자료를 읽기 전에 “이 문서가 답하려는 질문은 뭘까?”를 먼저 잡으면 구조가 빨리 보인다.' },
   { title: '느낌표보다 물음표', body: '읽은 걸 문제로 바꿔 자문하면 이해도가 두 배로 뛴다.' },
   { title: '파인만 기법', body: '초등학생에게 설명하듯 말로 풀어보면 구멍이 즉시 드러난다.' },
   { title: '쪼개서 시작', body: '15분만 하기로 정하면 뇌가 저항을 줄인다. 타이머를 걸어보자.' },
@@ -48,37 +48,37 @@ export const CURATED_SAMPLES: SampleLink[] = [
     title: '동기부여의 과학 — TED 강연',
     source: 'YouTube · Dan Pink',
     url: 'https://www.youtube.com/watch?v=rrkrvAUbU9Y',
-    icon: '🎬',
+    icon: 'video',
   },
   {
     title: '기회비용 (경제학)',
     source: 'Wikipedia',
     url: 'https://ko.wikipedia.org/wiki/%EA%B8%B0%ED%9A%8C%EB%B9%84%EC%9A%A9',
-    icon: '📚',
+    icon: 'article',
   },
   {
     title: '피드백 루프의 힘',
     source: 'YouTube · Veritasium',
     url: 'https://www.youtube.com/watch?v=JQAyoTwvgsg',
-    icon: '🎬',
+    icon: 'video',
   },
   {
     title: '시스템 사고 입문',
     source: 'Wikipedia',
     url: 'https://ko.wikipedia.org/wiki/%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%82%AC%EA%B3%A0',
-    icon: '📚',
+    icon: 'article',
   },
   {
     title: '파인만의 배움의 방법',
     source: 'YouTube',
     url: 'https://www.youtube.com/watch?v=tlTKTTt47WE',
-    icon: '🎬',
+    icon: 'video',
   },
   {
     title: '행동경제학 — 앵커링 효과',
     source: 'Wikipedia',
     url: 'https://en.wikipedia.org/wiki/Anchoring_effect',
-    icon: '📚',
+    icon: 'article',
   },
 ];
 

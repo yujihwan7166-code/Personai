@@ -9,6 +9,12 @@ declare module '@tiptap/core' {
     paragraphIndent: {
       increaseIndent: () => ReturnType;
       decreaseIndent: () => ReturnType;
+      setParagraphIndent: (attrs: {
+        indent?: number | null;
+        firstLineIndent?: number | null;
+        hangingIndent?: number | null;
+        rightIndent?: number | null;
+      }) => ReturnType;
     };
   }
 }
@@ -98,6 +104,27 @@ export const ParagraphIndent = Extension.create({
         () =>
         (props) =>
           updateSelectedBlockIndent(props, -INDENT_STEP),
+      setParagraphIndent:
+        (attrs) =>
+        (props) =>
+          updateSelectedBlockAttrs(props, (currentAttrs) => {
+            const nextAttrs: Record<string, unknown> = { ...currentAttrs };
+            if (Object.prototype.hasOwnProperty.call(attrs, 'indent')) {
+              nextAttrs.indent = normalizeIndent(attrs.indent);
+            }
+            if (Object.prototype.hasOwnProperty.call(attrs, 'firstLineIndent')) {
+              nextAttrs.firstLineIndent = normalizePx(attrs.firstLineIndent);
+              if (nextAttrs.firstLineIndent != null) nextAttrs.hangingIndent = null;
+            }
+            if (Object.prototype.hasOwnProperty.call(attrs, 'hangingIndent')) {
+              nextAttrs.hangingIndent = normalizePx(attrs.hangingIndent);
+              if (nextAttrs.hangingIndent != null) nextAttrs.firstLineIndent = null;
+            }
+            if (Object.prototype.hasOwnProperty.call(attrs, 'rightIndent')) {
+              nextAttrs.rightIndent = normalizePx(attrs.rightIndent);
+            }
+            return nextAttrs;
+          }),
     };
   },
 
@@ -120,24 +147,39 @@ export const ParagraphIndent = Extension.create({
 });
 
 function updateSelectedBlockIndent({ state, tr, dispatch }: CommandProps, delta: number): boolean {
+  return updateSelectedBlockAttrs({ state, tr, dispatch }, (attrs) => {
+    const current = normalizeIndent(attrs.indent);
+    const next = normalizeIndent(current + delta);
+    return next === current ? attrs : { ...attrs, indent: next };
+  });
+}
+
+function updateSelectedBlockAttrs(
+  { state, tr, dispatch }: CommandProps,
+  updateAttrs: (attrs: Record<string, unknown>) => Record<string, unknown>,
+): boolean {
   const { from, to } = state.selection;
   let changed = false;
 
   state.doc.nodesBetween(from, to, (node, pos) => {
     if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return;
-    const current = normalizeIndent(node.attrs.indent);
-    const next = normalizeIndent(current + delta);
-    if (next === current) return;
+    const nextAttrs = updateAttrs(node.attrs);
+    if (shallowEqualAttrs(node.attrs, nextAttrs)) return;
 
-    tr.setNodeMarkup(pos, undefined, {
-      ...node.attrs,
-      indent: next,
-    });
+    tr.setNodeMarkup(pos, undefined, nextAttrs);
     changed = true;
   });
 
   if (changed && dispatch) dispatch(tr.scrollIntoView());
   return changed;
+}
+
+function shallowEqualAttrs(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
 }
 
 function normalizeIndent(value: unknown): number {

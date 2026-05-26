@@ -75,9 +75,9 @@ export const HabitDayDot = ({
         'inline-flex items-center justify-center rounded-full transition-all',
         'border-[1.5px]',
         !isFuture && 'hover:scale-110 active:scale-95',
-        !completed && !partial && 'border-foreground/25 bg-transparent',
-        !completed && !partial && !isFuture && 'hover:border-foreground/50',
-        isToday && !completed && 'ring-2 ring-foreground/20 ring-offset-1 ring-offset-background',
+        !completed && !partial && 'border-foreground/22 bg-transparent',
+        !completed && !partial && !isFuture && 'hover:border-primary/45',
+        isToday && !completed && 'border-primary/35 ring-2 ring-primary/18 ring-offset-1 ring-offset-background',
         isFuture && 'opacity-50 cursor-not-allowed',
       )}
     >

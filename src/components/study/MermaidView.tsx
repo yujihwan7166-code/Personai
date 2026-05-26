@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { MindmapNodeStatus } from '@/types/study';
 import { cn } from '@/lib/utils';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
-import { Maximize2, Minimize2, Download, AlertTriangle } from 'lucide-react';
+import { Maximize2, Minimize2, Download, AlertTriangle, RefreshCw, Palette } from 'lucide-react';
 
 /** 노드 상태별 색상. SVG 에 inline style 로 override. */
 const STATUS_STYLE: Record<MindmapNodeStatus, { fill: string; stroke: string; badge: string }> = {
@@ -259,13 +259,19 @@ export function MermaidView({
             <button
               onClick={onRetry}
               className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 text-amber-800 dark:text-amber-200 px-2.5 py-1 text-[11.5px] font-semibold"
-            >🔄 다시 만들기</button>
+            >
+              <RefreshCw className="h-3 w-3" />
+              다시 만들기
+            </button>
           )}
           {onChangeKind && (
             <button
               onClick={onChangeKind}
               className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 text-amber-800 dark:text-amber-200 px-2.5 py-1 text-[11.5px] font-semibold"
-            >🎨 다른 유형으로</button>
+            >
+              <Palette className="h-3 w-3" />
+              다른 유형으로
+            </button>
           )}
         </div>
         <details className="mt-3">

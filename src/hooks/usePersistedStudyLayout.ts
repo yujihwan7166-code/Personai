@@ -4,6 +4,12 @@ import { DEFAULT_LAYOUT_PREFS } from '@/types/study';
 
 const KEY = 'study_layout_v1';
 const ALL_KINDS: StudyPaneKind[] = ['sources', 'chat', 'studio'];
+const LEGACY_ALL_COLUMNS_WEIGHTS = [22, 50, 28];
+
+function sameWeights(a: number[] | null | undefined, b: number[]) {
+  if (!a || a.length !== b.length) return false;
+  return a.every((v, i) => Math.abs(v - b[i]) < 0.001);
+}
 
 function load(): StudyLayoutPrefs {
   if (typeof window === 'undefined') return { ...DEFAULT_LAYOUT_PREFS };
@@ -18,13 +24,24 @@ function load(): StudyLayoutPrefs {
     const rawWeights = Array.isArray(parsed.weights)
       ? parsed.weights.filter((n): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0)
       : null;
-    const weights = rawWeights && rawWeights.length === mode ? rawWeights : DEFAULT_LAYOUT_PREFS.weights!.slice(0, mode);
-    return {
+    const migratedLegacyWeights = mode === 3 && sameWeights(rawWeights, LEGACY_ALL_COLUMNS_WEIGHTS);
+    const weights = rawWeights && rawWeights.length === mode && !migratedLegacyWeights
+      ? rawWeights
+      : DEFAULT_LAYOUT_PREFS.weights!.slice(0, mode);
+    const result = {
       mode,
       slots: padSlots(slots, mode),
       lockSourceLeft: !!parsed.lockSourceLeft,
       weights,
     };
+    if (migratedLegacyWeights) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(result));
+      } catch {
+        /* noop */
+      }
+    }
+    return result;
   } catch {
     return { ...DEFAULT_LAYOUT_PREFS };
   }

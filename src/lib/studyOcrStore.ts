@@ -8,6 +8,7 @@
 const DB_NAME = 'studyOcr';
 const STORE = 'ocr';
 const DB_VERSION = 1;
+export const CURRENT_OCR_ENGINE_VERSION = 7;
 
 export interface OcrWord {
   text: string;
@@ -16,14 +17,22 @@ export interface OcrWord {
   y0: number;
   x1: number;
   y1: number;
+  confidence?: number;
 }
 
 export interface OcrRecord {
   key: string; // `${blobRef}:${pageNum}`
   blobRef: string;
   page: number;
+  /** OCR 알고리즘/전처리 버전. 낮은 품질의 과거 캐시는 새 엔진에서 다시 만든다. */
+  version?: number;
   text: string;
   words?: OcrWord[];
+  wordCount?: number;
+  avgConfidence?: number | null;
+  durationMs?: number;
+  passCount?: number;
+  fallbackMode?: 'none' | 'binary' | 'tiled' | 'dense-tiled';
   doneAt: number;
 }
 
@@ -57,7 +66,7 @@ function makeKey(blobRef: string, page: number) {
 
 export async function putOcr(rec: Omit<OcrRecord, 'key'>): Promise<void> {
   const store = await tx('readwrite');
-  const full: OcrRecord = { ...rec, key: makeKey(rec.blobRef, rec.page) };
+  const full: OcrRecord = { ...rec, version: rec.version ?? CURRENT_OCR_ENGINE_VERSION, key: makeKey(rec.blobRef, rec.page) };
   await new Promise<void>((resolve, reject) => {
     const r = store.put(full);
     r.onsuccess = () => resolve();
@@ -70,7 +79,10 @@ export async function getOcr(blobRef: string, page: number): Promise<OcrRecord |
     const store = await tx('readonly');
     return await new Promise<OcrRecord | null>((resolve, reject) => {
       const r = store.get(makeKey(blobRef, page));
-      r.onsuccess = () => resolve((r.result as OcrRecord | undefined) ?? null);
+      r.onsuccess = () => {
+        const rec = (r.result as OcrRecord | undefined) ?? null;
+        resolve(rec && (rec.version ?? 1) === CURRENT_OCR_ENGINE_VERSION ? rec : null);
+      };
       r.onerror = () => reject(r.error);
     });
   } catch {
@@ -90,7 +102,9 @@ export async function getCompletedPages(blobRef: string): Promise<Set<number>> {
       const r = idx.getAll(blobRef);
       r.onsuccess = () => {
         const set = new Set<number>();
-        for (const rec of (r.result as OcrRecord[] | undefined) ?? []) set.add(rec.page);
+        for (const rec of (r.result as OcrRecord[] | undefined) ?? []) {
+          if ((rec.version ?? 1) === CURRENT_OCR_ENGINE_VERSION) set.add(rec.page);
+        }
         resolve(set);
       };
       r.onerror = () => reject(r.error);
@@ -106,7 +120,11 @@ export async function getAllForBlob(blobRef: string): Promise<OcrRecord[]> {
     const idx = store.index('byBlob');
     return await new Promise<OcrRecord[]>((resolve, reject) => {
       const r = idx.getAll(blobRef);
-      r.onsuccess = () => resolve(((r.result as OcrRecord[] | undefined) ?? []).sort((a, b) => a.page - b.page));
+      r.onsuccess = () => resolve(
+        ((r.result as OcrRecord[] | undefined) ?? [])
+          .filter((rec) => (rec.version ?? 1) === CURRENT_OCR_ENGINE_VERSION)
+          .sort((a, b) => a.page - b.page),
+      );
       r.onerror = () => reject(r.error);
     });
   } catch {
@@ -128,5 +146,18 @@ export async function deleteOcrForBlob(blobRef: string): Promise<void> {
       };
       r.onerror = () => reject(r.error);
     });
+  } catch { /* noop */ }
+}
+
+export async function deleteOcrPages(blobRef: string, pages: number[]): Promise<void> {
+  const uniquePages = Array.from(new Set(pages)).filter((page) => Number.isFinite(page) && page > 0);
+  if (uniquePages.length === 0) return;
+  try {
+    const store = await tx('readwrite');
+    await Promise.all(uniquePages.map((page) => new Promise<void>((resolve, reject) => {
+      const r = store.delete(makeKey(blobRef, page));
+      r.onsuccess = () => resolve();
+      r.onerror = () => reject(r.error);
+    })));
   } catch { /* noop */ }
 }

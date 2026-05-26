@@ -14,6 +14,7 @@ import { hierarchy, tree, cluster, type HierarchyPointNode } from 'd3-hierarchy'
 import {
   GitBranch, Orbit, Search, Sparkles, MessageSquarePlus, Target, Layers,
   Minus, Plus, Maximize2, Focus, Undo2, ChevronRight, CornerUpLeft,
+  BarChart3,
 } from 'lucide-react';
 import type { MindmapNode, MindmapMeta, MindmapNodeStatus, StudyNotebook } from '@/types/study';
 import { cn } from '@/lib/utils';
@@ -826,7 +827,7 @@ export function MindmapCanvas({ content, meta, notebook, onChange, onJumpToPage,
               onClick={() => { onGenerateFromNode?.('flashcard', ctxMenu.node); setCtxMenu(null); }}
             />
             <CtxItem
-              icon={<span className="text-[12px]">📊</span>}
+              icon={<BarChart3 className="h-3.5 w-3.5" />}
               label="도식으로 보기"
               onClick={() => { onGenerateFromNode?.('diagram', ctxMenu.node); setCtxMenu(null); }}
             />
@@ -1115,7 +1116,7 @@ function NodeBody({
         fill={fg}
         style={{ pointerEvents: 'none', userSelect: 'none' }}
       >
-        {(data.emoji ? data.emoji + ' ' : '') + data.label}
+        {data.label}
       </text>
 
       {/* 상태 도트 + 글리프 (좌상단, 색각 이중화) */}

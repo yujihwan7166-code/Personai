@@ -6,13 +6,20 @@
 import { useMemo } from 'react';
 import { ArrowRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
+import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
 import { toDateKey } from '@/lib/planner/habitStats';
-import { PlannerSection } from './PlannerSection';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { PlannerTimelineItem } from '@/types/planner';
+import { TASK_LIST_COLORS, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
 
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+const DAYS_KO = [
+  { short: '일', long: '일요일' },
+  { short: '월', long: '월요일' },
+  { short: '화', long: '화요일' },
+  { short: '수', long: '수요일' },
+  { short: '목', long: '목요일' },
+  { short: '금', long: '금요일' },
+  { short: '토', long: '토요일' },
+];
 
 interface MonthViewProps {
   /** 월의 기준 날짜 (이 날의 월 전체). */
@@ -21,6 +28,8 @@ interface MonthViewProps {
   onDayClick?: (dayIso: string) => void;
   /** 항목 칩 클릭 → 편집 모달 (Cron / Apple Cal 패턴). */
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
+  /** 날짜만 있는 할 일 클릭 → 일정/할 일 편집 모달. */
+  onTaskClick?: (task: { id: string; title: string }) => void;
   /** 셀 popover 안 '+ 새 일정' 클릭 → 그 날짜로 모달 열기 (부모 처리). */
   onAddForDate?: (dayIso: string) => void;
 }
@@ -28,8 +37,8 @@ interface MonthViewProps {
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: MonthViewProps) => {
-  const { start, end, weeks, monthLabel } = useMemo(() => {
+export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onAddForDate }: MonthViewProps) => {
+  const { start, end, weeks } = useMemo(() => {
     const anchor = new Date(anchorIso ?? new Date().toISOString());
     const year = anchor.getFullYear();
     const month = anchor.getMonth();
@@ -91,16 +100,15 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
       start: startIso,
       end: endIso,
       weeks: weekRows,
-      monthLabel: anchor.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' }),
     };
   }, [anchorIso]);
 
-  const items = usePlannerRange(start, end);
+  const { timedItems, dateTodos } = usePlannerCalendarRange(start, end);
 
   // 일별 그룹핑 — 로컬 시각 기준 (UTC slice 시 timezone 어긋나는 버그 회피).
   const itemsByDay = useMemo(() => {
-    const map = new Map<string, typeof items>();
-    items.forEach((item) => {
+    const map = new Map<string, typeof timedItems>();
+    timedItems.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
       const dayKey = toDateKey(new Date(startAt));
@@ -109,34 +117,51 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
       map.set(dayKey, arr);
     });
     return map;
-  }, [items]);
+  }, [timedItems]);
+
+  const todosByDay = useMemo(() => {
+    const map = new Map<string, PlannerTask[]>();
+    dateTodos.forEach((task) => {
+      if (!task.plannedFor) return;
+      const arr = map.get(task.plannedFor) ?? [];
+      arr.push(task);
+      map.set(task.plannedFor, arr);
+    });
+    return map;
+  }, [dateTodos]);
 
   return (
-    <PlannerSection label="월" count={monthLabel} className="h-full">
-      <div className="flex flex-col h-full min-h-0">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border hairline bg-[hsl(var(--hairline))]">
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 mb-1">
+        <div className="grid grid-cols-7 gap-px bg-[hsl(var(--hairline))] border-b border-[hsl(var(--hairline))]">
           {DAYS_KO.map((d, i) => (
             <div
-              key={d}
+              key={d.short}
               className={cn(
-                'text-[11px] font-mono uppercase tracking-[0.1em] font-semibold text-center pb-1.5',
+                'flex h-9 items-center justify-center bg-card/95 text-[12px] font-semibold tracking-normal',
                 i === 0 && 'text-rose-500',
                 i === 6 && 'text-blue-500',
                 i !== 0 && i !== 6 && 'text-muted-foreground',
               )}
             >
-              {d}
+              <span className="hidden sm:inline">{d.long}</span>
+              <span className="sm:hidden">{d.short}</span>
             </div>
           ))}
         </div>
         {/* 6주 격자 */}
-        <div className="flex-1 grid grid-rows-6 gap-px bg-[hsl(var(--hairline))] border hairline rounded-2xl overflow-hidden min-h-0">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 gap-px">
+        <div className="flex-1 grid grid-rows-6 gap-px min-h-0">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-px">
               {week.map((cell) => {
                 const dayKey = toDateKey(new Date(cell.iso));
                 const dayItems = itemsByDay.get(dayKey) ?? [];
+                const dayTodos = todosByDay.get(dayKey) ?? [];
+                const previewTimed = dayItems.slice(0, Math.min(2, dayItems.length));
+                const previewTodos = dayTodos.slice(0, Math.max(0, 3 - previewTimed.length));
+                const totalCount = dayItems.length + dayTodos.length;
+                const hiddenCount = Math.max(0, totalCount - previewTimed.length - previewTodos.length);
                 return (
                   <Popover key={cell.iso}>
                     <PopoverTrigger asChild>
@@ -159,7 +184,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
                           <span
                             className={cn(
                               'inline-flex items-center justify-center text-[12px] font-semibold tabular-nums',
-                              cell.isToday && 'h-5 min-w-[20px] px-1 rounded-full bg-foreground text-background',
+                              cell.isToday && 'h-5 min-w-[20px] px-1 rounded-full bg-violet-500 text-white shadow-[0_1px_4px_hsl(262_83%_58%/0.28)]',
                               !cell.isToday && cell.isOtherMonth && 'text-muted-foreground/60',
                               !cell.isToday && !cell.isOtherMonth && cell.dow === 0 && 'text-rose-500',
                               !cell.isToday && !cell.isOtherMonth && cell.dow === 6 && 'text-blue-500',
@@ -168,14 +193,14 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
                           >
                             {cell.date}
                           </span>
-                          {dayItems.length > 3 && (
+                          {hiddenCount > 0 && (
                             <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
-                              +{dayItems.length - 3}
+                              +{hiddenCount}
                             </span>
                           )}
                         </div>
                         <div className="space-y-0.5 min-h-0 overflow-hidden">
-                          {dayItems.slice(0, 3).map((item) => {
+                          {previewTimed.map((item) => {
                             const stripeColor =
                               item.kind === 'event'
                                 ? item.data.color ?? 'hsl(220 70% 55%)'
@@ -227,6 +252,13 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
                               </button>
                             );
                           })}
+                          {previewTodos.map((task) => (
+                            <MonthTodoPreview
+                              key={task.id}
+                              task={task}
+                              onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+                            />
+                          ))}
                         </div>
                       </div>
                     </PopoverTrigger>
@@ -234,7 +266,9 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
                       <DayPopoverBody
                         cellIso={cell.iso}
                         items={dayItems}
+                        todos={dayTodos}
                         onItemClick={onItemClick}
+                        onTaskClick={onTaskClick}
                         onJumpToDay={onDayClick}
                         onAddForDate={onAddForDate}
                       />
@@ -242,11 +276,11 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
                   </Popover>
                 );
               })}
-            </div>
-          ))}
+          </div>
+        ))}
         </div>
       </div>
-    </PlannerSection>
+    </div>
   );
 };
 
@@ -254,13 +288,17 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onAddForDate }: 
 const DayPopoverBody = ({
   cellIso,
   items,
+  todos,
   onItemClick,
+  onTaskClick,
   onJumpToDay,
   onAddForDate,
 }: {
   cellIso: string;
   items: PlannerTimelineItem[];
+  todos: PlannerTask[];
   onItemClick?: MonthViewProps['onItemClick'];
+  onTaskClick?: MonthViewProps['onTaskClick'];
   onJumpToDay?: MonthViewProps['onDayClick'];
   onAddForDate?: MonthViewProps['onAddForDate'];
 }) => {
@@ -275,16 +313,16 @@ const DayPopoverBody = ({
         <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground leading-none">
           {headerLabel}
         </h3>
-        {items.length > 0 && (
+        {items.length + todos.length > 0 && (
           <span className="text-[11px] tabular-nums text-muted-foreground font-medium">
-            {items.length}개
+            {items.length + todos.length}개
           </span>
         )}
       </header>
 
       {/* 본문 — 항목 리스트 또는 빈 상태 */}
       <div className="px-2 py-2 max-h-[260px] overflow-y-auto">
-        {items.length === 0 ? (
+        {items.length + todos.length === 0 ? (
           <p className="px-2 py-3 text-center text-[12.5px] text-muted-foreground leading-snug">
             이 날 비어있어요.
           </p>
@@ -339,6 +377,13 @@ const DayPopoverBody = ({
                 </button>
               );
             })}
+            {todos.map((task) => (
+              <MonthTodoPopoverRow
+                key={task.id}
+                task={task}
+                onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -369,3 +414,57 @@ const DayPopoverBody = ({
     </div>
   );
 };
+
+const todoColor = (task: PlannerTask) => (
+  task.color ? TASK_LIST_COLORS[task.color].stripe : 'hsl(var(--primary))'
+);
+
+const MonthTodoPreview = ({
+  task,
+  onClick,
+}: {
+  task: PlannerTask;
+  onClick?: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={(event) => {
+      event.stopPropagation();
+      onClick?.();
+    }}
+    onPointerDown={(event) => event.stopPropagation()}
+    className="flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors hover:bg-accent/70"
+  >
+    <span
+      className="h-2.5 w-2.5 shrink-0 rounded-full border bg-card"
+      style={{ borderColor: todoColor(task) }}
+      aria-hidden
+    />
+    <span className="truncate font-medium text-foreground/85">
+      {task.title}
+    </span>
+  </button>
+);
+
+const MonthTodoPopoverRow = ({
+  task,
+  onClick,
+}: {
+  task: PlannerTask;
+  onClick?: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left"
+  >
+    <span
+      className="h-3.5 w-3.5 shrink-0 rounded-full border bg-card"
+      style={{ borderColor: todoColor(task) }}
+      aria-hidden
+    />
+    <span className="flex-1 min-w-0 truncate text-[13px] text-foreground font-medium">
+      {task.title}
+    </span>
+  </button>
+);

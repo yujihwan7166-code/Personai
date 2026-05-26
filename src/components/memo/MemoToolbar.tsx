@@ -14,7 +14,7 @@ import {
   Heading1, Heading2, Heading3, Type, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight,
   List, ListOrdered,
-  Palette, Highlighter, ChevronDown,
+  Palette, Highlighter, ChevronDown, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -98,29 +98,18 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
     },
   };
 
+  const insertActions = [
+    { label: '이미지', icon: ImagePlus, run: onPickImage },
+    { label: '체크리스트', icon: CheckSquare, run: exec.task, active: editor.isActive('taskList') },
+    { label: '인용', icon: Quote, run: exec.quote, active: editor.isActive('blockquote') },
+    { label: '코드 블록', icon: Code2, run: exec.codeblock, active: editor.isActive('codeBlock') },
+    { label: '표', icon: TableIcon, run: exec.table },
+    { label: '구분선', icon: Minus, run: exec.hr },
+  ];
+
   return (
-    <div className="flex items-center flex-nowrap gap-0.5 w-full">
+    <div className="flex min-w-max items-center flex-nowrap gap-0.5">
       <BlockTypeDropdown editor={editor} />
-      <Sep />
-      {/* 인서트 — icon-only */}
-      <IconBtn onClick={onPickImage} title="이미지">
-        <ImagePlus className="w-3.5 h-3.5" />
-      </IconBtn>
-      <IconBtn onClick={exec.hr} title="구분선">
-        <Minus className="w-3.5 h-3.5" />
-      </IconBtn>
-      <IconBtn onClick={exec.quote} active={editor.isActive('blockquote')} title="인용">
-        <Quote className="w-3.5 h-3.5" />
-      </IconBtn>
-      <IconBtn onClick={exec.codeblock} active={editor.isActive('codeBlock')} title="코드 블록">
-        <Code2 className="w-3.5 h-3.5" />
-      </IconBtn>
-      <IconBtn onClick={exec.task} active={editor.isActive('taskList')} title="체크리스트">
-        <CheckSquare className="w-3.5 h-3.5" />
-      </IconBtn>
-      <IconBtn onClick={exec.table} title="표">
-        <TableIcon className="w-3.5 h-3.5" />
-      </IconBtn>
       <Sep />
       {/* 인라인 포맷 */}
       <IconBtn onClick={exec.bold} active={editor.isActive('bold')} title={`굵게 (${MOD}B)`}>
@@ -145,14 +134,21 @@ export function MemoToolbar({ editor, onPickImage }: Props) {
       <ColorDropdown editor={editor} />
       <HighlightDropdown editor={editor} />
       <Sep />
-      <AlignDropdown editor={editor} />
-      <Sep />
       <IconBtn onClick={exec.bullet} active={editor.isActive('bulletList')} title={`글머리 기호 (${MOD}⇧8)`}>
         <List className="w-3.5 h-3.5" />
       </IconBtn>
       <IconBtn onClick={exec.ordered} active={editor.isActive('orderedList')} title={`번호 매기기 (${MOD}⇧7)`}>
         <ListOrdered className="w-3.5 h-3.5" />
       </IconBtn>
+      <AlignDropdown editor={editor} />
+      <Sep />
+      <InsertDropdown actions={insertActions} />
+      {editor.isActive('table') && (
+        <>
+          <Sep />
+          <TableQuickActions editor={editor} />
+        </>
+      )}
     </div>
   );
 }
@@ -183,6 +179,128 @@ const IconBtn = ({
   >
     {children}
   </button>
+);
+
+function TableQuickActions({ editor }: { editor: Editor }) {
+  const run = (fn: () => void) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    fn();
+  };
+
+  return (
+    <div className="inline-flex h-7 items-center gap-0.5 rounded-md border border-[hsl(var(--hairline))] bg-card/70 px-1 shrink-0">
+      <span className="inline-flex items-center gap-1 px-1.5 text-[11px] font-semibold text-muted-foreground">
+        <TableIcon className="h-3.5 w-3.5" />
+        표
+      </span>
+      <MiniTextBtn onMouseDown={run(() => editor.chain().focus().addRowAfter().run())} title="아래에 행 추가">
+        +행
+      </MiniTextBtn>
+      <MiniTextBtn onMouseDown={run(() => editor.chain().focus().addColumnAfter().run())} title="오른쪽에 열 추가">
+        +열
+      </MiniTextBtn>
+      <MiniTextBtn onMouseDown={run(() => editor.chain().focus().toggleHeaderRow().run())} title="머리 행 켜기/끄기">
+        머리
+      </MiniTextBtn>
+      <MiniTextBtn onMouseDown={run(() => editor.chain().focus().mergeOrSplit().run())} title="선택 셀 병합 또는 분할">
+        병합
+      </MiniTextBtn>
+      <MiniTextBtn danger onMouseDown={run(() => editor.chain().focus().deleteRow().run())} title="현재 행 삭제">
+        -행
+      </MiniTextBtn>
+      <MiniTextBtn danger onMouseDown={run(() => editor.chain().focus().deleteColumn().run())} title="현재 열 삭제">
+        -열
+      </MiniTextBtn>
+      <MiniTextBtn danger onMouseDown={run(() => editor.chain().focus().deleteTable().run())} title="표 삭제">
+        삭제
+      </MiniTextBtn>
+    </div>
+  );
+}
+
+function MiniTextBtn({
+  children,
+  title,
+  danger,
+  onMouseDown,
+}: {
+  children: React.ReactNode;
+  title: string;
+  danger?: boolean;
+  onMouseDown: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onMouseDown={onMouseDown}
+      className={cn(
+        'h-5 rounded px-1.5 text-[11px] font-semibold transition-colors',
+        danger
+          ? 'text-destructive/85 hover:bg-destructive/10 hover:text-destructive'
+          : 'text-foreground/75 hover:bg-accent hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+const InsertDropdown = ({
+  actions,
+}: {
+  actions: Array<{
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    run?: () => void;
+    active?: boolean;
+  }>;
+}) => (
+  <Popover
+    align="right"
+    width={176}
+    trigger={(open, onToggle) => (
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          'inline-flex h-7 items-center gap-1 rounded px-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground',
+          open && 'bg-accent text-foreground',
+        )}
+        title="삽입"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        <span>삽입</span>
+        <ChevronDown className="h-3 w-3 opacity-60" />
+      </button>
+    )}
+  >
+    {(close) => (
+      <div className="p-1">
+        {actions.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            disabled={!item.run}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (!item.run) return;
+              item.run();
+              close();
+            }}
+            className={cn(
+              'flex h-8 w-full items-center gap-2 rounded px-2 text-left text-[12px] text-foreground/80 transition-colors hover:bg-accent hover:text-foreground',
+              item.active && 'bg-accent text-foreground',
+              !item.run && 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-foreground/80',
+            )}
+          >
+            <item.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          </button>
+        ))}
+      </div>
+    )}
+  </Popover>
 );
 
 /**

@@ -1,6 +1,6 @@
 /**
  * AI 어시스턴트 - 이미지·동영상 생성 모듈 타입.
- * 음성 분석(voiceAnalysis.ts)과 대칭 구조.
+ * AI 녹음 분석(voiceAnalysis.ts)과 대칭 구조.
  */
 
 export type MediaKind = 'image' | 'video';

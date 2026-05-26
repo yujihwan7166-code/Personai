@@ -42,6 +42,7 @@ interface TodayScheduledListProps {
   onTaskClick?: (task: { id: string; title: string }) => void;
   /** + 버튼 클릭 — 부모가 TaskScheduleDialog (모달) 를 연다. */
   onAdd?: () => void;
+  emptyHint?: string;
 }
 
 type RowStatus = 'past' | 'now' | 'upcoming';
@@ -144,7 +145,7 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   }
 };
 
-export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodayScheduledListProps) => {
+export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint }: TodayScheduledListProps) => {
   // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
   const items = usePlannerToday(anchorIso);
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
@@ -175,8 +176,8 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
   );
 
   return (
-    <section className="h-full min-h-0 flex flex-col rounded-2xl border hairline bg-card px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b hairline">
+    <section className="w-full h-fit min-h-[112px] max-h-[220px] flex flex-col rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
         <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
         <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
           일정
@@ -197,11 +198,36 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd }: TodaySched
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
+      <div className={cn(
+        'pr-1 -mr-1',
+        scheduled.length === 0 ? 'shrink-0' : 'flex-1 min-h-0 overflow-y-auto',
+      )}>
         {scheduled.length === 0 ? (
-          <p className="px-2 py-2 text-[12.5px] text-foreground/65 leading-snug">
-            오늘 시간 잡힌 항목이 없어요. 우측 타임라인 슬롯을 클릭해 시간 정해 추가할 수 있어요.
-          </p>
+          onAdd ? (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="group w-full rounded-lg border border-dashed border-foreground/12 bg-background/35 px-3 py-2.5 text-left transition-colors hover:border-foreground/25 hover:bg-accent/70 hover:text-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent/65 text-muted-foreground group-hover:text-foreground">
+                  <Clock className="h-3.5 w-3.5" strokeWidth={2} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-semibold text-foreground/75">
+                    시간 잡힌 일정이 없어요.
+                  </span>
+                  <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
+                    {emptyHint ?? '타임라인을 클릭하거나 +로 추가'}
+                  </span>
+                </span>
+              </span>
+            </button>
+          ) : (
+            <p className="px-2 py-2 text-[12.5px] text-foreground/65 leading-snug">
+              시간 잡힌 일정이 없어요.
+            </p>
+          )
         ) : (
           <div className="space-y-0.5 pb-1">
             {scheduled.map((item) => {

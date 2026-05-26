@@ -1,8 +1,9 @@
 import { Command } from 'cmdk';
 import { useEffect, useState } from 'react';
-import { Plus, Network, BookOpen, Download, Upload, Trash2, X, Inbox, Bot } from 'lucide-react';
+import { Plus, Network, BookOpen, Download, Upload, Trash2, X, Inbox, Bot, Sparkles } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 import { exportAllAsJson } from '@/lib/wikiBackup';
+import { getActiveWikiPages, searchWikiPages, type WikiSearchHit } from '@/lib/wikiQuery';
 
 interface Props {
   open: boolean;
@@ -10,6 +11,7 @@ interface Props {
   pages: WikiPage[];
   onOpen: (id: string) => void;
   onCreate: () => void;
+  onCreateByTitle?: (title: string) => void;
   onGoHome: () => void;
   onGoGraph: () => void;
   onImport: () => void;
@@ -28,13 +30,19 @@ interface Props {
  */
 export function WikiCommandPalette({
   open, onOpenChange, pages,
-  onOpen, onCreate, onGoHome, onGoGraph, onImport, onClearAll, onQuickCapture, onAskAi, currentPageId, onGoGraphFocus, onClose,
+  onOpen, onCreate, onCreateByTitle, onGoHome, onGoGraph, onImport, onClearAll, onQuickCapture, onAskAi, currentPageId, onGoGraphFocus, onClose,
 }: Props) {
   const [query, setQuery] = useState('');
   useEffect(() => { if (!open) setQuery(''); }, [open]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inEditable =
+        target?.tagName === 'INPUT'
+        || target?.tagName === 'TEXTAREA'
+        || target?.isContentEditable;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (inEditable) return;
         e.preventDefault();
         onOpenChange(!open);
       } else if (e.key === 'Escape' && open) {
@@ -46,6 +54,19 @@ export function WikiCommandPalette({
   }, [open, onOpenChange]);
 
   if (!open) return null;
+
+  const cleanQuery = query.trim();
+  const activePages = getActiveWikiPages(pages);
+  const pageHits: WikiSearchHit[] = cleanQuery
+    ? searchWikiPages(activePages, cleanQuery).slice(0, 50)
+    : activePages.slice(0, 50).map((page, index) => ({ page, hit: 'none', score: -index }));
+  const exactPage = cleanQuery
+    ? activePages.some((page) =>
+      page.title.trim().toLowerCase() === cleanQuery.toLowerCase()
+      || page.aliases.some((alias) => alias.trim().toLowerCase() === cleanQuery.toLowerCase()),
+    )
+    : false;
+  const canCreateFromQuery = Boolean(onCreateByTitle && cleanQuery && !exactPage);
 
   const run = (fn?: () => void) => {
     fn?.();
@@ -63,6 +84,7 @@ export function WikiCommandPalette({
         className="w-full max-w-xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         loop
+        shouldFilter={false}
       >
         <div className="border-b border-[hsl(var(--hairline))] px-3">
           <Command.Input
@@ -79,14 +101,14 @@ export function WikiCommandPalette({
             일치하는 항목이 없어요
           </Command.Empty>
 
-          {onAskAi && (query.trim().length >= 6 || query.includes('?') || query.includes('?')) && (
+          {onAskAi && (cleanQuery.length >= 6 || cleanQuery.includes('?') || cleanQuery.includes('？')) && (
             <Command.Group
               heading="AI"
               className="px-2 pt-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/70 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1"
             >
               <Item
                 icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
-                label={`AI 에게 묻기 — "${query.trim().slice(0, 40)}${query.trim().length > 40 ? '…' : ''}"`}
+                label={`AI 에게 묻기 — "${cleanQuery.slice(0, 40)}${cleanQuery.length > 40 ? '…' : ''}"`}
                 hint="Ctrl/Cmd+J"
                 onSelect={() => run(onAskAi)}
               />
@@ -103,6 +125,14 @@ export function WikiCommandPalette({
               hint="Ctrl/Cmd+N"
               onSelect={() => run(onCreate)}
             />
+            {canCreateFromQuery && (
+              <Item
+                icon={<Plus className="h-3.5 w-3.5 text-primary" />}
+                label={`"${cleanQuery}" 새 문서 만들기`}
+                meta="Draft"
+                onSelect={() => run(() => onCreateByTitle?.(cleanQuery))}
+              />
+            )}
             {onQuickCapture && (
               <Item
                 icon={<Inbox className="h-3.5 w-3.5" />}
@@ -161,19 +191,20 @@ export function WikiCommandPalette({
             )}
           </Command.Group>
 
-          {pages.length > 0 && (
+          {pageHits.length > 0 && (
             <Command.Group
-              heading={`페이지 (${pages.length})`}
+              heading={cleanQuery ? `검색 결과 (${pageHits.length})` : `페이지 (${activePages.length})`}
               className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/70 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1"
             >
-              {pages.slice(0, 50).map((p) => {
+              {pageHits.map(({ page: p, hit, bodySnippet, matchedAlias, matchedTag, matchedLink }) => {
                 const meta = WIKI_TYPE_META[p.type];
                 return (
                   <Item
                     key={p.id}
                     icon={<span className="text-[14px] leading-none">{meta.icon}</span>}
                     label={p.title}
-                    meta={meta.label}
+                    meta={formatHitMeta(hit, meta.label, matchedAlias, matchedTag, matchedLink)}
+                    description={bodySnippet}
                     onSelect={() => run(() => onOpen(p.id))}
                   />
                 );
@@ -193,12 +224,13 @@ export function WikiCommandPalette({
 }
 
 function Item({
-  icon, label, hint, meta, onSelect,
+  icon, label, hint, meta, description, onSelect,
 }: {
   icon: React.ReactNode;
   label: string;
   hint?: string;
   meta?: string;
+  description?: string;
   onSelect: () => void;
 }) {
   return (
@@ -207,7 +239,14 @@ function Item({
       className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12.5px] text-foreground/85 cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-foreground"
     >
       <span className="text-muted-foreground shrink-0">{icon}</span>
-      <span className="flex-1 truncate">{label}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block truncate">{label}</span>
+        {description && (
+          <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">
+            {description}
+          </span>
+        )}
+      </span>
       {meta && <span className="text-[10.5px] text-muted-foreground">{meta}</span>}
       {hint && (
         <kbd className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
@@ -216,4 +255,19 @@ function Item({
       )}
     </Command.Item>
   );
+}
+
+function formatHitMeta(
+  hit: WikiSearchHit['hit'],
+  fallback: string,
+  matchedAlias?: string,
+  matchedTag?: string,
+  matchedLink?: string,
+): string {
+  if (hit === 'alias' && matchedAlias) return `alias · ${matchedAlias}`;
+  if (hit === 'tag' && matchedTag) return `#${matchedTag}`;
+  if (hit === 'link' && matchedLink) return `링크 · ${matchedLink}`;
+  if (hit === 'body') return '본문';
+  if (hit === 'title') return '제목';
+  return fallback;
 }

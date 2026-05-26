@@ -38,7 +38,7 @@ import {
 import { readMarkdownFile, exportMarkdownFile } from '@/lib/cloudDoc/markdown';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { type PageMargin } from '@/lib/cloudDoc/PageRuler';
-import { DocPage, type PageSize } from '@/lib/cloudDoc/DocPage';
+import { DocPage, PAGE_GAP_PX, type PageSize } from '@/lib/cloudDoc/DocPage';
 import { SaveStateBadge, type SaveState } from '@/lib/cloudDoc/SaveStateBadge';
 import { WordCountBadge } from '@/lib/cloudDoc/WordCountBadge';
 import { TocDropdown } from '@/lib/cloudDoc/TocDropdown';
@@ -73,6 +73,7 @@ import { ResizableImage } from '@/lib/cloudDoc/tiptap/ResizableImage';
 import { RichTable } from '@/lib/cloudDoc/tiptap/RichTable';
 import { RichTableRow } from '@/lib/cloudDoc/tiptap/RichTableRow';
 import { RichTableCell, RichTableHeader } from '@/lib/cloudDoc/tiptap/RichTableCell';
+import { TableEditingOverlay } from '@/lib/cloudDoc/tiptap/TableEditingOverlay';
 import { RichBulletList, RichOrderedList } from '@/lib/cloudDoc/tiptap/ListStyle';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { AiSidebarToggle } from '@/components/cloud/AiSidebarToggle';
@@ -260,6 +261,7 @@ export default function CloudDocEditor() {
   const docPageRef = useRef<HTMLDivElement | null>(null);
   const scrollRestoredRef = useRef(false);
   const contentLoadedForRef = useRef<string | null>(null);
+  const contentLoadedEditorRef = useRef<Editor | null>(null);
   const nodeRef = useRef<ReturnType<typeof useCloudNodeLoader>['node']>(null);
   const metaRef = useRef<Record<string, unknown>>({});
   /** editor 가 mount 후 다른 콜백·effect 에서 참조하기 위한 안정 ref. */
@@ -369,6 +371,7 @@ export default function CloudDocEditor() {
         },
       }),
       RichTable.configure({ resizable: true, HTMLAttributes: { class: 'doc-table' } }),
+      TableEditingOverlay,
       RichTableRow,
       RichTableHeader,
       RichTableCell,
@@ -527,10 +530,11 @@ export default function CloudDocEditor() {
   // 초기 본문 주입 (bodyHtml / bodyMarkdown / body 우선순위)
   useEffect(() => {
     if (!editor || !node) return;
-    if (contentLoadedForRef.current === node.id) return;
-    contentLoadedForRef.current = node.id;
+    if (contentLoadedForRef.current === node.id && contentLoadedEditorRef.current === editor) return;
     scrollRestoredRef.current = false;
     if (!initialBody) return;
+    contentLoadedForRef.current = node.id;
+    contentLoadedEditorRef.current = editor;
     try {
       // HTML, markdown 둘 다 TipTap setContent 가 처리 (string 으로 주면 자동 인식)
       // markdown 은 tiptap-markdown extension 이 알아서 변환
@@ -547,6 +551,21 @@ export default function CloudDocEditor() {
     } catch {
       editor.commands.setContent('', { emitUpdate: false });
     }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (editor.isDestroyed || contentLoadedForRef.current !== node.id || contentLoadedEditorRef.current !== editor) return;
+        try {
+          if (initialBody.type === 'html' || initialBody.type === 'markdown') {
+            editor.commands.setContent(initialBody.value as string, { emitUpdate: false });
+          } else {
+            const content = typeof initialBody.value === 'string'
+              ? JSON.parse(initialBody.value)
+              : initialBody.value;
+            editor.commands.setContent(content as object, { emitUpdate: false });
+          }
+        } catch { /* keep the safe empty fallback from the first pass */ }
+      });
+    });
     // 콘텐츠 주입 직후 스크롤 위치 복원 (한 번만)
     if (!scrollRestoredRef.current && node.id) {
       try {
@@ -765,6 +784,8 @@ export default function CloudDocEditor() {
         orientation: 'p',
         format: 'a4',
         background: '#ffffff',
+        pageHeightPx: pageSize.height,
+        pageGapPx: PAGE_GAP_PX,
       });
       toast({ title: 'PDF 다운로드 시작', description: `${name}.pdf` });
     } catch (e) {
@@ -773,7 +794,7 @@ export default function CloudDocEditor() {
     } finally {
       setPdfExporting(false);
     }
-  }, [node]);
+  }, [node, pageSize.height]);
 
   const exportMarkdown = useCallback(() => {
     if (!editor || !node) return;

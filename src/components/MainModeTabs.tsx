@@ -2,20 +2,20 @@
  * 메인 모드 네비 — "Eyebrow Pill" 패턴.
  *
  * 페이지 헤더 메타로서의 모드 표시. 작은 pill + 드롭다운 패널.
- * 드롭다운은 8개 주요 모드만 노출, AI 토론은 하위(찬반/자유/심층/브레인) 인라인 표시.
+ * 드롭다운은 주요 모드를 노출하고, AI 라운드테이블은 하위(찬반/자유/심층/브레인) 인라인 표시.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
-  FlaskConical, BookOpen, ChevronDown, ChevronRight, ChevronLeft, MessagesSquare, Telescope,
+  FlaskConical, BookOpen, ChevronDown, ChevronRight, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
-  Home, Star, History, Bell,
+  Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import type { MainMode, DebateSubMode } from '@/types/expert';
+import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
 import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
@@ -46,7 +46,7 @@ interface MainModeTabsProps {
   onChange: (mode: MainMode) => void;
   /** 현재 debate 서브 모드 (toggle 표시용). */
   currentDebateSub?: DebateSubMode;
-  /** AI 토론 하위 (찬반/자유/심층/브레인) 선택 콜백. */
+  /** AI 라운드테이블 하위 (찬반/자유/심층/브레인) 선택 콜백. */
   onSelectDebateSub?: (sub: DebateSubMode) => void;
   /** 현재 어시스턴트 카드 id (toggle 표시용). */
   currentAssistantCard?: string | null;
@@ -60,6 +60,10 @@ interface MainModeTabsProps {
   onOpenBookmarks?: () => void;
   /** 플레이어 도구 (캐릭터챗/게임/롤플레이 등) 선택 콜백. */
   onSelectPlayerTool?: (toolId: string) => void;
+  /** 프리미엄 AI 세부 도메인 선택 콜백. */
+  onSelectPremiumDomain?: (domainId: PremiumDomainId) => void;
+  /** 현재 프리미엄 AI 세부 도메인 (toggle 표시용). */
+  currentPremiumDomain?: PremiumDomainId | null;
   /** 외부 트리거 핸들 (예: 사이드바 LayoutGrid 버튼). 마운트 후 .current 에 open()/close() 메서드 주입. */
   apiRef?: React.MutableRefObject<{ open: () => void; close: () => void } | null>;
 }
@@ -214,7 +218,6 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',                     emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
   { id: 'whiteboard', label: '화이트보드',    desc: '자유롭게 그리고 정리',                emoji: '🧩', tint: 'hsl(200 60% 55%)', axis: '기록' },
   { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
-  { id: 'meeting',    label: '녹음 노트',     desc: '회의·인터뷰 → 자동 정리·할일 추출',   emoji: '🎙️', tint: 'hsl(265 65% 55%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -253,8 +256,8 @@ export const MODE_TINT: Record<MainMode, string> = {
 
 /** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 드릴다운으로 노출. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
-  { label: '대화',  description: '질문하고 답받기',       modes: ['general', 'multi', 'research_main', 'premium_main'] },
-  { label: '전문',  description: '학습 · 시뮬레이션 · 토론', modes: ['study_main', 'stakeholder_main', 'debate'] },
+  { label: '대화',  description: '질문하고 답받기',         modes: ['general', 'multi', 'research_main', 'premium_main'] },
+  { label: '전문',  description: '학습 · 녹음 · 시뮬레이션', modes: ['study_main', 'voice_main', 'stakeholder_main', 'debate'] },
 ];
 
 export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
@@ -263,8 +266,9 @@ export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   debate:           '찬반·자유·심층·브레인스토밍',
   stakeholder_main: '이해관계자 역할극 시뮬레이션',
   research_main:    '멀티 AI 교차 검증 리포트',
-  premium_main:     '판례·계약·민사·형사 가이드',
-  study_main:       '공부 노트북·퀴즈·팟캐스트',
+  premium_main:     '법률·건강·세무·투자 자문',
+  study_main:       '자료 분석·퀴즈·팟캐스트',
+  voice_main:       '전사·요약·챕터·할 일 추출',
   assistant:        '전체 도구 브라우즈',
 };
 
@@ -277,7 +281,7 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
   tint: string;
 }> = [
   { cardId: 'image-gen',      label: '이미지·동영상', desc: '프롬프트로 생성',      icon: Wand2,        tint: 'hsl(32 95% 50%)' },
-  { cardId: 'voice-analysis', label: '음성 분석',     desc: '음성→텍스트·요약',     icon: Mic,          tint: 'hsl(330 65% 52%)' },
+  { cardId: 'voice-analysis', label: 'AI 녹음 분석',  desc: '녹음→텍스트·요약',     icon: Mic,          tint: 'hsl(330 65% 52%)' },
   { cardId: 'ppt',            label: 'PPT 생성',      desc: '프레젠테이션 자동',     icon: Presentation, tint: 'hsl(160 60% 40%)' },
 ];
 
@@ -291,7 +295,7 @@ export const ASSISTANT_TILES: Array<{
   placeholder?: boolean;
 }> = [
   { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,           tint: 'hsl(340 70% 55%)' },
-  { cardId: 'voice-analysis', label: '음성',        icon: Mic,             tint: 'hsl(210 70% 55%)' },
+  { cardId: 'voice-analysis', label: '녹음 분석',   icon: Mic,             tint: 'hsl(210 70% 55%)' },
   { cardId: 'ppt',            label: 'PPT',         icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
   { cardId: 'file-convert',   label: '파일 변환',   icon: Files,           tint: 'hsl(280 60% 55%)' },
   { cardId: 'translate',      label: '번역',        icon: Languages,       tint: 'hsl(170 65% 45%)' },
@@ -455,6 +459,21 @@ export const DEBATE_SUBS: Array<{
   { key: 'brainstorm', label: '브레인스토밍', desc: '아이디어 발산',       icon: Sparkles,       tint: 'hsl(var(--mode-study))' },         // amber — 번뜩임
 ];
 
+export const PREMIUM_AI_TOOLS: Array<{
+  key: PremiumDomainId;
+  label: string;
+  desc: string;
+  icon: LucideIcon;
+  tint: string;
+}> = [
+  { key: 'law',        label: 'AI 법률 자문',       desc: '판례·계약·민사·형사 가이드', icon: Shield,            tint: 'hsl(var(--mode-premium))' },
+  { key: 'drug',       label: '맞춤형 건강 도우미', desc: '증상·약·상호작용 체크',       icon: HeartPulse,        tint: 'hsl(160 62% 38%)' },
+  { key: 'tax',        label: 'AI 세무·연말정산',   desc: '공제·절세·신고 체크',         icon: ReceiptText,       tint: 'hsl(188 70% 36%)' },
+  { key: 'finance',    label: 'AI 투자·재무 상담', desc: '리스크·포트폴리오·상품 비교', icon: Banknote,          tint: 'hsl(215 70% 45%)' },
+  { key: 'realestate', label: '부동산 계약 체크',   desc: '권리관계·계약 위험 점검',     icon: Building2,         tint: 'hsl(262 58% 52%)' },
+  { key: 'labor',      label: '노무·근로 상담',     desc: '임금·퇴직금·근로계약',        icon: BriefcaseBusiness, tint: 'hsl(28 76% 47%)' },
+];
+
 export function MainModeTabs({
   labels,
   currentMode,
@@ -471,6 +490,8 @@ export function MainModeTabs({
   onOpenMentalTests,
   onOpenBookmarks,
   onSelectPlayerTool,
+  onSelectPremiumDomain,
+  currentPremiumDomain,
   apiRef,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
@@ -482,8 +503,10 @@ export function MainModeTabs({
   }, [apiRef]);
   /** 라이프 컬럼에서 열려 있는 서브 그룹 (null 이면 메인 뷰). */
   const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
-  /** AI 토론 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */
+  /** AI 라운드테이블 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */
   const [debateOpen, setDebateOpen] = useState(false);
+  /** 프리미엄 AI 세부 뷰 — 대화 그룹 안에서 드릴다운 전환. */
+  const [premiumOpen, setPremiumOpen] = useState(false);
   /** 로그인 상태 — 좌측 컬럼 로그인 줄에 사용. */
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -548,7 +571,8 @@ export function MainModeTabs({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         // 세부창 > 서브 그룹 > 드롭다운 순서로 한 단계씩 닫기
-        if (debateOpen) setDebateOpen(false);
+        if (premiumOpen) setPremiumOpen(false);
+        else if (debateOpen) setDebateOpen(false);
         else if (openLifeSubgroup) setOpenLifeSubgroup(null);
         else setOpen(false);
       }
@@ -559,17 +583,22 @@ export function MainModeTabs({
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open, debateOpen, openLifeSubgroup]);
+  }, [open, debateOpen, premiumOpen, openLifeSubgroup]);
 
   // 드롭다운 닫힐 때 서브 그룹 상태도 초기화
   useEffect(() => {
     if (!open && openLifeSubgroup) setOpenLifeSubgroup(null);
   }, [open, openLifeSubgroup]);
 
-  // 드롭다운 닫힐 때 AI 토론 아코디언도 접기
+  // 드롭다운 닫힐 때 AI 라운드테이블 아코디언도 접기
   useEffect(() => {
     if (!open && debateOpen) setDebateOpen(false);
   }, [open, debateOpen]);
+
+  // 드롭다운 닫힐 때 프리미엄 AI 아코디언도 접기
+  useEffect(() => {
+    if (!open && premiumOpen) setPremiumOpen(false);
+  }, [open, premiumOpen]);
 
   const handleSelect = (m: MainMode) => {
     setOpen(false);
@@ -579,6 +608,33 @@ export function MainModeTabs({
   const handleSelectSub = (sub: DebateSubMode) => {
     setOpen(false);
     setTimeout(() => onSelectDebateSub?.(sub), 40);
+  };
+
+  const handleSelectPremium = (domainId: PremiumDomainId) => {
+    setOpen(false);
+    if (onSelectPremiumDomain) {
+      setTimeout(() => onSelectPremiumDomain(domainId), 40);
+    } else {
+      setTimeout(() => onChange('premium_main'), 40);
+    }
+  };
+
+  const closeFloatingSubmenus = () => {
+    setPremiumOpen(false);
+    setDebateOpen(false);
+    setOpenLifeSubgroup(null);
+  };
+
+  const handlePanelClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!premiumOpen && !debateOpen && !openLifeSubgroup) return;
+
+    const target = event.target as HTMLElement;
+    const isInteractive = target.closest(
+      'button,a,input,textarea,select,[role="menuitem"],[data-floating-submenu="true"]',
+    );
+    if (isInteractive) return;
+
+    closeFloatingSubmenus();
   };
 
   const handleSelectAssistantTool = (cardId: string) => {
@@ -698,7 +754,47 @@ export function MainModeTabs({
     </button>
   );
 
-  /** 라이프 서브 그룹 칩 — 클릭 시 드롭다운 라이프 컬럼이 해당 그룹 전용 뷰로 전환. */
+  const renderFloatingSubmenu = ({
+    side = 'right',
+    tint,
+    ariaLabel,
+    children,
+  }: {
+    side?: 'left' | 'right';
+    tint: string;
+    ariaLabel: string;
+    children: ReactNode;
+  }) => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.12, ease: 'easeOut' }}
+      className={cn(
+        'absolute top-0 z-50 w-[272px] rounded-lg border border-[hsl(var(--hairline))]',
+        'bg-[hsl(var(--card))] p-1.5 shadow-[0_18px_48px_-28px_hsl(var(--foreground)/0.42)]',
+        'ring-1 ring-black/[0.03] dark:ring-white/[0.05]',
+        side === 'right' ? 'left-[calc(100%+8px)]' : 'right-[calc(100%+8px)]',
+      )}
+      role="menu"
+      data-floating-submenu="true"
+      aria-label={ariaLabel}
+    >
+      <span
+        className={cn(
+          'absolute top-3 h-8 w-1 rounded-full',
+          side === 'right' ? '-left-[5px]' : '-right-[5px]',
+        )}
+        style={{ backgroundColor: tint }}
+        aria-hidden
+      />
+      <div className="space-y-0.5">
+        {children}
+      </div>
+    </motion.div>
+  );
+
+  /** 라이프 서브 그룹 칩 — 클릭 시 오른쪽 컬럼을 유지한 채 옆 미니 패널을 띄움. */
   const renderLifeGroupChip = (groupId: LifeSubgroupId) => {
     const group = LIFE_SUBGROUPS[groupId];
     // aiplay 는 PLAYER_TOOLS 사용, 그 외는 LIFE_TOOLS
@@ -707,32 +803,81 @@ export function MainModeTabs({
       : LIFE_TOOLS.filter((t) => t.group === groupId).length;
     // 그룹 소속 도구가 0개면 칩 자체를 숨김 (데이터 정합성)
     if (count === 0) return null;
+    const isOpen = openLifeSubgroup === groupId;
     return (
-      <button
-        key={`life-group-${groupId}`}
-        type="button"
-        onClick={() => setOpenLifeSubgroup(groupId)}
-        role="menuitem"
-        aria-haspopup="menu"
-        aria-expanded={openLifeSubgroup === groupId}
-        className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
-      >
-        <span
-          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-          style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
+      <div key={`life-group-${groupId}`} className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setPremiumOpen(false);
+            setDebateOpen(false);
+            setOpenLifeSubgroup((current) => current === groupId ? null : groupId);
+          }}
+          role="menuitem"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          className={cn(
+            'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+            'hover:bg-[hsl(var(--accent))]',
+            isOpen && 'bg-[hsl(var(--accent))]',
+          )}
         >
-          <span className="text-[15px] leading-none select-none">{group.emoji}</span>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-            {group.label}
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+            style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
+          >
+            <span className="text-[15px] leading-none select-none">{group.emoji}</span>
           </span>
-          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-            {group.description}
+          <span className="min-w-0 flex-1">
+            <span className={cn('block text-[12.5px] leading-tight truncate', isOpen ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+              {group.label}
+            </span>
+            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+              {group.description}
+            </span>
           </span>
-        </span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-      </button>
+          <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground/70 shrink-0 transition-transform', isOpen && 'rotate-180')} />
+        </button>
+
+        <AnimatePresence>
+          {isOpen && renderFloatingSubmenu({
+            side: 'left',
+            tint: group.tint,
+            ariaLabel: `${group.label} 세부 선택`,
+            children: (
+              <>
+                {groupId === 'aiplay'
+                  ? PLAYER_TOOLS.map(renderPlayerToolItem)
+                  : LIFE_TOOLS.filter((t) => t.group === groupId).map(renderLifeToolItem)}
+                {groupId === 'fortune' && onOpenMentalTests && (
+                  <button
+                    type="button"
+                    onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
+                    role="menuitem"
+                    className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                  >
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                      style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
+                    >
+                      <span className="text-[15px] leading-none select-none">✨</span>
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                        심리 테스트 모음
+                      </span>
+                      <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                        테토·에겐·에니어그램·휴먼디자인…
+                      </span>
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                  </button>
+                )}
+              </>
+            ),
+          })}
+        </AnimatePresence>
+      </div>
     );
   };
 
@@ -804,7 +949,7 @@ export function MainModeTabs({
     );
   };
 
-  /** 토론 서브 항목을 일반 모드 아이템과 동일한 형태로 렌더 — parent 'AI 토론' 없이 평면 구조. */
+  /** 토론 서브 항목을 일반 모드 아이템과 동일한 형태로 렌더. */
   const renderDebateSubItem = (sub: typeof DEBATE_SUBS[number]) => {
     const tint = sub.tint;
     const Icon = sub.icon;
@@ -836,6 +981,42 @@ export function MainModeTabs({
           </span>
           <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
             {sub.desc}
+          </span>
+        </span>
+      </button>
+    );
+  };
+
+  const renderPremiumToolItem = (tool: typeof PREMIUM_AI_TOOLS[number]) => {
+    const Icon = tool.icon;
+    const isActive = currentMode === 'premium_main' && currentPremiumDomain === tool.key;
+    return (
+      <button
+        key={tool.key}
+        type="button"
+        onClick={() => handleSelectPremium(tool.key)}
+        role="menuitem"
+        className={cn(
+          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'hover:bg-[hsl(var(--accent))]',
+          isActive && 'bg-[hsl(var(--accent))]',
+        )}
+      >
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          style={{
+            backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
+            color: tool.tint,
+          }}
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+            {tool.label}
+          </span>
+          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+            {tool.desc}
           </span>
         </span>
       </button>
@@ -890,10 +1071,11 @@ export function MainModeTabs({
             <motion.div
               key="dropdown"
               ref={panelRef}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+              onClick={handlePanelClick}
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
               role="menu"
               style={{
                 position: 'fixed',
@@ -1451,102 +1633,154 @@ export function MainModeTabs({
               {[0, 1].map((idx) => {
                     const group = MODE_GROUPS[idx];
                     const isExpert = group.label === '전문';
+                    const isConversation = group.label === '대화';
                     const isAssistant = false;
                     const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
                     return (
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
-                        {/* 헤더 — 전문 그룹은 debateOpen 시 뒤로가기 버튼으로 전환 */}
+                        {/* 헤더 */}
                         <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                          {isExpert && debateOpen ? (
-                            <button
-                              type="button"
-                              onClick={() => setDebateOpen(false)}
-                              className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground transition-colors"
-                              aria-label="전문 메인으로"
-                            >
-                              <ChevronLeft className="h-3 w-3" />
-                              <span>AI 토론</span>
-                            </button>
-                          ) : (
-                            <>
-                              <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                                {group.label}
-                              </span>
-                              <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                                {group.description}
-                              </span>
-                            </>
-                          )}
+                          <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                            {group.label}
+                          </span>
+                          <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                            {group.description}
+                          </span>
                         </div>
 
-                        {/* 전문 그룹: 드릴다운 전환 (AnimatePresence) */}
-                        {isExpert ? (
-                          <div className="relative overflow-hidden">
-                            <AnimatePresence mode="wait" initial={false}>
-                              {debateOpen ? (
-                                <motion.div
-                                  key="expert-debate-subs"
-                                  initial={{ opacity: 0, x: 16 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: 16 }}
-                                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                                  className="space-y-0.5"
-                                >
-                                  {DEBATE_SUBS.map(renderDebateSubItem)}
-                                </motion.div>
-                              ) : (
-                                <motion.div
-                                  key="expert-main"
-                                  initial={{ opacity: 0, x: -16 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: -16 }}
-                                  transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                                  className="space-y-0.5"
-                                >
-                                  {/* 전문 그룹 메인 뷰 — AI 어시스턴트 컬럼 분리 이후 스페이서 불필요 */}
-                                  {group.modes.flatMap((m) => {
-                                    if (m === 'debate') {
-                                      const isDebateActive = currentMode === 'debate';
-                                      return [
-                                        <button
-                                          key="debate-drill-trigger"
-                                          type="button"
-                                          onClick={() => setDebateOpen(true)}
-                                          role="menuitem"
-                                          aria-haspopup="menu"
-                                          aria-expanded={debateOpen}
-                                          className={cn(
-                                            'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
-                                            'hover:bg-[hsl(var(--accent))]',
-                                            isDebateActive && 'bg-[hsl(var(--accent))]',
-                                          )}
+                        {/* 대화 그룹: 프리미엄 AI는 레이아웃을 밀지 않는 옆 미니 패널로 확장 */}
+                        {isConversation ? (
+                          <div className="relative overflow-visible">
+                            <motion.div
+                              key="conversation-main"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -10 }}
+                              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                              className="space-y-0.5"
+                            >
+                              {group.modes.flatMap((m) => {
+                                if (m === 'premium_main') {
+                                  const isPremiumActive = currentMode === 'premium_main';
+                                  return [
+                                    <div key="premium-drill-trigger" className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setDebateOpen(false);
+                                          setOpenLifeSubgroup(null);
+                                          setPremiumOpen((v) => !v);
+                                        }}
+                                        role="menuitem"
+                                        aria-haspopup="menu"
+                                        aria-expanded={premiumOpen}
+                                        className={cn(
+                                          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+                                          'hover:bg-[hsl(var(--accent))]',
+                                          (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
+                                        )}
+                                      >
+                                        <span
+                                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                          style={{
+                                            backgroundColor: `color-mix(in oklab, ${MODE_TINT.premium_main} 12%, transparent)`,
+                                            color: MODE_TINT.premium_main,
+                                          }}
                                         >
-                                          <span
-                                            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                                            style={{
-                                              backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
-                                              color: MODE_TINT.debate,
-                                            }}
-                                          >
-                                            <Swords className="h-3.5 w-3.5" strokeWidth={isDebateActive ? 2.2 : 1.8} />
+                                          <Shield className="h-3.5 w-3.5" strokeWidth={isPremiumActive ? 2.2 : 1.8} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                          <span className={cn('block text-[12.5px] leading-tight truncate', isPremiumActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+                                            프리미엄 AI
                                           </span>
-                                          <span className="min-w-0 flex-1">
-                                            <span className={cn('block text-[12.5px] leading-tight truncate', isDebateActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
-                                              AI 토론
-                                            </span>
-                                            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                              찬반 · 자유 · 심층 · 브레인스토밍
-                                            </span>
+                                          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                            법률 · 건강 · 세무 · 투자
                                           </span>
-                                          <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden />
-                                        </button>,
-                                      ];
-                                    }
-                                    return [renderModeItem(m)];
-                                  })}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                                        </span>
+                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-colors', premiumOpen && 'text-foreground')} aria-hidden />
+                                      </button>
+
+                                      <AnimatePresence>
+                                        {premiumOpen && renderFloatingSubmenu({
+                                          side: 'right',
+                                          tint: MODE_TINT.premium_main,
+                                          ariaLabel: '프리미엄 AI 세부 선택',
+                                          children: PREMIUM_AI_TOOLS.map(renderPremiumToolItem),
+                                        })}
+                                      </AnimatePresence>
+                                    </div>,
+                                  ];
+                                }
+                                return [renderModeItem(m)];
+                              })}
+                            </motion.div>
+                          </div>
+                        ) : isExpert ? (
+                          <div className="relative overflow-visible">
+                            <motion.div
+                              key="expert-main"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -10 }}
+                              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                              className="space-y-0.5"
+                            >
+                              {/* 전문 그룹 메인 뷰 — 하위 선택은 옆 미니 패널로 통일 */}
+                              {group.modes.flatMap((m) => {
+                                if (m === 'debate') {
+                                  const isDebateActive = currentMode === 'debate';
+                                  return [
+                                    <div key="debate-drill-trigger" className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPremiumOpen(false);
+                                          setOpenLifeSubgroup(null);
+                                          setDebateOpen((v) => !v);
+                                        }}
+                                        role="menuitem"
+                                        aria-haspopup="menu"
+                                        aria-expanded={debateOpen}
+                                        className={cn(
+                                          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+                                          'hover:bg-[hsl(var(--accent))]',
+                                          (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
+                                        )}
+                                      >
+                                        <span
+                                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                          style={{
+                                            backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
+                                            color: MODE_TINT.debate,
+                                          }}
+                                        >
+                                          <Swords className="h-3.5 w-3.5" strokeWidth={isDebateActive ? 2.2 : 1.8} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                          <span className={cn('block text-[12.5px] leading-tight truncate', isDebateActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+                                            AI 라운드테이블
+                                          </span>
+                                          <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                            찬반 · 자유 · 심층 · 브레인스토밍
+                                          </span>
+                                        </span>
+                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-colors', debateOpen && 'text-foreground')} aria-hidden />
+                                      </button>
+
+                                      <AnimatePresence>
+                                        {debateOpen && renderFloatingSubmenu({
+                                          side: 'right',
+                                          tint: MODE_TINT.debate,
+                                          ariaLabel: 'AI 라운드테이블 세부 선택',
+                                          children: DEBATE_SUBS.map(renderDebateSubItem),
+                                        })}
+                                      </AnimatePresence>
+                                    </div>,
+                                  ];
+                                }
+                                return [renderModeItem(m)];
+                              })}
+                            </motion.div>
                           </div>
                         ) : isAssistant ? (
                           <div className="space-y-0.5">
@@ -1610,10 +1844,6 @@ export function MainModeTabs({
                             } else if (item.id === 'journal') {
                               setOpen(false);
                               navigate('/journal');
-                            } else if (item.id === 'meeting') {
-                              // 녹음 노트 = 어시스턴트 voice-analysis 와 같은 데스티네이션
-                              setOpen(false);
-                              onSelectAssistantCard?.('voice-analysis');
                             } else if (item.id === 'cloud') {
                               setOpen(false);
                               navigate('/cloud');
@@ -1654,115 +1884,58 @@ export function MainModeTabs({
               <div className="col-start-4 row-span-2 min-w-0 flex flex-col">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    {openLifeSubgroup ? (
-                      <button
-                        type="button"
-                        onClick={() => setOpenLifeSubgroup(null)}
-                        className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="라이프 메인으로"
-                      >
-                        <ChevronLeft className="h-3 w-3" />
-                        <span>{LIFE_SUBGROUPS[openLifeSubgroup].label}</span>
-                      </button>
-                    ) : (
-                      <>
-                        <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                          {LIFE_GROUP.label}
-                        </span>
-                        <span className="text-[10.5px] text-muted-foreground/70 truncate">
-                          {LIFE_GROUP.description}
-                        </span>
-                      </>
-                    )}
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {LIFE_GROUP.label}
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                      {LIFE_GROUP.description}
+                    </span>
                   </div>
-                  {/* 메인 뷰는 자연 높이(스크롤 X). 서브그룹 motion 자체에만 max-h+overflow 적용 →
-                      뒤로가기 시 순간 확장/밀림 없음 + 메인에 불필요한 스크롤 X. */}
-                  <div className="relative">
-                    <AnimatePresence mode="wait" initial={false}>
-                      {openLifeSubgroup ? (
-                        <motion.div
-                          key={`sub-${openLifeSubgroup}`}
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 16 }}
-                          transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                          className="space-y-0.5"
-                        >
-                          {/* aiplay 서브그룹: PLAYER_TOOLS 렌더 */}
-                          {openLifeSubgroup === 'aiplay'
-                            ? PLAYER_TOOLS.map(renderPlayerToolItem)
-                            : LIFE_TOOLS.filter((t) => t.group === openLifeSubgroup).map(renderLifeToolItem)}
-                          {/* fortune 그룹: 심리 테스트 모음 통합 entry */}
-                          {openLifeSubgroup === 'fortune' && onOpenMentalTests && (
-                            <button
-                              type="button"
-                              onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
-                              role="menuitem"
-                              className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                  <div className="relative overflow-visible">
+                    <motion.div
+                      key="life-main"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                      className="space-y-0.5"
+                    >
+                      {LIFE_DROPDOWN_ENTRIES.map((entry, idx) => {
+                        if (entry.kind === 'tool') {
+                          const tool = LIFE_TOOLS.find((t) => t.id === entry.toolId);
+                          return tool ? renderLifeToolItem(tool) : null;
+                        }
+                        if (entry.kind === 'group') {
+                          return renderLifeGroupChip(entry.groupId);
+                        }
+                        // kind === 'mental-tests' — 심리 테스트 모음 페이지 바로가기
+                        if (!onOpenMentalTests) return null;
+                        return (
+                          <button
+                            key={`life-mental-tests-${idx}`}
+                            type="button"
+                            onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
+                            role="menuitem"
+                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                          >
+                            <span
+                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                              style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
                             >
-                              <span
-                                className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                                style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
-                              >
-                                <span className="text-[15px] leading-none select-none">✨</span>
+                              <span className="text-[15px] leading-none select-none">✨</span>
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
+                                심리 테스트 모음
                               </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                                  심리 테스트 모음
-                                </span>
-                                <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                  테토·에겐·에니어그램·휴먼디자인…
-                                </span>
+                              <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+                                테토·에겐·에니어그램·휴먼디자인…
                               </span>
-                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                            </button>
-                          )}
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="main"
-                          initial={{ opacity: 0, x: -16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -16 }}
-                          transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                          className="space-y-0.5"
-                        >
-                          {LIFE_DROPDOWN_ENTRIES.map((entry, idx) => {
-                            if (entry.kind === 'tool') {
-                              const tool = LIFE_TOOLS.find((t) => t.id === entry.toolId);
-                              return tool ? renderLifeToolItem(tool) : null;
-                            }
-                            if (entry.kind === 'group') {
-                              return renderLifeGroupChip(entry.groupId);
-                            }
-                            // kind === 'mental-tests' — 심리 테스트 모음 페이지 바로가기
-                            if (!onOpenMentalTests) return null;
-                            return (
-                              <button
-                                key={`life-mental-tests-${idx}`}
-                                type="button"
-                                onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
-                                role="menuitem"
-                                className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
-                              >
-                                <span
-                                  className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
-                                  style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
-                                >
-                                  <span className="text-[15px] leading-none select-none">✨</span>
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                                    심리 테스트 모음
-                                  </span>
-                                  <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                    테토·에겐·에니어그램·휴먼디자인…
-                                  </span>
-                                </span>
-                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                              </button>
-                            );
-                          })}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                          </button>
+                        );
+                      })}
                           {/* 라이프 컬럼 하단 — 광고 슬롯 (캐릭터챗·AI 게임은 전문 컬럼 AI Play 로 이동). */}
                           <div className="!mt-1 mb-0.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
                           <div className="!pt-2">
@@ -1795,9 +1968,7 @@ export function MainModeTabs({
                               </div>
                             </button>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    </motion.div>
                   </div>
                 </div>
               </div>

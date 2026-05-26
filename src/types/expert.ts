@@ -107,15 +107,15 @@ export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; d
     multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
     stakeholder_main: { label: 'AI 리허설', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
-    premium_main: { label: 'AI 법률 자문', icon: '⚖️', description: '판례·계약·민사·형사 가이드 (정보 제공 — 정확한 자문은 변호사 상담 권장)' },
-    debate: { label: 'AI 토론', icon: '⚔️', description: '전문가들이 토론 후 결론을 냅니다' },
+    premium_main: { label: '프리미엄 AI', icon: '⚖️', description: '법률·건강·세무·투자 등 전문형 AI 자문' },
+    debate: { label: 'AI 라운드테이블', icon: '⚔️', description: '여러 관점이 한 테이블에서 논의하고 결론을 냅니다' },
     assistant: { label: '어시스턴트', icon: '🛠️', description: '작업을 도와주는 AI 도구' },
     player: { label: '플레이어', icon: '🎮', description: '게임·퀴즈·재미있는 AI 놀이' },
     research_main: { label: '심층 리서치', icon: '🔬', description: '질문 정교화 후 다각도 조사·인용 리포트' },
     translate_main: { label: '다국어 번역', icon: '🌐', description: '맥락과 뉘앙스를 읽는 AI 번역' },
     convert_main: { label: '파일 변환', icon: '📁', description: '다양한 포맷의 파일을 자유롭게 변환' },
-    study_main: { label: 'AI 스터디룸', icon: '📚', description: '소스를 올리면 요약·핵심·퀴즈를 만들어드려요' },
-    voice_main: { label: '음성 분석', icon: '🎙️', description: '녹음을 올리면 전사·요약·챕터·액션아이템까지' },
+    study_main: { label: 'AI 스터디룸', icon: '📚', description: '자료를 올리면 요약·핵심·퀴즈를 만들어드려요' },
+    voice_main: { label: 'AI 녹음 분석', icon: '🎙️', description: '녹음을 올리면 전사·요약·챕터·액션아이템까지' },
     media_main: { label: '이미지·동영상 생성', icon: '🎨', description: '프롬프트만 입력하면 이미지와 동영상을 만들어드려요' },
 };
 
@@ -624,6 +624,106 @@ export const PREMIUM_DOMAIN_TEMPLATES: PremiumDomainTemplate[] = [
             { id: 'strategy', role: '전략 수립', icon: '🎯', description: '대응 전략·액션플랜 제시' },
         ],
     },
+    {
+        id: 'drug', name: '맞춤형 건강 도우미', icon: '🩺', tagline: '증상·복용약·생활 맥락 기반 건강 자문',
+        promptHint: '복용 중인 약, 증상 기간, 나이, 기저질환을 함께 적으면 더 정확하게 정리해드려요.',
+        description: '증상과 복용 정보를 바탕으로 병원 방문 필요성, 약물 상호작용, 생활 관리 포인트를 구조화합니다.',
+        color: { bg: 'bg-emerald-950', text: 'text-emerald-200', accent: 'text-emerald-400', border: 'border-emerald-700', gradient: 'from-emerald-900/40 to-slate-950' },
+        apiSource: { name: '의약품·공공 보건 데이터', url: 'https://www.data.go.kr', icon: '💊' },
+        trustBadge: '의약품 정보 기반', outputFormat: '건강 체크 요약',
+        sampleQuestions: ['타이레놀과 감기약 같이 먹어도 되나요?', '두통이 3일째인데 병원 가야 하나요?', '수면제 복용 중 술 마시면 위험한가요?'],
+        sampleCases: [
+            { title: '약물 상호작용', desc: '복용 중인 약과 새로 먹으려는 약의 충돌 가능성을 확인합니다.', query: '고혈압약을 먹고 있는데 감기약을 같이 먹어도 되는지 확인해주세요.' },
+            { title: '병원 방문 판단', desc: '증상 기간과 위험 신호를 기준으로 진료 필요성을 정리합니다.', query: '열은 없는데 가슴 답답함이 이틀째입니다. 어떤 기준이면 병원에 가야 하나요?' },
+            { title: '생활 관리', desc: '수면, 식단, 운동, 복용 시간을 함께 조정합니다.', query: '위염이 자주 재발합니다. 식습관과 약 복용 시간 관리법을 알려주세요.' },
+        ],
+        phases: [
+            { id: 'intake', role: '증상 접수', icon: '📝', description: '증상·기간·복용약 확인' },
+            { id: 'risk', role: '위험 신호 점검', icon: '🚨', description: '응급·진료 필요성 판단' },
+            { id: 'interaction', role: '상호작용 확인', icon: '💊', description: '약물·영양제 충돌 가능성' },
+            { id: 'plan', role: '관리 계획', icon: '✅', description: '생활 관리·진료 준비' },
+        ],
+    },
+    {
+        id: 'finance', name: 'AI 투자·재무 상담', icon: '📈', tagline: '리스크와 현금흐름 중심 재무 자문',
+        promptHint: '투자 기간, 목표 수익률, 손실 감내 수준, 보유 자산을 적어주세요.',
+        description: '투자 판단, 포트폴리오, 대출·현금흐름 리스크를 근거 중심으로 정리합니다.',
+        color: { bg: 'bg-blue-950', text: 'text-blue-200', accent: 'text-blue-400', border: 'border-blue-700', gradient: 'from-blue-900/40 to-slate-950' },
+        apiSource: { name: '경제·금융 공공 데이터', url: 'https://ecos.bok.or.kr', icon: '🏦' },
+        trustBadge: '경제지표 기반', outputFormat: '재무 리스크 보고서',
+        sampleQuestions: ['ISA와 연금저축 중 뭐가 좋나요?', '월 100만원 투자 포트폴리오 짜줘', '대출 상환과 투자 중 뭐가 우선인가요?'],
+        sampleCases: [
+            { title: '포트폴리오 점검', desc: '자산 비중과 리스크 집중도를 확인합니다.', query: '미국 ETF 70%, 국내 주식 20%, 현금 10% 포트폴리오의 리스크를 봐주세요.' },
+            { title: '현금흐름 분석', desc: '소득·지출·부채를 기준으로 우선순위를 정합니다.', query: '월급 320만원, 대출 8천만원이 있습니다. 투자와 상환 우선순위를 정해주세요.' },
+            { title: '상품 비교', desc: 'ETF, 예금, 연금, 보험성 상품을 목적별로 비교합니다.', query: '연금저축펀드와 IRP를 어떤 비율로 가져가면 좋을까요?' },
+        ],
+        phases: [
+            { id: 'goal', role: '목표 파악', icon: '🎯', description: '기간·목표·위험 성향' },
+            { id: 'cashflow', role: '현금흐름 분석', icon: '💵', description: '수입·지출·부채 구조' },
+            { id: 'risk', role: '리스크 평가', icon: '📉', description: '집중도·변동성 점검' },
+            { id: 'allocation', role: '배분 제안', icon: '🧭', description: '대안별 실행 순서' },
+        ],
+    },
+    {
+        id: 'realestate', name: '부동산 계약 체크', icon: '🏠', tagline: '계약서·권리관계·시세 리스크 점검',
+        promptHint: '계약 유형, 보증금/매매가, 주소 일부, 등기·특약 내용을 함께 적어주세요.',
+        description: '임대차·매매 계약에서 권리관계, 특약, 보증금 보호, 수익성 위험을 점검합니다.',
+        color: { bg: 'bg-violet-950', text: 'text-violet-200', accent: 'text-violet-400', border: 'border-violet-700', gradient: 'from-violet-900/40 to-slate-950' },
+        apiSource: { name: '부동산 공공 데이터', url: 'https://www.reb.or.kr', icon: '🏘️' },
+        trustBadge: '계약 리스크 기반', outputFormat: '부동산 체크리스트',
+        sampleQuestions: ['전세계약 특약 봐줘', '근저당 있는 집 계약해도 되나요?', '월세 계약 전 체크리스트 알려줘'],
+        sampleCases: [
+            { title: '전세계약 점검', desc: '보증금 보호와 선순위 권리를 확인합니다.', query: '전세계약 전에 등기부등본에서 무엇을 확인해야 하는지 알려주세요.' },
+            { title: '특약 검토', desc: '불리한 조항과 추가해야 할 특약을 정리합니다.', query: '임대차계약서 특약에 원상복구 조항이 있는데 위험한 부분을 봐주세요.' },
+            { title: '수익성 계산', desc: '매입가, 대출, 임대료 기준으로 수익률을 점검합니다.', query: '오피스텔 매입가 2억, 월세 90만원이면 투자성이 있는지 계산해주세요.' },
+        ],
+        phases: [
+            { id: 'contract', role: '계약 정보 확인', icon: '📄', description: '계약 유형·금액·특약' },
+            { id: 'rights', role: '권리관계 점검', icon: '🔍', description: '등기·선순위·보증 위험' },
+            { id: 'market', role: '시세·수익성', icon: '📊', description: '가격·임대료·비용 비교' },
+            { id: 'action', role: '대응안', icon: '✅', description: '수정 특약·계약 전 질문' },
+        ],
+    },
+    {
+        id: 'tax', name: 'AI 세무·연말정산', icon: '🧾', tagline: '공제·절세·신고 리스크 점검',
+        promptHint: '소득 종류, 가족관계, 지출 항목, 신고 유형을 알려주세요.',
+        description: '연말정산, 종합소득세, 부가세, 사업자 비용 처리의 가능성과 주의점을 정리합니다.',
+        color: { bg: 'bg-cyan-950', text: 'text-cyan-200', accent: 'text-cyan-400', border: 'border-cyan-700', gradient: 'from-cyan-900/40 to-slate-950' },
+        apiSource: { name: '국세청·세법 자료', url: 'https://www.nts.go.kr', icon: '🏛️' },
+        trustBadge: '세법 기준 점검', outputFormat: '세무 체크 보고서',
+        sampleQuestions: ['월세 세액공제 받을 수 있나요?', '프리랜서 종소세 비용처리 알려줘', '연말정산 놓친 공제 찾아줘'],
+        sampleCases: [
+            { title: '연말정산 공제', desc: '소득·주거·부양가족 기준으로 공제를 확인합니다.', query: '무주택 직장인 월세 세액공제 조건과 준비 서류를 알려주세요.' },
+            { title: '프리랜서 신고', desc: '필요경비와 증빙 리스크를 정리합니다.', query: '프리랜서 개발자의 종합소득세 비용처리 항목과 주의점을 알려주세요.' },
+            { title: '사업자 부가세', desc: '매입세액 공제 가능성을 점검합니다.', query: '개인사업자가 노트북과 식대를 비용 처리할 때 주의할 점을 알려주세요.' },
+        ],
+        phases: [
+            { id: 'income', role: '소득 유형 확인', icon: '💼', description: '근로·사업·기타소득' },
+            { id: 'deduction', role: '공제 항목 점검', icon: '🧾', description: '세액·소득공제 가능성' },
+            { id: 'evidence', role: '증빙 확인', icon: '📎', description: '서류·영수증·계약서' },
+            { id: 'filing', role: '신고 전략', icon: '📌', description: '신고 순서·주의점' },
+        ],
+    },
+    {
+        id: 'labor', name: '노무·근로 상담', icon: '👷', tagline: '임금·퇴직금·근로계약 리스크 점검',
+        promptHint: '근무 기간, 계약 형태, 임금, 근로시간, 회사 조치 내용을 적어주세요.',
+        description: '근로계약, 임금체불, 퇴직금, 해고, 직장 내 괴롭힘에 대한 대응 경로를 정리합니다.',
+        color: { bg: 'bg-orange-950', text: 'text-orange-200', accent: 'text-orange-400', border: 'border-orange-700', gradient: 'from-orange-900/40 to-slate-950' },
+        apiSource: { name: '고용노동부·근로기준 자료', url: 'https://www.moel.go.kr', icon: '👷' },
+        trustBadge: '근로기준 점검', outputFormat: '노무 대응 메모',
+        sampleQuestions: ['퇴직금 계산해줘', '부당해고인지 봐줘', '연장근로수당 받을 수 있나요?'],
+        sampleCases: [
+            { title: '임금체불 대응', desc: '체불액 산정과 신고 절차를 정리합니다.', query: '두 달치 월급을 못 받았습니다. 임금체불 신고 절차와 준비 자료를 알려주세요.' },
+            { title: '퇴직금 계산', desc: '근속 기간과 평균임금 기준으로 점검합니다.', query: '2년 3개월 근무 후 퇴사 예정입니다. 퇴직금 계산 방식과 확인할 항목을 알려주세요.' },
+            { title: '해고·권고사직', desc: '절차상 하자와 대응 기한을 확인합니다.', query: '회사에서 갑자기 권고사직을 요구했습니다. 서명 전 확인할 점을 알려주세요.' },
+        ],
+        phases: [
+            { id: 'facts', role: '사실관계 정리', icon: '📋', description: '기간·계약·임금·조치' },
+            { id: 'calculation', role: '금액 산정', icon: '🧮', description: '임금·수당·퇴직금' },
+            { id: 'rights', role: '권리 판단', icon: '⚖️', description: '근로기준법상 쟁점' },
+            { id: 'procedure', role: '절차 안내', icon: '🧭', description: '신고·구제·증빙' },
+        ],
+    },
 ];
 
 // ══════════════════════════════════════════
@@ -868,7 +968,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
 - React 18 + TypeScript + Vite
 - Tailwind CSS (indigo/slate 팔레트)
 - OpenRouter API 로 다양한 LLM 호출
-- 스튜디오 공부 도우미: 요약·마인드맵·퀴즈·플래시카드·팟캐스트·도식 6개 렌즈
+- AI 스터디룸: 요약·마인드맵·퀴즈·플래시카드·팟캐스트·도식 6개 렌즈
 - pdfjs-dist, mermaid, d3-hierarchy 등 활용
 - Vercel serverless 로 /api/* 배포
 - IndexedDB 로 PDF/오디오 블롭 저장

@@ -18,13 +18,14 @@ import {
   CHART_PALETTES, CHART_PALETTE_LABELS,
   type EmbeddedChart,
 } from '@/lib/cloudSheet/chart';
-import { idxToCol } from '@/lib/cloudSheet/formula';
+import { idxToCol, type EvalContext } from '@/lib/cloudSheet/formula';
 
 type Cells = Record<string, string>;
 
 interface EmbeddedChartCardProps {
   chart: EmbeddedChart;
   cells: Cells;
+  evalContext?: EvalContext;
   onRemove: () => void;
   onMovePrev?: () => void;
   onMoveNext?: () => void;
@@ -38,11 +39,11 @@ interface EmbeddedChartCardProps {
 }
 
 export function EmbeddedChartCard({
-  chart, cells, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation, onToggleCollapsed, onJumpToRange,
+  chart, cells, evalContext, onRemove, onMovePrev, onMoveNext, onChangePalette, onChangeTitle, onChangeType, onChangeOrientation, onToggleCollapsed, onJumpToRange,
 }: EmbeddedChartCardProps) {
   const data = useMemo(
-    () => buildChartData(cells, chart.range, chart.orientation),
-    [cells, chart.range, chart.orientation],
+    () => buildChartData(cells, chart.range, chart.orientation, evalContext),
+    [cells, evalContext, chart.range, chart.orientation],
   );
   const hasData = data.rows.length > 0 && data.seriesKeys.length > 0;
   const rangeStr = useMemo(() => {

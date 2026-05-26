@@ -3,7 +3,6 @@ import { useEffect, useMemo } from 'react';
 import {
   Plus,
   Mic,
-  Play,
   Download,
   Zap,
   Trash2,
@@ -11,6 +10,8 @@ import {
 } from 'lucide-react';
 import type { StudyNotebook } from '@/types/study';
 import { createEmptyNotebook } from '@/types/study';
+import { NotebookIcon } from './NotebookIcon';
+import { textInputDialog } from '@/lib/textInputDialog';
 
 export interface PaletteActions {
   onOpenNotebook: (id: string) => void;
@@ -37,7 +38,6 @@ export function StudyCommandPalette({
   activeNotebook,
   onOpenNotebook,
   onCreateNotebook,
-  onStartSession,
   onStartRecording,
   onQuickStart,
   onExport,
@@ -78,10 +78,10 @@ export function StudyCommandPalette({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-b border-slate-200 px-3 py-2.5 flex items-center gap-2">
-          <span className="text-slate-400 text-[11px] font-mono">⌘K</span>
+          <span className="text-slate-400 text-[11px] font-mono">Ctrl J</span>
           <Command.Input
             autoFocus
-            placeholder="명령 검색 또는 노트북 이름…"
+            placeholder="명령 검색 또는 자료 이름…"
             className="flex-1 outline-none text-[13px] bg-transparent"
           />
         </div>
@@ -93,12 +93,20 @@ export function StudyCommandPalette({
           <Command.Group heading="동작" className="px-2 py-1 text-[10px] uppercase tracking-wide text-slate-400">
             <Item
               icon={<Plus className="h-3.5 w-3.5" />}
-              label="새 노트북"
+              label="새 자료"
               hint="N"
               onSelect={() => {
-                const title = prompt('노트북 이름', '새 노트북');
-                if (title) run(() => onCreateNotebook(createEmptyNotebook(title)));
-                else onOpenChange(false);
+                onOpenChange(false);
+                window.setTimeout(async () => {
+                  const title = await textInputDialog({
+                    title: '새 자료',
+                    label: '자료 이름',
+                    defaultValue: '새 자료',
+                    confirmLabel: '만들기',
+                    required: true,
+                  });
+                  if (title) onCreateNotebook(createEmptyNotebook(title));
+                }, 30);
               }}
             />
             {activeNotebook && (
@@ -107,12 +115,6 @@ export function StudyCommandPalette({
                   icon={<Zap className="h-3.5 w-3.5" />}
                   label="빠른 시작 (요약·핵심·퀴즈)"
                   onSelect={() => run(onQuickStart)}
-                />
-                <Item
-                  icon={<Play className="h-3.5 w-3.5" />}
-                  label="15분 세션 시작"
-                  hint="Q"
-                  onSelect={() => run(onStartSession)}
                 />
                 <Item
                   icon={<Mic className="h-3.5 w-3.5" />}
@@ -127,27 +129,27 @@ export function StudyCommandPalette({
                 />
                 <Item
                   icon={<Trash2 className="h-3.5 w-3.5 text-red-500" />}
-                  label="현재 노트북 삭제"
+                  label="현재 자료 삭제"
                   onSelect={() => run(onDeleteCurrent)}
                 />
               </>
             )}
             <Item
               icon={<X className="h-3.5 w-3.5" />}
-              label="공부 도우미 닫기"
+              label="AI 스터디룸 닫기"
               hint="Esc"
               onSelect={() => run(onClose)}
             />
           </Command.Group>
 
           {recent.length > 0 && (
-            <Command.Group heading="노트북" className="px-2 py-1 mt-1 text-[10px] uppercase tracking-wide text-slate-400">
+            <Command.Group heading="최근 자료" className="px-2 py-1 mt-1 text-[10px] uppercase tracking-wide text-slate-400">
               {recent.map((nb) => (
                 <Item
                   key={nb.id}
-                  icon={<span className="text-sm">{nb.icon}</span>}
+                  icon={<NotebookIcon icon={nb.icon} className="h-4 w-4" />}
                   label={nb.title}
-                  meta={`${nb.sources.length}개 소스`}
+                  meta={`${nb.sources.length}개 원본`}
                   onSelect={() => run(() => onOpenNotebook(nb.id))}
                 />
               ))}

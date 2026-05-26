@@ -1,80 +1,69 @@
-/**
- * 일기 빈 상태 — 책·노트북 톤.
- *
- * Stoic + 5MJ + 책 첫 페이지 패턴 — 따뜻한 페이퍼 + 인용.
- */
-import { useMemo } from 'react';
-import { BookOpen, Pencil } from 'lucide-react';
+import { BookOpen, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const QUOTES: ReadonlyArray<{ text: string; author: string }> = [
-  { text: '오늘은 다시 오지 않습니다.', author: '단테' },
-  { text: '하루를 살아낸다는 것은 작은 기적이에요.', author: '에머슨' },
-  { text: '글쓰기는 마음의 산책이다.', author: '버지니아 울프' },
-  { text: '오늘 한 줄이 내일의 나를 만든다.', author: '앤 딜라드' },
-  { text: '쓰는 행위가 곧 생각하는 일이다.', author: '데이비드 매컬로' },
-];
-
 interface JournalEmptyProps {
-  onAdd: () => void;
+  onAdd: (starter?: string) => void;
   className?: string;
 }
 
 export const JournalEmpty = ({ onAdd, className }: JournalEmptyProps) => {
-  const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
-
   return (
-    <div
+    <section
+      aria-label="첫 일기 작성"
       className={cn(
-        'relative flex flex-col items-center justify-center py-20 px-6 text-center',
-        // 책 첫 페이지 그림자
-        'rounded-2xl border border-[hsl(var(--hairline))] bg-card',
-        'shadow-[0_4px_16px_-8px_hsl(var(--foreground)/0.1)]',
-        // 줄친 노트 배경 (subtle, 페이지 자체)
+        'relative min-h-[520px] overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-card shadow-[0_10px_28px_-26px_hsl(30_30%_8%/0.32)]',
         className,
       )}
-      style={{
-        // 다크 모드에서도 보이도록 foreground 기반 alpha — light/dark 자동 대응
-        backgroundImage: `repeating-linear-gradient(
-          to bottom,
-          transparent 0,
-          transparent calc(2rem - 1px),
-          hsl(var(--foreground) / 0.07) calc(2rem - 1px),
-          hsl(var(--foreground) / 0.07) 2rem
-        )`,
-      }}
     >
-      {/* 큰 아이콘 */}
-      <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/60 text-foreground/70 shadow-[0_4px_20px_-8px_hsl(var(--foreground)/0.15)]">
-        <BookOpen className="h-8 w-8" strokeWidth={1.5} />
+      <div
+        className="absolute inset-0 opacity-75"
+        aria-hidden
+        style={{
+          backgroundImage: `repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(2rem - 1px),
+            hsl(var(--foreground) / 0.065) calc(2rem - 1px),
+            hsl(var(--foreground) / 0.065) 2rem
+          )`,
+        }}
+      />
+
+      <div className="relative z-10 flex min-h-[520px] items-center justify-center px-5 py-14 text-center">
+        <div className="w-full max-w-[560px]">
+          <div className="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/[0.035] text-foreground/70 shadow-[0_10px_30px_-24px_hsl(var(--foreground)/0.45)]">
+            <BookOpen className="h-8 w-8" strokeWidth={1.6} />
+          </div>
+
+          <h2 className="font-display text-[32px] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[38px]">
+            오늘의 첫 페이지
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-[360px] text-[15px] leading-7 text-muted-foreground">
+            한 순간, 한 기분, 한 생각.
+            <br />
+            시간이 지나 다시 펼쳐 읽을 수 있도록.
+          </p>
+
+          <figure className="mx-auto mt-8 max-w-[360px] border-l-2 border-[hsl(var(--hairline))] py-1 pl-6 text-left">
+            <blockquote className="font-display text-[16px] leading-7 text-foreground/85">
+              "오늘 한 줄이 내일의 나를 만든다."
+            </blockquote>
+            <figcaption className="mt-2 text-[13px] text-muted-foreground">
+              - 앤 딜라드
+            </figcaption>
+          </figure>
+
+          <button
+            type="button"
+            onClick={() => onAdd()}
+            className="mt-9 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-semibold text-primary-foreground shadow-[0_8px_18px_-10px_hsl(var(--primary)/0.7)] transition-colors hover:bg-primary/90"
+          >
+            <PenLine className="h-4 w-4" strokeWidth={1.8} />
+            오늘의 일기 쓰기
+          </button>
+        </div>
       </div>
-
-      <h2 className="text-[24px] sm:text-[28px] font-bold tracking-[-0.022em] text-foreground">
-        오늘의 첫 페이지
-      </h2>
-      <p className="mt-3 text-[14px] text-muted-foreground leading-[1.7] max-w-[360px] tracking-[-0.005em]">
-        한 순간, 한 기분, 한 생각.<br />
-        시간이 지나 다시 펼쳐 읽을 수 있도록.
-      </p>
-
-      {/* 인용 */}
-      <blockquote className="mt-8 max-w-[400px] border-l-2 border-[hsl(var(--hairline))] pl-5 text-left">
-        <p className="text-[14px] text-foreground/80 leading-[1.65] tracking-[-0.005em]">
-          "{quote.text}"
-        </p>
-        <footer className="mt-2 text-[11px] font-medium tracking-[-0.005em] text-muted-foreground">
-          — {quote.author}
-        </footer>
-      </blockquote>
-
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-8 inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)]"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-        오늘의 일기 쓰기
-      </button>
-    </div>
+    </section>
   );
 };

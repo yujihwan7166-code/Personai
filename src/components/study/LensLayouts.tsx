@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronRight, CircleHelp, Footprints, Map, Target } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
 import { cn } from '@/lib/utils';
 
@@ -213,24 +214,26 @@ function parseTree(content: string): TreeNodeData[] {
 export function GuideLayout({ content }: { content: string }) {
   const sections = parseGuideSections(content);
   if (sections.length === 0) return <LazyMarkdown content={content} />;
-  const icons: Record<string, string> = {
-    '학습 목표': '🎯',
-    '선수 지식': '📚',
-    '학습 순서': '🪜',
-    '점검 질문': '❓',
+  const icons: Record<string, LucideIcon> = {
+    '학습 목표': Target,
+    '선수 지식': BookOpen,
+    '학습 순서': Footprints,
+    '점검 질문': CircleHelp,
   };
   return (
     <div className="space-y-2">
       {sections.map((s, i) => {
         const key = Object.keys(icons).find((k) => s.title.includes(k));
-        const icon = key ? icons[key] : '🗺️';
+        const Icon = key ? icons[key] : Map;
         return (
           <div
             key={i}
             className="rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50/50 to-white p-3"
           >
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">{icon}</span>
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/80 text-rose-700 ring-1 ring-rose-100">
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
+              </span>
               <h4 className="text-[12.5px] font-bold text-rose-800">{s.title}</h4>
             </div>
             <div className="text-[12px] leading-relaxed prose prose-sm max-w-none">
@@ -248,7 +251,7 @@ function parseGuideSections(content: string): { title: string; body: string }[] 
   const out: { title: string; body: string }[] = [];
   let m;
   while ((m = re.exec(content)) !== null) {
-    const title = m[1].trim().replace(/[🎯📚🪜❓📌]/g, '').trim();
+    const title = m[1].trim().replace(/[\u{1F3AF}\u{1F4DA}\u{1FA9C}\u{2753}\u{1F4CC}]/gu, '').trim();
     const body = m[2].trim();
     if (title) out.push({ title, body });
   }

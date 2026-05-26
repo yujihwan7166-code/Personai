@@ -14,10 +14,12 @@
  * - Ctrl+Enter: 모달 저장
  * - Esc: 모달 닫기
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search, X, Hash, SlidersHorizontal, BarChart3 } from 'lucide-react';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
+import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -36,11 +38,12 @@ import { getTopTags } from '@/lib/journalTags';
 import { cn } from '@/lib/utils';
 import type { JournalEntry, Mood } from '@/types/journal';
 import { ACTIVITY_META } from '@/types/journal';
+import type { AiContext } from '@/lib/cloudAi/types';
 
 import type { JournalImage, Weather } from '@/types/journal';
 
 type EditorMode =
-  | { kind: 'create'; date?: string }
+  | { kind: 'create'; date?: string; initialBody?: string }
   | {
       kind: 'edit';
       id: string;
@@ -60,8 +63,13 @@ const monthLabel = (date: Date): string =>
 
 const monthKey = (iso: string): string => iso.slice(0, 7);
 
+const localDateKey = (): string => {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+};
+
 const Journal = () => {
-  const navigate = useNavigate();
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
@@ -120,6 +128,24 @@ const Journal = () => {
     }));
   }, [filteredEntries]);
 
+  const todayKey = localDateKey();
+  const todayEntries = useMemo(
+    () => allEntries.filter((e) => e.date === todayKey),
+    [allEntries, todayKey],
+  );
+  const todayLimitReached = todayEntries.length >= 2;
+
+  const openCreateToday = useCallback((starter?: string) => {
+    if (todayLimitReached) {
+      notify.info('오늘 일기는 하루에 최대 2번까지 쓸 수 있어요', {
+        description: '내일 다시 새 기록을 남길 수 있어요.',
+        duration: 2200,
+      });
+      return;
+    }
+    setEditorMode({ kind: 'create', initialBody: starter });
+  }, [todayLimitReached]);
+
   // Streak 마일스톤 축하 — 7 / 30 / 100 / 365 도달 시 하루 1회 토스트.
   useEffect(() => {
     const MILESTONES = [7, 30, 100, 365] as const;
@@ -151,7 +177,7 @@ const Journal = () => {
 
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        setEditorMode({ kind: 'create' });
+        openCreateToday();
       } else if (e.key === '/') {
         e.preventDefault();
         searchRef.current?.focus();
@@ -159,7 +185,7 @@ const Journal = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editorMode]);
+  }, [editorMode, openCreateToday]);
 
   const handleDelete = (entry: JournalEntry) => {
     // 삭제 복원 정합성 — 모든 필드 보존 (Inbox 패턴).
@@ -182,12 +208,39 @@ const Journal = () => {
   const isEmpty = allEntries.length === 0;
   const hasResults = filteredEntries.length > 0;
 
-  // 오늘 entry — Today hero 가 사용
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const todayEntries = useMemo(
-    () => allEntries.filter((e) => e.date === todayKey),
-    [allEntries, todayKey],
-  );
+  const getJournalAiContext = useCallback((): AiContext => {
+    const source = hasActiveFilter || query.trim().length > 0 ? filteredEntries : allEntries;
+    const rows = source.slice(0, 60).map((entry) => {
+      const parts = [
+        `## ${entry.date}`,
+        entry.mood ? `기분: ${entry.mood}/5` : '기분: 없음',
+        entry.energy ? `에너지: ${entry.energy}/5` : undefined,
+        entry.sleepHours !== undefined ? `수면: ${entry.sleepHours}시간` : undefined,
+        entry.tags?.length ? `태그: ${entry.tags.map((tag) => `#${tag}`).join(' ')}` : undefined,
+        entry.activities?.length ? `활동: ${entry.activities.map((key) => ACTIVITY_META[key]?.label ?? key).join(', ')}` : undefined,
+        '',
+        entry.body || '(본문 없음)',
+      ].filter(Boolean);
+      return parts.join('\n');
+    }).join('\n\n');
+
+    const summary = activeDate
+      ? `${activeDate} 일기`
+      : hasActiveFilter || query.trim().length > 0
+        ? `필터된 일기 ${source.length}편`
+        : `전체 일기 ${allEntries.length}편`;
+
+    return {
+      kind: 'journal',
+      summary,
+      fullText: rows || '아직 일기가 없습니다.',
+    };
+  }, [activeDate, allEntries, filteredEntries, hasActiveFilter, query]);
+
+  const journalAi = useAiSidebar('journal', getJournalAiContext, {
+    persistKey: activeDate ?? (hasActiveFilter || query.trim().length > 0 ? 'filtered' : 'all'),
+    openStorage: 'local',
+  });
 
   const openEdit = (entry: JournalEntry) => {
     setEditorMode({
@@ -207,7 +260,17 @@ const Journal = () => {
 
   return (
     <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
-      <main className="flex-1 px-4 sm:px-8 py-6 sm:py-9 max-w-5xl w-full mx-auto">
+      <PageWorkspaceChrome
+        current="journal"
+        ai={{
+          label: '일기 AI',
+          title: '일기 AI 열기',
+          open: journalAi.open,
+          onOpen: () => journalAi.setOpen(true),
+        }}
+      />
+      <div className="flex min-h-0 flex-1">
+      <main className="flex-1 px-4 sm:px-8 pt-6 pb-20 sm:py-9 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
         <header className="mb-2 sm:mb-3 flex items-start justify-between gap-6 flex-wrap">
           {/* 좌측: 타이틀 영역 — 카드 그룹과 좁힘 (아래로 이동) */}
@@ -236,21 +299,19 @@ const Journal = () => {
                 </span>
               )}
               <span className="text-[13.5px] font-medium tabular-nums text-muted-foreground/60 hidden md:inline">
-                · {allEntries.length}편
+                {allEntries.length > 0 ? `· ${allEntries.length}편` : '아직 기록 없음'}
               </span>
             </div>
           </div>
 
           {/* 우측: 2 행 vertical stack — PageSwitcher 위치 고정, 도구만 더 아래로 (gap ↑↑) */}
-          <div className="flex flex-col items-end gap-7 shrink-0">
-            <PageSwitcher current="journal" />
-
+          <div className="flex w-full flex-col items-stretch shrink-0 pt-5 sm:w-auto sm:items-end sm:pt-[5.5rem]">
             {/* 도구 그룹 — 검색·필터·통계·CTA */}
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto" data-journal-action-bar>
               {/* 검색 — ring-inset 으로 옆 버튼 영역 침범 방지 */}
               <div
                 className={cn(
-                  'relative inline-flex items-center gap-2 h-9 px-3 rounded-lg border w-44 sm:w-56 shrink-0',
+                  'relative inline-flex min-w-0 flex-1 items-center gap-2 h-9 px-3 rounded-lg border sm:w-56 sm:flex-none sm:shrink-0',
                   'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-1 focus-within:ring-inset focus-within:ring-primary/25 transition-shadow',
                 )}
               >
@@ -315,15 +376,25 @@ const Journal = () => {
                   <span>통계</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setEditorMode({ kind: 'create' })}
-                title="새 일기 (N)"
-                className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)] shrink-0"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">오늘의 일기</span>
-              </button>
+              {todayLimitReached ? (
+                <div
+                  title="오늘은 최대 2번까지 쓸 수 있어요"
+                  className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[hsl(var(--hairline))] bg-card/70 px-3 text-[12.5px] font-semibold text-muted-foreground"
+                >
+                  오늘 2/2 완료
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openCreateToday()}
+                  title="새 일기 (N)"
+                  className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)] shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span className="sm:hidden">쓰기</span>
+                  <span className="hidden sm:inline">오늘의 일기</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -431,7 +502,7 @@ const Journal = () => {
         </header>
 
         {isEmpty ? (
-          <JournalEmpty onAdd={() => setEditorMode({ kind: 'create' })} />
+          <JournalEmpty onAdd={openCreateToday} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
           <div className="flex flex-col gap-5 min-w-0">
@@ -449,7 +520,7 @@ const Journal = () => {
             {!hasActiveFilter && query.trim().length === 0 && (
               <JournalTodayHero
                 todayEntries={todayEntries}
-                onCreate={() => setEditorMode({ kind: 'create' })}
+                onCreate={openCreateToday}
                 onEdit={openEdit}
                 onDelete={handleDelete}
               />
@@ -540,6 +611,29 @@ const Journal = () => {
           </div>
         )}
       </main>
+      <div
+        className={cn(
+          PAGE_AI_PANEL_SLOT_CLASS,
+          !journalAi.open && 'pointer-events-none',
+        )}
+      >
+        <AiSidebar
+          open={journalAi.open}
+          onClose={() => journalAi.setOpen(false)}
+          title="일기 AI"
+          subtitle="오늘의 기록을 돌아봅니다"
+          emptyTitle="오늘을 어떻게 돌아볼까요?"
+          emptyDescription="오늘의 기록과 최근 흐름을 참고해 질문과 패턴을 조심스럽게 정리합니다."
+          inputPlaceholder="오늘의 감정, 질문, 패턴을 물어보세요..."
+          context={getJournalAiContext()}
+          messages={journalAi.messages}
+          sending={journalAi.sending}
+          onSend={journalAi.send}
+          onRetry={journalAi.retryLast}
+          onClear={journalAi.clear}
+        />
+      </div>
+      </div>
       <JournalEditor
         open={editorMode !== null}
         mode={editorMode}

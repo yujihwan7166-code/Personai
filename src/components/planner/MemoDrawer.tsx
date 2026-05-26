@@ -17,7 +17,6 @@ import {
   Plus, Search, Trash2, X, Archive, ArchiveRestore, RotateCcw,
   ArrowDownAZ, Clock, Sparkles, Paperclip,
 } from 'lucide-react';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import {
   addMemo, removeMemo, restoreMemo, purgeMemo, emptyTrash, updateMemo,
   togglePin, archiveMemo, unarchiveMemo, moveMemoToFolder,
@@ -173,10 +172,15 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
 
   const selected = selectedId ? memos.find((m) => m.id === selectedId) : null;
 
+  if (!open) return null;
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md w-[420px] p-0 flex flex-col">
-        <SheetTitle className="sr-only">메모</SheetTitle>
+    <aside
+      role="dialog"
+      aria-modal="false"
+      aria-label="메모"
+      className="fixed inset-y-0 right-0 z-[70] flex w-[420px] max-w-[calc(100vw-56px)] flex-col border-l border-foreground/15 bg-background shadow-2xl"
+    >
         {/* 헤더 */}
         <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-foreground/20">
           {view !== 'list' ? (
@@ -564,7 +568,6 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+    </aside>
   );
 };

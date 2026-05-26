@@ -216,7 +216,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   <h3 className="text-[22px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.03em]">
                     {({
                       law: '법률 질문은 무엇이든 물어보세요.',
-                      drug: '의약품·건강 궁금증을 물어보세요.',
+                      drug: '증상·복용약·건강 고민을 물어보세요.',
                       finance: '재무·투자 고민을 물어보세요.',
                       realestate: '부동산 궁금증을 물어보세요.',
                       tax: '세금·절세 질문을 물어보세요.',
@@ -230,7 +230,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     </span>
                     {({
                       law: '실시간 법령 연동 · 판례 기반 근거 추론 · 법률의견서 자동 생성',
-                      drug: '의약품 DB 연동 · 약물 상호작용 분석 · SOAP Note 기반 응답',
+                      drug: '복용약 점검 · 위험 신호 확인 · 생활 관리 제안',
                       finance: '경제지표 실시간 반영 · 리스크 팩터 분석 · 포트폴리오 시뮬레이션',
                       realestate: '실거래가 분석 · 권리관계 리스크 진단 · 투자 수익률 산출',
                       tax: '세법 기반 과세 분석 · 공제항목 자동 점검 · 절세 시나리오 설계',

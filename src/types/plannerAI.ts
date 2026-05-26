@@ -68,5 +68,5 @@ export interface AIQuickAction {
   /** 이 액션을 누르면 입력창에 채워질 (또는 바로 전송될) 사용자 프롬프트. */
   prompt: string;
   /** 어느 view 에서 의미 있는지. 명시 없으면 모든 view 표시. */
-  visibleOn?: ReadonlyArray<'day' | 'week' | 'month' | 'year' | 'goals' | 'habits'>;
+  visibleOn?: ReadonlyArray<'day' | 'week' | 'month' | 'year' | 'habits'>;
 }

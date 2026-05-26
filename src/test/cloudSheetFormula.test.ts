@@ -19,7 +19,7 @@ describe('formula — 에러 처리', () => {
 
   it('IFNA — #N/A 만 대체', () => {
     // VLOOKUP miss → #N/A
-    expect(evaluate('IFNA(VLOOKUP(99, A1:B2, 2, 2), "없음")', {
+    expect(evaluate('IFNA(VLOOKUP(99, A1:B2, 2, FALSE), "없음")', {
       A1: '1', B1: 'a', A2: '2', B2: 'b',
     })).toBe('없음');
   });
@@ -68,6 +68,153 @@ describe('formula — XLOOKUP', () => {
     expect(evaluate('XLOOKUP("z", A1:A2, B1:B2, "없어요")', {
       A1: 'a', B1: '1', A2: 'b', B2: '2',
     })).toBe('없어요');
+  });
+});
+
+describe('formula — Excel-compatible lookup ranges', () => {
+  it('VLOOKUP infers the table width from a standard range', () => {
+    expect(evaluate('VLOOKUP("b", A1:C3, 3, FALSE)', {
+      A1: 'a', B1: 'red', C1: '10',
+      A2: 'b', B2: 'blue', C2: '20',
+      A3: 'c', B3: 'green', C3: '30',
+    })).toBe('20');
+  });
+
+  it('HLOOKUP infers the table width from a standard range', () => {
+    expect(evaluate('HLOOKUP("Q2", A1:C3, 3, FALSE)', {
+      A1: 'Q1', B1: 'Q2', C1: 'Q3',
+      A2: '10', B2: '20', C2: '30',
+      A3: '11', B3: '22', C3: '33',
+    })).toBe('22');
+  });
+
+  it('VLOOKUP and HLOOKUP support Excel approximate range lookup', () => {
+    expect(evaluate('VLOOKUP(25, A1:C3, 3)', {
+      A1: '10', B1: 'basic', C1: 'low',
+      A2: '20', B2: 'plus', C2: 'mid',
+      A3: '30', B3: 'pro', C3: 'high',
+    })).toBe('mid');
+    expect(evaluate('HLOOKUP(25, A1:C3, 3)', {
+      A1: '10', B1: '20', C1: '30',
+      A2: 'basic', B2: 'plus', C2: 'pro',
+      A3: 'low', B3: 'mid', C3: 'high',
+    })).toBe('mid');
+  });
+
+  it('INDEX supports row and column arguments on a rectangular range', () => {
+    expect(evaluate('INDEX(A1:C3, 2, 3)', {
+      A1: 'a', B1: 'b', C1: 'c',
+      A2: 'd', B2: 'e', C2: 'f',
+      A3: 'g', B3: 'h', C3: 'i',
+    })).toBe('f');
+  });
+
+  it('XMATCH supports exact and nearest numeric matches', () => {
+    const ctx = { A1: '10', A2: '20', A3: '30' };
+    expect(evaluate('XMATCH(20, A1:A3)', ctx)).toBe('2');
+    expect(evaluate('XMATCH(25, A1:A3, 1)', ctx)).toBe('3');
+    expect(evaluate('XMATCH(25, A1:A3, -1)', ctx)).toBe('2');
+  });
+
+  it('MATCH supports Excel match_type modes and XMATCH wildcard/reverse search', () => {
+    const ctx = { A1: '10', A2: '20', A3: '30', B1: 'alpha', B2: 'beta', B3: 'beta', B4: 'b*literal' };
+    expect(evaluate('MATCH(25, A1:A3)', ctx)).toBe('2');
+    expect(evaluate('MATCH(25, A1:A3, -1)', ctx)).toBe('3');
+    expect(evaluate('MATCH(20, A1:A3, 0)', ctx)).toBe('2');
+    expect(evaluate('XMATCH("b*", B1:B3, 2)', ctx)).toBe('2');
+    expect(evaluate('XMATCH("beta", B1:B3, 0, -1)', ctx)).toBe('3');
+    expect(evaluate('XMATCH("b~*literal", B1:B4, 2)', ctx)).toBe('4');
+  });
+
+  it('ROWS/COLUMNS and ROW/COLUMN use range metadata', () => {
+    expect(evaluate('ROWS(B2:D5)')).toBe('4');
+    expect(evaluate('COLUMNS(B2:D5)')).toBe('3');
+    expect(evaluate('ROW(B2:D5)')).toBe('2');
+    expect(evaluate('COLUMN(B2:D5)')).toBe('2');
+    expect(evalCell('C7', { C7: '=ROW()+COLUMN()' })).toBe('10');
+  });
+
+  it('resolves Excel table structured references', () => {
+    const cells: Cells = {
+      A1: 'Name', B1: 'Score', C1: 'Adjusted',
+      A2: 'Ada', B2: '10', C2: '=[@Score]*2',
+      A3: 'Lin', B3: '20', C3: '=Table1[@Score]+5',
+      D1: '=SUM(Table1[Score])',
+      D2: '=ROWS(Table1[#Data])',
+      D3: '=COLUMNS(Table1[#All])',
+      D4: '=INDEX(Table1[[#All],[Score]],1)',
+      D5: '=Table1[[#This Row],[Score]]',
+      D6: '=SUM(Table1[[Score]:[Adjusted]])',
+      D7: '=SUM(Table1[[#Data],[Score]:[Adjusted]])',
+      D8: '=COLUMNS(Table1[[#Headers],[Score]:[Adjusted]])',
+      D9: '=SUM([@[Score]:[Adjusted]])',
+    };
+    const ctx = {
+      currentName: 'Sheet1',
+      tables: {
+        Sheet1: [{
+          name: 'Table1',
+          ref: 'A1:C3',
+          headerRow: true,
+          totalsRow: false,
+          columns: [{ name: 'Name' }, { name: 'Score' }, { name: 'Adjusted' }],
+        }],
+      },
+    };
+    expect(evalCell('C2', cells, ctx)).toBe('20');
+    expect(evalCell('C3', cells, ctx)).toBe('25');
+    expect(evalCell('D1', cells, ctx)).toBe('30');
+    expect(evalCell('D2', cells, ctx)).toBe('2');
+    expect(evalCell('D3', cells, ctx)).toBe('3');
+    expect(evalCell('D4', cells, ctx)).toBe('Score');
+    expect(evalCell('D5', cells, ctx)).toBe('#ERROR');
+    expect(evalCell('D6', cells, ctx)).toBe('75');
+    expect(evalCell('D7', cells, ctx)).toBe('75');
+    expect(evalCell('D8', cells, ctx)).toBe('2');
+    expect(evalCell('D9', cells, ctx)).toBe('#ERROR');
+  });
+
+  it('resolves current-row Excel table column ranges', () => {
+    const cells: Cells = {
+      A1: 'Name', B1: 'Score', C1: 'Adjusted', D1: 'Total',
+      A2: 'Ada', B2: '10', C2: '20', D2: '=SUM([@[Score]:[Adjusted]])',
+    };
+    const ctx = {
+      currentName: 'Sheet1',
+      tables: {
+        Sheet1: [{
+          name: 'Table1',
+          ref: 'A1:D2',
+          headerRow: true,
+          totalsRow: false,
+          columns: [{ name: 'Name' }, { name: 'Score' }, { name: 'Adjusted' }, { name: 'Total' }],
+        }],
+      },
+    };
+    expect(evalCell('D2', cells, ctx)).toBe('30');
+  });
+});
+
+describe('formula — shared evaluation cache', () => {
+  it('memoizes formula results during a calculation pass', () => {
+    const cells: Cells = {
+      A1: '10',
+      A2: '=A1*2',
+      A3: '=A2+5',
+      B1: '=A3+A2',
+    };
+    const formulaCache = new Map<string, string>();
+    expect(evalCell('B1', cells, { formulaCache })).toBe('45');
+    expect(formulaCache.get('__default__!A2')).toBe('20');
+    expect(formulaCache.get('__default__!A3')).toBe('25');
+    expect(formulaCache.get('__default__!B1')).toBe('45');
+  });
+
+  it('keeps circular references guarded while caching completed formulas', () => {
+    const formulaCache = new Map<string, string>();
+    expect(evalCell('A1', { A1: '=A2+1', A2: '=A1+1' }, { formulaCache })).toBe('2');
+    expect(formulaCache.has('__default__!A1')).toBe(false);
+    expect(formulaCache.has('__default__!A2')).toBe(false);
   });
 });
 
@@ -136,6 +283,32 @@ describe('formula — 수치', () => {
   it('CEILING / FLOOR — 배수', () => {
     expect(evaluate('CEILING(23, 10)')).toBe('30');
     expect(evaluate('FLOOR(23, 10)')).toBe('20');
+  });
+
+  it('PRODUCT / SUMPRODUCT / CHOOSE', () => {
+    expect(evaluate('PRODUCT(A1:A3)', { A1: '2', A2: '3', A3: '4' })).toBe('24');
+    expect(evaluate('SUMPRODUCT(A1:A3, B1:B3)', {
+      A1: '2', A2: '3', A3: '4',
+      B1: '10', B2: '20', B3: '30',
+    })).toBe('200');
+    expect(evaluate('CHOOSE(2, "red", "blue", "green")')).toBe('blue');
+  });
+
+  it('SUBTOTAL supports Excel aggregate function numbers', () => {
+    const ctx: Cells = { A1: '10', A2: '20', A3: 'text', A4: '', A5: '30' };
+    expect(evaluate('SUBTOTAL(9, A1:A5)', ctx)).toBe('60');
+    expect(evaluate('SUBTOTAL(109, A1:A5)', ctx)).toBe('60');
+    expect(evaluate('SUBTOTAL(1, A1:A5)', ctx)).toBe('20');
+    expect(evaluate('SUBTOTAL(2, A1:A5)', ctx)).toBe('3');
+    expect(evaluate('SUBTOTAL(3, A1:A5)', ctx)).toBe('4');
+    expect(evaluate('SUBTOTAL(4, A1:A5)', ctx)).toBe('30');
+    expect(evaluate('SUBTOTAL(5, A1:A5)', ctx)).toBe('10');
+    expect(evaluate('SUBTOTAL(6, A1:A3)', { A1: '2', A2: '3', A3: '4' })).toBe('24');
+  });
+
+  it('SUBTOTAL returns Excel-like errors for invalid or empty aggregates', () => {
+    expect(evaluate('SUBTOTAL(99, A1:A2)', { A1: '1', A2: '2' })).toBe('#VALUE!');
+    expect(evaluate('SUBTOTAL(1, A1:A2)', { A1: '', A2: 'text' })).toBe('#DIV/0!');
   });
 
   it('COUNTA / COUNTBLANK', () => {

@@ -78,7 +78,7 @@ function makeQuiz(question: string, choices: string[], answerIndex: number, expl
 const SAMPLE_SLEEP: StudyNotebook = {
   id: sid('nb'),
   title: '왜 우리는 잠을 자야 할까',
-  icon: '🧠',
+  icon: 'Brain',
   description: `${SAMPLE_DESC_TOKEN}수면의 과학 — AI 가 만든 요약·퀴즈·플래시카드를 체험해보세요`,
   sources: [makeSource('수면의 과학.txt', `
 # 왜 우리는 잠을 자야 할까 — 수면의 과학
@@ -202,7 +202,7 @@ const SAMPLE_SLEEP: StudyNotebook = {
 const SAMPLE_LLM: StudyNotebook = {
   id: sid('nb'),
   title: 'ChatGPT 는 어떻게 작동하나',
-  icon: '🤖',
+  icon: 'Bot',
   description: `${SAMPLE_DESC_TOKEN}LLM 쉽게 이해하기 — AI 로 AI 를 공부해보는 재미`,
   sources: [makeSource('LLM 기초.txt', `
 # ChatGPT 는 어떻게 작동하나 — LLM 쉽게 이해하기
@@ -350,7 +350,7 @@ LLM 은 "사실" 을 저장하지 않는다. 텍스트 패턴을 저장한다. �
 const SAMPLE_STUDY: StudyNotebook = {
   id: sid('nb'),
   title: '기억력을 10배 높이는 공부법',
-  icon: '📚',
+  icon: 'GraduationCap',
   description: `${SAMPLE_DESC_TOKEN}파인만 · 분산 반복 · 인출 연습 — 검증된 학습 전략`,
   sources: [makeSource('효과적 공부법.txt', `
 # 기억력을 10배 높이는 공부법 — 과학이 증명한 전략
@@ -508,7 +508,7 @@ const SAMPLE_STUDY: StudyNotebook = {
 const SAMPLE_OLBERS: StudyNotebook = {
   id: sid('nb'),
   title: '우주는 왜 어두운가',
-  icon: '🌌',
+  icon: 'Sparkles',
   description: `${SAMPLE_DESC_TOKEN}올베르스의 역설 — 밤하늘 뒤에 숨은 우주의 진실`,
   sources: [makeSource('올베르스의 역설.txt', `
 # 우주는 왜 어두운가 — 올베르스의 역설
@@ -645,7 +645,7 @@ const SAMPLE_OLBERS: StudyNotebook = {
 
 export const SAMPLE_FOLDER: StudyFolder = {
   id: sid('fld'),
-  name: '📚 둘러보기 (체험)',
+  name: '예시 자료',
   createdAt: Date.now(),
   color: '#4338CA', // indigo-700
 };

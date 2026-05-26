@@ -7,7 +7,6 @@ export const GENERAL_IMAGE_URL = '/api/general-image';
 export const GENERAL_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 
 export const LazyAppSidebar = lazy(() => import('@/components/AppSidebar').then((module) => ({ default: module.AppSidebar })));
-export const LazyModePaletteModal = lazy(() => import('@/components/ModePaletteModal').then((module) => ({ default: module.ModePaletteModal })));
 export const LazyMentalTestBrowserModal = lazy(() => import('@/components/MentalTestBrowserModal').then((module) => ({ default: module.MentalTestBrowserModal })));
 export const LazyBookmarkGridModal = lazy(() => import('@/components/BookmarkGridModal').then((module) => ({ default: module.BookmarkGridModal })));
 export const LazyCommandPalette = lazy(() => import('@/components/CommandPalette').then((module) => ({ default: module.CommandPalette })));

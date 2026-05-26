@@ -77,6 +77,7 @@ export async function filesToStudySources(
         /* ignore */
       }
       let extracted = processed?.extractedText || '';
+      let sourceStatus: StudySource['status'] = 'ready';
       if (extracted.startsWith('[')) {
         if (!blobRef) {
           errors.push(`"${f.name}": ${extracted.replace(/^\[|\]$/g, '')}`);
@@ -85,20 +86,20 @@ export async function filesToStudySources(
         // Phase 1: 스캔본·이미지 위주여도 거부하지 않음. placeholder + 백그라운드 OCR.
         extracted = '(원본에서 OCR 로 텍스트를 추출하는 중입니다. 잠시 후 자동으로 채워집니다.)';
       }
+      if (extracted.startsWith('(') && /OCR/i.test(extracted)) {
+        extracted = '(원본에서 OCR 로 텍스트를 추출하는 중입니다. 잠시 후 자동으로 채워집니다.)';
+        sourceStatus = 'processing';
+      }
       if (!blobRef && extracted.length < 50) {
         errors.push(`"${f.name}": 텍스트를 추출하지 못했어요.`);
         continue;
       }
 
-      // Phase 4: PDF 면 모든 페이지를 OCR 대상으로 설정. 사용자 요청:
-      // "어떤 자료를 넣던지간에 글씨·그림 싹다 읽어버리고" — 강의 슬라이드처럼
-      // 페이지마다 native 가 약간 있어도 그림 라벨까지 잡으려면 모든 페이지 OCR 필요.
-      // 시간 비용은 사용자가 OK. IDB 캐시로 재업로드 시 무료.
       const pageCount = processed?.pageCount ?? 0;
-      const allPagesForOcr: number[] = kind === 'pdf' && pageCount > 0
-        ? Array.from({ length: pageCount }, (_, i) => i + 1)
-        : (processed?.scanPages ?? []);
-      const autoOcr = kind === 'pdf' ? pageCount > 0 : false;
+      const pagesForOcr: number[] = kind === 'pdf'
+        ? (processed?.scanPages ?? [])
+        : [];
+      const autoOcr = kind === 'pdf' && pagesForOcr.length > 0;
 
       // Phase 3: PDF outline/bookmark 추출. AI 챕터 추측보다 정확한 TOC 를 ground truth 로.
       // 실패해도 치명적이지 않음 (LLM 폴백).
@@ -124,12 +125,13 @@ export async function filesToStudySources(
         content: extracted,
         addedAt: Date.now(),
         enabled: true,
-        status: 'ready',
+        status: extracted.startsWith('(') && /OCR/i.test(extracted) ? 'processing' : sourceStatus,
         blobRef,
         mimeType: fileMime,
         pageCount: processed?.pageCount,
         renderMode,
-        scanPages: allPagesForOcr.length > 0 ? allPagesForOcr : undefined,
+        thumbnail: processed?.thumbnail,
+        scanPages: pagesForOcr.length > 0 ? pagesForOcr : undefined,
         ocrEnabled: autoOcr || undefined,
         outline,
         nativeText,

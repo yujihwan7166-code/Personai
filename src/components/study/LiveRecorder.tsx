@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Square, Pause, Play, Bookmark, X } from 'lucide-react';
+import { Square, Pause, Play, Bookmark, X, Mic } from 'lucide-react';
 import type { StudySource } from '@/types/study';
 import { newId } from '@/types/study';
 import { StudyBtn } from './ui/primitives';
@@ -85,28 +85,33 @@ export function LiveRecorder({ onClose, onDone }: Props) {
       minute: '2-digit',
     })}`;
     const bookmarkText = bookmarks.length
-      ? `\n\n📌 북마크 시점: ${bookmarks.map((s) => formatTime(s)).join(', ')}`
+      ? `\n\n북마크 시점: ${bookmarks.map((s) => formatTime(s)).join(', ')}`
       : '';
 
     let content = `[녹음 — ${formatTime(elapsed)}]${bookmarkText}\n\n`;
     try {
       const base64 = await blobToBase64(blob);
-      const r = await fetch('/api/study-transcribe', {
+      const r = await fetch('/api/voice-transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audioBase64: base64, mimeType: blob.type }),
       });
       const data = await r.json();
       if (r.ok && data.text) {
-        content += data.text;
+        const segments = Array.isArray(data.segments)
+          ? data.segments
+              .filter((segment: { text?: string }) => segment.text?.trim())
+              .map((segment: { start?: number; text?: string }) => `[${formatTime(Math.max(0, Math.floor(Number(segment.start) || 0)))}] ${segment.text?.trim()}`)
+          : [];
+        content += segments.length > 0 ? segments.join('\n') : data.text;
       } else if (r.status === 501) {
         content +=
-          '※ 자동 전사가 아직 연결되지 않았어요. 녹음 메모만 저장됐으니 필요한 부분을 직접 적어주세요.';
+          '전사 서비스를 사용할 수 없어요. 서버 설정을 확인한 뒤 다시 녹음하거나, 이 녹음 메모에 직접 내용을 적어주세요.';
       } else {
-        content += `※ 전사 실패: ${data?.error || '알 수 없는 오류'}`;
+        content += `전사 실패: ${data?.error || '알 수 없는 오류'}`;
       }
     } catch {
-      content += '※ 전사 중 네트워크 오류가 발생했어요.';
+      content += '전사 중 네트워크 오류가 발생했어요. 연결 상태를 확인한 뒤 다시 시도해주세요.';
     }
 
     const source: StudySource = {
@@ -134,7 +139,9 @@ export function LiveRecorder({ onClose, onDone }: Props) {
 
       {error ? (
         <div className="text-center max-w-sm">
-          <div className="text-5xl mb-4">🎙️</div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-red-200">
+            <Mic className="h-7 w-7" strokeWidth={1.8} />
+          </div>
           <p className="text-sm text-red-300">{error}</p>
           <StudyBtn variant="outline" className="mt-6" onClick={onClose}>
             닫기

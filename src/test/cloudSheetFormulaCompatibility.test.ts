@@ -60,6 +60,30 @@ describe('cloud sheet formula quoted sheet name compatibility', () => {
 });
 
 describe('cloud sheet formula conditional aggregation compatibility', () => {
+  it('matches COUNTIF/SUMIF criteria with Excel-style case-insensitive wildcards', () => {
+    const ctx = {
+      A1: 'Apple', B1: '10',
+      A2: 'apricot', B2: '20',
+      A3: 'Banana', B3: '30',
+      A4: 'A*literal', B4: '40',
+    };
+    expect(evaluate('COUNTIF(A1:A4, "ap*")', ctx)).toBe('2');
+    expect(evaluate('COUNTIF(A1:A4, "<>ap*")', ctx)).toBe('2');
+    expect(evaluate('COUNTIF(A1:A4, "A~*literal")', ctx)).toBe('1');
+    expect(evaluate('SUMIF(A1:A4, "=AP*", B1:B4)', ctx)).toBe('30');
+  });
+
+  it('applies Excel-style wildcard criteria across COUNTIFS and AVERAGEIFS', () => {
+    const ctx = {
+      A1: 'West', B1: 'Open', C1: '10',
+      A2: 'west', B2: 'Closed', C2: '20',
+      A3: 'East', B3: 'Open', C3: '30',
+      A4: 'West', B4: 'Open', C4: '50',
+    };
+    expect(evaluate('COUNTIFS(A1:A4, "WEST", B1:B4, "O*")', ctx)).toBe('2');
+    expect(evaluate('AVERAGEIFS(C1:C4, A1:A4, "w*", B1:B4, "<>Closed")', ctx)).toBe('30');
+  });
+
   it('supports AVERAGEIF with same-range and separate average-range forms', () => {
     expect(evaluate('AVERAGEIF(A1:A4, ">=20")', {
       A1: '10', A2: '20', A3: '30', A4: 'text',
@@ -93,6 +117,45 @@ describe('cloud sheet formula conditional aggregation compatibility', () => {
       A1: 'West', B1: '10',
       A2: 'East', B2: '20',
     })).toBe('none');
+  });
+});
+
+describe('cloud sheet formula numeric aggregation compatibility', () => {
+  it('ignores blanks and text in range aggregations like Excel', () => {
+    const ctx = {
+      A1: '10',
+      A2: '',
+      A3: 'text',
+      A4: '20',
+    };
+    expect(evaluate('AVERAGE(A1:A4)', ctx)).toBe('15');
+    expect(evaluate('MIN(A1:A4)', ctx)).toBe('10');
+    expect(evaluate('MAX(A1:A4)', ctx)).toBe('20');
+    expect(evaluate('PRODUCT(A1:A4)', ctx)).toBe('200');
+  });
+
+  it('keeps SUMPRODUCT text-compatible by treating non-numeric paired cells as zero', () => {
+    expect(evaluate('SUMPRODUCT(A1:A3, B1:B3)', {
+      A1: '2', B1: '10',
+      A2: 'x', B2: '10',
+      A3: '4', B3: '',
+    })).toBe('20');
+  });
+});
+
+describe('cloud sheet formula statistical compatibility', () => {
+  it('supports common Excel statistical functions and dotted aliases', () => {
+    const ctx = { A1: '1', A2: '2', A3: '3', A4: '4' };
+    expect(evaluate('LARGE(A1:A4, 2)', ctx)).toBe('3');
+    expect(evaluate('SMALL(A1:A4, 2)', ctx)).toBe('2');
+    expect(evaluate('PERCENTILE.INC(A1:A4, 0.75)', ctx)).toBe('3.25');
+    expect(evaluate('PERCENTILE.EXC(A1:A4, 0.5)', ctx)).toBe('2.5');
+    expect(evaluate('QUARTILE.INC(A1:A4, 1)', ctx)).toBe('1.75');
+    expect(evaluate('QUARTILE.EXC(A1:A4, 2)', ctx)).toBe('2.5');
+    expect(evaluate('STDEV.S(A1:A4)', ctx)).toBe('1.290994');
+    expect(evaluate('STDEV.P(A1:A4)', ctx)).toBe('1.118034');
+    expect(evaluate('VAR.S(A1:A4)', ctx)).toBe('1.666667');
+    expect(evaluate('VAR.P(A1:A4)', ctx)).toBe('1.25');
   });
 });
 
