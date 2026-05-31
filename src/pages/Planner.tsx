@@ -852,8 +852,8 @@ const Planner = () => {
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
         <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
-          {/* 날짜 레이블 (가장 왼쪽에 배치하여 시각적 위계와 인지 극대화) & 시간 네비게이션 알약 캡슐 */}
-          <div className="shrink-0 flex items-center gap-2.5 min-w-0">
+          {/* 날짜 레이블 (가장 왼쪽에 배치하여 시각적 위계와 인지 극대화, X축 정적 위치 고정을 위해 lg:w-[350px] 고정 폭 부여) */}
+          <div className="shrink-0 flex items-center gap-2.5 min-w-0 lg:w-[350px]">
             <div className="min-w-0 flex items-baseline gap-2.5 px-1 self-center">
               <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
                 {headerLabels.primary}
@@ -875,12 +875,10 @@ const Planner = () => {
                 </button>
               )}
             </div>
-
-
           </div>
 
-          {/* 뷰 토글 이웃 배치 — 우측 상단 글로벌 헤더와의 겹침을 100% 방지하기 위해 날짜 옆에 은은한 여백(lg:ml-6)을 두고 나란히 배치 */}
-          <div className="flex min-w-0 lg:ml-6 shrink-0">
+          {/* 뷰 토글 고정 정렬 — 좌측 날짜 영역이 고정 너비(350px)를 확보했으므로 데스크톱 기준 완벽히 정지된 축에 안착 */}
+          <div className="flex min-w-0 shrink-0">
             <ViewToggle value={view} onChange={setView} />
           </div>
 
