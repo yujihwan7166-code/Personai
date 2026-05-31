@@ -25,7 +25,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/5 bg-secondary/35 p-1 sm:inline-flex sm:w-auto sm:overflow-visible"
+    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/5 bg-foreground/5 backdrop-blur-md p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)]"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
@@ -38,10 +38,10 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
           onClick={() => onChange(opt.id)}
           title={`${opt.label} (${opt.key})`}
           className={cn(
-            'relative px-4 h-7 rounded-lg text-[13px] font-semibold tabular-nums transition-colors duration-200 outline-none',
+            'relative px-3.5 sm:px-4 h-7 rounded-lg text-[13px] tabular-nums transition-colors duration-300 outline-none select-none',
             active
-              ? 'text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground',
+              ? 'text-foreground font-bold'
+              : 'text-muted-foreground hover:text-foreground font-medium',
           )}
         >
           {active && (
@@ -49,10 +49,10 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
               layoutId="active-view-capsule"
               transition={{
                 type: 'spring',
-                stiffness: 420,
-                damping: 32,
+                stiffness: 400,
+                damping: 30,
               }}
-              className="absolute inset-0 bg-primary rounded-lg shadow-sm"
+              className="absolute inset-0 bg-card border hairline rounded-lg shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.06)]"
               style={{ originY: '0px' }}
             />
           )}

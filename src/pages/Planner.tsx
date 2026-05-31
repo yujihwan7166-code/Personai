@@ -850,74 +850,76 @@ const Planner = () => {
         }}
       />
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* ── Universal top bar ── 모든 뷰 공유.
-            [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [대칭 스페이서 (우)] */}
-        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-          {/* 시간 네비 cluster — habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
-          <div className="shrink-0 flex max-w-full items-center gap-1.5 lg:justify-start min-w-0">
-              {view !== 'habits' && (
+        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측: 캡슐화된 탐색 바 + 날짜] ↔ [우측: 오른쪽 정렬된 뷰 토글] */}
+        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center lg:justify-between">
+          {/* 좌측 영역: 시간 네비게이션 및 날짜 레이블 */}
+          <div className="shrink-0 flex items-center gap-2.5 min-w-0">
+            {view !== 'habits' && (
+              <div className="flex items-center gap-0.5 bg-secondary/35 border border-foreground/5 rounded-xl p-0.5 sm:p-1 shrink-0">
                 <button
                   type="button"
                   onClick={goPrev}
                   aria-label="이전"
                   title="이전 (←)"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
-                  <ChevronLeft className="h-[18px] w-[18px]" />
+                  <ChevronLeft className="h-[16px] w-[16px]" />
                 </button>
-              )}
-              <div className="min-w-0 flex items-baseline gap-2 px-1">
-                <h2 className="font-display text-[30px] sm:text-[34px] font-semibold tracking-tight text-foreground leading-tight truncate">
-                  {headerLabels.primary}
-                </h2>
-                {headerLabels.secondary && (
-                  <span className="hidden sm:inline text-[14px] sm:text-[15px] text-muted-foreground tabular-nums font-medium leading-tight">
-                    {headerLabels.secondary}
-                  </span>
-                )}
-                {view === 'habits' && (
+                {view === 'day' && (
                   <button
                     type="button"
-                    onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
-                    title="새 습관 추가"
-                    className="ml-1 inline-flex items-center gap-1 h-8 px-3 rounded-full border hairline bg-card text-[12.5px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
+                    onClick={goToday}
+                    aria-label="오늘로"
+                    title="오늘로 (T)"
+                    className={cn(
+                      "h-7 px-2.5 text-[12px] font-semibold rounded-lg transition-colors shrink-0",
+                      anchorIsToday
+                        ? "text-muted-foreground/35 pointer-events-none"
+                        : "bg-primary text-primary-foreground shadow-sm hover:brightness-[1.04]"
+                    )}
                   >
-                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                    새 습관
+                    오늘
                   </button>
                 )}
-              </div>
-              {view !== 'habits' && (
                 <button
                   type="button"
                   onClick={goNext}
                   aria-label="다음"
                   title="다음 (→)"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
-                  <ChevronRight className="h-[18px] w-[18px]" />
+                  <ChevronRight className="h-[16px] w-[16px]" />
                 </button>
+              </div>
+            )}
+            
+            <div className="min-w-0 flex items-baseline gap-2 px-1 self-center">
+              <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
+                {headerLabels.primary}
+              </h2>
+              {headerLabels.secondary && (
+                <span className="hidden sm:inline text-[13px] sm:text-[14px] text-muted-foreground tabular-nums font-semibold leading-tight">
+                  {headerLabels.secondary}
+                </span>
               )}
-              {view === 'day' && !anchorIsToday && (
+              {view === 'habits' && (
                 <button
                   type="button"
-                  onClick={goToday}
-                  aria-label="오늘로"
-                  title="오늘로 (T)"
-                  className="ml-1 h-7 px-2.5 text-[12px] font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                  onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
+                  title="새 습관 추가"
+                  className="ml-1 inline-flex items-center gap-1 h-7 px-3 rounded-full border hairline bg-card text-[12px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
                 >
-                  오늘로
+                  <Plus className="h-3 w-3" strokeWidth={2.5} />
+                  새 습관
                 </button>
               )}
+            </div>
           </div>
 
-          {/* 뷰 토글 — 날짜 nav 바로 옆. */}
-          <div className="flex min-w-0 lg:justify-center">
+          {/* 우측 영역: 뷰 토글 — 중앙에서 땡그라니 뜨지 않도록 우측 끝으로 밀어 균형을 맞춤 */}
+          <div className="flex min-w-0 lg:justify-end">
             <ViewToggle value={view} onChange={setView} />
           </div>
-
-          {/* spacer — 대칭 정렬용 Spacer */}
-          <div className="hidden lg:block min-w-0 lg:justify-end" />
 
         </div>
 
