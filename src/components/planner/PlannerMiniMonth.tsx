@@ -81,7 +81,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
           aria-label="달력 년월 선택"
-          className="h-7 rounded-md px-3 text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-violet-500/10"
+          className="h-7 rounded-md px-3 text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-primary/10 hover:text-primary"
         >
           {monthLabel}
         </button>
@@ -90,14 +90,14 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
           <div
             role="dialog"
             aria-label="년월 선택"
-            className="absolute left-1/2 top-8 z-20 w-[210px] -translate-x-1/2 rounded-xl border border-violet-500/15 bg-card p-2.5 shadow-[0_10px_30px_hsl(30_15%_8%/0.14)]"
+            className="absolute left-1/2 top-8 z-20 w-[210px] -translate-x-1/2 rounded-xl border border-primary/15 bg-card p-2.5 shadow-[0_10px_30px_hsl(30_15%_8%/0.14)]"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => setYear(viewYear - 1)}
                 aria-label="이전 년도"
-                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-violet-500/10 hover:text-foreground"
+                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
               >
                 -
               </button>
@@ -106,7 +106,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
                 type="button"
                 onClick={() => setYear(viewYear + 1)}
                 aria-label="다음 년도"
-                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-violet-500/10 hover:text-foreground"
+                className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
               >
                 +
               </button>
@@ -121,8 +121,8 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
                   className={cn(
                     'h-8 rounded-md text-[12px] font-medium tabular-nums transition-colors',
                     index === viewMonthIndex
-                      ? 'bg-violet-500 text-white'
-                      : 'text-muted-foreground hover:bg-violet-500/10 hover:text-violet-700',
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
                   )}
                 >
                   {label}
@@ -167,8 +167,8 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
                 inMonth && !isSelected && !isToday && 'text-foreground/85 hover:bg-accent',
                 inMonth && !isSelected && dayOfWeek === 0 && 'text-rose-500/80',
                 inMonth && !isSelected && dayOfWeek === 6 && 'text-blue-500/80',
-                isToday && !isSelected && 'text-violet-700 ring-1 ring-violet-400/70',
-                isSelected && 'bg-violet-500 text-white hover:bg-violet-600',
+                isToday && !isSelected && 'text-primary ring-1 ring-primary/60 animate-pulse font-semibold',
+                isSelected && 'bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm',
               )}
             >
               <span className="leading-none">{date.getDate()}</span>
@@ -179,3 +179,4 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
     </section>
   );
 };
+
