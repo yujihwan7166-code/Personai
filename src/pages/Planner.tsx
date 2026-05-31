@@ -876,29 +876,7 @@ const Planner = () => {
               )}
             </div>
 
-            {view !== 'habits' && (
-              <div className="flex items-center gap-0.5 bg-secondary/35 border border-foreground/5 rounded-xl p-0.5 sm:p-1 shrink-0 ml-1">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="이전"
-                  title="이전 (←)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-                >
-                  <ChevronLeft className="h-[16px] w-[16px]" />
-                </button>
 
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="다음"
-                  title="다음 (→)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-                >
-                  <ChevronRight className="h-[16px] w-[16px]" />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* 뷰 토글 이웃 배치 — 우측 상단 글로벌 헤더와의 겹침을 100% 방지하기 위해 날짜 옆에 은은한 여백(lg:ml-6)을 두고 나란히 배치 */}
