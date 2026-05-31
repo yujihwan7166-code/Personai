@@ -407,21 +407,21 @@ const Planner = () => {
     return `${d.getFullYear()}년`;
   }, [anchorIso, view]);
 
-  // 헤더 라벨 — day 뷰만 "오늘"/"내일" smart label + 보조 라벨, 그 외 periodLabel.
-  // habits 뷰는 시간 네비 무관 — "오늘 + 날짜" 로 컨텍스트 명확화.
+  // 헤더 라벨 — 시인성을 극대화하기 위해 구체적인 '오늘 날짜'를 최우선 맨 처음에 크게(primary) 보여주고,
+  // 해당 날짜가 '오늘' 또는 '내일' 인지 여부는 보조 라벨(secondary)로 뒤따르게 하여 자연스러운 시선 흐름 제공.
   const headerLabels = useMemo<{ primary: string; secondary?: string }>(() => {
     if (view === 'habits') {
       const t = new Date();
-      const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-      return { primary: '오늘', secondary: fullLabel };
+      const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+      return { primary: fullLabel, secondary: '오늘' };
     }
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
     const t = new Date();
     const tm = new Date(t); tm.setDate(t.getDate() + 1);
-    const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-    if (isSameDay(d, t)) return { primary: '오늘', secondary: fullLabel };
-    if (isSameDay(d, tm)) return { primary: '내일', secondary: fullLabel };
+    const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+    if (isSameDay(d, t)) return { primary: fullLabel, secondary: '오늘' };
+    if (isSameDay(d, tm)) return { primary: fullLabel, secondary: '내일' };
     return { primary: fullLabel };
   }, [anchorIso, view, periodLabel]);
 
@@ -850,55 +850,16 @@ const Planner = () => {
         }}
       />
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 시간 탐색 바 + 날짜 + 뷰 토글 이웃 배치] */}
+        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
         <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
-          {/* 시간 네비게이션 알약 캡슐 & 날짜 */}
+          {/* 날짜 레이블 (가장 왼쪽에 배치하여 시각적 위계와 인지 극대화) & 시간 네비게이션 알약 캡슐 */}
           <div className="shrink-0 flex items-center gap-2.5 min-w-0">
-            {view !== 'habits' && (
-              <div className="flex items-center gap-0.5 bg-secondary/35 border border-foreground/5 rounded-xl p-0.5 sm:p-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="이전"
-                  title="이전 (←)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-                >
-                  <ChevronLeft className="h-[16px] w-[16px]" />
-                </button>
-                {view === 'day' && (
-                  <button
-                    type="button"
-                    onClick={goToday}
-                    aria-label="오늘로"
-                    title="오늘로 (T)"
-                    className={cn(
-                      "h-7 px-2.5 text-[12px] font-semibold rounded-lg transition-colors shrink-0",
-                      anchorIsToday
-                        ? "text-muted-foreground/35 pointer-events-none"
-                        : "bg-primary text-primary-foreground shadow-sm hover:brightness-[1.04]"
-                    )}
-                  >
-                    오늘
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="다음"
-                  title="다음 (→)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-                >
-                  <ChevronRight className="h-[16px] w-[16px]" />
-                </button>
-              </div>
-            )}
-            
-            <div className="min-w-0 flex items-baseline gap-2 px-1 self-center">
+            <div className="min-w-0 flex items-baseline gap-2.5 px-1 self-center">
               <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
                 {headerLabels.primary}
               </h2>
               {headerLabels.secondary && (
-                <span className="hidden sm:inline text-[13px] sm:text-[14px] text-muted-foreground tabular-nums font-semibold leading-tight">
+                <span className="hidden sm:inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300 self-center">
                   {headerLabels.secondary}
                 </span>
               )}
@@ -914,6 +875,30 @@ const Planner = () => {
                 </button>
               )}
             </div>
+
+            {view !== 'habits' && (
+              <div className="flex items-center gap-0.5 bg-secondary/35 border border-foreground/5 rounded-xl p-0.5 sm:p-1 shrink-0 ml-1">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="이전"
+                  title="이전 (←)"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <ChevronLeft className="h-[16px] w-[16px]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="다음"
+                  title="다음 (→)"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <ChevronRight className="h-[16px] w-[16px]" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 뷰 토글 이웃 배치 — 우측 상단 글로벌 헤더와의 겹침을 100% 방지하기 위해 날짜 옆에 은은한 여백(lg:ml-6)을 두고 나란히 배치 */}
