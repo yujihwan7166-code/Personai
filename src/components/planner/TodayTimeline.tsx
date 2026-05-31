@@ -391,9 +391,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       onClick={scrollToNow}
       title="현재 시각으로 스크롤"
       aria-label="현재 시각으로 스크롤"
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-2.5 h-[26px] rounded-md text-[11px] tabular-nums text-rose-500 bg-rose-500/6 border border-rose-500/12 hover:text-white hover:bg-rose-500 hover:border-rose-500 transition-all duration-200 font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.015)]"
     >
-      <Locate className="h-3.5 w-3.5" />
+      <Locate className="h-3 w-3" />
       지금
     </button>
   ) : null;
@@ -404,7 +404,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
       onClick={() => setCompact((v) => !v)}
       title={compact ? '24시간 모두 보기' : '주요 시간만 (7~23시)'}
       aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-2.5 h-[26px] rounded-md text-[11px] tabular-nums text-foreground/75 bg-muted/40 border border-foreground/5 hover:text-foreground hover:bg-accent hover:border-foreground/15 transition-all duration-200 font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.015)]"
     >
       {compact ? '24h' : '7-23'}
     </button>
@@ -417,7 +417,7 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
           type="button"
           title={`드래그·리사이즈 스냅 단위 — 현재 ${snapMin}분`}
           aria-label={`스냅 ${snapMin}분`}
-          className="inline-flex items-center gap-0.5 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+          className="inline-flex items-center gap-1 px-2.5 h-[26px] rounded-md text-[11px] tabular-nums text-foreground/75 bg-muted/40 border border-foreground/5 hover:text-foreground hover:bg-accent hover:border-foreground/15 transition-all duration-200 font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.015)]"
         >
           ⊞ {snapMin}분
         </button>
