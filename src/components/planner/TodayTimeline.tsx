@@ -609,7 +609,9 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
               style={{ top: adjusted }}
             >
               <div className="relative h-px bg-rose-500">
-                <span className="absolute -left-1 -top-[3px] h-[7px] w-[7px] rounded-full bg-rose-500" aria-hidden />
+                <span className="absolute -left-1.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] flex items-center justify-center" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping" />
+                </span>
               </div>
             </div>
             );
@@ -623,8 +625,12 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
             const height = Math.max(8, (minB - minA) / 60 * HOUR_PX);
             return (
               <div
-                className="absolute left-10 right-2 bg-primary/15 border border-dashed border-primary/55 rounded pointer-events-none z-25"
-                style={{ top, height }}
+                className="absolute left-10 right-2 rounded pointer-events-none z-25 border border-dashed border-primary/45 shadow-[inset_0_0_12px_rgba(var(--primary)/0.05)] transition-all duration-75"
+                style={{
+                  top,
+                  height,
+                  background: 'linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--accent) / 0.12))',
+                }}
                 aria-hidden
               />
             );

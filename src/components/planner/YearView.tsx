@@ -123,11 +123,11 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
-              'flex flex-col items-stretch p-3 rounded-2xl text-left',
-              'border hairline bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
-              'hover:border-foreground/25 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)]',
-              'transition-all',
-              mo.isCurrentMonth && 'ring-1 ring-primary/35',
+              'flex flex-col items-stretch p-3.5 rounded-2xl text-left',
+              'border border-foreground/5 bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
+              'hover:border-primary/20 hover:-translate-y-1 hover:shadow-[0_8px_20px_-4px_hsl(var(--primary)/0.08)]',
+              'transition-all duration-300 transform',
+              mo.isCurrentMonth ? 'ring-2 ring-primary/35 bg-primary/2' : 'hover:scale-[1.01]',
             )}
           >
             <header className="flex items-baseline justify-between mb-2">
@@ -169,7 +169,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                     className={cn(
                       'relative aspect-square flex items-center justify-center text-[10px] tabular-nums rounded font-medium',
                       'cursor-pointer hover:bg-accent transition-colors',
-                      cell.isToday && 'bg-foreground text-background font-semibold',
+                      cell.isToday && 'bg-primary text-primary-foreground font-bold shadow-sm ring-1 ring-primary/20 animate-pulse',
                       !cell.isToday && 'text-foreground',
                     )}
                   >
@@ -177,11 +177,11 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                     {cell.busyCount > 0 && !cell.isToday && (
                       <span
                         className={cn(
-                          'absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full',
-                          // 강도 차등: 1-2 = 작고 옅음 / 3+ = 크고 진함
+                          'absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full',
+                          // 강도 차등: 1-2 = 작고 옅은 HSL primary / 3+ = 크고 진한 rose-500
                           cell.busyCount >= 3
-                            ? 'h-[4px] w-[4px] bg-foreground'
-                            : 'h-[3px] w-[3px] bg-foreground/60',
+                            ? 'h-[4px] w-[4px] bg-rose-500 shadow-[0_0_4px_rgba(239,68,68,0.7)]'
+                            : 'h-[3px] w-[3px] bg-primary/75',
                         )}
                         aria-hidden
                       />

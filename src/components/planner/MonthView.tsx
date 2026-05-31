@@ -175,16 +175,16 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                           }
                         }}
                         className={cn(
-                          'flex flex-col items-stretch p-1.5 text-left min-w-0 min-h-0 cursor-pointer outline-none',
-                          'bg-card hover:bg-accent focus-visible:ring-1 focus-visible:ring-primary transition-colors',
-                          cell.isOtherMonth && 'bg-card/40',
+                          'flex flex-col items-stretch p-2 text-left min-w-0 min-h-0 cursor-pointer outline-none',
+                          'bg-card border border-foreground/5 transition-all duration-300 hover:bg-accent/40 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] focus-visible:ring-1 focus-visible:ring-primary rounded-lg',
+                          cell.isOtherMonth && 'bg-card/30 opacity-60',
                         )}
                       >
                         <div className="flex items-baseline justify-between mb-1">
                           <span
                             className={cn(
                               'inline-flex items-center justify-center text-[12px] font-semibold tabular-nums',
-                              cell.isToday && 'h-5 min-w-[20px] px-1 rounded-full bg-violet-500 text-white shadow-[0_1px_4px_hsl(262_83%_58%/0.28)]',
+                              cell.isToday && 'h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground shadow-[0_2px_6px_hsl(var(--primary)/0.3)] font-bold animate-pulse',
                               !cell.isToday && cell.isOtherMonth && 'text-muted-foreground/60',
                               !cell.isToday && !cell.isOtherMonth && cell.dow === 0 && 'text-rose-500',
                               !cell.isToday && !cell.isOtherMonth && cell.dow === 6 && 'text-blue-500',
@@ -262,7 +262,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                         </div>
                       </div>
                     </PopoverTrigger>
-                    <PopoverContent align="start" sideOffset={6} className="w-72 p-0 overflow-hidden">
+                    <PopoverContent align="start" sideOffset={6} className="planner-glass w-72 p-0 overflow-hidden rounded-2xl shadow-xl">
                       <DayPopoverBody
                         cellIso={cell.iso}
                         items={dayItems}
@@ -390,16 +390,15 @@ const DayPopoverBody = ({
 
       {/* 푸터 — 액션 */}
       <footer className="flex items-center gap-1.5 px-2 py-2 border-t hairline bg-card/40">
-        {onAddForDate && (
-          <button
-            type="button"
-            onClick={() => onAddForDate(cellIso)}
-            className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-md text-[12px] font-semibold border border-primary/35 text-primary bg-card hover:bg-primary hover:text-primary-foreground transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
-            새 일정
-          </button>
-        )}
+        {onAddForDate &&              <button
+                type="button"
+                onClick={() => onAddForDate(cellIso)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[12.5px] font-bold border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                새 일정
+              </button>
+        }
         {onJumpToDay && (
           <button
             type="button"
