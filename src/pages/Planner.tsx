@@ -850,9 +850,9 @@ const Planner = () => {
         }}
       />
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측: 캡슐화된 탐색 바 + 날짜] ↔ [우측: 오른쪽 정렬된 뷰 토글] */}
-        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center lg:justify-between">
-          {/* 좌측 영역: 시간 네비게이션 및 날짜 레이블 */}
+        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 시간 탐색 바 + 날짜 + 뷰 토글 이웃 배치] */}
+        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
+          {/* 시간 네비게이션 알약 캡슐 & 날짜 */}
           <div className="shrink-0 flex items-center gap-2.5 min-w-0">
             {view !== 'habits' && (
               <div className="flex items-center gap-0.5 bg-secondary/35 border border-foreground/5 rounded-xl p-0.5 sm:p-1 shrink-0">
@@ -916,8 +916,8 @@ const Planner = () => {
             </div>
           </div>
 
-          {/* 우측 영역: 뷰 토글 — 중앙에서 땡그라니 뜨지 않도록 우측 끝으로 밀어 균형을 맞춤 */}
-          <div className="flex min-w-0 lg:justify-end">
+          {/* 뷰 토글 이웃 배치 — 우측 상단 글로벌 헤더와의 겹침을 100% 방지하기 위해 날짜 옆에 은은한 여백(lg:ml-6)을 두고 나란히 배치 */}
+          <div className="flex min-w-0 lg:ml-6 shrink-0">
             <ViewToggle value={view} onChange={setView} />
           </div>
 
