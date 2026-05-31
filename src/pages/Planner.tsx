@@ -186,6 +186,27 @@ const Planner = () => {
     if (typeof window === 'undefined') return;
     try { window.localStorage.setItem('planner.ai-panel.width', String(aiPanelWidth)); } catch { /* silent */ }
   }, [aiPanelWidth]);
+
+  // 일 뷰: 좌측 할일/일정 계획 패널 접기 상태
+  const [isTaskPanelOpen, setIsTaskPanelOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = window.localStorage.getItem('planner.task-panel.open');
+      return stored !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleTaskPanel = useCallback(() => {
+    setIsTaskPanelOpen((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        try { window.localStorage.setItem('planner.task-panel.open', next ? '1' : '0'); } catch { /* silent */ }
+      }
+      return next;
+    });
+  }, []);
+
   const todayTasks = useTodayTasks();
   const showTimelinePanel = showTimeline;
   // 5분 전 + 시작 시점 브라우저 알림 (권한 있을 때만).
@@ -830,10 +851,10 @@ const Planner = () => {
       />
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유.
-            [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [페이지 스위처 (우)] */}
-        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center lg:justify-between">
+            [◀ 라벨 ▶ 오늘로]   [뷰 토글 (중앙)]   [대칭 스페이서 (우)] */}
+        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
           {/* 시간 네비 cluster — habits 뷰는 시간 네비 무관 — 라벨만 노출. */}
-          <div className="shrink-0 flex max-w-full items-center gap-1.5">
+          <div className="shrink-0 flex max-w-full items-center gap-1.5 lg:justify-start min-w-0">
               {view !== 'habits' && (
                 <button
                   type="button"
@@ -895,8 +916,8 @@ const Planner = () => {
             <ViewToggle value={view} onChange={setView} />
           </div>
 
-          {/* spacer — PageSwitcher 를 우측 끝으로 민다. */}
-          <div className="hidden lg:block flex-1" />
+          {/* spacer — 대칭 정렬용 Spacer */}
+          <div className="hidden lg:block min-w-0 lg:justify-end" />
 
         </div>
 
@@ -941,17 +962,25 @@ const Planner = () => {
                 {/* 헤더는 universal topbar 로 이동됨. day content 만 여기 — 좌측 계획/할일 + 우측 타임라인. */}
                 <div
                   className={cn(
-                    'flex-1 min-h-0 grid grid-cols-1 gap-3 sm:gap-4',
+                    'flex-1 min-h-0 grid grid-cols-1 gap-3 sm:gap-4 transition-all duration-300 ease-in-out',
                     showTimelinePanel
-                      ? 'lg:grid-cols-[390px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]'
+                      ? isTaskPanelOpen
+                        ? 'lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]'
+                        : 'lg:grid-cols-[minmax(0,1fr)]'
                       : 'lg:grid-cols-[minmax(0,760px)]',
                   )}
                 >
-                  <div className="grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0">
+                  <div
+                    className={cn(
+                      'grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0 transition-all duration-300',
+                      !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden'
+                    )}
+                  >
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
+                      onCollapse={toggleTaskPanel}
                       onAdd={() => {
                         // anchor 오늘/과거 → 지금 다음 30분 슬롯, 미래 → anchor 09:00.
                         const anchor = new Date(anchorIso);
@@ -990,6 +1019,8 @@ const Planner = () => {
                       onItemClick={handleItemClick}
                       onSlotClick={handleSlotClick}
                       hideHeader
+                      isTaskPanelOpen={isTaskPanelOpen}
+                      onToggleTaskPanel={toggleTaskPanel}
                     />
                   </div>
                   )}

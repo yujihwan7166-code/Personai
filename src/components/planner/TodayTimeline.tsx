@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays } from 'lucide-react';
+import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays, ListTodo } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -70,6 +70,8 @@ interface TodayTimelineProps {
   onSlotClick?: (slotIso: string) => void;
   /** 자체 헤더(라벨 + 7-23/지금 토글) 숨김 — 부모가 큰 헤더로 대체할 때 사용. */
   hideHeader?: boolean;
+  isTaskPanelOpen?: boolean;
+  onToggleTaskPanel?: () => void;
 }
 
 const formatHm = (iso: string): string =>
@@ -98,7 +100,14 @@ const computeHeightPx = (startIso: string, endIso: string): number => {
   return Math.max(20, (mins / 60) * HOUR_PX);
 };
 
-export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSlotClick, hideHeader }: TodayTimelineProps) => {
+export const TodayTimeline = ({
+  dateIso,
+  onItemClick,
+  onSlotClick: _externalOnSlotClick,
+  hideHeader,
+  isTaskPanelOpen,
+  onToggleTaskPanel,
+}: TodayTimelineProps) => {
   const baseDateIso = dateIso ?? new Date().toISOString();
   const itemsRaw = usePlannerToday(baseDateIso);
   const [now, setNow] = useState(new Date());
@@ -961,7 +970,20 @@ export const TodayTimeline = ({ dateIso, onItemClick, onSlotClick: _externalOnSl
     return (
       <section className="h-full min-h-0 flex flex-col rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]">
         <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
-          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+          {isTaskPanelOpen === false && onToggleTaskPanel ? (
+            <button
+              type="button"
+              onClick={onToggleTaskPanel}
+              aria-label="할 일 목록 열기"
+              title="계획 & 할 일 목록 열기"
+              className="mr-1 h-6 px-2 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-200 group"
+            >
+              <ListTodo className="h-3.5 w-3.5 group-hover:scale-105 transition-transform" strokeWidth={2.25} />
+              <span className="text-[10px] font-bold tracking-tight">할 일 열기</span>
+            </button>
+          ) : (
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+          )}
           <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
             타임라인
           </span>
