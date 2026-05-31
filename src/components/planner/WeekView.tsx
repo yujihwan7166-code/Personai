@@ -171,30 +171,31 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
             !task.listId || !hiddenListIds.has(task.listId),
           );
           return (
-            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex flex-col min-h-0 min-w-0 rounded-xl border border-foreground/5 bg-accent/5 p-2 transition-all hover:bg-accent/10">
+            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex flex-col min-h-0 min-w-0 rounded-md">
               <button
                 type="button"
                 onClick={() => onDayClick?.(d.iso)}
                 aria-label={`${d.date}일 ${DAYS_KO[d.dow]}요일${d.isToday ? ' (오늘)' : ''} — Day 뷰로`}
                 className={cn(
-                  'group mb-3 flex h-12 flex-col items-center justify-center gap-1 text-center transition-all duration-300 transform hover:scale-105 rounded-lg',
-                  d.isToday ? 'bg-primary/5 border border-primary/20' : 'border-b border-foreground/5 hover:bg-card/40',
+                  'group mb-2 flex h-11 flex-col items-center justify-center gap-0.5 border-b text-center transition-colors',
+                  'hover:bg-accent/25',
+                  d.isToday ? 'border-primary/70' : 'border-[hsl(var(--hairline))]',
                 )}
               >
                 <span className={cn(
-                  'text-[10.5px] font-bold leading-none tracking-wider',
-                  !d.isToday && d.dow === 0 && 'text-rose-500/85',
-                  !d.isToday && d.dow === 6 && 'text-blue-500/85',
-                  !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-muted-foreground',
-                  d.isToday && 'text-primary font-extrabold',
+                  'text-[10.5px] font-semibold leading-none',
+                  !d.isToday && d.dow === 0 && 'text-rose-500',
+                  !d.isToday && d.dow === 6 && 'text-blue-500',
+                  !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-foreground/50',
+                  d.isToday && 'text-foreground',
                 )}>
                   {DAYS_KO[d.dow]}
                 </span>
                 <span className={cn(
-                  'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-[14.5px] font-bold tabular-nums leading-none transition-all duration-200',
+                  'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-[15px] font-semibold tabular-nums leading-none transition-colors',
                   d.isToday
-                    ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20 animate-pulse'
-                    : 'text-foreground/90 group-hover:bg-background group-hover:text-primary',
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-foreground/90 group-hover:bg-background',
                 )}>
                   {d.date}
                 </span>
@@ -307,10 +308,10 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
       </div>
       {!hasCalendarItems && (
         <PlannerEmpty
-          icon={<CalendarIcon className="h-6 w-6 text-primary" />}
+          icon={<CalendarIcon className="h-6 w-6" />}
           title="이번 주는 비어 있어요"
           hint="대기함에서 할 일을 골라 시간을 배정해보세요"
-          className="planner-glass pointer-events-none absolute left-1/2 top-[112px] w-[min(640px,calc(100%-48px))] -translate-x-1/2 py-9 shadow-lg rounded-3xl"
+          className="pointer-events-none absolute left-1/2 top-[112px] w-[min(640px,calc(100%-48px))] -translate-x-1/2 bg-card/70 py-9 shadow-sm"
         />
       )}
     </div>
