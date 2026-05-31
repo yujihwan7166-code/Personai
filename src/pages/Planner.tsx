@@ -852,32 +852,37 @@ const Planner = () => {
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
         <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
-          {/* 날짜 레이블 (일/주/월 뷰는 사이드바 시작선인 252px 수직 정렬을 맞추고, 년/습관 전체 화면 뷰는 텍스트 바로 옆에 탭이 밀착해 따라붙도록 동적 분기) */}
+          {/* 날짜 레이블 (미니 달력 윗부분 중앙 수직 정렬을 위해 일/주/월 뷰에서는 lg:w-[236px] 가로폭 내 세로형 가운데 정렬을 활성화) */}
           <div className={cn(
-            "shrink-0 flex items-center gap-2.5 min-w-0",
-            (view === 'year' || view === 'habits') ? "lg:mr-6" : "lg:w-[252px]"
+            "shrink-0 flex min-w-0 px-1 self-center",
+            (view === 'year' || view === 'habits')
+              ? "flex-row items-center gap-2.5 lg:mr-6"
+              : "flex-col items-start lg:items-center justify-center text-left lg:text-center lg:w-[236px]"
           )}>
-            <div className="min-w-0 flex items-baseline gap-2.5 px-1 self-center">
-              <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
-                {headerLabels.primary}
-              </h2>
-              {headerLabels.secondary && (
-                <span className="hidden sm:inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300 self-center">
-                  {headerLabels.secondary}
-                </span>
-              )}
-              {view === 'habits' && (
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new Event('planner-habit-new'))}
-                  title="새 습관 추가"
-                  className="ml-1 inline-flex items-center gap-1 h-7 px-3 rounded-full border hairline bg-card text-[12px] font-semibold text-foreground hover:bg-accent transition-colors self-center"
-                >
-                  <Plus className="h-3 w-3" strokeWidth={2.5} />
-                  새 습관
-                </button>
-              )}
-            </div>
+            {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 '오늘/내일' 배지가 날짜 위쪽에 은은하게 얹히는 수직 대칭 매거진 레이아웃 기동 */}
+            {(view === 'year' || view === 'habits') ? (
+              <div className="min-w-0 flex items-baseline gap-2.5">
+                <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
+                  {headerLabels.primary}
+                </h2>
+                {headerLabels.secondary && (
+                  <span className="hidden sm:inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300 self-center">
+                    {headerLabels.secondary}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="min-w-0 flex flex-col items-start lg:items-center gap-1.5 w-full">
+                {headerLabels.secondary && (
+                  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300">
+                    {headerLabels.secondary}
+                  </span>
+                )}
+                <h2 className="font-display text-[20px] sm:text-[23px] font-bold tracking-tight text-foreground leading-none truncate w-full">
+                  {headerLabels.primary}
+                </h2>
+              </div>
+            )}
           </div>
 
           {/* 뷰 토글 고정 정렬 — 좌측 날짜 영역이 고정 너비(350px)를 확보했으므로 데스크톱 기준 완벽히 정지된 축에 안착 */}
