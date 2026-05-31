@@ -269,12 +269,6 @@
     --surface-3: 40 22% 93%;            /* sunken */
   }
 
-  .planner-theme.bg-background {
-    background: radial-gradient(circle at 10% 15%, hsl(262 64% 56% / 0.055), transparent 45%),
-                radial-gradient(circle at 90% 85%, hsl(32 95% 44% / 0.035), transparent 45%),
-                hsl(var(--background)) !important;
-  }
-
   .dark .planner-theme {
     /* 다크 — sage-charcoal, 따뜻함 유지 */
     --background: 35 8% 10%;
@@ -309,29 +303,6 @@
     --surface-1: 35 8% 13%;
     --surface-2: 35 8% 10%;
     --surface-3: 35 7% 17%;
-  }
-
-  .dark .planner-theme.bg-background {
-    background: radial-gradient(circle at 10% 15%, hsl(262 65% 68% / 0.07), transparent 45%),
-                radial-gradient(circle at 90% 85%, hsl(32 95% 44% / 0.03), transparent 45%),
-                hsl(var(--background)) !important;
-  }
-
-  /* Glassmorphism acrylic card */
-  .planner-theme .planner-glass {
-    background-color: hsl(var(--card) / 0.65) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid hsl(var(--hairline) / 0.7) !important;
-    box-shadow: 
-      0 1px 2px hsl(30 15% 8% / 0.015),
-      0 4px 16px -2px hsl(30 15% 8% / 0.03) !important;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .planner-theme .planner-glass:hover {
-    border-color: hsl(var(--border)) !important;
-    box-shadow: 
-      0 2px 4px hsl(30 15% 8% / 0.02),
-      0 10px 30px -4px hsl(30 15% 8% / 0.05) !important;
   }
 
   .planner-theme .planner-overview-metrics {
