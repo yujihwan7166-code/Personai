@@ -392,7 +392,7 @@ const Planner = () => {
   const periodLabel = useMemo(() => {
     const d = new Date(anchorIso);
     if (view === 'day') {
-      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     }
     if (view === 'week') {
       const start = new Date(d);
@@ -412,14 +412,14 @@ const Planner = () => {
   const headerLabels = useMemo<{ primary: string; secondary?: string }>(() => {
     if (view === 'habits') {
       const t = new Date();
-      const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+      const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
       return { primary: fullLabel, secondary: '오늘' };
     }
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
     const t = new Date();
     const tm = new Date(t); tm.setDate(t.getDate() + 1);
-    const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+    const fullLabel = d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     if (isSameDay(d, t)) return { primary: fullLabel, secondary: '오늘' };
     if (isSameDay(d, tm)) return { primary: fullLabel, secondary: '내일' };
     return { primary: fullLabel };
@@ -863,13 +863,13 @@ const Planner = () => {
             {(view === 'year' || view === 'habits') ? (
               <div className="min-w-0 flex items-baseline">
                 <h2 className="font-display text-[25px] sm:text-[28px] font-bold tracking-tight text-foreground leading-tight truncate">
-                  {headerLabels.primary}
+                  {headerLabels.primary}{headerLabels.secondary ? ` (${headerLabels.secondary})` : ''}
                 </h2>
               </div>
             ) : (
               <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
                 <h2 className="font-display text-[23px] sm:text-[26px] font-bold tracking-tight text-foreground leading-tight truncate w-full">
-                  {headerLabels.primary}
+                  {headerLabels.primary}{headerLabels.secondary ? ` (${headerLabels.secondary})` : ''}
                 </h2>
               </div>
             )}
