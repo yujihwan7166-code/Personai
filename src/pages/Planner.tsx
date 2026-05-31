@@ -859,26 +859,16 @@ const Planner = () => {
               ? "flex-row items-center gap-2.5 lg:mr-6"
               : "flex-col items-start lg:items-center justify-center text-left lg:text-center lg:w-[236px]"
           )}>
-            {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 '오늘/내일' 배지가 날짜 위쪽에 은은하게 얹히는 수직 대칭 매거진 레이아웃 기동 */}
+            {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 사이드바 위 수직 대칭으로 오직 날짜 타이포그래피만 웅장하게 노출 */}
             {(view === 'year' || view === 'habits') ? (
-              <div className="min-w-0 flex items-baseline gap-2.5">
-                <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
+              <div className="min-w-0 flex items-baseline">
+                <h2 className="font-display text-[25px] sm:text-[28px] font-bold tracking-tight text-foreground leading-tight truncate">
                   {headerLabels.primary}
                 </h2>
-                {headerLabels.secondary && (
-                  <span className="hidden sm:inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300 self-center">
-                    {headerLabels.secondary}
-                  </span>
-                )}
               </div>
             ) : (
-              <div className="min-w-0 flex flex-col items-start lg:items-center gap-1.5 w-full">
-                {headerLabels.secondary && (
-                  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-primary/10 text-primary border border-primary/10 shadow-[0_1px_2px_rgba(var(--primary),0.05)] transition-all duration-300">
-                    {headerLabels.secondary}
-                  </span>
-                )}
-                <h2 className="font-display text-[20px] sm:text-[23px] font-bold tracking-tight text-foreground leading-none truncate w-full">
+              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
+                <h2 className="font-display text-[23px] sm:text-[26px] font-bold tracking-tight text-foreground leading-tight truncate w-full">
                   {headerLabels.primary}
                 </h2>
               </div>
