@@ -852,8 +852,11 @@ const Planner = () => {
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
         <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
-          {/* 날짜 레이블 (가장 왼쪽에 배치하여 시각적 위계와 인지 극대화, 아래 본문 그리드 시작선(252px)과 수직 정렬을 완벽하게 맞추기 위해 lg:w-[252px] 설정) */}
-          <div className="shrink-0 flex items-center gap-2.5 min-w-0 lg:w-[252px]">
+          {/* 날짜 레이블 (일/주/월 뷰는 사이드바 시작선인 252px 수직 정렬을 맞추고, 년/습관 전체 화면 뷰는 텍스트 바로 옆에 탭이 밀착해 따라붙도록 동적 분기) */}
+          <div className={cn(
+            "shrink-0 flex items-center gap-2.5 min-w-0",
+            (view === 'year' || view === 'habits') ? "lg:mr-6" : "lg:w-[252px]"
+          )}>
             <div className="min-w-0 flex items-baseline gap-2.5 px-1 self-center">
               <h2 className="font-display text-[22px] sm:text-[25px] font-bold tracking-tight text-foreground leading-tight truncate">
                 {headerLabels.primary}
