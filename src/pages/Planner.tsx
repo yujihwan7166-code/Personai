@@ -869,26 +869,29 @@ const Planner = () => {
           )}>
             {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 사이드바 위 수직 대칭으로 오직 날짜 타이포그래피만 웅장하게 노출 */}
             {(view === 'year' || view === 'habits') ? (
-              <div className="min-w-0 flex items-center gap-2.5">
-                <h2 className="font-display text-[25px] sm:text-[28px] font-bold tracking-tight text-foreground leading-tight truncate">
+              <div className="min-w-0 flex items-center gap-3">
+                <h2 className="font-display text-[30px] sm:text-[34px] font-bold tracking-tight text-foreground leading-tight truncate">
                   {headerLabels.primary}
                 </h2>
                 {headerLabels.secondary && (
-                  <span className="text-[11px] font-bold tracking-[0.15em] text-primary uppercase bg-primary/[0.06] px-2 py-0.5 rounded-md select-none shrink-0">
+                  <span className="text-[11px] font-bold tracking-[0.15em] text-primary uppercase bg-primary/[0.06] px-2.5 py-0.5 rounded-md select-none shrink-0">
                     {getOverlineText(headerLabels.secondary)}
                   </span>
                 )}
               </div>
             ) : (
-              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1 relative">
-                {headerLabels.secondary && (
-                  <span className="absolute -top-3.5 sm:-top-4 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
-                    {getOverlineText(headerLabels.secondary)}
-                  </span>
-                )}
-                <h2 className="font-display text-[23px] sm:text-[26px] font-bold tracking-tight text-foreground leading-tight truncate w-full">
-                  {headerLabels.primary}
-                </h2>
+              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
+                {/* 텍스트 크기와 100% 일치하는 relative inline-flex 래퍼를 씌워 TODAY가 날짜 글씨 한복판에 1px 오차 없이 물리적 대칭 정렬되도록 연출 */}
+                <div className="relative inline-flex flex-col items-start lg:items-center">
+                  {headerLabels.secondary && (
+                    <span className="absolute -top-4 sm:-top-5 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
+                      {getOverlineText(headerLabels.secondary)}
+                    </span>
+                  )}
+                  <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none">
+                    {headerLabels.primary}
+                  </h2>
+                </div>
               </div>
             )}
           </div>
