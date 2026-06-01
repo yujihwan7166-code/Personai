@@ -159,11 +159,11 @@ export const JournalYearPixels = ({
 
   return (
     <section className="flex flex-col gap-2.5">
-      <header className="flex items-center justify-between px-1">
-        <h3 className="text-[12px] font-semibold tracking-[-0.005em] text-foreground/80">
+      <header className="flex items-center justify-between px-1.5 select-none">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           {year}년 한 해
         </h3>
-        <span className="text-[11px] font-medium tabular-nums text-muted-foreground/75">
+        <span className="font-mono text-[11px] font-semibold tracking-wide text-muted-foreground/70">
           {writtenDays}일 · {writeRate}%
         </span>
       </header>
@@ -171,13 +171,13 @@ export const JournalYearPixels = ({
       <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-card px-3 py-3 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)]">
         {/* 월 라벨 row — sparse */}
         <div
-          className="grid gap-[2px] mb-1 pl-[18px]"
+          className="grid gap-[2px] mb-1 pl-[20px] select-none"
           style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
         >
           {monthHeaderCells.map((label, i) => (
             <span
               key={i}
-              className="text-[8.5px] font-medium text-muted-foreground/60 leading-none h-3 flex items-center"
+              className="font-mono text-[10px] font-semibold text-muted-foreground/50 leading-none h-3 flex items-center"
             >
               {label}
             </span>
@@ -187,11 +187,11 @@ export const JournalYearPixels = ({
         {/* 메인 grid — 좌측 요일 sparse 라벨 + 7×N cells */}
         <div className="flex gap-1.5">
           {/* 요일 라벨 — 월/수/금만 sparse */}
-          <div className="flex flex-col gap-[2px] shrink-0">
+          <div className="flex flex-col gap-[2px] shrink-0 select-none">
             {WEEKDAY_LABELS_SPARSE.map((d, i) => (
               <span
                 key={i}
-                className="text-[8.5px] font-medium text-muted-foreground/60 leading-none h-[10px] flex items-center"
+                className="w-4 text-[10px] font-semibold text-muted-foreground/50 leading-none h-[10px] flex items-center justify-center"
                 aria-hidden={!d}
               >
                 {d}
@@ -241,16 +241,19 @@ export const JournalYearPixels = ({
                     }
                     aria-label={cell.iso}
                     className={cn(
-                      'rounded-[2px] transition-all',
+                      'rounded-[3px] transition-all duration-150',
                       hasEntry
                         ? cn(
                             moodTint ?? 'bg-foreground/40',
-                            isHover && 'ring-1 ring-offset-[1px] ring-foreground/40 ring-offset-card',
+                            isHover && 'scale-125 z-10 ring-1 ring-foreground/40 ring-offset-[1px] ring-offset-card shadow-sm',
                           )
                         : cell.isFuture
                           ? 'bg-transparent'
-                          : 'bg-foreground/[0.06] hover:bg-foreground/15',
-                      cell.isToday && 'ring-1 ring-primary/60 ring-offset-[1px] ring-offset-card',
+                          : cn(
+                              'bg-foreground/[0.06] hover:bg-foreground/15',
+                              isHover && 'scale-125 z-10 ring-1 ring-foreground/20 ring-offset-[1px] ring-offset-card',
+                            ),
+                      cell.isToday && 'ring-1 ring-primary/70 ring-offset-[1.5px] ring-offset-card',
                       !onDayClick && 'cursor-default',
                     )}
                   />
@@ -262,17 +265,17 @@ export const JournalYearPixels = ({
 
         {/* 호버 미리보기 */}
         {hoverInfo && hoverDate && (
-          <div className="mt-2.5 pt-2.5 border-t border-[hsl(var(--hairline))] flex items-baseline gap-2 min-w-0">
-            <span className="text-[11px] font-semibold tabular-nums text-foreground/85 shrink-0">
-              {parseInt(hoverDate.slice(5, 7), 10)}/{parseInt(hoverDate.slice(8, 10), 10)}
-              <span className="ml-1 text-muted-foreground/70 text-[10px] font-medium">
-                {WEEKDAYS_SHORT[dowMonStart(new Date(`${hoverDate}T00:00:00`))]}
+          <div className="mt-2.5 pt-2.5 border-t border-[hsl(var(--hairline))] flex items-center gap-2 min-w-0 select-none">
+            <span className="font-mono text-[11px] font-bold text-foreground/85 shrink-0 bg-muted/40 px-1.5 py-0.5 rounded">
+              {parseInt(hoverDate.slice(5, 7), 10)}월 {parseInt(hoverDate.slice(8, 10), 10)}일
+              <span className="ml-1 text-[10px] font-medium text-muted-foreground/70">
+                ({WEEKDAYS_SHORT[dowMonStart(new Date(`${hoverDate}T00:00:00`))]}요일)
               </span>
             </span>
             {hoverInfo.mood !== null && (
-              <span className="text-[12px] leading-none shrink-0">{MOOD_EMOJI[hoverInfo.mood]}</span>
+              <span className="text-[12px] leading-none shrink-0" aria-hidden>{MOOD_EMOJI[hoverInfo.mood]}</span>
             )}
-            <span className="text-[11px] text-muted-foreground/85 truncate min-w-0 tracking-[-0.005em]">
+            <span className="text-[11px] text-muted-foreground/85 truncate min-w-0 tracking-tight">
               {hoverInfo.entry.body.trim().slice(0, 50) || '(빈 본문)'}
             </span>
           </div>
