@@ -1,4 +1,4 @@
-﻿import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
+import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
@@ -5208,7 +5208,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 (getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main')
                   ? 'h-full w-full p-0'
                   : 'mx-auto px-4 sm:px-6 pb-16',
-                !(getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-16'),
+                !(getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-18 sm:pt-20 md:pt-24 lg:pt-28'),
                 (getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') ? ''
                 : !selectable && discussionMode === 'stakeholder' ? 'hidden'
                 : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
