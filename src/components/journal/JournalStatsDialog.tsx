@@ -181,10 +181,10 @@ export const JournalStatsDialog = ({ open, onClose, entries, streak }: JournalSt
                 <Sparkles className="h-3.5 w-3.5" />
                 Journal report
               </p>
-              <DialogTitle className="font-serif text-[23px] font-bold tracking-tight text-foreground">
+              <DialogTitle className="text-[22px] font-semibold leading-tight tracking-[-0.01em] text-foreground">
                 오늘의 기록 리포트
               </DialogTitle>
-              <p className="mt-1 text-[12px] text-muted-foreground">
+              <p className="mt-1 text-[12.5px] text-muted-foreground">
                 기분, 리듬, 자주 나온 단서를 한 번에 모았어요.
               </p>
             </div>
@@ -206,7 +206,7 @@ export const JournalStatsDialog = ({ open, onClose, entries, streak }: JournalSt
                 <PenLine className="h-5 w-5" />
               </div>
               <p className="text-[15px] font-semibold text-foreground">아직 볼 기록이 없어요.</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">
+              <p className="mt-1 text-[12.5px] text-muted-foreground">
                 첫 일기를 쓰면 기분 흐름과 기록 리듬이 여기에 생겨요.
               </p>
             </div>
@@ -231,10 +231,10 @@ export const JournalStatsDialog = ({ open, onClose, entries, streak }: JournalSt
                           {stats.dominantMood ? MOOD_EMOJI[stats.dominantMood] : '✦'}
                         </span>
                         <div className="min-w-0">
-                          <p className="font-serif text-[21px] font-bold leading-tight tracking-tight">
+                          <p className="text-[21px] font-semibold leading-tight tracking-[-0.01em]">
                             {stats.tone.label}
                           </p>
-                          <p className="mt-1 text-[12px] leading-relaxed opacity-75">
+                          <p className="mt-1 text-[12.5px] leading-relaxed opacity-75">
                             {stats.tone.copy}
                           </p>
                         </div>
@@ -242,8 +242,8 @@ export const JournalStatsDialog = ({ open, onClose, entries, streak }: JournalSt
                     </div>
                     {stats.avgMood !== null && (
                       <div className="rounded-md bg-white/60 px-2.5 py-2 text-right shadow-sm">
-                        <p className="text-[11px] font-semibold opacity-65">평균</p>
-                        <p className="font-mono text-[20px] font-bold leading-none tabular-nums">
+                        <p className="text-[10.5px] font-medium opacity-65">평균</p>
+                        <p className="font-mono text-[20px] font-semibold leading-none tabular-nums">
                           {stats.avgMood.toFixed(1)}
                         </p>
                       </div>
@@ -408,7 +408,7 @@ function SmallInsight({ label, value, hint }: { label: string; value: string; hi
     <div className="rounded-lg border border-[hsl(var(--hairline))] bg-background/55 px-3 py-3">
       <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-1 truncate text-[15px] font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{hint}</p>
+      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -443,7 +443,7 @@ function EmptyMini({ icon: Icon, text }: { icon: typeof HeartPulse; text: string
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-lg border border-[hsl(var(--hairline))] bg-background/45 p-3">
-      <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80 mb-3 select-none">
+      <h3 className="mb-3 text-[12px] font-semibold tracking-[-0.005em] text-foreground/85">
         {title}
       </h3>
       {children}
