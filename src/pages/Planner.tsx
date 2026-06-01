@@ -898,10 +898,10 @@ const Planner = () => {
                     "h-7 px-3.5 text-[13px] font-bold rounded-lg transition-all duration-300 shrink-0 tracking-tight outline-none select-none",
                     anchorIsToday
                       ? "text-muted-foreground/45 bg-transparent pointer-events-none font-medium"
-                      : "bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.09]"
+                      : "bg-primary/[0.08] text-primary hover:bg-primary/[0.12]"
                   )}
                 >
-                  오늘
+                  오늘로
                 </button>
 
                 <button

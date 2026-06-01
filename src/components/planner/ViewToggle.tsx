@@ -40,7 +40,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
           className={cn(
             'relative px-3.5 sm:px-4 h-7 rounded-lg text-[13px] tabular-nums transition-colors duration-300 outline-none select-none',
             active
-              ? 'text-foreground font-bold'
+              ? 'text-primary font-bold'
               : 'text-muted-foreground hover:text-foreground font-medium',
           )}
         >
@@ -52,7 +52,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
                 stiffness: 400,
                 damping: 30,
               }}
-              className="absolute inset-0 bg-foreground/[0.06] rounded-lg"
+              className="absolute inset-0 bg-primary/[0.08] rounded-lg"
               style={{ originY: '0px' }}
             />
           )}
