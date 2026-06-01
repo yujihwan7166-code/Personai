@@ -2458,7 +2458,7 @@ export function ExpertSelectionPanel({
             </h2>
             {/* Phase G 최종화: 부제를 보조 한 줄로 유지하되 사이즈·여백 축소 (탭 스트립과의 간격 타이트) */}
             <p key={`sub-${mainMode}`} className={cn(
-              "mt-0.5 text-[12px] text-muted-foreground/80",
+              "mt-1 font-serif italic text-[13px] tracking-wide text-muted-foreground/75 select-none",
               !skipHeroAnimation && "animate-in fade-in duration-700"
             )}>
               {mainMode === 'general' ? 'GPT · Claude · Gemini — 원하는 AI 를 골라 자유롭게 대화'

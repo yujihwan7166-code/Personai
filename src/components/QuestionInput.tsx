@@ -328,12 +328,12 @@ export function QuestionInput({
       <div
         className={cn(
           // Phase D-2: 토큰 기반 + 모드 컬러 포커스. 기존 violet/blue 강조 코드는 의도 유지.
-          'transition-all duration-200',
+          'transition-all duration-300 ease-in-out',
           embedded ? 'rounded-none border-0 bg-transparent shadow-none' : 'rounded-2xl border',
           isDragOver
             ? embedded
               ? 'rounded-b-2xl bg-blue-50/30 dark:bg-blue-950/20'
-              : 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/20 shadow-[0_2px_20px_rgba(59,130,246,0.15)]'
+              : 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/20 shadow-[0_4px_30px_rgba(59,130,246,0.18)]'
             : disabled
               ? embedded
                 ? 'opacity-75'
@@ -342,18 +342,18 @@ export function QuestionInput({
                 ? embedded
                   ? 'bg-transparent'
                   // 멀티 모드: violet 의도 유지
-                  : 'border-violet-300 dark:border-violet-700 bg-[hsl(var(--card))] shadow-[0_2px_24px_rgba(139,92,246,0.10)]'
+                  : 'border-violet-300 dark:border-violet-600 bg-[hsl(var(--card))] shadow-[0_4px_24px_rgba(139,92,246,0.12)]'
                 : focused || showSelectionAccent
                   ? embedded
                     ? 'bg-transparent'
                     // 포커스: 모드 시그니처 컬러 로 강조 (general=indigo, debate=blue, study=amber 등)
-                    : 'border-[hsl(var(--mode,var(--primary))/0.55)] bg-[hsl(var(--card))] shadow-[0_2px_24px_hsl(var(--mode,var(--primary))/0.14)]'
+                    : 'border-[hsl(var(--mode,var(--primary))/0.6)] bg-[hsl(var(--card))] shadow-[0_6px_30px_hsl(var(--mode,var(--primary))/0.16)] scale-[1.005]'
                   : embedded
                     ? 'bg-transparent'
                     : (discussionMode === 'procon' || discussionMode === 'freetalk' || discussionMode === 'standard')
-                      ? 'border-violet-300 dark:border-violet-700 bg-[hsl(var(--card))] shadow-[0_2px_24px_rgba(139,92,246,0.10)]'
+                      ? 'border-violet-300 dark:border-violet-600 bg-[hsl(var(--card))] shadow-[0_4px_24px_rgba(139,92,246,0.12)] hover:border-violet-400 hover:shadow-[0_6px_30px_rgba(139,92,246,0.16)]'
                       // idle: 하얀 카드 + hairline — 기존의 회색 톤보다 차분함. 호버 시 모드 색 힌트.
-                      : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] shadow-[0_1px_2px_hsl(220_15%_8%_/0.04)] hover:border-[hsl(var(--mode,var(--primary))/0.3)]'
+                      : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] shadow-[0_2px_8px_hsl(220_15%_8%_/0.03)] hover:border-[hsl(var(--mode,var(--primary))/0.35)] hover:shadow-[0_4px_20px_hsl(var(--mode,var(--primary))/0.06)]'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
