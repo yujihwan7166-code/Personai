@@ -878,13 +878,13 @@ const Planner = () => {
           {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 날짜 조작계를 뷰 토글 왼쪽에 배치하여 정보와 가까운 유연한 사용자 시선 흐름 제공 */}
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             {view !== 'habits' && (
-              <div className="flex items-center gap-0.5 bg-foreground/5 backdrop-blur-md border border-foreground/5 rounded-full p-0.5 shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)] shrink-0">
+              <div className="flex items-center gap-0.5 bg-foreground/5 backdrop-blur-md border border-foreground/5 rounded-xl p-0.5 shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)] shrink-0">
                 <button
                   type="button"
                   onClick={goPrev}
                   aria-label="이전"
                   title="이전 (←)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
                 >
                   <ChevronLeft className="h-[15px] w-[15px]" strokeWidth={2.5} />
                 </button>
@@ -895,10 +895,10 @@ const Planner = () => {
                   aria-label="오늘로"
                   title="오늘로 (T)"
                   className={cn(
-                    "h-7 px-3 text-[11px] font-bold rounded-full transition-all duration-300 shrink-0 tracking-tight",
+                    "h-7 px-3.5 text-[13px] font-bold rounded-lg transition-all duration-300 shrink-0 tracking-tight outline-none select-none",
                     anchorIsToday
-                      ? "text-muted-foreground/30 bg-transparent pointer-events-none"
-                      : "bg-card text-foreground border border-foreground/5 hover:bg-accent/80 shadow-[0_1px_1px_rgba(0,0,0,0.03)]"
+                      ? "text-muted-foreground/30 bg-transparent pointer-events-none font-medium"
+                      : "bg-card text-foreground border border-foreground/5 hover:bg-accent/80 shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.06)]"
                   )}
                 >
                   오늘
@@ -909,7 +909,7 @@ const Planner = () => {
                   onClick={goNext}
                   aria-label="다음"
                   title="다음 (→)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
                 >
                   <ChevronRight className="h-[15px] w-[15px]" strokeWidth={2.5} />
                 </button>
