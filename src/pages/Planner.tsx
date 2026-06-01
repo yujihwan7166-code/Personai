@@ -875,9 +875,48 @@ const Planner = () => {
             )}
           </div>
 
-          {/* 뷰 토글 고정 정렬 — 좌측 날짜 영역이 고정 너비(350px)를 확보했으므로 데스크톱 기준 완벽히 정지된 축에 안착 */}
-          <div className="flex min-w-0 shrink-0">
+          {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 뷰 토글과 글래스 캡슐 조작계를 하나로 묶어 조작 편의성과 날짜 영역의 순수성을 완벽히 조화 */}
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
             <ViewToggle value={view} onChange={setView} />
+
+            {view !== 'habits' && (
+              <div className="flex items-center gap-0.5 bg-foreground/5 backdrop-blur-md border border-foreground/5 rounded-full p-0.5 shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)] shrink-0">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="이전"
+                  title="이전 (←)"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
+                >
+                  <ChevronLeft className="h-[15px] w-[15px]" strokeWidth={2.5} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToday}
+                  aria-label="오늘로"
+                  title="오늘로 (T)"
+                  className={cn(
+                    "h-7 px-3 text-[11px] font-bold rounded-full transition-all duration-300 shrink-0 tracking-tight",
+                    anchorIsToday
+                      ? "text-muted-foreground/30 bg-transparent pointer-events-none"
+                      : "bg-card text-foreground border border-foreground/5 hover:bg-accent/80 shadow-[0_1px_1px_rgba(0,0,0,0.03)]"
+                  )}
+                >
+                  오늘
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="다음"
+                  title="다음 (→)"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all duration-200"
+                >
+                  <ChevronRight className="h-[15px] w-[15px]" strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
