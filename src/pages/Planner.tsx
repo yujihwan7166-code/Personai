@@ -865,7 +865,7 @@ const Planner = () => {
             "shrink-0 flex min-w-0 px-1 self-center",
             (view === 'year' || view === 'habits')
               ? "flex-row items-center gap-2.5 lg:mr-6"
-              : "flex-col items-start lg:items-center justify-center text-left lg:text-center lg:w-[236px]"
+              : "flex-col items-center justify-center text-center lg:w-[236px]"
           )}>
             {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 사이드바 위 수직 대칭으로 오직 날짜 타이포그래피만 웅장하게 노출 */}
             {(view === 'year' || view === 'habits') ? (
@@ -880,14 +880,14 @@ const Planner = () => {
                 )}
               </div>
             ) : (
-              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1 relative">
+              <div className="min-w-0 flex flex-col items-center w-full py-1 relative">
                 {/* TODAY와 날짜 글자 모두를 사이드바/미니달력 그리드(lg:w-[236px])의 정밀한 수직 중앙선에 칼같이 일치시켜 비주얼 수평 정렬을 완성 */}
                 {headerLabels.secondary && (
-                  <span className="absolute -top-4 sm:-top-5 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
+                  <span className="absolute -top-4 sm:-top-5 left-1/2 -translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
                     {getOverlineText(headerLabels.secondary)}
                   </span>
                 )}
-                <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-left lg:text-center">
+                <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-center">
                   {headerLabels.primary}
                 </h2>
               </div>
