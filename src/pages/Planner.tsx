@@ -820,6 +820,14 @@ const Planner = () => {
     }
   }, [tryDetachInstance]);
 
+  const headerOverlineText = getOverlineText(headerLabels.secondary);
+  const headerOverlineOffsetClass =
+    headerOverlineText === 'TOMORROW'
+      ? 'left-[calc(50%-40px)]'
+      : headerOverlineText === 'TODAY'
+        ? 'left-[calc(50%-22px)]'
+        : 'left-[calc(50%-18px)]';
+
   return (
     <DndContext
       sensors={sensors}
@@ -859,7 +867,7 @@ const Planner = () => {
       />
       <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
         {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
-        <div className="mb-4 pt-1 flex flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
+        <div className="mb-4 pt-1 flex translate-y-2 flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
           {/* 날짜 레이블 (미니 달력 윗부분 중앙 수직 정렬을 위해 일/주/월 뷰에서는 lg:w-[236px] 가로폭 내 세로형 가운데 정렬을 활성화) */}
           <div className={cn(
             "shrink-0 flex min-w-0 px-1 self-center",
@@ -875,19 +883,22 @@ const Planner = () => {
                 </h2>
                 {headerLabels.secondary && (
                   <span className="text-[11px] font-bold tracking-[0.15em] text-primary uppercase bg-primary/[0.06] px-2.5 py-0.5 rounded-md select-none shrink-0">
-                    {getOverlineText(headerLabels.secondary)}
+                    {headerOverlineText}
                   </span>
                 )}
               </div>
             ) : (
               <div className="min-w-0 flex flex-col items-center w-full py-1 relative">
                 {/* TODAY와 날짜 글자 모두를 사이드바/미니달력 그리드(lg:w-[236px])의 정밀한 수직 중앙선에 칼같이 일치시켜 비주얼 수평 정렬을 완성 */}
-                {headerLabels.secondary && (
-                  <span className="absolute -top-4 sm:-top-5 left-1/2 -translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
-                    {getOverlineText(headerLabels.secondary)}
+                {headerOverlineText && (
+                  <span className={cn(
+                    'absolute -top-4 sm:-top-5 -translate-x-1/2 text-[10.5px] sm:text-[11.5px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0',
+                    headerOverlineOffsetClass,
+                  )}>
+                    {headerOverlineText}
                   </span>
                 )}
-                <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-center">
+                <h2 className="font-display text-[29px] sm:text-[33px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-center">
                   {headerLabels.primary}
                 </h2>
               </div>

@@ -274,7 +274,7 @@ export function WikiHome({
       {/* 헤더 — 큰 serif 타이틀 + 자연어 stats. divider 진하게(hairline-strong), 위아래 간격 컴팩트. */}
       <header className="mb-4 flex items-end justify-between gap-3 pb-2.5 border-b border-[hsl(var(--wiki-hairline-strong))]">
         <div className="mt-2">
-          <p className="text-[12.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.22em] text-primary/70 mb-1.5 select-none">
             마이위키
           </p>
           <h1
@@ -293,16 +293,16 @@ export function WikiHome({
             <Plus className="h-3.5 w-3.5" />
             새 페이지
           </button>
-          <p className="text-[11.5px] text-muted-foreground inline-flex items-center gap-2 font-medium">
-            <span><span className="font-semibold text-foreground tabular-nums">{pages.length}</span><span className="text-muted-foreground/70">개 페이지</span></span>
+          <p className="text-[12px] text-muted-foreground inline-flex items-center gap-2 font-medium select-none">
+            <span><span className="font-mono font-semibold text-foreground tracking-tight">{pages.length}</span><span className="text-muted-foreground/70 ml-0.5">개 페이지</span></span>
             <span className="text-muted-foreground/40">·</span>
-            <span><span className="font-semibold text-foreground/85 tabular-nums">{stats.recentEdits}</span><span className="text-muted-foreground/70">개 활동</span></span>
+            <span><span className="font-mono font-semibold text-foreground/85 tracking-tight">{stats.recentEdits}</span><span className="text-muted-foreground/70 ml-0.5">개 활동</span></span>
             {totalQueue > 0 && (
               <>
                 <span className="text-muted-foreground/40">·</span>
                 <span className="inline-flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  <span className="text-primary font-semibold tabular-nums">{totalQueue}</span>
+                  <span className="font-mono font-semibold text-primary tracking-tight">{totalQueue}</span>
                   <span className="text-primary/70">개 검토</span>
                 </span>
               </>
@@ -315,10 +315,10 @@ export function WikiHome({
         <section className="mb-5 rounded-xl border border-[hsl(var(--hairline))] bg-card/75 px-3 py-3 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-[12px] font-bold text-foreground">정리 보드</h2>
-              <p className="text-[10.5px] text-muted-foreground">오늘 손보면 좋은 항목만 모았어요</p>
+              <h2 className="text-[13px] font-bold text-foreground">정리 보드</h2>
+              <p className="text-[11px] text-muted-foreground">오늘 손보면 좋은 항목만 모았어요</p>
             </div>
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-primary">
               {maintenanceItems.reduce((sum, item) => sum + item.count, 0)}개
             </span>
           </div>
@@ -336,9 +336,9 @@ export function WikiHome({
               >
                 <span className="mb-1 flex items-center justify-between gap-2">
                   <span className="text-muted-foreground group-hover:text-current">{item.icon}</span>
-                  <span className="text-[13px] font-bold tabular-nums">{item.count}</span>
+                  <span className="text-[13px] font-mono font-bold tracking-tight">{item.count}</span>
                 </span>
-                <span className="block truncate text-[10.5px] font-semibold">{item.label}</span>
+                <span className="block truncate text-[11px] font-semibold">{item.label}</span>
               </a>
             ))}
           </div>
@@ -350,17 +350,17 @@ export function WikiHome({
         <div className="flex items-center gap-2 mb-3">
           <BookOpen className="w-4 h-4 text-primary" />
           <h2
-            className="text-[17px] font-bold text-foreground"
+            className="text-[19px] sm:text-[21px] font-bold text-foreground"
             style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
           >
             메인 문서
           </h2>
-          <span className="text-[11px] text-muted-foreground/80">— 주제별 묶음</span>
+          <span className="text-[12px] font-medium text-muted-foreground">— 주제별 묶음</span>
           <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
           {stats.mainCards.length > 0 && (
             <>
-              <span className="text-[11px] font-medium text-muted-foreground">
-                <span className="font-semibold text-foreground/85 tabular-nums">{stats.mainCards.length}</span> 메인
+              <span className="text-[12px] font-medium text-muted-foreground select-none">
+                <span className="font-mono font-semibold text-foreground/85 tracking-tight">{stats.mainCards.length}</span> 메인
               </span>
               {/* 보기 토글 — 카드 / 목록 */}
               <div
@@ -576,7 +576,7 @@ export function WikiHome({
       {/* 인기 태그 */}
       {stats.topTags.length > 0 && (
         <div className="mt-7">
-          <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/80 mb-2.5 select-none">
             🏷 자주 쓰는 태그
           </h2>
           <div className="flex flex-wrap gap-1.5">
@@ -587,10 +587,10 @@ export function WikiHome({
                 onClick={() => onTagClick?.(tag)}
                 disabled={!onTagClick}
                 title={`#${tag} (${n}건) — 클릭하면 사이드바 검색에 반영`}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/60 text-foreground/80 text-[11px] hover:bg-primary/10 hover:text-primary transition-colors disabled:cursor-not-allowed disabled:hover:bg-accent/60 disabled:hover:text-foreground/80"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[12px] hover:bg-primary/[0.08] hover:text-primary border border-foreground/[0.02] shadow-[0_1px_2px_rgba(0,0,0,0.015)] transition-all disabled:cursor-not-allowed"
               >
                 #{tag}
-                <span className="text-[9.5px] tabular-nums opacity-70">{n}</span>
+                <span className="text-[10px] font-mono opacity-85 shrink-0 ml-0.5">{n}</span>
               </button>
             ))}
           </div>
@@ -602,12 +602,12 @@ export function WikiHome({
         {(Object.entries(stats.byStatus) as Array<[keyof typeof stats.byStatus, number]>).map(([k, n]) => (
           <div
             key={k}
-            className="rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2"
+            className="rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.01)]"
           >
-            <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 select-none">
               {k}
             </p>
-            <p className="text-[18px] font-mono font-bold text-foreground mt-0.5">{n}</p>
+            <p className="text-[20px] font-mono font-bold text-foreground mt-0.5 tracking-tight">{n}</p>
           </div>
         ))}
       </div>
@@ -627,7 +627,7 @@ function Section({
   if (isEmpty && !showWhenEmpty) return null;
   return (
     <div id={id} className="scroll-mt-4 rounded-2xl border border-[hsl(var(--hairline))] bg-card p-4 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
-      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2.5">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 mb-2.5 select-none">
         {title}
       </h2>
       {isEmpty ? (
@@ -711,16 +711,16 @@ function RegularDocsSection({
       <div className="flex items-center gap-2 mb-2.5">
         <span aria-hidden className="text-[14px]">📄</span>
         <h2
-          className="text-[15px] font-bold text-foreground"
+          className="text-[19px] sm:text-[21px] font-bold text-foreground"
           style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
         >
           일반 문서
         </h2>
-        <span className="text-[10.5px] text-muted-foreground/80">
+        <span className="text-[12px] font-medium text-muted-foreground/80">
           {activeLabel ? `— ${activeLabel}` : '— 메인이 아닌 페이지'}
         </span>
         <span aria-hidden className="flex-1 h-px bg-[hsl(var(--hairline))]" />
-        <span className="text-[11px] font-mono font-bold text-muted-foreground">
+        <span className="text-[12px] font-mono font-bold text-muted-foreground">
           <span className="text-foreground/85">{filtered.length}</span>
           {filter !== 'all' && pages.length !== filtered.length && (
             <span className="text-muted-foreground/60"> / {pages.length}</span>
@@ -735,13 +735,13 @@ function RegularDocsSection({
             type="button"
             onClick={() => setFilter('all')}
             className={cn(
-              'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+              'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11.5px] font-medium wiki-trans-color',
               filter === 'all'
                 ? 'bg-primary/10 text-primary font-semibold'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
           >
-            전체 <span className="font-mono opacity-70">{pages.length}</span>
+            전체 <span className="text-[10.5px] font-mono font-semibold opacity-70">{pages.length}</span>
           </button>
           {rootsWithChildren.map(({ main, count }) => {
             const active = filter === main.id;
@@ -751,7 +751,7 @@ function RegularDocsSection({
                 type="button"
                 onClick={() => setFilter(main.id)}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color max-w-[200px]',
+                  'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11.5px] font-medium wiki-trans-color max-w-[200px]',
                   active
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -760,7 +760,7 @@ function RegularDocsSection({
               >
                 <BookOpen className="w-2.5 h-2.5 shrink-0" />
                 <span className="truncate">{main.title}</span>
-                <span className="text-[9.5px] font-mono opacity-70 shrink-0">{count}</span>
+                <span className="text-[10.5px] font-mono font-semibold opacity-70 shrink-0">{count}</span>
               </button>
             );
           })}
@@ -769,14 +769,14 @@ function RegularDocsSection({
               type="button"
               onClick={() => setFilter('linked')}
               className={cn(
-                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11.5px] font-medium wiki-trans-color',
                 filter === 'linked'
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
               title="메인 문서에 속하지 않지만 다른 페이지에서 링크된 일반 문서"
             >
-              🔗 참조됨 <span className="tabular-nums opacity-70">{linkedCount}</span>
+              🔗 참조됨 <span className="text-[10.5px] font-mono font-semibold opacity-70">{linkedCount}</span>
             </button>
           )}
           {orphanCount > 0 && (
@@ -784,14 +784,14 @@ function RegularDocsSection({
               type="button"
               onClick={() => setFilter('orphan')}
               className={cn(
-                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[10.5px] wiki-trans-color',
+                'inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11.5px] font-medium wiki-trans-color',
                 filter === 'orphan'
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
               title="어떤 페이지로부터도 링크되지 않는 미연결 페이지 (정리 우선순위)"
             >
-              🌱 미연결 <span className="font-mono opacity-70">{orphanCount}</span>
+              🌱 미연결 <span className="text-[10.5px] font-mono font-semibold opacity-70">{orphanCount}</span>
             </button>
           )}
         </div>
@@ -822,28 +822,28 @@ function RegularDocsSection({
                     className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent wiki-trans-color"
                   >
                     <span className="text-[13px] leading-none shrink-0" aria-hidden>{m.icon}</span>
-                    <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{p.title}</span>
+                    <span className="flex-1 min-w-0 truncate text-[12px] text-foreground/90">{p.title}</span>
                     {/* 라벨 — MOC 자식 / 참조됨 / 미연결 ('all' 필터일 때만 노출) */}
                     {filter === 'all' && parents.length > 0 && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
+                      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/70 truncate max-w-[100px]" title={parents.map((m) => m.title).join(', ')}>
                         📖 {parents.map((m) => m.title).join(', ')}
                       </span>
                     )}
                     {filter === 'all' && parents.length === 0 && linkers.length > 0 && (
                       <span
-                        className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[120px]"
+                        className="shrink-0 text-[11px] font-mono text-muted-foreground/70 truncate max-w-[120px]"
                         title={`다음 페이지에서 참조: ${linkers.map((l) => l.title).join(', ')}`}
                       >
-                        🔗 {linkers.length === 1 ? linkers[0].title : `${linkers.length}곳에서 참조`}
+                        🔗 {linkers.length === 1 ? linkers[0].title : `${linkers.length}곳`}
                       </span>
                     )}
                     {filter === 'all' && parents.length === 0 && linkers.length === 0 && (
-                      <span className="shrink-0 text-[10px] text-amber-600/80" title="어떤 페이지로부터도 링크되지 않음">🌱 미연결</span>
+                      <span className="shrink-0 text-[11px] font-mono text-amber-600/80" title="어떤 페이지로부터도 링크되지 않음">🌱 미연결</span>
                     )}
                     {/* 'linked' 필터에서만: 어디서 링크되는지 노출 */}
                     {filter === 'linked' && linkers.length > 0 && (
                       <span
-                        className="shrink-0 text-[10px] text-muted-foreground/70 truncate max-w-[140px]"
+                        className="shrink-0 text-[11px] font-mono text-muted-foreground/70 truncate max-w-[140px]"
                         title={linkers.map((l) => l.title).join(', ')}
                       >
                         ← {linkers.length === 1 ? linkers[0].title : `${linkers[0].title} 외 ${linkers.length - 1}`}
@@ -851,7 +851,7 @@ function RegularDocsSection({
                     )}
                     {p.status !== 'stable' && (
                       <span
-                        className="shrink-0 text-[8.5px] px-1 py-0.5 rounded font-medium uppercase tracking-wider"
+                        className="shrink-0 text-[10px] px-1 py-0.5 rounded font-mono font-bold uppercase tracking-wider"
                         style={{ backgroundColor: `${sMeta.tint}22`, color: sMeta.tint }}
                       >
                         {sMeta.label}
@@ -1073,7 +1073,7 @@ function PageRow({ page, onSelect }: { page: WikiPage; onSelect: (id: string) =>
         className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent transition-colors"
       >
         <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
-        <span className="flex-1 min-w-0 truncate text-[12.5px] text-foreground/90">{page.title}</span>
+        <span className="flex-1 min-w-0 truncate text-[12px] text-foreground/90">{page.title}</span>
       </button>
     </li>
   );
@@ -1097,8 +1097,8 @@ function MissingPageRow({
       title={`본문에서 ${count}번 링크됐지만 아직 없는 페이지`}
     >
       <span className="text-[13px] leading-none shrink-0 text-[hsl(var(--wiki-link-missing))]" aria-hidden>?</span>
-      <span className="flex-1 min-w-0 truncate text-[12.5px] text-[hsl(var(--wiki-link-missing))]">{title}</span>
-      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{count}</span>
+      <span className="flex-1 min-w-0 truncate text-[12px] text-[hsl(var(--wiki-link-missing))]">{title}</span>
+      <span className="shrink-0 text-[11px] font-mono font-semibold text-muted-foreground">{count}</span>
     </button>
   );
 }
@@ -1120,9 +1120,9 @@ function CleanupQueueRow({
       >
         <span className="flex items-center gap-2">
           <span className="text-[13px] leading-none shrink-0" aria-hidden>{WIKI_TYPE_META[item.page.type].icon}</span>
-          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-foreground/90">{item.page.title}</span>
+          <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-foreground/90">{item.page.title}</span>
           {item.warningCount > 0 && (
-            <span className="shrink-0 rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+            <span className="shrink-0 rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-mono font-bold text-amber-700 dark:text-amber-300">
               주의 {item.warningCount}
             </span>
           )}
@@ -1132,7 +1132,7 @@ function CleanupQueueRow({
             <span
               key={issue.id}
               className={cn(
-                'rounded border px-1.5 py-0.5 text-[10px]',
+                'rounded border px-1.5 py-0.5 text-[11px] font-mono font-semibold',
                 issue.level === 'warning'
                   ? 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                   : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground',
@@ -1166,23 +1166,23 @@ function DuplicateCandidateRow({
           <button
             type="button"
             onClick={() => onSelect(primary.id)}
-            className="min-w-0 flex-1 truncate text-left text-[12.5px] font-semibold text-foreground/90 hover:text-primary hover:underline"
+            className="min-w-0 flex-1 truncate text-left text-[12px] font-semibold text-foreground/90 hover:text-primary hover:underline"
             title={primary.title}
           >
             {primary.title}
           </button>
-          <span className="shrink-0 text-[10px] font-mono text-primary">{candidate.score}</span>
+          <span className="shrink-0 text-[11px] font-mono font-bold text-primary">{candidate.score}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => onSelect(secondary.id)}
-            className="min-w-0 flex-1 truncate text-left text-[11.5px] text-muted-foreground hover:text-primary hover:underline"
+            className="min-w-0 flex-1 truncate text-left text-[12px] text-muted-foreground hover:text-primary hover:underline"
             title={secondary.title}
           >
             ↔ {secondary.title}
           </button>
-          <span className="shrink-0 text-[10px] text-muted-foreground truncate max-w-[120px]" title={candidate.reasons.join(', ')}>
+          <span className="shrink-0 text-[11px] font-mono text-muted-foreground/80 truncate max-w-[120px]" title={candidate.reasons.join(', ')}>
             {candidate.reasons.slice(0, 2).join(' · ')}
           </span>
         </div>
@@ -1191,7 +1191,7 @@ function DuplicateCandidateRow({
             <button
               type="button"
               onClick={() => onMerge(primary.id, secondary.id)}
-              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
               title={`${secondary.title} 내용을 ${primary.title}에 합치고 보관`}
             >
               위로 병합
@@ -1199,7 +1199,7 @@ function DuplicateCandidateRow({
             <button
               type="button"
               onClick={() => onMerge(secondary.id, primary.id)}
-              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="h-6 px-2 rounded border border-[hsl(var(--hairline))] text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
               title={`${primary.title} 내용을 ${secondary.title}에 합치고 보관`}
             >
               아래로 병합
