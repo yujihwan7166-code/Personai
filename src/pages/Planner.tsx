@@ -94,6 +94,14 @@ type DialogMode =
 const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
+const getOverlineText = (secondary?: string): string | null => {
+  if (!secondary) return null;
+  if (secondary === '오늘') return 'TODAY';
+  if (secondary === '내일') return 'TOMORROW';
+  if (secondary === '어제') return 'YESTERDAY';
+  return secondary.toUpperCase();
+};
+
 const Planner = () => {
   // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
@@ -861,15 +869,25 @@ const Planner = () => {
           )}>
             {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 사이드바 위 수직 대칭으로 오직 날짜 타이포그래피만 웅장하게 노출 */}
             {(view === 'year' || view === 'habits') ? (
-              <div className="min-w-0 flex items-baseline">
+              <div className="min-w-0 flex items-center gap-2.5">
                 <h2 className="font-display text-[25px] sm:text-[28px] font-bold tracking-tight text-foreground leading-tight truncate">
-                  {headerLabels.primary}{headerLabels.secondary ? ` (${headerLabels.secondary})` : ''}
+                  {headerLabels.primary}
                 </h2>
+                {headerLabels.secondary && (
+                  <span className="text-[11px] font-bold tracking-[0.15em] text-primary uppercase bg-primary/[0.06] px-2 py-0.5 rounded-md select-none shrink-0">
+                    {getOverlineText(headerLabels.secondary)}
+                  </span>
+                )}
               </div>
             ) : (
               <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
+                {headerLabels.secondary && (
+                  <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none mb-0.5 sm:mb-1 animate-fade-in shrink-0">
+                    {getOverlineText(headerLabels.secondary)}
+                  </span>
+                )}
                 <h2 className="font-display text-[23px] sm:text-[26px] font-bold tracking-tight text-foreground leading-tight truncate w-full">
-                  {headerLabels.primary}{headerLabels.secondary ? ` (${headerLabels.secondary})` : ''}
+                  {headerLabels.primary}
                 </h2>
               </div>
             )}
