@@ -25,7 +25,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/[0.05] bg-muted/90 p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)]"
+    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/[0.05] bg-card p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[0_2px_8px_rgba(0,0,0,0.025)]"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
@@ -52,7 +52,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
                 stiffness: 400,
                 damping: 30,
               }}
-              className="absolute inset-0 bg-card border hairline rounded-lg shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.06)]"
+              className="absolute inset-0 bg-foreground/[0.06] rounded-lg"
               style={{ originY: '0px' }}
             />
           )}
