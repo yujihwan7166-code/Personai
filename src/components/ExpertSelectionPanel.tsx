@@ -2352,8 +2352,8 @@ export function ExpertSelectionPanel({
 
   return (
     <div className={cn(
-      // Phase C-B: 중앙 컬럼 폭 통일(920px) — 히어로/탭/봇그리드/입력창 모두 같은 축으로 정렬.
-      "relative mx-auto w-full max-w-[920px] space-y-3 transition-all duration-500",
+      // Phase C-B: 중앙 컬럼 폭 통일(920px) — 히어로/탭/봇그리드/입력창 모두 같은 축으로 정렬. 1.2배 비례 스케일업 적용.
+      "relative mx-auto w-full max-w-[920px] space-y-4 transition-all duration-500 scale-[1.2] origin-top",
       isPlayerActive ? 'py-1' : 'py-4',
     )}>
       {/* 플레이어 모드 전체화면 다크 오버레이 */}
