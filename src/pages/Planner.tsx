@@ -878,7 +878,7 @@ const Planner = () => {
           {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 날짜 조작계를 뷰 토글 왼쪽에 배치하여 정보와 가까운 유연한 사용자 시선 흐름 제공 */}
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             {view !== 'habits' && (
-              <div className="flex items-center gap-0.5 bg-background/65 backdrop-blur-md border-[1.2px] border-foreground/[0.08] rounded-xl p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.025),inset_0_1px_1px_rgba(255,255,255,0.8)] shrink-0">
+              <div className="flex items-center gap-0.5 bg-muted/90 border border-foreground/[0.05] rounded-xl p-0.5 shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)] shrink-0">
                 <button
                   type="button"
                   onClick={goPrev}
