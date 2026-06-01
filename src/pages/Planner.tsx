@@ -880,18 +880,16 @@ const Planner = () => {
                 )}
               </div>
             ) : (
-              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
-                {/* 텍스트 크기와 100% 일치하는 relative inline-flex 래퍼를 씌워 TODAY가 날짜 글씨 한복판에 1px 오차 없이 물리적 대칭 정렬되도록 연출 */}
-                <div className="relative inline-flex flex-col items-start lg:items-center">
-                  {headerLabels.secondary && (
-                    <span className="absolute -top-4 sm:-top-5 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
-                      {getOverlineText(headerLabels.secondary)}
-                    </span>
-                  )}
-                  <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none">
-                    {headerLabels.primary}
-                  </h2>
-                </div>
+              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1 relative">
+                {/* TODAY와 날짜 글자 모두를 사이드바/미니달력 그리드(lg:w-[236px])의 정밀한 수직 중앙선에 칼같이 일치시켜 비주얼 수평 정렬을 완성 */}
+                {headerLabels.secondary && (
+                  <span className="absolute -top-4 sm:-top-5 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
+                    {getOverlineText(headerLabels.secondary)}
+                  </span>
+                )}
+                <h2 className="font-display text-[28px] sm:text-[32px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-left lg:text-center">
+                  {headerLabels.primary}
+                </h2>
               </div>
             )}
           </div>
