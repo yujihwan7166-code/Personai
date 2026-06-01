@@ -880,9 +880,9 @@ const Planner = () => {
                 )}
               </div>
             ) : (
-              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1">
+              <div className="min-w-0 flex flex-col items-start lg:items-center w-full py-1 relative">
                 {headerLabels.secondary && (
-                  <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none mb-0.5 sm:mb-1 animate-fade-in shrink-0">
+                  <span className="absolute -top-3.5 sm:-top-4 left-0 lg:left-1/2 lg:-translate-x-1/2 text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0">
                     {getOverlineText(headerLabels.secondary)}
                   </span>
                 )}
