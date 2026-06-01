@@ -875,10 +875,8 @@ const Planner = () => {
             )}
           </div>
 
-          {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 뷰 토글과 글래스 캡슐 조작계를 하나로 묶어 조작 편의성과 날짜 영역의 순수성을 완벽히 조화 */}
+          {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 날짜 조작계를 뷰 토글 왼쪽에 배치하여 정보와 가까운 유연한 사용자 시선 흐름 제공 */}
           <div className="flex items-center gap-3 min-w-0 shrink-0">
-            <ViewToggle value={view} onChange={setView} />
-
             {view !== 'habits' && (
               <div className="flex items-center gap-0.5 bg-foreground/5 backdrop-blur-md border border-foreground/5 rounded-full p-0.5 shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)] shrink-0">
                 <button
@@ -917,6 +915,8 @@ const Planner = () => {
                 </button>
               </div>
             )}
+
+            <ViewToggle value={view} onChange={setView} />
           </div>
 
         </div>
