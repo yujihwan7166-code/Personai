@@ -25,7 +25,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/5 bg-foreground/5 backdrop-blur-md p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.015)]"
+    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/[0.04] bg-background/40 backdrop-blur-md p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[inset_0_1px_2px_rgba(var(--foreground)/0.01)]"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
