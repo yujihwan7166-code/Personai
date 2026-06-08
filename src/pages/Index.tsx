@@ -6,7 +6,7 @@ import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
 import { useAivsBattleState } from '@/hooks/useAivsBattleState';
-import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SimulationScenario, SCENARIO_CATEGORIES, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, ActiveAivsBattleConfig, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
+import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
@@ -34,9 +34,8 @@ import {
   stripDataUrlPrefix,
   type GeneralImageIntent,
 } from '@/lib/generalImage';
-import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, ArrowLeft, X, MessageSquare } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, X } from 'lucide-react';
 import type { ChatVariant } from '@/components/DiscussionMessage';
-import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -191,7 +190,6 @@ const Index = () => {
   }, []);
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentQuestionDisplay, setCurrentQuestionDisplay] = useState('');
-  const [copiedAll, setCopiedAll] = useState(false);
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>(() => getInitialDiscussionMode());
   const [researchInitialQuestion, setResearchInitialQuestion] = useState<string | null>(null);
   const [proconStances, setProconStances] = useState<Record<string, 'pro' | 'con'>>({});
@@ -201,14 +199,13 @@ const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState<ThinkingFramework | null>(null);
   const [discussionIssues, setDiscussionIssues] = useState<DiscussionIssue[]>([]);
   const [stakeholderSettings, setStakeholderSettings] = useState<StakeholderSettings>(DEFAULT_STAKEHOLDER_SETTINGS);
-  const [simChoices, setSimChoices] = useState<{label: string; description: string}[]>([]);
   const [simPhaseIndex, setSimPhaseIndex] = useState(0);
   // AI vs User debate state — #19 useAivsBattleState 훅으로 분리 (동작 동일).
   const {
     aivsRound, setAivsRound,
-    aivsJudgments, setAivsJudgments,
+    aivsJudgments: _aivsJudgments, setAivsJudgments,
     aivsUserStance, setAivsUserStance,
-    aivsTopic, setAivsTopic,
+    aivsTopic: _aivsTopic, setAivsTopic,
     activeAivsBattleConfig, setActiveAivsBattleConfig,
     hasAivsBattleStarted, setHasAivsBattleStarted,
     aivsBattleAutoStart, setAivsBattleAutoStart,
@@ -372,8 +369,6 @@ const Index = () => {
       return `[${expert?.nameKo || ''}]\n${msg.content}`;
     }).join('\n\n---\n\n');
     navigator.clipboard.writeText(`질문: ${currentQuestionDisplay || currentQuestion}\n\n${text}`);
-    setCopiedAll(true);
-    setTimeout(() => setCopiedAll(false), 2000);
   };
 
   /** 현재 대화를 txt 파일로 다운로드. */
@@ -945,7 +940,6 @@ const Index = () => {
   const stopDiscussion = () => {
     setStopRequested(true);
     abortControllerRef.current?.abort();
-    setSimChoices([]);
   };
 
   const handleNewDiscussion = () => {
@@ -959,7 +953,6 @@ const Index = () => {
     setProconDebateTopic('');
     setSelectedExpertIds(['gemini-flash-lite']);
     setProconStances({});
-    setSimChoices([]);
     setSimPhaseIndex(0);
     setAivsRound(0);
     setAivsJudgments([]);

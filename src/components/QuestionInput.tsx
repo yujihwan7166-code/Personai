@@ -115,14 +115,12 @@ export function QuestionInput({
   discussionMode,
   selectedExperts,
   onRemoveExpert,
-  onToggleSettings,
   isFollowUp,
   externalValue,
   onExternalValueConsumed,
   embedded = false,
   placeholderOverride,
   extraButtons,
-  accentBorder = false,
   onSummarize,
   isSummarizing,
   messageCount,
@@ -138,7 +136,7 @@ export function QuestionInput({
   // 웹 검색 인라인 확장 — 팝오버 대신 입력창 위쪽에 슬림 검색바가 등장
   const [webSearchOpen, setWebSearchOpen] = useState(false);
   // 최근 웹 검색어 (기존 InputWebSearchButton 팝오버에 있던 기능을 인라인으로 이전)
-  const [webSearchHistory, setWebSearchHistory] = useState<string[]>(() => {
+  const [, setWebSearchHistory] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
       const raw = window.localStorage.getItem('personai.webSearch.recent');
@@ -229,18 +227,6 @@ export function QuestionInput({
     setAttachedFiles(nextFiles);
     setFileError(nextError);
   }, [attachedFiles, canAttachFiles]);
-
-  const focusTextarea = useCallback(() => {
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  }, []);
-
-  const handleQuickImageGenerate = useCallback(() => {
-    setQuestion((prev) => {
-      const next = prev.trim();
-      return next ? `${next}\n\n이미지 만들어줘` : '이미지 만들어줘';
-    });
-    focusTextarea();
-  }, [focusTextarea]);
 
   const handleConversationShare = useCallback(async () => {
     const shareText = question.trim() || 'Personai 대화';

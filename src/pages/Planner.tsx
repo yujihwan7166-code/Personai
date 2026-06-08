@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
@@ -1010,7 +1010,6 @@ const Planner = () => {
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
-                      onCollapse={toggleTaskPanel}
                       onAdd={() => {
                         // anchor 오늘/과거 → 지금 다음 30분 슬롯, 미래 → anchor 09:00.
                         const anchor = new Date(anchorIso);

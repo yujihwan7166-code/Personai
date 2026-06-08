@@ -10,7 +10,7 @@
  * Hover 액션: 편집 / 미루기 / 삭제 (반복 시리즈 인스턴스는 detach 처리).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, Flag, ListChecks, Palette, Pencil, Plus, Trash2, PanelLeftClose } from 'lucide-react';
+import { Clock, Flag, ListChecks, Palette, Pencil, Plus, Trash2 } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
@@ -43,7 +43,6 @@ interface TodayScheduledListProps {
   /** + 버튼 클릭 — 부모가 TaskScheduleDialog (모달) 를 연다. */
   onAdd?: () => void;
   emptyHint?: string;
-  onCollapse?: () => void;
 }
 
 type RowStatus = 'past' | 'now' | 'upcoming';
@@ -146,7 +145,7 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   }
 };
 
-export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, onCollapse }: TodayScheduledListProps) => {
+export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint }: TodayScheduledListProps) => {
   // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
   const items = usePlannerToday(anchorIso);
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
@@ -196,17 +195,6 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, o
               className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
-            </button>
-          )}
-          {onCollapse && (
-            <button
-              type="button"
-              onClick={onCollapse}
-              aria-label="패널 접기"
-              title="계획 & 할 일 목록 접기"
-              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <PanelLeftClose className="h-3.5 w-3.5" strokeWidth={2} />
             </button>
           )}
         </div>
