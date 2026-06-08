@@ -966,9 +966,8 @@ export const TodayTimeline = ({
   );
 
   if (hideHeader) {
-    // 좌측 "계획"/"할 일" 카드들과 짝 맞춰 우측 "타임라인" 도 자체 카드.
     return (
-      <section className="h-full min-h-0 flex flex-col rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]">
+      <section className="h-full min-h-0 flex flex-col border border-foreground/10 bg-card/45 px-3 py-2.5 lg:border-y-0 lg:border-r-0">
         <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
           {onToggleTaskPanel ? (
             <button

@@ -73,7 +73,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       className={cn(
         'w-full h-full min-h-0 flex flex-col transition-colors',
         embedded
-          ? 'px-3 py-2'
+          ? 'px-3 py-2.5'
           : 'rounded-2xl border bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
         isOver
           ? embedded
@@ -106,7 +106,12 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
           <button
             type="button"
             onClick={onAdd}
-            className="group w-full rounded-lg border border-dashed border-foreground/12 bg-background/35 px-3 py-2.5 text-left transition-colors hover:border-foreground/25 hover:bg-accent/70 hover:text-foreground"
+            className={cn(
+              'group w-full text-left transition-colors hover:text-foreground',
+              embedded
+                ? 'rounded-md px-2 py-2 hover:bg-accent/55'
+                : 'rounded-lg border border-dashed border-foreground/12 bg-background/35 px-3 py-2.5 hover:border-foreground/25 hover:bg-accent/70',
+            )}
           >
             <span className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent/65 text-muted-foreground group-hover:text-foreground">

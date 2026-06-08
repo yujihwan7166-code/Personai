@@ -25,10 +25,8 @@ import {
   FileText,
   Home,
   LayoutDashboard,
-  ListChecks,
   Network,
   NotebookPen,
-  Plus,
   Sparkles,
   type LucideIcon,
 } from 'lucide-react';
@@ -931,39 +929,21 @@ const Planner = () => {
       <main className="flex h-screen flex-1 min-w-0 flex-col overflow-hidden">
         <header className="shrink-0 border-b border-foreground/10 bg-background/95 px-2.5 py-2 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur">
           <div className="flex min-h-10 items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-9 min-w-0 items-center gap-2 rounded-lg border border-foreground/10 bg-card px-2.5 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent sm:max-w-[190px]"
-                  aria-label="앱 전환"
-                  title="앱 전환"
+            <div className="min-w-0 flex-1 px-1 sm:flex-none sm:px-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <h1
+                  className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]"
+                  title={periodLabel}
                 >
-                  <CalendarDays className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
-                  <span className="hidden truncate sm:inline">통합플래너</span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2.2} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                {WORKSPACE_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  const active = item.key === 'planner';
-                  return (
-                    <DropdownMenuItem
-                      key={item.key}
-                      onSelect={() => {
-                        if (!active) navigate(item.to);
-                      }}
-                      className={cn('gap-2', active && 'bg-primary/10 text-primary')}
-                    >
-                      <Icon className="h-3.5 w-3.5" strokeWidth={2.1} />
-                      <span className="flex-1">{item.label}</span>
-                      {active && <Check className="h-3.5 w-3.5" strokeWidth={2.2} />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {headerLabels.primary}
+                </h1>
+                {headerOverlineText && (
+                  <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] text-primary sm:inline">
+                    {headerOverlineText}
+                  </span>
+                )}
+              </div>
+            </div>
 
             <button
               type="button"
@@ -1001,21 +981,41 @@ const Planner = () => {
               </button>
             </div>
 
-            <div className="min-w-0 flex-1 px-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <h1
-                  className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]"
-                  title={periodLabel}
+            <div className="hidden flex-1 sm:block" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-9 min-w-0 shrink-0 items-center gap-2 rounded-full border border-foreground/10 bg-card px-2.5 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent sm:max-w-[190px]"
+                  aria-label="앱 전환"
+                  title="앱 전환"
                 >
-                  {headerLabels.primary}
-                </h1>
-                {headerOverlineText && (
-                  <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] text-primary sm:inline">
-                    {headerOverlineText}
-                  </span>
-                )}
-              </div>
-            </div>
+                  <CalendarDays className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                  <span className="hidden truncate lg:inline">통합플래너</span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2.2} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {WORKSPACE_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const active = item.key === 'planner';
+                  return (
+                    <DropdownMenuItem
+                      key={item.key}
+                      onSelect={() => {
+                        if (!active) navigate(item.to);
+                      }}
+                      className={cn('gap-2', active && 'bg-primary/10 text-primary')}
+                    >
+                      <Icon className="h-3.5 w-3.5" strokeWidth={2.1} />
+                      <span className="flex-1">{item.label}</span>
+                      {active && <Check className="h-3.5 w-3.5" strokeWidth={2.2} />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1071,14 +1071,6 @@ const Planner = () => {
         >
           <div className="grid flex-1 min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[248px_minmax(0,1fr)]">
             <aside className="hidden min-h-0 flex-col border-r border-foreground/10 bg-card/45 px-3 py-3 md:flex">
-              <button
-                type="button"
-                onClick={openCreateEvent}
-                className="mb-3 inline-flex h-10 w-fit items-center gap-2 rounded-full border border-foreground/10 bg-background px-4 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.25} />
-                만들기
-              </button>
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <PlannerSidebar
                   anchorIso={anchorIso}
@@ -1095,14 +1087,6 @@ const Planner = () => {
             <section className="min-h-0 overflow-hidden bg-background p-2 sm:p-3">
               <div className="mb-2 max-h-[34vh] overflow-y-auto rounded-xl border border-foreground/10 bg-card/70 p-2 md:hidden">
                 <div className="mb-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={openCreateEvent}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-foreground/10 bg-background px-3 text-[12px] font-semibold"
-                  >
-                    <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
-                    만들기
-                  </button>
                   <button
                     type="button"
                     onClick={openCreateTodo}
@@ -1144,26 +1128,19 @@ const Planner = () => {
                     'h-full min-h-0 grid grid-cols-1 gap-2 transition-all duration-300 ease-in-out',
                     showTimelinePanel
                       ? isTaskPanelOpen
-                        ? 'lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[288px_minmax(0,1fr)]'
+                        ? 'lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[minmax(500px,1.15fr)_minmax(480px,0.85fr)] 2xl:grid-cols-[minmax(560px,1.2fr)_minmax(520px,0.8fr)]'
                         : 'lg:grid-cols-[minmax(0,1fr)]'
                       : 'lg:grid-cols-[minmax(0,760px)]',
                   )}
                 >
                   <aside
                     className={cn(
-                      'min-h-0 self-start overflow-hidden rounded-xl border border-foreground/10 bg-card/80 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all duration-300 lg:flex lg:flex-col lg:self-stretch',
+                      'min-h-0 self-start overflow-hidden border border-foreground/10 bg-card/45 transition-all duration-300 lg:flex lg:flex-col lg:self-stretch',
+                      showTimelinePanel && 'lg:border-r lg:border-y-0 lg:border-l-0',
+                      !showTimelinePanel && 'rounded-lg',
                       !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden',
                     )}
                   >
-                    <div className="flex h-8 shrink-0 items-center gap-2 border-b border-foreground/10 px-3">
-                      <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
-                      <span className="text-[11px] font-semibold uppercase leading-none tracking-[0.08em] text-muted-foreground">
-                        오늘 계획
-                      </span>
-                      <span className="ml-auto hidden truncate text-[10.5px] text-muted-foreground/70 xl:inline">
-                        드래그해서 시간 배정
-                      </span>
-                    </div>
                     <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]">
                       <TodayScheduledList
                         anchorIso={anchorIso}

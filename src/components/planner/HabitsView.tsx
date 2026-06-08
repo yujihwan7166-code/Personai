@@ -19,6 +19,8 @@ export const HabitsView = () => {
   const [allCheckins, setAllCheckins] = useState<HabitCheckin[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
+  const activeHabits = useMemo(() => habits.filter((h) => !h.archived), [habits]);
+  const hasActiveHabits = activeHabits.length > 0;
 
   // 모든 체크인 — 주 dot 렌더링 + streak 계산용. 큰 deployment 에선 범위 한정 권장.
   useEffect(() => {
@@ -31,9 +33,9 @@ export const HabitsView = () => {
 
   // 첫 habit 자동 선택.
   useEffect(() => {
-    if (selectedId && habits.some((h) => h.id === selectedId)) return;
-    setSelectedId(habits[0]?.id ?? null);
-  }, [habits, selectedId]);
+    if (selectedId && activeHabits.some((h) => h.id === selectedId)) return;
+    setSelectedId(activeHabits[0]?.id ?? null);
+  }, [activeHabits, selectedId]);
 
   // Planner topbar "+ 새 습관" 버튼에서 dispatch — 외부 트리거로 dialog 오픈.
   useEffect(() => {
@@ -43,13 +45,19 @@ export const HabitsView = () => {
   }, []);
 
   const selected = useMemo(
-    () => habits.find((h) => h.id === selectedId) ?? null,
-    [habits, selectedId],
+    () => activeHabits.find((h) => h.id === selectedId) ?? null,
+    [activeHabits, selectedId],
   );
 
   return (
     <>
-      <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-0 min-h-0">
+      <div
+        className={
+          hasActiveHabits
+            ? 'h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-0 min-h-0'
+            : 'h-full min-h-0'
+        }
+      >
         <div className="min-h-0">
           <HabitListPane
             habits={habits}
@@ -60,20 +68,22 @@ export const HabitsView = () => {
             onEdit={(h) => setDialogMode({ kind: 'edit', habit: h })}
           />
         </div>
-        <div className="hidden lg:block min-h-0">
-          {selected ? (
-            <HabitDetailPane
-              habit={selected}
-              onEdit={() => setDialogMode({ kind: 'edit', habit: selected })}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center text-center p-6">
-              <div className="text-[13px] text-foreground/55">
-                좌측에서 습관을 선택하세요
+        {hasActiveHabits && (
+          <div className="hidden lg:block min-h-0">
+            {selected ? (
+              <HabitDetailPane
+                habit={selected}
+                onEdit={() => setDialogMode({ kind: 'edit', habit: selected })}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-center p-6">
+                <div className="text-[13px] text-foreground/55">
+                  좌측에서 습관을 선택하세요
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       <NewHabitDialog

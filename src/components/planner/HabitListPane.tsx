@@ -129,7 +129,7 @@ export const HabitListPane = ({
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
       {/* 헤더 — 카드 행과 동일한 grid 컬럼. h-16 (64px) 으로 HabitDayProgress (60px) 가 안에 완전히 포함되도록. */}
-      <div className="shrink-0 grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center px-3.5 h-12 border-b hairline bg-card">
+      <div className="shrink-0 grid grid-cols-1 items-center gap-1 border-b hairline bg-card px-3.5 py-2 sm:h-12 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px] sm:py-0">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-baseline gap-2">
           <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">
@@ -185,10 +185,10 @@ export const HabitListPane = ({
               <button
                 type="button"
                 title="습관 보관함"
-                className="inline-flex h-7 px-2 items-center justify-center gap-1 rounded text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="inline-flex h-7 items-center justify-center gap-1 rounded px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <Archive className="h-3 w-3" />
-                보관함
+                <span className="hidden sm:inline">보관함</span>
                 {archivedHabits.length > 0 && (
                   <span className="text-[10.5px] tabular-nums opacity-70">{archivedHabits.length}</span>
                 )}
@@ -250,7 +250,7 @@ export const HabitListPane = ({
             <div
               key={d.toISOString()}
               className={cn(
-                'self-stretch flex items-center justify-center',
+                'hidden self-stretch items-center justify-center sm:flex',
                 isToday && 'bg-amber-300/[0.22]',
               )}
             >
@@ -267,20 +267,20 @@ export const HabitListPane = ({
         })}
 
         {/* col 9: "최근 30일" — 카드 행의 heat strip 위 */}
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/60 text-center whitespace-nowrap">최근 30일</div>
+        <div className="hidden text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/60 whitespace-nowrap sm:block">최근 30일</div>
 
         {/* col 10: ⋯ 메뉴 자리 — 카드 행의 메뉴 컬럼과 정렬 */}
-        <div />
+        <div className="hidden sm:block" />
       </div>
 
       {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
       <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
         {activeHabits.length === 0 ? (
-          <div className="p-2">
-            <div className="text-[13px] text-foreground/70 font-medium mb-2">
+          <div className="p-2.5">
+            <div className="mb-2 text-[13px] font-medium text-foreground/70">
               한 번에 시작하기 — 스타터 팩
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {STARTER_PACKS.map((p) => (
                 <button
                   key={p.title}
@@ -298,7 +298,7 @@ export const HabitListPane = ({
                     backgroundColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 14%, hsl(var(--background)))`,
                     borderColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 30%, transparent)`,
                   }}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg border text-left hover:brightness-105 transition-all"
+                  className="flex h-11 items-center gap-2 rounded-lg border px-3 text-left transition-all hover:brightness-105"
                 >
                   <span className="text-[18px]">{p.emoji}</span>
                   <span className="text-[13px] font-medium text-foreground">{p.title}</span>
@@ -308,7 +308,7 @@ export const HabitListPane = ({
             <button
               type="button"
               onClick={onAdd}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[12.5px] text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+              className="mt-2.5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[hsl(var(--hairline))] px-3 text-[12.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
               <Plus className="h-3.5 w-3.5" />
               직접 만들기
@@ -341,7 +341,7 @@ export const HabitListPane = ({
                   }
                 }}
                 className={cn(
-                  'group relative grid grid-cols-[1fr_repeat(7,40px)_72px_28px] gap-1 items-center',
+                  'group relative grid grid-cols-[1fr_28px] items-center gap-1 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]',
                   'px-3.5 py-3 cursor-pointer transition-colors',
                   isSelected
                     ? 'bg-primary/5'
@@ -395,7 +395,7 @@ export const HabitListPane = ({
                       key={dk}
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        'self-stretch flex items-center justify-center -my-3 py-3',
+                        'hidden self-stretch items-center justify-center -my-3 py-3 sm:flex',
                         isToday && 'bg-amber-300/[0.22]',
                       )}
                     >
@@ -415,7 +415,7 @@ export const HabitListPane = ({
                 })}
 
                 {/* 30일 heat strip */}
-                <div className="flex items-center justify-end pr-1" title="최근 30일">
+                <div className="hidden items-center justify-end pr-1 sm:flex" title="최근 30일">
                   <HabitHeatStrip habit={habit} checkins={checkins} />
                 </div>
 
