@@ -1,5 +1,5 @@
 import { PageAiLauncher } from '@/components/PageAiLauncher';
-import { PageSwitcher, type PageSwitcherCurrent } from '@/components/PageSwitcher';
+import { type PageSwitcherCurrent } from '@/components/PageSwitcher';
 
 interface WorkspaceAiConfig {
   label: string;
@@ -18,7 +18,6 @@ interface PageWorkspaceChromeProps {
 export function PageWorkspaceChrome({
   current,
   ai,
-  switcherClassName,
   aiClassName,
 }: PageWorkspaceChromeProps) {
   return (
@@ -28,12 +27,6 @@ export function PageWorkspaceChrome({
       data-page-workspace-ai={ai ? (ai.open ? 'open' : 'closed') : 'none'}
       className="contents"
     >
-      {!ai?.open && (
-        <PageSwitcher
-          current={current}
-          className={switcherClassName}
-        />
-      )}
       {ai && (
         <PageAiLauncher
           label={ai.label}

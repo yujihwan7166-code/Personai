@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GlobalMemoHotkey } from "@/components/GlobalMemoHotkey";
 import { DailyBriefingMount } from "@/components/DailyBriefingMount";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppWorkspaceShell } from "@/components/AppWorkspaceShell";
 
 const queryClient = new QueryClient();
 const Index = lazy(() => import("./pages/Index"));
@@ -45,11 +46,11 @@ const App = () => (
               <Route path="/mockup" element={<Mockup />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/wiki" element={<Wiki />} />
-              <Route path="/planner" element={<Planner />} />
-              <Route path="/memos" element={<Memos />} />
-              <Route path="/whiteboard" element={<Whiteboard />} />
-              <Route path="/journal" element={<Journal />} />
+              <Route path="/wiki" element={<AppWorkspaceShell current="wiki"><Wiki /></AppWorkspaceShell>} />
+              <Route path="/planner" element={<AppWorkspaceShell current="planner"><Planner /></AppWorkspaceShell>} />
+              <Route path="/memos" element={<AppWorkspaceShell current="memos"><Memos /></AppWorkspaceShell>} />
+              <Route path="/whiteboard" element={<AppWorkspaceShell current="whiteboard"><Whiteboard /></AppWorkspaceShell>} />
+              <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

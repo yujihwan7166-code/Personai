@@ -1,20 +1,24 @@
 /**
  * 한 항목(Event 또는 Task) 표시 — variant 2종.
  *
- * - inbox: 시간 미배정 할일 (체크박스 + 깃발 + 제목 + 노트dot + 핀 + 삭제)
+ * - inbox: 시간 미배정 할일 (체크박스 + 깃발 + 제목 + 노트dot + 편집/색/삭제)
  * - block: 시간표 위 시간 블록 (시간칩 + 제목 + 우선순위 dot)
  *
  * TickTick 패턴:
  * - 깃발 = priority 1~3 시각화
- * - 핀 = 인박스 상단 고정 토글
  * - 노트 점(FileText) = note 있음 표시
  */
-import { Check, X, Flag, Pin, FileText, Ban, RotateCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Flag, FileText, Ban, RotateCw, ChevronDown, ChevronRight, Palette, Pencil, Trash2 } from 'lucide-react';
+import { useState, type CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
-import type { Priority, Subtask } from '@/types/planner';
-import { PRIORITY_COLORS } from '@/types/planner';
+import type { Priority, Subtask, TaskListColor } from '@/types/planner';
+import { PRIORITY_COLORS, TASK_LIST_COLORS } from '@/types/planner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { SubtaskList, SubtaskProgress } from './SubtaskList';
 import { StreakIndicator } from './StreakIndicator';
 import { tagColor } from '@/lib/planner/tagColor';
@@ -77,15 +81,96 @@ const TagChip = ({ tag, onClick, compact }: { tag: string; onClick?: () => void;
   );
 };
 
+const itemActionStripClass =
+  'ml-auto flex h-6 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/10 bg-card/95 p-0.5 shadow-[0_8px_18px_-16px_hsl(var(--foreground)/0.5)] transition-all';
+
+const itemActionButtonClass =
+  'inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+
+const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
+  { value: 'blue', label: '파랑' },
+  { value: 'teal', label: '청록' },
+  { value: 'green', label: '초록' },
+  { value: 'amber', label: '노랑' },
+  { value: 'orange', label: '주황' },
+  { value: 'rose', label: '빨강' },
+  { value: 'violet', label: '보라' },
+  { value: 'cyan', label: '하늘' },
+];
+
+const InboxColorPicker = ({
+  color,
+  onColorChange,
+}: {
+  color?: TaskListColor;
+  onColorChange: (color?: TaskListColor) => void;
+}) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <button
+        type="button"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="색 변경"
+        title="색 변경"
+        className={itemActionButtonClass}
+      >
+        <Palette className="h-3.5 w-3.5" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="min-w-[160px] p-1.5">
+      <div className="grid grid-cols-4 gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            onColorChange(undefined);
+          }}
+          aria-label="기본"
+          title="기본"
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
+            !color ? 'border-foreground/50 bg-accent' : 'border-foreground/15 hover:border-foreground/35',
+          )}
+        >
+          <span className="h-3.5 w-3.5 rounded-full border border-foreground/25 bg-card" aria-hidden />
+        </button>
+        {COLOR_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onColorChange(option.value);
+            }}
+            aria-label={option.label}
+            title={option.label}
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
+              color === option.value ? 'border-foreground/50 bg-accent' : 'border-foreground/15 hover:border-foreground/35',
+            )}
+          >
+            <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: TASK_LIST_COLORS[option.value].stripe }} aria-hidden />
+          </button>
+        ))}
+      </div>
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
+
 interface InboxCardProps {
   variant: 'inbox';
   title: string;
   done: boolean;
   onToggle: () => void;
   onClick?: () => void;
-  /** hover 시 우측에 삭제 X 아이콘 노출. */
+  /** hover 액션의 편집 버튼. 없으면 onClick 을 사용한다. */
+  onEdit?: () => void;
+  /** hover 액션의 색 변경. */
+  onColorChange?: (color?: TaskListColor) => void;
+  color?: TaskListColor;
+  /** hover 액션의 삭제 버튼. */
   onDelete?: () => void;
-  /** 핀 토글 — 있으면 우측에 핀 아이콘 노출. */
+  /** 우클릭 메뉴 등 외부 사용처 호환용. hover 액션에는 표시하지 않는다. */
   onTogglePin?: () => void;
   priority?: Priority;
   pinned?: boolean;
@@ -142,7 +227,7 @@ type PlannerCardProps = (InboxCardProps | BlockCardProps) & { meta?: MetaChip[] 
 /** Inbox variant — 별도 컴포넌트로 추출 (useState 가 hooks 규칙에 맞도록). */
 const InboxCardInner = (props: InboxCardProps) => {
   const {
-    title, done, onToggle, onClick, onDelete, onTogglePin, priority, pinned, hasNote, note, canceled, recurring,
+    title, done, onToggle, onClick, onEdit, onColorChange, color, onDelete, priority, pinned, hasNote, note, canceled, recurring,
     subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
     tags, meta, onTagClick, streakCurrent,
   } = props;
@@ -151,19 +236,35 @@ const InboxCardInner = (props: InboxCardProps) => {
   const noteText = note?.trim() ?? '';
   const showNoteTooltip = hasNote && noteText.length > 0;
   const hasSubtasks = subtasks && subtasks.length > 0;
+  const hasActions = Boolean(onEdit || onClick || onColorChange || onDelete);
+  const handleEdit = onEdit ?? onClick;
   const [expanded, setExpanded] = useState(false);
+  const accent = color ? TASK_LIST_COLORS[color].stripe : undefined;
+  const accentRowStyle = accent
+    ? ({
+        boxShadow: `inset 3px 0 0 ${accent}`,
+        backgroundColor: `color-mix(in oklab, ${accent} 7%, transparent)`,
+      } satisfies CSSProperties)
+    : undefined;
+  const checkboxAccentStyle = accent
+    ? ({
+        borderColor: `color-mix(in oklab, ${accent} 72%, hsl(var(--background)))`,
+        backgroundColor: done ? accent : `color-mix(in oklab, ${accent} 9%, transparent)`,
+      } satisfies CSSProperties)
+    : undefined;
   return (
       <div className="rounded-md overflow-hidden">
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}${pinned ? ' (고정됨)' : ''} — 클릭해서 시간 배정`}
+        aria-label={`${title}${done ? ' (완료됨)' : ''}${canceled ? ' (취소됨)' : ''}${pinned ? ' (고정됨)' : ''} — 클릭해서 편집`}
         className={cn(
-          'group flex items-center gap-2.5 px-2 py-1.5 rounded-md',
+          'group flex items-center gap-2 px-1.5 py-1.5 rounded-md',
           'hover:bg-accent cursor-pointer transition-colors',
           'focus:outline-none focus:bg-accent',
           canceled && 'opacity-60',
         )}
+        style={accentRowStyle}
         onClick={onClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -187,14 +288,15 @@ const InboxCardInner = (props: InboxCardProps) => {
               onToggle();
             }}
             className={cn(
-              'flex h-[14px] w-[14px] items-center justify-center rounded-[3px] border transition-all shrink-0',
+              'flex h-[15px] w-[15px] items-center justify-center rounded-[4px] border transition-all shrink-0',
               done
                 ? 'bg-foreground border-foreground text-background'
                 : 'border-foreground/20 hover:border-foreground/50 hover:scale-110',
             )}
+            style={checkboxAccentStyle}
             aria-label={done ? '완료 취소' : '완료'}
           >
-            {done && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
+            {done && <Check className="h-2.5 w-2.5" strokeWidth={3.25} />}
           </button>
         )}
         {showFlag && (
@@ -206,8 +308,8 @@ const InboxCardInner = (props: InboxCardProps) => {
         <span className="min-w-0 flex-1">
           <span
             className={cn(
-              'block text-[13.5px] leading-tight truncate text-foreground',
-              dim && 'line-through text-muted-foreground',
+               'block text-[14px] font-medium leading-tight truncate text-foreground',
+               dim && 'line-through text-foreground/50',
             )}
           >
             {title}
@@ -266,42 +368,40 @@ const InboxCardInner = (props: InboxCardProps) => {
             <FileText className="h-3 w-3 text-muted-foreground/70 shrink-0" aria-label="노트 있음" />
           )
         )}
-        {onTogglePin && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePin();
-            }}
-            aria-label={pinned ? '고정 해제' : '고정'}
-            title={pinned ? '고정 해제' : '고정'}
+        {hasActions && (
+          <span
             className={cn(
-              'flex h-5 w-5 items-center justify-center rounded shrink-0 transition-all',
-              pinned
-                ? 'opacity-100 text-foreground'
-                : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-muted-foreground hover:text-foreground hover:bg-accent',
+              itemActionStripClass,
+              'translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100',
             )}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Pin className={cn('h-3 w-3', pinned && 'fill-current')} strokeWidth={2.2} />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            aria-label="삭제"
-            title="삭제"
-            className={cn(
-              'flex h-5 w-5 items-center justify-center rounded shrink-0',
-              'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
-              'text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all',
+            {handleEdit && (
+              <button
+                type="button"
+                onClick={handleEdit}
+                aria-label="편집"
+                title="편집"
+                className={itemActionButtonClass}
+              >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={2.2} />
+              </button>
             )}
-          >
-            <X className="h-3 w-3" strokeWidth={2.5} />
-          </button>
+            {onColorChange && (
+              <InboxColorPicker color={color} onColorChange={onColorChange} />
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                aria-label="삭제"
+                title="삭제"
+                className={cn(itemActionButtonClass, 'hover:bg-rose-500/10 hover:text-rose-500')}
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={2.2} />
+              </button>
+            )}
+          </span>
         )}
       </div>
 
@@ -329,10 +429,10 @@ export const PlannerCard = (props: PlannerCardProps) => {
 
   // variant === 'block'
   const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent, durationLabel, overlapping } = props;
-  const accent = color ?? (kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(var(--muted-foreground) / 0.7)');
+  const accent = color ?? (kind === 'event' ? 'hsl(217 82% 58%)' : 'hsl(258 78% 58%)');
   // 파스텔 풀 블록 — 색을 배경에 22% 섞고, 보더는 38% 로 약간 진하게.
-  const blockBg = `color-mix(in oklab, ${accent} 22%, hsl(var(--background)))`;
-  const blockBorder = `color-mix(in oklab, ${accent} 38%, hsl(var(--background)))`;
+  const blockBg = `color-mix(in oklab, ${accent} 24%, hsl(var(--background)))`;
+  const blockBorder = `color-mix(in oklab, ${accent} 46%, hsl(var(--background)))`;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
   return (
@@ -347,10 +447,14 @@ export const PlannerCard = (props: PlannerCardProps) => {
           onClick?.();
         }
       }}
-      style={{ backgroundColor: blockBg, borderColor: blockBorder }}
+      style={{
+        backgroundColor: blockBg,
+        borderColor: blockBorder,
+        boxShadow: `inset 3px 0 0 color-mix(in oklab, ${accent} 78%, transparent)`,
+      }}
       className={cn(
         'group relative flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
-        'border hover:brightness-[1.04] hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.1)] transition-all',
+        'border hover:brightness-[1.035] transition-all',
         'focus:outline-none focus:ring-1 focus:ring-foreground/40',
         dim && 'opacity-50',
       )}

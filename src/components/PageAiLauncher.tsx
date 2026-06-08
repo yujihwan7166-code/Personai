@@ -30,9 +30,9 @@ export function PageAiLauncher({
       className={cn(
         PAGE_AI_LAUNCHER_POSITION_CLASS,
         PAGE_AI_LAUNCHER_SIZE_CLASS,
-        'rounded-lg border border-[hsl(var(--hairline))] bg-card/90 p-0 shadow-sm backdrop-blur',
+        'rounded-lg border border-foreground/30 bg-card/90 p-0 shadow-sm backdrop-blur',
         'inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-muted-foreground transition-colors',
-        'hover:border-primary/35 hover:bg-card hover:text-primary',
+        'hover:border-foreground/40 hover:bg-card hover:text-primary',
         className,
       )}
       title={title ?? label}

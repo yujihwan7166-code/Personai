@@ -5,8 +5,11 @@
  * Step 3 ?덉젙: ?붿냼 ?뚮뜑 + ?꾧뎄 ?숈옉.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '@/styles/wiki.css';   // wiki-warm-theme ?좏겙 (硫붾え? ?숈씪)
 import {
+  Home,
+  Menu,
   MousePointer2,
   Hand,
   Type,
@@ -42,8 +45,6 @@ import {
   Magnet,
   Group,
   Ungroup,
-  PanelLeftClose,
-  PanelLeftOpen,
   Search,
   LayoutTemplate,
   Map as MapIcon,
@@ -53,6 +54,9 @@ import {
 import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { PageStarterEmpty } from '@/components/PageStarterEmpty';
+import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
+import { AiSidebar } from '@/components/cloud/AiSidebar';
+import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
 import {
   DropdownMenu,
@@ -219,12 +223,34 @@ function elementSearchText(el: WBElement): string {
 
 // ??????????????????????????????????????????
 export default function Whiteboard() {
+  const navigate = useNavigate();
   const boards = useBoards();
   const folders = useFolders();
   const settings = useSettings();
   const activeBoardId = settings.activeBoardId;
   const activeBoard = activeBoardId ? boards.find((b) => b.id === activeBoardId) ?? getBoard(activeBoardId) ?? null : null;
   const boardData = useBoardData(activeBoardId);
+  const getWhiteboardAiContext = useCallback(() => {
+    const elements = boardData?.elements ?? [];
+    const textItems = elements
+      .map((element) => elementSearchText(element))
+      .filter(Boolean)
+      .slice(0, 40);
+    return {
+      kind: 'whiteboard' as const,
+      summary: activeBoard ? activeBoard.name : '전체 보드',
+      fullText: [
+        `현재 보드: ${activeBoard?.name ?? '선택 없음'}`,
+        `전체 보드 수: ${boards.length}`,
+        `요소 수: ${elements.length}`,
+        textItems.length > 0 ? `보드 텍스트:\n- ${textItems.join('\n- ')}` : '보드 텍스트 없음',
+      ].join('\n'),
+    };
+  }, [activeBoard, boardData?.elements, boards.length]);
+  const whiteboardAi = useAiSidebar('whiteboard', getWhiteboardAiContext, {
+    persistKey: activeBoardId ?? 'all',
+    openStorage: 'local',
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [switchingBoardId, setSwitchingBoardId] = useState<string | null>(null);
 
@@ -245,12 +271,21 @@ export default function Whiteboard() {
 
   return (
     <div className="wiki-warm-theme min-h-screen flex flex-col bg-background sm:flex-row">
-      <PageWorkspaceChrome current="whiteboard" />
+      <PageWorkspaceChrome
+        current="whiteboard"
+        ai={{
+          label: '보조 도구',
+          title: '보조 도구 열기',
+          open: whiteboardAi.open,
+          onOpen: () => whiteboardAi.setOpen(true),
+        }}
+      />
       <Sidebar
         boards={boards}
         folders={folders}
         activeBoardId={activeBoardId}
         collapsed={sidebarCollapsed}
+        onGoHome={() => navigate('/')}
         onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
       <main className="relative min-h-[62vh] flex-1 min-w-0 overflow-hidden bg-background sm:min-h-0">
@@ -276,6 +311,28 @@ export default function Whiteboard() {
           <EmptyMain />
         )}
       </main>
+      <div
+        className={cn(
+          PAGE_AI_PANEL_SLOT_CLASS,
+          !whiteboardAi.open && 'pointer-events-none',
+        )}
+      >
+        <AiSidebar
+          open={whiteboardAi.open}
+          onClose={() => whiteboardAi.setOpen(false)}
+          title="보조 도구"
+          emptyTitle="보드를 어떻게 정리할까요?"
+          emptyDescription="현재 보드의 텍스트와 요소 흐름을 참고해 구조와 다음 작업을 제안합니다."
+          inputPlaceholder="보드 구조화, 다음 배치, 문서화 방향을 물어보세요..."
+          context={getWhiteboardAiContext()}
+          messages={whiteboardAi.messages}
+          sending={whiteboardAi.sending}
+          onSend={whiteboardAi.send}
+          onRetry={whiteboardAi.retryLast}
+          onClear={whiteboardAi.clear}
+          surface="whiteboard"
+        />
+      </div>
     </div>
   );
 }
@@ -287,12 +344,14 @@ function Sidebar({
   folders,
   activeBoardId,
   collapsed,
+  onGoHome,
   onToggleCollapsed,
 }: {
   boards: WBBoard[];
   folders: ReturnType<typeof useFolders>;
   activeBoardId: string | null;
   collapsed: boolean;
+  onGoHome: () => void;
   onToggleCollapsed: () => void;
 }) {
   const trashed = useTrashedBoards();
@@ -334,12 +393,21 @@ function Sidebar({
       <aside className="flex h-11 shrink-0 items-center justify-end gap-1 border-b border-foreground/20 bg-background px-2 sm:h-screen sm:w-10 sm:flex-col sm:items-center sm:justify-start sm:border-b-0 sm:border-r sm:px-0 sm:py-3">
         <button
           type="button"
+          onClick={onGoHome}
+          className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="홈으로"
+          aria-label="홈으로"
+        >
+          <Home className="w-4 h-4" strokeWidth={1.85} />
+        </button>
+        <button
+          type="button"
           onClick={onToggleCollapsed}
           className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="사이드바 열기"
-          aria-label="사이드바 열기"
+          title="메뉴 열기"
+          aria-label="메뉴 열기"
         >
-          <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
+          <Menu className="w-4 h-4" strokeWidth={1.9} />
         </button>
         <button
           type="button"
@@ -365,12 +433,21 @@ function Sidebar({
           </div>
           <button
             type="button"
+            onClick={onGoHome}
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="홈으로"
+            aria-label="홈으로"
+          >
+            <Home className="w-4 h-4" strokeWidth={1.85} />
+          </button>
+          <button
+            type="button"
             onClick={onToggleCollapsed}
             className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            title="사이드바 접기"
-            aria-label="사이드바 접기"
+            title="메뉴 접기"
+            aria-label="메뉴 접기"
           >
-            <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
+            <Menu className="w-4 h-4" strokeWidth={1.9} />
           </button>
         </div>
         <div className="mt-3 flex gap-1.5">

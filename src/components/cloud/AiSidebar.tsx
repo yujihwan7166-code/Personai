@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   AlertTriangle,
@@ -30,8 +30,14 @@ import {
   type PageAiTone,
 } from '@/components/PageAiTokens';
 import {
+  AuxiliaryMemoTool,
+  AuxiliaryPlannerTool,
+  AuxiliaryReferenceSelect,
+  type AuxiliaryToolSurface,
+  AuxiliaryToolTab,
+  AuxiliaryToolTabs,
+  AuxiliaryWikiTool,
   PageAiComposer,
-  PageAiContextStrip,
   PageAiEmptyState,
   PageAiMessageActionButton,
   PageAiMessageActions,
@@ -40,6 +46,7 @@ import {
   PageAiQuickAction,
   PageAiResizeHandle,
   PageAiTypingIndicator,
+  getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
 import type { AiContext, AiKind, ChatMessage } from '@/lib/cloudAi/types';
@@ -107,6 +114,38 @@ function saveAiWidth(kind: AiKind, width: number): void {
   }
 }
 
+function aiKindToSurface(kind: AiKind): AuxiliaryToolSurface {
+  if (kind === 'memo') return 'memos';
+  if (kind === 'journal') return 'journal';
+  if (kind === 'whiteboard') return 'whiteboard';
+  return 'default';
+}
+
+function getReferenceOptionsForKind(kind: AiKind): Array<{ value: string; label: string }> {
+  if (kind === 'memo') {
+    return [
+      { value: 'current', label: '현재 메모' },
+      { value: 'all', label: '전체 메모' },
+    ];
+  }
+  if (kind === 'journal') {
+    return [
+      { value: 'current', label: '오늘 일기' },
+      { value: 'all', label: '전체 일기' },
+    ];
+  }
+  if (kind === 'whiteboard') {
+    return [
+      { value: 'current', label: '현재 보드' },
+      { value: 'all', label: '전체 보드' },
+    ];
+  }
+  return [
+    { value: 'current', label: '현재 화면' },
+    { value: 'all', label: '전체' },
+  ];
+}
+
 interface AiSidebarProps {
   open: boolean;
   onClose: () => void;
@@ -122,13 +161,13 @@ interface AiSidebarProps {
   onRetry?: () => void | Promise<void>;
   onClear: () => void;
   onContextClick?: () => void;
+  surface?: AuxiliaryToolSurface;
 }
 
 export function AiSidebar({
   open,
   onClose,
-  title = 'AI 어시스턴트',
-  subtitle,
+  title = '보조 도구',
   emptyTitle = '무엇을 도와드릴까요?',
   emptyDescription = '현재 화면의 내용을 참고해 답합니다.',
   inputPlaceholder = '질문하거나 정리할 내용을 입력...',
@@ -138,15 +177,28 @@ export function AiSidebar({
   onSend,
   onRetry,
   onClear,
-  onContextClick,
+  surface,
 }: AiSidebarProps) {
   const [draft, setDraft] = useState('');
   const [width, setWidth] = useState(() => loadAiWidth(context.kind));
+  const [activeTool, setActiveTool] = useState<AuxiliaryToolTab>('ai');
+  const [referenceScope, setReferenceScope] = useState('current');
+  const auxiliaryTools = useMemo(
+    () => getAuxiliaryToolsForSurface(surface ?? aiKindToSurface(context.kind)),
+    [context.kind, surface],
+  );
+  const panelRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setWidth(loadAiWidth(context.kind));
   }, [context.kind]);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    (panel as HTMLElement & { inert: boolean }).inert = !open;
+  }, [open]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -155,6 +207,12 @@ export function AiSidebar({
   }, [messages, sending]);
 
   useEscapeKey(() => onClose(), { enabled: open });
+
+  useEffect(() => {
+    if (!auxiliaryTools.some((tool) => tool.id === activeTool)) {
+      setActiveTool('ai');
+    }
+  }, [activeTool, auxiliaryTools]);
 
   const handleSend = useCallback((text: string) => {
     if (!text.trim() || sending) return;
@@ -166,8 +224,6 @@ export function AiSidebar({
     void onSend(prompt);
   }, [sending, onSend]);
 
-  if (!open) return null;
-
   const quickActions = QUICK_ACTIONS[context.kind] ?? [];
   const isEmpty = messages.length === 0;
   const headerVisual = getHeaderVisual(context.kind);
@@ -175,24 +231,33 @@ export function AiSidebar({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-40 bg-black/35 lg:hidden"
-        onClick={onClose}
-        aria-hidden
-      />
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/35 sm:hidden"
+          onClick={onClose}
+          aria-hidden
+        />
+      )}
       <aside
+        ref={panelRef}
         data-page-ai-panel={context.kind}
-        data-page-ai-panel-open="true"
+        data-page-ai-panel-open={open ? 'true' : 'false'}
         className={cn(
           'fixed inset-0 z-50 flex shrink-0 flex-col overflow-hidden',
           PAGE_AI_PANEL_SURFACE_CLASS,
           PAGE_AI_PANEL_TRANSITION_CLASS,
-          'lg:relative lg:inset-auto lg:z-auto lg:h-full lg:min-h-0 lg:w-[var(--ai-sidebar-w)]',
+          'sm:relative sm:inset-auto sm:z-auto sm:h-full sm:min-h-0 sm:w-[var(--ai-sidebar-w)]',
+          open
+            ? 'translate-x-0'
+            : 'translate-x-full pointer-events-none border-l-0 bg-transparent shadow-none max-sm:hidden sm:w-0 sm:translate-x-0',
         )}
         style={{ ['--ai-sidebar-w' as string]: `${width}px` }}
         role="complementary"
         aria-label={title}
+        aria-hidden={!open}
       >
+        {open && (
+          <>
         <PageAiResizeHandle
           open={open}
           width={width}
@@ -205,93 +270,109 @@ export function AiSidebar({
 
         <PageAiPanelHeader
           title={title}
-          subtitle={subtitle ?? context.summary}
           icon={<HeaderIcon className="h-3.5 w-3.5" aria-hidden />}
           iconTone={headerVisual.tone}
           onClose={onClose}
-          actions={!isEmpty && (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm(`대화의 메시지 ${messages.length}개를 모두 삭제할까요?`)) onClear();
-              }}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              title="대화 비우기"
-              aria-label="대화 비우기"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+          leading={(
+            <AuxiliaryToolTabs active={activeTool} onChange={setActiveTool} items={auxiliaryTools} />
+          )}
+          actions={(
+            <>
+              {activeTool === 'ai' && (
+                <AuxiliaryReferenceSelect
+                  value={referenceScope}
+                  onChange={setReferenceScope}
+                  options={getReferenceOptionsForKind(context.kind)}
+                />
+              )}
+              {activeTool === 'ai' && !isEmpty && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`대화의 메시지 ${messages.length}개를 모두 삭제할까요?`)) onClear();
+                  }}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="대화 비우기"
+                  aria-label="대화 비우기"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </>
           )}
         />
 
-        {context.summary && (
-          <PageAiContextStrip
-            summary={context.summary}
-            title={`현재 참조: ${context.summary}`}
-            onClick={onContextClick}
-            className={!onContextClick ? 'cursor-default' : undefined}
-          />
-        )}
-
-        <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>
-          {isEmpty ? (
-            <PageAiEmptyState title={emptyTitle} description={emptyDescription}>
-              <PageAiPromptSet label={`${title} 추천 요청`}>
-                {quickActions.map((qa, index) => {
-                  const visual = getQuickActionVisual(context.kind, qa.id, index);
-                  const Icon = visual.icon;
-                  return (
-                    <PageAiQuickAction
-                      key={qa.id}
-                      label={qa.label}
-                      description={qa.description}
-                      icon={<Icon className="h-3.5 w-3.5" aria-hidden />}
-                      iconClassName={PAGE_AI_TONE_ICON[visual.tone]}
-                      accentClassName={cn(PAGE_AI_TONE_DOT[visual.tone], visual.emphasized ? 'opacity-90' : 'opacity-55')}
-                      emphasized={visual.emphasized}
-                      onClick={() => handleQuickAction(qa.prompt)}
-                      disabled={sending}
-                      showArrow
-                    />
-                  );
-                })}
-              </PageAiPromptSet>
-            </PageAiEmptyState>
-          ) : (
-            messages.map((m) =>
-              m.role === 'assistant' && m.content === '' ? null : (
-                <MessageBubble key={m.id} message={m} />
-              ),
-            )
-          )}
-          {sending && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
-            <PageAiTypingIndicator />
-          )}
-        </div>
-
-        {!isEmpty && onRetry && messages.some((m) => m.role === 'user') && (
-          <div className="shrink-0 border-t border-[hsl(var(--hairline))] bg-card/45 px-2.5 pt-2.5">
-            <div className="mb-1.5 flex justify-end">
-              <button
-                type="button"
-                onClick={() => { void onRetry(); }}
-                disabled={sending}
-                className="rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
-              >
-                다시 생성
-              </button>
+        {activeTool === 'memos' ? (
+          <AuxiliaryMemoTool />
+        ) : activeTool === 'planner' ? (
+          <AuxiliaryPlannerTool />
+        ) : activeTool === 'wiki' ? (
+          <AuxiliaryWikiTool />
+        ) : (
+          <>
+            <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>
+              {isEmpty ? (
+                <PageAiEmptyState title={emptyTitle} description={emptyDescription}>
+                  <PageAiPromptSet label={`${title} 추천 요청`}>
+                    {quickActions.map((qa, index) => {
+                      const visual = getQuickActionVisual(context.kind, qa.id, index);
+                      const Icon = visual.icon;
+                      return (
+                        <PageAiQuickAction
+                          key={qa.id}
+                          label={qa.label}
+                          description={qa.description}
+                          icon={<Icon className="h-3.5 w-3.5" aria-hidden />}
+                          iconClassName={PAGE_AI_TONE_ICON[visual.tone]}
+                          accentClassName={cn(PAGE_AI_TONE_DOT[visual.tone], visual.emphasized ? 'opacity-90' : 'opacity-55')}
+                          emphasized={visual.emphasized}
+                          onClick={() => handleQuickAction(qa.prompt)}
+                          disabled={sending}
+                          showArrow
+                        />
+                      );
+                    })}
+                  </PageAiPromptSet>
+                </PageAiEmptyState>
+              ) : (
+                messages.map((m) =>
+                  m.role === 'assistant' && m.content === '' ? null : (
+                    <MessageBubble key={m.id} message={m} />
+                  ),
+                )
+              )}
+              {sending && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
+                <PageAiTypingIndicator />
+              )}
             </div>
-          </div>
+
+            {!isEmpty && onRetry && messages.some((m) => m.role === 'user') && (
+              <div className="shrink-0 border-t border-[hsl(var(--hairline))] bg-card/45 px-2.5 pt-2.5">
+                <div className="mb-1.5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { void onRetry(); }}
+                    disabled={sending}
+                    className="rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
+                  >
+                    다시 생성
+                  </button>
+                </div>
+              </div>
+            )}
+            <PageAiComposer
+              draft={draft}
+              onDraftChange={setDraft}
+              onSend={handleSend}
+              loading={sending}
+              placeholder={inputPlaceholder}
+              autoFocus={open}
+              className={cn(!isEmpty && onRetry && messages.some((m) => m.role === 'user') && 'border-t-0 pt-0')}
+            />
+          </>
         )}
-        <PageAiComposer
-          draft={draft}
-          onDraftChange={setDraft}
-          onSend={handleSend}
-          loading={sending}
-          placeholder={inputPlaceholder}
-          autoFocus={open}
-          className={cn(!isEmpty && onRetry && messages.some((m) => m.role === 'user') && 'border-t-0 pt-0')}
-        />
+          </>
+        )}
       </aside>
     </>
   );

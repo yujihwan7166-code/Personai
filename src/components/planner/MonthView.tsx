@@ -3,13 +3,16 @@
  *
  * 풀 화면 (사이드 컬럼 hide). 클릭 시 해당 일로 이동 (Phase 4 — onDayClick).
  */
-import { useMemo } from 'react';
+import { forwardRef, useCallback, useMemo, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { ArrowRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TASK_LIST_COLORS, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
+import { TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
+import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
+import type { PlannerDropData } from './dnd/plannerDndTypes';
 
 const DAYS_KO = [
   { short: '일', long: '일요일' },
@@ -132,7 +135,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg border hairline bg-[hsl(var(--hairline))]">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden border-y border-r border-[hsl(var(--hairline))] bg-[hsl(var(--hairline))]">
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 gap-px bg-[hsl(var(--hairline))] border-b border-[hsl(var(--hairline))]">
           {DAYS_KO.map((d, i) => (
@@ -165,7 +168,8 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                 return (
                   <Popover key={cell.iso}>
                     <PopoverTrigger asChild>
-                      <div
+                      <MonthCellTrigger
+                        dayIso={cell.iso}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -260,7 +264,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                             />
                           ))}
                         </div>
-                      </div>
+                      </MonthCellTrigger>
                     </PopoverTrigger>
                     <PopoverContent align="start" sideOffset={6} className="w-72 p-0 overflow-hidden">
                       <DayPopoverBody
@@ -283,6 +287,54 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
     </div>
   );
 };
+
+interface MonthCellTriggerProps extends HTMLAttributes<HTMLDivElement> {
+  dayIso: string;
+  children: ReactNode;
+}
+
+const MonthCellTrigger = forwardRef<HTMLDivElement, MonthCellTriggerProps>(({
+  dayIso,
+  className,
+  children,
+  ...props
+}, forwardedRef) => {
+  const data: PlannerDropData = { kind: 'day-column', dayIso };
+  const { setNodeRef, isOver } = useDroppable({
+    id: `month-day-${dayIso}`,
+    data,
+  });
+
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(node);
+    } else if (forwardedRef) {
+      (forwardedRef as MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [forwardedRef, setNodeRef]);
+
+  return (
+    <div
+      ref={setRefs}
+      data-month-day={toDateKey(new Date(dayIso))}
+      {...props}
+      className={cn(
+        'relative',
+        isOver && 'bg-primary/5 ring-2 ring-primary/35 ring-inset',
+        className,
+      )}
+    >
+      {children}
+      {isOver && (
+        <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-full border border-primary/30 bg-card/95 px-2 py-0.5 text-[10.5px] font-semibold text-primary shadow-sm">
+          이 날짜로 이동
+        </span>
+      )}
+    </div>
+  );
+});
+MonthCellTrigger.displayName = 'MonthCellTrigger';
 
 /** 셀 클릭 시 떠오르는 popover — 그 날 항목 list + Day 뷰 점프 + 새 일정 추가. */
 const DayPopoverBody = ({
@@ -338,51 +390,65 @@ const DayPopoverBody = ({
               const taskCanceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
               const taskDone = item.kind === 'task' ? item.data.done : false;
               const dim = taskDone || taskCanceled;
+              const dragData = item.kind === 'event'
+                ? weekDragDataForEvent(item.data as PlannerEvent)
+                : weekDragDataForTask(item.data as PlannerTask);
               return (
-                <button
+                <DraggableWeekItem
                   key={item.data.id}
-                  type="button"
-                  onClick={() => {
-                    if (onItemClick && startAt) {
-                      onItemClick({
-                        kind: item.kind,
-                        id: item.data.id,
-                        title: item.data.title,
-                        startAt,
-                        endAt,
-                      });
-                    }
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left',
-                    dim && 'opacity-60',
-                  )}
+                  id={`month-popover-${item.kind}-${item.data.id}`}
+                  data={dragData}
                 >
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: stripeColor }}
-                    aria-hidden
-                  />
-                  {startAt && (
-                    <span className="text-[11.5px] tabular-nums text-muted-foreground shrink-0 font-medium">
-                      {formatHm(startAt)}
+                  <button
+                    type="button"
+                    data-month-popover-item={`${item.kind}-${item.data.id}`}
+                    onClick={() => {
+                      if (onItemClick && startAt) {
+                        onItemClick({
+                          kind: item.kind,
+                          id: item.data.id,
+                          title: item.data.title,
+                          startAt,
+                          endAt,
+                        });
+                      }
+                    }}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left cursor-grab active:cursor-grabbing',
+                      dim && 'opacity-60',
+                    )}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: stripeColor }}
+                      aria-hidden
+                    />
+                    {startAt && (
+                      <span className="text-[11.5px] tabular-nums text-muted-foreground shrink-0 font-medium">
+                        {formatHm(startAt)}
+                      </span>
+                    )}
+                    <span className={cn(
+                      'flex-1 min-w-0 truncate text-[13px] text-foreground font-medium',
+                      dim && 'line-through text-muted-foreground',
+                    )}>
+                      {item.data.title}
                     </span>
-                  )}
-                  <span className={cn(
-                    'flex-1 min-w-0 truncate text-[13px] text-foreground font-medium',
-                    dim && 'line-through text-muted-foreground',
-                  )}>
-                    {item.data.title}
-                  </span>
-                </button>
+                  </button>
+                </DraggableWeekItem>
               );
             })}
             {todos.map((task) => (
-              <MonthTodoPopoverRow
+              <DraggableWeekItem
                 key={task.id}
-                task={task}
-                onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-              />
+                id={`month-popover-task-${task.id}`}
+                data={weekDragDataForTask(task)}
+              >
+                <MonthTodoPopoverRow
+                  task={task}
+                  onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+                />
+              </DraggableWeekItem>
             ))}
           </div>
         )}
@@ -455,8 +521,9 @@ const MonthTodoPopoverRow = ({
 }) => (
   <button
     type="button"
+    data-month-popover-item={`task-${task.id}`}
     onClick={onClick}
-    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left"
+    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left cursor-grab active:cursor-grabbing"
   >
     <span
       className="h-3.5 w-3.5 shrink-0 rounded-full border bg-card"

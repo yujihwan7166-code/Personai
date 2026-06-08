@@ -42,6 +42,13 @@ export const SYSTEM_PROMPTS: Record<AiKind, string> = {
 오늘을 돌아보는 질문 만들기, 감정 흐름 요약, 반복되는 패턴 찾기, 제목 추천,
 과거 일기와의 연결점 찾기를 도와줘.
 판단하거나 진단하지 말고, 부드럽고 조심스럽게 표현해.`,
+
+  whiteboard: `${COMMON}
+
+현재 컨텍스트는 화이트보드 작업 공간이야.
+보드의 요소, 메모, 텍스트 흐름을 보고 구조화, 아이디어 확장, 묶음 정리,
+다음 배치나 문서화 방향 제안을 도와줘.
+시각 작업을 방해하지 않게 짧고 실행 가능한 형태로 답해.`,
 };
 
 export const QUICK_ACTIONS: Record<AiKind, QuickAction[]> = {
@@ -80,5 +87,11 @@ export const QUICK_ACTIONS: Record<AiKind, QuickAction[]> = {
     { id: 'question', label: '질문 하나', description: '조금 더 이어 쓰기', prompt: '이 기록을 더 깊게 이어 쓰기 위한 질문을 3개 제안해줘.' },
     { id: 'title', label: '제목 추천', description: '오늘에 어울리는 이름', prompt: '오늘 일기에 어울리는 제목 5개를 추천해줘.' },
     { id: 'pattern', label: '패턴 찾기', description: '최근 흐름 조심스럽게 보기', prompt: '최근 일기에서 반복되는 감정이나 생활 패턴이 있는지 조심스럽게 짚어줘.' },
+  ],
+  whiteboard: [
+    { id: 'structure', label: '구조 정리', description: '흩어진 요소 묶기', prompt: '현재 보드를 큰 묶음과 흐름으로 정리해줘.' },
+    { id: 'next', label: '다음 배치', description: '이어 만들 방향', prompt: '이 보드에서 다음에 추가하거나 정리하면 좋은 요소를 제안해줘.' },
+    { id: 'summary', label: '보드 요약', description: '핵심만 압축', prompt: '현재 보드의 핵심을 5줄 이하로 요약해줘.' },
+    { id: 'wiki', label: '문서화', description: '위키로 옮길 구조', prompt: '이 보드를 위키 문서로 옮긴다면 어떤 목차가 좋을지 제안해줘.' },
   ],
 };

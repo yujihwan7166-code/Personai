@@ -23,14 +23,17 @@ describe('PageAiTokens', () => {
     expect(PAGE_AI_PANEL_SURFACE_CLASS).toContain('shadow-');
     expect(PAGE_AI_PANEL_TRANSITION_CLASS).toContain('transition-[width,transform]');
     expect(PAGE_AI_PANEL_SLOT_CLASS).toContain('fixed');
-    expect(PAGE_AI_PANEL_SLOT_CLASS).toContain('lg:static');
+    expect(PAGE_AI_PANEL_SLOT_CLASS).toContain('sm:static');
+    expect(PAGE_AI_PANEL_SLOT_CLASS).toContain('sm:self-stretch');
     expect(PAGE_AI_PANEL_SCROLL_CLASS).toContain('overscroll-contain');
   });
 
   it('keeps AI launchers visually aligned across workspace labels', () => {
+    expect(PAGE_AI_LAUNCHER_POSITION_CLASS).toContain('right-[calc(0.5rem');
+    expect(PAGE_AI_LAUNCHER_POSITION_CLASS).toContain('sm:right-[calc(9rem');
     expect(PAGE_AI_LAUNCHER_POSITION_CLASS).toContain('env(safe-area-inset-top)');
     expect(PAGE_AI_LAUNCHER_POSITION_CLASS).toContain('env(safe-area-inset-right)');
-    expect(PAGE_AI_LAUNCHER_SIZE_CLASS).toContain('w-9');
-    expect(PAGE_AI_LAUNCHER_SIZE_CLASS).toContain('sm:w-[92px]');
+    expect(PAGE_AI_LAUNCHER_SIZE_CLASS).toContain('w-8');
+    expect(PAGE_AI_LAUNCHER_SIZE_CLASS).toContain('sm:w-[94px]');
   });
 });

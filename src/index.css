@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .app-workspace-shell:has([data-page-ai-panel-open="true"]) [data-app-workspace-switcher] {
+    display: none;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

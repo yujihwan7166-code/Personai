@@ -8,6 +8,7 @@ import type { PlannerEvent, PlannerTask } from '@/types/planner';
 // ───── Draggable 종류 ─────
 export type PlannerDragData =
   | { kind: 'inbox-task'; task: PlannerTask }
+  | { kind: 'planned-task'; task: PlannerTask }
   | { kind: 'scheduled-task'; task: PlannerTask }
   | { kind: 'scheduled-event'; event: PlannerEvent };
 // resize-task / resize-event 는 제거 — DraggableBlock 안 네이티브 pointer event 가 처리.

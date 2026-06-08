@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Trash2, FileText, Plus as PlusIcon, Check, Copy as CopyIcon,
   BookOpen, MessageSquarePlus, History, Library, Network,
@@ -21,8 +21,12 @@ import {
   type PageAiTone,
 } from '@/components/PageAiTokens';
 import {
+  AuxiliaryMemoTool,
+  AuxiliaryPlannerTool,
+  AuxiliaryReferenceSelect,
+  AuxiliaryToolTab,
+  AuxiliaryToolTabs,
   PageAiComposer,
-  PageAiContextStrip,
   PageAiEmptyState,
   PageAiMessageActionButton,
   PageAiMessageActions,
@@ -31,6 +35,7 @@ import {
   PageAiQuickAction,
   PageAiResizeHandle,
   PageAiTypingIndicator,
+  getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
 import { streamExpert } from '@/pages/indexRuntime';
 import { buildWikiAiContext, deriveWikiPageTitleFromAnswer } from '@/lib/wikiAiContext';
@@ -210,6 +215,8 @@ export function WikiAiPanel({
     if (!page && ctxScope === 'page') setCtxScope('all');
   }, [page, ctxScope]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeTool, setActiveTool] = useState<AuxiliaryToolTab>('ai');
+  const auxiliaryTools = useMemo(() => getAuxiliaryToolsForSurface('wiki'), []);
   const [width, setWidth] = useState<number>(() => loadWidth());
   const panelRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -266,6 +273,18 @@ export function WikiAiPanel({
     if (historyOpen) setHistoryOpen(false);
     else onClose();
   }, { enabled: open });
+
+  useEffect(() => {
+    if (!auxiliaryTools.some((tool) => tool.id === activeTool)) {
+      setActiveTool('ai');
+    }
+  }, [activeTool, auxiliaryTools]);
+
+  useEffect(() => {
+    if (activeTool !== 'ai' && historyOpen) {
+      setHistoryOpen(false);
+    }
+  }, [activeTool, historyOpen]);
 
   const ctxPageCount = allPages?.length ?? totalPages;
 
@@ -385,7 +404,7 @@ export function WikiAiPanel({
           : 'translate-x-full pointer-events-none max-sm:hidden sm:w-0 sm:translate-x-0',
       )}
       role="complementary"
-      aria-label="위키 AI"
+      aria-label="보조 도구"
       aria-hidden={!open}
     >
       {open && (
@@ -411,18 +430,32 @@ export function WikiAiPanel({
 
       {/* 헤더 */}
       <PageAiPanelHeader
-        title="위키 AI"
-        subtitle={`${page ? page.title : '전체 위키'}를 참고합니다`}
+        title="보조 도구"
         icon={<Network className="h-3.5 w-3.5" aria-hidden />}
         iconTone="violet"
         onClose={onClose}
-        actions={(
-          <>
+        leading={(
+          <AuxiliaryToolTabs active={activeTool} onChange={setActiveTool} items={auxiliaryTools} />
+        )}
+        actions={activeTool === 'ai' ? (
+          <span className="contents" data-page-ai-chat-actions="true">
+            {activeTool === 'ai' && (
+              <AuxiliaryReferenceSelect
+                value={page ? ctxScope : 'all'}
+                onChange={(value) => setCtxScope(value === 'page' && page ? 'page' : 'all')}
+                options={page
+                  ? [
+                      { value: 'all', label: `전체 위키 ${ctxPageCount}` },
+                      { value: 'page', label: '현재 문서' },
+                    ]
+                  : [{ value: 'all', label: `전체 위키 ${ctxPageCount}` }]}
+              />
+            )}
             <button
               type="button"
               onClick={() => setHistoryOpen((v) => !v)}
               className={cn(
-                'inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                'inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors',
                 historyOpen
                   ? 'bg-accent text-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -435,18 +468,24 @@ export function WikiAiPanel({
             <button
               type="button"
               onClick={newThread}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               title="새 대화 시작"
               aria-label="새 대화"
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
             </button>
-          </>
-        )}
+          </span>
+        ) : undefined}
       />
 
+      {activeTool === 'memos' ? (
+        <AuxiliaryMemoTool />
+      ) : activeTool === 'planner' ? (
+        <AuxiliaryPlannerTool />
+      ) : (
+      <>
       {/* 대화 목록 시트 — 아래 영역과 구분 강화 (bg + 라벨 + inset shadow) */}
-      {historyOpen && (
+      {activeTool === 'ai' && historyOpen && (
         <div
           className="border-b-2 border-[hsl(var(--hairline))] bg-accent/40 max-h-[45%] overflow-y-auto shrink-0"
           style={{ boxShadow: 'inset 0 -6px 8px -6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(0,0,0,0.04)' }}
@@ -507,54 +546,6 @@ export function WikiAiPanel({
         </div>
       )}
 
-      {/* 참조 범위 */}
-      <PageAiContextStrip label="참조" className="items-start">
-        <div className="flex min-w-0 flex-1 gap-1.5">
-        <button
-          type="button"
-          onClick={() => setCtxScope('all')}
-          className={cn(
-            'inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-[11px] wiki-trans-color',
-            ctxScope === 'all'
-              ? 'bg-primary text-primary-foreground border-primary font-semibold'
-              : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
-          )}
-          title={`전체 위키 — ${ctxPageCount}페이지`}
-        >
-          <Library className="h-3 w-3 shrink-0" />
-          <span className="min-w-0 truncate">전체 위키</span>
-          {ctxPageCount > 0 && (
-            <span className={cn(
-              'shrink-0 rounded-full px-1 text-[10px] tabular-nums',
-              ctxScope === 'all'
-                ? 'bg-primary-foreground/20 text-primary-foreground'
-                : 'bg-muted text-muted-foreground',
-            )}>
-              {ctxPageCount}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => page && setCtxScope('page')}
-          disabled={!page}
-          className={cn(
-            'inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-[11px] wiki-trans-color',
-            ctxScope === 'page' && page
-              ? 'bg-primary text-primary-foreground border-primary font-semibold'
-              : 'bg-background text-foreground/70 border-[hsl(var(--hairline))] hover:bg-accent hover:text-foreground hover:border-foreground/20',
-            'disabled:opacity-40 disabled:hover:bg-background disabled:hover:border-[hsl(var(--hairline))] disabled:cursor-not-allowed',
-          )}
-          title={page ? `현재 문서 — ${page.title}` : '활성 페이지가 없어요'}
-        >
-          <FileText className="h-3 w-3 shrink-0" />
-          <span className="min-w-0 truncate">
-            {page ? page.title : '현재 문서'}
-          </span>
-        </button>
-        </div>
-      </PageAiContextStrip>
-
       {/* 메시지 영역 */}
       <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>
         {msgs.length === 0 ? (
@@ -607,6 +598,8 @@ export function WikiAiPanel({
         placeholder="문서 요약, 연결 추천, 위키 흐름을 물어보세요..."
         autoFocus={open}
       />
+      </>
+      )}
       </div>
       )}
     </aside>

@@ -7,11 +7,12 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { ListTodo, Plus, Clock, Check, Ban, Pin, ArrowUp, Hourglass, Flag, Trash2 } from 'lucide-react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { taskStore } from '@/services/planner/taskStore';
 import { cn } from '@/lib/utils';
 import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
+import type { PlannerDragData } from './dnd/plannerDndTypes';
 import { PLANNER_TASK_CHANGED, PRIORITY_COLORS, PRIORITY_LABELS, type PlannerTask, type Priority } from '@/types/planner';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
@@ -45,6 +46,8 @@ const sortPlanned = (items: PlannerTask[]) =>
 
 export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: TodayTodoListProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
+  const { active } = useDndContext();
+  const activeDrag = active?.data.current as PlannerDragData | undefined;
 
   useEffect(() => {
     const refresh = () => setTasks(taskStore.list().filter((task) => !task.done && !task.canceled && !task.someday));
@@ -66,14 +69,20 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
     id: `todo-list-${dayKey}`,
     data: { kind: 'todo-list', dayKey },
   });
+  const dropHint = activeDrag?.kind === 'scheduled-task'
+    ? '시간만 빼고 오늘 할 일로'
+    : activeDrag?.kind === 'scheduled-event'
+      ? '일정은 할 일로 바꿀 수 없어요'
+      : '오늘 할 일에 놓기';
 
   return (
     <section
       ref={setDropRef}
+      data-planner-readable="todo"
       className={cn(
-        'w-full h-full min-h-0 flex flex-col transition-colors',
+        'relative w-full h-full min-h-0 flex flex-col transition-colors',
         embedded
-          ? 'px-3 py-2.5'
+          ? 'bg-card px-3 py-2.5'
           : 'rounded-2xl border bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
         isOver
           ? embedded
@@ -83,12 +92,12 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
-        <ListTodo className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
-        <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
+        <ListTodo className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
+        <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
           할 일
         </span>
         {planned.length > 0 && (
-          <span className="text-[11px] tabular-nums text-muted-foreground/80 font-medium">{planned.length}</span>
+          <span className="text-[12px] tabular-nums text-foreground/60 font-semibold">{planned.length}</span>
         )}
         <button
           type="button"
@@ -100,6 +109,11 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
           <Plus className="h-3.5 w-3.5" strokeWidth={2.25} />
         </button>
       </div>
+      {isOver && (
+        <div className="pointer-events-none absolute left-3 right-3 top-[46px] z-10 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-[12.5px] font-semibold text-primary shadow-[0_8px_22px_-18px_hsl(var(--primary)/0.7)]">
+          {dropHint}
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
         {planned.length === 0 ? (
@@ -118,10 +132,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
                 <ListTodo className="h-3.5 w-3.5" strokeWidth={2} />
               </span>
               <span className="min-w-0">
-                <span className="block text-[12.5px] font-semibold text-foreground/75">
-                  오늘 할 일이 비어있어요.
-                </span>
-                <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
+                  <span className="block text-[13.5px] font-semibold text-foreground">
+                    오늘 할 일이 비어있어요.
+                  </span>
+                <span className="mt-0.5 block text-[12.5px] text-foreground/65">
                   바로 할 일을 하나 추가
                 </span>
               </span>
@@ -140,8 +154,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
                         done={task.done}
                         onToggle={() => taskStore.toggleDone(task.id)}
                         onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+                        onEdit={() => onTaskClick?.({ id: task.id, title: task.title })}
+                        color={task.color}
+                        onColorChange={(color) => taskStore.update(task.id, { color })}
                         onDelete={() => taskStore.remove(task.id)}
-                        onTogglePin={() => taskStore.togglePinned(task.id)}
                         priority={task.priority}
                         pinned={task.pinned}
                         hasNote={Boolean(task.note)}

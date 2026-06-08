@@ -17,18 +17,13 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  CalendarDays,
-  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Home,
-  LayoutDashboard,
-  Network,
-  NotebookPen,
+  Search,
   Sparkles,
-  type LucideIcon,
+  Settings,
+  X,
 } from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
@@ -78,6 +73,7 @@ import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
 import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
+import { toDateKey } from '@/lib/planner/habitStats';
 import { useWindowEvent } from '@/hooks/useWindowEvent';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { PAGE_AI_PANEL_WIDTH, clampPageAiPanelWidth } from '@/components/PageAiTokens';
@@ -103,16 +99,7 @@ const PLANNER_VIEW_META: Record<PlannerView, { label: string; shortcut: string }
   habits: { label: '습관', shortcut: 'H' },
 };
 
-const WORKSPACE_ITEMS: Array<{ key: string; label: string; to: string; icon: LucideIcon }> = [
-  { key: 'home', label: '홈', to: '/', icon: Home },
-  { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
-  { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
-  { key: 'memos', label: '메모', to: '/memos', icon: FileText },
-  { key: 'whiteboard', label: '화이트보드', to: '/whiteboard', icon: LayoutDashboard },
-  { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
-];
-
-import type { Priority } from '@/types/planner';
+import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 
 type DialogMode =
   | {
@@ -138,9 +125,30 @@ const getOverlineText = (secondary?: string): string | null => {
   return secondary.toUpperCase();
 };
 
+const formatDragTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+const formatDragDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+
+const taskDragRestorePatch = (task: PlannerTask): Partial<Omit<PlannerTask, 'id' | 'createdAt'>> => ({
+  startAt: task.startAt,
+  endAt: task.endAt,
+  plannedFor: task.plannedFor,
+  laneOrder: task.laneOrder,
+  listId: task.listId,
+});
+
+const eventDragRestorePatch = (event: PlannerEvent): Partial<Omit<PlannerEvent, 'id' | 'createdAt'>> => ({
+  startAt: event.startAt,
+  endAt: event.endAt,
+  laneOrder: event.laneOrder,
+});
+
 const Planner = () => {
   // Day 뷰 공통 input — NL 라우팅(시간 있으면 일정/타임라인, 없으면 할 일).
   const dayInputRef = useRef<HTMLInputElement>(null);
+  const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const showTimeline = useMediaQuery('(min-width: 1024px)');
@@ -205,6 +213,8 @@ const Planner = () => {
   }, [searchParams, setSearchParams, view]);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
@@ -418,6 +428,47 @@ const Planner = () => {
     }
   }, [setView]);
 
+  useEffect(() => {
+    if (!headerSearchOpen) return;
+    const id = window.setTimeout(() => headerSearchInputRef.current?.focus(), 80);
+    return () => window.clearTimeout(id);
+  }, [headerSearchOpen]);
+
+  const closeHeaderSearch = useCallback(() => {
+    setHeaderSearchOpen(false);
+    setHeaderSearchQuery('');
+  }, []);
+
+  const runHeaderSearch = useCallback(() => {
+    const q = headerSearchQuery.trim().toLowerCase();
+    if (!q) {
+      setHeaderSearchOpen(true);
+      headerSearchInputRef.current?.focus();
+      return;
+    }
+
+    const task = taskStoreSnapshot()
+      .filter((t) => !t.done && !t.canceled)
+      .find((t) => t.title.toLowerCase().includes(q));
+    if (task) {
+      handleCommandAction({ kind: 'jumpToTask', id: task.id, startAt: task.startAt });
+      setHeaderSearchOpen(false);
+      return;
+    }
+
+    const event = eventStore
+      .list()
+      .find((e) => e.title.toLowerCase().includes(q));
+    if (event) {
+      handleCommandAction({ kind: 'jumpToEvent', id: event.id, startAt: event.startAt });
+      setHeaderSearchOpen(false);
+      return;
+    }
+
+    notify.info('일치하는 일정이나 할 일이 없어요', { duration: 1400 });
+    headerSearchInputRef.current?.focus();
+  }, [handleCommandAction, headerSearchQuery]);
+
   // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
   const anchorIsToday = useMemo(() => {
     const a = new Date(anchorIso);
@@ -527,7 +578,7 @@ const Planner = () => {
   }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
 
   // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
-  const handleOpenPalette = useCallback(() => setPaletteOpen(true), []);
+  const handleOpenPalette = useCallback(() => setHeaderSearchOpen(true), []);
   const handleOpenMatrix = useCallback(() => setMatrixPopoverOpen(true), []);
   const handleOpenAgenda = useCallback(() => setAgendaPopoverOpen(true), []);
   const handleOpenHabits = useCallback(() => setView('habits'), [setView]);
@@ -610,7 +661,7 @@ const Planner = () => {
   const previewLabel = useMemo(() => {
     if (!activeDrag) return null;
     const { data } = activeDrag;
-    if (data.kind === 'inbox-task') {
+    if (data.kind === 'inbox-task' || data.kind === 'planned-task') {
       return `← ${data.task.title}`;
     }
     return null;
@@ -664,14 +715,18 @@ const Planner = () => {
       rawDropData &&
       'kind' in rawDropData &&
       rawDropData.kind === 'assign-list' &&
-      (dragData.kind === 'inbox-task' || dragData.kind === 'scheduled-task')
+      (dragData.kind === 'inbox-task' || dragData.kind === 'planned-task' || dragData.kind === 'scheduled-task')
     ) {
       const task = dragData.task;
       const targetId = isInstanceId(task.id)
         ? (parseInstanceId(task.id)?.masterId ?? task.id)
         : task.id;
+      const previousListId = task.listId;
       taskStore.update(targetId, { listId: (rawDropData as AssignListDropData).listId });
-      notify.success('분류 변경됐어요', { duration: 1200 });
+      notify.success('분류를 바꿨어요', {
+        duration: 3500,
+        action: { label: '되돌리기', onClick: () => taskStore.update(targetId, { listId: previousListId }) },
+      });
       return;
     }
 
@@ -681,15 +736,17 @@ const Planner = () => {
 
     // ─── 인박스 → 시간 슬롯: 시간 배정 ───
     // 기본 길이 = 사용자 snap × 2 (15→30, 30→60). 너무 짧으면 클릭하기 어려움.
-    if (dragData.kind === 'inbox-task' && dropData.kind === 'time-slot') {
+    if ((dragData.kind === 'inbox-task' || dragData.kind === 'planned-task') && dropData.kind === 'time-slot') {
       const start = dropData.startIso;
       const blockMin = Math.max(30, getSnapMin() * 2);
       const end = new Date(new Date(start).getTime() + blockMin * 60_000).toISOString();
+      const restore = taskDragRestorePatch(dragData.task);
       taskStore.schedule(dragData.task.id, start, end);
-      const startD = new Date(start);
-      const hh = String(startD.getHours()).padStart(2, '0');
-      const mm = String(startD.getMinutes()).padStart(2, '0');
-      notify.success(`${hh}:${mm} 에 배정됐어요`, { duration: 1500 });
+      notify.success(`${formatDragTime(start)}~${formatDragTime(end)}에 배정했어요`, {
+        description: '할 일이 타임라인으로 이동했습니다.',
+        duration: 4200,
+        action: { label: '되돌리기', onClick: () => taskStore.update(dragData.task.id, restore) },
+      });
       return;
     }
 
@@ -719,6 +776,8 @@ const Planner = () => {
       const newStartDate = new Date(oldStart.getTime() + deltaMinutes * 60_000);
       const newStart = newStartDate.toISOString();
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
+      const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
+      const restoreEvent = dragData.kind === 'scheduled-event' ? eventDragRestorePatch(dragData.event) : null;
 
       // 가로 드래그 = lane 좌/우 swap. 임계 60px.
       // 단, 겹치는 다른 항목이 0개면 lane 개념 자체가 무의미 — swap 생략 + "순서도 변경" 거짓 알림 방지.
@@ -767,7 +826,24 @@ const Planner = () => {
           });
         }
       }
-      notify.success(newLaneOrder !== undefined ? '순서도 변경됐어요' : '이동됐어요', { duration: 1200 });
+      const canUndo = !isInstanceId(item.id);
+      notify.success(
+        newLaneOrder !== undefined
+          ? `${formatDragTime(newStart)}~${formatDragTime(newEnd)}로 옮기고 겹침 순서도 바꿨어요`
+          : `${formatDragTime(newStart)}~${formatDragTime(newEnd)}로 옮겼어요`,
+        {
+          duration: 4200,
+          ...(canUndo ? {
+            action: {
+              label: '되돌리기',
+              onClick: () => {
+                if (dragData.kind === 'scheduled-task' && restoreTask) taskStore.update(item.id, restoreTask);
+                if (dragData.kind === 'scheduled-event' && restoreEvent) eventStore.update(item.id, restoreEvent);
+              },
+            },
+          } : {}),
+        },
+      );
       return;
     }
 
@@ -786,6 +862,8 @@ const Planner = () => {
       const targetDay = new Date(dropData.dayIso);
       const newStart = transposeTimeToDate(oldStart, targetDay).toISOString();
       const newEnd = new Date(new Date(newStart).getTime() + dur).toISOString();
+      const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
+      const restoreEvent = dragData.kind === 'scheduled-event' ? eventDragRestorePatch(dragData.event) : null;
 
       if (dragData.kind === 'scheduled-task') {
         if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
@@ -796,7 +874,37 @@ const Planner = () => {
           eventStore.update(item.id, { startAt: newStart, endAt: newEnd });
         }
       }
-      notify.success('이동됐어요', { duration: 1200 });
+      const canUndo = !isInstanceId(item.id);
+      notify.success(`${formatDragDate(newStart)} ${formatDragTime(newStart)}로 옮겼어요`, {
+        description: '시간은 그대로 유지했습니다.',
+        duration: 4200,
+        ...(canUndo ? {
+          action: {
+            label: '되돌리기',
+            onClick: () => {
+              if (dragData.kind === 'scheduled-task' && restoreTask) taskStore.update(item.id, restoreTask);
+              if (dragData.kind === 'scheduled-event' && restoreEvent) eventStore.update(item.id, restoreEvent);
+            },
+          },
+        } : {}),
+      });
+      return;
+    }
+
+    // ─── 날짜만 있는 할 일 → 다른 day column: 시간 없이 날짜만 변경 ───
+    if (dragData.kind === 'planned-task' && dropData.kind === 'day-column') {
+      const targetKey = toDateKey(new Date(dropData.dayIso));
+      if (dragData.task.plannedFor === targetKey) return;
+      const restore = taskDragRestorePatch(dragData.task);
+      taskStore.update(dragData.task.id, {
+        plannedFor: targetKey,
+        startAt: undefined,
+        endAt: undefined,
+      });
+      notify.success(`${formatDragDate(dropData.dayIso)} 할 일로 옮겼어요`, {
+        duration: 4200,
+        action: { label: '되돌리기', onClick: () => taskStore.update(dragData.task.id, restore) },
+      });
       return;
     }
 
@@ -806,8 +914,13 @@ const Planner = () => {
       targetDay.setHours(9, 0, 0, 0);
       const newStart = targetDay.toISOString();
       const newEnd = new Date(targetDay.getTime() + 30 * 60_000).toISOString();
+      const restore = taskDragRestorePatch(dragData.task);
       taskStore.schedule(dragData.task.id, newStart, newEnd);
-      notify.success('시간 배정됐어요', { duration: 1500 });
+      notify.success(`${formatDragDate(newStart)} 09:00에 배정했어요`, {
+        description: '다른 날짜로 옮기며 기본 시간에 올렸습니다.',
+        duration: 4200,
+        action: { label: '되돌리기', onClick: () => taskStore.update(dragData.task.id, restore) },
+      });
       return;
     }
 
@@ -819,6 +932,7 @@ const Planner = () => {
       // 일정(Event) 은 인박스 개념 없음 — 무시.
       if (dragData.kind === 'scheduled-event') return;
       const task = dragData.task;
+      const restore = taskDragRestorePatch(task);
       if (isInstanceId(task.id)) {
         // 시리즈 인스턴스를 인박스로 → detach + unschedule.
         const parsed = parseInstanceId(task.id);
@@ -833,7 +947,13 @@ const Planner = () => {
       } else {
         taskStore.unschedule(task.id);
       }
-      notify.info('인박스로 옮겼어요', { duration: 1500 });
+      notify.info('시간을 빼고 인박스로 돌렸어요', {
+        description: '할 일 자체는 유지되고 시간 배정만 제거됐습니다.',
+        duration: 4200,
+        ...(!isInstanceId(task.id) ? {
+          action: { label: '되돌리기', onClick: () => taskStore.update(task.id, restore) },
+        } : {}),
+      });
       return;
     }
 
@@ -846,6 +966,7 @@ const Planner = () => {
       if (dragData.kind === 'scheduled-event') return;
       const task = dragData.task;
       const dayKey = dropData.dayKey;
+      const restore = taskDragRestorePatch(task);
       if (isInstanceId(task.id)) {
         const parsed = parseInstanceId(task.id);
         if (!parsed) return;
@@ -863,7 +984,13 @@ const Planner = () => {
           plannedFor: dayKey,
         });
       }
-      notify.success('할 일로 옮겼어요', { duration: 1500 });
+      notify.success(`${formatDragDate(`${dayKey}T00:00:00`)} 할 일로 돌렸어요`, {
+        description: '시간만 제거하고 할 일 목록에 남겼습니다.',
+        duration: 4200,
+        ...(!isInstanceId(task.id) ? {
+          action: { label: '되돌리기', onClick: () => taskStore.update(task.id, restore) },
+        } : {}),
+      });
     }
   }, [tryDetachInstance]);
 
@@ -906,33 +1033,22 @@ const Planner = () => {
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
     >
-    <div
-      className={cn(
-        'planner-theme min-h-screen bg-background flex',
-        // AI 패널 열렸을 때 본문이 가려지지 않도록 우측 여백 — 패널 너비랑 동기.
-        // 너비가 동적이라 CSS 변수 + sm: 미디어쿼리로 처리 (모바일은 패널이 풀스크린이라 여백 X).
-        'transition-[padding] duration-200 ease-out',
-        aiPanelOpen && 'sm:pr-[var(--ai-panel-w)]',
-      )}
-      style={{ ['--ai-panel-w' as string]: `${aiPanelWidth}px` }}
-    >
-      {/* 좌측 icon rail — 라우트/drawer 빠른 접근 */}
-      <aside className="hidden sm:block shrink-0 w-12 border-r hairline bg-card/30">
+    <div className="planner-theme min-h-screen bg-background flex">
+      <aside className="hidden h-screen w-12 shrink-0 border-r border-foreground/10 bg-card/35 sm:block">
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
-      <nav
-        aria-label="플래너 빠른 이동"
-        className="fixed inset-x-0 bottom-0 z-40 border-t hairline bg-card/95 shadow-[0_-8px_24px_-18px_hsl(30_15%_8%/0.35)] backdrop-blur sm:hidden"
-      >
-        <PlannerLeftRail aiOpen={aiPanelOpen} orientation="horizontal" />
-      </nav>
       <main className="flex h-screen flex-1 min-w-0 flex-col overflow-hidden">
-        <header className="shrink-0 border-b border-foreground/10 bg-background/95 px-2.5 py-2 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur">
-          <div className="flex min-h-10 items-center gap-2">
-            <div className="min-w-0 flex-1 px-1 sm:flex-none sm:px-0">
+        <header className="shrink-0 border-b border-foreground/10 bg-background/95 px-3 py-1.5 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur sm:px-4">
+          <div
+            className={cn(
+              'flex min-h-10 items-center gap-2',
+              !aiPanelOpen && 'sm:pr-[calc(8rem+env(safe-area-inset-right))]',
+            )}
+          >
+            <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-2 sm:pr-0">
               <div className="flex min-w-0 items-center gap-2">
                 <h1
-                  className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]"
+                  className="truncate text-[28px] font-semibold leading-tight tracking-normal text-foreground sm:text-[36px]"
                   title={periodLabel}
                 >
                   {headerLabels.primary}
@@ -945,22 +1061,7 @@ const Planner = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={goToday}
-              aria-label="오늘로"
-              title="오늘로 (T)"
-              className={cn(
-                'hidden h-9 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-colors sm:inline-flex',
-                anchorIsToday
-                  ? 'border-foreground/10 bg-transparent text-muted-foreground/55'
-                  : 'border-primary/25 bg-primary/8 text-primary hover:bg-primary/12',
-              )}
-            >
-              오늘
-            </button>
-
-            <div className="flex shrink-0 items-center gap-0.5">
+            <div className="flex shrink-0 translate-y-1 items-center gap-0.5">
               <button
                 type="button"
                 onClick={goPrev}
@@ -969,6 +1070,20 @@ const Planner = () => {
                 className="inline-flex h-9 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                onClick={goToday}
+                aria-label="오늘로"
+                title="오늘로 (T)"
+                className={cn(
+                  'hidden h-9 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-colors sm:inline-flex',
+                  anchorIsToday
+                    ? 'border-foreground/10 bg-transparent text-foreground/55'
+                    : 'border-primary/25 bg-primary/8 text-primary hover:bg-primary/12',
+                )}
+              >
+                오늘
               </button>
               <button
                 type="button"
@@ -983,81 +1098,149 @@ const Planner = () => {
 
             <div className="hidden flex-1 sm:block" />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div
+              className="ml-auto flex h-8 shrink-0 items-center gap-1"
+              data-planner-header-tools="true"
+            >
+              <button
+                type="button"
+                onClick={() => setHeaderSearchOpen(true)}
+                className={cn(
+                  'hidden h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 sm:inline-flex',
+                  headerSearchOpen
+                    ? 'rounded-l-lg rounded-r-none border border-r-0 border-foreground/30 bg-card'
+                    : 'rounded-lg hover:bg-card',
+                )}
+                title="검색 (/ 또는 Ctrl/Cmd+K)"
+                aria-label="플래너 검색"
+              >
+                <Search className="h-4 w-4" strokeWidth={2.2} />
+              </button>
+              <div
+                className={cn(
+                  'hidden h-8 shrink-0 items-center overflow-hidden rounded-r-lg rounded-l-none border border-l-0 bg-card shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-all duration-200 ease-out sm:inline-flex',
+                  headerSearchOpen
+                    ? 'w-[248px] border-foreground/30 px-2 opacity-100'
+                    : 'w-0 border-transparent px-0 opacity-0',
+                )}
+                role="search"
+                aria-hidden={!headerSearchOpen}
+              >
+                <input
+                  ref={headerSearchInputRef}
+                  value={headerSearchQuery}
+                  onChange={(event) => setHeaderSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      runHeaderSearch();
+                    }
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      closeHeaderSearch();
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!headerSearchQuery.trim()) setHeaderSearchOpen(false);
+                  }}
+                  placeholder="검색"
+                  aria-label="검색어"
+                  className="h-full min-w-0 flex-1 bg-transparent px-1 text-[13px] font-medium text-foreground outline-none placeholder:text-muted-foreground/70 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                />
                 <button
                   type="button"
-                  className="inline-flex h-9 min-w-0 shrink-0 items-center gap-2 rounded-full border border-foreground/10 bg-card px-2.5 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent sm:max-w-[190px]"
-                  aria-label="앱 전환"
-                  title="앱 전환"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={closeHeaderSearch}
+                  className="inline-flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  aria-label="검색 닫기"
+                  title="검색 닫기"
                 >
-                  <CalendarDays className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
-                  <span className="hidden truncate lg:inline">통합플래너</span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2.2} />
+                  <X className="h-3.5 w-3.5" strokeWidth={2.2} />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {WORKSPACE_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  const active = item.key === 'planner';
-                  return (
-                    <DropdownMenuItem
-                      key={item.key}
-                      onSelect={() => {
-                        if (!active) navigate(item.to);
-                      }}
-                      className={cn('gap-2', active && 'bg-primary/10 text-primary')}
-                    >
-                      <Icon className="h-3.5 w-3.5" strokeWidth={2.1} />
-                      <span className="flex-1">{item.label}</span>
-                      {active && <Check className="h-3.5 w-3.5" strokeWidth={2.2} />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+              <button
+                type="button"
+                onClick={() => notify.info('플래너 설정은 준비 중이에요', { duration: 1400 })}
+                className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground sm:inline-flex"
+                title="설정"
+                aria-label="플래너 설정"
+              >
+                <Settings className="h-4 w-4" strokeWidth={2.1} />
+              </button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-foreground/15 bg-card px-3 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent"
-                  aria-label="뷰 선택"
-                  title="뷰 선택"
-                >
-                  {currentViewMeta.label}
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <div
+                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
+                role="tablist"
+                aria-label="플래너 보기"
+              >
                 {PLANNER_VIEWS.map((nextView) => {
                   const meta = PLANNER_VIEW_META[nextView];
                   const active = nextView === view;
                   return (
-                    <DropdownMenuItem
+                    <button
                       key={nextView}
-                      onSelect={() => setView(nextView)}
-                      className={cn(active && 'bg-primary/10 text-primary')}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setView(nextView)}
+                      className={cn(
+                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-colors',
+                        active
+                          ? 'bg-card text-primary shadow-[0_1px_4px_hsl(var(--foreground)/0.08)]'
+                          : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
+                        nextView === 'habits' && 'min-w-10',
+                      )}
+                      title={`${meta.label} (${meta.shortcut})`}
                     >
-                      <span className="flex-1">{meta.label}</span>
-                      <DropdownMenuShortcut>{meta.shortcut}</DropdownMenuShortcut>
-                    </DropdownMenuItem>
+                      {meta.label}
+                    </button>
                   );
                 })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setAiPanelOpen(true)}
-              hidden={aiPanelOpen}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-card px-3 text-[12px] font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-primary/5 hover:text-primary"
-              title="플래너 AI 열기"
-              aria-label="플래너 AI 열기"
-            >
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
-              <span className="hidden sm:inline">플래너 AI</span>
-            </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-foreground/35 bg-card px-2 text-[12px] font-semibold text-foreground shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-colors hover:bg-accent min-[1180px]:hidden"
+                    aria-label="뷰 선택"
+                    title="뷰 선택"
+                  >
+                    {currentViewMeta.label}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {PLANNER_VIEWS.map((nextView) => {
+                    const meta = PLANNER_VIEW_META[nextView];
+                    const active = nextView === view;
+                    return (
+                      <DropdownMenuItem
+                        key={nextView}
+                        onSelect={() => setView(nextView)}
+                        className={cn(active && 'bg-primary/10 text-primary')}
+                      >
+                        <span className="flex-1">{meta.label}</span>
+                        <DropdownMenuShortcut>{meta.shortcut}</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {!aiPanelOpen && (
+                <button
+                  type="button"
+                  onClick={() => setAiPanelOpen(true)}
+                  className="inline-flex h-8 w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-foreground/30 bg-card px-2 text-[12px] font-semibold text-muted-foreground shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] transition-colors hover:border-foreground/40 hover:bg-primary/5 hover:text-primary"
+                  title="보조 도구 열기"
+                  aria-label="보조 도구 열기"
+                >
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
+                  <span className="hidden sm:inline">보조 도구</span>
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
@@ -1084,7 +1267,12 @@ const Planner = () => {
               </div>
             </aside>
 
-            <section className="min-h-0 overflow-hidden bg-background p-2 sm:p-3">
+            <section
+              className={cn(
+                'min-h-0 overflow-hidden bg-background',
+                'p-0',
+              )}
+            >
               <div className="mb-2 max-h-[34vh] overflow-y-auto rounded-xl border border-foreground/10 bg-card/70 p-2 md:hidden">
                 <div className="mb-2 flex items-center gap-2">
                   <button
@@ -1109,8 +1297,8 @@ const Planner = () => {
               {isFullscreen ? (
                 <div
                   className={cn(
-                    'h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.035)]',
-                    view === 'habits' ? 'p-2' : 'p-3',
+                    'h-full min-h-0 overflow-hidden bg-background',
+                    'p-0',
                   )}
                 >
                   {view === 'year' && (
@@ -1125,19 +1313,19 @@ const Planner = () => {
               ) : view === 'day' ? (
                 <div
                   className={cn(
-                    'h-full min-h-0 grid grid-cols-1 gap-2 transition-all duration-300 ease-in-out',
+                    'h-full min-h-0 min-w-0 grid grid-cols-1 gap-0 overflow-hidden transition-all duration-300 ease-in-out',
                     showTimelinePanel
                       ? isTaskPanelOpen
-                        ? 'lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[minmax(500px,1.15fr)_minmax(480px,0.85fr)] 2xl:grid-cols-[minmax(560px,1.2fr)_minmax(520px,0.8fr)]'
+                        ? 'lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)] 2xl:grid-cols-[440px_minmax(0,1fr)]'
                         : 'lg:grid-cols-[minmax(0,1fr)]'
                       : 'lg:grid-cols-[minmax(0,760px)]',
                   )}
                 >
                   <aside
                     className={cn(
-                      'min-h-0 self-start overflow-hidden border border-foreground/10 bg-card/45 transition-all duration-300 lg:flex lg:flex-col lg:self-stretch',
-                      showTimelinePanel && 'lg:border-r lg:border-y-0 lg:border-l-0',
-                      !showTimelinePanel && 'rounded-lg',
+                      'min-h-0 min-w-0 self-start overflow-hidden bg-card transition-all duration-300 lg:flex lg:flex-col lg:self-stretch',
+                      showTimelinePanel && 'lg:border-r lg:border-foreground/10',
+                      !showTimelinePanel && 'border-r border-foreground/10',
                       !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden',
                     )}
                   >
@@ -1158,7 +1346,7 @@ const Planner = () => {
                     </div>
                   </aside>
                   {showTimelinePanel && (
-                    <div className="min-h-0">
+                    <div className="min-h-0 min-w-0 overflow-hidden bg-card" data-planner-timeline-shell="true">
                       <TodayTimeline
                         dateIso={anchorIso}
                         onItemClick={handleItemClick}
@@ -1202,6 +1390,16 @@ const Planner = () => {
           </div>
         </ModeErrorBoundary>
       </main>
+      <PlannerAIPanel
+        open={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        view={view}
+        anchorIso={anchorIso}
+        width={aiPanelWidth}
+        onWidthChange={setAiPanelWidth}
+        minWidth={PAGE_AI_PANEL_WIDTH.min}
+        maxWidth={PAGE_AI_PANEL_WIDTH.max}
+      />
       <TaskScheduleDialog
         open={dialogMode !== null}
         mode={dialogMode}
@@ -1259,17 +1457,6 @@ const Planner = () => {
       })()}
     </DragOverlay>
     {/* 포모도로 위젯은 App.tsx 에서 글로벌하게 렌더됨 — 여기 중복 X */}
-    {/* AI 컴패니언 패널 — 우측 슬라이드, backdrop 없음. 본문이랑 동시 사용 가능. */}
-    <PlannerAIPanel
-      open={aiPanelOpen}
-      onClose={() => setAiPanelOpen(false)}
-      view={view}
-      anchorIso={anchorIso}
-      width={aiPanelWidth}
-      onWidthChange={setAiPanelWidth}
-      minWidth={PAGE_AI_PANEL_WIDTH.min}
-      maxWidth={PAGE_AI_PANEL_WIDTH.max}
-    />
     {/* MainModeTabs — rail "모드" 클릭 시 apiRef 로 패널 오픈.
         트리거 pill 자체는 시각적으로 숨기고 dropdown panel 만 portal 로 등장. */}
     <HiddenInteractiveMount>

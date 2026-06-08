@@ -247,10 +247,14 @@ export const TodayTimeline = ({
     const target = e.target as HTMLElement;
     if (target.closest('[data-block="true"]')) return;
     if (!gridRef.current) return;
+    e.preventDefault();
     const rect = gridRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const startMin = visibleStart * 60 + yToMin(y);
     dragStartRef.current = { clientY: e.clientY, startMin };
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+    window.getSelection()?.removeAllRanges();
 
     // 마지막 알려진 마우스 viewport y — pointermove 와 scroll 모두에서 참조.
     let lastClientY = e.clientY;
@@ -263,6 +267,7 @@ export const TodayTimeline = ({
       const m = visibleStart * 60 + yToMin(y2);
       const moved = Math.abs(clientY - dragStartRef.current.clientY);
       if (moved >= 5) {
+        window.getSelection()?.removeAllRanges();
         setDragRange({ startMin: dragStartRef.current.startMin, currentMin: m });
       }
     };
@@ -289,6 +294,8 @@ export const TodayTimeline = ({
       window.removeEventListener('pointercancel', handleUp);
       scrollRef.current?.removeEventListener('scroll', handleScroll);
       autoScroller.stop();
+      document.body.style.userSelect = previousUserSelect;
+      window.getSelection()?.removeAllRanges();
       const start = dragStartRef.current;
       dragStartRef.current = null;
       if (!start) {
@@ -400,7 +407,7 @@ export const TodayTimeline = ({
       onClick={scrollToNow}
       title="현재 시각으로 스크롤"
       aria-label="현재 시각으로 스크롤"
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[12px] tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-bold"
     >
       <Locate className="h-3.5 w-3.5" />
       지금
@@ -413,7 +420,7 @@ export const TodayTimeline = ({
       onClick={() => setCompact((v) => !v)}
       title={compact ? '24시간 모두 보기' : '주요 시간만 (7~23시)'}
       aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[12px] tabular-nums text-foreground/75 hover:text-foreground hover:bg-accent transition-colors font-semibold"
     >
       {compact ? '24h' : '7-23'}
     </button>
@@ -426,7 +433,7 @@ export const TodayTimeline = ({
           type="button"
           title={`드래그·리사이즈 스냅 단위 — 현재 ${snapMin}분`}
           aria-label={`스냅 ${snapMin}분`}
-          className="inline-flex items-center gap-0.5 px-1.5 h-6 rounded text-[11px] tabular-nums text-foreground/65 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+          className="inline-flex items-center gap-0.5 px-1.5 h-6 rounded text-[12px] tabular-nums text-foreground/75 hover:text-foreground hover:bg-accent transition-colors font-semibold"
         >
           ⊞ {snapMin}분
         </button>
@@ -560,11 +567,11 @@ export const TodayTimeline = ({
   );
 
   const body = (
-    <div ref={scrollRef} data-timeline-scroll="true" className="relative h-full overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+    <div ref={scrollRef} data-timeline-scroll="true" className="relative h-full min-w-0 select-none overflow-y-auto overflow-x-hidden" style={{ scrollbarGutter: 'stable' }}>
         {compact && hiddenByCompact.early > 0 && (
           <HiddenBanner where="early" count={hiddenByCompact.early} />
         )}
-        <div ref={gridRef} onPointerDown={handleGridPointerDown} className="relative" style={{ height: visibleHours * HOUR_PX }}>
+        <div ref={gridRef} onPointerDown={handleGridPointerDown} className="relative min-w-0 select-none" style={{ height: visibleHours * HOUR_PX }}>
           {/* 시간 격자 */}
           {Array.from({ length: visibleHours }, (_, i) => {
             const hour = visibleStart + i;
@@ -575,7 +582,7 @@ export const TodayTimeline = ({
                 style={{ top: i * HOUR_PX, height: HOUR_PX }}
               >
                 <div className="w-10 shrink-0 pr-1.5 text-right">
-                    <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground/70 leading-none font-medium">
+                    <span className="text-[11.5px] font-mono tabular-nums text-foreground/75 leading-none font-semibold">
                     {String(hour).padStart(2, '0')}:00
                   </span>
                 </div>
@@ -631,17 +638,30 @@ export const TodayTimeline = ({
             const minA = Math.min(dragRange.startMin, dragRange.currentMin);
             const minB = Math.max(dragRange.startMin, dragRange.currentMin);
             const top = (minA - visibleStart * 60) / 60 * HOUR_PX;
-            const height = Math.max(8, (minB - minA) / 60 * HOUR_PX);
+            const height = Math.max(24, (minB - minA) / 60 * HOUR_PX);
+            const startLabel = `${String(Math.floor(minA / 60)).padStart(2, '0')}:${String(minA % 60).padStart(2, '0')}`;
+            const endLabel = `${String(Math.floor(minB / 60)).padStart(2, '0')}:${String(minB % 60).padStart(2, '0')}`;
             return (
               <div
-                className="absolute left-10 right-2 rounded pointer-events-none z-25 border border-dashed border-primary/45 shadow-[inset_0_0_12px_rgba(var(--primary)/0.05)] transition-all duration-75"
+                className="absolute left-11 right-3 overflow-hidden rounded-lg border border-primary/45 bg-primary/12 shadow-[0_10px_28px_-20px_hsl(var(--primary)/0.55)] ring-1 ring-primary/12 pointer-events-none z-25 transition-all duration-75"
                 style={{
                   top,
                   height,
-                  background: 'linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--accent) / 0.12))',
                 }}
                 aria-hidden
-              />
+              >
+                <span className="absolute left-0 top-0 h-full w-[3px] bg-primary/80" />
+                <div className="flex h-full min-h-0 flex-col justify-start px-3 py-2">
+                  <span className="text-[11px] font-mono font-semibold tabular-nums leading-none text-primary">
+                    {startLabel} ~ {endLabel}
+                  </span>
+                  {height >= 42 && (
+                    <span className="mt-1 truncate text-[13px] font-semibold leading-tight text-foreground">
+                      새 일정
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })()}
 
@@ -807,7 +827,7 @@ export const TodayTimeline = ({
                           {formatHm(startAt)} ~ {formatHm(endAt)}
                         </span>
                         {height >= 60 && (
-                          <span className="text-[9.5px] font-mono tabular-nums text-foreground/50 leading-none">
+                          <span className="text-[10.5px] font-mono tabular-nums text-foreground/60 leading-none font-medium">
                             · {formatDuration(startAt, endAt)}
                           </span>
                         )}
@@ -838,14 +858,14 @@ export const TodayTimeline = ({
                       <p className={cn(
                         'text-foreground font-medium',
                         height < 34
-                          ? 'truncate text-[11.5px] leading-[13px]'
-                          : 'mt-1 line-clamp-2 text-[13px] leading-snug',
+                          ? 'truncate text-[12.5px] leading-[15px]'
+                          : 'mt-1 line-clamp-2 text-[14px] leading-[1.25]',
                         dim && 'line-through',
                       )}>
                         {height < 34 ? `${formatHm(startAt)} ${item.data.title}` : item.data.title}
                       </p>
                       {hasNote && height >= 60 && (
-                        <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate">
+                        <p className="text-[12px] text-foreground/65 mt-0.5 truncate">
                           {item.kind === 'task' ? item.data.note : ''}
                         </p>
                       )}
@@ -863,12 +883,12 @@ export const TodayTimeline = ({
                       <TooltipContent side="right" align="start" className="max-w-xs">
                         <div className="flex flex-col gap-1 py-0.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+                            <span className="text-[10.5px] font-mono uppercase tracking-[0.1em] text-foreground/60 font-semibold">
                               {kindLabel}
                             </span>
-                            <span className="text-[12.5px] font-medium text-foreground">{item.data.title}</span>
+                          <span className="text-[13.5px] font-semibold text-foreground">{item.data.title}</span>
                           </div>
-                          <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
+                          <span className="text-[11.5px] font-mono tabular-nums text-foreground/65">
                             {formatHm(startAt)} ~ {formatHm(endAt)}  ·  {formatDuration(startAt, endAt)}
                           </span>
                         </div>
@@ -967,8 +987,8 @@ export const TodayTimeline = ({
 
   if (hideHeader) {
     return (
-      <section className="h-full min-h-0 flex flex-col border border-foreground/10 bg-card/45 px-3 py-2.5 lg:border-y-0 lg:border-r-0">
-        <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
+      <section className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden border-y border-r border-foreground/10 bg-card px-3 py-2.5 lg:border-y-0 lg:border-r-0" data-planner-timeline="true">
+        <div className="shrink-0 flex min-w-0 items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
           {onToggleTaskPanel ? (
             <button
               type="button"
@@ -976,28 +996,28 @@ export const TodayTimeline = ({
               aria-label={isTaskPanelOpen === false ? '계획 및 할 일 목록 펼치기' : '계획 및 할 일 목록 접기'}
               aria-pressed={isTaskPanelOpen !== false}
               title={isTaskPanelOpen === false ? '타임라인 제목을 눌러 목록 펼치기' : '타임라인 제목을 눌러 목록 접기'}
-              className="group -ml-1 inline-flex h-6 items-center gap-2 rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group -ml-1 inline-flex h-6 min-w-0 items-center gap-2 rounded-md px-1.5 text-foreground/70 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
-              <span className="text-[11px] font-semibold tracking-[0.08em] uppercase leading-none">
+              <span className="truncate text-[12px] font-bold uppercase leading-none tracking-normal">
                 타임라인
               </span>
             </button>
           ) : (
             <>
-              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
-              <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
+              <CalendarDays className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
+              <span className="truncate text-[12px] font-bold uppercase leading-none tracking-normal text-foreground/80">
                 타임라인
               </span>
             </>
           )}
-          <span className="ml-auto inline-flex items-center gap-1.5">
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5">
             {SnapDropdown}
             {CompactToggle}
             {NowButton}
           </span>
         </div>
-        <div className="flex-1 min-h-0">{body}</div>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">{body}</div>
       </section>
     );
   }

@@ -20,10 +20,10 @@ describe('PlannerAIPanel', () => {
       />,
     );
 
-    const panel = screen.getByRole('complementary', { name: '플래너 AI' });
+    const panel = screen.getByRole('complementary', { name: '보조 도구' });
     expect(panel).toHaveAttribute('data-page-ai-panel', 'planner');
     expect(panel).toHaveClass('z-50', 'overflow-hidden');
-    expect(screen.getByRole('separator', { name: 'AI 패널 너비 조정' })).toBeInTheDocument();
+    expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toBeInTheDocument();
 
     fireEvent.keyDown(screen.getByLabelText('AI 입력'), { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();

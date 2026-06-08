@@ -3,7 +3,7 @@
  * 4개 화면(Doc/Sheet/Slide/Drive)이 같은 채팅 컴포넌트를 공유한다.
  */
 
-export type AiKind = 'doc' | 'sheet' | 'slide' | 'drive' | 'memo' | 'journal';
+export type AiKind = 'doc' | 'sheet' | 'slide' | 'drive' | 'memo' | 'journal' | 'whiteboard';
 
 export interface ChatMessage {
   id: string;

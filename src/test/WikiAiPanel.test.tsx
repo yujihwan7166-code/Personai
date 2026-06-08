@@ -23,13 +23,33 @@ describe('WikiAiPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('complementary', { name: '위키 AI' })).toHaveAttribute('data-page-ai-panel', 'wiki');
-    expect(screen.getByRole('separator', { name: 'AI 패널 너비 조정' })).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '보조 도구' })).toHaveAttribute('data-page-ai-panel', 'wiki');
+    expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toBeInTheDocument();
 
     fireEvent.keyDown(screen.getByLabelText('AI 입력'), { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides AI-only chat actions when a reference tool tab is selected', () => {
+    render(
+      <WikiAiPanel
+        open
+        onClose={vi.fn()}
+        page={null}
+        allPages={[]}
+        totalPages={0}
+      />,
+    );
+
+    expect(document.querySelector('[data-page-ai-chat-actions="true"]')).toBeInTheDocument();
+
+    const tabButtons = document.querySelectorAll('[data-page-ai-header] nav button');
+    expect(tabButtons.length).toBeGreaterThan(1);
+    fireEvent.click(tabButtons[1]);
+
+    expect(document.querySelector('[data-page-ai-chat-actions="true"]')).not.toBeInTheDocument();
   });
 });

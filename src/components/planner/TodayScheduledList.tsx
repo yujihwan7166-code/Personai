@@ -82,6 +82,12 @@ const SNOOZE_OPTIONS: ReadonlyArray<{ label: string; deltaMs: number }> = [
   { label: '내일로',   deltaMs: 24 * 60 * 60_000 },
 ];
 
+const rowActionStripClass =
+  'ml-auto flex h-7 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/10 bg-card/95 p-0.5 shadow-[0_8px_18px_-16px_hsl(var(--foreground)/0.5)] transition-all translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100';
+
+const rowActionButtonClass =
+  'inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+
 /** 미루기 — 시리즈 인스턴스는 editThisOnly 로 detach + 신규 단발 생성. */
 const snoozeItem = (kind: Kind, item: PlannerTask | PlannerEvent, deltaMs: number) => {
   if (!item.startAt || !item.endAt) return;
@@ -178,20 +184,21 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
 
   return (
     <section
+      data-planner-readable="scheduled"
       className={cn(
-        'w-full h-fit min-h-[104px] max-h-[220px] flex flex-col',
+        'w-full h-fit min-h-[104px] max-h-[264px] flex flex-col',
         embedded
-          ? 'border-b border-foreground/10 px-3 py-2.5'
+          ? 'border-b border-foreground/10 bg-card px-3 py-2.5'
           : 'rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
-        <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
-        <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">
+        <ListChecks className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
+        <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
           일정
         </span>
         {scheduled.length > 0 && (
-          <span className="text-[11px] tabular-nums text-muted-foreground/80 font-medium">{scheduled.length}</span>
+          <span className="text-[12px] tabular-nums text-foreground/60 font-semibold">{scheduled.length}</span>
         )}
         <div className="ml-auto flex items-center gap-1">
           {onAdd && (
@@ -210,7 +217,11 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
 
       <div className={cn(
         'pr-1 -mr-1',
-        scheduled.length === 0 ? 'shrink-0' : 'flex-1 min-h-0 overflow-y-auto',
+        scheduled.length === 0
+          ? 'shrink-0'
+          : scheduled.length <= 5
+            ? 'shrink-0 overflow-visible'
+            : 'flex-1 min-h-0 overflow-y-auto',
       )}>
         {scheduled.length === 0 ? (
           onAdd ? (
@@ -229,17 +240,17 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
                   <Clock className="h-3.5 w-3.5" strokeWidth={2} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[12.5px] font-semibold text-foreground/75">
+                  <span className="block text-[13.5px] font-semibold text-foreground">
                     시간 잡힌 일정이 없어요.
                   </span>
-                  <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
+                  <span className="mt-0.5 block text-[12.5px] text-foreground/65">
                     {emptyHint ?? '타임라인을 클릭하거나 +로 추가'}
                   </span>
                 </span>
               </span>
             </button>
           ) : (
-            <p className="px-2 py-2 text-[12.5px] text-foreground/65 leading-snug">
+            <p className="px-2 py-2 text-[13px] font-medium text-foreground/70 leading-snug">
               시간 잡힌 일정이 없어요.
             </p>
           )
@@ -279,9 +290,9 @@ const ColorPickerMenu = ({ task }: { task: PlannerTask }) => (
         onClick={(e) => e.stopPropagation()}
         aria-label="색 변경"
         title="색 변경"
-        className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        className={rowActionButtonClass}
       >
-        <Palette className="h-3 w-3" />
+        <Palette className="h-3.5 w-3.5" />
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="min-w-[160px] p-1.5">
@@ -328,7 +339,7 @@ const ColorPickerMenu = ({ task }: { task: PlannerTask }) => (
   </DropdownMenu>
 );
 
-/** Hover 시 우측에 슬라이드 — 편집 / 색 / 미루기 / 삭제. 점·우선순위와 한 행에 배치. */
+/** Hover 시 우측에 뜨는 공통 액션 스트립 — 할 일 카드 액션과 밀도/높이를 맞춘다. */
 const RowActions = ({
   kind,
   item,
@@ -338,15 +349,15 @@ const RowActions = ({
   item: PlannerTask | PlannerEvent;
   onEdit: () => void;
 }) => (
-  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+  <div className={rowActionStripClass} onClick={(e) => e.stopPropagation()}>
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onEdit(); }}
+      onClick={onEdit}
       aria-label="편집"
       title="편집"
-      className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      className={rowActionButtonClass}
     >
-      <Pencil className="h-3 w-3" />
+      <Pencil className="h-3.5 w-3.5" />
     </button>
     {kind === 'task' && <ColorPickerMenu task={item as PlannerTask} />}
     <DropdownMenu>
@@ -356,9 +367,9 @@ const RowActions = ({
           onClick={(e) => e.stopPropagation()}
           aria-label="미루기"
           title="미루기"
-          className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className={rowActionButtonClass}
         >
-          <Clock className="h-3 w-3" />
+          <Clock className="h-3.5 w-3.5" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[120px]">
@@ -375,12 +386,12 @@ const RowActions = ({
     </DropdownMenu>
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); removeItem(kind, item); }}
+      onClick={() => removeItem(kind, item)}
       aria-label="삭제"
       title="삭제"
-      className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+      className={cn(rowActionButtonClass, 'hover:bg-destructive/10 hover:text-destructive')}
     >
-      <Trash2 className="h-3 w-3" />
+      <Trash2 className="h-3.5 w-3.5" />
     </button>
   </div>
 );
@@ -401,7 +412,7 @@ const ScheduledTaskRow = ({
     <div
       className={cn(
         'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
-        status === 'past' && 'opacity-50 hover:opacity-90',
+        status === 'past' && 'opacity-65 hover:opacity-95',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',
       )}
@@ -422,15 +433,15 @@ const ScheduledTaskRow = ({
           style={{ backgroundColor: dotColor }}
         />
       </button>
-      <span className="text-[12px] tabular-nums text-muted-foreground shrink-0 whitespace-nowrap leading-snug font-medium" aria-label="시간">
+      <span className="text-[12.5px] tabular-nums text-foreground/70 shrink-0 whitespace-nowrap leading-snug font-semibold" aria-label="시간">
         {formatTimeRange(task.startAt, task.endAt)}
       </span>
       <button
         type="button"
         onClick={onClick}
         className={cn(
-          'min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-keep break-words',
-          task.done ? 'text-foreground/40 line-through' : 'text-foreground',
+          'min-w-0 flex-1 text-left text-[14px] font-semibold leading-[1.28] line-clamp-2 break-keep break-words',
+          task.done ? 'text-foreground/45 line-through' : 'text-foreground',
         )}
         title={task.title}
       >
@@ -464,7 +475,7 @@ const ScheduledEventRow = ({
     <div
       className={cn(
         'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
-        status === 'past' && 'opacity-50 hover:opacity-90',
+        status === 'past' && 'opacity-65 hover:opacity-95',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',
       )}
@@ -479,13 +490,13 @@ const ScheduledEventRow = ({
           style={{ backgroundColor: event.color ?? 'hsl(var(--primary))' }}
         />
       </span>
-      <span className="text-[12px] tabular-nums text-muted-foreground shrink-0 whitespace-nowrap leading-snug font-medium" aria-label="시간">
+      <span className="text-[12.5px] tabular-nums text-foreground/70 shrink-0 whitespace-nowrap leading-snug font-semibold" aria-label="시간">
         {formatTimeRange(event.startAt, event.endAt)}
       </span>
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 flex-1 text-left text-[13px] leading-snug line-clamp-2 break-keep break-words text-foreground"
+        className="min-w-0 flex-1 text-left text-[14px] font-semibold leading-[1.28] line-clamp-2 break-keep break-words text-foreground"
         title={event.title}
       >
         {event.title}

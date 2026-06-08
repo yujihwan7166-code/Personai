@@ -7,10 +7,10 @@ export const PAGE_AI_PANEL_WIDTH = {
 } as const;
 
 export const PAGE_AI_LAUNCHER_POSITION_CLASS =
-  'fixed right-[calc(0.375rem+env(safe-area-inset-right))] top-[calc(0.375rem+env(safe-area-inset-top))] z-40 sm:right-5 sm:top-[62px]' as const;
+  'fixed right-[calc(0.5rem+env(safe-area-inset-right))] top-[calc(0.5rem+env(safe-area-inset-top))] z-50 sm:right-[calc(9rem+env(safe-area-inset-right))]' as const;
 
 export const PAGE_AI_LAUNCHER_SIZE_CLASS =
-  'h-9 w-9 sm:h-8 sm:w-[92px] sm:px-2.5' as const;
+  'h-8 w-8 sm:h-8 sm:w-[94px] sm:px-2' as const;
 
 export const PAGE_AI_PANEL_SURFACE_CLASS =
   'bg-background border-l border-[hsl(var(--hairline))] shadow-[-10px_0_30px_-24px_hsl(30_15%_8%/0.45)]' as const;
@@ -19,7 +19,7 @@ export const PAGE_AI_PANEL_TRANSITION_CLASS =
   'transition-[width,transform] duration-200 ease-out' as const;
 
 export const PAGE_AI_PANEL_SLOT_CLASS =
-  'fixed inset-y-0 right-0 z-[60] lg:static lg:inset-auto lg:z-auto lg:h-auto lg:shrink-0' as const;
+  'fixed inset-y-0 right-0 z-[60] sm:static sm:inset-auto sm:z-auto sm:min-h-0 sm:self-stretch sm:shrink-0' as const;
 
 export const PAGE_AI_PANEL_SCROLL_CLASS =
   'min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3' as const;

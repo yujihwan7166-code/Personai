@@ -358,8 +358,8 @@ const Wiki = () => {
       <PageWorkspaceChrome
         current="wiki"
         ai={{
-          label: '위키 AI',
-          title: '마이위키 AI 도우미 (Ctrl/Cmd+J)',
+          label: '보조 도구',
+          title: '보조 도구 열기 (Ctrl/Cmd+J)',
           open: aiOpen,
           onOpen: () => setAiOpen(true),
         }}

@@ -10,6 +10,7 @@ interface PageAiPanelHeaderProps {
   iconTone?: PageAiTone;
   iconClassName?: string;
   onClose: () => void;
+  leading?: ReactNode;
   actions?: ReactNode;
   className?: string;
 }
@@ -21,6 +22,7 @@ export function PageAiPanelHeader({
   iconTone,
   iconClassName,
   onClose,
+  leading,
   actions,
   className,
 }: PageAiPanelHeaderProps) {
@@ -28,41 +30,48 @@ export function PageAiPanelHeader({
     <header
       data-page-ai-header
       className={cn(
-        'shrink-0 border-b border-[hsl(var(--hairline))] bg-card/70 px-3.5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur',
+        'shrink-0 border-b border-[hsl(var(--hairline))] bg-background px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))]',
         className,
       )}
     >
-      <div className="flex items-start gap-2.5">
-        <span
-          data-page-ai-header-icon
-          className={cn(
-            'mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-            iconTone ? PAGE_AI_TONE_ICON[iconTone] : 'bg-primary/10 text-primary',
-            iconClassName,
-          )}
-        >
-          {icon ?? <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[13.5px] font-semibold leading-5 text-foreground">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="truncate text-[11.5px] leading-4 text-muted-foreground">
-              {subtitle}
-            </p>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        {leading ? (
+          <div className="min-w-0 flex-1">{leading}</div>
+        ) : (
+          <>
+            <span
+              data-page-ai-header-icon
+              className={cn(
+                'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md',
+                iconTone ? PAGE_AI_TONE_ICON[iconTone] : 'bg-primary/10 text-primary',
+                iconClassName,
+              )}
+            >
+              {icon ?? <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-[13px] font-semibold leading-[18px] text-foreground">
+                <span>{title}</span>
+                {subtitle && (
+                  <span className="font-medium text-muted-foreground">
+                    {' · '}
+                    {subtitle}
+                  </span>
+                )}
+              </h2>
+            </div>
+          </>
+        )}
         <div className="flex shrink-0 items-center gap-0.5">
           {actions}
           <button
             type="button"
             onClick={onClose}
-            aria-label="AI 패널 닫기"
+            aria-label="보조 도구 닫기"
             title="닫기"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

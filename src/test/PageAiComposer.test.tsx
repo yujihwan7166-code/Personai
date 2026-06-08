@@ -20,7 +20,9 @@ describe('PageAiComposer', () => {
 
     const input = screen.getByLabelText('AI 입력') as HTMLTextAreaElement;
     expect(input.style.height).toBe('40px');
-    expect(input.closest('.shrink-0')).toHaveClass('pb-[calc(0.625rem+env(safe-area-inset-bottom))]');
+    const composer = input.closest('[data-page-ai-composer="true"]');
+    expect(composer).toBeInTheDocument();
+    expect(composer).toHaveClass('pb-[calc(0.625rem+env(safe-area-inset-bottom))]');
 
     fireEvent.change(input, { target: { value: '  정리해줘  ' } });
     fireEvent.click(screen.getByRole('button', { name: '보내기' }));
@@ -37,7 +39,7 @@ describe('PageAiPanelHeader', () => {
     render(<PageAiPanelHeader title="Memo AI" subtitle="Context" onClose={onClose} />);
 
     const header = screen.getByText('Memo AI').closest('[data-page-ai-header]');
-    expect(header).toHaveClass('pt-[calc(0.75rem+env(safe-area-inset-top))]');
+    expect(header).toHaveClass('pt-[calc(0.5rem+env(safe-area-inset-top))]');
 
     const close = header?.querySelector('button');
     expect(close).toBeInTheDocument();
@@ -60,8 +62,8 @@ describe('PageAiEmptyState', () => {
 
     expect(screen.getByText('시작').closest('.min-h-full')).toHaveClass(
       'justify-start',
-      'pt-12',
-      'sm:pt-14',
+      'pt-4',
+      'sm:pt-5',
     );
   });
 });

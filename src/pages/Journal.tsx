@@ -263,8 +263,8 @@ const Journal = () => {
       <PageWorkspaceChrome
         current="journal"
         ai={{
-          label: '일기 AI',
-          title: '일기 AI 열기',
+          label: '보조 도구',
+          title: '보조 도구 열기',
           open: journalAi.open,
           onOpen: () => journalAi.setOpen(true),
         }}
@@ -620,8 +620,8 @@ const Journal = () => {
         <AiSidebar
           open={journalAi.open}
           onClose={() => journalAi.setOpen(false)}
-          title="일기 AI"
-          subtitle="오늘의 기록을 돌아봅니다"
+          title="보조 도구"
+          subtitle="AI, 메모, 위키를 함께 엽니다"
           emptyTitle="오늘을 어떻게 돌아볼까요?"
           emptyDescription="오늘의 기록과 최근 흐름을 참고해 질문과 패턴을 조심스럽게 정리합니다."
           inputPlaceholder="오늘의 감정, 질문, 패턴을 물어보세요..."
@@ -631,6 +631,7 @@ const Journal = () => {
           onSend={journalAi.send}
           onRetry={journalAi.retryLast}
           onClear={journalAi.clear}
+          surface="journal"
         />
       </div>
       </div>

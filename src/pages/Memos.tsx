@@ -10,7 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, ChevronDown, Mic,
-  PanelLeftClose, PanelLeftOpen, BookOpenText,
+  Home, Menu, BookOpenText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
@@ -271,8 +271,8 @@ const Memos = () => {
       <PageWorkspaceChrome
         current="memos"
         ai={{
-          label: '메모 AI',
-          title: '메모 AI 열기',
+          label: '보조 도구',
+          title: '보조 도구 열기',
           open: memoAi.open,
           onOpen: () => memoAi.setOpen(true),
         }}
@@ -287,12 +287,21 @@ const Memos = () => {
           <>
             <button
               type="button"
+              onClick={() => navigate('/')}
+              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title="홈으로"
+              aria-label="홈으로"
+            >
+              <Home className="w-4 h-4" strokeWidth={1.85} />
+            </button>
+            <button
+              type="button"
               onClick={() => setSidebarCollapsed(false)}
               className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              title="사이드바 펼치기"
-              aria-label="사이드바 펼치기"
+              title="메뉴 열기"
+              aria-label="메뉴 열기"
             >
-              <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
+              <Menu className="w-4 h-4" strokeWidth={1.9} />
             </button>
             <button
               type="button"
@@ -314,15 +323,26 @@ const Memos = () => {
                   </h1>
                 </div>
                 {!isMobile && (
-                  <button
-                    type="button"
-                    onClick={() => setSidebarCollapsed(true)}
-                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                    title="사이드바 접기"
-                    aria-label="사이드바 접기"
-                  >
-                    <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/')}
+                      className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      title="홈으로"
+                      aria-label="홈으로"
+                    >
+                      <Home className="w-4 h-4" strokeWidth={1.85} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSidebarCollapsed(true)}
+                      className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      title="메뉴 접기"
+                      aria-label="메뉴 접기"
+                    >
+                      <Menu className="w-4 h-4" strokeWidth={1.9} />
+                    </button>
+                  </div>
                 )}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
@@ -724,8 +744,8 @@ const Memos = () => {
         <AiSidebar
           open={memoAi.open}
           onClose={() => memoAi.setOpen(false)}
-          title="메모 AI"
-          subtitle="캡처한 생각을 정리합니다"
+          title="보조 도구"
+          subtitle="AI, 메모, 위키를 함께 엽니다"
           emptyTitle="메모를 어떻게 정리할까요?"
           emptyDescription="현재 메모와 목록을 참고해 요약, 태그, 실행 항목을 뽑습니다."
           inputPlaceholder="메모 요약, 태그, 할 일 정리 요청..."
@@ -735,6 +755,7 @@ const Memos = () => {
           onSend={memoAi.send}
           onRetry={memoAi.retryLast}
           onClear={memoAi.clear}
+          surface="memos"
         />
       </div>
 

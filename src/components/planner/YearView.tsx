@@ -69,29 +69,28 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
       const lastOfMonth = new Date(year, m + 1, 0);
       const startOffset = firstOfMonth.getDay();
       const totalDays = lastOfMonth.getDate();
-      const totalCells = Math.ceil((startOffset + totalDays) / 7) * 7;
+      const totalCells = 42;
 
       const cells: Array<{
         iso: string;
-        date: number | null;
+        date: number;
+        outsideMonth: boolean;
         isToday: boolean;
         busyCount: number;
       }> = [];
       for (let i = 0; i < totalCells; i++) {
         const dayNum = i - startOffset + 1;
-        if (dayNum < 1 || dayNum > totalDays) {
-          cells.push({ iso: '', date: null, isToday: false, busyCount: 0 });
-        } else {
-          const d = new Date(year, m, dayNum);
-          d.setHours(0, 0, 0, 0);
-          const dayKey = toDateKey(d);
-          cells.push({
-            iso: d.toISOString(),
-            date: dayNum,
-            isToday: d.getTime() === today.getTime(),
-            busyCount: busyCounts.get(dayKey) ?? 0,
-          });
-        }
+        const d = new Date(year, m, dayNum);
+        d.setHours(0, 0, 0, 0);
+        const outsideMonth = dayNum < 1 || dayNum > totalDays;
+        const dayKey = toDateKey(d);
+        cells.push({
+          iso: d.toISOString(),
+          date: d.getDate(),
+          outsideMonth,
+          isToday: !outsideMonth && d.getTime() === today.getTime(),
+          busyCount: outsideMonth ? 0 : busyCounts.get(dayKey) ?? 0,
+        });
       }
 
       return {
@@ -106,36 +105,34 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
 
   return (
     <div className="h-full min-h-0 overflow-y-auto">
-      <div className="grid grid-cols-2 gap-2 p-1 pr-2 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid min-h-full grid-cols-2 gap-px bg-[hsl(var(--hairline))] sm:grid-cols-3 lg:grid-cols-4 lg:grid-rows-3">
         {months.map((mo) => (
           <button
             key={mo.index}
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
-              'flex flex-col items-stretch rounded-lg p-3 text-left',
-              'border border-foreground/5 bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
-              'hover:border-primary/20 hover:shadow-[0_6px_16px_-8px_hsl(var(--primary)/0.18)]',
-              'transition-all duration-200',
-              mo.isCurrentMonth ? 'ring-2 ring-primary/35 bg-primary/2' : 'hover:scale-[1.01]',
+              'flex min-h-[214px] flex-col items-stretch bg-card px-4 py-3.5 text-left lg:min-h-0',
+              'transition-colors duration-150 hover:bg-accent/35',
+              mo.isCurrentMonth && 'bg-primary/[0.035] ring-1 ring-inset ring-primary/25',
             )}
           >
-            <header className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-[14px] font-semibold tracking-tight text-foreground">
+            <header className="mb-2 flex items-baseline justify-between">
+              <span className="text-[15px] font-semibold tracking-tight text-foreground">
                 {mo.label}
               </span>
               {monthCounts[mo.index] > 0 && (
-                <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground font-medium">
+                <span className="text-[11px] font-mono tabular-nums text-muted-foreground font-medium">
                   {monthCounts[mo.index]}
                 </span>
               )}
             </header>
-            <div className="mb-0.5 grid grid-cols-7 gap-px text-center">
+            <div className="mb-1.5 grid grid-cols-7 text-center">
               {DAYS_KO.map((d, i) => (
                 <span
                   key={d}
                   className={cn(
-                    'text-[9px] font-mono uppercase font-semibold',
+                    'flex h-5 items-center justify-center text-[10px] font-mono uppercase font-semibold',
                     i === 0 && 'text-rose-500',
                     i === 6 && 'text-blue-500',
                     i !== 0 && i !== 6 && 'text-muted-foreground',
@@ -145,11 +142,12 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                 </span>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-px">
+            <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-y-1.5">
               {mo.cells.map((cell, i) => {
-                if (cell.date === null) {
-                  return <span key={i} className="h-5 sm:h-[22px]" aria-hidden />;
+                if (cell.outsideMonth) {
+                  return <span key={i} aria-hidden className="min-h-0" />;
                 }
+
                 const cellEl = (
                   <span
                     onClick={(e) => {
@@ -157,7 +155,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                       if (cell.iso) onDayClick?.(cell.iso);
                     }}
                     className={cn(
-                      'relative flex h-5 items-center justify-center rounded text-[10px] font-medium tabular-nums sm:h-[22px]',
+                      'relative flex min-h-0 items-center justify-center rounded-md text-[12px] font-semibold tabular-nums',
                       'cursor-pointer hover:bg-accent transition-colors',
                       cell.isToday && 'bg-primary text-primary-foreground font-bold shadow-sm ring-1 ring-primary/20 animate-pulse',
                       !cell.isToday && 'text-foreground',
