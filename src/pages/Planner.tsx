@@ -16,9 +16,22 @@
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Home,
+  LayoutDashboard,
+  Network,
+  NotebookPen,
+  Plus,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
-import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { MAIN_MODE_LABELS, type MainMode, type PremiumDomainId } from '@/types/expert';
@@ -47,11 +60,18 @@ import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
 import { HabitsView } from '@/components/planner/HabitsView';
 import { ShortcutHelpDialog } from '@/components/planner/ShortcutHelpDialog';
-import { ViewToggle, type PlannerView } from '@/components/planner/ViewToggle';
+import { type PlannerView } from '@/components/planner/ViewToggle';
 import { TaskScheduleDialog } from '@/components/planner/TaskScheduleDialog';
 import { PlannerMatrixPopover } from '@/components/planner/PlannerMatrixPopover';
 import { PlannerAgendaPopover } from '@/components/planner/PlannerAgendaPopover';
 import { PlannerCommandPalette, type CommandAction } from '@/components/planner/PlannerCommandPalette';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
@@ -75,6 +95,23 @@ const PLANNER_VIEW_STORAGE_KEY = 'planner.view.v1';
 const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'habits'];
 const isPlannerView = (value: string | null): value is PlannerView =>
   !!value && PLANNER_VIEWS.includes(value as PlannerView);
+
+const PLANNER_VIEW_META: Record<PlannerView, { label: string; shortcut: string }> = {
+  day: { label: '일', shortcut: 'D' },
+  week: { label: '주', shortcut: 'W' },
+  month: { label: '월', shortcut: 'M' },
+  year: { label: '연도', shortcut: 'Y' },
+  habits: { label: '습관', shortcut: 'H' },
+};
+
+const WORKSPACE_ITEMS: Array<{ key: string; label: string; to: string; icon: LucideIcon }> = [
+  { key: 'home', label: '홈', to: '/', icon: Home },
+  { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
+  { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
+  { key: 'memos', label: '메모', to: '/memos', icon: FileText },
+  { key: 'whiteboard', label: '화이트보드', to: '/whiteboard', icon: LayoutDashboard },
+  { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
+];
 
 import type { Priority } from '@/types/planner';
 
@@ -821,12 +858,35 @@ const Planner = () => {
   }, [tryDetachInstance]);
 
   const headerOverlineText = getOverlineText(headerLabels.secondary);
-  const headerOverlineOffsetClass =
-    headerOverlineText === 'TOMORROW'
-      ? 'left-[calc(50%-40px)]'
-      : headerOverlineText === 'TODAY'
-        ? 'left-[calc(50%-22px)]'
-        : 'left-[calc(50%-18px)]';
+  const currentViewMeta = PLANNER_VIEW_META[view];
+  const openCreateEvent = useCallback(() => {
+    const anchor = new Date(anchorIso);
+    const today = new Date();
+    const isSame = anchor.toDateString() === today.toDateString();
+    const isPast = !isSame && anchor.getTime() < today.getTime();
+    const preset = (isSame || isPast)
+      ? nextHalfHourSlot()
+      : (() => {
+          const d = new Date(anchor);
+          d.setHours(9, 0, 0, 0);
+          return d;
+        })();
+    setDialogMode({
+      kind: 'create',
+      presetStartIso: preset.toISOString(),
+      presetIsEvent: true,
+    });
+  }, [anchorIso]);
+
+  const openCreateTodo = useCallback(() => {
+    const day = new Date(anchorIso);
+    day.setHours(9, 0, 0, 0);
+    setDialogMode({
+      kind: 'create',
+      presetStartIso: day.toISOString(),
+      presetIsEvent: false,
+    });
+  }, [anchorIso]);
 
   return (
     <DndContext
@@ -856,100 +916,135 @@ const Planner = () => {
       >
         <PlannerLeftRail aiOpen={aiPanelOpen} orientation="horizontal" />
       </nav>
-      <PageWorkspaceChrome
-        current="planner"
-        ai={{
-          label: '플래너 AI',
-          title: '플래너 AI 열기',
-          open: aiPanelOpen,
-          onOpen: () => setAiPanelOpen(true),
-        }}
-      />
-      <main className="flex-1 min-w-0 px-4 sm:px-8 pt-8 sm:pt-12 pb-24 sm:pb-7 max-w-[1320px] w-full mx-auto">
-        {/* ── Universal top bar ── 모든 뷰 공유 — [좌측~중앙: 날짜 최우선 배치 + 탐색 바 캡슐 + 뷰 토글 이웃 배치] */}
-        <div className="mb-4 pt-1 flex translate-y-2 flex-col gap-3 px-0.5 lg:flex-row lg:items-center">
-          {/* 날짜 레이블 (미니 달력 윗부분 중앙 수직 정렬을 위해 일/주/월 뷰에서는 lg:w-[236px] 가로폭 내 세로형 가운데 정렬을 활성화) */}
-          <div className={cn(
-            "shrink-0 flex min-w-0 px-1 self-center",
-            (view === 'year' || view === 'habits')
-              ? "flex-row items-center gap-2.5 lg:mr-6"
-              : "flex-col items-center justify-center text-center lg:w-[236px]"
-          )}>
-            {/* 년/습관 뷰에서는 가로 배치, 일/주/월 뷰에서는 사이드바 위 수직 대칭으로 오직 날짜 타이포그래피만 웅장하게 노출 */}
-            {(view === 'year' || view === 'habits') ? (
-              <div className="min-w-0 flex items-center gap-3">
-                <h2 className="font-display text-[30px] sm:text-[34px] font-bold tracking-tight text-foreground leading-tight truncate">
+      <main className="flex h-screen flex-1 min-w-0 flex-col overflow-hidden">
+        <header className="shrink-0 border-b border-foreground/10 bg-background/95 px-2.5 py-2 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur">
+          <div className="flex min-h-10 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-9 min-w-0 items-center gap-2 rounded-lg border border-foreground/10 bg-card px-2.5 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent sm:max-w-[190px]"
+                  aria-label="앱 전환"
+                  title="앱 전환"
+                >
+                  <CalendarDays className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.2} />
+                  <span className="hidden truncate sm:inline">통합플래너</span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2.2} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {WORKSPACE_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const active = item.key === 'planner';
+                  return (
+                    <DropdownMenuItem
+                      key={item.key}
+                      onSelect={() => {
+                        if (!active) navigate(item.to);
+                      }}
+                      className={cn('gap-2', active && 'bg-primary/10 text-primary')}
+                    >
+                      <Icon className="h-3.5 w-3.5" strokeWidth={2.1} />
+                      <span className="flex-1">{item.label}</span>
+                      {active && <Check className="h-3.5 w-3.5" strokeWidth={2.2} />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <button
+              type="button"
+              onClick={goToday}
+              aria-label="오늘로"
+              title="오늘로 (T)"
+              className={cn(
+                'hidden h-9 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-colors sm:inline-flex',
+                anchorIsToday
+                  ? 'border-foreground/10 bg-transparent text-muted-foreground/55'
+                  : 'border-primary/25 bg-primary/8 text-primary hover:bg-primary/12',
+              )}
+            >
+              오늘
+            </button>
+
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="이전"
+                title="이전 (←)"
+                className="inline-flex h-9 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="다음"
+                title="다음 (→)"
+                className="inline-flex h-9 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+            </div>
+
+            <div className="min-w-0 flex-1 px-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]">
                   {headerLabels.primary}
-                </h2>
-                {headerLabels.secondary && (
-                  <span className="text-[11px] font-bold tracking-[0.15em] text-primary uppercase bg-primary/[0.06] px-2.5 py-0.5 rounded-md select-none shrink-0">
-                    {headerOverlineText}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="min-w-0 flex flex-col items-center w-full py-1 relative">
-                {/* TODAY와 날짜 글자 모두를 사이드바/미니달력 그리드(lg:w-[236px])의 정밀한 수직 중앙선에 칼같이 일치시켜 비주얼 수평 정렬을 완성 */}
+                </h1>
                 {headerOverlineText && (
-                  <span className={cn(
-                    'absolute -top-4 sm:-top-5 -translate-x-1/2 text-[10.5px] sm:text-[11.5px] font-bold tracking-[0.25em] text-primary uppercase select-none animate-fade-in shrink-0',
-                    headerOverlineOffsetClass,
-                  )}>
+                  <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] text-primary sm:inline">
                     {headerOverlineText}
                   </span>
                 )}
-                <h2 className="font-display text-[29px] sm:text-[33px] font-bold tracking-tight text-foreground leading-tight truncate select-none w-full text-center">
-                  {headerLabels.primary}
-                </h2>
               </div>
-            )}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-foreground/15 bg-card px-3 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent"
+                  aria-label="뷰 선택"
+                  title="뷰 선택"
+                >
+                  {currentViewMeta.label}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2.2} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                {PLANNER_VIEWS.map((nextView) => {
+                  const meta = PLANNER_VIEW_META[nextView];
+                  const active = nextView === view;
+                  return (
+                    <DropdownMenuItem
+                      key={nextView}
+                      onSelect={() => setView(nextView)}
+                      className={cn(active && 'bg-primary/10 text-primary')}
+                    >
+                      <span className="flex-1">{meta.label}</span>
+                      <DropdownMenuShortcut>{meta.shortcut}</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <button
+              type="button"
+              onClick={() => setAiPanelOpen(true)}
+              hidden={aiPanelOpen}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-card px-3 text-[12px] font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-primary/5 hover:text-primary"
+              title="플래너 AI 열기"
+              aria-label="플래너 AI 열기"
+            >
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <span className="hidden sm:inline">플래너 AI</span>
+            </button>
           </div>
-
-          {/* 뷰 토글 및 시간 네비게이션 조작 클러스터 — 날짜 조작계를 뷰 토글 왼쪽에 배치하여 정보와 가까운 유연한 사용자 시선 흐름 제공 */}
-          <div className="flex items-center gap-3 min-w-0 shrink-0">
-            {view !== 'habits' && (
-              <div className="flex items-center gap-0.5 bg-card border border-foreground/[0.05] rounded-xl p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.025)] shrink-0">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="이전"
-                  title="이전 (←)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03] transition-all duration-200"
-                >
-                  <ChevronLeft className="h-[15px] w-[15px]" strokeWidth={2.5} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={goToday}
-                  aria-label="오늘로"
-                  title="오늘로 (T)"
-                  className={cn(
-                    "h-7 px-3.5 text-[13px] font-bold rounded-lg transition-all duration-300 shrink-0 tracking-tight outline-none select-none",
-                    anchorIsToday
-                      ? "text-muted-foreground/45 bg-transparent pointer-events-none font-medium"
-                      : "bg-primary/[0.08] text-primary hover:bg-primary/[0.12]"
-                  )}
-                >
-                  오늘로
-                </button>
-
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="다음"
-                  title="다음 (→)"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03] transition-all duration-200"
-                >
-                  <ChevronRight className="h-[15px] w-[15px]" strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
-
-            <ViewToggle value={view} onChange={setView} />
-          </div>
-
-        </div>
+        </header>
 
         <ModeErrorBoundary
           modeLabel="통합 플래너"
@@ -959,133 +1054,147 @@ const Planner = () => {
             setView('day');
           }}
         >
-        {isFullscreen ? (
-          <div className={cn(
-            'rounded-2xl border hairline bg-card min-h-[560px] h-[calc(100vh-235px)] shadow-[0_1px_2px_hsl(30_15%_8%/0.04)] overflow-hidden',
-            // habits 는 자체 헤더·배경이 있어 외곽 패딩 줄임 (다른 풀뷰 p-4/p-5 보다 슬림)
-            view === 'habits' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5',
-          )}>
-            {view === 'year' && (
-              <YearView
-                anchorIso={anchorIso}
-                onMonthClick={handleMonthClick}
-                onDayClick={handleDayClick}
-              />
-            )}
-            {view === 'habits' && <HabitsView />}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-[232px_minmax(0,1fr)] lg:grid-cols-[236px_minmax(0,1fr)] md:h-[calc(100vh-258px)] md:min-h-[540px]">
-            <div className="min-h-0 max-h-[45vh] md:max-h-none overflow-y-auto rounded-2xl border border-foreground/10 bg-card/75 px-3 py-3 shadow-[0_1px_1px_hsl(30_15%_8%/0.018)]">
-              <PlannerSidebar
-                anchorIso={anchorIso}
-                onSelectDay={(dayIso) => {
-                  setAnchorIso(dayIso);
-                  setView('day');
-                }}
-                onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                onOpenHabits={() => setView('habits')}
-              />
-            </div>
-            {view === 'day' ? (
-              <div className="min-h-0 flex flex-col">
-                {/* 헤더는 universal topbar 로 이동됨. day content 만 여기 — 좌측 계획/할일 + 우측 타임라인. */}
+          <div className="grid flex-1 min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[248px_minmax(0,1fr)]">
+            <aside className="hidden min-h-0 flex-col border-r border-foreground/10 bg-card/45 px-3 py-3 md:flex">
+              <button
+                type="button"
+                onClick={openCreateEvent}
+                className="mb-3 inline-flex h-10 w-fit items-center gap-2 rounded-full border border-foreground/10 bg-background px-4 text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-accent"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.25} />
+                만들기
+              </button>
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <PlannerSidebar
+                  anchorIso={anchorIso}
+                  onSelectDay={(dayIso) => {
+                    setAnchorIso(dayIso);
+                    setView('day');
+                  }}
+                  onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                  onOpenHabits={() => setView('habits')}
+                />
+              </div>
+            </aside>
+
+            <section className="min-h-0 overflow-hidden bg-background p-2 sm:p-3">
+              <div className="mb-2 max-h-[34vh] overflow-y-auto rounded-xl border border-foreground/10 bg-card/70 p-2 md:hidden">
+                <div className="mb-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={openCreateEvent}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-foreground/10 bg-background px-3 text-[12px] font-semibold"
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
+                    만들기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openCreateTodo}
+                    className="inline-flex h-8 items-center rounded-full border border-foreground/10 px-3 text-[12px] font-semibold text-muted-foreground"
+                  >
+                    할 일
+                  </button>
+                </div>
+                <PlannerSidebar
+                  anchorIso={anchorIso}
+                  onSelectDay={(dayIso) => {
+                    setAnchorIso(dayIso);
+                    setView('day');
+                  }}
+                  onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                  onOpenHabits={() => setView('habits')}
+                />
+              </div>
+
+              {isFullscreen ? (
                 <div
                   className={cn(
-                    'flex-1 min-h-0 grid grid-cols-1 gap-3 sm:gap-4 transition-all duration-300 ease-in-out',
+                    'h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.035)]',
+                    view === 'habits' ? 'p-2' : 'p-3',
+                  )}
+                >
+                  {view === 'year' && (
+                    <YearView
+                      anchorIso={anchorIso}
+                      onMonthClick={handleMonthClick}
+                      onDayClick={handleDayClick}
+                    />
+                  )}
+                  {view === 'habits' && <HabitsView />}
+                </div>
+              ) : view === 'day' ? (
+                <div
+                  className={cn(
+                    'h-full min-h-0 grid grid-cols-1 gap-2 transition-all duration-300 ease-in-out',
                     showTimelinePanel
                       ? isTaskPanelOpen
-                        ? 'lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]'
+                        ? 'lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[308px_minmax(0,1fr)]'
                         : 'lg:grid-cols-[minmax(0,1fr)]'
                       : 'lg:grid-cols-[minmax(0,760px)]',
                   )}
                 >
                   <div
                     className={cn(
-                      'grid grid-rows-[auto_minmax(0,1fr)] gap-3 min-h-0 transition-all duration-300',
-                      !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden'
+                      'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2 transition-all duration-300',
+                      !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden',
                     )}
                   >
                     <TodayScheduledList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                       emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
-                      onAdd={() => {
-                        // anchor 오늘/과거 → 지금 다음 30분 슬롯, 미래 → anchor 09:00.
-                        const anchor = new Date(anchorIso);
-                        const today = new Date();
-                        const isSame = anchor.toDateString() === today.toDateString();
-                        const isPast = !isSame && anchor.getTime() < today.getTime();
-                        const preset = (isSame || isPast)
-                          ? nextHalfHourSlot()
-                          : (() => { const d = new Date(anchor); d.setHours(9, 0, 0, 0); return d; })();
-                        setDialogMode({
-                          kind: 'create',
-                          presetStartIso: preset.toISOString(),
-                          presetIsEvent: true,
-                        });
-                      }}
+                      onAdd={openCreateEvent}
                     />
                     <TodayTodoList
                       anchorIso={anchorIso}
                       onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                      onAdd={() => {
-                        // 할 일 추가 — anchor 날짜 09:00 default + presetIsEvent=false (시간 input 숨김).
-                        const day = new Date(anchorIso);
-                        day.setHours(9, 0, 0, 0);
-                        setDialogMode({
-                          kind: 'create',
-                          presetStartIso: day.toISOString(),
-                          presetIsEvent: false,
-                        });
-                      }}
+                      onAdd={openCreateTodo}
                     />
                   </div>
                   {showTimelinePanel && (
-                  <div className="min-h-0">
-                    <TodayTimeline
-                      dateIso={anchorIso}
-                      onItemClick={handleItemClick}
-                      onSlotClick={handleSlotClick}
-                      hideHeader
-                      isTaskPanelOpen={isTaskPanelOpen}
-                      onToggleTaskPanel={toggleTaskPanel}
-                    />
-                  </div>
+                    <div className="min-h-0">
+                      <TodayTimeline
+                        dateIso={anchorIso}
+                        onItemClick={handleItemClick}
+                        onSlotClick={handleSlotClick}
+                        hideHeader
+                        isTaskPanelOpen={isTaskPanelOpen}
+                        onToggleTaskPanel={toggleTaskPanel}
+                      />
+                    </div>
                   )}
                 </div>
-              </div>
-            ) : view === 'week' ? (
-              <div className="rounded-2xl border hairline bg-card px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-2 min-h-0 shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
-                <WeekView
-                  anchorIso={anchorIso}
-                  onDayClick={handleDayClick}
-                  onItemClick={handleItemClick}
-                  onTaskClick={handleInboxClick}
-                />
-              </div>
-            ) : view === 'month' ? (
-              <div className="min-h-0 h-full">
-                <MonthView
-                  anchorIso={anchorIso}
-                  onDayClick={handleDayClick}
-                  onItemClick={handleItemClick}
-                  onTaskClick={handleInboxClick}
-                  onAddForDate={(dayIso) => {
-                    // 그 날짜 09:00 default + 일정 모달
-                    const day = new Date(dayIso);
-                    day.setHours(9, 0, 0, 0);
-                    setDialogMode({
-                      kind: 'create',
-                      presetStartIso: day.toISOString(),
-                      presetIsEvent: true,
-                    });
-                  }}
-                />
-              </div>
-            ) : null}
+              ) : view === 'week' ? (
+                <div className="h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card px-3 pb-3 pt-1 shadow-[0_1px_2px_hsl(30_15%_8%/0.035)]">
+                  <WeekView
+                    anchorIso={anchorIso}
+                    onDayClick={handleDayClick}
+                    onItemClick={handleItemClick}
+                    onTaskClick={handleInboxClick}
+                  />
+                </div>
+              ) : view === 'month' ? (
+                <div className="h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card">
+                  <MonthView
+                    anchorIso={anchorIso}
+                    onDayClick={handleDayClick}
+                    onItemClick={handleItemClick}
+                    onTaskClick={handleInboxClick}
+                    onAddForDate={(dayIso) => {
+                      const day = new Date(dayIso);
+                      day.setHours(9, 0, 0, 0);
+                      setDialogMode({
+                        kind: 'create',
+                        presetStartIso: day.toISOString(),
+                        presetIsEvent: true,
+                      });
+                    }}
+                  />
+                </div>
+              ) : null}
+            </section>
           </div>
-        )}
         </ModeErrorBoundary>
       </main>
       <TaskScheduleDialog
