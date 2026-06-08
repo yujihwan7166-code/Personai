@@ -4,7 +4,7 @@
  * 각 미니: 월명 + 날짜 격자, 이벤트/할일 있는 날 도트.
  * 클릭 시 onMonthClick(monthIso) — 부모가 view='month' 로 이동시킬 수 있음.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
 import { toDateKey } from '@/lib/planner/habitStats';
@@ -22,7 +22,6 @@ interface YearViewProps {
 export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps) => {
   const anchor = useMemo(() => new Date(anchorIso ?? new Date().toISOString()), [anchorIso]);
   const year = anchor.getFullYear();
-  const currentMonthRef = useRef<HTMLButtonElement | null>(null);
 
   // 1년 전체 범위.
   const { start, end } = useMemo(() => {
@@ -105,32 +104,23 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
     });
   }, [year, today, busyCounts]);
 
-  useEffect(() => {
-    if (year !== today.getFullYear()) return;
-    const timer = window.setTimeout(() => {
-      currentMonthRef.current?.scrollIntoView({ block: 'start', inline: 'nearest' });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [year, today]);
-
   return (
     <div className="h-full min-h-0 overflow-y-auto">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-1 pr-2">
+      <div className="grid grid-cols-2 gap-2 p-1 pr-2 sm:grid-cols-3 lg:grid-cols-4">
         {months.map((mo) => (
           <button
             key={mo.index}
-            ref={mo.isCurrentMonth ? currentMonthRef : undefined}
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
             className={cn(
-              'flex flex-col items-stretch p-3.5 rounded-2xl text-left',
+              'flex flex-col items-stretch rounded-lg p-3 text-left',
               'border border-foreground/5 bg-card shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]',
-              'hover:border-primary/20 hover:-translate-y-1 hover:shadow-[0_8px_20px_-4px_hsl(var(--primary)/0.08)]',
-              'transition-all duration-300 transform',
+              'hover:border-primary/20 hover:shadow-[0_6px_16px_-8px_hsl(var(--primary)/0.18)]',
+              'transition-all duration-200',
               mo.isCurrentMonth ? 'ring-2 ring-primary/35 bg-primary/2' : 'hover:scale-[1.01]',
             )}
           >
-            <header className="flex items-baseline justify-between mb-2">
+            <header className="mb-1.5 flex items-baseline justify-between">
               <span className="text-[14px] font-semibold tracking-tight text-foreground">
                 {mo.label}
               </span>
@@ -140,7 +130,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                 </span>
               )}
             </header>
-            <div className="grid grid-cols-7 gap-px text-center mb-1">
+            <div className="mb-0.5 grid grid-cols-7 gap-px text-center">
               {DAYS_KO.map((d, i) => (
                 <span
                   key={d}
@@ -158,7 +148,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             <div className="grid grid-cols-7 gap-px">
               {mo.cells.map((cell, i) => {
                 if (cell.date === null) {
-                  return <span key={i} className="aspect-square" aria-hidden />;
+                  return <span key={i} className="h-5 sm:h-[22px]" aria-hidden />;
                 }
                 const cellEl = (
                   <span
@@ -167,7 +157,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                       if (cell.iso) onDayClick?.(cell.iso);
                     }}
                     className={cn(
-                      'relative aspect-square flex items-center justify-center text-[10px] tabular-nums rounded font-medium',
+                      'relative flex h-5 items-center justify-center rounded text-[10px] font-medium tabular-nums sm:h-[22px]',
                       'cursor-pointer hover:bg-accent transition-colors',
                       cell.isToday && 'bg-primary text-primary-foreground font-bold shadow-sm ring-1 ring-primary/20 animate-pulse',
                       !cell.isToday && 'text-foreground',

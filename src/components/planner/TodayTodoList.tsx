@@ -24,6 +24,7 @@ interface TodayTodoListProps {
   onTaskClick?: (task: { id: string; title: string }) => void;
   /** + 버튼 / 빈 상태 클릭 시 — 할 일 모드로 모달을 연다. */
   onAdd?: () => void;
+  embedded?: boolean;
 }
 
 const localDateKey = (date: Date) => {
@@ -42,7 +43,7 @@ const sortPlanned = (items: PlannerTask[]) =>
     return b.createdAt.localeCompare(a.createdAt);
   });
 
-export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListProps) => {
+export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: TodayTodoListProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
 
   useEffect(() => {
@@ -70,8 +71,15 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd }: TodayTodoListPr
     <section
       ref={setDropRef}
       className={cn(
-        'w-full h-full min-h-0 flex flex-col rounded-2xl border bg-card/80 px-3 py-2.5 transition-colors shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
-        isOver ? 'border-primary/50 bg-primary/5' : 'border-foreground/10',
+        'w-full h-full min-h-0 flex flex-col transition-colors',
+        embedded
+          ? 'px-3 py-2'
+          : 'rounded-2xl border bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
+        isOver
+          ? embedded
+            ? 'bg-primary/5 ring-1 ring-inset ring-primary/45'
+            : 'border-primary/50 bg-primary/5'
+          : !embedded && 'border-foreground/10',
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">

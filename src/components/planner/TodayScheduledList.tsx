@@ -43,6 +43,7 @@ interface TodayScheduledListProps {
   /** + 버튼 클릭 — 부모가 TaskScheduleDialog (모달) 를 연다. */
   onAdd?: () => void;
   emptyHint?: string;
+  embedded?: boolean;
 }
 
 type RowStatus = 'past' | 'now' | 'upcoming';
@@ -145,7 +146,7 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   }
 };
 
-export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint }: TodayScheduledListProps) => {
+export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, embedded }: TodayScheduledListProps) => {
   // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
   const items = usePlannerToday(anchorIso);
   const day = useMemo(() => new Date(anchorIso), [anchorIso]);
@@ -176,7 +177,14 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint }:
   );
 
   return (
-    <section className="w-full h-fit min-h-[112px] max-h-[220px] flex flex-col rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]">
+    <section
+      className={cn(
+        'w-full h-fit min-h-[104px] max-h-[220px] flex flex-col',
+        embedded
+          ? 'border-b border-foreground/10 px-3 py-2'
+          : 'rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
+      )}
+    >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
         <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
         <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground leading-none">

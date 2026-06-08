@@ -132,7 +132,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border hairline bg-[hsl(var(--hairline))]">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg border hairline bg-[hsl(var(--hairline))]">
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 gap-px bg-[hsl(var(--hairline))] border-b border-[hsl(var(--hairline))]">
           {DAYS_KO.map((d, i) => (

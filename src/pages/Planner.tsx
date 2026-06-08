@@ -25,6 +25,7 @@ import {
   FileText,
   Home,
   LayoutDashboard,
+  ListChecks,
   Network,
   NotebookPen,
   Plus,
@@ -145,6 +146,7 @@ const Planner = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const showTimeline = useMediaQuery('(min-width: 1024px)');
+  const isCompactHeader = useMediaQuery('(max-width: 639px)');
   const [view, setViewState] = useState<PlannerView>(() => {
     const viewParam = searchParams.get('view');
     if (isPlannerView(viewParam)) return viewParam;
@@ -460,6 +462,16 @@ const Planner = () => {
       const fullLabel = t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
       return { primary: fullLabel, secondary: '오늘' };
     }
+    if (view === 'week' && isCompactHeader) {
+      const d = new Date(anchorIso);
+      const start = new Date(d);
+      start.setDate(d.getDate() - d.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const startFmt = `${start.getMonth() + 1}.${start.getDate()}`;
+      const endFmt = `${end.getMonth() + 1}.${end.getDate()}`;
+      return { primary: `${startFmt} ~ ${endFmt}` };
+    }
     if (view !== 'day') return { primary: periodLabel };
     const d = new Date(anchorIso);
     const t = new Date();
@@ -468,7 +480,7 @@ const Planner = () => {
     if (isSameDay(d, t)) return { primary: fullLabel, secondary: '오늘' };
     if (isSameDay(d, tm)) return { primary: fullLabel, secondary: '내일' };
     return { primary: fullLabel };
-  }, [anchorIso, view, periodLabel]);
+  }, [anchorIso, isCompactHeader, view, periodLabel]);
 
   // 키보드 단축키.
   useEffect(() => {
@@ -991,7 +1003,10 @@ const Planner = () => {
 
             <div className="min-w-0 flex-1 px-1">
               <div className="flex min-w-0 items-center gap-2">
-                <h1 className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]">
+                <h1
+                  className="truncate text-[20px] font-semibold leading-tight tracking-normal text-foreground sm:text-[22px]"
+                  title={periodLabel}
+                >
                   {headerLabels.primary}
                 </h1>
                 {headerOverlineText && (
@@ -1129,29 +1144,42 @@ const Planner = () => {
                     'h-full min-h-0 grid grid-cols-1 gap-2 transition-all duration-300 ease-in-out',
                     showTimelinePanel
                       ? isTaskPanelOpen
-                        ? 'lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[308px_minmax(0,1fr)]'
+                        ? 'lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[288px_minmax(0,1fr)]'
                         : 'lg:grid-cols-[minmax(0,1fr)]'
                       : 'lg:grid-cols-[minmax(0,760px)]',
                   )}
                 >
-                  <div
+                  <aside
                     className={cn(
-                      'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2 transition-all duration-300',
+                      'min-h-0 self-start overflow-hidden rounded-xl border border-foreground/10 bg-card/80 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all duration-300 lg:flex lg:flex-col lg:self-stretch',
                       !isTaskPanelOpen && 'lg:hidden lg:w-0 lg:opacity-0 lg:overflow-hidden',
                     )}
                   >
-                    <TodayScheduledList
-                      anchorIso={anchorIso}
-                      onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                      emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
-                      onAdd={openCreateEvent}
-                    />
-                    <TodayTodoList
-                      anchorIso={anchorIso}
-                      onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
-                      onAdd={openCreateTodo}
-                    />
-                  </div>
+                    <div className="flex h-8 shrink-0 items-center gap-2 border-b border-foreground/10 px-3">
+                      <ListChecks className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+                      <span className="text-[11px] font-semibold uppercase leading-none tracking-[0.08em] text-muted-foreground">
+                        오늘 계획
+                      </span>
+                      <span className="ml-auto hidden truncate text-[10.5px] text-muted-foreground/70 xl:inline">
+                        드래그해서 시간 배정
+                      </span>
+                    </div>
+                    <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]">
+                      <TodayScheduledList
+                        anchorIso={anchorIso}
+                        onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                        emptyHint={showTimelinePanel ? undefined : '+로 시간 잡힌 일정을 추가'}
+                        onAdd={openCreateEvent}
+                        embedded
+                      />
+                      <TodayTodoList
+                        anchorIso={anchorIso}
+                        onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
+                        onAdd={openCreateTodo}
+                        embedded
+                      />
+                    </div>
+                  </aside>
                   {showTimelinePanel && (
                     <div className="min-h-0">
                       <TodayTimeline
@@ -1166,7 +1194,7 @@ const Planner = () => {
                   )}
                 </div>
               ) : view === 'week' ? (
-                <div className="h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card px-3 pb-3 pt-1 shadow-[0_1px_2px_hsl(30_15%_8%/0.035)]">
+                <div className="h-full min-h-0 overflow-hidden">
                   <WeekView
                     anchorIso={anchorIso}
                     onDayClick={handleDayClick}
@@ -1175,7 +1203,7 @@ const Planner = () => {
                   />
                 </div>
               ) : view === 'month' ? (
-                <div className="h-full min-h-0 overflow-hidden rounded-xl border border-foreground/10 bg-card">
+                <div className="h-full min-h-0 overflow-hidden">
                   <MonthView
                     anchorIso={anchorIso}
                     onDayClick={handleDayClick}

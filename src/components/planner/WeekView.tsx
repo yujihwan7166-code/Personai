@@ -7,13 +7,11 @@
  * - 카드 클릭 → 편집 모달 (Day 뷰와 일관성)
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
 import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { PlannerCard } from './PlannerCard';
-import { PlannerEmpty } from './PlannerEmpty';
 import { DroppableDayColumn } from './dnd/DroppableDayColumn';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED, type PlannerTask } from '@/types/planner';
@@ -159,8 +157,8 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
   const hasCalendarItems = timedItems.length > 0 || dateTodos.length > 0;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="grid grid-cols-7 gap-2 h-full min-h-0">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-foreground/10 bg-card">
+      <div className="grid h-full min-h-0 grid-cols-7 divide-x divide-foreground/10">
         {days.map((d) => {
           const dayItems = (itemsByDay.get(d.key) ?? []).filter((item) => {
             if (item.kind !== 'task') return true;
@@ -171,14 +169,14 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
             !task.listId || !hiddenListIds.has(task.listId),
           );
           return (
-            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex flex-col min-h-0 min-w-0 rounded-md">
+            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex min-h-0 min-w-0 flex-col">
               <button
                 type="button"
                 onClick={() => onDayClick?.(d.iso)}
                 aria-label={`${d.date}일 ${DAYS_KO[d.dow]}요일${d.isToday ? ' (오늘)' : ''} — Day 뷰로`}
                 className={cn(
-                  'group mb-2 flex h-11 flex-col items-center justify-center gap-0.5 border-b text-center transition-colors',
-                  'hover:bg-accent/25',
+                  'group flex h-12 shrink-0 flex-col items-center justify-center gap-0.5 border-b text-center transition-colors',
+                  'hover:bg-accent/35',
                   d.isToday ? 'border-primary/70' : 'border-[hsl(var(--hairline))]',
                 )}
               >
@@ -202,9 +200,14 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
               </button>
               <div
                 className={cn(
-                  'flex-1 min-h-0 space-y-1.5 cursor-pointer',
+                  'min-h-0 flex-1 cursor-pointer space-y-1.5 p-1.5',
                   dayItems.length > 0 || dayTodos.length > 0 ? 'overflow-y-auto' : 'overflow-hidden',
                 )}
+                style={{
+                  backgroundImage: 'linear-gradient(to bottom, hsl(var(--foreground) / 0.075) 1px, transparent 1px)',
+                  backgroundSize: '100% 56px',
+                  backgroundPosition: '0 8px',
+                }}
                 onClick={(e) => {
                   // 카드가 아닌 빈 영역 클릭 시에만 Day 점프 (이벤트 버블링 방지).
                   if (e.target === e.currentTarget && dayItems.length === 0 && dayTodos.length === 0) {
@@ -250,7 +253,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
                     <button
                       type="button"
                       onClick={() => onDayClick?.(d.iso)}
-                      className="h-full w-full rounded transition-colors hover:bg-accent/12"
+                      className="h-full w-full rounded-md transition-colors hover:bg-primary/5"
                       aria-label={`${d.date}일로 이동`}
                     />
                   )
@@ -307,12 +310,9 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
         })}
       </div>
       {!hasCalendarItems && (
-        <PlannerEmpty
-          icon={<CalendarIcon className="h-6 w-6" />}
-          title="이번 주는 비어 있어요"
-          hint="대기함에서 할 일을 골라 시간을 배정해보세요"
-          className="pointer-events-none absolute left-1/2 top-[112px] w-[min(640px,calc(100%-48px))] -translate-x-1/2 bg-card/70 py-9 shadow-sm"
-        />
+        <div className="pointer-events-none absolute left-1/2 top-[76px] -translate-x-1/2 rounded-full border border-foreground/10 bg-card/90 px-3 py-1.5 text-[12px] font-medium text-muted-foreground shadow-sm">
+          이번 주 예정 항목 없음
+        </div>
       )}
     </div>
   );
