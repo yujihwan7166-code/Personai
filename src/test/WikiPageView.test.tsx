@@ -33,13 +33,13 @@ vi.mock('@/components/wiki/WikiHistoryPanel', () => ({
 
 const basePage: WikiPage = {
   id: 'wiki-page-1',
-  title: '인맥',
-  aliases: ['관계'],
+  title: 'Running',
+  aliases: ['jogging'],
   type: 'concept',
-  category: '사람',
+  category: 'fitness',
   status: 'active',
-  tags: ['relationships'],
-  body: '"사람이 가장 큰 자산." -- [[김민철]]',
+  tags: ['training'],
+  body: 'Running notes with [[Cardio]].',
   isMain: true,
   refersTo: [],
   cites: [],
@@ -76,42 +76,41 @@ function renderWikiPageView(overrides: Partial<React.ComponentProps<typeof WikiP
   );
 }
 
+function getDesktopMetaPanel(container: HTMLElement) {
+  const panels = container.querySelectorAll('[data-wiki-edit-meta-panel="true"]');
+  return panels[panels.length - 1] as HTMLElement;
+}
+
 describe('WikiPageView edit metadata panel', () => {
   it('keeps the normal page edit action in read mode', () => {
     renderWikiPageView();
 
-    expect(screen.getByRole('button', { name: '편집' })).toBeInTheDocument();
-    expect(screen.queryByText('문서 설정')).not.toBeInTheDocument();
+    expect(screen.getByTitle(/E/)).toBeInTheDocument();
+    expect(document.querySelector('[data-wiki-edit-meta-panel="true"]')).not.toBeInTheDocument();
   });
 
-  it('starts edit metadata as a compact settings summary', () => {
+  it('shows core metadata as a compact always-visible palette in edit mode', () => {
     const { container } = renderWikiPageView({ editing: true });
-    const panels = container.querySelectorAll('[data-wiki-edit-meta-panel="true"]');
-    const desktopPanel = panels[panels.length - 1] as HTMLElement;
+    const desktopPanel = getDesktopMetaPanel(container);
 
-    expect(within(desktopPanel).getByText('문서 설정')).toBeInTheDocument();
-    expect(within(desktopPanel).getByRole('button', { name: '문서 설정 열기' })).toBeInTheDocument();
-    expect(within(desktopPanel).queryByRole('button', { name: '편집' })).not.toBeInTheDocument();
-    expect(within(desktopPanel).queryByPlaceholderText('별칭 입력 후 Enter')).not.toBeInTheDocument();
+    expect(desktopPanel).toBeInTheDocument();
+    expect(within(desktopPanel).getByRole('button', { name: /메인|硫붿씤/ })).toBeInTheDocument();
+    expect(desktopPanel.querySelectorAll('select')).toHaveLength(1);
+    expect(desktopPanel.querySelectorAll('input')).toHaveLength(1);
+    expect(desktopPanel.querySelectorAll('button[aria-pressed]')).toHaveLength(2);
+    expect(within(desktopPanel).queryByTitle(/유형|좏삎/)).not.toBeInTheDocument();
   });
 
-  it('reveals secondary fields only after opening the related group', () => {
-    const pageWithoutFindInfo: WikiPage = {
-      ...basePage,
-      aliases: [],
-      tags: [],
-    };
-    const { container } = renderWikiPageView({ editing: true, page: pageWithoutFindInfo });
-    const panels = container.querySelectorAll('[data-wiki-edit-meta-panel="true"]');
-    const desktopPanel = panels[panels.length - 1] as HTMLElement;
+  it('opens secondary metadata editors from the compact palette', () => {
+    const { container } = renderWikiPageView({ editing: true, page: { ...basePage, aliases: [], tags: [] } });
+    const desktopPanel = getDesktopMetaPanel(container);
+    const metaButtons = desktopPanel.querySelectorAll('button[aria-pressed]');
 
-    fireEvent.click(within(desktopPanel).getByRole('button', { name: '문서 설정 열기' }));
+    expect(desktopPanel.querySelectorAll('input')).toHaveLength(1);
+    fireEvent.click(metaButtons[0]);
+    expect(desktopPanel.querySelectorAll('input').length).toBeGreaterThan(1);
 
-    expect(within(desktopPanel).getByRole('button', { name: '문서 설정 접기' })).toBeInTheDocument();
-    expect(within(desktopPanel).queryByPlaceholderText('별칭 입력 후 Enter')).not.toBeInTheDocument();
-
-    fireEvent.click(within(desktopPanel).getByRole('button', { name: /별칭.*태그/ }));
-
-    expect(within(desktopPanel).getByPlaceholderText('별칭 입력 후 Enter')).toBeInTheDocument();
+    fireEvent.click(metaButtons[1]);
+    expect(desktopPanel.querySelectorAll('select').length).toBeGreaterThan(1);
   });
 });

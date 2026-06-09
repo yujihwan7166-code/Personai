@@ -109,12 +109,12 @@ export const PlannerLibraryPanel = ({
   const panel = (
     <aside
       data-planner-library-panel="true"
-      className="fixed left-[56px] top-[88px] z-[90] flex w-[248px] max-h-[calc(100vh-104px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
+      className="fixed left-[56px] top-[88px] z-[45] flex w-[248px] max-h-[calc(100vh-104px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
     >
       <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-foreground/[0.12] px-3">
         <Archive className="h-[18px] w-[18px] shrink-0 text-foreground/70" strokeWidth={2.1} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[14px] font-extrabold leading-[1.35] text-foreground">보관함</h2>
+        <div className="flex min-w-0 flex-1 items-center self-stretch">
+          <h2 className="truncate text-[14px] font-extrabold leading-none text-foreground">보관함</h2>
         </div>
         <button
           type="button"
@@ -289,7 +289,7 @@ const LibraryItemRow = ({
         }
       }}
       className={cn(
-        'group relative flex cursor-grab items-center gap-2 rounded-lg border border-foreground/14 bg-card px-2 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 active:cursor-grabbing',
+        'group relative flex cursor-grab items-center gap-2 overflow-hidden rounded-lg border border-foreground/14 bg-card px-2 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 active:cursor-grabbing',
         isDragging && 'opacity-55',
       )}
     >
@@ -307,39 +307,45 @@ const LibraryItemRow = ({
           기본 {durationLabel(item.durationMin)}
         </span>
       </span>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onQuickAdd();
-        }}
-        aria-label={`${item.title} 추가`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-primary group-hover:opacity-100"
+      <div
+        className="absolute bottom-0 right-0 top-0 flex items-center gap-1 bg-gradient-to-l from-accent via-accent/95 to-transparent pl-8 pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       >
-        <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onEdit();
-        }}
-        aria-label={`${item.title} 수정`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100"
-      >
-        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onRemove();
-        }}
-        aria-label={`${item.title} 삭제`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-destructive group-hover:opacity-100"
-      >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-      </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onQuickAdd();
+          }}
+          aria-label={`${item.title} 추가`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit();
+          }}
+          aria-label={`${item.title} 수정`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+          aria-label={`${item.title} 삭제`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/25"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+      </div>
     </div>
   );
 };

@@ -97,7 +97,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
           aria-label="달력 연월 선택"
-          className="h-7 min-w-[112px] rounded-md px-2 text-center text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-primary/10 hover:text-primary"
+          className="h-7 min-w-[116px] rounded-md px-2 text-center text-[13.5px] font-bold text-foreground tabular-nums transition-colors hover:bg-primary/10 hover:text-primary"
         >
           {monthLabel}
         </button>
@@ -164,9 +164,9 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
           <span
             key={label}
             className={cn(
-              'text-center font-mono text-[10px] font-medium text-foreground/55',
-              index === 0 && 'text-rose-500/70',
-              index === 6 && 'text-blue-500/70',
+              'text-center text-[11px] font-semibold text-foreground/68 tabular-nums',
+              index === 0 && 'text-rose-500/85',
+              index === 6 && 'text-blue-500/85',
             )}
           >
             {label}
@@ -188,11 +188,11 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
               onClick={() => onSelectDay(date.toISOString())}
               aria-label={`${date.toLocaleDateString('ko-KR')} 선택`}
               className={cn(
-                'relative flex h-7 items-center justify-center rounded text-[11.5px] font-medium tabular-nums transition-colors',
-                !inMonth && 'text-foreground/25',
-                inMonth && !isSelected && !isToday && 'text-foreground/85 hover:bg-accent',
-                inMonth && !isSelected && dayOfWeek === 0 && 'text-rose-500/80',
-                inMonth && !isSelected && dayOfWeek === 6 && 'text-blue-500/80',
+                'relative flex h-7 items-center justify-center rounded text-[12.5px] font-semibold tabular-nums transition-colors',
+                !inMonth && 'text-foreground/34',
+                inMonth && !isSelected && !isToday && 'text-foreground/92 hover:bg-accent',
+                inMonth && !isSelected && dayOfWeek === 0 && 'text-rose-500/90',
+                inMonth && !isSelected && dayOfWeek === 6 && 'text-blue-500/90',
                 isToday && !isSelected && 'text-primary ring-1 ring-primary/60 animate-pulse font-semibold',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm',
               )}

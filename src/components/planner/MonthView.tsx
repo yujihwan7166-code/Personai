@@ -40,6 +40,17 @@ interface MonthViewProps {
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+const mixColor = (color: string, amount: number) => `color-mix(in srgb, ${color} ${amount}%, transparent)`;
+
+const monthItemStyle = (color: string, compact = false) => ({
+  backgroundColor: mixColor(color, compact ? 9 : 7),
+});
+
+const timedItemColor = (item: PlannerTimelineItem): string =>
+  item.kind === 'event'
+    ? item.data.color ?? 'hsl(220 70% 55%)'
+    : todoColor(item.data as PlannerTask);
+
 export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onAddForDate }: MonthViewProps) => {
   const { active } = useDndContext();
   const activeDragData = active?.data.current as PlannerDragData | undefined;
@@ -212,10 +223,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                         </div>
                         <div className="space-y-0.5 min-h-0 overflow-hidden">
                           {previewTimed.map((item) => {
-                            const stripeColor =
-                              item.kind === 'event'
-                                ? item.data.color ?? 'hsl(220 70% 55%)'
-                                : 'hsl(var(--muted-foreground) / 0.5)';
+                            const stripeColor = timedItemColor(item);
                             const startAt = item.data.startAt;
                             const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
                             const taskCanceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
@@ -263,9 +271,10 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                                   }}
                                   className={cn(
                                     'flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors active:cursor-grabbing',
-                                    'bg-accent/70 hover:bg-accent/95 hover:shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35',
+                                    'hover:bg-accent/75 hover:shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35',
                                     dim && 'opacity-60',
                                   )}
+                                  style={monthItemStyle(stripeColor, true)}
                                 >
                                   <span
                                     className="inline-block h-1 w-1 shrink-0 rounded-full"
@@ -447,10 +456,7 @@ const DayPopoverBody = ({
         ) : (
           <div className="space-y-0.5">
             {items.map((item) => {
-              const stripeColor =
-                item.kind === 'event'
-                  ? item.data.color ?? 'hsl(var(--primary))'
-                  : 'hsl(var(--primary))';
+              const stripeColor = timedItemColor(item);
               const startAt = item.data.startAt;
               const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
               const taskCanceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
@@ -480,9 +486,10 @@ const DayPopoverBody = ({
                       }
                     }}
                     className={cn(
-                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent transition-colors text-left cursor-grab active:cursor-grabbing',
+                      'w-full flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors text-left cursor-grab active:cursor-grabbing hover:bg-accent/70',
                       dim && 'opacity-60',
                     )}
+                    style={monthItemStyle(stripeColor)}
                   >
                     <span
                       className="h-2 w-2 rounded-full shrink-0"

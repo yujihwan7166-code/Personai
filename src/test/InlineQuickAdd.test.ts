@@ -28,4 +28,15 @@ describe('buildInlineQuickAddTaskInput', () => {
     expect(input.tags).toEqual(['건강']);
     expect(input.priority).toBe(2);
   });
+  it('applies quick toolbar color and priority selections', () => {
+    const startIso = new Date(2026, 4, 12, 9, 0, 0).toISOString();
+    const input = buildInlineQuickAddTaskInput('운동 #건강 !2', startIso, 60, {
+      color: 'green',
+      priority: 3,
+    });
+
+    expect(input.color).toBe('green');
+    expect(input.priority).toBe(3);
+    expect(input.tags).toEqual(['건강']);
+  });
 });

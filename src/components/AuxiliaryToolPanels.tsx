@@ -137,7 +137,6 @@ export function AuxiliaryMemoTool() {
   const saveEdit = () => {
     if (!editingMemo) return;
     updateMemo(editingMemo.id, { body: draft });
-    setEditingId(null);
   };
 
   const createMemo = () => {
@@ -147,7 +146,7 @@ export function AuxiliaryMemoTool() {
   };
 
   return (
-    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
+    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, editingMemo ? 'flex flex-col gap-3 overflow-hidden' : 'space-y-2.5')}>
       <ToolIntro
         title="최근 메모"
         description="사이드바에서 메모를 확인하고 바로 고칩니다."
@@ -160,23 +159,35 @@ export function AuxiliaryMemoTool() {
       />
 
       {editingMemo ? (
-        <section className="rounded-xl border border-primary/25 bg-card/85 p-2.5 shadow-[0_10px_24px_-18px_hsl(var(--foreground)/0.35)]">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="min-w-0 truncate text-[12.5px] font-semibold text-foreground">
-              {memoTitle(editingMemo)}
+        <section className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-2 flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              className="inline-flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              목록
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold text-foreground">
+                {memoTitle(editingMemo)}
+              </div>
+              <div className="mt-0.5 text-[10.5px] font-medium text-muted-foreground">
+                {memoTimeLabel(editingMemo.updatedAt)}
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => navigate(`/memos?id=${editingMemo.id}`)}
                 className="inline-flex h-7 items-center rounded-md px-2 text-[11px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
               >
-                전체
+                열기
               </button>
               <button
                 type="button"
                 onClick={saveEdit}
-                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <Check className="h-3 w-3" />
                 저장
@@ -186,7 +197,7 @@ export function AuxiliaryMemoTool() {
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="min-h-[220px] w-full resize-y rounded-lg border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[12.5px] leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/40"
+            className="min-h-[320px] flex-1 resize-none bg-transparent px-0.5 py-1 text-[13px] leading-6 text-foreground outline-none placeholder:text-muted-foreground/55"
             placeholder="메모를 적어보세요..."
           />
         </section>

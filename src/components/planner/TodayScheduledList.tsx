@@ -16,6 +16,7 @@ import { eventStore } from '@/services/planner/eventStore';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
+import { intervalOverlapsRange, localDayBounds } from '@/lib/planner/timeRange';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
@@ -49,12 +50,6 @@ interface TodayScheduledListProps {
 
 type RowStatus = 'past' | 'now' | 'upcoming';
 type Kind = 'task' | 'event';
-
-const isSameLocalDay = (iso: string | undefined, day: Date) => {
-  if (!iso) return false;
-  const d = new Date(iso);
-  return d.getFullYear() === day.getFullYear() && d.getMonth() === day.getMonth() && d.getDate() === day.getDate();
-};
 
 const formatTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
@@ -150,7 +145,7 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
 export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, embedded }: TodayScheduledListProps) => {
   // 시간 배정된 task + event 둘 다 보여줌. usePlannerToday 가 PLANNER_TASK/EVENT_CHANGED 양쪽 listen.
   const items = usePlannerToday(anchorIso);
-  const day = useMemo(() => new Date(anchorIso), [anchorIso]);
+  const dayBounds = useMemo(() => localDayBounds(anchorIso), [anchorIso]);
 
   // 진행 중 / 지난 판정용 — 1분 tick.
   const [now, setNow] = useState(() => new Date());
@@ -165,16 +160,16 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
         .filter((item) => {
           if (item.kind === 'task') {
             const t = item.data;
-            return !t.done && !t.canceled && !t.someday && isSameLocalDay(t.startAt, day);
+            return !t.done && !t.canceled && !t.someday && intervalOverlapsRange(t.startAt, t.endAt, dayBounds.start, dayBounds.end);
           }
-          return isSameLocalDay(item.data.startAt, day);
+          return intervalOverlapsRange(item.data.startAt, item.data.endAt, dayBounds.start, dayBounds.end);
         })
         .sort((a, b) => {
           const aStart = a.kind === 'event' ? a.data.startAt : a.data.startAt ?? '';
           const bStart = b.kind === 'event' ? b.data.startAt : b.data.startAt ?? '';
           return aStart.localeCompare(bStart);
         }),
-    [items, day],
+    [items, dayBounds],
   );
 
   return (
@@ -188,12 +183,12 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
-        <ListChecks className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
-        <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
+        <ListChecks className="h-4 w-4 text-foreground/85" strokeWidth={2.2} />
+        <span className="text-[13px] font-bold tracking-[0.03em] uppercase text-foreground/90 leading-none">
           일정
         </span>
         {scheduled.length > 0 && (
-          <span className="text-[12px] tabular-nums text-foreground/60 font-semibold">{scheduled.length}</span>
+          <span className="text-[12.5px] tabular-nums text-foreground/75 font-semibold">{scheduled.length}</span>
         )}
         <div className="ml-auto flex items-center gap-1">
           {onAdd && (

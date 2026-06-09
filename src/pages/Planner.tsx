@@ -18,11 +18,13 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CalendarClock,
+  ArrowRight,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
   ListTodo,
+  Plus,
   Search,
   Sparkles,
   Settings,
@@ -78,6 +80,7 @@ import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
+import { clampStartToLocalDay } from '@/lib/planner/timeRange';
 import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { useWindowEvent } from '@/hooks/useWindowEvent';
@@ -142,6 +145,7 @@ type HeaderSearchResult =
   | { type: 'event'; event: PlannerEvent; score: number; label: string; meta: string; detail?: string };
 
 const HEADER_SEARCH_LIMIT = 8;
+const HEADER_SEARCH_SUGGESTION_LIMIT = 6;
 
 const normalizeSearchText = (value?: string): string =>
   (value ?? '').trim().toLocaleLowerCase('ko-KR');
@@ -226,11 +230,61 @@ const buildHeaderSearchResults = (query: string): HeaderSearchResult[] => {
     .slice(0, HEADER_SEARCH_LIMIT);
 };
 
+const searchResultIso = (result: HeaderSearchResult): string => {
+  if (result.type === 'event') return result.event.startAt;
+  return result.task.startAt ?? (result.task.plannedFor ? `${result.task.plannedFor}T09:00:00` : result.task.createdAt);
+};
+
+const buildHeaderSearchSuggestions = (anchorIso: string): HeaderSearchResult[] => {
+  const anchorKey = toDateKey(new Date(anchorIso));
+  const now = Date.now();
+
+  const taskResults: HeaderSearchResult[] = taskStore
+    .list()
+    .filter((task) => !task.done && !task.canceled)
+    .map((task) => {
+      const isScheduled = Boolean(task.startAt);
+      const dayKey = task.startAt ? toDateKey(new Date(task.startAt)) : task.plannedFor;
+      return {
+        type: 'task' as const,
+        task,
+        score: (dayKey === anchorKey ? 30 : 0) + (isScheduled ? 12 : 0) + (task.pinned ? 8 : 0),
+        label: task.title,
+        meta: isScheduled ? formatSearchDateTime(task.startAt, task.endAt) : `할 일 · ${task.plannedFor ? formatSearchDate(`${task.plannedFor}T09:00:00`) : '날짜 없음'}`,
+        detail: isScheduled ? '일정화' : '할 일',
+      };
+    });
+
+  const eventResults: HeaderSearchResult[] = eventStore
+    .list()
+    .map((event) => ({
+      type: 'event' as const,
+      event,
+      score: toDateKey(new Date(event.startAt)) === anchorKey ? 34 : 10,
+      label: event.title,
+      meta: formatSearchDateTime(event.startAt, event.endAt),
+      detail: '일정',
+    }));
+
+  return [...taskResults, ...eventResults]
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const aTime = new Date(searchResultIso(a)).getTime();
+      const bTime = new Date(searchResultIso(b)).getTime();
+      const aFuture = aTime >= now ? 0 : 1;
+      const bFuture = bTime >= now ? 0 : 1;
+      if (aFuture !== bFuture) return aFuture - bFuture;
+      return Math.abs(aTime - now) - Math.abs(bTime - now);
+    })
+    .slice(0, HEADER_SEARCH_SUGGESTION_LIMIT);
+};
+
 const taskDragRestorePatch = (task: PlannerTask): Partial<Omit<PlannerTask, 'id' | 'createdAt'>> => ({
   startAt: task.startAt,
   endAt: task.endAt,
   plannedFor: task.plannedFor,
   laneOrder: task.laneOrder,
+  todoOrder: task.todoOrder,
   listId: task.listId,
 });
 
@@ -270,6 +324,7 @@ const duplicateTaskInput = (
   listId: task.listId,
   seriesCompletions: undefined,
   laneOrder: undefined,
+  todoOrder: undefined,
   deletedAt: undefined,
   done: false,
   ...patch,
@@ -602,6 +657,10 @@ const Planner = () => {
     () => buildHeaderSearchResults(headerSearchQuery),
     [headerSearchQuery],
   );
+  const headerSearchSuggestions = useMemo(
+    () => buildHeaderSearchSuggestions(anchorIso),
+    [anchorIso],
+  );
 
   const selectHeaderSearchResult = useCallback((result: HeaderSearchResult) => {
     if (result.type === 'task') {
@@ -647,6 +706,51 @@ const Planner = () => {
     return;
 
   }, [headerSearchQuery, headerSearchResults, selectHeaderSearchResult]);
+
+  const createTaskFromHeaderSearch = useCallback((scheduled: boolean) => {
+    const title = headerSearchQuery.trim();
+    if (!title) return;
+
+    if (scheduled) {
+      const anchor = new Date(anchorIso);
+      const today = new Date();
+      const start = new Date(anchor);
+      if (toDateKey(anchor) === toDateKey(today)) {
+        const slot = nextHalfHourSlot(today);
+        start.setHours(slot.getHours(), slot.getMinutes(), 0, 0);
+      } else {
+        start.setHours(9, 0, 0, 0);
+      }
+      const end = new Date(start.getTime() + 60 * 60_000);
+      const task = taskStore.add({
+        title,
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+        plannedFor: toDateKey(start),
+      });
+      setAnchorIso(start.toISOString());
+      setView('day');
+      setDialogMode({
+        kind: 'schedule',
+        taskId: task.id,
+        initialTitle: task.title,
+        initialStart: task.startAt,
+        initialEnd: task.endAt,
+      });
+      notify.success('오늘 일정으로 만들었어요', { description: title, duration: 1800 });
+    } else {
+      const dayKey = toDateKey(new Date(anchorIso));
+      const task = taskStore.add({ title, plannedFor: dayKey });
+      setDialogMode({
+        kind: 'schedule',
+        taskId: task.id,
+        initialTitle: task.title,
+      });
+      notify.success('할 일로 추가했어요', { description: title, duration: 1800 });
+    }
+
+    closeHeaderSearch();
+  }, [anchorIso, closeHeaderSearch, headerSearchQuery, setView]);
 
   // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
   const anchorIsToday = useMemo(() => {
@@ -1081,7 +1185,11 @@ const Planner = () => {
         : 0;
       const adjustedDeltaY = e.delta.y + scrollDelta;
       const deltaMinutes = Math.round((adjustedDeltaY / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
-      const newStartDate = new Date(oldStart.getTime() + deltaMinutes * 60_000);
+      const newStartDate = clampStartToLocalDay(
+        new Date(oldStart.getTime() + deltaMinutes * 60_000),
+        dropData.startIso,
+        dur,
+      );
       const newStart = newStartDate.toISOString();
       const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
       const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
@@ -1482,6 +1590,10 @@ const Planner = () => {
     });
   }, [anchorIso]);
 
+  const trimmedHeaderSearchQuery = headerSearchQuery.trim();
+  const headerSearchPanelResults = trimmedHeaderSearchQuery ? headerSearchResults : headerSearchSuggestions;
+  const collapseContextSidebar = view === 'habits' && aiPanelOpen;
+
   return (
     <DndContext
       sensors={sensors}
@@ -1496,7 +1608,7 @@ const Planner = () => {
         <PlannerLeftRail aiOpen={aiPanelOpen} />
       </aside>
       <main className="flex h-screen flex-1 min-w-0 flex-col overflow-hidden">
-        <header className="shrink-0 border-b border-foreground/10 bg-background/95 px-3 py-1.5 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur sm:px-4">
+        <header className="relative z-40 shrink-0 border-b border-foreground/10 bg-background/95 px-3 py-1.5 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur sm:px-4">
           <div
             className={cn(
               'flex min-h-10 items-center gap-2',
@@ -1557,7 +1669,7 @@ const Planner = () => {
             <div className="hidden flex-1 sm:block" />
 
             <div
-              className="relative ml-auto flex h-8 shrink-0 items-center gap-1"
+              className="relative z-[45] ml-auto flex h-8 shrink-0 items-center gap-1"
               data-planner-header-tools="true"
             >
               <button
@@ -1616,29 +1728,70 @@ const Planner = () => {
                   <X className="h-3.5 w-3.5" strokeWidth={2.2} />
                 </button>
               </div>
-              {headerSearchOpen && headerSearchQuery.trim() && (
+              {headerSearchOpen && (
                 <div
-                  className="absolute left-0 top-[38px] z-50 hidden w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/20 bg-popover shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.35)] sm:block"
-                  onMouseDown={(event) => event.preventDefault()}
+                  className="absolute left-0 top-[38px] z-50 hidden w-[392px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/18 bg-card shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.4)] sm:block"
                   role="listbox"
-                  aria-label="검색 결과"
+                  aria-label={trimmedHeaderSearchQuery ? '검색 결과' : '검색 추천'}
                 >
-                  <div className="border-b border-foreground/10 px-3 py-2">
-                    <p className="text-[11px] font-semibold text-muted-foreground">
-                      검색 결과
-                      {headerSearchResults.length > 0 && (
-                        <span className="ml-1 tabular-nums text-foreground/70">{headerSearchResults.length}</span>
+                  <div className="flex items-center justify-between border-b border-foreground/10 px-3 py-2.5">
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground">
+                        {trimmedHeaderSearchQuery ? '검색 결과' : '빠른 이동'}
+                        {headerSearchPanelResults.length > 0 && (
+                          <span className="ml-1 tabular-nums text-foreground/70">{headerSearchPanelResults.length}</span>
+                        )}
+                      </p>
+                      {!trimmedHeaderSearchQuery && (
+                        <p className="mt-0.5 text-[10.5px] text-muted-foreground/75">
+                          예정된 할 일과 일정을 바로 열 수 있어요.
+                        </p>
                       )}
-                    </p>
-                  </div>
-                  {headerSearchResults.length === 0 ? (
-                    <div className="px-3 py-5 text-center">
-                      <p className="text-[13px] font-semibold text-foreground">일치하는 항목이 없어요.</p>
-                      <p className="mt-1 text-[11.5px] text-muted-foreground">할 일 제목, 메모, 태그, 일정 제목을 검색할 수 있어요.</p>
                     </div>
+                    {trimmedHeaderSearchQuery && (
+                      <span className="max-w-[170px] truncate rounded-md bg-foreground/[0.04] px-2 py-1 text-[10.5px] font-semibold text-foreground/65">
+                        {trimmedHeaderSearchQuery}
+                      </span>
+                    )}
+                  </div>
+                  {headerSearchPanelResults.length === 0 ? (
+                    trimmedHeaderSearchQuery ? (
+                      <div className="px-3 py-4">
+                        <div className="rounded-lg border border-dashed border-foreground/16 bg-muted/25 px-3 py-3 text-center">
+                          <p className="text-[13px] font-semibold text-foreground">일치하는 항목이 없어요.</p>
+                          <p className="mt-1 text-[11.5px] text-muted-foreground">
+                            검색어를 새 할 일이나 오늘 일정으로 바로 만들 수 있어요.
+                          </p>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => createTaskFromHeaderSearch(false)}
+                            className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-foreground/12 bg-background text-[12px] font-semibold text-foreground transition-colors hover:border-primary/25 hover:bg-primary/5 hover:text-primary"
+                          >
+                            <ListTodo className="h-3.5 w-3.5" />
+                            할 일로 추가
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => createTaskFromHeaderSearch(true)}
+                            className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-primary/18 bg-primary/6 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/10"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            오늘 일정 만들기
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="px-3 py-5 text-center">
+                        <Sparkles className="mx-auto h-4 w-4 text-muted-foreground/70" />
+                        <p className="mt-2 text-[13px] font-semibold text-foreground">검색어를 입력해보세요.</p>
+                        <p className="mt-1 text-[11.5px] text-muted-foreground">할 일 제목, 메모, 태그, 일정 제목을 찾을 수 있어요.</p>
+                      </div>
+                    )
                   ) : (
                     <div className="max-h-[360px] overflow-y-auto p-1.5">
-                      {headerSearchResults.map((result, index) => {
+                      {headerSearchPanelResults.map((result, index) => {
                         const isTask = result.type === 'task';
                         const done = isTask && result.task.done;
                         const canceled = isTask && result.task.canceled;
@@ -1654,10 +1807,7 @@ const Planner = () => {
                           <button
                             key={`${result.type}-${isTask ? result.task.id : result.event.id}`}
                             type="button"
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              selectHeaderSearchResult(result);
-                            }}
+                            onClick={() => selectHeaderSearchResult(result)}
                             className="group flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent focus:bg-accent"
                             role="option"
                             aria-selected={index === 0}
@@ -1682,13 +1832,14 @@ const Planner = () => {
                             <span className="mt-1 shrink-0 rounded-full border border-foreground/10 bg-card px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                               {result.detail}
                             </span>
+                            <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground" />
                           </button>
                         );
                       })}
                     </div>
                   )}
                   <div className="flex items-center justify-between border-t border-foreground/10 px-3 py-2 text-[10.5px] text-muted-foreground">
-                    <span>Enter 첫 결과 열기</span>
+                    <span>{trimmedHeaderSearchQuery ? 'Enter 첫 결과 열기' : '검색어 입력 후 Enter'}</span>
                     <span>Esc 닫기</span>
                   </div>
                 </div>
@@ -1757,9 +1908,9 @@ const Planner = () => {
                       aria-selected={active}
                       onClick={() => setView(nextView)}
                       className={cn(
-                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-colors',
+                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-all',
                         active
-                          ? 'bg-card text-primary shadow-[0_1px_4px_hsl(var(--foreground)/0.08)]'
+                          ? 'border border-primary/20 bg-primary/[0.075] text-primary shadow-[0_1px_5px_hsl(var(--primary)/0.16)]'
                           : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
                         nextView === 'habits' && 'min-w-10',
                       )}
@@ -1825,9 +1976,23 @@ const Planner = () => {
             setView('day');
           }}
         >
-          <div className="grid flex-1 min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[248px_minmax(0,1fr)]">
-            <aside className="hidden min-h-0 flex-col border-r border-foreground/10 bg-card/45 px-3 py-3 md:flex">
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div
+            className={cn(
+              'grid flex-1 min-h-0 grid-cols-1 overflow-hidden transition-[grid-template-columns] duration-300 ease-in-out',
+              collapseContextSidebar
+                ? 'md:grid-cols-[0px_minmax(0,1fr)]'
+                : 'md:grid-cols-[248px_minmax(0,1fr)]',
+            )}
+          >
+            <aside
+              className={cn(
+                'hidden min-h-0 overflow-hidden border-r bg-card/45 transition-[border-color,opacity,transform] duration-300 ease-in-out md:flex',
+                collapseContextSidebar
+                  ? 'pointer-events-none border-transparent opacity-0 -translate-x-2'
+                  : 'border-foreground/10 opacity-100 translate-x-0',
+              )}
+            >
+              <div className="min-h-0 w-[248px] flex-1 overflow-y-auto px-3 py-3 pr-4">
                 <PlannerSidebar
                   anchorIso={anchorIso}
                   onSelectDay={(dayIso) => {

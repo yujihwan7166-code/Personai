@@ -43,21 +43,24 @@ export function WikiInfobox({ page, onTagClick }: Props) {
 
   return (
     <aside
-      className="w-[280px] rounded-md border-2 bg-card overflow-hidden shadow-sm"
+      className="w-[280px] overflow-hidden rounded-xl border bg-card/76 shadow-[0_14px_34px_-30px_hsl(30_15%_8%/0.55)]"
       style={{
-        borderColor: 'hsl(var(--wiki-hairline-strong))',
+        borderColor: 'hsl(var(--hairline))',
         fontFamily: 'var(--wiki-font-meta)',
       }}
       aria-label="문서 정보"
     >
       {/* 헤더 — 페이지 제목만 (유형 표기 제거) */}
       <div
-        className="px-3.5 py-3 text-center border-b-2"
+        className="border-b px-3.5 py-3"
         style={{
-          backgroundColor: `${typeMeta.tint}26`,
-          borderColor: 'hsl(var(--wiki-hairline-strong))',
+          backgroundColor: `${typeMeta.tint}12`,
+          borderColor: 'hsl(var(--hairline))',
         }}
       >
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          문서 정보
+        </p>
         <p className="text-[14px] font-bold text-foreground leading-tight">
           {page.title}
         </p>
@@ -66,7 +69,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
       {/* 메타 표 — 굵은 격자 */}
       <dl
         className="text-[12px]"
-        style={{ '--row-line': '1px solid hsl(var(--wiki-hairline-strong))' } as React.CSSProperties}
+        style={{ '--row-line': '1px solid hsl(var(--hairline))' } as React.CSSProperties}
       >
         {sourceUrl && (
           <Row label="원본">
@@ -150,9 +153,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div
       className="grid grid-cols-[72px_1fr] items-start gap-2 px-3.5 py-2"
-      style={{ borderTop: '1px solid hsl(var(--wiki-hairline-strong))' }}
+      style={{ borderTop: '1px solid hsl(var(--hairline))' }}
     >
-      <dt className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground pt-0.5">
+      <dt className="text-[10.5px] font-bold text-muted-foreground pt-0.5">
         {label}
       </dt>
       <dd className="text-foreground/90">{children}</dd>

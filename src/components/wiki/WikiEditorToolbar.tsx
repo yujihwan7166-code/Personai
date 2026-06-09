@@ -7,7 +7,7 @@ import {
   List, ListOrdered, CheckSquare, Quote, Code2, Minus,
   Link as LinkIcon, ImagePlus,
   Table2,
-  Palette, Highlighter, ChevronDown, MoreHorizontal,
+  Palette, Highlighter, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,17 +51,20 @@ const HIGHLIGHTS = [
 ];
 
 export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-
   if (!editor) return null;
   return (
-    <div className="sticky top-0 z-20 mb-3 -mx-1 px-1">
-      <div className="rounded-lg border border-[hsl(var(--hairline))] bg-popover/95 p-1 shadow-sm backdrop-blur">
-        <div className="flex min-h-8 items-center gap-0.5 overflow-x-auto overscroll-x-contain pr-0.5">
+    <div className="sticky top-0 z-20 mb-4 -mx-1 px-1">
+      <div className="rounded-xl border border-foreground/10 bg-card/95 px-2 py-1.5 shadow-[0_10px_28px_-24px_hsl(var(--foreground)/0.35)] backdrop-blur">
+        <div className="flex min-h-9 flex-wrap items-center gap-1.5">
+          <ToolbarGroup>
+            <span className="hidden px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70 sm:inline">
+              서식
+            </span>
           <BlockStyleDropdown editor={editor} />
           <FontSizeDropdown editor={editor} />
-          <Sep />
+          </ToolbarGroup>
 
+          <ToolbarGroup>
           <ToolbarBtn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="굵게 (Ctrl+B)">
             <Bold className="w-3.5 h-3.5" />
           </ToolbarBtn>
@@ -71,8 +74,17 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
           <ToolbarBtn className="hidden sm:inline-flex" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="밑줄 (Ctrl+U)">
             <UnderlineIcon className="w-3.5 h-3.5" />
           </ToolbarBtn>
-          <Sep className="hidden sm:inline-block" />
+          <ToolbarBtn active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="취소선">
+            <Strikethrough className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ToolbarBtn active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()} title="인라인 코드">
+            <Code className="w-3.5 h-3.5" />
+          </ToolbarBtn>
+          <ColorDropdown editor={editor} />
+          <HighlightDropdown editor={editor} />
+          </ToolbarGroup>
 
+          <ToolbarGroup>
           {onPickPage ? (
             <ToolbarTextBtn onClick={onPickPage} title="문서나 웹 링크 연결 (Ctrl+K)">
               <LinkIcon className="w-3.5 h-3.5" />
@@ -82,58 +94,34 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
             <LinkDropdown editor={editor} />
           )}
           {onPickImage && (
-            <ToolbarBtn className="hidden sm:inline-flex" onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
+            <ToolbarBtn onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
           )}
-
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen((value) => !value)}
-            className={cn(
-              'ml-auto inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-[11.5px] font-semibold transition-colors',
-              advancedOpen
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            aria-expanded={advancedOpen}
-            title="고급 도구"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">더보기</span>
-          </button>
-        </div>
-
-        {advancedOpen && (
-          <div className="mt-1 flex flex-wrap items-center gap-0.5 border-t border-[hsl(var(--hairline))] pt-1">
-            <ToolbarBtn active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="취소선">
-              <Strikethrough className="w-3.5 h-3.5" />
-            </ToolbarBtn>
-            <ToolbarBtn active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()} title="인라인 코드">
-              <Code className="w-3.5 h-3.5" />
-            </ToolbarBtn>
-            <ToolbarBtn className="sm:hidden" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="밑줄 (Ctrl+U)">
-              <UnderlineIcon className="w-3.5 h-3.5" />
-            </ToolbarBtn>
             {onPickPage && <LinkDropdown editor={editor} />}
-            {onPickImage && (
-              <ToolbarBtn className="sm:hidden" onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
-            )}
-            <ColorDropdown editor={editor} />
-            <HighlightDropdown editor={editor} />
-            <Sep />
+          <TableInsertDropdown editor={editor} />
+          </ToolbarGroup>
 
+          <ToolbarGroup className="ml-0 xl:ml-auto">
             <ToolbarBtn active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="왼쪽 정렬"><AlignLeft className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="가운데 정렬"><AlignCenter className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="오른쪽 정렬"><AlignRight className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'justify' })} onClick={() => editor.chain().focus().setTextAlign('justify').run()} title="양쪽 정렬"><AlignJustify className="w-3.5 h-3.5" /></ToolbarBtn>
-            <Sep />
-
             <ToolbarBtn active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="인용문"><Quote className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive('codeBlock')} onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="코드 블록"><Code2 className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="구분선"><Minus className="w-3.5 h-3.5" /></ToolbarBtn>
-            <TableInsertDropdown editor={editor} />
-          </div>
-        )}
+          </ToolbarGroup>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      'flex h-8 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/[0.08] bg-background/70 px-1 shadow-[0_1px_0_hsl(var(--foreground)/0.03)]',
+      className,
+    )}>
+      {children}
     </div>
   );
 }

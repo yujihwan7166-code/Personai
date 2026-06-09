@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { eventStore } from '@/services/planner/eventStore';
 import { taskStore } from '@/services/planner/taskStore';
 import { toDateKey } from '@/lib/planner/habitStats';
+import { compareTodoTasks } from '@/lib/planner/todoOrder';
 import {
   PLANNER_EVENT_CHANGED,
   PLANNER_TASK_CHANGED,
@@ -37,10 +38,7 @@ const compute = (startIso: string, endIso: string): PlannerCalendarRange => {
     .sort((a, b) => {
       const byDate = (a.plannedFor ?? '').localeCompare(b.plannedFor ?? '');
       if (byDate !== 0) return byDate;
-      const priorityDelta = (b.priority ?? 0) - (a.priority ?? 0);
-      if (priorityDelta !== 0) return priorityDelta;
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.createdAt.localeCompare(a.createdAt);
+      return compareTodoTasks(a, b);
     });
 
   const timedItems: PlannerTimelineItem[] = [

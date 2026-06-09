@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { BookOpen, Plus, Search } from 'lucide-react';
+import { BookOpen, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, isMainDoc } from '@/types/wiki';
 import { getActiveWikiPages, searchWikiPages, type WikiSearchHit } from '@/lib/wikiQuery';
@@ -79,9 +79,9 @@ export function WikiSidebar({
               onClick={() => setQuery('')}
               aria-label="검색 지우기"
               title="검색 지우기"
-              className="shrink-0 text-[11px] text-muted-foreground/70 hover:text-foreground"
+              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 hover:bg-accent hover:text-foreground"
             >
-              x
+              <X className="h-3 w-3" />
             </button>
           )}
         </form>
@@ -117,7 +117,7 @@ export function WikiSidebar({
                   <button
                     type="button"
                     onClick={createFromQuery}
-                    className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary transition-colors hover:bg-primary/15"
+                    className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary transition-colors hover:bg-primary/15"
                     title={`"${cleanQuery}" 새 문서 만들기`}
                     data-wiki-create-from-search
                   >

@@ -3,7 +3,7 @@
  *
  * 표시:
  * - 0 세션: 숨김 (UI 노이즈 방지)
- * - 1+ 세션: "🍅 4 · 1h 40m" + 🔥 streak (3+ 일)
+ * - 1+ 세션: "🍅 4 · 1시간 40분" + 🔥 streak (3+ 일)
  * - 클릭 시 PomodoroStatsModal 펼침 — 통계 풀세트
  */
 import { useState } from 'react';
@@ -13,10 +13,10 @@ import { usePomodoroStats } from '@/hooks/planner/usePomodoroStats';
 import { pomodoroSessionLog } from '@/services/planner/pomodoroSessionLog';
 
 const formatMin = (min: number): string => {
-  if (min < 60) return `${min}m`;
+  if (min < 60) return `${min}분`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
 };
 
 export const PomodoroStatsWidget = ({ className }: { className?: string }) => {

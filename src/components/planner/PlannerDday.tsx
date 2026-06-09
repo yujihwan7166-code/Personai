@@ -116,7 +116,7 @@ export const PlannerDday = () => {
     <section ref={sectionRef} className="px-1">
       <div className="flex items-center gap-1.5 px-1.5 mb-1">
         <Flag className="h-3 w-3 text-foreground/55" />
-        <span className="text-[12px] font-semibold text-foreground/85 tracking-tight">
+        <span className="text-[12.5px] font-semibold text-foreground/85 tracking-tight">
           디데이
         </span>
         {items.length > 0 && (
@@ -159,7 +159,7 @@ export const PlannerDday = () => {
               </span>
               <span
                 className={cn(
-                  'min-w-0 flex-1 truncate text-[12px] font-medium leading-none',
+                  'min-w-0 flex-1 truncate text-[12.5px] font-medium leading-none',
                   dd.tone === 'past' ? 'text-foreground/45' : 'text-foreground/90',
                 )}
               >

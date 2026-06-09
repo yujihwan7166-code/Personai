@@ -20,6 +20,7 @@ async function ensureServer() {
   const args = process.platform === 'win32'
     ? ['/c', 'npm.cmd', 'run', 'dev:web', '--', '--host', '127.0.0.1', '--port', String(port)]
     : ['run', 'dev:web', '--', '--host', '127.0.0.1', '--port', String(port)];
+
   devServer = spawn(command, args, {
     cwd: process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -66,9 +67,8 @@ async function verifyWikiEditorUx() {
     await page.getByRole('dialog', { name: '문서 또는 링크 연결' }).waitFor({ timeout: 10_000 });
     await page.keyboard.press('Escape');
 
-    await page.locator('button[title="고급 도구"]').click();
     await page.locator('button[title="표 삽입"]').click();
-    await page.locator('button[aria-label="4열 3행 표 삽입"]').click();
+    await page.locator('button[aria-label="3열 4행 표 삽입"]').click();
     await page.locator('.wiki-block-editor table').waitFor({ timeout: 10_000 });
 
     await page.keyboard.press('ControlOrMeta+K');

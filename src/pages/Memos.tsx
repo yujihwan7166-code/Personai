@@ -1434,7 +1434,7 @@ function MemoEditor({
 
       {/* 본문 — TipTap. 760px 폭 좌측 정렬 (사이드바 list 와 시각 라인 정렬) */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="memo-prose w-full max-w-[760px] px-6 sm:px-10 py-8">
+        <div className="memo-prose memo-editor-surface w-full max-w-[760px] px-6 sm:px-10 py-8">
           <WikiBlockEditor
             body={draft}
             onChange={setDraft}

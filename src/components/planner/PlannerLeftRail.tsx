@@ -10,7 +10,7 @@
  */
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarClock, CalendarDays, Grid2x2, Home, LayoutGrid, Repeat,
+  CalendarClock, Grid2x2, Home, LayoutGrid,
   Archive, Flag, Settings, Trash2, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,8 +26,6 @@ type RailItem =
 /** Planner 가 listen 하는 커스텀 이벤트 이름들 — 결합도 낮추기. */
 /** 1그룹 — 플래너 핵심(시간·일정·검색). */
 const TOP_ITEMS_PRIMARY: RailItem[] = [
-  { kind: 'event',  eventName: RAIL_EVENT.goToday,         label: '오늘',         Icon: CalendarDays },
-  { kind: 'event',  eventName: RAIL_EVENT.openHabits,      label: '습관',         Icon: Repeat },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,      label: '매트릭스',     Icon: Grid2x2 },
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
   { kind: 'event',  eventName: RAIL_EVENT.openDdayCreate,  label: 'D-day 설정',  Icon: Flag },

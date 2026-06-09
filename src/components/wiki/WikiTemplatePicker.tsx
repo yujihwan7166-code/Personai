@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { WIKI_TEMPLATES, makePageFromTemplate, type WikiTemplate } from '@/lib/wikiTemplates';
 import type { WikiPage } from '@/types/wiki';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,8 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const pickedTemplate = WIKI_TEMPLATES.find((t) => t.id === picked) ?? WIKI_TEMPLATES[0];
 
   const create = (t: WikiTemplate) => {
     const page = makePageFromTemplate(t, title);
@@ -88,8 +90,9 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
                 type="button"
                 onClick={() => setPicked(t.id)}
                 onDoubleClick={() => create(t)}
+                aria-pressed={isPicked}
                 className={cn(
-                  'rounded-lg border p-3 text-left transition-all',
+                  'min-h-[104px] rounded-lg border p-3 text-left transition-all',
                   isFeatured
                     // 메인 문서 — 보라톤 강조 (선택 여부에 따라 진하기 변동)
                     ? isPicked
@@ -106,6 +109,11 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
                   {isFeatured && (
                     <span className="inline-flex items-center h-4 px-1.5 rounded text-[8.5px] font-bold bg-violet-500 text-white tracking-wide">
                       추천
+                    </span>
+                  )}
+                  {isPicked && !isFeatured && (
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="h-2.5 w-2.5" />
                     </span>
                   )}
                 </div>
@@ -125,15 +133,14 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         </div>
 
         {/* 푸터 액션 */}
-        <div className="px-4 py-3 border-t border-[hsl(var(--hairline))] flex items-center justify-between">
+        <div className="flex flex-col gap-2 border-t border-[hsl(var(--hairline))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[10.5px] text-muted-foreground">
-            원하는 양식을 고른 뒤 문서를 만드세요.
+            선택: <span className="font-semibold text-foreground">{pickedTemplate.label}</span>
           </p>
           <button
             type="button"
             onClick={() => {
-              const t = WIKI_TEMPLATES.find((tt) => tt.id === picked) ?? WIKI_TEMPLATES[0];
-              create(t);
+              create(pickedTemplate);
             }}
             className="px-3 h-8 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
           >

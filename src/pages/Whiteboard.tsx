@@ -223,6 +223,14 @@ function elementSearchText(el: WBElement): string {
   return '';
 }
 
+function hideInlineEditableText(el: WBElement): WBElement {
+  if (el.type === 'sticky' || el.type === 'text') return { ...el, content: '' };
+  if (el.type === 'arrow') return { ...el, label: undefined };
+  if (el.type === 'frame') return { ...el, name: '' };
+  if (isTextShape(el)) return { ...el, text: '' };
+  return el;
+}
+
 // ??????????????????????????????????????????
 export default function Whiteboard() {
   const navigate = useNavigate();
@@ -2565,13 +2573,14 @@ function BoardCanvas({
             const erasing = interaction.kind === 'erasing' && interaction.ids.has(el.id);
             const hoverErase = tool === 'eraser' && interaction.kind === 'idle' && hoverElementId === el.id;
             const dim = searchMatches && !searchMatches.has(el.id);
+            const renderEl = editingId === el.id ? hideInlineEditableText(el) : el;
             return (
               <g
                 key={el.id}
                 opacity={erasing ? 0.3 : hoverErase ? 0.5 : dim ? 0.18 : 1}
                 data-wb-element-id={el.id}
               >
-                <WBElementRenderer el={el} />
+                <WBElementRenderer el={renderEl} />
               </g>
             );
           })}
@@ -3741,16 +3750,25 @@ function TemplateGallery({
   onClose: () => void;
   onApply: (kind: WBTemplateKind) => void;
 }) {
-  const categories = Array.from(new Set(TEMPLATE_KINDS.map((kind) => TEMPLATE_META[kind].category)));
+  const templateTones = [
+    { card: 'border-l-blue-400 bg-blue-50/35 hover:bg-blue-50/65', chip: 'bg-blue-100 text-blue-800' },
+    { card: 'border-l-amber-400 bg-amber-50/35 hover:bg-amber-50/65', chip: 'bg-amber-100 text-amber-800' },
+    { card: 'border-l-emerald-400 bg-emerald-50/35 hover:bg-emerald-50/65', chip: 'bg-emerald-100 text-emerald-800' },
+    { card: 'border-l-violet-400 bg-violet-50/30 hover:bg-violet-50/60', chip: 'bg-violet-100 text-violet-800' },
+    { card: 'border-l-slate-400 bg-slate-50/55 hover:bg-slate-50', chip: 'bg-slate-100 text-slate-800' },
+    { card: 'border-l-rose-400 bg-rose-50/30 hover:bg-rose-50/60', chip: 'bg-rose-100 text-rose-800' },
+    { card: 'border-l-cyan-400 bg-cyan-50/30 hover:bg-cyan-50/60', chip: 'bg-cyan-100 text-cyan-800' },
+    { card: 'border-l-orange-400 bg-orange-50/30 hover:bg-orange-50/60', chip: 'bg-orange-100 text-orange-800' },
+  ] as const;
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/25 backdrop-blur-[1px] p-4">
-      <div className="flex max-h-[min(760px,calc(100vh-48px))] w-[920px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card shadow-xl">
+      <div className="flex max-h-[min(760px,calc(100vh-48px))] w-[1120px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card shadow-xl">
         <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-4 py-3">
           <LayoutTemplate className="w-4 h-4 text-primary" strokeWidth={1.75} />
           <div className="min-w-0 flex-1">
             <h2 className="text-[14px] font-semibold text-foreground">템플릿</h2>
-            <p className="mt-0.5 text-[11.5px] text-muted-foreground">아이디어, 회의, UX, 실행 보드를 바로 시작하세요.</p>
+            <p className="mt-0.5 text-[11.5px] text-muted-foreground">필요한 보드 형식을 고르면 바로 캔버스에 추가됩니다.</p>
           </div>
           <button
             type="button"
@@ -3763,33 +3781,32 @@ function TemplateGallery({
           </button>
         </div>
         <div className="overflow-y-auto p-4">
-          {categories.map((category) => (
-            <section key={category} className="mb-5 last:mb-0">
-              <div className="mb-2 flex items-center gap-2">
-                <h3 className="text-[12px] font-semibold text-foreground">{category}</h3>
-                <div className="h-px flex-1 bg-[hsl(var(--hairline))]" />
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
-                {TEMPLATE_KINDS.filter((kind) => TEMPLATE_META[kind].category === category).map((kind) => {
-                  const meta = TEMPLATE_META[kind];
-                  return (
-                    <button
-                      key={kind}
-                      type="button"
-                      onClick={() => onApply(kind)}
-                      className="group min-h-[128px] rounded-md border border-[hsl(var(--hairline))] bg-background/55 p-3 text-left transition-colors hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
-                    >
-                      <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-accent px-2 text-[13px] font-semibold leading-none text-foreground" aria-hidden>
-                        {meta.emoji}
-                      </span>
-                      <span className="mt-3 block text-[13px] font-semibold text-foreground group-hover:text-primary">{meta.label}</span>
-                      <span className="mt-1 block text-[11.5px] leading-4 text-muted-foreground">{meta.description}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
+            {TEMPLATE_KINDS.map((kind, index) => {
+              const meta = TEMPLATE_META[kind];
+              const tone = templateTones[index % templateTones.length];
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => onApply(kind)}
+                  className={cn(
+                    'group min-h-[132px] rounded-md border border-l-4 border-[hsl(var(--hairline))] p-3 text-left transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35',
+                    tone.card,
+                  )}
+                >
+                  <span className={cn(
+                    'inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-semibold leading-none',
+                    tone.chip,
+                  )} aria-hidden>
+                    {meta.emoji}
+                  </span>
+                  <span className="mt-3 block text-[13px] font-semibold text-foreground group-hover:text-primary">{meta.label}</span>
+                  <span className="mt-1.5 block text-[11.5px] leading-4 text-muted-foreground">{meta.description}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -4915,7 +4932,7 @@ function StylePopover({
   // 誘몃━蹂닿린 ??(???
   const previewColor =
     element.type === 'sticky'
-      ? WB_STICKY_BG[element.color].bg
+      ? element.textColor ? WB_COLOR_HSL[element.textColor] : WB_STICKY_BG[element.color].bg
       : element.type === 'table'
         ? WB_COLOR_HSL[element.headerFill]
       : 'strokeColor' in element
@@ -4957,6 +4974,18 @@ function StylePopover({
                         className={cn('w-6 h-6 rounded-md transition-transform border-2',
                           isActive ? 'border-primary scale-110' : 'border-transparent hover:scale-110')}
                         style={{ background: tone.bg, borderColor: isActive ? undefined : tone.border }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="글씨">
+                  {WB_COLORS.map((c) => {
+                    const isActive = element.textColor === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ textColor: c })}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
                         title={c} />
                     );
                   })}
@@ -5023,6 +5052,26 @@ function StylePopover({
                       className={cn('w-9 h-7 rounded text-[11px] font-medium transition-colors',
                         element.fontSize === s ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
                     >{s}</button>
+                  ))}
+                </StyleRow>
+                <StyleRow label="글씨">
+                  {WB_COLORS.map((c) => {
+                    const isActive = (element.textColor ?? element.strokeColor) === c;
+                    return (
+                      <button key={c} type="button" onClick={() => apply({ textColor: c } as Partial<WBElement>)}
+                        className={cn('w-5 h-5 rounded-full transition-transform border-2',
+                          isActive ? 'border-primary scale-125' : 'border-transparent hover:scale-110')}
+                        style={{ background: WB_COLOR_HSL[c] }}
+                        title={c} />
+                    );
+                  })}
+                </StyleRow>
+                <StyleRow label="정렬">
+                  {(['left', 'center', 'right'] as const).map((a) => (
+                    <button key={a} type="button" onClick={() => apply({ textAlign: a } as Partial<WBElement>)}
+                      className={cn('flex-1 h-7 rounded text-[11px] font-medium transition-colors',
+                        (element.textAlign ?? 'center') === a ? 'bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    >{a === 'left' ? '왼쪽' : a === 'center' ? '중앙' : '오른쪽'}</button>
                   ))}
                 </StyleRow>
                 <StyleRow label="질감">
@@ -6214,6 +6263,7 @@ function InlineEditor({
   // ?쒓? IME 吏꾪뻾 ?щ?
   const composingRef = useRef(false);
   const isFrameNameEdit = element.type === 'frame';
+  const isShapeTextEdit = isTextShape(element);
   const fontSize =
     element.type === 'sticky' ? element.fontSize
     : element.type === 'text' ? element.fontSize
@@ -6230,7 +6280,10 @@ function InlineEditor({
 
   useEffect(() => {
     ref.current?.focus();
-    if (initial) ref.current?.select();
+    if (initial && ref.current) {
+      const caret = initial.length;
+      ref.current.setSelectionRange(caret, caret);
+    }
   }, [initial]);
 
   useEffect(() => {
@@ -6242,42 +6295,71 @@ function InlineEditor({
   }, [element.h, element.type, element.w, fontSize, value]);
 
   if (!container) return null;
-  // ?꾨젅?꾩? ???쇰꺼 ?곸뿭?먯꽌 ?몄쭛 (?ш컖???대?媛 ?꾨땲???곷떒)
+  // 편집 박스는 실제 렌더링 텍스트 영역과 같은 기준을 쓴다.
   const sx = isFrameNameEdit
     ? (element.x + 8 - viewport.x) * viewport.zoom
     : element.type === 'arrow'
       ? (arrowMidpoint(element).x - 60 - viewport.x) * viewport.zoom
+    : element.type === 'sticky'
+      ? (element.x + 12 - viewport.x) * viewport.zoom
+    : isShapeTextEdit
+      ? (element.x + 8 - viewport.x) * viewport.zoom
     : (element.x - viewport.x) * viewport.zoom;
   const sy = isFrameNameEdit
     ? (element.y + 3 - viewport.y) * viewport.zoom
     : element.type === 'arrow'
       ? (arrowMidpoint(element).y - 14 - viewport.y) * viewport.zoom
+    : element.type === 'sticky'
+      ? (element.y + 10 - viewport.y) * viewport.zoom
+    : isShapeTextEdit
+      ? (element.y + 8 - viewport.y) * viewport.zoom
     : (element.y - viewport.y) * viewport.zoom;
-  const sw = (isFrameNameEdit ? Math.max(1, element.w - 16) : element.w) * viewport.zoom;
-  const sh = isFrameNameEdit ? 24 * viewport.zoom : element.h * viewport.zoom;
+  const sw = (
+    isFrameNameEdit ? Math.max(1, element.w - 16)
+    : element.type === 'sticky' ? Math.max(1, element.w - 24)
+    : isShapeTextEdit ? Math.max(1, element.w - 16)
+    : element.w
+  ) * viewport.zoom;
+  const sh = (
+    isFrameNameEdit ? 24
+    : element.type === 'sticky' ? Math.max(1, element.h - 20)
+    : isShapeTextEdit ? Math.max(1, element.h - 16)
+    : element.h
+  ) * viewport.zoom;
 
-  // ?ㅽ떚?ㅻ㈃ ?덉そ ?⑤뵫
-  const padding = element.type === 'sticky' ? 12 : isFrameNameEdit || element.type === 'arrow' ? 2 : 4;
   const tone =
     element.type === 'sticky'
-      ? WB_STICKY_BG[element.color]
+      ? { ...WB_STICKY_BG[element.color], text: element.textColor ? WB_COLOR_HSL[element.textColor] : WB_STICKY_BG[element.color].text }
     : isFrameNameEdit
         ? { bg: 'hsl(40 30% 99%)', border: 'transparent', text: 'hsl(var(--foreground) / 0.75)' }
     : element.type === 'arrow'
         ? { bg: 'hsl(var(--card) / 0.92)', border: 'transparent', text: WB_COLOR_HSL[element.strokeColor] }
-        : { bg: 'transparent', border: 'transparent', text: element.type === 'text' ? WB_COLOR_HSL[element.textColor] : 'hsl(0 0% 15%)' };
+        : { bg: 'transparent', border: 'transparent', text: element.type === 'text' ? WB_COLOR_HSL[element.textColor] : isShapeTextEdit ? WB_COLOR_HSL[element.textColor ?? element.strokeColor] : 'hsl(0 0% 15%)' };
   const editorW = element.type === 'text'
     ? editorSize.w * viewport.zoom
-    : element.type === 'sticky' ? Math.max(1, editorSize.w * viewport.zoom - padding * 2)
-    : element.type === 'arrow' ? 120 * viewport.zoom : Math.max(1, sw - padding * 2);
+    : element.type === 'arrow' ? 120 * viewport.zoom : Math.max(1, sw);
   const editorH = element.type === 'text'
     ? editorSize.h * viewport.zoom
-    : element.type === 'sticky' ? Math.max(1, editorSize.h * viewport.zoom - padding * 2)
-    : element.type === 'arrow' ? 28 * viewport.zoom : Math.max(1, sh - padding * 2);
+    : element.type === 'arrow' ? 28 * viewport.zoom : Math.max(1, sh);
   const editorOutline =
     element.type === 'text'
       ? 'none'
       : '2px solid hsl(217 91% 55% / 0.45)';
+  const lineHeightPx = fontSize * viewport.zoom * 1.4;
+  const estimatedLineCount = Math.max(1, value.split('\n').length);
+  const centeredTextPadding = isShapeTextEdit
+    ? Math.max(0, (editorH - estimatedLineCount * lineHeightPx) / 2)
+    : 0;
+  const editorPadding =
+    isShapeTextEdit ? `${centeredTextPadding}px 2px 0`
+    : element.type === 'text' ? '5px 7px'
+    : element.type === 'sticky' ? '0'
+    : 4;
+  const editorTextAlign =
+    isShapeTextEdit ? element.textAlign ?? 'center'
+    : element.type === 'sticky' || element.type === 'text'
+      ? (element as { textAlign?: 'left' | 'center' | 'right' }).textAlign ?? 'left'
+    : 'center';
   const commit = () => {
     onCommit(value, element.type === 'text' || element.type === 'sticky' ? editorSize : undefined);
   };
@@ -6309,8 +6391,8 @@ function InlineEditor({
       onBlur={commit}
       style={{
         position: 'absolute',
-        left: sx + padding,
-        top: sy + padding,
+        left: sx,
+        top: sy,
         width: editorW,
         height: editorH,
         background: tone.bg,
@@ -6318,12 +6400,13 @@ function InlineEditor({
         outline: editorOutline,
         outlineOffset: 2,
         borderRadius: element.type === 'text' ? 0 : 4,
-        padding: element.type === 'text' ? '5px 7px' : 4,
+        boxSizing: 'border-box',
+        padding: editorPadding,
         color: tone.text,
         caretColor: 'hsl(217 91% 55%)',
         fontSize: fontSize * viewport.zoom,
         fontFamily: 'inherit',
-        textAlign: element.type === 'sticky' || element.type === 'text' ? (element as { textAlign?: 'left' | 'center' | 'right' }).textAlign ?? 'left' : 'center',
+        textAlign: editorTextAlign,
         resize: 'none',
         lineHeight: 1.4,
         overflow: 'hidden',

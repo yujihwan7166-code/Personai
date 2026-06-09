@@ -15,6 +15,8 @@
  */
 import { PlannerEvent, PLANNER_EVENT_CHANGED } from '@/types/planner';
 import { expandRecurrence } from '@/lib/planner/recurrence';
+import { intervalOverlapsRange, localDayBounds, recurrenceLookupStart } from '@/lib/planner/timeRange';
+import { normalizeReminderMinutes } from '@/lib/planner/reminders';
 
 const STORAGE_KEY = 'planner.events.v1';
 
@@ -37,7 +39,12 @@ const safeRead = (): PlannerEvent[] => {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidEvent);
+    return parsed
+      .filter(isValidEvent)
+      .map((event) => ({
+        ...event,
+        reminderMinutes: normalizeReminderMinutes(event.reminderMinutes),
+      }));
   } catch {
     return [];
   }
@@ -79,10 +86,7 @@ export const eventStore = {
    * 과거: ISO prefix 문자열 비교를 썼지만 UTC 날짜라 KST 00~08시 이벤트가 전날로 분류돼 누락되는 버그.
    * 수정: timestamp 비교로 통일 (taskStore.listScheduled 와 동일 패턴). */
   listByDate(dateIso: string): PlannerEvent[] {
-    const day = new Date(dateIso);
-    const rangeStart = new Date(day);
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
+    const { start: rangeStart, end: rangeEnd } = localDayBounds(dateIso);
 
     const all = activeEvents();
     const result: PlannerEvent[] = [];
@@ -90,8 +94,9 @@ export const eventStore = {
     for (const e of all) {
       if (e.recurrence) {
         // 시리즈 마스터 — 해당 날짜에 떨어지는 인스턴스만 합성
-        const instances = expandRecurrence(e, rangeStart, rangeEnd);
+        const instances = expandRecurrence(e, recurrenceLookupStart(e.startAt, e.endAt, rangeStart), rangeEnd);
         for (const inst of instances) {
+          if (!intervalOverlapsRange(inst.occurrenceStartIso, inst.occurrenceEndIso, rangeStart, rangeEnd)) continue;
           result.push({
             ...e,
             id: inst.id,
@@ -101,8 +106,7 @@ export const eventStore = {
           });
         }
       } else {
-        const ts = new Date(e.startAt).getTime();
-        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+        if (intervalOverlapsRange(e.startAt, e.endAt, rangeStart, rangeEnd)) {
           result.push(e);
         }
       }
@@ -118,8 +122,9 @@ export const eventStore = {
 
     for (const e of all) {
       if (e.recurrence) {
-        const instances = expandRecurrence(e, rangeStart, rangeEnd);
+        const instances = expandRecurrence(e, recurrenceLookupStart(e.startAt, e.endAt, rangeStart), rangeEnd);
         for (const inst of instances) {
+          if (!intervalOverlapsRange(inst.occurrenceStartIso, inst.occurrenceEndIso, rangeStart, rangeEnd)) continue;
           result.push({
             ...e,
             id: inst.id,
@@ -128,8 +133,7 @@ export const eventStore = {
           });
         }
       } else {
-        const ts = new Date(e.startAt).getTime();
-        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+        if (intervalOverlapsRange(e.startAt, e.endAt, rangeStart, rangeEnd)) {
           result.push(e);
         }
       }
@@ -147,6 +151,7 @@ export const eventStore = {
   add(input: Omit<PlannerEvent, 'id' | 'createdAt'>): PlannerEvent {
     const next: PlannerEvent = {
       ...input,
+      reminderMinutes: normalizeReminderMinutes(input.reminderMinutes),
       deletedAt: undefined,
       id: newId(),
       createdAt: new Date().toISOString(),
@@ -160,7 +165,11 @@ export const eventStore = {
     const all = safeRead();
     const idx = all.findIndex((e) => e.id === id);
     if (idx === -1) return;
-    all[idx] = { ...all[idx], ...patch };
+    const next = { ...all[idx], ...patch };
+    all[idx] = {
+      ...next,
+      reminderMinutes: normalizeReminderMinutes(next.reminderMinutes),
+    };
     safeWrite(all);
   },
 

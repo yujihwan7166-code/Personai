@@ -212,7 +212,7 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium border border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:border-foreground/30 hover:text-foreground wiki-trans-color"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3.5 py-2 text-[12.5px] font-semibold text-foreground shadow-sm hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
             >
               <Plus className="w-3.5 h-3.5" />
               빈 문서로 시작

@@ -177,7 +177,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
         title="설정"
         aria-label="설정"
         disabled={busy}

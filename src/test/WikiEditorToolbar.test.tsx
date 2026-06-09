@@ -47,14 +47,14 @@ function createEditorMock(active: Record<string, boolean> = {}) {
 }
 
 describe('WikiEditorToolbar', () => {
-  it('keeps the default editing toolbar compact with block styles grouped', () => {
+  it('renders the editing palette without hiding common tools behind a more button', () => {
     const { editor } = createEditorMock();
     render(<WikiEditorToolbar editor={editor} />);
 
     expect(screen.getByRole('button', { name: '블록 형식' })).toBeInTheDocument();
-    expect(screen.queryByTitle('큰 제목 (Ctrl+Shift+1)')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('번호 목록')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('표 삽입')).not.toBeInTheDocument();
+    expect(screen.getByTitle('표 삽입')).toBeInTheDocument();
+    expect(screen.getByTitle('왼쪽 정렬')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /더보기/ })).not.toBeInTheDocument();
   });
 
   it('reveals block choices from the grouped block style menu', () => {
@@ -68,13 +68,14 @@ describe('WikiEditorToolbar', () => {
     expect(chain.run).toHaveBeenCalled();
   });
 
-  it('keeps advanced formatting behind the more button', () => {
-    const { editor } = createEditorMock();
+  it('inserts a table from the visible table picker', () => {
+    const { editor, chain } = createEditorMock();
     render(<WikiEditorToolbar editor={editor} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /더보기/ }));
+    fireEvent.click(screen.getByTitle('표 삽입'));
+    fireEvent.click(screen.getByLabelText('3열 4행 표 삽입'));
 
-    expect(screen.getByTitle('표 삽입')).toBeInTheDocument();
-    expect(screen.getByTitle('오른쪽 정렬')).toBeInTheDocument();
+    expect(chain.insertTable).toHaveBeenCalledWith({ rows: 4, cols: 3, withHeaderRow: true });
+    expect(chain.run).toHaveBeenCalled();
   });
 });

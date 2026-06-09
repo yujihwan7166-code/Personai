@@ -8,7 +8,7 @@
  * - 깃발 = priority 1~3 시각화
  * - 노트 점(FileText) = note 있음 표시
  */
-import { Check, Flag, FileText, Ban, RotateCw, ChevronDown, ChevronRight, Palette, Pencil, Trash2 } from 'lucide-react';
+import { Check, Flag, FileText, Ban, RotateCw, ChevronDown, ChevronRight, Palette, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Priority, Subtask, TaskListColor } from '@/types/planner';
@@ -170,6 +170,10 @@ interface InboxCardProps {
   color?: TaskListColor;
   /** hover 액션의 삭제 버튼. */
   onDelete?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  moveUpDisabled?: boolean;
+  moveDownDisabled?: boolean;
   /** 우클릭 메뉴 등 외부 사용처 호환용. hover 액션에는 표시하지 않는다. */
   onTogglePin?: () => void;
   priority?: Priority;
@@ -216,7 +220,7 @@ interface BlockCardProps {
   tags?: string[];
   /** Streak (반복 시리즈 연속 완료 수). */
   streakCurrent?: number;
-  /** 길이 라벨 — "30분" / "1h 10m" 등. 시간 옆에 작게. */
+  /** 길이 라벨 — "30분" / "1시간 10분" 등. 시간 옆에 작게. */
   durationLabel?: string;
   /** 같은 일에 다른 항목과 시간 겹침 — 좌측 분홍 stripe 로 표시. */
   overlapping?: boolean;
@@ -227,7 +231,7 @@ type PlannerCardProps = (InboxCardProps | BlockCardProps) & { meta?: MetaChip[] 
 /** Inbox variant — 별도 컴포넌트로 추출 (useState 가 hooks 규칙에 맞도록). */
 const InboxCardInner = (props: InboxCardProps) => {
   const {
-    title, done, onToggle, onClick, onEdit, onColorChange, color, onDelete, priority, pinned, hasNote, note, canceled, recurring,
+    title, done, onToggle, onClick, onEdit, onColorChange, color, onDelete, onMoveUp, onMoveDown, moveUpDisabled, moveDownDisabled, priority, pinned, hasNote, note, canceled, recurring,
     subtasks, onToggleSubtask, onAddSubtask, onRemoveSubtask, onUpdateSubtask,
     tags, meta, onTagClick, streakCurrent,
   } = props;
@@ -236,7 +240,7 @@ const InboxCardInner = (props: InboxCardProps) => {
   const noteText = note?.trim() ?? '';
   const showNoteTooltip = hasNote && noteText.length > 0;
   const hasSubtasks = subtasks && subtasks.length > 0;
-  const hasActions = Boolean(onEdit || onClick || onColorChange || onDelete);
+  const hasActions = Boolean(onMoveUp || onMoveDown || onEdit || onClick || onColorChange || onDelete);
   const handleEdit = onEdit ?? onClick;
   const [expanded, setExpanded] = useState(false);
   const accent = color ? TASK_LIST_COLORS[color].stripe : undefined;
@@ -281,10 +285,10 @@ const InboxCardInner = (props: InboxCardProps) => {
               onToggle();
             }}
             className={cn(
-              'flex h-[15px] w-[15px] items-center justify-center rounded-[4px] border transition-all shrink-0',
+              'flex h-[15px] w-[15px] items-center justify-center rounded-[4px] border-[1.5px] transition-all shrink-0',
               done
                 ? 'bg-foreground border-foreground text-background'
-                : 'border-foreground/20 hover:border-foreground/50 hover:scale-110',
+                : 'border-foreground/32 hover:border-foreground/60 hover:scale-110',
             )}
             style={checkboxAccentStyle}
             aria-label={done ? '완료 취소' : '완료'}
@@ -369,6 +373,34 @@ const InboxCardInner = (props: InboxCardProps) => {
             )}
             onClick={(e) => e.stopPropagation()}
           >
+            {(onMoveUp || onMoveDown) && (
+              <span className="mr-0.5 inline-flex items-center gap-0.5 border-r border-foreground/10 pr-0.5">
+                {onMoveUp && (
+                  <button
+                    type="button"
+                    onClick={onMoveUp}
+                    disabled={moveUpDisabled}
+                    aria-label="위로 이동"
+                    title="위로 이동"
+                    className={cn(itemActionButtonClass, 'disabled:pointer-events-none disabled:opacity-30')}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.2} />
+                  </button>
+                )}
+                {onMoveDown && (
+                  <button
+                    type="button"
+                    onClick={onMoveDown}
+                    disabled={moveDownDisabled}
+                    aria-label="아래로 이동"
+                    title="아래로 이동"
+                    className={cn(itemActionButtonClass, 'disabled:pointer-events-none disabled:opacity-30')}
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" strokeWidth={2.2} />
+                  </button>
+                )}
+              </span>
+            )}
             {handleEdit && (
               <button
                 type="button"

@@ -20,6 +20,8 @@ interface HabitTimelineOverlayProps {
   hourPx: number;
   /** compact 모드 visibleStart 시간 (px 오프셋용). */
   visibleStartHour: number;
+  /** 타임라인 첫 라벨이 잘리지 않도록 그리드 위에 더한 여백. */
+  topOffsetPx?: number;
 }
 
 const parseHm = (hm: string): { h: number; m: number } | null => {
@@ -29,7 +31,7 @@ const parseHm = (hm: string): { h: number; m: number } | null => {
 };
 
 export const HabitTimelineOverlay = ({
-  dayKey, hourPx, visibleStartHour,
+  dayKey, hourPx, visibleStartHour, topOffsetPx = 0,
 }: HabitTimelineOverlayProps) => {
   const habits = useHabits();
   const [checkins, setCheckins] = useState<HabitCheckin[]>([]);
@@ -67,7 +69,7 @@ export const HabitTimelineOverlay = ({
         const ci = checkinMap.get(habit.id);
         const tpd = Math.max(1, habit.schedule.timesPerDay ?? 1);
         const done = (ci?.count ?? 0) >= tpd;
-        const top = (hour + minute / 60 - visibleStartHour) * hourPx;
+        const top = topOffsetPx + (hour + minute / 60 - visibleStartHour) * hourPx;
         if (top < -20) return null; // out of view
         const stripe = (TASK_LIST_COLORS[habit.color] ?? TASK_LIST_COLORS.blue).stripe;
 

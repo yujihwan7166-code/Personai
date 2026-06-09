@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { PageAiPanelHeader } from '@/components/PageAiPanelHeader';
 import {
-  AuxiliaryReferenceSelect,
   AuxiliaryToolTab,
   AuxiliaryToolTabs,
   PageAiEmptyState,
@@ -83,7 +82,6 @@ export const PlannerAIPanel = ({
 }: PlannerAIPanelProps) => {
   const { state, send, stop, clear, applyAction, cancelAction, undoAction } = useAIChat({ view, anchorIso });
   const [activeTool, setActiveTool] = useState<AuxiliaryToolTab>('ai');
-  const [referenceScope, setReferenceScope] = useState('today');
   const auxiliaryTools = useMemo(() => getAuxiliaryToolsForSurface('planner'), []);
   const emptyCopy = EMPTY_COPY[view];
   const panelRef = useRef<HTMLElement>(null);
@@ -155,17 +153,6 @@ export const PlannerAIPanel = ({
             )}
             actions={(
               <>
-                {activeTool === 'ai' && (
-                  <AuxiliaryReferenceSelect
-                    value={referenceScope}
-                    onChange={setReferenceScope}
-                    options={[
-                      { value: 'today', label: '오늘' },
-                      { value: 'week', label: '이번 주' },
-                      { value: 'all', label: '전체' },
-                    ]}
-                  />
-                )}
                 {activeTool === 'ai' && state.messages.length > 0 && (
                   <button
                     type="button"

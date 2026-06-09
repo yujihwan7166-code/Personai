@@ -109,10 +109,10 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5 text-foreground">
                   <Trash2 className="h-4 w-4" strokeWidth={2.1} />
                 </span>
-                플래너 휴지통
+                휴지통
               </DialogTitle>
-              <DialogDescription className="mt-1 text-[13px]">
-                삭제한 일정과 할 일을 복원하거나 영구 삭제합니다.
+              <DialogDescription className="sr-only">
+                삭제된 플래너 항목
               </DialogDescription>
             </div>
             <button
@@ -165,8 +165,7 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 text-muted-foreground">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <p className="mt-3 text-[14px] font-bold text-foreground">휴지통이 비어 있어요.</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">삭제한 일정과 할 일이 여기에 모입니다.</p>
+              <p className="mt-3 text-[14px] font-semibold text-foreground">비어 있어요.</p>
             </div>
           ) : (
             <div className="space-y-1">

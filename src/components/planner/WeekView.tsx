@@ -6,15 +6,16 @@
  * - 빈 컬럼 영역 클릭 → 해당 일 Day 뷰 점프 (가벼운 새 항목 진입점)
  * - 카드 클릭 → 편집 모달 (Day 뷰와 일관성)
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { CalendarClock, ListChecks, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
 import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { PlannerCard } from './PlannerCard';
-import { DroppableDayColumn } from './dnd/DroppableDayColumn';
 import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
+import type { PlannerDragData, PlannerDropData } from './dnd/plannerDndTypes';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED, type PlannerTask } from '@/types/planner';
 
@@ -23,14 +24,14 @@ const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-/** 길이 라벨 — "30분" / "1h 10m". */
+/** 길이 라벨 — "30분" / "1시간 10분". */
 const formatDuration = (startIso: string, endIso: string): string => {
   const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
   if (mins <= 0) return '';
   if (mins < 60) return `${mins}분`;
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
 };
 
 interface WeekViewProps {
@@ -175,7 +176,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
             !task.listId || !hiddenListIds.has(task.listId),
           );
           return (
-            <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex min-h-0 min-w-0 flex-col">
+            <div key={d.iso} className="flex min-h-0 min-w-0 flex-col">
               <button
                 type="button"
                 data-week-day-header={d.key}
@@ -206,7 +207,11 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                 </span>
               </button>
               <div className="flex min-h-0 flex-1 cursor-pointer flex-col bg-card">
-                <section
+                <WeekDropSection
+                  id={`week-todo-${d.key}`}
+                  data={{ kind: 'todo-list', dayKey: d.key }}
+                  hint="할 일로 추가"
+                  blockedKinds={['scheduled-event']}
                   className={cn(
                     'h-[148px] shrink-0 border-b border-foreground/10 bg-card px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
                     dayTodos.length > 4 ? 'overflow-y-auto' : 'overflow-hidden',
@@ -252,8 +257,11 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                       className="mt-1 h-8 w-full rounded-md border border-dashed border-transparent transition-colors hover:border-primary/20 hover:bg-primary/5"
                     />
                   )}
-                </section>
-                <section
+                </WeekDropSection>
+                <WeekDropSection
+                  id={`week-schedule-${d.key}`}
+                  data={{ kind: 'day-column', dayIso: d.iso }}
+                  hint="일정으로 추가"
                   className={cn(
                     'min-h-0 flex-1 px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
                     dayItems.length > 0 ? 'overflow-y-auto' : 'overflow-hidden',
@@ -340,9 +348,9 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                       })}
                     </div>
                   )}
-                </section>
+                </WeekDropSection>
               </div>
-            </DroppableDayColumn>
+            </div>
           );
         })}
       </div>
@@ -382,6 +390,69 @@ const WeekSectionLabel = ({
     </span>
   </div>
 );
+
+const isWeekDropAssignable = (dragData?: PlannerDragData): boolean =>
+  dragData?.kind === 'library-template'
+  || dragData?.kind === 'inbox-task'
+  || dragData?.kind === 'planned-task'
+  || dragData?.kind === 'scheduled-task'
+  || dragData?.kind === 'scheduled-event';
+
+const WeekDropSection = ({
+  id,
+  data,
+  hint,
+  blockedKinds = [],
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & {
+  id: string;
+  data: PlannerDropData;
+  hint: string;
+  blockedKinds?: PlannerDragData['kind'][];
+  children: ReactNode;
+}) => {
+  const { active } = useDndContext();
+  const activeDrag = active?.data.current as PlannerDragData | undefined;
+  const blocked = Boolean(activeDrag && blockedKinds.includes(activeDrag.kind));
+  const { setNodeRef, isOver } = useDroppable({ id, data });
+  const showHint = isOver && isWeekDropAssignable(activeDrag);
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={cn(
+        'relative',
+        isOver && (blocked ? 'bg-destructive/[0.025]' : 'bg-primary/[0.035]'),
+        className,
+      )}
+      {...props}
+    >
+      {showHint && (
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-1 z-20 rounded-md border-2 ring-1 ring-inset',
+            blocked
+              ? 'border-destructive/35 bg-destructive/[0.035] ring-destructive/15'
+              : 'border-primary/45 bg-primary/[0.045] ring-primary/20',
+          )}
+        >
+          <span className={cn(
+            'absolute right-2 top-2 rounded-full px-2 py-1 text-[11px] font-bold leading-none shadow-sm',
+            blocked
+              ? 'bg-background text-destructive ring-1 ring-destructive/20'
+              : 'bg-primary text-primary-foreground',
+          )}>
+            {blocked ? '일정은 할 일로 이동 불가' : hint}
+          </span>
+        </div>
+      )}
+      {children}
+    </section>
+  );
+};
 
 const WeekTodoRow = ({
   task,

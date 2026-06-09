@@ -8,7 +8,7 @@
  * 시간 블록 hover → Tooltip (제목·시간 범위·길이).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays } from 'lucide-react';
+import { ArrowRight, Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -52,10 +52,12 @@ import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
+import { intervalOverlapsRange, localDayBounds } from '@/lib/planner/timeRange';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
 const HOUR_PX = 56;
+const TIMELINE_TOP_PAD = 18;
 const START_HOUR = 0;
 const TOTAL_HOURS = 24;
 /** 압축 모드 — 새벽 0~6시 + 늦은 22~24시 hide. localStorage 로 사용자 선호 저장. */
@@ -105,6 +107,43 @@ const computeHeightPx = (startIso: string, endIso: string): number => {
   const mins = (new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000;
   return Math.max(20, (mins / 60) * HOUR_PX);
 };
+
+const getDisplayRange = (startIso: string | undefined, endIso: string | undefined, dateIso: string) => {
+  const { start: dayStart, end: dayEnd } = localDayBounds(dateIso);
+  if (!intervalOverlapsRange(startIso, endIso, dayStart, dayEnd)) return null;
+  const originalStartMs = new Date(startIso!).getTime();
+  const originalEndMs = new Date(endIso!).getTime();
+  const displayStartMs = Math.max(originalStartMs, dayStart.getTime());
+  const displayEndMs = Math.min(originalEndMs, dayEnd.getTime());
+  if (displayEndMs <= displayStartMs) return null;
+  return {
+    displayStartIso: new Date(displayStartMs).toISOString(),
+    displayEndIso: new Date(displayEndMs).toISOString(),
+    displayStartMs,
+    displayEndMs,
+    dayStartMs: dayStart.getTime(),
+  };
+};
+
+const displayHourWindow = (range: NonNullable<ReturnType<typeof getDisplayRange>>) => {
+  const startMin = (range.displayStartMs - range.dayStartMs) / 60_000;
+  const endMin = (range.displayEndMs - range.dayStartMs) / 60_000;
+  return {
+    startHour: startMin / 60,
+    endHour: Math.ceil(endMin / 60),
+  };
+};
+
+type TimelineActionItem =
+  | { kind: 'task'; data: PlannerTask }
+  | { kind: 'event'; data: PlannerEvent };
+
+const postponeOptions: ReadonlyArray<{ label: string; deltaMs: number }> = [
+  { label: '1시간 뒤', deltaMs: 60 * 60_000 },
+  { label: '2시간 뒤', deltaMs: 2 * 60 * 60_000 },
+  { label: '4시간 뒤', deltaMs: 4 * 60 * 60_000 },
+  { label: '내일 같은 시간', deltaMs: 24 * 60 * 60_000 },
+];
 
 export const TodayTimeline = ({
   dateIso,
@@ -172,15 +211,9 @@ export const TodayTimeline = ({
       const startAt = item.data.startAt;
       const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
       if (!startAt || !endAt) continue;
-      const startD = new Date(startAt);
-      const endD = new Date(endAt);
-      const startHour = startD.getHours();
-      // 자정 넘는 항목(예 23:30~01:30) 은 endHour 가 1 → early 로 오분류되므로
-      // end 가 다른 날이면 24+ 로 간주(= 절대 early 가 아님, 가시 범위 안 → 보임 또는 late).
-      const endsOnSameDay = startD.toDateString() === endD.toDateString();
-      const endHour = endsOnSameDay
-        ? endD.getHours() + (endD.getMinutes() > 0 ? 1 : 0)
-        : 24;
+      const display = getDisplayRange(startAt, endAt, baseDateIso);
+      if (!display) continue;
+      const { startHour, endHour } = displayHourWindow(display);
       if (endHour <= visibleStart) early += 1;
       else if (startHour >= visibleEnd) late += 1;
     }
@@ -222,7 +255,7 @@ export const TodayTimeline = ({
 
   const scrollToNow = () => {
     if (!scrollRef.current || nowTopPx === null) return;
-    const adjusted = nowTopPx - visibleStart * HOUR_PX;
+    const adjusted = TIMELINE_TOP_PAD + nowTopPx - visibleStart * HOUR_PX;
     scrollRef.current.scrollTo({ top: Math.max(0, adjusted - 80), behavior: 'smooth' });
   };
 
@@ -234,9 +267,13 @@ export const TodayTimeline = ({
   };
 
   /** y 좌표(grid 내) → 분 단위 (사용자 스냅 단위). */
-  const yToMin = (y: number): number => {
-    const m = (y / HOUR_PX) * 60;
-    return Math.max(0, Math.round(m / snapMin) * snapMin);
+  const minVisibleMinute = visibleStart * 60;
+  const maxVisibleMinute = visibleEnd * 60;
+
+  const yToTimelineMinute = (y: number): number => {
+    const raw = visibleStart * 60 + ((y - TIMELINE_TOP_PAD) / HOUR_PX) * 60;
+    const snapped = Math.round(raw / snapMin) * snapMin;
+    return Math.min(maxVisibleMinute, Math.max(minVisibleMinute, snapped));
   };
 
   /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
@@ -256,7 +293,7 @@ export const TodayTimeline = ({
     e.preventDefault();
     const rect = gridRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const startMin = visibleStart * 60 + yToMin(y);
+    const startMin = yToTimelineMinute(y);
     dragStartRef.current = { clientY: e.clientY, startMin };
     const previousUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = 'none';
@@ -270,7 +307,7 @@ export const TodayTimeline = ({
       if (!dragStartRef.current || !gridRef.current) return;
       const r = gridRef.current.getBoundingClientRect();
       const y2 = clientY - r.top;
-      const m = visibleStart * 60 + yToMin(y2);
+      const m = yToTimelineMinute(y2);
       const moved = Math.abs(clientY - dragStartRef.current.clientY);
       if (moved >= 5) {
         window.getSelection()?.removeAllRanges();
@@ -319,12 +356,18 @@ export const TodayTimeline = ({
       }
       const r = gridRef.current.getBoundingClientRect();
       const y2 = ev.clientY - r.top;
-      const endRaw = visibleStart * 60 + yToMin(y2);
+      const endRaw = yToTimelineMinute(y2);
       const sMin = Math.min(start.startMin, endRaw);
       const eMin = Math.max(start.startMin, endRaw);
-      const dur = Math.max(MIN_BLOCK_MINUTES, eMin - sMin);
+      const maxStartMin = Math.max(minVisibleMinute, maxVisibleMinute - MIN_BLOCK_MINUTES);
+      const boundedStartMin = Math.min(sMin, maxStartMin);
+      const boundedEndMin = Math.min(
+        maxVisibleMinute,
+        Math.max(eMin, boundedStartMin + MIN_BLOCK_MINUTES),
+      );
+      const dur = Math.max(MIN_BLOCK_MINUTES, boundedEndMin - boundedStartMin);
       const startD = new Date(baseDateIso);
-      startD.setHours(Math.floor(sMin / 60), sMin % 60, 0, 0);
+      startD.setHours(Math.floor(boundedStartMin / 60), boundedStartMin % 60, 0, 0);
       setQuickAddSlot(startD.toISOString());
       setCustomDuration(dur);
       setDragRange(null);
@@ -350,6 +393,49 @@ export const TodayTimeline = ({
       duration: 5000,
       action: { label: '되돌리기', onClick: () => eventStore.restore(event.id) },
     });
+  };
+
+  const handleRemoveTimelineItem = (item: TimelineActionItem) => {
+    if (isInstanceId(item.data.id)) {
+      const parsed = parseInstanceId(item.data.id);
+      if (!parsed) return;
+      if (item.kind === 'task') {
+        const master = taskStore.findMaster(parsed.masterId);
+        if (master) editThisOnly(taskStore, master, parsed.occurrenceIso, {}, { createNew: false });
+      } else {
+        const master = eventStore.findMaster(parsed.masterId);
+        if (master) editThisOnly(eventStore, master, parsed.occurrenceIso, {}, { createNew: false });
+      }
+      notify.success('이번 일정만 숨겼어요', { duration: 1600 });
+      return;
+    }
+
+    if (item.kind === 'task') handleDeleteTask(item.data);
+    else handleDeleteEvent(item.data);
+  };
+
+  const handlePostponeTimelineItem = (item: TimelineActionItem, deltaMs: number) => {
+    if (!item.data.startAt || !item.data.endAt) return;
+    const newStart = new Date(new Date(item.data.startAt).getTime() + deltaMs).toISOString();
+    const newEnd = new Date(new Date(item.data.endAt).getTime() + deltaMs).toISOString();
+
+    if (isInstanceId(item.data.id)) {
+      const parsed = parseInstanceId(item.data.id);
+      if (!parsed) return;
+      if (item.kind === 'task') {
+        const master = taskStore.findMaster(parsed.masterId);
+        if (master) editThisOnly(taskStore, master, parsed.occurrenceIso, { startAt: newStart, endAt: newEnd });
+      } else {
+        const master = eventStore.findMaster(parsed.masterId);
+        if (master) editThisOnly(eventStore, master, parsed.occurrenceIso, { startAt: newStart, endAt: newEnd });
+      }
+    } else if (item.kind === 'task') {
+      taskStore.update(item.data.id, { startAt: newStart, endAt: newEnd });
+    } else {
+      eventStore.update(item.data.id, { startAt: newStart, endAt: newEnd });
+    }
+
+    notify.success('일정을 옮겼어요', { duration: 1200 });
   };
 
   const handleUnschedule = (task: PlannerTask) => {
@@ -398,13 +484,18 @@ export const TodayTimeline = ({
     notify.success(task.canceled ? '취소 되돌림' : '취소됐어요', { duration: 1200 });
   };
 
+  const timelineControlButtonClass = 'inline-flex h-7 items-center justify-center gap-1 rounded-lg border border-foreground/12 bg-background px-2.5 text-[12px] font-semibold tabular-nums text-foreground/78 shadow-[0_1px_0_hsl(var(--foreground)/0.04)] transition-colors hover:border-foreground/20 hover:bg-accent/60 hover:text-foreground';
+
   const NowButton = isToday ? (
     <button
       type="button"
       onClick={scrollToNow}
       title="현재 시각으로 스크롤"
       aria-label="현재 시각으로 스크롤"
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[12px] tabular-nums text-rose-500 hover:bg-rose-500/10 transition-colors font-bold"
+      className={cn(
+        timelineControlButtonClass,
+        'border-rose-500/18 bg-rose-500/[0.035] text-rose-500 hover:border-rose-500/28 hover:bg-rose-500/10 hover:text-rose-500',
+      )}
     >
       <Locate className="h-3.5 w-3.5" />
       지금
@@ -417,7 +508,7 @@ export const TodayTimeline = ({
       onClick={() => setCompact((v) => !v)}
       title={compact ? '24시간 모두 보기' : '주요 시간만 (7~23시)'}
       aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
-      className="inline-flex items-center gap-1 px-1.5 h-6 rounded text-[12px] tabular-nums text-foreground/75 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+      className={timelineControlButtonClass}
     >
       {compact ? '24h' : '7-23'}
     </button>
@@ -430,7 +521,7 @@ export const TodayTimeline = ({
           type="button"
           title={`드래그·리사이즈 스냅 단위 — 현재 ${snapMin}분`}
           aria-label={`스냅 ${snapMin}분`}
-          className="inline-flex items-center gap-0.5 px-1.5 h-6 rounded text-[12px] tabular-nums text-foreground/75 hover:text-foreground hover:bg-accent transition-colors font-semibold"
+          className={timelineControlButtonClass}
         >
           ⊞ {snapMin}분
         </button>
@@ -475,13 +566,22 @@ export const TodayTimeline = ({
   const layout = useMemo(() => {
     const sorted = items
       .filter((it) => it.data.startAt && (it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt))
-      .map((it) => ({
-        id: it.data.id,
-        start: new Date(it.data.startAt!).getTime(),
-        end: new Date((it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt!)!).getTime(),
-        // 가로 드래그로 조정된 사용자 순위. 작을수록 좌측. 미지정 시 Infinity (=startAt fallback).
-        laneOrder: (it.data as PlannerTask | PlannerEvent).laneOrder ?? Infinity,
-      }))
+      .map((it) => {
+        const display = getDisplayRange(
+          it.data.startAt,
+          it.kind === 'event' ? it.data.endAt : (it.data as PlannerTask).endAt,
+          baseDateIso,
+        );
+        if (!display) return null;
+        return {
+          id: it.data.id,
+          start: display.displayStartMs,
+          end: display.displayEndMs,
+          // 가로 드래그로 조정된 사용자 순위. 작을수록 좌측. 미지정 시 Infinity (=startAt fallback).
+          laneOrder: (it.data as PlannerTask | PlannerEvent).laneOrder ?? Infinity,
+        };
+      })
+      .filter((it): it is NonNullable<typeof it> => Boolean(it))
       // 1차 정렬은 start (cluster 결정용 — 시간 흐름 보존).
       // lane 할당 시 cluster 안에서 laneOrder 재정렬로 좌/우 결정.
       .sort((a, b) => a.start - b.start || a.end - b.end);
@@ -545,7 +645,7 @@ export const TodayTimeline = ({
     }
     flushCluster();
     return result;
-  }, [items]);
+  }, [items, baseDateIso]);
 
   const HiddenBanner = ({ where, count }: { where: 'early' | 'late'; count: number }) => (
     <button
@@ -568,7 +668,12 @@ export const TodayTimeline = ({
         {compact && hiddenByCompact.early > 0 && (
           <HiddenBanner where="early" count={hiddenByCompact.early} />
         )}
-        <div ref={gridRef} onPointerDown={handleGridPointerDown} className="relative min-w-0 select-none" style={{ height: visibleHours * HOUR_PX }}>
+        <div
+          ref={gridRef}
+          onPointerDown={handleGridPointerDown}
+          className="relative min-w-0 select-none"
+          style={{ height: TIMELINE_TOP_PAD + visibleHours * HOUR_PX }}
+        >
           {/* 시간 격자 */}
           {Array.from({ length: visibleHours }, (_, i) => {
             const hour = visibleStart + i;
@@ -576,10 +681,10 @@ export const TodayTimeline = ({
               <div
                 key={hour}
                 className="absolute left-0 right-0 flex"
-                style={{ top: i * HOUR_PX, height: HOUR_PX }}
+                style={{ top: TIMELINE_TOP_PAD + i * HOUR_PX, height: HOUR_PX }}
               >
                 <div className="relative w-14 shrink-0">
-                  <span className="absolute right-2 top-0 -translate-y-1/2 whitespace-nowrap text-[11.5px] font-semibold leading-none tracking-normal text-foreground/75">
+                  <span className="absolute right-2 top-0 -translate-y-1/2 whitespace-nowrap text-[12.5px] font-bold leading-none tracking-normal text-foreground/85">
                     {formatHourAxisLabel(hour)}
                   </span>
                 </div>
@@ -613,9 +718,9 @@ export const TodayTimeline = ({
 
           {/* 현재 시각 빨간선 */}
           {nowTopPx !== null && (() => {
-            const adjusted = nowTopPx - visibleStart * HOUR_PX;
+            const adjusted = TIMELINE_TOP_PAD + nowTopPx - visibleStart * HOUR_PX;
             // compact 모드에서 visible 범위 밖이면 hide.
-            if (compact && (adjusted < 0 || adjusted > visibleHours * HOUR_PX)) return null;
+            if (compact && (adjusted < TIMELINE_TOP_PAD || adjusted > TIMELINE_TOP_PAD + visibleHours * HOUR_PX)) return null;
             return (
             <div
               className="absolute left-14 right-0 z-20 pointer-events-none"
@@ -634,10 +739,18 @@ export const TodayTimeline = ({
           {dragRange && (() => {
             const minA = Math.min(dragRange.startMin, dragRange.currentMin);
             const minB = Math.max(dragRange.startMin, dragRange.currentMin);
-            const top = (minA - visibleStart * 60) / 60 * HOUR_PX;
-            const height = Math.max(24, (minB - minA) / 60 * HOUR_PX);
-            const startLabel = `${String(Math.floor(minA / 60)).padStart(2, '0')}:${String(minA % 60).padStart(2, '0')}`;
-            const endLabel = `${String(Math.floor(minB / 60)).padStart(2, '0')}:${String(minB % 60).padStart(2, '0')}`;
+            const previewStartMin = Math.min(
+              minA,
+              Math.max(minVisibleMinute, maxVisibleMinute - MIN_BLOCK_MINUTES),
+            );
+            const previewEndMin = Math.min(
+              maxVisibleMinute,
+              Math.max(minB, previewStartMin + MIN_BLOCK_MINUTES),
+            );
+            const top = TIMELINE_TOP_PAD + (previewStartMin - visibleStart * 60) / 60 * HOUR_PX;
+            const height = Math.max(24, (previewEndMin - previewStartMin) / 60 * HOUR_PX);
+            const startLabel = `${String(Math.floor(previewStartMin / 60)).padStart(2, '0')}:${String(previewStartMin % 60).padStart(2, '0')}`;
+            const endLabel = `${String(Math.floor(previewEndMin / 60)).padStart(2, '0')}:${String(previewEndMin % 60).padStart(2, '0')}`;
             return (
               <div
                 className="absolute left-[60px] right-3 overflow-hidden rounded-lg border border-primary/45 bg-primary/12 shadow-[0_10px_28px_-20px_hsl(var(--primary)/0.55)] ring-1 ring-primary/12 pointer-events-none z-25 transition-all duration-75"
@@ -671,7 +784,7 @@ export const TodayTimeline = ({
                   startIso={quickAddSlot}
                   durationMin={customDuration}
                   style={{
-                    top: computeTopPx(quickAddSlot, baseDateIso) - visibleStart * HOUR_PX,
+                    top: TIMELINE_TOP_PAD + computeTopPx(quickAddSlot, baseDateIso) - visibleStart * HOUR_PX,
                     height: customDuration ? Math.max(40, (customDuration / 60) * HOUR_PX) : 58,
                     pointerEvents: 'auto',
                   }}
@@ -686,6 +799,7 @@ export const TodayTimeline = ({
             dayKey={toDateKey(new Date(baseDateIso))}
             hourPx={HOUR_PX}
             visibleStartHour={visibleStart}
+            topOffsetPx={TIMELINE_TOP_PAD}
           />
 
           {/* 시간 블록 */}
@@ -697,16 +811,17 @@ export const TodayTimeline = ({
               const startAt = item.data.startAt;
               const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt!;
               if (!startAt) return null;
+              const display = getDisplayRange(startAt, endAt, baseDateIso);
+              if (!display) return null;
               const lay = layout.get(item.data.id) ?? { laneIndex: 0, laneCount: 1 };
               const laneIndex = lay.laneIndex;
               const laneCount = lay.laneCount;
               const laneWidth = 100 / laneCount;
-              const top = computeTopPx(startAt, baseDateIso) - visibleStart * HOUR_PX;
-              const height = computeHeightPx(startAt, endAt);
+              const top = TIMELINE_TOP_PAD + computeTopPx(display.displayStartIso, baseDateIso) - visibleStart * HOUR_PX;
+              const height = computeHeightPx(display.displayStartIso, display.displayEndIso);
               // compact 모드에서 visible 범위 밖이면 skip.
               if (compact) {
-                const startHour = new Date(startAt).getHours();
-                const endHour = new Date(endAt).getHours() + (new Date(endAt).getMinutes() > 0 ? 1 : 0);
+                const { startHour, endHour } = displayHourWindow(display);
                 if (endHour <= visibleStart || startHour >= visibleEnd) return null;
               }
               // stripe 색 우선순위: event.color → task.list.color → muted.
@@ -726,11 +841,7 @@ export const TodayTimeline = ({
               const done = item.kind === 'task' ? item.data.done : false;
               const canceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
               const kindLabel = item.kind === 'event' ? '일정' : '할 일';
-              // 일정 도메인엔 priority 개념이 없음 — startAt 있는 task 는 깃발 표시 X.
-              // (taskStore 가 sanitize 하지만 가상 인스턴스/레거시 데이터 대비 표시 단계 가드.)
-              const taskPriority = item.kind === 'task' && !item.data.startAt
-                ? (item.data.priority ?? 0)
-                : 0;
+              const taskPriority = item.kind === 'task' ? (item.data.priority ?? 0) : 0;
               const showFlag = taskPriority > 0;
               const hasNote = item.kind === 'task' && Boolean(item.data.note && item.data.note.length > 0);
               const recurring = Boolean(item.data.recurrence);
@@ -816,15 +927,69 @@ export const TodayTimeline = ({
                     }
                   }}
                 >
+                  <div
+                    className={cn(
+                      'absolute right-1.5 top-1.5 z-20 inline-flex items-center gap-0.5 rounded-md bg-background/80 p-0.5',
+                      'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100',
+                    )}
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          title="일정 미루기"
+                          aria-label="일정 미루기"
+                          className="inline-flex h-5 w-5 items-center justify-center rounded text-foreground/58 transition-colors hover:bg-foreground/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        >
+                          <ArrowRight className="h-3 w-3" strokeWidth={2.2} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" sideOffset={4} className="w-36">
+                        {postponeOptions.map((option) => (
+                          <DropdownMenuItem
+                            key={option.label}
+                            onSelect={() => handlePostponeTimelineItem(
+                              item.kind === 'task'
+                                ? { kind: 'task', data: item.data as PlannerTask }
+                                : { kind: 'event', data: item.data as PlannerEvent },
+                              option.deltaMs,
+                            )}
+                            className="text-[12.5px]"
+                          >
+                            {option.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <button
+                      type="button"
+                      title="일정 삭제"
+                      aria-label="일정 삭제"
+                      onClick={() => handleRemoveTimelineItem(
+                        item.kind === 'task'
+                          ? { kind: 'task', data: item.data as PlannerTask }
+                          : { kind: 'event', data: item.data as PlannerEvent },
+                      )}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-rose-500/10 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30"
+                    >
+                      <X className="h-3 w-3" strokeWidth={2.2} />
+                    </button>
+                  </div>
                   <div className="flex items-stretch h-full">
-                    <div className={cn('min-w-0 flex-1 px-2', height < 34 ? 'py-0.5' : 'py-1.5')}>
+                    <div className={cn(
+                      'min-w-0 flex-1 py-1.5 pl-2 pr-12',
+                      height < 34 && 'py-0.5',
+                    )}>
                       {height >= 34 && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide leading-none font-semibold">
+                        <span className="text-[12px] tabular-nums text-foreground/82 leading-none font-semibold">
                           {formatHm(startAt)} ~ {formatHm(endAt)}
                         </span>
                         {height >= 60 && (
-                          <span className="text-[10.5px] font-mono tabular-nums text-foreground/60 leading-none font-medium">
+                          <span className="text-[12px] tabular-nums text-foreground/72 leading-none font-medium">
                             · {formatDuration(startAt, endAt)}
                           </span>
                         )}
@@ -885,7 +1050,7 @@ export const TodayTimeline = ({
                             </span>
                           <span className="text-[13.5px] font-semibold text-foreground">{item.data.title}</span>
                           </div>
-                          <span className="text-[11.5px] font-mono tabular-nums text-foreground/65">
+                          <span className="text-[12px] tabular-nums text-foreground/78 font-medium">
                             {formatHm(startAt)} ~ {formatHm(endAt)}  ·  {formatDuration(startAt, endAt)}
                           </span>
                         </div>
@@ -915,10 +1080,8 @@ export const TodayTimeline = ({
                           <Ban className="mr-2 h-3.5 w-3.5" />
                           {item.data.canceled ? '취소 되돌림' : '취소'}
                         </ContextMenuItem>
-                        {/* 우선순위 — 할 일 전용. 타임라인 블록은 전부 일정(startAt 있음)이라
-                            논리상 항상 hide 이지만, 의도를 분명히 하려고 명시적 가드. */}
-                        {!item.data.startAt && (
-                          <ContextMenuSub>
+                        {/* 우선순위 */}
+                        <ContextMenuSub>
                             <ContextMenuSubTrigger>
                               <Flag
                                 className="mr-2 h-3.5 w-3.5"
@@ -948,8 +1111,7 @@ export const TodayTimeline = ({
                                 </ContextMenuItem>
                               ))}
                             </ContextMenuSubContent>
-                          </ContextMenuSub>
-                        )}
+                        </ContextMenuSub>
                         <ContextMenuItem onSelect={() => handleUnschedule(item.data)}>
                           <InboxIcon className="mr-2 h-3.5 w-3.5" />
                           대기함으로
@@ -958,10 +1120,11 @@ export const TodayTimeline = ({
                     )}
                     <ContextMenuSeparator />
                     <ContextMenuItem
-                      onSelect={() => {
-                        if (item.kind === 'task') handleDeleteTask(item.data);
-                        else handleDeleteEvent(item.data);
-                      }}
+                      onSelect={() => handleRemoveTimelineItem(
+                        item.kind === 'task'
+                          ? { kind: 'task', data: item.data as PlannerTask }
+                          : { kind: 'event', data: item.data as PlannerEvent },
+                      )}
                       className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
                     >
                       <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -993,17 +1156,17 @@ export const TodayTimeline = ({
               aria-label={isTaskPanelOpen === false ? '계획 및 할 일 목록 펼치기' : '계획 및 할 일 목록 접기'}
               aria-pressed={isTaskPanelOpen !== false}
               title={isTaskPanelOpen === false ? '타임라인 제목을 눌러 목록 펼치기' : '타임라인 제목을 눌러 목록 접기'}
-              className="group -ml-1 inline-flex h-6 min-w-0 items-center gap-2 rounded-md px-1.5 text-foreground/70 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group -ml-1 inline-flex h-6 min-w-0 items-center gap-2 rounded-md px-1.5 text-foreground/90 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
-              <span className="truncate text-[12px] font-bold uppercase leading-none tracking-normal">
+              <CalendarDays className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <span className="truncate text-[13px] font-bold uppercase leading-none tracking-normal">
                 타임라인
               </span>
             </button>
           ) : (
             <>
-              <CalendarDays className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
-              <span className="truncate text-[12px] font-bold uppercase leading-none tracking-normal text-foreground/80">
+              <CalendarDays className="h-4 w-4 text-foreground/85" strokeWidth={2.2} />
+              <span className="truncate text-[13px] font-bold uppercase leading-none tracking-normal text-foreground/90">
                 타임라인
               </span>
             </>

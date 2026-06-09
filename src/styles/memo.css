@@ -1,3 +1,16 @@
+.memo-editor-surface .wiki-block-editor {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.memo-editor-surface .wiki-block-editor:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 /**
  * 메모 에디터 스타일 — 네이버 블로그 식 집중 글쓰기 톤.
  * (.memo-prose 안의 ProseMirror 에 적용)

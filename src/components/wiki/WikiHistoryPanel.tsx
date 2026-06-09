@@ -75,9 +75,9 @@ export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 grid grid-cols-[260px_1fr] overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr]">
           {/* 좌: 버전 리스트 */}
-          <aside className="border-r border-[hsl(var(--hairline))] overflow-y-auto">
+          <aside className="max-h-[220px] overflow-y-auto border-b border-[hsl(var(--hairline))] md:max-h-none md:border-b-0 md:border-r">
             {loading ? (
               <p className="p-4 text-[12px] text-muted-foreground">불러오는 중…</p>
             ) : revs.length === 0 ? (

@@ -53,9 +53,6 @@ export const PlannerAgendaPopover = ({ open, onOpenChange, onItemClick }: Planne
             <span className="text-[16px] font-bold tracking-tight text-foreground">
               다가오는 일정
             </span>
-            <span className="text-[12px] text-foreground/55">
-              날짜별 모음
-            </span>
           </div>
           <button
             type="button"
