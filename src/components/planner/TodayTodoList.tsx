@@ -44,8 +44,16 @@ const sortPlanned = (items: PlannerTask[]) =>
     return b.createdAt.localeCompare(a.createdAt);
   });
 
+const TodoSectionHeader = ({ label, count }: { label: string; count: number }) => (
+  <div className="mb-1.5 flex items-center gap-1.5 px-1 pt-1 text-[11px] font-bold text-foreground/62">
+    <span>{label}</span>
+    <span className="tabular-nums text-foreground/42">{count}</span>
+  </div>
+);
+
 export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: TodayTodoListProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
+  const [showAllOverdue, setShowAllOverdue] = useState(false);
   const { active } = useDndContext();
   const activeDrag = active?.data.current as PlannerDragData | undefined;
 
@@ -64,6 +72,20 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
     [dayKey, tasks],
   );
 
+  const plannedIds = useMemo(() => new Set(planned.map((task) => task.id)), [planned]);
+
+  const overdue = useMemo(
+    () => sortPlanned(
+      tasks.filter((task) => {
+        if (task.startAt || plannedIds.has(task.id)) return false;
+        return Boolean(task.plannedFor && task.plannedFor < dayKey);
+      }),
+    ),
+    [dayKey, plannedIds, tasks],
+  );
+
+  const visibleOverdue = showAllOverdue ? overdue : overdue.slice(0, 3);
+
   // 시간 블록을 여기 드래그하면 일정→할 일 변환 (시간 빼고 plannedFor=오늘).
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `todo-list-${dayKey}`,
@@ -73,7 +95,102 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
     ? '시간만 빼고 오늘 할 일로'
     : activeDrag?.kind === 'scheduled-event'
       ? '일정은 할 일로 바꿀 수 없어요'
+      : activeDrag?.kind === 'library-template'
+        ? '보관함에서 오늘 할 일로 복사'
       : '오늘 할 일에 놓기';
+
+  const renderTask = (task: PlannerTask, density: 'normal' | 'compact' = 'normal') => (
+    <ContextMenu key={task.id}>
+      <ContextMenuTrigger asChild>
+        <div className={cn(density === 'compact' && 'opacity-95')}>
+          <DraggableInboxCard task={task}>
+            <PlannerCard
+              variant="inbox"
+              title={task.title}
+              done={task.done}
+              onToggle={() => taskStore.toggleDone(task.id)}
+              onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+              onEdit={() => onTaskClick?.({ id: task.id, title: task.title })}
+              color={task.color}
+              onColorChange={(color) => taskStore.update(task.id, { color })}
+              onDelete={() => taskStore.remove(task.id)}
+              priority={task.priority}
+              pinned={task.pinned}
+              hasNote={Boolean(task.note)}
+              note={task.note}
+              canceled={task.canceled}
+              recurring={Boolean(task.recurrence)}
+              subtasks={task.subtasks}
+              onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
+              onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
+              onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
+              onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
+              tags={task.tags}
+            />
+          </DraggableInboxCard>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onSelect={() => onTaskClick?.({ id: task.id, title: task.title })}>
+          <Clock className="mr-2 h-3.5 w-3.5" />시간 배정
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => taskStore.toggleDone(task.id)}>
+          <Check className="mr-2 h-3.5 w-3.5" />{task.done ? '완료 취소' : '완료'}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => taskStore.update(task.id, { canceled: !task.canceled })}>
+          <Ban className="mr-2 h-3.5 w-3.5" />{task.canceled ? '취소 되돌림' : '취소'}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => taskStore.togglePinned(task.id)}>
+          <Pin className={`mr-2 h-3.5 w-3.5 ${task.pinned ? 'fill-current' : ''}`} />
+          {task.pinned ? '고정 해제' : '고정'}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => taskStore.update(task.id, { someday: !task.someday })}>
+          {task.someday ? <ArrowUp className="mr-2 h-3.5 w-3.5" /> : <Hourglass className="mr-2 h-3.5 w-3.5" />}
+          {task.someday ? '대기함으로' : '보류함으로'}
+        </ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Flag
+              className="mr-2 h-3.5 w-3.5"
+              style={(task.priority ?? 0) > 0
+                ? { color: PRIORITY_COLORS[task.priority as Priority], fill: PRIORITY_COLORS[task.priority as Priority] }
+                : undefined}
+            />
+            우선순위
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-32">
+            {([3, 2, 1, 0] as Priority[]).map((p) => (
+              <ContextMenuItem
+                key={p}
+                onSelect={() => taskStore.update(task.id, { priority: p === 0 ? undefined : p })}
+                className={task.priority === p || (p === 0 && !task.priority) ? 'bg-accent' : ''}
+              >
+                {p > 0 && (
+                  <Flag className="mr-2 h-3.5 w-3.5" style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }} />
+                )}
+                {p === 0 && <span className="mr-2 inline-block w-3.5" aria-hidden />}
+                {PRIORITY_LABELS[p]}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onSelect={() => {
+            taskStore.remove(task.id);
+            notify.success('휴지통으로 이동했어요', {
+              duration: 5000,
+              action: { label: '되돌리기', onClick: () => taskStore.restore(task.id) },
+            });
+          }}
+          className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" />삭제
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
 
   return (
     <section
@@ -116,7 +233,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       )}
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
-        {planned.length === 0 ? (
+        {planned.length === 0 && overdue.length === 0 ? (
           <button
             type="button"
             onClick={onAdd}
@@ -142,99 +259,33 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
             </span>
           </button>
         ) : (
-          <div className="space-y-0.5 pb-1">
-            {planned.map((task) => (
-              <ContextMenu key={task.id}>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <DraggableInboxCard task={task}>
-                      <PlannerCard
-                        variant="inbox"
-                        title={task.title}
-                        done={task.done}
-                        onToggle={() => taskStore.toggleDone(task.id)}
-                        onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-                        onEdit={() => onTaskClick?.({ id: task.id, title: task.title })}
-                        color={task.color}
-                        onColorChange={(color) => taskStore.update(task.id, { color })}
-                        onDelete={() => taskStore.remove(task.id)}
-                        priority={task.priority}
-                        pinned={task.pinned}
-                        hasNote={Boolean(task.note)}
-                        note={task.note}
-                        canceled={task.canceled}
-                        recurring={Boolean(task.recurrence)}
-                        subtasks={task.subtasks}
-                        onToggleSubtask={(sid) => taskStore.toggleSubtask(task.id, sid)}
-                        onAddSubtask={(text) => taskStore.addSubtask(task.id, text)}
-                        onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
-                        onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
-                        tags={task.tags}
-                      />
-                    </DraggableInboxCard>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-48">
-                  <ContextMenuItem onSelect={() => onTaskClick?.({ id: task.id, title: task.title })}>
-                    <Clock className="mr-2 h-3.5 w-3.5" />시간 배정
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => taskStore.toggleDone(task.id)}>
-                    <Check className="mr-2 h-3.5 w-3.5" />{task.done ? '완료 취소' : '완료'}
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => taskStore.update(task.id, { canceled: !task.canceled })}>
-                    <Ban className="mr-2 h-3.5 w-3.5" />{task.canceled ? '취소 되돌림' : '취소'}
-                  </ContextMenuItem>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem onSelect={() => taskStore.togglePinned(task.id)}>
-                    <Pin className={`mr-2 h-3.5 w-3.5 ${task.pinned ? 'fill-current' : ''}`} />
-                    {task.pinned ? '고정 해제' : '고정'}
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => taskStore.update(task.id, { someday: !task.someday })}>
-                    {task.someday ? <ArrowUp className="mr-2 h-3.5 w-3.5" /> : <Hourglass className="mr-2 h-3.5 w-3.5" />}
-                    {task.someday ? '대기함으로' : '보류함으로'}
-                  </ContextMenuItem>
-                  <ContextMenuSub>
-                    <ContextMenuSubTrigger>
-                      <Flag
-                        className="mr-2 h-3.5 w-3.5"
-                        style={(task.priority ?? 0) > 0
-                          ? { color: PRIORITY_COLORS[task.priority as Priority], fill: PRIORITY_COLORS[task.priority as Priority] }
-                          : undefined}
-                      />
-                      우선순위
-                    </ContextMenuSubTrigger>
-                    <ContextMenuSubContent className="w-32">
-                      {([3, 2, 1, 0] as Priority[]).map((p) => (
-                        <ContextMenuItem
-                          key={p}
-                          onSelect={() => taskStore.update(task.id, { priority: p === 0 ? undefined : p })}
-                          className={task.priority === p || (p === 0 && !task.priority) ? 'bg-accent' : ''}
-                        >
-                          {p > 0 && (
-                            <Flag className="mr-2 h-3.5 w-3.5" style={{ color: PRIORITY_COLORS[p], fill: PRIORITY_COLORS[p] }} />
-                          )}
-                          {p === 0 && <span className="mr-2 inline-block w-3.5" aria-hidden />}
-                          {PRIORITY_LABELS[p]}
-                        </ContextMenuItem>
-                      ))}
-                    </ContextMenuSubContent>
-                  </ContextMenuSub>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem
-                    onSelect={() => {
-                      taskStore.remove(task.id);
-                      notify.success('휴지통으로 이동했어요', {
-                        duration: 5000,
-                        action: { label: '되돌리기', onClick: () => taskStore.restore(task.id) },
-                      });
-                    }}
-                    className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+          <div className="space-y-1 pb-1">
+            {planned.length > 0 && (
+              <div>
+                <TodoSectionHeader label="오늘 할 일" count={planned.length} />
+                <div className="space-y-0.5">
+                  {planned.map((task) => renderTask(task))}
+                </div>
+              </div>
+            )}
+
+            {overdue.length > 0 && (
+              <div className="pt-2">
+                <TodoSectionHeader label="밀린 할 일" count={overdue.length} />
+                <div className="space-y-0.5">
+                  {visibleOverdue.map((task) => renderTask(task, 'compact'))}
+                </div>
+                {overdue.length > visibleOverdue.length && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllOverdue(true)}
+                    className="mt-1 px-1 text-[11.5px] font-semibold text-muted-foreground hover:text-foreground"
                   >
-                    <Trash2 className="mr-2 h-3.5 w-3.5" />삭제
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
+                    +{overdue.length - visibleOverdue.length}개 더 보기
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

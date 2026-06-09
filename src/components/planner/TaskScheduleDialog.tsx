@@ -1,36 +1,48 @@
-/**
- * 할 일 / 일정 시간 배정·생성 모달.
- *
- * 모드 2종:
- * - schedule: 기존 task 의 시간 배정/변경 (taskId 전달)
- * - create:   신규 추가 (presetStartIso 전달, 사용자가 title 입력)
- *
- * 단순화 — 리스트/목표/체크리스트/노트 제거. 핵심만:
- * 제목 / 종류(할일·일정) / 날짜·시간 / 길이 / 우선순위 / 색상 / 반복.
- *
- * 디자인은 라이트 톤 (chip 옅은 outline, 라벨 medium foreground/70).
- */
-import { useEffect, useRef, useState } from 'react';
-import { Trash2, Flag, RotateCw, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  AlignLeft,
+  Bell,
+  CalendarClock,
+  CalendarDays,
+  ChevronDown,
+  Clock3,
+  Flag,
+  Palette,
+  RotateCw,
+  Trash2,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { taskStore } from '@/services/planner/taskStore';
-import { eventStore } from '@/services/planner/eventStore';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import type { PlannerTask, Priority, RecurrenceRule, TaskListColor, WeekdayCode } from '@/types/planner';
-import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, WEEKDAY_ORDER, WEEKDAY_LABELS } from '@/types/planner';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { editAll, editThisAndFuture, editThisOnly } from '@/lib/planner/seriesEdit';
+import { eventStore } from '@/services/planner/eventStore';
+import { taskStore } from '@/services/planner/taskStore';
+import {
+  PRIORITY_COLORS,
+  PRIORITY_LABELS,
+  TASK_LIST_COLORS,
+  WEEKDAY_LABELS,
+  WEEKDAY_ORDER,
+  type PlannerTask,
+  type Priority,
+  type RecurrenceRule,
+  type TaskListColor,
+  type WeekdayCode,
+} from '@/types/planner';
 
 type Mode =
   | {
@@ -51,16 +63,21 @@ interface TaskScheduleDialogProps {
   onClose: () => void;
 }
 
-// 자주 쓰는 4개만. 그 외 시간은 "직접" input 으로.
-const DURATIONS = [30, 60, 90, 120] as const;
+type EntryKind = 'event' | 'task';
+type RecurrencePreset = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+const DURATION_PRESETS = [30, 60, 90] as const;
+const DEFAULT_DURATION_MIN = 60;
 
 const TASK_COLOR_OPTIONS: Array<{ value: TaskListColor; label: string }> = [
-  { value: 'blue',   label: '파랑' },
-  { value: 'green',  label: '초록' },
-  { value: 'amber',  label: '노랑' },
-  { value: 'rose',   label: '빨강' },
+  { value: 'blue', label: '파랑' },
+  { value: 'teal', label: '청록' },
+  { value: 'green', label: '초록' },
+  { value: 'amber', label: '노랑' },
+  { value: 'orange', label: '주황' },
+  { value: 'rose', label: '빨강' },
   { value: 'violet', label: '보라' },
-  { value: 'teal',   label: '청록' },
+  { value: 'cyan', label: '하늘' },
 ];
 
 const toDateInput = (iso: string): string => {
@@ -70,36 +87,36 @@ const toDateInput = (iso: string): string => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
+
 const toTimeInput = (iso: string): string => {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
-const minutesBetween = (startIso: string, endIso: string): number =>
-  Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
 
 const buildIso = (dateStr: string, timeStr: string): string => {
   const [year, month, day] = dateStr.split('-').map(Number);
-  const [h, m] = timeStr.split(':').map(Number);
-  const d = new Date(year, month - 1, day, h, m, 0, 0);
-  return d.toISOString();
+  const [hour, minute] = timeStr.split(':').map(Number);
+  return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
 };
 
 const addMinutes = (iso: string, mins: number): string =>
   new Date(new Date(iso).getTime() + mins * 60_000).toISOString();
 
-/** 가상 인스턴스 id 면 마스터 task/event 와 occurrenceIso 분해. 일반 id 면 그대로. */
-const resolveSeries = (id: string) => {
-  if (!isInstanceId(id)) return null;
-  const parsed = parseInstanceId(id);
-  if (!parsed) return null;
-  const masterTask = taskStore.findMaster(parsed.masterId);
-  if (masterTask) return { kind: 'task' as const, master: masterTask, occurrenceIso: parsed.occurrenceIso };
-  const masterEvent = eventStore.findMaster(parsed.masterId);
-  if (masterEvent) return { kind: 'event' as const, master: masterEvent, occurrenceIso: parsed.occurrenceIso };
-  return null;
+const minutesBetween = (startIso: string, endIso: string): number =>
+  Math.max(5, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000));
+
+const formatDuration = (minutes: number): string => {
+  if (minutes < 60) return `${minutes}분`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
 };
 
-type RecurrencePreset = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+const formatDateValue = (dateStr?: string): string => {
+  if (!dateStr) return '없음';
+  const date = new Date(`${dateStr}T00:00:00`);
+  return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+};
 
 const presetToRule = (
   preset: RecurrencePreset,
@@ -118,243 +135,255 @@ const ruleToPreset = (rec: RecurrenceRule | undefined): { preset: RecurrencePres
   return {
     preset: rec.freq as RecurrencePreset,
     byday: rec.byday ?? [],
-    until: rec.until ?? '',
+    until: rec.until ? rec.until.slice(0, 10) : '',
   };
 };
 
-// 라이트 톤 라벨.
-const LabelText = ({ children }: { children: React.ReactNode }) => (
-  <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">
-    {children}
-  </label>
+const resolveSeries = (id: string) => {
+  if (!isInstanceId(id)) return null;
+  const parsed = parseInstanceId(id);
+  if (!parsed) return null;
+  const masterTask = taskStore.findMaster(parsed.masterId);
+  if (masterTask) return { kind: 'task' as const, master: masterTask, occurrenceIso: parsed.occurrenceIso };
+  const masterEvent = eventStore.findMaster(parsed.masterId);
+  if (masterEvent) return { kind: 'event' as const, master: masterEvent, occurrenceIso: parsed.occurrenceIso };
+  return null;
+};
+
+const Row = ({
+  icon,
+  label,
+  value,
+  children,
+  className,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  children?: ReactNode;
+  className?: string;
+}) => (
+  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-foreground/10 px-1 py-2', className)}>
+    <span className="flex h-7 w-6 items-center justify-center text-foreground/72">{icon}</span>
+    <div className="min-w-0">
+      {children ? (
+        <div className="grid min-h-7 grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
+            {value && <p className="mt-0.5 truncate text-[11.5px] font-medium text-foreground/54">{value}</p>}
+          </div>
+          <div className="min-w-0">{children}</div>
+        </div>
+      ) : (
+        <div className="flex min-h-7 items-center justify-between gap-3">
+          <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
+          {value && <p className="shrink-0 text-[13px] font-semibold text-foreground/68">{value}</p>}
+        </div>
+      )}
+    </div>
+  </div>
 );
+
+const Pill = ({
+  active,
+  children,
+  onClick,
+  className,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  onClick: () => void;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      'inline-flex h-7 items-center justify-center rounded-full border px-3 text-[12.5px] font-semibold transition-colors',
+      active
+        ? 'border-primary/50 bg-primary/10 text-primary'
+        : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
+      className,
+    )}
+  >
+    {children}
+  </button>
+);
+
+const fieldInputClass =
+  'h-8 rounded-md border-0 bg-[#f3f0ea] px-2.5 text-[13px] font-semibold text-foreground outline-none focus:bg-white focus:ring-1 focus:ring-primary/55';
 
 export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogProps) => {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [duration, setDuration] = useState<number>(60);
-  const [isEvent, setIsEvent] = useState(false);
+  const [entryKind, setEntryKind] = useState<EntryKind>('task');
+  const [plannedFor, setPlannedFor] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [duration, setDuration] = useState<number>(DEFAULT_DURATION_MIN);
+  const [customDurationOpen, setCustomDurationOpen] = useState(false);
   const [priority, setPriority] = useState<Priority>(0);
+  const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
   const [recurrence, setRecurrence] = useState<RecurrencePreset>('none');
   const [byday, setByday] = useState<WeekdayCode[]>([]);
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
-  const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
+  const [note, setNote] = useState('');
 
-  // 모드 변경 시 폼 초기화 — open 이 false→true 로 전환되거나 다른 mode 객체가 들어왔을 때만.
-  // 부모 리렌더로 mode 참조만 새로 들어오는 경우(같은 내용)에는 사용자 입력을 보존해야 함.
-  // 따라서 open=true 인 동안의 후속 mode 변경은 taskId/kind/presetStartIso 가 실제로 달라질 때만 반응.
   const lastResetKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!mode || !open) {
       lastResetKeyRef.current = null;
       return;
     }
+
     const key = mode.kind === 'schedule'
       ? `s:${mode.taskId}`
-      : `c:${mode.presetStartIso}:${mode.presetIsEvent ? '1' : '0'}`;
+      : `c:${mode.presetStartIso}:${mode.presetIsEvent ? 'event' : 'task'}`;
     if (lastResetKeyRef.current === key) return;
     lastResetKeyRef.current = key;
+
     if (mode.kind === 'schedule') {
-      setTitle(mode.initialTitle);
-      // task 의 실제 startAt 유무로 isEvent 자동 결정 (사용자가 toggle 로 변경 가능).
-      // initialStart 는 모달의 시간 input 초기값으로만 사용 — 모드 결정에 쓰면
-      // 호출부가 default 09:00 을 채워보낼 때 인박스 task 가 일정 모달로 잘못 열림.
       const direct = taskStore.findMaster(mode.taskId);
       const series = resolveSeries(mode.taskId);
       const masterTask = series?.kind === 'task' ? series.master : direct;
-      const hasTime = Boolean(masterTask?.startAt);
-      setIsEvent(hasTime);
-      // 날짜/시간 default — initialStart 가 없고 plannedFor 만 있으면 그 날 09:00.
-      const fallbackStart = masterTask?.plannedFor
-        ? `${masterTask.plannedFor}T09:00:00`
-        : new Date().toISOString();
-      const start = mode.initialStart ?? masterTask?.startAt ?? fallbackStart;
-      const end = mode.initialEnd ?? masterTask?.endAt ?? addMinutes(start, 60);
-      setDate(toDateInput(start));
-      setTime(toTimeInput(start));
-      setDuration(minutesBetween(start, end) || 60);
+      const masterEvent = series?.kind === 'event' ? series.master : undefined;
+      const start = mode.initialStart ?? masterTask?.startAt ?? masterEvent?.startAt ?? new Date().toISOString();
+      const end = mode.initialEnd ?? masterTask?.endAt ?? masterEvent?.endAt ?? addMinutes(start, DEFAULT_DURATION_MIN);
+      const taskPlannedDay = masterTask?.plannedFor ?? toDateInput(start);
+      const recSource = series?.master.recurrence ?? direct?.recurrence ?? masterEvent?.recurrence;
+      const rec = ruleToPreset(recSource);
+
+      setTitle(mode.initialTitle);
+      setEntryKind(masterTask?.startAt || masterEvent ? 'event' : 'task');
+      setPlannedFor(taskPlannedDay);
+      setStartDate(toDateInput(start));
+      setStartTime(toTimeInput(start));
+      setDuration(minutesBetween(start, end) || DEFAULT_DURATION_MIN);
+      setCustomDurationOpen(!DURATION_PRESETS.includes((minutesBetween(start, end) || DEFAULT_DURATION_MIN) as typeof DURATION_PRESETS[number]));
       setPriority(mode.initialPriority ?? masterTask?.priority ?? 0);
-      if (series) {
-        const { preset, byday: bd, until } = ruleToPreset(series.master.recurrence);
-        setRecurrence(preset);
-        setByday(bd);
-        setRecurrenceUntil(until ? until.slice(0, 10) : '');
-        setTaskColor(series.kind === 'task' ? series.master.color : undefined);
-      } else {
-        const { preset, byday: bd, until } = ruleToPreset(direct?.recurrence);
-        setRecurrence(preset);
-        setByday(bd);
-        setRecurrenceUntil(until ? until.slice(0, 10) : '');
-        setTaskColor(direct?.color);
-      }
-    } else {
-      setTitle('');
-      setDate(toDateInput(mode.presetStartIso));
-      setTime(toTimeInput(mode.presetStartIso));
-      setDuration(60);
-      setIsEvent(mode.presetIsEvent ?? false);
-      setPriority(0);
-      setRecurrence('none');
-      setByday([]);
-      setRecurrenceUntil('');
-      setTaskColor(undefined);
+      setTaskColor(masterTask?.color);
+      setRecurrence(rec.preset);
+      setByday(rec.byday);
+      setRecurrenceUntil(rec.until);
+      setNote(mode.initialNote ?? masterTask?.note ?? '');
+      return;
     }
+
+    const presetDate = toDateInput(mode.presetStartIso);
+    const presetTime = toTimeInput(mode.presetStartIso);
+    const kind: EntryKind = mode.presetIsEvent ? 'event' : 'task';
+    setTitle('');
+    setEntryKind(kind);
+    setPlannedFor(presetDate);
+    setStartDate(presetDate);
+    setStartTime(presetTime);
+    setDuration(DEFAULT_DURATION_MIN);
+    setCustomDurationOpen(false);
+    setPriority(0);
+    setTaskColor(undefined);
+    setRecurrence('none');
+    setByday([]);
+    setRecurrenceUntil('');
+    setNote('');
   }, [mode, open]);
+
+  const isEvent = entryKind === 'event';
+  const series = mode?.kind === 'schedule' ? resolveSeries(mode.taskId) : null;
+  const isSeriesInstance = Boolean(series);
+  const dateForRecurrence = isEvent ? startDate : plannedFor;
 
   if (!mode) return null;
 
-  const series = mode.kind === 'schedule' ? resolveSeries(mode.taskId) : null;
-  const isSeriesInstance = Boolean(series);
-  // 시간(시작·길이) input 노출은 isEvent 만으로 결정 — 모드 무관.
-  // 할 일 = 시간 무관, 일정 = 시간 블록.
-  const showsTimeInputs = isEvent;
+  const recurrenceUntilIso = recurrenceUntil
+    ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
+    : undefined;
 
-  /**
-   * 일정으로 전환 — priority 가 있었으면 자동 해제 + 안내.
-   * 일정 도메인엔 우선순위 개념이 없으므로 잔존하면 표시 단계에서 잘못된
-   * 깃발이 뜸 (taskStore.update 도 sanitize 하지만, 모달 state 도 즉시
-   * 동기화해야 사용자가 다시 할 일로 토글했을 때 부활하지 않음).
-   */
-  const switchToEvent = () => {
-    setIsEvent(true);
-    if (priority !== 0) {
-      setPriority(0);
-      notify.info('일정으로 바꾸면서 우선순위는 해제됐어요', { duration: 1800 });
+  const buildRecurrence = () => presetToRule(recurrence, byday, recurrenceUntilIso);
+
+  const switchKind = (kind: EntryKind) => {
+    setEntryKind(kind);
+    if (kind === 'task') {
+      setPlannedFor((current) => current || startDate);
+      return;
     }
-  };
-  const switchToTask = () => {
-    setIsEvent(false);
+    setStartDate((current) => current || plannedFor || toDateInput(new Date().toISOString()));
   };
 
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
     const trimmed = title.trim();
-    if (trimmed.length === 0) return;
-    // until 이 시작 날짜보다 과거이면 시리즈가 0건 — 사용자 의도와 어긋나므로 차단.
-    if (recurrenceUntil && date && recurrenceUntil < date) {
-      notify.warning('반복 종료일이 시작일보다 빠를 수 없어요');
+    if (!trimmed) return;
+    if (recurrenceUntil && dateForRecurrence && recurrenceUntil < dateForRecurrence) {
+      notify.warning('반복 종료일이 시작 날짜보다 빠를 수 없어요');
       return;
     }
-    const untilIso = recurrenceUntil
-      ? new Date(`${recurrenceUntil}T23:59:59`).toISOString()
-      : undefined;
-    const newRecurrence = presetToRule(recurrence, byday, untilIso);
 
-    // ─── 할 일 (isEvent=false) — 시간 input 없음, plannedFor 만. create + schedule 둘 다. ───
+    const recurrenceRule = buildRecurrence();
+
     if (!isEvent) {
-      if (!date) return;
+      if (!plannedFor) return;
       const patch: Partial<PlannerTask> = {
         title: trimmed,
+        plannedFor,
         startAt: undefined,
         endAt: undefined,
-        plannedFor: date,
+        allDay: undefined,
         priority: priority === 0 ? undefined : priority,
         color: taskColor,
-        recurrence: newRecurrence,
+        recurrence: recurrenceRule,
+        note: note.trim() || undefined,
       };
+
       if (mode.kind === 'schedule') {
         if (series && series.kind === 'task') {
-          if (scope === 'this') {
-            editThisOnly(taskStore, series.master, series.occurrenceIso, patch);
-            notify.success('이 항목만 할 일로 변경됐어요');
-          } else if (scope === 'future') {
-            editThisAndFuture(taskStore, series.master, series.occurrenceIso, patch);
-            notify.success('이 항목과 이후 시리즈가 할 일로 변경됐어요');
-          } else {
-            editAll(taskStore, series.master, patch);
-            notify.success('전체 시리즈가 할 일로 변경됐어요');
-          }
+          if (scope === 'this') editThisOnly(taskStore, series.master, series.occurrenceIso, patch);
+          else if (scope === 'future') editThisAndFuture(taskStore, series.master, series.occurrenceIso, patch);
+          else editAll(taskStore, series.master, patch);
         } else {
-          // 일정→할 일 변환은 시·분 정보 영구 손실 → 토스트에 [되돌리기] 액션.
-          // 변환 직전 startAt/endAt 스냅샷을 잡고, 클릭 시 startAt 만 되돌리면
-          // taskStore.update 가 sanitize 거치며 plannedFor 를 자동 비움 (일관 처리).
-          const prev = taskStore.findMaster(mode.taskId);
-          const wasScheduled = Boolean(prev?.startAt);
           taskStore.update(mode.taskId, patch);
-          if (wasScheduled && prev) {
-            const restoreStart = prev.startAt;
-            const restoreEnd = prev.endAt;
-            const taskId = mode.taskId;
-            notify.success('할 일로 변경됐어요', {
-              duration: 5000,
-              action: {
-                label: '되돌리기',
-                onClick: () => taskStore.update(taskId, {
-                  startAt: restoreStart,
-                  endAt: restoreEnd,
-                }),
-              },
-            });
-          } else {
-            notify.success('할 일로 변경됐어요');
-          }
         }
+        notify.success('할 일을 저장했어요');
       } else {
-        taskStore.add({
-          title: trimmed,
-          plannedFor: date,
-          priority: priority === 0 ? undefined : priority,
-          color: taskColor,
-          recurrence: newRecurrence,
-        });
-        notify.success(newRecurrence ? '반복 할 일 추가됐어요' : '할 일 추가됐어요');
+        taskStore.add(patch as Omit<PlannerTask, 'id' | 'createdAt' | 'done'>);
+        notify.success('할 일을 추가했어요');
       }
       onClose();
       return;
     }
 
-    // ─── 일정 (isEvent=true) — 시간 input 있음 ───
-    if (!date || !time) return;
-    const startIso = buildIso(date, time);
-    const endIso = addMinutes(startIso, duration);
+    if (!startDate) return;
+    const eventStartIso = buildIso(startDate, startTime || '09:00');
+    const eventEndIso = addMinutes(eventStartIso, duration);
+    const patch: Partial<PlannerTask> = {
+      title: trimmed,
+      plannedFor: undefined,
+      startAt: eventStartIso,
+      endAt: eventEndIso,
+      priority: undefined,
+      color: taskColor,
+      recurrence: recurrenceRule,
+      note: note.trim() || undefined,
+      allDay: undefined,
+    };
 
     if (mode.kind === 'schedule') {
-      const patch: Partial<PlannerTask> = {
-        title: trimmed,
-        startAt: startIso,
-        endAt: endIso,
-        plannedFor: undefined,
-        priority: priority === 0 ? undefined : priority,
-        color: taskColor,
-        recurrence: newRecurrence,
-      };
-
       if (series && series.kind === 'task') {
-        if (scope === 'this') {
-          editThisOnly(taskStore, series.master, series.occurrenceIso, patch);
-          notify.success('이 항목만 변경됐어요');
-        } else if (scope === 'future') {
-          editThisAndFuture(taskStore, series.master, series.occurrenceIso, patch);
-          notify.success('이 항목과 이후 시리즈가 변경됐어요');
-        } else {
-          editAll(taskStore, series.master, patch);
-          notify.success('전체 시리즈가 변경됐어요');
-        }
+        if (scope === 'this') editThisOnly(taskStore, series.master, series.occurrenceIso, patch);
+        else if (scope === 'future') editThisAndFuture(taskStore, series.master, series.occurrenceIso, patch);
+        else editAll(taskStore, series.master, patch);
       } else {
         taskStore.update(mode.taskId, patch);
-        notify.success(newRecurrence ? '시리즈 갱신됐어요' : '시간 배정됐어요');
       }
+      notify.success('일정을 저장했어요');
     } else {
-      // create + 일정 — eventStore 가 아니라 taskStore 에 시간 잡힌 task 로 추가.
-      // (eventStore 와 분리 — 모든 새 항목은 task. event 는 외부 통합용.)
-      taskStore.add({
-        title: trimmed,
-        startAt: startIso,
-        endAt: endIso,
-        priority: priority === 0 ? undefined : priority,
-        color: taskColor,
-        recurrence: newRecurrence,
-      });
-      notify.success(newRecurrence ? '반복 일정 추가됐어요' : '일정 추가됐어요');
+      taskStore.add(patch as Omit<PlannerTask, 'id' | 'createdAt' | 'done'>);
+      notify.success('일정을 추가했어요');
     }
     onClose();
   };
 
   const handleSubmit = () => {
-    // 시리즈 인스턴스는 scope 모호 — Enter 자동 'this' 가 의도와 다른 경우 잦음.
-    // 명시적 선택을 강제 → 사용자가 footer 의 split-button 으로 의도 표현.
     if (isSeriesInstance) {
-      notify.info('반복 일정이에요 — 우측 ▾ 에서 적용 범위를 선택하세요', { duration: 2500 });
+      notify.info('반복 항목은 저장 버튼의 범위를 선택해주세요', { duration: 2200 });
       return;
     }
     submitWithScope('all');
@@ -362,424 +391,381 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
   const handleDelete = (scope: 'this' | 'all' = 'all') => {
     if (mode.kind !== 'schedule') return;
-
     if (series && series.kind === 'task' && scope === 'this') {
-      editThisOnly(
-        taskStore,
-        series.master,
-        series.occurrenceIso,
-        {} as Partial<PlannerTask>,
-        { createNew: false },
-      );
-      notify.success('이 항목 건너뛰기', { duration: 1500 });
+      editThisOnly(taskStore, series.master, series.occurrenceIso, {} as Partial<PlannerTask>);
+      notify.success('이번 항목을 건너뛰었어요');
       onClose();
       return;
     }
-
-    const target = series ? series.master : taskStore.findMaster(mode.taskId);
-    const idToRemove = target?.id ?? mode.taskId;
-    taskStore.remove(idToRemove);
-    notify.success(series ? '전체 시리즈를 휴지통으로 옮겼어요' : '휴지통으로 이동했어요', {
-      duration: 5000,
-      action: {
-        label: '되돌리기',
-        onClick: () => taskStore.restore(idToRemove),
-      },
-    });
+    taskStore.remove(mode.taskId);
+    notify.success('휴지통으로 이동했어요');
     onClose();
   };
 
-  const handleKeyDownGlobal = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      handleSubmit();
+  const handleKeyDownGlobal = (event: React.KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      if (isSeriesInstance) submitWithScope('this');
+      else handleSubmit();
     }
   };
 
-  // chip base style — 라이트 outline.
-  const chip = (active: boolean) =>
-    cn(
-      'px-3.5 py-2 text-[13px] rounded-md transition-colors border',
-      active
-        ? 'bg-foreground text-background border-foreground font-semibold'
-        : 'bg-card border-foreground/25 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
-    );
-
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="max-h-[84vh] max-w-[520px] overflow-hidden rounded-[14px] border border-foreground/20 bg-[#fffefa] p-0 shadow-[0_24px_70px_rgba(25,22,18,0.22)]"
         onKeyDown={handleKeyDownGlobal}
         hideClose
       >
-        <DialogHeader>
-          {/* visible 헤더 라벨은 제거 — 종류 toggle 자체가 식별자 역할.
-              radix a11y 위해 DialogTitle sr-only 로만 유지. */}
-          <DialogTitle className="sr-only">
-            {mode.kind === 'schedule'
-              ? `${isEvent ? '일정' : '할 일'} 편집`
-              : `새 ${isEvent ? '일정' : '할 일'}`}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {isEvent
-              ? '일정의 시간·색·반복을 편집합니다.'
-              : '할 일의 우선순위·색·반복을 편집합니다.'}
-          </DialogDescription>
+        <DialogHeader className="sr-only">
+          <DialogTitle>{mode.kind === 'schedule' ? '항목 편집' : '새 항목'}</DialogTitle>
+          <DialogDescription>일정 또는 할 일을 설정합니다.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 mt-2">
-          {/* 종류 toggle — 맨 위. 탭 underline 스타일 (슬림). 데이뷰 레이아웃과 동일하게 일정 → 할 일 순서. */}
-          <div className="sm:col-span-2 -mt-1 grid grid-cols-2 border-b border-foreground/10">
-            <button
-              type="button"
-              onClick={switchToEvent}
-              aria-pressed={isEvent}
-              className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
-                isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
-              )}
-            >
-              <span>일정</span>
-              <span
-                aria-hidden
-                className={cn(
-                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
-                  isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
-                )}
-              />
-            </button>
-            <button
-              type="button"
-              onClick={switchToTask}
-              aria-pressed={!isEvent}
-              className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
-                !isEvent ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
-              )}
-            >
-              <span>할 일</span>
-              <span
-                aria-hidden
-                className={cn(
-                  'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
-                  !isEvent ? 'bg-foreground opacity-100' : 'opacity-0',
-                )}
-              />
-            </button>
-          </div>
-
-          {/* 제목 — toggle 아래 */}
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <LabelText>제목</LabelText>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-              autoFocus={mode.kind === 'create'}
-              placeholder={isEvent ? '일정 제목' : '할 일 제목'}
-              className="w-full px-3 py-2 text-[14px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none transition-colors text-foreground"
-            />
-          </div>
-
-          {/* 날짜 — 항상 노출. 할 일은 이 날짜에 plannedFor 마킹. 일정은 startAt 의 날짜. */}
-          {/* 시간(시작·길이) — 일정 또는 schedule 모드(시간 변경)에서만. 할 일 create 면 hide. */}
-          {showsTimeInputs ? (
-            <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-              <div className="flex flex-col gap-1.5">
-                <LabelText>날짜</LabelText>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
-                />
+        <div className="flex max-h-[84vh] flex-col bg-[#fffefa]">
+          <div className="shrink-0 border-b border-foreground/10 px-5 pb-3 pt-3">
+            <div className="flex h-9 items-center justify-between gap-3">
+              <div className="grid h-8 w-[164px] grid-cols-2 rounded-full border border-foreground/12 bg-muted/60 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => switchKind('event')}
+                  aria-pressed={isEvent}
+                  className={cn(
+                    'rounded-full text-[12px] font-bold transition-colors',
+                    isEvent ? 'bg-[#fffefa] text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  일정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchKind('task')}
+                  aria-pressed={!isEvent}
+                  className={cn(
+                    'rounded-full text-[12px] font-bold transition-colors',
+                    !isEvent ? 'bg-[#fffefa] text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  할 일
+                </button>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <LabelText>시작</LabelText>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  step={60}
-                  className="px-3 py-2 text-[14px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <LabelText>날짜</LabelText>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="px-2.5 py-2 text-[13px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
-              />
-            </div>
-          )}
-
-          {/* 길이 — 시간 input 노출될 때만. */}
-          {showsTimeInputs && (
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <LabelText>길이</LabelText>
-              <div className="flex flex-wrap gap-1.5">
-                {DURATIONS.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDuration(d)}
-                    className={chip(duration === d)}
-                  >
-                    {d < 60 ? `${d}분` : `${Math.floor(d / 60)}시간${d % 60 ? ` ${d % 60}분` : ''}`}
-                  </button>
-                ))}
-              </div>
-              <label className="mt-0.5 flex items-center gap-2 text-[11px] text-foreground/55">
-                직접
-                <input
-                  type="number"
-                  min={5}
-                  step={5}
-                  value={duration}
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    setDuration(Number.isFinite(next) && next > 0 ? Math.max(5, next) : 5);
-                  }}
-                  className="h-7 w-20 rounded-md border border-foreground/10 bg-card px-2 text-[12px] tabular-nums text-foreground focus:border-foreground/40 focus:outline-none"
-                  aria-label="길이 직접 입력"
-                />
-                분
-              </label>
-            </div>
-          )}
-
-          {/* 우선순위 — 할 일만, 좌측 col */}
-          {!isEvent && (
-            <div className="flex flex-col gap-1.5">
-              <LabelText>우선순위</LabelText>
-              <div className="flex gap-1.5">
-                {([0, 1, 2, 3] as Priority[]).map((p) => {
-                  const active = priority === p;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPriority(p)}
-                      className={cn(
-                        'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
-                        active
-                          ? 'bg-foreground text-background font-medium border-foreground'
-                          : 'bg-card border-foreground/25 hover:border-foreground/35 text-foreground/80',
-                      )}
-                    >
-                      {p > 0 && (
-                        <Flag
-                          className="h-3 w-3"
-                          style={{ color: active ? undefined : PRIORITY_COLORS[p], fill: active ? 'currentColor' : PRIORITY_COLORS[p] }}
-                        />
-                      )}
-                      <span>{PRIORITY_LABELS[p]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 색상 — 둘 다. 할 일이면 우선순위 옆 (col-span-1), 일정이면 full row */}
-          <div className={cn('flex flex-col gap-1.5', isEvent && 'sm:col-span-2')}>
-            <LabelText>색상</LabelText>
-            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setTaskColor(undefined)}
-                className={chip(!taskColor)}
+                onClick={onClose}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/72 hover:bg-accent hover:text-foreground"
+                aria-label="닫기"
               >
-                기본
+                ×
               </button>
-              {TASK_COLOR_OPTIONS.map((option) => {
-                const active = taskColor === option.value;
-                const color = TASK_LIST_COLORS[option.value].stripe;
-                return (
+            </div>
+
+            <div className="mt-3 flex items-center gap-3 border-b border-foreground/12 pb-2.5">
+              <span
+                className="h-4 w-4 shrink-0 rounded-full ring-1 ring-foreground/8"
+                style={{
+                  backgroundColor: taskColor ? TASK_LIST_COLORS[taskColor].stripe : isEvent ? '#3b82f6' : '#e11d48',
+                }}
+                aria-hidden
+              />
+              <input
+                type="text"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') handleSubmit();
+                }}
+                autoFocus={mode.kind === 'create'}
+                placeholder={isEvent ? '일정을 입력하세요.' : '할 일을 입력하세요.'}
+                className="h-10 min-w-0 flex-1 border-0 bg-transparent px-0 text-[20px] font-medium leading-none text-foreground outline-none placeholder:text-muted-foreground/82"
+              />
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-1">
+            {isEvent ? (
+              <div className="space-y-1">
+                <Row icon={<CalendarClock className="h-4 w-4" />} label="시작">
+                  <div className="grid max-w-[392px] grid-cols-[minmax(150px,220px)_136px] gap-2">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(event) => setStartDate(event.target.value)}
+                      className={cn(fieldInputClass, 'w-full')}
+                    />
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(event) => setStartTime(event.target.value)}
+                      className={cn(fieldInputClass, 'w-full min-w-[136px]')}
+                    />
+                  </div>
+                </Row>
+
+                <Row icon={<Clock3 className="h-4 w-4" />} label="길이" value={formatDuration(duration)}>
+                  <DurationPicker
+                    duration={duration}
+                    customOpen={customDurationOpen}
+                    onDurationChange={setDuration}
+                    onCustomOpenChange={setCustomDurationOpen}
+                  />
+                </Row>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜" value={formatDateValue(plannedFor)}>
+                  <input
+                    type="date"
+                    value={plannedFor}
+                    onChange={(event) => setPlannedFor(event.target.value)}
+                    className={cn(fieldInputClass, 'w-full')}
+                  />
+                </Row>
+
+                <Row icon={<Flag className="h-4 w-4" />} label="우선순위" value={PRIORITY_LABELS[priority]}>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([0, 1, 2, 3] as Priority[]).map((value) => (
+                      <Pill
+                        key={value}
+                        active={priority === value}
+                        onClick={() => setPriority(value)}
+                        className={cn(
+                          'px-1',
+                          priority === value && value > 0 && 'text-foreground/82',
+                        )}
+                      >
+                        {value > 0 && (
+                          <Flag
+                            className="mr-1 h-3 w-3"
+                            style={{ color: PRIORITY_COLORS[value], fill: PRIORITY_COLORS[value] }}
+                          />
+                        )}
+                        {PRIORITY_LABELS[value]}
+                      </Pill>
+                    ))}
+                  </div>
+                </Row>
+              </div>
+            )}
+
+            <div className="mt-1 pt-1">
+              <Row icon={<Palette className="h-4 w-4" />} label="색상" value={taskColor ? TASK_COLOR_OPTIONS.find((option) => option.value === taskColor)?.label : '기본'}>
+                <div className="flex flex-wrap gap-1.5">
                   <button
-                    key={option.value}
                     type="button"
-                    onClick={() => setTaskColor(option.value)}
+                    onClick={() => setTaskColor(undefined)}
                     className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-2 text-[12.5px] rounded-md transition-colors border',
-                      active
-                        ? 'bg-accent border-foreground text-foreground font-medium'
-                        : 'bg-card border-foreground/25 hover:border-foreground/35 text-foreground/80',
+                      'h-7 rounded-full px-3 text-[12.5px] font-semibold',
+                      !taskColor ? 'bg-primary/10 text-primary' : 'bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
                     )}
                   >
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
-                    {option.label}
+                    기본
                   </button>
-                );
-              })}
+                  {TASK_COLOR_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTaskColor(option.value)}
+                      aria-label={`${option.label} 색상`}
+                      className={cn(
+                        'h-7 w-7 rounded-full border transition-transform hover:scale-105',
+                        taskColor === option.value ? 'border-foreground ring-2 ring-foreground/16' : 'border-transparent',
+                      )}
+                      style={{ backgroundColor: TASK_LIST_COLORS[option.value].stripe }}
+                    />
+                  ))}
+                </div>
+              </Row>
+
+              <Row icon={<RotateCw className="h-4 w-4" />} label="반복" value={recurrence === 'none' ? '안 함' : '반복 설정됨'}>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {(
+                      [
+                        ['none', '안 함'],
+                        ['daily', '매일'],
+                        ['weekly', '매주'],
+                        ['monthly', '매달'],
+                        ['yearly', '매년'],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <Pill key={value} active={recurrence === value} onClick={() => setRecurrence(value)}>
+                        {label}
+                      </Pill>
+                    ))}
+                  </div>
+                  {recurrence === 'weekly' && (
+                    <div className="flex gap-1">
+                      {WEEKDAY_ORDER.map((weekday) => {
+                        const active = byday.includes(weekday);
+                        return (
+                          <button
+                            key={weekday}
+                            type="button"
+                            onClick={() => {
+                              setByday((prev) => prev.includes(weekday)
+                                ? prev.filter((item) => item !== weekday)
+                                : [...prev, weekday]);
+                            }}
+                            className={cn(
+                              'h-7 w-7 rounded-md border text-[11px] font-bold transition-colors',
+                              active ? 'border-primary/55 bg-primary/10 text-primary' : 'border-foreground/14 text-muted-foreground hover:text-foreground',
+                            )}
+                          >
+                            {WEEKDAY_LABELS[weekday]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {recurrence !== 'none' && (
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+                      <span className="text-[11.5px] font-bold text-muted-foreground">종료</span>
+                      <input
+                        type="date"
+                        value={recurrenceUntil}
+                        onChange={(event) => setRecurrenceUntil(event.target.value)}
+                        className={fieldInputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRecurrenceUntil('')}
+                        className="text-[11.5px] font-bold text-muted-foreground hover:text-foreground"
+                      >
+                        없음
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Row>
+
+              <Row icon={<Bell className="h-4 w-4" />} label="알림" value="없음" />
+
+              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명" value={note ? '작성됨' : '없음'}>
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="메모, 장소, 준비물 등을 적어두세요"
+                  className={cn(fieldInputClass, 'w-full')}
+                />
+              </Row>
             </div>
           </div>
 
-          {/* 반복 — full row */}
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <LabelText>
-              <span className="inline-flex items-center gap-1.5">
-                <RotateCw className="h-3 w-3" />
-                반복
-              </span>
-            </LabelText>
-            <div className="flex gap-1.5 flex-wrap">
-              {(
-                [
-                  ['none', '안 함'],
-                  ['daily', '매일'],
-                  ['weekly', '매주'],
-                  ['monthly', '매달'],
-                  ['yearly', '매년'],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setRecurrence(key)}
-                  className={chip(recurrence === key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {recurrence === 'weekly' && (
-              <div className="flex gap-1 mt-0.5">
-                {WEEKDAY_ORDER.map((wd) => {
-                  const active = byday.includes(wd);
-                  return (
-                    <button
-                      key={wd}
-                      type="button"
-                      onClick={() =>
-                        setByday((prev) =>
-                          prev.includes(wd) ? prev.filter((x) => x !== wd) : [...prev, wd],
-                        )
-                      }
-                      className={cn(
-                        'h-7 w-7 text-[11px] font-medium rounded-md transition-colors border',
-                        active
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-card border-foreground/10 text-foreground/55 hover:border-foreground/30 hover:text-foreground',
-                      )}
-                      title={`${WEEKDAY_LABELS[wd]}요일`}
-                    >
-                      {WEEKDAY_LABELS[wd]}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {recurrence !== 'none' && (
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-[10.5px] text-foreground/55">~까지</span>
-                <input
-                  type="date"
-                  value={recurrenceUntil}
-                  onChange={(e) => setRecurrenceUntil(e.target.value)}
-                  className="px-2 py-1 text-[12px] rounded-md border border-foreground/10 bg-card focus:border-foreground/40 focus:outline-none"
-                />
-                {recurrenceUntil && (
+          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2.5 sm:justify-between">
+            <div>
+              {mode.kind === 'schedule' && (
+                isSeriesInstance ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        삭제
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleDelete('this')}>이번 항목만 건너뛰기</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
+                        전체 반복 삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setRecurrenceUntil('')}
-                    className="text-[10.5px] text-foreground/55 hover:text-foreground"
+                    onClick={() => handleDelete('all')}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
                   >
-                    무한
+                    <Trash2 className="h-3.5 w-3.5" />
+                    삭제
                   </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <DialogFooter className="flex-row sm:justify-between mt-3 gap-2">
-          {mode.kind === 'schedule' ? (
-            <div className="flex gap-1.5 items-center">
-              {isSeriesInstance ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 px-3.5 py-2 text-[12.5px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      삭제
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem onClick={() => handleDelete('this')}>이 항목만 건너뛰기</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
-                      전체 시리즈 삭제
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleDelete('all')}
-                  className="flex items-center gap-1 px-3.5 py-2 text-[12.5px] rounded-md text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  삭제
-                </button>
+                )
               )}
             </div>
-          ) : <div />}
-          <div className="flex gap-1.5 items-stretch">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 text-[12.5px] rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
-            >
-              취소
-            </button>
+
             {isSeriesInstance ? (
-              <div className="flex rounded-md overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => submitWithScope('this')}
-                  title="이 항목만 (Ctrl/Cmd + Enter)"
-                  className="px-4 py-2 text-[13px] bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-                >
-                  이 항목만
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="px-2 py-1.5 bg-foreground text-background hover:opacity-90 transition-opacity border-l border-background/20"
-                      title="정책 선택"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => submitWithScope('this')}>이 항목만</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => submitWithScope('future')}>이 항목과 이후</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => submitWithScope('all')}>전체 시리즈</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
+                  >
+                    저장 범위
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => submitWithScope('this')}>이번 항목만</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => submitWithScope('future')}>이번과 이후</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => submitWithScope('all')}>전체 반복</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <button
                 type="button"
                 onClick={handleSubmit}
-                title="Ctrl/Cmd + Enter"
-                className="px-4 py-2 text-[13px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex h-9 min-w-[72px] items-center justify-center rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
               >
-                {mode.kind === 'schedule' ? '배정' : '추가'}
+                {mode.kind === 'schedule' ? '저장' : '추가'}
               </button>
             )}
-          </div>
-        </DialogFooter>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
 };
+
+const DurationPicker = ({
+  duration,
+  customOpen,
+  onDurationChange,
+  onCustomOpenChange,
+}: {
+  duration: number;
+  customOpen: boolean;
+  onDurationChange: (duration: number) => void;
+  onCustomOpenChange: (open: boolean) => void;
+}) => (
+  <div className="space-y-2">
+    <div className="grid grid-cols-4 gap-1.5">
+      {DURATION_PRESETS.map((value) => (
+        <Pill
+          key={value}
+          active={duration === value && !customOpen}
+          onClick={() => {
+            onDurationChange(value);
+            onCustomOpenChange(false);
+          }}
+          className="px-1"
+        >
+          {value === 90 ? '90분' : formatDuration(value)}
+        </Pill>
+      ))}
+      <Pill active={customOpen} onClick={() => onCustomOpenChange(true)} className="px-1">
+        직접
+      </Pill>
+    </div>
+    {customOpen && (
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <input
+          type="number"
+          min={5}
+          max={720}
+          step={5}
+          value={duration}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            if (Number.isFinite(next)) onDurationChange(Math.max(5, Math.min(720, next)));
+          }}
+          className={fieldInputClass}
+        />
+        <span className="text-[11.5px] font-bold text-muted-foreground">분</span>
+      </div>
+    )}
+  </div>
+);

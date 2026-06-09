@@ -24,9 +24,8 @@ const isValidTask = (v: unknown): v is PlannerTask => {
 };
 
 /**
- * 도메인 일관성 강제 — startAt 있으면 priority/plannedFor 제거.
- * 과거 버전에서 할 일 → 일정 변환 시 priority 잔존 버그로 잘못 저장된
- * 데이터를 표시 단계에서 즉시 클린업. 한 번 거치고 나면 멱등.
+ * 도메인 정규화. 시간 배정된 항목도 할 일 의미를 유지할 수 있으므로
+ * plannedFor/priority 를 자동 삭제하지 않는다.
  */
 const sanitizeOne = (t: PlannerTask): PlannerTask => sanitizeForDomain(t) as PlannerTask;
 
@@ -235,7 +234,7 @@ export const taskStore = {
     const all = safeRead();
     const idx = all.findIndex((t) => t.id === id);
     if (idx === -1) return;
-    // 패치 후 도메인 일관성 강제 — 일정으로 바뀌면 priority/plannedFor 자동 제거.
+    // 패치 후 도메인 정규화. 시간 배정되어도 plannedFor/priority 는 보존한다.
     all[idx] = sanitizeOne({ ...all[idx], ...patch });
     safeWrite(all);
   },

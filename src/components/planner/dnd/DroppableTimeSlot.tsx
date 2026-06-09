@@ -63,4 +63,5 @@ const isOverAssignable = (dragData?: PlannerDragData): boolean =>
   dragData?.kind === 'inbox-task'
   || dragData?.kind === 'planned-task'
   || dragData?.kind === 'scheduled-task'
-  || dragData?.kind === 'scheduled-event';
+  || dragData?.kind === 'scheduled-event'
+  || dragData?.kind === 'library-template';

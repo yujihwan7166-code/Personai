@@ -22,11 +22,17 @@ export const DroppableDayColumn = ({ dayIso, children, className }: DroppableDay
     <div
       ref={setNodeRef}
       className={cn(
-        'transition-colors',
-        isOver && 'bg-primary/5 ring-2 ring-primary/30 ring-inset',
+        'relative transition-colors',
+        isOver && 'bg-primary/[0.025]',
         className,
       )}
     >
+      {isOver && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10 rounded-sm border-2 border-primary/45 bg-primary/[0.035] ring-1 ring-inset ring-primary/20"
+        />
+      )}
       {children}
     </div>
   );

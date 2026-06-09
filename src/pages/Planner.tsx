@@ -48,6 +48,7 @@ import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
 import { RAIL_EVENT } from '@/components/planner/plannerRailEvents';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { PlannerTrashDialog } from '@/components/planner/PlannerTrashDialog';
+import { PlannerLibraryPanel } from '@/components/planner/PlannerLibraryPanel';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
@@ -72,6 +73,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
+import type { PlannerLibraryItem } from '@/services/planner/libraryStore';
 import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
@@ -184,12 +186,15 @@ const buildHeaderSearchResults = (query: string): HeaderSearchResult[] => {
       const score = scoreSearchText(q, task.title, extra);
       if (score === 0) return null;
       const isScheduled = Boolean(task.startAt);
+      const taskDateMeta = task.plannedFor
+        ? formatSearchDate(`${task.plannedFor}T09:00:00`)
+        : '시간 미배정';
       return {
         type: 'task' as const,
         task,
         score: score + (task.done ? -8 : 0) + (isScheduled ? 4 : 0),
         label: task.title,
-        meta: isScheduled ? formatSearchDateTime(task.startAt, task.endAt) : `할 일 · ${task.plannedFor ? formatSearchDate(`${task.plannedFor}T09:00:00`) : '시간 미배정'}`,
+        meta: isScheduled ? formatSearchDateTime(task.startAt, task.endAt) : `할 일 · ${taskDateMeta}`,
         detail: task.done ? '완료됨' : task.canceled ? '취소됨' : isScheduled ? '시간 배정됨' : '할 일',
       };
     })
@@ -233,6 +238,57 @@ const eventDragRestorePatch = (event: PlannerEvent): Partial<Omit<PlannerEvent, 
   startAt: event.startAt,
   endAt: event.endAt,
   laneOrder: event.laneOrder,
+});
+
+const isCopyModifierEvent = (event: Event | null | undefined): boolean =>
+  Boolean(event && 'ctrlKey' in event && ((event as MouseEvent | KeyboardEvent).ctrlKey || (event as MouseEvent | KeyboardEvent).metaKey));
+
+const duplicateTaskInput = (
+  task: PlannerTask,
+  patch: Partial<Omit<PlannerTask, 'id' | 'createdAt' | 'done'>> & { done?: boolean },
+): Omit<PlannerTask, 'id' | 'createdAt' | 'done'> & { done?: boolean } => ({
+  title: task.title,
+  startAt: task.startAt,
+  endAt: task.endAt,
+  allDay: task.allDay,
+  goalId: task.goalId,
+  milestoneId: task.milestoneId,
+  plannedFor: task.plannedFor,
+  status: undefined,
+  priority: task.priority,
+  color: task.color,
+  note: task.note,
+  pinned: undefined,
+  canceled: undefined,
+  someday: task.someday,
+  sourceRecordingId: task.sourceRecordingId,
+  sourceRecordingTitle: task.sourceRecordingTitle,
+  sourceActionIndex: task.sourceActionIndex,
+  recurrence: undefined,
+  tags: task.tags ? [...task.tags] : undefined,
+  subtasks: task.subtasks ? task.subtasks.map((subtask) => ({ ...subtask })) : undefined,
+  listId: task.listId,
+  seriesCompletions: undefined,
+  laneOrder: undefined,
+  deletedAt: undefined,
+  done: false,
+  ...patch,
+});
+
+const duplicateEventInput = (
+  event: PlannerEvent,
+  patch: Partial<Omit<PlannerEvent, 'id' | 'createdAt'>>,
+): Omit<PlannerEvent, 'id' | 'createdAt'> => ({
+  title: event.title,
+  startAt: event.startAt,
+  endAt: event.endAt,
+  allDay: event.allDay,
+  color: event.color,
+  source: event.source,
+  recurrence: undefined,
+  laneOrder: undefined,
+  deletedAt: undefined,
+  ...patch,
 });
 
 const Planner = () => {
@@ -309,6 +365,7 @@ const Planner = () => {
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try { return window.localStorage.getItem('planner.ai-panel.open') === '1'; } catch { return false; }
@@ -412,7 +469,7 @@ const Planner = () => {
   }, [anchorIso]);
 
   const handleSlotClick = useCallback((slotIso: string) => {
-    setDialogMode({ kind: 'create', presetStartIso: slotIso });
+    setDialogMode({ kind: 'create', presetStartIso: slotIso, presetIsEvent: true });
   }, []);
 
   const handleItemClick = useCallback(
@@ -496,7 +553,7 @@ const Planner = () => {
         setTimeout(() => dayInputRef.current?.focus(), 50);
         break;
       case 'newAtNow': {
-        setDialogMode({ kind: 'create', presetStartIso: nextHalfHourSlot().toISOString() });
+        setDialogMode({ kind: 'create', presetStartIso: nextHalfHourSlot().toISOString(), presetIsEvent: true });
         break;
       }
       case 'jumpToTask': {
@@ -697,7 +754,7 @@ const Planner = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, trashOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
+  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, trashOpen, libraryOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
 
   // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
   const handleOpenPalette = useCallback(() => setHeaderSearchOpen(true), []);
@@ -705,6 +762,7 @@ const Planner = () => {
   const handleOpenAgenda = useCallback(() => setAgendaPopoverOpen(true), []);
   const handleOpenHabits = useCallback(() => setView('habits'), [setView]);
   const handleOpenTrash = useCallback(() => setTrashOpen(true), []);
+  const handleOpenLibrary = useCallback(() => setLibraryOpen(true), []);
   const handleGoToday = useCallback(() => {
     setView('day');
     goToday();
@@ -730,6 +788,7 @@ const Planner = () => {
   useWindowEvent(RAIL_EVENT.openMatrix, handleOpenMatrix);
   useWindowEvent(RAIL_EVENT.openAgenda, handleOpenAgenda);
   useWindowEvent(RAIL_EVENT.openHabits, handleOpenHabits);
+  useWindowEvent(RAIL_EVENT.openLibrary, handleOpenLibrary);
   useWindowEvent(RAIL_EVENT.openTrash, handleOpenTrash);
   useWindowEvent(RAIL_EVENT.goToday, handleGoToday);
   useWindowEvent(RAIL_EVENT.openModePalette, handleOpenModePalette);
@@ -766,16 +825,37 @@ const Planner = () => {
   const [activeDrag, setActiveDrag] = useState<{ data: PlannerDragData; deltaY: number } | null>(null);
   // 드래그 시작 시점 타임라인 scrollTop — handleDragEnd 에서 자동 스크롤만큼 보상하기 위해.
   const dragInitialScrollTop = useRef<number | null>(null);
+  const dragCopyModeRef = useRef(false);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     const data = e.active.data.current as PlannerDragData | undefined;
     if (data) setActiveDrag({ data, deltaY: 0 });
+    dragCopyModeRef.current = isCopyModifierEvent((e as DragStartEvent & { activatorEvent?: Event }).activatorEvent);
     const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
     dragInitialScrollTop.current = container ? container.scrollTop : null;
   }, []);
 
+  useEffect(() => {
+    if (!activeDrag) return;
+    const updateCopyMode = (event: KeyboardEvent) => {
+      dragCopyModeRef.current = event.ctrlKey || event.metaKey;
+    };
+    window.addEventListener('keydown', updateCopyMode);
+    window.addEventListener('keyup', updateCopyMode);
+    return () => {
+      window.removeEventListener('keydown', updateCopyMode);
+      window.removeEventListener('keyup', updateCopyMode);
+    };
+  }, [activeDrag]);
+
   const handleDragMove = useCallback((e: DragMoveEvent) => {
     setActiveDrag((prev) => (prev ? { ...prev, deltaY: e.delta.y } : prev));
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDrag(null);
+    dragInitialScrollTop.current = null;
+    dragCopyModeRef.current = false;
   }, []);
 
   // 드래그 중 시간 미리보기 (DragOverlay).
@@ -787,6 +867,9 @@ const Planner = () => {
     const { data } = activeDrag;
     if (data.kind === 'inbox-task' || data.kind === 'planned-task') {
       return data.task.title;
+    }
+    if (data.kind === 'library-template') {
+      return data.item.title;
     }
     return null;
   }, [activeDrag]);
@@ -816,6 +899,63 @@ const Planner = () => {
     [],
   );
 
+  const addLibraryItemToSlot = useCallback((item: PlannerLibraryItem, startIso: string) => {
+    const start = new Date(startIso);
+    const durationMin = Math.max(15, item.durationMin || 60);
+    const end = new Date(start.getTime() + durationMin * 60_000).toISOString();
+
+    taskStore.add({
+      title: item.title,
+      startAt: startIso,
+      endAt: end,
+      color: item.color,
+      priority: item.priority,
+      note: item.note,
+    });
+
+    notify.success(`보관함에서 ${formatDragTime(startIso)}에 추가했어요`, {
+      description: item.title,
+      duration: 2400,
+    });
+  }, []);
+
+  const addLibraryItemToTodoDay = useCallback((item: PlannerLibraryItem, dayKey: string) => {
+    taskStore.add({
+      title: item.title,
+      plannedFor: dayKey,
+      color: item.color,
+      priority: item.priority,
+      note: item.note,
+    });
+    notify.success(`보관함에서 ${formatDragDate(`${dayKey}T00:00:00`)} 할 일로 추가했어요`, {
+      description: item.title,
+      duration: 2400,
+    });
+  }, []);
+
+  const addLibraryItemToCalendarDay = useCallback((item: PlannerLibraryItem, dayKey: string) => {
+    const durationMin = Math.max(15, item.durationMin || 60);
+    const start = new Date(`${dayKey}T09:00:00`);
+    const end = new Date(start.getTime() + durationMin * 60_000).toISOString();
+    taskStore.add({
+      title: item.title,
+      startAt: start.toISOString(),
+      endAt: end,
+      color: item.color,
+      priority: item.priority,
+      note: item.note,
+    });
+    notify.success(`보관함에서 ${formatDragDate(start.toISOString())} 09:00에 추가했어요`, {
+      description: item.title,
+      duration: 2400,
+    });
+  }, []);
+
+  const addLibraryItemQuick = useCallback((item: PlannerLibraryItem) => {
+    const anchorDayKey = toDateKey(new Date(anchorIso));
+    addLibraryItemToTodoDay(item, anchorDayKey);
+  }, [addLibraryItemToTodoDay, anchorIso]);
+
   const handleDragEnd = useCallback((e: DragEndEvent) => {
     const dragData = e.active.data.current as PlannerDragData | undefined;
     type AssignListDropData = { kind: 'assign-list'; listId: string };
@@ -829,6 +969,8 @@ const Planner = () => {
     // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 보정값 사용하는 버그 방지.
     const initialScrollTop = dragInitialScrollTop.current;
     dragInitialScrollTop.current = null;
+    const copyDrag = dragCopyModeRef.current;
+    dragCopyModeRef.current = false;
 
     if (!dragData) {
       return;
@@ -858,12 +1000,54 @@ const Planner = () => {
 
     if (!dropData) return;
 
+    if (dragData.kind === 'library-template') {
+      if (dropData.kind === 'time-slot') {
+        addLibraryItemToSlot(dragData.item, dropData.startIso);
+        return;
+      }
+      if (dropData.kind === 'day-column') {
+        addLibraryItemToCalendarDay(dragData.item, toDateKey(new Date(dropData.dayIso)));
+        return;
+      }
+      if (dropData.kind === 'todo-list') {
+        addLibraryItemToTodoDay(dragData.item, dropData.dayKey);
+        return;
+      }
+      if (dropData.kind === 'inbox') {
+        taskStore.add({
+          title: dragData.item.title,
+          color: dragData.item.color,
+          priority: dragData.item.priority,
+          note: dragData.item.note,
+        });
+        notify.success('보관함에서 할 일로 추가했어요', {
+          description: dragData.item.title,
+          duration: 2400,
+        });
+        return;
+      }
+    }
+
     // ─── 인박스 → 시간 슬롯: 시간 배정 ───
     // 기본 길이 = 사용자 snap × 2 (15→30, 30→60). 너무 짧으면 클릭하기 어려움.
     if ((dragData.kind === 'inbox-task' || dragData.kind === 'planned-task') && dropData.kind === 'time-slot') {
       const start = dropData.startIso;
       const blockMin = Math.max(30, getSnapMin() * 2);
       const end = new Date(new Date(start).getTime() + blockMin * 60_000).toISOString();
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(dragData.task, {
+          startAt: start,
+          endAt: end,
+          plannedFor: undefined,
+          laneOrder: undefined,
+        }));
+        notify.success(`${formatDragTime(start)}~${formatDragTime(end)}에 복제했어요`, {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
       const restore = taskDragRestorePatch(dragData.task);
       taskStore.schedule(dragData.task.id, start, end);
       notify.success(`${formatDragTime(start)}~${formatDragTime(end)}에 배정했어요`, {
@@ -934,6 +1118,33 @@ const Planner = () => {
         }
       }
 
+      if (copyDrag) {
+        const copied = dragData.kind === 'scheduled-task'
+          ? taskStore.add(duplicateTaskInput(dragData.task, {
+              startAt: newStart,
+              endAt: newEnd,
+              plannedFor: undefined,
+              laneOrder: newLaneOrder,
+            }))
+          : eventStore.add(duplicateEventInput(dragData.event, {
+              startAt: newStart,
+              endAt: newEnd,
+              ...(newLaneOrder !== undefined && { laneOrder: newLaneOrder }),
+            }));
+        notify.success(`${formatDragTime(newStart)}~${formatDragTime(newEnd)}에 복제했어요`, {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: {
+            label: '되돌리기',
+            onClick: () => {
+              if (dragData.kind === 'scheduled-task') taskStore.remove(copied.id);
+              if (dragData.kind === 'scheduled-event') eventStore.remove(copied.id);
+            },
+          },
+        });
+        return;
+      }
+
       if (dragData.kind === 'scheduled-task') {
         if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
           taskStore.schedule(item.id, newStart, newEnd);
@@ -989,6 +1200,33 @@ const Planner = () => {
       const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
       const restoreEvent = dragData.kind === 'scheduled-event' ? eventDragRestorePatch(dragData.event) : null;
 
+      if (copyDrag) {
+        const copied = dragData.kind === 'scheduled-task'
+          ? taskStore.add(duplicateTaskInput(dragData.task, {
+              startAt: newStart,
+              endAt: newEnd,
+              plannedFor: undefined,
+              laneOrder: undefined,
+            }))
+          : eventStore.add(duplicateEventInput(dragData.event, {
+              startAt: newStart,
+              endAt: newEnd,
+              laneOrder: undefined,
+            }));
+        notify.success(`${formatDragDate(newStart)} ${formatDragTime(newStart)}에 복제했어요`, {
+          description: '원본은 그대로 두고 같은 시간으로 복제했습니다.',
+          duration: 4200,
+          action: {
+            label: '되돌리기',
+            onClick: () => {
+              if (dragData.kind === 'scheduled-task') taskStore.remove(copied.id);
+              if (dragData.kind === 'scheduled-event') eventStore.remove(copied.id);
+            },
+          },
+        });
+        return;
+      }
+
       if (dragData.kind === 'scheduled-task') {
         if (!tryDetachInstance(item.id, 'task', newStart, newEnd)) {
           taskStore.schedule(item.id, newStart, newEnd);
@@ -1018,7 +1256,21 @@ const Planner = () => {
     // ─── 날짜만 있는 할 일 → 다른 day column: 시간 없이 날짜만 변경 ───
     if (dragData.kind === 'planned-task' && dropData.kind === 'day-column') {
       const targetKey = toDateKey(new Date(dropData.dayIso));
-      if (dragData.task.plannedFor === targetKey) return;
+      if (!copyDrag && dragData.task.plannedFor === targetKey) return;
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(dragData.task, {
+          plannedFor: targetKey,
+          startAt: undefined,
+          endAt: undefined,
+          laneOrder: undefined,
+        }));
+        notify.success(`${formatDragDate(dropData.dayIso)} 할 일로 복제했어요`, {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
       const restore = taskDragRestorePatch(dragData.task);
       taskStore.update(dragData.task.id, {
         plannedFor: targetKey,
@@ -1038,6 +1290,20 @@ const Planner = () => {
       targetDay.setHours(9, 0, 0, 0);
       const newStart = targetDay.toISOString();
       const newEnd = new Date(targetDay.getTime() + 30 * 60_000).toISOString();
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(dragData.task, {
+          startAt: newStart,
+          endAt: newEnd,
+          plannedFor: undefined,
+          laneOrder: undefined,
+        }));
+        notify.success(`${formatDragDate(newStart)} 09:00에 복제했어요`, {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
       const restore = taskDragRestorePatch(dragData.task);
       taskStore.schedule(dragData.task.id, newStart, newEnd);
       notify.success(`${formatDragDate(newStart)} 09:00에 배정했어요`, {
@@ -1063,6 +1329,20 @@ const Planner = () => {
       }
       const task = dragData.task;
       const restore = taskDragRestorePatch(task);
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(task, {
+          startAt: undefined,
+          endAt: undefined,
+          plannedFor: undefined,
+          laneOrder: undefined,
+        }));
+        notify.info('시간을 비운 복사본을 만들었어요', {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
       if (isInstanceId(task.id)) {
         // 시리즈 인스턴스를 인박스로 → detach + unschedule.
         const parsed = parseInstanceId(task.id);
@@ -1103,6 +1383,20 @@ const Planner = () => {
       const task = dragData.task;
       const dayKey = dropData.dayKey;
       const restore = taskDragRestorePatch(task);
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(task, {
+          startAt: undefined,
+          endAt: undefined,
+          plannedFor: dayKey,
+          laneOrder: undefined,
+        }));
+        notify.success(`${formatDragDate(`${dayKey}T00:00:00`)} 할 일로 복제했어요`, {
+          description: '원본은 그대로 두었습니다.',
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
       if (isInstanceId(task.id)) {
         const parsed = parseInstanceId(task.id);
         if (!parsed) return;
@@ -1128,7 +1422,7 @@ const Planner = () => {
         } : {}),
       });
     }
-  }, [tryDetachInstance]);
+  }, [addLibraryItemToCalendarDay, addLibraryItemToSlot, addLibraryItemToTodoDay, tryDetachInstance]);
 
   const headerOverlineText = getOverlineText(headerLabels.secondary);
   const currentViewMeta = PLANNER_VIEW_META[view];
@@ -1168,6 +1462,16 @@ const Planner = () => {
     });
   }, []);
 
+  const openCreateTodoForDay = useCallback((dayIso: string) => {
+    const day = new Date(dayIso);
+    day.setHours(9, 0, 0, 0);
+    setDialogMode({
+      kind: 'create',
+      presetStartIso: day.toISOString(),
+      presetIsEvent: false,
+    });
+  }, []);
+
   const openCreateTodo = useCallback(() => {
     const day = new Date(anchorIso);
     day.setHours(9, 0, 0, 0);
@@ -1184,6 +1488,7 @@ const Planner = () => {
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
     >
     <div className="planner-theme min-h-screen bg-background flex">
@@ -1632,6 +1937,7 @@ const Planner = () => {
                     anchorIso={anchorIso}
                     onDayClick={handleDayClick}
                     onCreateEvent={openCreateEventForDay}
+                    onCreateTask={openCreateTodoForDay}
                     onItemClick={handleItemClick}
                     onTaskClick={handleInboxClick}
                   />
@@ -1675,6 +1981,12 @@ const Planner = () => {
         onClose={() => setDialogMode(null)}
       />
       <PlannerTrashDialog open={trashOpen} onOpenChange={setTrashOpen} />
+      <PlannerLibraryPanel
+        open={libraryOpen}
+        anchorIso={anchorIso}
+        onOpenChange={setLibraryOpen}
+        onQuickAdd={addLibraryItemQuick}
+      />
       <PlannerCommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}

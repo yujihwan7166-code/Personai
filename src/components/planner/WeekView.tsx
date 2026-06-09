@@ -39,13 +39,14 @@ interface WeekViewProps {
   /** 컬럼 헤더 / 빈 컬럼 클릭 → 해당 일로 Day 뷰 점프. */
   onDayClick?: (dayIso: string) => void;
   onCreateEvent?: (dayIso: string) => void;
+  onCreateTask?: (dayIso: string) => void;
   /** 카드 클릭 → 편집 모달 (Day 뷰와 일관성). */
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
   /** 날짜만 있는 할 일 클릭 → 일정/할 일 편집 모달. */
   onTaskClick?: (task: { id: string; title: string }) => void;
 }
 
-export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, onTaskClick }: WeekViewProps) => {
+export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, onItemClick, onTaskClick }: WeekViewProps) => {
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
     const refresh = () => setLists(taskListStore.list());
@@ -158,6 +159,8 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, on
   }, [dateTodos]);
 
   const hasCalendarItems = timedItems.length > 0 || dateTodos.length > 0;
+  const isPassiveSectionClick = (target: EventTarget | null) =>
+    target instanceof HTMLElement && !target.closest('button,[role="button"],[data-week-todo-row]');
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden border-y border-r border-foreground/10 bg-card">
@@ -210,8 +213,8 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, on
                   )}
                   aria-label={`${d.date}일 할 일`}
                   onClick={(e) => {
-                    if (e.target === e.currentTarget) {
-                      onCreateEvent?.(d.iso);
+                    if (isPassiveSectionClick(e.target)) {
+                      onCreateTask?.(d.iso);
                     }
                   }}
                 >
@@ -244,8 +247,8 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, on
                   ) : (
                     <button
                       type="button"
-                      onClick={() => onCreateEvent?.(d.iso)}
-                      aria-label={`${d.date}일 일정 추가`}
+                      onClick={() => onCreateTask?.(d.iso)}
+                      aria-label={`${d.date}일 할 일 추가`}
                       className="mt-1 h-8 w-full rounded-md border border-dashed border-transparent transition-colors hover:border-primary/20 hover:bg-primary/5"
                     />
                   )}
@@ -258,7 +261,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, on
                   aria-label={`${d.date}일 일정`}
                   data-week-day-create={d.key}
                   onClick={(e) => {
-                    if (e.target === e.currentTarget) {
+                    if (isPassiveSectionClick(e.target)) {
                       onCreateEvent?.(d.iso);
                     }
                   }}
@@ -396,7 +399,10 @@ const WeekTodoRow = ({
       : 'hsl(var(--primary))';
 
   return (
-    <div className="group flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[12px] transition-colors hover:bg-accent/45">
+    <div
+      data-week-todo-row={task.id}
+      className="group flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[12px] transition-colors hover:bg-accent/45"
+    >
       <button
         type="button"
         data-week-todo-complete={task.id}

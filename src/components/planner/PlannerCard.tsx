@@ -9,7 +9,7 @@
  * - 노트 점(FileText) = note 있음 표시
  */
 import { Check, Flag, FileText, Ban, RotateCw, ChevronDown, ChevronRight, Palette, Pencil, Trash2 } from 'lucide-react';
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Priority, Subtask, TaskListColor } from '@/types/planner';
 import { PRIORITY_COLORS, TASK_LIST_COLORS } from '@/types/planner';
@@ -240,17 +240,11 @@ const InboxCardInner = (props: InboxCardProps) => {
   const handleEdit = onEdit ?? onClick;
   const [expanded, setExpanded] = useState(false);
   const accent = color ? TASK_LIST_COLORS[color].stripe : undefined;
-  const accentRowStyle = accent
-    ? ({
-        boxShadow: `inset 3px 0 0 ${accent}`,
-        backgroundColor: `color-mix(in oklab, ${accent} 7%, transparent)`,
-      } satisfies CSSProperties)
-    : undefined;
   const checkboxAccentStyle = accent
     ? ({
-        borderColor: `color-mix(in oklab, ${accent} 72%, hsl(var(--background)))`,
-        backgroundColor: done ? accent : `color-mix(in oklab, ${accent} 9%, transparent)`,
-      } satisfies CSSProperties)
+        borderColor: `color-mix(in oklab, ${accent} 76%, hsl(var(--background)))`,
+        backgroundColor: done ? accent : 'transparent',
+      })
     : undefined;
   return (
       <div className="rounded-md overflow-hidden">
@@ -264,7 +258,6 @@ const InboxCardInner = (props: InboxCardProps) => {
           'focus:outline-none focus:bg-accent',
           canceled && 'opacity-60',
         )}
-        style={accentRowStyle}
         onClick={onClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

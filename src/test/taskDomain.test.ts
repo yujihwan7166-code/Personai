@@ -1,8 +1,8 @@
 /**
  * 할 일 ↔ 일정 도메인 일관성 규칙 테스트.
  *
- * 한 PlannerTask 타입이 두 도메인을 표현하므로 priority/plannedFor 같은
- * 할 일 전용 필드가 일정으로 새는 패턴을 강제로 막는다.
+ * 한 PlannerTask 타입이 할 일의 의미와 시간 배정을 함께 표현하므로
+ * plannedFor/priority 가 시간 배정 중에도 보존되는지 검증한다.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { displayedPriority, isScheduled, sanitizeForDomain } from '@/lib/planner/taskDomain';
@@ -25,8 +25,8 @@ describe('taskDomain helpers', () => {
       expect(displayedPriority({ startAt: undefined, priority: 2 })).toBe(2);
       expect(displayedPriority({ priority: 0 })).toBe(0);
     });
-    it('일정은 priority 데이터가 있어도 undefined 반환 (표시 X)', () => {
-      expect(displayedPriority({ startAt: '2026-04-29T14:00:00Z', priority: 3 })).toBeUndefined();
+    it('시간 배정된 할 일도 priority 반환', () => {
+      expect(displayedPriority({ startAt: '2026-04-29T14:00:00Z', priority: 3 })).toBe(3);
     });
   });
 
@@ -35,15 +35,17 @@ describe('taskDomain helpers', () => {
       const patch = { title: 'x', priority: 2 as const, plannedFor: '2026-04-29' };
       expect(sanitizeForDomain(patch)).toEqual(patch);
     });
-    it('startAt 있으면 priority 와 plannedFor 제거', () => {
+    it('startAt 있어도 priority 와 plannedFor 보존하고 레거시 dueDate 는 제거', () => {
       const out = sanitizeForDomain({
         title: 'x',
         startAt: '2026-04-29T14:00:00Z',
         priority: 3,
         plannedFor: '2026-04-29',
+        dueDate: '2026-05-01',
       });
-      expect(out.priority).toBeUndefined();
-      expect(out.plannedFor).toBeUndefined();
+      expect(out.priority).toBe(3);
+      expect(out.plannedFor).toBe('2026-04-29');
+      expect('dueDate' in out).toBe(false);
       expect(out.startAt).toBe('2026-04-29T14:00:00Z');
     });
     it('한 번 통과 후 재적용은 멱등', () => {
@@ -65,19 +67,21 @@ describe('taskStore × 도메인 일관성', () => {
     expect(taskStore.list()[0].priority).toBe(2);
   });
 
-  it('add() 시 startAt 있으면 priority 자동 제거 (일정 생성)', () => {
+  it('add() 시 startAt 있어도 priority/plannedFor 보존 (시간 배정된 할 일)', () => {
     const t = taskStore.add({
       title: '회의',
       startAt: '2026-04-29T14:00:00Z',
       endAt: '2026-04-29T15:00:00Z',
+      plannedFor: '2026-04-29',
       priority: 3,
     });
-    expect(t.priority).toBeUndefined();
+    expect(t.priority).toBe(3);
+    expect(t.plannedFor).toBe('2026-04-29');
     expect(t.startAt).toBe('2026-04-29T14:00:00Z');
   });
 
-  it('할 일 → 일정 변환 시 priority 자동 제거 (BUG #1 회귀 방지)', () => {
-    const t = taskStore.add({ title: '보고서', priority: 2 });
+  it('할 일 → 시간 배정 변환 시 plannedFor/priority 보존', () => {
+    const t = taskStore.add({ title: '보고서', plannedFor: '2026-04-29', priority: 2 });
     expect(t.priority).toBe(2);
     taskStore.update(t.id, {
       startAt: '2026-04-29T14:00:00Z',
@@ -85,7 +89,8 @@ describe('taskStore × 도메인 일관성', () => {
     });
     const after = taskStore.findMaster(t.id);
     expect(after?.startAt).toBe('2026-04-29T14:00:00Z');
-    expect(after?.priority).toBeUndefined();
+    expect(after?.priority).toBe(2);
+    expect(after?.plannedFor).toBe('2026-04-29');
   });
 
   it('일정 → 할 일 변환 시 priority 다시 설정 가능', () => {
@@ -106,8 +111,8 @@ describe('taskStore × 도메인 일관성', () => {
     expect(after?.plannedFor).toBe('2026-04-29');
   });
 
-  it('레거시 데이터 (startAt + priority 동시 존재) → list() 시 priority 클린업', () => {
-    // 과거 버전이 잘못 저장한 데이터 시뮬레이션 — 직접 localStorage 에 주입.
+  it('레거시 데이터 (startAt + priority + plannedFor 동시 존재) → list() 시 보존', () => {
+    // 과거 버전/새 버전 데이터가 섞여도 의미 있는 날짜 필드는 유지한다.
     const stale: PlannerTask = {
       id: 'tsk_legacy',
       title: '과거에 잘못 저장된 항목',
@@ -121,8 +126,8 @@ describe('taskStore × 도메인 일관성', () => {
     window.localStorage.setItem('planner.tasks.v1', JSON.stringify([stale]));
     const list = taskStore.list();
     expect(list).toHaveLength(1);
-    expect(list[0].priority).toBeUndefined();
-    expect(list[0].plannedFor).toBeUndefined();
+    expect(list[0].priority).toBe(3);
+    expect(list[0].plannedFor).toBe('2026-04-29');
     expect(list[0].startAt).toBe('2026-04-29T14:00:00Z');
   });
 });

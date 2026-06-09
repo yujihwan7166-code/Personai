@@ -4,13 +4,15 @@
  * dnd-kit 의 `data` 필드로 흘려보내 onDragEnd 에서 분기.
  */
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
+import type { PlannerLibraryItem } from '@/services/planner/libraryStore';
 
 // ───── Draggable 종류 ─────
 export type PlannerDragData =
   | { kind: 'inbox-task'; task: PlannerTask }
   | { kind: 'planned-task'; task: PlannerTask }
   | { kind: 'scheduled-task'; task: PlannerTask }
-  | { kind: 'scheduled-event'; event: PlannerEvent };
+  | { kind: 'scheduled-event'; event: PlannerEvent }
+  | { kind: 'library-template'; item: PlannerLibraryItem };
 // resize-task / resize-event 는 제거 — DraggableBlock 안 네이티브 pointer event 가 처리.
 
 // ───── Droppable 종류 ─────

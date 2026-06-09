@@ -3,6 +3,7 @@ export const RAIL_EVENT = {
   openMatrix: 'planner:open-matrix',
   openAgenda: 'planner:open-agenda',
   openDdayCreate: 'planner:open-dday-create',
+  openLibrary: 'planner:open-library',
   openTrash: 'planner:open-trash',
   openHabits: 'planner:open-habits',
   goToday: 'planner:go-today',

@@ -76,6 +76,8 @@ export interface PlannerEvent {
   startAt: string;
   /** ISO 8601 종료 시각. 필수. */
   endAt: string;
+  /** 하루 종일 또는 여러 날에 걸친 일정인지 여부. */
+  allDay?: boolean;
   /** 시간 블록 색상 (HSL 또는 hex). 미지정 시 기본 색. */
   color?: string;
   source: EventSource;
@@ -97,6 +99,8 @@ export interface PlannerTask {
   startAt?: string;
   /** 시간 배정된 경우 ISO 8601. 없으면 인박스. */
   endAt?: string;
+  /** 시간 배정된 할 일이 하루 종일/기간 블록인지 여부. */
+  allDay?: boolean;
   /** 연결된 목표 id (v3 활용, v1 미사용). */
   goalId?: string;
   /** 연결된 목표 마일스톤 id. goalId 없이 단독으로 쓰지 않는다. */

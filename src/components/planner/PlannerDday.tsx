@@ -327,12 +327,7 @@ const DdayManagerPopover = ({
         <div className="flex-1 flex overflow-hidden">
           {/* 좌측: 디데이 리스트 */}
           <div className="w-[300px] border-r border-border/40 flex flex-col bg-muted/[0.08]">
-            <div className="px-5 py-3.5 border-b border-border/30 flex items-center justify-between">
-              <span className="text-[11px] font-bold tracking-wider text-muted-foreground/75 uppercase">저장된 디데이</span>
-              <span className="text-[10px] font-extrabold bg-violet-500/10 text-violet-600 border border-violet-500/15 rounded-md px-1.5 py-0.5">{items.length}</span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {items.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
                   <span className="text-2xl mb-1.5 select-none opacity-50">⏳</span>
@@ -389,8 +384,8 @@ const DdayManagerPopover = ({
             <form onSubmit={submit} className="flex-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[13px] font-bold text-foreground">
-                    {editingId ? '🏷️ 디데이 수정' : '✨ 새 디데이 추가'}
+                  <h3 className="text-[16px] font-extrabold tracking-tight text-foreground">
+                    {editingId ? '디데이 수정' : '새 디데이 추가'}
                   </h3>
                   {editingId && (
                     <button

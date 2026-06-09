@@ -3,7 +3,7 @@
  *
  * 풀 화면 (사이드 컬럼 hide). 클릭 시 해당 일로 이동 (Phase 4 — onDayClick).
  */
-import { forwardRef, useCallback, useMemo, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
+import { forwardRef, useCallback, useMemo, useState, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
 import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { ArrowRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,8 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
       (
         activeDragData.kind === 'planned-task' ||
         activeDragData.kind === 'scheduled-task' ||
-        activeDragData.kind === 'scheduled-event'
+        activeDragData.kind === 'scheduled-event' ||
+        activeDragData.kind === 'library-template'
       ),
   );
 
@@ -191,7 +192,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                         }}
                         className={cn(
                           'flex flex-col items-stretch p-1.5 text-left min-w-0 min-h-0 cursor-pointer outline-none',
-                          'bg-card hover:bg-accent focus-visible:ring-1 focus-visible:ring-primary transition-colors',
+                          'bg-card focus-visible:ring-1 focus-visible:ring-primary transition-colors',
                           cell.isOtherMonth && 'bg-card/40',
                         )}
                       >
@@ -262,7 +263,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                                   }}
                                   className={cn(
                                     'flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors active:cursor-grabbing',
-                                    'bg-accent/70 hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35',
+                                    'bg-accent/70 hover:bg-accent/95 hover:shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35',
                                     dim && 'opacity-60',
                                   )}
                                 >
@@ -350,8 +351,11 @@ const MonthCellTrigger = forwardRef<HTMLDivElement, MonthCellTriggerProps>(({
   dayIso,
   className,
   children,
+  onMouseMove,
+  onMouseLeave,
   ...props
 }, forwardedRef) => {
+  const [hoveringPreviewItem, setHoveringPreviewItem] = useState(false);
   const data: PlannerDropData = { kind: 'day-column', dayIso };
   const { setNodeRef, isOver } = useDroppable({
     id: `month-day-${dayIso}`,
@@ -371,9 +375,18 @@ const MonthCellTrigger = forwardRef<HTMLDivElement, MonthCellTriggerProps>(({
     <div
       ref={setRefs}
       data-month-day={toDateKey(new Date(dayIso))}
+      onMouseMove={(event) => {
+        setHoveringPreviewItem(Boolean((event.target as HTMLElement).closest('[data-month-preview-item]')));
+        onMouseMove?.(event);
+      }}
+      onMouseLeave={(event) => {
+        setHoveringPreviewItem(false);
+        onMouseLeave?.(event);
+      }}
       {...props}
       className={cn(
         'relative',
+        !hoveringPreviewItem && 'hover:bg-accent',
         isOver && 'bg-primary/5 ring-2 ring-primary/35 ring-inset',
         className,
       )}
@@ -554,7 +567,7 @@ const MonthTodoPreview = ({
       event.stopPropagation();
       onClick?.();
     }}
-    className="flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors hover:bg-accent/70 active:cursor-grabbing"
+    className="flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors hover:bg-accent/85 hover:shadow-sm active:cursor-grabbing"
   >
     <span
       className="h-2.5 w-2.5 shrink-0 rounded-full border bg-card"

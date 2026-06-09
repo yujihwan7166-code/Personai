@@ -31,6 +31,37 @@ const DEFAULT_DURATION_MIN = 30;
 const formatHm = (iso: string) =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+const hasInlineScheduleToken = (text: string): boolean =>
+  /(오늘|내일|모레|today|tomorrow|이번주|다음주|\b\d{1,2}:\d{2}\b|\b\d{1,2}(?:am|pm)\b|(?:오전|오후)\s*\d{1,2}\s*시|\b\d{1,2}\s*시(?:\s*\d{1,2}\s*분)?|\d{1,2}\s*월\s*\d{1,2}\s*일)/i.test(text);
+
+const stripInlineMetadata = (text: string): string =>
+  text
+    .replace(/#[\p{L}\p{N}_-]+/gu, '')
+    .replace(/!([1-3])\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const buildInlineQuickAddTaskInput = (
+  rawTitle: string,
+  startIso: string,
+  durationMin?: number,
+) => {
+  const trimmed = rawTitle.trim();
+  const parsed = parseNaturalLanguage(trimmed, new Date(startIso));
+  const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
+  const endAt = new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
+  const hasNaturalSchedule = hasInlineScheduleToken(trimmed);
+
+  return {
+    title: stripInlineMetadata(hasNaturalSchedule ? trimmed : parsed.cleanTitle || trimmed) || trimmed,
+    startAt: startIso,
+    endAt,
+    recurrence: parsed.recurrence,
+    tags: parsed.tags,
+    priority: parsed.priority,
+  };
+};
+
 export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,26 +97,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       onClose();
       return;
     }
-    // 자연어 파싱 — 시간/길이/반복/태그 추출.
-    const slotBase = new Date(startIso);
-    const parsed = parseNaturalLanguage(trimmed, slotBase);
-
-    // 자연어가 startAt 을 안 줬으면 슬롯 시간 그대로.
-    const startAt = parsed.startAt ?? startIso;
-    const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
-    const endAt =
-      parsed.endAt ??
-      new Date(new Date(startAt).getTime() + fallbackDuration * 60_000).toISOString();
-
-    // 시간 잡힌 task (= "일정") — 설계 의도: 모든 user 항목은 task, eventStore 는 외부 통합용.
-    taskStore.add({
-      title: parsed.cleanTitle || trimmed,
-      startAt,
-      endAt,
-      recurrence: parsed.recurrence,
-      tags: parsed.tags,
-      priority: parsed.priority,
-    });
+    taskStore.add(buildInlineQuickAddTaskInput(trimmed, startIso, durationMin));
     notify.success('일정 추가됐어요', { duration: 1200 });
     onClose();
   };
