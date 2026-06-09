@@ -661,7 +661,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
   if (pages.length === 0) {
     return (
       <div className="flex items-center justify-center h-[60vh] text-[13px] text-muted-foreground">
-        페이지가 없어요. 먼저 페이지를 만들어보세요.
+        문서가 없어요. 먼저 문서를 만들어보세요.
       </div>
     );
   }
@@ -679,7 +679,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="제목·태그·alias"
+            placeholder="문서나 태그 검색"
             className="w-[140px] bg-transparent text-[12px] outline-none placeholder:text-muted-foreground/60"
           />
           {query && (
@@ -875,7 +875,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
       {/* 상태 줄 */}
       <div className="px-3 py-1 border-b border-[hsl(var(--hairline))] flex items-center justify-between text-[10.5px] text-muted-foreground">
         <span>
-          {nodes.length} 페이지 / {edges.length} 연결
+          {nodes.length} 문서 / {edges.length} 연결
           {visibleSet && ` · 필터 ${visibleSet.size}`}
           {matchSet && ` · 매칭 ${matchSet.size}`}
           {pathSet && ` · 경로 ${pathSet.size}`}
@@ -893,7 +893,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           ref={svgRef}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full h-[60vh] cursor-grab active:cursor-grabbing"
-          aria-label="위키 페이지 연결 그래프"
+          aria-label="위키 문서 연결 그래프"
           onWheel={onWheel}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -1102,7 +1102,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
                 </p>
               )}
               {stickyId && (
-                <p className="text-[9.5px] text-muted-foreground/70 mt-1">탭 한 번 더 = 페이지 열기</p>
+                <p className="text-[9.5px] text-muted-foreground/70 mt-1">탭 한 번 더 = 문서 열기</p>
               )}
             </div>
           );
@@ -1141,7 +1141,7 @@ function formatSearchHit(hit: string, value?: string): string {
   if (hit === 'tag') return `태그: #${value ?? ''}`;
   if (hit === 'link') return `링크: ${value ?? ''}`;
   if (hit === 'body') return value ?? '본문 일치';
-  return '페이지';
+  return '문서';
 }
 
 function EdgeLegend({ kind, label }: { kind: EdgeKind; label: string }) {

@@ -17,9 +17,12 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+  CalendarClock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  ListTodo,
   Search,
   Sparkles,
   Settings,
@@ -44,6 +47,7 @@ import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
 import { RAIL_EVENT } from '@/components/planner/plannerRailEvents';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
+import { PlannerTrashDialog } from '@/components/planner/PlannerTrashDialog';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
@@ -130,6 +134,92 @@ const formatDragTime = (iso: string): string =>
 
 const formatDragDate = (iso: string): string =>
   new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+
+type HeaderSearchResult =
+  | { type: 'task'; task: PlannerTask; score: number; label: string; meta: string; detail?: string }
+  | { type: 'event'; event: PlannerEvent; score: number; label: string; meta: string; detail?: string };
+
+const HEADER_SEARCH_LIMIT = 8;
+
+const normalizeSearchText = (value?: string): string =>
+  (value ?? '').trim().toLocaleLowerCase('ko-KR');
+
+const formatSearchDate = (iso?: string): string => {
+  if (!iso) return '날짜 없음';
+  return new Date(iso).toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  });
+};
+
+const formatSearchDateTime = (startIso?: string, endIso?: string): string => {
+  if (!startIso) return '시간 미배정';
+  const date = formatSearchDate(startIso);
+  const start = formatDragTime(startIso);
+  if (!endIso) return `${date} ${start}`;
+  return `${date} ${start}-${formatDragTime(endIso)}`;
+};
+
+const scoreSearchText = (query: string, title: string, extra = ''): number => {
+  const q = normalizeSearchText(query);
+  const t = normalizeSearchText(title);
+  const e = normalizeSearchText(extra);
+  if (!q) return 0;
+  if (t === q) return 100;
+  if (t.startsWith(q)) return 80;
+  if (t.includes(q)) return 60;
+  if (e.includes(q)) return 35;
+  return 0;
+};
+
+const buildHeaderSearchResults = (query: string): HeaderSearchResult[] => {
+  const q = normalizeSearchText(query);
+  if (!q) return [];
+
+  const taskResults: HeaderSearchResult[] = taskStore
+    .list()
+    .map((task) => {
+      const extra = [task.note, ...(task.tags ?? []), task.plannedFor].filter(Boolean).join(' ');
+      const score = scoreSearchText(q, task.title, extra);
+      if (score === 0) return null;
+      const isScheduled = Boolean(task.startAt);
+      return {
+        type: 'task' as const,
+        task,
+        score: score + (task.done ? -8 : 0) + (isScheduled ? 4 : 0),
+        label: task.title,
+        meta: isScheduled ? formatSearchDateTime(task.startAt, task.endAt) : `할 일 · ${task.plannedFor ? formatSearchDate(`${task.plannedFor}T09:00:00`) : '시간 미배정'}`,
+        detail: task.done ? '완료됨' : task.canceled ? '취소됨' : isScheduled ? '시간 배정됨' : '할 일',
+      };
+    })
+    .filter((result): result is HeaderSearchResult => Boolean(result));
+
+  const eventResults: HeaderSearchResult[] = eventStore
+    .list()
+    .map((event) => {
+      const score = scoreSearchText(q, event.title);
+      if (score === 0) return null;
+      return {
+        type: 'event' as const,
+        event,
+        score: score + 2,
+        label: event.title,
+        meta: formatSearchDateTime(event.startAt, event.endAt),
+        detail: '일정',
+      };
+    })
+    .filter((result): result is HeaderSearchResult => Boolean(result));
+
+  return [...taskResults, ...eventResults]
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const aIso = a.type === 'task' ? a.task.startAt ?? a.task.plannedFor ?? a.task.createdAt : a.event.startAt;
+      const bIso = b.type === 'task' ? b.task.startAt ?? b.task.plannedFor ?? b.task.createdAt : b.event.startAt;
+      return String(aIso).localeCompare(String(bIso));
+    })
+    .slice(0, HEADER_SEARCH_LIMIT);
+};
 
 const taskDragRestorePatch = (task: PlannerTask): Partial<Omit<PlannerTask, 'id' | 'createdAt'>> => ({
   startAt: task.startAt,
@@ -218,6 +308,7 @@ const Planner = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try { return window.localStorage.getItem('planner.ai-panel.open') === '1'; } catch { return false; }
@@ -299,7 +390,7 @@ const Planner = () => {
     let initialStart: string | undefined;
     let initialEnd: string | undefined;
     if (full && !full.startAt) {
-      const dayKey = full.plannedFor ?? new Date(anchorIso).toISOString().slice(0, 10);
+      const dayKey = full.plannedFor ?? toDateKey(new Date(anchorIso));
       // 로컬 자정 기준 09:00 으로 default — 사용자가 시간 input 만 바꾸면 그 날에 잘 떨어지도록.
       const start = new Date(`${dayKey}T09:00:00`);
       initialStart = start.toISOString();
@@ -439,35 +530,66 @@ const Planner = () => {
     setHeaderSearchQuery('');
   }, []);
 
+  useEffect(() => {
+    if (!headerSearchOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest('[data-planner-header-tools="true"]')) return;
+      closeHeaderSearch();
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [closeHeaderSearch, headerSearchOpen]);
+
+  const headerSearchResults = useMemo(
+    () => buildHeaderSearchResults(headerSearchQuery),
+    [headerSearchQuery],
+  );
+
+  const selectHeaderSearchResult = useCallback((result: HeaderSearchResult) => {
+    if (result.type === 'task') {
+      const task = result.task;
+      if (task.startAt) {
+        setAnchorIso(task.startAt);
+        setView('day');
+      }
+      setDialogMode({
+        kind: 'schedule',
+        taskId: task.id,
+        initialTitle: task.title,
+        initialStart: task.startAt,
+        initialEnd: task.endAt,
+        initialPriority: task.priority,
+        initialNote: task.note,
+        initialPinned: task.pinned,
+      });
+    } else {
+      setAnchorIso(result.event.startAt);
+      setView('day');
+      notify.info('일정 위치로 이동했어요', { duration: 1200 });
+    }
+    closeHeaderSearch();
+  }, [closeHeaderSearch, setView]);
+
   const runHeaderSearch = useCallback(() => {
-    const q = headerSearchQuery.trim().toLowerCase();
+    const q = headerSearchQuery.trim();
     if (!q) {
       setHeaderSearchOpen(true);
       headerSearchInputRef.current?.focus();
       return;
     }
 
-    const task = taskStoreSnapshot()
-      .filter((t) => !t.done && !t.canceled)
-      .find((t) => t.title.toLowerCase().includes(q));
-    if (task) {
-      handleCommandAction({ kind: 'jumpToTask', id: task.id, startAt: task.startAt });
-      setHeaderSearchOpen(false);
+    const firstResult = headerSearchResults[0];
+    if (firstResult) {
+      selectHeaderSearchResult(firstResult);
       return;
     }
 
-    const event = eventStore
-      .list()
-      .find((e) => e.title.toLowerCase().includes(q));
-    if (event) {
-      handleCommandAction({ kind: 'jumpToEvent', id: event.id, startAt: event.startAt });
-      setHeaderSearchOpen(false);
-      return;
-    }
-
-    notify.info('일치하는 일정이나 할 일이 없어요', { duration: 1400 });
+    notify.info('일치하는 할 일이나 일정이 없어요', { duration: 1400 });
     headerSearchInputRef.current?.focus();
-  }, [handleCommandAction, headerSearchQuery]);
+    return;
+
+  }, [headerSearchQuery, headerSearchResults, selectHeaderSearchResult]);
 
   // anchor 가 오늘과 같은 기간인지 (Today 버튼 dim 판정).
   const anchorIsToday = useMemo(() => {
@@ -546,7 +668,7 @@ const Planner = () => {
       if (isTyping) return;
       // 모달·팝오버·AI 패널 떠있으면 글로벌 뷰 전환 단축키 모두 차단.
       // (Esc/?는 그래도 받고 싶지만 단순화: 모두 차단)
-      if (dialogMode || paletteOpen || helpOpen || matrixPopoverOpen || agendaPopoverOpen || aiPanelOpen) {
+      if (dialogMode || paletteOpen || helpOpen || matrixPopoverOpen || agendaPopoverOpen || trashOpen || aiPanelOpen) {
         // helpOpen 인 경우 ? 로 다시 닫지 못하면 답답하니 ? 만 통과.
         if (helpOpen && e.key === '?') {
           e.preventDefault();
@@ -575,13 +697,14 @@ const Planner = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
+  }, [view, dialogMode, paletteOpen, helpOpen, matrixPopoverOpen, agendaPopoverOpen, trashOpen, aiPanelOpen, goPrev, goNext, goToday, setView]);
 
   // ── Rail 이벤트 핸들러 ── (useWindowEvent 로 보일러플레이트 제거)
   const handleOpenPalette = useCallback(() => setHeaderSearchOpen(true), []);
   const handleOpenMatrix = useCallback(() => setMatrixPopoverOpen(true), []);
   const handleOpenAgenda = useCallback(() => setAgendaPopoverOpen(true), []);
   const handleOpenHabits = useCallback(() => setView('habits'), [setView]);
+  const handleOpenTrash = useCallback(() => setTrashOpen(true), []);
   const handleGoToday = useCallback(() => {
     setView('day');
     goToday();
@@ -607,6 +730,7 @@ const Planner = () => {
   useWindowEvent(RAIL_EVENT.openMatrix, handleOpenMatrix);
   useWindowEvent(RAIL_EVENT.openAgenda, handleOpenAgenda);
   useWindowEvent(RAIL_EVENT.openHabits, handleOpenHabits);
+  useWindowEvent(RAIL_EVENT.openTrash, handleOpenTrash);
   useWindowEvent(RAIL_EVENT.goToday, handleGoToday);
   useWindowEvent(RAIL_EVENT.openModePalette, handleOpenModePalette);
   useWindowEvent(RAIL_EVENT.toggleAI, handleToggleAI);
@@ -662,7 +786,7 @@ const Planner = () => {
     if (!activeDrag) return null;
     const { data } = activeDrag;
     if (data.kind === 'inbox-task' || data.kind === 'planned-task') {
-      return `← ${data.task.title}`;
+      return data.task.title;
     }
     return null;
   }, [activeDrag]);
@@ -930,7 +1054,13 @@ const Planner = () => {
       dropData.kind === 'inbox'
     ) {
       // 일정(Event) 은 인박스 개념 없음 — 무시.
-      if (dragData.kind === 'scheduled-event') return;
+      if (dragData.kind === 'scheduled-event') {
+        notify.warning('캘린더 일정은 할 일로 바로 바꿀 수 없어요', {
+          description: '시간 배정된 할 일은 아래 할 일 영역으로 되돌릴 수 있어요.',
+          duration: 2200,
+        });
+        return;
+      }
       const task = dragData.task;
       const restore = taskDragRestorePatch(task);
       if (isInstanceId(task.id)) {
@@ -963,7 +1093,13 @@ const Planner = () => {
       dropData.kind === 'todo-list'
     ) {
       // event 는 task 가 아니라 무시.
-      if (dragData.kind === 'scheduled-event') return;
+      if (dragData.kind === 'scheduled-event') {
+        notify.warning('캘린더 일정은 할 일로 바로 바꿀 수 없어요', {
+          description: '시간 배정된 할 일은 아래 할 일 영역으로 되돌릴 수 있어요.',
+          duration: 2200,
+        });
+        return;
+      }
       const task = dragData.task;
       const dayKey = dropData.dayKey;
       const restore = taskDragRestorePatch(task);
@@ -999,21 +1135,38 @@ const Planner = () => {
   const openCreateEvent = useCallback(() => {
     const anchor = new Date(anchorIso);
     const today = new Date();
-    const isSame = anchor.toDateString() === today.toDateString();
-    const isPast = !isSame && anchor.getTime() < today.getTime();
-    const preset = (isSame || isPast)
-      ? nextHalfHourSlot()
-      : (() => {
-          const d = new Date(anchor);
-          d.setHours(9, 0, 0, 0);
-          return d;
-        })();
+    const isSame = toDateKey(anchor) === toDateKey(today);
+    const preset = new Date(anchor);
+    if (isSame) {
+      const slot = nextHalfHourSlot(today);
+      preset.setHours(slot.getHours(), slot.getMinutes(), 0, 0);
+    } else {
+      preset.setHours(9, 0, 0, 0);
+    }
     setDialogMode({
       kind: 'create',
       presetStartIso: preset.toISOString(),
       presetIsEvent: true,
     });
   }, [anchorIso]);
+
+  const openCreateEventForDay = useCallback((dayIso: string) => {
+    const anchor = new Date(dayIso);
+    const today = new Date();
+    const isSame = toDateKey(anchor) === toDateKey(today);
+    const preset = new Date(anchor);
+    if (isSame) {
+      const slot = nextHalfHourSlot(today);
+      preset.setHours(slot.getHours(), slot.getMinutes(), 0, 0);
+    } else {
+      preset.setHours(9, 0, 0, 0);
+    }
+    setDialogMode({
+      kind: 'create',
+      presetStartIso: preset.toISOString(),
+      presetIsEvent: true,
+    });
+  }, []);
 
   const openCreateTodo = useCallback(() => {
     const day = new Date(anchorIso);
@@ -1061,7 +1214,7 @@ const Planner = () => {
               </div>
             </div>
 
-            <div className="flex shrink-0 translate-y-1 items-center gap-0.5">
+            <div className="hidden">
               <button
                 type="button"
                 onClick={goPrev}
@@ -1099,7 +1252,7 @@ const Planner = () => {
             <div className="hidden flex-1 sm:block" />
 
             <div
-              className="ml-auto flex h-8 shrink-0 items-center gap-1"
+              className="relative ml-auto flex h-8 shrink-0 items-center gap-1"
               data-planner-header-tools="true"
             >
               <button
@@ -1158,6 +1311,83 @@ const Planner = () => {
                   <X className="h-3.5 w-3.5" strokeWidth={2.2} />
                 </button>
               </div>
+              {headerSearchOpen && headerSearchQuery.trim() && (
+                <div
+                  className="absolute left-0 top-[38px] z-50 hidden w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/20 bg-popover shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.35)] sm:block"
+                  onMouseDown={(event) => event.preventDefault()}
+                  role="listbox"
+                  aria-label="검색 결과"
+                >
+                  <div className="border-b border-foreground/10 px-3 py-2">
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      검색 결과
+                      {headerSearchResults.length > 0 && (
+                        <span className="ml-1 tabular-nums text-foreground/70">{headerSearchResults.length}</span>
+                      )}
+                    </p>
+                  </div>
+                  {headerSearchResults.length === 0 ? (
+                    <div className="px-3 py-5 text-center">
+                      <p className="text-[13px] font-semibold text-foreground">일치하는 항목이 없어요.</p>
+                      <p className="mt-1 text-[11.5px] text-muted-foreground">할 일 제목, 메모, 태그, 일정 제목을 검색할 수 있어요.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[360px] overflow-y-auto p-1.5">
+                      {headerSearchResults.map((result, index) => {
+                        const isTask = result.type === 'task';
+                        const done = isTask && result.task.done;
+                        const canceled = isTask && result.task.canceled;
+                        const scheduled = isTask && Boolean(result.task.startAt);
+                        const Icon = isTask
+                          ? done
+                            ? CheckCircle2
+                            : scheduled
+                              ? CalendarClock
+                              : ListTodo
+                          : CalendarClock;
+                        return (
+                          <button
+                            key={`${result.type}-${isTask ? result.task.id : result.event.id}`}
+                            type="button"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              selectHeaderSearchResult(result);
+                            }}
+                            className="group flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent focus:bg-accent"
+                            role="option"
+                            aria-selected={index === 0}
+                          >
+                            <span className={cn(
+                              'mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors group-hover:text-foreground',
+                              index === 0 && 'border-primary/25 bg-primary/8 text-primary',
+                            )}>
+                              <Icon className="h-3.5 w-3.5" strokeWidth={2.15} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className={cn(
+                                'block truncate text-[13px] font-semibold leading-snug text-foreground',
+                                (done || canceled) && 'text-foreground/55 line-through',
+                              )}>
+                                {result.label}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[11.5px] font-medium text-muted-foreground">
+                                {result.meta}
+                              </span>
+                            </span>
+                            <span className="mt-1 shrink-0 rounded-full border border-foreground/10 bg-card px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              {result.detail}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-foreground/10 px-3 py-2 text-[10.5px] text-muted-foreground">
+                    <span>Enter 첫 결과 열기</span>
+                    <span>Esc 닫기</span>
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => notify.info('플래너 설정은 준비 중이에요', { duration: 1400 })}
@@ -1167,6 +1397,44 @@ const Planner = () => {
               >
                 <Settings className="h-4 w-4" strokeWidth={2.1} />
               </button>
+
+              <div
+                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] sm:inline-flex"
+                aria-label="날짜 이동"
+              >
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="이전"
+                  title="이전"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
+                </button>
+                <button
+                  type="button"
+                  onClick={goToday}
+                  aria-label="오늘로"
+                  title="오늘로 (T)"
+                  className={cn(
+                    'inline-flex h-7 min-w-[52px] items-center justify-center rounded-[7px] px-2 text-[12px] font-bold transition-colors',
+                    anchorIsToday
+                      ? 'text-foreground/60 hover:bg-accent/70 hover:text-foreground'
+                      : 'bg-primary/[0.08] text-primary shadow-[0_1px_4px_hsl(var(--foreground)/0.08)] hover:bg-primary/[0.12]',
+                  )}
+                >
+                  오늘
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="다음"
+                  title="다음"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
+                </button>
+              </div>
 
               <div
                 className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
@@ -1363,6 +1631,7 @@ const Planner = () => {
                   <WeekView
                     anchorIso={anchorIso}
                     onDayClick={handleDayClick}
+                    onCreateEvent={openCreateEventForDay}
                     onItemClick={handleItemClick}
                     onTaskClick={handleInboxClick}
                   />
@@ -1405,6 +1674,7 @@ const Planner = () => {
         mode={dialogMode}
         onClose={() => setDialogMode(null)}
       />
+      <PlannerTrashDialog open={trashOpen} onOpenChange={setTrashOpen} />
       <PlannerCommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
@@ -1428,8 +1698,18 @@ const Planner = () => {
         portal 띄워 clip 회피 (좌측 할일 패널 위로 자연스럽게 떠다님). */}
     <DragOverlay dropAnimation={null}>
       {previewLabel && (
-        <div className="pointer-events-none select-none rounded-md bg-foreground text-background px-2.5 py-1 text-[11.5px] font-mono tabular-nums shadow-lg whitespace-nowrap">
-          {previewLabel}
+        <div className="pointer-events-none flex max-w-[300px] select-none items-center gap-2.5 rounded-xl border border-primary/30 bg-background/95 px-3 py-2 text-foreground shadow-[0_14px_34px_-16px_hsl(var(--foreground)/0.35)] ring-1 ring-primary/10 backdrop-blur-md">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/60 bg-primary/8 text-primary" aria-hidden>
+            <span className="h-2.5 w-2.5 rounded-full border border-current bg-background" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[12.5px] font-semibold leading-tight text-foreground">
+              {previewLabel}
+            </span>
+            <span className="mt-1 block text-[10.5px] font-semibold leading-none text-primary/80">
+              놓는 날짜로 할 일 이동
+            </span>
+          </span>
         </div>
       )}
       {(activeDrag?.data.kind === 'scheduled-task' || activeDrag?.data.kind === 'scheduled-event') && (() => {

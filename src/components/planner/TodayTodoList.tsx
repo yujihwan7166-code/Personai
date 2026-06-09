@@ -88,10 +88,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
           ? embedded
             ? 'bg-primary/5 ring-1 ring-inset ring-primary/45'
             : 'border-primary/50 bg-primary/5'
-          : !embedded && 'border-foreground/10',
+          : !embedded && 'border-foreground/[0.14]',
       )}
     >
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
         <ListTodo className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
         <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
           할 일
@@ -222,13 +222,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
                   <ContextMenuSeparator />
                   <ContextMenuItem
                     onSelect={() => {
-                      const { id: _id, createdAt: _ca, ...rest } = task;
-                      void _id; void _ca;
-                      const snap = { ...rest } as Omit<PlannerTask, 'id' | 'createdAt'>;
                       taskStore.remove(task.id);
-                      notify.success('삭제됐어요', {
+                      notify.success('휴지통으로 이동했어요', {
                         duration: 5000,
-                        action: { label: '되돌리기', onClick: () => taskStore.add(snap) },
+                        action: { label: '되돌리기', onClick: () => taskStore.restore(task.id) },
                       });
                     }}
                     className="text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"

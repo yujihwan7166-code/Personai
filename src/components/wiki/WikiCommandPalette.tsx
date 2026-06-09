@@ -90,7 +90,7 @@ export function WikiCommandPalette({
           <Command.Input
             value={query}
             onValueChange={setQuery}
-            placeholder="페이지·동작 검색  ·  자연어로 물어보면 AI 진입"
+            placeholder="문서·동작 검색  ·  자연어로 물어보면 AI 진입"
             autoFocus
             className="w-full h-11 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
           />
@@ -121,7 +121,7 @@ export function WikiCommandPalette({
           >
             <Item
               icon={<Plus className="h-3.5 w-3.5" />}
-              label="새 페이지"
+              label="새 문서"
               hint="Ctrl/Cmd+N"
               onSelect={() => run(onCreate)}
             />
@@ -162,7 +162,7 @@ export function WikiCommandPalette({
             {currentPageId && onGoGraphFocus && (
               <Item
                 icon={<Network className="h-3.5 w-3.5 text-primary" />}
-                label="이 페이지를 그래프에서 보기"
+                label="이 문서를 그래프에서 보기"
                 onSelect={() => run(() => onGoGraphFocus(currentPageId))}
               />
             )}
@@ -178,7 +178,7 @@ export function WikiCommandPalette({
             />
             <Item
               icon={<Trash2 className="h-3.5 w-3.5 text-destructive" />}
-              label="모든 페이지 삭제"
+              label="모든 문서 삭제"
               onSelect={() => run(onClearAll)}
             />
             {onClose && (
@@ -193,7 +193,7 @@ export function WikiCommandPalette({
 
           {pageHits.length > 0 && (
             <Command.Group
-              heading={cleanQuery ? `검색 결과 (${pageHits.length})` : `페이지 (${activePages.length})`}
+              heading={cleanQuery ? `검색 결과 (${pageHits.length})` : `문서 (${activePages.length})`}
               className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground/70 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:py-1"
             >
               {pageHits.map(({ page: p, hit, bodySnippet, matchedAlias, matchedTag, matchedLink }) => {
@@ -264,7 +264,7 @@ function formatHitMeta(
   matchedTag?: string,
   matchedLink?: string,
 ): string {
-  if (hit === 'alias' && matchedAlias) return `alias · ${matchedAlias}`;
+  if (hit === 'alias' && matchedAlias) return `별칭 · ${matchedAlias}`;
   if (hit === 'tag' && matchedTag) return `#${matchedTag}`;
   if (hit === 'link' && matchedLink) return `링크 · ${matchedLink}`;
   if (hit === 'body') return '본문';

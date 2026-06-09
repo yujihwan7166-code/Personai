@@ -21,8 +21,6 @@ import {
   type PageAiTone,
 } from '@/components/PageAiTokens';
 import {
-  AuxiliaryMemoTool,
-  AuxiliaryPlannerTool,
   AuxiliaryReferenceSelect,
   AuxiliaryToolTab,
   AuxiliaryToolTabs,
@@ -37,6 +35,7 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
+import { AuxiliaryMemoTool, AuxiliaryPlannerTool } from '@/components/AuxiliaryToolPanels';
 import { streamExpert } from '@/pages/indexRuntime';
 import { buildWikiAiContext, deriveWikiPageTitleFromAnswer } from '@/lib/wikiAiContext';
 
@@ -136,9 +135,9 @@ function deriveTitle(msgs: AiMsg[]): string {
 
 const EXAMPLES = [
   {
-    label: '페이지 요약',
+    label: '문서 요약',
     description: '핵심을 3줄로 압축',
-    prompt: '이 페이지 핵심 3줄로 요약해줘',
+    prompt: '이 문서 핵심 3줄로 요약해줘',
     icon: FileText,
     tone: 'blue',
     emphasized: true,
@@ -160,8 +159,8 @@ const EXAMPLES = [
   },
   {
     label: '관련 문서 추천',
-    description: '이어볼 페이지 찾기',
-    prompt: '관련된 위키 페이지 추천해줘',
+    description: '이어볼 문서 찾기',
+    prompt: '관련된 위키 문서 추천해줘',
     icon: Library,
     tone: 'emerald',
   },
@@ -755,7 +754,7 @@ function MsgBubble({
           {canAppend && (
             <PageAiMessageActionButton
               onClick={onAppend}
-              title="현재 페이지 본문 끝에 추가"
+              title="현재 문서 본문 끝에 추가"
               icon={<BookOpen className="h-3 w-3" />}
             >
               본문에 추가
@@ -764,10 +763,10 @@ function MsgBubble({
           {canCreate && (
             <PageAiMessageActionButton
               onClick={onCreate}
-              title="이 답변으로 새 페이지 만들기"
+              title="이 답변으로 새 문서 만들기"
               icon={<PlusIcon className="h-3 w-3" />}
             >
-              새 페이지로
+              새 문서로
             </PageAiMessageActionButton>
           )}
         </PageAiMessageActions>

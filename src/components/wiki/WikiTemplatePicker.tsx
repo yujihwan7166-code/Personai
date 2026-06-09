@@ -11,7 +11,7 @@ interface Props {
 }
 
 /**
- * 새 페이지 만들기 — 템플릿 픽커.
+ * 새 문서 만들기 — 템플릿 픽커.
  * Notion / Obsidian 템플릿 패턴.
  */
 export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
@@ -41,7 +41,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
       className="fixed inset-0 wiki-z-modal-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[10vh] px-4"
       onClick={onClose}
       role="dialog"
-      aria-label="새 페이지 템플릿 선택"
+      aria-label="새 문서 템플릿 선택"
     >
       <div
         className="w-full max-w-2xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
@@ -49,7 +49,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
       >
         {/* 헤더 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
-          <h2 className="text-[14px] font-bold flex-1">새 페이지</h2>
+          <h2 className="text-[14px] font-bold flex-1">새 문서</h2>
           <button
             type="button"
             onClick={onClose}
@@ -65,7 +65,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목 (선택, 비우면 템플릿 기본 제목 사용)"
+            placeholder="문서 제목"
             className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 transition-colors"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -127,7 +127,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         {/* 푸터 액션 */}
         <div className="px-4 py-3 border-t border-[hsl(var(--hairline))] flex items-center justify-between">
           <p className="text-[10.5px] text-muted-foreground">
-            Enter 또는 더블클릭 = 만들기 · Esc 닫기
+            원하는 양식을 고른 뒤 문서를 만드세요.
           </p>
           <button
             type="button"

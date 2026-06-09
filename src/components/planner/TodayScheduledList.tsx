@@ -18,6 +18,7 @@ import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -83,10 +84,10 @@ const SNOOZE_OPTIONS: ReadonlyArray<{ label: string; deltaMs: number }> = [
 ];
 
 const rowActionStripClass =
-  'ml-auto flex h-7 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/10 bg-card/95 p-0.5 shadow-[0_8px_18px_-16px_hsl(var(--foreground)/0.5)] transition-all translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100';
+  'ml-auto flex h-7 shrink-0 items-center gap-0.5 rounded-lg p-0.5 transition-all translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100';
 
 const rowActionButtonClass =
-  'inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+  'inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground';
 
 /** 미루기 — 시리즈 인스턴스는 editThisOnly 로 detach + 신규 단발 생성. */
 const snoozeItem = (kind: Kind, item: PlannerTask | PlannerEvent, deltaMs: number) => {
@@ -131,23 +132,17 @@ const removeItem = (kind: Kind, item: PlannerTask | PlannerEvent) => {
   // 단발 — 전체 캡처 후 5초 undo.
   if (kind === 'task') {
     const t = item as PlannerTask;
-    const { id: _id, createdAt: _ca, ...rest } = t;
-    void _id; void _ca;
-    const snap = { ...rest } as Omit<PlannerTask, 'id' | 'createdAt'>;
     taskStore.remove(t.id);
-    notify.success('삭제됐어요', {
+    notify.success('휴지통으로 이동했어요', {
       duration: 5000,
-      action: { label: '되돌리기', onClick: () => taskStore.add(snap) },
+      action: { label: '되돌리기', onClick: () => taskStore.restore(t.id) },
     });
   } else {
     const e = item as PlannerEvent;
-    const { id: _id, createdAt: _ca, ...rest } = e;
-    void _id; void _ca;
-    const snap = { ...rest } as Omit<PlannerEvent, 'id' | 'createdAt'>;
     eventStore.remove(e.id);
-    notify.success('삭제됐어요', {
+    notify.success('휴지통으로 이동했어요', {
       duration: 5000,
-      action: { label: '되돌리기', onClick: () => eventStore.add(snap) },
+      action: { label: '되돌리기', onClick: () => eventStore.restore(e.id) },
     });
   }
 };
@@ -188,11 +183,11 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
       className={cn(
         'w-full h-fit min-h-[104px] max-h-[264px] flex flex-col',
         embedded
-          ? 'border-b border-foreground/10 bg-card px-3 py-2.5'
-          : 'rounded-2xl border border-foreground/10 bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
+          ? 'border-b border-foreground/[0.14] bg-card px-3 py-2.5'
+          : 'rounded-2xl border border-foreground/[0.14] bg-card/80 px-3 py-2.5 shadow-[0_1px_2px_hsl(30_15%_8%/0.025)]',
       )}
     >
-      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
+      <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
         <ListChecks className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
         <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
           일정
@@ -259,19 +254,29 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
             {scheduled.map((item) => {
               const status = computeStatus(item.data.startAt, item.data.endAt, now);
               return item.kind === 'task' ? (
-                <ScheduledTaskRow
+                <DraggableWeekItem
                   key={item.data.id}
-                  task={item.data}
-                  status={status}
-                  onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
-                />
+                  id={`scheduled-list-task-${item.data.id}`}
+                  data={weekDragDataForTask(item.data)}
+                >
+                  <ScheduledTaskRow
+                    task={item.data}
+                    status={status}
+                    onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
+                  />
+                </DraggableWeekItem>
               ) : (
-                <ScheduledEventRow
+                <DraggableWeekItem
                   key={item.data.id}
-                  event={item.data}
-                  status={status}
-                  onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
-                />
+                  id={`scheduled-list-event-${item.data.id}`}
+                  data={weekDragDataForEvent(item.data)}
+                >
+                  <ScheduledEventRow
+                    event={item.data}
+                    status={status}
+                    onClick={() => onTaskClick?.({ id: item.data.id, title: item.data.title })}
+                  />
+                </DraggableWeekItem>
               );
             })}
           </div>
@@ -410,8 +415,9 @@ const ScheduledTaskRow = ({
   const dotColor = task.color ? TASK_LIST_COLORS[task.color].stripe : 'hsl(var(--primary))';
   return (
     <div
+      data-scheduled-list-item={`task-${task.id}`}
       className={cn(
-        'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
+        'group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1 transition-colors active:cursor-grabbing',
         status === 'past' && 'opacity-65 hover:opacity-95',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',
@@ -473,8 +479,9 @@ const ScheduledEventRow = ({
 }) => {
   return (
     <div
+      data-scheduled-list-item={`event-${event.id}`}
       className={cn(
-        'group flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors',
+        'group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1 transition-colors active:cursor-grabbing',
         status === 'past' && 'opacity-65 hover:opacity-95',
         status === 'now' && 'bg-amber-200/45 hover:bg-amber-200/60',
         status === 'upcoming' && 'hover:bg-accent',

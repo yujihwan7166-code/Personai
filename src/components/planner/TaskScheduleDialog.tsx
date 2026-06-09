@@ -63,7 +63,13 @@ const TASK_COLOR_OPTIONS: Array<{ value: TaskListColor; label: string }> = [
   { value: 'teal',   label: '청록' },
 ];
 
-const toDateInput = (iso: string): string => iso.slice(0, 10);
+const toDateInput = (iso: string): string => {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 const toTimeInput = (iso: string): string => {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -72,9 +78,9 @@ const minutesBetween = (startIso: string, endIso: string): number =>
   Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
 
 const buildIso = (dateStr: string, timeStr: string): string => {
+  const [year, month, day] = dateStr.split('-').map(Number);
   const [h, m] = timeStr.split(':').map(Number);
-  const d = new Date(dateStr);
-  d.setHours(h, m, 0, 0);
+  const d = new Date(year, month - 1, day, h, m, 0, 0);
   return d.toISOString();
 };
 
@@ -371,22 +377,13 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     }
 
     const target = series ? series.master : taskStore.findMaster(mode.taskId);
-    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'priority' | 'pinned' | 'recurrence'> = {
-      title: title.trim() || mode.initialTitle,
-      done: false,
-      startAt: target?.startAt ?? mode.initialStart,
-      endAt: target?.endAt ?? mode.initialEnd,
-      priority: priority === 0 ? undefined : priority,
-      pinned: mode.initialPinned,
-      recurrence: target?.recurrence,
-    };
     const idToRemove = target?.id ?? mode.taskId;
     taskStore.remove(idToRemove);
-    notify.success(series ? '전체 시리즈 삭제됐어요' : '삭제됐어요', {
+    notify.success(series ? '전체 시리즈를 휴지통으로 옮겼어요' : '휴지통으로 이동했어요', {
       duration: 5000,
       action: {
         label: '되돌리기',
-        onClick: () => taskStore.add(snapshot),
+        onClick: () => taskStore.restore(idToRemove),
       },
     });
     onClose();

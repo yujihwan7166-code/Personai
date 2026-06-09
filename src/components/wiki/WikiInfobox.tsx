@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META } from '@/types/wiki';
-import { formatWikiIdMarkdownLink, formatWikiTitleLink } from '@/lib/wikiLinks';
+import { formatWikiIdMarkdownLink } from '@/lib/wikiLinks';
 
 interface Props {
   page: WikiPage;
@@ -48,7 +48,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
         borderColor: 'hsl(var(--wiki-hairline-strong))',
         fontFamily: 'var(--wiki-font-meta)',
       }}
-      aria-label="페이지 정보"
+      aria-label="문서 정보"
     >
       {/* 헤더 — 페이지 제목만 (유형 표기 제거) */}
       <div
@@ -87,25 +87,16 @@ export function WikiInfobox({ page, onTagClick }: Props) {
             {WIKI_STATUS_META[statusKey].label}
           </span>
         </Row>
-        <Row label="링크">
+        <Row label="연결">
           <div className="flex flex-col gap-1">
             <button
               type="button"
-              onClick={() => copy('title', formatWikiTitleLink(page.title))}
+              onClick={() => copy('title', formatWikiIdMarkdownLink(page.id, page.title))}
               className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
-              title="[[문서명]] 위키링크 복사"
+              title="다른 문서에 붙일 연결을 복사"
             >
               {copied === 'title' ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
-              <span className="truncate">{formatWikiTitleLink(page.title)}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => copy('id', formatWikiIdMarkdownLink(page.id, page.title))}
-              className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="ID 기반 마크다운 링크 복사"
-            >
-              {copied === 'id' ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
-              <span className="truncate">ID 링크</span>
+              <span className="truncate">문서 연결 복사</span>
             </button>
           </div>
         </Row>
@@ -140,12 +131,12 @@ export function WikiInfobox({ page, onTagClick }: Props) {
         )}
         <Row label="만든 날">{formatDate(page.createdAt)}</Row>
         <Row label="마지막 수정">{formatDate(page.updatedAt)}</Row>
-        <Row label="ID">
+        <Row label="문서 코드">
           <button
             type="button"
             onClick={() => copy('id', page.id)}
             className="font-mono text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent rounded px-1 wiki-trans-color"
-            title="고유 ID 복사 — 다른 페이지 본문에 붙이면 ID 기반 링크"
+            title="문제가 생겼을 때 찾기용 코드 복사"
           >
             {copied === 'id' ? '복사됨 ' : '복사 '} {page.id}
           </button>

@@ -88,7 +88,7 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">이웃 그래프</p>
         </div>
         <p className="p-3 text-[11px] text-muted-foreground/80 text-center">
-          이 페이지는 아직 다른 페이지와 연결되지 않았어요.
+          이 문서는 아직 다른 문서와 연결되지 않았어요.
         </p>
         {onOpenInGlobal && (
           <button

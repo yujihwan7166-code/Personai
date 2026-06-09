@@ -162,7 +162,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     setBusy(true);
     try {
       await clearAllPages();
-      notify.success('모든 페이지 삭제 완료');
+      notify.success('모든 문서 삭제 완료');
       onMutated();
     } finally {
       setBusy(false);
@@ -244,7 +244,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       {clearConfirmOpen && createPortal(
         <DangerConfirmDialog
           title="전체 위키를 삭제할까요?"
-          body="모든 페이지가 삭제됩니다. 백업 파일 없이 진행하면 복구할 수 없어요."
+          body="모든 문서가 삭제됩니다. 백업 파일 없이 진행하면 복구할 수 없어요."
           busy={busy}
           confirmLabel="전체 삭제"
           onCancel={() => setClearConfirmOpen(false)}
@@ -295,7 +295,7 @@ function ImportChoiceDialog({
       <p className="text-[11px] font-semibold text-muted-foreground">백업 가져오기</p>
       <h2 className="mt-1 text-[15px] font-bold truncate">{file.name}</h2>
       <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
-        기존 위키를 유지하려면 병합을 선택하세요. 덮어쓰기는 현재 페이지와 히스토리를 지운 뒤 백업 내용으로 교체합니다.
+        기존 위키를 유지하려면 병합을 선택하세요. 덮어쓰기는 현재 문서와 히스토리를 지운 뒤 백업 내용으로 교체합니다.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-2">
         <button
@@ -305,7 +305,7 @@ function ImportChoiceDialog({
           className="rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-left hover:bg-primary/15 disabled:opacity-50"
         >
           <span className="block text-[12.5px] font-bold text-primary">병합</span>
-          <span className="block text-[11px] text-muted-foreground mt-0.5">기존 페이지를 유지하고, 없는 페이지만 가져옵니다.</span>
+          <span className="block text-[11px] text-muted-foreground mt-0.5">기존 문서를 유지하고, 없는 문서만 가져옵니다.</span>
         </button>
         <button
           type="button"

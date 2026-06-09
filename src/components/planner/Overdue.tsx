@@ -59,17 +59,10 @@ export const Overdue = ({ onTaskClick }: OverdueProps) => {
   };
 
   const handleDelete = (task: PlannerTask) => {
-    const snapshot: Pick<PlannerTask, 'title' | 'done' | 'startAt' | 'endAt' | 'goalId'> = {
-      title: task.title,
-      done: task.done,
-      startAt: task.startAt,
-      endAt: task.endAt,
-      goalId: task.goalId,
-    };
     taskStore.remove(task.id);
-    notify.success('삭제됐어요', {
+    notify.success('휴지통으로 이동했어요', {
       duration: 5000,
-      action: { label: '되돌리기', onClick: () => taskStore.add(snapshot) },
+      action: { label: '되돌리기', onClick: () => taskStore.restore(task.id) },
     });
   };
 

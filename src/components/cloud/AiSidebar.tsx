@@ -30,13 +30,10 @@ import {
   type PageAiTone,
 } from '@/components/PageAiTokens';
 import {
-  AuxiliaryMemoTool,
-  AuxiliaryPlannerTool,
   AuxiliaryReferenceSelect,
   type AuxiliaryToolSurface,
   AuxiliaryToolTab,
   AuxiliaryToolTabs,
-  AuxiliaryWikiTool,
   PageAiComposer,
   PageAiEmptyState,
   PageAiMessageActionButton,
@@ -48,6 +45,7 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
+import { AuxiliaryMemoTool, AuxiliaryPlannerTool, AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
 import type { AiContext, AiKind, ChatMessage } from '@/lib/cloudAi/types';
 

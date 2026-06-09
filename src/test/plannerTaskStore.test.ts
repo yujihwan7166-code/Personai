@@ -73,4 +73,24 @@ describe('taskStore', () => {
     taskStore.remove(t.id);
     expect(taskStore.list()).toHaveLength(0);
   });
+
+  it('remove() moves task to trash and restore() brings it back', () => {
+    const t = taskStore.add({ title: 'X' });
+    taskStore.remove(t.id);
+    expect(taskStore.list()).toHaveLength(0);
+    expect(taskStore.listDeleted()).toHaveLength(1);
+    expect(taskStore.listDeleted()[0].deletedAt).toBeTruthy();
+
+    taskStore.restore(t.id);
+    expect(taskStore.listDeleted()).toHaveLength(0);
+    expect(taskStore.list()[0].title).toBe('X');
+  });
+
+  it('purge() permanently removes a trashed task', () => {
+    const t = taskStore.add({ title: 'X' });
+    taskStore.remove(t.id);
+    taskStore.purge(t.id);
+    expect(taskStore.list()).toHaveLength(0);
+    expect(taskStore.listDeleted()).toHaveLength(0);
+  });
 });

@@ -1,5 +1,5 @@
 /**
- * 습관 풀뷰 — 좌 list + 우 detail 2-pane.
+ * 습관 풀뷰 — 좌 list + 우측 내장 detail pane.
  *
  * 좁은 화면에선 list만 표시, 행 클릭 시 detail 슬라이드 (Sheet).
  */
@@ -54,11 +54,11 @@ export const HabitsView = () => {
       <div
         className={
           hasActiveHabits
-            ? 'h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-0 min-h-0'
+            ? 'h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] gap-0 min-h-0 bg-card/30'
             : 'h-full min-h-0'
         }
       >
-        <div className="min-h-0">
+        <div className="min-h-0 min-w-0">
           <HabitListPane
             habits={habits}
             allCheckins={allCheckins}
@@ -69,7 +69,7 @@ export const HabitsView = () => {
           />
         </div>
         {hasActiveHabits && (
-          <div className="hidden lg:block min-h-0">
+          <div className="hidden min-h-0 min-w-0 border-l border-foreground/10 bg-card lg:block">
             {selected ? (
               <HabitDetailPane
                 habit={selected}

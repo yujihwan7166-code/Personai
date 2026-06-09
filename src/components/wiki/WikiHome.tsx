@@ -215,7 +215,7 @@ export function WikiHome({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium border border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:border-foreground/30 hover:text-foreground wiki-trans-color"
             >
               <Plus className="w-3.5 h-3.5" />
-              빈 페이지로 시작
+              빈 문서로 시작
             </button>
           </div>
         </div>
@@ -241,7 +241,7 @@ export function WikiHome({
     },
     {
       id: 'wiki-wanted',
-      label: '만들 페이지',
+      label: '만들 문서',
       count: stats.wanted.length,
       icon: <AlertTriangle className="w-3.5 h-3.5" />,
       tone: stats.wanted.length > 0 ? 'warn' : 'default',
@@ -291,10 +291,10 @@ export function WikiHome({
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground shadow-[0_1px_2px_hsl(30_15%_8%/0.08)] transition-opacity hover:opacity-90"
           >
             <Plus className="h-3.5 w-3.5" />
-            새 페이지
+            새 문서
           </button>
           <p className="text-[12px] text-muted-foreground inline-flex items-center gap-2 font-medium select-none">
-            <span><span className="font-mono font-semibold text-foreground tracking-tight">{pages.length}</span><span className="text-muted-foreground/70 ml-0.5">개 페이지</span></span>
+            <span><span className="font-mono font-semibold text-foreground tracking-tight">{pages.length}</span><span className="text-muted-foreground/70 ml-0.5">개 문서</span></span>
             <span className="text-muted-foreground/40">·</span>
             <span><span className="font-mono font-semibold text-foreground/85 tracking-tight">{stats.recentEdits}</span><span className="text-muted-foreground/70 ml-0.5">개 활동</span></span>
             {totalQueue > 0 && (
@@ -473,7 +473,7 @@ export function WikiHome({
       {/* 4 카드 그리드 — 최근 / 작업중 / 연결 안 된 / 잠자는 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 수정 */}
-        <Section title="🕒 최근 수정" empty="아직 페이지가 없어요">
+        <Section title="🕒 최근 수정" empty="아직 문서가 없어요">
           {stats.recent.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
@@ -494,14 +494,14 @@ export function WikiHome({
         </Section>
 
         {/* 작업중 */}
-        <Section title="🚀 작업중" empty="작업중인 페이지가 없어요">
+        <Section title="🚀 작업중" empty="작업중인 문서가 없어요">
           {stats.active.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
         </Section>
 
         {/* 만들 페이지 */}
-        <Section id="wiki-wanted" title="🔴 만들 페이지" empty="끊긴 위키링크가 없어요 ✓">
+        <Section id="wiki-wanted" title="🔴 만들 문서" empty="아직 만들 문서가 없어요 ✓">
           {stats.wanted.map(([title, count]) => (
             <MissingPageRow
               key={title}
@@ -527,8 +527,8 @@ export function WikiHome({
         {/* 연결 안 된 페이지 */}
         <Section
           id="wiki-orphans"
-          title="🌱 연결 안 된 페이지"
-          empty="모든 페이지가 연결됐어요 ✓"
+          title="🌱 연결 안 된 문서"
+          empty="모든 문서가 연결됐어요 ✓"
         >
           {stats.orphans.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
@@ -538,8 +538,8 @@ export function WikiHome({
         {/* 잠자는 페이지 (Stale) */}
         <Section
           id="wiki-stale"
-          title="🌙 잠자는 페이지"
-          empty="모든 페이지가 신선해요 ✓"
+          title="🌙 오래 손대지 않은 문서"
+          empty="모든 문서가 신선해요 ✓"
         >
           {stats.stale.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
@@ -569,7 +569,7 @@ export function WikiHome({
         && stats.stale.length === 0
         && stats.archived.length === 0 && (
           <div className="mt-4 rounded-xl border border-[hsl(var(--hairline))] bg-card/65 px-4 py-3 text-[12px] text-muted-foreground">
-            지금은 따로 손볼 문서가 없어요. 새 페이지를 만들거나 메인 문서에 링크를 더해 흐름을 이어가면 됩니다.
+            지금은 따로 손볼 문서가 없어요. 새 문서를 만들거나 메인 문서에 연결을 더해 흐름을 이어가면 됩니다.
           </div>
         )}
 
@@ -997,7 +997,7 @@ function MainDocRow({
       )}
       <span className="text-[11px] tabular-nums text-muted-foreground shrink-0 w-14 text-right">
         <span className="font-semibold text-foreground/80">{childCount}</span>
-        <span className="text-muted-foreground/60"> 페이지</span>
+        <span className="text-muted-foreground/60"> 문서</span>
       </span>
       <span className="hidden sm:inline text-[10.5px] tabular-nums text-muted-foreground/70 shrink-0 w-14 text-right">
         {updated}
@@ -1026,8 +1026,8 @@ function EmptyMocCard({
         아직 메인 문서가 없어요
       </p>
       <p className="text-[11.5px] text-muted-foreground leading-relaxed mb-4 max-w-md mx-auto">
-        메인 문서는 비슷한 페이지를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기 허브</em> 역할을 해요.<br />
-        50페이지 넘어가면 검색만으론 부족해서 — 진입점이 필요해져요.
+        메인 문서는 비슷한 문서를 모아 <em className="not-italic font-semibold text-foreground/80">길찾기 허브</em> 역할을 해요.<br />
+        문서가 많아지면 검색만으론 부족해서 — 진입점이 필요해져요.
       </p>
       {onMakeFromTag && topTags.length > 0 && (
         <>
@@ -1041,7 +1041,7 @@ function EmptyMocCard({
                 type="button"
                 onClick={() => onMakeFromTag(tag)}
                 className="group inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary/10 text-primary text-[11.5px] font-semibold hover:bg-primary hover:text-primary-foreground wiki-trans-base hover:shadow-sm"
-                title={`#${tag} 태그를 가진 ${n}개 페이지로 메인 문서 자동 생성`}
+                title={`#${tag} 태그를 가진 ${n}개 문서로 메인 문서 자동 생성`}
               >
                 <Plus className="w-2.5 h-2.5" />
                 <span>#{tag}</span>
@@ -1094,7 +1094,7 @@ function MissingPageRow({
       onClick={() => onCreate?.(title)}
       disabled={!onCreate}
       className="w-full flex items-center gap-2 px-2 py-1 rounded-md text-left hover:bg-accent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-      title={`본문에서 ${count}번 링크됐지만 아직 없는 페이지`}
+      title={`본문에서 ${count}번 링크됐지만 아직 없는 문서`}
     >
       <span className="text-[13px] leading-none shrink-0 text-[hsl(var(--wiki-link-missing))]" aria-hidden>?</span>
       <span className="flex-1 min-w-0 truncate text-[12px] text-[hsl(var(--wiki-link-missing))]">{title}</span>

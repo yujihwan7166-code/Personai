@@ -20,6 +20,7 @@ import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
 import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
 import { WikiQuickCapture } from '@/components/wiki/WikiQuickCapture';
 import { clearAllPages } from '@/lib/wikiStore';
+import { formatWikiIdMarkdownLink } from '@/lib/wikiLinks';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
@@ -105,7 +106,7 @@ const Wiki = () => {
   const openRandomPage = useCallback(() => {
     const candidates = pages.filter((p) => p.status !== 'archived' && p.id !== activeId);
     if (candidates.length === 0) {
-      notify.info('무작위 후보 페이지가 없어요', { duration: 1800 });
+      notify.info('무작위 후보 문서가 없어요', { duration: 1800 });
       return;
     }
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
@@ -115,11 +116,11 @@ const Wiki = () => {
     if (isMobile) setSidebarOpen(false);
   }, [pages, activeId, isMobile]);
 
-  /** 인기 태그로 메인 문서 자동 생성 — 그 태그를 가진 페이지들을 [[링크]] 로 묶음 */
+  /** 인기 태그로 메인 문서 자동 생성 — 그 태그를 가진 문서들을 연결로 묶음 */
   const makeMocFromTag = useCallback(async (tag: string) => {
     const targets = pages.filter((p) => p.tags.includes(tag));
     if (targets.length === 0) {
-      notify.info(`#${tag} 태그를 가진 페이지가 없어요`, { duration: 2200 });
+      notify.info(`#${tag} 태그를 가진 문서가 없어요`, { duration: 2200 });
       return;
     }
     const { newWikiId } = await import('@/types/wiki');
@@ -127,10 +128,10 @@ const Wiki = () => {
     const lines = [
       `# ${tag}`,
       '',
-      `\`#${tag}\` 태그를 가진 ${targets.length}개 페이지를 묶어둔 메인 문서.`,
+      `\`#${tag}\` 태그를 가진 ${targets.length}개 문서를 묶어둔 메인 문서.`,
       '',
-      '## 페이지',
-      ...targets.map((p) => `- [[${p.title}]]`),
+      '## 문서',
+      ...targets.map((p) => `- ${formatWikiIdMarkdownLink(p.id, p.title)}`),
       '',
       '## 같이 보기',
       '- ',
@@ -157,7 +158,7 @@ const Wiki = () => {
     setActiveId(next.id);
     setEditing(false);
     setView('page');
-    notify.success(`#${tag} 메인 문서를 만들었어요 — ${targets.length}개 페이지`, { duration: 2200 });
+    notify.success(`#${tag} 메인 문서를 만들었어요 — ${targets.length}개 문서`, { duration: 2200 });
   }, [pages, upsertPage]);
 
   /** '+ 새 메인 문서' — 템플릿 픽커 거치지 않고 바로 isMain=true 페이지 생성 + 편집 진입 */
@@ -172,7 +173,7 @@ const Wiki = () => {
       isMain: true,
       status: 'draft',
       tags: ['main'],
-      body: '## 개요\n\n이 메인 문서가 다루는 범위.\n\n## 핵심 페이지\n\n- [[ ]]\n\n## 하위 주제\n\n- [[ ]]\n',
+      body: '## 개요\n\n이 메인 문서가 다루는 범위.\n\n## 핵심 문서\n\n-\n\n## 하위 주제\n\n-\n',
       refersTo: [],
       cites: [],
       inherits: [],
@@ -200,7 +201,7 @@ const Wiki = () => {
   const handleDelete = async (id: string) => {
     const target = pages.find((p) => p.id === id);
     const backlinks = getBacklinks(id);
-    const title = target?.title ?? '이 페이지';
+    const title = target?.title ?? '이 문서';
     const backlinkText = backlinks.length > 0 ? `\n\n주의: 이 문서를 가리키는 문서가 ${backlinks.length}개 있습니다.` : '';
     if (!confirm(`'${title}' 문서를 완전히 삭제할까요?${backlinkText}\n\n보관이 아니라 실제 삭제라서 백업 없이는 되돌리기 어렵습니다.`)) return;
     await deletePage(id);
@@ -272,7 +273,7 @@ const Wiki = () => {
       setEditing(false);
       if (isMobile) setSidebarOpen(false);
     } else {
-      // 미존재 — 즉시 새 페이지로 (제목만 채워서, 빈 본문)
+      // 미존재 — 즉시 새 문서로 (제목만 채워서, 빈 본문)
       void (async () => {
         const { newWikiId } = await import('@/types/wiki');
         const now = Date.now();
@@ -316,14 +317,14 @@ const Wiki = () => {
   }, [findByTitle, upsertPage, isMobile]);
 
   const handleClearAll = async () => {
-    if (!confirm('정말 모든 위키 페이지를 삭제할까요?')) return;
-    if (!confirm('한 번 더 확인 — 모든 페이지가 사라집니다.')) return;
+    if (!confirm('정말 모든 위키 문서를 삭제할까요?')) return;
+    if (!confirm('한 번 더 확인 — 모든 문서가 사라집니다.')) return;
     await clearAllPages();
     void reload();
     setActiveId(null);
   };
 
-  // 단축키 — Ctrl/Cmd+N 새 페이지(템플릿 픽커), Ctrl/Cmd+B 사이드바, E 편집, Esc 편집취소
+  // 단축키 — Ctrl/Cmd+N 새 문서(템플릿 픽커), Ctrl/Cmd+B 사이드바, E 편집, Esc 편집취소
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -459,8 +460,8 @@ const Wiki = () => {
               type="button"
               onClick={openTemplatePicker}
               className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-              title="새 페이지 (Ctrl/Cmd+N)"
-              aria-label="새 페이지"
+              title="새 문서 (Ctrl/Cmd+N)"
+              aria-label="새 문서"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -468,8 +469,8 @@ const Wiki = () => {
               type="button"
               onClick={openRandomPage}
               className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="무작위 페이지"
-              aria-label="무작위 페이지"
+              title="무작위 문서"
+              aria-label="무작위 문서"
             >
               <Shuffle className="h-4 w-4" />
             </button>
@@ -486,7 +487,7 @@ const Wiki = () => {
           {/* 사이드바 footer — 좌측: 페이지 카운트 / 우측: 설정 (같은 줄) */}
           <div className="px-3 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-between shrink-0">
             <span className="text-[10px] text-muted-foreground tabular-nums">
-              {pages.length}개 페이지
+              {pages.length}개 문서
             </span>
             <WikiSettingsMenu
               onMutated={() => { void reload(); setActiveId(null); }}
@@ -577,8 +578,8 @@ const Wiki = () => {
             type="button"
             onClick={openTemplatePicker}
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="새 페이지 (Ctrl/Cmd+N)"
-            aria-label="새 페이지"
+            title="새 문서 (Ctrl/Cmd+N)"
+            aria-label="새 문서"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -586,8 +587,8 @@ const Wiki = () => {
             type="button"
             onClick={openRandomPage}
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="무작위 페이지"
-            aria-label="무작위 페이지"
+            title="무작위 문서"
+            aria-label="무작위 문서"
           >
             <Shuffle className="h-4 w-4" />
           </button>
@@ -621,7 +622,7 @@ const Wiki = () => {
                 setActiveId(null);
                 setEditing(false);
                 setView('page');
-                notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 페이지`, { duration: 2200 });
+                notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 문서`, { duration: 2200 });
               }}
             />
           ) : (
@@ -635,7 +636,7 @@ const Wiki = () => {
                   연결 그래프
                 </h1>
                 <p className="text-[12px] text-muted-foreground mt-1">
-                  검색·필터·줌·팬·경로 찾기. 노드 클릭 → 페이지 열기.
+                  검색·필터·줌·팬·경로 찾기. 노드 클릭 → 문서 열기.
                 </p>
               </header>
               <WikiGraph
@@ -692,7 +693,7 @@ const Wiki = () => {
                 updatedAt: now,
               };
               await upsertPage(next);
-              notify.success(`'${title}' 페이지 만들었어요`, { duration: 1800 });
+              notify.success(`'${title}' 문서를 만들었어요`, { duration: 1800 });
               return next;
             }}
             onTagClick={(tag) => {
@@ -723,7 +724,7 @@ const Wiki = () => {
               setActiveId(null);
               setEditing(false);
               setView('page');
-              notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 페이지`, { duration: 2200 });
+              notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 문서`, { duration: 2200 });
             }}
           />
         )}
@@ -770,7 +771,7 @@ const Wiki = () => {
         onClose={() => setQuickCaptureOpen(false)}
         onCreate={async (page) => {
           await upsertPage(page);
-          notify.info(`Inbox 에 새 페이지: ${page.title}`, { duration: 2200 });
+          notify.info(`Inbox 에 새 문서: ${page.title}`, { duration: 2200 });
         }}
         onOpenPage={(id) => {
           setActiveId(id);
@@ -797,7 +798,7 @@ const Wiki = () => {
           ].join('\n');
           const next: WikiPage = { ...activePage, body: `${activePage.body}${block}`, updatedAt: Date.now() };
           void upsertPage(next);
-          notify.success('현재 페이지 본문에 추가했어요');
+          notify.success('현재 문서 본문에 추가했어요');
         } : undefined}
         onCreatePageFromAnswer={async (title, body) => {
           const { newWikiId } = await import('@/types/wiki');
@@ -812,7 +813,7 @@ const Wiki = () => {
           setActiveId(next.id);
           setEditing(true);
           setView('page');
-          notify.success('새 draft 페이지로 만들었어요');
+          notify.success('새 임시 문서로 만들었어요');
         }}
       />
 

@@ -10,12 +10,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, ChevronDown, Mic,
-  Home, Menu, BookOpenText,
+  Home, PanelLeftClose, PanelLeftOpen, BookOpenText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { PageStarterEmpty } from '@/components/PageStarterEmpty';
 import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
+import { WorkspaceSidebarSwitchButton } from '@/components/WorkspaceSidebarSwitchButton';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
@@ -287,6 +288,15 @@ const Memos = () => {
           <>
             <button
               type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title="사이드바 열기"
+              aria-label="사이드바 열기"
+            >
+              <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/')}
               className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               title="홈으로"
@@ -294,24 +304,7 @@ const Memos = () => {
             >
               <Home className="w-4 h-4" strokeWidth={1.85} />
             </button>
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              title="메뉴 열기"
-              aria-label="메뉴 열기"
-            >
-              <Menu className="w-4 h-4" strokeWidth={1.9} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNewMemo()}
-              className="w-8 h-9 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
-              title="새 메모"
-              aria-label="새 메모"
-            >
-              <Plus className="w-4 h-4" strokeWidth={2} />
-            </button>
+            <WorkspaceSidebarSwitchButton current="memos" className="w-8 h-9" contentAlign="start" />
           </>
         ) : (
           <>
@@ -333,14 +326,15 @@ const Memos = () => {
                     >
                       <Home className="w-4 h-4" strokeWidth={1.85} />
                     </button>
+                    <WorkspaceSidebarSwitchButton current="memos" />
                     <button
                       type="button"
                       onClick={() => setSidebarCollapsed(true)}
                       className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      title="메뉴 접기"
-                      aria-label="메뉴 접기"
+                      title="사이드바 접기"
+                      aria-label="사이드바 접기"
                     >
-                      <Menu className="w-4 h-4" strokeWidth={1.9} />
+                      <PanelLeftClose className="w-4 h-4" strokeWidth={1.85} />
                     </button>
                   </div>
                 )}

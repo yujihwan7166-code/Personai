@@ -12,16 +12,15 @@ import { cn } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { PageAiPanelHeader } from '@/components/PageAiPanelHeader';
 import {
-  AuxiliaryMemoTool,
   AuxiliaryReferenceSelect,
   AuxiliaryToolTab,
   AuxiliaryToolTabs,
-  AuxiliaryWikiTool,
   PageAiEmptyState,
   PageAiResizeHandle,
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
+import { AuxiliaryMemoTool, AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
 import {
   PAGE_AI_PANEL_SCROLL_CLASS,
   PAGE_AI_PANEL_SURFACE_CLASS,

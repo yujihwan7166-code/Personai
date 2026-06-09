@@ -77,7 +77,7 @@ export function WikiStoragePanel({ open, onClose }: Props) {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2 mb-5">
-                <Stat label="페이지" value={stats.pageCount.toString()} />
+                <Stat label="문서" value={stats.pageCount.toString()} />
                 <Stat label="버전 히스토리" value={stats.revisionCount.toString()} />
                 <Stat label="이미지" value={stats.imageCount.toString()} sub={formatBytes(stats.imageBytes)} />
                 <Stat

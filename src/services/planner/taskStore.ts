@@ -60,17 +60,21 @@ const safeWrite = (tasks: PlannerTask[]): void => {
 const newId = (): string =>
   `tsk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const activeTasks = (): PlannerTask[] => safeRead().filter((t) => !t.deletedAt);
+
+const deletedTasks = (): PlannerTask[] => safeRead().filter((t) => t.deletedAt);
+
 export const taskStore = {
   /** 모든 할일 (생성 시각 내림차순 — 최신 먼저). */
   list(): PlannerTask[] {
-    return [...safeRead()].sort((a, b) =>
+    return [...activeTasks()].sort((a, b) =>
       b.createdAt.localeCompare(a.createdAt),
     );
   },
 
   /** 시간 미배정(인박스) 할일만. */
   listInbox(): PlannerTask[] {
-    return safeRead()
+    return activeTasks()
       .filter((t) => !t.startAt)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
@@ -87,7 +91,7 @@ export const taskStore = {
     rangeStart.setHours(0, 0, 0, 0);
     const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
 
-    const all = safeRead();
+    const all = activeTasks();
     const result: PlannerTask[] = [];
 
     for (const t of all) {
@@ -117,7 +121,7 @@ export const taskStore = {
 
   /** 특정 범위(rangeStart 포함, rangeEnd 제외)의 시간배정 task — 주/월 뷰용. */
   listScheduledRange(rangeStart: Date, rangeEnd: Date): PlannerTask[] {
-    const all = safeRead();
+    const all = activeTasks();
     const result: PlannerTask[] = [];
 
     for (const t of all) {
@@ -147,7 +151,7 @@ export const taskStore = {
 
   /** 마스터(저장된 원본) 만 반환 — 시리즈 편집 시 마스터 조회용. */
   findMaster(id: string): PlannerTask | undefined {
-    return safeRead().find((t) => t.id === id);
+    return activeTasks().find((t) => t.id === id);
   },
 
   // ──────── Subtask 헬퍼 ────────
@@ -218,6 +222,7 @@ export const taskStore = {
   add(input: Omit<PlannerTask, 'id' | 'createdAt' | 'done'> & { done?: boolean }): PlannerTask {
     const next: PlannerTask = sanitizeOne({
       ...input,
+      deletedAt: undefined,
       done: input.done ?? false,
       id: newId(),
       createdAt: new Date().toISOString(),
@@ -342,7 +347,43 @@ export const taskStore = {
   },
 
   remove(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], deletedAt: new Date().toISOString() };
+    safeWrite(all);
+  },
+
+  /** 휴지통 목록. 최신 삭제 항목이 먼저 온다. */
+  listDeleted(): PlannerTask[] {
+    return [...deletedTasks()].sort((a, b) =>
+      (b.deletedAt ?? '').localeCompare(a.deletedAt ?? ''),
+    );
+  },
+
+  /** 휴지통에서 원래 할 일/일정으로 복원. */
+  restore(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    const { deletedAt: _deletedAt, ...rest } = all[idx];
+    void _deletedAt;
+    all[idx] = rest as PlannerTask;
+    safeWrite(all);
+  },
+
+  /** 복구할 수 없도록 영구 삭제. */
+  purge(id: string): void {
     safeWrite(safeRead().filter((t) => t.id !== id));
+  },
+
+  /** 휴지통에 있는 할 일/일정만 비운다. */
+  emptyTrash(): number {
+    const all = safeRead();
+    const kept = all.filter((t) => !t.deletedAt);
+    const removed = all.length - kept.length;
+    if (removed > 0) safeWrite(kept);
+    return removed;
   },
 
   clear(): void {
@@ -351,13 +392,13 @@ export const taskStore = {
 
   /** 특정 (녹음, 액션 인덱스) 조합으로 이미 만든 할일이 있는지 — 중복 방지. */
   findFromRecordingAction(recordingId: string, actionIdx: number): PlannerTask | undefined {
-    return safeRead().find(
+    return activeTasks().find(
       (t) => t.sourceRecordingId === recordingId && t.sourceActionIndex === actionIdx,
     );
   },
 
   /** 특정 녹음에서 만들어진 할일들 (녹음 디테일 surface 용). */
   listFromRecording(recordingId: string): PlannerTask[] {
-    return safeRead().filter((t) => t.sourceRecordingId === recordingId);
+    return activeTasks().filter((t) => t.sourceRecordingId === recordingId);
   },
 };

@@ -6,6 +6,10 @@ import { getActiveWikiPages, searchWikiPages, type WikiSearchHit } from '@/lib/w
 
 type Mode = 'search' | 'id' | 'new';
 
+const isLikelyUrl = (value: string): boolean =>
+  /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value)
+  || /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(value);
+
 interface Props {
   open: boolean;
   pages: WikiPage[];
@@ -13,8 +17,10 @@ interface Props {
   initialQuery?: string;
   /** 기존 페이지 선택 시 호출 */
   onPick: (page: WikiPage) => void;
-  /** 새 페이지 만들고 하이퍼링크 — 부모가 페이지 생성 후 그 페이지 객체를 반환 */
+  /** 새 문서를 만들고 현재 글에 연결 — 부모가 문서 생성 후 그 문서 객체를 반환 */
   onCreateAndLink?: (title: string, type: WikiPageType) => Promise<WikiPage> | WikiPage;
+  /** 웹 URL 연결. 선택 텍스트가 있으면 그 텍스트에, 없으면 URL 텍스트로 삽입. */
+  onPickUrl?: (url: string, label?: string) => void;
   onClose: () => void;
 }
 
@@ -22,10 +28,10 @@ interface Props {
  * 페이지 picker — 3 모드 탭:
  * 1. 검색 (기존 페이지)
  * 2. ID 입력 (w_xxx 직접)
- * 3. 새로 만들고 하이퍼링크 (제목 + type 선택)
+ * 3. 새로 만들고 연결
  */
 export function WikiPagePickerModal({
-  open, pages, excludeId, initialQuery = '', onPick, onCreateAndLink, onClose,
+  open, pages, excludeId, initialQuery = '', onPick, onCreateAndLink, onPickUrl, onClose,
 }: Props) {
   const [mode, setMode] = useState<Mode>('search');
   const [query, setQuery] = useState(initialQuery);
@@ -44,7 +50,7 @@ export function WikiPagePickerModal({
     setTypeFilter('all');
     setActiveIdx(0);
     setIdInput('');
-    setNewTitle(initialQuery);  // 선택 텍스트가 새 페이지 제목 후보
+    setNewTitle(initialQuery);  // 선택 텍스트가 새 문서 제목 후보
     setNewType('concept');
     setBusy(false);
     const t = window.setTimeout(() => {
@@ -98,6 +104,7 @@ export function WikiPagePickerModal({
     );
   }, [query, typeFiltered]);
   const canCreateFromSearch = Boolean(onCreateAndLink && query.trim() && !exactPage);
+  const canPickUrl = Boolean(onPickUrl && isLikelyUrl(query.trim()));
 
   /* 쿼리는 있지만 매치 0 → 전체 둘러보기 fallback 표시 */
   const showFallback = mode === 'search' && query.trim().length > 0 && candidates.length === 0 && typeFiltered.length > 0;
@@ -114,9 +121,8 @@ export function WikiPagePickerModal({
   if (!open) return null;
 
   const tabs: Array<{ id: Mode; label: string; icon: React.ReactNode }> = [
-    { id: 'search', label: '기존 페이지 검색', icon: <Search className="w-3 h-3" /> },
-    { id: 'id',     label: 'ID 직접 입력',     icon: <Hash className="w-3 h-3" /> },
-    { id: 'new',    label: '새 페이지 만들기',  icon: <Plus className="w-3 h-3" /> },
+    { id: 'search', label: '문서 찾기', icon: <Search className="w-3 h-3" /> },
+    { id: 'new',    label: '새 문서',  icon: <Plus className="w-3 h-3" /> },
   ];
 
   async function handleCreate() {
@@ -147,7 +153,7 @@ export function WikiPagePickerModal({
     <div
       className="fixed inset-0 wiki-z-modal-backdrop bg-black/40 backdrop-blur-sm flex items-start justify-center pt-[12vh] px-4"
       role="dialog"
-      aria-label="하이퍼링크 만들기"
+      aria-label="문서 또는 링크 연결"
       onClick={onClose}
     >
       <div
@@ -197,11 +203,12 @@ export function WikiPagePickerModal({
                   else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (candidates[activeIdx]) onPick(candidates[activeIdx]);
+                    else if (canPickUrl) onPickUrl?.(query.trim());
                     else if (canCreateFromSearch) void handleCreateFromSearch();
                   }
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
-                placeholder="페이지 제목·별칭 검색… (비워두면 전체)"
+                placeholder="연결할 문서 이름이나 URL"
                 className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
               />
               {query && (
@@ -215,7 +222,7 @@ export function WikiPagePickerModal({
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">↑↓ Enter Esc</span>
+              <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">Enter 선택</span>
             </div>
 
             {/* Type 필터 row 제거됨 — 사용자 '타입' 미사용 의견 반영. 검색은 제목/본문으로만. */}
@@ -288,11 +295,24 @@ export function WikiPagePickerModal({
                 );
               })}
 
+              {canPickUrl && (
+                <div className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onPickUrl?.(query.trim())}
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
+                  >
+                    <Hash className="h-3.5 w-3.5" />
+                    웹 링크로 연결
+                  </button>
+                </div>
+              )}
+
               {/* 2) 일치 없음 + fallback (전체 둘러보기) */}
               {showFallback && (
                 <>
                   <p className="px-4 py-3 text-center text-[11.5px] text-muted-foreground">
-                    "<span className="text-foreground/80">{query.trim()}</span>" 와 일치하는 페이지 없음 — 아래에서 골라보세요
+                    "<span className="text-foreground/80">{query.trim()}</span>" 와 일치하는 문서가 없어요. 아래에서 골라보세요.
                   </p>
                   {canCreateFromSearch && (
                     <div className="px-3 pb-2">
@@ -303,12 +323,12 @@ export function WikiPagePickerModal({
                         className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        "{query.trim()}" 만들고 링크
+                        "{query.trim()}" 새 문서로 만들고 연결
                       </button>
                     </div>
                   )}
                   <div className="px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 border-t border-[hsl(var(--hairline))]">
-                    {typeFilter === 'all' ? '전체 페이지' : `${WIKI_TYPE_META[typeFilter].label} 페이지`}
+                    {typeFilter === 'all' ? '전체 문서' : `${WIKI_TYPE_META[typeFilter].label} 문서`}
                   </div>
                   {typeFiltered.map((p) => {
                     const meta = WIKI_TYPE_META[p.type];
@@ -321,7 +341,7 @@ export function WikiPagePickerModal({
                       >
                         <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
                         <span className="flex-1 min-w-0 truncate text-[12.5px]">{p.title}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">{p.id.slice(0, 8)}</span>
+                        <span className="text-[10px] text-muted-foreground/60 shrink-0">{meta.label}</span>
                       </button>
                     );
                   })}
@@ -333,10 +353,10 @@ export function WikiPagePickerModal({
                 <div className="px-4 py-6 text-center">
                   <p className="text-[12px] text-muted-foreground">
                     {query.trim()
-                      ? '일치하는 페이지가 없어요'
+                      ? '일치하는 문서가 없어요'
                       : typeFilter === 'all'
-                        ? '페이지가 아직 없어요. 위 탭에서 *새 페이지 만들기* 로 시작하세요.'
-                        : `${WIKI_TYPE_META[typeFilter].label} 타입 페이지가 없어요. 다른 타입 칩을 눌러보세요.`}
+                        ? '문서가 아직 없어요. 새 문서 탭에서 시작하세요.'
+                        : `${WIKI_TYPE_META[typeFilter].label} 문서가 없어요.`}
                   </p>
                   {canCreateFromSearch && (
                     <button
@@ -346,7 +366,7 @@ export function WikiPagePickerModal({
                       className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
                     >
                       <Plus className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">"{query.trim()}" 만들고 링크</span>
+                      <span className="truncate">"{query.trim()}" 새 문서로 만들고 연결</span>
                     </button>
                   )}
                 </div>
@@ -358,7 +378,7 @@ export function WikiPagePickerModal({
         {mode === 'id' && (
           <div className="p-4">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1.5">
-              페이지 ID 입력
+              문서 코드 입력
             </p>
             <input
               ref={inputRef}
@@ -368,11 +388,11 @@ export function WikiPagePickerModal({
                 if (e.key === 'Enter' && idMatch) { e.preventDefault(); onPick(idMatch); }
                 else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
               }}
-              placeholder="w_abc123… (페이지 인포박스에서 복사)"
+              placeholder="w_abc123… (문서 정보에서 복사)"
               className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] font-mono outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
             />
             <p className="mt-2 text-[10.5px] text-muted-foreground/80">
-              각 페이지의 인포박스 마지막 줄에 *📋 ID 복사 칩* 이 있어요.
+              문서 정보 영역에서 복사한 코드를 붙여넣을 수 있어요.
             </p>
             {idInput.trim() && (
               <div className="mt-3">
@@ -391,7 +411,7 @@ export function WikiPagePickerModal({
                   </button>
                 ) : (
                   <p className="text-[11.5px] text-rose-600 dark:text-rose-400">
-                    이 ID 의 페이지가 없어요
+                    이 문서를 찾을 수 없어요
                   </p>
                 )}
               </div>
@@ -403,7 +423,7 @@ export function WikiPagePickerModal({
           <div className="p-4 space-y-3">
             <div>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1.5">
-                새 페이지 제목
+                새 문서 제목
               </p>
               <input
                 ref={inputRef}
@@ -413,11 +433,11 @@ export function WikiPagePickerModal({
                   if (e.key === 'Enter' && newTitle.trim()) { e.preventDefault(); void handleCreate(); }
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
-                placeholder="제목 입력…"
+                placeholder="새 문서 제목"
                 className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
               />
             </div>
-            {/* 타입 선택 제거됨 — 자동 'concept' 으로 생성. 풍부한 템플릿은 /wiki 홈의 새 페이지 모달에서. */}
+            {/* 타입 선택 제거됨 — 자동 'concept' 으로 생성. 풍부한 템플릿은 /wiki 홈의 새 문서 모달에서. */}
             <button
               type="button"
               onClick={handleCreate}
@@ -430,10 +450,10 @@ export function WikiPagePickerModal({
               )}
             >
               <FileText className="w-3.5 h-3.5" />
-              {busy ? '만드는 중…' : '만들고 하이퍼링크'}
+              {busy ? '만드는 중…' : '새 문서로 만들고 연결'}
             </button>
             <p className="text-[10.5px] text-muted-foreground/80">
-              새 페이지가 생성되고, 본문에 그 페이지의 *고유 ID* 로 링크가 박힙니다.
+              새 문서를 만든 뒤 현재 글에 바로 연결합니다.
             </p>
           </div>
         )}
@@ -449,7 +469,7 @@ function formatHitMeta(
   matchedTag?: string,
   matchedLink?: string,
 ): string {
-  if (hit === 'alias' && matchedAlias) return `alias · ${matchedAlias}`;
+  if (hit === 'alias' && matchedAlias) return `별칭 · ${matchedAlias}`;
   if (hit === 'tag' && matchedTag) return `#${matchedTag}`;
   if (hit === 'link' && matchedLink) return `링크 · ${matchedLink}`;
   if (hit === 'body') return '본문';

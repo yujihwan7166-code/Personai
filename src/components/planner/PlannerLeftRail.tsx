@@ -11,7 +11,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock, CalendarDays, Grid2x2, Home, LayoutGrid, Repeat,
-  Settings, type LucideIcon,
+  Flag, Settings, Trash2, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -30,6 +30,8 @@ const TOP_ITEMS_PRIMARY: RailItem[] = [
   { kind: 'event',  eventName: RAIL_EVENT.openHabits,      label: '습관',         Icon: Repeat },
   { kind: 'event',  eventName: RAIL_EVENT.openMatrix,      label: '매트릭스',     Icon: Grid2x2 },
   { kind: 'event',  eventName: RAIL_EVENT.openAgenda,      label: '다가오는 일정',  Icon: CalendarClock },
+  { kind: 'event',  eventName: RAIL_EVENT.openDdayCreate,  label: 'D-day 설정',  Icon: Flag },
+  { kind: 'event',  eventName: RAIL_EVENT.openTrash,       label: '휴지통',       Icon: Trash2 },
 ];
 
 const BOTTOM_ITEMS: RailItem[] = [

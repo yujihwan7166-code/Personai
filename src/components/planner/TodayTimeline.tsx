@@ -77,6 +77,12 @@ interface TodayTimelineProps {
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+const formatHourAxisLabel = (hour: number): string => {
+  const period = hour < 12 ? '오전' : '오후';
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${displayHour}시`;
+};
+
 /** 시간 블록 길이 — Tooltip + 카드 내부 둘 다 사용. 짧은 표기. */
 const formatDuration = (startIso: string, endIso: string): string => {
   const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
@@ -331,27 +337,18 @@ export const TodayTimeline = ({
   };
 
   const handleDeleteTask = (task: PlannerTask) => {
-    // 되돌리기 시 메타(반복·서브태스크·녹음link·우선순위·노트·색상 등) 손실 없이 복원되도록 전체 캡처.
-    // 새 id 가 발급되는 건 store.add 의 정책이라 어쩔 수 없음 (시리즈 마스터의 경우 새 id 로 재시작).
-    const { id: _id, createdAt: _ca, ...rest } = task;
-    void _id; void _ca;
-    const snapshot: Omit<PlannerTask, 'id' | 'createdAt'> = { ...rest };
     taskStore.remove(task.id);
-    notify.success('삭제됐어요', {
+    notify.success('휴지통으로 이동했어요', {
       duration: 5000,
-      action: { label: '되돌리기', onClick: () => taskStore.add(snapshot) },
+      action: { label: '되돌리기', onClick: () => taskStore.restore(task.id) },
     });
   };
 
   const handleDeleteEvent = (event: PlannerEvent) => {
-    // 모든 필드 캡처 — 반복·laneOrder 손실 방지.
-    const { id: _id, createdAt: _ca, ...rest } = event;
-    void _id; void _ca;
-    const snapshot: Omit<PlannerEvent, 'id' | 'createdAt'> = { ...rest };
     eventStore.remove(event.id);
-    notify.success('삭제됐어요', {
+    notify.success('휴지통으로 이동했어요', {
       duration: 5000,
-      action: { label: '되돌리기', onClick: () => eventStore.add(snapshot) },
+      action: { label: '되돌리기', onClick: () => eventStore.restore(event.id) },
     });
   };
 
@@ -581,9 +578,9 @@ export const TodayTimeline = ({
                 className="absolute left-0 right-0 flex"
                 style={{ top: i * HOUR_PX, height: HOUR_PX }}
               >
-                <div className="w-10 shrink-0 pr-1.5 text-right">
-                    <span className="text-[11.5px] font-mono tabular-nums text-foreground/75 leading-none font-semibold">
-                    {String(hour).padStart(2, '0')}:00
+                <div className="relative w-14 shrink-0">
+                  <span className="absolute right-2 top-0 -translate-y-1/2 whitespace-nowrap text-[11.5px] font-semibold leading-none tracking-normal text-foreground/75">
+                    {formatHourAxisLabel(hour)}
                   </span>
                 </div>
                 <div className="flex-1 relative">
@@ -598,13 +595,13 @@ export const TodayTimeline = ({
                           startIso={slot0.toISOString()}
                           onClick={() => handleSlotClick(hour, 0)}
                           ariaLabel={`${hour}:00`}
-                          className="absolute inset-x-0 top-0 h-1/2 border-t border-foreground/12"
+                          className="absolute inset-x-0 top-0 h-1/2 border-t border-foreground/[0.18]"
                         />
                         <DroppableTimeSlot
                           startIso={slot30.toISOString()}
                           onClick={() => handleSlotClick(hour, 30)}
                           ariaLabel={`${hour}:30`}
-                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-foreground/8"
+                          className="absolute inset-x-0 top-1/2 h-1/2 border-t border-dashed border-foreground/[0.14]"
                         />
                       </>
                     );
@@ -621,7 +618,7 @@ export const TodayTimeline = ({
             if (compact && (adjusted < 0 || adjusted > visibleHours * HOUR_PX)) return null;
             return (
             <div
-              className="absolute left-10 right-0 z-20 pointer-events-none"
+              className="absolute left-14 right-0 z-20 pointer-events-none"
               style={{ top: adjusted }}
             >
               <div className="relative h-px bg-rose-500">
@@ -643,7 +640,7 @@ export const TodayTimeline = ({
             const endLabel = `${String(Math.floor(minB / 60)).padStart(2, '0')}:${String(minB % 60).padStart(2, '0')}`;
             return (
               <div
-                className="absolute left-11 right-3 overflow-hidden rounded-lg border border-primary/45 bg-primary/12 shadow-[0_10px_28px_-20px_hsl(var(--primary)/0.55)] ring-1 ring-primary/12 pointer-events-none z-25 transition-all duration-75"
+                className="absolute left-[60px] right-3 overflow-hidden rounded-lg border border-primary/45 bg-primary/12 shadow-[0_10px_28px_-20px_hsl(var(--primary)/0.55)] ring-1 ring-primary/12 pointer-events-none z-25 transition-all duration-75"
                 style={{
                   top,
                   height,
@@ -668,7 +665,7 @@ export const TodayTimeline = ({
           {/* 인라인 빠른 추가 — Apple Cal 패턴. 빈 슬롯 클릭 시 그 자리에 input.
               drag-to-create 면 customDuration 으로 길이 반영. */}
           {quickAddSlot && (
-            <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none z-30">
+            <div className="absolute left-14 right-0 top-0 bottom-0 pointer-events-none z-30">
               <div className="relative h-full pointer-events-none">
                 <InlineQuickAdd
                   startIso={quickAddSlot}
@@ -692,7 +689,7 @@ export const TodayTimeline = ({
           />
 
           {/* 시간 블록 */}
-          <div className="absolute left-10 right-0 top-0 bottom-0 pointer-events-none">
+          <div className="absolute left-14 right-0 top-0 bottom-0 pointer-events-none">
             {(() => {
               return (
                 <>
@@ -792,8 +789,8 @@ export const TodayTimeline = ({
                 >
                 <div
                   style={{
-                    backgroundColor: `color-mix(in oklab, ${stripeColor} 22%, hsl(var(--background)))`,
-                    borderColor: `color-mix(in oklab, ${stripeColor} 38%, hsl(var(--background)))`,
+                    backgroundColor: `color-mix(in oklab, ${stripeColor} 20%, transparent)`,
+                    borderColor: `color-mix(in oklab, ${stripeColor} 52%, hsl(var(--background)))`,
                   }}
                   className={cn(
                     'h-full w-full',
@@ -987,8 +984,8 @@ export const TodayTimeline = ({
 
   if (hideHeader) {
     return (
-      <section className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden border-y border-r border-foreground/10 bg-card px-3 py-2.5 lg:border-y-0 lg:border-r-0" data-planner-timeline="true">
-        <div className="shrink-0 flex min-w-0 items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/10">
+      <section className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden border-y border-r border-foreground/[0.14] bg-card px-3 py-2.5 lg:border-y-0 lg:border-r-0" data-planner-timeline="true">
+        <div className="shrink-0 flex min-w-0 items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
           {onToggleTaskPanel ? (
             <button
               type="button"

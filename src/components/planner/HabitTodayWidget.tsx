@@ -4,7 +4,7 @@
  * D-day / 매트릭스 와 일관된 톤. 클릭 시 habits 풀뷰로 점프.
  */
 import { useEffect, useState } from 'react';
-import { Repeat } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TASK_LIST_COLORS } from '@/types/planner';
 import { useHabits } from '@/hooks/planner/useHabits';
@@ -12,6 +12,8 @@ import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { isScheduledOn, toDateKey } from '@/lib/planner/habitStats';
 import { HABIT_CHECKIN_CHANGED, type HabitCheckin } from '@/types/habit';
 import { HabitDayDot } from './HabitDayDot';
+
+const SIDEBAR_HABIT_PAGE_SIZE = 5;
 
 interface HabitTodayWidgetProps {
   /** 헤더 클릭 — 풀뷰 점프. */
@@ -21,6 +23,7 @@ interface HabitTodayWidgetProps {
 export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
   const habits = useHabits();
   const [todayCheckins, setTodayCheckins] = useState<HabitCheckin[]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
   const todayKey = toDateKey(new Date());
 
   useEffect(() => {
@@ -37,6 +40,16 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
     const ci = checkinMap.get(h.id);
     return ci && (ci.count ?? 0) >= Math.max(1, h.schedule.timesPerDay ?? 1);
   }).length;
+  const pageCount = Math.max(1, Math.ceil(todayHabits.length / SIDEBAR_HABIT_PAGE_SIZE));
+  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const visibleHabits = todayHabits.slice(
+    safePageIndex * SIDEBAR_HABIT_PAGE_SIZE,
+    safePageIndex * SIDEBAR_HABIT_PAGE_SIZE + SIDEBAR_HABIT_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (pageIndex > pageCount - 1) setPageIndex(Math.max(0, pageCount - 1));
+  }, [pageCount, pageIndex]);
 
   if (habits.length === 0) return null;
 
@@ -57,7 +70,7 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
         <p className="px-1.5 py-1 text-[12px] text-foreground/55">오늘 예정 없음</p>
       ) : (
         <ul className="flex flex-col gap-0.5">
-          {todayHabits.slice(0, 2).map((h) => {
+          {visibleHabits.map((h) => {
             const stripe = (TASK_LIST_COLORS[h.color] ?? TASK_LIST_COLORS.blue).stripe;
             const ci = checkinMap.get(h.id);
             const tpd = Math.max(1, h.schedule.timesPerDay ?? 1);
@@ -94,9 +107,29 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
               </li>
             );
           })}
-          {todayHabits.length > 2 && (
-            <li className="px-1.5 text-[11px] text-foreground/55 tabular-nums">
-              +{todayHabits.length - 2}개 더 — 풀뷰에서
+          {pageCount > 1 && (
+            <li className="mt-1 flex items-center justify-center gap-1 px-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
+                disabled={safePageIndex === 0}
+                aria-label="이전 습관"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground/55 transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-25"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="min-w-9 text-center text-[10.5px] font-semibold tabular-nums text-foreground/45">
+                {safePageIndex + 1}/{pageCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))}
+                disabled={safePageIndex >= pageCount - 1}
+                aria-label="다음 습관"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground/55 transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-25"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             </li>
           )}
         </ul>

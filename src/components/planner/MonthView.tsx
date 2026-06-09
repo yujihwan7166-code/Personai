@@ -4,7 +4,7 @@
  * 풀 화면 (사이드 컬럼 hide). 클릭 시 해당 일로 이동 (Phase 4 — onDayClick).
  */
 import { forwardRef, useCallback, useMemo, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { ArrowRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
@@ -12,7 +12,7 @@ import { toDateKey } from '@/lib/planner/habitStats';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
 import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
-import type { PlannerDropData } from './dnd/plannerDndTypes';
+import type { PlannerDragData, PlannerDropData } from './dnd/plannerDndTypes';
 
 const DAYS_KO = [
   { short: '일', long: '일요일' },
@@ -41,6 +41,17 @@ const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onAddForDate }: MonthViewProps) => {
+  const { active } = useDndContext();
+  const activeDragData = active?.data.current as PlannerDragData | undefined;
+  const isDraggingPlannerItem = Boolean(
+    activeDragData &&
+      (
+        activeDragData.kind === 'planned-task' ||
+        activeDragData.kind === 'scheduled-task' ||
+        activeDragData.kind === 'scheduled-event'
+      ),
+  );
+
   const { start, end, weeks } = useMemo(() => {
     const anchor = new Date(anchorIso ?? new Date().toISOString());
     const year = anchor.getFullYear();
@@ -197,11 +208,6 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                           >
                             {cell.date}
                           </span>
-                          {hiddenCount > 0 && (
-                            <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
-                              +{hiddenCount}
-                            </span>
-                          )}
                         </div>
                         <div className="space-y-0.5 min-h-0 overflow-hidden">
                           {previewTimed.map((item) => {
@@ -214,59 +220,106 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                             const taskCanceled = item.kind === 'task' ? Boolean(item.data.canceled) : false;
                             const taskDone = item.kind === 'task' ? item.data.done : false;
                             const dim = taskDone || taskCanceled;
+                            const dragData = item.kind === 'event'
+                              ? weekDragDataForEvent(item.data as PlannerEvent)
+                              : weekDragDataForTask(item.data as PlannerTask);
                             return (
-                              <button
+                              <DraggableWeekItem
                                 key={item.data.id}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onItemClick && startAt) {
-                                    onItemClick({
-                                      kind: item.kind,
-                                      id: item.data.id,
-                                      title: item.data.title,
-                                      startAt,
-                                      endAt,
-                                    });
-                                  }
-                                }}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                className={cn(
-                                  'flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10.5px] truncate w-full text-left',
-                                  'bg-accent/70 hover:bg-accent transition-colors',
-                                  dim && 'opacity-60',
-                                )}
+                                id={`month-preview-${item.kind}-${item.data.id}`}
+                                data={dragData}
                               >
-                                <span
-                                  className="inline-block w-1 h-1 rounded-full shrink-0"
-                                  style={{ backgroundColor: stripeColor }}
-                                  aria-hidden
-                                />
-                                {startAt && (
-                                  <span className="tabular-nums text-muted-foreground shrink-0 text-[9.5px]">
-                                    {formatHm(startAt)}
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  data-month-preview-item={`${item.kind}-${item.data.id}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onItemClick && startAt) {
+                                      onItemClick({
+                                        kind: item.kind,
+                                        id: item.data.id,
+                                        title: item.data.title,
+                                        startAt,
+                                        endAt,
+                                      });
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (onItemClick && startAt) {
+                                        onItemClick({
+                                          kind: item.kind,
+                                          id: item.data.id,
+                                          title: item.data.title,
+                                          startAt,
+                                          endAt,
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  className={cn(
+                                    'flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors active:cursor-grabbing',
+                                    'bg-accent/70 hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35',
+                                    dim && 'opacity-60',
+                                  )}
+                                >
+                                  <span
+                                    className="inline-block h-1 w-1 shrink-0 rounded-full"
+                                    style={{ backgroundColor: stripeColor }}
+                                    aria-hidden
+                                  />
+                                  {startAt && (
+                                    <span className="shrink-0 tabular-nums text-[9.5px] text-muted-foreground">
+                                      {formatHm(startAt)}
+                                    </span>
+                                  )}
+                                  <span className={cn(
+                                    'truncate font-medium text-foreground',
+                                    dim && 'text-muted-foreground line-through',
+                                  )}>
+                                    {item.data.title}
                                   </span>
-                                )}
-                                <span className={cn(
-                                  'truncate text-foreground font-medium',
-                                  dim && 'line-through text-muted-foreground',
-                                )}>
-                                  {item.data.title}
-                                </span>
-                              </button>
+                                </div>
+                              </DraggableWeekItem>
                             );
                           })}
                           {previewTodos.map((task) => (
-                            <MonthTodoPreview
+                            <DraggableWeekItem
                               key={task.id}
-                              task={task}
-                              onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
-                            />
+                              id={`month-preview-task-${task.id}`}
+                              data={weekDragDataForTask(task)}
+                            >
+                              <MonthTodoPreview
+                                task={task}
+                                onClick={() => onTaskClick?.({ id: task.id, title: task.title })}
+                              />
+                            </DraggableWeekItem>
                           ))}
+                          {hiddenCount > 0 && (
+                            <div className="mt-1 flex items-center gap-1 rounded-sm px-1 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              <span className="flex items-center gap-0.5" aria-hidden>
+                                <span className="h-1 w-1 rounded-full bg-muted-foreground/45" />
+                                <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                                <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+                              </span>
+                              <span className="truncate">외 {hiddenCount}개 더 있음</span>
+                            </div>
+                          )}
                         </div>
                       </MonthCellTrigger>
                     </PopoverTrigger>
-                    <PopoverContent align="start" sideOffset={6} className="w-72 p-0 overflow-hidden">
+                    <PopoverContent
+                      align="start"
+                      sideOffset={6}
+                      data-month-popover-content="true"
+                      className={cn(
+                        'w-72 overflow-hidden p-0 transition-[opacity,transform,box-shadow] duration-150 ease-out',
+                        isDraggingPlannerItem && 'pointer-events-none scale-[0.985] opacity-20 shadow-none',
+                      )}
+                    >
                       <DayPopoverBody
                         cellIso={cell.iso}
                         items={dayItems}
@@ -482,7 +535,9 @@ const DayPopoverBody = ({
 };
 
 const todoColor = (task: PlannerTask) => (
-  task.color ? TASK_LIST_COLORS[task.color].stripe : 'hsl(var(--primary))'
+  task.color && TASK_LIST_COLORS[task.color]
+    ? TASK_LIST_COLORS[task.color].stripe
+    : 'hsl(var(--primary))'
 );
 
 const MonthTodoPreview = ({
@@ -494,12 +549,12 @@ const MonthTodoPreview = ({
 }) => (
   <button
     type="button"
+    data-month-preview-item={`task-${task.id}`}
     onClick={(event) => {
       event.stopPropagation();
       onClick?.();
     }}
-    onPointerDown={(event) => event.stopPropagation()}
-    className="flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors hover:bg-accent/70"
+    className="flex w-full cursor-grab items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[10.5px] transition-colors hover:bg-accent/70 active:cursor-grabbing"
   >
     <span
       className="h-2.5 w-2.5 shrink-0 rounded-full border bg-card"

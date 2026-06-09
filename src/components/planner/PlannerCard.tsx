@@ -82,10 +82,10 @@ const TagChip = ({ tag, onClick, compact }: { tag: string; onClick?: () => void;
 };
 
 const itemActionStripClass =
-  'ml-auto flex h-6 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/10 bg-card/95 p-0.5 shadow-[0_8px_18px_-16px_hsl(var(--foreground)/0.5)] transition-all';
+  'ml-auto flex h-6 shrink-0 items-center gap-0.5 rounded-lg p-0.5 transition-all';
 
 const itemActionButtonClass =
-  'inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+  'inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground';
 
 const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
   { value: 'blue', label: '파랑' },
@@ -430,9 +430,9 @@ export const PlannerCard = (props: PlannerCardProps) => {
   // variant === 'block'
   const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent, durationLabel, overlapping } = props;
   const accent = color ?? (kind === 'event' ? 'hsl(217 82% 58%)' : 'hsl(258 78% 58%)');
-  // 파스텔 풀 블록 — 색을 배경에 22% 섞고, 보더는 38% 로 약간 진하게.
-  const blockBg = `color-mix(in oklab, ${accent} 24%, hsl(var(--background)))`;
-  const blockBorder = `color-mix(in oklab, ${accent} 46%, hsl(var(--background)))`;
+  // Semi-transparent blocks keep nearby grid lines readable while preserving the item color.
+  const blockBg = `color-mix(in oklab, ${accent} 18%, transparent)`;
+  const blockBorder = `color-mix(in oklab, ${accent} 52%, hsl(var(--background)))`;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
   return (

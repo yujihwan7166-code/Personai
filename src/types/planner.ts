@@ -84,6 +84,8 @@ export interface PlannerEvent {
   /** 겹침 lane 순서 우선권. 작을수록 좌측. 미지정 시 startAt 으로 fallback. */
   laneOrder?: number;
   createdAt: string;
+  /** 휴지통 이동 시각. 값이 있으면 일반 캘린더 목록에서 숨긴다. */
+  deletedAt?: string;
 }
 
 /** 할일 — 시간 미배정(인박스) 또는 시간 배정(시간표) 양쪽 가능. */
@@ -140,6 +142,8 @@ export interface PlannerTask {
    * 미지정 시 startAt 정렬 fallback. */
   laneOrder?: number;
   createdAt: string;
+  /** 휴지통 이동 시각. 값이 있으면 일반 할 일/일정 목록에서 숨긴다. */
+  deletedAt?: string;
 }
 
 // ──────────────────────────────────────────────────────────────────────────

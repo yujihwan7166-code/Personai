@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { History, X, RotateCcw } from 'lucide-react';
 import { listRevisions, type Revision } from '@/lib/wikiHistory';
 import { estimateReadingMinutes, summarizeWikiPageDelta, type WikiPageDelta } from '@/lib/wikiHistorySummary';
-import type { WikiPage } from '@/types/wiki';
+import { type WikiPage, WIKI_STATUS_META, WIKI_TYPE_META } from '@/types/wiki';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -204,11 +204,11 @@ function RevPreview({
             {page.title}
           </h3>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <Chip>type: {page.type}</Chip>
-            <Chip>status: {page.status}</Chip>
+            <Chip>유형: {WIKI_TYPE_META[page.type]?.label ?? page.type}</Chip>
+            <Chip>상태: {WIKI_STATUS_META[page.status]?.label ?? page.status}</Chip>
             <Chip>{page.body.length.toLocaleString()}자</Chip>
             <Chip>{readingMinutes > 0 ? `${readingMinutes}분 읽기` : '빈 본문'}</Chip>
-            {page.tags.length > 0 && <Chip>tags: {page.tags.join(', ')}</Chip>}
+            {page.tags.length > 0 && <Chip>태그: {page.tags.join(', ')}</Chip>}
           </div>
         </div>
         {!isCurrent && onRestore && (

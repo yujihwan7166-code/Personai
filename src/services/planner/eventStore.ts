@@ -60,10 +60,14 @@ const safeWrite = (events: PlannerEvent[]): void => {
 const newId = (): string =>
   `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const activeEvents = (): PlannerEvent[] => safeRead().filter((e) => !e.deletedAt);
+
+const deletedEvents = (): PlannerEvent[] => safeRead().filter((e) => e.deletedAt);
+
 export const eventStore = {
   /** 모든 이벤트 (생성 시각 오름차순). */
   list(): PlannerEvent[] {
-    return [...safeRead()].sort((a, b) =>
+    return [...activeEvents()].sort((a, b) =>
       a.startAt.localeCompare(b.startAt),
     );
   },
@@ -80,7 +84,7 @@ export const eventStore = {
     rangeStart.setHours(0, 0, 0, 0);
     const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
 
-    const all = safeRead();
+    const all = activeEvents();
     const result: PlannerEvent[] = [];
 
     for (const e of all) {
@@ -109,7 +113,7 @@ export const eventStore = {
 
   /** 특정 범위(rangeStart 포함, rangeEnd 제외)의 이벤트 — 주/월 뷰용. */
   listByRange(rangeStart: Date, rangeEnd: Date): PlannerEvent[] {
-    const all = safeRead();
+    const all = activeEvents();
     const result: PlannerEvent[] = [];
 
     for (const e of all) {
@@ -136,13 +140,14 @@ export const eventStore = {
 
   /** 마스터(저장된 원본) 만 반환 — 시리즈 편집 시 마스터 조회용. */
   findMaster(id: string): PlannerEvent | undefined {
-    return safeRead().find((e) => e.id === id);
+    return activeEvents().find((e) => e.id === id);
   },
 
   /** 새 이벤트 추가. id/createdAt 자동 생성. */
   add(input: Omit<PlannerEvent, 'id' | 'createdAt'>): PlannerEvent {
     const next: PlannerEvent = {
       ...input,
+      deletedAt: undefined,
       id: newId(),
       createdAt: new Date().toISOString(),
     };
@@ -161,7 +166,43 @@ export const eventStore = {
 
   /** 삭제. */
   remove(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((e) => e.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], deletedAt: new Date().toISOString() };
+    safeWrite(all);
+  },
+
+  /** 휴지통 목록. 최신 삭제 항목이 먼저 온다. */
+  listDeleted(): PlannerEvent[] {
+    return [...deletedEvents()].sort((a, b) =>
+      (b.deletedAt ?? '').localeCompare(a.deletedAt ?? ''),
+    );
+  },
+
+  /** 휴지통에서 원래 캘린더로 복원. */
+  restore(id: string): void {
+    const all = safeRead();
+    const idx = all.findIndex((e) => e.id === id);
+    if (idx === -1) return;
+    const { deletedAt: _deletedAt, ...rest } = all[idx];
+    void _deletedAt;
+    all[idx] = rest;
+    safeWrite(all);
+  },
+
+  /** 복구할 수 없도록 영구 삭제. */
+  purge(id: string): void {
     safeWrite(safeRead().filter((e) => e.id !== id));
+  },
+
+  /** 휴지통에 있는 일정만 비운다. */
+  emptyTrash(): number {
+    const all = safeRead();
+    const kept = all.filter((e) => !e.deletedAt);
+    const removed = all.length - kept.length;
+    if (removed > 0) safeWrite(kept);
+    return removed;
   },
 
   /** 전체 삭제 (테스트·리셋용). */

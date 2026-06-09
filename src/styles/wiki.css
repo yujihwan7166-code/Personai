@@ -341,6 +341,43 @@
 }
 
 /* 편집 모드 — 셀 호버 / 활성 시각화 */
+.wiki-block-editor {
+  border: 1px solid hsl(var(--wiki-hairline));
+  border-radius: 12px;
+  background: hsl(var(--card) / 0.92);
+  padding: 1rem 1.1rem;
+  box-shadow: 0 12px 32px -30px hsl(30 15% 8% / 0.55);
+  transition:
+    border-color var(--wiki-dur-fast) var(--wiki-ease),
+    background-color var(--wiki-dur-fast) var(--wiki-ease),
+    box-shadow var(--wiki-dur-fast) var(--wiki-ease);
+}
+
+.wiki-block-editor:focus {
+  border-color: hsl(var(--primary) / 0.34);
+  box-shadow:
+    0 0 0 3px hsl(var(--primary) / 0.08),
+    0 12px 32px -30px hsl(30 15% 8% / 0.55);
+}
+
+.wiki-block-editor p.is-editor-empty:first-child::before,
+.wiki-block-editor h1.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground) / 0.58);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.wiki-block-editor p.is-empty::before {
+  color: hsl(var(--muted-foreground) / 0.38);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 .wiki-block-editor table .selectedCell {
   background: hsl(var(--primary) / 0.08);
   position: relative;

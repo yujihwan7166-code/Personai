@@ -38,13 +38,14 @@ interface WeekViewProps {
   anchorIso?: string;
   /** 컬럼 헤더 / 빈 컬럼 클릭 → 해당 일로 Day 뷰 점프. */
   onDayClick?: (dayIso: string) => void;
+  onCreateEvent?: (dayIso: string) => void;
   /** 카드 클릭 → 편집 모달 (Day 뷰와 일관성). */
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
   /** 날짜만 있는 할 일 클릭 → 일정/할 일 편집 모달. */
   onTaskClick?: (task: { id: string; title: string }) => void;
 }
 
-export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: WeekViewProps) => {
+export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onItemClick, onTaskClick }: WeekViewProps) => {
   const [lists, setLists] = useState(() => taskListStore.list());
   useEffect(() => {
     const refresh = () => setLists(taskListStore.list());
@@ -174,6 +175,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
             <DroppableDayColumn key={d.iso} dayIso={d.iso} className="flex min-h-0 min-w-0 flex-col">
               <button
                 type="button"
+                data-week-day-header={d.key}
                 onClick={() => onDayClick?.(d.iso)}
                 aria-label={`${d.date}일 ${DAYS_KO[d.dow]}요일${d.isToday ? ' (오늘)' : ''} — Day 뷰로`}
                 className={cn(
@@ -183,7 +185,7 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
                 )}
               >
                 <span className={cn(
-                  'text-[10.5px] font-semibold leading-none',
+                  'text-[12px] font-semibold leading-none',
                   !d.isToday && d.dow === 0 && 'text-rose-500',
                   !d.isToday && d.dow === 6 && 'text-blue-500',
                   !d.isToday && d.dow !== 0 && d.dow !== 6 && 'text-foreground/50',
@@ -200,13 +202,18 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
                   {d.date}
                 </span>
               </button>
-              <div className="flex min-h-0 flex-1 cursor-pointer flex-col bg-background/35">
+              <div className="flex min-h-0 flex-1 cursor-pointer flex-col bg-card">
                 <section
                   className={cn(
-                    'h-[148px] shrink-0 border-b border-foreground/10 bg-muted/20 px-1.5 py-1.5',
+                    'h-[148px] shrink-0 border-b border-foreground/10 bg-card px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
                     dayTodos.length > 4 ? 'overflow-y-auto' : 'overflow-hidden',
                   )}
                   aria-label={`${d.date}일 할 일`}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                      onCreateEvent?.(d.iso);
+                    }
+                  }}
                 >
                   <WeekSectionLabel icon={ListChecks} label="할 일" count={dayTodos.length} muted={dayTodos.length === 0} />
                   {dayTodos.length > 0 ? (
@@ -237,21 +244,22 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
                   ) : (
                     <button
                       type="button"
-                      onClick={() => onDayClick?.(d.iso)}
-                      aria-label={`${d.date}일 할 일 추가`}
-                      className="mt-1 h-8 w-full rounded-md border border-dashed border-transparent transition-colors hover:border-primary/20 hover:bg-background/65"
+                      onClick={() => onCreateEvent?.(d.iso)}
+                      aria-label={`${d.date}일 일정 추가`}
+                      className="mt-1 h-8 w-full rounded-md border border-dashed border-transparent transition-colors hover:border-primary/20 hover:bg-primary/5"
                     />
                   )}
                 </section>
                 <section
                   className={cn(
-                    'min-h-0 flex-1 px-1.5 py-1.5',
+                    'min-h-0 flex-1 px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
                     dayItems.length > 0 ? 'overflow-y-auto' : 'overflow-hidden',
                   )}
                   aria-label={`${d.date}일 일정`}
+                  data-week-day-create={d.key}
                   onClick={(e) => {
-                    if (e.target === e.currentTarget && dayItems.length === 0 && dayTodos.length === 0) {
-                      onDayClick?.(d.iso);
+                    if (e.target === e.currentTarget) {
+                      onCreateEvent?.(d.iso);
                     }
                   }}
                 >
@@ -260,16 +268,16 @@ export const WeekView = ({ anchorIso, onDayClick, onItemClick, onTaskClick }: We
                     hasCalendarItems ? (
                       <button
                         type="button"
-                        onClick={() => onDayClick?.(d.iso)}
+                        onClick={() => onCreateEvent?.(d.iso)}
                         className="mt-2 h-12 w-full rounded-md transition-colors hover:bg-card"
-                        aria-label={`${d.date}일로 이동`}
+                        aria-label={`${d.date}일 일정 추가`}
                       />
                     ) : (
                       <button
                         type="button"
-                        onClick={() => onDayClick?.(d.iso)}
+                        onClick={() => onCreateEvent?.(d.iso)}
                         className="mt-2 h-[calc(100%-2rem)] w-full rounded-md transition-colors hover:bg-primary/5"
-                        aria-label={`${d.date}일로 이동`}
+                        aria-label={`${d.date}일 일정 추가`}
                       />
                     )
                   ) : (
@@ -388,22 +396,37 @@ const WeekTodoRow = ({
       : 'hsl(var(--primary))';
 
   return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick?.();
-      }}
-      className="group flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[12px] transition-colors hover:bg-accent/45"
-    >
-      <span
-        className="h-3.5 w-3.5 shrink-0 rounded-full border bg-card transition-colors group-hover:bg-background"
+    <div className="group flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[12px] transition-colors hover:bg-accent/45">
+      <button
+        type="button"
+        data-week-todo-complete={task.id}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          taskStore.toggleDone(task.id);
+        }}
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 group-hover:bg-background"
         style={{ borderColor: color }}
-        aria-hidden
-      />
-      <span className="min-w-0 flex-1 truncate font-medium text-foreground/82">
+        aria-label={`${task.title} 완료`}
+        title="완료"
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full bg-transparent transition-colors group-hover:bg-current"
+          style={{ color }}
+          aria-hidden
+        />
+      </button>
+      <button
+        type="button"
+        data-week-todo-title={task.id}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.();
+        }}
+        className="min-w-0 flex-1 truncate text-left font-medium text-foreground/82 focus-visible:outline-none focus-visible:underline"
+      >
         {task.title}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 };

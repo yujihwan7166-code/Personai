@@ -39,21 +39,18 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
   }, [habit, allCheckins, viewYear, viewMonth]);
 
   return (
-    <div className="h-full min-h-0 flex flex-col">
-      {/* 본문 — 우측 패널 전체를 하나의 카드로 묶음. 안에서 섹션은 divider 로만 구분.
-          상단 여백은 좌측 콘텐츠와 시작점 맞추기 위해 컴팩트(pt-1). */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-1 pb-3">
-        <div className="rounded-2xl border hairline bg-card overflow-hidden shadow-[0_1px_2px_hsl(30_15%_8%/0.04)]">
-          {/* 헤더 — 컴팩트 한 줄: 이모지 + 제목 + 편집·메뉴 */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-foreground/15">
+    <div className="h-full min-h-0 flex flex-col bg-card">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-full bg-card">
+          <div className="flex h-14 items-center gap-2 border-b border-foreground/10 px-3">
             <span
-              className="h-6 w-6 inline-flex items-center justify-center rounded-full text-[12px] shrink-0"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-xl text-[16px] shrink-0"
               style={{ backgroundColor: `color-mix(in oklab, ${stripe} 18%, hsl(var(--background)))` }}
             >
               {habit.emoji}
             </span>
             <div className="min-w-0 flex-1 flex items-center gap-1.5">
-              <span className="text-[16px] font-bold tracking-tight text-foreground truncate">
+              <span className="text-[15px] font-bold tracking-tight text-foreground truncate">
                 {habit.title}
               </span>
               {habit.pinned && <Pin className="h-3 w-3 text-foreground/55 shrink-0" />}
@@ -84,21 +81,19 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
             </DropdownMenu>
           </div>
 
-          {/* notes — 있을 때만 헤더 아래 가는 행 */}
           {habit.notes && (
-            <div className="px-3 py-1.5 text-[11.5px] text-foreground/60 leading-snug border-b border-foreground/15">
+            <div className="px-3 py-2 text-[12px] text-foreground/65 leading-snug border-b border-foreground/10">
               {habit.notes}
             </div>
           )}
 
-          {/* Stats — 3분할 (연속·이번 달·베스트) */}
-          <div className="grid grid-cols-3 divide-x divide-foreground/15 border-b border-foreground/15">
+          <div className="grid grid-cols-3 divide-x divide-foreground/10 border-b border-foreground/10">
             {[
               { Icon: Flame, label: '연속', value: stats.streak, unit: '일', accent: stats.streak >= 3 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground/60' },
               { Icon: Calendar, label: '이번 달', value: stats.monthCount, unit: '일', accent: 'text-blue-600 dark:text-blue-400' },
               { Icon: Trophy, label: '최고기록', value: stats.max, unit: '일', accent: 'text-amber-600 dark:text-amber-400' },
             ].map(({ Icon, label, value, unit, accent }) => (
-              <div key={label} className="flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 text-center">
+              <div key={label} className="flex flex-col items-center justify-center gap-0.5 px-2 py-3 text-center">
                 <div className={cn('flex items-center gap-1', accent)}>
                   <Icon className="h-3 w-3" />
                   <span className="text-[10.5px] font-semibold tracking-wide text-foreground/65">{label}</span>
@@ -111,8 +106,7 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
             ))}
           </div>
 
-          {/* 월 캘린더 섹션 */}
-          <section className="px-3 py-3 border-b border-foreground/15">
+          <section className="px-3 py-3 border-b border-foreground/10">
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2 px-0.5">
               이번 달
             </div>
@@ -124,7 +118,6 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
             />
           </section>
 
-          {/* 365일 히트맵 섹션 */}
           <section className="px-3 py-3">
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-2 px-0.5">
               연간 패턴
@@ -136,4 +129,3 @@ export const HabitDetailPane = ({ habit, onEdit }: HabitDetailPaneProps) => {
     </div>
   );
 };
-

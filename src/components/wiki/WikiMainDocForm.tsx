@@ -21,7 +21,7 @@ interface Props {
  * - 핵심 페이지 / 하위 주제 / 같이 보기 / 출처·참고 (페이지 picker chips)
  * - 추가 본문 (extra) — 알려지지 않은 섹션 보존용 textarea
  *
- * 페이지 picker: 검색 input + autocomplete + 칩 추가/제거.
+ * 문서 picker: 검색 input + autocomplete + 칩 추가/제거.
  * 없는 제목 입력 + Enter = 새 칩으로 추가 (실제 페이지 생성은 저장 시 부모가 처리 가능).
  */
 export function WikiMainDocForm({ form, onChange, allPages, currentId }: Props) {
@@ -34,25 +34,25 @@ export function WikiMainDocForm({ form, onChange, allPages, currentId }: Props) 
         <textarea
           value={form.overview}
           onChange={(e) => update({ overview: e.target.value })}
-          placeholder="예) 이 문서는 [주제] 의 핵심 개념과 관련 자료를 묶어둔 길찾기 페이지."
+          placeholder="예) 이 문서는 [주제]의 핵심 개념과 관련 자료를 묶어둔 길찾기 문서."
           rows={3}
           className="w-full resize-y rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
         />
       </FieldBlock>
 
-      {/* 핵심 페이지 */}
-      <FieldBlock label="핵심 페이지" hint="이 주제의 가장 중요한 페이지들 — 짧게 4~7개">
+      {/* 핵심 문서 */}
+      <FieldBlock label="핵심 문서" hint="이 주제의 가장 중요한 문서들 — 짧게 4~7개">
         <PagePickerChips
           values={form.coreLinks}
           onChange={(v) => update({ coreLinks: v })}
           allPages={allPages}
           currentId={currentId}
-          placeholder="페이지 검색·추가…"
+          placeholder="문서 검색·추가…"
         />
       </FieldBlock>
 
       {/* 하위 주제 */}
-      <FieldBlock label="하위 주제" hint="이 주제 아래의 더 작은 묶음 또는 페이지">
+      <FieldBlock label="하위 주제" hint="이 주제 아래의 더 작은 묶음 또는 문서">
         <PagePickerChips
           values={form.subTopics}
           onChange={(v) => update({ subTopics: v })}
@@ -63,24 +63,24 @@ export function WikiMainDocForm({ form, onChange, allPages, currentId }: Props) 
       </FieldBlock>
 
       {/* 같이 보기 */}
-      <FieldBlock label="같이 보기" hint="옆에서 참고할 만한 관련 페이지">
+      <FieldBlock label="같이 보기" hint="옆에서 참고할 만한 관련 문서">
         <PagePickerChips
           values={form.seeAlso}
           onChange={(v) => update({ seeAlso: v })}
           allPages={allPages}
           currentId={currentId}
-          placeholder="관련 페이지 추가…"
+          placeholder="관련 문서 추가…"
         />
       </FieldBlock>
 
       {/* 출처/참고 */}
-      <FieldBlock label="출처 · 참고" hint="자료 페이지 또는 외부 출처 (출처 페이지로 만들고 링크 권장)">
+      <FieldBlock label="출처 · 참고" hint="자료 문서 또는 외부 출처">
         <PagePickerChips
           values={form.sources}
           onChange={(v) => update({ sources: v })}
           allPages={allPages}
           currentId={currentId}
-          placeholder="자료 페이지 추가…"
+          placeholder="자료 문서 추가…"
         />
       </FieldBlock>
 
@@ -249,7 +249,7 @@ function PagePickerChips({
                   ? 'border-[hsl(var(--hairline))] bg-card text-foreground/90'
                   : 'border-rose-300/50 bg-rose-50/60 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300',
               )}
-              title={found ? `${meta?.label} · ${found.title}` : `${v} (페이지 없음 — 저장 시 자동 생성됨)`}
+              title={found ? `${meta?.label} · ${found.title}` : `${v} (아직 없는 문서 — 저장하면 자동으로 만들어짐)`}
             >
               <span className="text-[12px] leading-none" aria-hidden>
                 {found ? meta?.icon : '🔴'}
@@ -316,7 +316,7 @@ function PagePickerChips({
               <Plus className="w-3 h-3 shrink-0" />
               <span className="flex-1 truncate">
                 <span className="font-bold">{query.trim()}</span>
-                <span className="text-muted-foreground"> — 새 페이지로 추가 (저장 시 빨간 링크)</span>
+                <span className="text-muted-foreground"> — 새 문서로 추가</span>
               </span>
             </button>
           )}
@@ -327,7 +327,7 @@ function PagePickerChips({
       {values.length === 0 && !query && !open && (
         <p className="mt-1 text-[10.5px] text-muted-foreground/70 inline-flex items-center gap-1">
           <Link2 className="w-2.5 h-2.5" />
-          페이지 검색하거나 직접 입력 후 Enter
+          문서를 검색하거나 직접 입력 후 Enter
         </p>
       )}
     </div>

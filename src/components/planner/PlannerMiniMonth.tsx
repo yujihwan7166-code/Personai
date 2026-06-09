@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PlannerMiniMonthProps {
@@ -63,6 +64,11 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
   const viewMonthIndex = viewMonth.getMonth();
   const monthLabel = viewMonth.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
 
+  const shiftViewMonth = (delta: -1 | 1) => {
+    setPickerOpen(false);
+    setViewMonth((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1));
+  };
+
   const setYear = (year: number) => {
     setViewMonth(new Date(year, viewMonthIndex, 1));
   };
@@ -74,29 +80,49 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
 
   return (
     <section className="relative px-1">
-      <div ref={pickerRef} className="relative mb-1.5 flex items-center justify-center px-1">
+      <div ref={pickerRef} className="relative mb-1.5 flex items-center justify-center gap-1 px-1">
+        <button
+          type="button"
+          onClick={() => shiftViewMonth(-1)}
+          aria-label="이전 달"
+          title="이전 달"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2.3} />
+        </button>
+
         <button
           type="button"
           onClick={() => setPickerOpen((open) => !open)}
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
-          aria-label="달력 년월 선택"
-          className="h-7 rounded-md px-3 text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-primary/10 hover:text-primary"
+          aria-label="달력 연월 선택"
+          className="h-7 min-w-[112px] rounded-md px-2 text-center text-[12.5px] font-semibold text-foreground tabular-nums transition-colors hover:bg-primary/10 hover:text-primary"
         >
           {monthLabel}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => shiftViewMonth(1)}
+          aria-label="다음 달"
+          title="다음 달"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.3} />
         </button>
 
         {pickerOpen && (
           <div
             role="dialog"
-            aria-label="년월 선택"
+            aria-label="연월 선택"
             className="absolute left-1/2 top-8 z-20 w-[210px] -translate-x-1/2 rounded-xl border border-primary/15 bg-card p-2.5 shadow-[0_10px_30px_hsl(30_15%_8%/0.14)]"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => setYear(viewYear - 1)}
-                aria-label="이전 년도"
+                aria-label="이전 연도"
                 className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
               >
                 -
@@ -105,7 +131,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
               <button
                 type="button"
                 onClick={() => setYear(viewYear + 1)}
-                aria-label="다음 년도"
+                aria-label="다음 연도"
                 className="h-7 w-8 rounded-md text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
               >
                 +
@@ -138,7 +164,7 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
           <span
             key={label}
             className={cn(
-              'text-center font-mono text-[10px] text-foreground/55',
+              'text-center font-mono text-[10px] font-medium text-foreground/55',
               index === 0 && 'text-rose-500/70',
               index === 6 && 'text-blue-500/70',
             )}
@@ -179,4 +205,3 @@ export const PlannerMiniMonth = ({ anchorIso, onSelectDay }: PlannerMiniMonthPro
     </section>
   );
 };
-

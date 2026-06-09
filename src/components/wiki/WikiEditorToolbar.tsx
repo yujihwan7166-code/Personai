@@ -5,7 +5,7 @@ import {
   Heading1, Heading2, Heading3, Type,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, CheckSquare, Quote, Code2, Minus,
-  Link as LinkIcon, BookOpen, ImagePlus,
+  Link as LinkIcon, ImagePlus,
   Table2,
   Palette, Highlighter, ChevronDown, MoreHorizontal,
 } from 'lucide-react';
@@ -73,9 +73,13 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
           </ToolbarBtn>
           <Sep className="hidden sm:inline-block" />
 
-          <LinkDropdown editor={editor} />
-          {onPickPage && (
-            <ToolbarBtn className="hidden sm:inline-flex" onClick={onPickPage} title="페이지 링크"><BookOpen className="w-3.5 h-3.5" /></ToolbarBtn>
+          {onPickPage ? (
+            <ToolbarTextBtn onClick={onPickPage} title="문서나 웹 링크 연결 (Ctrl+K)">
+              <LinkIcon className="w-3.5 h-3.5" />
+              연결
+            </ToolbarTextBtn>
+          ) : (
+            <LinkDropdown editor={editor} />
           )}
           {onPickImage && (
             <ToolbarBtn className="hidden sm:inline-flex" onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
@@ -109,9 +113,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
             <ToolbarBtn className="sm:hidden" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="밑줄 (Ctrl+U)">
               <UnderlineIcon className="w-3.5 h-3.5" />
             </ToolbarBtn>
-            {onPickPage && (
-              <ToolbarBtn className="sm:hidden" onClick={onPickPage} title="페이지 링크"><BookOpen className="w-3.5 h-3.5" /></ToolbarBtn>
-            )}
+            {onPickPage && <LinkDropdown editor={editor} />}
             {onPickImage && (
               <ToolbarBtn className="sm:hidden" onClick={onPickImage} title="이미지"><ImagePlus className="w-3.5 h-3.5" /></ToolbarBtn>
             )}
@@ -150,6 +152,30 @@ function ToolbarBtn({
       disabled={disabled}
       className={cn(
         'h-7 w-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color',
+        active && 'bg-primary/10 text-primary',
+        disabled && 'opacity-40 cursor-not-allowed',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ToolbarTextBtn({
+  active, onClick, title, children, disabled, className,
+}: {
+  active?: boolean; onClick: () => void; title: string;
+  children: React.ReactNode; disabled?: boolean; className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+      className={cn(
+        'h-7 shrink-0 inline-flex items-center justify-center gap-1 rounded px-2 text-[11.5px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color',
         active && 'bg-primary/10 text-primary',
         disabled && 'opacity-40 cursor-not-allowed',
         className,
@@ -489,7 +515,7 @@ function LinkDropdown({ editor }: { editor: Editor }) {
       <button
         type="button"
         onClick={openMenu}
-        title="하이퍼링크 (Ctrl+K)"
+        title="웹 링크"
         className={cn(
           'h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded wiki-trans-color',
           editor.isActive('link')

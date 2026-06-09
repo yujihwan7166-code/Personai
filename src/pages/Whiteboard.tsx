@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import '@/styles/wiki.css';   // wiki-warm-theme ?좏겙 (硫붾え? ?숈씪)
 import {
   Home,
-  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   MousePointer2,
   Hand,
   Type,
@@ -55,6 +56,7 @@ import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { PageStarterEmpty } from '@/components/PageStarterEmpty';
 import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
+import { WorkspaceSidebarSwitchButton } from '@/components/WorkspaceSidebarSwitchButton';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
@@ -393,6 +395,15 @@ function Sidebar({
       <aside className="flex h-11 shrink-0 items-center justify-end gap-1 border-b border-foreground/20 bg-background px-2 sm:h-screen sm:w-10 sm:flex-col sm:items-center sm:justify-start sm:border-b-0 sm:border-r sm:px-0 sm:py-3">
         <button
           type="button"
+          onClick={onToggleCollapsed}
+          className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="사이드바 열기"
+          aria-label="사이드바 열기"
+        >
+          <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
+        </button>
+        <button
+          type="button"
           onClick={onGoHome}
           className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           title="홈으로"
@@ -400,24 +411,7 @@ function Sidebar({
         >
           <Home className="w-4 h-4" strokeWidth={1.85} />
         </button>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="메뉴 열기"
-          aria-label="메뉴 열기"
-        >
-          <Menu className="w-4 h-4" strokeWidth={1.9} />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleNewBoard(null)}
-          className="w-8 h-9 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
-          title="새 보드"
-          aria-label="새 보드"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-        </button>
+        <WorkspaceSidebarSwitchButton current="whiteboard" className="w-8 h-9" contentAlign="start" />
       </aside>
     );
   }
@@ -440,14 +434,15 @@ function Sidebar({
           >
             <Home className="w-4 h-4" strokeWidth={1.85} />
           </button>
+          <WorkspaceSidebarSwitchButton current="whiteboard" />
           <button
             type="button"
             onClick={onToggleCollapsed}
             className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            title="메뉴 접기"
-            aria-label="메뉴 접기"
+            title="사이드바 접기"
+            aria-label="사이드바 접기"
           >
-            <Menu className="w-4 h-4" strokeWidth={1.9} />
+            <PanelLeftClose className="w-4 h-4" strokeWidth={1.85} />
           </button>
         </div>
         <div className="mt-3 flex gap-1.5">
@@ -873,6 +868,12 @@ type Interaction =
   | { kind: 'rotating'; id: string; cx: number; cy: number; startAngle: number; originAngle: number }
   | { kind: 'marquee'; start: { x: number; y: number }; current: { x: number; y: number }; baseSelection: Set<string> };
 
+type ImmersiveSnapshot = {
+  outlineOpen: boolean;
+  minimapOpen: boolean;
+  presentationIndex: number | null;
+};
+
 // ?쒖꽦 蹂대뱶 ??罹붾쾭??+ ?뚮줈??UI
 function BoardCanvas({
   board,
@@ -903,6 +904,7 @@ function BoardCanvas({
   const [selectedTableCell, setSelectedTableCell] = useState<{ tableId: string; index: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false);
   const [immersive, setImmersive] = useState(false);
+  const immersiveSnapshotRef = useRef<ImmersiveSnapshot | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -945,9 +947,31 @@ function BoardCanvas({
     setSelectedTableCell(null);
     setInteraction({ kind: 'idle' });
     setHoverElementId(null);
+    setImmersive(false);
+    immersiveSnapshotRef.current = null;
     clearHistory(board.id);
      
   }, [board.id]);
+
+  const enterImmersive = useCallback(() => {
+    immersiveSnapshotRef.current = {
+      outlineOpen,
+      minimapOpen,
+      presentationIndex,
+    };
+    setImmersive(true);
+  }, [outlineOpen, minimapOpen, presentationIndex]);
+
+  const exitImmersive = useCallback(() => {
+    const snapshot = immersiveSnapshotRef.current;
+    setImmersive(false);
+    if (snapshot) {
+      setOutlineOpen(snapshot.outlineOpen);
+      setMinimapOpen(snapshot.minimapOpen);
+      setPresentationIndex(snapshot.presentationIndex);
+      immersiveSnapshotRef.current = null;
+    }
+  }, []);
 
   // 珥덇린 history snapshot ??IDB 鍮꾨룞湲?濡쒕뱶媛 ?앸궃 ??泥?elements 媛 ?꾩갑?덉쓣 ?뚮쭔 (per-board ref 濡?1??蹂댁옣)
   const historyInitRef = useRef<string | null>(null);
@@ -1412,6 +1436,11 @@ function BoardCanvas({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return;
+      if (immersive && (e.key === 'Escape' || e.key === 'Tab')) {
+        e.preventDefault();
+        exitImmersive();
+        return;
+      }
       // space hold
       if (e.key === ' ') {
         e.preventDefault();
@@ -1490,7 +1519,8 @@ function BoardCanvas({
       // Tab ??紐곗엯 紐⑤뱶 (?뚮줈??UI ?좉?)
       if (e.key === 'Tab') {
         e.preventDefault();
-        setImmersive((v) => !v);
+        if (immersive) exitImmersive();
+        else enterImmersive();
         return;
       }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.size > 0) {
@@ -1565,7 +1595,7 @@ function BoardCanvas({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [activeTableCell, bgColor, board.id, editingId, editingTableCell, elements, interaction, selection, contextMenu, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, moveActiveTableCell, setActiveTableCellValue, changeZOrder, doGroup, doUngroup, doToggleLock, deleteElementsWithUndo, size.h, size.w, tool, viewport.x, viewport.y, viewport.zoom]);
+  }, [activeTableCell, bgColor, board.id, editingId, editingTableCell, elements, interaction, selection, contextMenu, doUndo, doRedo, duplicateSelected, copySelected, pasteClipboard, moveSelected, moveActiveTableCell, setActiveTableCellValue, changeZOrder, doGroup, doUngroup, doToggleLock, deleteElementsWithUndo, enterImmersive, exitImmersive, immersive, size.h, size.w, tool, viewport.x, viewport.y, viewport.zoom]);
 
   // ?붾㈃ 醫뚰몴 ??world
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -3177,7 +3207,7 @@ function BoardCanvas({
               </button>
               <button
                 type="button"
-                onClick={() => setImmersive(true)}
+                onClick={enterImmersive}
                 className="w-9 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 title="집중 모드"
                 aria-label="집중 모드"
@@ -3303,14 +3333,21 @@ function BoardCanvas({
 
       {/* 紐곗엯 紐⑤뱶 ?덈궡 (Tab ?쒖떆) */}
       {immersive && (
-        <button
-          type="button"
-          onClick={() => setImmersive(false)}
-          className="absolute right-4 top-4 text-[11px] text-muted-foreground/60 hover:text-foreground/80 bg-card/70 backdrop-blur-sm px-2 py-1 rounded transition-colors"
-          title="Tab으로 UI 다시 보기"
-        >
-          Tab으로 UI 켜기
-        </button>
+        <div className="pointer-events-auto absolute right-5 top-16 z-40 flex items-center gap-2">
+          <div className="hidden rounded-full border border-[hsl(var(--hairline))] bg-card/85 px-3 py-1.5 text-[11.5px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm sm:block">
+            Esc 또는 Tab으로 이전 화면 복귀
+          </div>
+          <button
+            type="button"
+            onClick={exitImmersive}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-foreground/20 bg-card/95 px-3 text-[12px] font-semibold text-foreground shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.45)] backdrop-blur transition-colors hover:border-primary/45 hover:bg-primary/8 hover:text-primary"
+            title="집중모드 종료"
+            aria-label="집중모드 종료"
+          >
+            <PanelLeftOpen className="h-3.5 w-3.5" strokeWidth={1.9} />
+            집중모드 종료
+          </button>
+        </div>
       )}
 
       {/* ?고겢由?而⑦뀓?ㅽ듃 硫붾돱 */}
@@ -4539,7 +4576,7 @@ function ContextualPanel({
 
   return (
     <div className={cn('absolute left-1/2 -translate-x-1/2 z-10', placement === 'top' ? 'top-20' : 'bottom-16')}>
-      <FloatingCard className="flex min-h-12 max-w-[calc(100vw-96px)] items-center gap-1.5 overflow-x-auto px-2 py-1.5">
+      <FloatingCard className="flex min-h-12 max-w-[calc(100vw-96px)] items-center gap-1.5 overflow-x-auto px-2 py-1.5 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>div]:shrink-0 [&>span]:shrink-0">
         {/* ?ㅽ???踰꾪듉 ???⑥씪 ?좏깮 ??expandable 硫붾돱 */}
         {single && (
           <StylePopover element={single} boardId={boardId} elements={elements} />
@@ -4549,18 +4586,20 @@ function ContextualPanel({
             <button
               type="button"
               onClick={() => onRenameFrame(single.id)}
-              className="h-10 px-3 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="h-10 w-10 shrink-0 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               title="프레임 이름 바꾸기"
+              aria-label="프레임 이름 바꾸기"
             >
-              이름
+              <PencilIcon className="h-4 w-4" strokeWidth={1.8} />
             </button>
             <button
               type="button"
               onClick={() => onFocusFrame(single)}
-              className="h-10 px-3 rounded-md text-[12px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="h-10 w-10 shrink-0 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               title="프레임으로 이동"
+              aria-label="프레임으로 이동"
             >
-              보기
+              <Focus className="h-4 w-4" strokeWidth={1.8} />
             </button>
             <div className="w-px h-5 bg-[hsl(var(--hairline))] mx-1" aria-hidden />
           </>
@@ -4835,7 +4874,9 @@ function ContextualPanel({
         >
           X
         </button>
-        <span className="text-[11px] text-muted-foreground/80 tabular-nums px-1.5">{selection.size}개</span>
+        <span className="min-w-9 shrink-0 whitespace-nowrap px-1.5 text-center text-[11px] text-muted-foreground/80 tabular-nums">
+          {selection.size}개
+        </span>
       </FloatingCard>
     </div>
   );
@@ -4889,16 +4930,17 @@ function StylePopover({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex items-center gap-1.5 px-3 h-10 rounded-md transition-colors',
+          'flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 transition-colors',
           open ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         title="스타일"
+        aria-label="스타일"
       >
         <span
-          className="w-4 h-4 rounded-full border border-foreground/20"
+          className="h-4 w-4 shrink-0 rounded-full border border-foreground/20"
           style={{ background: previewColor }}
         />
-        <span className="text-[12px] font-medium">스타일</span>
+        <span className="text-[12px] font-medium leading-none">스타일</span>
       </button>
       {open && (
         <div className="absolute left-0 bottom-full mb-2 z-20">

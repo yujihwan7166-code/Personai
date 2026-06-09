@@ -8,7 +8,7 @@ let devServer = null;
 try {
   await ensureServer();
   await verifyWikiEditorUx();
-  console.log('[wiki-ux] route, page creation, table insert, link popover, archive, and restore verified');
+  console.log('[wiki-ux] route, document creation, table insert, connection picker, archive, and restore verified');
 } finally {
   await stopServer();
 }
@@ -54,39 +54,36 @@ async function verifyWikiEditorUx() {
     await page.goto(`${baseUrl}/wiki`, { waitUntil: 'networkidle', timeout: 60_000 });
     await page.getByText('마이위키 시작하기').waitFor({ timeout: 15_000 });
 
-    await page.getByRole('button', { name: /빈 페이지로 시작/ }).click();
-    await page.getByRole('dialog', { name: '새 페이지 템플릿 선택' }).waitFor({ timeout: 10_000 });
+    await page.getByRole('button', { name: /빈 문서로 시작/ }).click();
+    await page.getByRole('dialog', { name: '새 문서 템플릿 선택' }).waitFor({ timeout: 10_000 });
     const title = `위키 UX 검증 ${Date.now()}`;
-    await page.getByPlaceholder('제목 (선택, 비우면 템플릿 기본 제목 사용)').fill(title);
+    await page.getByPlaceholder('문서 제목').fill(title);
     await page.getByRole('button', { name: '만들기', exact: true }).click();
 
     await page.locator('.wiki-block-editor').waitFor({ timeout: 15_000 });
     await page.locator('.wiki-block-editor').click();
     await page.keyboard.press('ControlOrMeta+K');
-    await page.getByRole('dialog', { name: '하이퍼링크 만들기' }).waitFor({ timeout: 10_000 });
+    await page.getByRole('dialog', { name: '문서 또는 링크 연결' }).waitFor({ timeout: 10_000 });
     await page.keyboard.press('Escape');
 
+    await page.locator('button[title="고급 도구"]').click();
     await page.locator('button[title="표 삽입"]').click();
     await page.locator('button[aria-label="4열 3행 표 삽입"]').click();
     await page.locator('.wiki-block-editor table').waitFor({ timeout: 10_000 });
 
-    await page.locator('button[title="하이퍼링크 (Ctrl+K)"]').click();
-    await page.locator('input[placeholder="https://"]').fill('example.com');
-    await page.locator('label:has-text("표시") input').fill('예시 링크');
-    await page.getByRole('button', { name: '적용' }).click();
+    await page.keyboard.press('ControlOrMeta+K');
+    await page.getByPlaceholder('연결할 문서 이름이나 URL').fill('example.com');
+    await page.getByRole('button', { name: '웹 링크로 연결' }).click();
 
     const linkOk = await page.evaluate(() =>
       Boolean(document.querySelector('.wiki-block-editor a[href="https://example.com"]')),
     );
-    assert(linkOk, 'link popover should insert a normalized external link');
+    assert(linkOk, 'connection picker should insert a normalized external link');
 
     await page.getByRole('button', { name: '저장' }).click();
     await page.locator('button[title="보관"]').waitFor({ timeout: 10_000 });
     await page.locator('button[title="보관"]').click();
     await page.getByText('보관된 문서입니다').waitFor({ timeout: 10_000 });
-    const sidebar = page.locator('aside').first();
-    await sidebar.getByRole('button', { name: '보관', exact: true }).click();
-    await sidebar.getByRole('button', { name: title }).waitFor({ timeout: 10_000 });
     await page.getByRole('button', { name: /복원/ }).click();
     await page.getByText('보관된 문서입니다').waitFor({ state: 'detached', timeout: 10_000 });
 

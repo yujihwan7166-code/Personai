@@ -70,7 +70,7 @@ export function WikiSidebar({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="제목·#태그·type:source"
+            placeholder="문서 검색"
             className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground/60"
           />
           {query && (
@@ -150,7 +150,7 @@ function EmptySearchState() {
   return (
     <div className="px-2 py-4 text-center">
       <p className="whitespace-pre-line text-[11px] text-muted-foreground">
-        페이지가 없어요.{'\n'}+ 버튼으로 시작
+        문서가 없어요.{'\n'}+ 버튼으로 시작
       </p>
     </div>
   );
@@ -190,7 +190,7 @@ function PageHitItem({
         )}
         {matchedAlias && hit.hit === 'alias' && (
           <p className="ml-[22px] text-[10.5px] text-muted-foreground">
-            alias: <Highlight text={matchedAlias} q={query} />
+            별칭: <Highlight text={matchedAlias} q={query} />
           </p>
         )}
         {matchedTag && hit.hit === 'tag' && (

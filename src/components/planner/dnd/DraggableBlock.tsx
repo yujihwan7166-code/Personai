@@ -227,20 +227,24 @@ export const DraggableBlock = ({
       {/* 라이브 종료시각·길이 inline chip — resize 중에만 노출 (블록 우측 하단) */}
       {liveEndLabel && (
         <div
-          className="pointer-events-none absolute right-1.5 bottom-2 px-1.5 py-0.5 rounded bg-foreground text-background text-[10.5px] font-mono tabular-nums shadow-sm"
+          className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-background/95 px-2 py-1 text-[11px] font-semibold tabular-nums text-foreground shadow-[0_10px_24px_-16px_hsl(var(--foreground)/0.45)] ring-1 ring-primary/10 backdrop-blur-md"
           aria-hidden
         >
-          → {liveEndLabel.time}  ·  {liveEndLabel.dur}
+          <span className="text-primary">→</span>
+          <span>{liveEndLabel.time}</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/35" />
+          <span className="text-muted-foreground">{liveEndLabel.dur}</span>
         </div>
       )}
 
       {/* 라이브 이동 시각 chip — 본체 드래그 중 좌상단에 새 시간 (Google Calendar 패턴) */}
       {liveMoveLabel && (
         <div
-          className="pointer-events-none absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded bg-foreground text-background text-[10.5px] font-mono tabular-nums shadow-sm"
+          className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-background/95 px-2 py-1 text-[11px] font-semibold tabular-nums text-foreground shadow-[0_10px_24px_-16px_hsl(var(--foreground)/0.45)] ring-1 ring-primary/10 backdrop-blur-md"
           aria-hidden
         >
-          {liveMoveLabel}
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <span>{liveMoveLabel}</span>
         </div>
       )}
 
@@ -253,7 +257,7 @@ export const DraggableBlock = ({
           onClick={(e) => e.stopPropagation()}
           className={cn(
             'absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize rounded-b transition-all',
-            'bg-transparent group-hover:bg-foreground/15 hover:!bg-foreground/45',
+            'bg-transparent group-hover:bg-primary/20 hover:!bg-primary/40',
             isResizing && '!bg-primary/55',
           )}
         />

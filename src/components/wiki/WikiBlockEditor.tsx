@@ -55,12 +55,12 @@ import { cn } from '@/lib/utils';
 interface Props {
   body: string; // markdown
   onChange: (markdown: string) => void;
-  /** 위키링크·페이지 검색용. 현재 페이지는 자동 제외. */
+  /** 문서 연결 검색용. 현재 문서는 자동 제외. */
   allPages: WikiPage[];
   currentId?: string;
   /** 이미지 업로드 — 본문 내 드롭/붙여넣기 시. base64 dataURL 또는 IDB blob ref 반환. */
   onUploadImage?: (file: File) => Promise<string>;
-  /** 새 페이지 만들고 링크 (picker 의 '새로 만들기' 탭) */
+  /** 새 문서를 만들고 연결 (picker 의 '새로 만들기' 탭) */
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
   /** 상단 고정 툴바 숨김 — 외부에서 별도로 렌더할 때 (예: 메모 페이지 액션바). */
   hideToolbar?: boolean;
@@ -87,6 +87,29 @@ interface MarkdownStorage {
 function getEditorMarkdown(editor: { storage: unknown; getHTML: () => string }, fallback = ''): string {
   const storage = editor.storage as MarkdownStorage;
   return storage.markdown?.getMarkdown?.() ?? fallback;
+}
+
+function wikiSyntaxToEditorMarkdown(markdown: string): string {
+  if (!markdown) return markdown;
+  return markdown.replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (_match, rawTarget: string, rawLabel?: string) => {
+    const target = rawTarget.trim();
+    const label = (rawLabel ?? rawTarget).trim();
+    if (!target || !label) return '';
+    return `[${escapeMarkdownLabel(label)}](##wiki:${encodeURIComponent(target)})`;
+  });
+}
+
+function escapeMarkdownLabel(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\]/g, '\\]')
+    .replace(/\[/g, '\\[')
+    .replace(/\r?\n/g, ' ')
+    .trim();
+}
+
+function wikiHrefForPage(page: Pick<WikiPage, 'id'>): string {
+  return `##wiki:${encodeURIComponent(page.id)}`;
 }
 
 /**
@@ -166,7 +189,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
         transformPastedText: true,
       }),
     ],
-    content: body || '',
+    content: wikiSyntaxToEditorMarkdown(body || ''),
     editorProps: {
       attributes: {
         class: 'wiki-prose wiki-block-editor focus:outline-none min-h-[420px]',
@@ -263,9 +286,10 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     if (!editor) return;
     if (lastBodyRef.current === body) return;
     lastBodyRef.current = body;
+    const normalizedBody = wikiSyntaxToEditorMarkdown(body || '');
     const current = getEditorMarkdown(editor);
-    if (current.trim() === body.trim()) return;
-    editor.commands.setContent(body || '', false);
+    if (current.trim() === normalizedBody.trim()) return;
+    editor.commands.setContent(normalizedBody, false);
   }, [body, editor]);
 
   /* 슬래시 메뉴 상태 */
@@ -337,17 +361,42 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
         }).run();
       }
     } else {
-      const wikiText = `[[${target}]]`;
+      const href = `##wiki:${encodeURIComponent(target)}`;
       if (range) {
-        chain.insertContentAt(range, wikiText).run();
+        chain.setTextSelection(range).extendMarkRange('link').setLink({ href }).run();
       } else {
-        chain.insertContent(wikiText).run();
+        chain.insertContent({
+          type: 'text',
+          text: target,
+          marks: [{ type: 'link', attrs: { href } }],
+        }).run();
       }
     }
     setMemoLinkOpen(false);
     setMemoLinkTarget('');
     memoLinkRangeRef.current = null;
   };
+
+  const applyUrlLink = useCallback((rawUrl: string, rawLabel?: string) => {
+    if (!editor) return;
+    const target = rawUrl.trim();
+    if (!target) return;
+    const href = normalizeHref(target);
+    const range = pickerSelRangeRef.current;
+    const label = (rawLabel ?? pickerSelText).trim() || target.replace(/^https?:\/\//i, '');
+    const chain = editor.chain().focus();
+    if (range) {
+      chain.setTextSelection(range).extendMarkRange('link').setLink({ href }).run();
+    } else {
+      chain.insertContent({
+        type: 'text',
+        text: label,
+        marks: [{ type: 'link', attrs: { href } }],
+      }).run();
+    }
+    setPickerOpen(false);
+    pickerSelRangeRef.current = null;
+  }, [editor, normalizeHref, pickerSelText]);
 
   useEffect(() => {
     if (!memoLinkOpen) return;
@@ -356,7 +405,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
   }, [memoLinkOpen]);
 
   /* 표 사이즈 picker 상태 (슬래시 /표) */
-  /* Ctrl+K — 페이지 picker (선택 범위 있으면 그 텍스트가 ID 링크로) */
+  /* Ctrl+K — 문서/웹 링크 picker */
   useEffect(() => {
     if (!editor) return;
     const handler = (e: KeyboardEvent) => {
@@ -374,12 +423,17 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
   function handlePickPage(page: WikiPageT) {
     if (!editor) return;
     const range = pickerSelRangeRef.current;
+    const href = wikiHrefForPage(page);
     if (range) {
-      // 선택 범위에 ID 링크 적용 — 텍스트는 그대로, href = ##wiki:id
-      editor.chain().focus().setTextSelection(range).extendMarkRange('link').setLink({ href: `##wiki:${page.id}` }).run();
+      // 선택 범위에 문서 링크 적용 — 텍스트는 그대로 두고 내부적으로는 안정적인 page id 로 연결.
+      editor.chain().focus().setTextSelection(range).extendMarkRange('link').setLink({ href }).run();
     } else {
-      // 선택 X — 위키링크 (제목 기반) 인라인 삽입
-      editor.chain().focus().insertContent(`[[${page.title}]]`).run();
+      // 선택 X — 사용자는 [[...]] 문법을 보지 않고, 일반 링크 텍스트처럼 삽입.
+      editor.chain().focus().insertContent({
+        type: 'text',
+        text: page.title,
+        marks: [{ type: 'link', attrs: { href } }],
+      }).run();
     }
     setPickerOpen(false);
     pickerSelRangeRef.current = null;
@@ -448,9 +502,9 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     } },
     {
       id: 'wikilink',
-      label: isMemoLinkMode ? '링크' : '🔗 페이지 링크 (검색·ID·새로 만들기)',
-      description: isMemoLinkMode ? '페이지명은 [[페이지명]], URL은 링크로 삽입' : undefined,
-      keys: ['링크', '페이지', '첨부', 'link', 'wiki'],
+      label: isMemoLinkMode ? '링크' : '연결',
+      description: isMemoLinkMode ? '문서 이름이나 URL을 입력하세요' : '문서나 웹 링크를 붙입니다',
+      keys: ['링크', '페이지', '연결', 'link', 'wiki'],
       icon: isMemoLinkMode ? <LinkIcon className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />,
       run: () => openLinkPicker(),
     },
@@ -597,7 +651,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
             onClick={() => {
               openLinkPicker();
             }}
-            title="하이퍼링크 (Ctrl+K)"
+            title="연결 (Ctrl+K)"
           >
             <LinkIcon className="w-3.5 h-3.5" />
           </ToolbarBtn>
@@ -605,7 +659,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
             onClick={() => {
               openLinkPicker();
             }}
-            title="페이지 첨부 (검색·ID·새로 만들기)"
+            title="문서 연결"
           >
             <BookOpen className="w-3.5 h-3.5" />
           </ToolbarBtn>
@@ -677,7 +731,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
             <div className="min-w-0">
               <p className="text-[12.5px] font-semibold text-foreground">링크 삽입</p>
               <p className="mt-0.5 text-[10.5px] text-muted-foreground">
-                페이지명은 [[페이지명]], URL은 일반 링크로 들어가요.
+                문서 이름이나 URL을 입력하면 바로 연결돼요.
               </p>
             </div>
             <button
@@ -706,7 +760,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
                 setMemoLinkOpen(false);
               }
             }}
-            placeholder="페이지 이름 또는 https://..."
+            placeholder="문서 이름 또는 https://..."
             className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/65 focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
           />
           <div className="mt-2 flex items-center justify-end gap-1.5">
@@ -744,6 +798,7 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
           initialQuery={pickerSelText}
           onPick={handlePickPage}
           onCreateAndLink={onCreateAndLink}
+          onPickUrl={applyUrlLink}
           onClose={() => setPickerOpen(false)}
         />
       )}

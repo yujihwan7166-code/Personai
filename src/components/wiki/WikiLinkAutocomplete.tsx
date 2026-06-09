@@ -8,7 +8,7 @@ interface Props {
   currentId?: string;
   /** 텍스트영역 ref (caret 위치 계산용) */
   textareaRef: React.RefObject<HTMLTextAreaElement>;
-  /** 본문 값 — 변경마다 [[ 트리거 감지 */
+  /** 본문 값 — 변경마다 연결 트리거 감지 */
   value: string;
   onChange: (next: string) => void;
 }
@@ -20,8 +20,8 @@ interface TriggerState {
 }
 
 /**
- * 본문 텍스트에 `[[` 입력 시 popover 로 기존 페이지 제안.
- * Enter / 클릭 시 선택된 제목 삽입 후 `]]` 자동 닫기.
+ * 본문 텍스트에 연결 트리거를 입력하면 popover 로 기존 문서를 제안.
+ * Enter / 클릭 시 선택된 제목을 문서 링크로 삽입.
  */
 export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onChange }: Props) {
   const [trigger, setTrigger] = useState<TriggerState | null>(null);
@@ -97,11 +97,11 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
     if (!trigger) return;
     const before = value.slice(0, trigger.startIdx);
     const after = value.slice(trigger.caretIdx);
-    const inserted = `[[${title}]]`;
+    const inserted = `[${title}](##wiki:${encodeURIComponent(title)})`;
     const next = before + inserted + after;
     onChange(next);
     setTrigger(null);
-    // caret 을 ]] 뒤로
+    // caret 을 삽입한 링크 뒤로
     requestAnimationFrame(() => {
       const ta = textareaRef.current;
       if (ta) {
@@ -122,7 +122,7 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
       role="listbox"
     >
       <p className="px-3 pt-1 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground border-b border-[hsl(var(--hairline))] mb-1">
-        위키링크 — {trigger.query || '(검색어 입력)'}
+        문서 연결 — {trigger.query || '(검색어 입력)'}
       </p>
       {matches.map((p, i) => {
         const meta = WIKI_TYPE_META[p.type];
