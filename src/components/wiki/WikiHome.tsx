@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Plus, ArrowRight, BookOpen, Star, LayoutGrid, List, Inbox, Link2Off, GitMerge, Moon, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
@@ -57,7 +57,9 @@ export function WikiHome({
     const recentEdits = activePages.filter((p) => p.updatedAt > sevenDays).length;
 
     const recent = activePages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
-    const inbox = activePages.filter((p) => p.status === 'draft' || p.tags.includes('inbox')).slice(0, 5);
+    const inbox = activePages
+      .filter((p) => p.status === 'draft' || p.tags.includes('수집함') || p.tags.includes('inbox'))
+      .slice(0, 5);
     const active = activePages.filter((p) => p.status === 'active').slice(0, 5);
     const mocs = activePages.filter((p) => isMainDoc(p));
     const relations = buildWikiRelations(activePages);
@@ -212,7 +214,7 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium border border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:border-foreground/30 hover:text-foreground wiki-trans-color"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3.5 py-2 text-[12.5px] font-semibold text-foreground shadow-sm hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
             >
               <Plus className="w-3.5 h-3.5" />
               빈 문서로 시작
@@ -234,7 +236,7 @@ export function WikiHome({
     },
     {
       id: 'wiki-inbox',
-      label: 'Inbox',
+      label: '수집함',
       count: stats.inbox.length,
       icon: <Inbox className="w-3.5 h-3.5" />,
       tone: 'default',
@@ -479,8 +481,8 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* Inbox */}
-        <Section id="wiki-inbox" title="📥 Inbox" empty="미정리 캡처가 없어요">
+        {/* 수집함 */}
+        <Section id="wiki-inbox" title="📥 수집함" empty="미정리 캡처가 없어요">
           {stats.inbox.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
@@ -656,11 +658,11 @@ function RegularDocsSection({
   const [expanded, setExpanded] = useState(false);
 
   // 헬퍼 — MOC 자식 / 링크됨 / 미연결
-  const isMocChild = (p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0;
-  const linkerIdsOf = (p: WikiPage): string[] => {
+  const isMocChild = useCallback((p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0, [regularToRoots]);
+  const linkerIdsOf = useCallback((p: WikiPage): string[] => {
     const s = backlinks.get(p.id);
     return s ? [...s] : [];
-  };
+  }, [backlinks]);
 
   // root 메인만 칩으로 노출 (자식 일반 문서가 1개 이상)
   const rootsWithChildren = useMemo(() => {
@@ -678,22 +680,19 @@ function RegularDocsSection({
   // 링크됨 = MOC 자식 아님 + 다른 페이지로부터 링크 받음
   const linkedCount = useMemo(() =>
     pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pages, regularToRoots, backlinks]);
+    [pages, isMocChild, linkerIdsOf]);
 
   // 미연결 = MOC 자식 아님 + 어떤 페이지로부터도 링크 받지 않음 (진짜 독립)
   const orphanCount = useMemo(() =>
     pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pages, regularToRoots, backlinks]);
+    [pages, isMocChild, linkerIdsOf]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return pages;
     if (filter === 'linked') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0);
     if (filter === 'orphan') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0);
     return pages.filter((p) => regularToRoots.get(p.id)?.some((m) => m.id === filter));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages, filter, regularToRoots, backlinks]);
+  }, [pages, filter, regularToRoots, isMocChild, linkerIdsOf]);
 
   const COLLAPSED = 12;
   const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);

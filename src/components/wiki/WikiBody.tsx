@@ -92,7 +92,7 @@ interface WikiLinkProps {
 
 function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLinkProps) {
   const [hovered, setHovered] = useState(false);
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [pos, setPos] = useState<{ x: number; y: number; place: 'top' | 'bottom' } | null>(null);
   const linkRef = useRef<HTMLButtonElement>(null);
   const target = findByTitle(title);
   const exists = !!target;
@@ -101,7 +101,14 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
   useEffect(() => {
     if (!hovered || !linkRef.current) return;
     const rect = linkRef.current.getBoundingClientRect();
-    setPos({ x: rect.left, y: rect.bottom + 4 });
+    const width = 320;
+    const x = Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - width - 12));
+    const shouldOpenUp = rect.bottom + 170 > window.innerHeight && rect.top > 190;
+    setPos({
+      x,
+      y: shouldOpenUp ? rect.top - 8 : rect.bottom + 6,
+      place: shouldOpenUp ? 'top' : 'bottom',
+    });
   }, [hovered]);
 
   return (
@@ -127,7 +134,11 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
       {hovered && pos && exists && target && (
         <span
           className="fixed z-50 pointer-events-none rounded-lg border border-[hsl(var(--hairline))] bg-popover text-popover-foreground shadow-xl px-3 py-2 max-w-xs animate-in fade-in slide-in-from-top-1 duration-150"
-          style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+          style={{
+            left: `${pos.x}px`,
+            top: pos.place === 'bottom' ? `${pos.y}px` : undefined,
+            bottom: pos.place === 'top' ? `${window.innerHeight - pos.y}px` : undefined,
+          }}
         >
           <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">
             <span aria-hidden>{WIKI_TYPE_META[target.type].icon}</span>
@@ -143,7 +154,11 @@ function WikiLink({ title, onOpen, findByTitle, visitedIds, children }: WikiLink
       {hovered && pos && !exists && (
         <span
           className="fixed z-50 pointer-events-none rounded-lg border border-[hsl(var(--wiki-link-missing)/0.30)] bg-popover text-popover-foreground shadow-xl px-3 py-2 max-w-xs animate-in fade-in slide-in-from-top-1 duration-150"
-          style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+          style={{
+            left: `${pos.x}px`,
+            top: pos.place === 'bottom' ? `${pos.y}px` : undefined,
+            bottom: pos.place === 'top' ? `${window.innerHeight - pos.y}px` : undefined,
+          }}
         >
           <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--wiki-link-missing))] mb-1">
             아직 없는 문서

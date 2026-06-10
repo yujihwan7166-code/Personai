@@ -30,7 +30,7 @@ import { HabitHeatStrip } from './HabitHeatStrip';
 type SortKey = 'order' | 'streak' | 'name';
 const SORT_LABEL: Record<SortKey, string> = {
   order: '추가순',
-  streak: 'streak 순',
+  streak: '연속순',
   name: '이름순',
 };
 
@@ -66,16 +66,16 @@ export const HabitListPane = ({
 
   // 이번 주 (월~일) 7일 dateKeys.
   const weekDays = useMemo(() => {
-    const monday = new Date(today);
-    const dow = today.getDay();
+    const base = new Date(`${todayKey}T00:00:00`);
+    const monday = new Date(base);
+    const dow = base.getDay();
     const diffToMon = dow === 0 ? -6 : 1 - dow;
-    monday.setDate(today.getDate() + diffToMon);
+    monday.setDate(base.getDate() + diffToMon);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       return d;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayKey]);
 
   // 활성 / 보관 분리 — 활성만 메인 list 에 표시, 보관 habits 는 popover 에서.
@@ -125,6 +125,11 @@ export const HabitListPane = ({
       return { dk, completed, scheduled };
     });
   }, [habits, allCheckins, weekDays]);
+
+  const openHabitSettings = (habit: Habit) => {
+    onSelect(habit.id);
+    onEdit(habit);
+  };
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-card/30">
@@ -319,7 +324,8 @@ export const HabitListPane = ({
             {todayOnly ? '오늘 예정된 습관이 없어요' : query ? '일치하는 습관 없음' : ''}
           </div>
         ) : (
-          visibleHabits.map((habit) => {
+          <>
+          {visibleHabits.map((habit) => {
             const checkins = allCheckins.filter((c) => c.habitId === habit.id);
             const checkinMap = new Map(checkins.map((c) => [c.date, c]));
             const streak = currentStreak(habit, checkins);
@@ -333,11 +339,12 @@ export const HabitListPane = ({
                 key={habit.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => onSelect(habit.id)}
+                aria-label={`습관 설정 열기: ${habit.title}`}
+                onClick={() => openHabitSettings(habit)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onSelect(habit.id);
+                    openHabitSettings(habit);
                   }
                 }}
                 className={cn(
@@ -446,7 +453,29 @@ export const HabitListPane = ({
                 </div>
               </div>
             );
-          })
+          })}
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label="새 습관 추가"
+            className="group grid w-full grid-cols-[1fr_28px] items-center gap-1 px-3.5 py-3 text-left transition-colors hover:bg-accent/45 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-foreground/20 bg-card text-foreground/45 transition-colors group-hover:border-primary/35 group-hover:text-primary">
+                <Plus className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[13.5px] font-semibold text-foreground/70 transition-colors group-hover:text-foreground">
+                  새 습관
+                </div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  가볍게 하나 추가하기
+                </div>
+              </div>
+            </div>
+            <div className="hidden sm:col-span-9 sm:block" aria-hidden />
+          </button>
+          </>
         )}
       </div>
     </div>

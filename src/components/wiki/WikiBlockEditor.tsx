@@ -314,8 +314,8 @@ export function WikiBlockEditor({ body, onChange, allPages, currentId, onUploadI
     /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value)
     || /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(value);
 
-  const normalizeHref = (value: string): string =>
-    /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value) ? value : `https://${value}`;
+  const normalizeHref = useCallback((value: string): string =>
+    /^(https?:\/\/|mailto:|tel:|#|\/)/i.test(value) ? value : `https://${value}`, []);
 
   const placeMemoLinkPanel = useCallback(() => {
     if (!editor) return;

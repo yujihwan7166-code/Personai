@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Inbox, X, Send, Link2, FileText } from 'lucide-react';
 import { type WikiPage } from '@/types/wiki';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { buildQuickCapturePage } from '@/lib/wikiCapture';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 /**
  * 빠른 캡처 모달 — Ctrl/Cmd+Shift+; 로 어디서든 호출.
  *
  * 의도: 처음부터 잘 쓰기 강박 제거. 한 줄·URL·이미지 던져넣고 닫음.
- * 결과물 = #inbox 태그가 붙은 draft 페이지. 분류는 나중.
+ * 결과물 = #수집함 태그가 붙은 draft 페이지. 분류는 나중.
  */
 
 interface Props {
@@ -20,11 +23,16 @@ interface Props {
 }
 
 export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props) {
+  useScrollLock(open);
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [openAfterSave, setOpenAfterSave] = useState(true);
   const [busy, setBusy] = useState(false);
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -54,14 +62,14 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
     title,
     extraTags: tagInput.split(/[,\s]+/),
   });
+  const canSave = Boolean(text.trim() || title.trim());
 
   async function save(): Promise<void> {
-    const t = text.trim();
-    if (!t || busy) return;
+    if (!canSave || busy) return;
     setBusy(true);
     try {
       await onCreate(draft.page);
-      notify.success('Inbox 에 저장됐어요', { duration: 1800 });
+      notify.success('수집함에 저장됐어요', { duration: 1800 });
       onClose();
       if (openAfterSave) onOpenPage?.(draft.page.id);
     } catch {
@@ -71,26 +79,37 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
     }
   }
 
+  const handleSingleLineKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    void save();
+  };
+
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 wiki-z-modal-backdrop bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 pt-[12vh]"
       role="dialog"
-      aria-label="빠른 캡처"
-      onClick={onClose}
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
+      {...backdropHandlers}
     >
       <div
         className="w-full max-w-xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
         <header className="px-4 h-11 flex items-center gap-2 border-b border-[hsl(var(--hairline))]">
           <Inbox className="h-4 w-4 text-primary" />
-          <h2 className="flex-1 text-[13px] font-bold">빠른 캡처</h2>
+          <h2 id={titleId} className="flex-1 text-[13px] font-bold">빠른 캡처</h2>
+          <p id={descId} className="sr-only">
+            떠오른 내용을 수집함 문서로 빠르게 저장합니다.
+          </p>
           <span className="text-[10.5px] text-muted-foreground/80 font-mono">Ctrl+Shift+;</span>
           <button
             type="button"
             onClick={onClose}
             className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            aria-label="닫기"
+            aria-label="빠른 캡처 닫기"
           >
             <X className="h-4 w-4" />
           </button>
@@ -103,6 +122,7 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={handleSingleLineKeyDown}
                 placeholder={draft.title}
                 className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
               />
@@ -112,6 +132,7 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
               <input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleSingleLineKeyDown}
                 placeholder="태그 추가"
                 className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2.5 text-[12.5px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
               />
@@ -119,6 +140,7 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
           </div>
           <textarea
             ref={taRef}
+            data-autofocus="true"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -128,6 +150,7 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
               }
             }}
             placeholder="한 줄 메모 · URL · 생각의 조각…  (Ctrl+Enter 로 저장)"
+            aria-label="빠른 캡처 내용"
             rows={6}
             className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color leading-relaxed"
           />
@@ -172,16 +195,17 @@ export function WikiQuickCapture({ open, onClose, onCreate, onOpenPage }: Props)
 
         <footer className="px-3 py-2 border-t border-[hsl(var(--hairline))] flex items-center justify-between bg-muted/20">
           <p className="text-[10.5px] text-muted-foreground">
-            <span className="inline-block px-1 rounded bg-accent text-[10px] font-mono mr-1">#inbox</span>
+            <span className="inline-block px-1 rounded bg-accent text-[10px] font-mono mr-1">#수집함</span>
             태그가 자동으로 붙어요. 나중에 분류·정리.
           </p>
           <button
             type="button"
             onClick={() => void save()}
-            disabled={!text.trim() || busy}
+            disabled={!canSave || busy}
+            aria-label={canSave ? `${draft.title} 수집함에 저장` : '빠른 캡처 저장'}
             className={cn(
               'inline-flex items-center gap-1 px-3 h-7 rounded-md text-[12px] font-semibold wiki-trans-color',
-              text.trim() && !busy
+              canSave && !busy
                 ? 'bg-primary text-primary-foreground hover:opacity-90'
                 : 'bg-muted text-muted-foreground cursor-not-allowed',
             )}

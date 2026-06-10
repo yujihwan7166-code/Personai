@@ -64,6 +64,14 @@ describe('parseNaturalLanguage — 길이', () => {
     expect(end.getTime() - start.getTime()).toBe(60 * 60_000);
   });
 
+  it('길이만 있는 문장을 시각으로 오해하지 않는다', () => {
+    const r = parseNaturalLanguage('회의 1시간', BASE);
+
+    expect(r.cleanTitle).toBe('회의');
+    expect(r.startAt).toBeUndefined();
+    expect(r.endAt).toBeUndefined();
+  });
+
   it('"30분" 길이', () => {
     const r = parseNaturalLanguage('오후 3시 통화 30분', BASE);
     const start = new Date(r.startAt!);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { extractWikiLinks, type WikiPage } from '@/types/wiki';
 import { normalizeWikiPage } from '@/lib/wikiStore';
 import { analyzeWikiPageHealth, buildWikiBacklinkPreviews, buildWikiCleanupQueue, buildWikiFacetSummary, buildWikiGraphModel, buildWikiRelations, collectWikiManualRelations, collectWikiOutgoingLinks, findUnlinkedWikiMentions, getActiveWikiPages, getArchivedWikiPages, pickWikiPagesByIds, searchWikiPages, shortestWikiPath, stripMarkdown, suggestRelatedWikiPages } from '@/lib/wikiQuery';
@@ -335,7 +335,7 @@ describe('wiki core utilities', () => {
     ]);
     expect(buildWikiTemplateHtml('meeting')).toContain('<h2>액션 아이템</h2>');
     expect(buildWikiTemplateHtml('source')).toContain('<blockquote>');
-    expect(buildWikiTemplateHtml('moc')).toContain('[[핵심 문서 1]]');
+    expect(buildWikiTemplateHtml('moc')).toContain('<h2>핵심 문서</h2>');
   });
 
   it('builds new wiki pages from starter templates', () => {
@@ -352,7 +352,7 @@ describe('wiki core utilities', () => {
 
     const pageFromTitle = makePageFromTemplate(template!, '연구 지도');
     expect(pageFromTitle.title).toBe('연구 지도');
-    expect(pageFromTitle.body).toContain('## 핵심 페이지');
+    expect(pageFromTitle.body).toContain('## 핵심 문서');
   });
 
   it('normalizes v1 and v2 wiki backup payloads before import', () => {
@@ -684,9 +684,20 @@ describe('wiki core utilities', () => {
     });
 
     expect(draft.title).toBe('React Query 캐시 전략 #frontend');
-    expect(draft.tags).toEqual(['inbox', 'frontend', 'study']);
+    expect(draft.tags).toEqual(['수집함', 'frontend', 'study']);
     expect(draft.page.status).toBe('draft');
     expect(draft.page.body).toContain('## 출처');
+  });
+
+  it('uses a Korean fallback title for empty quick captures', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 10, 9, 5, 0, 0));
+    try {
+      expect(deriveCaptureTitle('')).toBe('수집 메모 6/10 09:05');
+      expect(buildQuickCapturePage({ text: '' }).tags).toEqual(['수집함']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('builds richer AI context from page and whole wiki state', () => {

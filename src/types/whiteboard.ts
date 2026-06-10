@@ -74,6 +74,7 @@ export interface WBRect extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBEllipse extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -81,6 +82,7 @@ export interface WBEllipse extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBDiamond extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -88,6 +90,7 @@ export interface WBDiamond extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBTriangle extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -95,6 +98,7 @@ export interface WBTriangle extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBSpeech extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -103,6 +107,7 @@ export interface WBSpeech extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBCapsule extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -110,6 +115,7 @@ export interface WBCapsule extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBDatabase extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -117,6 +123,7 @@ export interface WBDatabase extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBDocument extends WBElementBase, WBStyleStroke, WBStyleFill {
@@ -124,6 +131,7 @@ export interface WBDocument extends WBElementBase, WBStyleStroke, WBStyleFill {
   text?: string;
   textAlign?: 'left' | 'center' | 'right';
   fontSize?: WBShapeTextSize;
+  textColor?: WBColor;
 }
 
 export interface WBTable extends WBElementBase {
@@ -207,6 +215,7 @@ export interface WBSticky extends WBElementBase {
   content: string;
   color: WBStickyColor;
   fontSize: WBStickyTextSize;
+  textColor?: WBColor;
   textAlign: 'left' | 'center';
   tags?: string[];
   // 사이트 통합 — Phase 3 자리잡이

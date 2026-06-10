@@ -15,7 +15,6 @@ interface PlannerSidebarProps {
   /** 미니 월에서 날짜 클릭 시 — Day 뷰로 전환 + anchor 갱신을 부모가 처리. */
   onSelectDay: (dayIso: string) => void;
   /** 매트릭스 위젯에서 task 클릭 시 — 모달 오픈을 부모가 처리. */
-  onTaskClick?: (task: { id: string; title: string }) => void;
   /** 사이드바 "오늘의 습관" 헤더 클릭 — habits 풀뷰 점프. */
   onOpenHabits?: () => void;
 }
@@ -23,7 +22,6 @@ interface PlannerSidebarProps {
 export const PlannerSidebar = ({
   anchorIso,
   onSelectDay,
-  onTaskClick,
   onOpenHabits,
 }: PlannerSidebarProps) => {
   return (

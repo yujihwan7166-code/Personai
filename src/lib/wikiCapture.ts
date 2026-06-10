@@ -47,7 +47,7 @@ export function deriveCaptureTitle(text: string, urls = extractCaptureUrls(text)
     }
   }
   const d = new Date();
-  return `Inbox ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `수집 메모 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function normalizeCaptureTags(tags: string[]): string[] {
@@ -71,7 +71,7 @@ export function buildQuickCapturePage({
   type?: WikiPageType;
 }): QuickCaptureDraft {
   const urls = extractCaptureUrls(text);
-  const tags = normalizeCaptureTags(['inbox', ...extractCaptureTags(text), ...extraTags]);
+  const tags = normalizeCaptureTags(['수집함', ...extractCaptureTags(text), ...extraTags]);
   const now = Date.now();
   const pageTitle = (title?.trim() || deriveCaptureTitle(text, urls)).slice(0, 120);
   const sourceBlock = urls.length > 0

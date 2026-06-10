@@ -52,8 +52,7 @@ const loadTrashRows = (): TrashRow[] => {
   );
 };
 
-export const plannerTrashCount = (): number =>
-  taskStore.listDeleted().length + eventStore.listDeleted().length;
+const trashItemTitle = (item: PlannerTask | PlannerEvent): string => item.title || '제목 없음';
 
 export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogProps) => {
   const [rows, setRows] = useState<TrashRow[]>(() => loadTrashRows());
@@ -86,7 +85,8 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
   };
 
   const purge = (row: TrashRow) => {
-    if (typeof window !== 'undefined' && !window.confirm('이 항목을 영구 삭제할까요? 복구할 수 없어요.')) return;
+    const title = trashItemTitle(row.item);
+    if (typeof window !== 'undefined' && !window.confirm(`"${title}"을(를) 영구 삭제할까요? 복구할 수 없어요.`)) return;
     if (row.kind === 'task') taskStore.purge(row.item.id);
     else eventStore.purge(row.item.id);
     notify.info('영구 삭제했어요', { duration: 1200 });
@@ -109,18 +109,18 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5 text-foreground">
                   <Trash2 className="h-4 w-4" strokeWidth={2.1} />
                 </span>
-                플래너 휴지통
+                휴지통
               </DialogTitle>
-              <DialogDescription className="mt-1 text-[13px]">
-                삭제한 일정과 할 일을 복원하거나 영구 삭제합니다.
+              <DialogDescription className="sr-only">
+                삭제된 일정과 할 일을 복원하거나 영구 삭제할 수 있습니다.
               </DialogDescription>
             </div>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="닫기"
-              title="닫기"
+              aria-label="휴지통 닫기"
+              title="휴지통 닫기"
             >
               <X className="h-4 w-4" />
             </button>
@@ -128,7 +128,11 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
         </DialogHeader>
 
         <div className="flex items-center justify-between gap-2 border-b border-foreground/10 px-5 py-2.5">
-          <div className="inline-flex rounded-xl border border-foreground/15 bg-background p-0.5">
+          <div
+            className="inline-flex rounded-xl border border-foreground/15 bg-background p-0.5"
+            role="tablist"
+            aria-label="휴지통 항목 필터"
+          >
             {[
               ['all', `전체 ${rows.length}`],
               ['task', `할 일 ${taskCount}`],
@@ -137,6 +141,8 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
               <button
                 key={key}
                 type="button"
+                role="tab"
+                aria-selected={filter === key}
                 onClick={() => setFilter(key as typeof filter)}
                 className={cn(
                   'h-8 rounded-[10px] px-3 text-[12px] font-semibold transition-colors',
@@ -154,6 +160,7 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
             onClick={emptyTrash}
             disabled={rows.length === 0}
             className="inline-flex h-8 items-center rounded-lg border border-destructive/20 px-3 text-[12px] font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-35"
+            aria-label={`휴지통 ${rows.length}개 항목 모두 영구 삭제`}
           >
             휴지통 비우기
           </button>
@@ -161,21 +168,22 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
 
         <div className="max-h-[56vh] overflow-y-auto px-3 py-3">
           {visibleRows.length === 0 ? (
-            <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[260px] flex-col items-center justify-center text-center" role="status">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 text-muted-foreground">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <p className="mt-3 text-[14px] font-bold text-foreground">휴지통이 비어 있어요.</p>
-              <p className="mt-1 text-[12px] text-muted-foreground">삭제한 일정과 할 일이 여기에 모입니다.</p>
+              <p className="mt-3 text-[14px] font-semibold text-foreground">휴지통이 비어 있어요.</p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1" role="list" aria-label="삭제된 플래너 항목">
               {visibleRows.map((row) => {
                 const item = row.item;
+                const title = trashItemTitle(item);
                 const scheduled = row.kind === 'event' || Boolean((item as PlannerTask).startAt);
                 return (
                   <div
                     key={`${row.kind}-${item.id}`}
+                    role="listitem"
                     className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/65"
                   >
                     <span
@@ -194,7 +202,7 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
                     </span>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-[14px] font-semibold text-foreground">{item.title || '(제목 없음)'}</p>
+                        <p className="truncate text-[14px] font-semibold text-foreground">{title}</p>
                         <span className="shrink-0 rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
                           {row.kind === 'event' ? '일정' : scheduled ? '배정됨' : '할 일'}
                         </span>
@@ -209,6 +217,7 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
                         type="button"
                         onClick={() => restore(row)}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-foreground/15 bg-card px-2.5 text-[12px] font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary/8 hover:text-primary"
+                        aria-label={`${title} 복원`}
                       >
                         <ArchiveRestore className="h-3.5 w-3.5" />
                         복원
@@ -217,7 +226,7 @@ export const PlannerTrashDialog = ({ open, onOpenChange }: PlannerTrashDialogPro
                         type="button"
                         onClick={() => purge(row)}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="영구 삭제"
+                        aria-label={`${title} 영구 삭제`}
                         title="영구 삭제"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

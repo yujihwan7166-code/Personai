@@ -36,6 +36,10 @@ async function isServerReady(url) {
   }
 }
 
+function isBenignConsoleError(text) {
+  return text.includes('Failed to load resource: net::ERR_NAME_NOT_RESOLVED');
+}
+
 function startServer() {
   const isWindows = process.platform === 'win32';
   const command = isWindows ? (process.env.ComSpec || 'cmd.exe') : 'npm';
@@ -62,7 +66,10 @@ async function checkPage(page, label, path, assertion) {
   page.removeAllListeners('pageerror');
   page.on('console', (message) => {
     const text = message.text();
-    if (message.type() === 'error') errors.push(text);
+    if (message.type() === 'error') {
+      if (isBenignConsoleError(text)) warnings.push(text);
+      else errors.push(text);
+    }
     if (message.type() === 'warning' && !text.includes('React Router Future Flag')) warnings.push(text);
   });
   page.on('pageerror', (error) => errors.push(error.message));
@@ -108,13 +115,17 @@ async function main() {
     // 아래 route 검증 4개로 핵심 페이지가 로드되는지 충분히 잡힘.
 
     await checkPage(page, 'planner route', '/planner', async () => {
-      await page.getByText('통합 플래너').first().waitFor({ timeout: 10_000 });
-      await page.getByText('오늘').first().waitFor({ timeout: 10_000 });
+      await page.locator('.planner-theme').first().waitFor({ timeout: 10_000 });
+      await page.locator('[data-planner-timeline-shell="true"]').first().waitFor({ timeout: 10_000 });
+      await page.getByText('통합플래너').first().waitFor({ timeout: 10_000 });
+      await page.locator('button[aria-label="오늘로"]:visible').first().waitFor({ timeout: 10_000 });
     });
 
-    // /wiki 라우트는 일시적으로 smoke 에서 제외 — TipTap "Duplicate use of selection JSON ID cell"
-    // RangeError 가 dev 모드에서 발생 (AppErrorBoundary 가 catch). 별도 이슈로 추적.
-    // 프로덕션 빌드에서는 다른 chunk 구조라 재현 미확인. 본 라운드는 verify 통과 복원이 목표.
+    await checkPage(page, 'wiki route', '/wiki', async () => {
+      await page.locator('.wiki-warm-theme').first().waitFor({ timeout: 10_000 });
+      await page.getByText('마이위키').first().waitFor({ timeout: 10_000 });
+      await page.getByRole('button', { name: '새 문서' }).first().waitFor({ timeout: 10_000 });
+    });
 
     console.log('Core smoke checks passed.');
   } finally {

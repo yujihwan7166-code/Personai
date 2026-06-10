@@ -3,25 +3,22 @@
  *
  * 표시:
  * - 0 세션: 숨김 (UI 노이즈 방지)
- * - 1+ 세션: "🍅 4 · 1h 40m" + 🔥 streak (3+ 일)
+ * - 1+ 세션: "🍅 4 · 1시간 40분" + 🔥 연속일 (3+ 일)
  * - 클릭 시 PomodoroStatsModal 펼침 — 통계 풀세트
  */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatDurationMinutes } from '@/lib/formatDuration';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePomodoroStats } from '@/hooks/planner/usePomodoroStats';
 import { pomodoroSessionLog } from '@/services/planner/pomodoroSessionLog';
-
-const formatMin = (min: number): string => {
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-};
 
 export const PomodoroStatsWidget = ({ className }: { className?: string }) => {
   const stats = usePomodoroStats();
   const [open, setOpen] = useState(false);
+  const todayDurationLabel = formatDurationMinutes(stats.todayMinutes, '0분');
+  const streakLabel = stats.streak >= 3 ? `, ${stats.streak}일 연속` : '';
+  const buttonLabel = `오늘 포모도로 ${stats.todayCount}회, ${todayDurationLabel}${streakLabel}`;
 
   // 첫 진입 — 데이터 0 이면 숨김.
   if (stats.todayCount === 0 && stats.todayMinutes === 0) return null;
@@ -37,15 +34,18 @@ export const PomodoroStatsWidget = ({ className }: { className?: string }) => {
           className,
         )}
         title="포모도로 통계"
+        aria-label={buttonLabel}
       >
         <span aria-hidden>🍅</span>
         <span className="font-mono tabular-nums">{stats.todayCount}</span>
         <span className="text-muted-foreground/80">·</span>
         <span className="font-mono tabular-nums text-muted-foreground">
-          {formatMin(stats.todayMinutes)}
+          {todayDurationLabel}
         </span>
         {stats.streak >= 3 && (
-          <span className="ml-1 text-amber-600 font-semibold">🔥{stats.streak}</span>
+          <span className="ml-1 text-amber-600 font-semibold" aria-hidden>
+            🔥{stats.streak}
+          </span>
         )}
       </button>
       <PomodoroStatsModal open={open} onClose={() => setOpen(false)} stats={stats} />
@@ -84,12 +84,15 @@ const PomodoroStatsModal = ({ open, onClose, stats }: ModalProps) => {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[15px] font-semibold">🍅 포모도로 통계</DialogTitle>
+          <DialogDescription className="sr-only">
+            오늘과 이번 주의 포모도로 횟수, 집중 시간, 연속 기록을 확인합니다.
+          </DialogDescription>
         </DialogHeader>
 
         {/* 핵심 숫자 */}
         <div className="grid grid-cols-3 gap-2 mt-2">
-          <Stat label="오늘" main={stats.todayCount} sub={formatMin(stats.todayMinutes)} />
-          <Stat label="이번주" main={stats.weekCount} sub={formatMin(stats.weekMinutes)} />
+          <Stat label="오늘" main={stats.todayCount} sub={formatDurationMinutes(stats.todayMinutes, '0분')} />
+          <Stat label="이번주" main={stats.weekCount} sub={formatDurationMinutes(stats.weekMinutes, '0분')} />
           <Stat
             label="연속"
             main={stats.streak}
@@ -144,7 +147,7 @@ const PomodoroStatsModal = ({ open, onClose, stats }: ModalProps) => {
                 >
                   <span className="truncate flex-1 text-foreground">{t.title}</span>
                   <span className="text-[10.5px] tabular-nums text-muted-foreground shrink-0">
-                    {t.count}회 · {formatMin(t.min)}
+                    {t.count}회 · {formatDurationMinutes(t.min, '0분')}
                   </span>
                 </li>
               ))}

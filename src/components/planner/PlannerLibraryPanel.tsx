@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraggable } from '@dnd-kit/core';
 import {
@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDurationMinutes } from '@/lib/formatDuration';
 import {
   PLANNER_LIBRARY_CHANGED,
   plannerLibraryStore,
@@ -38,18 +39,14 @@ const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
 
 const DURATION_PRESETS = [30, 60, 90] as const;
 
-const durationLabel = (minutes: number) => {
-  if (minutes < 60) return `${minutes}분`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
-};
-
 export const PlannerLibraryPanel = ({
   open,
   onOpenChange,
   onQuickAdd,
 }: PlannerLibraryPanelProps) => {
+  const panelTitleId = useId();
+  const panelDescId = useId();
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [items, setItems] = useState<PlannerLibraryItem[]>([]);
   const [title, setTitle] = useState('');
   const [durationMin, setDurationMin] = useState(60);
@@ -64,6 +61,35 @@ export const PlannerLibraryPanel = ({
     window.addEventListener(PLANNER_LIBRARY_CHANGED, refresh);
     return () => window.removeEventListener(PLANNER_LIBRARY_CHANGED, refresh);
   }, []);
+
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return;
+    const activeElement = document.activeElement;
+    restoreFocusRef.current = activeElement instanceof HTMLElement && activeElement !== document.body
+      ? activeElement
+      : null;
+  }, [open]);
+
+  const closePanel = useCallback(() => {
+    onOpenChange(false);
+    window.requestAnimationFrame(() => {
+      if (restoreFocusRef.current?.isConnected) {
+        restoreFocusRef.current.focus();
+      }
+    });
+  }, [onOpenChange]);
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closePanel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closePanel, open]);
 
   const addTemplate = () => {
     const trimmed = title.trim();
@@ -109,16 +135,23 @@ export const PlannerLibraryPanel = ({
   const panel = (
     <aside
       data-planner-library-panel="true"
-      className="fixed left-[56px] top-[88px] z-[90] flex w-[248px] max-h-[calc(100vh-104px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={panelTitleId}
+      aria-describedby={panelDescId}
+      className="fixed left-[56px] top-[88px] z-[45] flex w-[248px] max-h-[calc(100vh-104px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
     >
       <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-foreground/[0.12] px-3">
         <Archive className="h-[18px] w-[18px] shrink-0 text-foreground/70" strokeWidth={2.1} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[14px] font-extrabold leading-[1.35] text-foreground">보관함</h2>
+        <div className="flex min-w-0 flex-1 items-center self-stretch">
+          <h2 id={panelTitleId} className="truncate text-[14px] font-extrabold leading-none text-foreground">보관함</h2>
+          <p id={panelDescId} className="sr-only">
+            자주 쓰는 일정과 할 일을 저장하고, 주간 플래너로 드래그하거나 빠르게 추가합니다.
+          </p>
         </div>
         <button
           type="button"
-          onClick={() => onOpenChange(false)}
+          onClick={closePanel}
           aria-label="보관함 닫기"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -188,7 +221,7 @@ export const PlannerLibraryPanel = ({
                     : 'border-foreground/14 bg-card text-muted-foreground hover:text-foreground',
                 )}
               >
-                {value === 90 ? '90분' : durationLabel(value)}
+                {formatDurationMinutes(value)}
               </button>
             ))}
             <button
@@ -281,6 +314,8 @@ const LibraryItemRow = ({
       {...listeners}
       role="button"
       tabIndex={0}
+      aria-label={`${item.title} 빠르게 추가`}
+      title={item.title}
       onClick={onQuickAdd}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -289,7 +324,7 @@ const LibraryItemRow = ({
         }
       }}
       className={cn(
-        'group relative flex cursor-grab items-center gap-2 rounded-lg border border-foreground/14 bg-card px-2 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 active:cursor-grabbing',
+        'group relative flex cursor-grab items-center gap-2 overflow-hidden rounded-lg border border-foreground/14 bg-card px-2 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:cursor-grabbing',
         isDragging && 'opacity-55',
       )}
     >
@@ -304,42 +339,52 @@ const LibraryItemRow = ({
           {item.title}
         </span>
         <span className="mt-0.5 block truncate text-[10.5px] font-semibold text-muted-foreground">
-          기본 {durationLabel(item.durationMin)}
+          기본 {formatDurationMinutes(item.durationMin)}
         </span>
       </span>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onQuickAdd();
-        }}
-        aria-label={`${item.title} 추가`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-primary group-hover:opacity-100"
+      <div
+        role="toolbar"
+        aria-label={`${item.title} 빠른 작업`}
+        className="absolute bottom-0 right-0 top-0 flex items-center gap-1 bg-gradient-to-l from-accent via-accent/95 to-transparent pl-8 pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        onClick={(event) => event.stopPropagation()}
       >
-        <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onEdit();
-        }}
-        aria-label={`${item.title} 수정`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100"
-      >
-        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onRemove();
-        }}
-        aria-label={`${item.title} 삭제`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-destructive group-hover:opacity-100"
-      >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-      </button>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onQuickAdd();
+          }}
+          aria-label={`${item.title} 추가`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </button>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit();
+          }}
+          aria-label={`${item.title} 수정`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+          aria-label={`${item.title} 삭제`}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/25"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+      </div>
     </div>
   );
 };

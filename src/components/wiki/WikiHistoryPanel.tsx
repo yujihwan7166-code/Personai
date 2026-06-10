@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { History, X, RotateCcw } from 'lucide-react';
 import { listRevisions, type Revision } from '@/lib/wikiHistory';
 import { estimateReadingMinutes, summarizeWikiPageDelta, type WikiPageDelta } from '@/lib/wikiHistorySummary';
 import { type WikiPage, WIKI_STATUS_META, WIKI_TYPE_META } from '@/types/wiki';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface Props {
   open: boolean;
@@ -22,10 +25,15 @@ function formatTime(ts: number): string {
 }
 
 export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
+  useScrollLock(open);
   const [revs, setRevs] = useState<Revision[]>([]);
   const [selected, setSelected] = useState<Revision | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<Revision | null>(null);
   const [loading, setLoading] = useState(true);
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(open && !restoreTarget);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
 
   useEffect(() => {
     if (!open) return;
@@ -40,44 +48,53 @@ export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (restoreTarget) setRestoreTarget(null);
+      else onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, restoreTarget]);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 wiki-z-modal-backdrop flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-      onClick={onClose}
+      {...backdropHandlers}
       role="dialog"
-      aria-label="버전 히스토리"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
     >
       <div
+        ref={trapRef}
         className="relative w-full max-w-4xl h-[80vh] rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
           <History className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-[14px] font-bold flex-1 truncate">
+          <h2 id={titleId} className="text-[14px] font-bold flex-1 truncate">
             버전 히스토리 — {page.title}
           </h2>
+          <p id={descId} className="sr-only">
+            이전 버전을 확인하고 필요한 경우 선택한 버전으로 복원할 수 있습니다.
+          </p>
           <span className="text-[11px] text-muted-foreground">{revs.length}개 버전</span>
           <button
             type="button"
             onClick={onClose}
             className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label="닫기"
+            aria-label="버전 히스토리 닫기"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 grid grid-cols-[260px_1fr] overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr]">
           {/* 좌: 버전 리스트 */}
-          <aside className="border-r border-[hsl(var(--hairline))] overflow-y-auto">
+          <aside className="max-h-[220px] overflow-y-auto border-b border-[hsl(var(--hairline))] md:max-h-none md:border-b-0 md:border-r">
             {loading ? (
               <p className="p-4 text-[12px] text-muted-foreground">불러오는 중…</p>
             ) : revs.length === 0 ? (
@@ -91,12 +108,14 @@ export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
                 </p>
               </div>
             ) : (
-              <ul className="p-1.5">
+              <ul className="p-1.5" aria-label="버전 목록">
                 {/* 현재 버전 (최신 = 페이지 자체) */}
                 <li>
                   <button
                     type="button"
                     onClick={() => setSelected(null)}
+                    aria-label={`${page.title} 현재 버전 보기`}
+                    aria-pressed={selected === null}
                     className={cn(
                       'w-full text-left px-3 py-2 rounded-md transition-colors',
                       selected === null
@@ -123,6 +142,8 @@ export function WikiHistoryPanel({ open, page, onClose, onRestore }: Props) {
                           setSelected(r);
                           setRestoreTarget(null);
                         }}
+                        aria-label={`${r.snapshot.title} ${formatTime(r.takenAt)} 버전 보기`}
+                        aria-pressed={selected?.id === r.id}
                         className={cn(
                           'w-full text-left px-3 py-2 rounded-md transition-colors',
                           selected?.id === r.id
@@ -215,6 +236,7 @@ function RevPreview({
           <button
             type="button"
             onClick={onRestore}
+            aria-label={`${page.title} ${formatTime(timestamp)} 버전으로 복원`}
             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -288,13 +310,25 @@ function RestoreConfirm({
   onConfirm: () => void;
 }) {
   const delta = summarizeWikiPageDelta(current, revision.snapshot);
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-md rounded-xl border border-[hsl(var(--hairline))] bg-popover p-4 shadow-2xl">
+      <div
+        ref={trapRef}
+        className="w-full max-w-md rounded-xl border border-[hsl(var(--hairline))] bg-popover p-4 shadow-2xl"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+      >
         <p className="text-[12px] font-semibold text-muted-foreground">버전 복원 확인</p>
-        <h3 className="mt-1 text-base font-bold">{formatTime(revision.takenAt)} 버전으로 복원할까요?</h3>
-        <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
+        <h3 id={titleId} className="mt-1 text-base font-bold">
+          {formatTime(revision.takenAt)} 버전으로 복원할까요?
+        </h3>
+        <p id={descId} className="mt-2 text-[12px] leading-5 text-muted-foreground">
           현재 문서는 히스토리에 남고, 화면에는 선택한 버전의 제목과 본문, 태그, 관계 정보가 적용됩니다.
         </p>
         <DeltaChips delta={delta} />
@@ -302,6 +336,7 @@ function RestoreConfirm({
           <button
             type="button"
             onClick={onCancel}
+            aria-label="버전 복원 취소"
             className="h-8 px-3 rounded-md border border-[hsl(var(--hairline))] text-[12px] font-semibold hover:bg-accent"
           >
             취소
@@ -309,6 +344,7 @@ function RestoreConfirm({
           <button
             type="button"
             onClick={onConfirm}
+            aria-label={`${formatTime(revision.takenAt)} 버전으로 복원 확정`}
             className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90"
           >
             복원

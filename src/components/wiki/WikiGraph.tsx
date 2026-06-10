@@ -467,7 +467,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
 
   /* ── 부드러운 fit ── */
   const fitAnimRef = useRef<number>(0);
-  function fit() {
+  const fit = useCallback(() => {
     cancelAnimationFrame(fitAnimRef.current);
     const startScale = scale, startTx = tx, startTy = ty;
     const t0 = performance.now();
@@ -482,7 +482,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
       if (t < 1) fitAnimRef.current = requestAnimationFrame(step);
     };
     fitAnimRef.current = requestAnimationFrame(step);
-  }
+  }, [scale, tx, ty]);
 
   function focusNode(id: string) {
     const n = nodesRef.current.get(id);
@@ -613,8 +613,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathMode, stickyId, showForcePanel]);
+  }, [fit, pathMode, stickyId, showForcePanel]);
 
   /* ── 검색 변할 때 reheat ── */
   useEffect(() => { if (query) reheat(0.2); }, [query, reheat]);
@@ -747,9 +746,10 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           type="button"
           onClick={() => setLayout((l) => l === 'cluster' ? 'force' : 'cluster')}
           className="hidden sm:inline-flex items-center gap-1 px-2 h-6 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-          title="레이아웃 — 클러스터 ↔ 자유"
+          title={layout === 'cluster' ? '자유 배치로 전환' : '클러스터 배치로 전환'}
+          aria-label={layout === 'cluster' ? '현재 클러스터 배치, 자유 배치로 전환' : '현재 자유 배치, 클러스터 배치로 전환'}
         >
-          {layout === 'cluster' ? '🧩 클러스터' : '🌐 자유'}
+          {layout === 'cluster' ? '클러스터' : '자유'}
         </button>
 
         <button
@@ -761,6 +761,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
                     : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
           )}
           title="태그 그룹 영역 표시"
+          aria-label={hullsOn ? '태그 그룹 영역 숨기기' : '태그 그룹 영역 표시'}
+          aria-pressed={hullsOn}
         >
           <Group className="w-3 h-3" /> 그룹
         </button>
@@ -774,6 +776,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
                      : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
           )}
           title="두 페이지 사이 최단 경로"
+          aria-label={pathMode ? '경로 찾기 끄기' : '경로 찾기 켜기'}
+          aria-pressed={pathMode}
         >
           <Route className="w-3 h-3" /> 경로
         </button>
@@ -786,7 +790,9 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
             showForcePanel ? 'border-primary/40 bg-primary/10 text-primary'
                            : 'border-[hsl(var(--hairline))] text-muted-foreground hover:bg-accent hover:text-foreground',
           )}
-          title="Force 슬라이더"
+          title="힘 조절"
+          aria-label={showForcePanel ? '힘 조절 닫기' : '힘 조절 열기'}
+          aria-pressed={showForcePanel}
         >
           <SlidersHorizontal className="w-3 h-3" />
         </button>
@@ -796,6 +802,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           onClick={() => setPaused((v) => !v)}
           className="inline-flex items-center gap-1 px-2 h-6 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
           title={paused ? '시뮬레이션 재가동 (Space)' : '시뮬레이션 일시정지 (Space)'}
+          aria-label={paused ? '그래프 움직임 다시 시작' : '그래프 움직임 일시정지'}
+          aria-pressed={paused}
         >
           {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
         </button>
@@ -807,12 +815,13 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
           onClick={fit}
           className="inline-flex items-center gap-1 px-2 h-6 rounded border border-[hsl(var(--hairline))] text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
           title="원위치 (0)"
+          aria-label="그래프 화면 맞춤"
         >
-          <Maximize2 className="w-3 h-3" /> fit
+          <Maximize2 className="w-3 h-3" /> 맞춤
         </button>
       </div>
 
-      {/* Force 슬라이더 패널 */}
+      {/* 힘 조절 패널 */}
       {showForcePanel && (
         <div className="px-3 py-2 border-b border-[hsl(var(--hairline))] bg-muted/20 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5">
           <ForceSlider label="🌌 중심력" value={forces.center} min={0} max={0.1} step={0.005}
@@ -827,7 +836,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
             type="button"
             onClick={() => { setForces(DEFAULT_FORCES); reheat(); }}
             className="col-span-full text-[10px] text-muted-foreground hover:text-foreground underline justify-self-end"
-          >리셋</button>
+          >기본값</button>
         </div>
       )}
 
@@ -852,6 +861,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
                 'inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] wiki-trans-color',
                 on ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
+              aria-label={`${m.label} 타입 ${on ? '필터 해제' : '필터 적용'}`}
+              aria-pressed={on}
             >
               <span className="w-2 h-2 rounded-full" style={{ background: m.tint }} />
               {m.label}
@@ -860,7 +871,8 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
         })}
         {activeTypes.size > 0 && (
           <button type="button" onClick={() => setActiveTypes(new Set())}
-            className="text-[10px] text-muted-foreground hover:text-foreground underline">전체</button>
+            className="text-[10px] text-muted-foreground hover:text-foreground underline"
+            aria-label="타입 필터 전체 해제">전체</button>
         )}
         <span className="hidden md:inline text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80 ml-2">엣지</span>
         <span className="hidden md:inline-flex items-center gap-2">
@@ -1112,7 +1124,7 @@ export function WikiGraph({ pages, onSelect, initialFocusId }: Props) {
       <p className="px-3 py-1.5 text-[10px] text-muted-foreground border-t border-[hsl(var(--hairline))] flex flex-wrap items-center gap-x-3 gap-y-0.5">
         <span>💡 휠 = 줌 · 드래그 빈 곳 = 팬 · 노드 끌기 = 위치 잡기</span>
         <span>·</span>
-        <span>0 = fit · Space = 정지</span>
+        <span>0 = 화면 맞춤 · Space = 정지</span>
       </p>
     </div>
   );

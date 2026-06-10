@@ -10,6 +10,8 @@
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
 import { expandRecurrence, isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { sanitizeForDomain } from '@/lib/planner/taskDomain';
+import { intervalOverlapsRange, localDayBounds, recurrenceLookupStart } from '@/lib/planner/timeRange';
+import { normalizeReminderMinutes } from '@/lib/planner/reminders';
 
 const STORAGE_KEY = 'planner.tasks.v1';
 
@@ -27,7 +29,13 @@ const isValidTask = (v: unknown): v is PlannerTask => {
  * 도메인 정규화. 시간 배정된 항목도 할 일 의미를 유지할 수 있으므로
  * plannedFor/priority 를 자동 삭제하지 않는다.
  */
-const sanitizeOne = (t: PlannerTask): PlannerTask => sanitizeForDomain(t) as PlannerTask;
+const sanitizeOne = (t: PlannerTask): PlannerTask => {
+  const sanitized = sanitizeForDomain(t) as PlannerTask;
+  return {
+    ...sanitized,
+    reminderMinutes: normalizeReminderMinutes(sanitized.reminderMinutes),
+  };
+};
 
 const safeRead = (): PlannerTask[] => {
   if (typeof window === 'undefined') return [];
@@ -85,10 +93,7 @@ export const taskStore = {
    * 비교는 로컬 시각 기준 — `dateIso` 와 `t.startAt` 둘 다 UTC ISO 라도, 사용자
    * 입장의 "그 날" 로 매칭한다 (예: KST 5/3 14:00 task = UTC 5/3 05:00 → KST anchor 5/3 와 매치). */
   listScheduled(dateIso: string): PlannerTask[] {
-    const day = new Date(dateIso);
-    const rangeStart = new Date(day);
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(rangeStart.getTime() + 86_400_000);
+    const { start: rangeStart, end: rangeEnd } = localDayBounds(dateIso);
 
     const all = activeTasks();
     const result: PlannerTask[] = [];
@@ -96,8 +101,9 @@ export const taskStore = {
     for (const t of all) {
       if (!t.startAt) continue; // 인박스 항목은 expand 대상 아님
       if (t.recurrence) {
-        const instances = expandRecurrence(t, rangeStart, rangeEnd);
+        const instances = expandRecurrence(t, recurrenceLookupStart(t.startAt, t.endAt, rangeStart), rangeEnd);
         for (const inst of instances) {
+          if (!intervalOverlapsRange(inst.occurrenceStartIso, inst.occurrenceEndIso, rangeStart, rangeEnd)) continue;
           const instDone = t.seriesCompletions?.[inst.occurrenceStartIso] ?? false;
           result.push({
             ...t,
@@ -108,8 +114,7 @@ export const taskStore = {
           });
         }
       } else {
-        const ts = new Date(t.startAt).getTime();
-        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+        if (intervalOverlapsRange(t.startAt, t.endAt, rangeStart, rangeEnd)) {
           result.push(t);
         }
       }
@@ -126,8 +131,9 @@ export const taskStore = {
     for (const t of all) {
       if (!t.startAt) continue;
       if (t.recurrence) {
-        const instances = expandRecurrence(t, rangeStart, rangeEnd);
+        const instances = expandRecurrence(t, recurrenceLookupStart(t.startAt, t.endAt, rangeStart), rangeEnd);
         for (const inst of instances) {
+          if (!intervalOverlapsRange(inst.occurrenceStartIso, inst.occurrenceEndIso, rangeStart, rangeEnd)) continue;
           const instDone = t.seriesCompletions?.[inst.occurrenceStartIso] ?? false;
           result.push({
             ...t,
@@ -138,8 +144,7 @@ export const taskStore = {
           });
         }
       } else {
-        const ts = new Date(t.startAt).getTime();
-        if (ts >= rangeStart.getTime() && ts < rangeEnd.getTime()) {
+        if (intervalOverlapsRange(t.startAt, t.endAt, rangeStart, rangeEnd)) {
           result.push(t);
         }
       }
@@ -237,6 +242,21 @@ export const taskStore = {
     // 패치 후 도메인 정규화. 시간 배정되어도 plannedFor/priority 는 보존한다.
     all[idx] = sanitizeOne({ ...all[idx], ...patch });
     safeWrite(all);
+  },
+
+  /** 날짜형 할 일의 사용자 지정 순서. orderedIds 에 포함된 항목만 10 단위로 재번호를 매긴다. */
+  reorderTodos(orderedIds: string[]): void {
+    const orderById = new Map(orderedIds.map((id, index) => [id, (index + 1) * 10]));
+    if (orderById.size === 0) return;
+    const all = safeRead();
+    let changed = false;
+    const next = all.map((task) => {
+      const order = orderById.get(task.id);
+      if (order === undefined || task.todoOrder === order) return task;
+      changed = true;
+      return sanitizeOne({ ...task, todoOrder: order });
+    });
+    if (changed) safeWrite(next);
   },
 
   /** done 토글 — 자주 쓰는 패턴 헬퍼.

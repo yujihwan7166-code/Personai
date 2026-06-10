@@ -125,7 +125,7 @@ export function buildBriefingData(): BriefingData {
       pickFirst = { kind: 'task', title: overdue[0].title, reason: '어제 못 끝낸 일' };
     } else if (habits.find((h) => h.streakAtRisk)) {
       const h = habits.find((x) => x.streakAtRisk)!;
-      pickFirst = { kind: 'habit', title: h.title, reason: 'streak 끊길 위험' };
+      pickFirst = { kind: 'habit', title: h.title, reason: '연속 기록 끊길 위험' };
     } else if (inbox.length > 0) {
       pickFirst = { kind: 'task', title: inbox[0].title, reason: '먼저 손대볼 만한 것' };
     }

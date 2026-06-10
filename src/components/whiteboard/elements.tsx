@@ -530,6 +530,7 @@ export const TextEl = memo(function TextEl({ el }: { el: WBText }) {
 // ──────────────────────────────────────────
 export const StickyEl = memo(function StickyEl({ el }: { el: WBSticky }) {
   const tone = WB_STICKY_BG[el.color];
+  const textColor = el.textColor ? WB_COLOR_HSL[el.textColor] : tone.text;
   return (
     <g transform={transform(el)} opacity={el.opacity}>
       {/* 그림자 */}
@@ -559,7 +560,7 @@ export const StickyEl = memo(function StickyEl({ el }: { el: WBSticky }) {
           style={{
             width: '100%',
             height: '100%',
-            color: tone.text,
+            color: textColor,
             fontSize: el.fontSize,
             fontFamily: 'inherit',
             textAlign: el.textAlign,
@@ -582,7 +583,7 @@ export const StickyEl = memo(function StickyEl({ el }: { el: WBSticky }) {
 // 도형 안 텍스트 — 가운데 정렬 기본
 function ShapeText({ el }: { el: WBRect | WBEllipse | WBDiamond | WBTriangle | WBSpeech | WBCapsule | WBDatabase | WBDocument }) {
   if (!el.text) return null;
-  const color = WB_COLOR_HSL[el.strokeColor as keyof typeof WB_COLOR_HSL] ?? 'currentColor';
+  const color = WB_COLOR_HSL[el.textColor ?? el.strokeColor] ?? 'currentColor';
   return (
     <foreignObject x={el.x + 8} y={el.y + 8} width={el.w - 16} height={el.h - 16}>
       <div

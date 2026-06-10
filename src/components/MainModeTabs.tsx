@@ -66,6 +66,10 @@ interface MainModeTabsProps {
   currentPremiumDomain?: PremiumDomainId | null;
   /** 외부 트리거 핸들 (예: 사이드바 LayoutGrid 버튼). 마운트 후 .current 에 open()/close() 메서드 주입. */
   apiRef?: React.MutableRefObject<{ open: () => void; close: () => void } | null>;
+  /** 외부 트리거의 aria-controls 와 연결할 포털 메뉴 id. */
+  menuId?: string;
+  /** 외부 트리거가 열린 상태를 함께 표시할 수 있도록 변경을 알린다. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface MainModeTabsApi {
@@ -493,6 +497,8 @@ export function MainModeTabs({
   onSelectPremiumDomain,
   currentPremiumDomain,
   apiRef,
+  menuId,
+  onOpenChange,
 }: MainModeTabsProps) {
   const [open, setOpen] = useState(false);
   // 외부에서 패널 열기/닫기 (사이드바 LayoutGrid 버튼 등)
@@ -501,6 +507,9 @@ export function MainModeTabs({
     apiRef.current = { open: () => setOpen(true), close: () => setOpen(false) };
     return () => { if (apiRef) apiRef.current = null; };
   }, [apiRef]);
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [onOpenChange, open]);
   /** 라이프 컬럼에서 열려 있는 서브 그룹 (null 이면 메인 뷰). */
   const [openLifeSubgroup, setOpenLifeSubgroup] = useState<LifeSubgroupId | null>(null);
   /** AI 라운드테이블 세부 뷰 — 전문 그룹 자체가 드릴다운 전환(라이프 서브그룹 패턴). */
@@ -1042,6 +1051,7 @@ export function MainModeTabs({
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={menuId}
         className={pillClass}
         style={!showPlayerBg ? { color: currentTint } : undefined}
       >
@@ -1070,6 +1080,7 @@ export function MainModeTabs({
                 방향 없는 fade + 미세 scale 로 전체가 같이 등장하는 느낌. */}
             <motion.div
               key="dropdown"
+              id={menuId}
               ref={panelRef}
               onClick={handlePanelClick}
               initial={{ opacity: 0, y: -3 }}
@@ -1077,6 +1088,7 @@ export function MainModeTabs({
               exit={{ opacity: 0, y: -3 }}
               transition={{ duration: 0.14, ease: 'easeOut' }}
               role="menu"
+              aria-label="모드 전환"
               style={{
                 position: 'fixed',
                 top: 56,

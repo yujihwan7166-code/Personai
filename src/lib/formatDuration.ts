@@ -1,7 +1,7 @@
 /**
- * Duration 포매팅 — ms → "1시간 23분" / "2:34" 등.
+ * Duration 포매팅 — ms/minutes → "1시간 23분" / "2:34" 등.
  *
- * 한국어 "Xh Ym Zs" 자연어, 또는 시계형 "HH:MM:SS".
+ * 한국어 자연어, 또는 시계형 "HH:MM:SS".
  */
 
 const MIN = 60_000;
@@ -22,6 +22,23 @@ export function formatDurationKr(ms: number): string {
   if (m) parts.push(`${m}분`);
   if (s && !d && !h) parts.push(`${s}초`);
   return parts.length ? parts.join(' ') : '0초';
+}
+
+/** 분 단위 planner 길이 라벨 — "30분" / "1시간" / "1시간 30분". */
+export function formatDurationMinutes(minutes: number, zeroLabel = ''): string {
+  if (!Number.isFinite(minutes)) return zeroLabel;
+  const total = Math.round(minutes);
+  if (total <= 0) return zeroLabel;
+  if (total < 60) return `${total}분`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+}
+
+/** ISO 시작/끝으로 planner 길이 라벨 생성. */
+export function formatDurationRange(startIso: string, endIso: string, zeroLabel = ''): string {
+  const minutes = (new Date(endIso).getTime() - new Date(startIso).getTime()) / MIN;
+  return formatDurationMinutes(minutes, zeroLabel);
 }
 
 /** "HH:MM:SS" 시계형. 1시간 미만이면 "MM:SS". */

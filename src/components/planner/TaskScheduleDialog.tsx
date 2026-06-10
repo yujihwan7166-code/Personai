@@ -27,7 +27,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { formatDurationMinutes } from '@/lib/formatDuration';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
+import {
+  formatReminderSummary,
+  notificationPermission,
+  normalizeReminderMinutes,
+  PLANNER_REMINDER_OPTIONS,
+  requestNotificationPermission,
+} from '@/lib/planner/reminders';
 import { editAll, editThisAndFuture, editThisOnly } from '@/lib/planner/seriesEdit';
 import { eventStore } from '@/services/planner/eventStore';
 import { taskStore } from '@/services/planner/taskStore';
@@ -104,13 +112,6 @@ const addMinutes = (iso: string, mins: number): string =>
 
 const minutesBetween = (startIso: string, endIso: string): number =>
   Math.max(5, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000));
-
-const formatDuration = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}분`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
-};
 
 const formatDateValue = (dateStr?: string): string => {
   if (!dateStr) return '없음';
@@ -227,6 +228,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [byday, setByday] = useState<WeekdayCode[]>([]);
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
   const [note, setNote] = useState('');
+  const [reminderMinutes, setReminderMinutes] = useState<number[] | undefined>();
+  const [customReminderOpen, setCustomReminderOpen] = useState(false);
+  const [customReminderInput, setCustomReminderInput] = useState('15');
 
   const lastResetKeyRef = useRef<string | null>(null);
 
@@ -252,6 +256,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       const taskPlannedDay = masterTask?.plannedFor ?? toDateInput(start);
       const recSource = series?.master.recurrence ?? direct?.recurrence ?? masterEvent?.recurrence;
       const rec = ruleToPreset(recSource);
+      const reminderSource = masterTask?.reminderMinutes ?? masterEvent?.reminderMinutes ?? direct?.reminderMinutes;
+      const normalizedReminder = normalizeReminderMinutes(reminderSource);
 
       setTitle(mode.initialTitle);
       setEntryKind(masterTask?.startAt || masterEvent ? 'event' : 'task');
@@ -266,6 +272,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setByday(rec.byday);
       setRecurrenceUntil(rec.until);
       setNote(mode.initialNote ?? masterTask?.note ?? '');
+      setReminderMinutes(normalizedReminder);
+      setCustomReminderOpen(normalizedReminder?.[0] !== undefined && !PLANNER_REMINDER_OPTIONS.some((option) => option.minutes === normalizedReminder[0]));
+      setCustomReminderInput(String(normalizedReminder?.[0] ?? 15));
       return;
     }
 
@@ -285,6 +294,9 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     setByday([]);
     setRecurrenceUntil('');
     setNote('');
+    setReminderMinutes(undefined);
+    setCustomReminderOpen(false);
+    setCustomReminderInput('15');
   }, [mode, open]);
 
   const isEvent = entryKind === 'event';
@@ -309,6 +321,48 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     setStartDate((current) => current || plannedFor || toDateInput(new Date().toISOString()));
   };
 
+  const ensureReminderPermission = async (): Promise<boolean> => {
+    const current = notificationPermission();
+    if (current === 'unsupported') {
+      notify.warning('이 브라우저는 알림을 지원하지 않아요', { duration: 2200 });
+      return false;
+    }
+    if (current === 'granted') return true;
+    if (current === 'denied') {
+      notify.warning('브라우저 설정에서 알림 권한을 허용해주세요', { duration: 2600 });
+      return false;
+    }
+    const next = await requestNotificationPermission();
+    if (next === 'granted') return true;
+    notify.warning('알림 권한이 허용되지 않아 저장하지 않았어요', { duration: 2400 });
+    return false;
+  };
+
+  const handleReminderSelect = async (minutes: number | null) => {
+    if (minutes === null) {
+      setReminderMinutes(undefined);
+      setCustomReminderOpen(false);
+      return;
+    }
+    const allowed = await ensureReminderPermission();
+    if (!allowed) return;
+    setReminderMinutes([minutes]);
+    setCustomReminderOpen(false);
+  };
+
+  const handleCustomReminderApply = async () => {
+    const minutes = Math.max(0, Math.min(30 * 24 * 60, Math.round(Number(customReminderInput))));
+    if (!Number.isFinite(minutes)) {
+      notify.warning('알림 시간을 분 단위로 입력해주세요', { duration: 1800 });
+      return;
+    }
+    const allowed = await ensureReminderPermission();
+    if (!allowed) return;
+    setCustomReminderInput(String(minutes));
+    setReminderMinutes([minutes]);
+    setCustomReminderOpen(false);
+  };
+
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -331,6 +385,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         color: taskColor,
         recurrence: recurrenceRule,
         note: note.trim() || undefined,
+        reminderMinutes,
       };
 
       if (mode.kind === 'schedule') {
@@ -362,6 +417,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       color: taskColor,
       recurrence: recurrenceRule,
       note: note.trim() || undefined,
+      reminderMinutes,
       allDay: undefined,
     };
 
@@ -423,16 +479,18 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         </DialogHeader>
 
         <div className="flex max-h-[84vh] flex-col bg-[#fffefa]">
-          <div className="shrink-0 border-b border-foreground/10 px-5 pb-3 pt-3">
+          <div className="shrink-0 border-b border-foreground/10 px-5 pb-2 pt-2">
             <div className="flex h-9 items-center justify-between gap-3">
-              <div className="grid h-8 w-[164px] grid-cols-2 rounded-full border border-foreground/12 bg-muted/60 p-0.5">
+              <div className="grid h-8 w-[176px] grid-cols-2 rounded-full border border-foreground/18 bg-white p-0.5 shadow-[inset_0_0_0_1px_rgba(20,20,20,0.03)]">
                 <button
                   type="button"
                   onClick={() => switchKind('event')}
                   aria-pressed={isEvent}
                   className={cn(
-                    'rounded-full text-[12px] font-bold transition-colors',
-                    isEvent ? 'bg-[#fffefa] text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    'rounded-full border text-[12px] font-bold transition-colors',
+                    isEvent
+                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
+                      : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
                   일정
@@ -442,8 +500,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   onClick={() => switchKind('task')}
                   aria-pressed={!isEvent}
                   className={cn(
-                    'rounded-full text-[12px] font-bold transition-colors',
-                    !isEvent ? 'bg-[#fffefa] text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    'rounded-full border text-[12px] font-bold transition-colors',
+                    !isEvent
+                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
+                      : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
                   할 일
@@ -459,7 +519,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </button>
             </div>
 
-            <div className="mt-3 flex items-center gap-3 border-b border-foreground/12 pb-2.5">
+            <div className="mt-2 flex items-center gap-3 pb-2">
               <span
                 className="h-4 w-4 shrink-0 rounded-full ring-1 ring-foreground/8"
                 style={{
@@ -481,7 +541,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-1">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-0.5">
             {isEvent ? (
               <div className="space-y-1">
                 <Row icon={<CalendarClock className="h-4 w-4" />} label="시작">
@@ -501,7 +561,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   </div>
                 </Row>
 
-                <Row icon={<Clock3 className="h-4 w-4" />} label="길이" value={formatDuration(duration)}>
+                <Row icon={<Clock3 className="h-4 w-4" />} label="길이" value={formatDurationMinutes(duration)}>
                   <DurationPicker
                     duration={duration}
                     customOpen={customDurationOpen}
@@ -638,7 +698,70 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<Bell className="h-4 w-4" />} label="알림" value="없음" />
+              <Row icon={<Bell className="h-4 w-4" />} label="알림" value={formatReminderSummary(reminderMinutes)}>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {PLANNER_REMINDER_OPTIONS.map((option) => {
+                      const active = option.minutes === null
+                        ? !reminderMinutes?.length
+                        : reminderMinutes?.[0] === option.minutes;
+                      return (
+                        <button
+                          key={option.minutes ?? 'none'}
+                          type="button"
+                          onClick={() => handleReminderSelect(option.minutes)}
+                          className={cn(
+                            'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
+                            active
+                              ? 'border-primary/55 bg-primary/10 text-primary'
+                              : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setCustomReminderOpen((current) => !current)}
+                      className={cn(
+                        'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
+                        customReminderOpen
+                          ? 'border-primary/45 bg-primary/10 text-primary'
+                          : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      직접
+                    </button>
+                  </div>
+                  {customReminderOpen && (
+                    <div className="flex max-w-[280px] items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={43200}
+                        step={1}
+                        value={customReminderInput}
+                        onChange={(event) => setCustomReminderInput(event.target.value)}
+                        className={cn(fieldInputClass, 'w-24')}
+                      />
+                      <span className="text-[12px] font-semibold text-muted-foreground">분 전</span>
+                      <button
+                        type="button"
+                        onClick={handleCustomReminderApply}
+                        className="h-8 rounded-md bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
+                      >
+                        적용
+                      </button>
+                    </div>
+                  )}
+                  {notificationPermission() === 'denied' && (
+                    <p className="text-[11px] font-medium text-rose-500">
+                      브라우저에서 알림 권한이 차단되어 있어요.
+                    </p>
+                  )}
+                </div>
+              </Row>
 
               <Row icon={<AlignLeft className="h-4 w-4" />} label="설명" value={note ? '작성됨' : '없음'}>
                 <input
@@ -652,7 +775,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2.5 sm:justify-between">
+          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2 sm:justify-between">
             <div>
               {mode.kind === 'schedule' && (
                 isSeriesInstance ? (
@@ -743,7 +866,7 @@ const DurationPicker = ({
           }}
           className="px-1"
         >
-          {value === 90 ? '90분' : formatDuration(value)}
+          {formatDurationMinutes(value)}
         </Pill>
       ))}
       <Pill active={customOpen} onClick={() => onCustomOpenChange(true)} className="px-1">

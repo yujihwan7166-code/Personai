@@ -9,7 +9,7 @@ import type { Habit } from '@/types/habit';
 import { habitStore } from '@/services/planner/habitStore';
 import { useHabitCheckins } from '@/hooks/planner/useHabitCheckins';
 import {
-  currentStreak, maxStreak, monthCheckinCount, toDateKey,
+  currentStreak, maxStreak, monthCheckinCount,
 } from '@/lib/planner/habitStats';
 import { HabitYearHeatmap } from './HabitYearHeatmap';
 import {

@@ -39,10 +39,41 @@ describe('eventStore', () => {
     expect(today[0].title).toBe('today');
   });
 
+  it('listByDate() includes events that overlap the day after midnight', () => {
+    const startAt = new Date(2026, 3, 29, 23, 0).toISOString();
+    const endAt = new Date(2026, 3, 30, 2, 0).toISOString();
+    const firstDay = new Date(2026, 3, 29, 0, 0).toISOString();
+    const nextDay = new Date(2026, 3, 30, 0, 0).toISOString();
+    const after = new Date(2026, 4, 1, 0, 0).toISOString();
+
+    eventStore.add({ title: 'overnight', startAt, endAt, source: 'user' });
+
+    expect(eventStore.listByDate(firstDay).map((event) => event.title)).toEqual(['overnight']);
+    expect(eventStore.listByDate(nextDay).map((event) => event.title)).toEqual(['overnight']);
+    expect(eventStore.listByDate(after)).toHaveLength(0);
+  });
+
   it('update() applies partial patch', () => {
     const e = eventStore.add({ title: '원본', startAt: '2026-04-29T10:00:00Z', endAt: '2026-04-29T11:00:00Z', source: 'user' });
     eventStore.update(e.id, { title: '변경됨' });
     expect(eventStore.list()[0].title).toBe('변경됨');
+  });
+
+  it('persists normalized reminder minutes', () => {
+    const e = eventStore.add({
+      title: '알림',
+      startAt: '2026-04-29T10:00:00Z',
+      endAt: '2026-04-29T11:00:00Z',
+      source: 'user',
+      reminderMinutes: [60, 5, 5, -10],
+    });
+    expect(e.reminderMinutes).toEqual([5, 60]);
+
+    eventStore.update(e.id, { reminderMinutes: [0, 10] });
+    expect(eventStore.list()[0].reminderMinutes).toEqual([0, 10]);
+
+    eventStore.update(e.id, { reminderMinutes: undefined });
+    expect(eventStore.list()[0].reminderMinutes).toBeUndefined();
   });
 
   it('update() with unknown id is no-op', () => {

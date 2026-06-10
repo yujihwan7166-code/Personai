@@ -5,7 +5,7 @@
  * mode: 'create' | 'edit' (편집 시 prefil + 삭제 버튼).
  */
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -166,7 +166,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" hideClose>
+      <DialogContent className="max-w-[640px] max-h-[90vh] overflow-y-auto p-0" hideClose>
         <DialogTitle className="sr-only">
           {mode.kind === 'edit' ? '습관 편집' : '새 습관'}
         </DialogTitle>
@@ -174,50 +174,47 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           습관의 제목·반복 주기·색상·리마인더를 설정합니다.
         </DialogDescription>
 
-        <div className="grid grid-cols-1 gap-y-4 mt-1">
+        <div className="px-7 pb-6 pt-5">
           {/* 종류 toggle */}
-          <div className="grid grid-cols-2 border-b border-foreground/10">
+          <div className="grid grid-cols-2 rounded-full border border-foreground/12 bg-muted/35 p-1">
             <button
               type="button"
               onClick={() => setGoalKind('do')}
               aria-pressed={goalKind === 'do'}
               className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
-                goalKind === 'do' ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
+                'relative inline-flex h-9 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
+                goalKind === 'do'
+                  ? 'bg-[#fffefa] text-foreground shadow-sm ring-1 ring-foreground/10'
+                  : 'text-foreground/50 hover:bg-background/55 hover:text-foreground/75',
               )}
             >
               <span>하기 (build)</span>
-              <span aria-hidden className={cn(
-                'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
-                goalKind === 'do' ? 'bg-foreground opacity-100' : 'opacity-0',
-              )} />
             </button>
             <button
               type="button"
               onClick={() => setGoalKind('avoid')}
               aria-pressed={goalKind === 'avoid'}
               className={cn(
-                'relative inline-flex items-center justify-center gap-1.5 h-9 text-[13.5px] transition-colors',
-                goalKind === 'avoid' ? 'text-foreground font-semibold' : 'text-foreground/55 hover:text-foreground/85',
+                'relative inline-flex h-9 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
+                goalKind === 'avoid'
+                  ? 'bg-[#fffefa] text-foreground shadow-sm ring-1 ring-foreground/10'
+                  : 'text-foreground/50 hover:bg-background/55 hover:text-foreground/75',
               )}
             >
               <span>끊기 (quit)</span>
-              <span aria-hidden className={cn(
-                'absolute -bottom-px left-3 right-3 h-[2px] rounded-full transition-opacity',
-                goalKind === 'avoid' ? 'bg-foreground opacity-100' : 'opacity-0',
-              )} />
             </button>
           </div>
 
-          {/* 제목 + emoji + color */}
-          <div className="flex gap-2">
+          <div className="mt-5 grid grid-cols-1 gap-4">
+            {/* 제목 + emoji + color */}
+            <div className="flex gap-2.5">
             {/* emoji picker — Radix Popover (이전 details 가 좁은 폭으로 옆 row 와 겹치는 문제 해결) */}
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
                   aria-label="이모지 선택"
-                  className="h-10 w-10 inline-flex items-center justify-center rounded-md border hairline bg-card cursor-pointer text-[18px] hover:border-foreground/35 transition-colors"
+                  className="inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-foreground/12 bg-card text-[21px] transition-colors hover:border-foreground/30"
                 >
                   {emoji}
                 </button>
@@ -251,56 +248,63 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
               autoFocus={mode.kind === 'create'}
               placeholder="습관 제목"
               onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              className="flex-1 px-3 py-2 text-[14px] rounded-md border hairline bg-card focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
+              className="h-12 flex-1 rounded-xl border border-foreground/12 bg-card px-4 text-[15px] font-medium focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
             />
-          </div>
-
-          {/* 색상 */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">색상</label>
-            <div className="flex flex-wrap gap-1.5">
-              {COLOR_OPTIONS.map((c) => {
-                const stripe = TASK_LIST_COLORS[c].stripe;
-                const active = color === c;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    title={c}
-                    className={cn(
-                      'h-7 w-7 inline-flex items-center justify-center rounded-full border transition-all',
-                      active ? 'border-foreground ring-2 ring-foreground/15' : 'border-foreground/25 hover:border-foreground/35',
-                    )}
-                    style={{ backgroundColor: stripe }}
-                  />
-                );
-              })}
             </div>
-          </div>
 
-          {/* 반복 */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12.5px] font-semibold text-foreground/80 leading-none">반복</label>
-            <div className="flex flex-wrap gap-1.5">
-              {FREQ_OPTIONS.map((f) => {
-                const active = freq === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setFreq(f.id)}
-                    className={cn(
-                      'px-3.5 py-2 text-[13px] rounded-md transition-colors border',
-                      active
-                        ? 'bg-foreground text-background border-foreground font-semibold'
-                        : 'bg-card border-foreground/25 text-foreground/80 hover:border-foreground/35 hover:text-foreground',
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
+            <div className="grid gap-5 sm:grid-cols-[1fr_220px]">
+              {/* 색상 */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[12.5px] font-bold leading-none text-foreground/80">색상</label>
+                <div className="flex flex-wrap gap-2">
+                  {COLOR_OPTIONS.map((c) => {
+                    const stripe = TASK_LIST_COLORS[c].stripe;
+                    const active = color === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setColor(c)}
+                        title={c}
+                        className={cn(
+                          'inline-flex h-8 w-8 items-center justify-center rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
+                          active
+                            ? 'border-foreground shadow-sm ring-2 ring-foreground/15 ring-offset-2 ring-offset-background'
+                            : 'border-foreground/20 hover:scale-105 hover:border-foreground/35',
+                        )}
+                        style={{ backgroundColor: stripe }}
+                      >
+                        {active && <Check className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 반복 */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[12.5px] font-bold leading-none text-foreground/80">반복</label>
+                <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-foreground/10 bg-muted/35 p-1">
+                  {FREQ_OPTIONS.map((f) => {
+                    const active = freq === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFreq(f.id)}
+                        className={cn(
+                          'h-9 rounded-lg text-[13px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
+                          active
+                            ? 'bg-foreground text-background shadow-sm'
+                            : 'text-foreground/60 hover:bg-background/70 hover:text-foreground',
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             {freq === 'weekly' && (
               <div className="mt-1.5 flex flex-wrap gap-1">
@@ -334,13 +338,14 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           </div>
 
           {/* 하루 N번 + 단위 */}
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex items-center gap-2 text-[12.5px] text-foreground/80">
+          <div className="mt-4 divide-y divide-foreground/10 rounded-xl border border-foreground/10 bg-card/70">
+            <div className="grid gap-3 px-4 py-3 sm:grid-cols-[1fr_320px]">
+            <label className="flex items-center gap-2 text-[13px] font-medium text-foreground/78">
               <input
                 type="checkbox"
                 checked={timesEnabled}
                 onChange={(e) => setTimesEnabled(e.target.checked)}
-                className="h-4 w-4 rounded"
+                className="h-4 w-4 rounded accent-foreground"
               />
               하루 N번 반복
             </label>
@@ -352,26 +357,26 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                 value={timesPerDay}
                 onChange={(e) => setTimesPerDay(Math.max(2, Number(e.target.value) || 2))}
                 disabled={!timesEnabled}
-                className="h-8 w-16 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px] tabular-nums disabled:opacity-50"
+                className="h-9 w-20 rounded-lg border border-foreground/15 bg-background px-3 text-[13px] tabular-nums disabled:opacity-45"
               />
               <input
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="단위 (잔/분/회)"
-                className="flex-1 h-8 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px]"
+                className="h-9 flex-1 rounded-lg border border-foreground/15 bg-background px-3 text-[13px] disabled:opacity-45"
               />
             </div>
           </div>
 
           {/* 리마인더 */}
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex items-center gap-2 text-[12.5px] text-foreground/80">
+            <div className="grid gap-3 px-4 py-3 sm:grid-cols-[1fr_320px]">
+            <label className="flex items-center gap-2 text-[13px] font-medium text-foreground/78">
               <input
                 type="checkbox"
                 checked={reminderEnabled}
                 onChange={(e) => setReminderEnabled(e.target.checked)}
-                className="h-4 w-4 rounded"
+                className="h-4 w-4 rounded accent-foreground"
               />
               리마인더
             </label>
@@ -380,8 +385,9 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
               value={reminderTime}
               onChange={(e) => setReminderTime(e.target.value)}
               disabled={!reminderEnabled}
-              className="h-8 rounded-md border border-foreground/25 bg-card px-2 text-[12.5px] disabled:opacity-50"
+              className="h-9 rounded-lg border border-foreground/15 bg-background px-3 text-[13px] disabled:opacity-45"
             />
+            </div>
           </div>
 
           {/* 메모 */}
@@ -390,7 +396,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
             onChange={(e) => setNotes(e.target.value)}
             placeholder="메모 (선택) — 왜 이 습관을 만드는지"
             rows={2}
-            className="w-full px-3 py-2 text-[13px] rounded-md border border-foreground/25 bg-card focus:border-foreground/40 focus:outline-none resize-none placeholder:text-foreground/45"
+            className="mt-3 min-h-[72px] w-full resize-none rounded-xl border border-foreground/15 bg-card px-4 py-3 text-[13px] focus:border-foreground/35 focus:outline-none placeholder:text-foreground/45"
           />
 
           {/* 스타터 팩 — create 모드 + 제목 비어있을 때만 */}
@@ -416,7 +422,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           )}
 
           {/* footer */}
-          <div className="flex items-center justify-between pt-3 mt-1 border-t border-foreground/20">
+          <div className="mt-5 flex items-center justify-between border-t border-foreground/12 pt-4">
             <div>
               {mode.kind === 'edit' && (
                 <button
