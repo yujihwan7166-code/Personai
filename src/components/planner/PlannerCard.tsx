@@ -475,7 +475,6 @@ export const PlannerCard = (props: PlannerCardProps) => {
       style={{
         backgroundColor: blockBg,
         borderColor: blockBorder,
-        boxShadow: `inset 3px 0 0 color-mix(in oklab, ${accent} 78%, transparent)`,
       }}
       className={cn(
         'group relative flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
