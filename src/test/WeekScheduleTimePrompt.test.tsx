@@ -22,24 +22,23 @@ describe('WeekScheduleTimePrompt', () => {
 
     const dialog = screen.getByRole('dialog', { name: /코딩/ });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    const timeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
-    expect(timeInput).toHaveFocus();
-    expect(timeInput.value).toBe('09:00');
+    // 시간 input 은 시계 popover trigger button 으로 바뀜 — 텍스트로 현재 시각 표시.
+    const timeTrigger = screen.getByRole('button', { name: '시작 시간' });
+    expect(timeTrigger).toHaveFocus();
+    expect(timeTrigger).toHaveTextContent('09:00');
     // 기본 1시간(60분) 선택 — 칩 active.
     expect(screen.getByRole('button', { name: '1시간 길이 선택' })).toHaveAttribute('aria-pressed', 'true');
 
-    // 시작은 input 직접 변경, 길이는 분 입력 칸에 직접 입력.
+    // 길이는 분 input 직접 변경.
     const durationInput = screen.getByLabelText('길이 직접 입력 (분)') as HTMLInputElement;
-    fireEvent.change(timeInput, { target: { value: '12:00' } });
     fireEvent.change(durationInput, { target: { value: '90' } });
 
-    expect(timeInput.value).toBe('12:00');
     expect(durationInput.value).toBe('90');
     // 빠른 칩 3종 어디에도 안 잡히므로 모두 pressed=false.
     expect(screen.getByRole('button', { name: '30분 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: '1시간 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: '2시간 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByText('현재 선택: 12:00 시작, 1시간 30분')).toBeInTheDocument();
+    expect(screen.getByText('현재 선택: 09:00 시작, 1시간 30분')).toBeInTheDocument();
   });
 
   it('keeps keyboard focus inside the time prompt', () => {
@@ -81,14 +80,14 @@ describe('WeekScheduleTimePrompt', () => {
 
     const dialog = screen.getByRole('dialog');
     const backdrop = dialog.parentElement as HTMLElement;
-    const timeInput = dialog.querySelector('input[type="time"]') as HTMLElement;
+    const timeTrigger = screen.getByRole('button', { name: '시작 시간' });
 
-    fireEvent.pointerDown(timeInput);
+    fireEvent.pointerDown(timeTrigger);
     fireEvent.pointerUp(backdrop);
     expect(onClose).not.toHaveBeenCalled();
 
     fireEvent.pointerDown(backdrop);
-    fireEvent.pointerUp(timeInput);
+    fireEvent.pointerUp(timeTrigger);
     expect(onClose).not.toHaveBeenCalled();
 
     fireEvent.pointerDown(backdrop);
@@ -107,7 +106,10 @@ describe('WeekScheduleTimePrompt', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('시작 시간'), { target: { value: '18:00' } });
+    // 시간 변경은 시계 popover 의 빠른 칩 (e.g. "18:00 선택") 으로 처리.
+    // jsdom 에서도 radix Popover 가 동작하므로 trigger click → preset chip click.
+    fireEvent.click(screen.getByRole('button', { name: '시작 시간' }));
+    fireEvent.click(screen.getByRole('button', { name: '18:00 선택' }));
     fireEvent.click(screen.getByRole('button', { name: '30분 길이 선택' }));
     fireEvent.click(screen.getByRole('button', { name: /18:00 시작 30분 일정화/ }));
     expect(onConfirm).toHaveBeenCalledWith('18:00', 30);

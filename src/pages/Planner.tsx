@@ -52,6 +52,7 @@ import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { PlannerTrashDialog } from '@/components/planner/PlannerTrashDialog';
 import { PlannerLibraryPanel } from '@/components/planner/PlannerLibraryPanel';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
+import { AnalogClockTimePicker } from '@/components/planner/AnalogClockTimePicker';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
@@ -2371,7 +2372,7 @@ export const WeekScheduleTimePrompt = ({
   const [time, setTime] = useState(() => defaultWeekScheduleTime(pending.dayKey));
   /** 길이는 string 으로 보관 — input 직접 입력 흐름을 자연스럽게(빈 문자열 잠깐 허용). */
   const [durationInput, setDurationInput] = useState('60');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useFocusTrap<HTMLElement>(true);
   const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
   const titleId = useId();
@@ -2389,8 +2390,7 @@ export const WeekScheduleTimePrompt = ({
   const selectedDurationLabel = formatDurationMinutes(safeDuration);
 
   useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    triggerRef.current?.focus();
   }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -2400,7 +2400,7 @@ export const WeekScheduleTimePrompt = ({
       onClose();
       return;
     }
-    if (event.key === 'Enter' && event.target === inputRef.current) {
+    if (event.key === 'Enter' && event.target === triggerRef.current) {
       event.preventDefault();
       event.stopPropagation();
       onConfirm(time, safeDuration);
@@ -2464,18 +2464,12 @@ export const WeekScheduleTimePrompt = ({
             <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
               시작
             </p>
-            <label className="block">
-              <span className="sr-only">시작 시간</span>
-              <input
-                ref={inputRef}
-                data-autofocus="true"
-                type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
-                aria-label="시작 시간"
-                className="h-10 w-full rounded-lg border border-foreground/14 bg-background px-3 text-[14px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-              />
-            </label>
+            <AnalogClockTimePicker
+              value={time}
+              onChange={setTime}
+              triggerRef={triggerRef}
+              triggerAriaLabel="시작 시간"
+            />
           </div>
 
           {/* 길이 — 빠른 칩 3종 + 분 단위 직접 입력 */}
