@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Plus, ArrowRight, BookOpen, Star, LayoutGrid, List, Inbox, Link2Off, GitMerge, Moon, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, ArrowRight, BookOpen, Star, LayoutGrid, List, Inbox, Link2Off, GitMerge, Moon, CheckCircle2, AlertTriangle, Globe2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
 import { STARTER_PACKS, type StarterPack } from '@/lib/wikiStarterPacks';
@@ -183,42 +183,38 @@ export function WikiHome({
   /* ── 빈 위키 ── */
   if (pages.length === 0) {
     return (
-      <div className="min-h-full flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-3xl">
-          <header className="text-center mb-7">
-            <div className="text-5xl mb-3">🌐</div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">마이위키 시작하기</h1>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
-              생각을 잇고, 검색·역참조로 다시 꺼내 쓰는 개인 지식 베이스.<br />
-              아래 스타터 팩으로 시작하면 30초 안에 골격이 잡혀요.
-            </p>
+      <div className="wiki-empty-shell">
+        <div className="wiki-empty-panel">
+          <header className="wiki-empty-copy">
+            <button
+              type="button"
+              onClick={onCreate}
+              className="wiki-empty-start"
+              aria-label="마이위키 시작하기"
+            >
+              <span className="wiki-empty-globe" aria-hidden>
+                <Globe2 className="h-14 w-14" strokeWidth={2.25} />
+              </span>
+              <span className="wiki-empty-title">마이위키 시작하기</span>
+            </button>
+            <p className="wiki-empty-description">빈 문서로 시작하거나, 아래 템플릿으로 첫 구조를 잡아보세요.</p>
           </header>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-            {STARTER_PACKS.map((pack) => (
+          <div className="wiki-empty-pack-list">
+            {STARTER_PACKS.map((pack, index) => (
               <button
                 key={pack.id}
                 type="button"
                 onClick={() => { void onPickStarterPack?.(pack); }}
-                className="group flex items-start gap-3 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 p-4 wiki-trans-color"
+                className="wiki-empty-pack"
               >
-                <span className="text-2xl shrink-0 leading-none mt-0.5">{pack.emoji}</span>
+                <span className="wiki-empty-pack-number">{String(index + 1).padStart(2, '0')}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13.5px] font-bold text-foreground">{pack.label}</span>
-                  <span className="block text-[11.5px] text-muted-foreground mt-1 leading-relaxed">{pack.description}</span>
+                  <span className="block text-[11.5px] text-muted-foreground mt-1">{pack.description}</span>
                 </span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-color shrink-0 mt-0.5" />
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" />
               </button>
             ))}
-          </div>
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={onCreate}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3.5 py-2 text-[12.5px] font-semibold text-foreground shadow-sm hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              빈 문서로 시작
-            </button>
           </div>
         </div>
       </div>

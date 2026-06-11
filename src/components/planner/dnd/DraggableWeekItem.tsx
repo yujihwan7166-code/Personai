@@ -18,7 +18,7 @@ export const DraggableWeekItem = ({ id, data, children }: DraggableWeekItemProps
 
   const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.45 : 1,
+    opacity: isDragging ? 0.84 : 1,
     zIndex: isDragging ? 30 : undefined,
   };
 
@@ -29,7 +29,10 @@ export const DraggableWeekItem = ({ id, data, children }: DraggableWeekItemProps
       data-draggable-id={id}
       {...listeners}
       {...attributes}
-      className={cn('touch-none', isDragging && 'relative cursor-grabbing')}
+      className={cn(
+        'touch-none',
+        isDragging && 'relative cursor-grabbing rounded-lg shadow-[0_12px_28px_-20px_hsl(220_18%_10%/0.55)] ring-2 ring-primary/24',
+      )}
     >
       {children}
     </div>

@@ -422,7 +422,7 @@ const WeekDropSection = ({
       data-week-drop-hint={showHint ? hintLabel : undefined}
       className={cn(
         'relative',
-        isOver && (blocked ? 'bg-destructive/[0.006]' : 'bg-primary/[0.006]'),
+        isOver && (blocked ? 'bg-destructive/[0.018]' : 'bg-primary/[0.018]'),
         className,
       )}
       {...props}
@@ -431,17 +431,17 @@ const WeekDropSection = ({
         <div
           aria-hidden
           className={cn(
-            'pointer-events-none absolute inset-2 z-20 rounded-lg border transition duration-150',
+            'pointer-events-none absolute inset-1.5 z-20 rounded-lg border ring-1 ring-inset shadow-[0_10px_26px_-22px_hsl(220_18%_10%/0.46)] transition duration-150',
             blocked
-              ? 'border-destructive/20 bg-destructive/[0.012]'
-              : 'border-primary/24 bg-primary/[0.018]',
+              ? 'border-destructive/34 bg-destructive/[0.035] ring-destructive/18'
+              : 'border-primary/42 bg-primary/[0.035] ring-primary/18',
           )}
         >
           <span className={cn(
             'absolute right-2 top-2 inline-flex h-5 items-center rounded-full border px-2 text-[10.5px] font-semibold leading-none shadow-[0_6px_16px_-14px_hsl(220_18%_10%/0.45)] backdrop-blur-[2px]',
             blocked
-              ? 'border-destructive/15 bg-background/88 text-destructive/72'
-              : 'border-primary/18 bg-background/90 text-foreground/70',
+              ? 'border-destructive/24 bg-background/92 text-destructive/80'
+              : 'border-primary/28 bg-background/94 text-foreground/82',
           )}>
             {hintLabel}
           </span>

@@ -43,7 +43,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
 
   return (
     <aside
-      className="w-[280px] overflow-hidden rounded-xl border bg-card/76 shadow-[0_14px_34px_-30px_hsl(30_15%_8%/0.55)]"
+      className="w-full min-w-0 overflow-hidden rounded-xl border bg-card/76 shadow-[0_14px_34px_-30px_hsl(30_15%_8%/0.55)]"
       style={{
         borderColor: 'hsl(var(--hairline))',
         fontFamily: 'var(--wiki-font-meta)',
@@ -95,7 +95,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
             <button
               type="button"
               onClick={() => copy('title', formatWikiIdMarkdownLink(page.id, page.title))}
-              className="inline-flex max-w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
+              className="inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left text-[11.5px] text-primary hover:bg-primary/10 wiki-trans-color"
               title="다른 문서에 붙일 연결을 복사"
             >
               {copied === 'title' ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
@@ -138,7 +138,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
           <button
             type="button"
             onClick={() => copy('id', page.id)}
-            className="font-mono text-[10.5px] text-muted-foreground hover:text-foreground hover:bg-accent rounded px-1 wiki-trans-color"
+            className="max-w-full truncate rounded px-1 font-mono text-[10.5px] text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
             title="문제가 생겼을 때 찾기용 코드 복사"
           >
             {copied === 'id' ? '복사됨 ' : '복사 '} {page.id}
@@ -152,13 +152,13 @@ export function WikiInfobox({ page, onTagClick }: Props) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
-      className="grid grid-cols-[72px_1fr] items-start gap-2 px-3.5 py-2"
+      className="grid min-w-0 grid-cols-[72px_minmax(0,1fr)] items-start gap-2 px-3.5 py-2"
       style={{ borderTop: '1px solid hsl(var(--hairline))' }}
     >
       <dt className="text-[10.5px] font-bold text-muted-foreground pt-0.5">
         {label}
       </dt>
-      <dd className="text-foreground/90">{children}</dd>
+      <dd className="min-w-0 text-foreground/90">{children}</dd>
     </div>
   );
 }

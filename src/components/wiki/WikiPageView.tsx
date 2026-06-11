@@ -174,7 +174,7 @@ export function WikiPageView({
   };
 
   return (
-    <div className="px-6 lg:px-10 py-8">
+    <div className="px-5 py-7 lg:px-8 lg:py-9">
       {/* 카테고리/유형 brebrumb — 위키 페이지 상단 */}
       <div className="max-w-6xl mx-auto mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         <span aria-hidden>{typeMeta.icon}</span>
@@ -187,16 +187,16 @@ export function WikiPageView({
         )}
       </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[180px_minmax(0,1fr)_240px] gap-6">
+      <div className="wiki-document-shell wiki-document-grid">
         {/* 좌: TOC */}
-        <div className="hidden lg:block">
+        <div className="wiki-side-rail hidden lg:block">
           {!editing && page.body && <WikiToc body={page.body} />}
         </div>
 
         {/* 중앙: 본문 */}
-        <article className="min-w-0">
+        <article className="wiki-document-main">
           {/* 제목 + 액션 */}
-          <header className="mb-4 pb-3 border-b border-[hsl(var(--hairline))]">
+          <header className="wiki-page-header">
             {/* 상위 문서 줄 — 비편집 모드만. 일반 문서·sub-main 모두 표시 (root main 은 부모 0이라 자동 숨김) */}
             {!editing && <ParentMainsRow page={page} allPages={allPages} onOpen={onOpenLink} />}
             <div className="flex items-start gap-3">
@@ -206,9 +206,8 @@ export function WikiPageView({
                     <input
                       value={draft.title}
                       onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                      className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
+                      className="wiki-page-title-input"
                       placeholder="문서 제목"
-                      style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
                     />
                     {draft.title.trim() && draft.title.trim() !== page.title.trim() && (
                       <p className="mt-1 text-[11px] text-primary/80">
@@ -218,8 +217,7 @@ export function WikiPageView({
                   </>
                 ) : (
                   <h1
-                    className="text-[28px] sm:text-[32px] leading-[1.2] font-semibold text-foreground tracking-tight"
-                    style={{ fontFamily: 'var(--wiki-font-display)' }}
+                    className="wiki-page-title"
                   >
                     {page.title}
                   </h1>
@@ -227,8 +225,7 @@ export function WikiPageView({
                 {!editing && (
                   <>
                     <p
-                      className="text-[12px] mt-2 leading-relaxed"
-                      style={{ fontFamily: 'var(--wiki-font-meta)', color: 'hsl(var(--muted-foreground))' }}
+                      className="wiki-meta-line"
                     >
                       {(() => {
                         const charCount = page.body.replace(/\s+/g, '').length;
@@ -251,7 +248,7 @@ export function WikiPageView({
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="wiki-page-actions shrink-0">
                 {editing ? (
                   <>
                     <SaveStatusBadge status={saveStatus} />
@@ -336,7 +333,7 @@ export function WikiPageView({
 
           {/* 편집 모드 — 메타 폼 */}
           {editing && (
-            <div className="hidden lg:block mb-3">
+            <div className="wiki-edit-control-shell hidden lg:block">
               <WikiEditMetaPanel
                 draft={draft}
                 onChange={setDraft}
@@ -356,7 +353,7 @@ export function WikiPageView({
           )}
 
           {/* 본문 — 블록 에디터 (모든 페이지 동일) */}
-          <section className={cn('min-h-[200px]', editing ? '' : 'wiki-prose')}>
+          <section className={cn('min-h-[200px]', editing ? 'wiki-editing-section' : 'wiki-prose')}>
             {editing ? (
               <WikiBlockEditor
                 body={draft.body}
@@ -413,7 +410,7 @@ export function WikiPageView({
         </article>
 
         {/* 우: 인포박스 + 로컬 그래프 */}
-        <div className="hidden lg:flex flex-col gap-3">
+        <div className="wiki-side-rail wiki-reference-panel hidden flex-col gap-3 lg:flex">
           {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
           {!editing && (
             <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} onOpenInGlobal={onOpenInGlobalGraph} />
@@ -821,7 +818,7 @@ function WikiEditMetaPanel({
         event.stopPropagation();
         closeActiveMetaEditor();
       }}
-      className="rounded-xl border border-[hsl(var(--hairline))] bg-card/80 p-3 shadow-[0_10px_28px_-26px_hsl(30_15%_8%/0.48)]"
+      className="wiki-edit-meta-panel"
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="mr-1 shrink-0 text-[12.5px] font-bold text-foreground">문서 정보</span>
