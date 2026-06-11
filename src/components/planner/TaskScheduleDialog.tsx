@@ -30,7 +30,6 @@ import { cn } from '@/lib/utils';
 import { formatDurationMinutes } from '@/lib/formatDuration';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import {
-  formatReminderSummary,
   notificationPermission,
   normalizeReminderMinutes,
   PLANNER_REMINDER_OPTIONS,
@@ -113,12 +112,6 @@ const addMinutes = (iso: string, mins: number): string =>
 const minutesBetween = (startIso: string, endIso: string): number =>
   Math.max(5, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000));
 
-const formatDateValue = (dateStr?: string): string => {
-  if (!dateStr) return '없음';
-  const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-};
-
 const presetToRule = (
   preset: RecurrencePreset,
   byday: WeekdayCode[],
@@ -154,32 +147,24 @@ const resolveSeries = (id: string) => {
 const Row = ({
   icon,
   label,
-  value,
   children,
   className,
 }: {
   icon: ReactNode;
   label: string;
-  value?: string;
   children?: ReactNode;
   className?: string;
 }) => (
-  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-foreground/10 px-1 py-2', className)}>
+  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-foreground/10 px-1 py-2.5', className)}>
     <span className="flex h-7 w-6 items-center justify-center text-foreground/72">{icon}</span>
     <div className="min-w-0">
       {children ? (
-        <div className="grid min-h-7 grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
-            {value && <p className="mt-0.5 truncate text-[11.5px] font-medium text-foreground/54">{value}</p>}
-          </div>
+        <div className="grid min-h-7 grid-cols-[64px_minmax(0,1fr)] items-center gap-3">
+          <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
           <div className="min-w-0">{children}</div>
         </div>
       ) : (
-        <div className="flex min-h-7 items-center justify-between gap-3">
-          <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
-          {value && <p className="shrink-0 text-[13px] font-semibold text-foreground/68">{value}</p>}
-        </div>
+        <p className="flex min-h-7 items-center truncate text-[14px] font-semibold text-foreground/86">{label}</p>
       )}
     </div>
   </div>
@@ -561,7 +546,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   </div>
                 </Row>
 
-                <Row icon={<Clock3 className="h-4 w-4" />} label="길이" value={formatDurationMinutes(duration)}>
+                <Row icon={<Clock3 className="h-4 w-4" />} label="길이">
                   <DurationPicker
                     duration={duration}
                     customOpen={customDurationOpen}
@@ -572,7 +557,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </div>
             ) : (
               <div className="space-y-1">
-                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜" value={formatDateValue(plannedFor)}>
+                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜">
                   <input
                     type="date"
                     value={plannedFor}
@@ -581,7 +566,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   />
                 </Row>
 
-                <Row icon={<Flag className="h-4 w-4" />} label="우선순위" value={PRIORITY_LABELS[priority]}>
+                <Row icon={<Flag className="h-4 w-4" />} label="우선순위">
                   <div className="grid grid-cols-4 gap-1.5">
                     {([0, 1, 2, 3] as Priority[]).map((value) => (
                       <Pill
@@ -608,7 +593,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             )}
 
             <div className="mt-1 pt-1">
-              <Row icon={<Palette className="h-4 w-4" />} label="색상" value={taskColor ? TASK_COLOR_OPTIONS.find((option) => option.value === taskColor)?.label : '기본'}>
+              <Row icon={<Palette className="h-4 w-4" />} label="색상">
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
@@ -636,7 +621,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<RotateCw className="h-4 w-4" />} label="반복" value={recurrence === 'none' ? '안 함' : '반복 설정됨'}>
+              <Row icon={<RotateCw className="h-4 w-4" />} label="반복">
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {(
@@ -698,7 +683,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<Bell className="h-4 w-4" />} label="알림" value={formatReminderSummary(reminderMinutes)}>
+              <Row icon={<Bell className="h-4 w-4" />} label="알림">
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {PLANNER_REMINDER_OPTIONS.map((option) => {
@@ -763,7 +748,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명" value={note ? '작성됨' : '없음'}>
+              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명">
                 <input
                   type="text"
                   value={note}
