@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AlignLeft,
   Bell,
@@ -25,6 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { formatDurationMinutes } from '@/lib/formatDuration';
@@ -170,20 +175,19 @@ const Row = ({
   </div>
 );
 
-const Pill = ({
-  active,
-  children,
-  onClick,
-  className,
-}: {
+type PillProps = {
   active?: boolean;
   children: ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   className?: string;
-}) => (
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'children' | 'className'>;
+
+const Pill = forwardRef<HTMLButtonElement, PillProps>(({ active, children, onClick, className, ...rest }, ref) => (
   <button
+    ref={ref}
     type="button"
     onClick={onClick}
+    {...rest}
     className={cn(
       'inline-flex h-7 items-center justify-center rounded-full border px-3 text-[12.5px] font-semibold transition-colors',
       active
@@ -194,7 +198,8 @@ const Pill = ({
   >
     {children}
   </button>
-);
+));
+Pill.displayName = 'Pill';
 
 const fieldInputClass =
   'h-8 rounded-md border-0 bg-[#f3f0ea] px-2.5 text-[13px] font-semibold text-foreground outline-none focus:bg-white focus:ring-1 focus:ring-primary/55';
@@ -537,11 +542,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       onChange={(event) => setStartDate(event.target.value)}
                       className={cn(fieldInputClass, 'w-full')}
                     />
-                    <input
-                      type="time"
+                    <TimePickerPopover
                       value={startTime}
-                      onChange={(event) => setStartTime(event.target.value)}
-                      className={cn(fieldInputClass, 'w-full min-w-[136px]')}
+                      onChange={setStartTime}
+                      className="min-w-[136px]"
                     />
                   </div>
                 </Row>
@@ -828,6 +832,12 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   );
 };
 
+/**
+ * 길이 선택 — 빠른 칩 3개 + "직접" Popover (분 자유 입력).
+ *
+ * 이전엔 "직접" 클릭 시 행 아래로 인라인 확장됐는데, 시각적으로 답답해서
+ * 작은 floating popover 로 옮겼다. 트리거 옆에 깔끔히 떠 분 단위 input 하나만.
+ */
 const DurationPicker = ({
   duration,
   customOpen,
@@ -838,13 +848,15 @@ const DurationPicker = ({
   customOpen: boolean;
   onDurationChange: (duration: number) => void;
   onCustomOpenChange: (open: boolean) => void;
-}) => (
-  <div className="space-y-2">
+}) => {
+  const isPreset = (DURATION_PRESETS as readonly number[]).includes(duration);
+  const customActive = customOpen || !isPreset;
+  return (
     <div className="grid grid-cols-4 gap-1.5">
       {DURATION_PRESETS.map((value) => (
         <Pill
           key={value}
-          active={duration === value && !customOpen}
+          active={duration === value && !customActive}
           onClick={() => {
             onDurationChange(value);
             onCustomOpenChange(false);
@@ -854,26 +866,178 @@ const DurationPicker = ({
           {formatDurationMinutes(value)}
         </Pill>
       ))}
-      <Pill active={customOpen} onClick={() => onCustomOpenChange(true)} className="px-1">
-        직접
-      </Pill>
+      <Popover open={customOpen} onOpenChange={onCustomOpenChange}>
+        <PopoverTrigger asChild>
+          <Pill active={customActive} className="px-1">
+            직접
+          </Pill>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          side="bottom"
+          sideOffset={6}
+          className="w-56 rounded-xl border-foreground/14 p-3"
+        >
+          <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+            길이 직접 입력
+          </p>
+          <div className="relative">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={5}
+              max={1440}
+              step={5}
+              value={duration}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isFinite(next)) onDurationChange(Math.max(5, Math.min(1440, next)));
+              }}
+              autoFocus
+              aria-label="길이 (분)"
+              className="h-10 w-full rounded-lg border border-foreground/14 bg-background pl-3 pr-9 text-[15px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-muted-foreground">
+              분
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] tabular-nums text-foreground/65">
+            = {formatDurationMinutes(duration)}
+          </p>
+        </PopoverContent>
+      </Popover>
     </div>
-    {customOpen && (
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-        <input
-          type="number"
-          min={5}
-          max={720}
-          step={5}
-          value={duration}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            if (Number.isFinite(next)) onDurationChange(Math.max(5, Math.min(720, next)));
-          }}
-          className={fieldInputClass}
-        />
-        <span className="text-[11.5px] font-bold text-muted-foreground">분</span>
-      </div>
-    )}
-  </div>
-);
+  );
+};
+
+/**
+ * 시간 선택 — type="time" 의 네이티브 picker(브라우저별로 휠/스피너) 가
+ * 디자인 일관성을 깨서 우리 popover 로 대체. 시·분 number input 2개 +
+ * 자주 쓰는 빠른 시간 칩 5개.
+ *
+ * value: "HH:MM" 형식. 빈 문자열 / 잘못된 포맷은 "00:00" 으로 폴백 표시.
+ */
+const TIME_QUICK_PRESETS = ['09:00', '12:00', '15:00', '18:00', '21:00'] as const;
+
+const parseHm = (raw: string): { h: number; m: number } => {
+  const [hRaw, mRaw] = (raw || '00:00').split(':');
+  const h = Math.max(0, Math.min(23, Number(hRaw) || 0));
+  const m = Math.max(0, Math.min(59, Number(mRaw) || 0));
+  return { h, m };
+};
+
+const formatHmDisplay = (raw: string): string => {
+  if (!raw) return '시간 선택';
+  const { h, m } = parseHm(raw);
+  const period = h < 12 ? '오전' : '오후';
+  const display12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${period} ${String(display12).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+const TimePickerPopover = ({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  className?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const { h, m } = parseHm(value);
+
+  const setHour = (next: number) => {
+    const safe = Math.max(0, Math.min(23, Math.floor(next)));
+    onChange(`${String(safe).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  };
+  const setMinute = (next: number) => {
+    const safe = Math.max(0, Math.min(59, Math.floor(next)));
+    onChange(`${String(h).padStart(2, '0')}:${String(safe).padStart(2, '0')}`);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="시작 시간 선택"
+          className={cn(
+            fieldInputClass,
+            'flex w-full items-center justify-between gap-2 text-left',
+            className,
+          )}
+        >
+          <span className="truncate tabular-nums">{formatHmDisplay(value)}</span>
+          <Clock3 className="h-3.5 w-3.5 shrink-0 text-foreground/55" strokeWidth={2.2} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        className="w-64 rounded-xl border-foreground/14 p-3"
+      >
+        <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+          시작 시간
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={23}
+            value={String(h).padStart(2, '0')}
+            onChange={(event) => {
+              const raw = event.target.value;
+              if (raw === '') return;
+              const num = Number(raw);
+              if (Number.isFinite(num)) setHour(num);
+            }}
+            onFocus={(event) => event.currentTarget.select()}
+            aria-label="시"
+            className="h-12 w-16 rounded-lg border border-foreground/14 bg-background text-center text-[20px] font-extrabold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+          />
+          <span className="text-[20px] font-extrabold text-foreground/55">:</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={59}
+            value={String(m).padStart(2, '0')}
+            onChange={(event) => {
+              const raw = event.target.value;
+              if (raw === '') return;
+              const num = Number(raw);
+              if (Number.isFinite(num)) setMinute(num);
+            }}
+            onFocus={(event) => event.currentTarget.select()}
+            aria-label="분"
+            className="h-12 w-16 rounded-lg border border-foreground/14 bg-background text-center text-[20px] font-extrabold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {TIME_QUICK_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => {
+                onChange(preset);
+                setOpen(false);
+              }}
+              aria-label={`${preset} 선택`}
+              aria-pressed={value === preset}
+              className={cn(
+                'h-7 rounded-full border px-2.5 text-[11.5px] font-bold tabular-nums transition-colors',
+                value === preset
+                  ? 'border-primary/45 bg-primary/10 text-primary'
+                  : 'border-transparent bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
