@@ -55,6 +55,13 @@ const formatDayLabel = (d: Date): string => {
   return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
 };
 
+const agendaItemKindLabel = (kind: AgendaItem['kind']) => kind === 'event' ? '일정' : '할 일';
+
+const formatAgendaItemLabel = (it: AgendaItem, date: Date): string => {
+  const status = it.canceled ? ', 취소됨' : it.done ? ', 완료됨' : '';
+  return `${agendaItemKindLabel(it.kind)} ${it.title}, ${formatDayLabel(date)} ${formatHm(it.startAt)}${status}`;
+};
+
 export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaMiniProps) => {
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
   const [events, setEvents] = useState<PlannerEvent[]>([]);
@@ -108,12 +115,13 @@ export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaM
     return (
       <div>
         {groups.length === 0 ? (
-          <p className="py-8 text-center text-[14px] text-foreground/45">예정된 일정 없음</p>
+          <p role="status" className="py-8 text-center text-[14px] text-foreground/45">예정된 일정 없음</p>
         ) : (
-          <ol className="flex flex-col gap-7">
+          <ol className="flex flex-col gap-7" aria-label="다가오는 일정 목록">
             {groups.map(({ dayKey, date, items }) => {
               const dow = date.getDay();
               const isToday = localDayKey(date) === localDayKey(new Date());
+              const dayLabel = formatDayLabel(date);
               return (
                 <li key={dayKey} className="grid grid-cols-[80px_minmax(0,1fr)] gap-4">
                   <div className="pt-1">
@@ -130,10 +138,10 @@ export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaM
                       {date.toLocaleDateString('ko-KR', { weekday: 'short' })}
                     </div>
                     <div className="mt-1 text-[10.5px] text-foreground/45 truncate">
-                      {formatDayLabel(date)}
+                      {dayLabel}
                     </div>
                   </div>
-                  <ul className="flex flex-col gap-1.5 min-w-0">
+                  <ul className="flex flex-col gap-1.5 min-w-0" aria-label={`${dayLabel} 일정`}>
                     {items.map((it) => {
                       const accent = it.color ?? (it.kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(262 70% 60%)');
                       const dim = it.done || it.canceled;
@@ -142,6 +150,7 @@ export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaM
                           <button
                             type="button"
                             onClick={() => onItemClick?.({ id: it.id, title: it.title })}
+                            aria-label={formatAgendaItemLabel(it, date)}
                             style={{
                               backgroundColor: `color-mix(in oklab, ${accent} 18%, hsl(var(--background)))`,
                               borderColor: `color-mix(in oklab, ${accent} 35%, hsl(var(--background)))`,
@@ -183,54 +192,58 @@ export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaM
         다가오는 일정
       </div>
       {groups.length === 0 ? (
-        <p className="px-1.5 py-2 text-[11.5px] text-foreground/45 leading-snug">
+        <p role="status" className="px-1.5 py-2 text-[11.5px] text-foreground/45 leading-snug">
           예정된 일정 없음
         </p>
       ) : (
-        <ol className="flex flex-col gap-2">
-          {groups.map(({ dayKey, date, items }) => (
-            <li key={dayKey}>
-              <div className="px-1.5 mb-0.5 text-[10.5px] font-semibold text-foreground/70">
-                {formatDayLabel(date)}
-              </div>
-              <ul className="flex flex-col gap-0.5">
-                {items.slice(0, 4).map((it) => {
-                  const accent = it.color ?? (it.kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(262 70% 60%)');
-                  const dim = it.done || it.canceled;
-                  return (
-                    <li key={`${it.kind}-${it.id}`}>
-                      <button
-                        type="button"
-                        onClick={() => onItemClick?.({ id: it.id, title: it.title })}
-                        title={it.title}
-                        style={{ borderLeftColor: accent }}
-                        className={cn(
-                          'w-full flex items-baseline gap-1.5 pl-2 pr-1 py-0.5 rounded-sm border-l-[3px]',
-                          'text-left hover:bg-accent transition-colors',
-                          dim && 'opacity-55',
-                        )}
-                      >
-                        <span className="text-[10px] font-mono tabular-nums text-foreground/60 shrink-0">
-                          {formatHm(it.startAt)}
-                        </span>
-                        <span className={cn(
-                          'min-w-0 flex-1 truncate text-[11.5px] text-foreground/85',
-                          dim && 'line-through',
-                        )}>
-                          {it.title}
-                        </span>
-                      </button>
+        <ol className="flex flex-col gap-2" aria-label="다가오는 일정 목록">
+          {groups.map(({ dayKey, date, items }) => {
+            const dayLabel = formatDayLabel(date);
+            return (
+              <li key={dayKey}>
+                <div className="px-1.5 mb-0.5 text-[10.5px] font-semibold text-foreground/70">
+                  {dayLabel}
+                </div>
+                <ul className="flex flex-col gap-0.5" aria-label={`${dayLabel} 일정`}>
+                  {items.slice(0, 4).map((it) => {
+                    const accent = it.color ?? (it.kind === 'event' ? 'hsl(220 70% 55%)' : 'hsl(262 70% 60%)');
+                    const dim = it.done || it.canceled;
+                    return (
+                      <li key={`${it.kind}-${it.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => onItemClick?.({ id: it.id, title: it.title })}
+                          title={it.title}
+                          aria-label={formatAgendaItemLabel(it, date)}
+                          style={{ borderLeftColor: accent }}
+                          className={cn(
+                            'w-full flex items-baseline gap-1.5 pl-2 pr-1 py-0.5 rounded-sm border-l-[3px]',
+                            'text-left hover:bg-accent transition-colors',
+                            dim && 'opacity-55',
+                          )}
+                        >
+                          <span className="text-[10px] font-mono tabular-nums text-foreground/60 shrink-0">
+                            {formatHm(it.startAt)}
+                          </span>
+                          <span className={cn(
+                            'min-w-0 flex-1 truncate text-[11.5px] text-foreground/85',
+                            dim && 'line-through',
+                          )}>
+                            {it.title}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {items.length > 4 && (
+                    <li className="px-2 text-[10px] text-foreground/45 tabular-nums">
+                      +{items.length - 4}
                     </li>
-                  );
-                })}
-                {items.length > 4 && (
-                  <li className="px-2 text-[10px] text-foreground/45 tabular-nums">
-                    +{items.length - 4}
-                  </li>
-                )}
-              </ul>
-            </li>
-          ))}
+                  )}
+                </ul>
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>

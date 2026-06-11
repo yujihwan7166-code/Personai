@@ -1,9 +1,12 @@
 import { Command } from 'cmdk';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Plus, Network, BookOpen, Download, Upload, Trash2, X, Inbox, Bot, Sparkles } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 import { exportAllAsJson } from '@/lib/wikiBackup';
 import { getActiveWikiPages, searchWikiPages, type WikiSearchHit } from '@/lib/wikiQuery';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface Props {
   open: boolean;
@@ -32,8 +35,31 @@ export function WikiCommandPalette({
   open, onOpenChange, pages,
   onOpen, onCreate, onCreateByTitle, onGoHome, onGoGraph, onImport, onClearAll, onQuickCapture, onAskAi, currentPageId, onGoGraphFocus, onClose,
 }: Props) {
+  useScrollLock(open);
   const [query, setQuery] = useState('');
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>({ active: open, restoreFocus: false });
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => { if (!open) setQuery(''); }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+      restoreFocusRef.current = activeElement;
+    }
+  }, [open]);
+
+  const closePalette = useCallback((restoreFocus = true) => {
+    onOpenChange(false);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => restoreFocusRef.current?.focus());
+    }
+  }, [onOpenChange]);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(() => closePalette());
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -44,14 +70,17 @@ export function WikiCommandPalette({
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         if (inEditable) return;
         e.preventDefault();
+        if (!open && target instanceof HTMLElement) {
+          restoreFocusRef.current = target;
+        }
         onOpenChange(!open);
       } else if (e.key === 'Escape' && open) {
-        onOpenChange(false);
+        closePalette();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onOpenChange]);
+  }, [closePalette, open, onOpenChange]);
 
   if (!open) return null;
 
@@ -70,15 +99,18 @@ export function WikiCommandPalette({
 
   const run = (fn?: () => void) => {
     fn?.();
-    onOpenChange(false);
+    closePalette(false);
   };
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 wiki-z-palette-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[12vh] px-4"
-      onClick={() => onOpenChange(false)}
+      {...backdropHandlers}
       role="dialog"
-      aria-label="명령 팔레트"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
     >
       <Command
         className="w-full max-w-xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
@@ -86,19 +118,27 @@ export function WikiCommandPalette({
         loop
         shouldFilter={false}
       >
+        <div className="sr-only">
+          <h2 id={titleId}>명령 팔레트</h2>
+          <p id={descId}>문서, 동작, 검색 결과를 찾고 Enter로 실행합니다.</p>
+        </div>
         <div className="border-b border-[hsl(var(--hairline))] px-3">
           <Command.Input
             value={query}
             onValueChange={setQuery}
             placeholder="문서·동작 검색  ·  자연어로 물어보면 AI 진입"
+            aria-label="명령 검색"
+            data-autofocus="true"
             autoFocus
             className="w-full h-11 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
           />
         </div>
 
-        <Command.List className="max-h-[60vh] overflow-y-auto p-1.5">
+        <Command.List label="명령 결과" className="max-h-[60vh] overflow-y-auto p-1.5">
           <Command.Empty className="p-6 text-center text-[12px] text-muted-foreground">
-            일치하는 항목이 없어요
+            <span role="status" className="block">
+              일치하는 항목이 없어요
+            </span>
           </Command.Empty>
 
           {onAskAi && (cleanQuery.length >= 6 || cleanQuery.includes('?') || cleanQuery.includes('？')) && (
@@ -129,14 +169,14 @@ export function WikiCommandPalette({
               <Item
                 icon={<Plus className="h-3.5 w-3.5 text-primary" />}
                 label={`"${cleanQuery}" 새 문서 만들기`}
-                meta="Draft"
+                meta="초안"
                 onSelect={() => run(() => onCreateByTitle?.(cleanQuery))}
               />
             )}
             {onQuickCapture && (
               <Item
                 icon={<Inbox className="h-3.5 w-3.5" />}
-                label="빠른 캡처 — Inbox 에 던지기"
+                label="빠른 캡처 — 수집함에 저장"
                 hint="Ctrl+Shift+;"
                 onSelect={() => run(onQuickCapture)}
               />
@@ -190,6 +230,18 @@ export function WikiCommandPalette({
               />
             )}
           </Command.Group>
+
+          {cleanQuery && pageHits.length === 0 && (
+            <div
+              role="status"
+              className="mx-2 my-1 rounded-md border border-dashed border-[hsl(var(--hairline))] px-3 py-2 text-[11.5px] leading-relaxed text-muted-foreground"
+            >
+              기존 문서 결과가 없어요.
+              <span className="block text-[10.5px] text-muted-foreground/70">
+                새 문서로 만들거나 다른 검색어를 입력해 보세요.
+              </span>
+            </div>
+          )}
 
           {pageHits.length > 0 && (
             <Command.Group

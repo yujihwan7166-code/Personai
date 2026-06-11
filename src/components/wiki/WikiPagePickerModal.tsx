@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, X, Plus, Hash, FileText } from 'lucide-react';
 import { type WikiPage, WIKI_TYPE_META, USER_FACING_TYPES, type WikiPageType } from '@/types/wiki';
 import { cn } from '@/lib/utils';
 import { getActiveWikiPages, searchWikiPages, type WikiSearchHit } from '@/lib/wikiQuery';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 type Mode = 'search' | 'id' | 'new';
 
@@ -33,6 +36,7 @@ interface Props {
 export function WikiPagePickerModal({
   open, pages, excludeId, initialQuery = '', onPick, onCreateAndLink, onPickUrl, onClose,
 }: Props) {
+  useScrollLock(open);
   const [mode, setMode] = useState<Mode>('search');
   const [query, setQuery] = useState(initialQuery);
   const [typeFilter, setTypeFilter] = useState<WikiPageType | 'all'>('all');
@@ -41,6 +45,11 @@ export function WikiPagePickerModal({
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<WikiPageType>('concept');
   const [busy, setBusy] = useState(false);
+  const titleId = useId();
+  const descId = useId();
+  const searchListboxId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -118,7 +127,28 @@ export function WikiPagePickerModal({
 
   useEffect(() => { setActiveIdx(0); }, [query, mode]);
 
+  useEffect(() => {
+    if (mode !== 'search') return;
+    setActiveIdx((current) => {
+      const max = candidates.length - 1;
+      if (max < 0) return 0;
+      return Math.min(current, max);
+    });
+  }, [candidates.length, mode]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+  }, [mode, open]);
+
   if (!open) return null;
+
+  const activeCandidateOptionId = mode === 'search' && candidateHits[activeIdx]
+    ? `${searchListboxId}-option-${activeIdx}`
+    : undefined;
 
   const tabs: Array<{ id: Mode; label: string; icon: React.ReactNode }> = [
     { id: 'search', label: '문서 찾기', icon: <Search className="w-3 h-3" /> },
@@ -151,21 +181,29 @@ export function WikiPagePickerModal({
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 wiki-z-modal-backdrop bg-black/40 backdrop-blur-sm flex items-start justify-center pt-[12vh] px-4"
       role="dialog"
-      aria-label="문서 또는 링크 연결"
-      onClick={onClose}
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
+      {...backdropHandlers}
     >
       <div
         className="w-full max-w-md rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
+        <div className="sr-only">
+          <h2 id={titleId}>문서 또는 링크 연결</h2>
+          <p id={descId}>기존 문서를 검색하거나 새 문서를 만들어 현재 글에 연결합니다.</p>
+        </div>
         {/* 탭 row */}
-        <div className="flex border-b border-[hsl(var(--hairline))]">
+        <div className="flex border-b border-[hsl(var(--hairline))]" role="tablist" aria-label="연결 방식">
           {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={mode === t.id}
               onClick={() => setMode(t.id)}
               className={cn(
                 'flex-1 inline-flex items-center justify-center gap-1 h-9 text-[11.5px] wiki-trans-color',
@@ -195,11 +233,17 @@ export function WikiPagePickerModal({
               <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <input
                 ref={inputRef}
+                data-autofocus="true"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i) => Math.min(candidates.length - 1, i + 1)); }
-                  else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(0, i - 1)); }
+                  if (e.key === 'ArrowDown' && candidates.length > 0) {
+                    e.preventDefault();
+                    setActiveIdx((i) => (i >= candidates.length - 1 ? 0 : i + 1));
+                  } else if (e.key === 'ArrowUp' && candidates.length > 0) {
+                    e.preventDefault();
+                    setActiveIdx((i) => (i <= 0 ? candidates.length - 1 : i - 1));
+                  }
                   else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (candidates[activeIdx]) onPick(candidates[activeIdx]);
@@ -209,6 +253,12 @@ export function WikiPagePickerModal({
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
                 placeholder="연결할 문서 이름이나 URL"
+                aria-label="연결할 문서 이름이나 URL"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={candidateHits.length > 0}
+                aria-controls={candidateHits.length > 0 ? searchListboxId : undefined}
+                aria-activedescendant={activeCandidateOptionId}
                 className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
               />
               {query && (
@@ -267,39 +317,49 @@ export function WikiPagePickerModal({
 
             <div className="max-h-[50vh] overflow-y-auto py-1">
               {/* 1) 정상 결과 */}
-              {candidateHits.length > 0 && candidateHits.map(({ page: p, hit, bodySnippet, matchedAlias, matchedTag, matchedLink }, i) => {
-                const meta = WIKI_TYPE_META[p.type];
-                const active = i === activeIdx;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onMouseEnter={() => setActiveIdx(i)}
-                    onClick={() => onPick(p)}
-                    className={cn(
-                      'w-full flex items-center gap-2 px-3 py-1.5 text-left wiki-trans-color',
-                      active ? 'bg-accent text-foreground' : 'text-foreground/85 hover:bg-accent',
-                    )}
-                  >
-                    <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block truncate text-[12.5px]">{p.title}</span>
-                      {bodySnippet && (
-                        <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">{bodySnippet}</span>
-                      )}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/70 shrink-0">
-                      {formatHitMeta(hit, meta.label, matchedAlias, matchedTag, matchedLink)}
-                    </span>
-                  </button>
-                );
-              })}
+              {candidateHits.length > 0 && (
+                <div id={searchListboxId} role="listbox" aria-label="문서 검색 결과">
+                  {candidateHits.map(({ page: p, hit, bodySnippet, matchedAlias, matchedTag, matchedLink }, i) => {
+                    const meta = WIKI_TYPE_META[p.type];
+                    const active = i === activeIdx;
+                    const hitLabel = formatHitMeta(hit, meta.label, matchedAlias, matchedTag, matchedLink);
+                    return (
+                      <button
+                        key={p.id}
+                        id={`${searchListboxId}-option-${i}`}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        onMouseEnter={() => setActiveIdx(i)}
+                        onClick={() => onPick(p)}
+                        aria-label={`${p.title} 문서 연결, ${hitLabel}`}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-1.5 text-left wiki-trans-color',
+                          active ? 'bg-accent text-foreground' : 'text-foreground/85 hover:bg-accent',
+                        )}
+                      >
+                        <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate text-[12.5px]">{p.title}</span>
+                          {bodySnippet && (
+                            <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">{bodySnippet}</span>
+                          )}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                          {hitLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {canPickUrl && (
                 <div className="px-3 py-2">
                   <button
                     type="button"
                     onClick={() => onPickUrl?.(query.trim())}
+                    aria-label={`${query.trim()} 웹 링크로 연결`}
                     className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
                   >
                     <Hash className="h-3.5 w-3.5" />
@@ -320,6 +380,7 @@ export function WikiPagePickerModal({
                         type="button"
                         onClick={() => { void handleCreateFromSearch(); }}
                         disabled={busy}
+                        aria-label={`${query.trim()} 새 문서로 만들고 연결`}
                         className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -363,6 +424,7 @@ export function WikiPagePickerModal({
                       type="button"
                       onClick={() => { void handleCreateFromSearch(); }}
                       disabled={busy}
+                      aria-label={`${query.trim()} 새 문서로 만들고 연결`}
                       className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-[11.5px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50 wiki-trans-color"
                     >
                       <Plus className="h-3.5 w-3.5 shrink-0" />
@@ -382,6 +444,7 @@ export function WikiPagePickerModal({
             </p>
             <input
               ref={inputRef}
+              data-autofocus="true"
               value={idInput}
               onChange={(e) => setIdInput(e.target.value)}
               onKeyDown={(e) => {
@@ -427,6 +490,7 @@ export function WikiPagePickerModal({
               </p>
               <input
                 ref={inputRef}
+                data-autofocus="true"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => {
@@ -434,6 +498,7 @@ export function WikiPagePickerModal({
                   else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
                 }}
                 placeholder="새 문서 제목"
+                aria-label="새 연결 문서 제목"
                 className="w-full px-3 py-2 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 wiki-trans-color"
               />
             </div>
@@ -442,6 +507,7 @@ export function WikiPagePickerModal({
               type="button"
               onClick={handleCreate}
               disabled={!newTitle.trim() || busy || !onCreateAndLink}
+              aria-label={newTitle.trim() ? `${newTitle.trim()} 새 문서로 만들고 연결` : '새 문서로 만들고 연결'}
               className={cn(
                 'w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-md text-[12.5px] font-semibold wiki-trans-color',
                 newTitle.trim() && !busy

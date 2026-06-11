@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META } from '@/types/wiki';
 
@@ -28,6 +28,9 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
   const [highlight, setHighlight] = useState(0);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const autocompleteId = useId().replace(/:/g, '');
+  const listboxId = `${autocompleteId}-wiki-link-listbox`;
+  const optionId = useCallback((pageId: string) => `${autocompleteId}-wiki-link-option-${pageId}`, [autocompleteId]);
 
   // [[ 감지
   useEffect(() => {
@@ -66,34 +69,44 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
       .slice(0, 8);
   }, [pages, currentId, trigger]);
 
-  // 키 처리 — capture 단계에서 선처리
+  useEffect(() => {
+    if (matches.length === 0) {
+      setHighlight(0);
+      return;
+    }
+    setHighlight((current) => Math.min(current, matches.length - 1));
+  }, [matches.length]);
+
   useEffect(() => {
     const ta = textareaRef.current;
-    if (!ta || !trigger) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (!trigger) return;
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setHighlight((h) => Math.min(h + 1, matches.length - 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setHighlight((h) => Math.max(h - 1, 0));
-      } else if (e.key === 'Enter') {
-        if (matches[highlight]) {
-          e.preventDefault();
-          insertSelection(matches[highlight].title);
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setTrigger(null);
-      }
-    };
-    ta.addEventListener('keydown', onKey);
-    return () => ta.removeEventListener('keydown', onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger, matches, highlight]);
+    if (!ta) return;
 
-  const insertSelection = (title: string) => {
+    if (!trigger || !pos) {
+      ta.removeAttribute('aria-autocomplete');
+      ta.removeAttribute('aria-expanded');
+      ta.removeAttribute('aria-controls');
+      ta.removeAttribute('aria-activedescendant');
+      return;
+    }
+
+    ta.setAttribute('aria-autocomplete', 'list');
+    ta.setAttribute('aria-expanded', 'true');
+    ta.setAttribute('aria-controls', listboxId);
+    if (matches[highlight]) {
+      ta.setAttribute('aria-activedescendant', optionId(matches[highlight].id));
+    } else {
+      ta.removeAttribute('aria-activedescendant');
+    }
+
+    return () => {
+      ta.removeAttribute('aria-autocomplete');
+      ta.removeAttribute('aria-expanded');
+      ta.removeAttribute('aria-controls');
+      ta.removeAttribute('aria-activedescendant');
+    };
+  }, [highlight, listboxId, matches, optionId, pos, textareaRef, trigger]);
+
+  const insertSelection = useCallback((title: string) => {
     if (!trigger) return;
     const before = value.slice(0, trigger.startIdx);
     const after = value.slice(trigger.caretIdx);
@@ -110,26 +123,62 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
         ta.focus();
       }
     });
-  };
+  }, [onChange, textareaRef, trigger, value]);
 
-  if (!trigger || !pos || matches.length === 0) return null;
+  // 키 처리 — capture 단계에서 선처리
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta || !trigger) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!trigger) return;
+      if (e.key === 'ArrowDown') {
+        if (matches.length === 0) return;
+        e.preventDefault();
+        setHighlight((h) => Math.min(h + 1, matches.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        if (matches.length === 0) return;
+        e.preventDefault();
+        setHighlight((h) => Math.max(h - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (matches[highlight]) {
+          e.preventDefault();
+          insertSelection(matches[highlight].title);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setTrigger(null);
+      }
+    };
+    ta.addEventListener('keydown', onKey);
+    return () => ta.removeEventListener('keydown', onKey);
+  }, [trigger, matches, highlight, insertSelection, textareaRef]);
+
+  if (!trigger || !pos) return null;
+
+  const hasMatches = matches.length > 0;
 
   return (
     <div
+      id={listboxId}
       ref={popoverRef}
       className="fixed z-50 rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1 min-w-[240px] max-w-sm animate-in fade-in slide-in-from-top-1 duration-100"
       style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
       role="listbox"
+      aria-label={`문서 연결 자동완성: ${trigger.query || '전체 문서'}`}
     >
       <p className="px-3 pt-1 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground border-b border-[hsl(var(--hairline))] mb-1">
         문서 연결 — {trigger.query || '(검색어 입력)'}
       </p>
-      {matches.map((p, i) => {
+      {hasMatches ? matches.map((p, i) => {
         const meta = WIKI_TYPE_META[p.type];
         return (
           <button
             key={p.id}
+            id={optionId(p.id)}
             type="button"
+            role="option"
+            aria-selected={i === highlight}
+            aria-label={`${p.title} 문서 링크 삽입, ${meta.label}`}
             onMouseEnter={() => setHighlight(i)}
             onClick={() => insertSelection(p.title)}
             className={cn(
@@ -139,11 +188,19 @@ export function WikiLinkAutocomplete({ pages, currentId, textareaRef, value, onC
           >
             <span className="text-[14px] leading-none shrink-0" aria-hidden>{meta.icon}</span>
             <span className="flex-1 min-w-0 truncate text-[12.5px]">{p.title}</span>
+            <span className="shrink-0 text-[10px] text-muted-foreground/65">{meta.label}</span>
           </button>
         );
-      })}
+      }) : (
+        <div role="status" className="px-3 py-3 text-[12px] leading-relaxed text-muted-foreground">
+          일치하는 문서가 없어요.
+          <span className="mt-0.5 block text-[10.5px] text-muted-foreground/70">
+            계속 입력해 검색하거나 Esc로 닫을 수 있습니다.
+          </span>
+        </div>
+      )}
       <p className="px-3 pt-1 pb-1.5 text-[9.5px] text-muted-foreground/70 border-t border-[hsl(var(--hairline))] mt-1">
-        ↑↓ 이동 · Enter 선택 · Esc 닫기
+        {hasMatches ? '↑↓ 이동 · Enter 선택 · Esc 닫기' : 'Esc 닫기'}
       </p>
     </div>
   );

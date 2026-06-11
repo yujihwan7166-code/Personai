@@ -25,7 +25,7 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
   <div
     role="tablist"
     aria-label="뷰 전환"
-    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-foreground/[0.05] bg-card p-0.5 sm:p-1 sm:inline-flex sm:w-auto sm:overflow-visible shadow-[0_2px_8px_rgba(0,0,0,0.025)]"
+    className="relative flex w-full max-w-full items-center gap-0.5 overflow-x-auto rounded-[14px] border border-foreground/18 bg-[#f7f5ef] p-0.5 shadow-[inset_0_1px_2px_rgba(25,22,18,0.07),0_1px_2px_rgba(25,22,18,0.04)] sm:inline-flex sm:w-auto sm:overflow-visible sm:p-1"
   >
     {OPTIONS.map((opt) => {
       const active = value === opt.id;
@@ -38,10 +38,10 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
           onClick={() => onChange(opt.id)}
           title={`${opt.label} (${opt.key})`}
           className={cn(
-            'relative px-3.5 sm:px-4 h-7 rounded-lg text-[13px] tabular-nums transition-colors duration-300 outline-none select-none',
+            'relative h-7 select-none rounded-[10px] px-3.5 text-[13px] tabular-nums outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/25 sm:px-4',
             active
-              ? 'text-primary font-bold'
-              : 'text-muted-foreground hover:text-foreground font-medium',
+              ? 'font-bold text-foreground'
+              : 'font-semibold text-foreground/62 hover:bg-white/45 hover:text-foreground/86',
           )}
         >
           {active && (
@@ -52,11 +52,17 @@ export const ViewToggle = ({ value, onChange }: ViewToggleProps) => (
                 stiffness: 400,
                 damping: 30,
               }}
-              className="absolute inset-0 bg-primary/[0.08] rounded-lg"
+              className="absolute inset-0 rounded-[10px] border border-primary/25 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.10)]"
               style={{ originY: '0px' }}
             />
           )}
           <span className="relative z-10">{opt.label}</span>
+          {active && (
+            <span
+              aria-hidden
+              className="absolute inset-x-3 bottom-0.5 z-10 h-0.5 rounded-full bg-primary/70"
+            />
+          )}
         </button>
       );
     })}

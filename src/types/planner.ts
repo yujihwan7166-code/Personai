@@ -85,6 +85,8 @@ export interface PlannerEvent {
   recurrence?: RecurrenceRule;
   /** 겹침 lane 순서 우선권. 작을수록 좌측. 미지정 시 startAt 으로 fallback. */
   laneOrder?: number;
+  /** 시작 시각 기준 알림 offset. 0 = 시작 시각, 10 = 10분 전. */
+  reminderMinutes?: number[];
   createdAt: string;
   /** 휴지통 이동 시각. 값이 있으면 일반 캘린더 목록에서 숨긴다. */
   deletedAt?: string;
@@ -145,6 +147,11 @@ export interface PlannerTask {
   /** 겹침 lane 순서 우선권. 작을수록 좌측. 가로 드래그로 사용자가 조정.
    * 미지정 시 startAt 정렬 fallback. */
   laneOrder?: number;
+  /** 날짜형 할 일(plannedFor, startAt 없음)의 사용자 지정 표시 순서. 작을수록 위. */
+  todoOrder?: number;
+  /** 시작 시각 기준 알림 offset. 0 = 시작 시각, 10 = 10분 전.
+   * startAt 없는 날짜형 할 일은 plannedFor 09:00 을 기준으로 계산한다. */
+  reminderMinutes?: number[];
   createdAt: string;
   /** 휴지통 이동 시각. 값이 있으면 일반 할 일/일정 목록에서 숨긴다. */
   deletedAt?: string;

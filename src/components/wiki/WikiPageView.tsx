@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Copy, Link2, Pencil, PlusCircle, Trash2, Save, X, Download, Star, Check, History, Home, ChevronDown, ChevronRight, FileText, FileType, FileCode, Pencil as PencilIcon, RotateCcw, Sparkles, ListChecks, AlertTriangle } from 'lucide-react';
+import { Archive, Copy, Link2, Pencil, PlusCircle, Trash2, Save, X, Download, Star, Check, History, Home, ChevronDown, FileText, FileType, FileCode, Pencil as PencilIcon, RotateCcw, Sparkles, ListChecks, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMemos } from '@/lib/memoStore';
 import {
   type WikiPage, type WikiPageStatus, type WikiPageType,
-  WIKI_TYPE_META, WIKI_STATUS_META, VISIBLE_WIKI_STATUSES, USER_FACING_TYPES, isMainDoc,
+  WIKI_TYPE_META, WIKI_STATUS_META, VISIBLE_WIKI_STATUSES, isMainDoc,
   extractWikiLinks,
 } from '@/types/wiki';
 import { WikiBody } from './WikiBody';
@@ -17,6 +17,7 @@ import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
 import { buildWikiExportHtml, wikiPageToMarkdown } from '@/lib/wikiExport';
 import { formatWikiIdMarkdownLink, linkFirstUnlinkedMention, linkUnlinkedMentions } from '@/lib/wikiLinks';
+import { extractWikiHeadings } from '@/lib/wikiHeadings';
 import { analyzeWikiPageHealth, buildWikiBacklinkPreviews, collectWikiManualRelations, collectWikiOutgoingLinks, findUnlinkedWikiMentions, suggestRelatedWikiPages, type WikiBacklinkPreview, type WikiLinkMentionSuggestion, type WikiManualRelationGroup, type WikiPageHealthItem, type WikiRelatedSuggestion } from '@/lib/wikiQuery';
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
   visitedIds?: Set<string>;
   /** 새 문서를 만들고 연결 — picker '새로 만들기' 탭에서 호출 */
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
+  auxiliaryOpen?: boolean;
 }
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
@@ -68,7 +70,7 @@ export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
   onChange, onRestore, onArchive, onRestoreArchived, onDelete, onToggleEdit, onOpenLink, onGoHome, onOpenInGlobalGraph, onCreateAndLink,
-  onTagClick, visitedIds,
+  onTagClick, visitedIds, auxiliaryOpen = false,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -110,6 +112,13 @@ export function WikiPageView({
   const relatedSuggestions = useMemo(() => suggestRelatedWikiPages(page, allPages), [page, allPages]);
   const linkMentionSuggestions = useMemo(() => findUnlinkedWikiMentions(page, allPages), [page, allPages]);
   const healthItems = useMemo(() => analyzeWikiPageHealth(page, allPages), [page, allPages]);
+  const tocHeadings = useMemo(() => extractWikiHeadings(page.body), [page.body]);
+  const showDesktopToc = !editing && tocHeadings.length >= 2;
+  const showRightRail = !editing;
+  const useFloatingToc = auxiliaryOpen && showDesktopToc;
+  const desktopGridClass = auxiliaryOpen
+    ? (showRightRail ? 'lg:grid-cols-[minmax(0,1fr)_240px]' : 'lg:grid-cols-[minmax(0,1fr)]')
+    : (showRightRail ? 'lg:grid-cols-[180px_minmax(0,1fr)_240px]' : 'lg:grid-cols-[180px_minmax(0,1fr)]');
   const backlinkPreviews = useMemo(() => {
     const previews = buildWikiBacklinkPreviews(page, allPages);
     if (previews.length > 0 || backlinks.length === 0) return previews;
@@ -187,14 +196,21 @@ export function WikiPageView({
         )}
       </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[180px_minmax(0,1fr)_240px] gap-6">
+      <div
+        data-wiki-page-grid="true"
+        data-wiki-auxiliary-open={auxiliaryOpen ? 'true' : 'false'}
+        className={cn('max-w-6xl mx-auto grid grid-cols-1 gap-6', desktopGridClass)}
+      >
         {/* 좌: TOC */}
-        <div className="hidden lg:block">
-          {!editing && page.body && <WikiToc body={page.body} />}
-        </div>
+        {!auxiliaryOpen && (
+          <div data-wiki-toc-column="true" className="hidden lg:block">
+            {showDesktopToc && <WikiToc body={page.body} />}
+          </div>
+        )}
 
         {/* 중앙: 본문 */}
-        <article className="min-w-0">
+        <article className="relative min-w-0">
+          {useFloatingToc && <FloatingWikiToc body={page.body} count={tocHeadings.length} />}
           {/* 제목 + 액션 */}
           <header className="mb-4 pb-3 border-b border-[hsl(var(--hairline))]">
             {/* 상위 문서 줄 — 비편집 모드만. 일반 문서·sub-main 모두 표시 (root main 은 부모 0이라 자동 숨김) */}
@@ -206,7 +222,7 @@ export function WikiPageView({
                     <input
                       value={draft.title}
                       onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                      className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
+                      className="w-full text-[26px] sm:text-[30px] leading-[1.32] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-1 tracking-tight"
                       placeholder="문서 제목"
                       style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
                     />
@@ -218,7 +234,7 @@ export function WikiPageView({
                   </>
                 ) : (
                   <h1
-                    className="text-[28px] sm:text-[32px] leading-[1.2] font-semibold text-foreground tracking-tight"
+                    className="text-[26px] sm:text-[30px] leading-[1.32] font-semibold text-foreground tracking-tight"
                     style={{ fontFamily: 'var(--wiki-font-display)' }}
                   >
                     {page.title}
@@ -336,7 +352,7 @@ export function WikiPageView({
 
           {/* 편집 모드 — 메타 폼 */}
           {editing && (
-            <div className="hidden lg:block mb-3">
+            <div className="wiki-edit-control-shell hidden lg:block">
               <WikiEditMetaPanel
                 draft={draft}
                 onChange={setDraft}
@@ -356,7 +372,7 @@ export function WikiPageView({
           )}
 
           {/* 본문 — 블록 에디터 (모든 페이지 동일) */}
-          <section className={cn('min-h-[200px]', editing ? '' : 'wiki-prose')}>
+          <section className={cn('min-h-[200px]', editing ? 'wiki-editing-section' : 'wiki-prose')}>
             {editing ? (
               <WikiBlockEditor
                 body={draft.body}
@@ -413,12 +429,12 @@ export function WikiPageView({
         </article>
 
         {/* 우: 인포박스 + 로컬 그래프 */}
-        <div className="hidden lg:flex flex-col gap-3">
-          {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
-          {!editing && (
+        {showRightRail && (
+          <div className="hidden lg:flex flex-col gap-3">
+            <WikiInfobox page={page} onTagClick={onTagClick} />
             <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} onOpenInGlobal={onOpenInGlobalGraph} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* 버전 히스토리 패널 */}
@@ -428,6 +444,42 @@ export function WikiPageView({
         onClose={() => setHistoryOpen(false)}
         onRestore={onRestore}
       />
+    </div>
+  );
+}
+
+function FloatingWikiToc({ body, count }: { body: string; count: number }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+
+  return (
+    <div
+      data-wiki-floating-toc="true"
+      className="absolute left-0 top-1 z-40 hidden -translate-x-[calc(100%+12px)] lg:block"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/90 px-2 text-[11px] font-semibold text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/30 hover:bg-card hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        aria-label="문서 목차 열기"
+        aria-expanded={open}
+        aria-controls={panelId}
+      >
+        <span>목차</span>
+        <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground">{count}</span>
+      </button>
+      {open && (
+        <div id={panelId} className="absolute left-0 top-10 w-[220px] animate-in fade-in-0 zoom-in-95 duration-150">
+          <WikiToc body={body} variant="floating" />
+        </div>
+      )}
     </div>
   );
 }
@@ -442,9 +494,9 @@ function OutgoingLinksSection({
   onOpen: (titleOrId: string) => void;
 }) {
   return (
-    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+    <section className="mt-8 pt-4 border-t border-[hsl(var(--hairline))]">
       <h2
-        className="text-base font-serif font-bold text-foreground mb-2"
+        className="text-[14px] font-serif font-bold text-foreground mb-2"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
       >
         이 문서가 연결한 곳
@@ -535,9 +587,9 @@ function ManualRelationsSection({
 }) {
   const total = groups.reduce((sum, group) => sum + group.pages.length + group.missingIds.length, 0);
   return (
-    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+    <section className="mt-8 pt-4 border-t border-[hsl(var(--hairline))]">
       <h2
-        className="text-base font-serif font-bold text-foreground mb-2"
+        className="text-[14px] font-serif font-bold text-foreground mb-2"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
       >
         문서 관계
@@ -592,10 +644,10 @@ function LinkMentionSection({
   onApplyAll: () => void;
 }) {
   return (
-    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+    <section className="mt-8 pt-4 border-t border-[hsl(var(--hairline))]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2
-          className="text-base font-serif font-bold text-foreground"
+          className="text-[14px] font-serif font-bold text-foreground"
           style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
         >
           링크 추천
@@ -661,9 +713,9 @@ function RelatedPagesSection({
   onOpen: (titleOrId: string) => void;
 }) {
   return (
-    <section className="mt-10 pt-5 border-t border-[hsl(var(--hairline))]">
+    <section className="mt-8 pt-4 border-t border-[hsl(var(--hairline))]">
       <h2
-        className="text-base font-serif font-bold text-foreground mb-2"
+        className="text-[14px] font-serif font-bold text-foreground mb-2"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
       >
         관련 문서
@@ -706,9 +758,9 @@ function BacklinkPreviewSection({
   onOpen: (titleOrId: string) => void;
 }) {
   return (
-    <section className="mt-12 pt-5 border-t border-[hsl(var(--hairline))]">
+    <section className="mt-8 pt-4 border-t border-[hsl(var(--hairline))]">
       <h2
-        className="text-base font-serif font-bold text-foreground mb-2"
+        className="text-[14px] font-serif font-bold text-foreground mb-2"
         style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
       >
         이 문서를 인용한 곳
@@ -756,7 +808,7 @@ function SaveStatusBadge({ status }: { status: SaveStatus }) {
   };
   const m = map[status];
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[10.5px] px-1.5 py-0.5 mr-1', m.cls)}>
+    <span className={cn('mr-1 inline-flex h-6 items-center gap-1 rounded-full border border-[hsl(var(--hairline))] bg-card/80 px-2 text-[10.5px] font-semibold', m.cls)}>
       {m.icon}
       {m.text}
     </span>
@@ -799,233 +851,191 @@ function WikiEditMetaPanel({
   onChange: (next: WikiPage) => void;
   allPages: WikiPage[];
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(true);
-  const [findInfoOpen, setFindInfoOpen] = useState(false);
-  const [relationsOpen, setRelationsOpen] = useState(false);
+  const [activeMetaEditor, setActiveMetaEditor] = useState<'find' | 'relations' | null>(null);
+  const findTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const relationsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const isMainOn = !!draft.isMain || draft.type === 'moc';
-  const typeValue = draft.type === 'moc' ? 'concept' : draft.type;
   const relationCount =
     draft.cites.length + draft.inherits.length + draft.similarTo.length + draft.parentMocs.length;
   const tagAliasCount = draft.tags.length + draft.aliases.length;
-  const categoryValue = draft.category?.trim() ?? '';
-  const countSummary = [
-    tagAliasCount > 0 ? `별칭/태그 ${tagAliasCount}` : null,
-    relationCount > 0 ? `연결 ${relationCount}` : null,
-  ].filter(Boolean).join(' · ');
+  const closeActiveMetaEditor = () => {
+    const trigger = activeMetaEditor === 'find' ? findTriggerRef.current : relationsTriggerRef.current;
+    setActiveMetaEditor(null);
+    window.requestAnimationFrame(() => trigger?.focus());
+  };
 
   return (
     <div
       data-wiki-edit-meta-panel="true"
-      className={cn(
-        'overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card/82 shadow-[0_10px_26px_-24px_hsl(30_15%_8%/0.5)]',
-        !settingsOpen && 'bg-card/62',
-      )}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !activeMetaEditor) return;
+        event.preventDefault();
+        event.stopPropagation();
+        closeActiveMetaEditor();
+      }}
+      className="wiki-edit-meta-panel"
     >
-      <div className="flex min-h-10 items-center gap-2 px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="shrink-0 text-[12px] font-bold text-foreground">문서 정보</span>
-            <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
-              {isMainOn ? '메인 · ' : ''}{WIKI_TYPE_META[typeValue].label} · {WIKI_STATUS_META[draft.status].label}
-              {categoryValue ? ` · ${categoryValue}` : ''}
-            </span>
-          </div>
-          {countSummary && (
-            <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-              {countSummary}
-            </div>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 shrink-0 text-[12.5px] font-bold text-foreground">문서 정보</span>
         <button
           type="button"
-          onClick={() => setSettingsOpen((v) => !v)}
+          onClick={() => onChange({
+            ...draft,
+            isMain: !isMainOn,
+            type: isMainOn && draft.type === 'moc' ? 'concept' : draft.type,
+          })}
+          title={isMainOn ? '메인 문서 해제' : '메인 문서로 지정'}
           className={cn(
-            'inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11.5px] font-semibold transition-colors',
-            settingsOpen
-              ? 'bg-accent text-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-[12px] font-semibold transition-colors',
+            isMainOn
+              ? 'border-violet-300 bg-violet-500/12 text-violet-700 dark:text-violet-300'
+              : 'border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground hover:border-violet-200 hover:text-foreground',
           )}
-          aria-expanded={settingsOpen}
-          aria-label={settingsOpen ? '문서 설정 접기' : '문서 설정 열기'}
-          title={settingsOpen ? '문서 설정 접기' : '문서 설정 열기'}
         >
-          {settingsOpen ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
+          메인
+          {isMainOn && <Check className="h-3 w-3" />}
+        </button>
+
+        <label className="flex min-w-[148px] flex-1 items-center gap-2 rounded-lg border border-[hsl(var(--hairline))] bg-background/60 px-2.5 py-1.5 sm:max-w-[210px]">
+          <span className="shrink-0 text-[11px] font-bold text-muted-foreground">상태</span>
+          <select
+            value={draft.status}
+            onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
+            className="h-6 min-w-0 flex-1 bg-transparent text-[12.5px] font-semibold text-foreground outline-none"
+            title="문서 상태"
+          >
+            {draft.status === 'draft' && (
+              <option value="draft">{WIKI_STATUS_META.draft.label}</option>
+            )}
+            {VISIBLE_WIKI_STATUSES.map((k) => (
+              <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
+            ))}
+            {draft.status === 'archived' && (
+              <option value="archived">{WIKI_STATUS_META.archived.label}</option>
+            )}
+          </select>
+        </label>
+
+        <label className="flex min-w-[188px] flex-[1.4] items-center gap-2 rounded-lg border border-[hsl(var(--hairline))] bg-background/60 px-2.5 py-1.5">
+          <span className="shrink-0 text-[11px] font-bold text-muted-foreground">분류</span>
+          <input
+            type="text"
+            value={draft.category ?? ''}
+            onChange={(e) => onChange({ ...draft, category: e.target.value.trim() ? e.target.value : undefined })}
+            className="h-6 min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-foreground outline-none placeholder:text-muted-foreground/55"
+            placeholder="예: 러닝, 프로젝트"
+            title="문서 분류"
+          />
+        </label>
+
+        <button
+          ref={findTriggerRef}
+          type="button"
+          onClick={() => setActiveMetaEditor((current) => current === 'find' ? null : 'find')}
+          title="별칭과 태그 편집"
+          aria-controls="wiki-meta-find-panel"
+          aria-expanded={activeMetaEditor === 'find'}
+          className={cn(
+            'inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[11.5px] font-semibold transition-colors',
+            activeMetaEditor === 'find'
+              ? 'bg-primary/10 text-primary'
+              : 'bg-accent/55 text-muted-foreground hover:bg-accent hover:text-foreground',
           )}
-          <span>{settingsOpen ? '접기' : '열기'}</span>
+          aria-pressed={activeMetaEditor === 'find'}
+        >
+          별칭/태그 <span className="ml-1 tabular-nums text-foreground">{tagAliasCount}</span>
+        </button>
+        <button
+          ref={relationsTriggerRef}
+          type="button"
+          onClick={() => setActiveMetaEditor((current) => current === 'relations' ? null : 'relations')}
+          title="문서 연결 편집"
+          aria-controls="wiki-meta-relations-panel"
+          aria-expanded={activeMetaEditor === 'relations'}
+          className={cn(
+            'inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-[11.5px] font-semibold transition-colors',
+            activeMetaEditor === 'relations'
+              ? 'bg-primary/10 text-primary'
+              : 'bg-accent/55 text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+          aria-pressed={activeMetaEditor === 'relations'}
+        >
+          문서 연결 <span className="ml-1 tabular-nums text-foreground">{relationCount}</span>
         </button>
       </div>
 
-      {settingsOpen && (
-        <div className="border-t border-[hsl(var(--hairline))] bg-background/35 p-3">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_minmax(120px,0.9fr)_minmax(112px,0.75fr)_minmax(140px,1fr)]">
-            <button
-              type="button"
-              onClick={() => onChange({
-                ...draft,
-                isMain: !isMainOn,
-                type: isMainOn && draft.type === 'moc' ? 'concept' : draft.type,
-              })}
-              title={isMainOn ? '메인 문서 해제' : '메인 문서로 지정'}
-              className={cn(
-                'inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 text-[12px] font-semibold transition-colors',
-                isMainOn
-                  ? 'border-violet-300 bg-violet-500/12 text-violet-700 dark:text-violet-300'
-                  : 'border-[hsl(var(--hairline))] bg-background/70 text-muted-foreground hover:border-violet-200 hover:text-foreground',
-              )}
-            >
-              <span>메인</span>
-              {isMainOn && <Check className="h-3 w-3" />}
-            </button>
-
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10.5px] font-semibold text-muted-foreground">유형</span>
-              <select
-                value={typeValue}
-                onChange={(e) => onChange({ ...draft, type: e.target.value as WikiPageType })}
-                className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12.5px] font-medium text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-                title="문서 유형"
-              >
-                {USER_FACING_TYPES.map((k) => (
-                  <option key={k} value={k}>{WIKI_TYPE_META[k].icon} {WIKI_TYPE_META[k].label}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10.5px] font-semibold text-muted-foreground">상태</span>
-              <select
-                value={draft.status}
-                onChange={(e) => onChange({ ...draft, status: e.target.value as WikiPageStatus })}
-                className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12.5px] font-medium text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-                title="문서 상태"
-              >
-                {draft.status === 'draft' && (
-                  <option value="draft">{WIKI_STATUS_META.draft.label}</option>
-                )}
-                {VISIBLE_WIKI_STATUSES.map((k) => (
-                  <option key={k} value={k}>{WIKI_STATUS_META[k].label}</option>
-                ))}
-                {draft.status === 'archived' && (
-                  <option value="archived">{WIKI_STATUS_META.archived.label}</option>
-                )}
-              </select>
-            </label>
-
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10.5px] font-semibold text-muted-foreground">분류</span>
-              <input
-                type="text"
-                value={draft.category ?? ''}
-                onChange={(e) => onChange({ ...draft, category: e.target.value.trim() ? e.target.value : undefined })}
-                className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/55 focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-                placeholder="예: 학습, 프로젝트"
-                title="문서 분류"
-              />
-            </label>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setFindInfoOpen((v) => !v)}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] font-semibold transition-colors',
-                findInfoOpen
-                  ? 'border-primary/25 bg-primary/7 text-foreground'
-                  : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent/55 hover:text-foreground',
-              )}
-              aria-expanded={findInfoOpen}
-            >
-              {findInfoOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              별칭/태그
-              <span className="tabular-nums opacity-70">{tagAliasCount}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRelationsOpen((v) => !v)}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] font-semibold transition-colors',
-                relationsOpen
-                  ? 'border-primary/25 bg-primary/7 text-foreground'
-                  : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent/55 hover:text-foreground',
-              )}
-              aria-expanded={relationsOpen}
-            >
-              {relationsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              문서 연결
-              <span className="tabular-nums opacity-70">{relationCount}</span>
-            </button>
-          </div>
-
-          {(findInfoOpen || relationsOpen) && (
-        <div className="mt-2 space-y-2 rounded-md border border-[hsl(var(--hairline))] bg-card p-2">
-          {findInfoOpen && (
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              <div className="space-y-1">
-                <div className="text-[10.5px] font-semibold text-muted-foreground">별칭</div>
-                <WikiTextChipInput
-                  values={draft.aliases}
-                  onChange={(next) => onChange({ ...draft, aliases: next })}
-                  placeholder="별칭 입력 후 Enter"
-                  prefix="="
-                  ariaLabel="별칭"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="text-[10.5px] font-semibold text-muted-foreground">태그</div>
-                <WikiTagChipInput
-                  tags={draft.tags}
-                  onChange={(next) => onChange({ ...draft, tags: next })}
-                  allPages={allPages}
-                  currentId={draft.id}
-                />
-              </div>
-            </div>
-          )}
-
-          {findInfoOpen && relationsOpen && <div className="h-px bg-[hsl(var(--hairline))]" />}
-
-          {relationsOpen && (
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              <WikiRelationPicker
-                label="인용"
-                pages={allPages}
-                currentId={draft.id}
-                values={draft.cites}
-                onChange={(next) => onChange({ ...draft, cites: next })}
-                preferredType="source"
-              />
-              <WikiRelationPicker
-                label="상위 개념"
-                pages={allPages}
-                currentId={draft.id}
-                values={draft.inherits}
-                onChange={(next) => onChange({ ...draft, inherits: next })}
-              />
-              <WikiRelationPicker
-                label="유사 문서"
-                pages={allPages}
-                currentId={draft.id}
-                values={draft.similarTo}
-                onChange={(next) => onChange({ ...draft, similarTo: next })}
-              />
-              <WikiRelationPicker
-                label="소속 메인"
-                pages={allPages}
-                currentId={draft.id}
-                values={draft.parentMocs}
-                onChange={(next) => onChange({ ...draft, parentMocs: next })}
-                onlyMain
+      {activeMetaEditor === 'find' && (
+      <div
+        id="wiki-meta-find-panel"
+        className="mt-2 border-t border-[hsl(var(--hairline))] pt-2"
+      >
+        <section className="min-w-0">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+            <div className="space-y-1">
+              <div className="text-[10.5px] font-semibold text-muted-foreground">별칭</div>
+              <WikiTextChipInput
+                values={draft.aliases}
+                onChange={(next) => onChange({ ...draft, aliases: next })}
+                placeholder="별칭 입력 후 Enter"
+                prefix="="
+                ariaLabel="별칭"
               />
             </div>
-          )}
-        </div>
-          )}
-        </div>
+
+            <div className="space-y-1">
+              <div className="text-[10.5px] font-semibold text-muted-foreground">태그</div>
+              <WikiTagChipInput
+                tags={draft.tags}
+                onChange={(next) => onChange({ ...draft, tags: next })}
+                allPages={allPages}
+                currentId={draft.id}
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+      )}
+
+      {activeMetaEditor === 'relations' && (
+      <div
+        id="wiki-meta-relations-panel"
+        className="mt-2 border-t border-[hsl(var(--hairline))] pt-2"
+      >
+        <section className="min-w-0">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+            <WikiRelationPicker
+              label="인용"
+              pages={allPages}
+              currentId={draft.id}
+              values={draft.cites}
+              onChange={(next) => onChange({ ...draft, cites: next })}
+              preferredType="source"
+            />
+            <WikiRelationPicker
+              label="상위 개념"
+              pages={allPages}
+              currentId={draft.id}
+              values={draft.inherits}
+              onChange={(next) => onChange({ ...draft, inherits: next })}
+            />
+            <WikiRelationPicker
+              label="유사 문서"
+              pages={allPages}
+              currentId={draft.id}
+              values={draft.similarTo}
+              onChange={(next) => onChange({ ...draft, similarTo: next })}
+            />
+            <WikiRelationPicker
+              label="소속 메인"
+              pages={allPages}
+              currentId={draft.id}
+              values={draft.parentMocs}
+              onChange={(next) => onChange({ ...draft, parentMocs: next })}
+              onlyMain
+            />
+          </div>
+        </section>
+      </div>
       )}
     </div>
   );
@@ -1321,14 +1331,20 @@ function WikiTagChipInput({
 function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void }) {
   const [open, setOpen] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const menuId = useId();
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    };
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onKey);
     return () => {
@@ -1384,16 +1400,25 @@ function DownloadMenu({ page, exportMd }: { page: WikiPage; exportMd: () => void
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
         className="h-8 px-2 inline-flex items-center gap-0.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
         title="다운로드 양식 선택"
-        aria-label="다운로드"
+        aria-label="다운로드 메뉴"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
       >
         <Download className="w-3.5 h-3.5" />
         <ChevronDown className="w-2.5 h-2.5" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 wiki-z-popover w-[198px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1">
+        <div
+          id={menuId}
+          className="absolute right-0 top-full mt-1 wiki-z-popover w-[198px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1"
+          role="menu"
+          aria-label="다운로드 양식"
+        >
           <p className="px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             다운로드 양식
           </p>
@@ -1414,6 +1439,7 @@ function DownloadOption({
     <button
       type="button"
       onClick={onClick}
+      role="menuitem"
       className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-foreground/85 hover:bg-accent hover:text-foreground wiki-trans-color"
     >
       <span className="text-muted-foreground shrink-0">{icon}</span>

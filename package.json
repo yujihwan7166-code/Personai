@@ -18,10 +18,11 @@
     "test:core": "vitest run src/test/expertOverrides.test.ts src/test/discussionHistoryStore.test.ts src/test/geminiHelpers.test.ts",
     "verify:doc": "node scripts/verify-doc-compat.mjs",
     "verify:doc:browser": "node scripts/verify-doc-table-ux.mjs",
+    "verify:planner": "node scripts/verify-planner-week-drag.mjs",
     "verify:wiki": "node scripts/verify-wiki-ux.mjs",
     "smoke:core": "node scripts/smoke-core.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke:core",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke:core && npm run verify:planner && npm run verify:wiki",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {

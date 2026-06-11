@@ -90,6 +90,11 @@ export function PlannerOverviewBar({
 
   const todayKey = localDayKey(new Date());
   const anchorKey = localDayKey(dayStart);
+  const goalSnapshot = useMemo(() => ({
+    version,
+    goals: goalStore.listActive(),
+    milestones: goalStore.listMilestones(),
+  }), [version]);
 
   const metrics = useMemo(
     () =>
@@ -98,10 +103,10 @@ export function PlannerOverviewBar({
         todayKey,
         dayItems,
         tasks,
-        goals: goalStore.listActive(),
-        milestones: goalStore.listMilestones(),
+        goals: goalSnapshot.goals,
+        milestones: goalSnapshot.milestones,
       }),
-    [anchorKey, dayItems, tasks, todayKey, version],
+    [anchorKey, dayItems, goalSnapshot, tasks, todayKey],
   );
 
   const status = useMemo(() => {

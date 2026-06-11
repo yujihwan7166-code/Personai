@@ -16,6 +16,14 @@ function renderSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] =
   );
 }
 
+function renderCompactSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] = 'wiki') {
+  return render(
+    <MemoryRouter>
+      <PageSwitcher current={current} compact showMobile={false} />
+    </MemoryRouter>,
+  );
+}
+
 describe('PageSwitcher', () => {
   it('opens the mobile menu with focus on the current page item', async () => {
     renderSwitcher('wiki');
@@ -86,5 +94,37 @@ describe('PageSwitcher', () => {
 
     fireEvent.keyDown(menu, { key: 'Home' });
     expect(within(menu).getByRole('button', { name: '홈' })).toHaveFocus();
+  });
+
+  it('closes the mobile menu when focus leaves the switcher', async () => {
+    render(
+      <MemoryRouter>
+        <PageSwitcher current="memos" />
+        <button type="button">외부 버튼</button>
+      </MemoryRouter>,
+    );
+
+    const trigger = screen.getByRole('button', { name: /현재 메모/ });
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('navigation', { name: '페이지 이동 메뉴' });
+
+    await waitFor(() => {
+      expect(within(menu).getByRole('button', { name: '메모' })).toHaveFocus();
+    });
+
+    const outside = screen.getByRole('button', { name: '외부 버튼' });
+    fireEvent.blur(within(menu).getByRole('button', { name: '메모' }), { relatedTarget: outside });
+    outside.focus();
+
+    expect(screen.queryByRole('navigation', { name: '페이지 이동 메뉴' })).not.toBeInTheDocument();
+  });
+
+  it('keeps compact desktop icon buttons named for assistive tech', () => {
+    renderCompactSwitcher('planner');
+
+    const desktop = screen.getByRole('navigation', { name: '페이지 이동' });
+    expect(within(desktop).getByRole('button', { name: '통합플래너' })).toHaveAttribute('aria-current', 'page');
+    expect(within(desktop).getByRole('button', { name: '마이위키' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /현재/ })).not.toBeInTheDocument();
   });
 });

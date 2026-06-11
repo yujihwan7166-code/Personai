@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { extractWikiLinks, type WikiPage } from '@/types/wiki';
 import { normalizeWikiPage } from '@/lib/wikiStore';
 import { analyzeWikiPageHealth, buildWikiBacklinkPreviews, buildWikiCleanupQueue, buildWikiFacetSummary, buildWikiGraphModel, buildWikiRelations, collectWikiManualRelations, collectWikiOutgoingLinks, findUnlinkedWikiMentions, getActiveWikiPages, getArchivedWikiPages, pickWikiPagesByIds, searchWikiPages, shortestWikiPath, stripMarkdown, suggestRelatedWikiPages } from '@/lib/wikiQuery';
@@ -12,6 +12,7 @@ import { findDuplicateWikiCandidates, mergeWikiPages, replaceRelationTarget, set
 import { importMarkdownFiles, parseWikiMarkdownText } from '@/lib/wikiMarkdownImport';
 import { extractWikiHeadings, nextWikiHeadingId, buildWikiHeadingIdMap } from '@/lib/wikiHeadings';
 import { buildWikiTemplateHtml, makePageFromTemplate, WIKI_EDITOR_TEMPLATES, WIKI_TEMPLATES } from '@/lib/wikiTemplates';
+import { STARTER_PACKS } from '@/lib/wikiStarterPacks';
 
 describe('wiki core utilities', () => {
   it('extracts title, alias, and id based wiki links without duplicates', () => {
@@ -335,7 +336,7 @@ describe('wiki core utilities', () => {
     ]);
     expect(buildWikiTemplateHtml('meeting')).toContain('<h2>액션 아이템</h2>');
     expect(buildWikiTemplateHtml('source')).toContain('<blockquote>');
-    expect(buildWikiTemplateHtml('moc')).toContain('[[핵심 문서 1]]');
+    expect(buildWikiTemplateHtml('moc')).toContain('<h2>핵심 문서</h2>');
   });
 
   it('builds new wiki pages from starter templates', () => {
@@ -352,7 +353,25 @@ describe('wiki core utilities', () => {
 
     const pageFromTitle = makePageFromTemplate(template!, '연구 지도');
     expect(pageFromTitle.title).toBe('연구 지도');
-    expect(pageFromTitle.body).toContain('## 핵심 페이지');
+    expect(pageFromTitle.body).toContain('## 핵심 문서');
+  });
+
+  it('ships rich and interconnected onboarding starter packs', () => {
+    for (const pack of STARTER_PACKS) {
+      const pages = pack.build();
+      const titles = new Set(pages.map((page) => page.title));
+      const indexPage = pages.find((page) => page.tags.includes('atlas') && page.tags.includes('profile'));
+      const linkedExistingTitles = new Set(
+        pages.flatMap((page) => extractWikiLinks(page.body)).filter((title) => titles.has(title)),
+      );
+
+      expect(pages.length).toBeGreaterThanOrEqual(10);
+      expect(indexPage?.body).toContain('## 이 위키를 쓰는 방식');
+      expect(indexPage?.body).toContain('## 다음에 만들 문서');
+      expect(indexPage?.body.length ?? 0).toBeGreaterThan(1800);
+      expect(linkedExistingTitles.size).toBeGreaterThanOrEqual(8);
+      expect(pages.some((page) => page.parentMocs.length > 0)).toBe(true);
+    }
   });
 
   it('normalizes v1 and v2 wiki backup payloads before import', () => {
@@ -684,9 +703,20 @@ describe('wiki core utilities', () => {
     });
 
     expect(draft.title).toBe('React Query 캐시 전략 #frontend');
-    expect(draft.tags).toEqual(['inbox', 'frontend', 'study']);
+    expect(draft.tags).toEqual(['수집함', 'frontend', 'study']);
     expect(draft.page.status).toBe('draft');
     expect(draft.page.body).toContain('## 출처');
+  });
+
+  it('uses a Korean fallback title for empty quick captures', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 10, 9, 5, 0, 0));
+    try {
+      expect(deriveCaptureTitle('')).toBe('수집 메모 6/10 09:05');
+      expect(buildQuickCapturePage({ text: '' }).tags).toEqual(['수집함']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('builds richer AI context from page and whole wiki state', () => {

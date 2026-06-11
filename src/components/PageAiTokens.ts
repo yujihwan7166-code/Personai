@@ -7,7 +7,7 @@ export const PAGE_AI_PANEL_WIDTH = {
 } as const;
 
 export const PAGE_AI_LAUNCHER_POSITION_CLASS =
-  'fixed right-[calc(0.5rem+env(safe-area-inset-right))] top-[calc(0.5rem+env(safe-area-inset-top))] z-50 sm:right-[calc(9rem+env(safe-area-inset-right))]' as const;
+  'fixed right-[calc(0.5rem+env(safe-area-inset-right))] top-[calc(0.5rem+env(safe-area-inset-top))] z-50 sm:right-[calc(9.25rem+env(safe-area-inset-right))]' as const;
 
 export const PAGE_AI_LAUNCHER_SIZE_CLASS =
   'h-8 w-8 sm:h-8 sm:w-[94px] sm:px-2' as const;

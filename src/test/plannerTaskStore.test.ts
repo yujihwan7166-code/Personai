@@ -35,6 +35,27 @@ describe('taskStore', () => {
     expect(today[0].title).toBe('today');
   });
 
+  it('listScheduled() keeps start-only scheduled tasks on their start day', () => {
+    taskStore.add({ title: 'start only', startAt: '2026-04-29T14:00:00Z' });
+
+    const today = taskStore.listScheduled('2026-04-29T00:00:00Z');
+    expect(today.map((task) => task.title)).toEqual(['start only']);
+  });
+
+  it('listScheduled() includes tasks that overlap the day after midnight', () => {
+    const startAt = new Date(2026, 3, 29, 23, 0).toISOString();
+    const endAt = new Date(2026, 3, 30, 2, 0).toISOString();
+    const firstDay = new Date(2026, 3, 29, 0, 0).toISOString();
+    const nextDay = new Date(2026, 3, 30, 0, 0).toISOString();
+    const after = new Date(2026, 4, 1, 0, 0).toISOString();
+
+    taskStore.add({ title: 'overnight', startAt, endAt });
+
+    expect(taskStore.listScheduled(firstDay).map((task) => task.title)).toEqual(['overnight']);
+    expect(taskStore.listScheduled(nextDay).map((task) => task.title)).toEqual(['overnight']);
+    expect(taskStore.listScheduled(after)).toHaveLength(0);
+  });
+
   it('toggleDone() flips done state', () => {
     const t = taskStore.add({ title: 'X' });
     taskStore.toggleDone(t.id);
@@ -66,6 +87,30 @@ describe('taskStore', () => {
     const t = taskStore.add({ title: '원본' });
     taskStore.update(t.id, { title: '수정됨' });
     expect(taskStore.list()[0].title).toBe('수정됨');
+  });
+
+  it('reorderTodos() stores manual todo order with gaps', () => {
+    const a = taskStore.add({ title: 'A', plannedFor: '2026-06-10' });
+    const b = taskStore.add({ title: 'B', plannedFor: '2026-06-10' });
+    const c = taskStore.add({ title: 'C', plannedFor: '2026-06-10' });
+
+    taskStore.reorderTodos([c.id, a.id, b.id]);
+
+    const byId = new Map(taskStore.list().map((task) => [task.id, task]));
+    expect(byId.get(c.id)?.todoOrder).toBe(10);
+    expect(byId.get(a.id)?.todoOrder).toBe(20);
+    expect(byId.get(b.id)?.todoOrder).toBe(30);
+  });
+
+  it('persists normalized reminder minutes', () => {
+    const t = taskStore.add({ title: '알림', reminderMinutes: [30, 10, 10, -1] });
+    expect(t.reminderMinutes).toEqual([10, 30]);
+
+    taskStore.update(t.id, { reminderMinutes: [0, 5] });
+    expect(taskStore.list()[0].reminderMinutes).toEqual([0, 5]);
+
+    taskStore.update(t.id, { reminderMinutes: undefined });
+    expect(taskStore.list()[0].reminderMinutes).toBeUndefined();
   });
 
   it('remove() deletes task', () => {

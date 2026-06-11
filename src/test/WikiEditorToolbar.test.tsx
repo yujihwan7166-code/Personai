@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Editor } from '@tiptap/react';
 import { WikiEditorToolbar } from '@/components/wiki/WikiEditorToolbar';
@@ -47,14 +47,16 @@ function createEditorMock(active: Record<string, boolean> = {}) {
 }
 
 describe('WikiEditorToolbar', () => {
-  it('keeps the default editing toolbar compact with block styles grouped', () => {
+  it('renders the editing palette without hiding common tools behind a more button', () => {
     const { editor } = createEditorMock();
     render(<WikiEditorToolbar editor={editor} />);
 
+    expect(screen.getByRole('toolbar', { name: '문서 편집 도구' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '블록 형식' })).toBeInTheDocument();
-    expect(screen.queryByTitle('큰 제목 (Ctrl+Shift+1)')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('번호 목록')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('표 삽입')).not.toBeInTheDocument();
+    expect(screen.getByTitle('표 삽입')).toBeInTheDocument();
+    expect(screen.getByTitle('왼쪽 정렬')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '밑줄 (Ctrl+U)' })).not.toHaveClass('hidden');
+    expect(screen.queryByRole('button', { name: /더보기/ })).not.toBeInTheDocument();
   });
 
   it('reveals block choices from the grouped block style menu', () => {
@@ -62,19 +64,56 @@ describe('WikiEditorToolbar', () => {
     render(<WikiEditorToolbar editor={editor} />);
 
     fireEvent.click(screen.getByRole('button', { name: '블록 형식' }));
-    fireEvent.click(screen.getByRole('button', { name: /중간 제목/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /중간 제목/ }));
 
     expect(chain.toggleHeading).toHaveBeenCalledWith({ level: 2 });
     expect(chain.run).toHaveBeenCalled();
   });
 
-  it('keeps advanced formatting behind the more button', () => {
+  it('inserts a table from the visible table picker', () => {
+    const { editor, chain } = createEditorMock();
+    render(<WikiEditorToolbar editor={editor} />);
+
+    fireEvent.click(screen.getByTitle('표 삽입'));
+    fireEvent.click(screen.getByLabelText('3열 4행 표 삽입'));
+
+    expect(chain.insertTable).toHaveBeenCalledWith({ rows: 4, cols: 3, withHeaderRow: true });
+    expect(chain.run).toHaveBeenCalled();
+  });
+
+  it('closes formatting menus with Escape and restores trigger focus', async () => {
     const { editor } = createEditorMock();
     render(<WikiEditorToolbar editor={editor} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /더보기/ }));
+    const trigger = screen.getByRole('button', { name: '글씨 크기' });
+    fireEvent.click(trigger);
 
-    expect(screen.getByTitle('표 삽입')).toBeInTheDocument();
-    expect(screen.getByTitle('오른쪽 정렬')).toBeInTheDocument();
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu', { name: '글씨 크기' })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu', { name: '글씨 크기' })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('treats input popovers as dialogs and closes them with Escape', async () => {
+    const { editor } = createEditorMock();
+    render(<WikiEditorToolbar editor={editor} />);
+
+    const trigger = screen.getByRole('button', { name: '표 삽입' });
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('dialog', { name: '표 삽입' })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: '표 삽입' })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

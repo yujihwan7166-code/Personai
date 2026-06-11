@@ -1,7 +1,7 @@
 /**
  * 7일 헤더의 진행률 도넛 — 그날의 (완료된 스케줄 habit) / (스케줄 habit) 비율.
  *
- * SVG circle stroke-dasharray 트릭. 28×28px 원 + 위 요일 + 아래 날짜.
+ * SVG circle stroke-dasharray 트릭. 30×30px 원 + 위 요일 + 아래 날짜.
  */
 import { cn } from '@/lib/utils';
 
@@ -25,7 +25,7 @@ export const HabitDayProgress = ({
   weekday, day, completed, scheduled, isToday, isPast,
 }: HabitDayProgressProps) => {
   const ratio = scheduled === 0 ? 0 : Math.min(1, completed / scheduled);
-  const r = 10;                // 원 반지름
+  const r = 11.5;              // 원 반지름
   const c = 2 * Math.PI * r;   // 둘레
   const dashOffset = c * (1 - ratio);
 
@@ -45,42 +45,42 @@ export const HabitDayProgress = ({
     : WEEKDAY_TONE.base;
 
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className={cn('text-[10px] uppercase tracking-[0.05em] leading-none font-medium', wdToneClass)}>
+    <div className="flex flex-col items-center gap-[3px]">
+      <span className={cn('text-[10.5px] uppercase tracking-[0.04em] leading-none font-semibold', wdToneClass)}>
         {weekday}
       </span>
       <div className="relative inline-flex items-center justify-center">
         <svg
-          width={26} height={26}
-          viewBox="0 0 26 26"
+          width={30} height={30}
+          viewBox="0 0 30 30"
           className={cn(isPast && !isToday && ratio === 0 && 'opacity-70')}
           aria-hidden
         >
           {/* 배경 원 */}
           <circle
-            cx={13} cy={13} r={r}
+            cx={15} cy={15} r={r}
             fill="none"
             stroke="hsl(var(--foreground) / 0.18)"
-            strokeWidth={2}
+            strokeWidth={2.2}
           />
           {/* 진행 원 */}
           {scheduled > 0 && (
             <circle
-              cx={13} cy={13} r={r}
+              cx={15} cy={15} r={r}
               fill="none"
               stroke={ringColor}
-              strokeWidth={2}
+              strokeWidth={2.2}
               strokeLinecap="round"
               strokeDasharray={c}
               strokeDashoffset={dashOffset}
-              transform="rotate(-90 13 13)"
+              transform="rotate(-90 15 15)"
               style={{ transition: 'stroke-dashoffset 200ms ease' }}
             />
           )}
         </svg>
         {/* 날짜 — 도넛 가운데 */}
         <span className={cn(
-          'absolute inset-0 flex items-center justify-center text-[11.5px] tabular-nums leading-none',
+          'absolute inset-0 flex items-center justify-center text-[12.5px] tabular-nums leading-none',
           isToday ? 'text-primary font-bold' : 'text-foreground/82 font-medium',
         )}>
           {day}

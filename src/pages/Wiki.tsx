@@ -410,8 +410,8 @@ const Wiki = () => {
               type="button"
               onClick={() => modeApiRef.current?.open()}
               className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="모드 전환"
-              aria-label="모드 전환"
+              title="모드 전환: 현재 마이위키"
+              aria-label="모드 전환: 현재 마이위키"
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
@@ -538,8 +538,8 @@ const Wiki = () => {
             type="button"
             onClick={() => modeApiRef.current?.open()}
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="모드 전환"
-            aria-label="모드 전환"
+            title="모드 전환: 현재 마이위키"
+            aria-label="모드 전환: 현재 마이위키"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -702,6 +702,7 @@ const Wiki = () => {
               setView('page');
               if (isMobile) setSidebarOpen(true);
             }}
+            auxiliaryOpen={aiOpen}
           />
         ) : (
           <WikiHome
@@ -765,13 +766,13 @@ const Wiki = () => {
       {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
       <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
 
-      {/* 빠른 캡처 — 어디서든 Ctrl/Cmd+Shift+; 로 호출, #inbox draft 페이지 1개 생성 */}
+      {/* 빠른 캡처 — 어디서든 Ctrl/Cmd+Shift+; 로 호출, #수집함 draft 페이지 1개 생성 */}
       <WikiQuickCapture
         open={quickCaptureOpen}
         onClose={() => setQuickCaptureOpen(false)}
         onCreate={async (page) => {
           await upsertPage(page);
-          notify.info(`Inbox 에 새 문서: ${page.title}`, { duration: 2200 });
+          notify.info(`수집함에 새 문서: ${page.title}`, { duration: 2200 });
         }}
         onOpenPage={(id) => {
           setActiveId(id);

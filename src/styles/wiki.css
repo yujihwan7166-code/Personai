@@ -341,6 +341,55 @@
 }
 
 /* 편집 모드 — 셀 호버 / 활성 시각화 */
+/* Edit controls: metadata + toolbar should read as one compact wiki workbench. */
+.wiki-edit-control-shell {
+  margin-bottom: 0;
+}
+
+.wiki-edit-meta-panel {
+  border: 1px solid hsl(var(--wiki-hairline));
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: hsl(var(--card) / 0.82);
+  padding: 0.8rem 0.9rem 0.7rem;
+  box-shadow: 0 12px 30px -28px hsl(30 15% 8% / 0.42);
+}
+
+.wiki-editor-toolbar-shell {
+  margin-top: 0;
+}
+
+.wiki-editor-toolbar {
+  border: 1px solid hsl(var(--wiki-hairline));
+  border-radius: 12px;
+  background: hsl(var(--background) / 0.94);
+  padding: 0.6rem 0.75rem;
+  box-shadow: 0 12px 30px -28px hsl(var(--foreground) / 0.36);
+  backdrop-filter: blur(8px);
+}
+
+.wiki-edit-control-shell + .wiki-editing-section .wiki-editor-toolbar-shell {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.wiki-edit-control-shell + .wiki-editing-section .wiki-editor-toolbar {
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 16px 34px -30px hsl(var(--foreground) / 0.38);
+}
+
+.wiki-toolbar-group {
+  background: transparent;
+}
+
+.wiki-toolbar-group + .wiki-toolbar-group {
+  margin-left: 0.15rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid hsl(var(--wiki-hairline));
+}
+
 .wiki-block-editor {
   border: 1px solid hsl(var(--wiki-hairline));
   border-radius: 12px;

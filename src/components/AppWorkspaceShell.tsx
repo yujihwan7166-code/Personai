@@ -62,7 +62,8 @@ export function AppWorkspaceShell({ current, children }: AppWorkspaceShellProps)
       <div
         data-app-workspace-switcher
         className={cn(
-          'fixed right-[calc(0.5rem+env(safe-area-inset-right))] z-40 hidden sm:block',
+          'fixed right-[calc(0.5rem+env(safe-area-inset-right))] z-[45] hidden sm:block',
+          'sm:right-[calc(0.75rem+env(safe-area-inset-right))]',
           current === 'planner'
             ? 'top-[calc(0.8125rem+env(safe-area-inset-top))]'
             : 'top-[calc(0.5rem+env(safe-area-inset-top))]',

@@ -14,6 +14,7 @@ import { PlannerCard } from './PlannerCard';
 import { DraggableInboxCard } from './dnd/DraggableInboxCard';
 import type { PlannerDragData } from './dnd/plannerDndTypes';
 import { PLANNER_TASK_CHANGED, PRIORITY_COLORS, PRIORITY_LABELS, type PlannerTask, type Priority } from '@/types/planner';
+import { compareTodoTasks } from '@/lib/planner/todoOrder';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
   ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger,
@@ -35,14 +36,7 @@ const localDateKey = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-const sortPlanned = (items: PlannerTask[]) =>
-  [...items].sort((a, b) => {
-    const priorityDelta = (b.priority ?? 0) - (a.priority ?? 0);
-    if (priorityDelta !== 0) return priorityDelta;
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return b.createdAt.localeCompare(a.createdAt);
-  });
+const sortPlanned = (items: PlannerTask[]) => [...items].sort(compareTodoTasks);
 
 const TodoSectionHeader = ({ label, count }: { label: string; count: number }) => (
   <div className="mb-1.5 flex items-center gap-1.5 px-1 pt-1 text-[11px] font-bold text-foreground/62">
@@ -85,21 +79,34 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
   );
 
   const visibleOverdue = showAllOverdue ? overdue : overdue.slice(0, 3);
+  const overdueReorderTasks = showAllOverdue || overdue.length === visibleOverdue.length
+    ? overdue
+    : undefined;
+
+  const moveTodoWithin = (sectionTasks: PlannerTask[], taskId: string, direction: -1 | 1) => {
+    const index = sectionTasks.findIndex((task) => task.id === taskId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= sectionTasks.length) return;
+    const next = [...sectionTasks];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    taskStore.reorderTodos(next.map((task) => task.id));
+  };
 
   // 시간 블록을 여기 드래그하면 일정→할 일 변환 (시간 빼고 plannedFor=오늘).
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `todo-list-${dayKey}`,
     data: { kind: 'todo-list', dayKey },
   });
-  const dropHint = activeDrag?.kind === 'scheduled-task'
-    ? '시간만 빼고 오늘 할 일로'
-    : activeDrag?.kind === 'scheduled-event'
-      ? '일정은 할 일로 바꿀 수 없어요'
-      : activeDrag?.kind === 'library-template'
-        ? '보관함에서 오늘 할 일로 복사'
-      : '오늘 할 일에 놓기';
+  const isBlockedDrop = activeDrag?.kind === 'scheduled-event';
 
-  const renderTask = (task: PlannerTask, density: 'normal' | 'compact' = 'normal') => (
+  const renderTask = (
+    task: PlannerTask,
+    density: 'normal' | 'compact' = 'normal',
+    sectionTasks?: PlannerTask[],
+  ) => {
+    const orderIndex = sectionTasks?.findIndex((item) => item.id === task.id) ?? -1;
+    const canReorder = Boolean(sectionTasks && sectionTasks.length > 1 && orderIndex >= 0);
+    return (
     <ContextMenu key={task.id}>
       <ContextMenuTrigger asChild>
         <div className={cn(density === 'compact' && 'opacity-95')}>
@@ -126,6 +133,10 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
               onRemoveSubtask={(sid) => taskStore.removeSubtask(task.id, sid)}
               onUpdateSubtask={(sid, text) => taskStore.updateSubtaskText(task.id, sid, text)}
               tags={task.tags}
+              onMoveUp={canReorder ? () => moveTodoWithin(sectionTasks!, task.id, -1) : undefined}
+              onMoveDown={canReorder ? () => moveTodoWithin(sectionTasks!, task.id, 1) : undefined}
+              moveUpDisabled={orderIndex <= 0}
+              moveDownDisabled={sectionTasks ? orderIndex >= sectionTasks.length - 1 : true}
             />
           </DraggableInboxCard>
         </div>
@@ -190,7 +201,8 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-  );
+    );
+  };
 
   return (
     <section
@@ -209,12 +221,12 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
-        <ListTodo className="h-4 w-4 text-foreground/70" strokeWidth={2.15} />
-        <span className="text-[12px] font-bold tracking-[0.04em] uppercase text-foreground/80 leading-none">
+        <ListTodo className="h-4 w-4 text-foreground/85" strokeWidth={2.2} />
+        <span className="text-[13px] font-bold tracking-[0.03em] uppercase text-foreground/90 leading-none">
           할 일
         </span>
         {planned.length > 0 && (
-          <span className="text-[12px] tabular-nums text-foreground/60 font-semibold">{planned.length}</span>
+          <span className="text-[12.5px] tabular-nums text-foreground/75 font-semibold">{planned.length}</span>
         )}
         <button
           type="button"
@@ -227,9 +239,15 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
         </button>
       </div>
       {isOver && (
-        <div className="pointer-events-none absolute left-3 right-3 top-[46px] z-10 rounded-lg border border-primary/35 bg-primary/10 px-3 py-2 text-[12.5px] font-semibold text-primary shadow-[0_8px_22px_-18px_hsl(var(--primary)/0.7)]">
-          {dropHint}
-        </div>
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-2 z-20 rounded-xl border transition-colors',
+            isBlockedDrop
+              ? 'border-destructive/25 bg-destructive/[0.01]'
+              : 'border-primary/28 bg-primary/[0.012]',
+          )}
+        />
       )}
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
@@ -264,7 +282,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
               <div>
                 <TodoSectionHeader label="오늘 할 일" count={planned.length} />
                 <div className="space-y-0.5">
-                  {planned.map((task) => renderTask(task))}
+                  {planned.map((task) => renderTask(task, 'normal', planned))}
                 </div>
               </div>
             )}
@@ -273,7 +291,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
               <div className="pt-2">
                 <TodoSectionHeader label="밀린 할 일" count={overdue.length} />
                 <div className="space-y-0.5">
-                  {visibleOverdue.map((task) => renderTask(task, 'compact'))}
+                  {visibleOverdue.map((task) => renderTask(task, 'compact', overdueReorderTasks))}
                 </div>
                 {overdue.length > visibleOverdue.length && (
                   <button

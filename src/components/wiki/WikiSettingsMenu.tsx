@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Settings, Download, Upload, Trash2, HardDrive, FileText } from 'lucide-react';
 import { exportAllAsJson, importFromJson, type ImportMode } from '@/lib/wikiBackup';
@@ -6,6 +6,9 @@ import { exportAllAsMarkdownZip } from '@/lib/wikiExport';
 import { importMarkdownFiles } from '@/lib/wikiMarkdownImport';
 import { clearAllPages } from '@/lib/wikiStore';
 import { notify } from '@/lib/notify';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface Props {
   /** 가져오기·전체삭제 후 부모가 페이지 다시 로드하도록 */
@@ -22,6 +25,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
   const [pos, setPos] = useState<MenuPos | null>(null);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const menuId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const markdownFileRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -60,7 +64,11 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       if (triggerRef.current?.contains(t)) return;
       setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    };
     const onScroll = () => setOpen(false);
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onKey);
@@ -153,9 +161,19 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
     }
   };
 
+  const closeImportChoice = () => {
+    setPendingImportFile(null);
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
   const handleClearAll = async () => {
     setOpen(false);
     setClearConfirmOpen(true);
+  };
+
+  const closeClearConfirm = () => {
+    setClearConfirmOpen(false);
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   const runClearAll = async () => {
@@ -168,6 +186,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
       setBusy(false);
       setClearConfirmOpen(false);
       setOpen(false);
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
     }
   };
 
@@ -177,9 +196,12 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        title="설정"
-        aria-label="설정"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        title="위키 설정"
+        aria-label="위키 설정"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
         disabled={busy}
       >
         <Settings className="h-3.5 w-3.5" />
@@ -187,10 +209,12 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
 
       {open && pos && createPortal(
         <div
+          id={menuId}
           ref={menuRef}
           className="fixed wiki-z-popover w-[220px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl py-1 wiki-ai-panel-enter"
           style={{ left: pos.left, top: pos.top }}
           role="menu"
+          aria-label="위키 설정"
         >
           <p className="px-3 py-1.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             ⚙ 위키 설정
@@ -219,6 +243,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         ref={fileRef}
         type="file"
         accept="application/json,.json"
+        aria-label="위키 JSON 백업 파일 선택"
         className="hidden"
         onChange={handleImport}
       />
@@ -227,6 +252,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         type="file"
         accept=".md,.markdown,.zip,text/markdown,text/plain,application/zip"
         multiple
+        aria-label="Markdown 또는 ZIP 파일 선택"
         className="hidden"
         onChange={handleMarkdownImport}
       />
@@ -235,7 +261,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
         <ImportChoiceDialog
           file={pendingImportFile}
           busy={busy}
-          onCancel={() => setPendingImportFile(null)}
+          onCancel={closeImportChoice}
           onPick={(mode) => { void runImport(pendingImportFile, mode); }}
         />,
         document.body,
@@ -247,7 +273,7 @@ export function WikiSettingsMenu({ onMutated, onOpenStorage }: Props) {
           body="모든 문서가 삭제됩니다. 백업 파일 없이 진행하면 복구할 수 없어요."
           busy={busy}
           confirmLabel="전체 삭제"
-          onCancel={() => setClearConfirmOpen(false)}
+          onCancel={closeClearConfirm}
           onConfirm={() => { void runClearAll(); }}
         />,
         document.body,
@@ -290,8 +316,15 @@ function ImportChoiceDialog({
   onCancel: () => void;
   onPick: (mode: ImportMode) => void;
 }) {
+  const description = `${file.name} 파일을 가져옵니다. 기존 위키를 유지하려면 병합을 선택하세요. 덮어쓰기는 현재 문서와 히스토리를 지운 뒤 백업 내용으로 교체합니다.`;
+
   return (
-    <ModalShell ariaLabel="백업 가져오기 방식 선택" onBackdrop={busy ? undefined : onCancel}>
+    <ModalShell
+      title="백업 가져오기 방식 선택"
+      description={description}
+      titlePrefix="백업 가져오기"
+      onBackdrop={busy ? undefined : onCancel}
+    >
       <p className="text-[11px] font-semibold text-muted-foreground">백업 가져오기</p>
       <h2 className="mt-1 text-[15px] font-bold truncate">{file.name}</h2>
       <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
@@ -342,7 +375,7 @@ function DangerConfirmDialog({
   onConfirm: () => void;
 }) {
   return (
-    <ModalShell ariaLabel={title} onBackdrop={busy ? undefined : onCancel}>
+    <ModalShell title={title} description={body} titlePrefix="위험한 작업" onBackdrop={busy ? undefined : onCancel}>
       <p className="text-[11px] font-semibold text-destructive">위험한 작업</p>
       <h2 className="mt-1 text-[15px] font-bold">{title}</h2>
       <p className="mt-2 text-[12px] leading-5 text-muted-foreground">{body}</p>
@@ -369,23 +402,45 @@ function DangerConfirmDialog({
 }
 
 function ModalShell({
-  ariaLabel, children, onBackdrop,
+  title, description, titlePrefix, children, onBackdrop,
 }: {
-  ariaLabel: string;
+  title: string;
+  description: string;
+  titlePrefix?: string;
   children: React.ReactNode;
   onBackdrop?: () => void;
 }) {
+  useScrollLock(true);
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(() => {
+    onBackdrop?.();
+  });
+  const titleId = useId();
+  const descId = useId();
+
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 wiki-z-modal-backdrop flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
       role="dialog"
-      aria-label={ariaLabel}
-      onClick={onBackdrop}
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
+      {...backdropHandlers}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !onBackdrop) return;
+        event.stopPropagation();
+        onBackdrop();
+      }}
     >
       <div
         className="w-full max-w-md rounded-xl border border-[hsl(var(--hairline))] bg-popover p-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
+        <div className="sr-only">
+          {titlePrefix && <p>{titlePrefix}</p>}
+          <h2 id={titleId}>{title}</h2>
+          <p id={descId}>{description}</p>
+        </div>
         {children}
       </div>
     </div>

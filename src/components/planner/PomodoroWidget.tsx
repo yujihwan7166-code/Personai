@@ -12,7 +12,7 @@
  * - 토스트 알림
  */
 import { useEffect, useState } from 'react';
-import { Pause, Play, X, Check, Coffee } from 'lucide-react';
+import { Pause, Play, X, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   pomodoroStore,
@@ -69,6 +69,7 @@ export const PomodoroWidget = () => {
   const phase = session.phase ?? 'work';
   const isBreak = phase !== 'work';
   const cfg = pomodoroStore.getConfig();
+  const phaseLabel = phase === 'work' ? '집중' : phase === 'long-break' ? '긴 휴식' : '휴식';
   // chain 도트 — 현재 cycle 안 work 진행.
   // setIndex 가 long break 직후면 cfg.setsBeforeLong 인데, 다음 work 는 1번째라 mod.
   const setInCycle = session.setIndex ? ((session.setIndex - 1) % cfg.setsBeforeLong) + 1 : 0;
@@ -195,7 +196,7 @@ export const PomodoroWidget = () => {
   return (
     <div
       role="region"
-      aria-label="포모도로 집중 타이머"
+      aria-label={`포모도로 ${phaseLabel} 타이머, ${formatMmss(remaining)} 남음${isPaused ? ', 일시정지됨' : ''}${session.taskTitle ? `, ${session.taskTitle}` : ''}`}
       className={cn(
         'fixed top-3 right-3 z-50 inline-flex items-center gap-2 px-2.5 py-1.5',
         'rounded-full shadow-lg border bg-card',
@@ -236,7 +237,7 @@ export const PomodoroWidget = () => {
         {isBreak ? (
           <span className="inline-flex items-center gap-1 text-[10.5px] font-mono uppercase tracking-wide font-semibold text-muted-foreground">
             <Coffee className="h-3 w-3" />
-            {phase === 'long-break' ? '긴 휴식' : '휴식'}
+            {phaseLabel}
           </span>
         ) : (
           session.setIndex && session.setIndex > 0 && (
@@ -267,8 +268,8 @@ export const PomodoroWidget = () => {
         <button
           type="button"
           onClick={() => pomodoroStore.togglePause()}
-          aria-label={isPaused ? '재개' : '일시정지'}
-          title={isPaused ? '재개' : '일시정지'}
+          aria-label={isPaused ? '포모도로 재개' : '포모도로 일시정지'}
+          title={isPaused ? '포모도로 재개' : '포모도로 일시정지'}
           className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
         >
           {isPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
@@ -288,8 +289,8 @@ export const PomodoroWidget = () => {
             pomodoroStore.stop();
             notify.info('포모도로 중단됨', { duration: 1200 });
           }}
-          aria-label="중단"
-          title="중단"
+          aria-label="포모도로 중단"
+          title="포모도로 중단"
           className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-rose-500/10 hover:text-rose-500 transition-colors text-muted-foreground"
         >
           <X className="h-3 w-3" />
@@ -321,6 +322,9 @@ export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => 
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11.5px] font-medium border border-foreground/20 hover:bg-accent transition-colors text-foreground"
         title="자유 포모도로 시작"
+        aria-label="자유 포모도로 시간 선택"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         🍅 집중
       </button>
@@ -332,13 +336,19 @@ export const QuickPomodoroButton = ({ className }: QuickPomodoroButtonProps) => 
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute top-full right-0 mt-1 z-50 min-w-[140px] rounded-md border border-foreground/20 bg-card shadow-lg overflow-hidden">
+          <div
+            className="absolute top-full right-0 mt-1 z-50 min-w-[140px] rounded-md border border-foreground/20 bg-card shadow-lg overflow-hidden"
+            role="menu"
+            aria-label="포모도로 시간 선택"
+          >
             {[15, 25, 45, 60, 90].map((min) => (
               <button
                 key={min}
                 type="button"
                 onClick={() => handleStart(min)}
                 className="w-full px-3 py-2 text-left text-[12px] hover:bg-accent transition-colors flex items-center justify-between"
+                role="menuitem"
+                aria-label={`${min}분 집중 시작${min === 25 ? ', 기본' : ''}`}
               >
                 <span>{min}분</span>
                 {min === 25 && <span className="text-[10px] text-muted-foreground">기본</span>}
@@ -394,6 +404,7 @@ export const StartPomodoroButton = ({
         className,
       )}
       title={`${durationMin}분 포모도로 시작`}
+      aria-label={`${taskTitle ? `${taskTitle} ` : ''}${durationMin}분 포모도로 집중 시작`}
     >
       <span aria-hidden>▶</span>
       <span>{label}</span>
@@ -401,6 +412,3 @@ export const StartPomodoroButton = ({
     </button>
   );
 };
-
-// Coffee 아이콘 미사용 경고 회피용 export (휴식 표시 등 추후 사용 가능).
-export const _PomodoroIcons = { Coffee, Check };

@@ -7,6 +7,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import { taskStore } from '@/services/planner/taskStore';
+import { compareTodoTasks } from '@/lib/planner/todoOrder';
 import { PlannerTask, PLANNER_TASK_CHANGED } from '@/types/planner';
 
 const localDateKey = (d: Date): string => {
@@ -39,7 +40,7 @@ const compute = (): PlannerTask[] => {
   // 정렬: 시간배정 우선 (오름차순), 인박스는 최신 생성순.
   return [
     ...scheduled.sort((a, b) => (a.startAt ?? '').localeCompare(b.startAt ?? '')),
-    ...inbox.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    ...inbox.sort(compareTodoTasks),
   ];
 };
 

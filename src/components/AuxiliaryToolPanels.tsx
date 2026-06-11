@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpen, CalendarDays, Check, ExternalLink, FileText, Pencil, Plus } from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useInRouterContext, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ExternalLink, FileText, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addMemo, memoPreview, memoTimeLabel, memoTitle, updateMemo, useMemos, type Memo } from '@/lib/memoStore';
 import { eventStore } from '@/services/planner/eventStore';
@@ -29,7 +29,6 @@ interface PlannerSnapshot {
 
 export function AuxiliaryPlannerTool() {
   const [snapshot, setSnapshot] = useState<PlannerSnapshot>(() => getPlannerSnapshot());
-  const navigate = useNavigate();
 
   useEffect(() => {
     const refresh = () => setSnapshot(getPlannerSnapshot());
@@ -47,10 +46,10 @@ export function AuxiliaryPlannerTool() {
         title="오늘 플래너"
         description="현재 화면을 떠나지 않고 일정과 할 일을 확인합니다."
         action={
-          <ToolGhostButton onClick={() => navigate('/planner')}>
+          <ToolRouteButton to="/planner" className={TOOL_GHOST_BUTTON_CLASS}>
             열기
             <ExternalLink className="h-3 w-3" />
-          </ToolGhostButton>
+          </ToolRouteButton>
         }
       />
 
@@ -63,10 +62,9 @@ export function AuxiliaryPlannerTool() {
           />
         ) : (
           snapshot.scheduled.map((item) => (
-            <button
+            <ToolRouteButton
               key={item.id}
-              type="button"
-              onClick={() => navigate(`/planner?date=${toLocalDateKey(new Date(item.startAt))}`)}
+              to={`/planner?date=${toLocalDateKey(new Date(item.startAt))}`}
               className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
             >
               <div className="flex items-start gap-2">
@@ -83,7 +81,7 @@ export function AuxiliaryPlannerTool() {
                 </div>
                 <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
               </div>
-            </button>
+            </ToolRouteButton>
           ))
         )}
       </ToolSection>
@@ -120,7 +118,6 @@ export function AuxiliaryPlannerTool() {
 
 export function AuxiliaryMemoTool() {
   const memos = useMemos();
-  const navigate = useNavigate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const activeMemos = memos
@@ -137,7 +134,6 @@ export function AuxiliaryMemoTool() {
   const saveEdit = () => {
     if (!editingMemo) return;
     updateMemo(editingMemo.id, { body: draft });
-    setEditingId(null);
   };
 
   const createMemo = () => {
@@ -145,6 +141,55 @@ export function AuxiliaryMemoTool() {
     setEditingId(memo.id);
     setDraft(memo.body);
   };
+
+  if (editingMemo) {
+    return (
+      <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'flex flex-col overflow-hidden py-0')}>
+        <section className="flex min-h-0 flex-1 flex-col">
+          <header className="-mx-3 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] bg-background/95 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.2} />
+              목록
+            </button>
+            <div className="min-w-0 flex-1 border-l border-[hsl(var(--hairline))] pl-2.5">
+              <div className="truncate text-[13.5px] font-extrabold leading-5 text-foreground">
+                {memoTitle(editingMemo)}
+              </div>
+              <div className="mt-0.5 text-[10.5px] font-semibold leading-none text-muted-foreground">
+                {memoTimeLabel(editingMemo.updatedAt)}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <ToolRouteButton
+                to={`/memos?id=${editingMemo.id}`}
+                className="inline-flex h-8 items-center rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                열기
+              </ToolRouteButton>
+              <button
+                type="button"
+                onClick={saveEdit}
+                className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                저장
+              </button>
+            </div>
+          </header>
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            className="min-h-0 flex-1 resize-none bg-transparent px-0.5 py-4 text-[13px] leading-7 text-foreground outline-none placeholder:text-muted-foreground/55"
+            placeholder="메모를 적어보세요..."
+          />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
@@ -159,38 +204,7 @@ export function AuxiliaryMemoTool() {
         }
       />
 
-      {editingMemo ? (
-        <section className="rounded-xl border border-primary/25 bg-card/85 p-2.5 shadow-[0_10px_24px_-18px_hsl(var(--foreground)/0.35)]">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="min-w-0 truncate text-[12.5px] font-semibold text-foreground">
-              {memoTitle(editingMemo)}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={() => navigate(`/memos?id=${editingMemo.id}`)}
-                className="inline-flex h-7 items-center rounded-md px-2 text-[11px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                전체
-              </button>
-              <button
-                type="button"
-                onClick={saveEdit}
-                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                <Check className="h-3 w-3" />
-                저장
-              </button>
-            </div>
-          </div>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            className="min-h-[220px] w-full resize-y rounded-lg border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[12.5px] leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/40"
-            placeholder="메모를 적어보세요..."
-          />
-        </section>
-      ) : activeMemos.length === 0 ? (
+      {activeMemos.length === 0 ? (
         <ToolEmpty
           icon={<FileText className="h-4 w-4" />}
           title="보여줄 메모가 없어요"
@@ -233,7 +247,6 @@ export function AuxiliaryWikiTool() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftBody, setDraftBody] = useState('');
-  const navigate = useNavigate();
 
   const refreshPages = useCallback(() => {
     let cancelled = false;
@@ -264,8 +277,60 @@ export function AuxiliaryWikiTool() {
     const next = { ...editingPage, body: draftBody, updatedAt: Date.now() };
     await upsertPage(next);
     setPages((current) => current.map((page) => (page.id === next.id ? next : page)));
-    setEditingId(null);
   };
+
+  if (editingPage) {
+    const pageTypeLabel = WIKI_TYPE_META[editingPage.type]?.label ?? '문서';
+    const tagLabel = editingPage.tags.length > 0 ? `#${editingPage.tags.slice(0, 2).join(' #')}` : '';
+
+    return (
+      <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'flex flex-col overflow-hidden py-0')}>
+        <section className="flex min-h-0 flex-1 flex-col">
+          <header className="-mx-3 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] bg-background/95 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.2} />
+              목록
+            </button>
+            <div className="min-w-0 flex-1 border-l border-[hsl(var(--hairline))] pl-2.5">
+              <div className="truncate text-[13.5px] font-extrabold leading-5 text-foreground">
+                {editingPage.title}
+              </div>
+              <div className="mt-0.5 truncate text-[10.5px] font-semibold leading-none text-muted-foreground">
+                {pageTypeLabel}{tagLabel ? ` · ${tagLabel}` : ''}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <ToolRouteButton
+                to="/wiki"
+                className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                열기
+                <ExternalLink className="h-3 w-3" strokeWidth={2.2} />
+              </ToolRouteButton>
+              <button
+                type="button"
+                onClick={() => void savePage()}
+                className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                저장
+              </button>
+            </div>
+          </header>
+          <textarea
+            value={draftBody}
+            onChange={(event) => setDraftBody(event.target.value)}
+            className="min-h-0 flex-1 resize-none bg-transparent px-0.5 py-4 text-[13px] leading-7 text-foreground outline-none placeholder:text-muted-foreground/55"
+            placeholder="위키 문서를 정리해보세요..."
+          />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
@@ -273,40 +338,14 @@ export function AuxiliaryWikiTool() {
         title="위키 문서"
         description="문서를 읽고 필요한 부분을 바로 정리합니다."
         action={
-          <ToolGhostButton onClick={() => navigate('/wiki')}>
+          <ToolRouteButton to="/wiki" className={TOOL_GHOST_BUTTON_CLASS}>
             전체
             <ExternalLink className="h-3 w-3" />
-          </ToolGhostButton>
+          </ToolRouteButton>
         }
       />
 
-      {editingPage ? (
-        <section className="rounded-xl border border-primary/25 bg-card/85 p-2.5 shadow-[0_10px_24px_-18px_hsl(var(--foreground)/0.35)]">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="truncate text-[12.5px] font-semibold text-foreground">{editingPage.title}</div>
-              <div className="mt-0.5 text-[10.5px] text-muted-foreground">
-                {WIKI_TYPE_META[editingPage.type]?.label ?? '문서'}
-                {editingPage.tags.length > 0 ? ` · #${editingPage.tags.slice(0, 2).join(' #')}` : ''}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void savePage()}
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              <Check className="h-3 w-3" />
-              저장
-            </button>
-          </div>
-          <textarea
-            value={draftBody}
-            onChange={(event) => setDraftBody(event.target.value)}
-            className="min-h-[260px] w-full resize-y rounded-lg border border-[hsl(var(--hairline))] bg-background px-3 py-2 text-[12.5px] leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/40"
-            placeholder="위키 문서를 정리해보세요..."
-          />
-        </section>
-      ) : loading ? (
+      {loading ? (
         <ToolEmpty
           icon={<BookOpen className="h-4 w-4" />}
           title="위키를 불러오는 중"
@@ -366,7 +405,7 @@ function ToolIntro({
 }: {
   title: string;
   description: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
 }) {
   return (
     <div className="flex items-start justify-between gap-2 pb-1">
@@ -386,7 +425,7 @@ function ToolSection({
 }: {
   title: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="space-y-1.5">
@@ -399,22 +438,72 @@ function ToolSection({
   );
 }
 
+const TOOL_GHOST_BUTTON_CLASS =
+  'inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+
 function ToolGhostButton({
   children,
   onClick,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-[hsl(var(--hairline))] bg-card px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      className={TOOL_GHOST_BUTTON_CLASS}
     >
       {children}
     </button>
   );
+}
+
+function ToolRouteButton({
+  to,
+  className,
+  children,
+}: {
+  to: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const hasRouter = useInRouterContext();
+  if (hasRouter) {
+    return (
+      <ToolRouteButtonWithRouter to={to} className={className}>
+        {children}
+      </ToolRouteButtonWithRouter>
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => routeWithoutRouter(to)} className={className}>
+      {children}
+    </button>
+  );
+}
+
+function ToolRouteButtonWithRouter({
+  to,
+  className,
+  children,
+}: {
+  to: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(to)} className={className}>
+      {children}
+    </button>
+  );
+}
+
+function routeWithoutRouter(to: string) {
+  window.history.pushState(null, '', to);
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 function ToolEmpty({
@@ -422,7 +511,7 @@ function ToolEmpty({
   title,
   description,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
 }) {

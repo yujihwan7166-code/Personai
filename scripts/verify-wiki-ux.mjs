@@ -3,7 +3,12 @@ import { chromium } from 'playwright';
 
 const port = Number(process.env.WIKI_VERIFY_PORT || (3100 + (process.pid % 500)));
 const baseUrl = `http://127.0.0.1:${port}`;
+const WIKI_MODE_LABEL = '\uBAA8\uB4DC \uC804\uD658: \uD604\uC7AC \uB9C8\uC774\uC704\uD0A4';
 let devServer = null;
+
+function isBenignConsoleError(text) {
+  return text.includes('Failed to load resource: net::ERR_NAME_NOT_RESOLVED');
+}
 
 try {
   await ensureServer();
@@ -20,6 +25,7 @@ async function ensureServer() {
   const args = process.platform === 'win32'
     ? ['/c', 'npm.cmd', 'run', 'dev:web', '--', '--host', '127.0.0.1', '--port', String(port)]
     : ['run', 'dev:web', '--', '--host', '127.0.0.1', '--port', String(port)];
+
   devServer = spawn(command, args, {
     cwd: process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -46,19 +52,24 @@ async function verifyWikiEditorUx() {
   try {
     const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
     const errors = [];
+    const warnings = [];
     page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text());
+      if (message.type() !== 'error') return;
+      const text = message.text();
+      if (isBenignConsoleError(text)) warnings.push(text);
+      else errors.push(text);
     });
     page.on('pageerror', (error) => errors.push(error.message));
 
     await page.goto(`${baseUrl}/wiki`, { waitUntil: 'networkidle', timeout: 60_000 });
+    await page.getByRole('button', { name: WIKI_MODE_LABEL }).first().waitFor({ timeout: 10_000 });
     await page.getByText('마이위키 시작하기').waitFor({ timeout: 15_000 });
 
     await page.getByRole('button', { name: /빈 문서로 시작/ }).click();
     await page.getByRole('dialog', { name: '새 문서 템플릿 선택' }).waitFor({ timeout: 10_000 });
     const title = `위키 UX 검증 ${Date.now()}`;
-    await page.getByPlaceholder('문서 제목').fill(title);
-    await page.getByRole('button', { name: '만들기', exact: true }).click();
+    await page.getByRole('textbox', { name: '새 문서 제목' }).fill(title);
+    await page.getByRole('button', { name: /템플릿으로 문서 만들기$/ }).click();
 
     await page.locator('.wiki-block-editor').waitFor({ timeout: 15_000 });
     await page.locator('.wiki-block-editor').click();
@@ -66,9 +77,8 @@ async function verifyWikiEditorUx() {
     await page.getByRole('dialog', { name: '문서 또는 링크 연결' }).waitFor({ timeout: 10_000 });
     await page.keyboard.press('Escape');
 
-    await page.locator('button[title="고급 도구"]').click();
     await page.locator('button[title="표 삽입"]').click();
-    await page.locator('button[aria-label="4열 3행 표 삽입"]').click();
+    await page.locator('button[aria-label="3열 4행 표 삽입"]').click();
     await page.locator('.wiki-block-editor table').waitFor({ timeout: 10_000 });
 
     await page.keyboard.press('ControlOrMeta+K');
@@ -89,6 +99,9 @@ async function verifyWikiEditorUx() {
 
     if (errors.length) {
       throw new Error(`[wiki-ux] browser errors\n${errors.join('\n')}`);
+    }
+    if (warnings.length) {
+      console.warn(`[wiki-ux] browser warnings\n${warnings.join('\n')}`);
     }
   } finally {
     await browser.close();

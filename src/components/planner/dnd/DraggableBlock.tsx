@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { formatDurationMinutes } from '@/lib/formatDuration';
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
 import type { PlannerDragData } from './plannerDndTypes';
 import { useSnapMin } from '@/hooks/planner/useSnapMin';
@@ -34,13 +35,6 @@ interface DraggableBlockProps {
 
 const formatHm = (iso: string): string =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-const formatDur = (mins: number): string => {
-  if (mins < 60) return `${mins}분`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
-};
 
 export const DraggableBlock = ({
   item, style, children, enableResize = true, onResize,
@@ -71,7 +65,7 @@ export const DraggableBlock = ({
   const [dragScrollOffset, setDragScrollOffset] = useState(0);
   useEffect(() => {
     if (!isDragging) {
-      if (dragScrollOffset !== 0) setDragScrollOffset(0);
+      setDragScrollOffset(0);
       return;
     }
     const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
@@ -80,7 +74,6 @@ export const DraggableBlock = ({
     const onScroll = () => setDragScrollOffset(container.scrollTop - initial);
     container.addEventListener('scroll', onScroll, { passive: true });
     return () => container.removeEventListener('scroll', onScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -180,7 +173,7 @@ export const DraggableBlock = ({
     const minEnd = new Date(start.getTime() + MIN_DURATION_MIN * 60_000);
     const finalEnd = newEnd.getTime() < minEnd.getTime() ? minEnd : newEnd;
     const totalMin = Math.round((finalEnd.getTime() - start.getTime()) / 60_000);
-    return { time: formatHm(finalEnd.toISOString()), dur: formatDur(totalMin) };
+    return { time: formatHm(finalEnd.toISOString()), dur: formatDurationMinutes(totalMin) };
   })();
 
   // 자동 스크롤 보상한 transform — 시각적 위치·라벨 모두 이걸 사용.

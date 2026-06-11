@@ -5,7 +5,7 @@
  * Linear·GitHub·Slack 모두 동일 패턴.
  */
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 
 interface ShortcutHelpDialogProps {
@@ -51,7 +51,7 @@ const GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['우클릭'], desc: '시간 배정 / 완료 / 미루기 / 분류' },
       { keys: ['더블클릭'], desc: '시간 블록 — 빠른 완료 토글' },
-  { keys: ['드래그'], desc: '대기함 → 시간표 (배정), 시간표 ↔ 대기함 (해제)' },
+      { keys: ['드래그'], desc: '대기함 → 시간표 (배정), 시간표 ↔ 대기함 (해제)' },
     ],
   },
   {
@@ -77,6 +77,9 @@ export const ShortcutHelpDialog = ({ open, onClose }: ShortcutHelpDialogProps) =
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-[15px] font-semibold">단축키</DialogTitle>
+          <DialogDescription className="sr-only">
+            플래너에서 사용할 수 있는 뷰 전환, 시간 이동, 입력, 카드 액션, 자연어 입력 단축키를 확인합니다.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-2 max-h-[60vh] overflow-y-auto pr-1">
           {GROUPS.map((group) => (

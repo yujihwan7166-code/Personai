@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { usePlannerRange } from '@/hooks/planner/usePlannerRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TASK_LIST_COLORS, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -18,6 +19,14 @@ interface YearViewProps {
   onMonthClick?: (monthIso: string) => void;
   onDayClick?: (dayIso: string) => void;
 }
+
+const scheduledColor = (item: PlannerTimelineItem): string => {
+  if (item.kind === 'event') return item.data.color ?? 'hsl(var(--primary))';
+  const task = item.data as PlannerTask;
+  return task.color && TASK_LIST_COLORS[task.color]
+    ? TASK_LIST_COLORS[task.color].stripe
+    : 'hsl(var(--primary))';
+};
 
 export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps) => {
   const anchor = useMemo(() => new Date(anchorIso ?? new Date().toISOString()), [anchorIso]);
@@ -34,13 +43,17 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
 
   // 이벤트/할일 카운트 (날짜별, '강도' 표현). Apple Cal 패턴: 1-2 = 옅음 / 3+ = 진함.
   // 로컬 시각 기준 — UTC slice 시 timezone 어긋나는 버그 회피.
-  const busyCounts = useMemo(() => {
-    const map = new Map<string, number>();
+  const busyByDay = useMemo(() => {
+    const map = new Map<string, { count: number; color: string }>();
     items.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
       const key = toDateKey(new Date(startAt));
-      map.set(key, (map.get(key) ?? 0) + 1);
+      const prev = map.get(key);
+      map.set(key, {
+        count: (prev?.count ?? 0) + 1,
+        color: prev?.color ?? scheduledColor(item),
+      });
     });
     return map;
   }, [items]);
@@ -77,6 +90,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
         outsideMonth: boolean;
         isToday: boolean;
         busyCount: number;
+        busyColor: string;
       }> = [];
       for (let i = 0; i < totalCells; i++) {
         const dayNum = i - startOffset + 1;
@@ -89,7 +103,8 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
           date: d.getDate(),
           outsideMonth,
           isToday: !outsideMonth && d.getTime() === today.getTime(),
-          busyCount: outsideMonth ? 0 : busyCounts.get(dayKey) ?? 0,
+          busyCount: outsideMonth ? 0 : busyByDay.get(dayKey)?.count ?? 0,
+          busyColor: outsideMonth ? 'transparent' : busyByDay.get(dayKey)?.color ?? 'transparent',
         });
       }
 
@@ -101,7 +116,7 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
         isCurrentMonth: m === today.getMonth() && year === today.getFullYear(),
       };
     });
-  }, [year, today, busyCounts]);
+  }, [year, today, busyByDay]);
 
   return (
     <div className="h-full min-h-0 overflow-y-auto">
@@ -111,10 +126,12 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             key={mo.index}
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
+            aria-label={`${mo.label} 보기${mo.isCurrentMonth ? ' (현재 월)' : ''}`}
+            data-current-month={mo.isCurrentMonth ? 'true' : undefined}
             className={cn(
               'flex min-h-[214px] flex-col items-stretch bg-card px-4 py-3.5 text-left lg:min-h-0',
               'transition-colors duration-150 hover:bg-accent/35',
-              mo.isCurrentMonth && 'bg-primary/[0.035] ring-1 ring-inset ring-primary/25',
+              mo.isCurrentMonth && 'ring-[3px] ring-inset ring-primary/55 shadow-[inset_0_0_0_1px_hsl(var(--background))]',
             )}
           >
             <header className="mb-2 flex items-baseline justify-between">
@@ -155,22 +172,22 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
                       if (cell.iso) onDayClick?.(cell.iso);
                     }}
                     className={cn(
-                      'relative flex min-h-0 items-center justify-center rounded-md text-[12px] font-semibold tabular-nums',
+                      'relative flex min-h-0 items-center justify-center rounded-md pb-1 text-[12px] font-semibold tabular-nums',
                       'cursor-pointer hover:bg-accent transition-colors',
                       cell.isToday && 'bg-primary text-primary-foreground font-bold shadow-sm ring-1 ring-primary/20 animate-pulse',
                       !cell.isToday && 'text-foreground',
                     )}
                   >
                     {cell.date}
-                    {cell.busyCount > 0 && !cell.isToday && (
+                    {cell.busyCount > 0 && (
                       <span
                         className={cn(
-                          'absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full',
-                          // 강도 차등: 1-2 = 작고 옅은 HSL primary / 3+ = 크고 진한 rose-500
-                          cell.busyCount >= 3
-                            ? 'h-[4px] w-[4px] bg-rose-500 shadow-[0_0_4px_rgba(239,68,68,0.7)]'
-                            : 'h-[3px] w-[3px] bg-primary/75',
+                          'absolute bottom-[2px] left-1/2 h-[2px] -translate-x-1/2 rounded-full',
+                          // 일정 개수는 길이로, 종류 색은 바 색으로만 조용히 표현한다.
+                          cell.busyCount >= 3 ? 'w-4' : cell.busyCount === 2 ? 'w-3' : 'w-2',
+                          cell.isToday && 'bg-primary-foreground/85',
                         )}
+                        style={cell.isToday ? undefined : { backgroundColor: cell.busyColor }}
                         aria-hidden
                       />
                     )}
