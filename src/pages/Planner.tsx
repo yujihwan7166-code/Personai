@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Clock3,
   ListTodo,
   Plus,
   Search,
@@ -2375,7 +2374,6 @@ export const WeekScheduleTimePrompt = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useFocusTrap<HTMLElement>(true);
   const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
-  const headingId = useId();
   const titleId = useId();
   const descId = useId();
   const selectionId = useId();
@@ -2389,19 +2387,6 @@ export const WeekScheduleTimePrompt = ({
     return Math.min(1440, Math.floor(n));
   }, [durationInput]);
   const selectedDurationLabel = formatDurationMinutes(safeDuration);
-
-  /** 시작 + 길이 → 종료 시각 미리보기. 자정 넘기면 익일 표시. */
-  const endPreview = useMemo(() => {
-    const [h, m] = time.split(':').map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    const totalMin = h * 60 + m + safeDuration;
-    const endH = Math.floor(totalMin / 60);
-    const endM = totalMin % 60;
-    const crossesMidnight = endH >= 24;
-    const displayH = endH % 24;
-    const label = `${String(displayH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-    return { label, crossesMidnight };
-  }, [time, safeDuration]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -2442,20 +2427,16 @@ export const WeekScheduleTimePrompt = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={`${headingId} ${titleId}`}
+        aria-labelledby={titleId}
         aria-describedby={`${descId} ${selectionId}`}
         className="absolute left-1/2 top-24 w-[min(380px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-foreground/14 bg-card text-foreground shadow-[0_30px_70px_-30px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/[0.04]"
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        {/* ── 헤더 ── */}
-        <div className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3">
+        {/* ── 헤더 — 제목 + 날짜 한 줄씩, 군더더기 라벨 제거 ── */}
+        <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2.5">
           <div className="min-w-0">
-            <p id={headingId} className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
-              <Clock3 className="h-3 w-3" strokeWidth={2.4} />
-              시간 정하기
-            </p>
-            <h3 id={titleId} className="mt-1.5 truncate text-[16px] font-extrabold leading-tight text-foreground">
+            <h3 id={titleId} className="truncate text-[15px] font-extrabold leading-tight text-foreground">
               {pending.task.title}
             </h3>
             <p id={descId} className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
@@ -2543,23 +2524,8 @@ export const WeekScheduleTimePrompt = ({
           </div>
         </div>
 
-        {/* ── 미리보기 + CTA ── */}
+        {/* ── CTA ── */}
         <div className="border-t border-foreground/8 bg-muted/30 px-4 py-3">
-          {endPreview && (
-            <p className="mb-2.5 flex items-center justify-center gap-1.5 text-[12px] font-semibold tabular-nums text-foreground/75">
-              <span className="text-foreground">{time}</span>
-              <ArrowRight className="h-3 w-3 text-muted-foreground" strokeWidth={2.2} />
-              <span className="inline-flex items-center gap-1 text-foreground">
-                {endPreview.crossesMidnight && (
-                  <span className="inline-flex h-4 items-center rounded bg-amber-500/15 px-1 text-[9.5px] font-extrabold uppercase tracking-wide text-amber-700">
-                    익일
-                  </span>
-                )}
-                {endPreview.label}
-              </span>
-              <span className="text-muted-foreground">· {selectedDurationLabel}</span>
-            </p>
-          )}
           <button
             type="button"
             onClick={() => onConfirm(time, safeDuration)}
