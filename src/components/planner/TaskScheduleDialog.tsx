@@ -690,7 +690,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </Row>
 
               <Row icon={<Bell className="h-4 w-4" />} label="알림">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex flex-wrap gap-1.5">
                     {PLANNER_REMINDER_OPTIONS.map((option) => {
                       const active = option.minutes === null
@@ -712,40 +712,73 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                         </button>
                       );
                     })}
-                    <button
-                      type="button"
-                      onClick={() => setCustomReminderOpen((current) => !current)}
-                      className={cn(
-                        'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
-                        customReminderOpen
-                          ? 'border-primary/45 bg-primary/10 text-primary'
-                          : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      직접
-                    </button>
+                    {(() => {
+                      // 저장된 분이 4개 preset (null/0/5/10) 아니면 "직접" 이 active.
+                      const presetMinutes = PLANNER_REMINDER_OPTIONS.map((option) => option.minutes);
+                      const savedMinute = reminderMinutes?.[0];
+                      const savedIsCustom = savedMinute !== undefined && !presetMinutes.includes(savedMinute);
+                      const customActive = customReminderOpen || savedIsCustom;
+                      return (
+                        <Popover open={customReminderOpen} onOpenChange={setCustomReminderOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
+                                customActive
+                                  ? 'border-primary/45 bg-primary/10 text-primary'
+                                  : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
+                              )}
+                            >
+                              직접
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="end"
+                            side="bottom"
+                            sideOffset={6}
+                            className="w-56 rounded-xl border-foreground/14 p-3"
+                          >
+                            <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+                              알림 직접 입력
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={43200}
+                                  step={1}
+                                  value={customReminderInput}
+                                  onChange={(event) => setCustomReminderInput(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      handleCustomReminderApply();
+                                    }
+                                  }}
+                                  autoFocus
+                                  aria-label="알림 시간 (분 전)"
+                                  className="h-9 w-full rounded-lg border border-foreground/14 bg-background pl-3 pr-12 text-[14px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+                                />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-muted-foreground">
+                                  분 전
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleCustomReminderApply}
+                                className="h-9 shrink-0 rounded-lg bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
+                              >
+                                적용
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()}
                   </div>
-                  {customReminderOpen && (
-                    <div className="flex max-w-[280px] items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={43200}
-                        step={1}
-                        value={customReminderInput}
-                        onChange={(event) => setCustomReminderInput(event.target.value)}
-                        className={cn(fieldInputClass, 'w-24')}
-                      />
-                      <span className="text-[12px] font-semibold text-muted-foreground">분 전</span>
-                      <button
-                        type="button"
-                        onClick={handleCustomReminderApply}
-                        className="h-8 rounded-md bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
-                      >
-                        적용
-                      </button>
-                    </div>
-                  )}
                   {notificationPermission() === 'denied' && (
                     <p className="text-[11px] font-medium text-rose-500">
                       브라우저에서 알림 권한이 차단되어 있어요.

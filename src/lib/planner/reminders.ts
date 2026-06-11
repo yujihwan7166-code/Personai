@@ -1,13 +1,15 @@
 import type { PlannerEvent, PlannerTask } from '@/types/planner';
 
+/**
+ * 알림 빠른 칩 — 가장 자주 쓰는 4개만 한 줄에. 30분/1시간/하루 전 같은 분량은
+ * "직접" 버튼의 popover 에서 분 단위로 직접 입력한다 (저장된 값은 formatReminderMinute
+ * 가 자동으로 "30분 전", "1시간 전", "1일 전" 등으로 표시).
+ */
 export const PLANNER_REMINDER_OPTIONS: ReadonlyArray<{ minutes: number | null; label: string }> = [
   { minutes: null, label: '없음' },
-  { minutes: 0, label: '시작 시각' },
+  { minutes: 0, label: '시작할 때' },
   { minutes: 5, label: '5분 전' },
   { minutes: 10, label: '10분 전' },
-  { minutes: 30, label: '30분 전' },
-  { minutes: 60, label: '1시간 전' },
-  { minutes: 1440, label: '하루 전' },
 ];
 
 export const DEFAULT_FLOATING_TASK_REMINDER_TIME = '09:00';
