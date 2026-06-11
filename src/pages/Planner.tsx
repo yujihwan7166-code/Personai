@@ -2379,9 +2379,24 @@ export const WeekScheduleTimePrompt = ({
   const descId = useId();
   const selectionId = useId();
   const dateLabel = formatDragDate(`${pending.dayKey}T00:00:00`);
-  const presets = ['09:00', '12:00', '18:00'];
-  const durations = [30, 60, 90];
+  /** 5개로 확장 — 새벽/오후/저녁 골고루. 사용자가 자주 쓰는 정시 위주. */
+  const presets = ['09:00', '12:00', '15:00', '18:00', '21:00'];
+  /** 4x2 그리드 — 짧은 회의(15분)부터 긴 작업(4시간)까지 한 번에. */
+  const durations: number[] = [15, 30, 45, 60, 90, 120, 180, 240];
   const selectedDurationLabel = formatDurationMinutes(durationMin);
+
+  /** 시작 + 길이 → 종료 시각 미리보기. 자정 넘기면 익일 표시. */
+  const endPreview = useMemo(() => {
+    const [h, m] = time.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    const totalMin = h * 60 + m + durationMin;
+    const endH = Math.floor(totalMin / 60);
+    const endM = totalMin % 60;
+    const crossesMidnight = endH >= 24;
+    const displayH = endH % 24;
+    const label = `${String(displayH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    return { label, crossesMidnight };
+  }, [time, durationMin]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -2414,7 +2429,7 @@ export const WeekScheduleTimePrompt = ({
 
   return (
     <div
-      className="fixed inset-0 z-[55]"
+      className="fixed inset-0 z-[55] bg-foreground/10 backdrop-blur-[1.5px]"
       role="presentation"
       {...backdropHandlers}
     >
@@ -2424,17 +2439,18 @@ export const WeekScheduleTimePrompt = ({
         aria-modal="true"
         aria-labelledby={`${headingId} ${titleId}`}
         aria-describedby={`${descId} ${selectionId}`}
-        className="absolute left-1/2 top-24 w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-foreground/16 bg-card p-3 text-foreground shadow-[0_20px_60px_-28px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/5"
+        className="absolute left-1/2 top-24 w-[min(380px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-foreground/14 bg-card text-foreground shadow-[0_30px_70px_-30px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/[0.04]"
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex items-start justify-between gap-3">
+        {/* ── 헤더 ── */}
+        <div className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3">
           <div className="min-w-0">
-            <p id={headingId} className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5" strokeWidth={2.2} />
+            <p id={headingId} className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
+              <Clock3 className="h-3 w-3" strokeWidth={2.4} />
               시간 정하기
             </p>
-            <h3 id={titleId} className="mt-1 truncate text-[15px] font-extrabold text-foreground">
+            <h3 id={titleId} className="mt-1.5 truncate text-[16px] font-extrabold leading-tight text-foreground">
               {pending.task.title}
             </h3>
             <p id={descId} className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
@@ -2447,75 +2463,111 @@ export const WeekScheduleTimePrompt = ({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="시간 설정 닫기"
-            title="닫기"
+            title="닫기 (Esc)"
           >
             <X className="h-3.5 w-3.5" strokeWidth={2.2} />
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-          <label className="min-w-0">
-            <span className="sr-only">시작 시간</span>
-            <input
-              ref={inputRef}
-              data-autofocus="true"
-              type="time"
-              value={time}
-              onChange={(event) => setTime(event.target.value)}
-              aria-label="시작 시간"
-              className="h-9 w-full rounded-lg border border-foreground/14 bg-background px-3 text-[13px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-            />
-          </label>
+        {/* ── 본문 ── */}
+        <div className="space-y-3 border-t border-foreground/8 px-4 py-3">
+          {/* 시작 */}
+          <div>
+            <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+              시작
+            </p>
+            <label className="block">
+              <span className="sr-only">시작 시간</span>
+              <input
+                ref={inputRef}
+                data-autofocus="true"
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                aria-label="시작 시간"
+                className="h-10 w-full rounded-lg border border-foreground/14 bg-background px-3 text-[14px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+              />
+            </label>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {presets.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setTime(preset)}
+                  onKeyDown={(event) => handleOptionKeyDown(event, () => setTime(preset))}
+                  aria-label={`${preset} 시작 시간 선택`}
+                  aria-pressed={time === preset}
+                  className={cn(
+                    'h-7 rounded-full border px-2.5 text-[11.5px] font-bold tabular-nums transition-colors',
+                    time === preset
+                      ? 'border-primary/45 bg-primary/10 text-primary'
+                      : 'border-transparent bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 길이 */}
+          <div>
+            <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+              길이
+            </p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {durations.map((duration) => (
+                <button
+                  key={duration}
+                  type="button"
+                  onClick={() => setDurationMin(duration)}
+                  onKeyDown={(event) => handleOptionKeyDown(event, () => setDurationMin(duration))}
+                  aria-label={`${formatDurationMinutes(duration)} 길이 선택`}
+                  aria-pressed={durationMin === duration}
+                  className={cn(
+                    'h-8 rounded-lg border text-[11.5px] font-bold tabular-nums transition-colors',
+                    durationMin === duration
+                      ? 'border-primary/45 bg-primary/10 text-primary'
+                      : 'border-foreground/10 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {formatDurationMinutes(duration)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 미리보기 + CTA ── */}
+        <div className="border-t border-foreground/8 bg-muted/30 px-4 py-3">
+          {endPreview && (
+            <p className="mb-2.5 flex items-center justify-center gap-1.5 text-[12px] font-semibold tabular-nums text-foreground/75">
+              <span className="text-foreground">{time}</span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" strokeWidth={2.2} />
+              <span className="inline-flex items-center gap-1 text-foreground">
+                {endPreview.crossesMidnight && (
+                  <span className="inline-flex h-4 items-center rounded bg-amber-500/15 px-1 text-[9.5px] font-extrabold uppercase tracking-wide text-amber-700">
+                    익일
+                  </span>
+                )}
+                {endPreview.label}
+              </span>
+              <span className="text-muted-foreground">· {selectedDurationLabel}</span>
+            </p>
+          )}
           <button
             type="button"
             onClick={() => onConfirm(time, durationMin)}
             aria-label={`${pending.task.title} ${dateLabel} ${time} 시작 ${selectedDurationLabel} 일정화`}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-4 text-[12.5px] font-bold text-background transition-colors hover:bg-foreground/88"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-[13px] font-extrabold text-background transition-colors hover:bg-foreground/88 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             일정화
+            <kbd className="hidden rounded border border-background/35 px-1.5 py-0.5 text-[9.5px] font-mono font-bold text-background/85 sm:inline">
+              Enter
+            </kbd>
           </button>
-        </div>
-
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {presets.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setTime(preset)}
-              onKeyDown={(event) => handleOptionKeyDown(event, () => setTime(preset))}
-              aria-label={`${preset} 시작 시간 선택`}
-              aria-pressed={time === preset}
-              className={cn(
-                'h-7 rounded-full border px-2.5 text-[11.5px] font-bold tabular-nums transition-colors',
-                time === preset
-                  ? 'border-primary/45 bg-primary/10 text-primary'
-                  : 'border-transparent bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              {preset}
-            </button>
-          ))}
-          <span className="mx-0.5 h-7 w-px bg-foreground/10" aria-hidden />
-          {durations.map((duration) => (
-            <button
-              key={duration}
-              type="button"
-              onClick={() => setDurationMin(duration)}
-              onKeyDown={(event) => handleOptionKeyDown(event, () => setDurationMin(duration))}
-              aria-label={`${formatDurationMinutes(duration)} 길이 선택`}
-              aria-pressed={durationMin === duration}
-              className={cn(
-                'h-7 rounded-full border px-2.5 text-[11.5px] font-bold transition-colors',
-                durationMin === duration
-                  ? 'border-primary/45 bg-primary/10 text-primary'
-                  : 'border-transparent bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              {formatDurationMinutes(duration)}
-            </button>
-          ))}
         </div>
       </section>
     </div>

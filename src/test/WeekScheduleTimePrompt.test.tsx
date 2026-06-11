@@ -48,14 +48,15 @@ describe('WeekScheduleTimePrompt', () => {
 
     const dialog = screen.getByRole('dialog', { name: /시간 정하기 코딩/ });
     const closeButton = screen.getByRole('button', { name: '시간 설정 닫기' });
-    const lastDuration = screen.getByRole('button', { name: '1시간 30분 길이 선택' });
+    // 새 디자인에서는 풀폭 CTA(일정화 버튼) 가 모달의 마지막 포커스 가능 요소.
+    const confirmButton = screen.getByRole('button', { name: /일정화/ });
 
-    lastDuration.focus();
-    fireEvent.keyDown(lastDuration, { key: 'Tab' });
+    confirmButton.focus();
+    fireEvent.keyDown(confirmButton, { key: 'Tab' });
     expect(closeButton).toHaveFocus();
 
     fireEvent.keyDown(closeButton, { key: 'Tab', shiftKey: true });
-    expect(lastDuration).toHaveFocus();
+    expect(confirmButton).toHaveFocus();
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByRole('button', { name: '뒤쪽 버튼' })).not.toHaveFocus();
   });
