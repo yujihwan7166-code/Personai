@@ -157,7 +157,7 @@ export function AuxiliaryMemoTool() {
     >
       {editingMemo ? (
         <section className="flex min-h-0 flex-1 flex-col">
-          <header className="mb-2.5 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+          <header className="mb-2.5 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setEditingId(null)}
@@ -171,9 +171,6 @@ export function AuxiliaryMemoTool() {
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-bold leading-tight text-foreground">
                 {memoTitle(editingMemo)}
-              </div>
-              <div className="mt-0.5 text-[10.5px] font-medium text-muted-foreground">
-                {memoTimeLabel(editingMemo.updatedAt)} 수정
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -303,7 +300,7 @@ export function AuxiliaryWikiTool() {
     >
       {editingPage ? (
         <section className="flex min-h-0 flex-1 flex-col">
-          <header className="mb-2.5 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+          <header className="mb-2.5 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setEditingId(null)}
