@@ -212,7 +212,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState<number>(DEFAULT_DURATION_MIN);
-  const [customDurationOpen, setCustomDurationOpen] = useState(false);
   const [priority, setPriority] = useState<Priority>(0);
   const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
   const [recurrence, setRecurrence] = useState<RecurrencePreset>('none');
@@ -256,7 +255,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setStartDate(toDateInput(start));
       setStartTime(toTimeInput(start));
       setDuration(minutesBetween(start, end) || DEFAULT_DURATION_MIN);
-      setCustomDurationOpen(!DURATION_PRESETS.includes((minutesBetween(start, end) || DEFAULT_DURATION_MIN) as typeof DURATION_PRESETS[number]));
       setPriority(mode.initialPriority ?? masterTask?.priority ?? 0);
       setTaskColor(masterTask?.color);
       setRecurrence(rec.preset);
@@ -278,7 +276,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     setStartDate(presetDate);
     setStartTime(presetTime);
     setDuration(DEFAULT_DURATION_MIN);
-    setCustomDurationOpen(false);
     setPriority(0);
     setTaskColor(undefined);
     setRecurrence('none');
@@ -555,9 +552,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 <Row icon={<Clock3 className="h-4 w-4" />} label="길이">
                   <DurationPicker
                     duration={duration}
-                    customOpen={customDurationOpen}
                     onDurationChange={setDuration}
-                    onCustomOpenChange={setCustomDurationOpen}
                   />
                 </Row>
               </div>
@@ -869,80 +864,65 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 };
 
 /**
- * 길이 선택 — 빠른 칩 3개 + "직접" Popover (분 자유 입력).
+ * 길이 선택 — 빠른 칩 3개 + 분 단위 직접 입력 input (한 줄).
  *
- * 이전엔 "직접" 클릭 시 행 아래로 인라인 확장됐는데, 시각적으로 답답해서
- * 작은 floating popover 로 옮겼다. 트리거 옆에 깔끔히 떠 분 단위 input 하나만.
+ * 이전 "직접" popover 는 한 단계 더 클릭해야 해서 번거로웠다. WeekScheduleTimePrompt
+ * 와 같은 패턴으로 마지막 자리에 분 input 을 인라인 배치 — 칩으로 빠르게 또는
+ * input 으로 정밀하게.
  */
 const DurationPicker = ({
   duration,
-  customOpen,
   onDurationChange,
-  onCustomOpenChange,
 }: {
   duration: number;
-  customOpen: boolean;
   onDurationChange: (duration: number) => void;
-  onCustomOpenChange: (open: boolean) => void;
 }) => {
-  const isPreset = (DURATION_PRESETS as readonly number[]).includes(duration);
-  const customActive = customOpen || !isPreset;
+  // input 직접 입력 흐름 자연스럽게 (backspace 로 빈 문자열 잠깐 허용) — string 으로 보관.
+  const [durationInput, setDurationInput] = useState(String(duration));
+  // 외부 duration 변경 (preset chip 클릭) 시 input value 도 같이 갱신.
+  useEffect(() => {
+    setDurationInput(String(duration));
+  }, [duration]);
+
+  const handleInputChange = (raw: string) => {
+    setDurationInput(raw);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      onDurationChange(Math.min(1440, Math.floor(n)));
+    }
+  };
+
   return (
-    <div className="grid grid-cols-4 gap-1.5">
+    <div className="flex items-center gap-1.5">
       {DURATION_PRESETS.map((value) => (
         <Pill
           key={value}
-          active={duration === value && !customActive}
-          onClick={() => {
-            onDurationChange(value);
-            onCustomOpenChange(false);
-          }}
-          className="px-1"
+          active={duration === value}
+          onClick={() => onDurationChange(value)}
+          className="flex-1 px-1"
         >
           {formatDurationMinutes(value)}
         </Pill>
       ))}
-      <Popover open={customOpen} onOpenChange={onCustomOpenChange}>
-        <PopoverTrigger asChild>
-          <Pill active={customActive} className="px-1">
-            직접
-          </Pill>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          side="bottom"
-          sideOffset={6}
-          // z-[60] — Dialog content (z-50) 위로 띄움.
-          className="z-[60] w-56 rounded-xl border-foreground/14 p-3"
-        >
-          <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
-            길이 직접 입력
-          </p>
-          <div className="relative">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={5}
-              max={1440}
-              step={5}
-              value={duration}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                if (Number.isFinite(next)) onDurationChange(Math.max(5, Math.min(1440, next)));
-              }}
-              autoFocus
-              aria-label="길이 (분)"
-              className="h-10 w-full rounded-lg border border-foreground/14 bg-background pl-3 pr-9 text-[15px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
-            />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-muted-foreground">
-              분
-            </span>
-          </div>
-          <p className="mt-1.5 text-[11px] tabular-nums text-foreground/65">
-            = {formatDurationMinutes(duration)}
-          </p>
-        </PopoverContent>
-      </Popover>
+      <span className="mx-0.5 h-6 w-px bg-foreground/10" aria-hidden />
+      <label className="relative inline-flex items-center">
+        <span className="sr-only">길이 직접 입력 (분)</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={5}
+          max={1440}
+          step={5}
+          value={durationInput}
+          onChange={(event) => handleInputChange(event.target.value)}
+          placeholder="0"
+          aria-label="길이 직접 입력 (분)"
+          className="h-8 w-[68px] rounded-lg border border-foreground/14 bg-background pl-2 pr-6 text-[12px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+        />
+        <span className="pointer-events-none absolute right-2 text-[10.5px] font-semibold text-muted-foreground">
+          분
+        </span>
+      </label>
     </div>
   );
 };
