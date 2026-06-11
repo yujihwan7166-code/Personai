@@ -11,7 +11,7 @@ const task: PlannerTask = {
 };
 
 describe('WeekScheduleTimePrompt', () => {
-  it('labels the dialog, focuses the time input, and exposes selected presets', () => {
+  it('labels the dialog, focuses the time input, and reflects manual edits', () => {
     render(
       <WeekScheduleTimePrompt
         pending={{ task, dayKey: '2026-06-11', copy: false }}
@@ -22,15 +22,23 @@ describe('WeekScheduleTimePrompt', () => {
 
     const dialog = screen.getByRole('dialog', { name: /시간 정하기 코딩/ });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getByLabelText('시작 시간')).toHaveFocus();
-    expect(screen.getByRole('button', { name: '09:00 시작 시간 선택' })).toHaveAttribute('aria-pressed', 'true');
+    const timeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
+    expect(timeInput).toHaveFocus();
+    expect(timeInput.value).toBe('09:00');
+    // 기본 1시간(60분) 선택 — 칩 active.
     expect(screen.getByRole('button', { name: '1시간 길이 선택' })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: '12:00 시작 시간 선택' }));
-    fireEvent.click(screen.getByRole('button', { name: '1시간 30분 길이 선택' }));
+    // 시작은 input 직접 변경, 길이는 분 입력 칸에 직접 입력.
+    const durationInput = screen.getByLabelText('길이 직접 입력 (분)') as HTMLInputElement;
+    fireEvent.change(timeInput, { target: { value: '12:00' } });
+    fireEvent.change(durationInput, { target: { value: '90' } });
 
-    expect(screen.getByRole('button', { name: '12:00 시작 시간 선택' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '1시간 30분 길이 선택' })).toHaveAttribute('aria-pressed', 'true');
+    expect(timeInput.value).toBe('12:00');
+    expect(durationInput.value).toBe('90');
+    // 빠른 칩 3종 어디에도 안 잡히므로 모두 pressed=false.
+    expect(screen.getByRole('button', { name: '30분 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: '1시간 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: '2시간 길이 선택' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByText('현재 선택: 12:00 시작, 1시간 30분')).toBeInTheDocument();
   });
 
@@ -99,7 +107,7 @@ describe('WeekScheduleTimePrompt', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '18:00 시작 시간 선택' }));
+    fireEvent.change(screen.getByLabelText('시작 시간'), { target: { value: '18:00' } });
     fireEvent.click(screen.getByRole('button', { name: '30분 길이 선택' }));
     fireEvent.click(screen.getByRole('button', { name: /18:00 시작 30분 일정화/ }));
     expect(onConfirm).toHaveBeenCalledWith('18:00', 30);

@@ -2370,7 +2370,8 @@ export const WeekScheduleTimePrompt = ({
 }) => {
   useScrollLock(true);
   const [time, setTime] = useState(() => defaultWeekScheduleTime(pending.dayKey));
-  const [durationMin, setDurationMin] = useState(60);
+  /** 길이는 string 으로 보관 — input 직접 입력 흐름을 자연스럽게(빈 문자열 잠깐 허용). */
+  const [durationInput, setDurationInput] = useState('60');
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useFocusTrap<HTMLElement>(true);
   const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
@@ -2379,24 +2380,28 @@ export const WeekScheduleTimePrompt = ({
   const descId = useId();
   const selectionId = useId();
   const dateLabel = formatDragDate(`${pending.dayKey}T00:00:00`);
-  /** 5개로 확장 — 새벽/오후/저녁 골고루. 사용자가 자주 쓰는 정시 위주. */
-  const presets = ['09:00', '12:00', '15:00', '18:00', '21:00'];
-  /** 4x2 그리드 — 짧은 회의(15분)부터 긴 작업(4시간)까지 한 번에. */
-  const durations: number[] = [15, 30, 45, 60, 90, 120, 180, 240];
-  const selectedDurationLabel = formatDurationMinutes(durationMin);
+  /** 핵심 길이 3종 — 그 외는 우측 분 input 에 직접 입력. */
+  const durations: number[] = [30, 60, 120];
+  /** durationInput 의 안전한 숫자 변환 — 빈/0/NaN 은 60(1시간) 으로 폴백. */
+  const safeDuration = useMemo(() => {
+    const n = Number(durationInput);
+    if (!Number.isFinite(n) || n <= 0) return 60;
+    return Math.min(1440, Math.floor(n));
+  }, [durationInput]);
+  const selectedDurationLabel = formatDurationMinutes(safeDuration);
 
   /** 시작 + 길이 → 종료 시각 미리보기. 자정 넘기면 익일 표시. */
   const endPreview = useMemo(() => {
     const [h, m] = time.split(':').map(Number);
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    const totalMin = h * 60 + m + durationMin;
+    const totalMin = h * 60 + m + safeDuration;
     const endH = Math.floor(totalMin / 60);
     const endM = totalMin % 60;
     const crossesMidnight = endH >= 24;
     const displayH = endH % 24;
     const label = `${String(displayH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
     return { label, crossesMidnight };
-  }, [time, durationMin]);
+  }, [time, safeDuration]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -2413,7 +2418,7 @@ export const WeekScheduleTimePrompt = ({
     if (event.key === 'Enter' && event.target === inputRef.current) {
       event.preventDefault();
       event.stopPropagation();
-      onConfirm(time, durationMin);
+      onConfirm(time, safeDuration);
     }
   };
 
@@ -2490,45 +2495,25 @@ export const WeekScheduleTimePrompt = ({
                 className="h-10 w-full rounded-lg border border-foreground/14 bg-background px-3 text-[14px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
               />
             </label>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {presets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setTime(preset)}
-                  onKeyDown={(event) => handleOptionKeyDown(event, () => setTime(preset))}
-                  aria-label={`${preset} 시작 시간 선택`}
-                  aria-pressed={time === preset}
-                  className={cn(
-                    'h-7 rounded-full border px-2.5 text-[11.5px] font-bold tabular-nums transition-colors',
-                    time === preset
-                      ? 'border-primary/45 bg-primary/10 text-primary'
-                      : 'border-transparent bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {/* 길이 */}
+          {/* 길이 — 빠른 칩 3종 + 분 단위 직접 입력 */}
           <div>
             <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
               길이
             </p>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="flex items-center gap-1.5">
               {durations.map((duration) => (
                 <button
                   key={duration}
                   type="button"
-                  onClick={() => setDurationMin(duration)}
-                  onKeyDown={(event) => handleOptionKeyDown(event, () => setDurationMin(duration))}
+                  onClick={() => setDurationInput(String(duration))}
+                  onKeyDown={(event) => handleOptionKeyDown(event, () => setDurationInput(String(duration)))}
                   aria-label={`${formatDurationMinutes(duration)} 길이 선택`}
-                  aria-pressed={durationMin === duration}
+                  aria-pressed={safeDuration === duration}
                   className={cn(
-                    'h-8 rounded-lg border text-[11.5px] font-bold tabular-nums transition-colors',
-                    durationMin === duration
+                    'h-8 flex-1 rounded-lg border text-[11.5px] font-bold tabular-nums transition-colors',
+                    safeDuration === duration
                       ? 'border-primary/45 bg-primary/10 text-primary'
                       : 'border-foreground/10 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
@@ -2536,6 +2521,24 @@ export const WeekScheduleTimePrompt = ({
                   {formatDurationMinutes(duration)}
                 </button>
               ))}
+              <span className="mx-0.5 h-6 w-px bg-foreground/10" aria-hidden />
+              <label className="relative inline-flex items-center">
+                <span className="sr-only">길이 직접 입력 (분)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={1440}
+                  value={durationInput}
+                  onChange={(event) => setDurationInput(event.target.value)}
+                  placeholder="0"
+                  aria-label="길이 직접 입력 (분)"
+                  className="h-8 w-[68px] rounded-lg border border-foreground/14 bg-background pl-2 pr-6 text-[11.5px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+                />
+                <span className="pointer-events-none absolute right-2 text-[10.5px] font-semibold text-muted-foreground">
+                  분
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -2559,14 +2562,11 @@ export const WeekScheduleTimePrompt = ({
           )}
           <button
             type="button"
-            onClick={() => onConfirm(time, durationMin)}
+            onClick={() => onConfirm(time, safeDuration)}
             aria-label={`${pending.task.title} ${dateLabel} ${time} 시작 ${selectedDurationLabel} 일정화`}
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-[13px] font-extrabold text-background transition-colors hover:bg-foreground/88 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-foreground text-[13px] font-extrabold text-background transition-colors hover:bg-foreground/88 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             일정화
-            <kbd className="hidden rounded border border-background/35 px-1.5 py-0.5 text-[9.5px] font-mono font-bold text-background/85 sm:inline">
-              Enter
-            </kbd>
           </button>
         </div>
       </section>
