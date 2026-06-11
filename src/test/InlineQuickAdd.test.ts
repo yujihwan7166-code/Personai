@@ -57,4 +57,15 @@ describe('buildInlineQuickAddTaskInput', () => {
     expect(input.priority).toBe(3);
     expect(input.tags).toEqual(['건강']);
   });
+
+  it('keeps overnight custom durations instead of clamping them to midnight', () => {
+    const startIso = new Date(2026, 5, 11, 22, 0, 0).toISOString();
+    const input = buildInlineQuickAddTaskInput('coding', startIso, 240);
+    const end = new Date(input.endAt!);
+
+    expect(input.startAt).toBe(startIso);
+    expect(end.getDate()).toBe(12);
+    expect(end.getHours()).toBe(2);
+    expect(end.getMinutes()).toBe(0);
+  });
 });

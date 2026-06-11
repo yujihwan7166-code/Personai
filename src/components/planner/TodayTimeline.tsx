@@ -48,6 +48,11 @@ import {
 import { useSnapMin } from '@/hooks/planner/useSnapMin';
 import { setSnapMin, SNAP_OPTIONS, type SnapMin } from '@/lib/planner/snapMin';
 import { createAutoScroller } from '@/lib/planner/timelineAutoScroll';
+import {
+  buildTimelineDragSelection,
+  DEFAULT_TIMELINE_OVERNIGHT_DRAG_MINUTES,
+  formatTimelineMinuteLabel,
+} from '@/lib/planner/timelineDragSelection';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
@@ -261,11 +266,13 @@ export const TodayTimeline = ({
   /** y 좌표(grid 내) → 분 단위 (사용자 스냅 단위). */
   const minVisibleMinute = visibleStart * 60;
   const maxVisibleMinute = visibleEnd * 60;
+  const maxDragCreateMinute = maxVisibleMinute + DEFAULT_TIMELINE_OVERNIGHT_DRAG_MINUTES;
 
-  const yToTimelineMinute = (y: number): number => {
+  const yToTimelineMinute = (y: number, allowAfterVisibleEnd = false): number => {
     const raw = visibleStart * 60 + ((y - TIMELINE_TOP_PAD) / HOUR_PX) * 60;
     const snapped = Math.round(raw / snapMin) * snapMin;
-    return Math.min(maxVisibleMinute, Math.max(minVisibleMinute, snapped));
+    const upperBound = allowAfterVisibleEnd ? maxDragCreateMinute : maxVisibleMinute;
+    return Math.min(upperBound, Math.max(minVisibleMinute, snapped));
   };
 
   /** 빈 영역 mousedown → drag → mouseup 으로 시간 범위 그리기.
@@ -300,7 +307,7 @@ export const TodayTimeline = ({
       if (!dragStartRef.current || !gridRef.current) return;
       const r = gridRef.current.getBoundingClientRect();
       const y2 = clientY - r.top;
-      const m = yToTimelineMinute(y2);
+      const m = yToTimelineMinute(y2, true);
       const moved = Math.abs(clientY - dragStartRef.current.clientY);
       if (moved >= 5) {
         window.getSelection()?.removeAllRanges();
@@ -349,20 +356,19 @@ export const TodayTimeline = ({
       }
       const r = gridRef.current.getBoundingClientRect();
       const y2 = ev.clientY - r.top;
-      const endRaw = yToTimelineMinute(y2);
-      const sMin = Math.min(start.startMin, endRaw);
-      const eMin = Math.max(start.startMin, endRaw);
-      const maxStartMin = Math.max(minVisibleMinute, maxVisibleMinute - MIN_BLOCK_MINUTES);
-      const boundedStartMin = Math.min(sMin, maxStartMin);
-      const boundedEndMin = Math.min(
+      const endRaw = yToTimelineMinute(y2, true);
+      const selection = buildTimelineDragSelection({
+        startMin: start.startMin,
+        endMin: endRaw,
+        minVisibleMinute,
         maxVisibleMinute,
-        Math.max(eMin, boundedStartMin + MIN_BLOCK_MINUTES),
-      );
-      const dur = Math.max(MIN_BLOCK_MINUTES, boundedEndMin - boundedStartMin);
+        minDurationMin: MIN_BLOCK_MINUTES,
+        maxOvernightMinute: maxDragCreateMinute,
+      });
       const startD = new Date(baseDateIso);
-      startD.setHours(Math.floor(boundedStartMin / 60), boundedStartMin % 60, 0, 0);
+      startD.setHours(Math.floor(selection.startMin / 60), selection.startMin % 60, 0, 0);
       setQuickAddSlot(startD.toISOString());
-      setCustomDuration(dur);
+      setCustomDuration(selection.durationMin);
       setDragRange(null);
     };
 
@@ -730,20 +736,20 @@ export const TodayTimeline = ({
 
           {/* drag-to-create 중 ghost block — 사용자가 mouse drag 로 시간 범위 그리는 동안. */}
           {dragRange && (() => {
-            const minA = Math.min(dragRange.startMin, dragRange.currentMin);
-            const minB = Math.max(dragRange.startMin, dragRange.currentMin);
-            const previewStartMin = Math.min(
-              minA,
-              Math.max(minVisibleMinute, maxVisibleMinute - MIN_BLOCK_MINUTES),
-            );
-            const previewEndMin = Math.min(
+            const selection = buildTimelineDragSelection({
+              startMin: dragRange.startMin,
+              endMin: dragRange.currentMin,
+              minVisibleMinute,
               maxVisibleMinute,
-              Math.max(minB, previewStartMin + MIN_BLOCK_MINUTES),
-            );
+              minDurationMin: MIN_BLOCK_MINUTES,
+              maxOvernightMinute: maxDragCreateMinute,
+            });
+            const previewStartMin = selection.startMin;
+            const previewEndMin = selection.endMin;
             const top = TIMELINE_TOP_PAD + (previewStartMin - visibleStart * 60) / 60 * HOUR_PX;
             const height = Math.max(24, (previewEndMin - previewStartMin) / 60 * HOUR_PX);
-            const startLabel = `${String(Math.floor(previewStartMin / 60)).padStart(2, '0')}:${String(previewStartMin % 60).padStart(2, '0')}`;
-            const endLabel = `${String(Math.floor(previewEndMin / 60)).padStart(2, '0')}:${String(previewEndMin % 60).padStart(2, '0')}`;
+            const startLabel = formatTimelineMinuteLabel(previewStartMin);
+            const endLabel = formatTimelineMinuteLabel(previewEndMin);
             return (
               <div
                 className="absolute left-[60px] right-3 overflow-hidden rounded-lg border border-primary/45 bg-primary/12 shadow-[0_10px_28px_-20px_hsl(var(--primary)/0.55)] ring-1 ring-primary/12 pointer-events-none z-25 transition-all duration-75"

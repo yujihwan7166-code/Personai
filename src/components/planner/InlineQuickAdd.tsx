@@ -79,7 +79,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
     focusTitleInput();
   }, []);
 
-  const keepTitleInputFocused = (
+  const keepTitleInputFocusedFromControl = (
     event: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement>,
   ) => {
     event.preventDefault();
@@ -87,17 +87,21 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
     focusTitleInput();
   };
 
+  const stopInlineControlClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+  };
+
   const handleCardPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     event.stopPropagation();
     const target = event.target as HTMLElement | null;
-    if (target?.closest('button')) return;
+    if (target?.closest('button, input, textarea, [contenteditable="true"]')) return;
     focusTitleInput();
   };
 
   const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
     const target = event.target as HTMLElement | null;
-    if (target?.closest('button')) return;
+    if (target?.closest('button, input, textarea, [contenteditable="true"]')) return;
     focusTitleInput();
   };
 
@@ -136,6 +140,42 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
   };
 
   // 종료 시각 — 라벨 표시용 (자연어에 길이 명시 없으면 fallback).
+  useEffect(() => {
+    const isEditableElement = (element: Element | null) => {
+      if (!element) return false;
+      const tagName = element.tagName;
+      return tagName === 'INPUT' || tagName === 'TEXTAREA' || element.getAttribute('contenteditable') === 'true';
+    };
+
+    const restoreInputFocus = () => {
+      const active = document.activeElement;
+      if (active === inputRef.current) return;
+      if (isEditableElement(active) && active !== inputRef.current) return;
+      applyTitleFocus();
+    };
+
+    const restoreSoon = () => {
+      window.setTimeout(restoreInputFocus, 0);
+      window.requestAnimationFrame(restoreInputFocus);
+    };
+
+    const handleKeyDownCapture = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.activeElement === inputRef.current) return;
+      restoreInputFocus();
+    };
+
+    const intervalId = window.setInterval(restoreInputFocus, 180);
+    window.addEventListener('pointerup', restoreSoon, true);
+    window.addEventListener('keydown', handleKeyDownCapture, true);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('pointerup', restoreSoon, true);
+      window.removeEventListener('keydown', handleKeyDownCapture, true);
+    };
+  }, []);
+
   const endIsoPreview = (() => {
     const fallbackDuration = durationMin ?? DEFAULT_INLINE_QUICK_ADD_DURATION_MIN;
     return new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
@@ -177,16 +217,15 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                     <button
                       key={option.value}
                       type="button"
+                      tabIndex={-1}
                       title={active ? `${option.label} 해제` : option.label}
                       aria-label={active ? `${option.label} 해제` : option.label}
                       aria-pressed={active}
-                      onPointerDown={keepTitleInputFocused}
-                      onMouseDown={keepTitleInputFocused}
-                      onPointerUp={(event) => {
-                        event.stopPropagation();
-                        focusTitleInput();
-                      }}
-                      onClick={() => {
+                      onPointerDown={keepTitleInputFocusedFromControl}
+                      onMouseDown={keepTitleInputFocusedFromControl}
+                      onPointerUp={keepTitleInputFocusedFromControl}
+                      onClick={(event) => {
+                        stopInlineControlClick(event);
                         setSelectedColor(active ? undefined : option.value);
                         focusTitleInput();
                       }}
@@ -206,16 +245,15 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                     <button
                       key={priority}
                       type="button"
+                      tabIndex={-1}
                       title={PRIORITY_LABELS[priority]}
                       aria-label={PRIORITY_LABELS[priority]}
                       aria-pressed={active}
-                      onPointerDown={keepTitleInputFocused}
-                      onMouseDown={keepTitleInputFocused}
-                      onPointerUp={(event) => {
-                        event.stopPropagation();
-                        focusTitleInput();
-                      }}
-                      onClick={() => {
+                      onPointerDown={keepTitleInputFocusedFromControl}
+                      onMouseDown={keepTitleInputFocusedFromControl}
+                      onPointerUp={keepTitleInputFocusedFromControl}
+                      onClick={(event) => {
+                        stopInlineControlClick(event);
                         setPriorityTouched(true);
                         setSelectedPriority(priority);
                         focusTitleInput();
@@ -263,11 +301,10 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
             aria-label="새 일정 제목"
             onPointerDown={(e) => {
               e.stopPropagation();
-              focusTitleInput();
             }}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              focusTitleInput();
             }}
             className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-foreground/40 outline-none focus:outline-none focus:ring-0"
           />
