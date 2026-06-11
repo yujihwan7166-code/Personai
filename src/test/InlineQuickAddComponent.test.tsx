@@ -16,7 +16,7 @@ describe('InlineQuickAdd', () => {
     window.localStorage.clear();
   });
 
-  it('keeps typing available after choosing color and priority controls', async () => {
+  it('creates a timed task after choosing color and priority controls', async () => {
     const onClose = vi.fn();
     const startIso = new Date(2026, 4, 12, 14, 30, 0).toISOString();
 
@@ -24,28 +24,23 @@ describe('InlineQuickAdd', () => {
       <InlineQuickAdd
         startIso={startIso}
         durationMin={30}
-        style={{ top: 0, height: 80 }}
+        style={{ top: 0, height: 90 }}
         onClose={onClose}
       />,
     );
 
-    expect(screen.getByRole('group', { name: '인라인 일정 빠른 추가' })).toBeInTheDocument();
+    const title = screen.getByRole('textbox', { name: '새 일정 제목' });
+    await waitFor(() => expect(title).toHaveFocus());
 
-    const input = screen.getByRole('textbox', { name: '새 일정 제목' });
-    await waitFor(() => expect(input).toHaveFocus());
-
-    fireEvent.mouseDown(screen.getByRole('button', { name: '초록' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: '초록' }));
     fireEvent.click(screen.getByRole('button', { name: '초록' }));
-
-    await waitFor(() => expect(input).toHaveFocus());
-
-    fireEvent.mouseDown(screen.getByRole('button', { name: '높음' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: '높음' }));
     fireEvent.click(screen.getByRole('button', { name: '높음' }));
 
-    await waitFor(() => expect(input).toHaveFocus());
+    await waitFor(() => expect(title).toHaveFocus());
 
-    fireEvent.change(input, { target: { value: '회의 1시간' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(title, { target: { value: '회의 1시간' } });
+    fireEvent.keyDown(title, { key: 'Enter' });
 
     const [created] = taskStore.list();
     expect(created).toMatchObject({
@@ -58,47 +53,35 @@ describe('InlineQuickAdd', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps browser default input behavior after toolbar control clicks', async () => {
+  it('keeps the whole blank body usable as the title editor after toolbar clicks', async () => {
     const onClose = vi.fn();
-    const startIso = new Date(2026, 4, 12, 15, 0, 0).toISOString();
+    const startIso = new Date(2026, 4, 12, 11, 0, 0).toISOString();
 
     const { container } = render(
       <InlineQuickAdd
         startIso={startIso}
-        durationMin={30}
-        style={{ top: 0, height: 80 }}
+        durationMin={180}
+        style={{ top: 0, height: 150 }}
         onClose={onClose}
       />,
     );
 
-    const wrapper = container.querySelector('[data-inline-quick-add="true"]');
-    const input = wrapper?.querySelector('input');
-    const buttons = wrapper?.querySelectorAll('button');
+    const wrapper = container.querySelector('[data-inline-quick-add="true"]')!;
+    const title = screen.getByRole('textbox', { name: '새 일정 제목' });
 
-    expect(input).toBeTruthy();
-    expect(buttons?.length).toBeGreaterThan(10);
-    await waitFor(() => expect(input).toHaveFocus());
+    fireEvent.pointerDown(screen.getByRole('button', { name: '보라' }));
+    fireEvent.click(screen.getByRole('button', { name: '보라' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: '보통' }));
+    fireEvent.click(screen.getByRole('button', { name: '보통' }));
 
-    expect(fireEvent.pointerDown(buttons![2])).toBe(false);
-    expect(fireEvent.mouseDown(buttons![2])).toBe(false);
-    expect(fireEvent.pointerUp(buttons![2])).toBe(false);
-    fireEvent.click(buttons![2]);
-    await waitFor(() => expect(input).toHaveFocus());
+    fireEvent.click(wrapper);
+    await waitFor(() => expect(title).toHaveFocus());
 
-    expect(fireEvent.pointerDown(buttons![10])).toBe(false);
-    expect(fireEvent.mouseDown(buttons![10])).toBe(false);
-    expect(fireEvent.pointerUp(buttons![10])).toBe(false);
-    fireEvent.click(buttons![10]);
-    await waitFor(() => expect(input).toHaveFocus());
-
-    expect(fireEvent.pointerDown(input!)).toBe(true);
-    fireEvent.click(input!);
-    fireEvent.change(input!, { target: { value: 'coding' } });
-
-    expect(input).toHaveValue('coding');
+    fireEvent.change(title, { target: { value: '코딩' } });
+    expect(title).toHaveValue('코딩');
   });
 
-  it('does not let the timeline pointer handler steal focus from the inline form', async () => {
+  it('does not let the timeline pointer handler steal interaction from the inline editor', async () => {
     const onClose = vi.fn();
     const parentPointerDown = vi.fn((event: ReactPointerEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -110,24 +93,22 @@ describe('InlineQuickAdd', () => {
         <InlineQuickAdd
           startIso={startIso}
           durationMin={90}
-          style={{ top: 0, height: 96 }}
+          style={{ top: 0, height: 110 }}
           onClose={onClose}
         />
       </div>,
     );
 
-    const input = screen.getByRole('textbox', { name: '새 일정 제목' });
-    await waitFor(() => expect(input).toHaveFocus());
+    const title = screen.getByRole('textbox', { name: '새 일정 제목' });
+    await waitFor(() => expect(title).toHaveFocus());
 
     fireEvent.pointerDown(screen.getByRole('button', { name: '초록' }));
     fireEvent.click(screen.getByRole('button', { name: '초록' }));
-    await waitFor(() => expect(input).toHaveFocus());
-
-    fireEvent.pointerDown(input);
-    fireEvent.click(input);
-    fireEvent.change(input, { target: { value: '코딩' } });
+    fireEvent.pointerDown(title);
+    fireEvent.click(title);
+    fireEvent.change(title, { target: { value: '코딩' } });
 
     expect(parentPointerDown).not.toHaveBeenCalled();
-    expect(input).toHaveValue('코딩');
+    expect(title).toHaveValue('코딩');
   });
 });

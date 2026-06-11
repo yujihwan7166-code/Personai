@@ -53,6 +53,7 @@ import {
   DEFAULT_TIMELINE_OVERNIGHT_DRAG_MINUTES,
   formatTimelineMinuteLabel,
 } from '@/lib/planner/timelineDragSelection';
+import { getTimelineVisibleWindow } from '@/lib/planner/timelineVisibleWindow';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
@@ -173,9 +174,6 @@ export const TodayTimeline = ({
     window.localStorage.setItem(COMPACT_KEY, compact ? '1' : '0');
   }, [compact]);
   // 표시할 시간 범위 — compact 면 7-23 만. (선언이 useEffect 보다 먼저 와야 TDZ X)
-  const visibleStart = compact ? COMPACT_START : START_HOUR;
-  const visibleEnd = compact ? COMPACT_END : START_HOUR + TOTAL_HOURS;
-  const visibleHours = visibleEnd - visibleStart;
   /** 드래그·리사이즈 스냅 단위(분). 1·5·15·30 중 선택. */
   const snapMin = useSnapMin();
   /** 사용자 lists — task 의 listId → list.color 매핑 + hidden 필터링. */
@@ -201,6 +199,25 @@ export const TodayTimeline = ({
   );
 
   /** 압축 모드에서 visible 범위 밖에 있는 항목 카운트 (위/아래) — 사용자에게 안내. */
+  const visibleWindow = useMemo(
+    () => getTimelineVisibleWindow({
+      compact,
+      dateIso: baseDateIso,
+      items: items.map((item) => ({
+        startAt: item.data.startAt,
+        endAt: item.kind === 'event' ? item.data.endAt : item.data.endAt ?? item.data.startAt,
+      })),
+      compactStartHour: COMPACT_START,
+      compactEndHour: COMPACT_END,
+      fullStartHour: START_HOUR,
+      fullEndHour: START_HOUR + TOTAL_HOURS,
+    }),
+    [compact, baseDateIso, items],
+  );
+  const visibleStart = visibleWindow.startHour;
+  const visibleEnd = visibleWindow.endHour;
+  const visibleHours = visibleEnd - visibleStart;
+
   const hiddenByCompact = useMemo(() => {
     if (!compact) return { early: 0, late: 0 };
     let early = 0, late = 0;

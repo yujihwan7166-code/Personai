@@ -1,22 +1,14 @@
-/**
- * 시간표 빈 슬롯에 떠오르는 인라인 input — Apple Calendar 패턴.
- *
- * 빈 슬롯 클릭 → 그 자리에 input 등장 → 제목만 받음 → Enter 시 즉시 생성.
- * 시간 / 길이 / 우선순위 등 깊은 편집은 더블클릭 / 우클릭 → 모달.
- *
- * 타임라인은 시간 블록 = "일정" 으로 고정 (할 일은 좌측 컬럼에서 생성).
- * 자연어 동시 지원: "회의 1시간" 입력 시 자동 길이 60분.
- */
 import { useEffect, useRef, useState } from 'react';
 import { CalendarDays, Flag, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
 import {
   DEFAULT_INLINE_QUICK_ADD_DURATION_MIN,
   buildInlineQuickAddTaskInput,
 } from '@/lib/planner/inlineQuickAdd';
+import { taskStore } from '@/services/planner/taskStore';
 import {
+  PLANNER_LIST_CHANGED,
   PRIORITY_COLORS,
   PRIORITY_LABELS,
   TASK_LIST_COLORS,
@@ -25,13 +17,9 @@ import {
 } from '@/types/planner';
 
 interface InlineQuickAddProps {
-  /** 슬롯의 시작 ISO. */
   startIso: string;
-  /** 사용자 지정 길이(분). drag-to-create 로 들어왔을 때 그 길이. 미지정 시 30분. */
   durationMin?: number;
-  /** 절대 좌표 + 크기 (시간표 안 위치). */
   style: React.CSSProperties;
-  /** 닫기. */
   onClose: () => void;
 }
 
@@ -47,81 +35,54 @@ const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
 ];
 
 const formatHm = (iso: string) =>
-  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  new Date(iso).toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 
 export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
   const [selectedColor, setSelectedColor] = useState<TaskListColor | undefined>();
   const [selectedPriority, setSelectedPriority] = useState<Priority>(0);
   const [priorityTouched, setPriorityTouched] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
-  const applyTitleFocus = () => {
-    const input = inputRef.current;
-    if (!input) return;
-    input.focus({ preventScroll: true });
-    const caret = input.value.length;
-    try {
-      input.setSelectionRange(caret, caret);
-    } catch {
-      /* 일부 브라우저/입력 타입에서 selection API 가 막히면 focus 만 유지. */
-    }
+  const focusTitle = () => {
+    const title = titleRef.current;
+    if (!title) return;
+    title.focus({ preventScroll: true });
+    const caret = title.value.length;
+    title.setSelectionRange(caret, caret);
   };
 
-  const focusTitleInput = () => {
-    applyTitleFocus();
-    window.requestAnimationFrame(applyTitleFocus);
-    window.setTimeout(applyTitleFocus, 0);
+  const focusTitleSoon = () => {
+    focusTitle();
+    window.requestAnimationFrame(focusTitle);
+    window.setTimeout(focusTitle, 0);
   };
 
   useEffect(() => {
-    focusTitleInput();
+    focusTitleSoon();
   }, []);
 
-  const keepTitleInputFocusedFromControl = (
-    event: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement>,
-  ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    focusTitleInput();
-  };
-
-  const stopInlineControlClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-  };
-
-  const handleCardPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.stopPropagation();
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('button, input, textarea, [contenteditable="true"]')) return;
-    focusTitleInput();
-  };
-
-  const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    event.stopPropagation();
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('button, input, textarea, [contenteditable="true"]')) return;
-    focusTitleInput();
-  };
-
-  // 외부 클릭 / ESC 시 닫기.
-  // 이전: input.parentElement 만 체크해서 wrapper 의 다른 자식(X 버튼 등) 클릭하면 잘못 닫힘.
-  // 수정: wrapper ref 로 정확히 wrapper 트리 전체 contain 체크.
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (!wrapperRef.current) return;
-      if (!wrapperRef.current.contains(target)) {
-        onClose();
-      }
+    let listening = false;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target || wrapperRef.current?.contains(target)) return;
+      onClose();
     };
+
     const id = window.setTimeout(() => {
-      window.addEventListener('mousedown', handleClick);
+      window.addEventListener('pointerdown', handlePointerDown);
+      listening = true;
     }, 50);
+
     return () => {
       window.clearTimeout(id);
-      window.removeEventListener('mousedown', handleClick);
+      if (listening) window.removeEventListener('pointerdown', handlePointerDown);
     };
   }, [onClose]);
 
@@ -131,55 +92,39 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       onClose();
       return;
     }
+
     taskStore.add(buildInlineQuickAddTaskInput(trimmed, startIso, durationMin, {
       color: selectedColor,
       priority: priorityTouched ? selectedPriority : undefined,
     }));
-    notify.success('일정 추가됐어요', { duration: 1200 });
+    window.dispatchEvent(new Event(PLANNER_LIST_CHANGED));
+    notify.success('일정 추가됨', { duration: 1200 });
     onClose();
   };
 
-  // 종료 시각 — 라벨 표시용 (자연어에 길이 명시 없으면 fallback).
-  useEffect(() => {
-    const isEditableElement = (element: Element | null) => {
-      if (!element) return false;
-      const tagName = element.tagName;
-      return tagName === 'INPUT' || tagName === 'TEXTAREA' || element.getAttribute('contenteditable') === 'true';
-    };
+  const preventToolbarFocus = (
+    event: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
-    const restoreInputFocus = () => {
-      const active = document.activeElement;
-      if (active === inputRef.current) return;
-      if (isEditableElement(active) && active !== inputRef.current) return;
-      applyTitleFocus();
-    };
+  const handleWrapperPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  };
 
-    const restoreSoon = () => {
-      window.setTimeout(restoreInputFocus, 0);
-      window.requestAnimationFrame(restoreInputFocus);
-    };
-
-    const handleKeyDownCapture = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (document.activeElement === inputRef.current) return;
-      restoreInputFocus();
-    };
-
-    const intervalId = window.setInterval(restoreInputFocus, 180);
-    window.addEventListener('pointerup', restoreSoon, true);
-    window.addEventListener('keydown', handleKeyDownCapture, true);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('pointerup', restoreSoon, true);
-      window.removeEventListener('keydown', handleKeyDownCapture, true);
-    };
-  }, []);
+  const handleWrapperClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button')) return;
+    focusTitleSoon();
+  };
 
   const endIsoPreview = (() => {
     const fallbackDuration = durationMin ?? DEFAULT_INLINE_QUICK_ADD_DURATION_MIN;
     return new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
   })();
+
   const accentColor = selectedColor ? TASK_LIST_COLORS[selectedColor].stripe : 'hsl(var(--primary))';
 
   return (
@@ -189,23 +134,25 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       role="group"
       aria-label="인라인 일정 빠른 추가"
       className={cn(
-        'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] rounded-md overflow-hidden',
+        'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] overflow-hidden rounded-md',
         'border border-primary/30 bg-card shadow-xl ring-1 ring-primary/15',
         'flex flex-col',
       )}
       style={style}
-      onClick={handleCardClick}
-      onPointerDown={handleCardPointerDown}
-      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={handleWrapperPointerDown}
+      onClick={handleWrapperClick}
     >
-      <div className="flex items-stretch h-full">
-        {/* 좌측 색 stripe — 일정 시각화. */}
+      <div className="flex h-full min-h-0 items-stretch">
         <span className="w-[3px] shrink-0" style={{ backgroundColor: accentColor }} aria-hidden />
-        <div className="flex-1 min-w-0 flex flex-col py-1.5 pr-2 pl-2.5">
-          {/* 헤더 — 일정 라벨 + 시간 범위 + 닫기 */}
+        <div className="flex min-w-0 flex-1 flex-col px-2.5 py-1.5">
           <div className="mb-0.5 flex items-center gap-1.5">
-            <CalendarDays className="h-3 w-3 shrink-0" style={{ color: accentColor }} strokeWidth={2.25} aria-hidden />
-            <span className="text-[10.5px] font-mono tabular-nums tracking-wide text-foreground/70 font-semibold">
+            <CalendarDays
+              className="h-3 w-3 shrink-0"
+              style={{ color: accentColor }}
+              strokeWidth={2.25}
+              aria-hidden
+            />
+            <span className="text-[10.5px] font-mono font-semibold tabular-nums tracking-wide text-foreground/70">
               {formatHm(startIso)} ~ {formatHm(endIsoPreview)}
             </span>
             <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
@@ -221,16 +168,16 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                       title={active ? `${option.label} 해제` : option.label}
                       aria-label={active ? `${option.label} 해제` : option.label}
                       aria-pressed={active}
-                      onPointerDown={keepTitleInputFocusedFromControl}
-                      onMouseDown={keepTitleInputFocusedFromControl}
-                      onPointerUp={keepTitleInputFocusedFromControl}
+                      onPointerDown={preventToolbarFocus}
+                      onMouseDown={preventToolbarFocus}
                       onClick={(event) => {
-                        stopInlineControlClick(event);
+                        event.stopPropagation();
                         setSelectedColor(active ? undefined : option.value);
-                        focusTitleInput();
+                        focusTitleSoon();
                       }}
                       className={cn(
-                        'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+                        'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-transform hover:scale-110',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
                         active ? 'border-foreground/65 ring-2 ring-foreground/10' : 'border-foreground/15',
                       )}
                       style={{ backgroundColor: stripe }}
@@ -249,17 +196,17 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                       title={PRIORITY_LABELS[priority]}
                       aria-label={PRIORITY_LABELS[priority]}
                       aria-pressed={active}
-                      onPointerDown={keepTitleInputFocusedFromControl}
-                      onMouseDown={keepTitleInputFocusedFromControl}
-                      onPointerUp={keepTitleInputFocusedFromControl}
+                      onPointerDown={preventToolbarFocus}
+                      onMouseDown={preventToolbarFocus}
                       onClick={(event) => {
-                        stopInlineControlClick(event);
+                        event.stopPropagation();
                         setPriorityTouched(true);
                         setSelectedPriority(priority);
-                        focusTitleInput();
+                        focusTitleSoon();
                       }}
                       className={cn(
-                        'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-foreground/45 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+                        'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-foreground/45 transition-colors',
+                        'hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
                         active && 'bg-accent text-foreground',
                       )}
                     >
@@ -275,38 +222,36 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
             </div>
             <button
               type="button"
-              onClick={onClose}
               aria-label="취소"
               title="취소 (Esc)"
-              className="h-5 w-5 inline-flex items-center justify-center rounded text-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onClose();
+              }}
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
             >
               <X className="h-3 w-3" />
             </button>
           </div>
-          <input
-            ref={inputRef}
-            type="text"
+          <textarea
+            ref={titleRef}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 submit();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
                 onClose();
               }
             }}
             placeholder="일정 제목  (예: 회의 1시간)"
             aria-label="새 일정 제목"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-foreground/40 outline-none focus:outline-none focus:ring-0"
+            rows={1}
+            className="min-h-0 flex-1 resize-none bg-transparent text-[13px] leading-tight text-foreground outline-none placeholder:text-foreground/40 focus:outline-none focus:ring-0"
           />
         </div>
       </div>
