@@ -53,6 +53,7 @@ import { computeStreakStats } from '@/lib/planner/streak';
 import { parseInstanceId, isInstanceId } from '@/lib/planner/recurrence';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { intervalOverlapsRange, localDayBounds } from '@/lib/planner/timeRange';
+import { formatDurationRange } from '@/lib/formatDuration';
 import type { PlannerEvent, PlannerTask, Priority } from '@/types/planner';
 import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_LIST_COLORS, PLANNER_LIST_CHANGED } from '@/types/planner';
 
@@ -83,15 +84,6 @@ const formatHourAxisLabel = (hour: number): string => {
   const period = hour < 12 ? '오전' : '오후';
   const displayHour = hour % 12 === 0 ? 12 : hour % 12;
   return `${period} ${displayHour}시`;
-};
-
-/** 시간 블록 길이 — Tooltip + 카드 내부 둘 다 사용. 짧은 표기. */
-const formatDuration = (startIso: string, endIso: string): string => {
-  const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
-  if (mins < 60) return `${mins}분`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
 };
 
 const computeTopPx = (iso: string, dateIso: string): number => {
@@ -218,7 +210,7 @@ export const TodayTimeline = ({
       else if (startHour >= visibleEnd) late += 1;
     }
     return { early, late };
-  }, [items, compact, visibleStart, visibleEnd]);
+  }, [items, compact, visibleStart, visibleEnd, baseDateIso]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -289,6 +281,7 @@ export const TodayTimeline = ({
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-block="true"]')) return;
+    if (target.closest('[data-inline-quick-add="true"]')) return;
     if (!gridRef.current) return;
     e.preventDefault();
     const rect = gridRef.current.getBoundingClientRect();
@@ -510,7 +503,7 @@ export const TodayTimeline = ({
       aria-label={compact ? '24시간 모두 보기' : '주요 시간만'}
       className={timelineControlButtonClass}
     >
-      {compact ? '24h' : '7-23'}
+      {compact ? '24시간' : '7-23'}
     </button>
   );
 
@@ -990,7 +983,7 @@ export const TodayTimeline = ({
                         </span>
                         {height >= 60 && (
                           <span className="text-[12px] tabular-nums text-foreground/72 leading-none font-medium">
-                            · {formatDuration(startAt, endAt)}
+                            · {formatDurationRange(startAt, endAt)}
                           </span>
                         )}
                         {showFlag && (
@@ -1051,7 +1044,7 @@ export const TodayTimeline = ({
                           <span className="text-[13.5px] font-semibold text-foreground">{item.data.title}</span>
                           </div>
                           <span className="text-[12px] tabular-nums text-foreground/78 font-medium">
-                            {formatHm(startAt)} ~ {formatHm(endAt)}  ·  {formatDuration(startAt, endAt)}
+                            {formatHm(startAt)} ~ {formatHm(endAt)}  ·  {formatDurationRange(startAt, endAt)}
                           </span>
                         </div>
                       </TooltipContent>

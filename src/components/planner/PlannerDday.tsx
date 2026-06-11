@@ -5,14 +5,17 @@
  * - 인라인 추가: 라벨 + 날짜 input → Enter 또는 + 버튼
  * - 호버 시 삭제 버튼
  */
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { ddayStore } from '@/services/planner/ddayStore';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { PLANNER_DDAY_CHANGED, type PlannerDday } from '@/types/planner';
 import { RAIL_EVENT } from './plannerRailEvents';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 const localDateKey = (d: Date) => {
   const y = d.getFullYear();
@@ -27,26 +30,6 @@ const parseDateKey = (key: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-const monthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
-
-const addMonths = (date: Date, delta: number) => (
-  new Date(date.getFullYear(), date.getMonth() + delta, 1)
-);
-
-const calendarCells = (month: Date) => {
-  const start = monthStart(month);
-  const gridStart = new Date(start);
-  gridStart.setDate(start.getDate() - start.getDay());
-  return Array.from({ length: 42 }, (_, index) => {
-    const cell = new Date(gridStart);
-    cell.setDate(gridStart.getDate() + index);
-    return cell;
-  });
-};
-
-const CALENDAR_POPOVER_WIDTH = 236;
-const CALENDAR_POPOVER_HEIGHT = 307;
-const CALENDAR_POPOVER_GAP = 8;
 const SIDEBAR_DDAY_PAGE_SIZE = 3;
 
 const computeDday = (dateIso: string, todayKey: string): { label: string; days: number; tone: 'future' | 'today' | 'past' } => {
@@ -149,10 +132,10 @@ export const PlannerDday = () => {
             >
               <span
                 className={cn(
-                  'shrink-0 inline-flex h-5 min-w-[42px] items-center justify-center rounded-md px-1.5 text-[9.5px] font-bold tabular-nums tracking-tight border',
-                  dd.tone === 'today' && 'bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-sm shadow-rose-500/10',
-                  dd.tone === 'future' && 'bg-primary/[0.04] text-primary border-primary/10',
-                  dd.tone === 'past' && 'bg-foreground/[0.03] text-foreground/40 border-foreground/[0.06]',
+                  'shrink-0 inline-flex h-[21px] min-w-[46px] items-center justify-center rounded-md border px-1.5 text-[10.5px] font-extrabold tabular-nums tracking-normal',
+                  dd.tone === 'today' && 'border-transparent bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/10',
+                  dd.tone === 'future' && 'border-primary/20 bg-primary/[0.085] text-primary shadow-[inset_0_1px_0_hsl(var(--background)/0.62)]',
+                  dd.tone === 'past' && 'border-foreground/[0.09] bg-foreground/[0.04] text-foreground/52',
                 )}
               >
                 {dd.label}
@@ -220,10 +203,6 @@ export const PlannerDday = () => {
   );
 };
 
-const DDAY_MANAGER_WIDTH = 356;
-const DDAY_MANAGER_LEFT = 68;
-const DDAY_MANAGER_TOP = 78;
-
 const DdayManagerPopover = ({
   items,
   todayKey,
@@ -233,26 +212,22 @@ const DdayManagerPopover = ({
   todayKey: string;
   onClose: () => void;
 }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
+  useScrollLock(true);
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
+  const titleId = useId();
+  const descId = useId();
   const [label, setLabel] = useState('');
   const [date, setDate] = useState(todayKey);
   const [editingId, setEditingId] = useState<string | null>(null);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (target && panelRef.current?.contains(target)) return;
-      onClose();
-    };
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('pointerdown', onPointerDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('pointerdown', onPointerDown);
     };
   }, [onClose]);
 
@@ -290,67 +265,90 @@ const DdayManagerPopover = ({
     setDate(item.dateIso);
   };
 
-  const upcomingCount = items.filter(({ dd }) => dd.tone !== 'past').length;
-  const pastCount = items.length - upcomingCount;
-
   return createPortal(
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 z-[79] bg-black/30 backdrop-blur-[2px] transition-opacity" 
-        onClick={onClose}
-      />
-      
+    <div
+      className="fixed inset-0 z-[79] flex items-center justify-center bg-black/35 px-4 transition-opacity"
+      data-dday-backdrop="true"
+      role="presentation"
+      {...backdropHandlers}
+    >
       {/* 가로형 중앙 모달 바디 */}
       <div
-        ref={panelRef}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[80] w-[640px] max-w-[92vw] h-[460px] overflow-hidden rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-[0_32px_80px_rgba(0,0,0,0.16)] flex flex-col font-sans"
+        ref={trapRef}
+        className="relative z-[80] flex h-[520px] w-[760px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-foreground/14 bg-card font-sans text-card-foreground shadow-[0_28px_70px_rgba(25,22,18,0.20)]"
         data-dday-manager="true"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
       >
         {/* 모달 헤더 */}
-        <header className="flex items-center justify-between border-b border-border/40 px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="text-[20px] select-none" role="img" aria-label="calendar">📅</span>
-            <h2 className="text-[18px] font-black tracking-tight text-foreground font-sans">D-day</h2>
+        <header className="flex items-start justify-between border-b border-foreground/10 px-6 py-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-[18px] font-extrabold tracking-tight text-foreground">D-day</h2>
+            <p id={descId} className="sr-only">
+              시험, 발표, 마감 같은 중요한 날짜를 추가하고 수정합니다.
+            </p>
+            <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+              중요한 날짜를 왼쪽에서 확인하고 오른쪽에서 추가합니다.
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="닫기"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label="D-day 관리 닫기"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <X className="h-4.5 w-4.5" />
           </button>
         </header>
 
         {/* 좌우 2분할 콘텐츠 영역 */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
           {/* 좌측: 디데이 리스트 */}
-          <div className="w-[300px] border-r border-border/40 flex flex-col bg-muted/[0.08]">
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex w-[330px] flex-col border-r border-foreground/10 bg-card">
+            <div className="flex items-center justify-between border-b border-foreground/8 px-5 py-3">
+              <span className="text-[12px] font-bold text-foreground/86">디데이 목록</span>
+              <span className="rounded-full bg-muted/65 px-2 py-0.5 text-[11px] font-bold tabular-nums text-muted-foreground">
+                {items.length}
+              </span>
+            </div>
+            <div className="flex-1 space-y-2 overflow-y-auto p-4">
               {items.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <span className="text-2xl mb-1.5 select-none opacity-50">⏳</span>
+                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-foreground/14 p-4 text-center">
                   <p className="text-[12px] font-bold text-muted-foreground/85">저장된 디데이가 없습니다.</p>
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground/65">오른쪽에서 새 날짜를 추가하세요.</p>
                 </div>
               ) : (
                 items.map(({ it, dd }) => (
                   <div
                     key={it.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={editingId === it.id}
+                    aria-label={`${it.label} 수정`}
                     onClick={() => startEdit(it)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      startEdit(it);
+                    }}
                     className={cn(
-                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all cursor-pointer border border-transparent',
+                      'group relative flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25',
                       editingId === it.id 
-                        ? 'bg-violet-500/[0.05] border-violet-500/20 ring-1 ring-violet-500/10' 
-                        : 'bg-card hover:bg-accent/40 hover:border-border/40',
+                        ? 'border-primary/28 bg-primary/[0.035]' 
+                        : 'border-foreground/12 bg-card hover:border-foreground/20 hover:bg-accent/30',
                     )}
                   >
+                    {editingId === it.id && (
+                      <span className="absolute bottom-3 left-0 top-3 w-0.5 rounded-r-full bg-primary/75" aria-hidden />
+                    )}
                     <span
                       className={cn(
-                        'inline-flex h-[22px] min-w-[46px] shrink-0 items-center justify-center rounded-lg px-1.5 text-[9px] font-black tabular-nums tracking-tight border',
-                        dd.tone === 'today' && 'bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-sm shadow-rose-500/10',
-                        dd.tone === 'future' && 'bg-violet-50 text-violet-600 border-violet-100 dark:bg-violet-950/30 dark:border-violet-800/40 dark:text-violet-400',
-                        dd.tone === 'past' && 'bg-muted/60 text-muted-foreground border-border/40',
+                        'inline-flex h-[23px] min-w-[50px] shrink-0 items-center justify-center rounded-lg border px-1.5 text-[10px] font-black tabular-nums tracking-normal',
+                        dd.tone === 'today' && 'border-transparent bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/10',
+                        dd.tone === 'future' && 'border-primary/20 bg-primary/[0.08] text-primary',
+                        dd.tone === 'past' && 'border-border/50 bg-muted/65 text-muted-foreground',
                       )}
                     >
                       {dd.label}
@@ -369,7 +367,7 @@ const DdayManagerPopover = ({
                         if (editingId === it.id) resetForm();
                       }}
                       aria-label={`${it.label} 삭제`}
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 inline-flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-rose-500/10 hover:text-rose-500 focus:opacity-100 group-hover:opacity-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -380,10 +378,10 @@ const DdayManagerPopover = ({
           </div>
 
           {/* 우측: 추가 / 편집 폼 */}
-          <div className="flex-1 flex flex-col justify-between p-6">
-            <form onSubmit={submit} className="flex-1 flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+          <div className="flex flex-1 flex-col bg-card">
+            <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 space-y-5 px-6 py-5">
+                <div className="flex items-center justify-between gap-3">
                   <h3 className="text-[16px] font-extrabold tracking-tight text-foreground">
                     {editingId ? '디데이 수정' : '새 디데이 추가'}
                   </h3>
@@ -391,270 +389,65 @@ const DdayManagerPopover = ({
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="text-[11.5px] font-semibold text-violet-600 hover:text-violet-700 transition-colors"
+                      className="rounded-full border border-foreground/12 bg-muted/40 px-3 py-1 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
                       새로 만들기
                     </button>
                   )}
                 </div>
                 
-                <div className="space-y-3.5">
+                <div className="space-y-4">
                   <label className="block">
-                    <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-muted-foreground/75 uppercase">디데이 이름</span>
+                    <span className="mb-1.5 block text-[12px] font-bold text-muted-foreground">디데이 이름</span>
                     <input
+                      data-autofocus="true"
                       value={label}
                       onChange={(event) => setLabel(event.target.value)}
                       placeholder="예: 기말고사, 발표, 원서 마감"
-                      className="h-11 w-full rounded-2xl border border-border bg-card px-4 text-[13.5px] font-medium text-foreground outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 placeholder:text-muted-foreground/45 shadow-sm"
+                      className="h-12 w-full rounded-lg border border-foreground/14 bg-card px-4 text-[14px] font-medium text-foreground outline-none transition placeholder:text-muted-foreground/55 focus:border-primary/55 focus:ring-2 focus:ring-primary/18"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-muted-foreground/75 uppercase">목표 날짜</span>
+                    <span className="mb-1.5 block text-[12px] font-bold text-muted-foreground">목표 날짜</span>
                     <input
                       type="date"
                       value={date}
                       onChange={(event) => setDate(event.target.value)}
-                      className="h-11 w-full rounded-2xl border border-border bg-card px-4 text-[13.5px] font-semibold text-foreground outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 shadow-sm"
+                      className="h-12 w-full rounded-lg border border-foreground/14 bg-card px-4 text-[14px] font-semibold text-foreground outline-none transition focus:border-primary/55 focus:ring-2 focus:ring-primary/18"
                     />
                   </label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/30 mt-4">
+              <div className="flex items-center justify-between gap-2 border-t border-foreground/10 px-6 py-4">
+                <p className="min-w-0 truncate text-[11.5px] font-medium text-muted-foreground">
+                  {editingId ? '선택한 디데이를 수정 중입니다.' : '새 디데이를 저장합니다.'}
+                </p>
+                <div className="flex shrink-0 items-center gap-2">
                 {editingId && (
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="h-10 rounded-2xl px-4 text-[13px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    className="inline-flex h-10 min-w-[82px] items-center justify-center rounded-lg border border-foreground/12 bg-card px-4 text-[13px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     취소
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-violet-600 hover:bg-violet-700 px-5 text-[13px] font-extrabold text-white shadow-md shadow-violet-600/15 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex h-10 min-w-[112px] items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[13px] font-extrabold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   {editingId ? <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Plus className="h-4 w-4" strokeWidth={2.5} />}
                   {editingId ? '수정 완료' : '디데이 추가'}
                 </button>
+                </div>
               </div>
             </form>
           </div>
         </div>
       </div>
-    </>,
+    </div>,
     document.body,
   );
 };
 
-const NewDdayInput = ({ onDone }: { onDone: () => void }) => {
-  const dateButtonRef = useRef<HTMLButtonElement>(null);
-  const [label, setLabel] = useState('');
-  const todayKey = localDateKey(new Date());
-  const [date, setDate] = useState(todayKey);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number } | null>(null);
-  const [visibleMonth, setVisibleMonth] = useState(() => monthStart(parseDateKey(todayKey)));
-  const visibleCells = calendarCells(visibleMonth);
-
-  useEffect(() => {
-    if (!calendarOpen) {
-      setCalendarPosition(null);
-      return;
-    }
-
-    const updatePosition = () => {
-      const rect = dateButtonRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const maxLeft = window.innerWidth - CALENDAR_POPOVER_WIDTH - CALENDAR_POPOVER_GAP;
-      const left = Math.max(
-        CALENDAR_POPOVER_GAP,
-        Math.min(rect.right - CALENDAR_POPOVER_WIDTH, maxLeft),
-      );
-      const preferredTop = rect.top - CALENDAR_POPOVER_HEIGHT - CALENDAR_POPOVER_GAP;
-      const fallbackTop = Math.min(
-        rect.bottom + CALENDAR_POPOVER_GAP,
-        window.innerHeight - CALENDAR_POPOVER_HEIGHT - CALENDAR_POPOVER_GAP,
-      );
-      const top = Math.max(CALENDAR_POPOVER_GAP, preferredTop < CALENDAR_POPOVER_GAP ? fallbackTop : preferredTop);
-
-      setCalendarPosition({ top, left });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [calendarOpen]);
-
-  /** explicit=true: Enter / + 버튼처럼 사용자가 명시 저장. label 필수.
-   *  explicit=false: blur 자동 저장. label 비었으면 silent cancel (자동 저장이라 noise X). */
-  const submit = (explicit: boolean) => {
-    const trimmed = label.trim();
-    if (!trimmed) {
-      if (explicit) notify.warning('라벨을 입력해주세요', { duration: 1500 });
-      else onDone(); // 자동 저장에서 라벨 없으면 그냥 취소
-      return;
-    }
-    if (!date) {
-      if (explicit) notify.warning('날짜를 선택해주세요', { duration: 1500 });
-      else onDone();
-      return;
-    }
-    ddayStore.add({ label: trimmed, dateIso: date });
-    onDone();
-  };
-
-  return (
-    <div
-      className="relative mt-1 flex items-center gap-1 px-1.5 py-1 rounded-md border border-transparent bg-card/80 shadow-[inset_0_0_0_1px_hsl(30_12%_88%/0.55)]"
-      // wrapper outside 클릭(focus 가 wrapper 외부로) 시 자동 저장 시도.
-      // wrapper 내부 input ↔ date 이동 시는 저장 X (relatedTarget contained).
-      onBlur={(e) => {
-        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-        submit(false);
-      }}
-    >
-      <input
-        autoFocus
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') submit(true);
-          else if (e.key === 'Escape') onDone();
-        }}
-        placeholder="라벨"
-        className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-foreground/45 text-foreground"
-      />
-      <button
-        type="button"
-        ref={dateButtonRef}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          setVisibleMonth(monthStart(parseDateKey(date)));
-          setCalendarOpen((v) => !v);
-        }}
-        aria-label="날짜 선택"
-        className={cn(
-          'h-6 inline-flex items-center gap-1 rounded-md px-1.5 text-[10.5px] tabular-nums text-foreground/80 transition-colors',
-          'hover:bg-accent hover:text-foreground',
-          calendarOpen && 'bg-accent text-foreground',
-        )}
-      >
-        <span>{date}</span>
-        <CalendarDays className="h-3 w-3 text-foreground/55" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        // mousedown 으로 막아 input blur 가 button click 전 submit 되는 race 방지.
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => submit(true)}
-        aria-label="저장"
-        title="저장 (Enter)"
-        className="h-5 w-5 inline-flex items-center justify-center rounded text-foreground/65 hover:text-foreground hover:bg-foreground/10 transition-colors shrink-0"
-      >
-        <Check className="h-3 w-3" strokeWidth={2.5} />
-      </button>
-
-      {calendarOpen && calendarPosition && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed z-[90] rounded-xl border border-border/80 bg-popover p-2.5 text-popover-foreground shadow-[0_14px_40px_hsl(30_15%_8%/0.14)]"
-          style={{
-            top: calendarPosition.top,
-            left: calendarPosition.left,
-            width: CALENDAR_POPOVER_WIDTH,
-          }}
-        >
-          <div className="mb-2 flex items-center gap-1">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setVisibleMonth((m) => addMonths(m, -1))}
-              aria-label="이전 달"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-foreground/55 hover:bg-accent hover:text-foreground"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-            <span className="flex-1 text-center text-[12.5px] font-semibold tracking-tight text-foreground">
-              {visibleMonth.getFullYear()}년 {String(visibleMonth.getMonth() + 1).padStart(2, '0')}월
-            </span>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setVisibleMonth((m) => addMonths(m, 1))}
-              aria-label="다음 달"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-foreground/55 hover:bg-accent hover:text-foreground"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 px-0.5 pb-1 text-center text-[10.5px] font-medium text-foreground/45">
-            {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-              <span
-                key={day}
-                className={cn(index === 0 && 'text-rose-500/70', index === 6 && 'text-blue-500/70')}
-              >
-                {day}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {visibleCells.map((cell) => {
-              const key = localDateKey(cell);
-              const inMonth = cell.getMonth() === visibleMonth.getMonth();
-              const selected = key === date;
-              const today = key === todayKey;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setDate(key);
-                    setVisibleMonth(monthStart(cell));
-                    setCalendarOpen(false);
-                  }}
-                  className={cn(
-                    'h-7 rounded-md text-[11.5px] tabular-nums transition-colors',
-                    inMonth ? 'text-foreground/85 hover:bg-accent' : 'text-foreground/30 hover:bg-accent/50',
-                    today && !selected && 'bg-violet-50 text-violet-700',
-                    selected && 'bg-violet-500 text-white shadow-sm hover:bg-violet-500 hover:text-white',
-                  )}
-                >
-                  {cell.getDate()}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setDate(todayKey);
-                setVisibleMonth(monthStart(new Date()));
-                setCalendarOpen(false);
-              }}
-              className="rounded-md px-2 py-1 text-[11px] font-medium text-violet-600 hover:bg-violet-50"
-            >
-              오늘
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setCalendarOpen(false)}
-              className="rounded-md px-2 py-1 text-[11px] text-foreground/55 hover:bg-accent hover:text-foreground"
-            >
-              닫기
-            </button>
-          </div>
-        </div>,
-        document.body,
-      )}
-    </div>
-  );
-};

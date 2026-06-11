@@ -38,7 +38,7 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
       className={cn(
         'group relative transition-colors cursor-pointer',
         isOver
-          ? 'bg-primary/10 ring-1 ring-primary/45 ring-inset'
+          ? 'bg-primary/[0.026] ring-1 ring-primary/18 ring-inset'
           : 'hover:bg-accent/50',
         className,
       )}
@@ -48,7 +48,7 @@ export const DroppableTimeSlot = ({ startIso, onClick, ariaLabel, className }: D
         className={cn(
           'pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[12px] font-medium transition-colors',
           isOver && showAssignHint
-            ? 'rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm'
+            ? 'rounded-md border border-primary/18 bg-background/90 px-1.5 py-0.5 text-foreground/64 shadow-[0_6px_18px_-16px_hsl(var(--foreground)/0.45)]'
             : 'text-transparent group-hover:text-foreground/45',
         )}
         aria-hidden

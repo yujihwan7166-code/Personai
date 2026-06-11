@@ -14,7 +14,7 @@
  * - ?: 단축키 도움말
  * - / 또는 ⌘K(⌃K): 명령 팔레트
  */
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useId, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CalendarClock,
@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Clock3,
   ListTodo,
   Plus,
   Search,
@@ -39,8 +40,11 @@ import {
   DragOverlay,
   PointerSensor,
   KeyboardSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   type DragMoveEvent,
@@ -56,6 +60,9 @@ import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
 import { usePlannerNotifications } from '@/hooks/planner/usePlannerNotifications';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { WeekView } from '@/components/planner/WeekView';
 import { MonthView } from '@/components/planner/MonthView';
 import { YearView } from '@/components/planner/YearView';
@@ -80,9 +87,12 @@ import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
-import { clampStartToLocalDay } from '@/lib/planner/timeRange';
+import { moveIntervalToLocalDayStart } from '@/lib/planner/timeRange';
 import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
+import { buildWeekSchedulePatch, buildWeekTodoMovePatch, defaultWeekScheduleTime } from '@/lib/planner/weekDrag';
+import { nextTodoOrderForDay } from '@/lib/planner/todoOrder';
 import { toDateKey } from '@/lib/planner/habitStats';
+import { formatDurationMinutes } from '@/lib/formatDuration';
 import { useWindowEvent } from '@/hooks/useWindowEvent';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { PAGE_AI_PANEL_WIDTH, clampPageAiPanelWidth } from '@/components/PageAiTokens';
@@ -95,6 +105,10 @@ import {
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
+const plannerCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args);
+};
 const PLANNER_VIEW_STORAGE_KEY = 'planner.view.v1';
 const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'habits'];
 const isPlannerView = (value: string | null): value is PlannerView =>
@@ -122,6 +136,12 @@ type DialogMode =
       initialPinned?: boolean;
     }
   | { kind: 'create'; presetStartIso: string; presetIsEvent?: boolean };
+
+type WeekScheduleTimePromptState = {
+  task: PlannerTask;
+  dayKey: string;
+  copy: boolean;
+};
 
 const isSameDay = (a: Date, b: Date): boolean =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -396,8 +416,7 @@ const Planner = () => {
       next.delete('date');
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams, setSearchParams]);
   useEffect(() => {
     const current = searchParams.get('view');
     if (view === 'day') {
@@ -413,9 +432,12 @@ const Planner = () => {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, view]);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
+  const [pendingWeekSchedule, setPendingWeekSchedule] = useState<WeekScheduleTimePromptState | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
+  const [headerSearchActiveIndex, setHeaderSearchActiveIndex] = useState(0);
+  const headerSearchListboxId = useId();
   const [helpOpen, setHelpOpen] = useState(false);
   const [matrixPopoverOpen, setMatrixPopoverOpen] = useState(false);
   const [agendaPopoverOpen, setAgendaPopoverOpen] = useState(false);
@@ -640,6 +662,7 @@ const Planner = () => {
   const closeHeaderSearch = useCallback(() => {
     setHeaderSearchOpen(false);
     setHeaderSearchQuery('');
+    setHeaderSearchActiveIndex(0);
   }, []);
 
   useEffect(() => {
@@ -661,6 +684,31 @@ const Planner = () => {
     () => buildHeaderSearchSuggestions(anchorIso),
     [anchorIso],
   );
+  const trimmedHeaderSearchQuery = headerSearchQuery.trim();
+  const headerSearchPanelResults = useMemo(
+    () => (trimmedHeaderSearchQuery ? headerSearchResults : headerSearchSuggestions),
+    [headerSearchResults, headerSearchSuggestions, trimmedHeaderSearchQuery],
+  );
+  const headerSearchActiveResult = headerSearchPanelResults[headerSearchActiveIndex];
+  const headerSearchActiveOptionId = headerSearchActiveResult
+    ? `${headerSearchListboxId}-option-${headerSearchActiveIndex}`
+    : undefined;
+
+  useEffect(() => {
+    setHeaderSearchActiveIndex(0);
+  }, [trimmedHeaderSearchQuery]);
+
+  useEffect(() => {
+    if (!headerSearchOpen) {
+      setHeaderSearchActiveIndex(0);
+      return;
+    }
+    setHeaderSearchActiveIndex((current) => {
+      const max = headerSearchPanelResults.length - 1;
+      if (max < 0) return 0;
+      return Math.min(current, max);
+    });
+  }, [headerSearchOpen, headerSearchPanelResults.length]);
 
   const selectHeaderSearchResult = useCallback((result: HeaderSearchResult) => {
     if (result.type === 'task') {
@@ -688,16 +736,16 @@ const Planner = () => {
   }, [closeHeaderSearch, setView]);
 
   const runHeaderSearch = useCallback(() => {
-    const q = headerSearchQuery.trim();
-    if (!q) {
+    const q = trimmedHeaderSearchQuery;
+    if (!q && headerSearchPanelResults.length === 0) {
       setHeaderSearchOpen(true);
       headerSearchInputRef.current?.focus();
       return;
     }
 
-    const firstResult = headerSearchResults[0];
-    if (firstResult) {
-      selectHeaderSearchResult(firstResult);
+    const selectedResult = headerSearchPanelResults[headerSearchActiveIndex] ?? headerSearchPanelResults[0];
+    if (selectedResult) {
+      selectHeaderSearchResult(selectedResult);
       return;
     }
 
@@ -705,7 +753,7 @@ const Planner = () => {
     headerSearchInputRef.current?.focus();
     return;
 
-  }, [headerSearchQuery, headerSearchResults, selectHeaderSearchResult]);
+  }, [headerSearchActiveIndex, headerSearchPanelResults, selectHeaderSearchResult, trimmedHeaderSearchQuery]);
 
   const createTaskFromHeaderSearch = useCallback((scheduled: boolean) => {
     const title = headerSearchQuery.trim();
@@ -927,16 +975,12 @@ const Planner = () => {
 
   // 드래그 중 미리보기 상태 — DragOverlay 가 사용.
   const [activeDrag, setActiveDrag] = useState<{ data: PlannerDragData; deltaY: number } | null>(null);
-  // 드래그 시작 시점 타임라인 scrollTop — handleDragEnd 에서 자동 스크롤만큼 보상하기 위해.
-  const dragInitialScrollTop = useRef<number | null>(null);
   const dragCopyModeRef = useRef(false);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     const data = e.active.data.current as PlannerDragData | undefined;
     if (data) setActiveDrag({ data, deltaY: 0 });
     dragCopyModeRef.current = isCopyModifierEvent((e as DragStartEvent & { activatorEvent?: Event }).activatorEvent);
-    const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
-    dragInitialScrollTop.current = container ? container.scrollTop : null;
   }, []);
 
   useEffect(() => {
@@ -958,7 +1002,6 @@ const Planner = () => {
 
   const handleDragCancel = useCallback(() => {
     setActiveDrag(null);
-    dragInitialScrollTop.current = null;
     dragCopyModeRef.current = false;
   }, []);
 
@@ -1070,9 +1113,7 @@ const Planner = () => {
       ? (rawDropData as PlannerDropData)
       : undefined;
     setActiveDrag(null);
-    // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 보정값 사용하는 버그 방지.
-    const initialScrollTop = dragInitialScrollTop.current;
-    dragInitialScrollTop.current = null;
+    // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 상태를 쓰는 버그 방지.
     const copyDrag = dragCopyModeRef.current;
     dragCopyModeRef.current = false;
 
@@ -1111,6 +1152,10 @@ const Planner = () => {
       }
       if (dropData.kind === 'day-column') {
         addLibraryItemToCalendarDay(dragData.item, toDateKey(new Date(dropData.dayIso)));
+        return;
+      }
+      if (dropData.kind === 'schedule-day') {
+        addLibraryItemToCalendarDay(dragData.item, dropData.dayKey);
         return;
       }
       if (dropData.kind === 'todo-list') {
@@ -1162,8 +1207,46 @@ const Planner = () => {
       return;
     }
 
-    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지, 15분 스냅) ───
-    // delta.y 기반 정밀 이동 — slot 의 30분 boundary 가 아니라 마우스 이동량으로 결정.
+    if ((dragData.kind === 'inbox-task' || dragData.kind === 'planned-task') && dropData.kind === 'schedule-day') {
+      setPendingWeekSchedule({
+        task: dragData.task,
+        dayKey: dropData.dayKey,
+        copy: copyDrag,
+      });
+      return;
+    }
+
+    if ((dragData.kind === 'inbox-task' || dragData.kind === 'planned-task') && dropData.kind === 'todo-list') {
+      const targetKey = dropData.dayKey;
+      if (!copyDrag && dragData.task.plannedFor === targetKey && !dragData.task.startAt) return;
+      const todoPatch = {
+        ...buildWeekTodoMovePatch(targetKey),
+        todoOrder: nextTodoOrderForDay(taskStore.list(), targetKey, dragData.task.id),
+      };
+
+      if (copyDrag) {
+        const copied = taskStore.add(duplicateTaskInput(dragData.task, todoPatch));
+        notify.success(`${formatDragDate(`${targetKey}T00:00:00`)} 할 일로 복제했어요`, {
+          description: dragData.task.title,
+          duration: 4200,
+          action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+        });
+        return;
+      }
+
+      const restore = taskDragRestorePatch(dragData.task);
+      taskStore.update(dragData.task.id, todoPatch);
+      notify.success(`${formatDragDate(`${targetKey}T00:00:00`)} 할 일로 옮겼어요`, {
+        description: dragData.task.title,
+        duration: 4200,
+        action: { label: '되돌리기', onClick: () => taskStore.update(dragData.task.id, restore) },
+      });
+      return;
+    }
+
+    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지) ───
+    // 긴 블록은 rect 교차량이 아니라 포인터가 놓인 시간 슬롯을 새 시작점으로 삼는다.
+    // 종료 시각은 자정에 자르지 않는다. 예: 22:00 + 4시간 = 다음날 02:00.
     if (
       (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
       dropData.kind === 'time-slot'
@@ -1173,25 +1256,18 @@ const Planner = () => {
         notify.warning('이 항목은 시간이 없어 이동할 수 없어요', { duration: 1500 });
         return;
       }
-      const HOUR_PX = 56;
-      const oldStart = new Date(item.startAt);
-      const oldEnd = new Date(item.endAt);
-      const dur = oldEnd.getTime() - oldStart.getTime();
       const snap = getSnapMin();
-      // 자동 스크롤 보상 — 드래그 중 컨테이너가 스크롤된 만큼 e.delta.y 에 더함.
-      const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
-      const scrollDelta = container && initialScrollTop !== null
-        ? container.scrollTop - initialScrollTop
-        : 0;
-      const adjustedDeltaY = e.delta.y + scrollDelta;
-      const deltaMinutes = Math.round((adjustedDeltaY / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
-      const newStartDate = clampStartToLocalDay(
-        new Date(oldStart.getTime() + deltaMinutes * 60_000),
+      const moved = moveIntervalToLocalDayStart(
+        item.startAt,
+        item.endAt,
         dropData.startIso,
-        dur,
+        dropData.startIso,
+        snap * 60_000,
       );
-      const newStart = newStartDate.toISOString();
-      const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
+      const newStart = moved.startAt;
+      const newEnd = moved.endAt;
+      const newStartDate = new Date(newStart);
+      const dur = moved.durationMs;
       const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
       const restoreEvent = dragData.kind === 'scheduled-event' ? eventDragRestorePatch(dragData.event) : null;
 
@@ -1293,7 +1369,7 @@ const Planner = () => {
     // ─── 시간 블록 → 다른 day column: 시:분 유지, 날짜 교체 ───
     if (
       (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
-      dropData.kind === 'day-column'
+      (dropData.kind === 'day-column' || dropData.kind === 'schedule-day')
     ) {
       const item = dragData.kind === 'scheduled-task' ? dragData.task : dragData.event;
       if (!item.startAt || !item.endAt) {
@@ -1302,7 +1378,9 @@ const Planner = () => {
       }
       const oldStart = new Date(item.startAt);
       const dur = new Date(item.endAt).getTime() - oldStart.getTime();
-      const targetDay = new Date(dropData.dayIso);
+      const targetDay = dropData.kind === 'schedule-day'
+        ? new Date(`${dropData.dayKey}T00:00:00`)
+        : new Date(dropData.dayIso);
       const newStart = transposeTimeToDate(oldStart, targetDay).toISOString();
       const newEnd = new Date(new Date(newStart).getTime() + dur).toISOString();
       const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
@@ -1365,13 +1443,12 @@ const Planner = () => {
     if (dragData.kind === 'planned-task' && dropData.kind === 'day-column') {
       const targetKey = toDateKey(new Date(dropData.dayIso));
       if (!copyDrag && dragData.task.plannedFor === targetKey) return;
+      const todoPatch = {
+        ...buildWeekTodoMovePatch(targetKey),
+        todoOrder: nextTodoOrderForDay(taskStore.list(), targetKey, dragData.task.id),
+      };
       if (copyDrag) {
-        const copied = taskStore.add(duplicateTaskInput(dragData.task, {
-          plannedFor: targetKey,
-          startAt: undefined,
-          endAt: undefined,
-          laneOrder: undefined,
-        }));
+        const copied = taskStore.add(duplicateTaskInput(dragData.task, todoPatch));
         notify.success(`${formatDragDate(dropData.dayIso)} 할 일로 복제했어요`, {
           description: '원본은 그대로 두었습니다.',
           duration: 4200,
@@ -1380,11 +1457,7 @@ const Planner = () => {
         return;
       }
       const restore = taskDragRestorePatch(dragData.task);
-      taskStore.update(dragData.task.id, {
-        plannedFor: targetKey,
-        startAt: undefined,
-        endAt: undefined,
-      });
+      taskStore.update(dragData.task.id, todoPatch);
       notify.success(`${formatDragDate(dropData.dayIso)} 할 일로 옮겼어요`, {
         duration: 4200,
         action: { label: '되돌리기', onClick: () => taskStore.update(dragData.task.id, restore) },
@@ -1490,14 +1563,13 @@ const Planner = () => {
       }
       const task = dragData.task;
       const dayKey = dropData.dayKey;
+      const todoPatch = {
+        ...buildWeekTodoMovePatch(dayKey),
+        todoOrder: nextTodoOrderForDay(taskStore.list(), dayKey, task.id),
+      };
       const restore = taskDragRestorePatch(task);
       if (copyDrag) {
-        const copied = taskStore.add(duplicateTaskInput(task, {
-          startAt: undefined,
-          endAt: undefined,
-          plannedFor: dayKey,
-          laneOrder: undefined,
-        }));
+        const copied = taskStore.add(duplicateTaskInput(task, todoPatch));
         notify.success(`${formatDragDate(`${dayKey}T00:00:00`)} 할 일로 복제했어요`, {
           description: '원본은 그대로 두었습니다.',
           duration: 4200,
@@ -1510,17 +1582,9 @@ const Planner = () => {
         if (!parsed) return;
         const master = taskStore.findMaster(parsed.masterId);
         if (!master) return;
-        editThisOnly(taskStore, master, parsed.occurrenceIso, {
-          startAt: undefined,
-          endAt: undefined,
-          plannedFor: dayKey,
-        });
+        editThisOnly(taskStore, master, parsed.occurrenceIso, todoPatch);
       } else {
-        taskStore.update(task.id, {
-          startAt: undefined,
-          endAt: undefined,
-          plannedFor: dayKey,
-        });
+        taskStore.update(task.id, todoPatch);
       }
       notify.success(`${formatDragDate(`${dayKey}T00:00:00`)} 할 일로 돌렸어요`, {
         description: '시간만 제거하고 할 일 목록에 남겼습니다.',
@@ -1590,13 +1654,41 @@ const Planner = () => {
     });
   }, [anchorIso]);
 
-  const trimmedHeaderSearchQuery = headerSearchQuery.trim();
-  const headerSearchPanelResults = trimmedHeaderSearchQuery ? headerSearchResults : headerSearchSuggestions;
+  const confirmPendingWeekSchedule = useCallback((time: string, durationMin: number) => {
+    if (!pendingWeekSchedule) return;
+
+    const schedulePatch = buildWeekSchedulePatch(pendingWeekSchedule.dayKey, time, durationMin);
+    const start = schedulePatch.startAt!;
+    const end = schedulePatch.endAt!;
+    const task = pendingWeekSchedule.task;
+
+    if (pendingWeekSchedule.copy) {
+      const copied = taskStore.add(duplicateTaskInput(task, schedulePatch));
+      notify.success(`${formatDragTime(start)}~${formatDragTime(end)} 일정으로 복제했어요`, {
+        description: task.title,
+        duration: 4200,
+        action: { label: '되돌리기', onClick: () => taskStore.remove(copied.id) },
+      });
+      setPendingWeekSchedule(null);
+      return;
+    }
+
+    const restore = taskDragRestorePatch(task);
+    taskStore.update(task.id, schedulePatch);
+    notify.success(`${formatDragTime(start)}~${formatDragTime(end)} 일정으로 옮겼어요`, {
+      description: task.title,
+      duration: 4200,
+      action: { label: '되돌리기', onClick: () => taskStore.update(task.id, restore) },
+    });
+    setPendingWeekSchedule(null);
+  }, [pendingWeekSchedule]);
+
   const collapseContextSidebar = view === 'habits' && aiPanelOpen;
 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={plannerCollisionDetection}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
@@ -1699,8 +1791,19 @@ const Planner = () => {
                 <input
                   ref={headerSearchInputRef}
                   value={headerSearchQuery}
-                  onChange={(event) => setHeaderSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setHeaderSearchQuery(event.target.value);
+                    setHeaderSearchOpen(true);
+                  }}
                   onKeyDown={(event) => {
+                    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && headerSearchPanelResults.length > 0) {
+                      event.preventDefault();
+                      setHeaderSearchActiveIndex((current) => {
+                        const max = headerSearchPanelResults.length - 1;
+                        if (event.key === 'ArrowDown') return current >= max ? 0 : current + 1;
+                        return current <= 0 ? max : current - 1;
+                      });
+                    }
                     if (event.key === 'Enter') {
                       event.preventDefault();
                       runHeaderSearch();
@@ -1715,6 +1818,11 @@ const Planner = () => {
                   }}
                   placeholder="검색"
                   aria-label="검색어"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={headerSearchOpen}
+                  aria-controls={headerSearchOpen ? headerSearchListboxId : undefined}
+                  aria-activedescendant={headerSearchOpen ? headerSearchActiveOptionId : undefined}
                   className="h-full min-w-0 flex-1 bg-transparent px-1 text-[13px] font-medium text-foreground outline-none placeholder:text-muted-foreground/70 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                 />
                 <button
@@ -1732,6 +1840,7 @@ const Planner = () => {
                 <div
                   className="absolute left-0 top-[38px] z-50 hidden w-[392px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/18 bg-card shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.4)] sm:block"
                   role="listbox"
+                  id={headerSearchListboxId}
                   aria-label={trimmedHeaderSearchQuery ? '검색 결과' : '검색 추천'}
                 >
                   <div className="flex items-center justify-between border-b border-foreground/10 px-3 py-2.5">
@@ -1792,6 +1901,7 @@ const Planner = () => {
                   ) : (
                     <div className="max-h-[360px] overflow-y-auto p-1.5">
                       {headerSearchPanelResults.map((result, index) => {
+                        const selected = index === headerSearchActiveIndex;
                         const isTask = result.type === 'task';
                         const done = isTask && result.task.done;
                         const canceled = isTask && result.task.canceled;
@@ -1807,14 +1917,19 @@ const Planner = () => {
                           <button
                             key={`${result.type}-${isTask ? result.task.id : result.event.id}`}
                             type="button"
+                            id={`${headerSearchListboxId}-option-${index}`}
+                            onMouseEnter={() => setHeaderSearchActiveIndex(index)}
                             onClick={() => selectHeaderSearchResult(result)}
-                            className="group flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent focus:bg-accent"
+                            className={cn(
+                              'group flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent focus:bg-accent',
+                              selected && 'bg-accent/80',
+                            )}
                             role="option"
-                            aria-selected={index === 0}
+                            aria-selected={selected}
                           >
                             <span className={cn(
                               'mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors group-hover:text-foreground',
-                              index === 0 && 'border-primary/25 bg-primary/8 text-primary',
+                              selected && 'border-primary/25 bg-primary/8 text-primary',
                             )}>
                               <Icon className="h-3.5 w-3.5" strokeWidth={2.15} />
                             </span>
@@ -1839,7 +1954,7 @@ const Planner = () => {
                     </div>
                   )}
                   <div className="flex items-center justify-between border-t border-foreground/10 px-3 py-2 text-[10.5px] text-muted-foreground">
-                    <span>{trimmedHeaderSearchQuery ? 'Enter 첫 결과 열기' : '검색어 입력 후 Enter'}</span>
+                    <span>{headerSearchPanelResults.length > 0 ? '↑↓ 이동 · Enter 열기' : '검색어 입력 후 Enter'}</span>
                     <span>Esc 닫기</span>
                   </div>
                 </div>
@@ -1893,7 +2008,7 @@ const Planner = () => {
               </div>
 
               <div
-                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
+                className="hidden h-8 shrink-0 items-center gap-0.5 rounded-[10px] border border-foreground/32 bg-[#f7f5ef] p-0.5 shadow-[inset_0_1px_2px_hsl(var(--foreground)/0.07),0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
                 role="tablist"
                 aria-label="플래너 보기"
               >
@@ -1908,15 +2023,21 @@ const Planner = () => {
                       aria-selected={active}
                       onClick={() => setView(nextView)}
                       className={cn(
-                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-all',
+                        'relative inline-flex h-7 min-w-8 items-center justify-center rounded-[8px] px-2 text-[12px] font-semibold leading-none transition-colors',
                         active
-                          ? 'border border-primary/20 bg-primary/[0.075] text-primary shadow-[0_1px_5px_hsl(var(--primary)/0.16)]'
-                          : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
+                          ? 'border border-primary/25 bg-white text-foreground shadow-[0_1px_4px_hsl(var(--foreground)/0.10)]'
+                          : 'border border-transparent text-foreground/62 hover:bg-white/45 hover:text-foreground/86',
                         nextView === 'habits' && 'min-w-10',
                       )}
                       title={`${meta.label} (${meta.shortcut})`}
                     >
                       {meta.label}
+                      {active && (
+                        <span
+                          aria-hidden
+                          className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary/70"
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -1999,7 +2120,6 @@ const Planner = () => {
                     setAnchorIso(dayIso);
                     setView('day');
                   }}
-                  onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                   onOpenHabits={() => setView('habits')}
                 />
               </div>
@@ -2027,7 +2147,6 @@ const Planner = () => {
                     setAnchorIso(dayIso);
                     setView('day');
                   }}
-                  onTaskClick={(task) => handleInboxClick({ id: task.id, title: task.title })}
                   onOpenHabits={() => setView('habits')}
                 />
               </div>
@@ -2145,6 +2264,14 @@ const Planner = () => {
         mode={dialogMode}
         onClose={() => setDialogMode(null)}
       />
+      {pendingWeekSchedule && (
+        <WeekScheduleTimePrompt
+          key={`${pendingWeekSchedule.task.id}:${pendingWeekSchedule.dayKey}:${pendingWeekSchedule.copy ? 'copy' : 'move'}`}
+          pending={pendingWeekSchedule}
+          onClose={() => setPendingWeekSchedule(null)}
+          onConfirm={confirmPendingWeekSchedule}
+        />
+      )}
       <PlannerTrashDialog open={trashOpen} onOpenChange={setTrashOpen} />
       <PlannerLibraryPanel
         open={libraryOpen}
@@ -2175,17 +2302,12 @@ const Planner = () => {
         portal 띄워 clip 회피 (좌측 할일 패널 위로 자연스럽게 떠다님). */}
     <DragOverlay dropAnimation={null}>
       {previewLabel && (
-        <div className="pointer-events-none flex max-w-[300px] select-none items-center gap-2.5 rounded-xl border border-primary/30 bg-background/95 px-3 py-2 text-foreground shadow-[0_14px_34px_-16px_hsl(var(--foreground)/0.35)] ring-1 ring-primary/10 backdrop-blur-md">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/60 bg-primary/8 text-primary" aria-hidden>
-            <span className="h-2.5 w-2.5 rounded-full border border-current bg-background" />
+        <div className="pointer-events-none flex max-w-[280px] select-none items-center gap-2 rounded-lg border border-foreground/12 bg-background/95 px-2.5 py-2 text-foreground shadow-[0_12px_30px_-18px_hsl(var(--foreground)/0.38)] ring-1 ring-foreground/[0.04] backdrop-blur-md">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/45 bg-primary/[0.06] text-primary" aria-hidden>
+            <span className="h-2 w-2 rounded-full border border-current bg-background" />
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[12.5px] font-semibold leading-tight text-foreground">
-              {previewLabel}
-            </span>
-            <span className="mt-1 block text-[10.5px] font-semibold leading-none text-primary/80">
-              놓는 날짜로 할 일 이동
-            </span>
+          <span className="min-w-0 truncate text-[12.5px] font-semibold leading-tight text-foreground">
+            {previewLabel}
           </span>
         </div>
       )}
@@ -2236,6 +2358,187 @@ const Planner = () => {
     </HiddenInteractiveMount>
     </DndContext>
   );
+};
+
+export const WeekScheduleTimePrompt = ({
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  pending: WeekScheduleTimePromptState;
+  onClose: () => void;
+  onConfirm: (time: string, durationMin: number) => void;
+}) => {
+  useScrollLock(true);
+  const initialStartTime = defaultWeekScheduleTime(pending.dayKey);
+  const [startTime, setStartTime] = useState(initialStartTime);
+  const [endTime, setEndTime] = useState(() => addMinutesToTime(initialStartTime, 60));
+  const startInputRef = useRef<HTMLInputElement>(null);
+  const endInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useFocusTrap<HTMLElement>(true);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
+  const headingId = useId();
+  const titleId = useId();
+  const descId = useId();
+  const selectionId = useId();
+  const dateLabel = formatDragDate(`${pending.dayKey}T00:00:00`);
+  const durationMin = durationBetweenTimes(startTime, endTime);
+  const selectedDurationLabel = formatDurationMinutes(durationMin);
+  const crossesMidnight = parseTimeToMinutes(endTime) <= parseTimeToMinutes(startTime);
+  const rangeLabel = `${startTime} ~ ${endTime} · ${selectedDurationLabel}`;
+
+  useEffect(() => {
+    startInputRef.current?.focus();
+    startInputRef.current?.select();
+  }, []);
+
+  const submit = () => onConfirm(startTime, durationMin);
+
+  const updateStartTime = (nextTime: string) => {
+    const currentDuration = durationBetweenTimes(startTime, endTime);
+    setStartTime(nextTime);
+    setEndTime(addMinutesToTime(nextTime, currentDuration));
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (
+      event.key === 'Enter'
+      && (event.target === startInputRef.current || event.target === endInputRef.current)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      submit();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[55]"
+      role="presentation"
+      {...backdropHandlers}
+    >
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${headingId} ${titleId}`}
+        aria-describedby={`${descId} ${selectionId}`}
+        className="absolute left-1/2 top-24 w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-foreground/16 bg-card p-3 text-foreground shadow-[0_20px_60px_-28px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/5"
+        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p id={headingId} className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground">
+              <Clock3 className="h-3.5 w-3.5" strokeWidth={2.2} />
+              시간 정하기
+            </p>
+            <h3 id={titleId} className="mt-1 truncate text-[15px] font-extrabold text-foreground">
+              {pending.task.title}
+            </h3>
+            <p id={descId} className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
+              {dateLabel} 일정으로 이동
+            </p>
+            <p id={selectionId} className="sr-only" aria-live="polite">
+              현재 선택: {rangeLabel}{crossesMidnight ? ', 다음날 종료' : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="시간 설정 닫기"
+            title="닫기"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.2} />
+          </button>
+        </div>
+
+        <div className="mt-3 rounded-lg border border-foreground/12 bg-background/70 p-2.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
+            <label className="min-w-0">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">시작</span>
+              <input
+                ref={startInputRef}
+                data-autofocus="true"
+                type="time"
+                value={startTime}
+                onChange={(event) => updateStartTime(event.target.value)}
+                aria-label="시작 시간"
+                className="h-9 w-full rounded-lg border border-foreground/14 bg-card px-3 text-[13px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+              />
+            </label>
+            <span className="pb-2 text-[13px] font-bold text-muted-foreground" aria-hidden>
+              ~
+            </span>
+            <label className="min-w-0">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">종료</span>
+              <input
+                ref={endInputRef}
+                type="time"
+                value={endTime}
+                onChange={(event) => setEndTime(event.target.value)}
+                aria-label="종료 시간"
+                className="h-9 w-full rounded-lg border border-foreground/14 bg-card px-3 text-[13px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-foreground/10 pt-2.5">
+          <div className="min-w-0">
+            <p className="truncate text-[12px] font-bold tabular-nums text-foreground/82">
+              {rangeLabel}
+            </p>
+            {crossesMidnight && (
+              <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">다음날 종료</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={submit}
+            aria-label={`${pending.task.title} ${dateLabel} ${rangeLabel} 일정화`}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-foreground px-4 text-[12.5px] font-bold text-background transition-colors hover:bg-foreground/88"
+          >
+            일정화
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const TIME_FALLBACK_MINUTES = 9 * 60;
+
+const parseTimeToMinutes = (time: string): number => {
+  const match = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!match) return TIME_FALLBACK_MINUTES;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return TIME_FALLBACK_MINUTES;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return TIME_FALLBACK_MINUTES;
+  return hours * 60 + minutes;
+};
+
+const addMinutesToTime = (time: string, minutes: number): string => {
+  const total = (parseTimeToMinutes(time) + Math.max(15, Math.round(minutes))) % (24 * 60);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+};
+
+const durationBetweenTimes = (startTime: string, endTime: string): number => {
+  const start = parseTimeToMinutes(startTime);
+  const end = parseTimeToMinutes(endTime);
+  const sameDayDuration = end - start;
+  const duration = sameDayDuration > 0 ? sameDayDuration : sameDayDuration + 24 * 60;
+  return Math.max(15, duration);
 };
 
 export default Planner;

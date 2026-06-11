@@ -10,12 +10,15 @@
  * - 검색: tasks/events 제목 매칭
  */
 import { Command } from 'cmdk';
-import { useEffect, useState, ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, ReactNode } from 'react';
 import { CalendarDays, Plus, Clock, Search, ArrowRight, Flag } from 'lucide-react';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import type { Priority } from '@/types/planner';
 import { PRIORITY_COLORS } from '@/types/planner';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import type { PlannerView } from './ViewToggle';
 
 const RESULT_LIMIT = 20;
@@ -36,38 +39,62 @@ interface Props {
 }
 
 export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) => {
+  useScrollLock(open);
   const [query, setQuery] = useState('');
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>({ active: open, restoreFocus: false });
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => { if (!open) setQuery(''); }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+      restoreFocusRef.current = activeElement;
+    }
+  }, [open]);
+
+  const closePalette = useCallback((restoreFocus = true) => {
+    onOpenChange(false);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => restoreFocusRef.current?.focus());
+    }
+  }, [onOpenChange]);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(() => closePalette());
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      const currentFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
       // Cmd+K — 입력 중에도 열림(글로벌). 단 팔레트 자기 input 안에서는 토글 X (cmdk 가 처리).
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         // 팔레트가 이미 열려있고 사용자가 안에서 타이핑 중이면 cmdk 의 자체 동작에 맡김.
         if (open && isTyping) return;
         e.preventDefault();
+        if (!open) restoreFocusRef.current = target instanceof HTMLElement ? target : currentFocus;
         onOpenChange(!open);
       } else if (e.key === 'Escape' && open) {
-        onOpenChange(false);
+        closePalette();
       } else if (!isTyping && !open && e.key === '/') {
         // 위키와 통일된 보조 진입 (선택).
         e.preventDefault();
+        restoreFocusRef.current = target instanceof HTMLElement ? target : currentFocus;
         onOpenChange(true);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onOpenChange]);
+  }, [closePalette, open, onOpenChange]);
 
   if (!open) return null;
 
   const run = (action: CommandAction) => {
     onAction(action);
-    onOpenChange(false);
+    closePalette(false);
   };
 
   // 검색용 데이터 — 완료·취소 제외 후 query 로 1차 필터, 그 다음에 slice.
@@ -87,30 +114,43 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 z-[120] flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[12vh] px-4"
-      onClick={() => onOpenChange(false)}
+      {...backdropHandlers}
       role="dialog"
-      aria-label="명령 팔레트"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
     >
       <Command
         className="w-full max-w-xl rounded-xl border border-foreground/20 bg-popover shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         loop
       >
+        <div className="sr-only">
+          <h2 id={titleId}>명령 팔레트</h2>
+          <p id={descId}>동작, 보기, 일정, 할 일을 검색하고 Enter로 실행합니다.</p>
+        </div>
         <div className="border-b border-foreground/20 px-3 flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Command.Input
             value={query}
             onValueChange={setQuery}
             placeholder="동작 또는 항목 검색…"
+            aria-label="명령 검색"
             autoFocus
             className="w-full h-11 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
           />
         </div>
 
-        <Command.List className="max-h-[60vh] overflow-y-auto p-1.5">
+        <Command.List label="명령 결과" className="max-h-[60vh] overflow-y-auto p-1.5">
           <Command.Empty className="p-6 text-center text-[12px] text-muted-foreground">
-            일치하는 항목이 없어요
+            <span role="status" className="block">
+              <span className="block font-semibold text-foreground/70">일치하는 항목이 없어요.</span>
+              <span className="mt-1 block text-[11px] text-muted-foreground/75">
+                할 일, 일정 제목이나 동작 이름을 검색할 수 있어요.
+              </span>
+            </span>
           </Command.Empty>
 
           <Command.Group

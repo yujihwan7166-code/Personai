@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
 
@@ -11,17 +12,21 @@ describe('WikiAiPanel', () => {
     window.localStorage.clear();
   });
 
-  it('does not close from Escape while typing, but closes from panel chrome', () => {
-    const onClose = vi.fn();
-    render(
+  const renderPanel = (onClose = vi.fn()) => render(
+    <MemoryRouter>
       <WikiAiPanel
         open
         onClose={onClose}
         page={null}
         allPages={[]}
         totalPages={0}
-      />,
-    );
+      />
+    </MemoryRouter>,
+  );
+
+  it('does not close from Escape while typing, but closes from panel chrome', () => {
+    const onClose = vi.fn();
+    renderPanel(onClose);
 
     expect(screen.getByRole('complementary', { name: '보조 도구' })).toHaveAttribute('data-page-ai-panel', 'wiki');
     expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toBeInTheDocument();
@@ -34,15 +39,7 @@ describe('WikiAiPanel', () => {
   });
 
   it('hides AI-only chat actions when a reference tool tab is selected', () => {
-    render(
-      <WikiAiPanel
-        open
-        onClose={vi.fn()}
-        page={null}
-        allPages={[]}
-        totalPages={0}
-      />,
-    );
+    renderPanel();
 
     expect(document.querySelector('[data-page-ai-chat-actions="true"]')).toBeInTheDocument();
 

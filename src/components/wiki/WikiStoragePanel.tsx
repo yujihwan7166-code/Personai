@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { X, HardDrive, Trash2 } from 'lucide-react';
 import { computeStorageStats, garbageCollectImages, formatBytes, type StorageStats } from '@/lib/wikiMaintenance';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface Props {
   open: boolean;
@@ -8,20 +11,34 @@ interface Props {
 }
 
 export function WikiStoragePanel({ open, onClose }: Props) {
+  useScrollLock(open);
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     setStats(await computeStorageStats());
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    void refresh();
+    let alive = true;
+    setLoading(true);
+    void computeStorageStats().then((nextStats) => {
+      if (!alive) return;
+      setStats(nextStats);
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -48,24 +65,29 @@ export function WikiStoragePanel({ open, onClose }: Props) {
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 wiki-z-modal-backdrop flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-      onClick={onClose}
+      {...backdropHandlers}
       role="dialog"
-      aria-label="저장소 사용량"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
     >
       <div
         className="w-full max-w-lg rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
           <HardDrive className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-[14px] font-bold flex-1">저장소 사용량</h2>
+          <h2 id={titleId} className="text-[14px] font-bold flex-1">저장소 사용량</h2>
+          <p id={descId} className="sr-only">
+            위키 문서, 히스토리, 이미지 저장량을 확인하고 참조되지 않는 이미지를 정리할 수 있습니다.
+          </p>
           <button
             type="button"
             onClick={onClose}
             className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label="닫기"
+            aria-label="저장소 사용량 닫기"
           >
             <X className="h-4 w-4" />
           </button>
@@ -73,7 +95,7 @@ export function WikiStoragePanel({ open, onClose }: Props) {
 
         <div className="p-5">
           {loading || !stats ? (
-            <p className="text-[12px] text-muted-foreground py-6 text-center">집계 중…</p>
+            <p className="text-[12px] text-muted-foreground py-6 text-center" role="status">집계 중...</p>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2 mb-5">
@@ -116,12 +138,13 @@ export function WikiStoragePanel({ open, onClose }: Props) {
                   type="button"
                   onClick={handleGc}
                   disabled={busy || stats.orphanImageCount === 0}
+                  aria-label={`참조되지 않는 이미지 ${stats.orphanImageCount}개 정리`}
                   className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md bg-destructive/10 text-destructive text-[12px] font-semibold hover:bg-destructive/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   고아 이미지 정리
                 </button>
-                {msg && <span className="text-[11px] text-emerald-600 dark:text-emerald-400">{msg}</span>}
+                {msg && <span className="text-[11px] text-emerald-600 dark:text-emerald-400" role="status">{msg}</span>}
               </div>
             </>
           )}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,9 @@ vi.mock('@/components/wiki/WikiBody', () => ({
 }));
 
 vi.mock('@/components/wiki/WikiToc', () => ({
-  WikiToc: () => <nav data-testid="wiki-toc" />,
+  WikiToc: ({ variant = 'sidebar' }: { variant?: string }) => (
+    <nav data-testid={`wiki-toc-${variant}`} />
+  ),
 }));
 
 vi.mock('@/components/wiki/WikiInfobox', () => ({
@@ -50,6 +52,13 @@ const basePage: WikiPage = {
   updatedAt: 1_700_000_100_000,
 };
 
+const pageWithToc: WikiPage = {
+  ...basePage,
+  body: '# Overview\n\n## Training\n\n## Notes\n\nRunning notes with [[Cardio]].',
+};
+
+const MOJIBAKE_PATTERN = /[\uf9ce\uc88f\u81fe\u8e42\uc493]/;
+
 function renderWikiPageView(overrides: Partial<React.ComponentProps<typeof WikiPageView>> = {}) {
   const page = overrides.page ?? basePage;
 
@@ -81,6 +90,36 @@ function getDesktopMetaPanel(container: HTMLElement) {
   return panels[panels.length - 1] as HTMLElement;
 }
 
+describe('WikiPageView auxiliary layout', () => {
+  it('keeps the desktop table of contents in its own column by default', () => {
+    const { container } = renderWikiPageView({ page: pageWithToc });
+
+    const grid = container.querySelector('[data-wiki-page-grid="true"]');
+    expect(grid).toHaveAttribute('data-wiki-auxiliary-open', 'false');
+    expect(grid?.className).toContain('lg:grid-cols-[180px_minmax(0,1fr)_240px]');
+    expect(container.querySelector('[data-wiki-toc-column="true"]')).toBeInTheDocument();
+    expect(screen.getByTestId('wiki-toc-sidebar')).toBeInTheDocument();
+    expect(container.querySelector('[data-wiki-floating-toc="true"]')).not.toBeInTheDocument();
+  });
+
+  it('reclaims the table of contents column when the auxiliary panel is open', () => {
+    const { container } = renderWikiPageView({ page: pageWithToc, auxiliaryOpen: true });
+
+    const grid = container.querySelector('[data-wiki-page-grid="true"]');
+    expect(grid).toHaveAttribute('data-wiki-auxiliary-open', 'true');
+    expect(grid?.className).toContain('lg:grid-cols-[minmax(0,1fr)_240px]');
+    expect(container.querySelector('[data-wiki-toc-column="true"]')).not.toBeInTheDocument();
+    const floatingToc = container.querySelector('[data-wiki-floating-toc="true"]') as HTMLElement;
+    expect(floatingToc).toBeInTheDocument();
+    expect(screen.queryByTestId('wiki-toc-sidebar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('wiki-toc-floating')).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(floatingToc);
+
+    expect(screen.getByTestId('wiki-toc-floating')).toBeInTheDocument();
+  });
+});
+
 describe('WikiPageView edit metadata panel', () => {
   it('keeps the normal page edit action in read mode', () => {
     renderWikiPageView();
@@ -94,11 +133,18 @@ describe('WikiPageView edit metadata panel', () => {
     const desktopPanel = getDesktopMetaPanel(container);
 
     expect(desktopPanel).toBeInTheDocument();
-    expect(within(desktopPanel).getByRole('button', { name: /메인|硫붿씤/ })).toBeInTheDocument();
+    expect(within(desktopPanel).getByRole('button', { name: /메인/ })).toBeInTheDocument();
+    expect(within(desktopPanel).getByTitle('문서 상태')).toBeInTheDocument();
+    expect(within(desktopPanel).getByTitle('문서 분류')).toBeInTheDocument();
+    expect(within(desktopPanel).getByTitle('별칭과 태그 편집')).toBeInTheDocument();
+    expect(within(desktopPanel).getByTitle('문서 연결 편집')).toBeInTheDocument();
     expect(desktopPanel.querySelectorAll('select')).toHaveLength(1);
     expect(desktopPanel.querySelectorAll('input')).toHaveLength(1);
     expect(desktopPanel.querySelectorAll('button[aria-pressed]')).toHaveLength(2);
-    expect(within(desktopPanel).queryByTitle(/유형|좏삎/)).not.toBeInTheDocument();
+    expect(within(desktopPanel).queryByTitle('유형')).not.toBeInTheDocument();
+    expect(desktopPanel).not.toHaveTextContent(MOJIBAKE_PATTERN);
+    expect(within(desktopPanel).getByTitle('별칭과 태그 편집')).toHaveAttribute('aria-expanded', 'false');
+    expect(within(desktopPanel).getByTitle('문서 연결 편집')).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('opens secondary metadata editors from the compact palette', () => {
@@ -108,9 +154,58 @@ describe('WikiPageView edit metadata panel', () => {
 
     expect(desktopPanel.querySelectorAll('input')).toHaveLength(1);
     fireEvent.click(metaButtons[0]);
+    expect(metaButtons[0]).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById('wiki-meta-find-panel')).toHaveClass('border-t', 'pt-2');
+    expect(document.getElementById('wiki-meta-find-panel')?.querySelector('.rounded-lg')).toBeNull();
+    expect(within(document.getElementById('wiki-meta-find-panel') as HTMLElement).queryByText('별칭/태그')).not.toBeInTheDocument();
     expect(desktopPanel.querySelectorAll('input').length).toBeGreaterThan(1);
 
     fireEvent.click(metaButtons[1]);
+    expect(metaButtons[0]).toHaveAttribute('aria-expanded', 'false');
+    expect(metaButtons[1]).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById('wiki-meta-relations-panel')).toHaveClass('border-t', 'pt-2');
+    expect(document.getElementById('wiki-meta-relations-panel')?.querySelector('.rounded-lg')).toBeNull();
+    expect(within(document.getElementById('wiki-meta-relations-panel') as HTMLElement).queryByText('문서 연결')).not.toBeInTheDocument();
     expect(desktopPanel.querySelectorAll('select').length).toBeGreaterThan(1);
+  });
+
+  it('closes an open secondary metadata editor with Escape and restores focus', async () => {
+    const { container } = renderWikiPageView({ editing: true, page: { ...basePage, aliases: [], tags: [] } });
+    const desktopPanel = getDesktopMetaPanel(container);
+    const [findTrigger] = Array.from(desktopPanel.querySelectorAll<HTMLButtonElement>('button[aria-pressed]'));
+
+    fireEvent.click(findTrigger);
+    expect(findTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById('wiki-meta-find-panel')).toBeInTheDocument();
+
+    fireEvent.keyDown(desktopPanel, { key: 'Escape' });
+
+    expect(document.getElementById('wiki-meta-find-panel')).not.toBeInTheDocument();
+    expect(findTrigger).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(findTrigger).toHaveFocus());
+  });
+});
+
+describe('WikiPageView download menu', () => {
+  it('opens export choices as a named menu and restores focus on Escape', async () => {
+    renderWikiPageView();
+
+    const trigger = screen.getByRole('button', { name: '다운로드 메뉴' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const menu = screen.getByRole('menu', { name: '다운로드 양식' });
+    expect(menu).toHaveAttribute('id', trigger.getAttribute('aria-controls'));
+    expect(within(menu).getByRole('menuitem', { name: /Markdown 복사/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /HTML \(.html\)/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /PDF \(인쇄\)/ })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu', { name: '다운로드 양식' })).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

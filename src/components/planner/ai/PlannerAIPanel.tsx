@@ -27,7 +27,6 @@ import {
   PAGE_AI_PANEL_WIDTH,
 } from '@/components/PageAiTokens';
 import { useAIChat } from '@/hooks/planner/ai/useAIChat';
-import { AI_NAME } from '@/lib/planner/ai/aiName';
 import type { PlannerView } from '@/components/planner/ViewToggle';
 import { AIMessage } from './AIMessage';
 import { AIQuickActions } from './AIQuickActions';

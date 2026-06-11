@@ -27,9 +27,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
+import { formatDurationMinutes } from '@/lib/formatDuration';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import {
-  formatReminderSummary,
   notificationPermission,
   normalizeReminderMinutes,
   PLANNER_REMINDER_OPTIONS,
@@ -112,19 +112,6 @@ const addMinutes = (iso: string, mins: number): string =>
 const minutesBetween = (startIso: string, endIso: string): number =>
   Math.max(5, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000));
 
-const formatDuration = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}분`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
-};
-
-const formatDateValue = (dateStr?: string): string => {
-  if (!dateStr) return '없음';
-  const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-};
-
 const presetToRule = (
   preset: RecurrencePreset,
   byday: WeekdayCode[],
@@ -160,31 +147,25 @@ const resolveSeries = (id: string) => {
 const Row = ({
   icon,
   label,
-  value,
   children,
   className,
 }: {
   icon: ReactNode;
   label: string;
-  value?: string;
   children?: ReactNode;
   className?: string;
 }) => (
-  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-foreground/10 px-1 py-2', className)}>
-    <span className="flex h-7 w-6 items-center justify-center text-foreground/72">{icon}</span>
+  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] items-center gap-2.5 border-b border-foreground/10 px-1 py-2.5', className)}>
+    <span className="flex h-8 w-6 items-center justify-center text-foreground/72">{icon}</span>
     <div className="min-w-0">
       {children ? (
-        <div className="grid min-h-7 grid-cols-[92px_minmax(0,1fr)] items-center gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
-            {value && <p className="mt-0.5 truncate text-[11.5px] font-medium text-foreground/54">{value}</p>}
-          </div>
+        <div className="grid min-h-8 grid-cols-[64px_minmax(0,1fr)] items-center gap-2.5">
+          <p className="min-w-0 truncate text-[14px] font-semibold text-foreground/88">{label}</p>
           <div className="min-w-0">{children}</div>
         </div>
       ) : (
-        <div className="flex min-h-7 items-center justify-between gap-3">
-          <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
-          {value && <p className="shrink-0 text-[13px] font-semibold text-foreground/68">{value}</p>}
+        <div className="flex min-h-8 items-center gap-3">
+          <p className="truncate text-[14px] font-semibold text-foreground/88">{label}</p>
         </div>
       )}
     </div>
@@ -219,6 +200,8 @@ const Pill = ({
 
 const fieldInputClass =
   'h-8 rounded-md border-0 bg-[#f3f0ea] px-2.5 text-[13px] font-semibold text-foreground outline-none focus:bg-white focus:ring-1 focus:ring-primary/55';
+const footerButtonBaseClass =
+  'inline-flex h-10 min-w-[86px] items-center justify-center gap-1.5 rounded-[10px] px-4 text-[13px] font-bold transition-colors';
 
 export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogProps) => {
   const [title, setTitle] = useState('');
@@ -487,7 +470,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         <div className="flex max-h-[84vh] flex-col bg-[#fffefa]">
           <div className="shrink-0 border-b border-foreground/10 px-5 pb-2 pt-2">
             <div className="flex h-9 items-center justify-between gap-3">
-              <div className="grid h-8 w-[176px] grid-cols-2 rounded-full border border-foreground/18 bg-white p-0.5 shadow-[inset_0_0_0_1px_rgba(20,20,20,0.03)]">
+              <div className="grid h-8 w-[184px] grid-cols-2 rounded-full border border-foreground/55 bg-[#f7f5ef] p-0.5 shadow-[inset_0_1px_2px_rgba(25,22,18,0.10)]">
                 <button
                   type="button"
                   onClick={() => switchKind('event')}
@@ -495,7 +478,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   className={cn(
                     'rounded-full border text-[12px] font-bold transition-colors',
                     isEvent
-                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
+                      ? 'border-primary/50 bg-white text-primary shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
                       : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
@@ -508,7 +491,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   className={cn(
                     'rounded-full border text-[12px] font-bold transition-colors',
                     !isEvent
-                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
+                      ? 'border-primary/50 bg-white text-primary shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
                       : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
@@ -567,7 +550,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   </div>
                 </Row>
 
-                <Row icon={<Clock3 className="h-4 w-4" />} label="길이" value={formatDuration(duration)}>
+                <Row icon={<Clock3 className="h-4 w-4" />} label="길이">
                   <DurationPicker
                     duration={duration}
                     customOpen={customDurationOpen}
@@ -578,7 +561,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </div>
             ) : (
               <div className="space-y-1">
-                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜" value={formatDateValue(plannedFor)}>
+                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜">
                   <input
                     type="date"
                     value={plannedFor}
@@ -587,7 +570,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   />
                 </Row>
 
-                <Row icon={<Flag className="h-4 w-4" />} label="우선순위" value={PRIORITY_LABELS[priority]}>
+                <Row icon={<Flag className="h-4 w-4" />} label="우선순위">
                   <div className="grid grid-cols-4 gap-1.5">
                     {([0, 1, 2, 3] as Priority[]).map((value) => (
                       <Pill
@@ -614,7 +597,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             )}
 
             <div className="mt-1 pt-1">
-              <Row icon={<Palette className="h-4 w-4" />} label="색상" value={taskColor ? TASK_COLOR_OPTIONS.find((option) => option.value === taskColor)?.label : '기본'}>
+              <Row icon={<Palette className="h-4 w-4" />} label="색상">
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
@@ -642,7 +625,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<RotateCw className="h-4 w-4" />} label="반복" value={recurrence === 'none' ? '안 함' : '반복 설정됨'}>
+              <Row icon={<RotateCw className="h-4 w-4" />} label="반복">
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {(
@@ -704,7 +687,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<Bell className="h-4 w-4" />} label="알림" value={formatReminderSummary(reminderMinutes)}>
+              <Row icon={<Bell className="h-4 w-4" />} label="알림">
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {PLANNER_REMINDER_OPTIONS.map((option) => {
@@ -769,7 +752,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 </div>
               </Row>
 
-              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명" value={note ? '작성됨' : '없음'}>
+              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명">
                 <input
                   type="text"
                   value={note}
@@ -781,47 +764,51 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2 sm:justify-between">
-            <div>
-              {mode.kind === 'schedule' && (
-                isSeriesInstance ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        삭제
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => handleDelete('this')}>이번 항목만 건너뛰기</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
-                        전체 반복 삭제
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete('all')}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    삭제
-                  </button>
-                )
-              )}
-            </div>
+          <DialogFooter className="shrink-0 gap-2 border-t border-foreground/10 bg-[#fffefa] px-5 py-3 sm:justify-end sm:space-x-0">
+            {mode.kind === 'schedule' && (
+              isSeriesInstance ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        footerButtonBaseClass,
+                        'border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100',
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      삭제
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDelete('this')}>이번 항목만 건너뛰기</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
+                      전체 반복 삭제
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleDelete('all')}
+                  className={cn(
+                    footerButtonBaseClass,
+                    'border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100',
+                  )}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  삭제
+                </button>
+              )
+            )}
 
             {isSeriesInstance ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
+                    className={cn(footerButtonBaseClass, 'bg-foreground text-background hover:bg-foreground/90')}
                   >
                     저장 범위
                     <ChevronDown className="h-3.5 w-3.5" />
@@ -837,7 +824,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="inline-flex h-9 min-w-[72px] items-center justify-center rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
+                className={cn(footerButtonBaseClass, 'bg-foreground text-background hover:bg-foreground/90')}
               >
                 {mode.kind === 'schedule' ? '저장' : '추가'}
               </button>
@@ -872,7 +859,7 @@ const DurationPicker = ({
           }}
           className="px-1"
         >
-          {value === 90 ? '90분' : formatDuration(value)}
+          {formatDurationMinutes(value)}
         </Pill>
       ))}
       <Pill active={customOpen} onClick={() => onCustomOpenChange(true)} className="px-1">

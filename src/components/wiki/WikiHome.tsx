@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Plus, ArrowRight, BookOpen, Star, LayoutGrid, List, Inbox, Link2Off, GitMerge, Moon, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type WikiPage, WIKI_TYPE_META, WIKI_STATUS_META, extractWikiLinks, isMainDoc } from '@/types/wiki';
@@ -57,7 +57,9 @@ export function WikiHome({
     const recentEdits = activePages.filter((p) => p.updatedAt > sevenDays).length;
 
     const recent = activePages.slice(0, 6); // pages 는 updatedAt desc 정렬됨
-    const inbox = activePages.filter((p) => p.status === 'draft' || p.tags.includes('inbox')).slice(0, 5);
+    const inbox = activePages
+      .filter((p) => p.status === 'draft' || p.tags.includes('수집함') || p.tags.includes('inbox'))
+      .slice(0, 5);
     const active = activePages.filter((p) => p.status === 'active').slice(0, 5);
     const mocs = activePages.filter((p) => isMainDoc(p));
     const relations = buildWikiRelations(activePages);
@@ -181,30 +183,34 @@ export function WikiHome({
   /* ── 빈 위키 ── */
   if (pages.length === 0) {
     return (
-      <div className="min-h-full flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-3xl">
-          <header className="text-center mb-7">
-            <div className="text-5xl mb-3">🌐</div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">마이위키 시작하기</h1>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
-              생각을 잇고, 검색·역참조로 다시 꺼내 쓰는 개인 지식 베이스.<br />
-              아래 스타터 팩으로 시작하면 30초 안에 골격이 잡혀요.
+      <div className="min-h-full flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[960px]">
+          <header className="mb-10 text-center">
+            <div className="mb-3 text-[64px] leading-none">🌐</div>
+            <h1 className="mb-3 text-[28px] font-extrabold tracking-[-0.01em] text-foreground">
+              마이위키 시작하기
+            </h1>
+            <p className="text-[15px] leading-7 text-muted-foreground">
+              생각을 잇고, 검색과 연결로 다시 꺼내 쓰는 개인 지식 베이스.<br />
+              스타터 팩 하나로 시작하면 30초 안에 첫 구조가 잡혀요.
             </p>
           </header>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {STARTER_PACKS.map((pack) => (
               <button
                 key={pack.id}
                 type="button"
                 onClick={() => { void onPickStarterPack?.(pack); }}
-                className="group flex items-start gap-3 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 p-4 wiki-trans-color"
+                className="group flex min-h-[94px] items-center gap-4 rounded-xl border border-[hsl(var(--hairline))] bg-card px-6 py-5 text-left shadow-[0_1px_0_hsl(var(--foreground)/0.03)] wiki-trans-color hover:border-foreground/25 hover:bg-card/90"
               >
-                <span className="text-2xl shrink-0 leading-none mt-0.5">{pack.emoji}</span>
+                <span className="shrink-0 text-[30px] leading-none">{pack.emoji}</span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[13.5px] font-bold text-foreground">{pack.label}</span>
-                  <span className="block text-[11.5px] text-muted-foreground mt-1 leading-relaxed">{pack.description}</span>
+                  <span className="block text-[15px] font-bold text-foreground">{pack.label}</span>
+                  <span className="mt-1.5 block truncate text-[13px] leading-relaxed text-muted-foreground">
+                    {pack.description}
+                  </span>
                 </span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-color shrink-0 mt-0.5" />
+                <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground/55 wiki-trans-color group-hover:translate-x-0.5 group-hover:text-foreground/70" />
               </button>
             ))}
           </div>
@@ -212,9 +218,9 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3.5 py-2 text-[12.5px] font-semibold text-foreground shadow-sm hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
+              className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 text-[14px] font-semibold text-foreground shadow-sm wiki-trans-color hover:border-foreground/25 hover:bg-card/90"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="h-4 w-4" />
               빈 문서로 시작
             </button>
           </div>
@@ -234,7 +240,7 @@ export function WikiHome({
     },
     {
       id: 'wiki-inbox',
-      label: 'Inbox',
+      label: '수집함',
       count: stats.inbox.length,
       icon: <Inbox className="w-3.5 h-3.5" />,
       tone: 'default',
@@ -479,8 +485,8 @@ export function WikiHome({
           ))}
         </Section>
 
-        {/* Inbox */}
-        <Section id="wiki-inbox" title="📥 Inbox" empty="미정리 캡처가 없어요">
+        {/* 수집함 */}
+        <Section id="wiki-inbox" title="📥 수집함" empty="미정리 캡처가 없어요">
           {stats.inbox.map((p) => (
             <PageRow key={p.id} page={p} onSelect={onSelect} />
           ))}
@@ -656,11 +662,11 @@ function RegularDocsSection({
   const [expanded, setExpanded] = useState(false);
 
   // 헬퍼 — MOC 자식 / 링크됨 / 미연결
-  const isMocChild = (p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0;
-  const linkerIdsOf = (p: WikiPage): string[] => {
+  const isMocChild = useCallback((p: WikiPage) => (regularToRoots.get(p.id)?.length ?? 0) > 0, [regularToRoots]);
+  const linkerIdsOf = useCallback((p: WikiPage): string[] => {
     const s = backlinks.get(p.id);
     return s ? [...s] : [];
-  };
+  }, [backlinks]);
 
   // root 메인만 칩으로 노출 (자식 일반 문서가 1개 이상)
   const rootsWithChildren = useMemo(() => {
@@ -678,22 +684,19 @@ function RegularDocsSection({
   // 링크됨 = MOC 자식 아님 + 다른 페이지로부터 링크 받음
   const linkedCount = useMemo(() =>
     pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pages, regularToRoots, backlinks]);
+    [pages, isMocChild, linkerIdsOf]);
 
   // 미연결 = MOC 자식 아님 + 어떤 페이지로부터도 링크 받지 않음 (진짜 독립)
   const orphanCount = useMemo(() =>
     pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pages, regularToRoots, backlinks]);
+    [pages, isMocChild, linkerIdsOf]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return pages;
     if (filter === 'linked') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length > 0);
     if (filter === 'orphan') return pages.filter((p) => !isMocChild(p) && linkerIdsOf(p).length === 0);
     return pages.filter((p) => regularToRoots.get(p.id)?.some((m) => m.id === filter));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages, filter, regularToRoots, backlinks]);
+  }, [pages, filter, regularToRoots, isMocChild, linkerIdsOf]);
 
   const COLLAPSED = 12;
   const visible = expanded ? filtered : filtered.slice(0, COLLAPSED);

@@ -114,14 +114,14 @@ export const PlannerLeftRail = ({ aiOpen = false, orientation = 'vertical' }: Pl
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent(RAIL_EVENT.openModePalette))}
-              aria-label="모드"
+              aria-label="모드 전환: 현재 통합 플래너"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground/50 hover:text-foreground hover:bg-accent/70 transition-all"
             >
               <LayoutGrid className="h-[16px] w-[16px]" strokeWidth={1.75} />
             </button>
           </TooltipTrigger>
           <TooltipContent side={tooltipSide} className="text-[11.5px]">
-            모드
+            모드 전환
           </TooltipContent>
         </Tooltip>
         <div className={cn(horizontal ? 'mx-1 h-5 w-px shrink-0 bg-border/60' : 'my-1 h-px w-5 bg-border/60')} aria-hidden />

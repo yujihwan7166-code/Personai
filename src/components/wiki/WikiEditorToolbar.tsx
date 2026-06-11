@@ -53,9 +53,9 @@ const HIGHLIGHTS = [
 export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
   if (!editor) return null;
   return (
-    <div className="sticky top-0 z-20 mb-4 -mx-1 px-1">
-      <div className="rounded-xl border border-foreground/10 bg-card/95 px-2 py-1.5 shadow-[0_10px_28px_-24px_hsl(var(--foreground)/0.35)] backdrop-blur">
-        <div className="flex min-h-9 flex-wrap items-center gap-1.5">
+    <div className="wiki-editor-toolbar-shell sticky top-0 z-20 mb-4 -mx-1 px-1">
+      <div className="wiki-editor-toolbar">
+        <div className="wiki-editor-toolbar-row flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1.5" role="toolbar" aria-label="문서 편집 도구">
           <ToolbarGroup>
             <span className="hidden px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70 sm:inline">
               서식
@@ -71,7 +71,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
           <ToolbarBtn active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="기울임 (Ctrl+I)">
             <Italic className="w-3.5 h-3.5" />
           </ToolbarBtn>
-          <ToolbarBtn className="hidden sm:inline-flex" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="밑줄 (Ctrl+U)">
+          <ToolbarBtn active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="밑줄 (Ctrl+U)">
             <UnderlineIcon className="w-3.5 h-3.5" />
           </ToolbarBtn>
           <ToolbarBtn active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="취소선">
@@ -100,7 +100,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
           <TableInsertDropdown editor={editor} />
           </ToolbarGroup>
 
-          <ToolbarGroup className="ml-0 xl:ml-auto">
+          <ToolbarGroup>
             <ToolbarBtn active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="왼쪽 정렬"><AlignLeft className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="가운데 정렬"><AlignCenter className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="오른쪽 정렬"><AlignRight className="w-3.5 h-3.5" /></ToolbarBtn>
@@ -118,7 +118,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
 function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn(
-      'flex h-8 shrink-0 items-center gap-0.5 rounded-lg border border-foreground/[0.08] bg-background/70 px-1 shadow-[0_1px_0_hsl(var(--foreground)/0.03)]',
+      'wiki-toolbar-group flex h-8 shrink-0 items-center gap-0.5 rounded-md px-0.5',
       className,
     )}>
       {children}
@@ -137,6 +137,7 @@ function ToolbarBtn({
       type="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
       disabled={disabled}
       className={cn(
         'h-7 w-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color',
@@ -161,6 +162,7 @@ function ToolbarTextBtn({
       type="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
       disabled={disabled}
       className={cn(
         'h-7 shrink-0 inline-flex items-center justify-center gap-1 rounded px-2 text-[11.5px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color',
@@ -174,28 +176,45 @@ function ToolbarTextBtn({
   );
 }
 
-function Sep({ className }: { className?: string }) {
-  return <span className={cn('w-px h-5 bg-[hsl(var(--hairline))] mx-0.5', className)} />;
-}
-
-function BlockStyleDropdown({ editor }: { editor: Editor }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+function useToolbarDropdownDismiss(
+  open: boolean,
+  setOpen: (next: boolean) => void,
+  menuRef: React.RefObject<HTMLDivElement>,
+  triggerRef: React.RefObject<HTMLButtonElement>,
+) {
   useEffect(() => {
     if (!open) return;
+
+    const close = (restoreFocus: boolean) => {
+      setOpen(false);
+      if (restoreFocus) {
+        window.requestAnimationFrame(() => triggerRef.current?.focus());
+      }
+    };
+
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) close(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      close(true);
     };
+
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [menuRef, open, setOpen, triggerRef]);
+}
+
+function BlockStyleDropdown({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const blockOptions = [
     {
@@ -261,6 +280,7 @@ function BlockStyleDropdown({ editor }: { editor: Editor }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
@@ -271,6 +291,7 @@ function BlockStyleDropdown({ editor }: { editor: Editor }) {
         )}
         title="블록 형식"
         aria-label="블록 형식"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         <CurrentIcon className="h-3.5 w-3.5" />
@@ -278,7 +299,7 @@ function BlockStyleDropdown({ editor }: { editor: Editor }) {
         <ChevronDown className="h-2.5 w-2.5" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-[80] mt-1 w-[184px] rounded-lg border border-[hsl(var(--hairline))] bg-popover p-1 shadow-xl">
+        <div role="menu" aria-label="블록 형식" className="absolute left-0 top-full z-[80] mt-1 w-[184px] rounded-lg border border-[hsl(var(--hairline))] bg-popover p-1 shadow-xl">
           <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
             블록
           </p>
@@ -288,6 +309,7 @@ function BlockStyleDropdown({ editor }: { editor: Editor }) {
               <button
                 key={option.id}
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   option.run();
                   setOpen(false);
@@ -321,22 +343,8 @@ function TableInsertDropdown({ editor }: { editor: Editor }) {
   const [cols, setCols] = useState(3);
   const [withHeaderRow, setWithHeaderRow] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const insertTable = (nextRows = rows, nextCols = cols) => {
     editor.chain().focus().insertTable({
@@ -350,9 +358,13 @@ function TableInsertDropdown({ editor }: { editor: Editor }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         title="표 삽입"
+        aria-label="표 삽입"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className={cn(
           'h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded wiki-trans-color',
           editor.isActive('table')
@@ -364,7 +376,7 @@ function TableInsertDropdown({ editor }: { editor: Editor }) {
         <ChevronDown className="w-2.5 h-2.5" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[204px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl p-2">
+        <div role="dialog" aria-label="표 삽입" className="absolute top-full left-0 mt-1 wiki-z-popover w-[204px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl p-2">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">표</p>
             <span className="text-[10.5px] font-mono text-muted-foreground">{hover.cols} x {hover.rows}</span>
@@ -450,22 +462,8 @@ function LinkDropdown({ editor }: { editor: Editor }) {
   const [label, setLabel] = useState('');
   const selectionRef = useRef<{ from: number; to: number; empty: boolean } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const openMenu = () => {
     const { from, to, empty } = editor.state.selection;
@@ -501,9 +499,13 @@ function LinkDropdown({ editor }: { editor: Editor }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={openMenu}
         title="웹 링크"
+        aria-label="웹 링크"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className={cn(
           'h-7 w-8 inline-flex items-center justify-center gap-0.5 rounded wiki-trans-color',
           editor.isActive('link')
@@ -515,7 +517,7 @@ function LinkDropdown({ editor }: { editor: Editor }) {
         <ChevronDown className="w-2.5 h-2.5" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[260px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl p-2">
+        <div role="dialog" aria-label="웹 링크" className="absolute top-full left-0 mt-1 wiki-z-popover w-[260px] rounded-lg border border-[hsl(var(--hairline))] bg-popover shadow-xl p-2">
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">링크</p>
           <label className="block text-[10px] font-medium text-muted-foreground">
             표시
@@ -596,14 +598,8 @@ function escapeHtmlAttr(value: string): string {
 function FontSizeDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const current = editor.getAttributes('textStyle')?.fontSize as string | undefined;
   const label = FONT_SIZES.find((s) => s.value === current)?.label ?? '본문';
@@ -611,6 +607,7 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
@@ -620,17 +617,21 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         title="글씨 크기"
+        aria-label="글씨 크기"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <Type className="w-3.5 h-3.5" />
         <span className="min-w-[40px] text-left">{label}</span>
         <ChevronDown className="w-2.5 h-2.5" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg py-1">
+        <div role="menu" aria-label="글씨 크기" className="absolute top-full left-0 mt-1 wiki-z-popover w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg py-1">
           {FONT_SIZES.map((s) => (
             <button
               key={s.value}
               type="button"
+              role="menuitem"
               onClick={() => {
                 editor.chain().focus().setMark('textStyle', { fontSize: s.value }).run();
                 setOpen(false);
@@ -647,6 +648,7 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
           <div className="my-0.5 border-t border-[hsl(var(--hairline))]" />
           <button
             type="button"
+            role="menuitem"
             onClick={() => { editor.chain().focus().unsetMark('textStyle').run(); setOpen(false); }}
             className="w-full text-left px-3 py-1.5 text-[11.5px] text-muted-foreground hover:bg-accent hover:text-foreground"
           >
@@ -662,20 +664,15 @@ function FontSizeDropdown({ editor }: { editor: Editor }) {
 function ColorDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const current = editor.getAttributes('textStyle')?.color as string | undefined;
   const isActive = !!current;
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
@@ -685,6 +682,9 @@ function ColorDropdown({ editor }: { editor: Editor }) {
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         title="글씨 색"
+        aria-label="글씨 색"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <Palette className="w-3.5 h-3.5" />
         <span
@@ -693,13 +693,14 @@ function ColorDropdown({ editor }: { editor: Editor }) {
         />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[180px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
+        <div role="menu" aria-label="글씨 색" className="absolute top-full left-0 mt-1 wiki-z-popover w-[180px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1">글씨 색</p>
           <div className="grid grid-cols-6 gap-1">
             {TEXT_COLORS.map((c) => (
               <button
                 key={c.name}
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   if (c.value) editor.chain().focus().setColor(c.value).run();
                   else editor.chain().focus().unsetColor().run();
@@ -726,20 +727,15 @@ function ColorDropdown({ editor }: { editor: Editor }) {
 function HighlightDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useToolbarDropdownDismiss(open, setOpen, ref, triggerRef);
 
   const current = editor.getAttributes('highlight')?.color as string | undefined;
   const isActive = !!current;
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
@@ -749,6 +745,9 @@ function HighlightDropdown({ editor }: { editor: Editor }) {
             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )}
         title="형광"
+        aria-label="형광"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <Highlighter className="w-3.5 h-3.5" />
         <span
@@ -757,13 +756,14 @@ function HighlightDropdown({ editor }: { editor: Editor }) {
         />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 wiki-z-popover w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
+        <div role="menu" aria-label="형광" className="absolute top-full left-0 mt-1 wiki-z-popover w-[140px] rounded-md border border-[hsl(var(--hairline))] bg-popover shadow-lg p-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-1">형광</p>
           <div className="grid grid-cols-6 gap-1">
             {HIGHLIGHTS.map((h) => (
               <button
                 key={h.name}
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   if (h.value) editor.chain().focus().setHighlight({ color: h.value }).run();
                   else editor.chain().focus().unsetHighlight().run();

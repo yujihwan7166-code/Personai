@@ -104,9 +104,9 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
   }
 
   // 라디얼 레이아웃 — 중심 + 동심원
-  const W = 280, H = 220;
+  const W = 280, H = 204;
   const cx = W / 2, cy = H / 2;
-  const radius = 78;
+  const radius = 72;
 
   return (
     <div className="overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-card/76 shadow-[0_14px_34px_-30px_hsl(30_15%_8%/0.55)]">
@@ -116,7 +116,7 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
         </p>
         <span className="text-[10px] text-muted-foreground/70">{neighbors.length}개 연결</span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[180px]" aria-label="로컬 그래프">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[166px]" aria-label="로컬 그래프">
         {/* 엣지 */}
         {edges.map((n, i) => {
           const angle = (i / edges.length) * Math.PI * 2 - Math.PI / 2;
@@ -167,7 +167,7 @@ export function WikiLocalGraph({ page, allPages, onSelect, onOpenInGlobal }: Pro
         </g>
       </svg>
       {/* 이웃 리스트 — 한 줄씩 (엣지 종류 dot 도 노출) */}
-      <ul className="px-1 py-1 max-h-[140px] overflow-y-auto">
+      <ul className="px-1 py-1 max-h-[112px] overflow-y-auto">
         {neighbors.map((n) => {
           const meta = WIKI_TYPE_META[n.page.type];
           const e = edgeStrokeMini(n.kind);

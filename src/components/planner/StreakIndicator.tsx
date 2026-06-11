@@ -47,7 +47,7 @@ export const StreakIndicator = ({ current, compact = true }: StreakIndicatorProp
     return (
       <span
         className={cn('inline-flex items-center gap-0.5 tabular-nums font-semibold text-amber-600', textSize)}
-        aria-label={`${display.count}회 연속 완료 (streak)`}
+        aria-label={`${display.count}회 연속 완료`}
         title={`${display.count}회 연속`}
       >
         <span aria-hidden>🔥</span>
@@ -60,8 +60,8 @@ export const StreakIndicator = ({ current, compact = true }: StreakIndicatorProp
   return (
     <span
       className={cn('inline-flex items-center gap-0.5 tabular-nums font-semibold text-amber-600', textSize)}
-      aria-label={`${display.count}회 연속 완료 (장기 streak)`}
-      title={`${display.count}회 연속 — 주 단위 마일스톤`}
+      aria-label={`${display.count}회 장기 연속 완료`}
+      title={`${display.count}회 연속 — 주 단위 기록`}
     >
       <span aria-hidden>🔥</span>
       <span>{display.count}</span>
@@ -87,7 +87,7 @@ export const StreakCard = ({ current, best, rate, missed, total }: StreakCardPro
   if (total === 0) {
     return (
       <div className="rounded-md border border-foreground/20 bg-accent/30 px-3 py-2.5 text-[12px] text-muted-foreground leading-snug">
-        아직 시작 단계예요. 처음 한 번 체크하면 streak 이 시작돼요.
+        아직 시작 단계예요. 처음 한 번 체크하면 연속 기록이 시작돼요.
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
@@ -25,11 +25,25 @@ interface WorkspaceSidebarSwitchButtonProps {
   contentAlign?: 'start' | 'center' | 'end';
 }
 
+const WORKSPACE_LABELS: Record<WorkspaceKey, string> = {
+  planner: '통합 플래너',
+  wiki: '마이위키',
+  memos: '메모',
+  whiteboard: '화이트보드',
+  journal: '일기',
+};
+
 export function WorkspaceSidebarSwitchButton({
+  current,
   className,
+  contentAlign = 'center',
 }: WorkspaceSidebarSwitchButtonProps) {
   const navigate = useNavigate();
   const modeApiRef = useRef<MainModeTabsApi | null>(null);
+  const modeMenuId = useId();
+  const [modeOpen, setModeOpen] = useState(false);
+  const currentLabel = WORKSPACE_LABELS[current] ?? '현재 화면';
+  const label = `모드 전환: 현재 ${currentLabel}`;
   const labels = useMemo(() => {
     const out: Partial<Record<MainMode, string>> = {};
     for (const [key, value] of Object.entries(MAIN_MODE_LABELS)) {
@@ -42,17 +56,36 @@ export function WorkspaceSidebarSwitchButton({
     navigate('/', { state });
   };
 
+  const openModePanel = useCallback(() => {
+    const tryOpen = (attempt = 0) => {
+      if (modeApiRef.current) {
+        modeApiRef.current.open();
+        return;
+      }
+      if (attempt >= 4) return;
+      window.requestAnimationFrame(() => tryOpen(attempt + 1));
+    };
+    tryOpen();
+  }, []);
+
   return (
     <>
       <button
         type="button"
-        onClick={() => modeApiRef.current?.open()}
+        onClick={openModePanel}
+        data-workspace-switch-current={current}
         className={cn(
-          'h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+          'h-8 w-8 inline-flex items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+          contentAlign === 'start' && 'justify-start',
+          contentAlign === 'center' && 'justify-center',
+          contentAlign === 'end' && 'justify-end',
           className,
         )}
-        title="모드 열기"
-        aria-label="모드 열기"
+        title={label}
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={modeOpen}
+        aria-controls={modeMenuId}
       >
         <LayoutGrid className="h-4 w-4" strokeWidth={1.9} />
       </button>
@@ -77,6 +110,8 @@ export function WorkspaceSidebarSwitchButton({
           onOpenBookmarks={() => goToHomeWith({ openBookmarks: true })}
           onSelectPlayerTool={(toolId) => goToHomeWith({ selectMainMode: 'player', selectPlayerTool: toolId })}
           apiRef={modeApiRef}
+          menuId={modeMenuId}
+          onOpenChange={setModeOpen}
         />
       </HiddenInteractiveMount>
     </>

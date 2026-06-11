@@ -12,12 +12,14 @@ import { CalendarDays, Flag, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { taskStore } from '@/services/planner/taskStore';
 import { notify } from '@/lib/notify';
-import { parseNaturalLanguage } from '@/lib/planner/parseNaturalLanguage';
+import {
+  DEFAULT_INLINE_QUICK_ADD_DURATION_MIN,
+  buildInlineQuickAddTaskInput,
+} from '@/lib/planner/inlineQuickAdd';
 import {
   PRIORITY_COLORS,
   PRIORITY_LABELS,
   TASK_LIST_COLORS,
-  type PlannerTask,
   type Priority,
   type TaskListColor,
 } from '@/types/planner';
@@ -33,9 +35,6 @@ interface InlineQuickAddProps {
   onClose: () => void;
 }
 
-/** 기본 길이 — 30분. 자연어로 다른 길이 지정 가능. */
-const DEFAULT_DURATION_MIN = 30;
-
 const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
   { value: 'blue', label: '파랑' },
   { value: 'teal', label: '청록' },
@@ -50,44 +49,6 @@ const COLOR_OPTIONS: ReadonlyArray<{ value: TaskListColor; label: string }> = [
 const formatHm = (iso: string) =>
   new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-const hasInlineScheduleToken = (text: string): boolean =>
-  /(오늘|내일|모레|today|tomorrow|이번주|다음주|\b\d{1,2}:\d{2}\b|\b\d{1,2}(?:am|pm)\b|(?:오전|오후)\s*\d{1,2}\s*시|\b\d{1,2}\s*시(?:\s*\d{1,2}\s*분)?|\d{1,2}\s*월\s*\d{1,2}\s*일)/i.test(text);
-
-const stripInlineMetadata = (text: string): string =>
-  text
-    .replace(/#[\p{L}\p{N}_-]+/gu, '')
-    .replace(/!([1-3])\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-export const buildInlineQuickAddTaskInput = (
-  rawTitle: string,
-  startIso: string,
-  durationMin?: number,
-  options?: {
-    color?: TaskListColor;
-    priority?: Priority;
-  },
-) => {
-  const trimmed = rawTitle.trim();
-  const parsed = parseNaturalLanguage(trimmed, new Date(startIso));
-  const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
-  const endAt = new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
-  const hasNaturalSchedule = hasInlineScheduleToken(trimmed);
-
-  return {
-    title: stripInlineMetadata(hasNaturalSchedule ? trimmed : parsed.cleanTitle || trimmed) || trimmed,
-    startAt: startIso,
-    endAt,
-    recurrence: parsed.recurrence,
-    tags: parsed.tags,
-    priority: options?.priority !== undefined
-      ? (options.priority === 0 ? undefined : options.priority)
-      : parsed.priority,
-    color: options?.color,
-  } satisfies Partial<PlannerTask>;
-};
-
 export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: InlineQuickAddProps) => {
   const [value, setValue] = useState('');
   const [selectedColor, setSelectedColor] = useState<TaskListColor | undefined>();
@@ -96,17 +57,48 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const focusTitleInput = () => {
-    window.requestAnimationFrame(() => inputRef.current?.focus());
+  const applyTitleFocus = () => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    const caret = input.value.length;
+    try {
+      input.setSelectionRange(caret, caret);
+    } catch {
+      /* 일부 브라우저/입력 타입에서 selection API 가 막히면 focus 만 유지. */
+    }
   };
 
-  const keepTitleInputFocused = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const focusTitleInput = () => {
+    applyTitleFocus();
+    window.requestAnimationFrame(applyTitleFocus);
+    window.setTimeout(applyTitleFocus, 0);
+  };
+
+  useEffect(() => {
+    focusTitleInput();
+  }, []);
+
+  const keepTitleInputFocused = (
+    event: React.MouseEvent<HTMLButtonElement> | React.PointerEvent<HTMLButtonElement>,
+  ) => {
     event.preventDefault();
     event.stopPropagation();
+    focusTitleInput();
+  };
+
+  const handleCardPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button')) return;
+    focusTitleInput();
+  };
+
+  const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button')) return;
+    focusTitleInput();
   };
 
   // 외부 클릭 / ESC 시 닫기.
@@ -145,7 +137,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
 
   // 종료 시각 — 라벨 표시용 (자연어에 길이 명시 없으면 fallback).
   const endIsoPreview = (() => {
-    const fallbackDuration = durationMin ?? DEFAULT_DURATION_MIN;
+    const fallbackDuration = durationMin ?? DEFAULT_INLINE_QUICK_ADD_DURATION_MIN;
     return new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
   })();
   const accentColor = selectedColor ? TASK_LIST_COLORS[selectedColor].stripe : 'hsl(var(--primary))';
@@ -153,13 +145,17 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
   return (
     <div
       ref={wrapperRef}
+      data-inline-quick-add="true"
+      role="group"
+      aria-label="인라인 일정 빠른 추가"
       className={cn(
         'absolute left-2 z-30 w-[calc(100%_-_16px)] max-w-[420px] rounded-md overflow-hidden',
         'border border-primary/30 bg-card shadow-xl ring-1 ring-primary/15',
         'flex flex-col',
       )}
       style={style}
-      onClick={(e) => e.stopPropagation()}
+      onClick={handleCardClick}
+      onPointerDown={handleCardPointerDown}
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-stretch h-full">
@@ -184,7 +180,12 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                       title={active ? `${option.label} 해제` : option.label}
                       aria-label={active ? `${option.label} 해제` : option.label}
                       aria-pressed={active}
+                      onPointerDown={keepTitleInputFocused}
                       onMouseDown={keepTitleInputFocused}
+                      onPointerUp={(event) => {
+                        event.stopPropagation();
+                        focusTitleInput();
+                      }}
                       onClick={() => {
                         setSelectedColor(active ? undefined : option.value);
                         focusTitleInput();
@@ -208,7 +209,12 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
                       title={PRIORITY_LABELS[priority]}
                       aria-label={PRIORITY_LABELS[priority]}
                       aria-pressed={active}
+                      onPointerDown={keepTitleInputFocused}
                       onMouseDown={keepTitleInputFocused}
+                      onPointerUp={(event) => {
+                        event.stopPropagation();
+                        focusTitleInput();
+                      }}
                       onClick={() => {
                         setPriorityTouched(true);
                         setSelectedPriority(priority);
@@ -254,6 +260,15 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
               }
             }}
             placeholder="일정 제목  (예: 회의 1시간)"
+            aria-label="새 일정 제목"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              focusTitleInput();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              focusTitleInput();
+            }}
             className="w-full min-w-0 bg-transparent text-[13px] leading-tight text-foreground placeholder:text-foreground/40 outline-none focus:outline-none focus:ring-0"
           />
         </div>

@@ -79,6 +79,9 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
   );
 
   const visibleOverdue = showAllOverdue ? overdue : overdue.slice(0, 3);
+  const overdueReorderTasks = showAllOverdue || overdue.length === visibleOverdue.length
+    ? overdue
+    : undefined;
 
   const moveTodoWithin = (sectionTasks: PlannerTask[], taskId: string, direction: -1 | 1) => {
     const index = sectionTasks.findIndex((task) => task.id === taskId);
@@ -94,13 +97,6 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
     id: `todo-list-${dayKey}`,
     data: { kind: 'todo-list', dayKey },
   });
-  const dropHint = activeDrag?.kind === 'scheduled-task'
-    ? '시간만 빼고 오늘 할 일로'
-    : activeDrag?.kind === 'scheduled-event'
-      ? '일정은 할 일로 바꿀 수 없어요'
-      : activeDrag?.kind === 'library-template'
-        ? '보관함에서 오늘 할 일로 복사'
-      : '오늘 할 일에 놓기';
   const isBlockedDrop = activeDrag?.kind === 'scheduled-event';
 
   const renderTask = (
@@ -244,15 +240,14 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       </div>
       {isOver && (
         <div
+          aria-hidden
           className={cn(
-            'pointer-events-none mb-2 shrink-0 rounded-lg border px-3 py-2 text-[12.5px] font-semibold shadow-[0_8px_22px_-18px_hsl(var(--primary)/0.7)]',
+            'pointer-events-none absolute inset-2 z-20 rounded-xl border transition-colors',
             isBlockedDrop
-              ? 'border-destructive/30 bg-destructive/[0.055] text-destructive'
-              : 'border-primary/35 bg-primary/10 text-primary',
+              ? 'border-destructive/25 bg-destructive/[0.01]'
+              : 'border-primary/28 bg-primary/[0.012]',
           )}
-        >
-          {dropHint}
-        </div>
+        />
       )}
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
@@ -296,7 +291,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
               <div className="pt-2">
                 <TodoSectionHeader label="밀린 할 일" count={overdue.length} />
                 <div className="space-y-0.5">
-                  {visibleOverdue.map((task) => renderTask(task, 'compact', visibleOverdue))}
+                  {visibleOverdue.map((task) => renderTask(task, 'compact', overdueReorderTasks))}
                 </div>
                 {overdue.length > visibleOverdue.length && (
                   <button

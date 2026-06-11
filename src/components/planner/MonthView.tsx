@@ -3,7 +3,7 @@
  *
  * 풀 화면 (사이드 컬럼 hide). 클릭 시 해당 일로 이동 (Phase 4 — onDayClick).
  */
-import { forwardRef, useCallback, useMemo, useState, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
+import { forwardRef, useCallback, useMemo, useState, type CSSProperties, type HTMLAttributes, type MutableRefObject, type ReactNode } from 'react';
 import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { ArrowRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,8 +11,10 @@ import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange
 import { toDateKey } from '@/lib/planner/habitStats';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TASK_LIST_COLORS, type PlannerEvent, type PlannerTask, type PlannerTimelineItem } from '@/types/planner';
-import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
+import { DraggableWeekItem } from './dnd/DraggableWeekItem';
+import { weekDragDataForEvent, weekDragDataForTask } from '@/lib/planner/weekDragData';
 import type { PlannerDragData, PlannerDropData } from './dnd/plannerDndTypes';
+import { overlappingLocalDayKeys, timeLabelForLocalDay } from '@/lib/planner/dateBuckets';
 
 const DAYS_KO = [
   { short: '일', long: '일요일' },
@@ -27,7 +29,7 @@ const DAYS_KO = [
 interface MonthViewProps {
   /** 월의 기준 날짜 (이 날의 월 전체). */
   anchorIso?: string;
-  /** 셀 popover 안 'Day 뷰 열기' 클릭 → Day 뷰로 점프. */
+  /** 셀 popover 안 '일 보기' 클릭 → 해당 날짜로 이동. */
   onDayClick?: (dayIso: string) => void;
   /** 항목 칩 클릭 → 편집 모달 (Cron / Apple Cal 패턴). */
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
@@ -37,14 +39,23 @@ interface MonthViewProps {
   onAddForDate?: (dayIso: string) => void;
 }
 
-const formatHm = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-
 const mixColor = (color: string, amount: number) => `color-mix(in srgb, ${color} ${amount}%, transparent)`;
 
 const monthItemStyle = (color: string, compact = false) => ({
   backgroundColor: mixColor(color, compact ? 9 : 7),
-});
+  '--month-item-color': color,
+}) as CSSProperties;
+
+const monthCellTriggerLabel = (iso: string, totalCount: number, isOtherMonth: boolean): string => {
+  const dateLabel = new Date(iso).toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+  const countLabel = totalCount > 0 ? `항목 ${totalCount}개` : '비어 있음';
+  const monthLabel = isOtherMonth ? ', 다른 달' : '';
+  return `${dateLabel}${monthLabel}, ${countLabel}. 자세히 보기`;
+};
 
 const timedItemColor = (item: PlannerTimelineItem): string =>
   item.kind === 'event'
@@ -137,10 +148,12 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
     timedItems.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
-      const dayKey = toDateKey(new Date(startAt));
-      const arr = map.get(dayKey) ?? [];
-      arr.push(item);
-      map.set(dayKey, arr);
+      const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
+      overlappingLocalDayKeys(startAt, endAt).forEach((dayKey) => {
+        const arr = map.get(dayKey) ?? [];
+        arr.push(item);
+        map.set(dayKey, arr);
+      });
     });
     return map;
   }, [timedItems]);
@@ -184,9 +197,10 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                 const dayKey = toDateKey(new Date(cell.iso));
                 const dayItems = itemsByDay.get(dayKey) ?? [];
                 const dayTodos = todosByDay.get(dayKey) ?? [];
-                const previewTimed = dayItems.slice(0, Math.min(2, dayItems.length));
-                const previewTodos = dayTodos.slice(0, Math.max(0, 3 - previewTimed.length));
                 const totalCount = dayItems.length + dayTodos.length;
+                const maxPreviewCount = totalCount > 3 ? 2 : 3;
+                const previewTimed = dayItems.slice(0, Math.min(2, maxPreviewCount, dayItems.length));
+                const previewTodos = dayTodos.slice(0, Math.max(0, maxPreviewCount - previewTimed.length));
                 const hiddenCount = Math.max(0, totalCount - previewTimed.length - previewTodos.length);
                 return (
                   <Popover key={cell.iso}>
@@ -195,6 +209,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                         dayIso={cell.iso}
                         role="button"
                         tabIndex={0}
+                        aria-label={monthCellTriggerLabel(cell.iso, totalCount, cell.isOtherMonth)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
@@ -235,7 +250,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                             return (
                               <DraggableWeekItem
                                 key={item.data.id}
-                                id={`month-preview-${item.kind}-${item.data.id}`}
+                                id={`month-preview-${dayKey}-${item.kind}-${item.data.id}`}
                                 data={dragData}
                               >
                                 <div
@@ -283,7 +298,7 @@ export const MonthView = ({ anchorIso, onDayClick, onItemClick, onTaskClick, onA
                                   />
                                   {startAt && (
                                     <span className="shrink-0 tabular-nums text-[9.5px] text-muted-foreground">
-                                      {formatHm(startAt)}
+                                      {timeLabelForLocalDay(startAt, dayKey)}
                                     </span>
                                   )}
                                   <span className={cn(
@@ -396,14 +411,14 @@ const MonthCellTrigger = forwardRef<HTMLDivElement, MonthCellTriggerProps>(({
       className={cn(
         'relative',
         !hoveringPreviewItem && 'hover:bg-accent',
-        isOver && 'bg-primary/5 ring-2 ring-primary/35 ring-inset',
+        isOver && 'bg-primary/[0.018] ring-1 ring-primary/18 ring-inset',
         className,
       )}
     >
       {children}
       {isOver && (
-        <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-full border border-primary/30 bg-card/95 px-2 py-0.5 text-[10.5px] font-semibold text-primary shadow-sm">
-          이 날짜로 이동
+        <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-md border border-foreground/8 bg-background/90 px-1.5 py-0.5 text-[10.5px] font-medium leading-4 text-foreground/64 shadow-[0_6px_18px_-16px_hsl(var(--foreground)/0.45)] backdrop-blur-sm">
+          날짜만 옮기기
         </span>
       )}
     </div>
@@ -411,7 +426,7 @@ const MonthCellTrigger = forwardRef<HTMLDivElement, MonthCellTriggerProps>(({
 });
 MonthCellTrigger.displayName = 'MonthCellTrigger';
 
-/** 셀 클릭 시 떠오르는 popover — 그 날 항목 list + Day 뷰 점프 + 새 일정 추가. */
+/** 셀 클릭 시 떠오르는 popover — 그 날 항목 list + 일 보기 이동 + 새 일정 추가. */
 const DayPopoverBody = ({
   cellIso,
   items,
@@ -430,6 +445,7 @@ const DayPopoverBody = ({
   onAddForDate?: MonthViewProps['onAddForDate'];
 }) => {
   const day = new Date(cellIso);
+  const dayKey = toDateKey(day);
   const headerLabel = day.toLocaleDateString('ko-KR', {
     month: 'long', day: 'numeric', weekday: 'long',
   });
@@ -468,7 +484,7 @@ const DayPopoverBody = ({
               return (
                 <DraggableWeekItem
                   key={item.data.id}
-                  id={`month-popover-${item.kind}-${item.data.id}`}
+                  id={`month-popover-${dayKey}-${item.kind}-${item.data.id}`}
                   data={dragData}
                 >
                   <button
@@ -498,7 +514,7 @@ const DayPopoverBody = ({
                     />
                     {startAt && (
                       <span className="text-[11.5px] tabular-nums text-muted-foreground shrink-0 font-medium">
-                        {formatHm(startAt)}
+                        {timeLabelForLocalDay(startAt, dayKey)}
                       </span>
                     )}
                     <span className={cn(
@@ -545,7 +561,7 @@ const DayPopoverBody = ({
             onClick={() => onJumpToDay(cellIso)}
             className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-md text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
-            Day 뷰
+            일 보기
             <ArrowRight className="h-3 w-3" />
           </button>
         )}

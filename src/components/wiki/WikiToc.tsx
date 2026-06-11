@@ -4,7 +4,7 @@ import { extractWikiHeadings } from '@/lib/wikiHeadings';
 
 interface Props {
   body: string;
-  variant?: 'sidebar' | 'inline';
+  variant?: 'sidebar' | 'inline' | 'floating';
 }
 
 export function WikiToc({ body, variant = 'sidebar' }: Props) {
@@ -80,6 +80,25 @@ export function WikiToc({ body, variant = 'sidebar' }: Props) {
             {list}
           </div>
         </details>
+      </nav>
+    );
+  }
+
+  if (variant === 'floating') {
+    return (
+      <nav
+        aria-label="문서 목차"
+        className="rounded-lg border border-[hsl(var(--hairline))] bg-card/95 p-3 shadow-[0_18px_42px_-28px_hsl(var(--foreground)/0.45)] backdrop-blur"
+      >
+        <p className="mb-2 flex items-center justify-between text-[11px] font-bold text-foreground">
+          <span>문서 목차</span>
+          <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            {headings.length}
+          </span>
+        </p>
+        <div className="max-h-[46vh] overflow-y-auto pr-1">
+          {list}
+        </div>
       </nav>
     );
   }

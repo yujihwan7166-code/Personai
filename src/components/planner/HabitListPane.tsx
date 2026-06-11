@@ -30,7 +30,7 @@ import { HabitHeatStrip } from './HabitHeatStrip';
 type SortKey = 'order' | 'streak' | 'name';
 const SORT_LABEL: Record<SortKey, string> = {
   order: '추가순',
-  streak: 'streak 순',
+  streak: '연속순',
   name: '이름순',
 };
 
@@ -66,24 +66,43 @@ export const HabitListPane = ({
 
   // 이번 주 (월~일) 7일 dateKeys.
   const weekDays = useMemo(() => {
-    const monday = new Date(today);
-    const dow = today.getDay();
+    const base = new Date(`${todayKey}T00:00:00`);
+    const monday = new Date(base);
+    const dow = base.getDay();
     const diffToMon = dow === 0 ? -6 : 1 - dow;
-    monday.setDate(today.getDate() + diffToMon);
+    monday.setDate(base.getDate() + diffToMon);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       return d;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayKey]);
 
   // 활성 / 보관 분리 — 활성만 메인 list 에 표시, 보관 habits 는 popover 에서.
   const activeHabits = useMemo(() => habits.filter((h) => !h.archived), [habits]);
+  const activeHabitTitleSet = useMemo(
+    () => new Set(activeHabits.map((h) => h.title.trim().toLowerCase())),
+    [activeHabits],
+  );
+  const suggestedStarterPacks = useMemo(
+    () => STARTER_PACKS.filter((p) => !activeHabitTitleSet.has(p.title.trim().toLowerCase())),
+    [activeHabitTitleSet],
+  );
   const archivedHabits = useMemo(
     () => habits.filter((h) => h.archived).sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? '')),
     [habits],
   );
+
+  const addStarterHabit = (pack: (typeof STARTER_PACKS)[number]) => {
+    const habit = habitStore.add({
+      title: pack.title,
+      emoji: pack.emoji,
+      color: pack.color,
+      schedule: { freq: pack.freq },
+      startDate: toDateKey(new Date()),
+    });
+    onSelect(habit.id);
+  };
 
   // 검색·필터·정렬 적용된 list
   const visibleHabits = useMemo(() => {
@@ -132,9 +151,9 @@ export const HabitListPane = ({
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col bg-card/30">
+    <div className="h-full min-h-0 flex flex-col bg-white">
       {/* 헤더 — 카드 행과 동일한 grid 컬럼. h-16 (64px) 으로 HabitDayProgress (60px) 가 안에 완전히 포함되도록. */}
-      <div className="shrink-0 grid grid-cols-1 items-center gap-1 border-b hairline bg-card px-3.5 py-2 sm:h-12 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px] sm:py-0">
+      <div className="shrink-0 grid grid-cols-1 items-center gap-1 border-b hairline bg-white px-3.5 py-2 sm:h-12 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px] sm:py-0">
         {/* col 1: 제목 + 액션 버튼들 */}
         <div className="min-w-0 flex items-baseline gap-2">
           <span className="font-display text-[20px] font-semibold tracking-tight text-foreground leading-none">
@@ -255,8 +274,7 @@ export const HabitListPane = ({
             <div
               key={d.toISOString()}
               className={cn(
-                'hidden self-stretch items-center justify-center sm:flex',
-                isToday && 'bg-amber-300/[0.22]',
+                'hidden self-stretch items-center justify-center bg-white sm:flex',
               )}
             >
               <HabitDayProgress
@@ -279,7 +297,7 @@ export const HabitListPane = ({
       </div>
 
       {/* 테이블 행 리스트 — divide-y 로 행 사이에만 hairline. 마지막 행 아래엔 라인 없음. */}
-      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))]">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[hsl(var(--hairline))] bg-white">
         {activeHabits.length === 0 ? (
           <div className="p-2.5">
             <div className="mb-2 text-[13px] font-medium text-foreground/70">
@@ -290,15 +308,7 @@ export const HabitListPane = ({
                 <button
                   key={p.title}
                   type="button"
-                  onClick={() => {
-                    habitStore.add({
-                      title: p.title,
-                      emoji: p.emoji,
-                      color: p.color,
-                      schedule: { freq: p.freq },
-                      startDate: toDateKey(new Date()),
-                    });
-                  }}
+                  onClick={() => addStarterHabit(p)}
                   style={{
                     backgroundColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 14%, hsl(var(--background)))`,
                     borderColor: `color-mix(in oklab, ${TASK_LIST_COLORS[p.color].stripe} 30%, transparent)`,
@@ -351,8 +361,8 @@ export const HabitListPane = ({
                   'group relative grid grid-cols-[1fr_28px] items-center gap-1 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]',
                   'px-3.5 py-3 cursor-pointer transition-colors',
                   isSelected
-                    ? 'bg-primary/5'
-                    : 'hover:bg-accent/50',
+                    ? 'bg-white shadow-[inset_3px_0_0_hsl(var(--primary)/0.5)]'
+                    : 'bg-white hover:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.06)]',
                 )}
               >
                 {/* 좌: emoji + 제목 + meta */}
@@ -402,8 +412,7 @@ export const HabitListPane = ({
                       key={dk}
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        'hidden self-stretch items-center justify-center -my-3 py-3 sm:flex',
-                        isToday && 'bg-amber-300/[0.22]',
+                        'hidden self-stretch items-center justify-center -my-3 bg-white py-3 sm:flex',
                       )}
                     >
                       <HabitDayDot
@@ -458,10 +467,10 @@ export const HabitListPane = ({
             type="button"
             onClick={onAdd}
             aria-label="새 습관 추가"
-            className="group grid w-full grid-cols-[1fr_28px] items-center gap-1 px-3.5 py-3 text-left transition-colors hover:bg-accent/45 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]"
+            className="group grid w-full grid-cols-[1fr_28px] items-center gap-1 bg-white px-3.5 py-3 text-left transition-shadow hover:shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.06)] sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]"
           >
             <div className="flex min-w-0 items-center gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-foreground/20 bg-card text-foreground/45 transition-colors group-hover:border-primary/35 group-hover:text-primary">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-foreground/20 bg-white text-foreground/45 transition-colors group-hover:border-primary/35 group-hover:text-primary">
                 <Plus className="h-4 w-4" strokeWidth={2} />
               </span>
               <div className="min-w-0">
@@ -475,6 +484,38 @@ export const HabitListPane = ({
             </div>
             <div className="hidden sm:col-span-9 sm:block" aria-hidden />
           </button>
+          {suggestedStarterPacks.length > 0 && (
+            <div className="grid grid-cols-[1fr_28px] gap-1 bg-white px-3.5 pb-4 pt-1 sm:grid-cols-[1fr_repeat(7,40px)_72px_28px]">
+              <div className="min-w-0 pl-[52px]">
+                <div className="mb-2 flex items-center gap-2 text-[11.5px] font-semibold text-muted-foreground">
+                  <span>추천 습관</span>
+                  <span className="h-px flex-1 bg-[hsl(var(--hairline))]" aria-hidden />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {suggestedStarterPacks.slice(0, 6).map((p) => {
+                    const stripe = TASK_LIST_COLORS[p.color].stripe;
+                    return (
+                      <button
+                        key={p.title}
+                        type="button"
+                        onClick={() => addStarterHabit(p)}
+                        className="inline-flex h-8 max-w-[150px] items-center gap-1.5 rounded-full border bg-white px-2.5 text-[12px] font-medium text-foreground/78 transition-colors hover:border-foreground/20 hover:text-foreground"
+                        style={{
+                          borderColor: `color-mix(in oklab, ${stripe} 28%, hsl(var(--hairline)))`,
+                        }}
+                        title={`${p.title} 추가`}
+                        aria-label={`${p.title} 추가`}
+                      >
+                        <span className="text-[14px] leading-none">{p.emoji}</span>
+                        <span className="truncate">{p.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="hidden sm:col-span-9 sm:block" aria-hidden />
+            </div>
+          )}
           </>
         )}
       </div>

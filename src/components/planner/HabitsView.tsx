@@ -54,8 +54,8 @@ export const HabitsView = () => {
       <div
         className={
           hasActiveHabits
-            ? 'h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] gap-0 min-h-0 bg-card/30'
-            : 'h-full min-h-0'
+            ? 'h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] gap-0 min-h-0 bg-white'
+            : 'h-full min-h-0 bg-white'
         }
       >
         <div className="min-h-0 min-w-0">

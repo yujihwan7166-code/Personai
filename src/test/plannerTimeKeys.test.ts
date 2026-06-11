@@ -17,6 +17,8 @@ describe('toDayKey / parseDayKey round-trip', () => {
   it('잘못된 키 → null', () => {
     expect(parseDayKey('not-a-date')).toBeNull();
     expect(parseDayKey('2026/05/12')).toBeNull();
+    expect(parseDayKey('2026-02-31')).toBeNull();
+    expect(parseDayKey('2026-13-01')).toBeNull();
   });
 });
 
@@ -67,6 +69,7 @@ describe('combineDayAndTime / toHhMm', () => {
   it('잘못된 시각 → null', () => {
     expect(combineDayAndTime('2026-05-12', '25:00')).toBeNull();
     expect(combineDayAndTime('2026-05-12', '14')).toBeNull();
+    expect(combineDayAndTime('2026-02-31', '14:30')).toBeNull();
   });
 
   it('toHhMm 자정', () => {

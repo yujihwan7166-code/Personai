@@ -32,7 +32,7 @@ describe('PageAiResizeHandle', () => {
   it('exposes accessible slider-like separator state', () => {
     render(<ResizeHarness />);
 
-    const handle = screen.getByRole('separator', { name: 'AI 패널 너비 조정' });
+    const handle = screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' });
     expect(handle).toHaveAttribute('aria-orientation', 'vertical');
     expect(handle).toHaveAttribute('aria-valuemin', '320');
     expect(handle).toHaveAttribute('aria-valuemax', '560');
@@ -44,7 +44,7 @@ describe('PageAiResizeHandle', () => {
     const onCommit = vi.fn();
     render(<ResizeHarness onCommit={onCommit} />);
 
-    const handle = screen.getByRole('separator', { name: 'AI 패널 너비 조정' });
+    const handle = screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' });
 
     fireEvent.keyDown(handle, { key: 'ArrowLeft' });
     expect(screen.getByTestId('width')).toHaveTextContent('400');
@@ -72,7 +72,7 @@ describe('PageAiResizeHandle', () => {
 
     try {
       render(<ResizeHarness onCommit={onCommit} />);
-      const handle = screen.getByRole('separator', { name: 'AI 패널 너비 조정' });
+      const handle = screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' });
 
       fireEvent(handle, new MouseEvent('pointerdown', { bubbles: true, clientX: 616 }));
       fireEvent(handle, new MouseEvent('pointermove', { bubbles: true, clientX: 100 }));
@@ -105,6 +105,6 @@ describe('PageAiResizeHandle', () => {
       />,
     );
 
-    expect(screen.getByRole('separator', { name: 'AI 패널 너비 조정' })).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toHaveAttribute('tabindex', '-1');
   });
 });

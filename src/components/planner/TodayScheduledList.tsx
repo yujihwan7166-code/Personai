@@ -19,7 +19,8 @@ import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { intervalOverlapsRange, localDayBounds } from '@/lib/planner/timeRange';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
+import { DraggableWeekItem } from './dnd/DraggableWeekItem';
+import { weekDragDataForEvent, weekDragDataForTask } from '@/lib/planner/weekDragData';
 import {
   DropdownMenu,
   DropdownMenuTrigger,

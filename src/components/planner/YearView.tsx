@@ -126,10 +126,12 @@ export const YearView = ({ anchorIso, onMonthClick, onDayClick }: YearViewProps)
             key={mo.index}
             type="button"
             onClick={() => onMonthClick?.(mo.firstIso)}
+            aria-label={`${mo.label} 보기${mo.isCurrentMonth ? ' (현재 월)' : ''}`}
+            data-current-month={mo.isCurrentMonth ? 'true' : undefined}
             className={cn(
               'flex min-h-[214px] flex-col items-stretch bg-card px-4 py-3.5 text-left lg:min-h-0',
               'transition-colors duration-150 hover:bg-accent/35',
-              mo.isCurrentMonth && 'ring-2 ring-inset ring-primary/45',
+              mo.isCurrentMonth && 'ring-[3px] ring-inset ring-primary/55 shadow-[inset_0_0_0_1px_hsl(var(--background))]',
             )}
           >
             <header className="mb-2 flex items-baseline justify-between">

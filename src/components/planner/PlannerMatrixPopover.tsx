@@ -4,11 +4,13 @@
  * shadcn Dialog max-w 충돌 회피 위해 createPortal 직접 구성.
  * ESC/외부클릭으로 닫힘. 폭 480px 고정.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { PlannerMatrixMini } from './PlannerMatrixMini';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBackdropDismiss } from '@/hooks/useBackdropDismiss';
 
 interface PlannerMatrixPopoverProps {
   open: boolean;
@@ -18,9 +20,11 @@ interface PlannerMatrixPopoverProps {
 
 export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: PlannerMatrixPopoverProps) => {
   useScrollLock(open);
-  // mousedown → mouseup 둘 다 backdrop 안에서 시작/끝났을 때만 닫힘.
-  // (popover 안 텍스트 select 후 backdrop 위로 release 했을 때 잘못 닫히는 거 방지)
-  const downOnBackdropRef = useRef(false);
+  const titleId = useId();
+  const descId = useId();
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+  // 배경에서 누르고 배경에서 뗀 경우만 닫아 내부 조작 중 오닫힘을 막는다.
+  const backdropHandlers = useBackdropDismiss<HTMLDivElement>(() => onOpenChange(false));
 
   useEffect(() => {
     if (!open) return;
@@ -35,27 +39,24 @@ export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: Planne
 
   return createPortal(
     <div
+      ref={trapRef}
       role="dialog"
       aria-modal="true"
-      aria-label="아이젠하워 매트릭스"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-      onMouseDown={(e) => {
-        downOnBackdropRef.current = e.target === e.currentTarget;
-      }}
-      onMouseUp={(e) => {
-        if (downOnBackdropRef.current && e.target === e.currentTarget) {
-          onOpenChange(false);
-        }
-        downOnBackdropRef.current = false;
-      }}
+      {...backdropHandlers}
     >
       <div
         className="bg-card border border-foreground/20 rounded-xl shadow-2xl flex flex-col overflow-hidden"
         style={{ width: 'min(94vw, 880px)', maxHeight: '85vh' }}
       >
+        <p id={descId} className="sr-only">
+          할 일을 긴급도와 중요도 기준으로 나누어 확인하고 선택할 수 있습니다.
+        </p>
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 h-12 border-b border-foreground/20">
           <div className="min-w-0 flex items-baseline gap-2">
-            <span className="text-[16px] font-bold tracking-tight text-foreground">
+            <span id={titleId} className="text-[16px] font-bold tracking-tight text-foreground">
               아이젠하워 매트릭스
             </span>
             <span className="text-[12px] text-foreground/55">
@@ -65,7 +66,7 @@ export const PlannerMatrixPopover = ({ open, onOpenChange, onTaskClick }: Planne
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            aria-label="닫기"
+            aria-label="아이젠하워 매트릭스 닫기"
             className="h-8 w-8 inline-flex items-center justify-center rounded-md text-foreground/65 hover:text-foreground hover:bg-accent transition-colors"
           >
             <X className="h-4 w-4" />

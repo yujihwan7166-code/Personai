@@ -21,35 +21,38 @@ function renderChrome(
 }
 
 describe('PageWorkspaceChrome', () => {
-  it('keeps workspace metadata without rendering a page switcher by default', () => {
+  it('keeps workspace metadata without rendering a second page switcher', () => {
     renderChrome({ current: 'whiteboard' });
 
     const chrome = document.querySelector('[data-page-workspace-chrome="true"]');
     expect(chrome).toHaveAttribute('data-page-workspace-current', 'whiteboard');
     expect(chrome).toHaveAttribute('data-page-workspace-ai', 'none');
+    expect(document.querySelector('[data-page-workspace-actions="true"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-page-switcher-root="mobile"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-page-switcher-root="desktop"]')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /AI/ })).not.toBeInTheDocument();
   });
 
-  it('shows one AI launcher while the panel is closed', () => {
+  it('shows one positioned AI launcher while the panel is closed', () => {
     const onOpen = vi.fn();
     renderChrome({
       current: 'memos',
       ai: {
-        label: '메모 AI',
+        label: 'Assistant tools',
         open: false,
         onOpen,
       },
     });
 
-    const launcher = screen.getByRole('button', { name: '메모 AI 열기' });
+    const launcher = screen.getByRole('button', { name: 'Assistant tools 열기' });
+    expect(screen.getAllByRole('button', { name: 'Assistant tools 열기' })).toHaveLength(1);
     expect(document.querySelector('[data-page-workspace-chrome="true"]')).toHaveAttribute('data-page-workspace-ai', 'closed');
     expect(launcher).toHaveAttribute('data-page-ai-launcher', 'true');
     expect(document.querySelector('[data-page-switcher-root="desktop"]')).not.toBeInTheDocument();
     expect(launcher).toHaveClass(
-      ...PAGE_AI_LAUNCHER_POSITION_CLASS.split(' '),
       ...PAGE_AI_LAUNCHER_SIZE_CLASS.split(' '),
+      ...PAGE_AI_LAUNCHER_POSITION_CLASS.split(' '),
     );
+    expect(launcher).not.toHaveClass('static', 'right-auto', 'top-auto');
 
     fireEvent.click(launcher);
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -59,13 +62,14 @@ describe('PageWorkspaceChrome', () => {
     renderChrome({
       current: 'journal',
       ai: {
-        label: '일기 AI',
+        label: 'Journal tools',
         open: true,
         onOpen: vi.fn(),
       },
     });
 
     expect(document.querySelector('[data-page-workspace-chrome="true"]')).toHaveAttribute('data-page-workspace-ai', 'open');
-    expect(screen.queryByRole('button', { name: '일기 AI 열기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Journal tools 열기' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-page-switcher-root="desktop"]')).not.toBeInTheDocument();
   });
 });

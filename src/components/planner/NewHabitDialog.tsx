@@ -39,14 +39,112 @@ const FREQ_OPTIONS: Array<{ id: HabitFreq; label: string }> = [
 ];
 const COLOR_OPTIONS: TaskListColor[] = ['blue', 'green', 'amber', 'rose', 'violet', 'teal', 'orange', 'cyan'];
 const EMOJI_PRESETS = ['💪', '💧', '📚', '🧘', '✍️', '🥗', '🏃', '😴', '🪥', '☀️', '📖', '🎯'];
+type HabitPanel = HabitGoalKind | 'examples';
+type HabitExample = {
+  title: string;
+  emoji: string;
+  color: TaskListColor;
+  goalKind: HabitGoalKind;
+  freq: HabitFreq;
+  weekdays?: WeekdayCode[];
+  timesPerDay?: number;
+  unit?: string;
+  reminderTime?: string;
+  notes: string;
+  caption: string;
+  cadence: string;
+};
 
-const STARTER_PACKS: Array<{ title: string; emoji: string; color: TaskListColor; freq: HabitFreq }> = [
-  { title: '운동', emoji: '💪', color: 'rose', freq: 'daily' },
-  { title: '물 마시기', emoji: '💧', color: 'blue', freq: 'daily' },
-  { title: '독서 30분', emoji: '📚', color: 'amber', freq: 'daily' },
-  { title: '명상 10분', emoji: '🧘', color: 'violet', freq: 'daily' },
-  { title: '일기 쓰기', emoji: '✍️', color: 'green', freq: 'daily' },
-  { title: '식단 관리', emoji: '🥗', color: 'teal', freq: 'daily' },
+const HABIT_EXAMPLES: HabitExample[] = [
+  {
+    title: '아침 물 2잔',
+    emoji: '💧',
+    color: 'cyan',
+    goalKind: 'do',
+    freq: 'daily',
+    timesPerDay: 2,
+    unit: '잔',
+    reminderTime: '08:30',
+    caption: '기상 후 몸 깨우기',
+    cadence: '매일 · 2잔',
+    notes: '아침 커피 전에 물부터 마신다. 침대 옆이나 책상 위에 컵을 미리 둔다.',
+  },
+  {
+    title: '독서 20분',
+    emoji: '📚',
+    color: 'amber',
+    goalKind: 'do',
+    freq: 'daily',
+    reminderTime: '22:00',
+    caption: '끝내기보다 펼치기',
+    cadence: '매일 · 밤',
+    notes: '읽은 분량보다 다시 떠오른 문장 하나를 남긴다.',
+  },
+  {
+    title: '가벼운 러닝',
+    emoji: '🏃',
+    color: 'green',
+    goalKind: 'do',
+    freq: 'weekly',
+    weekdays: ['MO', 'WE', 'SA'],
+    caption: '무리하지 않는 주 3회',
+    cadence: '월·수·토',
+    notes: '속도보다 나간 횟수를 본다. 20분만 뛰어도 성공으로 친다.',
+  },
+  {
+    title: '하루 마감 정리',
+    emoji: '🧹',
+    color: 'blue',
+    goalKind: 'do',
+    freq: 'daily',
+    reminderTime: '21:30',
+    caption: '내일 아침을 가볍게',
+    cadence: '매일 · 10분',
+    notes: '책상, 열린 탭, 내일 첫 할 일 하나만 정리한다.',
+  },
+  {
+    title: '잠들기 전 숏폼 끊기',
+    emoji: '📵',
+    color: 'violet',
+    goalKind: 'avoid',
+    freq: 'daily',
+    reminderTime: '23:00',
+    caption: '수면 직전 자극 줄이기',
+    cadence: '매일 · 밤',
+    notes: '침대에 누운 뒤에는 짧은 영상 앱을 열지 않는다. 보고 싶으면 내일 볼 목록에만 적는다.',
+  },
+  {
+    title: '늦은 카페인 끊기',
+    emoji: '☕',
+    color: 'orange',
+    goalKind: 'avoid',
+    freq: 'daily',
+    reminderTime: '14:30',
+    caption: '오후 집중과 수면 균형',
+    cadence: '매일 · 오후',
+    notes: '오후 3시 이후 커피 대신 물이나 무카페인 차로 바꾼다.',
+  },
+  {
+    title: '충동구매 하루 보류',
+    emoji: '💸',
+    color: 'teal',
+    goalKind: 'avoid',
+    freq: 'daily',
+    caption: '사는 대신 하루 적어두기',
+    cadence: '매일 · 필요할 때',
+    notes: '바로 결제하지 않고 위시리스트에 적은 뒤 다음 날 다시 본다.',
+  },
+  {
+    title: '평일 음주 줄이기',
+    emoji: '🍺',
+    color: 'rose',
+    goalKind: 'avoid',
+    freq: 'weekly',
+    weekdays: ['MO', 'TU', 'WE', 'TH'],
+    caption: '회복을 남겨두는 습관',
+    cadence: '월-목',
+    notes: '평일에는 술 약속을 만들지 않는다. 이미 잡힌 약속은 1차에서 끝낸다.',
+  },
 ];
 
 export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => {
@@ -62,6 +160,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('07:00');
   const [notes, setNotes] = useState('');
+  const [activePanel, setActivePanel] = useState<HabitPanel>('do');
 
   // mode 바뀔 때 prefill.
   useEffect(() => {
@@ -79,12 +178,14 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
       setReminderEnabled(false);
       setReminderTime('07:00');
       setNotes('');
+      setActivePanel('do');
     } else {
       const h = mode.habit;
       setTitle(h.title);
       setEmoji(h.emoji);
       setColor(h.color);
       setGoalKind(h.goalKind);
+      setActivePanel(h.goalKind);
       setFreq(h.schedule.freq === 'custom' ? 'daily' : h.schedule.freq);
       setWeekdays(h.schedule.weekdays ?? []);
       setTimesEnabled(!!h.schedule.timesPerDay && h.schedule.timesPerDay > 1);
@@ -96,16 +197,25 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
     }
   }, [open, mode]);
 
-  const submitFromPack = (pack: typeof STARTER_PACKS[number]) => {
-    habitStore.add({
-      title: pack.title,
-      emoji: pack.emoji,
-      color: pack.color,
-      schedule: { freq: pack.freq },
-      startDate: toDateKey(new Date()),
-    });
-    notify.success(`"${pack.title}" 습관 추가됨`, { duration: 1500 });
-    onClose();
+  const switchPanel = (panel: HabitPanel) => {
+    setActivePanel(panel);
+    if (panel === 'do' || panel === 'avoid') setGoalKind(panel);
+  };
+
+  const applyExample = (example: HabitExample) => {
+    setTitle(example.title);
+    setEmoji(example.emoji);
+    setColor(example.color);
+    setGoalKind(example.goalKind);
+    setActivePanel(example.goalKind);
+    setFreq(example.freq);
+    setWeekdays(example.weekdays ?? []);
+    setTimesEnabled((example.timesPerDay ?? 1) > 1);
+    setTimesPerDay(example.timesPerDay ?? 2);
+    setUnit(example.unit ?? '');
+    setReminderEnabled(Boolean(example.reminderTime));
+    setReminderTime(example.reminderTime ?? '07:00');
+    setNotes(example.notes);
   };
 
   const submit = () => {
@@ -176,35 +286,83 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
 
         <div className="px-7 pb-6 pt-5">
           {/* 종류 toggle */}
-          <div className="grid grid-cols-2 rounded-full border border-foreground/12 bg-muted/35 p-1">
-            <button
-              type="button"
-              onClick={() => setGoalKind('do')}
-              aria-pressed={goalKind === 'do'}
-              className={cn(
-                'relative inline-flex h-9 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
-                goalKind === 'do'
-                  ? 'bg-[#fffefa] text-foreground shadow-sm ring-1 ring-foreground/10'
-                  : 'text-foreground/50 hover:bg-background/55 hover:text-foreground/75',
-              )}
-            >
-              <span>하기 (build)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setGoalKind('avoid')}
-              aria-pressed={goalKind === 'avoid'}
-              className={cn(
-                'relative inline-flex h-9 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
-                goalKind === 'avoid'
-                  ? 'bg-[#fffefa] text-foreground shadow-sm ring-1 ring-foreground/10'
-                  : 'text-foreground/50 hover:bg-background/55 hover:text-foreground/75',
-              )}
-            >
-              <span>끊기 (quit)</span>
-            </button>
+          <div className="grid grid-cols-3 rounded-full border-[1.5px] border-foreground/55 bg-background p-1 shadow-[inset_0_1px_2px_hsl(var(--foreground)/0.05)]">
+            {([
+              { id: 'do', label: '하기 (build)' },
+              { id: 'avoid', label: '끊기 (quit)' },
+              { id: 'examples', label: '예시' },
+            ] satisfies Array<{ id: HabitPanel; label: string }>).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => switchPanel(tab.id)}
+                aria-pressed={activePanel === tab.id}
+                className={cn(
+                  'relative inline-flex h-9 items-center justify-center rounded-full text-[13.5px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/15',
+                  activePanel === tab.id
+                    ? 'bg-[#fffefa] text-foreground shadow-sm ring-1 ring-foreground/35'
+                    : 'text-foreground/50 hover:bg-background/55 hover:text-foreground/75',
+                )}
+              >
+                <span>{tab.label}</span>
+              </button>
+            ))}
           </div>
 
+          {activePanel === 'examples' ? (
+            <div className="mt-5">
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-bold text-foreground">예시 습관</div>
+                  <div className="mt-1 text-[12px] text-muted-foreground">
+                    누르면 제목, 반복, 알림, 메모가 바로 채워집니다.
+                  </div>
+                </div>
+                <div className="text-[11px] font-semibold text-foreground/45">
+                  {HABIT_EXAMPLES.length}개
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {HABIT_EXAMPLES.map((example) => {
+                  const stripe = TASK_LIST_COLORS[example.color].stripe;
+                  return (
+                    <button
+                      key={example.title}
+                      type="button"
+                      onClick={() => applyExample(example)}
+                      className="group flex min-h-[78px] items-start gap-3 rounded-xl border border-foreground/12 bg-white px-3 py-3 text-left transition-all hover:border-foreground/24 hover:shadow-[0_10px_28px_-22px_hsl(var(--foreground)/0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/18"
+                    >
+                      <span
+                        className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[18px]"
+                        style={{ backgroundColor: `color-mix(in oklab, ${stripe} 18%, white)` }}
+                      >
+                        {example.emoji}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-[13.5px] font-bold text-foreground">
+                            {example.title}
+                          </span>
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: stripe }}
+                            aria-hidden
+                          />
+                        </span>
+                        <span className="mt-1 block text-[12px] leading-snug text-foreground/62">
+                          {example.caption}
+                        </span>
+                        <span className="mt-1.5 inline-flex text-[11px] font-semibold text-muted-foreground">
+                          {example.cadence}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="mt-5 grid grid-cols-1 gap-4">
             {/* 제목 + emoji + color */}
             <div className="flex gap-2.5">
@@ -398,33 +556,17 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
             rows={2}
             className="mt-3 min-h-[72px] w-full resize-none rounded-xl border border-foreground/15 bg-card px-4 py-3 text-[13px] focus:border-foreground/35 focus:outline-none placeholder:text-foreground/45"
           />
-
-          {/* 스타터 팩 — create 모드 + 제목 비어있을 때만 */}
-          {mode.kind === 'create' && !title.trim() && (
-            <div className="pt-1">
-              <div className="text-[11px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
-                또는 한 번에 시작
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {STARTER_PACKS.map((p) => (
-                  <button
-                    key={p.title}
-                    type="button"
-                    onClick={() => submitFromPack(p)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] border border-foreground/25 bg-card hover:border-foreground/35 hover:bg-accent transition-all"
-                  >
-                    <span>{p.emoji}</span>
-                    <span>{p.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          </>
           )}
 
           {/* footer */}
           <div className="mt-5 flex items-center justify-between border-t border-foreground/12 pt-4">
             <div>
-              {mode.kind === 'edit' && (
+              {activePanel === 'examples' ? (
+                <span className="text-[12px] text-muted-foreground">
+                  예시를 선택하면 내용을 고칠 수 있어요.
+                </span>
+              ) : mode.kind === 'edit' && (
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -444,15 +586,17 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
                 <X className="h-3.5 w-3.5 inline-block mr-1" />
                 취소
               </button>
-              <button
-                type="button"
-                onClick={submit}
-                disabled={!title.trim()}
-                className="px-4 py-2 text-[13px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
-              >
-                <Plus className="h-3.5 w-3.5 inline-block mr-1" />
-                {mode.kind === 'edit' ? '저장' : '추가'}
-              </button>
+              {activePanel !== 'examples' && (
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={!title.trim()}
+                  className="px-4 py-2 text-[13px] rounded-md bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  <Plus className="h-3.5 w-3.5 inline-block mr-1" />
+                  {mode.kind === 'edit' ? '저장' : '추가'}
+                </button>
+              )}
             </div>
           </div>
         </div>

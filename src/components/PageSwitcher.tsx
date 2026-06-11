@@ -1,10 +1,16 @@
 /**
- * 페이지 스위처 — 노트 그룹 페이지(통합플래너/마이위키/메모/화이트보드/일기) 간 고정 빠른 이동.
+ * 페이지 스위처 — 통합플래너, 마이위키, 메모, 화이트보드, 일기 간 빠른 이동.
  *
  * 사용: <PageSwitcher current="planner" />
- *
  */
-import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FocusEvent as ReactFocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -33,7 +39,11 @@ export type PageSwitcherCurrent =
 interface PageSwitcherProps {
   current: PageSwitcherCurrent;
   className?: string;
-  /** true 면 항상 아이콘만 (좁은 사이드바용). */
+  mobileClassName?: string;
+  desktopClassName?: string;
+  showMobile?: boolean;
+  showDesktop?: boolean;
+  /** true면 항상 아이콘만 표시한다. */
   compact?: boolean;
 }
 
@@ -45,7 +55,15 @@ interface ChipDef {
   onClick?: () => void;
 }
 
-export const PageSwitcher = ({ current, className, compact = false }: PageSwitcherProps) => {
+export const PageSwitcher = ({
+  current,
+  className,
+  mobileClassName,
+  desktopClassName,
+  showMobile = true,
+  showDesktop = true,
+  compact = false,
+}: PageSwitcherProps) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileMenuId = useId();
@@ -54,12 +72,12 @@ export const PageSwitcher = ({ current, className, compact = false }: PageSwitch
   const activeMobileItemRef = useRef<HTMLButtonElement | null>(null);
 
   const chips: ChipDef[] = [
-    { key: 'home',       label: '홈',         icon: Home,            to: '/' },
-    { key: 'planner',    label: '통합플래너', icon: CalendarDays,    to: '/planner' },
-    { key: 'wiki',       label: '마이위키',   icon: Network,         to: '/wiki' },
-    { key: 'memos',      label: '메모',       icon: FileText,        to: '/memos' },
+    { key: 'home', label: '홈', icon: Home, to: '/' },
+    { key: 'planner', label: '통합플래너', icon: CalendarDays, to: '/planner' },
+    { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
+    { key: 'memos', label: '메모', icon: FileText, to: '/memos' },
     { key: 'whiteboard', label: '화이트보드', icon: LayoutDashboard, to: '/whiteboard' },
-    { key: 'journal',    label: '일기',       icon: NotebookPen,     to: '/journal' },
+    { key: 'journal', label: '일기', icon: NotebookPen, to: '/journal' },
   ];
   const activeChip = chips.find((p) => p.key === current) ?? chips[0];
   const ActiveIcon = activeChip.icon;
@@ -122,99 +140,113 @@ export const PageSwitcher = ({ current, className, compact = false }: PageSwitch
     else if (event.key === 'End') focusMobileItem(items.length - 1);
   };
 
+  const onMobileRootBlur = (event: ReactFocusEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget;
+    if (!mobileOpen || (nextTarget instanceof Node && event.currentTarget.contains(nextTarget))) return;
+    setMobileOpen(false);
+  };
+
   return (
     <>
-      <div
-        ref={mobileRef}
-        data-page-switcher-root="mobile"
-        className={cn(
-          PAGE_SWITCHER_MOBILE_POSITION_CLASS,
-          className,
-        )}
-      >
-        {mobileOpen && (
-          <nav
-            id={mobileMenuId}
-            aria-label="페이지 이동 메뉴"
-            onKeyDown={onMobileMenuKeyDown}
-            className={PAGE_SWITCHER_MOBILE_MENU_CLASS}
-          >
-            {chips.map((p) => {
-              const Icon = p.icon;
-              const active = p.key === current;
-              return (
-                <button
-                  key={p.key}
-                  ref={active ? activeMobileItemRef : undefined}
-                  type="button"
-                  data-page-switcher-mobile-item="true"
-                  onClick={() => goTo(p)}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] font-medium transition-colors',
-                    active
-                      ? 'bg-primary/12 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{p.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        )}
-        <button
-          ref={mobileTriggerRef}
-          type="button"
-          onClick={() => setMobileOpen((v) => !v)}
-          data-page-switcher-trigger="true"
-          aria-expanded={mobileOpen}
-          aria-controls={mobileMenuId}
-          aria-label={`페이지 이동: 현재 ${activeChip.label}`}
-          title="페이지 이동"
-          className="inline-flex h-9 max-w-[132px] items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/90 px-2.5 text-primary shadow-sm backdrop-blur transition-colors hover:bg-card"
+      {showMobile && (
+        <div
+          ref={mobileRef}
+          data-page-switcher-root="mobile"
+          onBlur={onMobileRootBlur}
+          className={cn(
+            PAGE_SWITCHER_MOBILE_POSITION_CLASS,
+            className,
+            mobileClassName,
+          )}
         >
-          <ActiveIcon className="h-3.5 w-3.5" />
-          <span className="max-w-[88px] truncate text-[11.5px] font-semibold text-foreground/80">
-            {activeChip.label}
-          </span>
-        </button>
-      </div>
-
-      <nav
-        aria-label="페이지 이동"
-        data-page-switcher-root="desktop"
-        className={cn(
-          PAGE_SWITCHER_DESKTOP_CLASS,
-          className,
-        )}
-      >
-        {chips.map((p) => {
-          const Icon = p.icon;
-          const active = p.key === current;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => goTo(p)}
-              data-page-switcher-item={p.key}
-              data-page-switcher-current={active ? 'true' : undefined}
-              aria-current={active ? 'page' : undefined}
-              title={p.label}
-              className={cn(
-                'inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] font-medium transition-colors',
-                active
-                  ? 'bg-primary/12 text-primary cursor-default'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-              )}
+          {mobileOpen && (
+            <nav
+              id={mobileMenuId}
+              aria-label="페이지 이동 메뉴"
+              onKeyDown={onMobileMenuKeyDown}
+              className={PAGE_SWITCHER_MOBILE_MENU_CLASS}
             >
-              <Icon className="h-3.5 w-3.5" />
-              {!compact && <span>{p.label}</span>}
-            </button>
-          );
-        })}
-      </nav>
+              {chips.map((p) => {
+                const Icon = p.icon;
+                const active = p.key === current;
+                return (
+                  <button
+                    key={p.key}
+                    ref={active ? activeMobileItemRef : undefined}
+                    type="button"
+                    data-page-switcher-mobile-item="true"
+                    onClick={() => goTo(p)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] font-medium transition-colors',
+                      active
+                        ? 'bg-primary/12 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{p.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+          <button
+            ref={mobileTriggerRef}
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            data-page-switcher-trigger="true"
+            aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
+            aria-label={`페이지 이동: 현재 ${activeChip.label}`}
+            title="페이지 이동"
+            className="inline-flex h-9 max-w-[132px] items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/90 px-2.5 text-primary shadow-sm backdrop-blur transition-colors hover:bg-card"
+          >
+            <ActiveIcon className="h-3.5 w-3.5" />
+            <span className="max-w-[88px] truncate text-[11.5px] font-semibold text-foreground/80">
+              {activeChip.label}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {showDesktop && (
+        <nav
+          aria-label="페이지 이동"
+          data-page-switcher-root="desktop"
+          className={cn(
+            PAGE_SWITCHER_DESKTOP_CLASS,
+            className,
+            desktopClassName,
+          )}
+        >
+          {chips.map((p) => {
+            const Icon = p.icon;
+            const active = p.key === current;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => goTo(p)}
+                data-page-switcher-item={p.key}
+                data-page-switcher-current={active ? 'true' : undefined}
+                aria-current={active ? 'page' : undefined}
+                aria-label={compact ? p.label : undefined}
+                title={p.label}
+                className={cn(
+                  'inline-flex h-7 items-center gap-1 rounded-md px-2 text-[12px] font-medium transition-colors',
+                  active
+                    ? 'cursor-default bg-primary/12 text-primary'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {!compact && <span>{p.label}</span>}
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </>
   );
 };

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BriefingData } from '@/lib/buildBriefingData';
-import { WIDGET_META, type PlacedWidget, type WidgetSize } from '@/lib/dailyBriefingStore';
+import { WIDGET_META, type PlacedWidget } from '@/lib/dailyBriefingStore';
 import { stripMarkdown } from '@/lib/journalMarkdown';
 
 const fmtTime = (iso: string): string => {
@@ -178,7 +178,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
     cells.push({ day: d, isToday, key });
   }
 
-  const handleCellClick = (e: React.MouseEvent, key: string) => {
+  const handleCellClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
     navigate('/planner');
@@ -238,7 +238,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
             <button
               key={i}
               type="button"
-              onClick={(e) => handleCellClick(e, cell.key)}
+              onClick={handleCellClick}
               className={cn(
                 'relative aspect-square text-[11px] rounded-lg flex flex-col items-center justify-center transition-all',
                 cell.isToday
@@ -266,7 +266,7 @@ export function CalendarWidget({ data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 습관 (S/M) — 진행률 바 + streak 위험 표시
+// 습관 (S/M) — 진행률 바 + 연속 기록 위험 표시
 export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const done = data.habits.filter((h) => h.done).length;
@@ -298,7 +298,7 @@ export function HabitsWidget({ widget, data, onClose }: WidgetProps) {
           {atRisk > 0 && (
             <div className="mt-1 inline-flex items-center gap-1 text-[9.5px] text-rose-500 font-semibold uppercase tracking-wider">
               <span className="inline-block w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-              {atRisk}개 streak 위험
+              연속 기록 위험 {atRisk}개
             </div>
           )}
           <ul className="mt-1 space-y-1 flex-1 overflow-hidden">
@@ -633,6 +633,7 @@ const WIDGET_COMPONENTS: Record<WidgetKind, (p: WidgetProps) => React.ReactEleme
   heatmap: HeatmapWidget,
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function renderWidget(props: WidgetProps): React.ReactElement {
   const Comp = WIDGET_COMPONENTS[props.widget.kind];
   return <Comp {...props} />;

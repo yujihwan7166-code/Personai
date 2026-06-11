@@ -2,9 +2,9 @@
  * 주(Week) 뷰 — 7일 가로 컬럼. 각 일에 시간배정 항목 리스트.
  *
  * UX (Apple Calendar 패턴):
- * - 컬럼 헤더 클릭 → 해당 일 Day 뷰 점프
- * - 빈 컬럼 영역 클릭 → 해당 일 Day 뷰 점프 (가벼운 새 항목 진입점)
- * - 카드 클릭 → 편집 모달 (Day 뷰와 일관성)
+ * - 컬럼 헤더 클릭 → 해당 날짜로 이동
+ * - 빈 컬럼 영역 클릭 → 해당 날짜로 이동 (가벼운 새 항목 진입점)
+ * - 카드 클릭 → 편집 모달
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useDndContext, useDroppable } from '@dnd-kit/core';
@@ -14,34 +14,36 @@ import { taskStore } from '@/services/planner/taskStore';
 import { usePlannerCalendarRange } from '@/hooks/planner/usePlannerCalendarRange';
 import { toDateKey } from '@/lib/planner/habitStats';
 import { PlannerCard } from './PlannerCard';
-import { DraggableWeekItem, weekDragDataForEvent, weekDragDataForTask } from './dnd/DraggableWeekItem';
+import { DraggableWeekItem } from './dnd/DraggableWeekItem';
+import { weekDragDataForEvent, weekDragDataForTask } from '@/lib/planner/weekDragData';
 import type { PlannerDragData, PlannerDropData } from './dnd/plannerDndTypes';
 import { taskListStore } from '@/services/planner/taskListStore';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED, type PlannerTask } from '@/types/planner';
+import { compareTodoTasks } from '@/lib/planner/todoOrder';
+import { formatDurationRange } from '@/lib/formatDuration';
+import { overlappingLocalDayKeys } from '@/lib/planner/dateBuckets';
+import { weekDropHintLabel } from '@/lib/planner/weekDropHint';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
-const formatHm = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-/** 길이 라벨 — "30분" / "1시간 10분". */
-const formatDuration = (startIso: string, endIso: string): string => {
-  const mins = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000);
-  if (mins <= 0) return '';
-  if (mins < 60) return `${mins}분`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+const formatWeekClock = (iso: string): string => {
+  const date = new Date(iso);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 };
+
+const formatWeekTimeRange = (startIso: string, endIso: string): string =>
+  `${formatWeekClock(startIso)} ~ ${formatWeekClock(endIso)}`;
 
 interface WeekViewProps {
   /** 주의 기준 날짜 (이 날 포함 일~토 7일). */
   anchorIso?: string;
-  /** 컬럼 헤더 / 빈 컬럼 클릭 → 해당 일로 Day 뷰 점프. */
+  /** 컬럼 헤더 / 빈 컬럼 클릭 → 해당 날짜로 이동. */
   onDayClick?: (dayIso: string) => void;
   onCreateEvent?: (dayIso: string) => void;
   onCreateTask?: (dayIso: string) => void;
-  /** 카드 클릭 → 편집 모달 (Day 뷰와 일관성). */
+  /** 카드 클릭 → 편집 모달. */
   onItemClick?: (item: { kind: 'event' | 'task'; id: string; title: string; startAt: string; endAt: string }) => void;
   /** 날짜만 있는 할 일 클릭 → 일정/할 일 편집 모달. */
   onTaskClick?: (task: { id: string; title: string }) => void;
@@ -92,7 +94,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
 
   const { timedItems, dateTodos } = usePlannerCalendarRange(start, end);
 
-  // 일별로 그룹핑 — 로컬 시각 기준 (UTC slice 버그 회피).
+  // 일별로 그룹핑 — 로컬 시각 기준. 날짜를 넘긴 항목은 겹치는 모든 날짜에 표시한다.
   // 같은 날 안에서 startAt 오름차순 정렬 + overlap 플래그 합성.
   const itemsByDay = useMemo(() => {
     type DayItem = typeof timedItems[number] & { overlapping: boolean; durationLabel: string };
@@ -103,10 +105,12 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
     timedItems.forEach((item) => {
       const startAt = item.data.startAt;
       if (!startAt) return;
-      const dayKey = toDateKey(new Date(startAt));
-      const arr = grouped.get(dayKey) ?? [];
-      arr.push(item);
-      grouped.set(dayKey, arr);
+      const endAt = item.kind === 'event' ? item.data.endAt : item.data.endAt ?? startAt;
+      overlappingLocalDayKeys(startAt, endAt).forEach((dayKey) => {
+        const arr = grouped.get(dayKey) ?? [];
+        arr.push(item);
+        grouped.set(dayKey, arr);
+      });
     });
 
     // 2) 각 일별로 정렬 + 겹침 검사 + 길이 라벨 계산
@@ -139,7 +143,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
         return {
           ...item,
           overlapping,
-          durationLabel: formatDuration(r.startAt, r.endAt),
+          durationLabel: formatDurationRange(r.startAt, r.endAt),
         };
       });
       map.set(dayKey, decorated);
@@ -156,6 +160,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
       arr.push(task);
       map.set(task.plannedFor, arr);
     });
+    map.forEach((items) => items.sort(compareTodoTasks));
     return map;
   }, [dateTodos]);
 
@@ -181,7 +186,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                 type="button"
                 data-week-day-header={d.key}
                 onClick={() => onDayClick?.(d.iso)}
-                aria-label={`${d.date}일 ${DAYS_KO[d.dow]}요일${d.isToday ? ' (오늘)' : ''} — Day 뷰로`}
+                aria-label={`${d.date}일 ${DAYS_KO[d.dow]}요일${d.isToday ? ' (오늘)' : ''} — 일 보기로`}
                 className={cn(
                   'group flex h-12 shrink-0 flex-col items-center justify-center gap-0.5 border-b text-center transition-colors',
                   'hover:bg-accent/35',
@@ -210,7 +215,7 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                 <WeekDropSection
                   id={`week-todo-${d.key}`}
                   data={{ kind: 'todo-list', dayKey: d.key }}
-                  hint="할 일로 추가"
+                  hint="놓으면 할 일로 추가"
                   blockedKinds={['scheduled-event']}
                   className={cn(
                     'h-[148px] shrink-0 border-b border-foreground/10 bg-card px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
@@ -260,8 +265,8 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                 </WeekDropSection>
                 <WeekDropSection
                   id={`week-schedule-${d.key}`}
-                  data={{ kind: 'day-column', dayIso: d.iso }}
-                  hint="일정으로 추가"
+                  data={{ kind: 'schedule-day', dayIso: d.iso, dayKey: d.key }}
+                  hint="놓으면 시간 선택"
                   className={cn(
                     'min-h-0 flex-1 px-1.5 py-1.5 transition-colors hover:bg-primary/[0.025]',
                     dayItems.length > 0 ? 'overflow-y-auto' : 'overflow-hidden',
@@ -310,17 +315,18 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                           : weekDragDataForEvent(item.data);
                         return (
                           <DraggableWeekItem
-                            key={item.data.id}
-                            id={`week-${item.kind}-${item.data.id}`}
+                            key={`${d.key}-${item.data.id}`}
+                            id={`week-${d.key}-${item.kind}-${item.data.id}`}
                             data={dragData}
                           >
                             <PlannerCard
                               variant="block"
                               kind={item.kind}
                               title={item.data.title}
-                              startLabel={formatHm(startAt)}
+                              startLabel={formatWeekTimeRange(startAt, endAt)}
                               durationLabel={item.durationLabel || undefined}
                               overlapping={item.overlapping}
+                              hideLeftAccent
                               done={item.kind === 'task' ? item.data.done : false}
                               color={blockColor}
                               priority={undefined}
@@ -418,13 +424,16 @@ const WeekDropSection = ({
   const blocked = Boolean(activeDrag && blockedKinds.includes(activeDrag.kind));
   const { setNodeRef, isOver } = useDroppable({ id, data });
   const showHint = isOver && isWeekDropAssignable(activeDrag);
+  const hintLabel = showHint ? weekDropHintLabel(data, activeDrag, blocked, hint) : hint;
 
   return (
     <section
+      id={id}
       ref={setNodeRef}
+      data-week-drop-hint={showHint ? hintLabel : undefined}
       className={cn(
         'relative',
-        isOver && (blocked ? 'bg-destructive/[0.025]' : 'bg-primary/[0.035]'),
+        isOver && (blocked ? 'bg-destructive/[0.006]' : 'bg-primary/[0.006]'),
         className,
       )}
       {...props}
@@ -433,19 +442,19 @@ const WeekDropSection = ({
         <div
           aria-hidden
           className={cn(
-            'pointer-events-none absolute inset-1 z-20 rounded-md border-2 ring-1 ring-inset',
+            'pointer-events-none absolute inset-2 z-20 rounded-lg border transition duration-150',
             blocked
-              ? 'border-destructive/35 bg-destructive/[0.035] ring-destructive/15'
-              : 'border-primary/45 bg-primary/[0.045] ring-primary/20',
+              ? 'border-destructive/20 bg-destructive/[0.012]'
+              : 'border-primary/24 bg-primary/[0.018]',
           )}
         >
           <span className={cn(
-            'absolute right-2 top-2 rounded-full px-2 py-1 text-[11px] font-bold leading-none shadow-sm',
+            'absolute right-2 top-2 inline-flex h-5 items-center rounded-full border px-2 text-[10.5px] font-semibold leading-none shadow-[0_6px_16px_-14px_hsl(220_18%_10%/0.45)] backdrop-blur-[2px]',
             blocked
-              ? 'bg-background text-destructive ring-1 ring-destructive/20'
-              : 'bg-primary text-primary-foreground',
+              ? 'border-destructive/15 bg-background/88 text-destructive/72'
+              : 'border-primary/18 bg-background/90 text-foreground/70',
           )}>
-            {blocked ? '일정은 할 일로 이동 불가' : hint}
+            {hintLabel}
           </span>
         </div>
       )}

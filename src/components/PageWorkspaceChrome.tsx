@@ -1,5 +1,5 @@
 import { PageAiLauncher } from '@/components/PageAiLauncher';
-import { type PageSwitcherCurrent } from '@/components/PageSwitcher';
+import type { PageSwitcherCurrent } from '@/components/PageSwitcher';
 
 interface WorkspaceAiConfig {
   label: string;
@@ -11,7 +11,6 @@ interface WorkspaceAiConfig {
 interface PageWorkspaceChromeProps {
   current: PageSwitcherCurrent;
   ai?: WorkspaceAiConfig;
-  switcherClassName?: string;
   aiClassName?: string;
 }
 

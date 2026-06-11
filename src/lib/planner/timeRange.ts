@@ -25,14 +25,43 @@ export const intervalOverlapsRange = (
 export const clampStartToLocalDay = (
   candidateStart: Date,
   anchorIso: string | Date,
-  durationMs = 0,
+  latestStartStepMs = 1,
 ): Date => {
   const { start, end } = localDayBounds(anchorIso);
   const minStartMs = start.getTime();
-  const boundedDurationMs = Math.max(0, durationMs);
-  const maxStartMs = Math.max(minStartMs, end.getTime() - boundedDurationMs);
+  // Clamp only the start instant into the visible day. The event itself may
+  // legitimately continue past midnight and should appear on the next day too.
+  const safeStepMs = Number.isFinite(latestStartStepMs)
+    ? Math.max(1, latestStartStepMs)
+    : 1;
+  const maxStartMs = Math.max(minStartMs, end.getTime() - safeStepMs);
   const clampedMs = Math.min(maxStartMs, Math.max(minStartMs, candidateStart.getTime()));
   return new Date(clampedMs);
+};
+
+export const moveIntervalToLocalDayStart = (
+  currentStartIso: string,
+  currentEndIso: string,
+  targetStartIso: string,
+  anchorIso: string | Date = targetStartIso,
+  latestStartStepMs = 1,
+): { startAt: string; endAt: string; durationMs: number } => {
+  const currentStartMs = new Date(currentStartIso).getTime();
+  const currentEndMs = new Date(currentEndIso).getTime();
+  const durationMs = Number.isFinite(currentStartMs) && Number.isFinite(currentEndMs)
+    ? Math.max(1, currentEndMs - currentStartMs)
+    : 30 * 60_000;
+  const targetStart = clampStartToLocalDay(
+    new Date(targetStartIso),
+    anchorIso,
+    latestStartStepMs,
+  );
+
+  return {
+    startAt: targetStart.toISOString(),
+    endAt: new Date(targetStart.getTime() + durationMs).toISOString(),
+    durationMs,
+  };
 };
 
 export const recurrenceLookupStart = (

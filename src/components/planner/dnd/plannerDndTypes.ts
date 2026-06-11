@@ -19,6 +19,7 @@ export type PlannerDragData =
 export type PlannerDropData =
   | { kind: 'time-slot'; startIso: string }
   | { kind: 'day-column'; dayIso: string }
+  | { kind: 'schedule-day'; dayIso: string; dayKey: string }
   | { kind: 'inbox' }
   | { kind: 'todo-list'; dayKey: string };
 
