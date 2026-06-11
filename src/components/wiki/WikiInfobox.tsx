@@ -52,15 +52,17 @@ export function WikiInfobox({ page, onTagClick }: Props) {
     >
       {/* 헤더 — 페이지 제목만 (유형 표기 제거) */}
       <div
-        className="border-b px-3.5 py-2.5"
+        className="border-b px-3.5 py-3"
         style={{
           backgroundColor: `${typeMeta.tint}12`,
           borderColor: 'hsl(var(--hairline))',
         }}
       >
-        <p className="flex min-w-0 items-center gap-1.5 text-[14px] font-bold text-foreground leading-tight">
-          <span className="shrink-0 text-[15px] leading-none" aria-hidden>{typeMeta.icon}</span>
-          <span className="min-w-0 truncate">{page.title}</span>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          문서 정보
+        </p>
+        <p className="text-[14px] font-bold text-foreground leading-tight">
+          {page.title}
         </p>
       </div>
 
@@ -150,7 +152,7 @@ export function WikiInfobox({ page, onTagClick }: Props) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
-      className="grid grid-cols-[72px_1fr] items-start gap-2 px-3.5 py-[7px]"
+      className="grid grid-cols-[72px_1fr] items-start gap-2 px-3.5 py-2"
       style={{ borderTop: '1px solid hsl(var(--hairline))' }}
     >
       <dt className="text-[10.5px] font-bold text-muted-foreground pt-0.5">

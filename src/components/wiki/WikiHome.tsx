@@ -183,34 +183,30 @@ export function WikiHome({
   /* ── 빈 위키 ── */
   if (pages.length === 0) {
     return (
-      <div className="min-h-full flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[960px]">
-          <header className="mb-10 text-center">
-            <div className="mb-3 text-[64px] leading-none">🌐</div>
-            <h1 className="mb-3 text-[28px] font-extrabold tracking-[-0.01em] text-foreground">
-              마이위키 시작하기
-            </h1>
-            <p className="text-[15px] leading-7 text-muted-foreground">
-              생각을 잇고, 검색과 연결로 다시 꺼내 쓰는 개인 지식 베이스.<br />
-              스타터 팩 하나로 시작하면 30초 안에 첫 구조가 잡혀요.
+      <div className="min-h-full flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-3xl">
+          <header className="text-center mb-7">
+            <div className="text-5xl mb-3">🌐</div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">마이위키 시작하기</h1>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
+              생각을 잇고, 검색·역참조로 다시 꺼내 쓰는 개인 지식 베이스.<br />
+              아래 스타터 팩으로 시작하면 30초 안에 골격이 잡혀요.
             </p>
           </header>
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             {STARTER_PACKS.map((pack) => (
               <button
                 key={pack.id}
                 type="button"
                 onClick={() => { void onPickStarterPack?.(pack); }}
-                className="group flex min-h-[94px] items-center gap-4 rounded-xl border border-[hsl(var(--hairline))] bg-card px-6 py-5 text-left shadow-[0_1px_0_hsl(var(--foreground)/0.03)] wiki-trans-color hover:border-foreground/25 hover:bg-card/90"
+                className="group flex items-start gap-3 text-left rounded-xl border border-[hsl(var(--hairline))] bg-card hover:border-primary/40 hover:bg-primary/5 p-4 wiki-trans-color"
               >
-                <span className="shrink-0 text-[30px] leading-none">{pack.emoji}</span>
+                <span className="text-2xl shrink-0 leading-none mt-0.5">{pack.emoji}</span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[15px] font-bold text-foreground">{pack.label}</span>
-                  <span className="mt-1.5 block truncate text-[13px] leading-relaxed text-muted-foreground">
-                    {pack.description}
-                  </span>
+                  <span className="block text-[13.5px] font-bold text-foreground">{pack.label}</span>
+                  <span className="block text-[11.5px] text-muted-foreground mt-1 leading-relaxed">{pack.description}</span>
                 </span>
-                <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground/55 wiki-trans-color group-hover:translate-x-0.5 group-hover:text-foreground/70" />
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 wiki-trans-color shrink-0 mt-0.5" />
               </button>
             ))}
           </div>
@@ -218,9 +214,9 @@ export function WikiHome({
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 text-[14px] font-semibold text-foreground shadow-sm wiki-trans-color hover:border-foreground/25 hover:bg-card/90"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3.5 py-2 text-[12.5px] font-semibold text-foreground shadow-sm hover:border-primary/35 hover:bg-primary/5 hover:text-primary wiki-trans-color"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="w-3.5 h-3.5" />
               빈 문서로 시작
             </button>
           </div>

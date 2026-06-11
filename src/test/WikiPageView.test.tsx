@@ -10,9 +10,7 @@ vi.mock('@/components/wiki/WikiBody', () => ({
 }));
 
 vi.mock('@/components/wiki/WikiToc', () => ({
-  WikiToc: ({ variant = 'sidebar' }: { variant?: string }) => (
-    <nav data-testid={`wiki-toc-${variant}`} />
-  ),
+  WikiToc: () => <nav data-testid="wiki-toc" />,
 }));
 
 vi.mock('@/components/wiki/WikiInfobox', () => ({
@@ -52,11 +50,6 @@ const basePage: WikiPage = {
   updatedAt: 1_700_000_100_000,
 };
 
-const pageWithToc: WikiPage = {
-  ...basePage,
-  body: '# Overview\n\n## Training\n\n## Notes\n\nRunning notes with [[Cardio]].',
-};
-
 const MOJIBAKE_PATTERN = /[\uf9ce\uc88f\u81fe\u8e42\uc493]/;
 
 function renderWikiPageView(overrides: Partial<React.ComponentProps<typeof WikiPageView>> = {}) {
@@ -89,36 +82,6 @@ function getDesktopMetaPanel(container: HTMLElement) {
   const panels = container.querySelectorAll('[data-wiki-edit-meta-panel="true"]');
   return panels[panels.length - 1] as HTMLElement;
 }
-
-describe('WikiPageView auxiliary layout', () => {
-  it('keeps the desktop table of contents in its own column by default', () => {
-    const { container } = renderWikiPageView({ page: pageWithToc });
-
-    const grid = container.querySelector('[data-wiki-page-grid="true"]');
-    expect(grid).toHaveAttribute('data-wiki-auxiliary-open', 'false');
-    expect(grid?.className).toContain('lg:grid-cols-[180px_minmax(0,1fr)_240px]');
-    expect(container.querySelector('[data-wiki-toc-column="true"]')).toBeInTheDocument();
-    expect(screen.getByTestId('wiki-toc-sidebar')).toBeInTheDocument();
-    expect(container.querySelector('[data-wiki-floating-toc="true"]')).not.toBeInTheDocument();
-  });
-
-  it('reclaims the table of contents column when the auxiliary panel is open', () => {
-    const { container } = renderWikiPageView({ page: pageWithToc, auxiliaryOpen: true });
-
-    const grid = container.querySelector('[data-wiki-page-grid="true"]');
-    expect(grid).toHaveAttribute('data-wiki-auxiliary-open', 'true');
-    expect(grid?.className).toContain('lg:grid-cols-[minmax(0,1fr)_240px]');
-    expect(container.querySelector('[data-wiki-toc-column="true"]')).not.toBeInTheDocument();
-    const floatingToc = container.querySelector('[data-wiki-floating-toc="true"]') as HTMLElement;
-    expect(floatingToc).toBeInTheDocument();
-    expect(screen.queryByTestId('wiki-toc-sidebar')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('wiki-toc-floating')).not.toBeInTheDocument();
-
-    fireEvent.mouseEnter(floatingToc);
-
-    expect(screen.getByTestId('wiki-toc-floating')).toBeInTheDocument();
-  });
-});
 
 describe('WikiPageView edit metadata panel', () => {
   it('keeps the normal page edit action in read mode', () => {

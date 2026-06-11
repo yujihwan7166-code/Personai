@@ -17,7 +17,6 @@ import { saveImage } from '@/lib/wikiImageStore';
 import { WikiHistoryPanel } from './WikiHistoryPanel';
 import { buildWikiExportHtml, wikiPageToMarkdown } from '@/lib/wikiExport';
 import { formatWikiIdMarkdownLink, linkFirstUnlinkedMention, linkUnlinkedMentions } from '@/lib/wikiLinks';
-import { extractWikiHeadings } from '@/lib/wikiHeadings';
 import { analyzeWikiPageHealth, buildWikiBacklinkPreviews, collectWikiManualRelations, collectWikiOutgoingLinks, findUnlinkedWikiMentions, suggestRelatedWikiPages, type WikiBacklinkPreview, type WikiLinkMentionSuggestion, type WikiManualRelationGroup, type WikiPageHealthItem, type WikiRelatedSuggestion } from '@/lib/wikiQuery';
 
 interface Props {
@@ -45,7 +44,6 @@ interface Props {
   visitedIds?: Set<string>;
   /** 새 문서를 만들고 연결 — picker '새로 만들기' 탭에서 호출 */
   onCreateAndLink?: (title: string, type: import('@/types/wiki').WikiPageType) => Promise<WikiPage> | WikiPage;
-  auxiliaryOpen?: boolean;
 }
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved';
@@ -70,7 +68,7 @@ export function WikiPageView({
   page, editing, backlinks, allPages, findByTitle,
   isFavorite, onToggleFavorite,
   onChange, onRestore, onArchive, onRestoreArchived, onDelete, onToggleEdit, onOpenLink, onGoHome, onOpenInGlobalGraph, onCreateAndLink,
-  onTagClick, visitedIds, auxiliaryOpen = false,
+  onTagClick, visitedIds,
 }: Props) {
   const [draft, setDraft] = useState<WikiPage>(page);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -112,13 +110,6 @@ export function WikiPageView({
   const relatedSuggestions = useMemo(() => suggestRelatedWikiPages(page, allPages), [page, allPages]);
   const linkMentionSuggestions = useMemo(() => findUnlinkedWikiMentions(page, allPages), [page, allPages]);
   const healthItems = useMemo(() => analyzeWikiPageHealth(page, allPages), [page, allPages]);
-  const tocHeadings = useMemo(() => extractWikiHeadings(page.body), [page.body]);
-  const showDesktopToc = !editing && tocHeadings.length >= 2;
-  const showRightRail = !editing;
-  const useFloatingToc = auxiliaryOpen && showDesktopToc;
-  const desktopGridClass = auxiliaryOpen
-    ? (showRightRail ? 'lg:grid-cols-[minmax(0,1fr)_240px]' : 'lg:grid-cols-[minmax(0,1fr)]')
-    : (showRightRail ? 'lg:grid-cols-[180px_minmax(0,1fr)_240px]' : 'lg:grid-cols-[180px_minmax(0,1fr)]');
   const backlinkPreviews = useMemo(() => {
     const previews = buildWikiBacklinkPreviews(page, allPages);
     if (previews.length > 0 || backlinks.length === 0) return previews;
@@ -196,21 +187,14 @@ export function WikiPageView({
         )}
       </div>
 
-      <div
-        data-wiki-page-grid="true"
-        data-wiki-auxiliary-open={auxiliaryOpen ? 'true' : 'false'}
-        className={cn('max-w-6xl mx-auto grid grid-cols-1 gap-6', desktopGridClass)}
-      >
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[180px_minmax(0,1fr)_240px] gap-6">
         {/* 좌: TOC */}
-        {!auxiliaryOpen && (
-          <div data-wiki-toc-column="true" className="hidden lg:block">
-            {showDesktopToc && <WikiToc body={page.body} />}
-          </div>
-        )}
+        <div className="hidden lg:block">
+          {!editing && page.body && <WikiToc body={page.body} />}
+        </div>
 
         {/* 중앙: 본문 */}
-        <article className="relative min-w-0">
-          {useFloatingToc && <FloatingWikiToc body={page.body} count={tocHeadings.length} />}
+        <article className="min-w-0">
           {/* 제목 + 액션 */}
           <header className="mb-4 pb-3 border-b border-[hsl(var(--hairline))]">
             {/* 상위 문서 줄 — 비편집 모드만. 일반 문서·sub-main 모두 표시 (root main 은 부모 0이라 자동 숨김) */}
@@ -222,7 +206,7 @@ export function WikiPageView({
                     <input
                       value={draft.title}
                       onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                      className="w-full text-[26px] sm:text-[30px] leading-[1.32] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-1 tracking-tight"
+                      className="w-full text-[28px] sm:text-[32px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-primary/30 py-0.5 tracking-tight"
                       placeholder="문서 제목"
                       style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}
                     />
@@ -234,7 +218,7 @@ export function WikiPageView({
                   </>
                 ) : (
                   <h1
-                    className="text-[26px] sm:text-[30px] leading-[1.32] font-semibold text-foreground tracking-tight"
+                    className="text-[28px] sm:text-[32px] leading-[1.2] font-semibold text-foreground tracking-tight"
                     style={{ fontFamily: 'var(--wiki-font-display)' }}
                   >
                     {page.title}
@@ -352,7 +336,7 @@ export function WikiPageView({
 
           {/* 편집 모드 — 메타 폼 */}
           {editing && (
-            <div className="wiki-edit-control-shell hidden lg:block">
+            <div className="hidden lg:block mb-3">
               <WikiEditMetaPanel
                 draft={draft}
                 onChange={setDraft}
@@ -372,7 +356,7 @@ export function WikiPageView({
           )}
 
           {/* 본문 — 블록 에디터 (모든 페이지 동일) */}
-          <section className={cn('min-h-[200px]', editing ? 'wiki-editing-section' : 'wiki-prose')}>
+          <section className={cn('min-h-[200px]', editing ? '' : 'wiki-prose')}>
             {editing ? (
               <WikiBlockEditor
                 body={draft.body}
@@ -429,12 +413,12 @@ export function WikiPageView({
         </article>
 
         {/* 우: 인포박스 + 로컬 그래프 */}
-        {showRightRail && (
-          <div className="hidden lg:flex flex-col gap-3">
-            <WikiInfobox page={page} onTagClick={onTagClick} />
+        <div className="hidden lg:flex flex-col gap-3">
+          {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
+          {!editing && (
             <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} onOpenInGlobal={onOpenInGlobalGraph} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 버전 히스토리 패널 */}
@@ -444,42 +428,6 @@ export function WikiPageView({
         onClose={() => setHistoryOpen(false)}
         onRestore={onRestore}
       />
-    </div>
-  );
-}
-
-function FloatingWikiToc({ body, count }: { body: string; count: number }) {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-
-  return (
-    <div
-      data-wiki-floating-toc="true"
-      className="absolute left-0 top-1 z-40 hidden -translate-x-[calc(100%+12px)] lg:block"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setOpen(false);
-        }
-      }}
-    >
-      <button
-        type="button"
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card/90 px-2 text-[11px] font-semibold text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/30 hover:bg-card hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-        aria-label="문서 목차 열기"
-        aria-expanded={open}
-        aria-controls={panelId}
-      >
-        <span>목차</span>
-        <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground">{count}</span>
-      </button>
-      {open && (
-        <div id={panelId} className="absolute left-0 top-10 w-[220px] animate-in fade-in-0 zoom-in-95 duration-150">
-          <WikiToc body={body} variant="floating" />
-        </div>
-      )}
     </div>
   );
 }
@@ -873,7 +821,7 @@ function WikiEditMetaPanel({
         event.stopPropagation();
         closeActiveMetaEditor();
       }}
-      className="wiki-edit-meta-panel"
+      className="rounded-xl border border-[hsl(var(--hairline))] bg-card/80 p-3 shadow-[0_10px_28px_-26px_hsl(30_15%_8%/0.48)]"
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="mr-1 shrink-0 text-[12.5px] font-bold text-foreground">문서 정보</span>

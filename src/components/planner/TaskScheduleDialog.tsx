@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AlignLeft,
   Bell,
@@ -25,6 +25,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { AnalogClockTimePicker } from './AnalogClockTimePicker';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { formatDurationMinutes } from '@/lib/formatDuration';
@@ -155,37 +161,34 @@ const Row = ({
   children?: ReactNode;
   className?: string;
 }) => (
-  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] items-center gap-2.5 border-b border-foreground/10 px-1 py-2.5', className)}>
-    <span className="flex h-8 w-6 items-center justify-center text-foreground/72">{icon}</span>
+  <div className={cn('grid grid-cols-[24px_minmax(0,1fr)] gap-3 border-b border-foreground/10 px-1 py-2.5', className)}>
+    <span className="flex h-7 w-6 items-center justify-center text-foreground/72">{icon}</span>
     <div className="min-w-0">
       {children ? (
-        <div className="grid min-h-8 grid-cols-[64px_minmax(0,1fr)] items-center gap-2.5">
-          <p className="min-w-0 truncate text-[14px] font-semibold text-foreground/88">{label}</p>
+        <div className="grid min-h-7 grid-cols-[64px_minmax(0,1fr)] items-center gap-3">
+          <p className="truncate text-[14px] font-semibold text-foreground/86">{label}</p>
           <div className="min-w-0">{children}</div>
         </div>
       ) : (
-        <div className="flex min-h-8 items-center gap-3">
-          <p className="truncate text-[14px] font-semibold text-foreground/88">{label}</p>
-        </div>
+        <p className="flex min-h-7 items-center truncate text-[14px] font-semibold text-foreground/86">{label}</p>
       )}
     </div>
   </div>
 );
 
-const Pill = ({
-  active,
-  children,
-  onClick,
-  className,
-}: {
+type PillProps = {
   active?: boolean;
   children: ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   className?: string;
-}) => (
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'children' | 'className'>;
+
+const Pill = forwardRef<HTMLButtonElement, PillProps>(({ active, children, onClick, className, ...rest }, ref) => (
   <button
+    ref={ref}
     type="button"
     onClick={onClick}
+    {...rest}
     className={cn(
       'inline-flex h-7 items-center justify-center rounded-full border px-3 text-[12.5px] font-semibold transition-colors',
       active
@@ -196,12 +199,11 @@ const Pill = ({
   >
     {children}
   </button>
-);
+));
+Pill.displayName = 'Pill';
 
 const fieldInputClass =
   'h-8 rounded-md border-0 bg-[#f3f0ea] px-2.5 text-[13px] font-semibold text-foreground outline-none focus:bg-white focus:ring-1 focus:ring-primary/55';
-const footerButtonBaseClass =
-  'inline-flex h-10 min-w-[86px] items-center justify-center gap-1.5 rounded-[10px] px-4 text-[13px] font-bold transition-colors';
 
 export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogProps) => {
   const [title, setTitle] = useState('');
@@ -210,7 +212,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState<number>(DEFAULT_DURATION_MIN);
-  const [customDurationOpen, setCustomDurationOpen] = useState(false);
   const [priority, setPriority] = useState<Priority>(0);
   const [taskColor, setTaskColor] = useState<TaskListColor | undefined>();
   const [recurrence, setRecurrence] = useState<RecurrencePreset>('none');
@@ -254,7 +255,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setStartDate(toDateInput(start));
       setStartTime(toTimeInput(start));
       setDuration(minutesBetween(start, end) || DEFAULT_DURATION_MIN);
-      setCustomDurationOpen(!DURATION_PRESETS.includes((minutesBetween(start, end) || DEFAULT_DURATION_MIN) as typeof DURATION_PRESETS[number]));
       setPriority(mode.initialPriority ?? masterTask?.priority ?? 0);
       setTaskColor(masterTask?.color);
       setRecurrence(rec.preset);
@@ -276,7 +276,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     setStartDate(presetDate);
     setStartTime(presetTime);
     setDuration(DEFAULT_DURATION_MIN);
-    setCustomDurationOpen(false);
     setPriority(0);
     setTaskColor(undefined);
     setRecurrence('none');
@@ -470,7 +469,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
         <div className="flex max-h-[84vh] flex-col bg-[#fffefa]">
           <div className="shrink-0 border-b border-foreground/10 px-5 pb-2 pt-2">
             <div className="flex h-9 items-center justify-between gap-3">
-              <div className="grid h-8 w-[184px] grid-cols-2 rounded-full border border-foreground/55 bg-[#f7f5ef] p-0.5 shadow-[inset_0_1px_2px_rgba(25,22,18,0.10)]">
+              <div className="grid h-8 w-[176px] grid-cols-2 rounded-full border border-foreground/18 bg-white p-0.5 shadow-[inset_0_0_0_1px_rgba(20,20,20,0.03)]">
                 <button
                   type="button"
                   onClick={() => switchKind('event')}
@@ -478,7 +477,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   className={cn(
                     'rounded-full border text-[12px] font-bold transition-colors',
                     isEvent
-                      ? 'border-primary/50 bg-white text-primary shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
+                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
                       : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
@@ -491,7 +490,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                   className={cn(
                     'rounded-full border text-[12px] font-bold transition-colors',
                     !isEvent
-                      ? 'border-primary/50 bg-white text-primary shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
+                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
                       : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
                   )}
                 >
@@ -541,11 +540,11 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       onChange={(event) => setStartDate(event.target.value)}
                       className={cn(fieldInputClass, 'w-full')}
                     />
-                    <input
-                      type="time"
+                    <AnalogClockTimePicker
                       value={startTime}
-                      onChange={(event) => setStartTime(event.target.value)}
-                      className={cn(fieldInputClass, 'w-full min-w-[136px]')}
+                      onChange={setStartTime}
+                      triggerAriaLabel="시작 시간 선택"
+                      triggerClassName="min-w-[136px]"
                     />
                   </div>
                 </Row>
@@ -553,9 +552,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                 <Row icon={<Clock3 className="h-4 w-4" />} label="길이">
                   <DurationPicker
                     duration={duration}
-                    customOpen={customDurationOpen}
                     onDurationChange={setDuration}
-                    onCustomOpenChange={setCustomDurationOpen}
                   />
                 </Row>
               </div>
@@ -688,7 +685,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               </Row>
 
               <Row icon={<Bell className="h-4 w-4" />} label="알림">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex flex-wrap gap-1.5">
                     {PLANNER_REMINDER_OPTIONS.map((option) => {
                       const active = option.minutes === null
@@ -710,40 +707,74 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                         </button>
                       );
                     })}
-                    <button
-                      type="button"
-                      onClick={() => setCustomReminderOpen((current) => !current)}
-                      className={cn(
-                        'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
-                        customReminderOpen
-                          ? 'border-primary/45 bg-primary/10 text-primary'
-                          : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      직접
-                    </button>
+                    {(() => {
+                      // 저장된 분이 4개 preset (null/0/5/10) 아니면 "직접" 이 active.
+                      const presetMinutes = PLANNER_REMINDER_OPTIONS.map((option) => option.minutes);
+                      const savedMinute = reminderMinutes?.[0];
+                      const savedIsCustom = savedMinute !== undefined && !presetMinutes.includes(savedMinute);
+                      const customActive = customReminderOpen || savedIsCustom;
+                      return (
+                        <Popover open={customReminderOpen} onOpenChange={setCustomReminderOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
+                                customActive
+                                  ? 'border-primary/45 bg-primary/10 text-primary'
+                                  : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
+                              )}
+                            >
+                              직접
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="end"
+                            side="bottom"
+                            sideOffset={6}
+                            // z-[60] — Dialog content (z-50) 위로 띄움.
+                            className="z-[60] w-56 rounded-xl border-foreground/14 p-3"
+                          >
+                            <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+                              알림 직접 입력
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={43200}
+                                  step={1}
+                                  value={customReminderInput}
+                                  onChange={(event) => setCustomReminderInput(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      handleCustomReminderApply();
+                                    }
+                                  }}
+                                  autoFocus
+                                  aria-label="알림 시간 (분 전)"
+                                  className="h-9 w-full rounded-lg border border-foreground/14 bg-background pl-3 pr-12 text-[14px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+                                />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-muted-foreground">
+                                  분 전
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleCustomReminderApply}
+                                className="h-9 shrink-0 rounded-lg bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
+                              >
+                                적용
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()}
                   </div>
-                  {customReminderOpen && (
-                    <div className="flex max-w-[280px] items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={43200}
-                        step={1}
-                        value={customReminderInput}
-                        onChange={(event) => setCustomReminderInput(event.target.value)}
-                        className={cn(fieldInputClass, 'w-24')}
-                      />
-                      <span className="text-[12px] font-semibold text-muted-foreground">분 전</span>
-                      <button
-                        type="button"
-                        onClick={handleCustomReminderApply}
-                        className="h-8 rounded-md bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
-                      >
-                        적용
-                      </button>
-                    </div>
-                  )}
                   {notificationPermission() === 'denied' && (
                     <p className="text-[11px] font-medium text-rose-500">
                       브라우저에서 알림 권한이 차단되어 있어요.
@@ -764,51 +795,47 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-foreground/10 bg-[#fffefa] px-5 py-3 sm:justify-end sm:space-x-0">
-            {mode.kind === 'schedule' && (
-              isSeriesInstance ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        footerButtonBaseClass,
-                        'border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100',
-                      )}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      삭제
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleDelete('this')}>이번 항목만 건너뛰기</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
-                      전체 반복 삭제
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleDelete('all')}
-                  className={cn(
-                    footerButtonBaseClass,
-                    'border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100',
-                  )}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  삭제
-                </button>
-              )
-            )}
+          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2 sm:justify-between">
+            <div>
+              {mode.kind === 'schedule' && (
+                isSeriesInstance ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        삭제
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleDelete('this')}>이번 항목만 건너뛰기</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete('all')} className="text-rose-500 focus:text-rose-500">
+                        전체 반복 삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete('all')}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold text-rose-500 hover:bg-rose-500/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    삭제
+                  </button>
+                )
+              )}
+            </div>
 
             {isSeriesInstance ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className={cn(footerButtonBaseClass, 'bg-foreground text-background hover:bg-foreground/90')}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
                   >
                     저장 범위
                     <ChevronDown className="h-3.5 w-3.5" />
@@ -824,7 +851,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               <button
                 type="button"
                 onClick={handleSubmit}
-                className={cn(footerButtonBaseClass, 'bg-foreground text-background hover:bg-foreground/90')}
+                className="inline-flex h-9 min-w-[72px] items-center justify-center rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
               >
                 {mode.kind === 'schedule' ? '저장' : '추가'}
               </button>
@@ -836,52 +863,67 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   );
 };
 
+/**
+ * 길이 선택 — 빠른 칩 3개 + 분 단위 직접 입력 input (한 줄).
+ *
+ * 이전 "직접" popover 는 한 단계 더 클릭해야 해서 번거로웠다. WeekScheduleTimePrompt
+ * 와 같은 패턴으로 마지막 자리에 분 input 을 인라인 배치 — 칩으로 빠르게 또는
+ * input 으로 정밀하게.
+ */
 const DurationPicker = ({
   duration,
-  customOpen,
   onDurationChange,
-  onCustomOpenChange,
 }: {
   duration: number;
-  customOpen: boolean;
   onDurationChange: (duration: number) => void;
-  onCustomOpenChange: (open: boolean) => void;
-}) => (
-  <div className="space-y-2">
-    <div className="grid grid-cols-4 gap-1.5">
+}) => {
+  // input 직접 입력 흐름 자연스럽게 (backspace 로 빈 문자열 잠깐 허용) — string 으로 보관.
+  const [durationInput, setDurationInput] = useState(String(duration));
+  // 외부 duration 변경 (preset chip 클릭) 시 input value 도 같이 갱신.
+  useEffect(() => {
+    setDurationInput(String(duration));
+  }, [duration]);
+
+  const handleInputChange = (raw: string) => {
+    setDurationInput(raw);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      onDurationChange(Math.min(1440, Math.floor(n)));
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
       {DURATION_PRESETS.map((value) => (
         <Pill
           key={value}
-          active={duration === value && !customOpen}
-          onClick={() => {
-            onDurationChange(value);
-            onCustomOpenChange(false);
-          }}
-          className="px-1"
+          active={duration === value}
+          onClick={() => onDurationChange(value)}
+          className="flex-1 px-1"
         >
           {formatDurationMinutes(value)}
         </Pill>
       ))}
-      <Pill active={customOpen} onClick={() => onCustomOpenChange(true)} className="px-1">
-        직접
-      </Pill>
-    </div>
-    {customOpen && (
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <span className="mx-0.5 h-6 w-px bg-foreground/10" aria-hidden />
+      <label className="relative inline-flex items-center">
+        <span className="sr-only">길이 직접 입력 (분)</span>
         <input
           type="number"
+          inputMode="numeric"
           min={5}
-          max={720}
+          max={1440}
           step={5}
-          value={duration}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            if (Number.isFinite(next)) onDurationChange(Math.max(5, Math.min(720, next)));
-          }}
-          className={fieldInputClass}
+          value={durationInput}
+          onChange={(event) => handleInputChange(event.target.value)}
+          placeholder="0"
+          aria-label="길이 직접 입력 (분)"
+          className="h-8 w-[68px] rounded-lg border border-foreground/14 bg-background pl-2 pr-6 text-[12px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
         />
-        <span className="text-[11.5px] font-bold text-muted-foreground">분</span>
-      </div>
-    )}
-  </div>
-);
+        <span className="pointer-events-none absolute right-2 text-[10.5px] font-semibold text-muted-foreground">
+          분
+        </span>
+      </label>
+    </div>
+  );
+};
+

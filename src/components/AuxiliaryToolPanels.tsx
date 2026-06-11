@@ -142,40 +142,51 @@ export function AuxiliaryMemoTool() {
     setDraft(memo.body);
   };
 
-  if (editingMemo) {
-    return (
-      <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'flex flex-col overflow-hidden py-0')}>
+  // 편집 모드 / 목록 모드를 명확히 분리한다.
+  // 같은 사이드바 안에 ToolIntro 헤더가 그대로 떠 있으면 "지금 뭘 하고 있는지" 가 모호하다.
+  // 편집 모드에선 ToolIntro 를 숨기고, [← 목록 + 제목/날짜 + 열기/저장] 헤더 + 큰 textarea
+  // 두 영역으로 구조를 재구성.
+  return (
+    <div
+      className={cn(
+        'min-h-0 flex-1 px-3 py-3',
+        editingMemo
+          ? 'flex flex-col overflow-hidden'
+          : 'overflow-y-auto overscroll-contain space-y-2.5',
+      )}
+    >
+      {editingMemo ? (
         <section className="flex min-h-0 flex-1 flex-col">
-          <header className="-mx-3 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] bg-background/95 px-3 py-2.5">
+          <header className="mb-2.5 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setEditingId(null)}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="목록으로 돌아가기"
+              title="목록"
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <ArrowLeft className="h-3 w-3" strokeWidth={2.4} />
               목록
             </button>
-            <div className="min-w-0 flex-1 border-l border-[hsl(var(--hairline))] pl-2.5">
-              <div className="truncate text-[13.5px] font-extrabold leading-5 text-foreground">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-bold leading-tight text-foreground">
                 {memoTitle(editingMemo)}
-              </div>
-              <div className="mt-0.5 text-[10.5px] font-semibold leading-none text-muted-foreground">
-                {memoTimeLabel(editingMemo.updatedAt)}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <ToolRouteButton
                 to={`/memos?id=${editingMemo.id}`}
-                className="inline-flex h-8 items-center rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
+                <ExternalLink className="h-3 w-3" />
                 열기
               </ToolRouteButton>
               <button
                 type="button"
                 onClick={saveEdit}
-                className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                <Check className="h-3 w-3" strokeWidth={2.4} />
                 저장
               </button>
             </div>
@@ -183,60 +194,57 @@ export function AuxiliaryMemoTool() {
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="min-h-0 flex-1 resize-none bg-transparent px-0.5 py-4 text-[13px] leading-7 text-foreground outline-none placeholder:text-muted-foreground/55"
             placeholder="메모를 적어보세요..."
+            className="min-h-0 flex-1 resize-none rounded-xl border border-[hsl(var(--hairline))] bg-card/65 px-3.5 py-3 text-[13px] leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/12"
           />
         </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
-      <ToolIntro
-        title="최근 메모"
-        description="사이드바에서 메모를 확인하고 바로 고칩니다."
-        action={
-          <ToolGhostButton onClick={createMemo}>
-            <Plus className="h-3 w-3" />
-            새 메모
-          </ToolGhostButton>
-        }
-      />
-
-      {activeMemos.length === 0 ? (
-        <ToolEmpty
-          icon={<FileText className="h-4 w-4" />}
-          title="보여줄 메모가 없어요"
-          description="새 메모를 만들면 이곳에서 바로 열고 수정할 수 있어요."
-        />
       ) : (
-        activeMemos.map((memo) => (
-          <button
-            key={memo.id}
-            type="button"
-            onClick={() => startEdit(memo)}
-            className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
-          >
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-semibold text-foreground">
-                  {memo.pinned && <span className="mr-1 text-primary">고정</span>}
-                  {memoTitle(memo)}
+        <>
+          <ToolIntro
+            title="최근 메모"
+            description="사이드바에서 메모를 확인하고 바로 고칩니다."
+            action={
+              <ToolGhostButton onClick={createMemo}>
+                <Plus className="h-3 w-3" />
+                새 메모
+              </ToolGhostButton>
+            }
+          />
+          {activeMemos.length === 0 ? (
+            <ToolEmpty
+              icon={<FileText className="h-4 w-4" />}
+              title="보여줄 메모가 없어요"
+              description="새 메모를 만들면 이곳에서 바로 열고 수정할 수 있어요."
+            />
+          ) : (
+            activeMemos.map((memo) => (
+              <button
+                key={memo.id}
+                type="button"
+                onClick={() => startEdit(memo)}
+                className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-semibold text-foreground">
+                      {memo.pinned && <span className="mr-1 text-primary">고정</span>}
+                      {memoTitle(memo)}
+                    </div>
+                    {memoPreview(memo) && (
+                      <p className="mt-1 line-clamp-2 text-[11.5px] leading-5 text-muted-foreground">
+                        {memoPreview(memo)}
+                      </p>
+                    )}
+                  </div>
+                  <time className="shrink-0 text-[10.5px] text-muted-foreground">
+                    {memoTimeLabel(memo.updatedAt)}
+                  </time>
+                  <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
-                {memoPreview(memo) && (
-                  <p className="mt-1 line-clamp-2 text-[11.5px] leading-5 text-muted-foreground">
-                    {memoPreview(memo)}
-                  </p>
-                )}
-              </div>
-              <time className="shrink-0 text-[10.5px] text-muted-foreground">
-                {memoTimeLabel(memo.updatedAt)}
-              </time>
-              <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
-          </button>
-        ))
+              </button>
+            ))
+          )}
+        </>
       )}
     </div>
   );
@@ -277,46 +285,60 @@ export function AuxiliaryWikiTool() {
     const next = { ...editingPage, body: draftBody, updatedAt: Date.now() };
     await upsertPage(next);
     setPages((current) => current.map((page) => (page.id === next.id ? next : page)));
+    setEditingId(null);
   };
 
-  if (editingPage) {
-    const pageTypeLabel = WIKI_TYPE_META[editingPage.type]?.label ?? '문서';
-    const tagLabel = editingPage.tags.length > 0 ? `#${editingPage.tags.slice(0, 2).join(' #')}` : '';
-
-    return (
-      <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'flex flex-col overflow-hidden py-0')}>
+  // 메모와 동일한 편집/목록 명확 분리. 편집 모드에선 ToolIntro 헤더 숨김 + 큰 textarea 영역.
+  return (
+    <div
+      className={cn(
+        'min-h-0 flex-1 px-3 py-3',
+        editingPage
+          ? 'flex flex-col overflow-hidden'
+          : 'overflow-y-auto overscroll-contain space-y-2.5',
+      )}
+    >
+      {editingPage ? (
         <section className="flex min-h-0 flex-1 flex-col">
-          <header className="-mx-3 flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] bg-background/95 px-3 py-2.5">
+          <header className="mb-2.5 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setEditingId(null)}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="목록으로 돌아가기"
+              title="목록"
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <ArrowLeft className="h-3 w-3" strokeWidth={2.4} />
               목록
             </button>
-            <div className="min-w-0 flex-1 border-l border-[hsl(var(--hairline))] pl-2.5">
-              <div className="truncate text-[13.5px] font-extrabold leading-5 text-foreground">
-                {editingPage.title}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="text-sm" aria-hidden>
+                  {WIKI_TYPE_META[editingPage.type]?.icon ?? '📄'}
+                </span>
+                <span className="truncate text-[13px] font-bold leading-tight text-foreground">
+                  {editingPage.title}
+                </span>
               </div>
-              <div className="mt-0.5 truncate text-[10.5px] font-semibold leading-none text-muted-foreground">
-                {pageTypeLabel}{tagLabel ? ` · ${tagLabel}` : ''}
+              <div className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">
+                {WIKI_TYPE_META[editingPage.type]?.label ?? '문서'}
+                {editingPage.tags.length > 0 ? ` · #${editingPage.tags.slice(0, 2).join(' #')}` : ''}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <ToolRouteButton
                 to="/wiki"
-                className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
+                <ExternalLink className="h-3 w-3" />
                 열기
-                <ExternalLink className="h-3 w-3" strokeWidth={2.2} />
               </ToolRouteButton>
               <button
                 type="button"
                 onClick={() => void savePage()}
-                className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                <Check className="h-3 w-3" strokeWidth={2.4} />
                 저장
               </button>
             </div>
@@ -324,75 +346,72 @@ export function AuxiliaryWikiTool() {
           <textarea
             value={draftBody}
             onChange={(event) => setDraftBody(event.target.value)}
-            className="min-h-0 flex-1 resize-none bg-transparent px-0.5 py-4 text-[13px] leading-7 text-foreground outline-none placeholder:text-muted-foreground/55"
             placeholder="위키 문서를 정리해보세요..."
+            className="min-h-0 flex-1 resize-none rounded-xl border border-[hsl(var(--hairline))] bg-card/65 px-3.5 py-3 text-[12.5px] leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/12"
           />
         </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
-      <ToolIntro
-        title="위키 문서"
-        description="문서를 읽고 필요한 부분을 바로 정리합니다."
-        action={
-          <ToolRouteButton to="/wiki" className={TOOL_GHOST_BUTTON_CLASS}>
-            전체
-            <ExternalLink className="h-3 w-3" />
-          </ToolRouteButton>
-        }
-      />
-
-      {loading ? (
-        <ToolEmpty
-          icon={<BookOpen className="h-4 w-4" />}
-          title="위키를 불러오는 중"
-          description="잠시만 기다려주세요."
-        />
-      ) : pages.length === 0 ? (
-        <ToolEmpty
-          icon={<BookOpen className="h-4 w-4" />}
-          title="보여줄 위키 문서가 없어요"
-          description="마이위키에서 문서를 만들면 여기에 바로 나타납니다."
-        />
       ) : (
-        pages.map((page) => (
-          <button
-            key={page.id}
-            type="button"
-            onClick={() => startEditPage(page)}
-            className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
-          >
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 shrink-0 text-sm" aria-hidden>
-                {WIKI_TYPE_META[page.type]?.icon ?? '📄'}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-semibold text-foreground">
-                  {page.title}
-                </div>
-                <p className="mt-1 line-clamp-3 text-[11.5px] leading-5 text-muted-foreground">
-                  {cleanReadableWikiText(page.body) || '본문이 아직 비어 있어요.'}
-                </p>
-                {page.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {page.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+        <>
+          <ToolIntro
+            title="위키 문서"
+            description="문서를 읽고 필요한 부분을 바로 정리합니다."
+            action={
+              <ToolRouteButton to="/wiki" className={TOOL_GHOST_BUTTON_CLASS}>
+                전체
+                <ExternalLink className="h-3 w-3" />
+              </ToolRouteButton>
+            }
+          />
+          {loading ? (
+            <ToolEmpty
+              icon={<BookOpen className="h-4 w-4" />}
+              title="위키를 불러오는 중"
+              description="잠시만 기다려주세요."
+            />
+          ) : pages.length === 0 ? (
+            <ToolEmpty
+              icon={<BookOpen className="h-4 w-4" />}
+              title="보여줄 위키 문서가 없어요"
+              description="마이위키에서 문서를 만들면 여기에 바로 나타납니다."
+            />
+          ) : (
+            pages.map((page) => (
+              <button
+                key={page.id}
+                type="button"
+                onClick={() => startEditPage(page)}
+                className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
+              >
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0 text-sm" aria-hidden>
+                    {WIKI_TYPE_META[page.type]?.icon ?? '📄'}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-semibold text-foreground">
+                      {page.title}
+                    </div>
+                    <p className="mt-1 line-clamp-3 text-[11.5px] leading-5 text-muted-foreground">
+                      {cleanReadableWikiText(page.body) || '본문이 아직 비어 있어요.'}
+                    </p>
+                    {page.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {page.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
-          </button>
-        ))
+                  <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+              </button>
+            ))
+          )}
+        </>
       )}
     </div>
   );

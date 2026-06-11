@@ -21,20 +21,10 @@ import { taskListStore } from '@/services/planner/taskListStore';
 import { TASK_LIST_COLORS, PLANNER_LIST_CHANGED, type PlannerTask } from '@/types/planner';
 import { compareTodoTasks } from '@/lib/planner/todoOrder';
 import { formatDurationRange } from '@/lib/formatDuration';
-import { overlappingLocalDayKeys } from '@/lib/planner/dateBuckets';
+import { overlappingLocalDayKeys, timeLabelForLocalDay } from '@/lib/planner/dateBuckets';
 import { weekDropHintLabel } from '@/lib/planner/weekDropHint';
 
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-
-const formatWeekClock = (iso: string): string => {
-  const date = new Date(iso);
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-};
-
-const formatWeekTimeRange = (startIso: string, endIso: string): string =>
-  `${formatWeekClock(startIso)} ~ ${formatWeekClock(endIso)}`;
 
 interface WeekViewProps {
   /** 주의 기준 날짜 (이 날 포함 일~토 7일). */
@@ -323,10 +313,9 @@ export const WeekView = ({ anchorIso, onDayClick, onCreateEvent, onCreateTask, o
                               variant="block"
                               kind={item.kind}
                               title={item.data.title}
-                              startLabel={formatWeekTimeRange(startAt, endAt)}
+                              startLabel={timeLabelForLocalDay(startAt, d.key)}
                               durationLabel={item.durationLabel || undefined}
                               overlapping={item.overlapping}
-                              hideLeftAccent
                               done={item.kind === 'task' ? item.data.done : false}
                               color={blockColor}
                               priority={undefined}

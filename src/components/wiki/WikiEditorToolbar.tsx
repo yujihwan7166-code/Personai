@@ -53,9 +53,9 @@ const HIGHLIGHTS = [
 export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
   if (!editor) return null;
   return (
-    <div className="wiki-editor-toolbar-shell sticky top-0 z-20 mb-4 -mx-1 px-1">
-      <div className="wiki-editor-toolbar">
-        <div className="wiki-editor-toolbar-row flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1.5" role="toolbar" aria-label="문서 편집 도구">
+    <div className="sticky top-0 z-20 mb-4 -mx-1 px-1">
+      <div className="rounded-lg border border-foreground/10 bg-background/95 px-2 py-2 shadow-[0_10px_28px_-24px_hsl(var(--foreground)/0.32)] backdrop-blur">
+        <div className="flex min-h-9 flex-wrap items-center gap-1.5" role="toolbar" aria-label="문서 편집 도구">
           <ToolbarGroup>
             <span className="hidden px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70 sm:inline">
               서식
@@ -100,7 +100,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
           <TableInsertDropdown editor={editor} />
           </ToolbarGroup>
 
-          <ToolbarGroup>
+          <ToolbarGroup className="ml-0 xl:ml-auto">
             <ToolbarBtn active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="왼쪽 정렬"><AlignLeft className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="가운데 정렬"><AlignCenter className="w-3.5 h-3.5" /></ToolbarBtn>
             <ToolbarBtn active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="오른쪽 정렬"><AlignRight className="w-3.5 h-3.5" /></ToolbarBtn>
@@ -118,7 +118,7 @@ export function WikiEditorToolbar({ editor, onPickPage, onPickImage }: Props) {
 function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn(
-      'wiki-toolbar-group flex h-8 shrink-0 items-center gap-0.5 rounded-md px-0.5',
+      'flex h-8 shrink-0 items-center gap-0.5 rounded-md bg-muted/35 px-1 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.045)]',
       className,
     )}>
       {children}

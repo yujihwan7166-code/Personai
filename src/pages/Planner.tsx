@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Clock3,
   ListTodo,
   Plus,
   Search,
@@ -40,11 +39,8 @@ import {
   DragOverlay,
   PointerSensor,
   KeyboardSensor,
-  pointerWithin,
-  rectIntersection,
   useSensor,
   useSensors,
-  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   type DragMoveEvent,
@@ -56,6 +52,7 @@ import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { PlannerTrashDialog } from '@/components/planner/PlannerTrashDialog';
 import { PlannerLibraryPanel } from '@/components/planner/PlannerLibraryPanel';
 import { TodayTimeline } from '@/components/planner/TodayTimeline';
+import { AnalogClockTimePicker } from '@/components/planner/AnalogClockTimePicker';
 import { TodayScheduledList } from '@/components/planner/TodayScheduledList';
 import { TodayTodoList } from '@/components/planner/TodayTodoList';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
@@ -87,7 +84,7 @@ import { notify } from '@/lib/notify';
 import { editThisOnly } from '@/lib/planner/seriesEdit';
 import { isInstanceId, parseInstanceId } from '@/lib/planner/recurrence';
 import { getSnapMin } from '@/lib/planner/snapMin';
-import { moveIntervalToLocalDayStart } from '@/lib/planner/timeRange';
+import { clampStartToLocalDay } from '@/lib/planner/timeRange';
 import { nextHalfHourSlot } from '@/lib/planner/timeSlots';
 import { buildWeekSchedulePatch, buildWeekTodoMovePatch, defaultWeekScheduleTime } from '@/lib/planner/weekDrag';
 import { nextTodoOrderForDay } from '@/lib/planner/todoOrder';
@@ -105,10 +102,6 @@ import {
 import { cn } from '@/lib/utils';
 
 const taskStoreSnapshot = () => taskStore.list();
-const plannerCollisionDetection: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args);
-  return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args);
-};
 const PLANNER_VIEW_STORAGE_KEY = 'planner.view.v1';
 const PLANNER_VIEWS: PlannerView[] = ['day', 'week', 'month', 'year', 'habits'];
 const isPlannerView = (value: string | null): value is PlannerView =>
@@ -975,12 +968,16 @@ const Planner = () => {
 
   // 드래그 중 미리보기 상태 — DragOverlay 가 사용.
   const [activeDrag, setActiveDrag] = useState<{ data: PlannerDragData; deltaY: number } | null>(null);
+  // 드래그 시작 시점 타임라인 scrollTop — handleDragEnd 에서 자동 스크롤만큼 보상하기 위해.
+  const dragInitialScrollTop = useRef<number | null>(null);
   const dragCopyModeRef = useRef(false);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     const data = e.active.data.current as PlannerDragData | undefined;
     if (data) setActiveDrag({ data, deltaY: 0 });
     dragCopyModeRef.current = isCopyModifierEvent((e as DragStartEvent & { activatorEvent?: Event }).activatorEvent);
+    const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
+    dragInitialScrollTop.current = container ? container.scrollTop : null;
   }, []);
 
   useEffect(() => {
@@ -1002,6 +999,7 @@ const Planner = () => {
 
   const handleDragCancel = useCallback(() => {
     setActiveDrag(null);
+    dragInitialScrollTop.current = null;
     dragCopyModeRef.current = false;
   }, []);
 
@@ -1113,7 +1111,9 @@ const Planner = () => {
       ? (rawDropData as PlannerDropData)
       : undefined;
     setActiveDrag(null);
-    // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 상태를 쓰는 버그 방지.
+    // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 보정값 사용하는 버그 방지.
+    const initialScrollTop = dragInitialScrollTop.current;
+    dragInitialScrollTop.current = null;
     const copyDrag = dragCopyModeRef.current;
     dragCopyModeRef.current = false;
 
@@ -1244,9 +1244,8 @@ const Planner = () => {
       return;
     }
 
-    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지) ───
-    // 긴 블록은 rect 교차량이 아니라 포인터가 놓인 시간 슬롯을 새 시작점으로 삼는다.
-    // 종료 시각은 자정에 자르지 않는다. 예: 22:00 + 4시간 = 다음날 02:00.
+    // ─── 시간 블록 → 시간 슬롯: 시간 변경 (길이 유지, 15분 스냅) ───
+    // delta.y 기반 정밀 이동 — slot 의 30분 boundary 가 아니라 마우스 이동량으로 결정.
     if (
       (dragData.kind === 'scheduled-task' || dragData.kind === 'scheduled-event') &&
       dropData.kind === 'time-slot'
@@ -1256,18 +1255,25 @@ const Planner = () => {
         notify.warning('이 항목은 시간이 없어 이동할 수 없어요', { duration: 1500 });
         return;
       }
+      const HOUR_PX = 56;
+      const oldStart = new Date(item.startAt);
+      const oldEnd = new Date(item.endAt);
+      const dur = oldEnd.getTime() - oldStart.getTime();
       const snap = getSnapMin();
-      const moved = moveIntervalToLocalDayStart(
-        item.startAt,
-        item.endAt,
+      // 자동 스크롤 보상 — 드래그 중 컨테이너가 스크롤된 만큼 e.delta.y 에 더함.
+      const container = document.querySelector<HTMLElement>('[data-timeline-scroll="true"]');
+      const scrollDelta = container && initialScrollTop !== null
+        ? container.scrollTop - initialScrollTop
+        : 0;
+      const adjustedDeltaY = e.delta.y + scrollDelta;
+      const deltaMinutes = Math.round((adjustedDeltaY / HOUR_PX) * 60 / snap) * snap; // 사용자 스냅 단위
+      const newStartDate = clampStartToLocalDay(
+        new Date(oldStart.getTime() + deltaMinutes * 60_000),
         dropData.startIso,
-        dropData.startIso,
-        snap * 60_000,
+        dur,
       );
-      const newStart = moved.startAt;
-      const newEnd = moved.endAt;
-      const newStartDate = new Date(newStart);
-      const dur = moved.durationMs;
+      const newStart = newStartDate.toISOString();
+      const newEnd = new Date(newStartDate.getTime() + dur).toISOString();
       const restoreTask = dragData.kind === 'scheduled-task' ? taskDragRestorePatch(dragData.task) : null;
       const restoreEvent = dragData.kind === 'scheduled-event' ? eventDragRestorePatch(dragData.event) : null;
 
@@ -1688,7 +1694,6 @@ const Planner = () => {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={plannerCollisionDetection}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
@@ -2008,7 +2013,7 @@ const Planner = () => {
               </div>
 
               <div
-                className="hidden h-8 shrink-0 items-center gap-0.5 rounded-[10px] border border-foreground/32 bg-[#f7f5ef] p-0.5 shadow-[inset_0_1px_2px_hsl(var(--foreground)/0.07),0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
+                className="hidden h-8 shrink-0 items-center rounded-lg border border-foreground/35 bg-card p-0.5 shadow-[0_6px_16px_-14px_hsl(var(--foreground)/0.35)] min-[1180px]:inline-flex"
                 role="tablist"
                 aria-label="플래너 보기"
               >
@@ -2023,21 +2028,15 @@ const Planner = () => {
                       aria-selected={active}
                       onClick={() => setView(nextView)}
                       className={cn(
-                        'relative inline-flex h-7 min-w-8 items-center justify-center rounded-[8px] px-2 text-[12px] font-semibold leading-none transition-colors',
+                        'inline-flex h-7 min-w-8 items-center justify-center rounded-[7px] px-2 text-[12px] font-semibold leading-none transition-all',
                         active
-                          ? 'border border-primary/25 bg-white text-foreground shadow-[0_1px_4px_hsl(var(--foreground)/0.10)]'
-                          : 'border border-transparent text-foreground/62 hover:bg-white/45 hover:text-foreground/86',
+                          ? 'border border-primary/20 bg-primary/[0.075] text-primary shadow-[0_1px_5px_hsl(var(--primary)/0.16)]'
+                          : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
                         nextView === 'habits' && 'min-w-10',
                       )}
                       title={`${meta.label} (${meta.shortcut})`}
                     >
                       {meta.label}
-                      {active && (
-                        <span
-                          aria-hidden
-                          className="absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-primary/70"
-                        />
-                      )}
                     </button>
                   );
                 })}
@@ -2370,35 +2369,29 @@ export const WeekScheduleTimePrompt = ({
   onConfirm: (time: string, durationMin: number) => void;
 }) => {
   useScrollLock(true);
-  const initialStartTime = defaultWeekScheduleTime(pending.dayKey);
-  const [startTime, setStartTime] = useState(initialStartTime);
-  const [endTime, setEndTime] = useState(() => addMinutesToTime(initialStartTime, 60));
-  const startInputRef = useRef<HTMLInputElement>(null);
-  const endInputRef = useRef<HTMLInputElement>(null);
+  const [time, setTime] = useState(() => defaultWeekScheduleTime(pending.dayKey));
+  /** 길이는 string 으로 보관 — input 직접 입력 흐름을 자연스럽게(빈 문자열 잠깐 허용). */
+  const [durationInput, setDurationInput] = useState('60');
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useFocusTrap<HTMLElement>(true);
   const backdropHandlers = useBackdropDismiss<HTMLDivElement>(onClose);
-  const headingId = useId();
   const titleId = useId();
   const descId = useId();
   const selectionId = useId();
   const dateLabel = formatDragDate(`${pending.dayKey}T00:00:00`);
-  const durationMin = durationBetweenTimes(startTime, endTime);
-  const selectedDurationLabel = formatDurationMinutes(durationMin);
-  const crossesMidnight = parseTimeToMinutes(endTime) <= parseTimeToMinutes(startTime);
-  const rangeLabel = `${startTime} ~ ${endTime} · ${selectedDurationLabel}`;
+  /** 핵심 길이 3종 — 그 외는 우측 분 input 에 직접 입력. */
+  const durations: number[] = [30, 60, 120];
+  /** durationInput 의 안전한 숫자 변환 — 빈/0/NaN 은 60(1시간) 으로 폴백. */
+  const safeDuration = useMemo(() => {
+    const n = Number(durationInput);
+    if (!Number.isFinite(n) || n <= 0) return 60;
+    return Math.min(1440, Math.floor(n));
+  }, [durationInput]);
+  const selectedDurationLabel = formatDurationMinutes(safeDuration);
 
   useEffect(() => {
-    startInputRef.current?.focus();
-    startInputRef.current?.select();
+    triggerRef.current?.focus();
   }, []);
-
-  const submit = () => onConfirm(startTime, durationMin);
-
-  const updateStartTime = (nextTime: string) => {
-    const currentDuration = durationBetweenTimes(startTime, endTime);
-    setStartTime(nextTime);
-    setEndTime(addMinutesToTime(nextTime, currentDuration));
-  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
@@ -2407,19 +2400,26 @@ export const WeekScheduleTimePrompt = ({
       onClose();
       return;
     }
-    if (
-      event.key === 'Enter'
-      && (event.target === startInputRef.current || event.target === endInputRef.current)
-    ) {
+    if (event.key === 'Enter' && event.target === triggerRef.current) {
       event.preventDefault();
       event.stopPropagation();
-      submit();
+      onConfirm(time, safeDuration);
     }
+  };
+
+  const handleOptionKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    select: () => void,
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    select();
   };
 
   return (
     <div
-      className="fixed inset-0 z-[55]"
+      className="fixed inset-0 z-[55] bg-foreground/10 backdrop-blur-[1.5px]"
       role="presentation"
       {...backdropHandlers}
     >
@@ -2427,84 +2427,104 @@ export const WeekScheduleTimePrompt = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={`${headingId} ${titleId}`}
+        aria-labelledby={titleId}
         aria-describedby={`${descId} ${selectionId}`}
-        className="absolute left-1/2 top-24 w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-foreground/16 bg-card p-3 text-foreground shadow-[0_20px_60px_-28px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/5"
+        className="absolute left-1/2 top-24 w-[min(380px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-foreground/14 bg-card text-foreground shadow-[0_30px_70px_-30px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/[0.04]"
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex items-start justify-between gap-3">
+        {/* ── 헤더 — 제목 + 날짜 한 줄씩, 군더더기 라벨 제거 ── */}
+        <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2.5">
           <div className="min-w-0">
-            <p id={headingId} className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5" strokeWidth={2.2} />
-              시간 정하기
-            </p>
-            <h3 id={titleId} className="mt-1 truncate text-[15px] font-extrabold text-foreground">
+            <h3 id={titleId} className="truncate text-[15px] font-extrabold leading-tight text-foreground">
               {pending.task.title}
             </h3>
             <p id={descId} className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
               {dateLabel} 일정으로 이동
             </p>
             <p id={selectionId} className="sr-only" aria-live="polite">
-              현재 선택: {rangeLabel}{crossesMidnight ? ', 다음날 종료' : ''}
+              현재 선택: {time} 시작, {selectedDurationLabel}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="시간 설정 닫기"
-            title="닫기"
+            title="닫기 (Esc)"
           >
             <X className="h-3.5 w-3.5" strokeWidth={2.2} />
           </button>
         </div>
 
-        <div className="mt-3 rounded-lg border border-foreground/12 bg-background/70 p-2.5">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
-            <label className="min-w-0">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">시작</span>
-              <input
-                ref={startInputRef}
-                data-autofocus="true"
-                type="time"
-                value={startTime}
-                onChange={(event) => updateStartTime(event.target.value)}
-                aria-label="시작 시간"
-                className="h-9 w-full rounded-lg border border-foreground/14 bg-card px-3 text-[13px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-              />
-            </label>
-            <span className="pb-2 text-[13px] font-bold text-muted-foreground" aria-hidden>
-              ~
-            </span>
-            <label className="min-w-0">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">종료</span>
-              <input
-                ref={endInputRef}
-                type="time"
-                value={endTime}
-                onChange={(event) => setEndTime(event.target.value)}
-                aria-label="종료 시간"
-                className="h-9 w-full rounded-lg border border-foreground/14 bg-card px-3 text-[13px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
-              />
-            </label>
+        {/* ── 본문 ── */}
+        <div className="space-y-3 border-t border-foreground/8 px-4 py-3">
+          {/* 시작 */}
+          <div>
+            <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+              시작
+            </p>
+            <AnalogClockTimePicker
+              value={time}
+              onChange={setTime}
+              triggerRef={triggerRef}
+              triggerAriaLabel="시작 시간"
+            />
+          </div>
+
+          {/* 길이 — 빠른 칩 3종 + 분 단위 직접 입력 */}
+          <div>
+            <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
+              길이
+            </p>
+            <div className="flex items-center gap-1.5">
+              {durations.map((duration) => (
+                <button
+                  key={duration}
+                  type="button"
+                  onClick={() => setDurationInput(String(duration))}
+                  onKeyDown={(event) => handleOptionKeyDown(event, () => setDurationInput(String(duration)))}
+                  aria-label={`${formatDurationMinutes(duration)} 길이 선택`}
+                  aria-pressed={safeDuration === duration}
+                  className={cn(
+                    'h-8 flex-1 rounded-lg border text-[11.5px] font-bold tabular-nums transition-colors',
+                    safeDuration === duration
+                      ? 'border-primary/45 bg-primary/10 text-primary'
+                      : 'border-foreground/10 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {formatDurationMinutes(duration)}
+                </button>
+              ))}
+              <span className="mx-0.5 h-6 w-px bg-foreground/10" aria-hidden />
+              <label className="relative inline-flex items-center">
+                <span className="sr-only">길이 직접 입력 (분)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={1440}
+                  value={durationInput}
+                  onChange={(event) => setDurationInput(event.target.value)}
+                  placeholder="0"
+                  aria-label="길이 직접 입력 (분)"
+                  className="h-8 w-[68px] rounded-lg border border-foreground/14 bg-background pl-2 pr-6 text-[11.5px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+                />
+                <span className="pointer-events-none absolute right-2 text-[10.5px] font-semibold text-muted-foreground">
+                  분
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-foreground/10 pt-2.5">
-          <div className="min-w-0">
-            <p className="truncate text-[12px] font-bold tabular-nums text-foreground/82">
-              {rangeLabel}
-            </p>
-            {crossesMidnight && (
-              <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">다음날 종료</p>
-            )}
-          </div>
+        {/* ── CTA ── */}
+        <div className="border-t border-foreground/8 bg-muted/30 px-4 py-3">
           <button
             type="button"
-            onClick={submit}
-            aria-label={`${pending.task.title} ${dateLabel} ${rangeLabel} 일정화`}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-foreground px-4 text-[12.5px] font-bold text-background transition-colors hover:bg-foreground/88"
+            onClick={() => onConfirm(time, safeDuration)}
+            aria-label={`${pending.task.title} ${dateLabel} ${time} 시작 ${selectedDurationLabel} 일정화`}
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-foreground text-[13px] font-extrabold text-background transition-colors hover:bg-foreground/88 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             일정화
           </button>
@@ -2512,33 +2532,6 @@ export const WeekScheduleTimePrompt = ({
       </section>
     </div>
   );
-};
-
-const TIME_FALLBACK_MINUTES = 9 * 60;
-
-const parseTimeToMinutes = (time: string): number => {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!match) return TIME_FALLBACK_MINUTES;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return TIME_FALLBACK_MINUTES;
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return TIME_FALLBACK_MINUTES;
-  return hours * 60 + minutes;
-};
-
-const addMinutesToTime = (time: string, minutes: number): string => {
-  const total = (parseTimeToMinutes(time) + Math.max(15, Math.round(minutes))) % (24 * 60);
-  const hours = Math.floor(total / 60);
-  const mins = total % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-};
-
-const durationBetweenTimes = (startTime: string, endTime: string): number => {
-  const start = parseTimeToMinutes(startTime);
-  const end = parseTimeToMinutes(endTime);
-  const sameDayDuration = end - start;
-  const duration = sameDayDuration > 0 ? sameDayDuration : sameDayDuration + 24 * 60;
-  return Math.max(15, duration);
 };
 
 export default Planner;

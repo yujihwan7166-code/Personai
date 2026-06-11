@@ -132,10 +132,10 @@ export const PlannerDday = () => {
             >
               <span
                 className={cn(
-                  'shrink-0 inline-flex h-[21px] min-w-[46px] items-center justify-center rounded-md border px-1.5 text-[10.5px] font-extrabold tabular-nums tracking-normal',
-                  dd.tone === 'today' && 'border-transparent bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/10',
-                  dd.tone === 'future' && 'border-primary/20 bg-primary/[0.085] text-primary shadow-[inset_0_1px_0_hsl(var(--background)/0.62)]',
-                  dd.tone === 'past' && 'border-foreground/[0.09] bg-foreground/[0.04] text-foreground/52',
+                  'shrink-0 inline-flex h-5 min-w-[42px] items-center justify-center rounded-md px-1.5 text-[9.5px] font-bold tabular-nums tracking-tight border',
+                  dd.tone === 'today' && 'bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-sm shadow-rose-500/10',
+                  dd.tone === 'future' && 'bg-primary/[0.04] text-primary border-primary/10',
+                  dd.tone === 'past' && 'bg-foreground/[0.03] text-foreground/40 border-foreground/[0.06]',
                 )}
               >
                 {dd.label}
@@ -267,7 +267,7 @@ const DdayManagerPopover = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[79] flex items-center justify-center bg-black/35 px-4 transition-opacity"
+      className="fixed inset-0 z-[79] flex items-center justify-center bg-black/30 px-4 backdrop-blur-[2px] transition-opacity"
       data-dday-backdrop="true"
       role="presentation"
       {...backdropHandlers}
@@ -275,7 +275,7 @@ const DdayManagerPopover = ({
       {/* 가로형 중앙 모달 바디 */}
       <div
         ref={trapRef}
-        className="relative z-[80] flex h-[520px] w-[760px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-foreground/14 bg-card font-sans text-card-foreground shadow-[0_28px_70px_rgba(25,22,18,0.20)]"
+        className="relative z-[80] flex h-[460px] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-border/80 bg-popover font-sans text-popover-foreground shadow-[0_32px_80px_rgba(0,0,0,0.16)]"
         data-dday-manager="true"
         role="dialog"
         aria-modal="true"
@@ -283,41 +283,33 @@ const DdayManagerPopover = ({
         aria-describedby={descId}
       >
         {/* 모달 헤더 */}
-        <header className="flex items-start justify-between border-b border-foreground/10 px-6 py-4">
-          <div className="min-w-0">
-            <h2 id={titleId} className="text-[18px] font-extrabold tracking-tight text-foreground">D-day</h2>
+        <header className="flex items-center justify-between border-b border-border/40 px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[20px] select-none" role="img" aria-label="calendar">📅</span>
+            <h2 id={titleId} className="text-[18px] font-black tracking-tight text-foreground font-sans">D-day</h2>
             <p id={descId} className="sr-only">
               시험, 발표, 마감 같은 중요한 날짜를 추가하고 수정합니다.
-            </p>
-            <p className="mt-1 text-[12px] font-medium text-muted-foreground">
-              중요한 날짜를 왼쪽에서 확인하고 오른쪽에서 추가합니다.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="D-day 관리 닫기"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           >
             <X className="h-4.5 w-4.5" />
           </button>
         </header>
 
         {/* 좌우 2분할 콘텐츠 영역 */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
           {/* 좌측: 디데이 리스트 */}
-          <div className="flex w-[330px] flex-col border-r border-foreground/10 bg-card">
-            <div className="flex items-center justify-between border-b border-foreground/8 px-5 py-3">
-              <span className="text-[12px] font-bold text-foreground/86">디데이 목록</span>
-              <span className="rounded-full bg-muted/65 px-2 py-0.5 text-[11px] font-bold tabular-nums text-muted-foreground">
-                {items.length}
-              </span>
-            </div>
-            <div className="flex-1 space-y-2 overflow-y-auto p-4">
+          <div className="w-[300px] border-r border-border/40 flex flex-col bg-muted/[0.08]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {items.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-foreground/14 p-4 text-center">
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <span className="text-2xl mb-1.5 select-none opacity-50">⏳</span>
                   <p className="text-[12px] font-bold text-muted-foreground/85">저장된 디데이가 없습니다.</p>
-                  <p className="mt-1 text-[11px] font-medium text-muted-foreground/65">오른쪽에서 새 날짜를 추가하세요.</p>
                 </div>
               ) : (
                 items.map(({ it, dd }) => (
@@ -334,21 +326,18 @@ const DdayManagerPopover = ({
                       startEdit(it);
                     }}
                     className={cn(
-                      'group relative flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25',
+                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all cursor-pointer border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25',
                       editingId === it.id 
-                        ? 'border-primary/28 bg-primary/[0.035]' 
-                        : 'border-foreground/12 bg-card hover:border-foreground/20 hover:bg-accent/30',
+                        ? 'bg-violet-500/[0.05] border-violet-500/20 ring-1 ring-violet-500/10' 
+                        : 'bg-card hover:bg-accent/40 hover:border-border/40',
                     )}
                   >
-                    {editingId === it.id && (
-                      <span className="absolute bottom-3 left-0 top-3 w-0.5 rounded-r-full bg-primary/75" aria-hidden />
-                    )}
                     <span
                       className={cn(
-                        'inline-flex h-[23px] min-w-[50px] shrink-0 items-center justify-center rounded-lg border px-1.5 text-[10px] font-black tabular-nums tracking-normal',
-                        dd.tone === 'today' && 'border-transparent bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-500/10',
-                        dd.tone === 'future' && 'border-primary/20 bg-primary/[0.08] text-primary',
-                        dd.tone === 'past' && 'border-border/50 bg-muted/65 text-muted-foreground',
+                        'inline-flex h-[22px] min-w-[46px] shrink-0 items-center justify-center rounded-lg px-1.5 text-[9px] font-black tabular-nums tracking-tight border',
+                        dd.tone === 'today' && 'bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-sm shadow-rose-500/10',
+                        dd.tone === 'future' && 'bg-violet-50 text-violet-600 border-violet-100 dark:bg-violet-950/30 dark:border-violet-800/40 dark:text-violet-400',
+                        dd.tone === 'past' && 'bg-muted/60 text-muted-foreground border-border/40',
                       )}
                     >
                       {dd.label}
@@ -367,7 +356,7 @@ const DdayManagerPopover = ({
                         if (editingId === it.id) resetForm();
                       }}
                       aria-label={`${it.label} 삭제`}
-                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-rose-500/10 hover:text-rose-500 focus:opacity-100 group-hover:opacity-100"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 inline-flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-all"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -378,10 +367,10 @@ const DdayManagerPopover = ({
           </div>
 
           {/* 우측: 추가 / 편집 폼 */}
-          <div className="flex flex-1 flex-col bg-card">
-            <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-              <div className="flex-1 space-y-5 px-6 py-5">
-                <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 flex flex-col justify-between p-6">
+            <form onSubmit={submit} className="flex-1 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <h3 className="text-[16px] font-extrabold tracking-tight text-foreground">
                     {editingId ? '디데이 수정' : '새 디데이 추가'}
                   </h3>
@@ -389,58 +378,53 @@ const DdayManagerPopover = ({
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="rounded-full border border-foreground/12 bg-muted/40 px-3 py-1 text-[11.5px] font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="text-[11.5px] font-semibold text-violet-600 hover:text-violet-700 transition-colors"
                     >
                       새로 만들기
                     </button>
                   )}
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   <label className="block">
-                    <span className="mb-1.5 block text-[12px] font-bold text-muted-foreground">디데이 이름</span>
+                    <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-muted-foreground/75 uppercase">디데이 이름</span>
                     <input
                       data-autofocus="true"
                       value={label}
                       onChange={(event) => setLabel(event.target.value)}
                       placeholder="예: 기말고사, 발표, 원서 마감"
-                      className="h-12 w-full rounded-lg border border-foreground/14 bg-card px-4 text-[14px] font-medium text-foreground outline-none transition placeholder:text-muted-foreground/55 focus:border-primary/55 focus:ring-2 focus:ring-primary/18"
+                      className="h-11 w-full rounded-2xl border border-border bg-card px-4 text-[13.5px] font-medium text-foreground outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 placeholder:text-muted-foreground/45 shadow-sm"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-[12px] font-bold text-muted-foreground">목표 날짜</span>
+                    <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-muted-foreground/75 uppercase">목표 날짜</span>
                     <input
                       type="date"
                       value={date}
                       onChange={(event) => setDate(event.target.value)}
-                      className="h-12 w-full rounded-lg border border-foreground/14 bg-card px-4 text-[14px] font-semibold text-foreground outline-none transition focus:border-primary/55 focus:ring-2 focus:ring-primary/18"
+                      className="h-11 w-full rounded-2xl border border-border bg-card px-4 text-[13.5px] font-semibold text-foreground outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 shadow-sm"
                     />
                   </label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 border-t border-foreground/10 px-6 py-4">
-                <p className="min-w-0 truncate text-[11.5px] font-medium text-muted-foreground">
-                  {editingId ? '선택한 디데이를 수정 중입니다.' : '새 디데이를 저장합니다.'}
-                </p>
-                <div className="flex shrink-0 items-center gap-2">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/30 mt-4">
                 {editingId && (
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="inline-flex h-10 min-w-[82px] items-center justify-center rounded-lg border border-foreground/12 bg-card px-4 text-[13px] font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="h-10 rounded-2xl px-4 text-[13px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                   >
                     취소
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="inline-flex h-10 min-w-[112px] items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-[13px] font-extrabold text-primary-foreground transition-colors hover:bg-primary/90"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-violet-600 hover:bg-violet-700 px-5 text-[13px] font-extrabold text-white shadow-md shadow-violet-600/15 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {editingId ? <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Plus className="h-4 w-4" strokeWidth={2.5} />}
                   {editingId ? '수정 완료' : '디데이 추가'}
                 </button>
-                </div>
               </div>
             </form>
           </div>

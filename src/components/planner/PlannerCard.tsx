@@ -202,7 +202,7 @@ interface InboxCardProps {
 interface BlockCardProps {
   variant: 'block';
   title: string;
-  /** "14:00 ~ 15:00" 형식. */
+  /** "14:00" 형식. */
   startLabel: string;
   /** Event 면 색 띠, Task 면 회색. */
   kind: 'event' | 'task';
@@ -222,9 +222,8 @@ interface BlockCardProps {
   streakCurrent?: number;
   /** 길이 라벨 — "30분" / "1시간 10분" 등. 시간 옆에 작게. */
   durationLabel?: string;
-  /** 같은 일에 다른 항목과 시간 겹침. */
+  /** 같은 일에 다른 항목과 시간 겹침 — 좌측 분홍 stripe 로 표시. */
   overlapping?: boolean;
-  hideLeftAccent?: boolean;
 }
 
 type PlannerCardProps = (InboxCardProps | BlockCardProps) & { meta?: MetaChip[] };
@@ -245,7 +244,6 @@ const InboxCardInner = (props: InboxCardProps) => {
   const handleEdit = onEdit ?? onClick;
   const [expanded, setExpanded] = useState(false);
   const accent = color ? TASK_LIST_COLORS[color].stripe : undefined;
-  const priorityColor = showFlag ? PRIORITY_COLORS[priority as Priority] : undefined;
   const checkboxAccentStyle = accent
     ? ({
         borderColor: `color-mix(in oklab, ${accent} 76%, hsl(var(--background)))`,
@@ -300,8 +298,7 @@ const InboxCardInner = (props: InboxCardProps) => {
         )}
         {showFlag && (
           <Flag
-            className="h-3 w-3 shrink-0"
-            style={priorityColor ? { color: priorityColor, fill: priorityColor, stroke: priorityColor } : undefined}
+            className="h-3 w-3 shrink-0 text-rose-500 fill-rose-500"
             aria-hidden
           />
         )}
@@ -456,11 +453,11 @@ export const PlannerCard = (props: PlannerCardProps) => {
   }
 
   // variant === 'block'
-  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent, durationLabel, overlapping, hideLeftAccent } = props;
+  const { title, startLabel, kind, done, color, onClick, priority, hasNote, canceled, recurring, subtasks, tags, meta, streakCurrent, durationLabel, overlapping } = props;
   const accent = color ?? (kind === 'event' ? 'hsl(217 82% 58%)' : 'hsl(258 78% 58%)');
   // Semi-transparent blocks keep nearby grid lines readable while preserving the item color.
-  const blockBg = `color-mix(in oklab, ${accent} 16%, hsl(var(--background)))`;
-  const blockBorder = `color-mix(in oklab, ${accent} 46%, hsl(var(--background)))`;
+  const blockBg = `color-mix(in oklab, ${accent} 18%, transparent)`;
+  const blockBorder = `color-mix(in oklab, ${accent} 52%, hsl(var(--background)))`;
   const showFlag = (priority ?? 0) > 0;
   const dim = done || canceled;
   return (
@@ -478,14 +475,10 @@ export const PlannerCard = (props: PlannerCardProps) => {
       style={{
         backgroundColor: blockBg,
         borderColor: blockBorder,
-        borderLeftColor: hideLeftAccent ? 'transparent' : blockBorder,
-        boxShadow: overlapping
-          ? '0 0 0 1px color-mix(in oklab, hsl(347 84% 58%) 34%, transparent)'
-          : undefined,
       }}
       className={cn(
-        'group relative flex items-stretch gap-2 overflow-hidden rounded-md px-2.5 py-1.5 cursor-pointer',
-        'border hover:brightness-[1.025] transition-all',
+        'group relative flex items-stretch gap-2 px-2.5 py-1.5 rounded-md cursor-pointer overflow-hidden',
+        'border hover:brightness-[1.035] transition-all',
         'focus:outline-none focus:ring-1 focus:ring-foreground/40',
         dim && 'opacity-50',
       )}
@@ -494,16 +487,16 @@ export const PlannerCard = (props: PlannerCardProps) => {
         <span
           aria-hidden
           title="다른 항목과 시간 겹침"
-          className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500/75"
+          className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-sm bg-rose-500/70"
         />
       )}
       <div className="min-w-0 flex-1 py-px">
-        <div className="flex min-w-0 items-center gap-1.5 pr-2">
-          <span className="min-w-0 truncate text-[12px] font-semibold leading-none tabular-nums tracking-normal text-foreground/82">
+        <div className="flex items-center gap-1">
+          <span className="text-[10.5px] font-mono tabular-nums text-foreground/65 tracking-wide font-semibold">
             {startLabel}
           </span>
           {durationLabel && (
-            <span className="shrink-0 text-[12px] font-semibold leading-none tabular-nums text-foreground/62">· {durationLabel}</span>
+            <span className="text-[10px] tabular-nums text-muted-foreground/80 font-medium">· {durationLabel}</span>
           )}
           {showFlag && (
             <Flag

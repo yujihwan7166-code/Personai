@@ -59,7 +59,7 @@ describe('WeekView', () => {
     renderWeek();
 
     expect(screen.getAllByText('밤 운동')).toHaveLength(2);
-    expect(screen.getAllByText('23:00 ~ 02:00')).toHaveLength(2);
+    expect(screen.getByText('계속')).toBeInTheDocument();
     expect(document.querySelector('[data-draggable-id="week-2026-06-09-event-event-overnight"]')).toBeInTheDocument();
     expect(document.querySelector('[data-draggable-id="week-2026-06-10-event-event-overnight"]')).toBeInTheDocument();
   });
@@ -70,14 +70,14 @@ describe('WeekView', () => {
       { kind: 'scheduled-task', task: { id: 'task-1', title: '운동', done: false, createdAt: '2026-06-09T00:00:00.000Z' } as PlannerTask },
       false,
       '놓으면 할 일로 추가',
-    )).toBe('일정을 할일로 전환');
+    )).toBe('놓으면 시간 없이 할 일로');
 
     expect(weekDropHintLabel(
       { kind: 'schedule-day', dayIso: '2026-06-09T00:00:00.000Z', dayKey: '2026-06-09' },
       { kind: 'planned-task', task: { id: 'task-2', title: '코딩', done: false, createdAt: '2026-06-09T00:00:00.000Z' } as PlannerTask },
       false,
       '놓으면 시간 선택',
-    )).toBe('할일을 일정으로 변환');
+    )).toBe('놓으면 시간 선택');
 
     expect(weekDropHintLabel(
       { kind: 'todo-list', dayKey: '2026-06-09' },

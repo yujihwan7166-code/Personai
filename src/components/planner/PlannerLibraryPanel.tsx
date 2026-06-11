@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import {
   Archive,
   Pencil,
+  GripVertical,
   Plus,
   Trash2,
   X,
@@ -138,12 +139,12 @@ export const PlannerLibraryPanel = ({
       aria-modal="false"
       aria-labelledby={panelTitleId}
       aria-describedby={panelDescId}
-      className="fixed left-[56px] top-[112px] z-[45] flex w-[248px] max-h-[calc(100vh-128px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
+      className="fixed left-[56px] top-[88px] z-[45] flex w-[248px] max-h-[calc(100vh-104px)] flex-col overflow-hidden rounded-xl border border-foreground/25 bg-card shadow-[0_18px_42px_-30px_hsl(30_15%_8%/0.45)]"
     >
-      <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-foreground/[0.12] px-3.5 py-0.5">
+      <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-foreground/[0.12] px-3">
         <Archive className="h-[18px] w-[18px] shrink-0 text-foreground/70" strokeWidth={2.1} />
-        <div className="flex min-w-0 flex-1 items-center self-stretch overflow-visible">
-          <h2 id={panelTitleId} className="whitespace-nowrap pb-px text-[14px] font-extrabold leading-5 text-foreground">보관함</h2>
+        <div className="flex min-w-0 flex-1 items-center self-stretch">
+          <h2 id={panelTitleId} className="truncate text-[14px] font-extrabold leading-none text-foreground">보관함</h2>
           <p id={panelDescId} className="sr-only">
             자주 쓰는 일정과 할 일을 저장하고, 주간 플래너로 드래그하거나 빠르게 추가합니다.
           </p>
@@ -181,7 +182,7 @@ export const PlannerLibraryPanel = ({
         )}
       </div>
 
-      <footer className="shrink-0 bg-background/55 px-2 pb-2 pt-1.5">
+      <footer className="shrink-0 border-t border-foreground/[0.12] bg-background/55 p-2">
         <div className="space-y-2">
           {editingId && (
             <div className="flex items-center justify-between rounded-lg bg-accent/65 px-2.5 py-1.5">
@@ -323,7 +324,7 @@ const LibraryItemRow = ({
         }
       }}
       className={cn(
-        'group relative flex cursor-grab items-center gap-2 overflow-hidden rounded-lg border border-foreground/14 bg-card px-3 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:cursor-grabbing',
+        'group relative flex cursor-grab items-center gap-2 overflow-hidden rounded-lg border border-foreground/14 bg-card px-2 py-2 text-left shadow-[0_1px_2px_hsl(30_15%_8%/0.025)] transition-all hover:border-foreground/25 hover:bg-accent/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 active:cursor-grabbing',
         isDragging && 'opacity-55',
       )}
     >
@@ -332,6 +333,7 @@ const LibraryItemRow = ({
         style={{ backgroundColor: color?.stripe ?? 'hsl(var(--muted-foreground))' }}
         aria-hidden
       />
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[12.5px] font-extrabold text-foreground">
           {item.title}

@@ -49,9 +49,6 @@ describe('PlannerLibraryPanel', () => {
 
     const panel = screen.getByRole('dialog', { name: '보관함' });
     expect(panel).toHaveAccessibleDescription('자주 쓰는 일정과 할 일을 저장하고, 주간 플래너로 드래그하거나 빠르게 추가합니다.');
-    expect(panel).toHaveClass('top-[112px]');
-    expect(panel).toHaveClass('max-h-[calc(100vh-128px)]');
-    expect(within(panel).getByRole('heading', { name: '보관함' })).toHaveClass('leading-5');
     const item = within(panel).getByRole('button', { name: `${longTitle} 빠르게 추가` });
     expect(item).toHaveAttribute('title', longTitle);
     expect(item).toHaveClass('focus-visible:ring-2');

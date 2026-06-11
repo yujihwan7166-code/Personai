@@ -119,22 +119,6 @@ const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   recipe: Utensils,
 };
 
-const TEMPLATE_BADGE_LABELS: Record<string, string> = {
-  moc: '메인',
-  blank: '빈 문서',
-  concept: '개념',
-  source: '출처',
-  project: '프로젝트',
-  meeting: '회의',
-  person: '인물',
-  reading: '독서',
-  movie: '감상',
-  travel: '여행',
-  study: '학습',
-  decision: '결정',
-  recipe: '레시피',
-};
-
 /**
  * 새 문서 만들기 — 템플릿 픽커.
  * Notion / Obsidian 템플릿 패턴.
@@ -213,7 +197,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
 
   return (
     <div
-      className="fixed inset-0 wiki-z-modal-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 pt-[7vh] sm:pt-[8vh]"
+      className="fixed inset-0 wiki-z-modal-backdrop flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[10vh] px-4"
       {...backdropHandlers}
     >
       <div
@@ -222,10 +206,10 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         aria-labelledby={dialogTitleId}
         aria-describedby={dialogDescriptionId}
         aria-modal="true"
-        className="flex max-h-[84vh] w-[min(880px,calc(100vw-32px))] flex-col overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl"
+        className="w-full max-w-4xl rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-2xl overflow-hidden"
       >
         {/* 헤더 */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-[hsl(var(--hairline))] px-5 py-4">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[hsl(var(--hairline))]">
           <div className="flex-1">
             <h2 id={dialogTitleId} className="text-[14px] font-bold">새 문서 템플릿 선택</h2>
             <p id={dialogDescriptionId} className="mt-0.5 text-[11px] text-muted-foreground">
@@ -235,7 +219,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="p-1 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             aria-label="템플릿 선택 닫기"
           >
             <X className="h-4 w-4" />
@@ -243,7 +227,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         </div>
 
         {/* 제목 입력 */}
-        <div className="shrink-0 border-b border-[hsl(var(--hairline))] px-5 py-3">
+        <div className="px-4 pt-3">
           <input
             ref={titleInputRef}
             data-autofocus="true"
@@ -251,7 +235,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="문서 제목"
             aria-label="새 문서 제목"
-            className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-background px-3 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/45 focus:ring-2 focus:ring-primary/15"
+            className="w-full h-9 px-3 rounded-md border border-[hsl(var(--hairline))] bg-background text-[13px] outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 transition-colors"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 const t = WIKI_TEMPLATES.find((tt) => tt.id === picked) ?? WIKI_TEMPLATES[0];
@@ -265,7 +249,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         {/* 템플릿 그리드 */}
         <div
           id={templateListId}
-          className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 max-h-[55vh] overflow-y-auto"
           role="radiogroup"
           aria-label="문서 템플릿 목록"
           aria-describedby={selectedStatusId}
@@ -276,7 +260,6 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
             const tone = TEMPLATE_TONES[t.id] ?? DEFAULT_TEMPLATE_TONE;
             const Icon = TEMPLATE_ICONS[t.id] ?? FileText;
             const descriptionId = `${templateListId}-${t.id}-description`;
-            const badgeLabel = TEMPLATE_BADGE_LABELS[t.id] ?? t.type;
             return (
               <button
                 key={t.id}
@@ -292,48 +275,46 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
                 aria-describedby={descriptionId}
                 aria-label={`${t.label} 템플릿 선택${isPicked ? ', 선택됨' : ''}${isFeatured ? ', 추천' : ''}`}
                 className={cn(
-                  'group relative flex h-[122px] flex-col overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-card p-3.5 pl-4 text-left transition-all hover:-translate-y-px hover:border-foreground/25 hover:bg-accent/15 hover:shadow-sm',
-                  isPicked && 'border-primary/40 ring-2 ring-primary/20 shadow-sm',
+                  'relative min-h-[112px] overflow-hidden rounded-lg border p-3 pl-3.5 text-left transition-all hover:-translate-y-px hover:border-foreground/25 hover:shadow-sm',
+                  tone.card,
+                  isPicked && 'ring-2 ring-primary/35 shadow-sm',
                 )}
               >
                 <span className={cn('absolute inset-y-0 left-0 w-1', tone.accent)} aria-hidden />
-                <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 mb-1">
                   <span
                     className={cn(
-                      'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/70 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.06)]',
+                      'inline-flex h-9 w-9 items-center justify-center rounded-lg bg-background/70 shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.06)]',
                       isPicked && 'bg-background',
                     )}
                     aria-hidden
                   >
-                    <Icon className="h-4 w-4 text-foreground/75" strokeWidth={2.1} />
+                    <Icon className="h-[18px] w-[18px] text-foreground/75" strokeWidth={2.1} />
                   </span>
-                  <span className="flex min-w-0 items-center gap-1">
+                  <span className="flex items-center gap-1">
                     {isFeatured && (
-                      <span className={cn('inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[9.5px] font-bold tracking-wide', tone.badge)}>
+                      <span className={cn('inline-flex items-center h-4 px-1.5 rounded text-[8.5px] font-bold tracking-wide', tone.badge)}>
                         추천
                       </span>
                     )}
-                    <span className="inline-flex h-5 min-w-0 items-center rounded-md border border-[hsl(var(--hairline))] bg-background/70 px-1.5 text-[10px] font-semibold text-muted-foreground">
-                      <span className="truncate">{badgeLabel}</span>
-                    </span>
                     {isPicked && (
                       <span
-                        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
                         aria-hidden
                       >
-                        <Check className="h-3 w-3" />
+                        <Check className="h-2.5 w-2.5" />
                       </span>
                     )}
                   </span>
                 </div>
                 <p className={cn(
-                  'line-clamp-1 text-[13px] font-bold leading-5',
+                  'text-[12.5px] font-bold',
                   'text-foreground',
                 )}>{t.label}</p>
                 <p
                   id={descriptionId}
                   className={cn(
-                  'mt-1 line-clamp-2 text-[11px] leading-[1.45] break-keep',
+                  'text-[10.5px] mt-0.5 leading-snug',
                   'text-muted-foreground',
                 )}
                 >
@@ -345,7 +326,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
         </div>
 
         {/* 푸터 액션 */}
-        <div className="flex shrink-0 flex-col gap-2 border-t border-[hsl(var(--hairline))] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-t border-[hsl(var(--hairline))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p id={selectedStatusId} className="text-[10.5px] text-muted-foreground" aria-live="polite">
             선택: <span className="font-semibold text-foreground">{pickedTemplate.label}</span>
           </p>
@@ -355,7 +336,7 @@ export function WikiTemplatePicker({ open, onClose, onPick }: Props) {
               create(pickedTemplate);
             }}
             aria-label={`${pickedTemplate.label} 템플릿으로 문서 만들기`}
-            className="h-9 rounded-lg bg-primary px-4 text-[12px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="px-3 h-8 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
           >
             만들기
           </button>
