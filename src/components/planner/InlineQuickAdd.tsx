@@ -126,6 +126,9 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       style={style}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
+      // 타임라인 그리드의 drag-to-create 가 pointerdown 에서 preventDefault 를 호출해
+      // input 포커스/캐럿 이동을 막아버리는 문제 차단 — pointer 와 mouse 둘 다 끊는다.
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-stretch h-full">
         {/* 좌측 색 stripe — 일정 시각화. */}
