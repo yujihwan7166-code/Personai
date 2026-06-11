@@ -737,7 +737,8 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                             align="end"
                             side="bottom"
                             sideOffset={6}
-                            className="w-56 rounded-xl border-foreground/14 p-3"
+                            // z-[60] — Dialog content (z-50) 위로 띄움.
+                            className="z-[60] w-56 rounded-xl border-foreground/14 p-3"
                           >
                             <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
                               알림 직접 입력
@@ -911,7 +912,8 @@ const DurationPicker = ({
           align="end"
           side="bottom"
           sideOffset={6}
-          className="w-56 rounded-xl border-foreground/14 p-3"
+          // z-[60] — Dialog content (z-50) 위로 띄움.
+          className="z-[60] w-56 rounded-xl border-foreground/14 p-3"
         >
           <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
             길이 직접 입력

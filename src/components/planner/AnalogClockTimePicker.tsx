@@ -206,7 +206,9 @@ export const AnalogClockTimePicker = ({
         align="center"
         side="bottom"
         sideOffset={6}
-        className="w-[268px] rounded-2xl border-foreground/14 p-3"
+        // z-[60] — WeekScheduleTimePrompt (z-[55]) / TaskScheduleDialog (z-50) 위로 띄움.
+        // 기본 z-50 이면 모달이 popover 를 가린다.
+        className="z-[60] w-[268px] rounded-2xl border-foreground/14 p-3"
       >
         {/* 큰 "HH : MM" — 클릭으로 모드 토글 + AM/PM */}
         <div className="mb-2.5 flex items-center justify-center gap-1.5">
