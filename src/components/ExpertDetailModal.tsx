@@ -36,10 +36,10 @@ const BAR_COLOR_MAP: Record<string, string> = {
   sky: 'bg-sky-400',
 };
 
-const STAT_LABELS: { key: string; label: string }[] = [
+const STAT_LABELS: { key: keyof NonNullable<Expert['abilities']>; label: string }[] = [
   { key: 'coding', label: '코딩' },
   { key: 'creativity', label: '창의성' },
-  { key: 'reasoning', label: '추론력' },
+  { key: 'reasoning', label: '추론' },
   { key: 'math', label: '수학' },
   { key: 'multilingual', label: '다국어' },
   { key: 'speed', label: '속도' },
@@ -75,10 +75,8 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
       <DialogContent className="p-0 gap-0 max-w-[360px] !bg-gradient-to-b !from-slate-800 !to-slate-900 !border-white/10 !text-white rounded-2xl overflow-hidden">
         <DialogTitle className="sr-only">{expert.nameKo} 상세 정보</DialogTitle>
 
-        {/* 컬러 액센트 바 */}
         <div className={cn('h-1.5 w-full bg-gradient-to-r', gradient)} />
 
-        {/* 상단: 이름 + 설명 */}
         <div className="px-5 pt-4 pb-3 text-center space-y-1.5">
           <div className="flex items-center justify-center gap-2">
             <ExpertAvatar expert={expert} size="sm" />
@@ -99,20 +97,17 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
           )}
         </div>
 
-        {/* 레이더 차트 + 스텟 바 */}
         {hasAbilities && expert.abilities && (
           <div className="px-4 pb-3">
-            {/* 레이더 차트 */}
             <div className="flex justify-center">
               <div className="w-full max-w-[280px]">
                 <AIAbilityRadar abilities={expert.abilities} color={expert.color} name={expert.nameKo} />
               </div>
             </div>
 
-            {/* 스텟 프로그레스 바 */}
             <div className="space-y-1.5 mt-2">
               {STAT_LABELS.map(({ key, label }) => {
-                const value = expert.abilities![key as keyof typeof expert.abilities];
+                const value = expert.abilities![key];
                 return (
                   <div key={key} className="flex items-center gap-2">
                     <span className="text-[11px] text-slate-400 w-[52px] text-right shrink-0">{label}</span>
@@ -132,7 +127,6 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
           </div>
         )}
 
-        {/* 추천 질문 */}
         {expert.sampleQuestions && expert.sampleQuestions.length > 0 && (
           <div className="mx-4 mb-3">
             <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-1">
@@ -144,7 +138,6 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
           </div>
         )}
 
-        {/* 선택 버튼 */}
         <div className="px-4 pb-4">
           <button
             onClick={() => { onToggle(expert.id); onOpenChange(false); }}
@@ -152,7 +145,7 @@ export function ExpertDetailModal({ expert, open, onOpenChange, isSelected, onTo
               'w-full py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 flex items-center justify-center gap-1.5',
               isSelected
                 ? 'bg-white/10 text-slate-300 hover:bg-white/15'
-                : cn('bg-gradient-to-r text-white shadow-lg hover:brightness-110', gradient)
+                : cn('bg-gradient-to-r text-white shadow-lg hover:brightness-110', gradient),
             )}
           >
             {isSelected ? (

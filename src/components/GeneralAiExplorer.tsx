@@ -708,11 +708,15 @@ const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexi
 function getGeneralTraitIds(expert: Expert) {
   const brand = MODEL_BRAND[expert.id];
   const isOpenWeight = Boolean(expert.modelInfo?.openWeight) || MODEL_IS_OPENSOURCE.has(expert.id);
+  const fieldTags = modelFieldTags(expert);
+  const isReasoningModel =
+    REASONING_MODEL_IDS.includes(expert.id) ||
+    fieldTags.some((tag) => tag.includes('수학') || tag.includes('논리'));
   return [
-    expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning' : null,
+    isReasoningModel ? 'reasoning' : null,
     expert.abilities?.speed && expert.abilities.speed >= 85 ? 'fast' : null,
-    expert.description.includes('코딩') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
-    brand === 'perplexity' || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
+    expert.description.includes('코딩') || fieldTags.some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
+    brand === 'perplexity' || fieldTags.some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
     isOpenWeight ? 'opensource' : null,
   ].filter(Boolean) as string[];
 }
@@ -1688,7 +1692,7 @@ export function AllAiExplorerModal({
             {tab === 'general' ? (
               <>
                 <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleFacetFilter(setBrandFilters, id)} />
-                <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                <FilterGroup title="특징" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
                 <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
               </>
             ) : (
@@ -1840,7 +1844,7 @@ export function AllAiExplorerModal({
               {tab === 'general' ? (
                 <>
                   <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleFacetFilter(setBrandFilters, id)} />
-                  <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                  <FilterGroup title="특징" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
                   <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
                 </>
               ) : (
@@ -1858,7 +1862,7 @@ export function AllAiExplorerModal({
         {previewExpert && mobileDetailOpen && (
           <div className="fixed inset-0 z-[230] bg-slate-950/30 lg:hidden" onClick={() => setMobileDetailOpen(false)}>
             <div className="absolute inset-x-3 bottom-3 max-h-[78vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-              <button type="button" onClick={() => setMobileDetailOpen(false)} className="mb-2 ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg" aria-label="?곸꽭 ?リ린">
+              <button type="button" onClick={() => setMobileDetailOpen(false)} className="mb-2 ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg" aria-label="상세 닫기">
                 <X className="h-5 w-5" />
               </button>
             <ExplorerDetailPanel

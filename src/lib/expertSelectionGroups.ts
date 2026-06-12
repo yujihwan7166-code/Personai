@@ -75,7 +75,7 @@ const AI_MODEL_ORDER = [
   'command-r-plus',
 ] as const;
 
-/** 경량 모델: 빠른 응답/가벼운 체급 중심. */
+/** 경량 모델: 빠른 응답과 가벼운 사용성 중심. */
 export const FAST_MODEL_IDS = [
   'gpt-nano',
   'gemini-flash-lite',
@@ -101,7 +101,7 @@ export const FLAGSHIP_MODEL_IDS = [
   ...OPENROUTER_ADDED_FLAGSHIP_IDS,
 ] as const;
 
-/** 마이너 모델: 메이저 브랜드 바깥의 덜 알려진 대안 모델. */
+/** 마이너 모델: 메이저 브랜드 밖에서도 알려진 대안 모델. */
 export const MINOR_MODEL_IDS = [
   'mimo',
   'mimo-flash',

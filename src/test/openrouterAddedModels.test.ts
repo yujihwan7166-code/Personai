@@ -9,6 +9,7 @@ import {
 import { OPENROUTER_EXISTING_MODEL_OVERRIDES } from '@/data/openrouter-existing-model-overrides';
 import { buildExpertSelectionGroups } from '@/lib/expertSelectionGroups';
 import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
+import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 
 describe('openrouter added model catalog', () => {
@@ -131,7 +132,9 @@ describe('openrouter added model catalog', () => {
   it('does not keep mojibake in general model UI labels', () => {
     const uiSource = [
       fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8'),
+      fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'ExpertDetailModal.tsx'), 'utf8'),
       fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'expertSelectionGroups.ts'), 'utf8'),
+      fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'modelTaxonomy.ts'), 'utf8'),
     ].join('\n');
 
     expect(hasLikelyMojibake(uiSource)).toBe(false);
@@ -217,6 +220,15 @@ describe('openrouter added model catalog', () => {
       expect(actualOpenWeightIds.has(id), `${id} should be available through the open-weight group`).toBe(true);
     });
     expect(explorerSource).toContain("{ id: 'coding', label: '코딩' }");
+  });
+
+  it('keeps general model trait filters selective and clearly labeled', () => {
+    const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
+
+    expect(REASONING_MODEL_IDS.length).toBeLessThanOrEqual(40);
+    expect(explorerSource).toContain('FilterGroup title="특징"');
+    expect(explorerSource).not.toContain('FilterGroup title="강점"');
+    expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
   });
 
   it('keeps special and non-text-output cards out of the general model selection group', () => {

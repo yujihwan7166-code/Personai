@@ -5,12 +5,10 @@ import {
 } from '@/data/openrouter-added-models';
 
 /**
- * AI 모델 분류 메타데이터.
+ * 일반 AI 모델 분류 메타데이터.
  *
- * 1차 탭 큐레이션(추천/빠른/추론) + 2차 브랜드 필터(전체 모델 탭 안)에서 사용.
- *
- * 주의: 새 모델 추가 시 이 파일에 brand / open-weight / (필요 시) reasoning 매핑을 함께 추가해야 함.
- * `modelTaxonomy.test.ts` 가 누락 검출.
+ * 1차 홈 섹션(추천/빠른 모델/추론 모델)과 전체 모델 탐색의 브랜드 필터에서 사용한다.
+ * 새 모델을 추가할 때는 brand, open-weight, 필요 시 reasoning 매핑을 함께 갱신해야 한다.
  */
 
 export type ModelBrand =
@@ -35,7 +33,7 @@ export const BRAND_LABEL: Record<ModelBrand, string> = {
   other: '기타',
 };
 
-/** 브랜드 로고 경로 (public/logos/...). null 이면 이모지 폴백. */
+/** 브랜드 로고 경로. null이면 이미지 배지를 사용하지 않는다. */
 export const BRAND_LOGO: Record<ModelBrand, string | null> = {
   gpt: '/logos/gpt.svg',
   claude: '/logos/claude.png',
@@ -47,7 +45,7 @@ export const BRAND_LOGO: Record<ModelBrand, string | null> = {
   other: null,
 };
 
-/** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타). 오픈웨이트는 별도 칩으로 panel 에서 추가. */
+/** 브랜드 필터 노출 순서. 오픈웨이트는 별도 필터로 다룬다. */
 export const BRAND_ORDER: ModelBrand[] = [
   'gpt',
   'claude',
@@ -60,8 +58,8 @@ export const BRAND_ORDER: ModelBrand[] = [
 ];
 
 /**
- * 모델 ID → 브랜드 매핑.
- * ID prefix 매칭이 아니라 명시 매핑 — 잘못된 분류 방지.
+ * 모델 ID별 브랜드 매핑.
+ * prefix 추론에만 기대지 않고 명시적으로 매핑해 잘못된 분류를 방지한다.
  */
 export const MODEL_BRAND: Record<string, ModelBrand> = {
   // OpenAI
@@ -102,26 +100,26 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
   'qwen-plus': 'qwen',
   'qwen-thinking': 'qwen',
 
-  // Moonshot Kimi → 기타로 통합
+  // Moonshot Kimi
   'kimi': 'other',
   'kimi-thinking': 'other',
 
-  // Mistral 계열 → 기타로 통합
+  // Mistral
   'mistral-large': 'other',
   'mistral-medium': 'other',
   'mistral-small': 'other',
   'codestral': 'other',
   'devstral': 'other',
 
-  // Meta Llama → 기타로 통합
+  // Meta Llama
   'llama-maverick': 'other',
   'llama-scout': 'other',
 
-  // 특수 (앱 자체 어시스턴트 / 개발자 카드)
-  'developer-yjh': 'claude',  // Sonnet 4.6 기반
-  'ancano-pro': 'other',      // 자체 라우팅 (auto)
+  // Special app cards
+  'developer-yjh': 'claude',
+  'ancano-pro': 'other',
 
-  // 기타 (브랜드별 모델 수 적음)
+  // Other known providers
   'phi': 'other',
   'command-r-plus': 'other',
   'command-a': 'other',
@@ -146,10 +144,8 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
 };
 
 /**
- * 오픈 소스(open-weight) 모델 ID 집합.
- *
- * 기준: 가중치가 공개되어 자체 호스팅 가능한 모델.
- * Closed API 전용(GPT/Claude/Gemini 메인 라인 등)은 제외.
+ * 오픈웨이트 모델 ID 집합.
+ * 가중치가 공개되어 자체 호스팅이나 로컬 실행 생태계와 연결되는 모델을 포함한다.
  */
 export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
   // Google open
@@ -157,7 +153,7 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
   // Meta
   'llama-maverick',
   'llama-scout',
-  // Mistral (open-weight)
+  // Mistral open-weight
   'mistral-large',
   'mistral-medium',
   'mistral-small',
@@ -165,15 +161,15 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
   'devstral',
   // Microsoft
   'phi',
-  // DeepSeek (open weights)
+  // DeepSeek open weights
   'deepseek',
   'deepseek-r1',
-  // Qwen (open weights)
+  // Qwen open weights
   'qwen',
   'qwen-9b',
   'qwen-plus',
   'qwen-thinking',
-  // 기타 open
+  // Other open-weight families
   'dolphin',
   'nemotron',
   'granite',
@@ -185,48 +181,40 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * 추론(reasoning) 특화 모델 — 각 브랜드의 "생각하는 모델" 1개.
- *
- * 표시 순서: 사용자 지정 1~3위(GPT/Gemini/Claude) + 그 외 인지도 순.
- *
- * 기준:
- * - 별도 thinking ID 가 등록된 브랜드: 그 thinking 변형 사용 (deepseek-r1, qwen-thinking, kimi-thinking)
- * - thinking 변형이 없는 브랜드: 그 브랜드의 최상위 추론력 모델 (reasoning 점수 90+)
- * - Perplexity 는 sonar-pro 가 심층 리서치 라인이라 포함
+ * 추론 특화 모델.
+ * 홈의 "추론 모델" 섹션과 전체 탐색의 "특징 > 추론" 필터에서 사용한다.
  */
 export const REASONING_MODEL_IDS: readonly string[] = [
-  'gpt',             // 1. OpenAI GPT-5.4
-  'gemini-pro',      // 2. Google Gemini 3.1 Pro
-  'claude',          // 3. Anthropic Claude Opus 4.6
-  'grok',            // 4. xAI Grok 4.1 Fast
-  'perplexity-pro',  // 5. Perplexity Sonar Pro
-  'deepseek-r1',     // 6. DeepSeek R1
-  'qwen-thinking',   // 7. Qwen3 Max Thinking
-  'kimi-thinking',   // 8. Kimi K2 Thinking
+  'gpt',
+  'gemini-pro',
+  'claude',
+  'grok',
+  'perplexity-pro',
+  'deepseek-r1',
+  'qwen-thinking',
+  'kimi-thinking',
   ...OPENROUTER_ADDED_REASONING_IDS,
 ] as const;
 
-/** 빠른 lookup 용 Set (panel 외 다른 곳에서 boolean 체크 필요 시). */
+/** 빠른 boolean lookup용 Set */
 export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>(REASONING_MODEL_IDS);
 
 /**
- * 추천 모델 셀렉션 (5~7개).
- *
- * 신규 유저 직진 동선. 브랜드 다양성 + 품질 + 무난함 기준.
- * 출시 후 사용 데이터 보고 조정 예정.
+ * 기본 추천 모델 섹션.
+ * 대중성, 브랜드 다양성, 속도, 검색/출처 활용성을 함께 고려한다.
  */
 export const RECOMMENDED_MODEL_IDS: readonly string[] = [
-  'auto-gpt',           // 심층 리서치 (여러 AI 협업 인용 리포트)
-  'gpt',                // GPT-5.4
-  'gemini-flash-lite',  // Gemini 2.5 Flash Lite
-  'claude-haiku',       // Claude Haiku 4.5
-  'grok',               // Grok 4.1 Fast
-  'perplexity',         // Perplexity Sonar
-  'deepseek',           // DeepSeek V3
-  'qwen-9b',            // Qwen 3.5 9B (가성비 1위, 오픈웨이트)
+  'auto-gpt',
+  'gpt',
+  'gemini-flash-lite',
+  'claude-haiku',
+  'grok',
+  'perplexity',
+  'deepseek',
+  'qwen-9b',
 ] as const;
 
-/** 헬퍼 */
+/** Helpers */
 export const getBrandOf = (modelId: string): ModelBrand =>
   MODEL_BRAND[modelId] ?? 'other';
 
