@@ -9,7 +9,7 @@ import {
  *
  * 1차 탭 큐레이션(추천/빠른/추론) + 2차 브랜드 필터(전체 모델 탭 안)에서 사용.
  *
- * 주의: 새 모델 추가 시 이 파일에 brand / opensource / (필요 시) reasoning 매핑을 함께 추가해야 함.
+ * 주의: 새 모델 추가 시 이 파일에 brand / open-weight / (필요 시) reasoning 매핑을 함께 추가해야 함.
  * `modelTaxonomy.test.ts` 가 누락 검출.
  */
 
@@ -47,7 +47,7 @@ export const BRAND_LOGO: Record<ModelBrand, string | null> = {
   other: null,
 };
 
-/** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타). 오픈소스는 별도 칩으로 panel 에서 추가. */
+/** 칩 노출 순서 (전체 → 메이저 브랜드 → 기타). 오픈웨이트는 별도 칩으로 panel 에서 추가. */
 export const BRAND_ORDER: ModelBrand[] = [
   'gpt',
   'claude',
@@ -223,7 +223,7 @@ export const RECOMMENDED_MODEL_IDS: readonly string[] = [
   'grok',               // Grok 4.1 Fast
   'perplexity',         // Perplexity Sonar
   'deepseek',           // DeepSeek V3
-  'qwen-9b',            // Qwen 3.5 9B (가성비 1위, 오픈소스)
+  'qwen-9b',            // Qwen 3.5 9B (가성비 1위, 오픈웨이트)
 ] as const;
 
 /** 헬퍼 */

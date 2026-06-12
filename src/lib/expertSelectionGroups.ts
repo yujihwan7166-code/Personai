@@ -12,6 +12,7 @@ import {
   OPENROUTER_ADDED_FAST_IDS,
   OPENROUTER_ADDED_FLAGSHIP_IDS,
 } from '@/data/openrouter-added-models';
+import { isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 
 export interface ExpertSelectionGroup {
   cat: string;
@@ -118,18 +119,9 @@ export const MINOR_MODEL_IDS = [
   'nova-2-lite',
 ] as const;
 
-/** 숨김 처리할 리서치 에이전트. auto-gpt는 심층 리서치 모델로 노출한다. */
-export const RESEARCH_AGENT_IDS = [
-  'auto-claude',
-  'auto-gemini',
-  'auto-grok',
-  'auto-perplexity',
-  'auto-deepseek',
-  'auto-qwen',
-] as const;
-
 function orderAiModels(experts: Expert[], excludeIds: string[]) {
-  const aiModels = experts.filter((expert) => expert.category === 'ai' && !excludeIds.includes(expert.id));
+  const excluded = new Set(excludeIds);
+  const aiModels = experts.filter((expert) => isVisibleGeneralTextModel(expert) && !excluded.has(expert.id));
   const orderedModels = AI_MODEL_ORDER
     .map((id) => aiModels.find((expert) => expert.id === id))
     .filter(Boolean) as Expert[];
@@ -157,7 +149,7 @@ export function buildExpertSelectionGroups({
   const aiById = new Map(allAiItems.map((expert) => [expert.id, expert]));
 
   const recommendedItems = RECOMMENDED_MODEL_IDS
-    .map((id) => experts.find((expert) => expert.id === id))
+    .map((id) => aiById.get(id))
     .filter(Boolean) as Expert[];
 
   const flagshipItems = FLAGSHIP_MODEL_IDS
@@ -176,7 +168,7 @@ export function buildExpertSelectionGroups({
     .map((id) => aiById.get(id))
     .filter(Boolean) as Expert[];
 
-  const openSourceItems = allAiItems.filter((expert) => MODEL_IS_OPENSOURCE.has(expert.id));
+  const openSourceItems = allAiItems.filter((expert) => expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id));
 
   const otherCategoryGroups = visibleCategories
     .filter((category) => category !== 'ai')
@@ -193,7 +185,7 @@ export function buildExpertSelectionGroups({
     { cat: 'ai_fast', label: '빠른 모델', items: fastItems },
     { cat: 'ai_reasoning', label: '추론 모델', items: reasoningItems },
     { cat: 'ai_minor', label: '마이너 모델', items: minorItems },
-    { cat: 'ai_open', label: '로컬/오픈소스', items: openSourceItems },
+    { cat: 'ai_open', label: '로컬/오픈웨이트', items: openSourceItems },
     { cat: 'ai', label: '전체 모델', items: allAiItems },
     ...otherCategoryGroups,
   ].filter((group) => group.items.length > 0 || group.cat === 'favorites');

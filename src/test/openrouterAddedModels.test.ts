@@ -7,6 +7,8 @@ import {
   OPENROUTER_ADDED_EXPERTS,
 } from '@/data/openrouter-added-models';
 import { OPENROUTER_EXISTING_MODEL_OVERRIDES } from '@/data/openrouter-existing-model-overrides';
+import { buildExpertSelectionGroups } from '@/lib/expertSelectionGroups';
+import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 
 describe('openrouter added model catalog', () => {
@@ -91,7 +93,6 @@ describe('openrouter added model catalog', () => {
   });
 
   it('does not emit mojibake in generated model labels', () => {
-    const mojibakePattern = /[�]|[硫異怨踰湲援먯쑁]/;
     const generatedText = OPENROUTER_ADDED_EXPERTS
       .map((expert) => [
         expert.name,
@@ -104,7 +105,16 @@ describe('openrouter added model catalog', () => {
       ].join(' '))
       .join(' ');
 
-    expect(generatedText).not.toMatch(mojibakePattern);
+    expect(hasLikelyMojibake(generatedText)).toBe(false);
+  });
+
+  it('does not keep mojibake in general model UI labels', () => {
+    const uiSource = [
+      fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8'),
+      fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'expertSelectionGroups.ts'), 'utf8'),
+    ].join('\n');
+
+    expect(hasLikelyMojibake(uiSource)).toBe(false);
   });
 
   it('provides bounded ability stats for every generated model', () => {
@@ -152,14 +162,7 @@ describe('openrouter added model catalog', () => {
   });
 
   it('keeps visible general models filterable by structured metadata', () => {
-    const visibleGeneralModels = DEFAULT_EXPERTS.filter((expert) => {
-      const outputModalities = expert.modelInfo?.outputModalities ?? [];
-      return expert.category === 'ai'
-        && !expert.id.startsWith('auto-')
-        && expert.id !== 'ancano-pro'
-        && expert.id !== 'developer-yjh'
-        && !outputModalities.some((modality) => modality === 'image' || modality === 'video');
-    });
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
 
     expect(visibleGeneralModels.length).toBeGreaterThan(100);
     visibleGeneralModels.forEach((expert) => {
@@ -172,6 +175,64 @@ describe('openrouter added model catalog', () => {
     expect(visibleGeneralModels.some((expert) => expert.modelInfo?.priceTier === 'free' || expert.modelInfo?.priceTier === 'low')).toBe(true);
     expect(visibleGeneralModels.some((expert) => (expert.modelInfo?.contextLength ?? 0) >= 262_144)).toBe(true);
     expect(visibleGeneralModels.some((expert) => expert.modelInfo?.inputModalities?.includes('image'))).toBe(true);
+  });
+
+  it('keeps general model open-weight and coding filters discoverable', () => {
+    const groups = buildExpertSelectionGroups({
+      experts: DEFAULT_EXPERTS,
+      favoriteIds: [],
+      visibleCategories: ['ai'],
+      aiAgentIds: [],
+    });
+    const openWeightGroup = groups.find((group) => group.cat === 'ai_open');
+    const expectedOpenWeightIds = DEFAULT_EXPERTS
+      .filter((expert) => expert.category === 'ai' && expert.modelInfo?.openWeight)
+      .map((expert) => expert.id);
+    const actualOpenWeightIds = new Set(openWeightGroup?.items.map((expert) => expert.id) ?? []);
+    const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
+
+    expect(openWeightGroup?.label).toContain('오픈웨이트');
+    expect(expectedOpenWeightIds.length).toBeGreaterThan(10);
+    expectedOpenWeightIds.forEach((id) => {
+      expect(actualOpenWeightIds.has(id), `${id} should be available through the open-weight group`).toBe(true);
+    });
+    expect(explorerSource).toContain("{ id: 'coding', label: '코딩' }");
+  });
+
+  it('keeps special and image-output cards out of the general model selection group', () => {
+    const groups = buildExpertSelectionGroups({
+      experts: DEFAULT_EXPERTS,
+      favoriteIds: [],
+      visibleCategories: ['ai'],
+      aiAgentIds: [],
+    });
+    const generalGroup = groups.find((group) => group.cat === 'ai');
+    const generalIds = new Set(generalGroup?.items.map((expert) => expert.id) ?? []);
+
+    expect(generalIds.has('developer-yjh')).toBe(false);
+    expect(generalIds.has('ancano-pro')).toBe(false);
+    generalGroup?.items.forEach((expert) => {
+      expect(expert.modelInfo?.outputModalities ?? [], `${expert.id} should not output image in general selection`).not.toContain('image');
+      expect(expert.modelInfo?.outputModalities ?? [], `${expert.id} should not output video in general selection`).not.toContain('video');
+    });
+  });
+
+  it('matches the explorer and selection-panel visible general model sets', () => {
+    const explorerVisibleIds = DEFAULT_EXPERTS
+      .filter(isVisibleGeneralTextModel)
+      .map((expert) => expert.id)
+      .sort();
+    const groups = buildExpertSelectionGroups({
+      experts: DEFAULT_EXPERTS,
+      favoriteIds: [],
+      visibleCategories: ['ai'],
+      aiAgentIds: [],
+    });
+    const selectionVisibleIds = (groups.find((group) => group.cat === 'ai')?.items ?? [])
+      .map((expert) => expert.id)
+      .sort();
+
+    expect(selectionVisibleIds).toEqual(explorerVisibleIds);
   });
 
   it('adds varied stats to custom non-model experts', () => {

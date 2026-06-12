@@ -27,7 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavoriteExperts } from '@/hooks/useFavoriteExperts';
 import { useHoverExpertTip } from '@/hooks/useHoverExpertTip';
 import { useMainModeTransition } from '@/hooks/useMainModeTransition';
-import { buildExpertSelectionGroups, RESEARCH_AGENT_IDS, isAiGroupCat } from '@/lib/expertSelectionGroups';
+import { buildExpertSelectionGroups, isAiGroupCat } from '@/lib/expertSelectionGroups';
 import { BRAND_LABEL, BRAND_LOGO, BRAND_ORDER, MODEL_BRAND, MODEL_IS_OPENSOURCE, type ModelBrand } from '@/lib/modelTaxonomy';
 import { BrowserEnginePicker } from '@/components/BrowserEnginePicker';
 import { AllAiExplorerModal } from '@/components/GeneralAiExplorer';
@@ -2733,10 +2733,10 @@ export function ExpertSelectionPanel({
           )}
 
           {/* 전체 모델 탭 — 2차 브랜드 필터 칩.
-              구조: [전체] [🤖 GPT] [Claude] ... [기타]  │  [🌐 오픈소스]
+              구조: [전체] [🤖 GPT] [Claude] ... [기타]  │  [🌐 오픈웨이트]
               - 비활성: 회색 텍스트 + 흐린 로고
               - 활성: 흰 배경 + 진한 ring + 그림자 (segmented 스타일) — 로고 가독성 유지
-              - 오픈소스(라이선스 축)는 분리선으로 구분 + 에메랄드 톤 */}
+              - 오픈웨이트(라이선스 축)는 분리선으로 구분 + 에메랄드 톤 */}
           {effectiveCategory === 'ai' && !searchMode && (
             <div className="flex items-center gap-1 px-3 pt-0.5 pb-2 overflow-x-auto scrollbar-none">
               {/* 브랜드 그룹 (전체 + 8개 브랜드) */}
@@ -2774,7 +2774,7 @@ export function ExpertSelectionPanel({
               })}
               {/* 분리선 (브랜드 축 ↔ 라이선스 축) */}
               <span className="mx-0.5 h-3.5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden />
-              {/* 오픈소스 (라이선스 축 — 에메랄드 톤) */}
+              {/* 오픈웨이트 (라이선스 축 — 에메랄드 톤) */}
               <button
                 type="button"
                 onClick={() => setActiveBrandFilter('opensource')}
@@ -2785,7 +2785,7 @@ export function ExpertSelectionPanel({
                     : 'font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40',
                 )}
               >
-                🌐 오픈소스
+                🌐 오픈웨이트
               </button>
             </div>
           )}
@@ -2806,7 +2806,7 @@ export function ExpertSelectionPanel({
             // 전체 모델 탭 한정: 브랜드 필터 적용
             const filtered = (cat === 'ai' && activeBrandFilter !== 'all')
               ? subFiltered.filter((e) => {
-                  if (activeBrandFilter === 'opensource') return MODEL_IS_OPENSOURCE.has(e.id);
+                  if (activeBrandFilter === 'opensource') return e.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(e.id);
                   return MODEL_BRAND[e.id] === activeBrandFilter;
                 })
               : subFiltered;
@@ -2872,12 +2872,7 @@ export function ExpertSelectionPanel({
               );
             };
 
-            /** IDs to hide from grid (individual agents).
-             *  auto-gpt(심층 리서치) 는 추천 탭에서만 노출, 전체 모델/빠른/추론에서는 숨김. */
-            const HIDDEN_AGENT_IDS = cat === 'ai_recommended'
-              ? [...RESEARCH_AGENT_IDS, 'ancano-pro']
-              : [...RESEARCH_AGENT_IDS, 'ancano-pro', 'auto-gpt'];
-            const visibleItems = displayItems.filter(e => !HIDDEN_AGENT_IDS.includes(e.id));
+            const visibleItems = displayItems;
 
             return (
               <div key={cat} className="relative bg-white">

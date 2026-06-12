@@ -1,0 +1,19 @@
+import type { Expert } from '@/types/expert';
+
+const HIDDEN_GENERAL_MODEL_IDS = new Set(['ancano-pro', 'developer-yjh']);
+const MOJIBAKE_MARKERS = /[\uFFFD\u5360\u7B4C\u75AB\u7652\uF900-\uFAFF]/u;
+
+export function hasImageVideoOutput(expert: Expert) {
+  return (expert.modelInfo?.outputModalities ?? []).some((modality) => modality === 'image' || modality === 'video');
+}
+
+export function isVisibleGeneralTextModel(expert: Expert) {
+  if (expert.category !== 'ai') return false;
+  if (expert.id.startsWith('auto-')) return false;
+  if (HIDDEN_GENERAL_MODEL_IDS.has(expert.id)) return false;
+  return !hasImageVideoOutput(expert);
+}
+
+export function hasLikelyMojibake(text: string) {
+  return MOJIBAKE_MARKERS.test(text);
+}

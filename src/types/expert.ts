@@ -1101,7 +1101,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         id: 'deepseek', name: 'DeepSeek V3', nameKo: 'DeepSeek V3', icon: '🌊', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-chat-v3-0324', description: 'AI 심층분석 전문가',
         quote: '추론은 깊이가 생명이다',
         sampleQuestions: ['R1 추론 모델 뭐가 달라?', '딥시크 코딩 실력 어때?', '딥시크가 수학 잘하는 이유?'],
-        greeting: '중국 DeepSeek에서 개발한 DeepSeek V3입니다. 코딩과 수학, 심층 분석에 뛰어난 성능을 보이는 오픈소스 모델입니다. 무엇이든 물어보세요!',
+        greeting: '중국 DeepSeek에서 개발한 DeepSeek V3입니다. 코딩과 수학, 심층 분석에 뛰어난 성능을 보이는 오픈웨이트 모델입니다. 무엇이든 물어보세요!',
     },
     {
         id: 'deepseek-r1', name: 'DeepSeek R1', nameKo: 'DeepSeek R1', icon: '🧠', avatarUrl: '/logos/deepseek.png', color: 'purple', category: 'ai', openrouterModel: 'deepseek/deepseek-r1', description: 'DeepSeek 추론 특화 모델',
@@ -1112,13 +1112,13 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
         id: 'qwen', name: 'Qwen 3.5 Flash', nameKo: 'Qwen 3.5 Flash', icon: '🌏', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-flash-02-23', description: 'AI 고속 다국어 모델',
         quote: '모든 언어가 나의 영역이다',
-        sampleQuestions: ['큐웬 중국어 번역 정확해?', '아시아 언어 처리 잘 돼?', '큐웬 오픈소스 장점이 뭐야?'],
-        greeting: 'Alibaba에서 개발한 Qwen 3.5 Flash입니다. 다국어 처리에 특히 강하며, 빠른 속도와 오픈소스의 장점을 갖춘 모델입니다. 편하게 질문해주세요!',
+        sampleQuestions: ['큐웬 중국어 번역 정확해?', '아시아 언어 처리 잘 돼?', '큐웬 오픈웨이트 장점이 뭐야?'],
+        greeting: 'Alibaba에서 개발한 Qwen 3.5 Flash입니다. 다국어 처리에 특히 강하며, 빠른 속도와 오픈웨이트의 장점을 갖춘 모델입니다. 편하게 질문해주세요!',
     },
     {
-        id: 'qwen-9b', name: 'Qwen 3.5 9B', nameKo: 'Qwen 3.5 9B', icon: '🧬', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-9b', description: 'AI 소형 고성능 오픈소스 모델',
+        id: 'qwen-9b', name: 'Qwen 3.5 9B', nameKo: 'Qwen 3.5 9B', icon: '🧬', avatarUrl: '/logos/qwen.png', color: 'amber', category: 'ai', openrouterModel: 'qwen/qwen3.5-9b', description: 'AI 소형 고성능 오픈웨이트 모델',
         quote: '작지만 거인을 이긴다',
-        sampleQuestions: ['9B 모델인데 성능 괜찮아?', '가성비 좋은 AI 추천해줘', '오픈소스 모델 장점이 뭐야?'],
+        sampleQuestions: ['9B 모델인데 성능 괜찮아?', '가성비 좋은 AI 추천해줘', '오픈웨이트 모델 장점이 뭐야?'],
         greeting: 'Alibaba에서 개발한 Qwen 3.5 9B입니다. 9B 파라미터의 소형 모델이지만 대형 모델에 버금가는 성능을 제공하며, 가성비가 뛰어납니다. 무엇이든 물어보세요!',
     },
     {
@@ -1134,16 +1134,16 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: 'Alibaba에서 개발한 Qwen3 Max Thinking입니다. 사고 과정을 단계별로 보여주는 추론 특화 모델로, 복잡한 논리 문제에 강합니다. 같이 생각해볼까요?',
     },
     {
-        id: 'llama-maverick', name: 'Llama 4 Maverick', nameKo: 'Llama 4 Maverick', icon: '🦙', avatarUrl: '/logos/meta.png', color: 'blue', category: 'ai', openrouterModel: 'meta-llama/llama-4-maverick', description: 'Meta 최강 오픈소스 모델',
-        quote: '오픈소스의 끝판왕',
+        id: 'llama-maverick', name: 'Llama 4 Maverick', nameKo: 'Llama 4 Maverick', icon: '🦙', avatarUrl: '/logos/meta.png', color: 'blue', category: 'ai', openrouterModel: 'meta-llama/llama-4-maverick', description: 'Meta 최강 오픈웨이트 모델',
+        quote: '오픈웨이트의 끝판왕',
         sampleQuestions: ['복잡한 추론 문제 풀어줘', '긴 문서 분석해줘', '코드 리뷰 해줘'],
-        greeting: 'Meta에서 개발한 Llama 4 Maverick입니다. 세계 최강의 오픈소스 모델로, 뛰어난 추론 능력과 다양한 언어를 지원합니다. 무엇이든 물어보세요!',
+        greeting: 'Meta에서 개발한 Llama 4 Maverick입니다. 세계 최강급 오픈웨이트 모델로, 뛰어난 추론 능력과 다양한 언어를 지원합니다. 무엇이든 물어보세요!',
     },
     {
         id: 'llama-scout', name: 'Llama 4 Scout', nameKo: 'Llama 4 Scout', icon: '🦙', avatarUrl: '/logos/meta.png', color: 'blue', category: 'ai', openrouterModel: 'meta-llama/llama-4-scout', description: 'Meta 경량 고속 모델',
         quote: '가볍지만 똑똑하게',
         sampleQuestions: ['빠르게 요약해줘', '간단한 질문 답해줘', '번역 부탁해'],
-        greeting: 'Meta에서 개발한 Llama 4 Scout입니다. 경량 고속 오픈소스 모델로, 빠른 응답과 효율적인 성능이 강점입니다. 가볍게 질문해주세요!',
+        greeting: 'Meta에서 개발한 Llama 4 Scout입니다. 경량 고속 오픈웨이트 모델로, 빠른 응답과 효율적인 성능이 강점입니다. 가볍게 질문해주세요!',
     },
     {
         id: 'mistral-large', name: 'Mistral Large 3', nameKo: 'Mistral Large 3', icon: '🌬️', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-large-2512', description: '유럽 최상위 AI 모델',
@@ -1176,10 +1176,10 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: '프랑스 Mistral AI에서 개발한 개발자 특화 모델 Devstral입니다. 코드 리뷰, 아키텍처 설계, 디버깅 등 개발 전반을 지원합니다. 개발 관련 도움이 필요하세요?',
     },
     {
-        id: 'gemma', name: 'Gemma 4 31B', nameKo: 'Gemma 4 31B', icon: '💠', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemma-4-31b-it', description: '구글 오픈소스 최신 모델',
-        quote: '오픈소스 Gemini의 힘',
+        id: 'gemma', name: 'Gemma 4 31B', nameKo: 'Gemma 4 31B', icon: '💠', avatarUrl: '/logos/gemini.svg', color: 'emerald', category: 'ai', openrouterModel: 'google/gemma-4-31b-it', description: '구글 오픈웨이트 최신 모델',
+        quote: '오픈웨이트 Gemini 계열의 힘',
         sampleQuestions: ['가볍게 분석해줘', '코드 설명해줘', '개념 정리해줘'],
-        greeting: 'Google에서 개발한 오픈소스 모델 Gemma 4 31B입니다. Gemini 기술을 기반으로 한 오픈소스 모델로, 가벼우면서도 높은 성능을 제공합니다. 편하게 물어보세요!',
+        greeting: 'Google에서 개발한 오픈웨이트 모델 Gemma 4 31B입니다. Gemini 계열 기술을 기반으로 하며, 가벼우면서도 높은 성능을 제공합니다. 편하게 물어보세요!',
     },
     {
         id: 'phi', name: 'Phi-4', nameKo: 'Phi-4', icon: '🔬', avatarUrl: '/logos/microsoft.png', color: 'blue', category: 'ai', openrouterModel: 'microsoft/phi-4', description: 'MS 소형 추론 특화 모델',

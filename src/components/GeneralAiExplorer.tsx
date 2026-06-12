@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Expert, ExpertCategory } from '@/types/expert';
 import { EXPERT_CATEGORY_LABELS, EXPERT_SUB_CATEGORIES } from '@/types/expert';
+import { isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 import {
   BRAND_LABEL,
   BRAND_ORDER,
@@ -70,16 +71,6 @@ const DEFAULT_MODEL_IDS = [
   'grok',
   'qwen',
 ];
-
-const HIDDEN_GENERAL_MODEL_IDS = new Set(['developer-yjh']);
-
-function isGeneralTextModel(expert: Expert) {
-  if (expert.category !== 'ai') return false;
-  if (expert.id.startsWith('auto-')) return false;
-  if (expert.id === 'ancano-pro') return false;
-  if (HIDDEN_GENERAL_MODEL_IDS.has(expert.id)) return false;
-  return !(expert.modelInfo?.outputModalities ?? []).some((modality) => modality === 'image' || modality === 'video');
-}
 
 const CUSTOM_FEATURED_IDS = [
   'doctor',
@@ -254,7 +245,7 @@ function modelStrengthTags(expert: Expert) {
   const tags = [
     expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? '추론' : null,
     expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : null,
-    MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈소스' : null,
+    expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈웨이트' : null,
     brand === 'perplexity' ? '검색' : null,
     expert.description.includes('코딩') ? '코딩' : null,
   ].filter(Boolean) as string[];
@@ -284,23 +275,23 @@ function modelFieldTags(expert: Expert) {
     deepseek: ['코딩', '분석', '문제해결'],
     'deepseek-r1': ['추론', '수학', '논리'],
     qwen: ['다국어', '번역', '업무'],
-    'qwen-9b': ['오픈소스', '경량', '임베드'],
+    'qwen-9b': ['오픈웨이트', '경량', '임베드'],
     'qwen-plus': ['다국어', '추론', '글쓰기'],
     'qwen-thinking': ['추론', '수학', '계획'],
-    'llama-maverick': ['오픈소스', '개발', '자체호스팅'],
+    'llama-maverick': ['오픈웨이트', '개발', '자체호스팅'],
     'llama-scout': ['경량', '온디바이스', '빠른 응답'],
     'mistral-large': ['유럽권', '업무', '분석'],
     'mistral-medium': ['균형', '문서', '업무'],
     'mistral-small': ['경량', '빠른 응답', '비용절감'],
     codestral: ['코딩', '리팩터링', '개발'],
     devstral: ['개발', '에이전트', '도구사용'],
-    gemma: ['오픈소스', '연구', '자체호스팅'],
+    gemma: ['오픈웨이트', '연구', '자체호스팅'],
     phi: ['소형', '추론', '로컬'],
     'command-r-plus': ['RAG', '검색', '출처'],
     'command-a': ['기업업무', '문서', '지식검색'],
     'nova-premier': ['엔터프라이즈', '분석', '멀티모달'],
     'nova-2-lite': ['경량', '긴 컨텍스트', '비용절감'],
-    dolphin: ['자유대화', '실험', '오픈소스'],
+    dolphin: ['자유대화', '실험', '오픈웨이트'],
     glm: ['중국어', '대형모델', '업무'],
     mimo: ['모바일', '멀티모달', '중국어'],
     'mimo-flash': ['모바일', '빠른 응답', '경량'],
@@ -322,7 +313,7 @@ function modelFieldTags(expert: Expert) {
   };
 
   if (fieldsById[expert.id]) return fieldsById[expert.id];
-  if (MODEL_IS_OPENSOURCE.has(expert.id)) return ['오픈소스', '로컬', '실험'];
+  if (expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id)) return ['오픈웨이트', '로컬', '실험'];
   if ((expert.abilities?.contextWindow ?? 0) >= 85) return ['장문맥', '문서', '분석'];
   if ((expert.abilities?.speed ?? 0) >= 85) return ['빠른 응답', '일상', '업무'];
   return ['범용', '대화', '업무'];
@@ -477,7 +468,7 @@ function getModelMeta(expert: Expert) {
     ['제공사', modelProviderLabel(expert)],
     ['분야', modelFieldTags(expert).join(', ')],
     ['속도', expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : '보통'],
-    ['가격', expert.modelInfo?.priceTier ? priceLabel[expert.modelInfo.priceTier] : MODEL_IS_OPENSOURCE.has(expert.id) ? '무료 포함' : '유료'],
+    ['가격', expert.modelInfo?.priceTier ? priceLabel[expert.modelInfo.priceTier] : expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '무료/저비용' : '표준 가격'],
     ['컨텍스트 길이', contextLabel],
     ['출시일', expert.modelInfo?.createdAt ?? '2025년 5월'],
     ['입력', modalityLabel],
@@ -654,6 +645,7 @@ const GENERAL_QUICK_FILTERS = [
   { id: 'flagship', label: '플래그십' },
   { id: 'fast', label: '빠른 응답' },
   { id: 'reasoning', label: '깊은 추론' },
+  { id: 'coding', label: '코딩' },
   { id: 'low-cost', label: '저비용' },
   { id: 'long-context', label: '긴 컨텍스트' },
   { id: 'minor', label: '마이너 모델' },
@@ -1257,7 +1249,7 @@ function DetailPanel({
         </dl>
         <div className="mt-3.5 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
           <h4 className="mb-2 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
-            {tab === 'custom' ? '??AI? ??留욌뒗 ????덉떆' : '??紐⑤뜽 ?쒖슜 ?덉떆'}
+            {tab === 'custom' ? '이 AI와 잘 맞는 질문 예시' : '이 모델 활용 예시'}
           </h4>
           <div className="space-y-1.5">
             {examples.map((example) => (
@@ -1269,8 +1261,7 @@ function DetailPanel({
           </div>
         </div>
       </div>
-      {/* CTA ??蹂몃Ц ?곸뿭怨?紐낇솗??遺꾨━??footer. 蹂몃Ц ?ㅽ겕濡??쒖뿉????긽 ?몄텧?섍퀬
-          ?댁쟾??蹂몃Ц sticky 濡??명빐 Windows ?뚰꽣留덊겕 / ?섏씠吏?ㅼ씠?섍낵 寃뱀튂???쒓컖 異⑸룎 ?닿껐. */}
+      {/* CTA footer is separated from the scrollable body to avoid overlap. */}
       <div className="shrink-0 border-t border-slate-200/70 bg-white px-4 py-3">
         <button
           type="button"
@@ -1280,7 +1271,7 @@ function DetailPanel({
             selected ? 'bg-slate-900 hover:bg-slate-800' : 'bg-indigo-600 hover:bg-indigo-500',
           )}
         >
-          {tab === 'custom' ? '??AI濡??쒖옉' : '??紐⑤뜽濡??쒖옉'}
+          {tab === 'custom' ? '이 AI로 시작' : '이 모델로 시작'}
           <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
         </button>
       </div>
@@ -1459,7 +1450,7 @@ export function AllAiExplorerModal({
 
   const baseItems = useMemo(() => {
     const items = tab === 'general'
-      ? experts.filter(isGeneralTextModel)
+      ? experts.filter(isVisibleGeneralTextModel)
       : experts.filter(isCustomExpert);
 
     return [...items].sort((a, b) => {
@@ -1755,7 +1746,7 @@ export function AllAiExplorerModal({
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {visibleItems.length === 0 ? (
                 <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[13px] font-bold text-slate-400">
-                  寃??寃곌낵媛 ?놁뒿?덈떎.
+                  검색 결과가 없습니다.
                 </div>
               ) : (
                 <div
@@ -1938,7 +1929,7 @@ function LegacyGeneralAiHome({
             className="hidden h-8 items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 px-3 text-[11px] font-black text-slate-600 shadow-sm backdrop-blur transition-all hover:border-blue-200 hover:bg-white hover:text-blue-600 sm:flex"
           >
             <LayoutGrid className="h-3.5 w-3.5" />
-            ?꾩껜 紐⑤뜽 蹂닿린
+            전체 모델 보기
           </button>
           <button
             type="button"
@@ -1947,7 +1938,7 @@ function LegacyGeneralAiHome({
               setExplorerOpen(true);
             }}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 text-slate-400 shadow-sm backdrop-blur transition-colors hover:bg-white hover:text-slate-900 sm:hidden"
-            aria-label="?꾩껜 紐⑤뜽 蹂닿린"
+            aria-label="전체 모델 보기"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -1955,9 +1946,10 @@ function LegacyGeneralAiHome({
 
         <div className="mx-auto max-w-[590px] text-center">
           <h2 className="text-[25px] font-black leading-tight tracking-tight text-slate-950 sm:text-[30px]">
-            紐⑤뱺 AI瑜???怨녹뿉??          </h2>
+            모든 AI를 한곳에
+          </h2>
           <p className="mt-1.5 text-[13px] font-semibold text-slate-600">
-            利먭꺼李얘린??AI瑜?諛붾줈 怨좊Ⅴ怨? ?꾩슂?섎㈃ 異붿쿇 AI媛 吏덈Ц??留욎떠 ?≪븘以섏슂.
+            즐겨찾는 AI를 바로 고르고, 필요하면 추천 AI가 질문에 맞춰 골라줘요.
           </p>
         </div>
 
@@ -1983,7 +1975,7 @@ function LegacyGeneralAiHome({
                 <Sparkles className="h-6 w-6" strokeWidth={2.2} />
               </span>
               <span className={cn('whitespace-nowrap text-[12px] font-black transition-colors', autoAssign ? 'text-blue-600' : 'text-slate-700')}>
-                異붿쿇 AI
+                추천 AI
               </span>
             </button>
           </div>
@@ -2021,7 +2013,7 @@ function LegacyGeneralAiHome({
                   type="button"
                   onClick={() => onToggleFavorite(expert.id)}
                   className="absolute -right-0.5 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 opacity-0 shadow-sm transition-all hover:border-rose-200 hover:text-rose-500 group-hover:opacity-100"
-                  aria-label={`${expert.nameKo} 利먭꺼李얘린 ?쒓굅`}
+                  aria-label={`${expert.nameKo} 즐겨찾기 제거`}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -2040,7 +2032,7 @@ function LegacyGeneralAiHome({
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-slate-300 bg-white/80 text-slate-700 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition-all group-hover:-translate-y-1 group-hover:border-blue-300 group-hover:bg-white group-hover:text-blue-600 sm:h-16 sm:w-16">
               <Plus className="h-5 w-5" strokeWidth={2.2} />
             </span>
-            <span className="text-[12px] font-bold text-slate-700">異붽?</span>
+            <span className="text-[12px] font-bold text-slate-700">추가</span>
           </button>
         </div>
 
@@ -2096,18 +2088,18 @@ export function GeneralAiHome({
 
   const homeTiles = useMemo<HomeTile[]>(() => {
     const fastExperts = experts
-      .filter(isGeneralTextModel)
+      .filter(isVisibleGeneralTextModel)
       .sort((a, b) => (b.abilities?.speed ?? 0) - (a.abilities?.speed ?? 0));
 
     const base =
       activeHomeTab === 'favorites'
         ? favoriteExperts
         : activeHomeTab === 'recommended'
-          ? orderExpertsByIds(experts, RECOMMENDED_MODEL_IDS).filter(isGeneralTextModel)
+          ? orderExpertsByIds(experts, RECOMMENDED_MODEL_IDS).filter(isVisibleGeneralTextModel)
           : activeHomeTab === 'fast'
             ? fastExperts
             : activeHomeTab === 'reasoning'
-              ? orderExpertsByIds(experts, REASONING_MODEL_IDS).filter(isGeneralTextModel)
+              ? orderExpertsByIds(experts, REASONING_MODEL_IDS).filter(isVisibleGeneralTextModel)
               : activeHomeTab === 'custom'
                 ? customExperts
                 : orderExpertsByIds(experts, DEFAULT_MODEL_IDS);
@@ -2152,9 +2144,11 @@ export function GeneralAiHome({
 
         <div className="mx-auto max-w-[720px] text-center">
           <h2 className="text-[25px] font-black leading-tight tracking-tight text-slate-950 sm:text-[31px]">
-            紐⑤뱺 AI 梨쀫큸????怨녹뿉???먰븯???濡?怨⑤씪 ?곗꽭??          </h2>
+            모든 AI 챗봇을 한곳에서 원하는 대로 골라 쓰세요
+          </h2>
           <p className="mt-2 text-[13px] font-semibold text-slate-500 sm:text-[14px]">
-            GPT 쨌 Claude 쨌 Gemini - ?먰븯??AI瑜?怨⑤씪 ?먯쑀濡?쾶 ???          </p>
+            GPT, Claude, Gemini 등 원하는 AI를 골라 자유롭게 대화하세요
+          </p>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/92 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -2219,7 +2213,7 @@ export function GeneralAiHome({
                       <Sparkles className="h-6 w-6" />
                     </span>
                     <span className={cn('mt-2 max-w-full truncate text-[12px] font-black', autoAssign ? 'text-blue-600' : 'text-slate-700')}>
-                      異붿쿇 AI
+                      추천 AI
                     </span>
                   </button>
                 );
@@ -2238,7 +2232,7 @@ export function GeneralAiHome({
                       <LayoutGrid className="h-5 w-5" />
                     </span>
                     <span className="mt-2 max-w-full truncate text-[12px] font-black text-slate-700 group-hover:text-blue-600">
-                      紐⑤뱺 紐⑤뜽
+                      모든 모델
                     </span>
                   </button>
                 );
@@ -2287,7 +2281,7 @@ export function GeneralAiHome({
                       'absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full transition-all',
                       favorite ? 'text-amber-400 opacity-100' : 'text-slate-300 opacity-0 hover:text-amber-400 group-hover:opacity-100',
                     )}
-                    aria-label={favorite ? `${expert.nameKo} 利먭꺼李얘린 ?쒓굅` : `${expert.nameKo} 利먭꺼李얘린 異붽?`}
+                    aria-label={favorite ? `${expert.nameKo} 즐겨찾기 제거` : `${expert.nameKo} 즐겨찾기 추가`}
                   >
                     <Star className="h-3.5 w-3.5" fill={favorite ? 'currentColor' : 'none'} />
                   </button>

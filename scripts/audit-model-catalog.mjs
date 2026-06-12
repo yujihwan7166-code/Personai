@@ -7,30 +7,24 @@ const {
   OPENROUTER_ADDED_EXPERTS,
 } = await import('../src/data/openrouter-added-models.ts');
 const { OPENROUTER_EXISTING_MODEL_OVERRIDES } = await import('../src/data/openrouter-existing-model-overrides.ts');
+const {
+  hasImageVideoOutput,
+  hasLikelyMojibake,
+  isVisibleGeneralTextModel,
+} = await import('../src/lib/generalModelCatalog.ts');
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
 const aiExperts = DEFAULT_EXPERTS.filter((expert) => expert.category === 'ai');
 const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
-const mojibakePattern = /[�]|(?:[硫異怨踰湲援먯쑁]{2,})|\?[가-힣]*\?/;
 const genericBadAvatars = new Set(['/logos/router.svg']);
 const multimodalInputModels = aiExperts.filter((expert) => {
   const input = expert.modelInfo?.inputModalities ?? [];
   return input.some((item) => item === 'image' || item === 'video');
 });
-const imageVideoOutputModels = aiExperts.filter((expert) => {
-  const output = expert.modelInfo?.outputModalities ?? [];
-  return output.some((item) => item === 'image' || item === 'video');
-});
-const visibleGeneralAiExperts = aiExperts.filter((expert) => {
-  if (expert.id.startsWith('auto-')) return false;
-  if (expert.id === 'ancano-pro' || expert.id === 'developer-yjh') return false;
-  return true;
-});
-const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter((expert) => {
-  const output = expert.modelInfo?.outputModalities ?? [];
-  return output.some((item) => item === 'image' || item === 'video');
-});
+const imageVideoOutputModels = aiExperts.filter(hasImageVideoOutput);
+const visibleGeneralAiExperts = aiExperts.filter(isVisibleGeneralTextModel);
+const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralFilterBuckets = {
   priceTier: visibleGeneralAiExperts.reduce((acc, expert) => {
     const key = expert.modelInfo?.priceTier ?? 'missing';
@@ -57,7 +51,7 @@ const missingAvatars = DEFAULT_EXPERTS.filter((expert) => {
 });
 
 const badTextAi = aiExperts.filter((expert) =>
-  mojibakePattern.test([expert.name, expert.nameKo, expert.description, ...(expert.tags ?? [])].join(' ')),
+  hasLikelyMojibake([expert.name, expert.nameKo, expert.description, ...(expert.tags ?? [])].join(' ')),
 );
 
 const badGenericAvatars = aiExperts.filter((expert) => expert.avatarUrl && genericBadAvatars.has(expert.avatarUrl));

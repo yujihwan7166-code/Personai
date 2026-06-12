@@ -39,16 +39,16 @@ describe('modelTaxonomy', () => {
   });
 
   describe('MODEL_IS_OPENSOURCE', () => {
-    it('오픈소스 셋의 모든 ID 가 실제 카탈로그에 존재해야 한다', () => {
+    it('오픈웨이트 셋의 모든 ID 가 실제 카탈로그에 존재해야 한다', () => {
       const stale = [...MODEL_IS_OPENSOURCE].filter((id) => !aiIdSet.has(id));
       expect(stale, `삭제된 모델이 남아있음: ${stale.join(', ')}`).toEqual([]);
     });
 
-    it('Closed 라인(GPT/Claude/Gemini Pro/메인)이 오픈소스로 분류되어 있지 않아야 한다', () => {
+    it('Closed 라인(GPT/Claude/Gemini Pro/메인)이 오픈웨이트로 분류되어 있지 않아야 한다', () => {
       const mustBeClosed = ['gpt', 'gpt-mini', 'gpt-nano', 'claude', 'claude-sonnet', 'claude-haiku', 'gemini', 'gemini-pro', 'grok'];
       mustBeClosed.forEach((id) => {
         if (aiIdSet.has(id)) {
-          expect(MODEL_IS_OPENSOURCE.has(id), `${id} 가 오픈소스로 잘못 분류됨`).toBe(false);
+          expect(MODEL_IS_OPENSOURCE.has(id), `${id} 가 오픈웨이트로 잘못 분류됨`).toBe(false);
         }
       });
     });
