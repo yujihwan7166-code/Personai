@@ -546,9 +546,9 @@ function ExplorerCard({
           {tab === 'custom' ? <CustomPortrait expert={expert} /> : <ExpertMedia expert={expert} mode={tab} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-black text-slate-900">{expert.nameKo}</span>
+          <span className="block truncate text-[15px] font-extrabold text-slate-900">{expert.nameKo}</span>
           {tab === 'general' && (
-            <span className="mt-0.5 block truncate text-[12px] font-bold text-slate-400">{providerLabel(expert)}</span>
+            <span className="mt-0.5 block truncate text-[12px] font-semibold text-slate-400">{providerLabel(expert)}</span>
           )}
           <span className="mt-1 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-500">{expert.description}</span>
         </span>
@@ -564,7 +564,7 @@ function ExplorerCard({
         onClick={onPreview}
         className={cn(
           'group relative flex h-[178px] flex-col rounded-[15px] border bg-white p-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.03)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)]',
-          active ? 'border-indigo-400 bg-indigo-50/25 ring-2 ring-indigo-100' : 'border-slate-200/90',
+          active ? 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-100' : 'border-slate-200/90',
         )}
       >
         {selected && (
@@ -577,13 +577,13 @@ function ExplorerCard({
             <ExpertMedia expert={expert} mode={tab} />
           </span>
           <span className="min-w-0 flex-1 pt-0.5">
-            <span className={cn('block line-clamp-2 break-keep text-[14px] font-black leading-[1.18]', active ? 'text-indigo-600' : 'text-slate-900')}>
+            <span className={cn('block line-clamp-2 break-keep text-[14px] font-extrabold leading-[1.18]', active ? 'text-indigo-700' : 'text-slate-900')}>
               {expert.nameKo}
             </span>
-            <span className="mt-1 block truncate text-[11px] font-bold text-slate-400">{providerLabel(expert)}</span>
+            <span className="mt-1 block truncate text-[11px] font-semibold text-slate-400">{providerLabel(expert)}</span>
           </span>
         </span>
-        <span className="mt-3 line-clamp-2 min-h-[34px] text-[12px] font-semibold leading-relaxed text-slate-500">
+        <span className="mt-3 line-clamp-2 min-h-[34px] text-[12px] font-medium leading-relaxed text-slate-500">
           {expert.description}
         </span>
         <span className="mt-auto flex flex-wrap gap-1.5 pt-2.5">
@@ -601,7 +601,7 @@ function ExplorerCard({
       onClick={onPreview}
       className={cn(
         'group relative flex h-[190px] flex-col overflow-hidden rounded-xl border bg-white p-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.07)]',
-        active ? 'border-indigo-400 bg-indigo-50/25 ring-2 ring-indigo-100' : 'border-slate-200',
+        active ? 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-100' : 'border-slate-200',
       )}
     >
       {selected && (
@@ -618,7 +618,7 @@ function ExplorerCard({
         <CustomPortrait expert={expert} />
       </span>
       <span className="mt-2 min-w-0">
-        <span className={cn('block line-clamp-1 text-[14px] font-black', active ? 'text-indigo-600' : 'text-slate-900')}>
+        <span className={cn('block line-clamp-1 text-[14px] font-extrabold', active ? 'text-indigo-700' : 'text-slate-900')}>
           {expert.nameKo}
         </span>
       </span>
@@ -647,25 +647,60 @@ function FilterGroup({
 }) {
   if (items.length === 0) return null;
 
+  const activeCount = items.reduce((sum, item) => sum + (selected.has(item.id) ? 1 : 0), 0);
+
   return (
-    <div className="border-b border-slate-100 py-4 last:border-b-0">
+    <div className="border-b border-slate-100 py-3.5 last:border-b-0">
       <div className="mb-2 flex items-center justify-between">
-        <h4 className="text-[12px] font-black text-slate-800">{title}</h4>
-        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+        <h4 className="text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
+          {title}
+        </h4>
+        {activeCount > 0 && (
+          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[9.5px] font-extrabold tabular-nums text-white">
+            {activeCount}
+          </span>
+        )}
       </div>
-      <div className="space-y-1.5">
-        {items.slice(0, 10).map((item) => (
-          <label key={item.id} className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold text-slate-500">
-            <input
-              type="checkbox"
-              checked={selected.has(item.id)}
-              onChange={() => onChange(item.id)}
-              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600"
-            />
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            <span className="text-[10px] text-slate-400">{item.count}</span>
-          </label>
-        ))}
+      <div className="space-y-0.5">
+        {items.slice(0, 10).map((item) => {
+          const active = selected.has(item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange(item.id)}
+              aria-pressed={active}
+              className={cn(
+                'group flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors',
+                active
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+                  active
+                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                    : 'border-slate-300 bg-white group-hover:border-slate-400',
+                )}
+              >
+                {active && <Check className="h-2 w-2" strokeWidth={3.2} />}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold">
+                {item.label}
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 text-[10.5px] font-bold tabular-nums',
+                  active ? 'text-indigo-500' : 'text-slate-400',
+                )}
+              >
+                {item.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -691,64 +726,79 @@ function DetailPanel({
   ];
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-y-auto bg-white p-4">
-      <div className={cn('mx-auto flex w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100', tab === 'custom' ? 'aspect-[16/10]' : 'aspect-square max-w-[96px] p-3')}>
-        {tab === 'custom' ? <CustomPortrait expert={expert} /> : <ExpertMedia expert={expert} mode={tab} />}
-      </div>
-      <div className="mt-3.5">
-        <h3 className={cn(
-          'font-black tracking-tight text-slate-950',
-          tab === 'custom'
-            ? 'truncate text-[22px]'
-            : 'line-clamp-2 break-keep text-[21px] leading-tight',
-        )}>
-          {expert.nameKo}
-        </h3>
-        {tab === 'general' && <p className="mt-1 text-[13px] font-bold text-slate-400">{providerLabel(expert)}</p>}
-      </div>
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
-        {tags.map((tag) => (
-          <SmallTag key={tag}>{tag}</SmallTag>
-        ))}
-      </div>
-      <p className="mt-3 text-[12.5px] font-medium leading-relaxed text-slate-600">{expert.description}</p>
-      <dl className="mt-3.5 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3.5 text-[11.5px]">
-        {meta.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-3">
-            <dt className="shrink-0 text-slate-400">{label}</dt>
-            <dd className={cn(
-              'min-w-0 text-right font-bold text-slate-600',
-              tab === 'custom' ? 'truncate' : 'leading-snug',
-            )}>
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-3.5 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
-        <h4 className="mb-2 text-[12px] font-black text-slate-800">
-          {tab === 'custom' ? '이 AI와 잘 맞는 대화 예시' : '이 모델 활용 예시'}
-        </h4>
-        <div className="space-y-2">
-          {examples.map((example) => (
-            <p key={example} className="flex gap-2 text-[11px] font-bold leading-relaxed text-slate-600">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full bg-indigo-500 p-0.5 text-white" />
-              <span className="line-clamp-1">{example}</span>
-            </p>
+    <aside className="flex h-full min-h-0 flex-col bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        <div
+          className={cn(
+            'mx-auto flex w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100',
+            tab === 'custom' ? 'aspect-[16/10]' : 'aspect-square max-w-[88px] p-3',
+          )}
+        >
+          {tab === 'custom' ? <CustomPortrait expert={expert} /> : <ExpertMedia expert={expert} mode={tab} />}
+        </div>
+        <div className="mt-3.5">
+          <h3
+            className={cn(
+              'font-extrabold tracking-tight text-slate-950',
+              tab === 'custom' ? 'truncate text-[21px]' : 'line-clamp-2 break-keep text-[20px] leading-tight',
+            )}
+          >
+            {expert.nameKo}
+          </h3>
+          {tab === 'general' && (
+            <p className="mt-0.5 text-[12.5px] font-semibold text-slate-400">{providerLabel(expert)}</p>
+          )}
+        </div>
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <SmallTag key={tag}>{tag}</SmallTag>
           ))}
         </div>
+        <p className="mt-3 text-[12.5px] font-medium leading-relaxed text-slate-600">{expert.description}</p>
+        <dl className="mt-3.5 grid grid-cols-1 gap-y-2 border-t border-slate-100 pt-3.5 text-[11.5px]">
+          {meta.map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-3">
+              <dt className="shrink-0 font-medium text-slate-400">{label}</dt>
+              <dd
+                className={cn(
+                  'min-w-0 text-right font-bold text-slate-700',
+                  tab === 'custom' ? 'truncate' : 'leading-snug',
+                )}
+              >
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-3.5 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
+          <h4 className="mb-2 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
+            {tab === 'custom' ? '이 AI와 잘 맞는 대화 예시' : '이 모델 활용 예시'}
+          </h4>
+          <div className="space-y-1.5">
+            {examples.map((example) => (
+              <p key={example} className="flex gap-2 text-[11.5px] font-semibold leading-relaxed text-slate-600">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full bg-indigo-500 p-0.5 text-white" />
+                <span className="line-clamp-1">{example}</span>
+              </p>
+            ))}
+          </div>
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={onStart}
-        className={cn(
-          'sticky bottom-0 mt-3.5 flex h-[50px] w-full shrink-0 items-center justify-center gap-3 rounded-xl text-[14px] font-black text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-0.5',
-          selected ? 'bg-slate-900' : 'bg-indigo-600 hover:bg-indigo-500',
-        )}
-      >
-        {tab === 'custom' ? '이 AI로 시작' : '이 모델로 시작'}
-        <ArrowRight className="h-5 w-5" />
-      </button>
+      {/* CTA — 본문 영역과 명확히 분리된 footer. 본문 스크롤 시에도 항상 노출되고
+          이전에 본문 sticky 로 인해 Windows 워터마크 / 페이지네이션과 겹치던 시각 충돌 해결. */}
+      <div className="shrink-0 border-t border-slate-200/70 bg-white px-4 py-3">
+        <button
+          type="button"
+          onClick={onStart}
+          className={cn(
+            'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[13.5px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300',
+            selected ? 'bg-slate-900 hover:bg-slate-800' : 'bg-indigo-600 hover:bg-indigo-500',
+          )}
+        >
+          {tab === 'custom' ? '이 AI로 시작' : '이 모델로 시작'}
+          <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+        </button>
+      </div>
     </aside>
   );
 }
@@ -911,35 +961,51 @@ export function AllAiExplorerModal({
   return createPortal(
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/45 px-4 py-5 text-slate-950 backdrop-blur-sm">
       <div className="flex h-[min(860px,calc(100vh-40px))] min-h-0 w-full max-w-[1410px] flex-col overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.32)] ring-1 ring-slate-950/10">
-        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-start gap-4 border-b border-slate-200/70 bg-white px-5 py-4">
+        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-slate-200/70 bg-white px-5 py-3.5">
           <div>
-            <h2 className="text-[23px] font-black tracking-tight text-slate-950">전체 AI 탐색</h2>
-            <p className="mt-1 text-[12px] font-semibold text-slate-400">
+            <h2 className="text-[19px] font-extrabold tracking-tight text-slate-950">전체 AI 탐색</h2>
+            <p className="mt-0.5 text-[12px] font-medium text-slate-500">
               {tab === 'general'
                 ? '업무, 학습, 창작 목적에 맞는 모델을 비교하고 선택하세요.'
                 : '역할, 캐릭터, 관점 기반의 커스텀 AI를 고르세요.'}
             </p>
           </div>
-          <div className="hidden rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-inner sm:flex">
+          <div className="hidden rounded-full border border-slate-200 bg-slate-50 p-1 sm:flex">
             <button
               type="button"
               onClick={() => setTab('general')}
-              className={cn('flex h-10 items-center gap-2 rounded-lg px-7 text-[13px] font-black transition-all', tab === 'general' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900')}
+              className={cn(
+                'flex h-9 items-center gap-1.5 rounded-full px-5 text-[12.5px] font-extrabold transition-all',
+                tab === 'general'
+                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
+                  : 'text-slate-500 hover:text-slate-900',
+              )}
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-3.5 w-3.5" />
               일반 모델
             </button>
             <button
               type="button"
               onClick={() => setTab('custom')}
-              className={cn('flex h-10 items-center gap-2 rounded-lg px-7 text-[13px] font-black transition-all', tab === 'custom' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900')}
+              className={cn(
+                'flex h-9 items-center gap-1.5 rounded-full px-5 text-[12.5px] font-extrabold transition-all',
+                tab === 'custom'
+                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
+                  : 'text-slate-500 hover:text-slate-900',
+              )}
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-3.5 w-3.5" />
               커스텀 모델
             </button>
           </div>
-          <button type="button" onClick={onClose} className="ml-auto rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900" aria-label="닫기">
-            <X className="h-6 w-6" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            aria-label="닫기"
+            title="닫기"
+          >
+            <X className="h-5 w-5" />
           </button>
         </header>
 
@@ -996,15 +1062,17 @@ export function AllAiExplorerModal({
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 bg-white lg:grid-cols-[150px_minmax(0,1fr)_274px] xl:grid-cols-[156px_minmax(0,1fr)_286px]">
           <aside className="hidden min-h-0 overflow-y-auto border-r border-slate-200/70 bg-slate-50/65 px-3.5 lg:block">
-            <div className="flex items-center justify-between border-b border-slate-100 py-4">
-              <h3 className="text-[13px] font-black text-slate-900">필터</h3>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-[10px] font-bold text-slate-400 hover:text-indigo-600"
-              >
-                초기화
-              </button>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-slate-50/95 py-3.5 backdrop-blur">
+              <h3 className="text-[12.5px] font-extrabold tracking-tight text-slate-900">필터</h3>
+              {(brandFilters.size + categoryFilters.size + subFilters.size + traitFilters.size + detailFilters.size) > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex h-6 items-center rounded-full bg-slate-200/70 px-2 text-[10.5px] font-bold text-slate-600 transition-colors hover:bg-slate-300 hover:text-slate-900"
+                >
+                  초기화
+                </button>
+              )}
             </div>
             {tab === 'general' ? (
               <>
