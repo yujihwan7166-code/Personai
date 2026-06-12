@@ -552,6 +552,13 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(220 13% 85%); border-radius: 999px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: hsl(220 9% 72%); }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 
   /* Typing dots */
   .typing-dot {

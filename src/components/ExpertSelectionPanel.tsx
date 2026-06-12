@@ -30,6 +30,7 @@ import { useMainModeTransition } from '@/hooks/useMainModeTransition';
 import { buildExpertSelectionGroups, RESEARCH_AGENT_IDS, isAiGroupCat } from '@/lib/expertSelectionGroups';
 import { BRAND_LABEL, BRAND_LOGO, BRAND_ORDER, MODEL_BRAND, MODEL_IS_OPENSOURCE, type ModelBrand } from '@/lib/modelTaxonomy';
 import { BrowserEnginePicker } from '@/components/BrowserEnginePicker';
+import { AllAiExplorerModal } from '@/components/GeneralAiExplorer';
 import { runSearch } from '@/lib/searchEngines';
 import { useSelectedSearchEngine } from '@/hooks/useSelectedSearchEngine';
 import { cn } from '@/lib/utils';
@@ -98,6 +99,21 @@ const mainModes: MainMode[] = ['general', 'research_main', 'study_main', 'voice_
 const AI_AGENT_IDS = ['ancano-pro', 'auto-gpt', 'auto-gemini', 'auto-claude', 'auto-grok', 'auto-perplexity', 'auto-deepseek', 'auto-qwen'];
 /** 1차 탭에서 빼고 "더보기" 드롭다운으로 보낼 카테고리들. */
 const MORE_DROPDOWN_CATS: string[] = ['region', 'mythology', 'lifestyle', 'religion', 'perspective'];
+const CUSTOM_MODEL_CAT = 'custom_models';
+const CUSTOM_MODEL_CATEGORIES: ExpertCategory[] = ['occupation', 'specialist', 'celebrity', 'fictional', 'mythology', 'region', 'ideology', 'religion', 'lifestyle', 'perspective'];
+const CUSTOM_MODEL_FILTERS: Array<{ id: string; label: string; categories?: ExpertCategory[] }> = [
+  { id: '전체', label: '전체' },
+  { id: 'occupation', label: '직업', categories: ['occupation'] },
+  { id: 'specialist', label: '전문가', categories: ['specialist'] },
+  { id: 'celebrity', label: '인물', categories: ['celebrity'] },
+  { id: 'fictional', label: '캐릭터', categories: ['fictional'] },
+  { id: 'mythology', label: '신화', categories: ['mythology'] },
+  { id: 'region', label: '지역', categories: ['region'] },
+  { id: 'ideology', label: '이념', categories: ['ideology'] },
+  { id: 'religion', label: '종교/철학', categories: ['religion'] },
+  { id: 'lifestyle', label: '라이프', categories: ['lifestyle'] },
+  { id: 'perspective', label: '페르소나', categories: ['perspective'] },
+];
 
 function isInstantChatLayoutSwitch(from: MainMode, to: MainMode) {
   return (
@@ -1998,6 +2014,7 @@ export function ExpertSelectionPanel({
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [prefilledQuestion, setPrefilledQuestion] = useState('');
+  const [allAiExplorerOpen, setAllAiExplorerOpen] = useState(false);
 
   const maxLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { hoveredExpert, tipPos, showTip, hideTip } = useHoverExpertTip();
@@ -2203,6 +2220,16 @@ export function ExpertSelectionPanel({
     showTransientMaxLimitMessage,
   ]);
 
+  const handleExplorerSelect = useCallback((expertId: string) => {
+    if (onBulkSelect) {
+      onBulkSelect([expertId]);
+      return;
+    }
+    if (!selectedIds.includes(expertId)) {
+      onToggle(expertId);
+    }
+  }, [onBulkSelect, onToggle, selectedIds]);
+
   const subtitleText = mainMode === 'general'
     ? 'GPT, Claude, Gemini 등 원하는 AI를 선택하고 자유롭게 대화하세요'
     : mainMode === 'multi'
@@ -2240,12 +2267,28 @@ export function ExpertSelectionPanel({
 
   const { favoriteIds, favoriteSet, toggleFavorite } = useFavoriteExperts();
   const visibleCategories = EXPERT_CATEGORY_ORDER;
-  const grouped = useMemo(() => buildExpertSelectionGroups({
+  const baseGrouped = useMemo(() => buildExpertSelectionGroups({
     experts,
     favoriteIds,
     visibleCategories,
     aiAgentIds: AI_AGENT_IDS,
   }), [experts, favoriteIds, visibleCategories]);
+
+  const grouped = useMemo(() => {
+    if (!isGeneral) return baseGrouped;
+
+    const customItems = experts.filter((expert) => CUSTOM_MODEL_CATEGORIES.includes(expert.category));
+    const compactGroups = baseGrouped.filter((group) => !CUSTOM_MODEL_CATEGORIES.includes(group.cat as ExpertCategory));
+    const insertIndex = compactGroups.findIndex((group) => group.cat === 'ai');
+    const customGroup = { cat: CUSTOM_MODEL_CAT, label: '커스텀 모델', items: customItems };
+
+    if (insertIndex < 0) return [...compactGroups, customGroup];
+    return [
+      ...compactGroups.slice(0, insertIndex + 1),
+      customGroup,
+      ...compactGroups.slice(insertIndex + 1),
+    ];
+  }, [baseGrouped, experts, isGeneral]);
 
   // 가상 'browser' 카테고리 — 일반 채팅 (single AI) 모드에서만 노출.
   // 'fictional' (캐릭터) 은 더보기 드롭다운으로 이동.
@@ -2353,7 +2396,7 @@ export function ExpertSelectionPanel({
   return (
     <div className={cn(
       // Phase C-B: 중앙 컬럼 폭 통일(920px) — 히어로/탭/봇그리드/입력창 모두 같은 축으로 정렬. 반응형 비례 스케일업 적용하여 줌/화면 해상도 관계없이 중앙 정렬 유지.
-      "relative mx-auto w-full max-w-[920px] space-y-4 transition-all duration-500 scale-100 sm:scale-[1.05] md:scale-[1.1] lg:scale-[1.15] xl:scale-[1.2] origin-top",
+      "relative mx-auto w-full max-w-[940px] space-y-4 transition-all duration-500 scale-100 sm:scale-[1.05] md:scale-[1.1] lg:scale-[1.15] xl:scale-[1.2] origin-top",
       isPlayerActive ? 'py-1' : 'py-4',
     )}>
       {/* 플레이어 모드 전체화면 다크 오버레이 */}
@@ -2555,8 +2598,8 @@ export function ExpertSelectionPanel({
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-1 min-w-0 gap-0.5">
-                    {groupedWithBrowser.filter(g => !MORE_DROPDOWN_CATS.includes(g.cat)).map(({ cat, label }) => {
+                  <div className="flex flex-1 min-w-0 gap-0.5 overflow-x-auto scrollbar-none">
+                    {groupedWithBrowser.filter(g => !MORE_DROPDOWN_CATS.includes(g.cat) && !(isGeneral && g.cat === 'ai')).map(({ cat, label }) => {
                       const isActive = effectiveCategory === cat;
                       const isAiTab = isAiGroupCat(cat);
                       const isAiDisabled = isAiTab && isStandardOrProcon;
@@ -2584,7 +2627,7 @@ export function ExpertSelectionPanel({
                             }
                           }}
                           className={cn(
-                            'flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
+                            'flex shrink-0 items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap',
                             isAiDisabled
                               ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                               : isActive
@@ -2633,6 +2676,21 @@ export function ExpertSelectionPanel({
                         </div>
                       );
                     })()}
+                    {isGeneral && (
+                      <div className="flex shrink-0 items-center pl-1">
+                        <button
+                          type="button"
+                          disabled={autoAssign}
+                          onClick={() => setAllAiExplorerOpen(true)}
+                          className={cn(
+                            'group inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-[11px] font-bold text-slate-500 transition-colors duration-150 hover:text-indigo-600 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-400',
+                          )}
+                        >
+                          <span className="underline-offset-4 group-hover:underline">전체 모델</span>
+                          <ArrowRight className="h-3 w-3 opacity-70 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -2644,6 +2702,25 @@ export function ExpertSelectionPanel({
                     className={cn('px-2 py-0.5 rounded text-[9px] whitespace-nowrap transition-all duration-150 border',
                       activeSubCategory === sub.id ? 'bg-slate-100 text-slate-700 font-semibold border-slate-300' : 'text-slate-400 font-medium hover:text-slate-600 border-transparent hover:border-slate-200')}>
                     {sub.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!searchMode && effectiveCategory === CUSTOM_MODEL_CAT && (
+              <div className="flex items-center gap-1.5 px-3 pt-0 pb-1.5 overflow-x-auto scrollbar-none">
+                {CUSTOM_MODEL_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setActiveSubCategory(filter.id)}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[9px] whitespace-nowrap transition-all duration-150 border',
+                      activeSubCategory === filter.id
+                        ? 'bg-slate-100 text-slate-700 font-semibold border-slate-300'
+                        : 'text-slate-400 font-medium hover:text-slate-600 border-transparent hover:border-slate-200',
+                    )}
+                  >
+                    {filter.label}
                   </button>
                 ))}
               </div>
@@ -2719,8 +2796,13 @@ export function ExpertSelectionPanel({
             : grouped.filter(({ cat }) => cat === effectiveCategory)
           ).map(({ cat, items }) => {
             const subCats = searchMode ? undefined : EXPERT_SUB_CATEGORIES[cat as ExpertCategory];
-            const subFiltered = !subCats || activeSubCategory === '전체'
-              ? items : items.filter(e => e.subCategory === activeSubCategory);
+            const customFilter = cat === CUSTOM_MODEL_CAT
+              ? CUSTOM_MODEL_FILTERS.find((filter) => filter.id === activeSubCategory)
+              : undefined;
+            const subFiltered = cat === CUSTOM_MODEL_CAT
+              ? (!customFilter?.categories ? items : items.filter((expert) => customFilter.categories!.includes(expert.category)))
+              : (!subCats || activeSubCategory === '전체'
+                ? items : items.filter(e => e.subCategory === activeSubCategory));
             // 전체 모델 탭 한정: 브랜드 필터 적용
             const filtered = (cat === 'ai' && activeBrandFilter !== 'all')
               ? subFiltered.filter((e) => {
@@ -3013,6 +3095,18 @@ export function ExpertSelectionPanel({
       )}
 
       </div>{/* end content transition wrapper */}
+
+      {allAiExplorerOpen && isGeneral && (
+        <AllAiExplorerModal
+          experts={experts}
+          selectedIds={selectedIds}
+          favoriteSet={favoriteSet}
+          initialTab={effectiveCategory === CUSTOM_MODEL_CAT ? 'custom' : 'general'}
+          onClose={() => setAllAiExplorerOpen(false)}
+          onSelectExpert={handleExplorerSelect}
+          onToggleFavorite={toggleFavorite}
+        />
+      )}
 
       <ExpertHoverTip expert={hoveredExpert} position={tipPos} />
 
