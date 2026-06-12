@@ -595,8 +595,14 @@ function matchesQuery(expert: Expert, query: string) {
     expert.name,
     expert.nameKo,
     expert.description,
+    expert.openrouterModel ?? '',
     expert.subCategory ?? '',
     providerLabel(expert),
+    expert.modelInfo?.provider ?? '',
+    expert.modelInfo?.priceTier ?? '',
+    String(expert.modelInfo?.contextLength ?? ''),
+    ...(expert.modelInfo?.inputModalities ?? []),
+    ...(expert.modelInfo?.outputModalities ?? []),
     ...tagsForExpert(expert),
   ].some((value) => value.toLowerCase().includes(q));
 }
@@ -606,16 +612,21 @@ const GENERAL_TRAIT_LABELS = [
   ['fast', '빠른 응답'],
   ['coding', '코딩'],
   ['search', '검색/리서치'],
-  ['opensource', '오픈소스'],
+  ['opensource', '오픈웨이트'],
 ] as const;
 
 const GENERAL_SPEC_LABELS = [
   ['speed-fast', '빠름'],
   ['speed-normal', '보통 속도'],
-  ['price-free', '무료 포함'],
-  ['price-paid', '유료'],
+  ['price-free', '무료'],
+  ['price-low', '저비용'],
+  ['price-standard', '표준 가격'],
+  ['price-premium', '프리미엄'],
+  ['context-xl', '1M+ 컨텍스트'],
   ['context-long', '긴 컨텍스트'],
   ['context-standard', '표준 컨텍스트'],
+  ['input-text', '텍스트 전용'],
+  ['input-vision', '이미지 입력'],
 ] as const;
 
 const CUSTOM_TONE_LABELS = [
@@ -643,9 +654,11 @@ const GENERAL_QUICK_FILTERS = [
   { id: 'flagship', label: '플래그십' },
   { id: 'fast', label: '빠른 응답' },
   { id: 'reasoning', label: '깊은 추론' },
+  { id: 'low-cost', label: '저비용' },
+  { id: 'long-context', label: '긴 컨텍스트' },
   { id: 'minor', label: '마이너 모델' },
   { id: 'search', label: '검색/출처' },
-  { id: 'opensource', label: '로컬/오픈소스' },
+  { id: 'opensource', label: '로컬/오픈웨이트' },
 ] as const;
 
 const CUSTOM_QUICK_FILTERS = [
@@ -702,20 +715,25 @@ const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexi
 
 function getGeneralTraitIds(expert: Expert) {
   const brand = MODEL_BRAND[expert.id];
+  const isOpenWeight = Boolean(expert.modelInfo?.openWeight) || MODEL_IS_OPENSOURCE.has(expert.id);
   return [
     expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning' : null,
     expert.abilities?.speed && expert.abilities.speed >= 85 ? 'fast' : null,
     expert.description.includes('코딩') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
     brand === 'perplexity' || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
-    MODEL_IS_OPENSOURCE.has(expert.id) ? 'opensource' : null,
+    isOpenWeight ? 'opensource' : null,
   ].filter(Boolean) as string[];
 }
 
 function getGeneralSpecIds(expert: Expert) {
+  const priceTier = expert.modelInfo?.priceTier;
+  const contextLength = expert.modelInfo?.contextLength ?? 0;
+  const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
   return [
     expert.abilities?.speed && expert.abilities.speed >= 85 ? 'speed-fast' : 'speed-normal',
-    MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-paid',
-    expert.abilities?.contextWindow && expert.abilities.contextWindow >= 85 ? 'context-long' : 'context-standard',
+    priceTier ? `price-${priceTier}` : MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-standard',
+    contextLength >= 1_000_000 ? 'context-xl' : contextLength >= 262_144 ? 'context-long' : 'context-standard',
+    inputModalities.includes('image') ? 'input-vision' : 'input-text',
   ];
 }
 
@@ -766,6 +784,8 @@ function matchesQuickFilter(expert: Expert, tab: ExplorerTab, filterId: string) 
     if (filterId === 'flagship') return FLAGSHIP_MODEL_IDS.has(expert.id);
     if (filterId === 'fast') return getGeneralSpecIds(expert).includes('speed-fast');
     if (filterId === 'reasoning') return getGeneralTraitIds(expert).includes('reasoning');
+    if (filterId === 'low-cost') return getGeneralSpecIds(expert).some((id) => id === 'price-free' || id === 'price-low');
+    if (filterId === 'long-context') return getGeneralSpecIds(expert).some((id) => id === 'context-xl' || id === 'context-long');
     if (filterId === 'minor') {
       const brand = MODEL_BRAND[expert.id] ?? 'other';
       return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_IDS.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));

@@ -31,6 +31,25 @@ const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter((exp
   const output = expert.modelInfo?.outputModalities ?? [];
   return output.some((item) => item === 'image' || item === 'video');
 });
+const visibleGeneralFilterBuckets = {
+  priceTier: visibleGeneralAiExperts.reduce((acc, expert) => {
+    const key = expert.modelInfo?.priceTier ?? 'missing';
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {}),
+  context: visibleGeneralAiExperts.reduce((acc, expert) => {
+    const contextLength = expert.modelInfo?.contextLength ?? 0;
+    const key = contextLength >= 1_000_000 ? 'xl' : contextLength >= 262_144 ? 'long' : 'standard';
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {}),
+  input: visibleGeneralAiExperts.reduce((acc, expert) => {
+    const input = expert.modelInfo?.inputModalities ?? [];
+    const key = input.includes('image') ? 'vision' : 'text';
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {}),
+};
 
 const missingAvatars = DEFAULT_EXPERTS.filter((expert) => {
   if (!expert.avatarUrl?.startsWith('/logos/')) return false;
@@ -115,6 +134,7 @@ const summary = {
     input: expert.modelInfo?.inputModalities,
     output: expert.modelInfo?.outputModalities,
   })),
+  visibleGeneralFilterBuckets,
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
   badTextAiCount: badTextAi.length,

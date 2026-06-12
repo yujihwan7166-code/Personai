@@ -151,6 +151,29 @@ describe('openrouter added model catalog', () => {
     });
   });
 
+  it('keeps visible general models filterable by structured metadata', () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter((expert) => {
+      const outputModalities = expert.modelInfo?.outputModalities ?? [];
+      return expert.category === 'ai'
+        && !expert.id.startsWith('auto-')
+        && expert.id !== 'ancano-pro'
+        && expert.id !== 'developer-yjh'
+        && !outputModalities.some((modality) => modality === 'image' || modality === 'video');
+    });
+
+    expect(visibleGeneralModels.length).toBeGreaterThan(100);
+    visibleGeneralModels.forEach((expert) => {
+      expect(expert.modelInfo?.provider, `${expert.id} should have provider metadata`).toBeTruthy();
+      expect(expert.modelInfo?.contextLength, `${expert.id} should have context length metadata`).toBeGreaterThan(0);
+      expect(expert.modelInfo?.priceTier, `${expert.id} should have price tier metadata`).toMatch(/^(free|low|standard|premium)$/);
+      expect(expert.modelInfo?.inputModalities?.length, `${expert.id} should have input modality metadata`).toBeGreaterThan(0);
+    });
+
+    expect(visibleGeneralModels.some((expert) => expert.modelInfo?.priceTier === 'free' || expert.modelInfo?.priceTier === 'low')).toBe(true);
+    expect(visibleGeneralModels.some((expert) => (expert.modelInfo?.contextLength ?? 0) >= 262_144)).toBe(true);
+    expect(visibleGeneralModels.some((expert) => expert.modelInfo?.inputModalities?.includes('image'))).toBe(true);
+  });
+
   it('adds varied stats to custom non-model experts', () => {
     const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
 
