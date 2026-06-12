@@ -46,19 +46,8 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
   const [selectedColor, setSelectedColor] = useState<TaskListColor | undefined>();
   const [selectedPriority, setSelectedPriority] = useState<Priority>(0);
   const [priorityTouched, setPriorityTouched] = useState(false);
-  // 분 단위 길이 — drag-to-create 의 길이로 초기화하고 사용자가 input 으로 조정.
-  // string 으로 보관해서 backspace 흐름 자연스럽게 (빈 값 잠깐 허용).
-  const initialDuration = durationMin ?? DEFAULT_INLINE_QUICK_ADD_DURATION_MIN;
-  const [durationInput, setDurationInput] = useState(String(initialDuration));
   const wrapperRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
-
-  /** durationInput 의 안전한 숫자 변환 — 빈/0/NaN 은 drag 길이로 폴백. */
-  const safeDurationMin = (() => {
-    const n = Number(durationInput);
-    if (!Number.isFinite(n) || n <= 0) return initialDuration;
-    return Math.min(1440, Math.floor(n));
-  })();
 
   const focusTitle = () => {
     const title = titleRef.current;
@@ -104,7 +93,7 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
       return;
     }
 
-    taskStore.add(buildInlineQuickAddTaskInput(trimmed, startIso, safeDurationMin, {
+    taskStore.add(buildInlineQuickAddTaskInput(trimmed, startIso, durationMin, {
       color: selectedColor,
       priority: priorityTouched ? selectedPriority : undefined,
     }));
@@ -131,14 +120,10 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
     focusTitleSoon();
   };
 
-  const endIsoPreview = new Date(new Date(startIso).getTime() + safeDurationMin * 60_000).toISOString();
-  // 자정 넘김 — 시작과 끝의 로컬 날짜가 다르면 다음날로 흘러간 일정.
-  const startLocal = new Date(startIso);
-  const endLocal = new Date(endIsoPreview);
-  const crossesMidnight =
-    startLocal.getFullYear() !== endLocal.getFullYear() ||
-    startLocal.getMonth() !== endLocal.getMonth() ||
-    startLocal.getDate() !== endLocal.getDate();
+  const endIsoPreview = (() => {
+    const fallbackDuration = durationMin ?? DEFAULT_INLINE_QUICK_ADD_DURATION_MIN;
+    return new Date(new Date(startIso).getTime() + fallbackDuration * 60_000).toISOString();
+  })();
 
   const accentColor = selectedColor ? TASK_LIST_COLORS[selectedColor].stripe : 'hsl(var(--primary))';
 
@@ -170,32 +155,6 @@ export const InlineQuickAdd = ({ startIso, durationMin, style, onClose }: Inline
             <span className="text-[10.5px] font-mono font-semibold tabular-nums tracking-wide text-foreground/70">
               {formatHm(startIso)} ~ {formatHm(endIsoPreview)}
             </span>
-            {crossesMidnight && (
-              <span
-                className="inline-flex h-3.5 items-center rounded bg-amber-500/15 px-1 text-[9.5px] font-extrabold uppercase tracking-wide text-amber-700"
-                aria-label="다음날까지 이어지는 일정"
-              >
-                다음날
-              </span>
-            )}
-            <label className="ml-1 inline-flex items-center gap-0.5">
-              <span className="sr-only">길이 직접 입력 (분)</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={5}
-                max={1440}
-                step={5}
-                value={durationInput}
-                onChange={(event) => setDurationInput(event.target.value)}
-                onClick={(event) => event.stopPropagation()}
-                onPointerDown={(event) => event.stopPropagation()}
-                aria-label="길이 (분)"
-                title="길이 (분) — 자정 넘김 허용"
-                className="h-5 w-11 rounded border border-foreground/14 bg-background text-center text-[10.5px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-1 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
-              />
-              <span className="text-[9.5px] font-semibold text-muted-foreground">분</span>
-            </label>
             <div className="ml-auto flex min-w-0 items-center justify-end gap-1">
               <div className="flex items-center gap-0.5">
                 {COLOR_OPTIONS.map((option) => {
