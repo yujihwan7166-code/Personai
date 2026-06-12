@@ -2248,7 +2248,7 @@ export function AppSidebar({
                 {experts
                   .filter(e => {
                     const hiddenBaseModels = ['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'qwen'];
-                    const hiddenSpecial = ['ancano-pro', 'auto-gpt'];
+                    const hiddenSpecial = ['ancano-pro', 'auto-gpt', 'developer-yjh'];
                     if (hiddenBaseModels.includes(e.id)) return false;
                     if (hiddenSpecial.includes(e.id)) return false;
                     if (botBrowserCat === '전체') return true;

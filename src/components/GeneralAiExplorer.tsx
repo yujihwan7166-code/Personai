@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 
 type ExplorerTab = 'general' | 'custom';
 type ExplorerView = 'grid' | 'list';
+type ExplorerSort = 'popular' | 'name' | 'reasoning' | 'tokenUsage' | 'speed' | 'coding' | 'creativity' | 'multilingual';
 
 interface GeneralAiHomeProps {
   experts: Expert[];
@@ -56,7 +57,8 @@ const CUSTOM_CATEGORIES: ExpertCategory[] = [
   'perspective',
 ];
 
-const PAGE_SIZE = 12;
+const GENERAL_PAGE_SIZE = 16;
+const CUSTOM_PAGE_SIZE = 12;
 
 const DEFAULT_MODEL_IDS = [
   'gpt',
@@ -68,6 +70,8 @@ const DEFAULT_MODEL_IDS = [
   'grok',
   'qwen',
 ];
+
+const HIDDEN_GENERAL_MODEL_IDS = new Set(['developer-yjh']);
 
 const CUSTOM_FEATURED_IDS = [
   'doctor',
@@ -188,22 +192,138 @@ function homeTileLabel(expert: Expert, duplicateBrand = false) {
 
 function providerLabel(expert: Expert) {
   if (expert.category !== 'ai') return EXPERT_CATEGORY_LABELS[expert.category];
+  return modelProviderLabel(expert);
+}
+
+function modelProviderLabel(expert: Expert) {
+  const model = expert.openrouterModel ?? '';
+  if (expert.id === 'ancano-pro') return 'ANCANO';
+  if (expert.id === 'auto-gpt') return 'OpenRouter';
+  if (model.startsWith('openai/')) return 'OpenAI';
+  if (model.startsWith('anthropic/')) return 'Anthropic';
+  if (model.startsWith('google/')) return 'Google';
+  if (model.startsWith('x-ai/')) return 'xAI';
+  if (model.startsWith('perplexity/')) return 'Perplexity';
+  if (model.startsWith('deepseek/')) return 'DeepSeek';
+  if (model.startsWith('qwen/')) return 'Alibaba';
+  if (model.startsWith('meta-llama/')) return 'Meta';
+  if (model.startsWith('mistralai/')) return 'Mistral AI';
+  if (model.startsWith('microsoft/')) return 'Microsoft';
+  if (model.startsWith('cohere/')) return 'Cohere';
+  if (model.startsWith('amazon/')) return 'Amazon';
+  if (model.startsWith('z-ai/')) return 'Z.ai';
+  if (model.startsWith('xiaomi/')) return 'Xiaomi';
+  if (model.startsWith('nvidia/')) return 'NVIDIA';
+  if (model.startsWith('bytedance-seed/')) return 'ByteDance';
+  if (model.startsWith('minimax/')) return 'MiniMax';
+  if (model.startsWith('moonshotai/')) return 'Moonshot AI';
+  if (model.startsWith('upstage/')) return 'Upstage';
+  if (model.startsWith('inception/')) return 'Inception Labs';
+  if (model.startsWith('baidu/')) return 'Baidu';
+  if (model.startsWith('tencent/')) return 'Tencent';
+  if (model.startsWith('ai21/')) return 'AI21 Labs';
+  if (model.startsWith('ibm-granite/')) return 'IBM';
+  if (model.startsWith('stepfun/')) return 'StepFun';
+  if (model.startsWith('writer/')) return 'Writer';
+  if (model.startsWith('meituan/')) return 'Meituan';
+  if (model.startsWith('cognitivecomputations/')) return 'Cognitive Computations';
+
   const brand = MODEL_BRAND[expert.id];
-  if (!brand) return 'AI 모델';
-  return BRAND_LABEL[brand];
+  if (brand === 'gpt') return 'OpenAI';
+  if (brand === 'claude') return 'Anthropic';
+  if (brand === 'gemini') return 'Google';
+  if (brand === 'grok') return 'xAI';
+  if (brand === 'perplexity') return 'Perplexity';
+  if (brand === 'deepseek') return 'DeepSeek';
+  if (brand === 'qwen') return 'Alibaba';
+  return 'Other';
+}
+
+function modelStrengthTags(expert: Expert) {
+  const brand = MODEL_BRAND[expert.id];
+  const tags = [
+    expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? '추론' : null,
+    expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : null,
+    MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈소스' : null,
+    brand === 'perplexity' ? '검색' : null,
+    expert.description.includes('코딩') ? '코딩' : null,
+  ].filter(Boolean) as string[];
+  return (tags.length > 0 ? tags : ['범용', '대화', 'AI']).slice(0, 3);
+}
+
+function modelFieldTags(expert: Expert) {
+  const fieldsById: Record<string, string[]> = {
+    gpt: ['범용', '코딩', '문서'],
+    'gpt-mini': ['업무', '요약', '생산성'],
+    'gpt-nano': ['즉답', '자동화', '경량'],
+    'auto-gpt': ['리서치', '검증', '인용'],
+    claude: ['장문', '분석', '기획'],
+    'claude-sonnet': ['글쓰기', '업무', '코딩'],
+    'claude-sonnet-4.6': ['문서', '기획', '균형'],
+    'claude-haiku': ['빠른 응답', '요약', '분류'],
+    gemini: ['멀티모달', '업무', '검색'],
+    'gemini-3-flash': ['멀티모달', '실시간', '요약'],
+    'gemini-3.1': ['경량', '일상', '번역'],
+    'gemini-pro': ['추론', '분석', '수학'],
+    'gemini-flash-lite': ['경량', '토큰 효율', '일상'],
+    perplexity: ['검색', '출처', '리서치'],
+    'perplexity-pro': ['심층 리서치', '출처', '보고서'],
+    grok: ['대화', '실시간', '유머'],
+    'grok-4.2': ['추론', '실시간', '토론'],
+    deepseek: ['코딩', '분석', '문제해결'],
+    'deepseek-r1': ['추론', '수학', '논리'],
+    qwen: ['다국어', '번역', '업무'],
+    'qwen-9b': ['오픈소스', '경량', '임베드'],
+    'qwen-plus': ['다국어', '추론', '글쓰기'],
+    'qwen-thinking': ['추론', '수학', '계획'],
+    'llama-maverick': ['오픈소스', '개발', '자체호스팅'],
+    'llama-scout': ['경량', '온디바이스', '빠른 응답'],
+    'mistral-large': ['유럽권', '업무', '분석'],
+    'mistral-medium': ['균형', '문서', '업무'],
+    'mistral-small': ['경량', '빠른 응답', '비용절감'],
+    codestral: ['코딩', '리팩터링', '개발'],
+    devstral: ['개발', '에이전트', '도구사용'],
+    'mistral-creative': ['창작', '카피라이팅', '스토리'],
+    gemma: ['오픈소스', '연구', '자체호스팅'],
+    phi: ['소형', '추론', '로컬'],
+    'command-r-plus': ['RAG', '검색', '출처'],
+    'command-a': ['기업업무', '문서', '지식검색'],
+    'nova-premier': ['엔터프라이즈', '분석', '멀티모달'],
+    'nova-2-lite': ['경량', '긴 컨텍스트', '비용절감'],
+    dolphin: ['자유대화', '실험', '오픈소스'],
+    glm: ['중국어', '대형모델', '업무'],
+    'glm-5v': ['비전', '이미지이해', '멀티모달'],
+    mimo: ['모바일', '멀티모달', '중국어'],
+    'mimo-flash': ['모바일', '빠른 응답', '경량'],
+    nemotron: ['대형모델', '엔터프라이즈', '합성데이터'],
+    seed: ['콘텐츠', '음성/미디어', '생성'],
+    'seed-mini': ['경량', '콘텐츠', '빠른 응답'],
+    minimax: ['멀티모달', '창작', '대화'],
+    kimi: ['장문맥', '독해', '문서'],
+    'kimi-thinking': ['추론', '장문맥', '분석'],
+    solar: ['한국어', '업무', '문서'],
+    mercury: ['초고속', '추론', '실시간'],
+    ernie: ['중국어', '대형모델', '지식'],
+    hunyuan: ['중국어', '대화', '업무'],
+    jamba: ['장문', '엔터프라이즈', '분석'],
+    granite: ['기업업무', '보안', '온프레미스'],
+    step: ['빠른 응답', '중국어', '일상'],
+    palmyra: ['글쓰기', '문서', '긴 컨텍스트'],
+    longcat: ['장문맥', '대화', '중국어'],
+    'developer-yjh': ['개발자', '앱 설명', '프로젝트'],
+    'ancano-pro': ['프리미엄', '통합', '자동선택'],
+  };
+
+  if (fieldsById[expert.id]) return fieldsById[expert.id];
+  if (MODEL_IS_OPENSOURCE.has(expert.id)) return ['오픈소스', '로컬', '실험'];
+  if ((expert.abilities?.contextWindow ?? 0) >= 85) return ['장문맥', '문서', '분석'];
+  if ((expert.abilities?.speed ?? 0) >= 85) return ['빠른 응답', '일상', '업무'];
+  return ['범용', '대화', '업무'];
 }
 
 function tagsForExpert(expert: Expert) {
   if (expert.category === 'ai') {
-    const brand = MODEL_BRAND[expert.id];
-    const tags = [
-      expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? '추론' : null,
-      expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : null,
-      MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈소스' : null,
-      brand === 'perplexity' ? '검색' : null,
-      expert.description.includes('코딩') ? '코딩' : null,
-    ].filter(Boolean) as string[];
-    return (tags.length > 0 ? tags : ['범용', '대화', 'AI']).slice(0, 3);
+    return modelFieldTags(expert).slice(0, 3);
   }
 
   const categoryLabel = EXPERT_CATEGORY_LABELS[expert.category] ?? '커스텀';
@@ -215,7 +335,7 @@ function getCustomMeta(expert: Expert) {
   return [
     ['유형', EXPERT_CATEGORY_LABELS[expert.category] ?? '커스텀'],
     ['분야', expert.subCategory ?? '전문 분야'],
-    ['말투', expert.category === 'fictional' ? '개성형' : '친절함'],
+    ['말투', expert.category === 'fictional' ? '개성적' : '친절함'],
     ['목적', expert.category === 'occupation' ? '상담, 설명, 코칭' : '대화, 해석, 조언'],
     ['전문성', expert.category === 'occupation' || expert.category === 'specialist' ? '실무' : '역할 기반'],
     ['업데이트', '2025년 5월'],
@@ -225,11 +345,10 @@ function getCustomMeta(expert: Expert) {
 }
 
 function getModelMeta(expert: Expert) {
-  const brand = MODEL_BRAND[expert.id];
   return [
-    ['제공사', brand ? BRAND_LABEL[brand] : '기타'],
-    ['분야', expert.description.includes('코딩') ? '범용, 추론, 코딩' : '범용, 추론, 대화'],
-    ['강점', tagsForExpert(expert).join(', ')],
+    ['제공사', modelProviderLabel(expert)],
+    ['분야', modelFieldTags(expert).join(', ')],
+    ['강점', modelStrengthTags(expert).join(', ')],
     ['속도', expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : '보통'],
     ['가격', MODEL_IS_OPENSOURCE.has(expert.id) ? '무료 포함' : '유료'],
     ['컨텍스트 길이', expert.abilities?.contextWindow && expert.abilities.contextWindow >= 85 ? '1M+' : '128K 토큰'],
@@ -250,30 +369,30 @@ const PORTRAIT_PRESETS: Record<string, { bg: string; accent: string; hair: strin
   doctor: { bg: '#edf7fb', accent: '#4f9fc4', hair: '#242936', outfit: '#ffffff', prop: '+', variant: 'male' },
   pharmacist: { bg: '#f3f7ee', accent: '#8fb36c', hair: '#2f2630', outfit: '#ffffff', prop: 'Rx', variant: 'female' },
   vet: { bg: '#f7f1e8', accent: '#c58f55', hair: '#30241f', outfit: '#5f8fb0', prop: '+', variant: 'male' },
-  judge: { bg: '#f4efe9', accent: '#b88a52', hair: '#252525', outfit: '#20242d', prop: '§', variant: 'male' },
-  lawyer: { bg: '#f2f4f8', accent: '#64748b', hair: '#2a2624', outfit: '#1f2937', prop: '§', variant: 'female' },
+  judge: { bg: '#f4efe9', accent: '#b88a52', hair: '#252525', outfit: '#20242d', prop: '짠', variant: 'male' },
+  lawyer: { bg: '#f2f4f8', accent: '#64748b', hair: '#2a2624', outfit: '#1f2937', prop: '짠', variant: 'female' },
   teacher: { bg: '#f4f8ee', accent: '#82a35d', hair: '#6b3f2b', outfit: '#f5f0df', prop: '2+2', variant: 'female' },
   counselor: { bg: '#f2f7f7', accent: '#62a7a6', hair: '#3d2e2a', outfit: '#506f7a', prop: '...', variant: 'female' },
   programmer: { bg: '#eef3fb', accent: '#5b7ec7', hair: '#242936', outfit: '#1e293b', prop: '</>', variant: 'male' },
-  designer: { bg: '#fbf2f6', accent: '#c46b91', hair: '#3a2d2f', outfit: '#ffffff', prop: '◆', variant: 'female' },
-  stocktrader: { bg: '#f1f7f3', accent: '#40a873', hair: '#2c2a28', outfit: '#183024', prop: '↗', variant: 'male' },
-  writer: { bg: '#f7f3ea', accent: '#a9824a', hair: '#4a3327', outfit: '#efe7d7', prop: '✎', variant: 'female' },
-  architect: { bg: '#eef4f7', accent: '#4d8aa7', hair: '#2e2b29', outfit: '#263746', prop: '⌁', variant: 'male' },
+  designer: { bg: '#fbf2f6', accent: '#c46b91', hair: '#3a2d2f', outfit: '#ffffff', prop: 'UI', variant: 'female' },
+  stocktrader: { bg: '#f1f7f3', accent: '#40a873', hair: '#2c2a28', outfit: '#183024', prop: '$', variant: 'male' },
+  writer: { bg: '#f7f3ea', accent: '#a9824a', hair: '#4a3327', outfit: '#efe7d7', prop: 'Aa', variant: 'female' },
+  architect: { bg: '#eef4f7', accent: '#4d8aa7', hair: '#2e2b29', outfit: '#263746', prop: 'A1', variant: 'male' },
   medical: { bg: '#edf7fb', accent: '#4f9fc4', hair: '#34303a', outfit: '#ffffff', prop: '+', variant: 'female' },
-  legal: { bg: '#f4efe9', accent: '#b88a52', hair: '#2c2927', outfit: '#20242d', prop: '§', variant: 'male' },
+  legal: { bg: '#f4efe9', accent: '#b88a52', hair: '#2c2927', outfit: '#20242d', prop: '짠', variant: 'male' },
   finance: { bg: '#eff7f3', accent: '#3e9f70', hair: '#262626', outfit: '#203026', prop: '$', variant: 'female' },
-  history: { bg: '#f6efe5', accent: '#ad8254', hair: '#6b4b37', outfit: '#5c4637', prop: '⌛', variant: 'male' },
+  history: { bg: '#f6efe5', accent: '#ad8254', hair: '#6b4b37', outfit: '#5c4637', prop: 'H', variant: 'male' },
   philosophy: { bg: '#f2f0f7', accent: '#7d6aa8', hair: '#54433a', outfit: '#44384f', prop: '?', variant: 'male' },
-  psychology: { bg: '#f6f0f7', accent: '#a66ca8', hair: '#3f2d38', outfit: '#ffffff', prop: 'ψ', variant: 'female' },
+  psychology: { bg: '#f6f0f7', accent: '#a66ca8', hair: '#3f2d38', outfit: '#ffffff', prop: '?', variant: 'female' },
 };
 
 function portraitPreset(expert: Expert) {
   if (PORTRAIT_PRESETS[expert.id]) return PORTRAIT_PRESETS[expert.id];
   if (expert.category === 'specialist') {
-    return { bg: '#eff4fb', accent: '#5577b6', hair: '#2f2f38', outfit: '#ffffff', prop: '•', variant: 'female' as const };
+    return { bg: '#eff4fb', accent: '#5577b6', hair: '#2f2f38', outfit: '#ffffff', prop: 'EX', variant: 'female' as const };
   }
   if (expert.category === 'fictional' || expert.category === 'mythology') {
-    return { bg: '#f5f0fb', accent: '#8b6ac8', hair: '#3a2d4f', outfit: '#4a3d69', prop: '✦', variant: 'male' as const };
+    return { bg: '#f5f0fb', accent: '#8b6ac8', hair: '#3a2d4f', outfit: '#4a3d69', prop: 'CH', variant: 'male' as const };
   }
   return { bg: '#f3f4f6', accent: '#64748b', hair: '#2f333a', outfit: '#ffffff', prop: 'AI', variant: 'female' as const };
 }
@@ -388,13 +507,78 @@ const CUSTOM_PURPOSE_LABELS = [
   ['purpose-roleplay', '역할 대화'],
 ] as const;
 
+const GENERAL_QUICK_FILTERS = [
+  { id: 'all', label: '전체보기' },
+  { id: 'favorites', label: '즐겨찾기' },
+  { id: 'recommended', label: '추천' },
+  { id: 'new', label: '신규 모델' },
+  { id: 'flagship', label: '플래그십' },
+  { id: 'fast', label: '빠른 응답' },
+  { id: 'reasoning', label: '깊은 추론' },
+  { id: 'minor', label: '마이너 모델' },
+  { id: 'search', label: '검색/출처' },
+  { id: 'opensource', label: '로컬/오픈소스' },
+] as const;
+
+const CUSTOM_QUICK_FILTERS = [
+  { id: 'all', label: '전체보기' },
+  { id: 'favorites', label: '즐겨찾기' },
+  { id: 'recommended', label: '추천' },
+  { id: 'practical', label: '실무 상담' },
+  { id: 'learning', label: '학습/설명' },
+  { id: 'character-chat', label: '캐릭터 대화' },
+  { id: 'viewpoint', label: '관점 토론' },
+  { id: 'creative', label: '창작 아이디어' },
+] as const;
+
+const SORT_OPTIONS: Array<{ id: ExplorerSort; label: string }> = [
+  { id: 'popular', label: '인기순' },
+  { id: 'name', label: '이름순' },
+  { id: 'reasoning', label: '추론력순' },
+  { id: 'tokenUsage', label: '토큰 사용량순' },
+  { id: 'speed', label: '속도순' },
+  { id: 'coding', label: '코딩순' },
+  { id: 'creativity', label: '창의성순' },
+  { id: 'multilingual', label: '다국어순' },
+];
+
+const CUSTOM_SORT_OPTIONS = SORT_OPTIONS.filter((option) => option.id === 'popular' || option.id === 'name');
+
+const NEW_MODEL_IDS = new Set([
+  'gpt',
+  'claude-sonnet-4.6',
+  'gemini-3-flash',
+  'gemini-3.1',
+  'grok-4.2',
+  'qwen-plus',
+  'nova-2-lite',
+  'glm',
+  'mimo',
+  'mercury',
+]);
+
+const FLAGSHIP_MODEL_IDS = new Set([
+  'gpt',
+  'claude',
+  'gemini-pro',
+  'grok-4.2',
+  'perplexity-pro',
+  'deepseek-r1',
+  'qwen-plus',
+  'nova-premier',
+  'mistral-large',
+  'kimi',
+]);
+
+const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'deepseek', 'qwen']);
+
 function getGeneralTraitIds(expert: Expert) {
   const brand = MODEL_BRAND[expert.id];
   return [
     expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning' : null,
     expert.abilities?.speed && expert.abilities.speed >= 85 ? 'fast' : null,
-    expert.description.includes('코딩') ? 'coding' : null,
-    brand === 'perplexity' || expert.description.includes('검색') || expert.description.includes('리서치') ? 'search' : null,
+    expert.description.includes('코딩') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
+    brand === 'perplexity' || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
     MODEL_IS_OPENSOURCE.has(expert.id) ? 'opensource' : null,
   ].filter(Boolean) as string[];
 }
@@ -445,6 +629,170 @@ function buildFilterItems<T extends readonly (readonly [string, string])[]>(
 function matchesAnyFilter(selected: Set<string>, values: string[]) {
   if (selected.size === 0) return true;
   return values.some((value) => selected.has(value));
+}
+
+function matchesQuickFilter(expert: Expert, tab: ExplorerTab, filterId: string) {
+  if (tab === 'general') {
+    if (filterId === 'recommended') return RECOMMENDED_MODEL_IDS.includes(expert.id);
+    if (filterId === 'new') return NEW_MODEL_IDS.has(expert.id);
+    if (filterId === 'flagship') return FLAGSHIP_MODEL_IDS.has(expert.id);
+    if (filterId === 'fast') return getGeneralSpecIds(expert).includes('speed-fast');
+    if (filterId === 'reasoning') return getGeneralTraitIds(expert).includes('reasoning');
+    if (filterId === 'minor') {
+      const brand = MODEL_BRAND[expert.id] ?? 'other';
+      return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_IDS.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));
+    }
+    if (filterId === 'coding') return getGeneralTraitIds(expert).includes('coding') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발'));
+    if (filterId === 'search') return getGeneralTraitIds(expert).includes('search') || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG');
+    if (filterId === 'opensource') return getGeneralTraitIds(expert).includes('opensource');
+    return true;
+  }
+
+  if (filterId === 'recommended') return CUSTOM_FEATURED_IDS.includes(expert.id);
+  if (filterId === 'practical') return expert.category === 'occupation' || expert.category === 'specialist' || getCustomPurposeIds(expert).includes('purpose-coach');
+  if (filterId === 'learning') return getCustomPurposeIds(expert).includes('purpose-explain') || expert.subCategory?.includes('교육') || expert.subCategory?.includes('과학');
+  if (filterId === 'character-chat') return expert.category === 'fictional' || expert.category === 'mythology' || getCustomPurposeIds(expert).includes('purpose-roleplay');
+  if (filterId === 'viewpoint') return expert.category === 'ideology' || expert.category === 'religion' || expert.category === 'perspective' || getCustomPurposeIds(expert).includes('purpose-interpret');
+  if (filterId === 'creative') return expert.category === 'lifestyle' || getCustomPurposeIds(expert).includes('purpose-idea');
+  return true;
+}
+
+function abilityValue(expert: Expert, sort: ExplorerSort) {
+  const abilities = expert.abilities;
+  if (sort === 'reasoning') return abilities?.reasoning ?? 0;
+  if (sort === 'tokenUsage') return abilities?.contextWindow ?? 0;
+  if (sort === 'speed') return abilities?.speed ?? 0;
+  if (sort === 'coding') return abilities?.coding ?? 0;
+  if (sort === 'creativity') return abilities?.creativity ?? 0;
+  if (sort === 'multilingual') return abilities?.multilingual ?? 0;
+  return 0;
+}
+
+function fallbackOrder(expert: Expert, tab: ExplorerTab) {
+  if (tab === 'custom') {
+    const featuredIndex = CUSTOM_FEATURED_IDS.indexOf(expert.id);
+    if (featuredIndex >= 0) return featuredIndex;
+    if (expert.category === 'occupation') return 200;
+    if (expert.category === 'specialist') return 400;
+    return 800;
+  }
+
+  const recommendedIndex = RECOMMENDED_MODEL_IDS.indexOf(expert.id);
+  return recommendedIndex >= 0 ? recommendedIndex : 999;
+}
+
+const MODEL_ABILITY_LABELS = [
+  ['coding', '코딩'],
+  ['creativity', '창의성'],
+  ['reasoning', '추론력'],
+  ['math', '수학'],
+  ['multilingual', '다국어'],
+  ['speed', '속도'],
+  ['costEfficiency', '비용효율'],
+  ['contextWindow', '토큰용량'],
+] as const;
+
+function ModelStatsPanel({ expert }: { expert: Expert }) {
+  const abilities = expert.abilities;
+  const values = MODEL_ABILITY_LABELS.map(([key, label]) => ({
+    key,
+    label,
+    value: abilities?.[key] ?? 60,
+  }));
+  const center = 82;
+  const radius = 62;
+  const polygon = values
+    .map((item, index) => {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
+      const r = radius * (item.value / 100);
+      return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+    })
+    .join(' ');
+  const grid = [0.33, 0.66, 1].map((scale) =>
+    values
+      .map((_, index) => {
+        const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
+        return `${center + Math.cos(angle) * radius * scale},${center + Math.sin(angle) * radius * scale}`;
+      })
+      .join(' '),
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100">
+            <ExpertMedia expert={expert} mode="general" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-extrabold text-slate-950">{expert.nameKo}</span>
+            <span className="mt-0.5 block truncate text-[12px] font-bold text-slate-400">{providerLabel(expert)}</span>
+          </span>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <svg viewBox="0 0 164 164" className="h-[172px] w-[172px]" role="img" aria-label={`${expert.nameKo} 능력치 레이더`}>
+            {grid.map((points, index) => (
+              <polygon key={index} points={points} fill="none" stroke="#e2e8f0" strokeWidth="1" />
+            ))}
+            {values.map((_, index) => {
+              const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
+              return (
+                <line
+                  key={index}
+                  x1={center}
+                  y1={center}
+                  x2={center + Math.cos(angle) * radius}
+                  y2={center + Math.sin(angle) * radius}
+                  stroke="#edf2f7"
+                  strokeWidth="1"
+                />
+              );
+            })}
+            <polygon points={polygon} fill="rgba(79,70,229,0.16)" stroke="#4f46e5" strokeWidth="2.5" />
+            <circle cx={center} cy={center} r="2.2" fill="#4f46e5" />
+            {values.map((item, index) => {
+              const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
+              const labelRadius = radius + 18;
+              return (
+                <text
+                  key={item.key}
+                  x={center + Math.cos(angle) * labelRadius}
+                  y={center + Math.sin(angle) * labelRadius + 3}
+                  textAnchor="middle"
+                  className="fill-slate-500 text-[8.5px] font-bold"
+                >
+                  {item.label}
+                </text>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+        <div className="mb-2.5 flex items-center justify-between">
+          <h4 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-slate-500">Model Stats</h4>
+          <span className="rounded-full bg-white px-2 py-1 text-[10.5px] font-extrabold text-indigo-600 ring-1 ring-indigo-100">
+            평균 {Math.round(values.reduce((sum, item) => sum + item.value, 0) / values.length)}
+          </span>
+        </div>
+        <div className="space-y-2.5">
+          {values.map((item) => (
+            <div key={item.key} className="grid grid-cols-[58px_minmax(0,1fr)_28px] items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-500">{item.label}</span>
+              <span className="h-2 overflow-hidden rounded-full bg-slate-200">
+                <span
+                  className="block h-full rounded-full bg-indigo-500"
+                  style={{ width: `${item.value}%` }}
+                />
+              </span>
+              <span className="text-right text-[11px] font-extrabold tabular-nums text-slate-700">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ExpertMedia({ expert, mode, className }: { expert: Expert; mode: ExplorerTab; className?: string }) {
@@ -538,7 +886,7 @@ function ExplorerCard({
         type="button"
         onClick={onPreview}
         className={cn(
-          'relative flex min-h-[82px] items-center gap-3 rounded-xl border bg-white p-3 text-left transition-all hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.05)]',
+          'relative flex min-h-[82px] w-full items-center gap-3 rounded-xl border bg-white p-3 text-left transition-all hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.05)]',
           active ? 'border-indigo-400 bg-indigo-50/30 ring-2 ring-indigo-100' : 'border-slate-200',
         )}
       >
@@ -552,7 +900,6 @@ function ExplorerCard({
           )}
           <span className="mt-1 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-500">{expert.description}</span>
         </span>
-        {selected && <Check className="h-5 w-5 shrink-0 text-indigo-500" />}
       </button>
     );
   }
@@ -563,30 +910,25 @@ function ExplorerCard({
         type="button"
         onClick={onPreview}
         className={cn(
-          'group relative flex h-[178px] flex-col rounded-[15px] border bg-white p-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.03)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)]',
-          active ? 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-100' : 'border-slate-200/90',
+          'group relative flex h-[138px] w-full flex-col overflow-hidden rounded-[15px] border bg-white p-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.025)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50/35 hover:shadow-[0_14px_28px_rgba(15,23,42,0.07)]',
+          active ? 'border-indigo-400 bg-indigo-50/35 ring-2 ring-indigo-100' : 'border-slate-200/85',
         )}
       >
-        {selected && (
-          <span className="absolute right-11 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white shadow-md">
-            <Check className="h-3.5 w-3.5" strokeWidth={3} />
-          </span>
-        )}
-        <span className="flex items-start gap-2.5 pr-8">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-slate-50 ring-1 ring-slate-100">
+        <span className="flex min-h-[48px] items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[13px] bg-slate-50 ring-1 ring-slate-100 transition-colors group-hover:bg-white">
             <ExpertMedia expert={expert} mode={tab} />
           </span>
           <span className="min-w-0 flex-1 pt-0.5">
-            <span className={cn('block line-clamp-2 break-keep text-[14px] font-extrabold leading-[1.18]', active ? 'text-indigo-700' : 'text-slate-900')}>
+            <span className={cn('block line-clamp-2 break-keep text-[14px] font-extrabold leading-[1.12]', active ? 'text-indigo-700' : 'text-slate-950')}>
               {expert.nameKo}
             </span>
-            <span className="mt-1 block truncate text-[11px] font-semibold text-slate-400">{providerLabel(expert)}</span>
+            <span className="mt-1.5 block truncate text-[11px] font-bold leading-none text-slate-400">{providerLabel(expert)}</span>
           </span>
         </span>
-        <span className="mt-3 line-clamp-2 min-h-[34px] text-[12px] font-medium leading-relaxed text-slate-500">
+        <span className="mt-2 line-clamp-2 min-h-[31px] break-keep pr-1 text-[11.5px] font-medium leading-[1.36] text-slate-500">
           {expert.description}
         </span>
-        <span className="mt-auto flex flex-wrap gap-1.5 pt-2.5">
+        <span className="mt-auto -mx-3 -mb-3 flex h-9 flex-nowrap items-center gap-1.5 overflow-hidden border-t border-slate-100 bg-slate-50/55 px-3">
           {tagsForExpert(expert).map((tag) => (
             <SmallTag key={tag}>{tag}</SmallTag>
           ))}
@@ -600,15 +942,10 @@ function ExplorerCard({
       type="button"
       onClick={onPreview}
       className={cn(
-        'group relative flex h-[190px] flex-col overflow-hidden rounded-xl border bg-white p-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.07)]',
+        'group relative flex h-[190px] w-full flex-col overflow-hidden rounded-xl border bg-white p-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.07)]',
         active ? 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-100' : 'border-slate-200',
       )}
     >
-      {selected && (
-        <span className="absolute right-11 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white shadow-md">
-          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-        </span>
-      )}
       <span
         className={cn(
           'flex w-full shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-100',
@@ -720,9 +1057,9 @@ function DetailPanel({
   const tags = tagsForExpert(expert);
   const meta = tab === 'custom' ? getCustomMeta(expert) : getModelMeta(expert);
   const examples = expert.sampleQuestions?.slice(0, 3) ?? [
-    `${expert.nameKo}에게 핵심만 물어볼래요`,
+    `${expert.nameKo}에게 핵심만 물어볼래?`,
     `${expert.nameKo} 관점에서 비교해줘`,
-    `${expert.nameKo}로 실전 조언을 받아볼래요`,
+    `${expert.nameKo}로 실전 조언을 받아볼래?`,
   ];
 
   return (
@@ -772,7 +1109,7 @@ function DetailPanel({
         </dl>
         <div className="mt-3.5 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
           <h4 className="mb-2 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
-            {tab === 'custom' ? '이 AI와 잘 맞는 대화 예시' : '이 모델 활용 예시'}
+            {tab === 'custom' ? '??AI? ??留욌뒗 ????덉떆' : '??紐⑤뜽 ?쒖슜 ?덉떆'}
           </h4>
           <div className="space-y-1.5">
             {examples.map((example) => (
@@ -784,8 +1121,146 @@ function DetailPanel({
           </div>
         </div>
       </div>
-      {/* CTA — 본문 영역과 명확히 분리된 footer. 본문 스크롤 시에도 항상 노출되고
-          이전에 본문 sticky 로 인해 Windows 워터마크 / 페이지네이션과 겹치던 시각 충돌 해결. */}
+      {/* CTA ??蹂몃Ц ?곸뿭怨?紐낇솗??遺꾨━??footer. 蹂몃Ц ?ㅽ겕濡??쒖뿉????긽 ?몄텧?섍퀬
+          ?댁쟾??蹂몃Ц sticky 濡??명빐 Windows ?뚰꽣留덊겕 / ?섏씠吏?ㅼ씠?섍낵 寃뱀튂???쒓컖 異⑸룎 ?닿껐. */}
+      <div className="shrink-0 border-t border-slate-200/70 bg-white px-4 py-3">
+        <button
+          type="button"
+          onClick={onStart}
+          className={cn(
+            'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[13.5px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300',
+            selected ? 'bg-slate-900 hover:bg-slate-800' : 'bg-indigo-600 hover:bg-indigo-500',
+          )}
+        >
+          {tab === 'custom' ? '??AI濡??쒖옉' : '??紐⑤뜽濡??쒖옉'}
+          <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function ExplorerDetailPanel({
+  expert,
+  tab,
+  selected,
+  onStart,
+}: {
+  expert: Expert;
+  tab: ExplorerTab;
+  selected: boolean;
+  onStart: () => void;
+}) {
+  const [detailTab, setDetailTab] = useState<'info' | 'stats'>('info');
+  const tags = tagsForExpert(expert);
+  const meta = tab === 'custom' ? getCustomMeta(expert) : getModelMeta(expert);
+  const examples = expert.sampleQuestions?.slice(0, 3) ?? [
+    `${expert.nameKo}에게 핵심만 물어볼래?`,
+    `${expert.nameKo} 관점에서 비교해줘`,
+    `${expert.nameKo}로 실전 조언을 받아볼래?`,
+  ];
+  const showStats = tab === 'general' && detailTab === 'stats';
+
+  useEffect(() => {
+    setDetailTab('info');
+  }, [tab]);
+
+  return (
+    <aside className="flex h-full min-h-0 flex-col bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        {tab === 'general' && (
+          <div className="mb-3 grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setDetailTab('info')}
+              className={cn(
+                'h-8 rounded-lg text-[12px] font-extrabold transition-all',
+                detailTab === 'info'
+                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
+                  : 'text-slate-500 hover:text-slate-900',
+              )}
+            >
+              정보
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailTab('stats')}
+              className={cn(
+                'h-8 rounded-lg text-[12px] font-extrabold transition-all',
+                detailTab === 'stats'
+                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
+                  : 'text-slate-500 hover:text-slate-900',
+              )}
+            >
+              스탯
+            </button>
+          </div>
+        )}
+
+        {showStats ? (
+          <ModelStatsPanel expert={expert} />
+        ) : (
+          <>
+            <div
+              className={cn(
+                'mx-auto flex w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100',
+                tab === 'custom' ? 'aspect-[16/10]' : 'aspect-square max-w-[88px] p-3',
+              )}
+            >
+              {tab === 'custom' ? <CustomPortrait expert={expert} /> : <ExpertMedia expert={expert} mode={tab} />}
+            </div>
+            <div className="mt-3.5 text-center">
+              <h3
+                className={cn(
+                  'font-extrabold tracking-tight text-slate-950',
+                  tab === 'custom' ? 'truncate text-[21px]' : 'line-clamp-2 break-keep text-[20px] leading-tight',
+                )}
+              >
+                {expert.nameKo}
+              </h3>
+              {tab === 'general' && (
+                <p className="mt-0.5 text-[12.5px] font-semibold text-slate-400">{providerLabel(expert)}</p>
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
+              {tags.map((tag) => (
+                <SmallTag key={tag}>{tag}</SmallTag>
+              ))}
+            </div>
+            <p className="mt-3 text-center text-[12.5px] font-medium leading-relaxed text-slate-600">
+              {expert.description}
+            </p>
+            <dl className="mt-3.5 grid grid-cols-1 gap-y-2 border-t border-slate-100 pt-3.5 text-[11.5px]">
+              {meta.map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-3">
+                  <dt className="shrink-0 font-medium text-slate-400">{label}</dt>
+                  <dd
+                    className={cn(
+                      'min-w-0 text-right font-bold text-slate-700',
+                      tab === 'custom' ? 'truncate' : 'leading-snug',
+                    )}
+                  >
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-3.5 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
+              <h4 className="mb-2 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-slate-500">
+                {tab === 'custom' ? '이 AI와 잘 맞는 대화 예시' : '이 모델 활용 예시'}
+              </h4>
+              <div className="space-y-1.5">
+                {examples.map((example) => (
+                  <p key={example} className="flex gap-2 text-[11.5px] font-semibold leading-relaxed text-slate-600">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full bg-indigo-500 p-0.5 text-white" />
+                    <span className="line-clamp-1">{example}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       <div className="shrink-0 border-t border-slate-200/70 bg-white px-4 py-3">
         <button
           type="button"
@@ -822,7 +1297,7 @@ export function AllAiExplorerModal({
 }) {
   const [tab, setTab] = useState<ExplorerTab>(initialTab);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<'recommended' | 'name'>('recommended');
+  const [sort, setSort] = useState<ExplorerSort>('popular');
   const [view, setView] = useState<ExplorerView>('grid');
   const [page, setPage] = useState(1);
   const [brandFilters, setBrandFilters] = useState<Set<string>>(new Set());
@@ -830,28 +1305,26 @@ export function AllAiExplorerModal({
   const [subFilters, setSubFilters] = useState<Set<string>>(new Set());
   const [traitFilters, setTraitFilters] = useState<Set<string>>(new Set());
   const [detailFilters, setDetailFilters] = useState<Set<string>>(new Set());
+  const [quickFilters, setQuickFilters] = useState<Set<string>>(new Set());
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   const baseItems = useMemo(() => {
     const items = tab === 'general'
-      ? experts.filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro')
+      ? experts.filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro' && !HIDDEN_GENERAL_MODEL_IDS.has(expert.id))
       : experts.filter(isCustomExpert);
 
-    const recommendedOrder = new Map(RECOMMENDED_MODEL_IDS.map((id, index) => [id, index]));
-    const customOrder = new Map(CUSTOM_FEATURED_IDS.map((id, index) => [id, index]));
     return [...items].sort((a, b) => {
       if (sort === 'name') return a.nameKo.localeCompare(b.nameKo, 'ko');
-      if (tab === 'custom') {
-        const aOrder = customOrder.get(a.id) ?? (a.category === 'occupation' ? 200 : a.category === 'specialist' ? 400 : 800);
-        const bOrder = customOrder.get(b.id) ?? (b.category === 'occupation' ? 200 : b.category === 'specialist' ? 400 : 800);
-        return aOrder - bOrder || a.nameKo.localeCompare(b.nameKo, 'ko');
+      if (sort === 'popular') {
+        const favoriteDelta = Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id));
+        if (favoriteDelta !== 0) return favoriteDelta;
+        return fallbackOrder(a, tab) - fallbackOrder(b, tab) || a.nameKo.localeCompare(b.nameKo, 'ko');
       }
-      const aOrder = recommendedOrder.get(a.id) ?? 999;
-      const bOrder = recommendedOrder.get(b.id) ?? 999;
-      return aOrder - bOrder || a.nameKo.localeCompare(b.nameKo, 'ko');
+      const abilityDelta = abilityValue(b, sort) - abilityValue(a, sort);
+      return abilityDelta || fallbackOrder(a, tab) - fallbackOrder(b, tab) || a.nameKo.localeCompare(b.nameKo, 'ko');
     });
-  }, [experts, sort, tab]);
+  }, [experts, favoriteSet, sort, tab]);
 
   const brandItems = useMemo(() => {
     if (tab !== 'general') return [];
@@ -901,6 +1374,11 @@ export function AllAiExplorerModal({
   const filteredItems = useMemo(() => {
     return baseItems.filter((expert) => {
       if (!matchesQuery(expert, query)) return false;
+      if (quickFilters.size > 0 && !Array.from(quickFilters).every((filterId) => (
+        filterId === 'favorites'
+          ? favoriteSet.has(expert.id)
+          : matchesQuickFilter(expert, tab, filterId)
+      ))) return false;
       if (tab === 'general' && brandFilters.size > 0 && !brandFilters.has(MODEL_BRAND[expert.id] ?? 'other')) return false;
       if (tab === 'custom' && categoryFilters.size > 0 && !categoryFilters.has(expert.category)) return false;
       if (subFilters.size > 0 && (!expert.subCategory || !subFilters.has(expert.subCategory))) return false;
@@ -910,10 +1388,11 @@ export function AllAiExplorerModal({
       if (tab === 'custom' && !matchesAnyFilter(detailFilters, getCustomPurposeIds(expert))) return false;
       return true;
     });
-  }, [baseItems, brandFilters, categoryFilters, detailFilters, query, subFilters, tab, traitFilters]);
+  }, [baseItems, brandFilters, categoryFilters, detailFilters, favoriteSet, query, quickFilters, subFilters, tab, traitFilters]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const visibleItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageSize = tab === 'general' ? GENERAL_PAGE_SIZE : CUSTOM_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const visibleItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
   const selectedExpert = selectedIds[0] ? experts.find((expert) => expert.id === selectedIds[0]) : undefined;
   const [previewId, setPreviewId] = useState<string | null>(null);
   const selectedBelongsToTab = selectedExpert
@@ -921,10 +1400,11 @@ export function AllAiExplorerModal({
       ? selectedExpert.category === 'ai'
       : isCustomExpert(selectedExpert)
     : false;
-  const previewExpert = experts.find((expert) => expert.id === previewId)
-    ?? (selectedBelongsToTab ? selectedExpert : undefined)
+  const previewExpert = visibleItems.find((expert) => expert.id === previewId)
+    ?? (selectedBelongsToTab && selectedExpert && visibleItems.some((expert) => expert.id === selectedExpert.id) ? selectedExpert : undefined)
     ?? visibleItems[0]
     ?? baseItems[0];
+  const hasActiveFilters = quickFilters.size + brandFilters.size + categoryFilters.size + subFilters.size + traitFilters.size + detailFilters.size > 0;
 
   const clearFilters = () => {
     setBrandFilters(new Set());
@@ -932,13 +1412,24 @@ export function AllAiExplorerModal({
     setSubFilters(new Set());
     setTraitFilters(new Set());
     setDetailFilters(new Set());
+    setQuickFilters(new Set());
   };
 
   useEffect(() => {
     setPage(1);
     setPreviewId(null);
     setMobileDetailOpen(false);
-  }, [brandFilters, categoryFilters, detailFilters, query, sort, subFilters, tab, traitFilters]);
+  }, [brandFilters, categoryFilters, detailFilters, query, quickFilters, sort, subFilters, tab, traitFilters]);
+
+  useEffect(() => {
+    setQuickFilters(new Set());
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'custom' && !CUSTOM_SORT_OPTIONS.some((option) => option.id === sort)) {
+      setSort('popular');
+    }
+  }, [sort, tab]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -953,6 +1444,24 @@ export function AllAiExplorerModal({
     });
   };
 
+  const toggleFacetFilter = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) => {
+    setQuickFilters(new Set());
+    toggleSet(setter, id);
+  };
+
+  const togglePreset = (id: string) => {
+    if (id === 'all') {
+      clearFilters();
+      return;
+    }
+    setBrandFilters(new Set());
+    setCategoryFilters(new Set());
+    setSubFilters(new Set());
+    setTraitFilters(new Set());
+    setDetailFilters(new Set());
+    setQuickFilters((prev) => (prev.has(id) ? new Set() : new Set([id])));
+  };
+
   const startWithExpert = (expert: Expert) => {
     onSelectExpert(expert.id);
     onClose();
@@ -960,76 +1469,38 @@ export function AllAiExplorerModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/45 px-4 py-5 text-slate-950 backdrop-blur-sm">
-      <div className="flex h-[min(860px,calc(100vh-40px))] min-h-0 w-full max-w-[1410px] flex-col overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.32)] ring-1 ring-slate-950/10">
-        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-slate-200/70 bg-white px-5 py-3.5">
+      <div className="flex h-[min(860px,calc(100vh-40px))] min-h-0 w-full max-w-[1500px] flex-col overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.32)] ring-1 ring-slate-950/10">
+        <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/70 bg-slate-50/80 px-5 py-3 sm:flex-nowrap">
           <div>
-            <h2 className="text-[19px] font-extrabold tracking-tight text-slate-950">전체 AI 탐색</h2>
-            <p className="mt-0.5 text-[12px] font-medium text-slate-500">
-              {tab === 'general'
-                ? '업무, 학습, 창작 목적에 맞는 모델을 비교하고 선택하세요.'
-                : '역할, 캐릭터, 관점 기반의 커스텀 AI를 고르세요.'}
-            </p>
+            <h2 className="sr-only">전체 AI 탐색</h2>
           </div>
-          <div className="hidden rounded-full border border-slate-200 bg-slate-50 p-1 sm:flex">
+          <div className="flex w-full shrink-0 rounded-full border border-slate-200 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:w-auto">
             <button
               type="button"
               onClick={() => setTab('general')}
               className={cn(
-                'flex h-9 items-center gap-1.5 rounded-full px-5 text-[12.5px] font-extrabold transition-all',
+                'flex h-9 flex-1 items-center justify-center rounded-full px-4 text-[12.5px] font-extrabold transition-all sm:flex-none sm:px-6',
                 tab === 'general'
-                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
-                  : 'text-slate-500 hover:text-slate-900',
+                  ? 'bg-indigo-600 text-white shadow-[0_8px_18px_rgba(79,70,229,0.18)]'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950',
               )}
             >
-              <LayoutGrid className="h-3.5 w-3.5" />
               일반 모델
             </button>
             <button
               type="button"
               onClick={() => setTab('custom')}
               className={cn(
-                'flex h-9 items-center gap-1.5 rounded-full px-5 text-[12.5px] font-extrabold transition-all',
+                'flex h-9 flex-1 items-center justify-center rounded-full px-4 text-[12.5px] font-extrabold transition-all sm:flex-none sm:px-6',
                 tab === 'custom'
-                  ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/80'
-                  : 'text-slate-500 hover:text-slate-900',
+                  ? 'bg-indigo-600 text-white shadow-[0_8px_18px_rgba(79,70,229,0.18)]'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950',
               )}
             >
-              <Sparkles className="h-3.5 w-3.5" />
               커스텀 모델
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-            aria-label="닫기"
-            title="닫기"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-
-        <div className="flex shrink-0 gap-1 border-b border-slate-200/70 bg-white px-5 py-3 sm:hidden">
-          <button
-            type="button"
-            onClick={() => setTab('general')}
-            className={cn('flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-[12px] font-black transition-all', tab === 'general' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600')}
-          >
-            <LayoutGrid className="h-4 w-4" />
-            일반 모델
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('custom')}
-            className={cn('flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-[12px] font-black transition-all', tab === 'custom' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600')}
-          >
-            <Sparkles className="h-4 w-4" />
-            커스텀 모델
-          </button>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3 border-b border-slate-200/70 bg-slate-50/80 px-5 py-3.5">
-          <div className="relative min-w-0 flex-1">
+          <div className="relative order-3 min-w-0 flex-[1_0_100%] sm:order-none sm:flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
@@ -1042,14 +1513,6 @@ export function AllAiExplorerModal({
             <Filter className="h-4 w-4" />
             필터
           </button>
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.target.value as 'recommended' | 'name')}
-            className="hidden h-11 rounded-xl border border-slate-200 bg-white px-4 text-[12px] font-black text-slate-700 outline-none sm:block"
-          >
-            <option value="recommended">추천순</option>
-            <option value="name">이름순</option>
-          </select>
           <div className="hidden h-11 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 sm:flex">
             <button type="button" onClick={() => setView('grid')} className={cn('flex h-9 w-9 items-center justify-center rounded-lg', view === 'grid' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400')}>
               <LayoutGrid className="h-4 w-4" />
@@ -1058,13 +1521,22 @@ export function AllAiExplorerModal({
               <List className="h-4 w-4" />
             </button>
           </div>
-        </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-white hover:text-slate-900"
+            aria-label="닫기"
+            title="닫기"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 bg-white lg:grid-cols-[150px_minmax(0,1fr)_274px] xl:grid-cols-[156px_minmax(0,1fr)_286px]">
-          <aside className="hidden min-h-0 overflow-y-auto border-r border-slate-200/70 bg-slate-50/65 px-3.5 lg:block">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 bg-white lg:grid-cols-[208px_minmax(0,1fr)_286px] xl:grid-cols-[220px_minmax(0,1fr)_300px]">
+          <aside className="hidden min-h-0 overflow-y-auto border-r border-slate-200/70 bg-slate-50/65 px-4 lg:block">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-slate-50/95 py-3.5 backdrop-blur">
               <h3 className="text-[12.5px] font-extrabold tracking-tight text-slate-900">필터</h3>
-              {(brandFilters.size + categoryFilters.size + subFilters.size + traitFilters.size + detailFilters.size) > 0 && (
+              {hasActiveFilters && (
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -1076,36 +1548,77 @@ export function AllAiExplorerModal({
             </div>
             {tab === 'general' ? (
               <>
-                <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleSet(setBrandFilters, id)} />
-                <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleSet(setTraitFilters, id)} />
-                <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleSet(setDetailFilters, id)} />
+                <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleFacetFilter(setBrandFilters, id)} />
+                <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
               </>
             ) : (
               <>
-                <FilterGroup title="유형" items={categoryItems} selected={categoryFilters} onChange={(id) => toggleSet(setCategoryFilters, id)} />
-                <FilterGroup title="분야" items={subItems} selected={subFilters} onChange={(id) => toggleSet(setSubFilters, id)} />
-                <FilterGroup title="말투" items={traitItems} selected={traitFilters} onChange={(id) => toggleSet(setTraitFilters, id)} />
-                <FilterGroup title="목적" items={detailItems} selected={detailFilters} onChange={(id) => toggleSet(setDetailFilters, id)} />
+                <FilterGroup title="유형" items={categoryItems} selected={categoryFilters} onChange={(id) => toggleFacetFilter(setCategoryFilters, id)} />
+                <FilterGroup title="분야" items={subItems} selected={subFilters} onChange={(id) => toggleFacetFilter(setSubFilters, id)} />
+                <FilterGroup title="말투" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                <FilterGroup title="목적" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
               </>
             )}
           </aside>
 
           <main className="flex min-h-0 flex-col border-r border-slate-200/70 bg-white px-3 py-3.5 xl:px-3.5">
+            <div className="mb-3 flex shrink-0 items-center gap-2 rounded-xl border border-slate-200/70 bg-slate-50/70 px-2.5 py-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scrollbar-none">
+                <span className="shrink-0 px-1 text-[11px] font-extrabold text-slate-400">
+                  프리셋
+                </span>
+                {(tab === 'general' ? GENERAL_QUICK_FILTERS : CUSTOM_QUICK_FILTERS).map((filter) => {
+                  const active = filter.id === 'all' ? !hasActiveFilters : quickFilters.has(filter.id);
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => togglePreset(filter.id)}
+                      aria-pressed={active}
+                      className={cn(
+                        'h-7 shrink-0 rounded-full px-3 text-[11.5px] font-extrabold transition-all',
+                        active
+                          ? 'bg-indigo-600 text-white shadow-[0_8px_18px_rgba(79,70,229,0.18)]'
+                          : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-950',
+                      )}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="relative hidden shrink-0 items-center sm:flex">
+                <span className="sr-only">정렬</span>
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as ExplorerSort)}
+                  className="h-8 appearance-none rounded-full border border-slate-200 bg-white pl-3.5 pr-8 text-[11.5px] font-extrabold text-slate-700 outline-none transition-all hover:border-slate-300 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50"
+                >
+                  {(tab === 'custom' ? CUSTOM_SORT_OPTIONS : SORT_OPTIONS).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-400" />
+              </label>
+            </div>
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {visibleItems.length === 0 ? (
                 <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[13px] font-bold text-slate-400">
-                  검색 결과가 없습니다.
+                  寃??寃곌낵媛 ?놁뒿?덈떎.
                 </div>
               ) : (
                 <div
                   className={cn(
                     view === 'grid'
-                      ? 'grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+                      ? 'grid auto-rows-fr grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
                       : 'grid grid-cols-1 gap-2.5',
                   )}
                 >
                   {visibleItems.map((expert) => (
-                    <div key={expert.id} className="relative min-w-0">
+                    <div key={expert.id} className="group/card relative min-w-0">
                       <ExplorerCard
                         expert={expert}
                         tab={tab}
@@ -1124,7 +1637,7 @@ export function AllAiExplorerModal({
                           onToggleFavorite(expert.id);
                         }}
                         className={cn(
-                          'absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border bg-white/90 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5',
+                          'absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border bg-white/95 opacity-0 shadow-sm backdrop-blur transition-all duration-150 hover:-translate-y-0.5 focus-visible:opacity-100 group-hover/card:opacity-100',
                           favoriteSet.has(expert.id)
                             ? 'border-amber-200 text-amber-500'
                             : 'border-slate-200 text-slate-300 hover:border-amber-200 hover:text-amber-500',
@@ -1161,13 +1674,12 @@ export function AllAiExplorerModal({
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400">페이지 이동</span>
             </div>
           </main>
 
           {previewExpert && (
             <div className="hidden min-h-0 lg:block">
-              <DetailPanel
+              <ExplorerDetailPanel
                 expert={previewExpert}
                 tab={previewExpert.category === 'ai' ? 'general' : 'custom'}
                 selected={selectedIds.includes(previewExpert.id)}
@@ -1188,16 +1700,16 @@ export function AllAiExplorerModal({
               </div>
               {tab === 'general' ? (
                 <>
-                  <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleSet(setBrandFilters, id)} />
-                  <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleSet(setTraitFilters, id)} />
-                  <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleSet(setDetailFilters, id)} />
+                  <FilterGroup title="제공사" items={brandItems} selected={brandFilters} onChange={(id) => toggleFacetFilter(setBrandFilters, id)} />
+                  <FilterGroup title="강점" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                  <FilterGroup title="조건" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
                 </>
               ) : (
                 <>
-                  <FilterGroup title="유형" items={categoryItems} selected={categoryFilters} onChange={(id) => toggleSet(setCategoryFilters, id)} />
-                  <FilterGroup title="분야" items={subItems} selected={subFilters} onChange={(id) => toggleSet(setSubFilters, id)} />
-                  <FilterGroup title="말투" items={traitItems} selected={traitFilters} onChange={(id) => toggleSet(setTraitFilters, id)} />
-                  <FilterGroup title="목적" items={detailItems} selected={detailFilters} onChange={(id) => toggleSet(setDetailFilters, id)} />
+                  <FilterGroup title="유형" items={categoryItems} selected={categoryFilters} onChange={(id) => toggleFacetFilter(setCategoryFilters, id)} />
+                  <FilterGroup title="분야" items={subItems} selected={subFilters} onChange={(id) => toggleFacetFilter(setSubFilters, id)} />
+                  <FilterGroup title="말투" items={traitItems} selected={traitFilters} onChange={(id) => toggleFacetFilter(setTraitFilters, id)} />
+                  <FilterGroup title="목적" items={detailItems} selected={detailFilters} onChange={(id) => toggleFacetFilter(setDetailFilters, id)} />
                 </>
               )}
             </div>
@@ -1207,10 +1719,10 @@ export function AllAiExplorerModal({
         {previewExpert && mobileDetailOpen && (
           <div className="fixed inset-0 z-[230] bg-slate-950/30 lg:hidden" onClick={() => setMobileDetailOpen(false)}>
             <div className="absolute inset-x-3 bottom-3 max-h-[78vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-              <button type="button" onClick={() => setMobileDetailOpen(false)} className="mb-2 ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg" aria-label="상세 닫기">
+              <button type="button" onClick={() => setMobileDetailOpen(false)} className="mb-2 ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg" aria-label="?곸꽭 ?リ린">
                 <X className="h-5 w-5" />
               </button>
-            <DetailPanel
+            <ExplorerDetailPanel
               expert={previewExpert}
               tab={previewExpert.category === 'ai' ? 'general' : 'custom'}
               selected={selectedIds.includes(previewExpert.id)}
@@ -1278,7 +1790,7 @@ function LegacyGeneralAiHome({
             className="hidden h-8 items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 px-3 text-[11px] font-black text-slate-600 shadow-sm backdrop-blur transition-all hover:border-blue-200 hover:bg-white hover:text-blue-600 sm:flex"
           >
             <LayoutGrid className="h-3.5 w-3.5" />
-            전체 모델 보기
+            ?꾩껜 紐⑤뜽 蹂닿린
           </button>
           <button
             type="button"
@@ -1287,7 +1799,7 @@ function LegacyGeneralAiHome({
               setExplorerOpen(true);
             }}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 text-slate-400 shadow-sm backdrop-blur transition-colors hover:bg-white hover:text-slate-900 sm:hidden"
-            aria-label="전체 모델 보기"
+            aria-label="?꾩껜 紐⑤뜽 蹂닿린"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -1295,10 +1807,9 @@ function LegacyGeneralAiHome({
 
         <div className="mx-auto max-w-[590px] text-center">
           <h2 className="text-[25px] font-black leading-tight tracking-tight text-slate-950 sm:text-[30px]">
-            모든 AI를 한 곳에서
-          </h2>
+            紐⑤뱺 AI瑜???怨녹뿉??          </h2>
           <p className="mt-1.5 text-[13px] font-semibold text-slate-600">
-            즐겨찾기한 AI를 바로 고르고, 필요하면 추천 AI가 질문에 맞춰 잡아줘요.
+            利먭꺼李얘린??AI瑜?諛붾줈 怨좊Ⅴ怨? ?꾩슂?섎㈃ 異붿쿇 AI媛 吏덈Ц??留욎떠 ?≪븘以섏슂.
           </p>
         </div>
 
@@ -1324,7 +1835,7 @@ function LegacyGeneralAiHome({
                 <Sparkles className="h-6 w-6" strokeWidth={2.2} />
               </span>
               <span className={cn('whitespace-nowrap text-[12px] font-black transition-colors', autoAssign ? 'text-blue-600' : 'text-slate-700')}>
-                추천 AI
+                異붿쿇 AI
               </span>
             </button>
           </div>
@@ -1362,7 +1873,7 @@ function LegacyGeneralAiHome({
                   type="button"
                   onClick={() => onToggleFavorite(expert.id)}
                   className="absolute -right-0.5 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 opacity-0 shadow-sm transition-all hover:border-rose-200 hover:text-rose-500 group-hover:opacity-100"
-                  aria-label={`${expert.nameKo} 즐겨찾기 제거`}
+                  aria-label={`${expert.nameKo} 利먭꺼李얘린 ?쒓굅`}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -1381,7 +1892,7 @@ function LegacyGeneralAiHome({
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-slate-300 bg-white/80 text-slate-700 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition-all group-hover:-translate-y-1 group-hover:border-blue-300 group-hover:bg-white group-hover:text-blue-600 sm:h-16 sm:w-16">
               <Plus className="h-5 w-5" strokeWidth={2.2} />
             </span>
-            <span className="text-[12px] font-bold text-slate-700">추가</span>
+            <span className="text-[12px] font-bold text-slate-700">異붽?</span>
           </button>
         </div>
 
@@ -1437,7 +1948,7 @@ export function GeneralAiHome({
 
   const homeTiles = useMemo<HomeTile[]>(() => {
     const fastExperts = experts
-      .filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro')
+      .filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro' && !HIDDEN_GENERAL_MODEL_IDS.has(expert.id))
       .sort((a, b) => (b.abilities?.speed ?? 0) - (a.abilities?.speed ?? 0));
 
     const base =
@@ -1493,11 +2004,9 @@ export function GeneralAiHome({
 
         <div className="mx-auto max-w-[720px] text-center">
           <h2 className="text-[25px] font-black leading-tight tracking-tight text-slate-950 sm:text-[31px]">
-            모든 AI 챗봇을 한 곳에서 원하는 대로 골라 쓰세요
-          </h2>
+            紐⑤뱺 AI 梨쀫큸????怨녹뿉???먰븯???濡?怨⑤씪 ?곗꽭??          </h2>
           <p className="mt-2 text-[13px] font-semibold text-slate-500 sm:text-[14px]">
-            GPT · Claude · Gemini - 원하는 AI를 골라 자유롭게 대화
-          </p>
+            GPT 쨌 Claude 쨌 Gemini - ?먰븯??AI瑜?怨⑤씪 ?먯쑀濡?쾶 ???          </p>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/92 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -1562,7 +2071,7 @@ export function GeneralAiHome({
                       <Sparkles className="h-6 w-6" />
                     </span>
                     <span className={cn('mt-2 max-w-full truncate text-[12px] font-black', autoAssign ? 'text-blue-600' : 'text-slate-700')}>
-                      추천 AI
+                      異붿쿇 AI
                     </span>
                   </button>
                 );
@@ -1581,7 +2090,7 @@ export function GeneralAiHome({
                       <LayoutGrid className="h-5 w-5" />
                     </span>
                     <span className="mt-2 max-w-full truncate text-[12px] font-black text-slate-700 group-hover:text-blue-600">
-                      모든 모델
+                      紐⑤뱺 紐⑤뜽
                     </span>
                   </button>
                 );
@@ -1630,7 +2139,7 @@ export function GeneralAiHome({
                       'absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full transition-all',
                       favorite ? 'text-amber-400 opacity-100' : 'text-slate-300 opacity-0 hover:text-amber-400 group-hover:opacity-100',
                     )}
-                    aria-label={favorite ? `${expert.nameKo} 즐겨찾기 제거` : `${expert.nameKo} 즐겨찾기 추가`}
+                    aria-label={favorite ? `${expert.nameKo} 利먭꺼李얘린 ?쒓굅` : `${expert.nameKo} 利먭꺼李얘린 異붽?`}
                   >
                     <Star className="h-3.5 w-3.5" fill={favorite ? 'currentColor' : 'none'} />
                   </button>
