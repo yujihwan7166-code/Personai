@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-12T22:41:06.530Z",
+  "fetchedAt": "2026-06-12T23:50:20.091Z",
   "source": "https://openrouter.ai/api/v1/models",
   "totalOpenRouterModels": 337,
   "existingAiIds": 619,
@@ -8,19 +8,19 @@
   "existingMissingOpenrouterModels": [],
   "selectedCount": 200,
   "selectedProviders": {
+    "Google": 15,
     "OpenAI": 24,
+    "Alibaba Qwen": 24,
     "Anthropic": 12,
-    "Google": 13,
     "xAI": 2,
     "Perplexity": 3,
     "DeepSeek": 10,
-    "Alibaba Qwen": 24,
     "Meta": 10,
-    "Mistral AI": 13,
+    "Mistral AI": 14,
     "Cohere": 2,
     "Microsoft": 2,
     "Amazon": 3,
-    "NVIDIA": 9,
+    "NVIDIA": 10,
     "Moonshot AI": 4,
     "Z.ai": 9,
     "MiniMax": 7,
@@ -47,13 +47,524 @@
     "Switchpoint": 1,
     "Anthracite": 1,
     "TheDrummer": 4,
-    "Inflection AI": 1,
-    "Sao10K": 4,
-    "Mancer": 1,
-    "Undi95": 1,
-    "Gryphe": 1
+    "Inflection AI": 2,
+    "Sao10K": 2
   },
   "selected": [
+    {
+      "id": "or-google-gemini-3-1-flash-lite",
+      "name": "Gemini 3.1 Flash Lite",
+      "openrouterModel": "google/gemini-3.1-flash-lite",
+      "tags": [
+        "추론",
+        "코딩",
+        "시각입력",
+        "장문맥"
+      ],
+      "provider": "Google",
+      "contextLength": 1048576,
+      "createdAt": "2026-05-07"
+    },
+    {
+      "id": "or-openai-gpt-5-mini",
+      "name": "GPT-5 Mini",
+      "openrouterModel": "openai/gpt-5-mini",
+      "tags": [
+        "추론",
+        "시각입력",
+        "고속",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 400000,
+      "createdAt": "2025-08-07"
+    },
+    {
+      "id": "or-openai-gpt-5-5-pro",
+      "name": "GPT-5.5 Pro",
+      "openrouterModel": "openai/gpt-5.5-pro",
+      "tags": [
+        "추론",
+        "시각입력",
+        "장문맥",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 1050000,
+      "createdAt": "2026-04-24"
+    },
+    {
+      "id": "or-openai-gpt-5-5",
+      "name": "GPT-5.5",
+      "openrouterModel": "openai/gpt-5.5",
+      "tags": [
+        "추론",
+        "시각입력",
+        "장문맥",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 1050000,
+      "createdAt": "2026-04-24"
+    },
+    {
+      "id": "or-openai-gpt-5-4-pro",
+      "name": "GPT-5.4 Pro",
+      "openrouterModel": "openai/gpt-5.4-pro",
+      "tags": [
+        "추론",
+        "시각입력",
+        "장문맥",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 1050000,
+      "createdAt": "2026-03-05"
+    },
+    {
+      "id": "or-openai-gpt-5-4",
+      "name": "GPT-5.4",
+      "openrouterModel": "openai/gpt-5.4",
+      "tags": [
+        "추론",
+        "시각입력",
+        "장문맥",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 1050000,
+      "createdAt": "2026-03-05"
+    },
+    {
+      "id": "or-openai-gpt-5-1",
+      "name": "GPT-5.1",
+      "openrouterModel": "openai/gpt-5.1",
+      "tags": [
+        "추론",
+        "시각입력",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 400000,
+      "createdAt": "2025-11-13"
+    },
+    {
+      "id": "or-openai-gpt-chat-latest",
+      "name": "GPT Chat Latest",
+      "openrouterModel": "openai/gpt-chat-latest",
+      "tags": [
+        "시각입력",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 400000,
+      "createdAt": "2026-05-05"
+    },
+    {
+      "id": "or-openai-o3-pro",
+      "name": "o3 Pro",
+      "openrouterModel": "openai/o3-pro",
+      "tags": [
+        "추론",
+        "시각입력",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-06-10"
+    },
+    {
+      "id": "or-openai-o3-deep-research",
+      "name": "o3 Deep Research",
+      "openrouterModel": "openai/o3-deep-research",
+      "tags": [
+        "추론",
+        "검색",
+        "시각입력",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-10-10"
+    },
+    {
+      "id": "or-openai-o4-mini-deep-research",
+      "name": "o4 Mini Deep Research",
+      "openrouterModel": "openai/o4-mini-deep-research",
+      "tags": [
+        "추론",
+        "검색",
+        "시각입력",
+        "고속"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-10-10"
+    },
+    {
+      "id": "or-openai-o4-mini-high",
+      "name": "o4 Mini High",
+      "openrouterModel": "openai/o4-mini-high",
+      "tags": [
+        "추론",
+        "시각입력",
+        "고속",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-04-16"
+    },
+    {
+      "id": "or-openai-o3-mini-high",
+      "name": "o3 Mini High",
+      "openrouterModel": "openai/o3-mini-high",
+      "tags": [
+        "추론",
+        "고속",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-02-12"
+    },
+    {
+      "id": "or-openai-o3-mini",
+      "name": "o3 Mini",
+      "openrouterModel": "openai/o3-mini",
+      "tags": [
+        "추론",
+        "코딩",
+        "고속",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-01-31"
+    },
+    {
+      "id": "or-openai-o1-pro",
+      "name": "o1-pro",
+      "openrouterModel": "openai/o1-pro",
+      "tags": [
+        "추론",
+        "시각입력",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-03-19"
+    },
+    {
+      "id": "or-openai-o1",
+      "name": "o1",
+      "openrouterModel": "openai/o1",
+      "tags": [
+        "추론",
+        "시각입력",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2024-12-17"
+    },
+    {
+      "id": "or-openai-gpt-4o",
+      "name": "GPT-4o",
+      "openrouterModel": "openai/gpt-4o",
+      "tags": [
+        "시각입력",
+        "툴사용",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2024-05-13"
+    },
+    {
+      "id": "or-openai-gpt-4o-mini",
+      "name": "GPT-4o-mini",
+      "openrouterModel": "openai/gpt-4o-mini",
+      "tags": [
+        "시각입력",
+        "저비용",
+        "고속",
+        "툴사용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2024-07-18"
+    },
+    {
+      "id": "or-openai-gpt-4o-search-preview",
+      "name": "GPT-4o Search Preview",
+      "openrouterModel": "openai/gpt-4o-search-preview",
+      "tags": [
+        "검색",
+        "구조화",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2025-03-12"
+    },
+    {
+      "id": "or-openai-gpt-4o-mini-search-preview",
+      "name": "GPT-4o-mini Search Preview",
+      "openrouterModel": "openai/gpt-4o-mini-search-preview",
+      "tags": [
+        "검색",
+        "저비용",
+        "고속",
+        "구조화"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2025-03-12"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-plus",
+      "name": "Qwen3 Coder Plus",
+      "openrouterModel": "qwen/qwen3-coder-plus",
+      "tags": [
+        "코딩",
+        "오픈웨이트",
+        "장문맥",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-23"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-flash",
+      "name": "Qwen3 Coder Flash",
+      "openrouterModel": "qwen/qwen3-coder-flash",
+      "tags": [
+        "코딩",
+        "오픈웨이트",
+        "장문맥",
+        "저비용"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-17"
+    },
+    {
+      "id": "or-qwen-qwen3-coder",
+      "name": "Qwen3 Coder 480B A35B",
+      "openrouterModel": "qwen/qwen3-coder",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "장문맥"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1048576,
+      "createdAt": "2025-07-23"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-free",
+      "name": "Qwen3 Coder 480B A35B Free",
+      "openrouterModel": "qwen/qwen3-coder:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "장문맥"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1048576,
+      "createdAt": "2025-07-23"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-30b-a3b-instruct",
+      "name": "Qwen3 Coder 30B A3B Instruct",
+      "openrouterModel": "qwen/qwen3-coder-30b-a3b-instruct",
+      "tags": [
+        "코딩",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 160000,
+      "createdAt": "2025-07-31"
+    },
+    {
+      "id": "or-qwen-qwen3-next-80b-a3b-instruct",
+      "name": "Qwen3 Next 80B A3B Instruct",
+      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "저비용"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-11"
+    },
+    {
+      "id": "or-qwen-qwen3-next-80b-a3b-instruct-free",
+      "name": "Qwen3 Next 80B A3B Instruct Free",
+      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "무료"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-11"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b-thinking-2507",
+      "name": "Qwen3 235B A22B Thinking 2507",
+      "openrouterModel": "qwen/qwen3-235b-a22b-thinking-2507",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-07-25"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b-thinking-2507",
+      "name": "Qwen3 30B A3B Thinking 2507",
+      "openrouterModel": "qwen/qwen3-30b-a3b-thinking-2507",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-08-28"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b-2507",
+      "name": "Qwen3 235B A22B Instruct 2507",
+      "openrouterModel": "qwen/qwen3-235b-a22b-2507",
+      "tags": [
+        "오픈웨이트",
+        "저비용",
+        "중국어",
+        "툴사용"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-07-21"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen3 30B A3B Instruct 2507",
+      "openrouterModel": "qwen/qwen3-30b-a3b-instruct-2507",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-07-29"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b",
+      "name": "Qwen3 235B A22B",
+      "openrouterModel": "qwen/qwen3-235b-a22b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "중국어",
+        "툴사용"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-32b",
+      "name": "Qwen3 32B",
+      "openrouterModel": "qwen/qwen3-32b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-14b",
+      "name": "Qwen3 14B",
+      "openrouterModel": "qwen/qwen3-14b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131702,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-8b",
+      "name": "Qwen3 8B",
+      "openrouterModel": "qwen/qwen3-8b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b",
+      "name": "Qwen3 30B A3B",
+      "openrouterModel": "qwen/qwen3-30b-a3b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen-2-5-coder-32b-instruct",
+      "name": "Qwen2.5 Coder 32B Instruct",
+      "openrouterModel": "qwen/qwen-2.5-coder-32b-instruct",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 128000,
+      "createdAt": "2024-11-11"
+    },
     {
       "id": "or-openai-gpt-5-4-mini",
       "name": "GPT-5.4 Mini",
@@ -416,76 +927,6 @@
       "createdAt": "2025-12-10"
     },
     {
-      "id": "or-openai-gpt-5-1-codex-max",
-      "name": "GPT-5.1-Codex-Max",
-      "openrouterModel": "openai/gpt-5.1-codex-max",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-12-04"
-    },
-    {
-      "id": "or-openai-gpt-5-1-codex",
-      "name": "GPT-5.1-Codex",
-      "openrouterModel": "openai/gpt-5.1-codex",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-11-13"
-    },
-    {
-      "id": "or-openai-gpt-5-pro",
-      "name": "GPT-5 Pro",
-      "openrouterModel": "openai/gpt-5-pro",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-10-06"
-    },
-    {
-      "id": "or-openai-gpt-5-codex",
-      "name": "GPT-5 Codex",
-      "openrouterModel": "openai/gpt-5-codex",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-09-23"
-    },
-    {
-      "id": "or-openai-gpt-5",
-      "name": "GPT-5",
-      "openrouterModel": "openai/gpt-5",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-08-07"
-    },
-    {
       "id": "or-anthropic-claude-sonnet-4",
       "name": "Claude Sonnet 4",
       "openrouterModel": "anthropic/claude-sonnet-4",
@@ -542,34 +983,6 @@
       "createdAt": "2026-05-12"
     },
     {
-      "id": "or-openai-gpt-5-5-pro",
-      "name": "GPT-5.5 Pro",
-      "openrouterModel": "openai/gpt-5.5-pro",
-      "tags": [
-        "추론",
-        "시각입력",
-        "장문맥",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 1050000,
-      "createdAt": "2026-04-24"
-    },
-    {
-      "id": "or-openai-gpt-5-5",
-      "name": "GPT-5.5",
-      "openrouterModel": "openai/gpt-5.5",
-      "tags": [
-        "추론",
-        "시각입력",
-        "장문맥",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 1050000,
-      "createdAt": "2026-04-24"
-    },
-    {
       "id": "or-anthropic-claude-opus-4-5",
       "name": "Claude Opus 4.5",
       "openrouterModel": "anthropic/claude-opus-4.5",
@@ -596,48 +1009,6 @@
       "provider": "Anthropic",
       "contextLength": 1000000,
       "createdAt": "2026-04-07"
-    },
-    {
-      "id": "or-openai-gpt-5-4-nano",
-      "name": "GPT-5.4 Nano",
-      "openrouterModel": "openai/gpt-5.4-nano",
-      "tags": [
-        "추론",
-        "시각입력",
-        "저비용",
-        "고속"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2026-03-17"
-    },
-    {
-      "id": "or-openai-gpt-5-4-pro",
-      "name": "GPT-5.4 Pro",
-      "openrouterModel": "openai/gpt-5.4-pro",
-      "tags": [
-        "추론",
-        "시각입력",
-        "장문맥",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 1050000,
-      "createdAt": "2026-03-05"
-    },
-    {
-      "id": "or-openai-gpt-5-4",
-      "name": "GPT-5.4",
-      "openrouterModel": "openai/gpt-5.4",
-      "tags": [
-        "추론",
-        "시각입력",
-        "장문맥",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 1050000,
-      "createdAt": "2026-03-05"
     },
     {
       "id": "or-anthropic-claude-opus-4-1",
@@ -668,34 +1039,6 @@
       "createdAt": "2025-06-17"
     },
     {
-      "id": "or-openai-gpt-5-1",
-      "name": "GPT-5.1",
-      "openrouterModel": "openai/gpt-5.1",
-      "tags": [
-        "추론",
-        "시각입력",
-        "툴사용",
-        "구조화"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-11-13"
-    },
-    {
-      "id": "or-openai-gpt-5-1-codex-mini",
-      "name": "GPT-5.1-Codex-Mini",
-      "openrouterModel": "openai/gpt-5.1-codex-mini",
-      "tags": [
-        "추론",
-        "시각입력",
-        "고속",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-11-13"
-    },
-    {
       "id": "or-anthropic-claude-opus-4",
       "name": "Claude Opus 4",
       "openrouterModel": "anthropic/claude-opus-4",
@@ -710,34 +1053,6 @@
       "createdAt": "2025-05-22"
     },
     {
-      "id": "or-openai-o3",
-      "name": "o3",
-      "openrouterModel": "openai/o3",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 200000,
-      "createdAt": "2025-04-16"
-    },
-    {
-      "id": "or-openai-o4-mini",
-      "name": "o4 Mini",
-      "openrouterModel": "openai/o4-mini",
-      "tags": [
-        "추론",
-        "코딩",
-        "시각입력",
-        "고속"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 200000,
-      "createdAt": "2025-04-16"
-    },
-    {
       "id": "or-google-gemma-4-26b-a4b-it",
       "name": "Gemma 4 26B A4B",
       "openrouterModel": "google/gemma-4-26b-a4b-it",
@@ -750,20 +1065,6 @@
       "provider": "Google",
       "contextLength": 262144,
       "createdAt": "2026-04-03"
-    },
-    {
-      "id": "or-openai-gpt-5-nano",
-      "name": "GPT-5 Nano",
-      "openrouterModel": "openai/gpt-5-nano",
-      "tags": [
-        "추론",
-        "시각입력",
-        "저비용",
-        "고속"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 400000,
-      "createdAt": "2025-08-07"
     },
     {
       "id": "or-google-gemma-4-26b-a4b-it-free",
@@ -834,20 +1135,6 @@
       "provider": "Alibaba Qwen",
       "contextLength": 1000000,
       "createdAt": "2026-06-03"
-    },
-    {
-      "id": "or-openai-gpt-oss-120b",
-      "name": "gpt-oss-120b",
-      "openrouterModel": "openai/gpt-oss-120b",
-      "tags": [
-        "추론",
-        "코딩",
-        "저비용",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 131072,
-      "createdAt": "2025-08-05"
     },
     {
       "id": "or-x-ai-grok-4-20-multi-agent",
@@ -948,146 +1235,6 @@
       "createdAt": "2026-04-27"
     },
     {
-      "id": "or-openai-gpt-5-2-chat",
-      "name": "GPT-5.2 Chat",
-      "openrouterModel": "openai/gpt-5.2-chat",
-      "tags": [
-        "추론",
-        "시각입력",
-        "툴사용",
-        "구조화"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 128000,
-      "createdAt": "2025-12-10"
-    },
-    {
-      "id": "or-openai-gpt-oss-120b-free",
-      "name": "gpt-oss-120b Free",
-      "openrouterModel": "openai/gpt-oss-120b:free",
-      "tags": [
-        "추론",
-        "코딩",
-        "무료",
-        "툴사용"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 131072,
-      "createdAt": "2025-08-05"
-    },
-    {
-      "id": "or-qwen-qwen3-next-80b-a3b-thinking",
-      "name": "Qwen3 Next 80B A3B Thinking",
-      "openrouterModel": "qwen/qwen3-next-80b-a3b-thinking",
-      "tags": [
-        "추론",
-        "코딩",
-        "오픈웨이트",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2025-09-11"
-    },
-    {
-      "id": "or-qwen-qwen3-next-80b-a3b-instruct",
-      "name": "Qwen3 Next 80B A3B Instruct",
-      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct",
-      "tags": [
-        "추론",
-        "코딩",
-        "오픈웨이트",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2025-09-11"
-    },
-    {
-      "id": "or-openai-gpt-5-1-chat",
-      "name": "GPT-5.1 Chat",
-      "openrouterModel": "openai/gpt-5.1-chat",
-      "tags": [
-        "추론",
-        "시각입력",
-        "툴사용",
-        "구조화"
-      ],
-      "provider": "OpenAI",
-      "contextLength": 128000,
-      "createdAt": "2025-11-13"
-    },
-    {
-      "id": "or-qwen-qwen3-5-35b-a3b",
-      "name": "Qwen3.5-35B-A3B",
-      "openrouterModel": "qwen/qwen3.5-35b-a3b",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2026-02-25"
-    },
-    {
-      "id": "or-qwen-qwen3-5-27b",
-      "name": "Qwen3.5-27B",
-      "openrouterModel": "qwen/qwen3.5-27b",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "중국어"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2026-02-25"
-    },
-    {
-      "id": "or-qwen-qwen3-5-122b-a10b",
-      "name": "Qwen3.5-122B-A10B",
-      "openrouterModel": "qwen/qwen3.5-122b-a10b",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "중국어"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2026-02-25"
-    },
-    {
-      "id": "or-qwen-qwen3-5-plus-02-15",
-      "name": "Qwen3.5 Plus 2026-02-15",
-      "openrouterModel": "qwen/qwen3.5-plus-02-15",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "장문맥"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 1000000,
-      "createdAt": "2026-02-16"
-    },
-    {
-      "id": "or-qwen-qwen3-5-397b-a17b",
-      "name": "Qwen3.5 397B A17B",
-      "openrouterModel": "qwen/qwen3.5-397b-a17b",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "중국어"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2026-02-16"
-    },
-    {
       "id": "or-google-gemini-3-1-pro-preview-customtools",
       "name": "Gemini 3.1 Pro Preview Custom Tools",
       "openrouterModel": "google/gemini-3.1-pro-preview-customtools",
@@ -1100,62 +1247,6 @@
       "provider": "Google",
       "contextLength": 1048756,
       "createdAt": "2026-02-25"
-    },
-    {
-      "id": "or-qwen-qwen3-coder",
-      "name": "Qwen3 Coder 480B A35B",
-      "openrouterModel": "qwen/qwen3-coder",
-      "tags": [
-        "추론",
-        "코딩",
-        "오픈웨이트",
-        "장문맥"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 1048576,
-      "createdAt": "2025-07-23"
-    },
-    {
-      "id": "or-qwen-qwen3-next-80b-a3b-instruct-free",
-      "name": "Qwen3 Next 80B A3B Instruct Free",
-      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct:free",
-      "tags": [
-        "추론",
-        "코딩",
-        "오픈웨이트",
-        "무료"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2025-09-11"
-    },
-    {
-      "id": "or-qwen-qwen3-coder-free",
-      "name": "Qwen3 Coder 480B A35B Free",
-      "openrouterModel": "qwen/qwen3-coder:free",
-      "tags": [
-        "추론",
-        "코딩",
-        "오픈웨이트",
-        "장문맥"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 1048576,
-      "createdAt": "2025-07-23"
-    },
-    {
-      "id": "or-qwen-qwen3-vl-32b-instruct",
-      "name": "Qwen3 VL 32B Instruct",
-      "openrouterModel": "qwen/qwen3-vl-32b-instruct",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2025-10-23"
     },
     {
       "id": "or-google-gemini-2-5-flash-lite-preview-09-2025",
@@ -1200,62 +1291,6 @@
       "createdAt": "2025-12-01"
     },
     {
-      "id": "or-qwen-qwen3-coder-next",
-      "name": "Qwen3 Coder Next",
-      "openrouterModel": "qwen/qwen3-coder-next",
-      "tags": [
-        "코딩",
-        "오픈웨이트",
-        "저비용",
-        "중국어"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2026-02-04"
-    },
-    {
-      "id": "or-qwen-qwen3-max",
-      "name": "Qwen3 Max",
-      "openrouterModel": "qwen/qwen3-max",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "중국어",
-        "툴사용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 262144,
-      "createdAt": "2025-09-23"
-    },
-    {
-      "id": "or-qwen-qwen-plus-2025-07-28-thinking",
-      "name": "Qwen Plus 0728 (thinking)",
-      "openrouterModel": "qwen/qwen-plus-2025-07-28:thinking",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "장문맥",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 1000000,
-      "createdAt": "2025-09-08"
-    },
-    {
-      "id": "or-qwen-qwen-plus-2025-07-28",
-      "name": "Qwen Plus 0728",
-      "openrouterModel": "qwen/qwen-plus-2025-07-28",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "장문맥",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 1000000,
-      "createdAt": "2025-09-08"
-    },
-    {
       "id": "or-anthropic-claude-3-5-haiku",
       "name": "Claude 3.5 Haiku",
       "openrouterModel": "anthropic/claude-3.5-haiku",
@@ -1268,34 +1303,6 @@
       "provider": "Anthropic",
       "contextLength": 200000,
       "createdAt": "2024-11-04"
-    },
-    {
-      "id": "or-qwen-qwen3-vl-8b-thinking",
-      "name": "Qwen3 VL 8B Thinking",
-      "openrouterModel": "qwen/qwen3-vl-8b-thinking",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 256000,
-      "createdAt": "2025-10-14"
-    },
-    {
-      "id": "or-qwen-qwen3-vl-8b-instruct",
-      "name": "Qwen3 VL 8B Instruct",
-      "openrouterModel": "qwen/qwen3-vl-8b-instruct",
-      "tags": [
-        "추론",
-        "오픈웨이트",
-        "시각입력",
-        "저비용"
-      ],
-      "provider": "Alibaba Qwen",
-      "contextLength": 256000,
-      "createdAt": "2025-10-14"
     },
     {
       "id": "or-google-gemma-3-4b-it",
@@ -1589,6 +1596,20 @@
       "provider": "Mistral AI",
       "contextLength": 262144,
       "createdAt": "2025-12-02"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-5-content-safety-free",
+      "name": "Nemotron 3.5 Content Safety Free",
+      "openrouterModel": "nvidia/nemotron-3.5-content-safety:free",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "시각입력",
+        "무료"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 128000,
+      "createdAt": "2026-06-04"
     },
     {
       "id": "or-minimax-minimax-m2-1",
@@ -1897,6 +1918,19 @@
       "createdAt": "2025-06-17"
     },
     {
+      "id": "or-google-gemma-3n-e4b-it",
+      "name": "Gemma 3n 4B",
+      "openrouterModel": "google/gemma-3n-e4b-it",
+      "tags": [
+        "오픈웨이트",
+        "저비용",
+        "범용"
+      ],
+      "provider": "Google",
+      "contextLength": 32768,
+      "createdAt": "2025-05-20"
+    },
+    {
       "id": "or-mistralai-mistral-small-3-2-24b-instruct",
       "name": "Mistral Small 3.2 24B",
       "openrouterModel": "mistralai/mistral-small-3.2-24b-instruct",
@@ -2005,6 +2039,20 @@
       "provider": "Moonshot AI",
       "contextLength": 262144,
       "createdAt": "2025-09-04"
+    },
+    {
+      "id": "or-mistralai-voxtral-small-24b-2507",
+      "name": "Voxtral Small 24B 2507",
+      "openrouterModel": "mistralai/voxtral-small-24b-2507",
+      "tags": [
+        "오픈웨이트",
+        "저비용",
+        "고속",
+        "툴사용"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 32000,
+      "createdAt": "2025-10-30"
     },
     {
       "id": "or-essentialai-rnj-1-instruct",
@@ -2692,6 +2740,18 @@
       "createdAt": "2024-10-11"
     },
     {
+      "id": "or-inflection-inflection-3-pi",
+      "name": "Inflection 3 Pi",
+      "openrouterModel": "inflection/inflection-3-pi",
+      "tags": [
+        "범용",
+        "업무"
+      ],
+      "provider": "Inflection AI",
+      "contextLength": 8000,
+      "createdAt": "2024-10-11"
+    },
+    {
       "id": "or-sao10k-l3-1-70b-hanami-x1",
       "name": "Llama 3.1 70B Hanami x1",
       "openrouterModel": "sao10k/l3.1-70b-hanami-x1",
@@ -2742,71 +2802,6 @@
       "provider": "TheDrummer",
       "contextLength": 32768,
       "createdAt": "2024-09-30"
-    },
-    {
-      "id": "or-sao10k-l3-1-euryale-70b",
-      "name": "Llama 3.1 Euryale 70B v2.2",
-      "openrouterModel": "sao10k/l3.1-euryale-70b",
-      "tags": [
-        "오픈웨이트",
-        "툴사용",
-        "구조화"
-      ],
-      "provider": "Sao10K",
-      "contextLength": 131072,
-      "createdAt": "2024-08-28"
-    },
-    {
-      "id": "or-sao10k-l3-lunaris-8b",
-      "name": "Llama 3 8B Lunaris",
-      "openrouterModel": "sao10k/l3-lunaris-8b",
-      "tags": [
-        "오픈웨이트",
-        "저비용",
-        "구조화"
-      ],
-      "provider": "Sao10K",
-      "contextLength": 8192,
-      "createdAt": "2024-08-13"
-    },
-    {
-      "id": "or-mancer-weaver",
-      "name": "Weaver (alpha)",
-      "openrouterModel": "mancer/weaver",
-      "tags": [
-        "구조화",
-        "범용",
-        "업무"
-      ],
-      "provider": "Mancer",
-      "contextLength": 8000,
-      "createdAt": "2023-08-02"
-    },
-    {
-      "id": "or-undi95-remm-slerp-l2-13b",
-      "name": "ReMM SLERP 13B",
-      "openrouterModel": "undi95/remm-slerp-l2-13b",
-      "tags": [
-        "오픈웨이트",
-        "저비용",
-        "구조화"
-      ],
-      "provider": "Undi95",
-      "contextLength": 6144,
-      "createdAt": "2023-07-22"
-    },
-    {
-      "id": "or-gryphe-mythomax-l2-13b",
-      "name": "MythoMax 13B",
-      "openrouterModel": "gryphe/mythomax-l2-13b",
-      "tags": [
-        "오픈웨이트",
-        "저비용",
-        "구조화"
-      ],
-      "provider": "Gryphe",
-      "contextLength": 4096,
-      "createdAt": "2023-07-02"
     }
   ],
   "topCandidates": [
@@ -2881,6 +2876,12 @@
       "name": "OpenAI: GPT-5 Codex",
       "score": 209.3217015,
       "provider": "OpenAI"
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite",
+      "name": "Google: Gemini 3.1 Flash Lite",
+      "score": 209.084414,
+      "provider": "Google"
     },
     {
       "id": "openai/gpt-5",
@@ -3025,6 +3026,12 @@
       "name": "Google: Gemma 4 26B A4B ",
       "score": 189.6139945,
       "provider": "Google"
+    },
+    {
+      "id": "openai/gpt-5-mini",
+      "name": "OpenAI: GPT-5 Mini",
+      "score": 189.2937035,
+      "provider": "OpenAI"
     },
     {
       "id": "openai/gpt-5-nano",
@@ -3276,6 +3283,12 @@
       "id": "openai/o1-pro",
       "name": "OpenAI: o1-pro",
       "score": 171.2116055,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "name": "OpenAI: gpt-oss-safeguard-20b",
+      "score": 170.876418,
       "provider": "OpenAI"
     },
     {
@@ -3561,6 +3574,12 @@
       "provider": "Mistral AI"
     },
     {
+      "id": "nvidia/nemotron-3.5-content-safety:free",
+      "name": "NVIDIA: Nemotron 3.5 Content Safety (free)",
+      "score": 149.290932,
+      "provider": "NVIDIA"
+    },
+    {
       "id": "minimax/minimax-m2.1",
       "name": "MiniMax: MiniMax M2.1",
       "score": 149.2274985,
@@ -3837,6 +3856,12 @@
       "provider": "Alibaba Qwen"
     },
     {
+      "id": "google/gemma-3n-e4b-it",
+      "name": "Google: Gemma 3n 4B",
+      "score": 133.888412,
+      "provider": "Google"
+    },
+    {
       "id": "openai/gpt-4o-mini-search-preview",
       "name": "OpenAI: GPT-4o-mini Search Preview",
       "score": 132.909061,
@@ -3919,6 +3944,12 @@
       "name": "MoonshotAI: Kimi K2 0905",
       "score": 126.51057349999999,
       "provider": "Moonshot AI"
+    },
+    {
+      "id": "mistralai/voxtral-small-24b-2507",
+      "name": "Mistral: Voxtral Small 24B 2507",
+      "score": 125.917572,
+      "provider": "Mistral AI"
     },
     {
       "id": "essentialai/rnj-1-instruct",
@@ -4247,6 +4278,12 @@
     {
       "id": "inflection/inflection-3-productivity",
       "name": "Inflection: Inflection 3 Productivity",
+      "score": 69.3024,
+      "provider": "Inflection AI"
+    },
+    {
+      "id": "inflection/inflection-3-pi",
+      "name": "Inflection: Inflection 3 Pi",
       "score": 69.3024,
       "provider": "Inflection AI"
     },

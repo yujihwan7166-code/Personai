@@ -9,9 +9,11 @@ import {
   BRAND_ORDER,
   getBrandOf,
 } from '@/lib/modelTaxonomy';
+import { isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 
 const aiModels = DEFAULT_EXPERTS.filter((e) => e.category === 'ai' && e.id !== 'router');
 const aiIdSet = new Set(aiModels.map((e) => e.id));
+const visibleGeneralModelIds = new Set(DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel).map((e) => e.id));
 
 describe('modelTaxonomy', () => {
   describe('MODEL_BRAND 매핑', () => {
@@ -65,6 +67,11 @@ describe('modelTaxonomy', () => {
     it('추천 셋의 모든 ID 가 실제 카탈로그에 존재해야 한다', () => {
       const stale = RECOMMENDED_MODEL_IDS.filter((id) => !aiIdSet.has(id));
       expect(stale, `삭제된 모델이 남아있음: ${stale.join(', ')}`).toEqual([]);
+    });
+
+    it('추천 셋의 모든 ID 가 일반 모델 선택기에 실제로 보여야 한다', () => {
+      const hidden = RECOMMENDED_MODEL_IDS.filter((id) => !visibleGeneralModelIds.has(id));
+      expect(hidden, `추천이지만 숨겨진 모델: ${hidden.join(', ')}`).toEqual([]);
     });
 
     it('추천 모델 수가 5~10개 범위 안이어야 한다 (사용자 결정 비용 관리)', () => {

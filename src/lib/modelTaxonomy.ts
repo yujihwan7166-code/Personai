@@ -204,8 +204,8 @@ export const MODEL_IS_REASONING: ReadonlySet<string> = new Set<string>(REASONING
  * 대중성, 브랜드 다양성, 속도, 검색/출처 활용성을 함께 고려한다.
  */
 export const RECOMMENDED_MODEL_IDS: readonly string[] = [
-  'auto-gpt',
   'gpt',
+  'claude-sonnet',
   'gemini-flash-lite',
   'claude-haiku',
   'grok',

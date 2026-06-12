@@ -66,6 +66,45 @@ const BRAND_CONFIG = [
 const PRESERVE_EXISTING_CARD_IDS = new Set(['developer-yjh', 'ancano-pro', 'auto-gpt']);
 
 const MUST_INCLUDE_PREFIXES = new Set(BRAND_CONFIG.slice(0, 24).map((item) => item.prefix));
+const MUST_INCLUDE_MODEL_IDS = [
+  'google/gemini-3.1-flash-lite',
+  'openai/gpt-5-mini',
+  'openai/gpt-5.5-pro',
+  'openai/gpt-5.5',
+  'openai/gpt-5.4-pro',
+  'openai/gpt-5.4',
+  'openai/gpt-5.1',
+  'openai/gpt-chat-latest',
+  'openai/o3-pro',
+  'openai/o3-deep-research',
+  'openai/o4-mini-deep-research',
+  'openai/o4-mini-high',
+  'openai/o3-mini-high',
+  'openai/o3-mini',
+  'openai/o1-pro',
+  'openai/o1',
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+  'openai/gpt-4o-search-preview',
+  'openai/gpt-4o-mini-search-preview',
+  'qwen/qwen3-coder-plus',
+  'qwen/qwen3-coder-flash',
+  'qwen/qwen3-coder',
+  'qwen/qwen3-coder:free',
+  'qwen/qwen3-coder-30b-a3b-instruct',
+  'qwen/qwen3-next-80b-a3b-instruct',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'qwen/qwen3-235b-a22b-thinking-2507',
+  'qwen/qwen3-30b-a3b-thinking-2507',
+  'qwen/qwen3-235b-a22b-2507',
+  'qwen/qwen3-30b-a3b-instruct-2507',
+  'qwen/qwen3-235b-a22b',
+  'qwen/qwen3-32b',
+  'qwen/qwen3-14b',
+  'qwen/qwen3-8b',
+  'qwen/qwen3-30b-a3b',
+  'qwen/qwen-2.5-coder-32b-instruct',
+];
 const KNOWN_OPEN_WEIGHT_PREFIXES = new Set([
   'meta-llama/',
   'mistralai/',
@@ -105,11 +144,9 @@ const OPEN_WEIGHT_MODEL_PATTERNS = [
 
 const EXCLUDE_PATTERNS = [
   /\bmoderation\b/i,
-  /\bsafety\b/i,
   /\bguard\b/i,
   /\bembedding\b/i,
   /\btts\b/i,
-  /\baudio\b/i,
   /\bwhisper\b/i,
   /\bimage generation\b/i,
   /\bdeprecated\b/i,
@@ -390,13 +427,94 @@ function descriptionFor(model) {
   const cfg = brandFor(model.id);
   const name = cleanName(model.name);
   const contextLabel = contextLabelFor(model);
-  if (tags.includes('검색')) return name + ': 출처 확인, 최신 이슈 비교, 근거 요약에 맞춘 ' + cfg.provider + ' 계열 검색 모델';
+  const id = model.id.toLowerCase();
+  if (tags.includes('검색')) {
+    if (id.includes('sonar-pro')) return name + ': 더 긴 검색 맥락과 심층 리서치 보고서에 맞춘 Perplexity 상위 모델';
+    if (id.includes('sonar')) return name + ': 빠른 웹 검색과 짧은 출처 요약에 맞춘 Perplexity 기본 검색 모델';
+    return name + ': 출처 확인, 최신 이슈 비교, 근거 요약에 맞춘 ' + cfg.provider + ' 계열 검색 모델';
+  }
   if (tags.includes('코딩')) return name + ': 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 ' + cfg.provider + ' 모델';
   if (tags.includes('시각입력')) return name + ': ' + contextLabel + '에서 이미지, 표, 문서 화면을 함께 읽어내는 ' + cfg.provider + ' 모델';
-  if (tags.includes('추론')) return name + ': 전제 정리, 대안 비교, 단계적 판단에 초점을 둔 ' + cfg.provider + ' 모델';
+  if (tags.includes('추론')) {
+    if (id.includes('deepseek-r1')) return name + ': 수학·논리·코딩 판단을 단계별로 풀어내는 DeepSeek 추론 모델';
+    if (id.includes('qwen') && id.includes('thinking')) return name + ': 긴 문맥에서 사고 과정을 길게 유지하는 Qwen 사고형 모델';
+    if (id.includes('phi')) return name + ': 작은 문맥에서도 논리 문제와 구조화 응답을 겨냥한 Microsoft 경량 추론 모델';
+    if (id.includes('nemotron')) return name + ': 합성 데이터와 기업형 추론 워크로드에 맞춘 NVIDIA 대형 모델';
+    if (id.includes('solar') || id.includes('upstage')) return name + ': 한국어 업무 문서와 논리 정리에 강점을 둔 Upstage 모델';
+    if (id.includes('mercury') || id.includes('inception')) return name + ': 지연 시간을 낮춘 빠른 추론과 실시간 응답 흐름에 맞춘 Inception Labs 모델';
+    if (id.includes('hunyuan') || id.includes('tencent')) return name + ': 중국어권 업무 대화와 구조화 답변에 맞춘 Tencent 모델';
+    if (id.includes('stepfun') || id.includes('step-')) return name + ': 빠른 응답과 중국어권 실무 질의에 맞춘 StepFun 모델';
+    return name + ': 전제 정리, 대안 비교, 단계적 판단에 초점을 둔 ' + cfg.provider + ' 모델';
+  }
   if (tags.includes('고속')) return name + ': 빠른 응답과 낮은 비용을 우선한 ' + cfg.provider + ' 경량 모델';
-  if (tags.includes('오픈웨이트')) return name + ': 배포 유연성과 커스터마이징 여지가 있는 ' + cfg.provider + ' 오픈웨이트 모델';
+  if (tags.includes('오픈웨이트')) {
+    if (id.includes('deepseek-chat')) return name + ': 저비용 코딩 보조와 구조화된 문제 해결에 강한 DeepSeek 대화 모델';
+    if (id.includes('dolphin')) return name + ': 실험적 자유 대화와 오픈웨이트 활용을 전제로 한 Cognitive Computations 모델';
+    return name + ': 배포 유연성과 커스터마이징 여지가 있는 ' + cfg.provider + ' 오픈웨이트 모델';
+  }
+  if (id.includes('command-r-plus')) return name + ': RAG 검색, 인용 기반 답변, 기업 지식 질의에 맞춘 Cohere 모델';
   return name + ': ' + cfg.provider + '의 ' + contextLabel + ' 기반 범용 대화 모델';
+}
+
+const EXISTING_DESCRIPTION_BY_ID = {
+  'gpt-mini': 'GPT-4.1 Mini: 긴 문서 처리와 시각 입력을 속도·비용 균형으로 다루는 OpenAI 모델',
+  'gpt-nano': 'GPT-4.1 Nano: 대량 호출, 분류, 짧은 자동화 응답에 맞춘 OpenAI 초경량 모델',
+  'claude': 'Claude Opus 4.6: 긴 사고 흐름과 고난도 분석을 우선하는 Anthropic 고성능 모델',
+  'claude-sonnet': 'Claude Sonnet 4.5: 코딩·문서 작성·분석을 균형 있게 처리하는 Anthropic 주력 모델',
+  'claude-sonnet-4.6': 'Claude Sonnet 4.6: 에이전트 코딩과 긴 작업 흐름에 강한 Anthropic 최신 Sonnet 모델',
+  'gemini': 'Gemini 2.5 Flash: 1M 문맥과 멀티모달 입력을 빠르게 다루는 Google 모델',
+  'gemini-3-flash': 'Gemini 3 Flash Preview: 최신 Gemini 계열의 속도와 추론 균형을 보는 프리뷰 모델',
+  'gemini-pro': 'Gemini 3.1 Pro Preview: 복잡한 분석과 멀티모달 이해에 맞춘 Google 상위 프리뷰',
+  'gemini-3.1': 'Gemini 3.1 Flash Lite Preview: 긴 문맥을 저비용으로 처리하는 Gemini 경량 프리뷰',
+  'gemini-flash-lite': 'Gemini 2.5 Flash Lite: 일상 대화와 대량 요약에 적합한 저비용 Gemini 모델',
+  'grok': 'Grok 4.3: 실시간성 있는 대화와 분석을 넓은 문맥으로 처리하는 xAI 모델',
+  'grok-4.2': 'Grok 4.20: 2M 문맥과 강한 추론 성향을 가진 xAI 장문맥 모델',
+  'qwen': 'Qwen3.5-Flash: 긴 문맥과 다국어 응답을 빠르게 처리하는 Qwen 오픈웨이트 모델',
+  'qwen-plus': 'Qwen3.6 Plus: 1M 문맥 기반의 문서 분석과 다국어 추론에 강한 Qwen 모델',
+  'llama-maverick': 'Llama 4 Maverick: 긴 문맥과 시각 입력을 지원하는 Meta의 대형 오픈웨이트 모델',
+  'llama-scout': 'Llama 4 Scout: 초장문 컨텍스트 탐색과 빠른 멀티모달 처리에 맞춘 Meta 모델',
+  'mistral-large': 'Mistral Large 3 2512: 유럽권 언어와 도구 사용 흐름에 강한 Mistral 상위 모델',
+  'mistral-small': 'Mistral Small 4: 가벼운 비용으로 추론과 시각 입력을 지원하는 Mistral 모델',
+  'codestral': 'Codestral 2508: 코드 생성과 보완 작업에 초점을 둔 Mistral 개발자용 모델',
+  'devstral': 'Devstral 2 2512: 저장소 이해와 에이전트식 개발 작업을 겨냥한 Mistral 모델',
+  'nova-premier': 'Nova Premier 1.0: 대규모 문서와 멀티모달 업무를 겨냥한 Amazon 상위 모델',
+  'nova-2-lite': 'Nova 2 Lite: 긴 문맥을 빠르게 처리하는 Amazon 경량 멀티모달 모델',
+  'seed': 'Seed-2.0-Lite: 빠른 응답과 멀티모달 이해를 결합한 ByteDance Seed 모델',
+  'seed-mini': 'Seed-2.0-Mini: 비용 효율적인 멀티모달 요약과 일상 작업에 맞춘 Seed 모델',
+  'kimi': 'Kimi K2.5: 긴 문맥 기반 리서치와 중국어권 코딩 작업에 강한 Moonshot 모델',
+  'kimi-thinking': 'Kimi K2 Thinking: 단계별 추론과 도구 사용 흐름에 초점을 둔 Moonshot 모델',
+  'jamba': 'Jamba Large 1.7: 긴 문서 처리와 구조화된 업무 응답에 적합한 AI21 모델',
+  'palmyra': 'Palmyra X5: 긴 문맥 기반 글쓰기와 비즈니스 문서 작업에 특화된 Writer 모델',
+};
+
+function descriptionForExistingModel(entry, model) {
+  if (EXISTING_DESCRIPTION_BY_ID[entry.id]) {
+    return EXISTING_DESCRIPTION_BY_ID[entry.id];
+  }
+  if (entry.id === 'developer-yjh') {
+    return 'Claude Sonnet 4.6: 이 앱의 개발 맥락과 긴 코드 작업을 우선하도록 맞춘 Anthropic Sonnet 모델';
+  }
+  if (entry.id === 'ancano-pro') {
+    return 'Auto Router: 질문 성격에 따라 비용 효율적인 OpenRouter 경로를 고르는 ANCA 자동 라우터';
+  }
+  if (entry.id === 'auto-gpt') {
+    return 'Claude Sonnet 4.6: 질문 성격에 맞춰 일반 답변과 개발 보조를 균형 있게 맡는 자동 선택용 Sonnet 모델';
+  }
+  return descriptionFor(model);
+}
+
+function tagsForExistingModel(entry, model) {
+  const tags = tagsFor(model);
+  if (entry.id === 'ancano-pro') {
+    return ['추론', '자동선택', '장문맥', '저비용'];
+  }
+  if (entry.id === 'deepseek') {
+    return ['코딩', '오픈웨이트', '저비용', '구조화'];
+  }
+  if (entry.id === 'command-r-plus') {
+    return ['검색', '구조화', '범용'];
+  }
+  return tags;
 }
 
 function sampleQuestionsFor(tags, model) {
@@ -545,6 +663,14 @@ function selectModels(models, existingOpenrouterModels) {
   const selected = [];
   const selectedIds = new Set();
 
+  for (const id of MUST_INCLUDE_MODEL_IDS) {
+    const item = candidates.find((candidate) => candidate.model.id === id && !selectedIds.has(candidate.model.id));
+    if (item) {
+      selected.push(item);
+      selectedIds.add(item.model.id);
+    }
+  }
+
   for (const prefix of MUST_INCLUDE_PREFIXES) {
     const best = candidates.find((item) => item.model.id.startsWith(prefix) && !selectedIds.has(item.model.id));
     if (best) {
@@ -623,7 +749,7 @@ function expertForModel(model, existingIds) {
 
 function overrideForExistingModel(entry, model) {
   const cfg = brandFor(model.id);
-  const tags = tagsFor(model);
+  const tags = tagsForExistingModel(entry, model);
   const createdAt = model.created ? new Date(model.created * 1000).toISOString().slice(0, 10) : undefined;
   const contextLength = model.context_length ?? model.top_provider?.context_length ?? 0;
   const inputModalities = model.architecture?.input_modalities ?? ['text'];
@@ -636,7 +762,7 @@ function overrideForExistingModel(entry, model) {
         name: cleanName(model.name),
         nameKo: cleanName(model.name),
       } : {}),
-      description: descriptionFor(model),
+      description: descriptionForExistingModel(entry, model),
       tags,
       modelInfo: {
         provider: cfg.provider,

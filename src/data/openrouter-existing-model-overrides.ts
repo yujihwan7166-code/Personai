@@ -2,7 +2,7 @@ import type { Expert } from '@/types/expert';
 
 export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "developer-yjh": {
-    "description": "Claude Sonnet 4.6: Anthropic의 코드 작성·리팩터링 중심 모델",
+    "description": "Claude Sonnet 4.6: 이 앱의 개발 맥락과 긴 코드 작업을 우선하도록 맞춘 Anthropic Sonnet 모델",
     "tags": [
       "추론",
       "코딩",
@@ -26,10 +26,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     }
   },
   "ancano-pro": {
-    "description": "Auto Router: 1M 장문맥에서 이미지·문서 이해를 곁들인 대화 모델",
+    "description": "Auto Router: 질문 성격에 따라 비용 효율적인 OpenRouter 경로를 고르는 ANCA 자동 라우터",
     "tags": [
       "추론",
-      "시각입력",
+      "자동선택",
       "장문맥",
       "저비용"
     ],
@@ -53,7 +53,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     }
   },
   "auto-gpt": {
-    "description": "Claude Sonnet 4.6: Anthropic의 코드 작성·리팩터링 중심 모델",
+    "description": "Claude Sonnet 4.6: 질문 성격에 맞춰 일반 답변과 개발 보조를 균형 있게 맡는 자동 선택용 Sonnet 모델",
     "tags": [
       "추론",
       "코딩",
@@ -79,7 +79,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gpt": {
     "name": "GPT-4.1",
     "nameKo": "GPT-4.1",
-    "description": "GPT-4.1: 긴 문맥과 코드 이해에 강한 OpenAI 범용 플래그십 모델",
+    "description": "GPT-4.1: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 OpenAI 모델",
     "tags": [
       "추론",
       "코딩",
@@ -105,7 +105,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gpt-mini": {
     "name": "GPT-4.1 Mini",
     "nameKo": "GPT-4.1 Mini",
-    "description": "GPT-4.1 Mini: 긴 문서와 이미지 입력을 빠르게 처리하는 OpenAI 경량 모델",
+    "description": "GPT-4.1 Mini: 긴 문서 처리와 시각 입력을 속도·비용 균형으로 다루는 OpenAI 모델",
     "tags": [
       "시각입력",
       "장문맥",
@@ -131,7 +131,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gpt-nano": {
     "name": "GPT-4.1 Nano",
     "nameKo": "GPT-4.1 Nano",
-    "description": "GPT-4.1 Nano: 대량 호출과 즉답형 작업에 맞춘 OpenAI 초경량 모델",
+    "description": "GPT-4.1 Nano: 대량 호출, 분류, 짧은 자동화 응답에 맞춘 OpenAI 초경량 모델",
     "tags": [
       "시각입력",
       "장문맥",
@@ -157,7 +157,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "claude": {
     "name": "Claude Opus 4.6",
     "nameKo": "Claude Opus 4.6",
-    "description": "Claude Opus 4.6: 장문 추론과 고난도 분석에 맞춘 Anthropic 고성능 모델",
+    "description": "Claude Opus 4.6: 긴 사고 흐름과 고난도 분석을 우선하는 Anthropic 고성능 모델",
     "tags": [
       "추론",
       "코딩",
@@ -235,7 +235,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "claude-haiku": {
     "name": "Claude Haiku 4.5",
     "nameKo": "Claude Haiku 4.5",
-    "description": "Claude Haiku 4.5: 빠른 응답과 도구 호출에 알맞은 Anthropic 경량 모델",
+    "description": "Claude Haiku 4.5: 128K급 장문에서 이미지, 표, 문서 화면을 함께 읽어내는 Anthropic 모델",
     "tags": [
       "추론",
       "시각입력",
@@ -401,7 +401,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "perplexity": {
     "name": "Sonar",
     "nameKo": "Sonar",
-    "description": "Sonar: 출처 확인과 최신 정보 정리에 강한 검색형 모델",
+    "description": "Sonar: 빠른 웹 검색과 짧은 출처 요약에 맞춘 Perplexity 기본 검색 모델",
     "tags": [
       "검색",
       "시각입력",
@@ -425,7 +425,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "perplexity-pro": {
     "name": "Sonar Pro",
     "nameKo": "Sonar Pro",
-    "description": "Sonar Pro: 출처 확인과 최신 정보 정리에 강한 검색형 모델",
+    "description": "Sonar Pro: 더 긴 검색 맥락과 심층 리서치 보고서에 맞춘 Perplexity 상위 모델",
     "tags": [
       "추론",
       "검색",
@@ -500,11 +500,11 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "deepseek": {
     "name": "DeepSeek V3 0324",
     "nameKo": "DeepSeek V3 0324",
-    "description": "DeepSeek V3 0324: DeepSeek의 128K급 문맥 범용 대화 모델",
+    "description": "DeepSeek V3 0324: 저비용 코딩 보조와 구조화된 문제 해결에 강한 DeepSeek 대화 모델",
     "tags": [
+      "코딩",
       "오픈웨이트",
       "저비용",
-      "툴사용",
       "구조화"
     ],
     "modelInfo": {
@@ -524,7 +524,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "deepseek-r1": {
     "name": "R1",
     "nameKo": "R1",
-    "description": "R1: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "R1: 수학·논리·코딩 판단을 단계별로 풀어내는 DeepSeek 추론 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -574,7 +574,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "qwen-9b": {
     "name": "Qwen3.5-9B",
     "nameKo": "Qwen3.5-9B",
-    "description": "Qwen3.5-9B: 작은 크기에서도 코딩과 다국어 작업을 노리는 Qwen 경량 모델",
+    "description": "Qwen3.5-9B: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Alibaba Qwen 모델",
     "tags": [
       "추론",
       "코딩",
@@ -626,7 +626,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "qwen-thinking": {
     "name": "Qwen3 Max Thinking",
     "nameKo": "Qwen3 Max Thinking",
-    "description": "Qwen3 Max Thinking: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Qwen3 Max Thinking: 긴 문맥에서 사고 과정을 길게 유지하는 Qwen 사고형 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -726,7 +726,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mistral-medium": {
     "name": "Mistral Medium 3.1",
     "nameKo": "Mistral Medium 3.1",
-    "description": "Mistral Medium 3.1: 문서 이해와 구조화 응답을 균형 있게 다루는 Mistral 모델",
+    "description": "Mistral Medium 3.1: 128K급 장문에서 이미지, 표, 문서 화면을 함께 읽어내는 Mistral AI 모델",
     "tags": [
       "오픈웨이트",
       "시각입력",
@@ -827,7 +827,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gemma": {
     "name": "Gemma 4 31B",
     "nameKo": "Gemma 4 31B",
-    "description": "Gemma 4 31B: Google 계열 오픈웨이트 기반의 고성능 멀티모달 모델",
+    "description": "Gemma 4 31B: 대용량 문맥에서 이미지, 표, 문서 화면을 함께 읽어내는 Google 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -853,7 +853,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "phi": {
     "name": "Phi 4",
     "nameKo": "Phi 4",
-    "description": "Phi 4: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Phi 4: 작은 문맥에서도 논리 문제와 구조화 응답을 겨냥한 Microsoft 경량 추론 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -877,9 +877,9 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "command-r-plus": {
     "name": "Command R+ (08-2024)",
     "nameKo": "Command R+ (08-2024)",
-    "description": "Command R+ (08-2024): Cohere의 128K급 문맥 범용 대화 모델",
+    "description": "Command R+ (08-2024): RAG 검색, 인용 기반 답변, 기업 지식 질의에 맞춘 Cohere 모델",
     "tags": [
-      "툴사용",
+      "검색",
       "구조화",
       "범용"
     ],
@@ -900,7 +900,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "command-a": {
     "name": "Command A",
     "nameKo": "Command A",
-    "description": "Command A: 구조화 출력과 업무 자동화 흐름에 강한 Cohere 모델",
+    "description": "Command A: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Cohere 모델",
     "tags": [
       "코딩",
       "구조화",
@@ -975,7 +975,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "dolphin": {
     "name": "Uncensored Free",
     "nameKo": "Uncensored Free",
-    "description": "Uncensored Free: Cognitive Computations의 일반 문맥 범용 대화 모델",
+    "description": "Uncensored Free: 실험적 자유 대화와 오픈웨이트 활용을 전제로 한 Cognitive Computations 모델",
     "tags": [
       "오픈웨이트",
       "무료",
@@ -998,7 +998,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "glm": {
     "name": "GLM 5.1",
     "nameKo": "GLM 5.1",
-    "description": "GLM 5.1: 중국어권 작업과 코딩 보조를 함께 겨냥한 Z.ai 오픈웨이트 모델",
+    "description": "GLM 5.1: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Z.ai 모델",
     "tags": [
       "추론",
       "코딩",
@@ -1022,7 +1022,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mimo": {
     "name": "MiMo-V2.5-Pro",
     "nameKo": "MiMo-V2.5-Pro",
-    "description": "MiMo-V2.5-Pro: 긴 문맥 추론과 코딩 보조를 함께 다루는 Xiaomi 모델",
+    "description": "MiMo-V2.5-Pro: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Xiaomi 모델",
     "tags": [
       "추론",
       "코딩",
@@ -1046,7 +1046,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mimo-flash": {
     "name": "MiMo-V2-Flash",
     "nameKo": "MiMo-V2-Flash",
-    "description": "MiMo-V2-Flash: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "MiMo-V2-Flash: 전제 정리, 대안 비교, 단계적 판단에 초점을 둔 Xiaomi 모델",
     "tags": [
       "추론",
       "저비용",
@@ -1070,7 +1070,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "nemotron": {
     "name": "Nemotron 3 Super",
     "nameKo": "Nemotron 3 Super",
-    "description": "Nemotron 3 Super: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Nemotron 3 Super: 합성 데이터와 기업형 추론 워크로드에 맞춘 NVIDIA 대형 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -1146,7 +1146,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "minimax": {
     "name": "MiniMax M2.7",
     "nameKo": "MiniMax M2.7",
-    "description": "MiniMax M2.7: 빠른 응답과 합리적인 비용을 앞세운 MiniMax 범용 모델",
+    "description": "MiniMax M2.7: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 MiniMax 모델",
     "tags": [
       "추론",
       "코딩",
@@ -1219,7 +1219,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "solar": {
     "name": "Solar Pro 3",
     "nameKo": "Solar Pro 3",
-    "description": "Solar Pro 3: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Solar Pro 3: 한국어 업무 문서와 논리 정리에 강점을 둔 Upstage 모델",
     "tags": [
       "추론",
       "저비용",
@@ -1243,7 +1243,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mercury": {
     "name": "Mercury 2",
     "nameKo": "Mercury 2",
-    "description": "Mercury 2: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Mercury 2: 지연 시간을 낮춘 빠른 추론과 실시간 응답 흐름에 맞춘 Inception Labs 모델",
     "tags": [
       "추론",
       "저비용",
@@ -1267,7 +1267,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "hunyuan": {
     "name": "Hunyuan A13B Instruct",
     "nameKo": "Hunyuan A13B Instruct",
-    "description": "Hunyuan A13B Instruct: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Hunyuan A13B Instruct: 중국어권 업무 대화와 구조화 답변에 맞춘 Tencent 모델",
     "tags": [
       "추론",
       "저비용",
@@ -1314,7 +1314,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "granite": {
     "name": "Granite 4.0 Micro",
     "nameKo": "Granite 4.0 Micro",
-    "description": "Granite 4.0 Micro: 기업형 경량 작업과 비용 효율을 중시한 IBM 오픈웨이트 모델",
+    "description": "Granite 4.0 Micro: 배포 유연성과 커스터마이징 여지가 있는 IBM 오픈웨이트 모델",
     "tags": [
       "오픈웨이트",
       "저비용",
@@ -1337,7 +1337,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "step": {
     "name": "Step 3.5 Flash",
     "nameKo": "Step 3.5 Flash",
-    "description": "Step 3.5 Flash: 복잡한 판단과 단계별 분석에 초점을 둔 모델",
+    "description": "Step 3.5 Flash: 빠른 응답과 중국어권 실무 질의에 맞춘 StepFun 모델",
     "tags": [
       "추론",
       "저비용",

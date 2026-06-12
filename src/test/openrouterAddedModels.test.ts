@@ -84,6 +84,51 @@ describe('openrouter added model catalog', () => {
     });
   });
 
+  it('keeps important current OpenRouter models in the 200-model selection', () => {
+    const openrouterIds = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.openrouterModel));
+    [
+      'google/gemini-3.1-flash-lite',
+      'openai/gpt-5-mini',
+      'openai/gpt-5.5-pro',
+      'openai/gpt-5.5',
+      'openai/gpt-5.4-pro',
+      'openai/gpt-5.4',
+      'openai/gpt-5.1',
+      'openai/gpt-chat-latest',
+      'openai/o3-pro',
+      'openai/o3-deep-research',
+      'openai/o4-mini-deep-research',
+      'openai/o4-mini-high',
+      'openai/o3-mini-high',
+      'openai/o3-mini',
+      'openai/o1-pro',
+      'openai/o1',
+      'openai/gpt-4o',
+      'openai/gpt-4o-mini',
+      'openai/gpt-4o-search-preview',
+      'openai/gpt-4o-mini-search-preview',
+      'qwen/qwen3-coder-plus',
+      'qwen/qwen3-coder-flash',
+      'qwen/qwen3-coder',
+      'qwen/qwen3-coder:free',
+      'qwen/qwen3-coder-30b-a3b-instruct',
+      'qwen/qwen3-next-80b-a3b-instruct',
+      'qwen/qwen3-next-80b-a3b-instruct:free',
+      'qwen/qwen3-235b-a22b-thinking-2507',
+      'qwen/qwen3-30b-a3b-thinking-2507',
+      'qwen/qwen3-235b-a22b-2507',
+      'qwen/qwen3-30b-a3b-instruct-2507',
+      'qwen/qwen3-235b-a22b',
+      'qwen/qwen3-32b',
+      'qwen/qwen3-14b',
+      'qwen/qwen3-8b',
+      'qwen/qwen3-30b-a3b',
+      'qwen/qwen-2.5-coder-32b-instruct',
+    ].forEach((modelId) => {
+      expect(openrouterIds.has(modelId), `${modelId} should remain selected`).toBe(true);
+    });
+  });
+
   it('uses varied tags instead of repetitive consultation labels', () => {
     const tags = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.tags ?? []);
     const uniqueTags = new Set(tags);
@@ -203,13 +248,38 @@ describe('openrouter added model catalog', () => {
       .filter(isVisibleGeneralTextModel)
       .filter((expert) => !expert.id.startsWith('or-'));
     const descriptions = existingVisibleModels.map((expert) => expert.description);
+    const descriptionBodies = descriptions.map((description) => description.replace(/^[^:]+:\s*/, ''));
     const codingTemplateDescriptions = descriptions.filter((description) => description.includes('코드 작성·리팩터링 중심 모델'));
     const visionTemplateDescriptions = descriptions.filter((description) => description.includes('이미지·문서 이해를 곁들인 대화 모델'));
+    const genericReasoningDescriptions = descriptions.filter((description) => description.includes('복잡한 판단과 단계별 분석에 초점을 둔 모델'));
+    const genericChatDescriptions = descriptions.filter((description) => description.includes('범용 대화 모델'));
 
     expect(existingVisibleModels.length).toBeGreaterThanOrEqual(40);
     expect(new Set(descriptions).size).toBe(descriptions.length);
+    expect(new Set(descriptionBodies).size).toBe(descriptionBodies.length);
     expect(codingTemplateDescriptions).toHaveLength(0);
     expect(visionTemplateDescriptions).toHaveLength(0);
+    expect(genericReasoningDescriptions).toHaveLength(0);
+    expect(genericChatDescriptions).toHaveLength(0);
+  });
+
+  it('keeps existing OpenRouter override descriptions distinct and specific', () => {
+    const overrideDescriptions = Object.values(OPENROUTER_EXISTING_MODEL_OVERRIDES)
+      .map((override) => override.description)
+      .filter((description): description is string => Boolean(description));
+    const descriptionBodies = overrideDescriptions.map((description) => description.replace(/^[^:]+:\s*/, ''));
+
+    expect(new Set(descriptionBodies).size).toBe(descriptionBodies.length);
+    expect(overrideDescriptions.some((description) => description.includes('코드 작성·리팩터링 중심 모델'))).toBe(false);
+    expect(overrideDescriptions.some((description) => description.includes('범용 대화 모델'))).toBe(false);
+  });
+
+  it('keeps key existing OpenRouter tags aligned with model roles', () => {
+    expect(OPENROUTER_EXISTING_MODEL_OVERRIDES.deepseek?.tags).toContain('코딩');
+    expect(OPENROUTER_EXISTING_MODEL_OVERRIDES.deepseek?.tags).toContain('오픈웨이트');
+    expect(OPENROUTER_EXISTING_MODEL_OVERRIDES['command-r-plus']?.tags).toContain('검색');
+    expect(OPENROUTER_EXISTING_MODEL_OVERRIDES['ancano-pro']?.tags).toContain('자동선택');
+    expect(OPENROUTER_EXISTING_MODEL_OVERRIDES['ancano-pro']?.tags).not.toContain('시각입력');
   });
 
   it('keeps every AI avatar on an existing local provider or model mark', () => {
