@@ -10,6 +10,7 @@ const { OPENROUTER_EXISTING_MODEL_OVERRIDES } = await import('../src/data/openro
 const {
   hasImageVideoOutput,
   hasLikelyMojibake,
+  hasNonTextOutput,
   isVisibleGeneralTextModel,
 } = await import('../src/lib/generalModelCatalog.ts');
 
@@ -23,8 +24,10 @@ const multimodalInputModels = aiExperts.filter((expert) => {
   return input.some((item) => item === 'image' || item === 'video');
 });
 const imageVideoOutputModels = aiExperts.filter(hasImageVideoOutput);
+const nonTextOutputModels = aiExperts.filter(hasNonTextOutput);
 const visibleGeneralAiExperts = aiExperts.filter(isVisibleGeneralTextModel);
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
+const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
 const visibleGeneralFilterBuckets = {
   priceTier: visibleGeneralAiExperts.reduce((acc, expert) => {
     const key = expert.modelInfo?.priceTier ?? 'missing';
@@ -83,6 +86,12 @@ const duplicateCustomAvatars = customExperts.filter((expert) => expert.avatarUrl
   - new Set(customExperts.map((expert) => expert.avatarUrl).filter(Boolean)).size;
 const duplicateCustomStats = customExperts.length
   - new Set(customExperts.map((expert) => statsKeys.map((key) => expert.abilities?.[key]).join('|'))).size;
+const generatedDescriptionCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description)).size;
+const generatedSampleQuestionCount = new Set(OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? [])).size;
+const generatedQuoteCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote)).size;
+const generatedOpenWeightModels = OPENROUTER_ADDED_EXPERTS.filter((expert) => expert.modelInfo?.openWeight);
+const generatedOpenWeightTagMissing = generatedOpenWeightModels.filter((expert) => !(expert.tags ?? []).includes('오픈웨이트'));
+const generatedCodingTagCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => (expert.tags ?? []).includes('코딩')).length;
 
 const generatedAbilityRanges = Object.fromEntries(statsKeys.map((key) => {
   const values = OPENROUTER_ADDED_EXPERTS.map((expert) => OPENROUTER_ADDED_ABILITIES[expert.id]?.[key]).filter((value) => typeof value === 'number');
@@ -121,8 +130,22 @@ const summary = {
     input: expert.modelInfo?.inputModalities,
     output: expert.modelInfo?.outputModalities,
   })),
+  nonTextOutputModelCount: nonTextOutputModels.length,
+  nonTextOutputModels: nonTextOutputModels.map((expert) => ({
+    id: expert.id,
+    openrouterModel: expert.openrouterModel,
+    input: expert.modelInfo?.inputModalities,
+    output: expert.modelInfo?.outputModalities,
+  })),
   visibleGeneralImageVideoOutputModelCount: visibleGeneralImageVideoOutputModels.length,
   visibleGeneralImageVideoOutputModels: visibleGeneralImageVideoOutputModels.map((expert) => ({
+    id: expert.id,
+    openrouterModel: expert.openrouterModel,
+    input: expert.modelInfo?.inputModalities,
+    output: expert.modelInfo?.outputModalities,
+  })),
+  visibleGeneralNonTextOutputModelCount: visibleGeneralNonTextOutputModels.length,
+  visibleGeneralNonTextOutputModels: visibleGeneralNonTextOutputModels.map((expert) => ({
     id: expert.id,
     openrouterModel: expert.openrouterModel,
     input: expert.modelInfo?.inputModalities,
@@ -149,6 +172,21 @@ const summary = {
   duplicateCustomDescriptions,
   duplicateCustomAvatars,
   duplicateCustomStats,
+  generatedCopyDiversity: {
+    uniqueDescriptions: generatedDescriptionCount,
+    uniqueSampleQuestions: generatedSampleQuestionCount,
+    uniqueQuotes: generatedQuoteCount,
+  },
+  generatedTagCoverage: {
+    openWeightModelCount: generatedOpenWeightModels.length,
+    openWeightTagMissingCount: generatedOpenWeightTagMissing.length,
+    openWeightTagMissing: generatedOpenWeightTagMissing.slice(0, 20).map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+      tags: expert.tags,
+    })),
+    codingTagCount: generatedCodingTagCount,
+  },
   generatedAbilityRanges,
   customAbilityRanges,
 };

@@ -7,11 +7,15 @@ export function hasImageVideoOutput(expert: Expert) {
   return (expert.modelInfo?.outputModalities ?? []).some((modality) => modality === 'image' || modality === 'video');
 }
 
+export function hasNonTextOutput(expert: Expert) {
+  return (expert.modelInfo?.outputModalities ?? []).some((modality) => modality !== 'text');
+}
+
 export function isVisibleGeneralTextModel(expert: Expert) {
   if (expert.category !== 'ai') return false;
   if (expert.id.startsWith('auto-')) return false;
   if (HIDDEN_GENERAL_MODEL_IDS.has(expert.id)) return false;
-  return !hasImageVideoOutput(expert);
+  return !hasNonTextOutput(expert);
 }
 
 export function hasLikelyMojibake(text: string) {

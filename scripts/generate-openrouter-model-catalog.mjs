@@ -55,6 +55,12 @@ const BRAND_CONFIG = [
   { prefix: 'inflection/', brand: 'other', provider: 'Inflection AI', logo: '/logos/openrouter/inflection.png', color: 'blue', icon: '💬', famous: 55 },
   { prefix: 'kwaipilot/', brand: 'other', provider: 'KwaiPilot', logo: '/logos/openrouter/kwaipilot.png', color: 'orange', icon: '🧰', famous: 54 },
   { prefix: 'switchpoint/', brand: 'other', provider: 'Switchpoint', logo: '/logos/openrouter/switchpoint.png', color: 'green', icon: '🔀', famous: 52 },
+  { prefix: 'thedrummer/', brand: 'other', provider: 'TheDrummer', logo: '/logos/openrouter/thedrummer.png', color: 'purple', icon: '🎭', famous: 50 },
+  { prefix: 'sao10k/', brand: 'other', provider: 'Sao10K', logo: '/logos/openrouter/sao10k.png', color: 'pink', icon: '🎨', famous: 50 },
+  { prefix: 'anthracite-org/', brand: 'other', provider: 'Anthracite', logo: '/logos/openrouter/anthracite-org.png', color: 'slate', icon: '🧲', famous: 49 },
+  { prefix: 'mancer/', brand: 'other', provider: 'Mancer', logo: '/logos/openrouter/mancer.png', color: 'indigo', icon: '🧵', famous: 48 },
+  { prefix: 'undi95/', brand: 'other', provider: 'Undi95', logo: '/logos/openrouter/undi95.png', color: 'cyan', icon: '🧬', famous: 48 },
+  { prefix: 'gryphe/', brand: 'other', provider: 'Gryphe', logo: '/logos/openrouter/gryphe.png', color: 'amber', icon: '📜', famous: 48 },
 ];
 
 const PRESERVE_EXISTING_CARD_IDS = new Set(['developer-yjh', 'ancano-pro', 'auto-gpt']);
@@ -65,10 +71,10 @@ const KNOWN_OPEN_WEIGHT_PREFIXES = new Set([
   'mistralai/',
   'deepseek/',
   'qwen/',
-  'google/',
   'microsoft/',
   'nvidia/',
   'z-ai/',
+  'ibm-granite/',
   'nousresearch/',
   'cognitivecomputations/',
   'allenai/',
@@ -78,7 +84,24 @@ const KNOWN_OPEN_WEIGHT_PREFIXES = new Set([
   'liquid/',
   'prime-intellect/',
   'rekaai/',
+  'sao10k/',
+  'anthracite-org/',
+  'gryphe/',
+  'undi95/',
 ]);
+
+const OPEN_WEIGHT_MODEL_PATTERNS = [
+  /gemma/i,
+  /llama/i,
+  /granite/i,
+  /mythomax/i,
+  /euryale/i,
+  /magnum/i,
+  /wizardlm/i,
+  /dolphin/i,
+  /openchat/i,
+  /olmo/i,
+];
 
 const EXCLUDE_PATTERNS = [
   /\bmoderation\b/i,
@@ -92,14 +115,7 @@ const EXCLUDE_PATTERNS = [
   /\bdeprecated\b/i,
 ];
 
-const LOW_CONFIDENCE_PROVIDER_PREFIXES = new Set([
-  'anthracite-org/',
-  'gryphe/',
-  'mancer/',
-  'sao10k/',
-  'thedrummer/',
-  'undi95/',
-]);
+const LOW_CONFIDENCE_PROVIDER_PREFIXES = new Set();
 
 function readExistingModels(source) {
   const rawStart = source.indexOf('export const _DEFAULT_EXPERTS_RAW');
@@ -216,16 +232,22 @@ function isVisionModel(model) {
   return model.architecture?.input_modalities?.some((item) => item === 'image' || item === 'video') ?? false;
 }
 
-function isImageOrVideoModel(model) {
-  const input = model.architecture?.input_modalities ?? [];
+function hasNonTextOutput(model) {
   const output = model.architecture?.output_modalities ?? [];
-  return [...input, ...output].some((item) => item === 'image' || item === 'video');
+  return output.some((item) => item !== 'text');
 }
 
 function isFree(model) {
   const prompt = Number(model.pricing?.prompt ?? '0');
   const completion = Number(model.pricing?.completion ?? '0');
   return model.id.endsWith(':free') || (prompt === 0 && completion === 0);
+}
+
+function isOpenWeightModel(model) {
+  const cfg = brandFor(model.id);
+  const text = `${model.id} ${model.name} ${model.description ?? ''}`;
+  if (KNOWN_OPEN_WEIGHT_PREFIXES.has(cfg.prefix) && !['openai/', 'anthropic/'].includes(cfg.prefix)) return true;
+  return OPEN_WEIGHT_MODEL_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 function priceTier(model) {
@@ -281,6 +303,22 @@ function clamp(value) {
   return Math.max(40, Math.min(98, Math.round(value)));
 }
 
+function hashText(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function pickMany(pool, seed, count = 3) {
+  const selected = [];
+  for (let i = 0; i < pool.length && selected.length < count; i += 1) {
+    selected.push(pool[(seed + i * 5) % pool.length]);
+  }
+  return selected;
+}
+
 function abilitiesFor(model) {
   const cfg = brandFor(model.id);
   const analysis = model.benchmarks?.artificial_analysis ?? {};
@@ -319,18 +357,21 @@ function abilitiesFor(model) {
 
 function tagsFor(model) {
   const tags = [];
+  const searchModel = /search|sonar|perplexity/i.test(model.id);
   if (isReasoningModel(model)) tags.push('추론');
-  if (isCodingModel(model)) tags.push('코딩');
-  if (isVisionModel(model)) tags.push('멀티모달');
+  if (searchModel) tags.push('검색');
+  if (isCodingModel(model) && !searchModel) tags.push('코딩');
+  if (isOpenWeightModel(model)) tags.push('오픈웨이트');
+  if (isVisionModel(model)) tags.push('시각입력');
   if ((model.context_length ?? 0) >= 500_000) tags.push('장문맥');
   if (isFree(model)) tags.push('무료');
   if (priceTier(model) === 'low') tags.push('저비용');
-  if (KNOWN_OPEN_WEIGHT_PREFIXES.has(brandFor(model.id).prefix) && !['openai/', 'anthropic/'].includes(brandFor(model.id).prefix)) tags.push('오픈웨이트');
-  if (/search|sonar|perplexity/i.test(model.id)) tags.push('검색');
   if (/creative|story|writer|writing/i.test(model.id)) tags.push('창작');
   if (/mini|small|lite|flash|fast|turbo|haiku|nano/i.test(model.id)) tags.push('고속');
   if (/korean|solar|upstage/i.test(model.id)) tags.push('한국어');
   if (/qwen|glm|ernie|hunyuan|baidu|tencent|moonshot|kimi/i.test(model.id)) tags.push('중국어');
+  if (model.supported_parameters?.includes('tools') || model.supported_parameters?.includes('tool_choice')) tags.push('툴사용');
+  if (model.supported_parameters?.includes('structured_outputs') || model.supported_parameters?.includes('response_format')) tags.push('구조화');
   if (tags.length < 3) tags.push('범용');
   if (tags.length < 3) tags.push('업무');
   return [...new Set(tags)].slice(0, 4);
@@ -342,21 +383,98 @@ function descriptionFor(model) {
   const name = cleanName(model.name);
   const contextLength = model.context_length ?? model.top_provider?.context_length ?? 0;
   const contextLabel = contextLength >= 1_000_000 ? '1M 장문맥' : contextLength >= 262_144 ? '대용량 문맥' : contextLength >= 128_000 ? '128K급 문맥' : '일반 문맥';
-  if (tags.includes('코딩')) return `${cfg.provider}의 ${name} 코딩 및 에이전트 작업 특화 모델`;
-  if (tags.includes('검색')) return `${cfg.provider}의 출처 기반 검색 및 리서치 모델`;
-  if (tags.includes('멀티모달')) return `${cfg.provider}의 이미지 이해가 가능한 ${contextLabel} 모델`;
-  if (tags.includes('추론')) return `${cfg.provider}의 복잡한 추론과 분석에 강한 모델`;
-  if (tags.includes('고속')) return `${cfg.provider}의 빠른 응답과 비용 효율 중심 모델`;
-  return `${cfg.provider}의 ${contextLabel} 범용 대화 모델`;
+  if (tags.includes('검색')) return `${name}: 출처 확인과 최신 정보 정리에 강한 검색형 모델`;
+  if (tags.includes('코딩')) return `${name}: ${cfg.provider}의 코드 작성·리팩터링 중심 모델`;
+  if (tags.includes('시각입력')) return `${name}: ${contextLabel}에서 이미지·문서 이해를 곁들인 대화 모델`;
+  if (tags.includes('추론')) return `${name}: 복잡한 판단과 단계별 분석에 초점을 둔 모델`;
+  if (tags.includes('고속')) return `${name}: 빠른 응답과 비용 효율을 우선한 경량 모델`;
+  return `${name}: ${cfg.provider}의 ${contextLabel} 범용 대화 모델`;
 }
 
-function sampleQuestionsFor(tags) {
-  if (tags.includes('코딩')) return ['이 코드 구조를 리팩터링해줘', '버그 원인을 단계별로 찾아줘', 'API 설계를 검토해줘'];
-  if (tags.includes('검색')) return ['최신 자료를 근거와 함께 정리해줘', '이 주장에 대한 출처를 찾아줘', '여러 자료의 차이를 비교해줘'];
-  if (tags.includes('멀티모달')) return ['이미지 내용을 분석해줘', '화면을 읽고 요약해줘', '시각 자료에서 핵심을 뽑아줘'];
-  if (tags.includes('추론')) return ['복잡한 문제를 단계별로 풀어줘', '논리의 약점을 찾아줘', '선택지를 기준별로 비교해줘'];
-  if (tags.includes('창작')) return ['초안을 더 매력적으로 바꿔줘', '스토리 아이디어를 확장해줘', '브랜드 문구를 다듬어줘'];
-  return ['핵심만 빠르게 요약해줘', '실행 가능한 계획으로 정리해줘', '장단점을 표로 비교해줘'];
+function sampleQuestionsFor(tags, model) {
+  const seed = hashText(model.id);
+  if (tags.includes('검색')) return pickMany([
+    '최신 자료를 근거와 함께 요약해줘',
+    '이 주장에 대한 출처를 비교해줘',
+    '서로 다른 자료의 관점 차이를 정리해줘',
+    '팩트체크할 쟁점을 먼저 나눠줘',
+    '시장 동향을 핵심 수치 중심으로 찾아줘',
+    '인용 가능한 근거만 따로 모아줘',
+  ], seed);
+  if (tags.includes('코딩')) return pickMany([
+    '이 코드 구조를 더 단순하게 리팩터링해줘',
+    '버그 원인을 재현 단계부터 찾아줘',
+    'API 응답 형식을 검토하고 개선안을 줘',
+    '테스트 케이스에서 빠진 경계를 찾아줘',
+    '성능 병목 가능성을 짚어줘',
+    '타입 설계를 더 안전하게 바꿔줘',
+  ], seed);
+  if (tags.includes('시각입력')) return pickMany([
+    '이미지에서 중요한 정보를 뽑아줘',
+    '화면 내용을 읽고 작업 순서로 정리해줘',
+    '표나 차트의 핵심만 설명해줘',
+    '스크린샷 속 문제점을 찾아줘',
+    '문서 이미지에서 결정해야 할 항목을 뽑아줘',
+    '시각 자료를 발표용 요약으로 바꿔줘',
+  ], seed);
+  if (tags.includes('추론')) return pickMany([
+    '복잡한 문제를 전제부터 단계별로 풀어줘',
+    '내 결론의 논리적 약점을 찾아줘',
+    '선택지를 기준별로 점수화해줘',
+    '반례를 먼저 생각하고 답해줘',
+    '의사결정 트레이드오프를 정리해줘',
+    '가정이 바뀌면 결론이 어떻게 달라지는지 봐줘',
+  ], seed);
+  if (tags.includes('창작')) return pickMany([
+    '초안을 더 자연스럽고 설득력 있게 바꿔줘',
+    '스토리 아이디어를 세 가지 방향으로 확장해줘',
+    '브랜드 문구를 톤별로 다듬어줘',
+    '짧은 카피와 긴 설명문을 함께 만들어줘',
+    '독자가 더 끌리도록 도입부를 고쳐줘',
+    '컨셉을 유지하면서 표현만 새롭게 바꿔줘',
+  ], seed);
+  return pickMany([
+    '핵심만 빠르게 요약해줘',
+    '실행 가능한 계획으로 정리해줘',
+    '장단점을 표로 비교해줘',
+    '우선순위를 정하고 이유를 말해줘',
+    '회의 전에 볼 브리핑으로 만들어줘',
+    '초보자도 이해하게 다시 설명해줘',
+  ], seed);
+}
+
+function quoteFor(tags, model) {
+  const seed = hashText(`${model.id}:quote`);
+  if (tags.includes('검색')) return pickMany([
+    '근거를 따라가며 정리하겠습니다',
+    '출처와 결론을 분리해서 보겠습니다',
+    '최신 맥락을 먼저 확인하겠습니다',
+  ], seed, 1)[0];
+  if (tags.includes('코딩')) return pickMany([
+    '코드 흐름을 읽고 고칠 지점을 잡겠습니다',
+    '구현과 검증을 함께 보겠습니다',
+    '작동하는 구조부터 단단히 다듬겠습니다',
+  ], seed, 1)[0];
+  if (tags.includes('시각입력')) return pickMany([
+    '보이는 정보에서 핵심을 뽑겠습니다',
+    '이미지와 텍스트를 함께 읽겠습니다',
+    '자료의 구조를 먼저 파악하겠습니다',
+  ], seed, 1)[0];
+  if (tags.includes('추론')) return pickMany([
+    '전제부터 차근히 따져보겠습니다',
+    '가능성과 반례를 함께 보겠습니다',
+    '결론까지 가는 길을 분명히 하겠습니다',
+  ], seed, 1)[0];
+  if (tags.includes('고속')) return pickMany([
+    '가볍게 빠르게 정리하겠습니다',
+    '핵심부터 바로 잡겠습니다',
+    '짧은 답과 다음 행동을 함께 드리겠습니다',
+  ], seed, 1)[0];
+  return pickMany([
+    '상황에 맞게 균형 있게 답하겠습니다',
+    '필요한 만큼 넓게 보고 좁혀가겠습니다',
+    '바로 쓸 수 있게 정리하겠습니다',
+  ], seed, 1)[0];
 }
 
 function scoreModel(model) {
@@ -380,7 +498,7 @@ function shouldExclude(model, existingOpenrouterModels) {
   if (existingOpenrouterModels.has(model.id)) return true;
   if (!model.architecture?.output_modalities?.includes('text')) return true;
   if (!model.architecture?.input_modalities?.includes('text')) return true;
-  if (isImageOrVideoModel(model)) return true;
+  if (hasNonTextOutput(model)) return true;
   if (needsProviderLogo(brandFor(model.id))) return true;
   if ([...LOW_CONFIDENCE_PROVIDER_PREFIXES].some((prefix) => model.id.startsWith(prefix))) return true;
   if (EXCLUDE_PATTERNS.some((pattern) => pattern.test(haystack))) return true;
@@ -453,8 +571,8 @@ function expertForModel(model, existingIds) {
       category: 'ai',
       openrouterModel: model.id,
       description: descriptionFor(model),
-      quote: tags.includes('추론') ? '깊게 따져보고 정리하겠습니다' : tags.includes('코딩') ? '코드와 작업 흐름에 강합니다' : tags.includes('고속') ? '가볍고 빠르게 처리합니다' : '상황에 맞게 균형 있게 답합니다',
-      sampleQuestions: sampleQuestionsFor(tags),
+      quote: quoteFor(tags, model),
+      sampleQuestions: sampleQuestionsFor(tags, model),
       greeting: `${cfg.provider}의 ${cleanName(model.name)} 모델입니다. ${tags.join(', ')} 작업에 맞춰 도와드리겠습니다`,
       tags,
       modelInfo: {
@@ -464,7 +582,7 @@ function expertForModel(model, existingIds) {
         outputModalities,
         priceTier: priceTier(model),
         ...(createdAt ? { createdAt } : {}),
-        openWeight: KNOWN_OPEN_WEIGHT_PREFIXES.has(cfg.prefix) && cfg.brand !== 'gemini',
+        openWeight: isOpenWeightModel(model),
       },
     },
     brand: cfg.brand,
@@ -496,7 +614,7 @@ function overrideForExistingModel(entry, model) {
         outputModalities,
         priceTier: priceTier(model),
         ...(createdAt ? { createdAt } : {}),
-        openWeight: KNOWN_OPEN_WEIGHT_PREFIXES.has(cfg.prefix) && cfg.brand !== 'gemini',
+        openWeight: isOpenWeightModel(model),
       },
     },
   ];

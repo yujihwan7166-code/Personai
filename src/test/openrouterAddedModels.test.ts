@@ -13,18 +13,17 @@ import { DEFAULT_EXPERTS } from '@/types/expert';
 
 describe('openrouter added model catalog', () => {
   it('adds OpenRouter-backed text AI models', () => {
-    expect(OPENROUTER_ADDED_EXPERTS).toHaveLength(126);
+    expect(OPENROUTER_ADDED_EXPERTS).toHaveLength(200);
     expect(OPENROUTER_ADDED_EXPERTS.every((expert) => expert.category === 'ai')).toBe(true);
     expect(OPENROUTER_ADDED_EXPERTS.every((expert) => expert.openrouterModel)).toBe(true);
   });
 
-  it('excludes image and video models from generated general models', () => {
+  it('keeps generated general models text-output only', () => {
     OPENROUTER_ADDED_EXPERTS.forEach((expert) => {
-      expect(expert.modelInfo?.inputModalities, `${expert.id} should not accept image input`).not.toContain('image');
-      expect(expert.modelInfo?.inputModalities, `${expert.id} should not accept video input`).not.toContain('video');
+      expect(expert.modelInfo?.outputModalities, `${expert.id} should output text`).toContain('text');
       expect(expert.modelInfo?.outputModalities, `${expert.id} should not output images`).not.toContain('image');
       expect(expert.modelInfo?.outputModalities, `${expert.id} should not output video`).not.toContain('video');
-      expect(expert.tags ?? [], `${expert.id} should not be tagged multimodal`).not.toContain('멀티모달');
+      expect(expert.modelInfo?.outputModalities, `${expert.id} should not output audio`).not.toContain('audio');
     });
   });
 
@@ -90,6 +89,27 @@ describe('openrouter added model catalog', () => {
     expect(uniqueTags.size).toBeGreaterThanOrEqual(10);
     expect(tags.some((tag) => tag.includes('전문가 상담'))).toBe(false);
     expect(tags.some((tag) => tag.includes('상담'))).toBe(false);
+  });
+
+  it('keeps generated copy varied across the larger catalog', () => {
+    const descriptions = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description);
+    const sampleQuestions = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? []);
+    const quotes = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote);
+
+    expect(new Set(descriptions).size).toBe(descriptions.length);
+    expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(25);
+    expect(new Set(quotes).size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('keeps open-weight and coding identity visible in generated tags', () => {
+    const openWeightModels = OPENROUTER_ADDED_EXPERTS.filter((expert) => expert.modelInfo?.openWeight);
+    const codingModels = OPENROUTER_ADDED_EXPERTS.filter((expert) => expert.tags?.includes('코딩'));
+
+    expect(openWeightModels.length).toBeGreaterThanOrEqual(80);
+    openWeightModels.forEach((expert) => {
+      expect(expert.tags ?? [], `${expert.id} should visibly carry its open-weight tag`).toContain('오픈웨이트');
+    });
+    expect(codingModels.length).toBeGreaterThanOrEqual(40);
   });
 
   it('does not emit mojibake in generated model labels', () => {
@@ -199,7 +219,7 @@ describe('openrouter added model catalog', () => {
     expect(explorerSource).toContain("{ id: 'coding', label: '코딩' }");
   });
 
-  it('keeps special and image-output cards out of the general model selection group', () => {
+  it('keeps special and non-text-output cards out of the general model selection group', () => {
     const groups = buildExpertSelectionGroups({
       experts: DEFAULT_EXPERTS,
       favoriteIds: [],
@@ -214,6 +234,7 @@ describe('openrouter added model catalog', () => {
     generalGroup?.items.forEach((expert) => {
       expect(expert.modelInfo?.outputModalities ?? [], `${expert.id} should not output image in general selection`).not.toContain('image');
       expect(expert.modelInfo?.outputModalities ?? [], `${expert.id} should not output video in general selection`).not.toContain('video');
+      expect(expert.modelInfo?.outputModalities ?? [], `${expert.id} should not output audio in general selection`).not.toContain('audio');
     });
   });
 
