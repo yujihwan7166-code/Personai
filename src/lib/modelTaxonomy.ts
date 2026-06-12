@@ -1,3 +1,9 @@
+import {
+  OPENROUTER_ADDED_BRANDS,
+  OPENROUTER_ADDED_OPENSOURCE_IDS,
+  OPENROUTER_ADDED_REASONING_IDS,
+} from '@/data/openrouter-added-models';
+
 /**
  * AI 모델 분류 메타데이터.
  *
@@ -104,7 +110,6 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
   'mistral-large': 'other',
   'mistral-medium': 'other',
   'mistral-small': 'other',
-  'mistral-creative': 'other',
   'codestral': 'other',
   'devstral': 'other',
 
@@ -115,7 +120,6 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
   // 특수 (앱 자체 어시스턴트 / 개발자 카드)
   'developer-yjh': 'claude',  // Sonnet 4.6 기반
   'ancano-pro': 'other',      // 자체 라우팅 (auto)
-  'glm-5v': 'other',          // GLM 비전
 
   // 기타 (브랜드별 모델 수 적음)
   'phi': 'other',
@@ -133,13 +137,12 @@ export const MODEL_BRAND: Record<string, ModelBrand> = {
   'minimax': 'other',
   'solar': 'other',
   'mercury': 'other',
-  'ernie': 'other',
   'hunyuan': 'other',
   'jamba': 'other',
   'granite': 'other',
   'step': 'other',
   'palmyra': 'other',
-  'longcat': 'other',
+  ...OPENROUTER_ADDED_BRANDS,
 };
 
 /**
@@ -158,7 +161,6 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
   'mistral-large',
   'mistral-medium',
   'mistral-small',
-  'mistral-creative',
   'codestral',
   'devstral',
   // Microsoft
@@ -177,9 +179,9 @@ export const MODEL_IS_OPENSOURCE: ReadonlySet<string> = new Set<string>([
   'granite',
   'jamba',
   'glm',
-  'glm-5v',
   'hunyuan',
   'command-r-plus',
+  ...OPENROUTER_ADDED_OPENSOURCE_IDS,
 ]);
 
 /**
@@ -201,6 +203,7 @@ export const REASONING_MODEL_IDS: readonly string[] = [
   'deepseek-r1',     // 6. DeepSeek R1
   'qwen-thinking',   // 7. Qwen3 Max Thinking
   'kimi-thinking',   // 8. Kimi K2 Thinking
+  ...OPENROUTER_ADDED_REASONING_IDS,
 ] as const;
 
 /** 빠른 lookup 용 Set (panel 외 다른 곳에서 boolean 체크 필요 시). */

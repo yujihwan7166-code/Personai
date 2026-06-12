@@ -8,6 +8,10 @@ import {
   REASONING_MODEL_IDS,
   RECOMMENDED_MODEL_IDS,
 } from '@/lib/modelTaxonomy';
+import {
+  OPENROUTER_ADDED_FAST_IDS,
+  OPENROUTER_ADDED_FLAGSHIP_IDS,
+} from '@/data/openrouter-added-models';
 
 export interface ExpertSelectionGroup {
   cat: string;
@@ -19,7 +23,6 @@ const AI_MODEL_ORDER = [
   'glm',
   'qwen-plus',
   'gemma',
-  'glm-5v',
   'grok-4.2',
   'mimo',
   'minimax',
@@ -40,7 +43,6 @@ const AI_MODEL_ORDER = [
   'kimi',
   'palmyra',
   'gemini-3-flash',
-  'mistral-creative',
   'mimo-flash',
   'nova-2-lite',
   'mistral-large',
@@ -50,7 +52,6 @@ const AI_MODEL_ORDER = [
   'granite',
   'claude-haiku',
   'claude-sonnet',
-  'longcat',
   'mistral-medium',
   'jamba',
   'codestral',
@@ -58,7 +59,6 @@ const AI_MODEL_ORDER = [
   'devstral',
   'dolphin',
   'hunyuan',
-  'ernie',
   'gemini',
   'gpt',
   'gpt-mini',
@@ -84,6 +84,7 @@ export const FAST_MODEL_IDS = [
   'deepseek',
   'qwen',
   'mistral-small',
+  ...OPENROUTER_ADDED_FAST_IDS,
 ] as const;
 
 /** 플래그십 모델: 브랜드별 대표 상위 라인업. */
@@ -96,6 +97,7 @@ export const FLAGSHIP_MODEL_IDS = [
   'deepseek-r1',
   'qwen-plus',
   'kimi',
+  ...OPENROUTER_ADDED_FLAGSHIP_IDS,
 ] as const;
 
 /** 마이너 모델: 메이저 브랜드 바깥의 덜 알려진 대안 모델. */
@@ -108,9 +110,7 @@ export const MINOR_MODEL_IDS = [
   'mercury',
   'solar',
   'palmyra',
-  'longcat',
   'step',
-  'ernie',
   'hunyuan',
   'jamba',
   'command-a',

@@ -1,4 +1,9 @@
 import type { ResponseState } from '@/lib/responseProgress';
+import {
+  OPENROUTER_ADDED_ABILITIES,
+  OPENROUTER_ADDED_EXPERTS,
+} from '@/data/openrouter-added-models';
+import { OPENROUTER_EXISTING_MODEL_OVERRIDES } from '@/data/openrouter-existing-model-overrides';
 
 export const EXPERT_COLORS = ['blue', 'emerald', 'red', 'amber', 'purple', 'orange', 'teal', 'pink', 'slate', 'green', 'cyan', 'sky'] as const;
 export type ExpertColor = typeof EXPERT_COLORS[number];
@@ -73,6 +78,16 @@ export interface AIAbilityStats {
     contextWindow: number;  // 토큰 용량 (0-100)
 }
 
+export interface ModelInfo {
+    provider: string;
+    contextLength: number;
+    inputModalities: string[];
+    outputModalities: string[];
+    priceTier: 'free' | 'low' | 'standard' | 'premium';
+    createdAt?: string;
+    openWeight?: boolean;
+}
+
 export interface Expert {
     id: string;
     name: string;
@@ -89,6 +104,8 @@ export interface Expert {
     sampleQuestions?: string[];
     greeting?: string;
     abilities?: AIAbilityStats;
+    tags?: string[];
+    modelInfo?: ModelInfo;
 }
 
 export type DiscussionRound = 'initial' | 'rebuttal' | 'final';
@@ -909,7 +926,6 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'mistral-medium':   { coding: 80, creativity: 78, reasoning: 82, math: 78, multilingual: 88, speed: 82, costEfficiency: 75, contextWindow: 72 },
   'mistral-small':    { coding: 72, creativity: 70, reasoning: 74, math: 70, multilingual: 82, speed: 92, costEfficiency: 90, contextWindow: 65 },
   'codestral':        { coding: 92, creativity: 65, reasoning: 80, math: 78, multilingual: 70, speed: 85, costEfficiency: 82, contextWindow: 70 },
-  'mistral-creative': { coding: 55, creativity: 94, reasoning: 68, math: 50, multilingual: 80, speed: 88, costEfficiency: 88, contextWindow: 60 },
   'devstral':         { coding: 90, creativity: 68, reasoning: 82, math: 78, multilingual: 75, speed: 80, costEfficiency: 80, contextWindow: 72 },
   'gemma':            { coding: 80, creativity: 75, reasoning: 80, math: 78, multilingual: 82, speed: 82, costEfficiency: 90, contextWindow: 75 },
   'phi':              { coding: 78, creativity: 65, reasoning: 82, math: 85, multilingual: 70, speed: 88, costEfficiency: 95, contextWindow: 55 },
@@ -919,7 +935,6 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'nova-2-lite':      { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 76, speed: 90, costEfficiency: 88, contextWindow: 95 },
   'dolphin':          { coding: 75, creativity: 82, reasoning: 76, math: 70, multilingual: 74, speed: 82, costEfficiency: 85, contextWindow: 70 },
   'glm':              { coding: 84, creativity: 78, reasoning: 86, math: 84, multilingual: 90, speed: 78, costEfficiency: 80, contextWindow: 82 },
-  'glm-5v':           { coding: 76, creativity: 74, reasoning: 80, math: 76, multilingual: 85, speed: 88, costEfficiency: 85, contextWindow: 75 },
   'mimo':             { coding: 82, creativity: 76, reasoning: 84, math: 82, multilingual: 80, speed: 78, costEfficiency: 75, contextWindow: 78 },
   'mimo-flash':       { coding: 72, creativity: 68, reasoning: 74, math: 72, multilingual: 74, speed: 94, costEfficiency: 90, contextWindow: 70 },
   'nemotron':         { coding: 88, creativity: 78, reasoning: 88, math: 86, multilingual: 80, speed: 70, costEfficiency: 72, contextWindow: 82 },
@@ -930,14 +945,12 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
   'kimi-thinking':    { coding: 82, creativity: 74, reasoning: 90, math: 88, multilingual: 80, speed: 65, costEfficiency: 70, contextWindow: 92 },
   'solar':            { coding: 76, creativity: 74, reasoning: 78, math: 74, multilingual: 88, speed: 80, costEfficiency: 82, contextWindow: 72 },
   'mercury':          { coding: 80, creativity: 72, reasoning: 82, math: 80, multilingual: 75, speed: 96, costEfficiency: 78, contextWindow: 72 },
-  'ernie':            { coding: 82, creativity: 78, reasoning: 84, math: 82, multilingual: 88, speed: 72, costEfficiency: 70, contextWindow: 85 },
   'hunyuan':          { coding: 78, creativity: 76, reasoning: 80, math: 78, multilingual: 86, speed: 76, costEfficiency: 75, contextWindow: 80 },
   'jamba':            { coding: 78, creativity: 74, reasoning: 80, math: 76, multilingual: 78, speed: 75, costEfficiency: 72, contextWindow: 92 },
   'granite':          { coding: 80, creativity: 70, reasoning: 82, math: 78, multilingual: 80, speed: 76, costEfficiency: 78, contextWindow: 78 },
   'step':             { coding: 78, creativity: 74, reasoning: 80, math: 78, multilingual: 80, speed: 92, costEfficiency: 85, contextWindow: 78 },
   'palmyra':          { coding: 65, creativity: 92, reasoning: 76, math: 62, multilingual: 85, speed: 74, costEfficiency: 68, contextWindow: 95 },
   'hermes':           { coding: 86, creativity: 84, reasoning: 86, math: 82, multilingual: 82, speed: 68, costEfficiency: 82, contextWindow: 85 },
-  'longcat':          { coding: 74, creativity: 72, reasoning: 76, math: 72, multilingual: 80, speed: 88, costEfficiency: 85, contextWindow: 96 },
 };
 
 // ══════════════════════════════════════════
@@ -946,7 +959,7 @@ const AI_ABILITIES: Record<string, AIAbilityStats> = {
 
 export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     {
-        id: 'developer-yjh', name: 'Developer (Yu Ji-Hwan)', nameKo: '유지환 (개발자)', icon: '💻', avatarUrl: '/logos/ai/puang.png', color: 'blue', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6',
+        id: 'developer-yjh', name: 'Developer (Yu Ji-Hwan)', nameKo: '유지환 (개발자)', icon: '💻', avatarUrl: '/logos/claude.png', color: 'blue', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6',
         description: '이 앱을 만든 개발자 · 중앙대 푸앙',
         quote: '직접 만들면서 배우는 게 가장 빠릅니다',
         greeting: '안녕하세요! 이 앱을 만든 개발자 유지환입니다. 앱 기능·개발 과정·설계 결정 무엇이든 물어보세요 🐻‍❄️',
@@ -982,7 +995,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: 'Ancano Pro 프리미엄 어시스턴트입니다. 최상위 모델을 우선 배정해 더 깊이 있고 정확한 답변을 제공합니다. 어떤 도움이 필요하신가요?',
     },
     {
-        id: 'auto-gpt', name: '심층 리서치', nameKo: '심층 리서치', icon: '🔭', avatarUrl: '/logos/deep-research.svg', color: 'purple', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: '여러 AI 협업 리서치 · 인용 검증',
+        id: 'auto-gpt', name: '심층 리서치', nameKo: '심층 리서치', icon: '🔭', avatarUrl: '/logos/claude.png', color: 'purple', category: 'ai', openrouterModel: 'anthropic/claude-sonnet-4.6', description: '여러 AI 협업 리서치 · 인용 검증',
         quote: '분담·교차 검증으로 깊이 있는 리포트',
         sampleQuestions: ['2026년 글로벌 반도체 시장 전망', 'Rust vs Go 성능 비교 분석', '최근 AI 저작권 주요 판례'],
         greeting: '심층 리서치 모드입니다. 여러 AI가 분담해 조사하고 교차 검증해 인용 기반 리포트를 작성합니다. 어떤 주제를 깊이 조사해 드릴까요?',
@@ -1073,7 +1086,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: 'Perplexity AI에서 개발한 Sonar Pro입니다. 심층 리서치에 특화된 프리미엄 모델로, 복잡한 주제도 출처와 함께 깊이 있게 분석해드립니다. 무엇을 조사해드릴까요?',
     },
     {
-        id: 'grok', name: 'Grok 4.1 Fast', nameKo: 'Grok 4.1 Fast', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.1-fast', description: 'AI 고속 위트 모델',
+        id: 'grok', name: 'Grok 4.3', nameKo: 'Grok 4.3', icon: '⚡', avatarUrl: '/logos/grok.svg', color: 'teal', category: 'ai', openrouterModel: 'x-ai/grok-4.3', description: 'xAI 최신 고성능 모델',
         quote: '빠르고 거침없이',
         sampleQuestions: ['그록은 왜 거침없이 말해?', 'X 실시간 데이터 분석 돼?', '일론 머스크 어떻게 봐?'],
         greeting: 'xAI에서 개발한 Grok 4.1 Fast입니다. 빠른 응답과 솔직하고 거침없는 답변이 특징이에요. 뭐든 편하게 물어봐!',
@@ -1157,13 +1170,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: '프랑스 Mistral AI에서 개발한 코딩 전용 모델 Codestral입니다. 80개 이상의 프로그래밍 언어를 지원하며, 코드 생성과 디버깅에 최적화되어 있습니다. 코딩 도움이 필요하세요?',
     },
     {
-        id: 'mistral-creative', name: 'Mistral Small Creative', nameKo: 'Mistral Small Creative', icon: '🎨', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/mistral-small-creative', description: '창작 글쓰기 특화 모델',
-        quote: '창의력은 AI에게도 있다',
-        sampleQuestions: ['소설 초안 써줘', '창의적 글 써줘', '시 한 편 지어줘'],
-        greeting: '프랑스 Mistral AI에서 개발한 창작 글쓰기 특화 모델입니다. 소설, 시나리오, 카피라이팅 등 창의적인 글쓰기에 최적화되어 있습니다. 어떤 글을 써볼까요?',
-    },
-    {
-        id: 'devstral', name: 'Devstral Medium', nameKo: 'Devstral Medium', icon: '🛠️', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/devstral-medium', description: 'Mistral 개발자 특화 모델',
+        id: 'devstral', name: 'Devstral 2512', nameKo: 'Devstral 2512', icon: '🛠️', avatarUrl: '/logos/mistral.png', color: 'slate', category: 'ai', openrouterModel: 'mistralai/devstral-2512', description: 'Mistral 개발자 특화 모델',
         quote: '개발자를 위한 AI',
         sampleQuestions: ['아키텍처 설계 도와줘', '코드 구조 분석해줘', 'API 설계해줘'],
         greeting: '프랑스 Mistral AI에서 개발한 개발자 특화 모델 Devstral입니다. 코드 리뷰, 아키텍처 설계, 디버깅 등 개발 전반을 지원합니다. 개발 관련 도움이 필요하세요?',
@@ -1217,13 +1224,7 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: '중국 Z.ai에서 개발한 GLM 5.1입니다. 대규모 파라미터 기반의 최신 모델로, 복잡한 분석과 다국어 처리에 강합니다. 무엇이든 물어보세요!',
     },
     {
-        id: 'glm-5v', name: 'GLM 5V Turbo', nameKo: 'GLM 5V Turbo', icon: '👁️', avatarUrl: '/logos/glm.png', color: 'blue', category: 'ai', openrouterModel: 'z-ai/glm-5v-turbo', description: 'Z.ai 비전+텍스트 모델',
-        quote: '보고 읽고 이해한다',
-        sampleQuestions: ['이미지 분석해줘', '사진 설명해줘', '비전 분석 해줘'],
-        greeting: '중국 Z.ai에서 개발한 GLM 5V Turbo입니다. 텍스트와 이미지를 동시에 이해하는 비전 모델로, 사진 분석과 시각 자료 해석에 강합니다. 어떤 도움이 필요하세요?',
-    },
-    {
-        id: 'mimo', name: 'MiMo-V2-Pro', nameKo: 'MiMo-V2-Pro', icon: '📱', avatarUrl: '/logos/xiaomi.png', color: 'orange', category: 'ai', openrouterModel: 'xiaomi/mimo-v2-pro', description: '샤오미 AI 프로 모델',
+        id: 'mimo', name: 'MiMo-V2.5-Pro', nameKo: 'MiMo-V2.5-Pro', icon: '📱', avatarUrl: '/logos/xiaomi.png', color: 'orange', category: 'ai', openrouterModel: 'xiaomi/mimo-v2.5-pro', description: '샤오미 텍스트 추론 프로 모델',
         quote: '기술은 모두를 위한 것',
         sampleQuestions: ['멀티모달 분석 해줘', '이미지 설명해줘', '문서 정리해줘'],
         greeting: '샤오미(Xiaomi)에서 개발한 MiMo-V2-Pro입니다. 멀티모달 처리와 문서 분석에 강한 프로급 모델입니다. 무엇이든 도와드릴게요!',
@@ -1283,12 +1284,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         greeting: 'UAE Inception에서 개발한 Mercury 2입니다. 초고속 추론에 특화된 모델로, 빛의 속도에 가까운 응답 속도가 강점입니다. 빠르게 답해드릴게요!',
     },
     {
-        id: 'ernie', name: 'ERNIE 4.5', nameKo: 'ERNIE 4.5', icon: '🐾', avatarUrl: '/logos/baidu.png', color: 'blue', category: 'ai', openrouterModel: 'baidu/ernie-4.5-300b-a47b', description: '바이두 300B 초대형 모델',
-        quote: '중국 검색 1위의 AI',
-        sampleQuestions: ['복잡한 분석 해줘', '중국 시장 트렌드 알려줘', '다국어 비교해줘'],
-        greeting: '중국 바이두(Baidu)에서 개발한 ERNIE 4.5입니다. 300B 파라미터의 초대형 모델로, 중국 검색 1위 기업의 방대한 데이터를 기반으로 학습되었습니다. 무엇이든 물어보세요!',
-    },
-    {
         id: 'hunyuan', name: 'Hunyuan', nameKo: 'Hunyuan', icon: '💬', avatarUrl: '/logos/tencent.png', color: 'blue', category: 'ai', openrouterModel: 'tencent/hunyuan-a13b-instruct', description: '텐센트 AI 모델',
         quote: '위챗을 만든 회사의 AI',
         sampleQuestions: ['대화형 분석 해줘', '소셜 트렌드 분석해줘', '중국어 자연스럽게 번역해줘'],
@@ -1318,13 +1313,6 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
         sampleQuestions: ['긴 글 다듬어줘', '보고서 초안 써줘', '문체 개선해줘'],
         greeting: 'Writer에서 개발한 Palmyra X5입니다. 글쓰기 특화 AI로 100만 토큰 컨텍스트를 지원하며, 보고서, 기사, 기획서 등 전문 글쓰기에 최적화되어 있습니다. 어떤 글을 도와드릴까요?',
     },
-    {
-        id: 'longcat', name: 'LongCat Flash', nameKo: 'LongCat Flash', icon: '🐱', avatarUrl: '/logos/meituan.png', color: 'amber', category: 'ai', openrouterModel: 'meituan/longcat-flash-chat', description: '메이퇀 장문맥 AI 모델',
-        quote: '긴 글도 고양이처럼 가볍게',
-        sampleQuestions: ['긴 문서 요약해줘', '전체 맥락 파악해줘', '장문 분석해줘'],
-        greeting: '중국 메이퇀(Meituan)에서 개발한 LongCat Flash입니다. 장문맥 처리에 특화된 경량 모델로, 긴 문서도 가볍고 빠르게 분석합니다. 편하게 맡겨주세요!',
-    },
-
     // Specialists
     {
         id: 'legal', name: 'Legal Expert', nameKo: '법학 전문가', icon: '⚖️', color: 'amber', avatarUrl: '/logos/specialist/legal.png', category: 'specialist', subCategory: '법률', description: '법리·판례·규제 전문가',
@@ -3024,10 +3012,181 @@ export const _DEFAULT_EXPERTS_RAW: Expert[] = [
     },
 ];
 
-// abilities 맵을 DEFAULT_EXPERTS에 주입
-export const DEFAULT_EXPERTS: Expert[] = _DEFAULT_EXPERTS_RAW.map(e => {
-  const ab = AI_ABILITIES[e.id];
-  return ab ? { ...e, abilities: ab } : e;
+const CUSTOM_ABILITY_BASE: Record<ExpertCategory, AIAbilityStats> = {
+  ai: { coding: 70, creativity: 70, reasoning: 70, math: 70, multilingual: 70, speed: 70, costEfficiency: 70, contextWindow: 70 },
+  specialist: { coding: 52, creativity: 64, reasoning: 86, math: 76, multilingual: 70, speed: 66, costEfficiency: 72, contextWindow: 78 },
+  occupation: { coding: 50, creativity: 68, reasoning: 76, math: 62, multilingual: 64, speed: 74, costEfficiency: 76, contextWindow: 62 },
+  celebrity: { coding: 42, creativity: 78, reasoning: 72, math: 54, multilingual: 70, speed: 68, costEfficiency: 66, contextWindow: 70 },
+  fictional: { coding: 40, creativity: 88, reasoning: 66, math: 48, multilingual: 68, speed: 72, costEfficiency: 70, contextWindow: 72 },
+  mythology: { coding: 40, creativity: 84, reasoning: 70, math: 50, multilingual: 70, speed: 64, costEfficiency: 66, contextWindow: 76 },
+  region: { coding: 42, creativity: 70, reasoning: 72, math: 54, multilingual: 88, speed: 68, costEfficiency: 72, contextWindow: 74 },
+  ideology: { coding: 42, creativity: 66, reasoning: 84, math: 58, multilingual: 72, speed: 64, costEfficiency: 68, contextWindow: 78 },
+  perspective: { coding: 46, creativity: 76, reasoning: 80, math: 56, multilingual: 68, speed: 72, costEfficiency: 72, contextWindow: 72 },
+  religion: { coding: 40, creativity: 72, reasoning: 80, math: 52, multilingual: 76, speed: 62, costEfficiency: 68, contextWindow: 82 },
+  lifestyle: { coding: 42, creativity: 82, reasoning: 66, math: 50, multilingual: 64, speed: 78, costEfficiency: 76, contextWindow: 58 },
+};
+
+const CUSTOM_ABILITY_FOCUS: Record<string, Partial<AIAbilityStats>> = {
+  programmer: { coding: 94, reasoning: 84, math: 80 },
+  engineer: { coding: 76, reasoning: 86, math: 82 },
+  architect: { creativity: 84, reasoning: 78, math: 72 },
+  gamedev: { coding: 88, creativity: 86, reasoning: 78 },
+  compsci: { coding: 92, math: 88, reasoning: 88 },
+  scientist: { reasoning: 90, math: 86, contextWindow: 82 },
+  designer: { creativity: 92, reasoning: 76 },
+  artist: { creativity: 96, speed: 70 },
+  writer: { creativity: 92, contextWindow: 82 },
+  producer: { creativity: 88, speed: 78 },
+  musician: { creativity: 92 },
+  comedian: { creativity: 90, speed: 84 },
+  legal: { reasoning: 94, contextWindow: 86 },
+  lawyer: { reasoning: 90, contextWindow: 82 },
+  judge: { reasoning: 92, math: 66 },
+  finance: { math: 92, reasoning: 86 },
+  economics: { math: 90, reasoning: 86 },
+  accountant: { math: 90, costEfficiency: 82 },
+  taxadvisor: { math: 84, reasoning: 84, costEfficiency: 86 },
+  doctor: { reasoning: 88, math: 74, contextWindow: 80 },
+  medical: { reasoning: 90, math: 78, contextWindow: 82 },
+  pharmacist: { reasoning: 86, math: 78 },
+  psychology: { reasoning: 86, creativity: 72 },
+  teacher: { creativity: 76, multilingual: 78, speed: 78 },
+  education: { reasoning: 84, creativity: 76 },
+  journalist: { speed: 86, reasoning: 80, multilingual: 76 },
+  marketing: { creativity: 86, speed: 78 },
+  diplomat: { multilingual: 92, reasoning: 84 },
+  intlrelations: { multilingual: 88, reasoning: 86 },
+  history: { contextWindow: 88, reasoning: 84 },
+  philosophy: { reasoning: 94, creativity: 72 },
+  physics: { math: 94, reasoning: 90 },
+  chemistry: { math: 86, reasoning: 86 },
+  biology: { reasoning: 84, contextWindow: 78 },
+  astronomy: { math: 88, reasoning: 88 },
+  envscience: { reasoning: 86, math: 78, contextWindow: 84 },
+  earthscience: { reasoning: 84, math: 82, contextWindow: 82 },
+  military: { reasoning: 84, speed: 78 },
+  police: { speed: 82, reasoning: 80 },
+  firefighter: { speed: 92, reasoning: 76 },
+  pilot: { speed: 88, reasoning: 82, math: 76 },
+  bodyguard: { speed: 86, reasoning: 76 },
+  detective: { reasoning: 86, speed: 80, contextWindow: 78 },
+  chef: { creativity: 84, speed: 82 },
+  barista: { creativity: 78, speed: 80 },
+  sommelier: { creativity: 82, multilingual: 74, contextWindow: 76 },
+  farmer: { costEfficiency: 86, reasoning: 76, speed: 78 },
+  fisher: { speed: 80, costEfficiency: 82, reasoning: 74 },
+  sailor: { speed: 82, reasoning: 78, multilingual: 72 },
+  flightcrew: { speed: 84, multilingual: 80, reasoning: 76 },
+  socialworker: { reasoning: 82, multilingual: 76, costEfficiency: 80 },
+  stocktrader: { math: 86, speed: 90, reasoning: 80 },
+};
+
+function customAbilityJitter(id: string, key: keyof AIAbilityStats) {
+  const seed = `${id}:${key}`;
+  let hash = 0;
+  for (const char of seed) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
+  return (hash % 9) - 4;
+}
+
+function clampAbility(value: number) {
+  return Math.max(40, Math.min(98, Math.round(value)));
+}
+
+function customAbilityKeywordBoosts(expert: Expert): Partial<AIAbilityStats> {
+  const text = `${expert.id} ${expert.name} ${expert.nameKo} ${expert.subCategory ?? ''} ${expert.description}`.toLowerCase();
+  const boost: Partial<AIAbilityStats> = {};
+  const add = (key: keyof AIAbilityStats, value: number) => {
+    boost[key] = (boost[key] ?? 0) + value;
+  };
+
+  if (/program|software|computer|algorithm|system|it|game|developer|프로그래|소프트웨어|알고리즘|시스템|컴퓨터|게임개발|공학|기술/.test(text)) {
+    add('coding', 9);
+    add('math', 4);
+    add('reasoning', 3);
+  }
+  if (/law|legal|court|judge|tax|regulation|법|판례|규제|소송|재판|사법|세무|세금/.test(text)) {
+    add('reasoning', 7);
+    add('contextWindow', 5);
+    add('costEfficiency', -2);
+  }
+  if (/finance|econom|account|invest|asset|risk|stock|금융|경제|회계|투자|자산|리스크|세무/.test(text)) {
+    add('math', 9);
+    add('reasoning', 4);
+    add('costEfficiency', 3);
+  }
+  if (/medical|doctor|pharma|biology|clinical|health|의학|의료|진단|치료|약학|생명|심리|임상/.test(text)) {
+    add('reasoning', 6);
+    add('math', 3);
+    add('contextWindow', 4);
+  }
+  if (/physics|chemistry|astronomy|science|research|물리|화학|천문|과학|연구|유전체|지질|기상|해양/.test(text)) {
+    add('reasoning', 6);
+    add('math', 7);
+    add('contextWindow', 3);
+  }
+  if (/art|design|writer|music|content|story|fashion|marketing|brand|예술|창작|디자인|작가|음악|콘텐츠|패션|마케팅|브랜딩|영상|방송/.test(text)) {
+    add('creativity', 9);
+    add('speed', 2);
+  }
+  if (/teacher|education|counsel|coach|social|교육|학습|상담|복지|코칭/.test(text)) {
+    add('multilingual', 3);
+    add('creativity', 4);
+    add('reasoning', 3);
+  }
+  if (/diplomat|international|region|culture|language|외교|국제|다국어|문화|지역|번역/.test(text)) {
+    add('multilingual', 9);
+    add('reasoning', 3);
+  }
+  if (/pilot|fire|police|soldier|military|security|detective|emergency|항공|재난|안전|치안|수사|군사|안보|보안|경호|현장/.test(text)) {
+    add('speed', 8);
+    add('reasoning', 4);
+  }
+  if (/chef|barista|sommelier|food|coffee|wine|요리|식문화|커피|와인|음료|미용|뷰티/.test(text)) {
+    add('creativity', 6);
+    add('speed', 5);
+    add('costEfficiency', 2);
+  }
+  if (/philosophy|religion|myth|history|ethic|철학|종교|신학|신화|역사|윤리|문명|사료/.test(text)) {
+    add('reasoning', 5);
+    add('contextWindow', 7);
+  }
+
+  return boost;
+}
+
+function deriveCustomAbilities(expert: Expert): AIAbilityStats {
+  const base = CUSTOM_ABILITY_BASE[expert.category] ?? CUSTOM_ABILITY_BASE.perspective;
+  const focus = CUSTOM_ABILITY_FOCUS[expert.id] ?? {};
+  const keywordBoosts = customAbilityKeywordBoosts(expert);
+  const valueFor = (key: keyof AIAbilityStats) => {
+    const focused = focus[key];
+    const baseValue = focused ?? base[key] + (keywordBoosts[key] ?? 0);
+    const jitter = focused == null ? customAbilityJitter(expert.id, key) : Math.trunc(customAbilityJitter(expert.id, key) / 2);
+    return clampAbility(baseValue + jitter);
+  };
+
+  return {
+    coding: valueFor('coding'),
+    creativity: valueFor('creativity'),
+    reasoning: valueFor('reasoning'),
+    math: valueFor('math'),
+    multilingual: valueFor('multilingual'),
+    speed: valueFor('speed'),
+    costEfficiency: valueFor('costEfficiency'),
+    contextWindow: valueFor('contextWindow'),
+  };
+}
+
+// abilities 맵과 OpenRouter 메타데이터를 DEFAULT_EXPERTS에 주입
+export const DEFAULT_EXPERTS: Expert[] = [
+  ..._DEFAULT_EXPERTS_RAW,
+  ...OPENROUTER_ADDED_EXPERTS,
+].map(e => {
+  const override = OPENROUTER_EXISTING_MODEL_OVERRIDES[e.id];
+  const expert = override ? { ...e, ...override } : e;
+  const ab = AI_ABILITIES[expert.id] ?? OPENROUTER_ADDED_ABILITIES[expert.id];
+  if (ab) return { ...expert, abilities: ab };
+  return expert.category === 'ai' ? expert : { ...expert, abilities: deriveCustomAbilities(expert) };
 });
 
 // ══════════════════════════════════════════

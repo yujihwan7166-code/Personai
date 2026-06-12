@@ -73,6 +73,14 @@ const DEFAULT_MODEL_IDS = [
 
 const HIDDEN_GENERAL_MODEL_IDS = new Set(['developer-yjh']);
 
+function isGeneralTextModel(expert: Expert) {
+  if (expert.category !== 'ai') return false;
+  if (expert.id.startsWith('auto-')) return false;
+  if (expert.id === 'ancano-pro') return false;
+  if (HIDDEN_GENERAL_MODEL_IDS.has(expert.id)) return false;
+  return !(expert.modelInfo?.outputModalities ?? []).some((modality) => modality === 'image' || modality === 'video');
+}
+
 const CUSTOM_FEATURED_IDS = [
   'doctor',
   'pharmacist',
@@ -196,6 +204,7 @@ function providerLabel(expert: Expert) {
 }
 
 function modelProviderLabel(expert: Expert) {
+  if (expert.modelInfo?.provider) return expert.modelInfo.provider;
   const model = expert.openrouterModel ?? '';
   if (expert.id === 'ancano-pro') return 'ANCANO';
   if (expert.id === 'auto-gpt') return 'OpenRouter';
@@ -240,6 +249,7 @@ function modelProviderLabel(expert: Expert) {
 }
 
 function modelStrengthTags(expert: Expert) {
+  if (expert.tags && expert.tags.length > 0) return expert.tags.slice(0, 3);
   const brand = MODEL_BRAND[expert.id];
   const tags = [
     expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? '추론' : null,
@@ -252,6 +262,7 @@ function modelStrengthTags(expert: Expert) {
 }
 
 function modelFieldTags(expert: Expert) {
+  if (expert.tags && expert.tags.length > 0) return expert.tags.slice(0, 3);
   const fieldsById: Record<string, string[]> = {
     gpt: ['범용', '코딩', '문서'],
     'gpt-mini': ['업무', '요약', '생산성'],
@@ -283,7 +294,6 @@ function modelFieldTags(expert: Expert) {
     'mistral-small': ['경량', '빠른 응답', '비용절감'],
     codestral: ['코딩', '리팩터링', '개발'],
     devstral: ['개발', '에이전트', '도구사용'],
-    'mistral-creative': ['창작', '카피라이팅', '스토리'],
     gemma: ['오픈소스', '연구', '자체호스팅'],
     phi: ['소형', '추론', '로컬'],
     'command-r-plus': ['RAG', '검색', '출처'],
@@ -292,7 +302,6 @@ function modelFieldTags(expert: Expert) {
     'nova-2-lite': ['경량', '긴 컨텍스트', '비용절감'],
     dolphin: ['자유대화', '실험', '오픈소스'],
     glm: ['중국어', '대형모델', '업무'],
-    'glm-5v': ['비전', '이미지이해', '멀티모달'],
     mimo: ['모바일', '멀티모달', '중국어'],
     'mimo-flash': ['모바일', '빠른 응답', '경량'],
     nemotron: ['대형모델', '엔터프라이즈', '합성데이터'],
@@ -303,13 +312,11 @@ function modelFieldTags(expert: Expert) {
     'kimi-thinking': ['추론', '장문맥', '분석'],
     solar: ['한국어', '업무', '문서'],
     mercury: ['초고속', '추론', '실시간'],
-    ernie: ['중국어', '대형모델', '지식'],
     hunyuan: ['중국어', '대화', '업무'],
     jamba: ['장문', '엔터프라이즈', '분석'],
     granite: ['기업업무', '보안', '온프레미스'],
     step: ['빠른 응답', '중국어', '일상'],
     palmyra: ['글쓰기', '문서', '긴 컨텍스트'],
-    longcat: ['장문맥', '대화', '중국어'],
     'developer-yjh': ['개발자', '앱 설명', '프로젝트'],
     'ancano-pro': ['프리미엄', '통합', '자동선택'],
   };
@@ -321,39 +328,160 @@ function modelFieldTags(expert: Expert) {
   return ['범용', '대화', '업무'];
 }
 
+function customFieldTags(expert: Expert) {
+  const tagsById: Record<string, string[]> = {
+    doctor: ['진료', '증상 정리', '건강 상담'],
+    pharmacist: ['복약', '부작용', '상호작용'],
+    vet: ['동물 건강', '행동 상담', '진료 준비'],
+    judge: ['판단 기준', '쟁점 정리', '공정성'],
+    lawyer: ['법률 검토', '권리 보호', '사례 분석'],
+    accountant: ['회계', '세무 리스크', '증빙'],
+    taxadvisor: ['절세', '신고 준비', '세무 전략'],
+    stocktrader: ['투자 판단', '리스크', '포트폴리오'],
+    teacher: ['학습 설계', '개념 설명', '피드백'],
+    writer: ['문장 다듬기', '구성', '초안'],
+    artist: ['창작', '작품 해석', '표현'],
+    designer: ['UX', '정보 구조', '사용성'],
+    programmer: ['코드 리뷰', '디버깅', '설계'],
+    architect: ['공간 설계', '동선', '구조'],
+    counselor: ['감정 정리', '선택 코칭', '대화'],
+    chef: ['레시피', '조리 팁', '맛 조정'],
+    pilot: ['비행 안전', '절차', '상황 판단'],
+    farmer: ['작물 관리', '계절', '현장 노하우'],
+    firefighter: ['안전', '응급 대응', '예방'],
+    police: ['신고 절차', '치안', '증거 정리'],
+    soldier: ['전략', '안보', '훈련'],
+    journalist: ['팩트체크', '기사 구성', '질문'],
+    engineer: ['기술 검토', '안정성', '비용'],
+    scientist: ['가설 검증', '실험', '근거'],
+    athlete: ['훈련', '회복', '경기력'],
+    barista: ['커피', '추출', '원두'],
+    hairstylist: ['스타일링', '두피', '이미지'],
+    socialworker: ['복지 제도', '지원 연결', '생활 상담'],
+    diplomat: ['협상', '국제관계', '표현 조율'],
+    sailor: ['해상 안전', '항해', '장비'],
+    model: ['포즈', '이미지', '워킹'],
+    flightcrew: ['기내 응대', '안전 절차', '서비스'],
+    bodyguard: ['위험 판단', '동선', '보안'],
+    musician: ['작곡', '연습', '무대'],
+    comedian: ['유머', '타이밍', '소재'],
+    producer: ['기획', '촬영', '편집'],
+    miner: ['현장 안전', '장비', '자원'],
+    fisher: ['어종', '물때', '해상'],
+    sommelier: ['와인', '페어링', '향미'],
+    detective: ['단서', '추론', '조사'],
+    legal: ['판례', '법리', '규제'],
+    finance: ['자산 운용', '현금흐름', '리스크'],
+    history: ['사료', '시대 맥락', '해설'],
+    philosophy: ['논증', '윤리', '관점 비교'],
+    education: ['커리큘럼', '학습법', '평가'],
+    economics: ['시장 분석', '정책', '지표'],
+    sociology: ['사회 구조', '계층', '문화'],
+    political: ['권력 구조', '제도', '정책'],
+    sports: ['운동 생리', '퍼포먼스', '훈련'],
+    marketing: ['브랜딩', '고객', '전략'],
+    medical: ['질병 이해', '검사 해석', '치료 방향'],
+    psychology: ['인지', '행동', '마음'],
+    criminology: ['범죄 심리', '수사', '예방'],
+    physics: ['물리 법칙', '수식', '실험'],
+    chemistry: ['반응', '물질', '분자'],
+    biology: ['생명 현상', '유전', '진화'],
+    earthscience: ['지질', '기후', '해양'],
+    envscience: ['생태', '오염', '지속가능성'],
+    theology: ['교리', '경전', '해석'],
+    compsci: ['알고리즘', '시스템', '자료구조'],
+    pubadmin: ['정책 설계', '공공조직', '제도'],
+    military: ['전략', '안보', '전술'],
+    intlrelations: ['외교', '국제정치', '협상'],
+    astronomy: ['우주', '관측', '천체'],
+  };
+
+  if (tagsById[expert.id]) return tagsById[expert.id];
+  if (expert.category === 'fictional') return ['역할 대화', '세계관', '캐릭터'];
+  if (expert.category === 'mythology') return ['신화', '상징', '이야기'];
+  if (expert.category === 'ideology') return ['이념', '논쟁', '가치관'];
+  if (expert.category === 'religion') return ['사상', '경전', '해석'];
+  if (expert.category === 'lifestyle') return ['라이프', '취향', '실행'];
+  if (expert.category === 'perspective') return ['관점', '토론', '해석'];
+  return [expert.subCategory ?? EXPERT_CATEGORY_LABELS[expert.category] ?? '커스텀', '대화', '조언'];
+}
+
 function tagsForExpert(expert: Expert) {
   if (expert.category === 'ai') {
     return modelFieldTags(expert).slice(0, 3);
   }
 
-  const categoryLabel = EXPERT_CATEGORY_LABELS[expert.category] ?? '커스텀';
-  const tone = expert.category === 'occupation' ? '실무형' : expert.category === 'fictional' ? '캐릭터' : '전문가';
-  return [expert.subCategory ?? categoryLabel, tone, '상담'].slice(0, 3);
+  return customFieldTags(expert).slice(0, 3);
 }
 
 function getCustomMeta(expert: Expert) {
+  const purposeByCategory: Partial<Record<ExpertCategory, string>> = {
+    occupation: '현장 판단, 절차 정리, 실행 팁',
+    specialist: '근거 분석, 쟁점 비교, 전문 해설',
+    celebrity: '인물 관점, 의사결정, 시대 맥락',
+    fictional: '역할 몰입, 세계관 해석, 대사',
+    mythology: '상징 해석, 서사, 신화 맥락',
+    region: '문화 비교, 지역 맥락, 관습',
+    ideology: '가치 판단, 논쟁, 관점 대비',
+    religion: '경전 해석, 사상 비교, 삶의 태도',
+    lifestyle: '취향 탐색, 루틴, 실천 아이디어',
+    perspective: '관점 전환, 반론, 사고 실험',
+  };
+  const styleByCategory: Partial<Record<ExpertCategory, string>> = {
+    occupation: '실무자의 언어로 구체적으로',
+    specialist: '근거와 개념을 나눠서 설명',
+    celebrity: '그 인물의 문제의식에 맞춘 답변',
+    fictional: '캐릭터에 맞는 말투와 시선',
+    mythology: '상징과 이야기 중심 해석',
+    region: '문화적 맥락을 살린 비교',
+    ideology: '입장과 전제를 분명히 드러냄',
+    religion: '사상적 배경을 차분히 해석',
+    lifestyle: '일상에 바로 옮길 수 있게',
+    perspective: '익숙한 판단을 비틀어 보기',
+  };
+
   return [
     ['유형', EXPERT_CATEGORY_LABELS[expert.category] ?? '커스텀'],
-    ['분야', expert.subCategory ?? '전문 분야'],
+    ['분야', expert.subCategory ?? customFieldTags(expert)[0] ?? '관점'],
     ['말투', expert.category === 'fictional' ? '개성적' : '친절함'],
-    ['목적', expert.category === 'occupation' ? '상담, 설명, 코칭' : '대화, 해석, 조언'],
+    ['목적', purposeByCategory[expert.category] ?? customFieldTags(expert).join(', ')],
     ['전문성', expert.category === 'occupation' || expert.category === 'specialist' ? '실무' : '역할 기반'],
     ['업데이트', '2025년 5월'],
     ['대화 언어', '한국어'],
-    ['응답 스타일', expert.category === 'fictional' ? '캐릭터에 맞는 대화' : '정확하고 친절한 설명'],
+    ['응답 스타일', styleByCategory[expert.category] ?? '맥락에 맞춘 답변'],
   ];
 }
 
 function getModelMeta(expert: Expert) {
+  const contextLength = expert.modelInfo?.contextLength ?? 0;
+  const contextLabel = contextLength >= 1_000_000
+    ? '1M+ 토큰'
+    : contextLength >= 262_144
+      ? `${Math.round(contextLength / 1024)}K 토큰`
+      : contextLength > 0
+        ? `${Math.round(contextLength / 1000)}K 토큰`
+        : '128K 토큰';
+  const priceLabel: Record<NonNullable<Expert['modelInfo']>['priceTier'], string> = {
+    free: '무료',
+    low: '저비용',
+    standard: '표준',
+    premium: '프리미엄',
+  };
+  const modalityLabel = expert.modelInfo?.inputModalities?.includes('video')
+    ? '텍스트+이미지+비디오'
+    : expert.modelInfo?.inputModalities?.includes('image')
+      ? '텍스트+이미지'
+      : '텍스트';
+
   return [
     ['제공사', modelProviderLabel(expert)],
     ['분야', modelFieldTags(expert).join(', ')],
-    ['강점', modelStrengthTags(expert).join(', ')],
     ['속도', expert.abilities?.speed && expert.abilities.speed >= 85 ? '빠름' : '보통'],
-    ['가격', MODEL_IS_OPENSOURCE.has(expert.id) ? '무료 포함' : '유료'],
-    ['컨텍스트 길이', expert.abilities?.contextWindow && expert.abilities.contextWindow >= 85 ? '1M+' : '128K 토큰'],
-    ['출시일', '2025년 5월'],
-    ['모델 유형', MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈소스' : '폐쇄형'],
+    ['가격', expert.modelInfo?.priceTier ? priceLabel[expert.modelInfo.priceTier] : MODEL_IS_OPENSOURCE.has(expert.id) ? '무료 포함' : '유료'],
+    ['컨텍스트 길이', contextLabel],
+    ['출시일', expert.modelInfo?.createdAt ?? '2025년 5월'],
+    ['입력', modalityLabel],
+    ['모델 유형', expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈웨이트' : '폐쇄형'],
   ];
 }
 
@@ -362,7 +490,7 @@ function isCustomExpert(expert: Expert) {
 }
 
 function isPhotoAsset(expert: Expert) {
-  return /\.(jpe?g|webp)$/i.test(expert.avatarUrl ?? '');
+  return /\.(png|jpe?g|webp)$/i.test(expert.avatarUrl ?? '');
 }
 
 const PORTRAIT_PRESETS: Record<string, { bg: string; accent: string; hair: string; outfit: string; prop: string; variant?: 'female' | 'male' }> = {
@@ -499,7 +627,7 @@ const CUSTOM_TONE_LABELS = [
 ] as const;
 
 const CUSTOM_PURPOSE_LABELS = [
-  ['purpose-consult', '상담'],
+  ['purpose-consult', '문제 정리'],
   ['purpose-explain', '설명'],
   ['purpose-coach', '코칭'],
   ['purpose-interpret', '해석'],
@@ -524,7 +652,7 @@ const CUSTOM_QUICK_FILTERS = [
   { id: 'all', label: '전체보기' },
   { id: 'favorites', label: '즐겨찾기' },
   { id: 'recommended', label: '추천' },
-  { id: 'practical', label: '실무 상담' },
+  { id: 'practical', label: '실무 자문' },
   { id: 'learning', label: '학습/설명' },
   { id: 'character-chat', label: '캐릭터 대화' },
   { id: 'viewpoint', label: '관점 토론' },
@@ -1311,7 +1439,7 @@ export function AllAiExplorerModal({
 
   const baseItems = useMemo(() => {
     const items = tab === 'general'
-      ? experts.filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro' && !HIDDEN_GENERAL_MODEL_IDS.has(expert.id))
+      ? experts.filter(isGeneralTextModel)
       : experts.filter(isCustomExpert);
 
     return [...items].sort((a, b) => {
@@ -1948,18 +2076,18 @@ export function GeneralAiHome({
 
   const homeTiles = useMemo<HomeTile[]>(() => {
     const fastExperts = experts
-      .filter((expert) => expert.category === 'ai' && !expert.id.startsWith('auto-') && expert.id !== 'ancano-pro' && !HIDDEN_GENERAL_MODEL_IDS.has(expert.id))
+      .filter(isGeneralTextModel)
       .sort((a, b) => (b.abilities?.speed ?? 0) - (a.abilities?.speed ?? 0));
 
     const base =
       activeHomeTab === 'favorites'
         ? favoriteExperts
         : activeHomeTab === 'recommended'
-          ? orderExpertsByIds(experts, RECOMMENDED_MODEL_IDS).filter((expert) => expert.id !== 'auto-gpt')
+          ? orderExpertsByIds(experts, RECOMMENDED_MODEL_IDS).filter(isGeneralTextModel)
           : activeHomeTab === 'fast'
             ? fastExperts
             : activeHomeTab === 'reasoning'
-              ? orderExpertsByIds(experts, REASONING_MODEL_IDS)
+              ? orderExpertsByIds(experts, REASONING_MODEL_IDS).filter(isGeneralTextModel)
               : activeHomeTab === 'custom'
                 ? customExperts
                 : orderExpertsByIds(experts, DEFAULT_MODEL_IDS);

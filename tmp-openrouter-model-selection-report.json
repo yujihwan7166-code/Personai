@@ -1,0 +1,2508 @@
+{
+  "fetchedAt": "2026-06-12T20:25:59.508Z",
+  "source": "https://openrouter.ai/api/v1/models",
+  "totalOpenRouterModels": 337,
+  "existingAiIds": 619,
+  "existingOpenrouterModels": 53,
+  "existingOverrides": 55,
+  "existingMissingOpenrouterModels": [],
+  "selectedCount": 126,
+  "selectedProviders": {
+    "OpenAI": 14,
+    "Google": 1,
+    "Perplexity": 1,
+    "DeepSeek": 10,
+    "Alibaba Qwen": 24,
+    "Meta": 9,
+    "Mistral AI": 6,
+    "Cohere": 2,
+    "Microsoft": 2,
+    "Amazon": 1,
+    "NVIDIA": 7,
+    "Moonshot AI": 2,
+    "Z.ai": 7,
+    "MiniMax": 5,
+    "Tencent": 1,
+    "IBM": 1,
+    "Arcee AI": 4,
+    "InclusionAI": 3,
+    "Poolside": 2,
+    "Liquid AI": 3,
+    "KwaiPilot": 1,
+    "Essential AI": 1,
+    "Reka AI": 1,
+    "Aion Labs": 4,
+    "Nous Research": 5,
+    "Morph": 2,
+    "Prime Intellect": 1,
+    "Ai2": 1,
+    "Deep Cogito": 1,
+    "Relace": 2,
+    "Switchpoint": 1,
+    "Inflection AI": 1
+  },
+  "selected": [
+    {
+      "id": "or-openai-gpt-oss-120b",
+      "name": "gpt-oss-120b",
+      "openrouterModel": "openai/gpt-oss-120b",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 131072,
+      "createdAt": "2025-08-05"
+    },
+    {
+      "id": "or-google-gemma-2-27b-it",
+      "name": "Gemma 2 27B",
+      "openrouterModel": "google/gemma-2-27b-it",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Google",
+      "contextLength": 8192,
+      "createdAt": "2024-07-13"
+    },
+    {
+      "id": "or-perplexity-sonar-deep-research",
+      "name": "Sonar Deep Research",
+      "openrouterModel": "perplexity/sonar-deep-research",
+      "tags": [
+        "추론",
+        "검색",
+        "범용"
+      ],
+      "provider": "Perplexity",
+      "contextLength": 128000,
+      "createdAt": "2025-03-07"
+    },
+    {
+      "id": "or-deepseek-deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "openrouterModel": "deepseek/deepseek-v4-pro",
+      "tags": [
+        "추론",
+        "코딩",
+        "장문맥",
+        "저비용"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 1048576,
+      "createdAt": "2026-04-24"
+    },
+    {
+      "id": "or-qwen-qwen3-7-max",
+      "name": "Qwen3.7 Max",
+      "openrouterModel": "qwen/qwen3.7-max",
+      "tags": [
+        "추론",
+        "코딩",
+        "장문맥",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2026-05-21"
+    },
+    {
+      "id": "or-meta-llama-llama-3-2-3b-instruct",
+      "name": "Llama 3.2 3B Instruct",
+      "openrouterModel": "meta-llama/llama-3.2-3b-instruct",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-09-25"
+    },
+    {
+      "id": "or-mistralai-mistral-large-2407",
+      "name": "Mistral Large 2407",
+      "openrouterModel": "mistralai/mistral-large-2407",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 131072,
+      "createdAt": "2024-11-19"
+    },
+    {
+      "id": "or-cohere-command-r-08-2024",
+      "name": "Command R (08-2024)",
+      "openrouterModel": "cohere/command-r-08-2024",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용"
+      ],
+      "provider": "Cohere",
+      "contextLength": 128000,
+      "createdAt": "2024-08-30"
+    },
+    {
+      "id": "or-microsoft-phi-4-mini-instruct",
+      "name": "Phi 4 Mini Instruct",
+      "openrouterModel": "microsoft/phi-4-mini-instruct",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "고속"
+      ],
+      "provider": "Microsoft",
+      "contextLength": 131072,
+      "createdAt": "2025-10-17"
+    },
+    {
+      "id": "or-amazon-nova-micro-v1",
+      "name": "Nova Micro 1.0",
+      "openrouterModel": "amazon/nova-micro-v1",
+      "tags": [
+        "저비용",
+        "범용",
+        "업무"
+      ],
+      "provider": "Amazon",
+      "contextLength": 128000,
+      "createdAt": "2024-12-05"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-nano-30b-a3b",
+      "name": "Nemotron 3 Nano 30B A3B",
+      "openrouterModel": "nvidia/nemotron-3-nano-30b-a3b",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 262144,
+      "createdAt": "2025-12-14"
+    },
+    {
+      "id": "or-moonshotai-kimi-k2-0905",
+      "name": "Kimi K2 0905",
+      "openrouterModel": "moonshotai/kimi-k2-0905",
+      "tags": [
+        "중국어",
+        "범용",
+        "업무"
+      ],
+      "provider": "Moonshot AI",
+      "contextLength": 262144,
+      "createdAt": "2025-09-04"
+    },
+    {
+      "id": "or-z-ai-glm-5",
+      "name": "GLM 5",
+      "openrouterModel": "z-ai/glm-5",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 202752,
+      "createdAt": "2026-02-11"
+    },
+    {
+      "id": "or-minimax-minimax-m2-5",
+      "name": "MiniMax M2.5",
+      "openrouterModel": "minimax/minimax-m2.5",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "고속"
+      ],
+      "provider": "MiniMax",
+      "contextLength": 204800,
+      "createdAt": "2026-02-12"
+    },
+    {
+      "id": "or-tencent-hy3-preview",
+      "name": "Hy3 preview",
+      "openrouterModel": "tencent/hy3-preview",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "중국어"
+      ],
+      "provider": "Tencent",
+      "contextLength": 262144,
+      "createdAt": "2026-04-22"
+    },
+    {
+      "id": "or-ibm-granite-granite-4-1-8b",
+      "name": "Granite 4.1 8B",
+      "openrouterModel": "ibm-granite/granite-4.1-8b",
+      "tags": [
+        "저비용",
+        "범용",
+        "업무"
+      ],
+      "provider": "IBM",
+      "contextLength": 131072,
+      "createdAt": "2026-04-30"
+    },
+    {
+      "id": "or-qwen-qwen3-6-max-preview",
+      "name": "Qwen3.6 Max Preview",
+      "openrouterModel": "qwen/qwen3.6-max-preview",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2026-04-27"
+    },
+    {
+      "id": "or-openai-gpt-oss-120b-free",
+      "name": "gpt-oss-120b Free",
+      "openrouterModel": "openai/gpt-oss-120b:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 131072,
+      "createdAt": "2025-08-05"
+    },
+    {
+      "id": "or-qwen-qwen3-next-80b-a3b-thinking",
+      "name": "Qwen3 Next 80B A3B Thinking",
+      "openrouterModel": "qwen/qwen3-next-80b-a3b-thinking",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-11"
+    },
+    {
+      "id": "or-qwen-qwen3-next-80b-a3b-instruct",
+      "name": "Qwen3 Next 80B A3B Instruct",
+      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-11"
+    },
+    {
+      "id": "or-qwen-qwen3-coder",
+      "name": "Qwen3 Coder 480B A35B",
+      "openrouterModel": "qwen/qwen3-coder",
+      "tags": [
+        "추론",
+        "코딩",
+        "장문맥",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1048576,
+      "createdAt": "2025-07-23"
+    },
+    {
+      "id": "or-qwen-qwen3-next-80b-a3b-instruct-free",
+      "name": "Qwen3 Next 80B A3B Instruct Free",
+      "openrouterModel": "qwen/qwen3-next-80b-a3b-instruct:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-11"
+    },
+    {
+      "id": "or-openai-o3-mini",
+      "name": "o3 Mini",
+      "openrouterModel": "openai/o3-mini",
+      "tags": [
+        "추론",
+        "코딩",
+        "고속"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-01-31"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-free",
+      "name": "Qwen3 Coder 480B A35B Free",
+      "openrouterModel": "qwen/qwen3-coder:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "장문맥",
+        "무료"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1048576,
+      "createdAt": "2025-07-23"
+    },
+    {
+      "id": "or-deepseek-deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "openrouterModel": "deepseek/deepseek-v4-flash",
+      "tags": [
+        "추론",
+        "장문맥",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 1048576,
+      "createdAt": "2026-04-24"
+    },
+    {
+      "id": "or-deepseek-deepseek-v3-2",
+      "name": "DeepSeek V3.2",
+      "openrouterModel": "deepseek/deepseek-v3.2",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 131072,
+      "createdAt": "2025-12-01"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-next",
+      "name": "Qwen3 Coder Next",
+      "openrouterModel": "qwen/qwen3-coder-next",
+      "tags": [
+        "코딩",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2026-02-04"
+    },
+    {
+      "id": "or-openai-gpt-oss-20b",
+      "name": "gpt-oss-20b",
+      "openrouterModel": "openai/gpt-oss-20b",
+      "tags": [
+        "추론",
+        "저비용",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 131072,
+      "createdAt": "2025-08-05"
+    },
+    {
+      "id": "or-qwen-qwen3-max",
+      "name": "Qwen3 Max",
+      "openrouterModel": "qwen/qwen3-max",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-09-23"
+    },
+    {
+      "id": "or-openai-gpt-oss-20b-free",
+      "name": "gpt-oss-20b Free",
+      "openrouterModel": "openai/gpt-oss-20b:free",
+      "tags": [
+        "추론",
+        "무료",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 131072,
+      "createdAt": "2025-08-05"
+    },
+    {
+      "id": "or-qwen-qwen-plus-2025-07-28-thinking",
+      "name": "Qwen Plus 0728 (thinking)",
+      "openrouterModel": "qwen/qwen-plus-2025-07-28:thinking",
+      "tags": [
+        "추론",
+        "장문맥",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-08"
+    },
+    {
+      "id": "or-qwen-qwen-plus-2025-07-28",
+      "name": "Qwen Plus 0728",
+      "openrouterModel": "qwen/qwen-plus-2025-07-28",
+      "tags": [
+        "추론",
+        "장문맥",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-08"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-plus",
+      "name": "Qwen3 Coder Plus",
+      "openrouterModel": "qwen/qwen3-coder-plus",
+      "tags": [
+        "코딩",
+        "장문맥",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-23"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-flash",
+      "name": "Qwen3 Coder Flash",
+      "openrouterModel": "qwen/qwen3-coder-flash",
+      "tags": [
+        "코딩",
+        "장문맥",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 1000000,
+      "createdAt": "2025-09-17"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b-thinking-2507",
+      "name": "Qwen3 235B A22B Thinking 2507",
+      "openrouterModel": "qwen/qwen3-235b-a22b-thinking-2507",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-07-25"
+    },
+    {
+      "id": "or-openai-o3-mini-high",
+      "name": "o3 Mini High",
+      "openrouterModel": "openai/o3-mini-high",
+      "tags": [
+        "추론",
+        "고속",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 200000,
+      "createdAt": "2025-02-12"
+    },
+    {
+      "id": "or-qwen-qwen-2-5-coder-32b-instruct",
+      "name": "Qwen2.5 Coder 32B Instruct",
+      "openrouterModel": "qwen/qwen-2.5-coder-32b-instruct",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 128000,
+      "createdAt": "2024-11-11"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-ultra-550b-a55b",
+      "name": "Nemotron 3 Ultra",
+      "openrouterModel": "nvidia/nemotron-3-ultra-550b-a55b",
+      "tags": [
+        "추론",
+        "장문맥",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 1000000,
+      "createdAt": "2026-06-04"
+    },
+    {
+      "id": "or-arcee-ai-trinity-large-thinking",
+      "name": "Trinity Large Thinking",
+      "openrouterModel": "arcee-ai/trinity-large-thinking",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Arcee AI",
+      "contextLength": 262144,
+      "createdAt": "2026-04-01"
+    },
+    {
+      "id": "or-z-ai-glm-4-7-flash",
+      "name": "GLM 4.7 Flash",
+      "openrouterModel": "z-ai/glm-4.7-flash",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 202752,
+      "createdAt": "2026-01-19"
+    },
+    {
+      "id": "or-inclusionai-ring-2-6-1t",
+      "name": "Ring-2.6-1T",
+      "openrouterModel": "inclusionai/ring-2.6-1t",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "InclusionAI",
+      "contextLength": 262144,
+      "createdAt": "2026-05-08"
+    },
+    {
+      "id": "or-deepseek-deepseek-v3-2-exp",
+      "name": "DeepSeek V3.2 Exp",
+      "openrouterModel": "deepseek/deepseek-v3.2-exp",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 163840,
+      "createdAt": "2025-09-29"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-ultra-550b-a55b-free",
+      "name": "Nemotron 3 Ultra Free",
+      "openrouterModel": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "tags": [
+        "추론",
+        "장문맥",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 1000000,
+      "createdAt": "2026-06-04"
+    },
+    {
+      "id": "or-deepseek-deepseek-v3-1-terminus",
+      "name": "DeepSeek V3.1 Terminus",
+      "openrouterModel": "deepseek/deepseek-v3.1-terminus",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 163840,
+      "createdAt": "2025-09-22"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b-thinking-2507",
+      "name": "Qwen3 30B A3B Thinking 2507",
+      "openrouterModel": "qwen/qwen3-30b-a3b-thinking-2507",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-08-28"
+    },
+    {
+      "id": "or-z-ai-glm-4-7",
+      "name": "GLM 4.7",
+      "openrouterModel": "z-ai/glm-4.7",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 202752,
+      "createdAt": "2025-12-22"
+    },
+    {
+      "id": "or-nvidia-llama-3-3-nemotron-super-49b-v1-5",
+      "name": "Llama 3.3 Nemotron Super 49B V1.5",
+      "openrouterModel": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 131072,
+      "createdAt": "2025-10-10"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen3 30B A3B Instruct 2507",
+      "openrouterModel": "qwen/qwen3-30b-a3b-instruct-2507",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-07-29"
+    },
+    {
+      "id": "or-deepseek-deepseek-chat-v3-1",
+      "name": "DeepSeek V3.1",
+      "openrouterModel": "deepseek/deepseek-chat-v3.1",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 163840,
+      "createdAt": "2025-08-21"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-nano-30b-a3b-free",
+      "name": "Nemotron 3 Nano 30B A3B Free",
+      "openrouterModel": "nvidia/nemotron-3-nano-30b-a3b:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 256000,
+      "createdAt": "2025-12-14"
+    },
+    {
+      "id": "or-poolside-laguna-xs-2-free",
+      "name": "Laguna XS.2 Free",
+      "openrouterModel": "poolside/laguna-xs.2:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료"
+      ],
+      "provider": "Poolside",
+      "contextLength": 262144,
+      "createdAt": "2026-04-28"
+    },
+    {
+      "id": "or-poolside-laguna-m-1-free",
+      "name": "Laguna M.1 Free",
+      "openrouterModel": "poolside/laguna-m.1:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료"
+      ],
+      "provider": "Poolside",
+      "contextLength": 262144,
+      "createdAt": "2026-04-28"
+    },
+    {
+      "id": "or-minimax-minimax-m2-1",
+      "name": "MiniMax M2.1",
+      "openrouterModel": "minimax/minimax-m2.1",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "고속"
+      ],
+      "provider": "MiniMax",
+      "contextLength": 204800,
+      "createdAt": "2025-12-23"
+    },
+    {
+      "id": "or-z-ai-glm-5-turbo",
+      "name": "GLM 5 Turbo",
+      "openrouterModel": "z-ai/glm-5-turbo",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "고속",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 262144,
+      "createdAt": "2026-03-15"
+    },
+    {
+      "id": "or-qwen-qwen3-coder-30b-a3b-instruct",
+      "name": "Qwen3 Coder 30B A3B Instruct",
+      "openrouterModel": "qwen/qwen3-coder-30b-a3b-instruct",
+      "tags": [
+        "코딩",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 160000,
+      "createdAt": "2025-07-31"
+    },
+    {
+      "id": "or-nvidia-nemotron-3-super-120b-a12b-free",
+      "name": "Nemotron 3 Super Free",
+      "openrouterModel": "nvidia/nemotron-3-super-120b-a12b:free",
+      "tags": [
+        "추론",
+        "장문맥",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 1000000,
+      "createdAt": "2026-03-11"
+    },
+    {
+      "id": "or-minimax-minimax-m2",
+      "name": "MiniMax M2",
+      "openrouterModel": "minimax/minimax-m2",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "고속"
+      ],
+      "provider": "MiniMax",
+      "contextLength": 204800,
+      "createdAt": "2025-10-23"
+    },
+    {
+      "id": "or-deepseek-deepseek-r1-0528",
+      "name": "R1 0528",
+      "openrouterModel": "deepseek/deepseek-r1-0528",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 163840,
+      "createdAt": "2025-05-28"
+    },
+    {
+      "id": "or-qwen-qwen3-30b-a3b",
+      "name": "Qwen3 30B A3B",
+      "openrouterModel": "qwen/qwen3-30b-a3b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-8b",
+      "name": "Qwen3 8B",
+      "openrouterModel": "qwen/qwen3-8b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-14b",
+      "name": "Qwen3 14B",
+      "openrouterModel": "qwen/qwen3-14b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131702,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-32b",
+      "name": "Qwen3 32B",
+      "openrouterModel": "qwen/qwen3-32b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b",
+      "name": "Qwen3 235B A22B",
+      "openrouterModel": "qwen/qwen3-235b-a22b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 131072,
+      "createdAt": "2025-04-28"
+    },
+    {
+      "id": "or-qwen-qwen3-235b-a22b-2507",
+      "name": "Qwen3 235B A22B Instruct 2507",
+      "openrouterModel": "qwen/qwen3-235b-a22b-2507",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Alibaba Qwen",
+      "contextLength": 262144,
+      "createdAt": "2025-07-21"
+    },
+    {
+      "id": "or-deepseek-deepseek-r1-distill-qwen-32b",
+      "name": "R1 Distill Qwen 32B",
+      "openrouterModel": "deepseek/deepseek-r1-distill-qwen-32b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 128000,
+      "createdAt": "2025-01-29"
+    },
+    {
+      "id": "or-openai-gpt-3-5-turbo-0613",
+      "name": "GPT-3.5 Turbo (older v0613)",
+      "openrouterModel": "openai/gpt-3.5-turbo-0613",
+      "tags": [
+        "코딩",
+        "고속",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 4095,
+      "createdAt": "2024-01-25"
+    },
+    {
+      "id": "or-deepseek-deepseek-r1-distill-llama-70b",
+      "name": "R1 Distill Llama 70B",
+      "openrouterModel": "deepseek/deepseek-r1-distill-llama-70b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 128000,
+      "createdAt": "2025-01-23"
+    },
+    {
+      "id": "or-openai-gpt-4",
+      "name": "GPT-4",
+      "openrouterModel": "openai/gpt-4",
+      "tags": [
+        "추론",
+        "범용",
+        "업무"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 8191,
+      "createdAt": "2023-05-28"
+    },
+    {
+      "id": "or-openai-gpt-3-5-turbo",
+      "name": "GPT-3.5 Turbo",
+      "openrouterModel": "openai/gpt-3.5-turbo",
+      "tags": [
+        "코딩",
+        "고속",
+        "범용"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 16385,
+      "createdAt": "2023-05-28"
+    },
+    {
+      "id": "or-deepseek-deepseek-chat",
+      "name": "DeepSeek V3",
+      "openrouterModel": "deepseek/deepseek-chat",
+      "tags": [
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "DeepSeek",
+      "contextLength": 131072,
+      "createdAt": "2024-12-26"
+    },
+    {
+      "id": "or-mistralai-mistral-large",
+      "name": "Mistral Large",
+      "openrouterModel": "mistralai/mistral-large",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 128000,
+      "createdAt": "2024-02-26"
+    },
+    {
+      "id": "or-liquid-lfm-2-5-1-2b-thinking-free",
+      "name": "LFM2.5-1.2B-Thinking Free",
+      "openrouterModel": "liquid/lfm-2.5-1.2b-thinking:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "Liquid AI",
+      "contextLength": 32768,
+      "createdAt": "2026-01-20"
+    },
+    {
+      "id": "or-minimax-minimax-m1",
+      "name": "MiniMax M1",
+      "openrouterModel": "minimax/minimax-m1",
+      "tags": [
+        "추론",
+        "장문맥",
+        "고속"
+      ],
+      "provider": "MiniMax",
+      "contextLength": 1000000,
+      "createdAt": "2025-06-17"
+    },
+    {
+      "id": "or-openai-gpt-4o-mini-search-preview",
+      "name": "GPT-4o-mini Search Preview",
+      "openrouterModel": "openai/gpt-4o-mini-search-preview",
+      "tags": [
+        "저비용",
+        "검색",
+        "고속"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2025-03-12"
+    },
+    {
+      "id": "or-openai-gpt-4o-search-preview",
+      "name": "GPT-4o Search Preview",
+      "openrouterModel": "openai/gpt-4o-search-preview",
+      "tags": [
+        "검색",
+        "범용",
+        "업무"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2025-03-12"
+    },
+    {
+      "id": "or-z-ai-glm-4-6",
+      "name": "GLM 4.6",
+      "openrouterModel": "z-ai/glm-4.6",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 202752,
+      "createdAt": "2025-09-30"
+    },
+    {
+      "id": "or-kwaipilot-kat-coder-pro-v2",
+      "name": "KAT-Coder-Pro V2",
+      "openrouterModel": "kwaipilot/kat-coder-pro-v2",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용"
+      ],
+      "provider": "KwaiPilot",
+      "contextLength": 256000,
+      "createdAt": "2026-03-27"
+    },
+    {
+      "id": "or-meta-llama-llama-3-2-3b-instruct-free",
+      "name": "Llama 3.2 3B Instruct Free",
+      "openrouterModel": "meta-llama/llama-3.2-3b-instruct:free",
+      "tags": [
+        "추론",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-09-25"
+    },
+    {
+      "id": "or-nvidia-nemotron-nano-9b-v2-free",
+      "name": "Nemotron Nano 9B V2 Free",
+      "openrouterModel": "nvidia/nemotron-nano-9b-v2:free",
+      "tags": [
+        "추론",
+        "무료",
+        "오픈웨이트",
+        "고속"
+      ],
+      "provider": "NVIDIA",
+      "contextLength": 128000,
+      "createdAt": "2025-09-05"
+    },
+    {
+      "id": "or-z-ai-glm-4-5",
+      "name": "GLM 4.5",
+      "openrouterModel": "z-ai/glm-4.5",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 131072,
+      "createdAt": "2025-07-25"
+    },
+    {
+      "id": "or-z-ai-glm-4-5-air",
+      "name": "GLM 4.5 Air",
+      "openrouterModel": "z-ai/glm-4.5-air",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "중국어"
+      ],
+      "provider": "Z.ai",
+      "contextLength": 131072,
+      "createdAt": "2025-07-25"
+    },
+    {
+      "id": "or-essentialai-rnj-1-instruct",
+      "name": "Rnj 1 Instruct",
+      "openrouterModel": "essentialai/rnj-1-instruct",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용"
+      ],
+      "provider": "Essential AI",
+      "contextLength": 32768,
+      "createdAt": "2025-12-07"
+    },
+    {
+      "id": "or-cohere-command-r7b-12-2024",
+      "name": "Command R7B (12-2024)",
+      "openrouterModel": "cohere/command-r7b-12-2024",
+      "tags": [
+        "추론",
+        "저비용",
+        "범용"
+      ],
+      "provider": "Cohere",
+      "contextLength": 128000,
+      "createdAt": "2024-12-14"
+    },
+    {
+      "id": "or-rekaai-reka-flash-3",
+      "name": "Reka Flash 3",
+      "openrouterModel": "rekaai/reka-flash-3",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Reka AI",
+      "contextLength": 65536,
+      "createdAt": "2025-03-12"
+    },
+    {
+      "id": "or-openai-gpt-3-5-turbo-instruct",
+      "name": "GPT-3.5 Turbo Instruct",
+      "openrouterModel": "openai/gpt-3.5-turbo-instruct",
+      "tags": [
+        "고속",
+        "범용",
+        "업무"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 4095,
+      "createdAt": "2023-09-28"
+    },
+    {
+      "id": "or-openai-gpt-3-5-turbo-16k",
+      "name": "GPT-3.5 Turbo 16k",
+      "openrouterModel": "openai/gpt-3.5-turbo-16k",
+      "tags": [
+        "고속",
+        "범용",
+        "업무"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 16385,
+      "createdAt": "2023-08-28"
+    },
+    {
+      "id": "or-mistralai-mixtral-8x22b-instruct",
+      "name": "Mixtral 8x22B Instruct",
+      "openrouterModel": "mistralai/mixtral-8x22b-instruct",
+      "tags": [
+        "코딩",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 65536,
+      "createdAt": "2024-04-17"
+    },
+    {
+      "id": "or-aion-labs-aion-1-0",
+      "name": "Aion-1.0",
+      "openrouterModel": "aion-labs/aion-1.0",
+      "tags": [
+        "추론",
+        "코딩",
+        "범용"
+      ],
+      "provider": "Aion Labs",
+      "contextLength": 131072,
+      "createdAt": "2025-02-04"
+    },
+    {
+      "id": "or-aion-labs-aion-1-0-mini",
+      "name": "Aion-1.0-Mini",
+      "openrouterModel": "aion-labs/aion-1.0-mini",
+      "tags": [
+        "추론",
+        "코딩",
+        "고속"
+      ],
+      "provider": "Aion Labs",
+      "contextLength": 131072,
+      "createdAt": "2025-02-04"
+    },
+    {
+      "id": "or-nousresearch-hermes-3-llama-3-1-70b",
+      "name": "Hermes 3 70B Instruct",
+      "openrouterModel": "nousresearch/hermes-3-llama-3.1-70b",
+      "tags": [
+        "추론",
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Nous Research",
+      "contextLength": 131072,
+      "createdAt": "2024-08-18"
+    },
+    {
+      "id": "or-nousresearch-hermes-3-llama-3-1-405b",
+      "name": "Hermes 3 405B Instruct",
+      "openrouterModel": "nousresearch/hermes-3-llama-3.1-405b",
+      "tags": [
+        "추론",
+        "코딩",
+        "오픈웨이트",
+        "검색"
+      ],
+      "provider": "Nous Research",
+      "contextLength": 131072,
+      "createdAt": "2024-08-16"
+    },
+    {
+      "id": "or-arcee-ai-trinity-mini",
+      "name": "Trinity Mini",
+      "openrouterModel": "arcee-ai/trinity-mini",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "고속"
+      ],
+      "provider": "Arcee AI",
+      "contextLength": 131072,
+      "createdAt": "2025-12-01"
+    },
+    {
+      "id": "or-aion-labs-aion-2-0",
+      "name": "Aion-2.0",
+      "openrouterModel": "aion-labs/aion-2.0",
+      "tags": [
+        "추론",
+        "범용",
+        "업무"
+      ],
+      "provider": "Aion Labs",
+      "contextLength": 131072,
+      "createdAt": "2026-02-23"
+    },
+    {
+      "id": "or-nousresearch-hermes-4-70b",
+      "name": "Hermes 4 70B",
+      "openrouterModel": "nousresearch/hermes-4-70b",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트",
+        "검색"
+      ],
+      "provider": "Nous Research",
+      "contextLength": 131072,
+      "createdAt": "2025-08-26"
+    },
+    {
+      "id": "or-nousresearch-hermes-4-405b",
+      "name": "Hermes 4 405B",
+      "openrouterModel": "nousresearch/hermes-4-405b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "검색"
+      ],
+      "provider": "Nous Research",
+      "contextLength": 131072,
+      "createdAt": "2025-08-26"
+    },
+    {
+      "id": "or-morph-morph-v3-large",
+      "name": "Morph V3 Large",
+      "openrouterModel": "morph/morph-v3-large",
+      "tags": [
+        "코딩",
+        "범용",
+        "업무"
+      ],
+      "provider": "Morph",
+      "contextLength": 262144,
+      "createdAt": "2025-07-07"
+    },
+    {
+      "id": "or-openai-gpt-4-turbo-preview",
+      "name": "GPT-4 Turbo Preview",
+      "openrouterModel": "openai/gpt-4-turbo-preview",
+      "tags": [
+        "고속",
+        "범용",
+        "업무"
+      ],
+      "provider": "OpenAI",
+      "contextLength": 128000,
+      "createdAt": "2024-01-25"
+    },
+    {
+      "id": "or-mistralai-mistral-saba",
+      "name": "Saba",
+      "openrouterModel": "mistralai/mistral-saba",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 32768,
+      "createdAt": "2025-02-17"
+    },
+    {
+      "id": "or-nousresearch-hermes-3-llama-3-1-405b-free",
+      "name": "Hermes 3 405B Instruct Free",
+      "openrouterModel": "nousresearch/hermes-3-llama-3.1-405b:free",
+      "tags": [
+        "추론",
+        "코딩",
+        "무료",
+        "오픈웨이트"
+      ],
+      "provider": "Nous Research",
+      "contextLength": 131072,
+      "createdAt": "2024-08-16"
+    },
+    {
+      "id": "or-meta-llama-llama-3-3-70b-instruct",
+      "name": "Llama 3.3 70B Instruct",
+      "openrouterModel": "meta-llama/llama-3.3-70b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-12-06"
+    },
+    {
+      "id": "or-mistralai-mistral-small-24b-instruct-2501",
+      "name": "Mistral Small 3",
+      "openrouterModel": "mistralai/mistral-small-24b-instruct-2501",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "고속"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 32768,
+      "createdAt": "2025-01-30"
+    },
+    {
+      "id": "or-inclusionai-ling-2-6-1t",
+      "name": "Ling-2.6-1T",
+      "openrouterModel": "inclusionai/ling-2.6-1t",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "InclusionAI",
+      "contextLength": 262144,
+      "createdAt": "2026-04-23"
+    },
+    {
+      "id": "or-inclusionai-ling-2-6-flash",
+      "name": "Ling-2.6-flash",
+      "openrouterModel": "inclusionai/ling-2.6-flash",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "고속"
+      ],
+      "provider": "InclusionAI",
+      "contextLength": 262144,
+      "createdAt": "2026-04-21"
+    },
+    {
+      "id": "or-minimax-minimax-m2-her",
+      "name": "MiniMax M2-her",
+      "openrouterModel": "minimax/minimax-m2-her",
+      "tags": [
+        "저비용",
+        "고속",
+        "범용"
+      ],
+      "provider": "MiniMax",
+      "contextLength": 65536,
+      "createdAt": "2026-01-23"
+    },
+    {
+      "id": "or-moonshotai-kimi-k2",
+      "name": "Kimi K2 0711",
+      "openrouterModel": "moonshotai/kimi-k2",
+      "tags": [
+        "중국어",
+        "범용",
+        "업무"
+      ],
+      "provider": "Moonshot AI",
+      "contextLength": 131072,
+      "createdAt": "2025-07-11"
+    },
+    {
+      "id": "or-prime-intellect-intellect-3",
+      "name": "INTELLECT-3",
+      "openrouterModel": "prime-intellect/intellect-3",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Prime Intellect",
+      "contextLength": 131072,
+      "createdAt": "2025-11-27"
+    },
+    {
+      "id": "or-allenai-olmo-3-32b-think",
+      "name": "Olmo 3 32B Think",
+      "openrouterModel": "allenai/olmo-3-32b-think",
+      "tags": [
+        "추론",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Ai2",
+      "contextLength": 65536,
+      "createdAt": "2025-11-21"
+    },
+    {
+      "id": "or-meta-llama-llama-3-3-70b-instruct-free",
+      "name": "Llama 3.3 70B Instruct Free",
+      "openrouterModel": "meta-llama/llama-3.3-70b-instruct:free",
+      "tags": [
+        "무료",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-12-06"
+    },
+    {
+      "id": "or-meta-llama-llama-3-2-1b-instruct",
+      "name": "Llama 3.2 1B Instruct",
+      "openrouterModel": "meta-llama/llama-3.2-1b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-09-25"
+    },
+    {
+      "id": "or-deepcogito-cogito-v2-1-671b",
+      "name": "Cogito v2.1 671B",
+      "openrouterModel": "deepcogito/cogito-v2.1-671b",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Deep Cogito",
+      "contextLength": 128000,
+      "createdAt": "2025-11-13"
+    },
+    {
+      "id": "or-meta-llama-llama-3-1-8b-instruct",
+      "name": "Llama 3.1 8B Instruct",
+      "openrouterModel": "meta-llama/llama-3.1-8b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-07-23"
+    },
+    {
+      "id": "or-meta-llama-llama-3-1-70b-instruct",
+      "name": "Llama 3.1 70B Instruct",
+      "openrouterModel": "meta-llama/llama-3.1-70b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 131072,
+      "createdAt": "2024-07-23"
+    },
+    {
+      "id": "or-arcee-ai-virtuoso-large",
+      "name": "Virtuoso Large",
+      "openrouterModel": "arcee-ai/virtuoso-large",
+      "tags": [
+        "추론",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Arcee AI",
+      "contextLength": 131072,
+      "createdAt": "2025-05-05"
+    },
+    {
+      "id": "or-relace-relace-search",
+      "name": "Relace Search",
+      "openrouterModel": "relace/relace-search",
+      "tags": [
+        "코딩",
+        "검색",
+        "범용"
+      ],
+      "provider": "Relace",
+      "contextLength": 256000,
+      "createdAt": "2025-12-08"
+    },
+    {
+      "id": "or-arcee-ai-coder-large",
+      "name": "Coder Large",
+      "openrouterModel": "arcee-ai/coder-large",
+      "tags": [
+        "코딩",
+        "저비용",
+        "오픈웨이트"
+      ],
+      "provider": "Arcee AI",
+      "contextLength": 32768,
+      "createdAt": "2025-05-05"
+    },
+    {
+      "id": "or-mistralai-mistral-nemo",
+      "name": "Mistral Nemo",
+      "openrouterModel": "mistralai/mistral-nemo",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Mistral AI",
+      "contextLength": 131072,
+      "createdAt": "2024-07-19"
+    },
+    {
+      "id": "or-meta-llama-llama-3-8b-instruct",
+      "name": "Llama 3 8B Instruct",
+      "openrouterModel": "meta-llama/llama-3-8b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 8192,
+      "createdAt": "2024-04-18"
+    },
+    {
+      "id": "or-meta-llama-llama-3-70b-instruct",
+      "name": "Llama 3 70B Instruct",
+      "openrouterModel": "meta-llama/llama-3-70b-instruct",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Meta",
+      "contextLength": 8192,
+      "createdAt": "2024-04-18"
+    },
+    {
+      "id": "or-morph-morph-v3-fast",
+      "name": "Morph V3 Fast",
+      "openrouterModel": "morph/morph-v3-fast",
+      "tags": [
+        "코딩",
+        "고속",
+        "범용"
+      ],
+      "provider": "Morph",
+      "contextLength": 81920,
+      "createdAt": "2025-07-07"
+    },
+    {
+      "id": "or-relace-relace-apply-3",
+      "name": "Relace Apply 3",
+      "openrouterModel": "relace/relace-apply-3",
+      "tags": [
+        "코딩",
+        "범용",
+        "업무"
+      ],
+      "provider": "Relace",
+      "contextLength": 256000,
+      "createdAt": "2025-09-26"
+    },
+    {
+      "id": "or-liquid-lfm-2-24b-a2b",
+      "name": "LFM2-24B-A2B",
+      "openrouterModel": "liquid/lfm-2-24b-a2b",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Liquid AI",
+      "contextLength": 128000,
+      "createdAt": "2026-02-25"
+    },
+    {
+      "id": "or-switchpoint-router",
+      "name": "Switchpoint Router",
+      "openrouterModel": "switchpoint/router",
+      "tags": [
+        "추론",
+        "범용",
+        "업무"
+      ],
+      "provider": "Switchpoint",
+      "contextLength": 131072,
+      "createdAt": "2025-07-11"
+    },
+    {
+      "id": "or-liquid-lfm-2-5-1-2b-instruct-free",
+      "name": "LFM2.5-1.2B-Instruct Free",
+      "openrouterModel": "liquid/lfm-2.5-1.2b-instruct:free",
+      "tags": [
+        "무료",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Liquid AI",
+      "contextLength": 32768,
+      "createdAt": "2026-01-20"
+    },
+    {
+      "id": "or-microsoft-wizardlm-2-8x22b",
+      "name": "WizardLM-2 8x22B",
+      "openrouterModel": "microsoft/wizardlm-2-8x22b",
+      "tags": [
+        "저비용",
+        "오픈웨이트",
+        "범용"
+      ],
+      "provider": "Microsoft",
+      "contextLength": 65536,
+      "createdAt": "2024-04-16"
+    },
+    {
+      "id": "or-aion-labs-aion-rp-llama-3-1-8b",
+      "name": "Aion-RP 1.0 (8B)",
+      "openrouterModel": "aion-labs/aion-rp-llama-3.1-8b",
+      "tags": [
+        "범용",
+        "업무"
+      ],
+      "provider": "Aion Labs",
+      "contextLength": 32768,
+      "createdAt": "2025-02-04"
+    },
+    {
+      "id": "or-inflection-inflection-3-productivity",
+      "name": "Inflection 3 Productivity",
+      "openrouterModel": "inflection/inflection-3-productivity",
+      "tags": [
+        "범용",
+        "업무"
+      ],
+      "provider": "Inflection AI",
+      "contextLength": 8000,
+      "createdAt": "2024-10-11"
+    }
+  ],
+  "topCandidates": [
+    {
+      "id": "qwen/qwen3.7-max",
+      "name": "Qwen: Qwen3.7 Max",
+      "score": 192.6884305,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "deepseek/deepseek-v4-pro",
+      "name": "DeepSeek: DeepSeek V4 Pro",
+      "score": 190.5003395,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "name": "OpenAI: gpt-oss-120b",
+      "score": 185.2071155,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "qwen/qwen3.6-max-preview",
+      "name": "Qwen: Qwen3.6 Max Preview",
+      "score": 183.630121,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/gpt-oss-120b:free",
+      "name": "OpenAI: gpt-oss-120b (free)",
+      "score": 182.2071155,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "qwen/qwen3-next-80b-a3b-thinking",
+      "name": "Qwen: Qwen3 Next 80B A3B Thinking",
+      "score": 181.806142,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-next-80b-a3b-instruct",
+      "name": "Qwen: Qwen3 Next 80B A3B Instruct",
+      "score": 181.8061065,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-coder",
+      "name": "Qwen: Qwen3 Coder 480B A35B",
+      "score": 179.615273,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-next-80b-a3b-instruct:free",
+      "name": "Qwen: Qwen3 Next 80B A3B Instruct (free)",
+      "score": 178.8061065,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/o3-mini",
+      "name": "OpenAI: o3 Mini",
+      "score": 177.1758605,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "qwen/qwen3-coder:free",
+      "name": "Qwen: Qwen3 Coder 480B A35B (free)",
+      "score": 176.615273,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash",
+      "name": "DeepSeek: DeepSeek V4 Flash",
+      "score": 172.500333,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "deepseek/deepseek-v3.2",
+      "name": "DeepSeek: DeepSeek V3.2",
+      "score": 172.297321,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "qwen/qwen3-coder-next",
+      "name": "Qwen: Qwen3 Coder Next",
+      "score": 168.0820505,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "name": "OpenAI: gpt-oss-20b",
+      "score": 167.2071145,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b",
+      "name": "NVIDIA: Nemotron 3 Nano 30B A3B",
+      "score": 164.8656375,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "qwen/qwen3-max",
+      "name": "Qwen: Qwen3 Max",
+      "score": 164.331404,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/gpt-oss-20b:free",
+      "name": "OpenAI: gpt-oss-20b (free)",
+      "score": 164.2071145,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "qwen/qwen-plus-2025-07-28:thinking",
+      "name": "Qwen: Qwen Plus 0728 (thinking)",
+      "score": 163.6737995,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen-plus-2025-07-28",
+      "name": "Qwen: Qwen Plus 0728",
+      "score": 163.6737995,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-coder-plus",
+      "name": "Qwen: Qwen3 Coder Plus",
+      "score": 162.3313535,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-coder-flash",
+      "name": "Qwen: Qwen3 Coder Flash",
+      "score": 162.057768,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b-thinking-2507",
+      "name": "Qwen: Qwen3 235B A22B Thinking 2507",
+      "score": 161.7247785,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/o3-mini-high",
+      "name": "OpenAI: o3 Mini High",
+      "score": 159.6863055,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "qwen/qwen-2.5-coder-32b-instruct",
+      "name": "Qwen2.5 Coder 32B Instruct",
+      "score": 156.6842,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "tencent/hy3-preview",
+      "name": "Tencent: Hy3 preview",
+      "score": 156.439075,
+      "provider": "Tencent"
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b",
+      "name": "NVIDIA: Nemotron 3 Ultra",
+      "score": 154.275604,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "z-ai/glm-5",
+      "name": "Z.ai: GLM 5",
+      "score": 153.414591,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "arcee-ai/trinity-large-thinking",
+      "name": "Arcee AI: Trinity Large Thinking",
+      "score": 152.529159,
+      "provider": "Arcee AI"
+    },
+    {
+      "id": "z-ai/glm-4.7-flash",
+      "name": "Z.ai: GLM 4.7 Flash",
+      "score": 152.4169565,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "inclusionai/ring-2.6-1t",
+      "name": "inclusionAI: Ring-2.6-1T",
+      "score": 152.12372,
+      "provider": "InclusionAI"
+    },
+    {
+      "id": "deepseek/deepseek-v3.2-exp",
+      "name": "DeepSeek: DeepSeek V3.2 Exp",
+      "score": 151.5752405,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "minimax/minimax-m2.5",
+      "name": "MiniMax: MiniMax M2.5",
+      "score": 151.454251,
+      "provider": "MiniMax"
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "name": "NVIDIA: Nemotron 3 Ultra (free)",
+      "score": 151.275604,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "deepseek/deepseek-v3.1-terminus",
+      "name": "DeepSeek: DeepSeek V3.1 Terminus",
+      "score": 151.2741375,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b-thinking-2507",
+      "name": "Qwen: Qwen3 30B A3B Thinking 2507",
+      "score": 151.19959599999999,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "z-ai/glm-4.7",
+      "name": "Z.ai: GLM 4.7",
+      "score": 151.189007,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+      "name": "NVIDIA: Llama 3.3 Nemotron Super 49B V1.5",
+      "score": 150.0506975,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen: Qwen3 30B A3B Instruct 2507",
+      "score": 149.9034825,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "deepseek/deepseek-chat-v3.1",
+      "name": "DeepSeek: DeepSeek V3.1",
+      "score": 149.889814,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b:free",
+      "name": "NVIDIA: Nemotron 3 Nano 30B A3B (free)",
+      "score": 149.8656375,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "poolside/laguna-xs.2:free",
+      "name": "Poolside: Laguna XS.2 (free)",
+      "score": 149.694802,
+      "provider": "Poolside"
+    },
+    {
+      "id": "poolside/laguna-m.1:free",
+      "name": "Poolside: Laguna M.1 (free)",
+      "score": 149.694252,
+      "provider": "Poolside"
+    },
+    {
+      "id": "minimax/minimax-m2.1",
+      "name": "MiniMax: MiniMax M2.1",
+      "score": 149.2274985,
+      "provider": "MiniMax"
+    },
+    {
+      "id": "mistralai/mistral-large-2407",
+      "name": "Mistral Large 2407",
+      "score": 148.9892075,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "z-ai/glm-5-turbo",
+      "name": "Z.ai: GLM 5 Turbo",
+      "score": 148.7917865,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "qwen/qwen3-coder-30b-a3b-instruct",
+      "name": "Qwen: Qwen3 Coder 30B A3B Instruct",
+      "score": 147.9861895,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "nvidia/nemotron-3-super-120b-a12b:free",
+      "name": "NVIDIA: Nemotron 3 Super (free)",
+      "score": 147.62261949999998,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "minimax/minimax-m2",
+      "name": "MiniMax: MiniMax M2",
+      "score": 146.6260465,
+      "provider": "MiniMax"
+    },
+    {
+      "id": "deepseek/deepseek-r1-0528",
+      "name": "DeepSeek: R1 0528",
+      "score": 146.227585,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b",
+      "name": "Qwen: Qwen3 30B A3B",
+      "score": 145.939302,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-8b",
+      "name": "Qwen: Qwen3 8B",
+      "score": 145.938316,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-14b",
+      "name": "Qwen: Qwen3 14B",
+      "score": 145.938239,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-32b",
+      "name": "Qwen: Qwen3 32B",
+      "score": 145.9379725,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b",
+      "name": "Qwen: Qwen3 235B A22B",
+      "score": 145.9378785,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b-2507",
+      "name": "Qwen: Qwen3 235B A22B Instruct 2507",
+      "score": 141.5597775,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-qwen-32b",
+      "name": "DeepSeek: R1 Distill Qwen 32B",
+      "score": 141.097415,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-0613",
+      "name": "OpenAI: GPT-3.5 Turbo (older v0613)",
+      "score": 141.0704,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-llama-70b",
+      "name": "DeepSeek: R1 Distill Llama 70B",
+      "score": 140.83158450000002,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "perplexity/sonar-deep-research",
+      "name": "Perplexity: Sonar Deep Research",
+      "score": 140.655623,
+      "provider": "Perplexity"
+    },
+    {
+      "id": "openai/gpt-4",
+      "name": "OpenAI: GPT-4",
+      "score": 140,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "cohere/command-r-08-2024",
+      "name": "Cohere: Command R (08-2024)",
+      "score": 138.488,
+      "provider": "Cohere"
+    },
+    {
+      "id": "openai/gpt-3.5-turbo",
+      "name": "OpenAI: GPT-3.5 Turbo",
+      "score": 138,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "deepseek/deepseek-chat",
+      "name": "DeepSeek: DeepSeek V3",
+      "score": 137.62066,
+      "provider": "DeepSeek"
+    },
+    {
+      "id": "mistralai/mistral-large",
+      "name": "Mistral Large",
+      "score": 137.4528,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "qwen/qwen-2.5-7b-instruct",
+      "name": "Qwen: Qwen2.5 7B Instruct",
+      "score": 135.51839999999999,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "liquid/lfm-2.5-1.2b-thinking:free",
+      "name": "LiquidAI: LFM2.5-1.2B-Thinking (free)",
+      "score": 135.4637635,
+      "provider": "Liquid AI"
+    },
+    {
+      "id": "minimax/minimax-m1",
+      "name": "MiniMax: MiniMax M1",
+      "score": 135.100207,
+      "provider": "MiniMax"
+    },
+    {
+      "id": "qwen/qwen-2.5-72b-instruct",
+      "name": "Qwen2.5 72B Instruct",
+      "score": 134.352,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "qwen/qwen-plus",
+      "name": "Qwen: Qwen-Plus",
+      "score": 134.20492000000002,
+      "provider": "Alibaba Qwen"
+    },
+    {
+      "id": "openai/gpt-4o-mini-search-preview",
+      "name": "OpenAI: GPT-4o-mini Search Preview",
+      "score": 132.909061,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "openai/gpt-4o-search-preview",
+      "name": "OpenAI: GPT-4o Search Preview",
+      "score": 132.9089745,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "microsoft/phi-4-mini-instruct",
+      "name": "Microsoft: Phi 4 Mini Instruct",
+      "score": 132.3630245,
+      "provider": "Microsoft"
+    },
+    {
+      "id": "meta-llama/llama-3.2-3b-instruct",
+      "name": "Meta: Llama 3.2 3B Instruct",
+      "score": 131.6112,
+      "provider": "Meta"
+    },
+    {
+      "id": "z-ai/glm-4.6",
+      "name": "Z.ai: GLM 4.6",
+      "score": 129.61778800000002,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "kwaipilot/kat-coder-pro-v2",
+      "name": "Kwaipilot: KAT-Coder-Pro V2",
+      "score": 129.324655,
+      "provider": "KwaiPilot"
+    },
+    {
+      "id": "meta-llama/llama-3.2-3b-instruct:free",
+      "name": "Meta: Llama 3.2 3B Instruct (free)",
+      "score": 128.6112,
+      "provider": "Meta"
+    },
+    {
+      "id": "nvidia/nemotron-nano-9b-v2:free",
+      "name": "NVIDIA: Nemotron Nano 9B V2 (free)",
+      "score": 127.5534035,
+      "provider": "NVIDIA"
+    },
+    {
+      "id": "z-ai/glm-4.5",
+      "name": "Z.ai: GLM 4.5",
+      "score": 126.7356735,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "z-ai/glm-4.5-air",
+      "name": "Z.ai: GLM 4.5 Air",
+      "score": 126.735629,
+      "provider": "Z.ai"
+    },
+    {
+      "id": "moonshotai/kimi-k2-0905",
+      "name": "MoonshotAI: Kimi K2 0905",
+      "score": 126.51057349999999,
+      "provider": "Moonshot AI"
+    },
+    {
+      "id": "essentialai/rnj-1-instruct",
+      "name": "EssentialAI: Rnj 1 Instruct",
+      "score": 125.54742350000001,
+      "provider": "Essential AI"
+    },
+    {
+      "id": "cohere/command-r7b-12-2024",
+      "name": "Cohere: Command R7B (12-2024)",
+      "score": 125.079076,
+      "provider": "Cohere"
+    },
+    {
+      "id": "rekaai/reka-flash-3",
+      "name": "Reka Flash 3",
+      "score": 124.9064065,
+      "provider": "Reka AI"
+    },
+    {
+      "id": "google/gemma-2-27b-it",
+      "name": "Google: Gemma 2 27B",
+      "score": 120.4144,
+      "provider": "Google"
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-instruct",
+      "name": "OpenAI: GPT-3.5 Turbo Instruct",
+      "score": 120,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-16k",
+      "name": "OpenAI: GPT-3.5 Turbo 16k",
+      "score": 120,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "mistralai/mixtral-8x22b-instruct",
+      "name": "Mistral: Mixtral 8x22B Instruct",
+      "score": 119.656,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "aion-labs/aion-1.0",
+      "name": "AionLabs: Aion-1.0",
+      "score": 118.34877850000001,
+      "provider": "Aion Labs"
+    },
+    {
+      "id": "aion-labs/aion-1.0-mini",
+      "name": "AionLabs: Aion-1.0-Mini",
+      "score": 118.34855350000001,
+      "provider": "Aion Labs"
+    },
+    {
+      "id": "nousresearch/hermes-3-llama-3.1-70b",
+      "name": "Nous: Hermes 3 70B Instruct",
+      "score": 117.9696,
+      "provider": "Nous Research"
+    },
+    {
+      "id": "nousresearch/hermes-3-llama-3.1-405b",
+      "name": "Nous: Hermes 3 405B Instruct",
+      "score": 117.8832,
+      "provider": "Nous Research"
+    },
+    {
+      "id": "arcee-ai/trinity-mini",
+      "name": "Arcee AI: Trinity Mini",
+      "score": 117.30086,
+      "provider": "Arcee AI"
+    },
+    {
+      "id": "aion-labs/aion-2.0",
+      "name": "AionLabs: Aion-2.0",
+      "score": 116.940653,
+      "provider": "Aion Labs"
+    },
+    {
+      "id": "nousresearch/hermes-4-70b",
+      "name": "Nous: Hermes 4 70B",
+      "score": 116.11809099999999,
+      "provider": "Nous Research"
+    },
+    {
+      "id": "nousresearch/hermes-4-405b",
+      "name": "Nous: Hermes 4 405B",
+      "score": 116.1177315,
+      "provider": "Nous Research"
+    },
+    {
+      "id": "morph/morph-v3-large",
+      "name": "Morph: Morph V3 Large",
+      "score": 115.955429,
+      "provider": "Morph"
+    },
+    {
+      "id": "openai/gpt-4-turbo-preview",
+      "name": "OpenAI: GPT-4 Turbo Preview",
+      "score": 115.0704,
+      "provider": "OpenAI"
+    },
+    {
+      "id": "mistralai/mistral-saba",
+      "name": "Mistral: Saba",
+      "score": 114.9016195,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "nousresearch/hermes-3-llama-3.1-405b:free",
+      "name": "Nous: Hermes 3 405B Instruct (free)",
+      "score": 114.8832,
+      "provider": "Nous Research"
+    },
+    {
+      "id": "meta-llama/llama-3.3-70b-instruct",
+      "name": "Meta: Llama 3.3 70B Instruct",
+      "score": 114.7530685,
+      "provider": "Meta"
+    },
+    {
+      "id": "mistralai/mistral-small-24b-instruct-2501",
+      "name": "Mistral: Mistral Small 3",
+      "score": 114.1277045,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "inclusionai/ling-2.6-1t",
+      "name": "inclusionAI: Ling-2.6-1T",
+      "score": 113.474119,
+      "provider": "InclusionAI"
+    },
+    {
+      "id": "inclusionai/ling-2.6-flash",
+      "name": "inclusionAI: Ling-2.6-flash",
+      "score": 113.397943,
+      "provider": "InclusionAI"
+    },
+    {
+      "id": "minimax/minimax-m2-her",
+      "name": "MiniMax: MiniMax M2-her",
+      "score": 112.5886195,
+      "provider": "MiniMax"
+    },
+    {
+      "id": "moonshotai/kimi-k2",
+      "name": "MoonshotAI: Kimi K2 0711",
+      "score": 112.131626,
+      "provider": "Moonshot AI"
+    },
+    {
+      "id": "prime-intellect/intellect-3",
+      "name": "Prime Intellect: INTELLECT-3",
+      "score": 112.106267,
+      "provider": "Prime Intellect"
+    },
+    {
+      "id": "allenai/olmo-3-32b-think",
+      "name": "AllenAI: Olmo 3 32B Think",
+      "score": 111.879138,
+      "provider": "Ai2"
+    },
+    {
+      "id": "meta-llama/llama-3.3-70b-instruct:free",
+      "name": "Meta: Llama 3.3 70B Instruct (free)",
+      "score": 111.7530685,
+      "provider": "Meta"
+    },
+    {
+      "id": "meta-llama/llama-3.2-1b-instruct",
+      "name": "Meta: Llama 3.2 1B Instruct",
+      "score": 111.6112,
+      "provider": "Meta"
+    },
+    {
+      "id": "ibm-granite/granite-4.1-8b",
+      "name": "IBM: Granite 4.1 8B",
+      "score": 110.7885355,
+      "provider": "IBM"
+    },
+    {
+      "id": "deepcogito/cogito-v2.1-671b",
+      "name": "Deep Cogito: Cogito v2.1 671B",
+      "score": 109.5356165,
+      "provider": "Deep Cogito"
+    },
+    {
+      "id": "meta-llama/llama-3.1-8b-instruct",
+      "name": "Meta: Llama 3.1 8B Instruct",
+      "score": 108.8464,
+      "provider": "Meta"
+    },
+    {
+      "id": "meta-llama/llama-3.1-70b-instruct",
+      "name": "Meta: Llama 3.1 70B Instruct",
+      "score": 108.8464,
+      "provider": "Meta"
+    },
+    {
+      "id": "arcee-ai/virtuoso-large",
+      "name": "Arcee AI: Virtuoso Large",
+      "score": 108.2394425,
+      "provider": "Arcee AI"
+    },
+    {
+      "id": "relace/relace-search",
+      "name": "Relace: Relace Search",
+      "score": 106.60678,
+      "provider": "Relace"
+    },
+    {
+      "id": "arcee-ai/coder-large",
+      "name": "Arcee AI: Coder Large",
+      "score": 106.23933149999999,
+      "provider": "Arcee AI"
+    },
+    {
+      "id": "mistralai/mistral-nemo",
+      "name": "Mistral: Mistral Nemo",
+      "score": 105.6736,
+      "provider": "Mistral AI"
+    },
+    {
+      "id": "meta-llama/llama-3-8b-instruct",
+      "name": "Meta: Llama 3 8B Instruct",
+      "score": 104.6992,
+      "provider": "Meta"
+    },
+    {
+      "id": "meta-llama/llama-3-70b-instruct",
+      "name": "Meta: Llama 3 70B Instruct",
+      "score": 104.6992,
+      "provider": "Meta"
+    },
+    {
+      "id": "morph/morph-v3-fast",
+      "name": "Morph: Morph V3 Fast",
+      "score": 103.955001,
+      "provider": "Morph"
+    },
+    {
+      "id": "relace/relace-apply-3",
+      "name": "Relace: Relace Apply 3",
+      "score": 103.445786,
+      "provider": "Relace"
+    },
+    {
+      "id": "liquid/lfm-2-24b-a2b",
+      "name": "LiquidAI: LFM2-24B-A2B",
+      "score": 102.0243555,
+      "provider": "Liquid AI"
+    },
+    {
+      "id": "amazon/nova-micro-v1",
+      "name": "Amazon: Nova Micro 1.0",
+      "score": 98.7186185,
+      "provider": "Amazon"
+    },
+    {
+      "id": "switchpoint/router",
+      "name": "Switchpoint Router",
+      "score": 98.1364495,
+      "provider": "Switchpoint"
+    },
+    {
+      "id": "liquid/lfm-2.5-1.2b-instruct:free",
+      "name": "LiquidAI: LFM2.5-1.2B-Instruct (free)",
+      "score": 97.4637605,
+      "provider": "Liquid AI"
+    },
+    {
+      "id": "microsoft/wizardlm-2-8x22b",
+      "name": "WizardLM-2 8x22B",
+      "score": 88.6128,
+      "provider": "Microsoft"
+    },
+    {
+      "id": "aion-labs/aion-rp-llama-3.1-8b",
+      "name": "AionLabs: Aion-RP 1.0 (8B)",
+      "score": 80.348359,
+      "provider": "Aion Labs"
+    },
+    {
+      "id": "inflection/inflection-3-productivity",
+      "name": "Inflection: Inflection 3 Productivity",
+      "score": 69.3024,
+      "provider": "Inflection AI"
+    }
+  ]
+}

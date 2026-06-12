@@ -36,6 +36,8 @@ function loadPersistedExperts(): Expert[] {
         description: defaultExpert.description || savedExpert.description,
         sampleQuestions: defaultExpert.sampleQuestions || savedExpert.sampleQuestions,
         abilities: defaultExpert.abilities || savedExpert.abilities,
+        tags: defaultExpert.tags || savedExpert.tags,
+        modelInfo: defaultExpert.modelInfo || savedExpert.modelInfo,
       };
     });
 
