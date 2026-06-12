@@ -67,11 +67,16 @@ const BOT_TIP_BAR_COLORS: Record<string, string> = {
   slate: 'bg-slate-400', green: 'bg-green-400', cyan: 'bg-cyan-400', sky: 'bg-sky-400',
 };
 const BOT_TIP_STATS: { key: string; label: string }[] = [
-  { key: 'coding', label: '코딩' }, { key: 'creativity', label: '창의성' },
-  { key: 'reasoning', label: '추론력' }, { key: 'math', label: '수학' },
-  { key: 'multilingual', label: '다국어' }, { key: 'speed', label: '속도' },
-  { key: 'costEfficiency', label: '비용효율' }, { key: 'contextWindow', label: '토큰용량' },
+  { key: 'coding', label: '코딩' },
+  { key: 'creativity', label: '창의성' },
+  { key: 'reasoning', label: '추론' },
+  { key: 'math', label: '수학' },
+  { key: 'multilingual', label: '다국어' },
+  { key: 'speed', label: '속도' },
+  { key: 'costEfficiency', label: '비용효율' },
+  { key: 'contextWindow', label: '토큰용량' },
 ];
+
 function BotTipAbilitySection({ abilities, color, name }: { abilities: AIAbilityStats; color: string; name: string }) {
   const bc = BOT_TIP_BAR_COLORS[color] || 'bg-indigo-400';
   return (

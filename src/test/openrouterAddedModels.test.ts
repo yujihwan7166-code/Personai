@@ -6,6 +6,7 @@ import {
   OPENROUTER_ADDED_ABILITIES,
   OPENROUTER_ADDED_EXPERTS,
 } from '@/data/openrouter-added-models';
+import { AI_MODEL_IDS, AI_MODEL_PROMPTS } from '@/data/prompts/ai-models';
 import { OPENROUTER_EXISTING_MODEL_OVERRIDES } from '@/data/openrouter-existing-model-overrides';
 import { buildExpertSelectionGroups } from '@/lib/expertSelectionGroups';
 import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
@@ -104,7 +105,10 @@ describe('openrouter added model catalog', () => {
 
     expect(new Set(descriptions).size).toBe(descriptions.length);
     expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(200);
-    expect(new Set(quotes).size).toBeGreaterThanOrEqual(12);
+    expect(new Set(quotes).size).toBeGreaterThanOrEqual(200);
+    ['해석와', '균형와', '요약와', '검증와', '화면와', '활용와', '적용와', '압축와'].forEach((token) => {
+      expect(quotes.some((quote) => quote.includes(token)), `quotes should not contain "${token}"`).toBe(false);
+    });
     expect(modelSpecificQuestionCount).toBe(OPENROUTER_ADDED_EXPERTS.length);
   });
 
@@ -139,11 +143,25 @@ describe('openrouter added model catalog', () => {
     const uiSource = [
       fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8'),
       fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'ExpertDetailModal.tsx'), 'utf8'),
+      fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'ExpertHoverTip.tsx'), 'utf8'),
       fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'expertSelectionGroups.ts'), 'utf8'),
       fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'modelTaxonomy.ts'), 'utf8'),
     ].join('\n');
 
     expect(hasLikelyMojibake(uiSource)).toBe(false);
+  });
+
+  it('keeps base general model prompts readable and not strength-section driven', () => {
+    expect(AI_MODEL_IDS).toHaveLength(8);
+
+    AI_MODEL_IDS.filter((id) => id !== 'router').forEach((id) => {
+      const prompt = AI_MODEL_PROMPTS[id];
+
+      expect(prompt, `${id} prompt should be present`).toContain('한국어로 답하세요');
+      expect(hasLikelyMojibake(prompt), `${id} prompt should not contain mojibake`).toBe(false);
+      expect(prompt, `${id} prompt should avoid the old strengths section`).not.toContain('## 강점');
+      expect(prompt, `${id} prompt should describe answer style`).toContain('## 답변 스타일');
+    });
   });
 
   it('provides bounded ability stats for every generated model', () => {

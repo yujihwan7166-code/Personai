@@ -28,7 +28,7 @@ const TIP_BAR_COLORS: Record<string, string> = {
 const TIP_STATS: { key: string; label: string }[] = [
   { key: 'coding', label: '코딩' },
   { key: 'creativity', label: '창의성' },
-  { key: 'reasoning', label: '추론력' },
+  { key: 'reasoning', label: '추론' },
   { key: 'math', label: '수학' },
   { key: 'multilingual', label: '다국어' },
   { key: 'speed', label: '속도' },
@@ -162,7 +162,7 @@ export function ExpertHoverTip({ expert, position }: ExpertHoverTipProps) {
                       </p>
                     ))}
                   </div>
-                  {/* Top border with label: ----<추천 질문>---- */}
+                  {/* Top border with label */}
                   <div className="absolute top-0 left-0 right-0 flex items-center">
                     <div className="flex-1 h-px bg-white/15 rounded-tl-lg" />
                     <span className="px-1.5 text-[9px] text-slate-400 tracking-wider font-medium -translate-y-[1px]">&lt;추천 질문&gt;</span>

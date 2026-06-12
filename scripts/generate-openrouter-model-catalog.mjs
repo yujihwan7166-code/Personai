@@ -377,29 +377,38 @@ function tagsFor(model) {
   return [...new Set(tags)].slice(0, 4);
 }
 
+function contextLabelFor(model) {
+  const contextLength = model.context_length ?? model.top_provider?.context_length ?? 0;
+  if (contextLength >= 1_000_000) return '1M급 초장문';
+  if (contextLength >= 262_144) return '대용량 문맥';
+  if (contextLength >= 128_000) return '128K급 장문';
+  return '일반 문맥';
+}
+
 function descriptionFor(model) {
   const tags = tagsFor(model);
   const cfg = brandFor(model.id);
   const name = cleanName(model.name);
-  const contextLength = model.context_length ?? model.top_provider?.context_length ?? 0;
-  const contextLabel = contextLength >= 1_000_000 ? '1M 장문맥' : contextLength >= 262_144 ? '대용량 문맥' : contextLength >= 128_000 ? '128K급 문맥' : '일반 문맥';
-  if (tags.includes('검색')) return `${name}: 출처 확인과 최신 정보 정리에 강한 검색형 모델`;
-  if (tags.includes('코딩')) return `${name}: ${cfg.provider}의 코드 작성·리팩터링 중심 모델`;
-  if (tags.includes('시각입력')) return `${name}: ${contextLabel}에서 이미지·문서 이해를 곁들인 대화 모델`;
-  if (tags.includes('추론')) return `${name}: 복잡한 판단과 단계별 분석에 초점을 둔 모델`;
-  if (tags.includes('고속')) return `${name}: 빠른 응답과 비용 효율을 우선한 경량 모델`;
-  return `${name}: ${cfg.provider}의 ${contextLabel} 범용 대화 모델`;
+  const contextLabel = contextLabelFor(model);
+  if (tags.includes('검색')) return name + ': 출처 확인, 최신 이슈 비교, 근거 요약에 맞춘 ' + cfg.provider + ' 계열 검색 모델';
+  if (tags.includes('코딩')) return name + ': 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 ' + cfg.provider + ' 모델';
+  if (tags.includes('시각입력')) return name + ': ' + contextLabel + '에서 이미지, 표, 문서 화면을 함께 읽어내는 ' + cfg.provider + ' 모델';
+  if (tags.includes('추론')) return name + ': 전제 정리, 대안 비교, 단계적 판단에 초점을 둔 ' + cfg.provider + ' 모델';
+  if (tags.includes('고속')) return name + ': 빠른 응답과 낮은 비용을 우선한 ' + cfg.provider + ' 경량 모델';
+  if (tags.includes('오픈웨이트')) return name + ': 배포 유연성과 커스터마이징 여지가 있는 ' + cfg.provider + ' 오픈웨이트 모델';
+  return name + ': ' + cfg.provider + '의 ' + contextLabel + ' 기반 범용 대화 모델';
 }
 
 function sampleQuestionsFor(tags, model) {
   const seed = hashText(model.id);
+  const name = cleanName(model.name);
   if (tags.includes('검색')) return pickMany([
     '최신 자료를 근거와 함께 요약해줘',
     '이 주장에 대한 출처를 비교해줘',
     '서로 다른 자료의 관점 차이를 정리해줘',
     '팩트체크할 쟁점을 먼저 나눠줘',
     '시장 동향을 핵심 수치 중심으로 찾아줘',
-    '인용 가능한 근거만 따로 모아줘',
+    name + '로 최신 이슈를 출처와 함께 점검해줘',
   ], seed);
   if (tags.includes('코딩')) return pickMany([
     '이 코드 구조를 더 단순하게 리팩터링해줘',
@@ -407,7 +416,7 @@ function sampleQuestionsFor(tags, model) {
     'API 응답 형식을 검토하고 개선안을 줘',
     '테스트 케이스에서 빠진 경계를 찾아줘',
     '성능 병목 가능성을 짚어줘',
-    '타입 설계를 더 안전하게 바꿔줘',
+    name + '가 잘 맞는 개발 작업을 예시로 비교해줘',
   ], seed);
   if (tags.includes('시각입력')) return pickMany([
     '이미지에서 중요한 정보를 뽑아줘',
@@ -415,23 +424,23 @@ function sampleQuestionsFor(tags, model) {
     '표나 차트의 핵심만 설명해줘',
     '스크린샷 속 문제점을 찾아줘',
     '문서 이미지에서 결정해야 할 항목을 뽑아줘',
-    '시각 자료를 발표용 요약으로 바꿔줘',
+    name + '로 이미지와 문서를 함께 분석해줘',
   ], seed);
   if (tags.includes('추론')) return pickMany([
     '복잡한 문제를 전제부터 단계별로 풀어줘',
-    '내 결론의 논리적 약점을 찾아줘',
+    '이 결론의 논리적 약점을 찾아줘',
     '선택지를 기준별로 점수화해줘',
     '반례를 먼저 생각하고 답해줘',
     '의사결정 트레이드오프를 정리해줘',
-    '가정이 바뀌면 결론이 어떻게 달라지는지 봐줘',
+    name + '로 복잡한 판단을 단계별로 풀어줘',
   ], seed);
   if (tags.includes('창작')) return pickMany([
     '초안을 더 자연스럽고 설득력 있게 바꿔줘',
     '스토리 아이디어를 세 가지 방향으로 확장해줘',
-    '브랜드 문구를 톤별로 다듬어줘',
+    '브랜드 문구를 여러 톤으로 다듬어줘',
     '짧은 카피와 긴 설명문을 함께 만들어줘',
-    '독자가 더 끌리도록 도입부를 고쳐줘',
-    '컨셉을 유지하면서 표현만 새롭게 바꿔줘',
+    '독자가 더 몰입하도록 도입부를 고쳐줘',
+    '컨셉은 유지하면서 표현만 새롭게 바꿔줘',
   ], seed);
   return pickMany([
     '핵심만 빠르게 요약해줘',
@@ -439,42 +448,64 @@ function sampleQuestionsFor(tags, model) {
     '장단점을 표로 비교해줘',
     '우선순위를 정하고 이유를 말해줘',
     '회의 전에 볼 브리핑으로 만들어줘',
-    '초보자도 이해하게 다시 설명해줘',
+    name + '의 추천 사용 사례를 정리해줘',
   ], seed);
 }
 
+const QUOTE_FOCUS_A = [
+  '구조 검토',
+  '근거 정리',
+  '문맥 해석',
+  '전제 점검',
+  '실행 순서',
+  '비용 균형',
+  '응답 속도',
+  '도구 활용',
+  '코드 경계',
+  '자료 요약',
+  '대안 비교',
+  '리스크 확인',
+  '긴 문서 흐름',
+  '언어 뉘앙스',
+  '표현 다듬기',
+  '수치 검증',
+  '문서 화면',
+  '오픈 활용',
+  '실무 적용',
+  '핵심 압축',
+];
+
+const QUOTE_FOCUS_B = [
+  '테스트 관점',
+  '판단 기준',
+  '출처 맥락',
+  '사용 사례',
+  '작업 흐름',
+  '품질 기준',
+  '비교 기준',
+  '안전한 선택지',
+  '결론의 근거',
+  '다음 행동',
+];
+
+function quoteFocus(model) {
+  const seed = hashText(`${model.id}:quote-focus`);
+  const first = QUOTE_FOCUS_A[seed % QUOTE_FOCUS_A.length];
+  const second = QUOTE_FOCUS_B[Math.floor(seed / QUOTE_FOCUS_A.length) % QUOTE_FOCUS_B.length];
+  return `${first}·${second}`;
+}
+
 function quoteFor(tags, model) {
-  const seed = hashText(`${model.id}:quote`);
-  if (tags.includes('검색')) return pickMany([
-    '근거를 따라가며 정리하겠습니다',
-    '출처와 결론을 분리해서 보겠습니다',
-    '최신 맥락을 먼저 확인하겠습니다',
-  ], seed, 1)[0];
-  if (tags.includes('코딩')) return pickMany([
-    '코드 흐름을 읽고 고칠 지점을 잡겠습니다',
-    '구현과 검증을 함께 보겠습니다',
-    '작동하는 구조부터 단단히 다듬겠습니다',
-  ], seed, 1)[0];
-  if (tags.includes('시각입력')) return pickMany([
-    '보이는 정보에서 핵심을 뽑겠습니다',
-    '이미지와 텍스트를 함께 읽겠습니다',
-    '자료의 구조를 먼저 파악하겠습니다',
-  ], seed, 1)[0];
-  if (tags.includes('추론')) return pickMany([
-    '전제부터 차근히 따져보겠습니다',
-    '가능성과 반례를 함께 보겠습니다',
-    '결론까지 가는 길을 분명히 하겠습니다',
-  ], seed, 1)[0];
-  if (tags.includes('고속')) return pickMany([
-    '가볍게 빠르게 정리하겠습니다',
-    '핵심부터 바로 잡겠습니다',
-    '짧은 답과 다음 행동을 함께 드리겠습니다',
-  ], seed, 1)[0];
-  return pickMany([
-    '상황에 맞게 균형 있게 답하겠습니다',
-    '필요한 만큼 넓게 보고 좁혀가겠습니다',
-    '바로 쓸 수 있게 정리하겠습니다',
-  ], seed, 1)[0];
+  const name = cleanName(model.name);
+  const cfg = brandFor(model.id);
+  const focus = quoteFocus(model);
+  if (tags.includes('검색')) return name + ' 기준으로 ' + focus + '까지 근거 중심으로 보겠습니다';
+  if (tags.includes('코딩')) return name + ' 기준으로 ' + focus + '까지 개발 맥락에서 짚겠습니다';
+  if (tags.includes('시각입력')) return name + ' 기준으로 ' + focus + '까지 보이는 정보와 함께 읽겠습니다';
+  if (tags.includes('추론')) return name + ' 기준으로 ' + focus + '까지 차근히 따져보겠습니다';
+  if (tags.includes('고속')) return name + ' 기준으로 ' + focus + '까지 빠르게 정리하겠습니다';
+  if (tags.includes('오픈웨이트')) return name + ' 기준으로 ' + focus + '까지 오픈 활용 관점에서 보겠습니다';
+  return name + ' 기준으로 ' + focus + '까지 균형 있게 정리하겠습니다';
 }
 
 function scoreModel(model) {
