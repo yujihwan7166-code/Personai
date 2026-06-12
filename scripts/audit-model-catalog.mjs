@@ -28,6 +28,11 @@ const nonTextOutputModels = aiExperts.filter(hasNonTextOutput);
 const visibleGeneralAiExperts = aiExperts.filter(isVisibleGeneralTextModel);
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
+const visibleExistingGeneralModels = visibleGeneralAiExperts.filter((expert) => !expert.id.startsWith('or-'));
+const visibleExistingDescriptionTemplates = {
+  codingTemplate: visibleExistingGeneralModels.filter((expert) => expert.description?.includes('코드 작성·리팩터링 중심 모델') ?? false),
+  visionTemplate: visibleExistingGeneralModels.filter((expert) => expert.description?.includes('이미지·문서 이해를 곁들인 대화 모델') ?? false),
+};
 const visibleGeneralFilterBuckets = {
   priceTier: visibleGeneralAiExperts.reduce((acc, expert) => {
     const key = expert.modelInfo?.priceTier ?? 'missing';
@@ -89,6 +94,11 @@ const duplicateCustomStats = customExperts.length
 const generatedDescriptionCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description)).size;
 const generatedSampleQuestionCount = new Set(OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? [])).size;
 const generatedQuoteCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote)).size;
+const generatedModelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
+  const name = expert.nameKo || expert.name;
+  const provider = expert.modelInfo?.provider ?? '';
+  return (expert.sampleQuestions ?? []).some((question) => question.includes(name) || (provider && question.includes(provider)));
+}).length;
 const generatedOpenWeightModels = OPENROUTER_ADDED_EXPERTS.filter((expert) => expert.modelInfo?.openWeight);
 const generatedOpenWeightTagMissing = generatedOpenWeightModels.filter((expert) => !(expert.tags ?? []).includes('오픈웨이트'));
 const generatedCodingTagCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => (expert.tags ?? []).includes('코딩')).length;
@@ -151,6 +161,12 @@ const summary = {
     input: expert.modelInfo?.inputModalities,
     output: expert.modelInfo?.outputModalities,
   })),
+  visibleExistingDescriptionTemplateCounts: {
+    codingTemplate: visibleExistingDescriptionTemplates.codingTemplate.length,
+    visionTemplate: visibleExistingDescriptionTemplates.visionTemplate.length,
+    codingTemplateIds: visibleExistingDescriptionTemplates.codingTemplate.map((expert) => expert.id),
+    visionTemplateIds: visibleExistingDescriptionTemplates.visionTemplate.map((expert) => expert.id),
+  },
   visibleGeneralFilterBuckets,
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
@@ -176,6 +192,7 @@ const summary = {
     uniqueDescriptions: generatedDescriptionCount,
     uniqueSampleQuestions: generatedSampleQuestionCount,
     uniqueQuotes: generatedQuoteCount,
+    modelSpecificQuestionCount: generatedModelSpecificQuestionCount,
   },
   generatedTagCoverage: {
     openWeightModelCount: generatedOpenWeightModels.length,

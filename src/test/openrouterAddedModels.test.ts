@@ -96,10 +96,16 @@ describe('openrouter added model catalog', () => {
     const descriptions = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description);
     const sampleQuestions = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? []);
     const quotes = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote);
+    const modelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
+      const name = expert.nameKo || expert.name;
+      const provider = expert.modelInfo?.provider ?? '';
+      return (expert.sampleQuestions ?? []).some((question) => question.includes(name) || (provider && question.includes(provider)));
+    }).length;
 
     expect(new Set(descriptions).size).toBe(descriptions.length);
-    expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(25);
+    expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(200);
     expect(new Set(quotes).size).toBeGreaterThanOrEqual(12);
+    expect(modelSpecificQuestionCount).toBe(OPENROUTER_ADDED_EXPERTS.length);
   });
 
   it('keeps open-weight and coding identity visible in generated tags', () => {
@@ -172,6 +178,20 @@ describe('openrouter added model catalog', () => {
 
     expect(DEFAULT_EXPERTS.find((item) => item.id === 'gpt')?.name).toBe('GPT-4.1');
     expect(DEFAULT_EXPERTS.find((item) => item.id === 'gpt-mini')?.name).toBe('GPT-4.1 Mini');
+  });
+
+  it('keeps existing visible model descriptions specific instead of template-heavy', () => {
+    const existingVisibleModels = DEFAULT_EXPERTS
+      .filter(isVisibleGeneralTextModel)
+      .filter((expert) => !expert.id.startsWith('or-'));
+    const descriptions = existingVisibleModels.map((expert) => expert.description);
+    const codingTemplateDescriptions = descriptions.filter((description) => description.includes('코드 작성·리팩터링 중심 모델'));
+    const visionTemplateDescriptions = descriptions.filter((description) => description.includes('이미지·문서 이해를 곁들인 대화 모델'));
+
+    expect(existingVisibleModels.length).toBeGreaterThanOrEqual(40);
+    expect(new Set(descriptions).size).toBe(descriptions.length);
+    expect(codingTemplateDescriptions).toHaveLength(0);
+    expect(visionTemplateDescriptions).toHaveLength(0);
   });
 
   it('keeps every AI avatar on an existing local provider or model mark', () => {

@@ -16,7 +16,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "GPT-5.4 Mini가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Mini 모델입니다. 추론, 코딩, 시각입력, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -55,7 +55,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Claude Fable 5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Fable 5 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -94,7 +94,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "Gemini 3.5 Flash가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Google의 Gemini 3.5 Flash 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -135,7 +135,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Grok Build 0.1가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "xAI의 Grok Build 0.1 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -173,7 +173,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "팩트체크할 쟁점을 먼저 나눠줘",
       "서로 다른 자료의 관점 차이를 정리해줘",
-      "이 주장에 대한 출처를 비교해줘"
+      "Sonar Pro Search로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Perplexity의 Sonar Pro Search 모델입니다. 추론, 검색, 시각입력, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -211,7 +211,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "DeepSeek V4 Pro가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V4 Pro 모델입니다. 추론, 코딩, 오픈웨이트, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -248,7 +248,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Qwen3.7 Max가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.7 Max 모델입니다. 추론, 코딩, 오픈웨이트, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -285,7 +285,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "Llama 3.2 3B Instruct로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Meta의 Llama 3.2 3B Instruct 모델입니다. 추론, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -321,7 +321,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Mistral Medium 3.5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Mistral AI의 Mistral Medium 3.5 모델입니다. 추론, 코딩, 오픈웨이트, 시각입력 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -360,7 +360,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Command R (08-2024)가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Cohere의 Command R (08-2024) 모델입니다. 추론, 코딩, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -397,7 +397,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "복잡한 문제를 전제부터 단계별로 풀어줘",
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
-      "의사결정 트레이드오프를 정리해줘"
+      "Phi 4 Mini Instruct로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Microsoft의 Phi 4 Mini Instruct 모델입니다. 추론, 오픈웨이트, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -434,7 +434,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Nova Pro 1.0로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Amazon의 Nova Pro 1.0 모델입니다. 추론, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -471,7 +471,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Nemotron 3 Nano 30B A3B가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano 30B A3B 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -508,7 +508,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Kimi K2.7 Code가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2.7 Code 모델입니다. 추론, 코딩, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -547,7 +547,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GLM 5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Z.ai의 GLM 5 모델입니다. 추론, 코딩, 오픈웨이트, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -584,7 +584,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "MiniMax M3가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "MiniMax의 MiniMax M3 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -623,7 +623,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "ERNIE 4.5 VL 424B A47B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Baidu의 ERNIE 4.5 VL 424B A47B 모델입니다. 추론, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -660,7 +660,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "Hy3 preview가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Tencent의 Hy3 preview 모델입니다. 추론, 코딩, 저비용, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -697,7 +697,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "실행 가능한 계획으로 정리해줘",
       "핵심만 빠르게 요약해줘",
-      "초보자도 이해하게 다시 설명해줘"
+      "Granite 4.1 8B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "IBM의 Granite 4.1 8B 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -734,7 +734,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Step 3.7 Flash로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "StepFun의 Step 3.7 Flash 모델입니다. 추론, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -773,7 +773,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Seed 1.6 Flash로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "ByteDance Seed의 Seed 1.6 Flash 모델입니다. 추론, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -812,7 +812,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "Claude Opus 4.7가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.7 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -851,7 +851,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "GPT-5.3-Codex가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.3-Codex 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -890,7 +890,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "GPT-5.2-Codex가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.2-Codex 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -928,7 +928,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GPT-5.2 Pro가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.2 Pro 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -967,7 +967,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GPT-5.2가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.2 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1006,7 +1006,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GPT-5.1-Codex-Max가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex-Max 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1044,7 +1044,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "GPT-5.1-Codex가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1082,7 +1082,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GPT-5 Pro가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5 Pro 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1121,7 +1121,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "GPT-5 Codex가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5 Codex 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1159,7 +1159,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "GPT-5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 GPT-5 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1198,7 +1198,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Claude Sonnet 4가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Sonnet 4 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1237,7 +1237,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Claude Opus 4.8 (Fast)로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.8 (Fast) 모델입니다. 추론, 시각입력, 장문맥, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1276,7 +1276,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "Claude Opus 4.8로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.8 모델입니다. 추론, 시각입력, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1315,7 +1315,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "Claude Opus 4.7 (Fast)로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.7 (Fast) 모델입니다. 추론, 시각입력, 장문맥, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1354,7 +1354,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "GPT-5.5 Pro로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.5 Pro 모델입니다. 추론, 시각입력, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1393,7 +1393,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "GPT-5.5로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.5 모델입니다. 추론, 시각입력, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1432,7 +1432,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Claude Opus 4.5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.5 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1471,7 +1471,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "Claude Opus 4.6 (Fast)로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.6 (Fast) 모델입니다. 추론, 시각입력, 장문맥, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1510,7 +1510,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "GPT-5.4 Nano로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Nano 모델입니다. 추론, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1549,7 +1549,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "GPT-5.4 Pro로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Pro 모델입니다. 추론, 시각입력, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1588,7 +1588,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "GPT-5.4로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 모델입니다. 추론, 시각입력, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1627,7 +1627,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "Claude Opus 4.1가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.1 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1666,7 +1666,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "Gemini 2.5 Pro가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1707,7 +1707,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "GPT-5.1로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.1 모델입니다. 추론, 시각입력, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1746,7 +1746,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "GPT-5.1-Codex-Mini로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex-Mini 모델입니다. 추론, 시각입력, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1784,7 +1784,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Claude Opus 4가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1823,7 +1823,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "o3가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 o3 모델입니다. 추론, 코딩, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1862,7 +1862,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "o4 Mini가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 o4 Mini 모델입니다. 추론, 코딩, 시각입력, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1901,7 +1901,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Gemma 4 26B A4B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 4 26B A4B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1940,7 +1940,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "GPT-5 Nano로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5 Nano 모델입니다. 추론, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -1979,7 +1979,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Gemma 4 26B A4B Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 4 26B A4B Free 모델입니다. 추론, 오픈웨이트, 시각입력, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2018,7 +2018,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Gemma 4 31B Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 4 31B Free 모델입니다. 추론, 오픈웨이트, 시각입력, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2057,7 +2057,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Gemini 2.5 Pro Preview 06-05가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro Preview 06-05 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2097,7 +2097,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Gemini 2.5 Pro Preview 05-06가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro Preview 05-06 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2138,7 +2138,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "Qwen3.7 Plus로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.7 Plus 모델입니다. 추론, 오픈웨이트, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2176,7 +2176,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "gpt-oss-120b가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 gpt-oss-120b 모델입니다. 추론, 코딩, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2213,7 +2213,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "Grok 4.20 Multi-Agent로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "xAI의 Grok 4.20 Multi-Agent 모델입니다. 추론, 시각입력, 장문맥, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2252,7 +2252,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Kimi K2.6가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2.6 모델입니다. 추론, 코딩, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2290,7 +2290,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Qwen3.5 Plus 2026-04-20로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5 Plus 2026-04-20 모델입니다. 추론, 오픈웨이트, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2329,7 +2329,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Qwen3.6 Flash로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 Flash 모델입니다. 추론, 오픈웨이트, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2368,7 +2368,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Qwen3.6 35B A3B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 35B A3B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2407,7 +2407,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Qwen3.6 Max Preview가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 Max Preview 모델입니다. 추론, 코딩, 오픈웨이트, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2444,7 +2444,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Qwen3.6 27B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 27B 모델입니다. 추론, 오픈웨이트, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2483,7 +2483,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "GPT-5.2 Chat로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.2 Chat 모델입니다. 추론, 시각입력, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2522,7 +2522,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "gpt-oss-120b Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "OpenAI의 gpt-oss-120b Free 모델입니다. 추론, 코딩, 무료, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2559,7 +2559,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "Qwen3 Next 80B A3B Thinking가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Thinking 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2596,7 +2596,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Qwen3 Next 80B A3B Instruct가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Instruct 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2633,7 +2633,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "GPT-5.1 Chat로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "OpenAI의 GPT-5.1 Chat 모델입니다. 추론, 시각입력, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2672,7 +2672,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Qwen3.5-35B-A3B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5-35B-A3B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2711,7 +2711,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "Qwen3.5-27B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5-27B 모델입니다. 추론, 오픈웨이트, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2750,7 +2750,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Qwen3.5-122B-A10B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5-122B-A10B 모델입니다. 추론, 오픈웨이트, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2789,7 +2789,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "Qwen3.5 Plus 2026-02-15로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5 Plus 2026-02-15 모델입니다. 추론, 오픈웨이트, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2828,7 +2828,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "Qwen3.5 397B A17B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5 397B A17B 모델입니다. 추론, 오픈웨이트, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2867,7 +2867,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Gemini 3.1 Pro Preview Custom Tools로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemini 3.1 Pro Preview Custom Tools 모델입니다. 추론, 시각입력, 장문맥, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2908,7 +2908,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Qwen3 Coder 480B A35B가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder 480B A35B 모델입니다. 추론, 코딩, 오픈웨이트, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2945,7 +2945,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "Qwen3 Next 80B A3B Instruct Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Instruct Free 모델입니다. 추론, 코딩, 오픈웨이트, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -2982,7 +2982,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Qwen3 Coder 480B A35B Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder 480B A35B Free 모델입니다. 추론, 코딩, 오픈웨이트, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3019,7 +3019,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "Qwen3 VL 32B Instruct로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 VL 32B Instruct 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3057,7 +3057,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "Gemini 2.5 Flash Lite Preview 09-2025로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemini 2.5 Flash Lite Preview 09-2025 모델입니다. 추론, 시각입력, 장문맥, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3098,7 +3098,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "DeepSeek V4 Flash로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V4 Flash 모델입니다. 추론, 오픈웨이트, 장문맥, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3135,7 +3135,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "DeepSeek V3.2가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.2 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3172,7 +3172,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Qwen3 Coder Next가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder Next 모델입니다. 코딩, 오픈웨이트, 저비용, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3209,7 +3209,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Qwen3 Max로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Max 모델입니다. 추론, 오픈웨이트, 중국어, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3246,7 +3246,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Qwen Plus 0728 (thinking)로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen Plus 0728 (thinking) 모델입니다. 추론, 오픈웨이트, 장문맥, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3283,7 +3283,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Qwen Plus 0728로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen Plus 0728 모델입니다. 추론, 오픈웨이트, 장문맥, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3320,7 +3320,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "Claude 3.5 Haiku가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Anthropic의 Claude 3.5 Haiku 모델입니다. 코딩, 시각입력, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3358,7 +3358,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Qwen3 VL 8B Thinking로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 VL 8B Thinking 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3396,7 +3396,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Qwen3 VL 8B Instruct로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 VL 8B Instruct 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3434,7 +3434,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Gemma 3 4B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 3 4B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3472,7 +3472,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Gemma 3 12B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 3 12B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3510,7 +3510,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Gemma 3 27B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Google의 Gemma 3 27B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3548,7 +3548,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "MiMo-V2.5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Xiaomi의 MiMo-V2.5 모델입니다. 추론, 코딩, 시각입력, 장문맥 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3588,7 +3588,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "의사결정 트레이드오프를 정리해줘",
       "반례를 먼저 생각하고 답해줘",
-      "선택지를 기준별로 점수화해줘"
+      "Nemotron 3 Ultra로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Ultra 모델입니다. 추론, 오픈웨이트, 장문맥, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3625,7 +3625,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Trinity Large Thinking가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Arcee AI의 Trinity Large Thinking 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3662,7 +3662,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "GLM 4.7 Flash가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Z.ai의 GLM 4.7 Flash 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3699,7 +3699,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Ring-2.6-1T가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "InclusionAI의 Ring-2.6-1T 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3736,7 +3736,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "DeepSeek V3.2 Exp로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.2 Exp 모델입니다. 추론, 오픈웨이트, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3773,7 +3773,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "MiniMax M2.5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "MiniMax의 MiniMax M2.5 모델입니다. 추론, 코딩, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3810,7 +3810,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "Nemotron 3 Ultra Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Ultra Free 모델입니다. 추론, 오픈웨이트, 장문맥, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3847,7 +3847,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "DeepSeek V3.1 Terminus로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.1 Terminus 모델입니다. 추론, 오픈웨이트, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3884,7 +3884,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "GLM 4.7가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Z.ai의 GLM 4.7 모델입니다. 추론, 코딩, 오픈웨이트, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3921,7 +3921,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 주장에 대한 출처를 비교해줘",
       "최신 자료를 근거와 함께 요약해줘",
-      "인용 가능한 근거만 따로 모아줘"
+      "Sonar Reasoning Pro로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Perplexity의 Sonar Reasoning Pro 모델입니다. 추론, 검색, 시각입력 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3958,7 +3958,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Llama 3.3 Nemotron Super 49B V1.5가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "NVIDIA의 Llama 3.3 Nemotron Super 49B V1.5 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -3995,7 +3995,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "DeepSeek V3.1로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.1 모델입니다. 추론, 오픈웨이트, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4032,7 +4032,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Nemotron 3 Nano 30B A3B Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano 30B A3B Free 모델입니다. 추론, 코딩, 오픈웨이트, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4069,7 +4069,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Laguna XS.2 Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Poolside의 Laguna XS.2 Free 모델입니다. 추론, 코딩, 무료, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4106,7 +4106,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Laguna M.1 Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Poolside의 Laguna M.1 Free 모델입니다. 추론, 코딩, 무료, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4143,7 +4143,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "Ministral 3 14B 2512로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Mistral AI의 Ministral 3 14B 2512 모델입니다. 오픈웨이트, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4181,7 +4181,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Ministral 3 8B 2512로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Mistral AI의 Ministral 3 8B 2512 모델입니다. 오픈웨이트, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4219,7 +4219,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "MiniMax M2.1가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "MiniMax의 MiniMax M2.1 모델입니다. 추론, 코딩, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4256,7 +4256,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "테스트 케이스에서 빠진 경계를 찾아줘",
       "API 응답 형식을 검토하고 개선안을 줘",
-      "버그 원인을 재현 단계부터 찾아줘"
+      "Mistral Large 2407가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Mistral AI의 Mistral Large 2407 모델입니다. 추론, 코딩, 오픈웨이트, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4294,7 +4294,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "내 결론의 논리적 약점을 찾아줘",
       "복잡한 문제를 전제부터 단계별로 풀어줘",
-      "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘"
+      "GLM 5 Turbo로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 5 Turbo 모델입니다. 추론, 오픈웨이트, 고속, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4331,7 +4331,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Mistral Medium 3로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Mistral AI의 Mistral Medium 3 모델입니다. 추론, 오픈웨이트, 시각입력, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4370,7 +4370,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Nemotron 3 Nano Omni Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano Omni Free 모델입니다. 추론, 오픈웨이트, 시각입력, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4410,7 +4410,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Nemotron 3 Super Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Super Free 모델입니다. 추론, 오픈웨이트, 장문맥, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4447,7 +4447,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "MiniMax M2가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "MiniMax의 MiniMax M2 모델입니다. 추론, 코딩, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4484,7 +4484,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "내 결론의 논리적 약점을 찾아줘",
       "복잡한 문제를 전제부터 단계별로 풀어줘",
-      "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘"
+      "R1 0528로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 R1 0528 모델입니다. 추론, 오픈웨이트, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4521,7 +4521,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "Mistral Small 3.1 24B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3.1 24B 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4559,7 +4559,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Seed 1.6로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "ByteDance Seed의 Seed 1.6 모델입니다. 추론, 시각입력, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4598,7 +4598,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "GLM 4.6V로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 4.6V 모델입니다. 추론, 오픈웨이트, 시각입력, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4637,7 +4637,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "R1 Distill Qwen 32B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 R1 Distill Qwen 32B 모델입니다. 추론, 오픈웨이트, 저비용, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4674,7 +4674,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "내 결론의 논리적 약점을 찾아줘",
       "복잡한 문제를 전제부터 단계별로 풀어줘",
-      "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘"
+      "R1 Distill Llama 70B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "DeepSeek의 R1 Distill Llama 70B 모델입니다. 추론, 오픈웨이트, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4710,7 +4710,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "팩트체크할 쟁점을 먼저 나눠줘",
       "서로 다른 자료의 관점 차이를 정리해줘",
-      "이 주장에 대한 출처를 비교해줘"
+      "Sonar Deep Research로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Perplexity의 Sonar Deep Research 모델입니다. 추론, 검색, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4746,7 +4746,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Nemotron Nano 12B 2 VL Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron Nano 12B 2 VL Free 모델입니다. 추론, 오픈웨이트, 시각입력, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4785,7 +4785,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "DeepSeek V3가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3 모델입니다. 코딩, 오픈웨이트, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4822,7 +4822,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
       "스크린샷 속 문제점을 찾아줘",
-      "표나 차트의 핵심만 설명해줘"
+      "GLM 4.5V로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 4.5V 모델입니다. 추론, 오픈웨이트, 시각입력, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4860,7 +4860,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Mistral Large가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Mistral AI의 Mistral Large 모델입니다. 추론, 코딩, 오픈웨이트, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4898,7 +4898,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시각 자료를 발표용 요약으로 바꿔줘",
       "문서 이미지에서 결정해야 할 항목을 뽑아줘",
-      "스크린샷 속 문제점을 찾아줘"
+      "Ministral 3 3B 2512로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Mistral AI의 Ministral 3 3B 2512 모델입니다. 오픈웨이트, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4936,7 +4936,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "LFM2.5-1.2B-Thinking Free가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Liquid AI의 LFM2.5-1.2B-Thinking Free 모델입니다. 추론, 코딩, 오픈웨이트, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -4973,7 +4973,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "표나 차트의 핵심만 설명해줘",
       "화면 내용을 읽고 작업 순서로 정리해줘",
-      "이미지에서 중요한 정보를 뽑아줘"
+      "Claude 3 Haiku로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Anthropic의 Claude 3 Haiku 모델입니다. 시각입력, 저비용, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5011,7 +5011,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "복잡한 문제를 전제부터 단계별로 풀어줘",
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
-      "의사결정 트레이드오프를 정리해줘"
+      "MiniMax M1로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "MiniMax의 MiniMax M1 모델입니다. 추론, 장문맥, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5048,7 +5048,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "스크린샷 속 문제점을 찾아줘",
       "표나 차트의 핵심만 설명해줘",
-      "화면 내용을 읽고 작업 순서로 정리해줘"
+      "Mistral Small 3.2 24B로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3.2 24B 모델입니다. 오픈웨이트, 시각입력, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5086,7 +5086,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "GLM 4.6로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 4.6 모델입니다. 추론, 오픈웨이트, 중국어, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5123,7 +5123,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "KAT-Coder-Pro V2가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "KwaiPilot의 KAT-Coder-Pro V2 모델입니다. 추론, 코딩, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5160,7 +5160,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "의사결정 트레이드오프를 정리해줘",
       "반례를 먼저 생각하고 답해줘",
-      "선택지를 기준별로 점수화해줘"
+      "Llama 3.2 3B Instruct Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Meta의 Llama 3.2 3B Instruct Free 모델입니다. 추론, 오픈웨이트, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5196,7 +5196,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "Nemotron Nano 9B V2 Free로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "NVIDIA의 Nemotron Nano 9B V2 Free 모델입니다. 추론, 오픈웨이트, 무료, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5233,7 +5233,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "GLM 4.5로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 4.5 모델입니다. 추론, 오픈웨이트, 중국어, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5270,7 +5270,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "GLM 4.5 Air로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Z.ai의 GLM 4.5 Air 모델입니다. 추론, 오픈웨이트, 저비용, 중국어 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5307,7 +5307,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "Moonshot AI의 Kimi K2 0905를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2 0905 모델입니다. 중국어, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5343,7 +5343,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Rnj 1 Instruct가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Essential AI의 Rnj 1 Instruct 모델입니다. 추론, 코딩, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5380,7 +5380,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "내 결론의 논리적 약점을 찾아줘",
       "복잡한 문제를 전제부터 단계별로 풀어줘",
-      "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘"
+      "Command R7B (12-2024)로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Cohere의 Command R7B (12-2024) 모델입니다. 추론, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5416,7 +5416,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "API 응답 형식을 검토하고 개선안을 줘",
       "버그 원인을 재현 단계부터 찾아줘",
-      "이 코드 구조를 더 단순하게 리팩터링해줘"
+      "Reka Flash 3가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Reka AI의 Reka Flash 3 모델입니다. 추론, 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5453,7 +5453,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "Llama 3.2 11B Vision Instruct로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Meta의 Llama 3.2 11B Vision Instruct 모델입니다. 오픈웨이트, 시각입력, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5491,7 +5491,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이미지에서 중요한 정보를 뽑아줘",
       "시각 자료를 발표용 요약으로 바꿔줘",
-      "문서 이미지에서 결정해야 할 항목을 뽑아줘"
+      "Nova Lite 1.0로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Amazon의 Nova Lite 1.0 모델입니다. 시각입력, 저비용, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5529,7 +5529,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "Gemma 2 27B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Google의 Gemma 2 27B 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5565,7 +5565,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Mixtral 8x22B Instruct가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Mistral AI의 Mixtral 8x22B Instruct 모델입니다. 코딩, 오픈웨이트, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5603,7 +5603,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "MiniMax-01로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "MiniMax의 MiniMax-01 모델입니다. 시각입력, 장문맥, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5641,7 +5641,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Aion-1.0가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Aion Labs의 Aion-1.0 모델입니다. 추론, 코딩, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5677,7 +5677,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Aion-1.0-Mini가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Aion Labs의 Aion-1.0-Mini 모델입니다. 추론, 코딩, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5713,7 +5713,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "최신 자료를 근거와 함께 요약해줘",
       "인용 가능한 근거만 따로 모아줘",
-      "시장 동향을 핵심 수치 중심으로 찾아줘"
+      "Hermes 3 70B Instruct로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Nous Research의 Hermes 3 70B Instruct 모델입니다. 추론, 검색, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5750,7 +5750,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "최신 자료를 근거와 함께 요약해줘",
       "인용 가능한 근거만 따로 모아줘",
-      "시장 동향을 핵심 수치 중심으로 찾아줘"
+      "Hermes 3 405B Instruct로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Nous Research의 Hermes 3 405B Instruct 모델입니다. 추론, 검색, 오픈웨이트, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5787,7 +5787,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Trinity Mini로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Arcee AI의 Trinity Mini 모델입니다. 추론, 오픈웨이트, 저비용, 고속 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5824,7 +5824,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘",
       "의사결정 트레이드오프를 정리해줘",
-      "반례를 먼저 생각하고 답해줘"
+      "Aion-2.0로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Aion Labs의 Aion-2.0 모델입니다. 추론, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5860,7 +5860,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "시장 동향을 핵심 수치 중심으로 찾아줘",
       "팩트체크할 쟁점을 먼저 나눠줘",
-      "서로 다른 자료의 관점 차이를 정리해줘"
+      "Hermes 4 70B로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Nous Research의 Hermes 4 70B 모델입니다. 추론, 검색, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5897,7 +5897,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "최신 자료를 근거와 함께 요약해줘",
       "인용 가능한 근거만 따로 모아줘",
-      "시장 동향을 핵심 수치 중심으로 찾아줘"
+      "Hermes 4 405B로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Nous Research의 Hermes 4 405B 모델입니다. 추론, 검색, 오픈웨이트, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5934,7 +5934,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "타입 설계를 더 안전하게 바꿔줘",
       "성능 병목 가능성을 짚어줘",
-      "테스트 케이스에서 빠진 경계를 찾아줘"
+      "Morph V3 Large가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Morph의 Morph V3 Large 모델입니다. 코딩, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -5970,7 +5970,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "Saba의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Mistral AI의 Saba 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6008,7 +6008,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "최신 자료를 근거와 함께 요약해줘",
       "인용 가능한 근거만 따로 모아줘",
-      "시장 동향을 핵심 수치 중심으로 찾아줘"
+      "Hermes 3 405B Instruct Free로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Nous Research의 Hermes 3 405B Instruct Free 모델입니다. 추론, 검색, 오픈웨이트, 무료 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6045,7 +6045,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "Llama 3.3 70B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3.3 70B Instruct 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6082,7 +6082,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "장단점을 표로 비교해줘",
       "실행 가능한 계획으로 정리해줘",
-      "핵심만 빠르게 요약해줘"
+      "Mistral Small 3의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3 모델입니다. 오픈웨이트, 저비용, 고속, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6119,7 +6119,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "Ling-2.6-1T의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "InclusionAI의 Ling-2.6-1T 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6156,7 +6156,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "Ling-2.6-flash의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "InclusionAI의 Ling-2.6-flash 모델입니다. 오픈웨이트, 저비용, 고속, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6193,7 +6193,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "화면 내용을 읽고 작업 순서로 정리해줘",
       "이미지에서 중요한 정보를 뽑아줘",
-      "시각 자료를 발표용 요약으로 바꿔줘"
+      "Reka Edge로 이미지와 문서를 함께 분석해줘"
     ],
     "greeting": "Reka AI의 Reka Edge 모델입니다. 오픈웨이트, 시각입력, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6232,7 +6232,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "실행 가능한 계획으로 정리해줘",
       "핵심만 빠르게 요약해줘",
-      "초보자도 이해하게 다시 설명해줘"
+      "MiniMax의 MiniMax M2-her를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M2-her 모델입니다. 저비용, 고속, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6268,7 +6268,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "Moonshot AI의 Kimi K2 0711를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2 0711 모델입니다. 중국어, 툴사용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6304,7 +6304,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "INTELLECT-3로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Prime Intellect의 INTELLECT-3 모델입니다. 추론, 오픈웨이트, 저비용, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6341,7 +6341,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "내 결론의 논리적 약점을 찾아줘",
       "복잡한 문제를 전제부터 단계별로 풀어줘",
-      "가정이 바뀌면 결론이 어떻게 달라지는지 봐줘"
+      "Olmo 3 32B Think로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Ai2의 Olmo 3 32B Think 모델입니다. 추론, 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6378,7 +6378,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "Llama 3.3 70B Instruct Free의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3.3 70B Instruct Free 모델입니다. 오픈웨이트, 무료, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6414,7 +6414,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "Llama 3.2 1B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3.2 1B Instruct 모델입니다. 오픈웨이트, 저비용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6450,7 +6450,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "Cogito v2.1 671B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Deep Cogito의 Cogito v2.1 671B 모델입니다. 추론, 오픈웨이트, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6486,7 +6486,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "Llama 3.1 8B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3.1 8B Instruct 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6523,7 +6523,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "Llama 3.1 70B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3.1 70B Instruct 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6560,7 +6560,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "Virtuoso Large로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Arcee AI의 Virtuoso Large 모델입니다. 추론, 오픈웨이트, 툴사용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6596,7 +6596,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "서로 다른 자료의 관점 차이를 정리해줘",
       "이 주장에 대한 출처를 비교해줘",
-      "최신 자료를 근거와 함께 요약해줘"
+      "Relace Search로 최신 이슈를 출처와 함께 점검해줘"
     ],
     "greeting": "Relace의 Relace Search 모델입니다. 검색, 툴사용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6632,7 +6632,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "버그 원인을 재현 단계부터 찾아줘",
       "이 코드 구조를 더 단순하게 리팩터링해줘",
-      "타입 설계를 더 안전하게 바꿔줘"
+      "Coder Large가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Arcee AI의 Coder Large 모델입니다. 코딩, 오픈웨이트, 저비용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6668,7 +6668,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "Mistral Nemo의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Mistral AI의 Mistral Nemo 모델입니다. 오픈웨이트, 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6705,7 +6705,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "실행 가능한 계획으로 정리해줘",
       "핵심만 빠르게 요약해줘",
-      "초보자도 이해하게 다시 설명해줘"
+      "Llama 3 8B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3 8B Instruct 모델입니다. 오픈웨이트, 저비용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6741,7 +6741,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "장단점을 표로 비교해줘",
       "실행 가능한 계획으로 정리해줘",
-      "핵심만 빠르게 요약해줘"
+      "Llama 3 70B Instruct의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Meta의 Llama 3 70B Instruct 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6777,7 +6777,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "이 코드 구조를 더 단순하게 리팩터링해줘",
       "타입 설계를 더 안전하게 바꿔줘",
-      "성능 병목 가능성을 짚어줘"
+      "Morph V3 Fast가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Morph의 Morph V3 Fast 모델입니다. 코딩, 고속, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6813,7 +6813,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "성능 병목 가능성을 짚어줘",
       "테스트 케이스에서 빠진 경계를 찾아줘",
-      "API 응답 형식을 검토하고 개선안을 줘"
+      "Relace Apply 3가 잘 맞는 개발 작업을 예시로 비교해줘"
     ],
     "greeting": "Relace의 Relace Apply 3 모델입니다. 코딩, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6849,7 +6849,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "LFM2-24B-A2B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Liquid AI의 LFM2-24B-A2B 모델입니다. 오픈웨이트, 저비용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6885,7 +6885,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "장단점을 표로 비교해줘",
       "실행 가능한 계획으로 정리해줘",
-      "핵심만 빠르게 요약해줘"
+      "Amazon의 Nova Micro 1.0를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "Amazon의 Nova Micro 1.0 모델입니다. 저비용, 툴사용, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6921,7 +6921,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "선택지를 기준별로 점수화해줘",
       "내 결론의 논리적 약점을 찾아줘",
-      "복잡한 문제를 전제부터 단계별로 풀어줘"
+      "Switchpoint Router로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Switchpoint의 Switchpoint Router 모델입니다. 추론, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6957,7 +6957,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "LFM2.5-1.2B-Instruct Free의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Liquid AI의 LFM2.5-1.2B-Instruct Free 모델입니다. 오픈웨이트, 무료, 범용 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -6993,7 +6993,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "WizardLM-2 8x22B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Microsoft의 WizardLM-2 8x22B 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7029,7 +7029,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "반례를 먼저 생각하고 답해줘",
       "선택지를 기준별로 점수화해줘",
-      "내 결론의 논리적 약점을 찾아줘"
+      "Magnum v4 72B로 복잡한 판단을 단계별로 풀어줘"
     ],
     "greeting": "Anthracite의 Magnum v4 72B 모델입니다. 추론, 오픈웨이트, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7065,7 +7065,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "실행 가능한 계획으로 정리해줘",
       "핵심만 빠르게 요약해줘",
-      "초보자도 이해하게 다시 설명해줘"
+      "Aion-RP 1.0 (8B)의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Aion Labs의 Aion-RP 1.0 (8B) 모델입니다. 오픈웨이트, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7101,7 +7101,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "장단점을 표로 비교해줘",
       "실행 가능한 계획으로 정리해줘",
-      "핵심만 빠르게 요약해줘"
+      "TheDrummer의 Cydonia 24B V4.1를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "TheDrummer의 Cydonia 24B V4.1 모델입니다. 저비용, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7137,7 +7137,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "TheDrummer의 Skyfall 36B V2를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "TheDrummer의 Skyfall 36B V2 모델입니다. 저비용, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7173,7 +7173,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "장단점을 표로 비교해줘",
       "실행 가능한 계획으로 정리해줘",
-      "핵심만 빠르게 요약해줘"
+      "Inflection AI의 Inflection 3 Productivity를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "Inflection AI의 Inflection 3 Productivity 모델입니다. 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7208,7 +7208,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "Llama 3.1 70B Hanami x1의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Sao10K의 Llama 3.1 70B Hanami x1 모델입니다. 오픈웨이트, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7244,7 +7244,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "회의 전에 볼 브리핑으로 만들어줘",
       "우선순위를 정하고 이유를 말해줘",
-      "장단점을 표로 비교해줘"
+      "Llama 3.3 Euryale 70B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Sao10K의 Llama 3.3 Euryale 70B 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7280,7 +7280,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "핵심만 빠르게 요약해줘",
       "초보자도 이해하게 다시 설명해줘",
-      "회의 전에 볼 브리핑으로 만들어줘"
+      "TheDrummer의 UnslopNemo 12B를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "TheDrummer의 UnslopNemo 12B 모델입니다. 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7316,7 +7316,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "초보자도 이해하게 다시 설명해줘",
       "회의 전에 볼 브리핑으로 만들어줘",
-      "우선순위를 정하고 이유를 말해줘"
+      "TheDrummer의 Rocinante 12B를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "TheDrummer의 Rocinante 12B 모델입니다. 저비용, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7352,7 +7352,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "회의 전에 볼 브리핑으로 만들어줘",
       "우선순위를 정하고 이유를 말해줘",
-      "장단점을 표로 비교해줘"
+      "Llama 3.1 Euryale 70B v2.2의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Sao10K의 Llama 3.1 Euryale 70B v2.2 모델입니다. 오픈웨이트, 툴사용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7388,7 +7388,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "실행 가능한 계획으로 정리해줘",
       "핵심만 빠르게 요약해줘",
-      "초보자도 이해하게 다시 설명해줘"
+      "Llama 3 8B Lunaris의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Sao10K의 Llama 3 8B Lunaris 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7424,7 +7424,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "Mancer의 Weaver (alpha)를 언제 쓰면 좋은지 알려줘"
     ],
     "greeting": "Mancer의 Weaver (alpha) 모델입니다. 구조화, 범용, 업무 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7460,7 +7460,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "ReMM SLERP 13B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Undi95의 ReMM SLERP 13B 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
@@ -7496,7 +7496,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "sampleQuestions": [
       "우선순위를 정하고 이유를 말해줘",
       "장단점을 표로 비교해줘",
-      "실행 가능한 계획으로 정리해줘"
+      "MythoMax 13B의 오픈웨이트 활용 장단점을 정리해줘"
     ],
     "greeting": "Gryphe의 MythoMax 13B 모델입니다. 오픈웨이트, 저비용, 구조화 작업에 맞춰 도와드리겠습니다",
     "tags": [
