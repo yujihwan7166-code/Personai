@@ -3,13 +3,53 @@ const { isVisibleGeneralTextModel } = await import('../src/lib/generalModelCatal
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const MAJOR_PROVIDER_PREFIX = /^(openai|anthropic|google|x-ai|perplexity|deepseek|qwen|meta-llama|mistralai|cohere|microsoft|amazon|nvidia|moonshotai|z-ai|minimax)\//;
+const LOW_CONFIDENCE_PROVIDER_PREFIXES = [
+  'aion-labs/',
+  'anthracite-org/',
+  'gryphe/',
+  'mancer/',
+  'sao10k/',
+  'thedrummer/',
+  'undi95/',
+];
+const EXCLUDE_MODEL_IDS = new Set([
+  'openai/gpt-4o-2024-05-13',
+  'openai/gpt-4o-2024-08-06',
+  'openai/gpt-4o-2024-11-20',
+  'openai/gpt-4o-mini-2024-07-18',
+  'openai/gpt-3.5-turbo-0613',
+  'openai/gpt-3.5-turbo-16k',
+  'openai/gpt-3.5-turbo-instruct',
+]);
+const NON_GENERAL_MODEL_PATTERNS = [
+  /\bmoderation\b/i,
+  /\bguard\b/i,
+  /\bguardrail\b/i,
+  /\bsafeguard\b/i,
+  /\bcontent[-\s]?safety\b/i,
+  /\bembedding\b/i,
+  /\btts\b/i,
+  /\bwhisper\b/i,
+  /\bvision\b/i,
+  /\bvl\b/i,
+  /\brouter\b/i,
+  /\brp\b/i,
+  /\brole[-\s]?play(?:ing)?\b/i,
+  /\buncensored\b/i,
+  /\bimage generation\b/i,
+  /\bdeprecated\b/i,
+];
 
 function isTextOnlyModel(model) {
+  const haystack = `${model.id} ${model.name} ${model.description ?? ''}`;
   return model.architecture?.input_modalities?.includes('text')
     && model.architecture?.output_modalities?.includes('text')
     && !(model.architecture?.output_modalities ?? []).some((item) => item !== 'text')
     && !model.id.startsWith('~')
-    && !model.id.startsWith('openrouter/');
+    && !model.id.startsWith('openrouter/')
+    && !EXCLUDE_MODEL_IDS.has(model.id)
+    && !LOW_CONFIDENCE_PROVIDER_PREFIXES.some((prefix) => model.id.startsWith(prefix))
+    && !NON_GENERAL_MODEL_PATTERNS.some((pattern) => pattern.test(haystack));
 }
 
 function scoreModel(model) {

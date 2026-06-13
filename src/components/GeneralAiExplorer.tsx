@@ -27,6 +27,10 @@ import {
   MODEL_IS_OPENSOURCE,
 } from '@/lib/modelTaxonomy';
 import { REASONING_MODEL_IDS, RECOMMENDED_MODEL_IDS } from '@/lib/modelTaxonomy';
+import {
+  FAST_MODEL_IDS as SELECTION_FAST_MODEL_IDS,
+  FLAGSHIP_MODEL_IDS as SELECTION_FLAGSHIP_MODEL_IDS,
+} from '@/lib/expertSelectionGroups';
 import { cn } from '@/lib/utils';
 
 type ExplorerTab = 'general' | 'custom';
@@ -690,20 +694,9 @@ const NEW_MODEL_IDS = new Set([
   'mercury',
 ]);
 
-const FLAGSHIP_MODEL_IDS = new Set([
-  'gpt',
-  'claude',
-  'gemini-pro',
-  'grok-4.2',
-  'perplexity-pro',
-  'deepseek-r1',
-  'qwen-plus',
-  'nova-premier',
-  'mistral-large',
-  'kimi',
-]);
-
 const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'deepseek', 'qwen']);
+const FAST_MODEL_ID_SET = new Set<string>(SELECTION_FAST_MODEL_IDS);
+const FLAGSHIP_MODEL_ID_SET = new Set<string>(SELECTION_FLAGSHIP_MODEL_IDS);
 
 function getGeneralTraitIds(expert: Expert) {
   const brand = MODEL_BRAND[expert.id];
@@ -726,7 +719,7 @@ function getGeneralSpecIds(expert: Expert) {
   const contextLength = expert.modelInfo?.contextLength ?? 0;
   const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
   return [
-    expert.abilities?.speed && expert.abilities.speed >= 85 ? 'speed-fast' : 'speed-normal',
+    FAST_MODEL_ID_SET.has(expert.id) || (expert.abilities?.speed && expert.abilities.speed >= 85) ? 'speed-fast' : 'speed-normal',
     priceTier ? `price-${priceTier}` : MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-standard',
     contextLength >= 1_000_000 ? 'context-xl' : contextLength >= 262_144 ? 'context-long' : 'context-standard',
     inputModalities.includes('image') ? 'input-vision' : 'input-text',
@@ -777,14 +770,14 @@ function matchesQuickFilter(expert: Expert, tab: ExplorerTab, filterId: string) 
   if (tab === 'general') {
     if (filterId === 'recommended') return RECOMMENDED_MODEL_IDS.includes(expert.id);
     if (filterId === 'new') return NEW_MODEL_IDS.has(expert.id);
-    if (filterId === 'flagship') return FLAGSHIP_MODEL_IDS.has(expert.id);
+    if (filterId === 'flagship') return FLAGSHIP_MODEL_ID_SET.has(expert.id);
     if (filterId === 'fast') return getGeneralSpecIds(expert).includes('speed-fast');
     if (filterId === 'reasoning') return getGeneralTraitIds(expert).includes('reasoning');
     if (filterId === 'low-cost') return getGeneralSpecIds(expert).some((id) => id === 'price-free' || id === 'price-low');
     if (filterId === 'long-context') return getGeneralSpecIds(expert).some((id) => id === 'context-xl' || id === 'context-long');
     if (filterId === 'minor') {
       const brand = MODEL_BRAND[expert.id] ?? 'other';
-      return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_IDS.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));
+      return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_ID_SET.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));
     }
     if (filterId === 'coding') return getGeneralTraitIds(expert).includes('coding') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발'));
     if (filterId === 'search') return getGeneralTraitIds(expert).includes('search') || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG');
