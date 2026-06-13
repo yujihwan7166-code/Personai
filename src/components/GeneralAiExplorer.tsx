@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowRight,
+  AlertTriangle,
   Bookmark,
   Check,
   ChevronDown,
@@ -40,6 +41,8 @@ import {
 } from '@/lib/generalModelExplorerFilters';
 import { buildGeneralModelMeta } from '@/lib/generalModelExplorerMeta';
 import { matchesGeneralModelQuery } from '@/lib/generalModelSearch';
+import { compareGeneralModelPopularity } from '@/lib/generalModelPopularity';
+import { buildPageNumbers } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 
 type ExplorerTab = 'general' | 'custom';
@@ -534,13 +537,10 @@ const GENERAL_QUICK_FILTERS = [
   { id: 'new', label: '신규 모델' },
   { id: 'flagship', label: '플래그십' },
   { id: 'fast', label: '빠른 응답' },
-  { id: 'reasoning', label: '깊은 추론' },
-  { id: 'coding', label: '코딩' },
   { id: 'low-cost', label: '저비용' },
   { id: 'long-context', label: '긴 컨텍스트' },
   { id: 'minor', label: '마이너 모델' },
-  { id: 'search', label: '검색/출처' },
-  { id: 'opensource', label: '로컬/오픈웨이트' },
+  { id: 'opensource', label: '로컬/오픈소스' },
 ] as const;
 
 const CUSTOM_QUICK_FILTERS = [
@@ -663,20 +663,21 @@ function ModelStatsPanel({ expert }: { expert: Expert }) {
     label,
     value: abilities?.[key] ?? 60,
   }));
-  const center = 82;
+  const centerX = 106;
+  const centerY = 88;
   const radius = 62;
   const polygon = values
     .map((item, index) => {
       const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
       const r = radius * (item.value / 100);
-      return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+      return `${centerX + Math.cos(angle) * r},${centerY + Math.sin(angle) * r}`;
     })
     .join(' ');
   const grid = [0.33, 0.66, 1].map((scale) =>
     values
       .map((_, index) => {
         const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
-        return `${center + Math.cos(angle) * radius * scale},${center + Math.sin(angle) * radius * scale}`;
+        return `${centerX + Math.cos(angle) * radius * scale},${centerY + Math.sin(angle) * radius * scale}`;
       })
       .join(' '),
   );
@@ -694,7 +695,7 @@ function ModelStatsPanel({ expert }: { expert: Expert }) {
           </span>
         </div>
         <div className="mt-3 flex justify-center">
-          <svg viewBox="0 0 164 164" className="h-[172px] w-[172px]" role="img" aria-label={`${expert.nameKo} 능력치 레이더`}>
+          <svg viewBox="0 0 212 176" className="h-[172px] w-[212px] max-w-full overflow-visible" role="img" aria-label={`${expert.nameKo} 능력치 레이더`}>
             {grid.map((points, index) => (
               <polygon key={index} points={points} fill="none" stroke="#e2e8f0" strokeWidth="1" />
             ))}
@@ -703,25 +704,25 @@ function ModelStatsPanel({ expert }: { expert: Expert }) {
               return (
                 <line
                   key={index}
-                  x1={center}
-                  y1={center}
-                  x2={center + Math.cos(angle) * radius}
-                  y2={center + Math.sin(angle) * radius}
+                  x1={centerX}
+                  y1={centerY}
+                  x2={centerX + Math.cos(angle) * radius}
+                  y2={centerY + Math.sin(angle) * radius}
                   stroke="#edf2f7"
                   strokeWidth="1"
                 />
               );
             })}
             <polygon points={polygon} fill="rgba(79,70,229,0.16)" stroke="#4f46e5" strokeWidth="2.5" />
-            <circle cx={center} cy={center} r="2.2" fill="#4f46e5" />
+            <circle cx={centerX} cy={centerY} r="2.2" fill="#4f46e5" />
             {values.map((item, index) => {
               const angle = -Math.PI / 2 + (Math.PI * 2 * index) / values.length;
-              const labelRadius = radius + 18;
+              const labelRadius = radius + 20;
               return (
                 <text
                   key={item.key}
-                  x={center + Math.cos(angle) * labelRadius}
-                  y={center + Math.sin(angle) * labelRadius + 3}
+                  x={centerX + Math.cos(angle) * labelRadius}
+                  y={centerY + Math.sin(angle) * labelRadius + 3}
                   textAnchor="middle"
                   className="fill-slate-500 text-[8.5px] font-bold"
                 >
@@ -793,6 +794,20 @@ function SmallTag({ children }: { children: React.ReactNode }) {
   );
 }
 
+function isModelDisabled(expert: Expert) {
+  return expert.modelInfo?.availability === 'disabled';
+}
+
+function ModelAvailabilityBadge({ expert }: { expert: Expert }) {
+  if (!isModelDisabled(expert)) return null;
+  return (
+    <span className="inline-flex h-5 items-center gap-1 rounded-md bg-slate-200 px-1.5 text-[10.5px] font-extrabold text-slate-600 ring-1 ring-slate-300/70">
+      <AlertTriangle className="h-3 w-3" strokeWidth={2.4} />
+      {expert.modelInfo?.availabilityLabel ?? '사용 불가'}
+    </span>
+  );
+}
+
 function ExplorerCard({
   expert,
   tab,
@@ -806,6 +821,8 @@ function ExplorerCard({
   view: ExplorerView;
   onPreview: () => void;
 }) {
+  const disabled = isModelDisabled(expert);
+
   if (view === 'list') {
     return (
       <button
@@ -814,13 +831,17 @@ function ExplorerCard({
         className={cn(
           'relative flex min-h-[82px] w-full items-center gap-3 rounded-xl border bg-white p-3 text-left transition-all hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.05)]',
           active ? 'border-indigo-400 bg-indigo-50/30 ring-2 ring-indigo-100' : 'border-slate-200',
+          disabled && 'bg-slate-50 text-slate-500 grayscale hover:bg-slate-50',
         )}
       >
         <span className={cn('block shrink-0 overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100', tab === 'custom' ? 'h-16 w-24' : 'h-14 w-14')}>
           {tab === 'custom' ? <CustomPortrait expert={expert} /> : <ExpertMedia expert={expert} mode={tab} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-extrabold text-slate-900">{expert.nameKo}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className={cn('block truncate text-[15px] font-extrabold text-slate-900', disabled && 'text-slate-500')}>{expert.nameKo}</span>
+            <ModelAvailabilityBadge expert={expert} />
+          </span>
           {tab === 'general' && (
             <span className="mt-0.5 block truncate text-[12px] font-semibold text-slate-400">{providerLabel(expert)}</span>
           )}
@@ -838,14 +859,20 @@ function ExplorerCard({
         className={cn(
           'group relative flex h-[138px] w-full flex-col overflow-hidden rounded-[15px] border bg-white p-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.025)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50/35 hover:shadow-[0_14px_28px_rgba(15,23,42,0.07)]',
           active ? 'border-indigo-400 bg-indigo-50/35 ring-2 ring-indigo-100' : 'border-slate-200/85',
+          disabled && 'bg-slate-50 grayscale hover:translate-y-0 hover:bg-slate-50 hover:shadow-none',
         )}
       >
+        {disabled && (
+          <span className="absolute right-2.5 top-2.5 z-10">
+            <ModelAvailabilityBadge expert={expert} />
+          </span>
+        )}
         <span className="flex min-h-[48px] items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[13px] bg-slate-50 ring-1 ring-slate-100 transition-colors group-hover:bg-white">
+          <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[13px] bg-slate-50 ring-1 ring-slate-100 transition-colors group-hover:bg-white', disabled && 'opacity-55')}>
             <ExpertMedia expert={expert} mode={tab} />
           </span>
           <span className="min-w-0 flex-1 pt-0.5">
-            <span className={cn('block line-clamp-2 break-keep text-[14px] font-extrabold leading-[1.12]', active ? 'text-indigo-700' : 'text-slate-950')}>
+            <span className={cn('block line-clamp-2 break-keep text-[14px] font-extrabold leading-[1.12]', active ? 'text-indigo-700' : 'text-slate-950', disabled && 'pr-14 text-slate-500')}>
               {expert.nameKo}
             </span>
             <span className="mt-1.5 block truncate text-[11px] font-bold leading-none text-slate-400">{providerLabel(expert)}</span>
@@ -1052,10 +1079,26 @@ function ExplorerDetailPanel({
               )}
             </div>
             <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
+              <ModelAvailabilityBadge expert={expert} />
               {tags.map((tag) => (
                 <SmallTag key={tag}>{tag}</SmallTag>
               ))}
             </div>
+            {isModelDisabled(expert) && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" strokeWidth={2.4} />
+                  <div>
+                    <p className="text-[12px] font-extrabold text-amber-800">
+                      현재 OpenRouter에서 선택할 수 없는 상태입니다.
+                    </p>
+                    <p className="mt-1 text-[11.5px] font-medium leading-relaxed text-amber-800/85">
+                      {expert.modelInfo?.availabilityReason ?? '제공사 또는 라우터 정책으로 일시적으로 접근이 제한된 모델입니다.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="mt-3 text-center text-[12.5px] font-medium leading-relaxed text-slate-600">
               {expert.description}
             </p>
@@ -1080,9 +1123,9 @@ function ExplorerDetailPanel({
               </h4>
               <div className="space-y-1.5">
                 {examples.map((example) => (
-                  <p key={example} className="flex gap-2 text-[11.5px] font-semibold leading-relaxed text-slate-600">
+                  <p key={example} className="flex gap-2 text-[11.5px] font-semibold leading-snug text-slate-600">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full bg-indigo-500 p-0.5 text-white" />
-                    <span className="line-clamp-1">{example}</span>
+                    <span className="line-clamp-2 break-keep">{example}</span>
                   </p>
                 ))}
               </div>
@@ -1094,13 +1137,14 @@ function ExplorerDetailPanel({
         <button
           type="button"
           onClick={onStart}
+          disabled={isModelDisabled(expert)}
           className={cn(
-            'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[13.5px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300',
+            'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[13.5px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0',
             selected ? 'bg-slate-900 hover:bg-slate-800' : 'bg-indigo-600 hover:bg-indigo-500',
           )}
         >
-          {tab === 'custom' ? '이 AI로 시작' : '이 모델로 시작'}
-          <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+          {isModelDisabled(expert) ? '현재 사용 불가' : tab === 'custom' ? '이 AI로 시작' : '이 모델로 시작'}
+          {!isModelDisabled(expert) && <ArrowRight className="h-4 w-4" strokeWidth={2.4} />}
         </button>
       </div>
     </aside>
@@ -1149,14 +1193,14 @@ export function AllAiExplorerModal({
     return [...items].sort((a, b) => {
       if (sort === 'name') return a.nameKo.localeCompare(b.nameKo, 'ko');
       if (sort === 'popular') {
-        const favoriteDelta = Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id));
-        if (favoriteDelta !== 0) return favoriteDelta;
-        return fallbackOrder(a, tab) - fallbackOrder(b, tab) || a.nameKo.localeCompare(b.nameKo, 'ko');
+        return tab === 'general'
+          ? compareGeneralModelPopularity(a, b)
+          : fallbackOrder(a, tab) - fallbackOrder(b, tab) || a.nameKo.localeCompare(b.nameKo, 'ko');
       }
       const abilityDelta = abilityValue(b, sort) - abilityValue(a, sort);
       return abilityDelta || fallbackOrder(a, tab) - fallbackOrder(b, tab) || a.nameKo.localeCompare(b.nameKo, 'ko');
     });
-  }, [experts, favoriteSet, sort, tab]);
+  }, [experts, sort, tab]);
 
   const brandItems = useMemo(() => {
     if (tab !== 'general') return [];
@@ -1302,13 +1346,20 @@ export function AllAiExplorerModal({
   };
 
   const startWithExpert = (expert: Expert) => {
+    if (isModelDisabled(expert)) return;
     onSelectExpert(expert.id);
     onClose();
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/45 px-4 py-5 text-slate-950 backdrop-blur-sm">
-      <div className="flex h-[min(860px,calc(100vh-40px))] min-h-0 w-full max-w-[1500px] flex-col overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.32)] ring-1 ring-slate-950/10">
+    <div
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/45 px-4 py-5 text-slate-950 backdrop-blur-sm"
+      onMouseDown={onClose}
+    >
+      <div
+        className="flex h-[min(860px,calc(100vh-40px))] min-h-0 w-full max-w-[1500px] flex-col overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.32)] ring-1 ring-slate-950/10"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/70 bg-slate-50/80 px-5 py-3 sm:flex-nowrap">
           <div>
             <h2 className="sr-only">전체 AI 탐색</h2>
@@ -1506,8 +1557,7 @@ export function AllAiExplorerModal({
                 <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 disabled:opacity-30" disabled={page <= 1}>
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                  const n = index + 1;
+                {buildPageNumbers(page, totalPages).map((n) => {
                   return (
                     <button
                       key={n}

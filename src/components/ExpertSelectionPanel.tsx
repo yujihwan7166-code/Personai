@@ -2812,6 +2812,11 @@ export function ExpertSelectionPanel({
               : subFiltered;
             const isAiCategory = isAiGroupCat(cat);
             const displayItems = filtered;
+            const aiGridMaxHeightClass = cat === 'ai_open'
+              ? 'max-h-[188px]'
+              : cat === 'ai'
+                ? 'max-h-[260px]'
+                : 'max-h-[232px]';
 
             /* ── Helper: render a single expert cell ── */
             const renderExpertCell = (expert: Expert) => {
@@ -2893,9 +2898,9 @@ export function ExpertSelectionPanel({
                       </div>
                     ) : (
                       <div className={cn(
-                        'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2',
-                        // 전체 모델 탭은 모델 수 많아 스크롤 영역으로
-                        cat === 'ai' && 'max-h-[260px] overflow-y-auto scrollbar-thin',
+                        'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-x-1 gap-y-2 pr-1 overflow-y-auto overscroll-contain scrollbar-thin',
+                        // AI groups can contain many models, so keep the landing panel compact.
+                        aiGridMaxHeightClass,
                       )}>
                         {visibleItems.map(expert => renderExpertCell(expert))}
                       </div>

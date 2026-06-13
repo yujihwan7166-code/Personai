@@ -36,7 +36,7 @@ export function formatGeneralModelInputModalities(inputModalities: string[] = ['
 }
 
 export function buildGeneralModelMeta(expert: Expert, providerLabel: string): GeneralModelMetaRow[] {
-  return [
+  const rows: GeneralModelMetaRow[] = [
     ['제공사', providerLabel],
     ['분야', modelFieldTags(expert).join(', ')],
     ['속도', isFastModel(expert) ? '빠름' : '보통'],
@@ -46,4 +46,10 @@ export function buildGeneralModelMeta(expert: Expert, providerLabel: string): Ge
     ['입력', formatGeneralModelInputModalities(expert.modelInfo?.inputModalities ?? ['text'])],
     ['모델 유형', expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈웨이트' : '폐쇄형'],
   ];
+
+  if (expert.modelInfo?.availability === 'disabled') {
+    rows.push(['상태', expert.modelInfo.availabilityLabel ?? '현재 사용 불가']);
+  }
+
+  return rows;
 }

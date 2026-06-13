@@ -1,7 +1,7 @@
 import { applyExpertOverrides } from '@/data/expertOverrides';
 import { DEFAULT_EXPERTS, type Expert } from '@/types/expert';
 
-export const REMOVED_EXPERT_IDS = new Set(['auto-ai', 'ancano', 'explorer', 'president', 'lawmaker', 'assemblyman', 'politician']);
+export const REMOVED_EXPERT_IDS = new Set(['auto-ai', 'ancano', 'explorer', 'president', 'lawmaker', 'assemblyman', 'politician', 'or-nex-agi-nex-n2-pro-free']);
 
 export function visibleDefaultExperts() {
   return DEFAULT_EXPERTS.filter((expert) => !REMOVED_EXPERT_IDS.has(expert.id));

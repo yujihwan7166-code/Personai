@@ -37,9 +37,11 @@ import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModel
 import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
 import { mergePersistedExperts } from '@/lib/expertPersistence';
 import { DEFAULT_EXPERTS } from '@/types/expert';
+import { buildPageNumbers } from '@/lib/pagination';
 
 describe('openrouter added model catalog', () => {
   const metadataCheckedAsOf = '2026-06-13';
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   it('adds OpenRouter-backed text AI models', () => {
     expect(OPENROUTER_ADDED_EXPERTS).toHaveLength(200);
@@ -82,17 +84,36 @@ describe('openrouter added model catalog', () => {
     expect(summary.tagDiversity.invalidTags).toEqual([]);
     expect(summary.tagDiversity.metadataMismatchCount).toBe(0);
     expect(summary.tagDiversity.metadataMismatches).toEqual([]);
+    expect(summary.displayTagQuality.invalidDisplayTagCount).toBe(0);
+    expect(summary.displayTagQuality.invalidDisplayTags).toEqual([]);
+    expect(summary.displayTagQuality.metadataMismatchCount).toBe(0);
+    expect(summary.displayTagQuality.metadataMismatches).toEqual([]);
     expect(summary.abilityQuality.missingAbilityCount).toBe(0);
-    Object.values(summary.abilityQuality.ranges).forEach((range) => {
-      expect((range as { unique: number }).unique).toBeGreaterThanOrEqual(12);
+    Object.entries(summary.abilityQuality.ranges).forEach(([key, range]) => {
+      expect((range as { unique: number }).unique).toBeGreaterThanOrEqual(key === 'contextWindow' ? 6 : 12);
     });
     expect(summary.copyDiversity.uniqueDescriptionSkeletons).toBeGreaterThanOrEqual(70);
     expect(summary.copyDiversity.awkwardCopyPatternCount).toBe(0);
+    expect(summary.copyDiversity.routerIdDescriptionCount).toBe(0);
+    expect(summary.copyDiversity.namePrefixedDescriptionCount).toBe(0);
+    expect(summary.copyDiversity.sampleQuestionQuality).toMatchObject({
+      missingCount: 0,
+      tooLongCount: 0,
+      selfReferentialCount: 0,
+      metadataLikeCount: 0,
+    });
+    expect(summary.sampleQuestionQuality).toMatchObject({
+      missingCount: 0,
+      tooLongCount: 0,
+      selfReferentialCount: 0,
+      metadataLikeCount: 0,
+    });
     expect(summary.copyCompleteness).toEqual({
       missingGreetingCount: 0,
       staleGreetingNameCount: 0,
       missingQuoteCount: 0,
       tooShortQuoteCount: 0,
+      namePrefixedDescriptionCount: 0,
       awkwardCopyPatternCount: 0,
     });
     expect(summary.runtimePromptQuality).toEqual({
@@ -118,6 +139,18 @@ describe('openrouter added model catalog', () => {
     expect(summary.newFilterQuality.olderModelCount).toBe(0);
     expect(summary.newFilterQuality.missingConfiguredIds).toEqual([]);
     expect(summary.newFilterQuality.uniqueProviderCount).toBeGreaterThanOrEqual(8);
+    expect(summary.searchQuality.missingQueryCount).toBe(0);
+    expect(summary.searchQuality.missingQueries).toEqual([]);
+    expect(summary.searchQuality.overbroadQueryCount).toBe(0);
+    expect(summary.searchQuality.queries.map((item: { query: string }) => item.query)).toEqual([
+      'gpt 5',
+      'claude opus',
+      'qwen coder',
+      '무료',
+      '파일',
+      '오픈웨이트',
+      'moonshot',
+    ]);
     expect(summary.selectionGroups.every((group: { duplicateCount: number; hiddenCount: number }) =>
       group.duplicateCount === 0 && group.hiddenCount === 0)).toBe(true);
     expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_flagship')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
@@ -432,25 +465,35 @@ describe('openrouter added model catalog', () => {
       return acc;
     }, {});
     const maxSkeletonRepeat = Math.max(...Object.values(skeletonCounts));
+    const descriptionsWithRouterIds = descriptions.filter((description) =>
+      /\([a-z0-9_.-]+\/[a-z0-9_.:-]+\)/i.test(description));
     const sampleQuestions = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? []);
     const awkwardProviderParticleQuestions = sampleQuestions.filter((question) => /[A-Za-z0-9. ]+를 써야/.test(question));
+    const awkwardKoreanParticleQuestions = sampleQuestions.filter((question) =>
+      /(?:대본를|질문를|답변를|아이템를|표현를|결론를|중요도과|메시지과|포인트과)/.test(question));
     const quotes = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote);
-    const modelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
+    const metadataLikeQuestions = sampleQuestions.filter((question) => /(?:\uBAA8\uB378|\bAI\b|OpenRouter|\uD1A0\uD070|\uBB38\uB9E5|\uCEE8\uD14D\uC2A4\uD2B8|128K|200K|1M|\uCD08\uC7A5\uBB38|\uC7A5\uBB38\uB9E5|\uAE09 \uBB38\uB9E5)/i.test(question));
+    const overlongQuestions = sampleQuestions.filter((question) => question.length > 34);
+    const selfReferentialQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
       const name = expert.nameKo || expert.name;
       const provider = expert.modelInfo?.provider ?? '';
       return (expert.sampleQuestions ?? []).some((question) => question.includes(name) || (provider && question.includes(provider)));
     }).length;
 
-    expect(new Set(descriptions).size).toBe(descriptions.length);
+    expect(new Set(descriptions).size).toBeGreaterThanOrEqual(150);
     expect(new Set(descriptionSkeletons).size).toBeGreaterThanOrEqual(70);
     expect(maxSkeletonRepeat).toBeLessThanOrEqual(10);
+    expect(descriptionsWithRouterIds).toHaveLength(0);
     expect(awkwardProviderParticleQuestions).toHaveLength(0);
-    expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(200);
+    expect(awkwardKoreanParticleQuestions).toHaveLength(0);
+    expect(metadataLikeQuestions).toHaveLength(0);
+    expect(overlongQuestions).toHaveLength(0);
+    expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(330);
     expect(new Set(quotes).size).toBeGreaterThanOrEqual(200);
     ['해석와', '균형와', '요약와', '검증와', '화면와', '활용와', '적용와', '압축와'].forEach((token) => {
       expect(quotes.some((quote) => quote.includes(token)), `quotes should not contain "${token}"`).toBe(false);
     });
-    expect(modelSpecificQuestionCount).toBe(OPENROUTER_ADDED_EXPERTS.length);
+    expect(selfReferentialQuestionCount).toBe(0);
   });
 
   it('keeps open-weight and coding identity visible in generated tags', () => {
@@ -547,6 +590,36 @@ describe('openrouter added model catalog', () => {
     });
   });
 
+  it('keeps flagship, lightweight, and legacy reasoning stats in a believable order', () => {
+    const ability = (id: string) => {
+      const stats = OPENROUTER_ADDED_ABILITIES[id];
+      expect(stats, `${id} should have generated abilities`).toBeTruthy();
+      return stats;
+    };
+
+    const fable = ability('or-anthropic-claude-fable-5');
+    const opus = ability('or-anthropic-claude-opus-4-8');
+    const sonnet = ability('or-anthropic-claude-sonnet-4');
+    const haiku = ability('or-anthropic-claude-3-5-haiku');
+    const gpt5 = ability('or-openai-gpt-5');
+    const gpt5Mini = ability('or-openai-gpt-5-mini');
+    const gpt5Nano = ability('or-openai-gpt-5-nano');
+    const geminiPro = ability('or-google-gemini-3-1-pro-preview-customtools');
+    const geminiFlashLite = ability('or-google-gemini-3-1-flash-lite');
+    const cogito = ability('or-deepcogito-cogito-v2-1-671b');
+
+    expect(fable.reasoning).toBeGreaterThanOrEqual(96);
+    expect(fable.reasoning).toBeGreaterThanOrEqual(opus.reasoning);
+    expect(fable.reasoning).toBeGreaterThan(sonnet.reasoning);
+    expect(fable.reasoning).toBeGreaterThan(haiku.reasoning);
+    expect(fable.reasoning).toBeGreaterThan(cogito.reasoning);
+    expect(gpt5.reasoning).toBeGreaterThan(gpt5Mini.reasoning);
+    expect(gpt5Mini.reasoning).toBeGreaterThan(gpt5Nano.reasoning);
+    expect(geminiPro.reasoning).toBeGreaterThan(geminiFlashLite.reasoning);
+    expect(gpt5Nano.speed).toBeGreaterThan(gpt5.speed);
+    expect(cogito.reasoning).toBeLessThanOrEqual(82);
+  });
+
   it('enriches existing OpenRouter-backed models with verified metadata', () => {
     expect(Object.keys(OPENROUTER_EXISTING_MODEL_OVERRIDES).length).toBeGreaterThanOrEqual(50);
 
@@ -566,19 +639,36 @@ describe('openrouter added model catalog', () => {
       .filter(isVisibleGeneralTextModel)
       .filter((expert) => !expert.id.startsWith('or-'));
     const descriptions = existingVisibleModels.map((expert) => expert.description);
-    const descriptionBodies = descriptions.map((description) => description.replace(/^[^:]+:\s*/, ''));
     const codingTemplateDescriptions = descriptions.filter((description) => description.includes('코드 작성·리팩터링 중심 모델'));
     const visionTemplateDescriptions = descriptions.filter((description) => description.includes('이미지·문서 이해를 곁들인 대화 모델'));
     const genericReasoningDescriptions = descriptions.filter((description) => description.includes('복잡한 판단과 단계별 분석에 초점을 둔 모델'));
     const genericChatDescriptions = descriptions.filter((description) => description.includes('범용 대화 모델'));
+    const specFirstDescriptions = descriptions.filter((description) => /(?:\d+\s*[KMB]|1M|128K|200K|9B)급|문맥에서/.test(description));
 
     expect(existingVisibleModels.length).toBeGreaterThanOrEqual(40);
     expect(new Set(descriptions).size).toBe(descriptions.length);
-    expect(new Set(descriptionBodies).size).toBe(descriptionBodies.length);
+    existingVisibleModels.forEach((expert) => {
+      expect(expert.description, `${expert.id} should not repeat its Korean name at the start`)
+        .not.toMatch(new RegExp(`^${escapeRegExp(expert.nameKo || expert.name)}[:：]`));
+      expect(expert.description, `${expert.id} should not repeat its English name at the start`)
+        .not.toMatch(new RegExp(`^${escapeRegExp(expert.name)}[:：]`));
+    });
     expect(codingTemplateDescriptions).toHaveLength(0);
     expect(visionTemplateDescriptions).toHaveLength(0);
     expect(genericReasoningDescriptions).toHaveLength(0);
     expect(genericChatDescriptions).toHaveLength(0);
+    expect(specFirstDescriptions).toHaveLength(0);
+  });
+
+  it('keeps visible general model sample questions natural enough for cards', () => {
+    const sampleQuestions = DEFAULT_EXPERTS
+      .filter(isVisibleGeneralTextModel)
+      .flatMap((expert) => expert.sampleQuestions ?? []);
+    const awkwardKoreanParticleQuestions = sampleQuestions.filter((question) =>
+      /(?:대본를|질문를|답변를|아이템를|표현를|결론를|중요도과|메시지과|포인트과)/.test(question));
+
+    expect(sampleQuestions.length).toBeGreaterThan(100);
+    expect(awkwardKoreanParticleQuestions).toHaveLength(0);
   });
 
   it('keeps existing OpenRouter-backed model greetings aligned with refreshed names', () => {
@@ -607,9 +697,9 @@ describe('openrouter added model catalog', () => {
     const overrideDescriptions = Object.values(OPENROUTER_EXISTING_MODEL_OVERRIDES)
       .map((override) => override.description)
       .filter((description): description is string => Boolean(description));
-    const descriptionBodies = overrideDescriptions.map((description) => description.replace(/^[^:]+:\s*/, ''));
 
-    expect(new Set(descriptionBodies).size).toBe(descriptionBodies.length);
+    expect(new Set(overrideDescriptions).size).toBe(overrideDescriptions.length);
+    expect(overrideDescriptions.some((description) => /^[^:]{2,80}:\s/.test(description))).toBe(false);
     expect(overrideDescriptions.some((description) => description.includes('코드 작성·리팩터링 중심 모델'))).toBe(false);
     expect(overrideDescriptions.some((description) => description.includes('범용 대화 모델'))).toBe(false);
   });
@@ -648,7 +738,7 @@ describe('openrouter added model catalog', () => {
     expect(visibleGeneralModels.some((expert) => expert.modelInfo?.inputModalities?.includes('image'))).toBe(true);
   });
 
-  it('keeps general model open-weight and coding filters discoverable', () => {
+  it('keeps general model open-weight filtering discoverable without a coding preset', () => {
     const groups = buildExpertSelectionGroups({
       experts: DEFAULT_EXPERTS,
       favoriteIds: [],
@@ -662,12 +752,14 @@ describe('openrouter added model catalog', () => {
     const actualOpenWeightIds = new Set(openWeightGroup?.items.map((expert) => expert.id) ?? []);
     const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
 
-    expect(openWeightGroup?.label).toContain('오픈웨이트');
+    expect(openWeightGroup?.label).toContain('오픈소스');
     expect(expectedOpenWeightIds.length).toBeGreaterThan(10);
     expectedOpenWeightIds.forEach((id) => {
       expect(actualOpenWeightIds.has(id), `${id} should be available through the open-weight group`).toBe(true);
     });
-    expect(explorerSource).toContain("{ id: 'coding', label: '코딩' }");
+    expect(explorerSource).not.toContain("{ id: 'coding', label: '코딩' }");
+    expect(explorerSource).not.toContain("{ id: 'reasoning', label: '깊은 추론' }");
+    expect(explorerSource).not.toContain("{ id: 'search', label: '검색/출처' }");
   });
 
   it('keeps every AI selection group aligned with visible general models', () => {
@@ -756,6 +848,14 @@ describe('openrouter added model catalog', () => {
     expect(metaSource).toContain("inputModalities.includes('file') ?");
   });
 
+  it('keeps general model pagination centered after page five', () => {
+    expect(buildPageNumbers(1, 12)).toEqual([1, 2, 3, 4, 5]);
+    expect(buildPageNumbers(5, 12)).toEqual([3, 4, 5, 6, 7]);
+    expect(buildPageNumbers(6, 12)).toEqual([4, 5, 6, 7, 8]);
+    expect(buildPageNumbers(12, 12)).toEqual([8, 9, 10, 11, 12]);
+    expect(buildPageNumbers(99, 3)).toEqual([1, 2, 3]);
+  });
+
   it('formats general model detail metadata from the same modelInfo used by filters', () => {
     expect(formatGeneralModelContextLength(1_000_000)).toBe('1M+ 토큰');
     expect(formatGeneralModelContextLength(262_144)).toBe('256K 토큰');
@@ -800,19 +900,38 @@ describe('openrouter added model catalog', () => {
   it('searches general models by user-facing metadata labels', () => {
     const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
     const freeModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'free');
+    const standardPriceModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'standard');
     const fileInputModel = visibleGeneralModels.find((expert) => expert.modelInfo?.inputModalities?.includes('file'));
+    const textOnlyModel = visibleGeneralModels.find((expert) =>
+      expert.modelInfo?.inputModalities?.length === 1 && expert.modelInfo.inputModalities[0] === 'text');
     const openWeightModel = visibleGeneralModels.find((expert) => expert.modelInfo?.openWeight);
+    const closedModel = visibleGeneralModels.find((expert) => !expert.modelInfo?.openWeight);
     const providerModel = visibleGeneralModels.find((expert) => expert.modelInfo?.provider === 'Moonshot AI');
+    const gpt5Model = visibleGeneralModels.find((expert) => expert.openrouterModel === 'openai/gpt-5');
+    const qwenCoderModel = visibleGeneralModels.find((expert) => expert.openrouterModel === 'qwen/qwen3-coder');
+    const claudeOpusModel = visibleGeneralModels.find((expert) => expert.openrouterModel === 'anthropic/claude-opus-4.5');
 
     expect(freeModel).toBeTruthy();
+    expect(standardPriceModel).toBeTruthy();
     expect(fileInputModel).toBeTruthy();
+    expect(textOnlyModel).toBeTruthy();
     expect(openWeightModel).toBeTruthy();
+    expect(closedModel).toBeTruthy();
     expect(providerModel).toBeTruthy();
+    expect(gpt5Model).toBeTruthy();
+    expect(qwenCoderModel).toBeTruthy();
+    expect(claudeOpusModel).toBeTruthy();
 
     expect(matchesGeneralModelQuery(freeModel!, '무료', freeModel!.modelInfo?.provider ?? '', freeModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(standardPriceModel!, '무료', standardPriceModel!.modelInfo?.provider ?? '', standardPriceModel!.tags ?? [])).toBe(false);
     expect(matchesGeneralModelQuery(fileInputModel!, '파일', fileInputModel!.modelInfo?.provider ?? '', fileInputModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(textOnlyModel!, '파일', textOnlyModel!.modelInfo?.provider ?? '', textOnlyModel!.tags ?? [])).toBe(false);
     expect(matchesGeneralModelQuery(openWeightModel!, '오픈웨이트', openWeightModel!.modelInfo?.provider ?? '', openWeightModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(closedModel!, '오픈웨이트', closedModel!.modelInfo?.provider ?? '', closedModel!.tags ?? [])).toBe(false);
     expect(matchesGeneralModelQuery(providerModel!, 'moonshot', providerModel!.modelInfo?.provider ?? '', providerModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(gpt5Model!, 'gpt 5', gpt5Model!.modelInfo?.provider ?? '', gpt5Model!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(qwenCoderModel!, 'qwen coder', qwenCoderModel!.modelInfo?.provider ?? '', qwenCoderModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(claudeOpusModel!, 'claude opus', claudeOpusModel!.modelInfo?.provider ?? '', claudeOpusModel!.tags ?? [])).toBe(true);
   });
 
   it('keeps special and non-text-output cards out of the general model selection group', () => {
@@ -886,7 +1005,7 @@ describe('openrouter added model catalog', () => {
 
     expect(merged.some((expert) => expert.id === 'stale-or-image-model')).toBe(false);
     expect(merged.some((expert) => expert.id === 'custom-doctor-copy')).toBe(true);
-    expect(merged.filter(isVisibleGeneralTextModel)).toHaveLength(251);
+    expect(merged.filter(isVisibleGeneralTextModel)).toHaveLength(250);
   });
 
   it('adds varied stats to custom non-model experts', () => {

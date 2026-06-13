@@ -86,6 +86,10 @@ export interface ModelInfo {
     priceTier: 'free' | 'low' | 'standard' | 'premium';
     createdAt?: string;
     openWeight?: boolean;
+    availability?: 'available' | 'disabled';
+    availabilityLabel?: string;
+    availabilityReason?: string;
+    availabilityUpdatedAt?: string;
 }
 
 export interface Expert {
@@ -898,59 +902,526 @@ export const GAME_CARDS: GameCard[] = [
 // ── AI Ability Stats Map ──
 // ══════════════════════════════════════════
 const AI_ABILITIES: Record<string, AIAbilityStats> = {
-  'gpt':              { coding: 95, creativity: 90, reasoning: 96, math: 94, multilingual: 88, speed: 70, costEfficiency: 45, contextWindow: 85 },
-  'gpt-mini':         { coding: 82, creativity: 78, reasoning: 85, math: 80, multilingual: 82, speed: 92, costEfficiency: 85, contextWindow: 75 },
-  'gpt-nano':         { coding: 65, creativity: 60, reasoning: 68, math: 62, multilingual: 70, speed: 98, costEfficiency: 95, contextWindow: 55 },
-  'claude':           { coding: 97, creativity: 92, reasoning: 97, math: 90, multilingual: 90, speed: 60, costEfficiency: 35, contextWindow: 90 },
-  'claude-sonnet':    { coding: 92, creativity: 88, reasoning: 90, math: 85, multilingual: 87, speed: 82, costEfficiency: 70, contextWindow: 90 },
-  'claude-sonnet-4.6':{ coding: 94, creativity: 90, reasoning: 92, math: 88, multilingual: 89, speed: 80, costEfficiency: 65, contextWindow: 90 },
-  'claude-haiku':     { coding: 78, creativity: 72, reasoning: 75, math: 70, multilingual: 80, speed: 95, costEfficiency: 92, contextWindow: 90 },
-  'gemini':           { coding: 88, creativity: 82, reasoning: 88, math: 86, multilingual: 85, speed: 90, costEfficiency: 88, contextWindow: 95 },
-  'gemini-3-flash':   { coding: 90, creativity: 85, reasoning: 90, math: 88, multilingual: 87, speed: 92, costEfficiency: 85, contextWindow: 95 },
-  'gemini-3.1':       { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 78, speed: 96, costEfficiency: 95, contextWindow: 80 },
-  'gemini-pro':       { coding: 92, creativity: 88, reasoning: 94, math: 92, multilingual: 90, speed: 65, costEfficiency: 50, contextWindow: 95 },
-  'gemini-flash-lite':{ coding: 70, creativity: 68, reasoning: 72, math: 70, multilingual: 80, speed: 95, costEfficiency: 92, contextWindow: 85 },
-  'perplexity':       { coding: 70, creativity: 72, reasoning: 78, math: 68, multilingual: 80, speed: 85, costEfficiency: 65, contextWindow: 75 },
-  'perplexity-pro':   { coding: 75, creativity: 76, reasoning: 82, math: 72, multilingual: 82, speed: 78, costEfficiency: 55, contextWindow: 80 },
-  'grok':             { coding: 85, creativity: 80, reasoning: 86, math: 82, multilingual: 75, speed: 88, costEfficiency: 72, contextWindow: 80 },
-  'grok-4.2':         { coding: 88, creativity: 84, reasoning: 90, math: 86, multilingual: 78, speed: 82, costEfficiency: 60, contextWindow: 85 },
-  'deepseek':         { coding: 90, creativity: 78, reasoning: 88, math: 92, multilingual: 82, speed: 80, costEfficiency: 92, contextWindow: 80 },
-  'deepseek-r1':      { coding: 88, creativity: 72, reasoning: 94, math: 96, multilingual: 78, speed: 65, costEfficiency: 90, contextWindow: 80 },
-  'qwen':             { coding: 82, creativity: 75, reasoning: 80, math: 85, multilingual: 95, speed: 88, costEfficiency: 90, contextWindow: 78 },
-  'qwen-9b':          { coding: 83, creativity: 74, reasoning: 82, math: 90, multilingual: 88, speed: 92, costEfficiency: 96, contextWindow: 72 },
-  'qwen-plus':        { coding: 86, creativity: 80, reasoning: 86, math: 88, multilingual: 96, speed: 82, costEfficiency: 82, contextWindow: 82 },
-  'qwen-thinking':    { coding: 88, creativity: 76, reasoning: 92, math: 94, multilingual: 92, speed: 62, costEfficiency: 70, contextWindow: 80 },
-  'llama-maverick':   { coding: 88, creativity: 82, reasoning: 88, math: 86, multilingual: 84, speed: 75, costEfficiency: 88, contextWindow: 90 },
-  'llama-scout':      { coding: 78, creativity: 72, reasoning: 76, math: 74, multilingual: 78, speed: 90, costEfficiency: 92, contextWindow: 82 },
-  'mistral-large':    { coding: 85, creativity: 82, reasoning: 86, math: 82, multilingual: 92, speed: 75, costEfficiency: 68, contextWindow: 75 },
-  'mistral-medium':   { coding: 80, creativity: 78, reasoning: 82, math: 78, multilingual: 88, speed: 82, costEfficiency: 75, contextWindow: 72 },
-  'mistral-small':    { coding: 72, creativity: 70, reasoning: 74, math: 70, multilingual: 82, speed: 92, costEfficiency: 90, contextWindow: 65 },
-  'codestral':        { coding: 92, creativity: 65, reasoning: 80, math: 78, multilingual: 70, speed: 85, costEfficiency: 82, contextWindow: 70 },
-  'devstral':         { coding: 90, creativity: 68, reasoning: 82, math: 78, multilingual: 75, speed: 80, costEfficiency: 80, contextWindow: 72 },
-  'gemma':            { coding: 80, creativity: 75, reasoning: 80, math: 78, multilingual: 82, speed: 82, costEfficiency: 90, contextWindow: 75 },
-  'phi':              { coding: 78, creativity: 65, reasoning: 82, math: 85, multilingual: 70, speed: 88, costEfficiency: 95, contextWindow: 55 },
-  'command-r-plus':   { coding: 72, creativity: 70, reasoning: 78, math: 68, multilingual: 82, speed: 78, costEfficiency: 72, contextWindow: 82 },
-  'command-a':        { coding: 78, creativity: 74, reasoning: 82, math: 74, multilingual: 84, speed: 80, costEfficiency: 70, contextWindow: 85 },
-  'nova-premier':     { coding: 84, creativity: 80, reasoning: 86, math: 82, multilingual: 82, speed: 72, costEfficiency: 55, contextWindow: 88 },
-  'nova-2-lite':      { coding: 72, creativity: 68, reasoning: 74, math: 70, multilingual: 76, speed: 90, costEfficiency: 88, contextWindow: 95 },
-  'dolphin':          { coding: 75, creativity: 82, reasoning: 76, math: 70, multilingual: 74, speed: 82, costEfficiency: 85, contextWindow: 70 },
-  'glm':              { coding: 84, creativity: 78, reasoning: 86, math: 84, multilingual: 90, speed: 78, costEfficiency: 80, contextWindow: 82 },
-  'mimo':             { coding: 82, creativity: 76, reasoning: 84, math: 82, multilingual: 80, speed: 78, costEfficiency: 75, contextWindow: 78 },
-  'mimo-flash':       { coding: 72, creativity: 68, reasoning: 74, math: 72, multilingual: 74, speed: 94, costEfficiency: 90, contextWindow: 70 },
-  'nemotron':         { coding: 88, creativity: 78, reasoning: 88, math: 86, multilingual: 80, speed: 70, costEfficiency: 72, contextWindow: 82 },
-  'seed':             { coding: 80, creativity: 82, reasoning: 80, math: 78, multilingual: 84, speed: 85, costEfficiency: 82, contextWindow: 78 },
-  'seed-mini':        { coding: 70, creativity: 72, reasoning: 72, math: 68, multilingual: 78, speed: 92, costEfficiency: 92, contextWindow: 68 },
-  'minimax':          { coding: 80, creativity: 78, reasoning: 82, math: 80, multilingual: 84, speed: 80, costEfficiency: 78, contextWindow: 90 },
-  'kimi':             { coding: 80, creativity: 76, reasoning: 82, math: 78, multilingual: 82, speed: 78, costEfficiency: 75, contextWindow: 96 },
-  'kimi-thinking':    { coding: 82, creativity: 74, reasoning: 90, math: 88, multilingual: 80, speed: 65, costEfficiency: 70, contextWindow: 92 },
-  'solar':            { coding: 76, creativity: 74, reasoning: 78, math: 74, multilingual: 88, speed: 80, costEfficiency: 82, contextWindow: 72 },
-  'mercury':          { coding: 80, creativity: 72, reasoning: 82, math: 80, multilingual: 75, speed: 96, costEfficiency: 78, contextWindow: 72 },
-  'hunyuan':          { coding: 78, creativity: 76, reasoning: 80, math: 78, multilingual: 86, speed: 76, costEfficiency: 75, contextWindow: 80 },
-  'jamba':            { coding: 78, creativity: 74, reasoning: 80, math: 76, multilingual: 78, speed: 75, costEfficiency: 72, contextWindow: 92 },
-  'granite':          { coding: 80, creativity: 70, reasoning: 82, math: 78, multilingual: 80, speed: 76, costEfficiency: 78, contextWindow: 78 },
-  'step':             { coding: 78, creativity: 74, reasoning: 80, math: 78, multilingual: 80, speed: 92, costEfficiency: 85, contextWindow: 78 },
-  'palmyra':          { coding: 65, creativity: 92, reasoning: 76, math: 62, multilingual: 85, speed: 74, costEfficiency: 68, contextWindow: 95 },
-  'hermes':           { coding: 86, creativity: 84, reasoning: 86, math: 82, multilingual: 82, speed: 68, costEfficiency: 82, contextWindow: 85 },
+  "gpt": {
+    "coding": 70,
+    "creativity": 81,
+    "reasoning": 74,
+    "math": 73,
+    "multilingual": 78,
+    "speed": 89,
+    "costEfficiency": 67,
+    "contextWindow": 98
+  },
+  "gpt-mini": {
+    "coding": 69,
+    "creativity": 72,
+    "reasoning": 69,
+    "math": 69,
+    "multilingual": 78,
+    "speed": 85,
+    "costEfficiency": 84,
+    "contextWindow": 98
+  },
+  "gpt-nano": {
+    "coding": 68,
+    "creativity": 61,
+    "reasoning": 58,
+    "math": 58,
+    "multilingual": 77,
+    "speed": 92,
+    "costEfficiency": 95,
+    "contextWindow": 98
+  },
+  "claude": {
+    "coding": 72,
+    "creativity": 96,
+    "reasoning": 95,
+    "math": 94,
+    "multilingual": 82,
+    "speed": 65,
+    "costEfficiency": 58,
+    "contextWindow": 98
+  },
+  "claude-sonnet": {
+    "coding": 92,
+    "creativity": 92,
+    "reasoning": 89,
+    "math": 91,
+    "multilingual": 81,
+    "speed": 55,
+    "costEfficiency": 52,
+    "contextWindow": 98
+  },
+  "claude-sonnet-4.6": {
+    "coding": 94,
+    "creativity": 95,
+    "reasoning": 94,
+    "math": 91,
+    "multilingual": 81,
+    "speed": 63,
+    "costEfficiency": 62,
+    "contextWindow": 98
+  },
+  "claude-haiku": {
+    "coding": 58,
+    "creativity": 76,
+    "reasoning": 69,
+    "math": 68,
+    "multilingual": 83,
+    "speed": 79,
+    "costEfficiency": 67,
+    "contextWindow": 78
+  },
+  "gemini": {
+    "coding": 79,
+    "creativity": 83,
+    "reasoning": 79,
+    "math": 79,
+    "multilingual": 81,
+    "speed": 78,
+    "costEfficiency": 67,
+    "contextWindow": 98
+  },
+  "gemini-3-flash": {
+    "coding": 84,
+    "creativity": 90,
+    "reasoning": 90,
+    "math": 91,
+    "multilingual": 80,
+    "speed": 87,
+    "costEfficiency": 82,
+    "contextWindow": 98
+  },
+  "gemini-3.1": {
+    "coding": 75,
+    "creativity": 93,
+    "reasoning": 97,
+    "math": 96,
+    "multilingual": 79,
+    "speed": 78,
+    "costEfficiency": 65,
+    "contextWindow": 98
+  },
+  "gemini-pro": {
+    "coding": 90,
+    "creativity": 96,
+    "reasoning": 97,
+    "math": 96,
+    "multilingual": 79,
+    "speed": 78,
+    "costEfficiency": 65,
+    "contextWindow": 98
+  },
+  "gemini-flash-lite": {
+    "coding": 68,
+    "creativity": 75,
+    "reasoning": 68,
+    "math": 70,
+    "multilingual": 81,
+    "speed": 94,
+    "costEfficiency": 96,
+    "contextWindow": 98
+  },
+  "perplexity": {
+    "coding": 63,
+    "creativity": 69,
+    "reasoning": 70,
+    "math": 78,
+    "multilingual": 53,
+    "speed": 55,
+    "costEfficiency": 55,
+    "contextWindow": 68
+  },
+  "perplexity-pro": {
+    "coding": 64,
+    "creativity": 68,
+    "reasoning": 70,
+    "math": 84,
+    "multilingual": 52,
+    "speed": 52,
+    "costEfficiency": 51,
+    "contextWindow": 68
+  },
+  "grok": {
+    "coding": 69,
+    "creativity": 91,
+    "reasoning": 94,
+    "math": 92,
+    "multilingual": 65,
+    "speed": 80,
+    "costEfficiency": 75,
+    "contextWindow": 98
+  },
+  "grok-4.2": {
+    "coding": 80,
+    "creativity": 94,
+    "reasoning": 92,
+    "math": 90,
+    "multilingual": 65,
+    "speed": 84,
+    "costEfficiency": 70,
+    "contextWindow": 98
+  },
+  "deepseek": {
+    "coding": 61,
+    "creativity": 67,
+    "reasoning": 68,
+    "math": 67,
+    "multilingual": 66,
+    "speed": 61,
+    "costEfficiency": 70,
+    "contextWindow": 68
+  },
+  "deepseek-r1": {
+    "coding": 73,
+    "creativity": 77,
+    "reasoning": 74,
+    "math": 77,
+    "multilingual": 55,
+    "speed": 54,
+    "costEfficiency": 64,
+    "contextWindow": 68
+  },
+  "qwen": {
+    "coding": 76,
+    "creativity": 73,
+    "reasoning": 79,
+    "math": 75,
+    "multilingual": 86,
+    "speed": 73,
+    "costEfficiency": 60,
+    "contextWindow": 88
+  },
+  "qwen-9b": {
+    "coding": 74,
+    "creativity": 79,
+    "reasoning": 79,
+    "math": 77,
+    "multilingual": 86,
+    "speed": 79,
+    "costEfficiency": 93,
+    "contextWindow": 88
+  },
+  "qwen-plus": {
+    "coding": 80,
+    "creativity": 89,
+    "reasoning": 92,
+    "math": 89,
+    "multilingual": 85,
+    "speed": 70,
+    "costEfficiency": 81,
+    "contextWindow": 98
+  },
+  "qwen-thinking": {
+    "coding": 74,
+    "creativity": 85,
+    "reasoning": 84,
+    "math": 86,
+    "multilingual": 87,
+    "speed": 52,
+    "costEfficiency": 71,
+    "contextWindow": 78
+  },
+  "llama-maverick": {
+    "coding": 61,
+    "creativity": 68,
+    "reasoning": 63,
+    "math": 66,
+    "multilingual": 68,
+    "speed": 85,
+    "costEfficiency": 83,
+    "contextWindow": 98
+  },
+  "llama-scout": {
+    "coding": 59,
+    "creativity": 64,
+    "reasoning": 58,
+    "math": 58,
+    "multilingual": 68,
+    "speed": 84,
+    "costEfficiency": 87,
+    "contextWindow": 98
+  },
+  "mistral-large": {
+    "coding": 79,
+    "creativity": 67,
+    "reasoning": 55,
+    "math": 56,
+    "multilingual": 93,
+    "speed": 57,
+    "costEfficiency": 56,
+    "contextWindow": 58
+  },
+  "mistral-medium": {
+    "coding": 77,
+    "creativity": 64,
+    "reasoning": 52,
+    "math": 54,
+    "multilingual": 93,
+    "speed": 77,
+    "costEfficiency": 59,
+    "contextWindow": 58
+  },
+  "mistral-small": {
+    "coding": 60,
+    "creativity": 56,
+    "reasoning": 54,
+    "math": 56,
+    "multilingual": 91,
+    "speed": 91,
+    "costEfficiency": 86,
+    "contextWindow": 58
+  },
+  "codestral": {
+    "coding": 92,
+    "creativity": 67,
+    "reasoning": 76,
+    "math": 74,
+    "multilingual": 98,
+    "speed": 61,
+    "costEfficiency": 81,
+    "contextWindow": 78
+  },
+  "devstral": {
+    "coding": 84,
+    "creativity": 62,
+    "reasoning": 64,
+    "math": 62,
+    "multilingual": 97,
+    "speed": 79,
+    "costEfficiency": 79,
+    "contextWindow": 78
+  },
+  "gemma": {
+    "coding": 63,
+    "creativity": 83,
+    "reasoning": 85,
+    "math": 85,
+    "multilingual": 71,
+    "speed": 70,
+    "costEfficiency": 92,
+    "contextWindow": 78
+  },
+  "phi": {
+    "coding": 55,
+    "creativity": 54,
+    "reasoning": 54,
+    "math": 55,
+    "multilingual": 68,
+    "speed": 68,
+    "costEfficiency": 90,
+    "contextWindow": 45
+  },
+  "command-r-plus": {
+    "coding": 53,
+    "creativity": 52,
+    "reasoning": 53,
+    "math": 54,
+    "multilingual": 97,
+    "speed": 55,
+    "costEfficiency": 57,
+    "contextWindow": 68
+  },
+  "command-a": {
+    "coding": 69,
+    "creativity": 64,
+    "reasoning": 59,
+    "math": 59,
+    "multilingual": 98,
+    "speed": 82,
+    "costEfficiency": 59,
+    "contextWindow": 78
+  },
+  "nova-premier": {
+    "coding": 72,
+    "creativity": 72,
+    "reasoning": 66,
+    "math": 64,
+    "multilingual": 57,
+    "speed": 69,
+    "costEfficiency": 61,
+    "contextWindow": 98
+  },
+  "nova-2-lite": {
+    "coding": 56,
+    "creativity": 59,
+    "reasoning": 58,
+    "math": 57,
+    "multilingual": 58,
+    "speed": 76,
+    "costEfficiency": 75,
+    "contextWindow": 88
+  },
+  "dolphin": {
+    "coding": 63,
+    "creativity": 80,
+    "reasoning": 52,
+    "math": 51,
+    "multilingual": 67,
+    "speed": 61,
+    "costEfficiency": 84,
+    "contextWindow": 58
+  },
+  "glm": {
+    "coding": 67,
+    "creativity": 87,
+    "reasoning": 94,
+    "math": 90,
+    "multilingual": 95,
+    "speed": 81,
+    "costEfficiency": 72,
+    "contextWindow": 78
+  },
+  "mimo": {
+    "coding": 70,
+    "creativity": 86,
+    "reasoning": 95,
+    "math": 92,
+    "multilingual": 61,
+    "speed": 69,
+    "costEfficiency": 89,
+    "contextWindow": 98
+  },
+  "mimo-flash": {
+    "coding": 59,
+    "creativity": 76,
+    "reasoning": 86,
+    "math": 85,
+    "multilingual": 62,
+    "speed": 91,
+    "costEfficiency": 96,
+    "contextWindow": 78
+  },
+  "nemotron": {
+    "coding": 66,
+    "creativity": 79,
+    "reasoning": 83,
+    "math": 82,
+    "multilingual": 59,
+    "speed": 90,
+    "costEfficiency": 85,
+    "contextWindow": 98
+  },
+  "seed": {
+    "coding": 57,
+    "creativity": 67,
+    "reasoning": 70,
+    "math": 71,
+    "multilingual": 53,
+    "speed": 75,
+    "costEfficiency": 66,
+    "contextWindow": 88
+  },
+  "seed-mini": {
+    "coding": 60,
+    "creativity": 66,
+    "reasoning": 70,
+    "math": 70,
+    "multilingual": 53,
+    "speed": 93,
+    "costEfficiency": 83,
+    "contextWindow": 88
+  },
+  "minimax": {
+    "coding": 79,
+    "creativity": 82,
+    "reasoning": 91,
+    "math": 89,
+    "multilingual": 60,
+    "speed": 71,
+    "costEfficiency": 87,
+    "contextWindow": 78
+  },
+  "kimi": {
+    "coding": 68,
+    "creativity": 87,
+    "reasoning": 90,
+    "math": 89,
+    "multilingual": 94,
+    "speed": 71,
+    "costEfficiency": 78,
+    "contextWindow": 78
+  },
+  "kimi-thinking": {
+    "coding": 75,
+    "creativity": 85,
+    "reasoning": 86,
+    "math": 86,
+    "multilingual": 94,
+    "speed": 88,
+    "costEfficiency": 73,
+    "contextWindow": 78
+  },
+  "solar": {
+    "coding": 61,
+    "creativity": 69,
+    "reasoning": 72,
+    "math": 67,
+    "multilingual": 98,
+    "speed": 53,
+    "costEfficiency": 67,
+    "contextWindow": 68
+  },
+  "mercury": {
+    "coding": 66,
+    "creativity": 73,
+    "reasoning": 81,
+    "math": 76,
+    "multilingual": 62,
+    "speed": 98,
+    "costEfficiency": 90,
+    "contextWindow": 68
+  },
+  "hunyuan": {
+    "coding": 54,
+    "creativity": 63,
+    "reasoning": 66,
+    "math": 66,
+    "multilingual": 95,
+    "speed": 97,
+    "costEfficiency": 83,
+    "contextWindow": 78
+  },
+  "jamba": {
+    "coding": 62,
+    "creativity": 68,
+    "reasoning": 74,
+    "math": 72,
+    "multilingual": 64,
+    "speed": 54,
+    "costEfficiency": 52,
+    "contextWindow": 78
+  },
+  "granite": {
+    "coding": 55,
+    "creativity": 53,
+    "reasoning": 51,
+    "math": 52,
+    "multilingual": 70,
+    "speed": 94,
+    "costEfficiency": 92,
+    "contextWindow": 68
+  },
+  "step": {
+    "coding": 59,
+    "creativity": 73,
+    "reasoning": 83,
+    "math": 81,
+    "multilingual": 52,
+    "speed": 95,
+    "costEfficiency": 93,
+    "contextWindow": 78
+  },
+  "palmyra": {
+    "coding": 64,
+    "creativity": 83,
+    "reasoning": 77,
+    "math": 65,
+    "multilingual": 55,
+    "speed": 56,
+    "costEfficiency": 56,
+    "contextWindow": 98
+  }
 };
 
 // ══════════════════════════════════════════
