@@ -71,7 +71,7 @@ const templatePools = {
   reasoning: [
     ({ name, provider, context }) => `${name}: ${context} 자료를 놓고 전제, 반례, 결론을 차분히 분리하는 ${provider} 추론 모델`,
     ({ name, provider, price }) => `${name}: ${price} 작업에서 수학적 판단과 논리 검토를 깊게 밀어붙이는 ${provider} 모델`,
-    ({ name, provider, family }) => `${name}: ${family} 성향으로 복잡한 선택지를 기준별로 채점하는 ${provider} 모델`,
+    ({ name, provider, family }) => `${name}: ${family} 작업에 맞춰 복잡한 선택지를 기준별로 채점하는 ${provider} 모델`,
     ({ name, provider }) => `${name}: 모호한 질문을 쪼개고 단계별 판단 근거를 정리하는 ${provider} 모델`,
   ],
   vision: [
@@ -98,7 +98,7 @@ const templatePools = {
   general: [
     ({ name, provider, context }) => `${name}: ${context} 기반으로 문서 요약, 비교, 일반 대화를 안정적으로 처리하는 ${provider} 모델`,
     ({ name, provider, price }) => `${name}: ${price} 균형을 살려 일상 업무와 지식 질의에 두루 쓰기 좋은 ${provider} 모델`,
-    ({ name, provider, family }) => `${name}: ${family} 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 ${provider} 모델`,
+    ({ name, provider, family }) => `${name}: ${family} 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 ${provider} 모델`,
     ({ name, provider }) => `${name}: 복잡하지 않은 분석과 대화형 업무 보조를 균형 있게 처리하는 ${provider} 모델`,
   ],
 };
@@ -144,9 +144,18 @@ function refinedQuestions(expert) {
   const use = primaryUse(expert);
   const context = contextLabel(expert);
   const family = familyLabel(expert);
+  const secondQuestionTemplates = [
+    `${context}에서 ${family} 모델이 놓치기 쉬운 쟁점을 뽑아줘`,
+    `${context}를 ${family} 작업 흐름에 맞게 요약 표로 정리해줘`,
+    `${context} 기준으로 ${family} 모델 선택의 장단점을 비교해줘`,
+    `${context}에서 우선순위와 다음 행동을 분리해줘`,
+    `${context}에서 검토해야 할 리스크와 확인 질문을 뽑아줘`,
+    `${context}를 ${family} 용도에 맞게 실행 계획으로 바꿔줘`,
+    `${context}에서 의사결정에 필요한 근거만 추려줘`,
+  ];
   return [
     `${name}로 ${use}에 맞는 작업 순서를 짜줘`,
-    `${context} 자료를 ${family} 관점에서 핵심만 비교해줘`,
+    secondQuestionTemplates[hash(`${expert.id}:sample-2`) % secondQuestionTemplates.length],
     `${expert.modelInfo?.provider ?? name} 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘`,
   ];
 }

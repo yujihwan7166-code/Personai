@@ -4,10 +4,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "developer-yjh": {
     "description": "Claude Sonnet 4.6: 이 앱의 개발 맥락과 긴 코드 작업을 우선하도록 맞춘 Anthropic Sonnet 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -28,10 +28,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "ancano-pro": {
     "description": "Auto Router: 질문 성격에 따라 비용 효율적인 OpenRouter 경로를 고르는 ANCA 자동 라우터",
     "tags": [
-      "추론",
       "자동선택",
       "장문맥",
-      "저비용"
+      "저비용",
+      "범용"
     ],
     "modelInfo": {
       "provider": "Openrouter",
@@ -55,10 +55,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "auto-gpt": {
     "description": "Claude Sonnet 4.6: 질문 성격에 맞춰 일반 답변과 개발 보조를 균형 있게 맡는 자동 선택용 Sonnet 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -81,10 +81,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "GPT-4.1",
     "description": "GPT-4.1: 1M급 문맥에서 코드, 문서, 시각 입력을 함께 다루는 OpenAI 주력 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -159,10 +159,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Claude Opus 4.6",
     "description": "Claude Opus 4.6: 긴 사고 흐름과 고난도 분석을 우선하는 Anthropic 고성능 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -185,10 +185,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Claude Sonnet 4.5",
     "description": "Claude Sonnet 4.5: 코딩·문서 작성·분석을 균형 있게 처리하는 Anthropic 주력 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -211,10 +211,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Claude Sonnet 4.6",
     "description": "Claude Sonnet 4.6: 에이전트 코딩과 긴 작업 흐름에 강한 Anthropic 최신 Sonnet 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -237,10 +237,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Claude Haiku 4.5",
     "description": "Claude Haiku 4.5: 빠른 응답과 시각 입력 처리를 균형 있게 제공하는 Anthropic 경량 모델",
     "tags": [
-      "추론",
       "시각입력",
       "고속",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -263,10 +263,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemini 2.5 Flash",
     "description": "Gemini 2.5 Flash: 1M 문맥과 멀티모달 입력을 빠르게 다루는 Google 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -291,10 +291,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemini 3 Flash Preview",
     "description": "Gemini 3 Flash Preview: 최신 Gemini 계열의 속도와 추론 균형을 보는 프리뷰 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -319,10 +319,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemini 3.1 Flash Lite Preview",
     "description": "Gemini 3.1 Flash Lite Preview: 긴 문맥을 저비용으로 처리하는 Gemini 경량 프리뷰",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -347,10 +347,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemini 3.1 Pro Preview",
     "description": "Gemini 3.1 Pro Preview: 복잡한 분석과 멀티모달 이해에 맞춘 Google 상위 프리뷰",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -375,10 +375,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemini 2.5 Flash Lite",
     "description": "Gemini 2.5 Flash Lite: 일상 대화와 대량 요약에 적합한 저비용 Gemini 모델",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "저비용"
+      "저비용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -405,7 +405,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "검색",
       "시각입력",
-      "범용"
+      "범용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Perplexity",
@@ -427,9 +428,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Sonar Pro",
     "description": "Sonar Pro: 더 긴 검색 맥락과 심층 리서치 보고서에 맞춘 Perplexity 상위 모델",
     "tags": [
-      "추론",
       "검색",
-      "시각입력"
+      "시각입력",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Perplexity",
@@ -451,10 +453,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Grok 4.3",
     "description": "Grok 4.3: 실시간성 있는 대화와 분석을 넓은 문맥으로 처리하는 xAI 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "xAI",
@@ -476,10 +478,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Grok 4.20",
     "description": "Grok 4.20: 2M 문맥과 강한 추론 성향을 가진 xAI 장문맥 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "추론"
     ],
     "modelInfo": {
       "provider": "xAI",
@@ -526,10 +528,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "R1",
     "description": "R1: 수학·논리·코딩 판단을 단계별로 풀어내는 DeepSeek 추론 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "툴사용",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -550,10 +552,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Qwen3.5-Flash",
     "description": "Qwen3.5-Flash: 긴 문맥과 다국어 응답을 빠르게 처리하는 Qwen 오픈웨이트 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -576,10 +578,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Qwen3.5-9B",
     "description": "Qwen3.5-9B: 9B급 크기로 다국어 코딩 보조와 저비용 추론을 노리는 Qwen 오픈웨이트 모델",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "시각입력"
+      "시각입력",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -602,10 +604,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Qwen3.6 Plus",
     "description": "Qwen3.6 Plus: 1M 문맥 기반의 문서 분석과 다국어 추론에 강한 Qwen 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -628,10 +630,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Qwen3 Max Thinking",
     "description": "Qwen3 Max Thinking: 긴 문맥에서 사고 과정을 길게 유지하는 Qwen 사고형 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -754,10 +756,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Mistral Small 4",
     "description": "Mistral Small 4: 가벼운 비용으로 추론과 시각 입력을 지원하는 Mistral 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -829,10 +831,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Gemma 4 31B",
     "description": "Gemma 4 31B: 공개 계열 운용을 염두에 둔 멀티모달·저비용 Google 오픈웨이트 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -855,10 +857,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Phi 4",
     "description": "Phi 4: 작은 문맥에서도 논리 문제와 구조화 응답을 겨냥한 Microsoft 경량 추론 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Microsoft",
@@ -881,7 +883,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "검색",
       "구조화",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Cohere",
@@ -904,7 +907,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "코딩",
       "구조화",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Cohere",
@@ -925,10 +929,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Nova Premier 1.0",
     "description": "Nova Premier 1.0: 대규모 문서와 멀티모달 업무를 겨냥한 Amazon 상위 모델",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Amazon",
@@ -950,10 +954,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Nova 2 Lite",
     "description": "Nova 2 Lite: 긴 문맥을 빠르게 처리하는 Amazon 경량 멀티모달 모델",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Amazon",
@@ -979,7 +983,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "오픈웨이트",
       "무료",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Cognitive Computations",
@@ -1000,10 +1005,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "GLM 5.1",
     "description": "GLM 5.1: 중국어권 업무와 코드 추론을 장문 문맥으로 연결하는 Z.ai 오픈웨이트 모델",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -1024,10 +1029,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "MiMo-V2.5-Pro",
     "description": "MiMo-V2.5-Pro: 1M급 문맥에서 수학·코딩·도구 사용 흐름을 다루는 Xiaomi 상위 모델",
     "tags": [
-      "추론",
       "코딩",
       "장문맥",
-      "저비용"
+      "저비용",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Xiaomi",
@@ -1048,10 +1053,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "MiMo-V2-Flash",
     "description": "MiMo-V2-Flash: 빠른 판단과 낮은 비용을 우선하는 Xiaomi 경량 추론 모델",
     "tags": [
-      "추론",
       "저비용",
       "고속",
-      "툴사용"
+      "툴사용",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Xiaomi",
@@ -1072,10 +1077,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Nemotron 3 Super",
     "description": "Nemotron 3 Super: 합성 데이터와 기업형 추론 워크로드에 맞춘 NVIDIA 대형 모델",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "저비용"
+      "저비용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -1096,10 +1101,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Seed-2.0-Lite",
     "description": "Seed-2.0-Lite: 빠른 응답과 멀티모달 이해를 결합한 ByteDance Seed 모델",
     "tags": [
-      "추론",
       "시각입력",
       "고속",
-      "툴사용"
+      "툴사용",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "ByteDance Seed",
@@ -1122,10 +1127,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Seed-2.0-Mini",
     "description": "Seed-2.0-Mini: 비용 효율적인 멀티모달 요약과 일상 작업에 맞춘 Seed 모델",
     "tags": [
-      "추론",
       "시각입력",
       "저비용",
-      "고속"
+      "고속",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "ByteDance Seed",
@@ -1148,10 +1153,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "MiniMax M2.7",
     "description": "MiniMax M2.7: 빠른 응답과 실무 코딩 보조를 저비용으로 제공하는 MiniMax 모델",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -1172,10 +1177,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Kimi K2.5",
     "description": "Kimi K2.5: 긴 문맥 기반 리서치와 중국어권 코딩 작업에 강한 Moonshot 모델",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -1197,10 +1202,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Kimi K2 Thinking",
     "description": "Kimi K2 Thinking: 단계별 추론과 도구 사용 흐름에 초점을 둔 Moonshot 모델",
     "tags": [
-      "추론",
       "코딩",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -1221,10 +1226,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Solar Pro 3",
     "description": "Solar Pro 3: 한국어 업무 문서와 논리 정리에 강점을 둔 Upstage 모델",
     "tags": [
-      "추론",
       "저비용",
       "한국어",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Upstage",
@@ -1245,10 +1250,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Mercury 2",
     "description": "Mercury 2: 지연 시간을 낮춘 빠른 추론과 실시간 응답 흐름에 맞춘 Inception Labs 모델",
     "tags": [
-      "추론",
       "저비용",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Inception Labs",
@@ -1269,10 +1274,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Hunyuan A13B Instruct",
     "description": "Hunyuan A13B Instruct: 중국어권 업무 대화와 구조화 답변에 맞춘 Tencent 모델",
     "tags": [
-      "추론",
       "저비용",
       "중국어",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Tencent",
@@ -1295,7 +1300,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "툴사용",
       "구조화",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "AI21 Labs",
@@ -1318,7 +1324,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "오픈웨이트",
       "저비용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "IBM",
@@ -1339,10 +1346,10 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "nameKo": "Step 3.5 Flash",
     "description": "Step 3.5 Flash: 빠른 응답과 중국어권 실무 질의에 맞춘 StepFun 모델",
     "tags": [
-      "추론",
       "저비용",
       "고속",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "StepFun",
@@ -1365,7 +1372,8 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
     "tags": [
       "장문맥",
       "창작",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Writer",

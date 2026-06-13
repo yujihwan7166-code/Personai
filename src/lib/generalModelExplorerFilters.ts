@@ -30,6 +30,7 @@ export const GENERAL_SPEC_LABELS = [
   ['context-standard', '표준 컨텍스트'],
   ['input-text', '텍스트 전용'],
   ['input-vision', '이미지 입력'],
+  ['input-file', '파일 입력'],
   ['input-audio-video', '음성/영상 입력'],
 ] as const;
 
@@ -158,6 +159,7 @@ export function getGeneralSpecIds(expert: Expert) {
   const inputSpecIds = [
     inputModalities.some((modality) => modality !== 'text') ? null : 'input-text',
     inputModalities.includes('image') ? 'input-vision' : null,
+    inputModalities.includes('file') ? 'input-file' : null,
     inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null,
   ].filter(Boolean) as string[];
   return [

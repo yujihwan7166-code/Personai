@@ -49,6 +49,28 @@ const REQUIRED_VISIBLE_GENERAL_PROVIDERS = [
   'Z.ai',
   'MiniMax',
 ];
+const KNOWN_VISIBLE_GENERAL_TAGS = new Set([
+  '검색',
+  '고속',
+  '구조화',
+  '문맥처리',
+  '문서입력',
+  '멀티모달',
+  '무료',
+  '범용',
+  '생산성',
+  '시각입력',
+  '업무',
+  '오픈웨이트',
+  '저비용',
+  '장문맥',
+  '중국어',
+  '창작',
+  '추론',
+  '코딩',
+  '툴사용',
+  '한국어',
+]);
 const GENERAL_TRAIT_FILTER_IDS = GENERAL_TRAIT_LABELS.map(([id]) => id);
 const GENERAL_SPEC_FILTER_IDS = GENERAL_SPEC_LABELS.map(([id]) => id);
 const SELECTION_GROUP_QUALITY_RULES = {
@@ -158,6 +180,33 @@ const visibleGeneralTopTags = Object.entries(visibleGeneralTagCounts)
 const visibleGeneralOverHalfTags = Object.entries(visibleGeneralTagCounts)
   .filter(([, count]) => count > visibleGeneralAiExperts.length / 2)
   .map(([tag, count]) => ({ tag, count }));
+const visibleGeneralInvalidTags = visibleGeneralAiExperts.flatMap((expert) =>
+  (expert.tags ?? [])
+    .filter((tag) => !KNOWN_VISIBLE_GENERAL_TAGS.has(tag) || tag.includes('?') || hasLikelyMojibake(tag))
+    .map((tag) => ({
+      id: expert.id,
+      name: expert.name,
+      tag,
+    })));
+const TAG_METADATA_RULES = {
+  시각입력: (expert) => (expert.modelInfo?.inputModalities ?? []).includes('image'),
+  문서입력: (expert) => (expert.modelInfo?.inputModalities ?? []).includes('file'),
+  멀티모달: (expert) => (expert.modelInfo?.inputModalities ?? []).some((item) => item === 'audio' || item === 'video'),
+  무료: (expert) => expert.modelInfo?.priceTier === 'free',
+  저비용: (expert) => expert.modelInfo?.priceTier === 'low',
+  오픈웨이트: (expert) => expert.modelInfo?.openWeight === true,
+  장문맥: (expert) => (expert.modelInfo?.contextLength ?? 0) >= 500_000,
+  문맥처리: (expert) => (expert.modelInfo?.contextLength ?? 0) >= 128_000,
+};
+const visibleGeneralTagMetadataMismatches = visibleGeneralAiExperts.flatMap((expert) =>
+  Object.entries(TAG_METADATA_RULES)
+    .filter(([tag, predicate]) => (expert.tags ?? []).includes(tag) && !predicate(expert))
+    .map(([tag]) => ({
+      id: expert.id,
+      name: expert.name,
+      tag,
+      modelInfo: expert.modelInfo,
+    })));
 const visibleGeneralMissingAbilities = visibleGeneralAiExperts.filter((expert) => !expert.abilities);
 const visibleGeneralAbilityRanges = Object.fromEntries(statsKeys.map((key) => {
   const values = visibleGeneralAiExperts
@@ -249,6 +298,7 @@ const visibleGeneralFilterBuckets = {
       input.includes('image') ? 'image' : null,
       input.includes('audio') ? 'audio' : null,
       input.includes('video') ? 'video' : null,
+      input.includes('audio') || input.includes('video') ? 'audioVideo' : null,
       input.includes('file') ? 'file' : null,
     ].filter(Boolean);
     keys.forEach((key) => {
@@ -374,6 +424,21 @@ const generatedAwkwardProviderParticleQuestions = OPENROUTER_ADDED_EXPERTS.flatM
     id: expert.id,
     question,
   })));
+const generatedAwkwardCopyPatterns = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => {
+  const fields = [
+    ['description', expert.description],
+    ['quote', expert.quote],
+    ['greeting', expert.greeting],
+    ...(expert.sampleQuestions ?? []).map((question, index) => [`sampleQuestions[${index}]`, question]),
+  ];
+  return fields
+    .filter(([, value]) => /성향으로|관점에서 핵심만 비교/.test(value ?? ''))
+    .map(([field, value]) => ({
+      id: expert.id,
+      field,
+      value,
+    }));
+});
 const generatedModelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
   const name = expert.nameKo || expert.name;
   const provider = expert.modelInfo?.provider ?? '';
@@ -465,6 +530,10 @@ const summary = {
     uniqueTags: Object.keys(visibleGeneralTagCounts).length,
     topTags: visibleGeneralTopTags,
     overHalfTags: visibleGeneralOverHalfTags,
+    invalidTagCount: visibleGeneralInvalidTags.length,
+    invalidTags: visibleGeneralInvalidTags,
+    metadataMismatchCount: visibleGeneralTagMetadataMismatches.length,
+    metadataMismatches: visibleGeneralTagMetadataMismatches,
   },
   visibleGeneralAbilityQuality: {
     missingAbilityCount: visibleGeneralMissingAbilities.length,
@@ -571,6 +640,8 @@ const summary = {
     topDescriptionSkeletons: generatedDescriptionTopSkeletons,
     awkwardProviderParticleQuestionCount: generatedAwkwardProviderParticleQuestions.length,
     awkwardProviderParticleQuestions: generatedAwkwardProviderParticleQuestions.slice(0, 20),
+    awkwardCopyPatternCount: generatedAwkwardCopyPatterns.length,
+    awkwardCopyPatterns: generatedAwkwardCopyPatterns.slice(0, 20),
     uniqueSampleQuestions: generatedSampleQuestionCount,
     uniqueQuotes: generatedQuoteCount,
     modelSpecificQuestionCount: generatedModelSpecificQuestionCount,
@@ -619,6 +690,10 @@ const compactSummary = {
     uniqueTags: summary.visibleGeneralTagDiversity.uniqueTags,
     topTags: summary.visibleGeneralTagDiversity.topTags.slice(0, 12),
     overHalfTags: summary.visibleGeneralTagDiversity.overHalfTags,
+    invalidTagCount: summary.visibleGeneralTagDiversity.invalidTagCount,
+    invalidTags: summary.visibleGeneralTagDiversity.invalidTags,
+    metadataMismatchCount: summary.visibleGeneralTagDiversity.metadataMismatchCount,
+    metadataMismatches: summary.visibleGeneralTagDiversity.metadataMismatches,
   },
   abilityQuality: {
     missingAbilityCount: summary.visibleGeneralAbilityQuality.missingAbilityCount,
@@ -630,6 +705,7 @@ const compactSummary = {
     uniqueSampleQuestions: summary.generatedCopyDiversity.uniqueSampleQuestions,
     uniqueQuotes: summary.generatedCopyDiversity.uniqueQuotes,
     modelSpecificQuestionCount: summary.generatedCopyDiversity.modelSpecificQuestionCount,
+    awkwardCopyPatternCount: summary.generatedCopyDiversity.awkwardCopyPatternCount,
   },
   copyCompleteness: {
     missingGreetingCount: summary.visibleGeneralCopyCompleteness.missingGreetingCount,
@@ -661,6 +737,25 @@ const compactSummary = {
 };
 
 console.log(JSON.stringify(compactOutput ? compactSummary : summary, null, 2));
+
+const detailFilterCounts = summary.visibleGeneralExplorerFilterCoverage.detail;
+const filterBucketCounts = summary.visibleGeneralFilterBuckets;
+const expectedDetailFilterCounts = {
+  'price-free': filterBucketCounts.priceTier.free ?? 0,
+  'price-low': filterBucketCounts.priceTier.low ?? 0,
+  'price-standard': filterBucketCounts.priceTier.standard ?? 0,
+  'price-premium': filterBucketCounts.priceTier.premium ?? 0,
+  'context-xl': filterBucketCounts.context.xl ?? 0,
+  'context-long': filterBucketCounts.context.long ?? 0,
+  'context-standard': filterBucketCounts.context.standard ?? 0,
+  'input-text': filterBucketCounts.input.textOnly ?? 0,
+  'input-vision': filterBucketCounts.input.image ?? 0,
+  'input-file': filterBucketCounts.input.file ?? 0,
+  'input-audio-video': filterBucketCounts.input.audioVideo ?? 0,
+};
+const mismatchedDetailFilterCounts = Object.entries(expectedDetailFilterCounts)
+  .filter(([id, expected]) => detailFilterCounts[id] !== expected)
+  .map(([id, expected]) => ({ id, expected, actual: detailFilterCounts[id] ?? 0 }));
 
 const failedChecks = [
   summary.addedOpenRouterCount === 200 ? null : `expected 200 added OpenRouter models, got ${summary.addedOpenRouterCount}`,
@@ -697,9 +792,21 @@ const failedChecks = [
   summary.visibleGeneralTagDiversity.uniqueTags >= 14
     ? null
     : `visible general catalog only has ${summary.visibleGeneralTagDiversity.uniqueTags} unique tags`,
-  summary.visibleGeneralTagDiversity.overHalfTags.length <= 1
+  summary.visibleGeneralTagDiversity.overHalfTags.length === 0
     ? null
-    : `visible general catalog has too many over-repeated tags: ${summary.visibleGeneralTagDiversity.overHalfTags.map((item) => item.tag).join(', ')}`,
+    : `visible general catalog has over-repeated tags: ${summary.visibleGeneralTagDiversity.overHalfTags.map((item) => item.tag).join(', ')}`,
+  summary.visibleGeneralTagDiversity.invalidTagCount === 0
+    ? null
+    : `visible general catalog has invalid tags: ${summary.visibleGeneralTagDiversity.invalidTags.map((item) => `${item.id}:${item.tag}`).join(', ')}`,
+  summary.visibleGeneralTagDiversity.metadataMismatchCount === 0
+    ? null
+    : `visible general catalog has tag metadata mismatches: ${summary.visibleGeneralTagDiversity.metadataMismatches.map((item) => `${item.id}:${item.tag}`).join(', ')}`,
+  mismatchedDetailFilterCounts.length === 0
+    ? null
+    : `visible general detail filter counts do not match model metadata buckets: ${mismatchedDetailFilterCounts.map((item) => `${item.id} expected ${item.expected} got ${item.actual}`).join('; ')}`,
+  (detailFilterCounts['speed-fast'] ?? 0) + (detailFilterCounts['speed-normal'] ?? 0) === summary.visibleGeneralCount
+    ? null
+    : `visible general speed filter counts do not cover the catalog: fast ${detailFilterCounts['speed-fast'] ?? 0} + normal ${detailFilterCounts['speed-normal'] ?? 0} != ${summary.visibleGeneralCount}`,
   summary.visibleGeneralAbilityQuality.missingAbilityCount === 0
     ? null
     : `visible general catalog has ${summary.visibleGeneralAbilityQuality.missingAbilityCount} models without ability stats`,
@@ -726,6 +833,9 @@ const failedChecks = [
   summary.generatedCopyDiversity.awkwardProviderParticleQuestionCount === 0
     ? null
     : `generated questions contain ${summary.generatedCopyDiversity.awkwardProviderParticleQuestionCount} awkward provider particles`,
+  summary.generatedCopyDiversity.awkwardCopyPatternCount === 0
+    ? null
+    : `generated copy contains ${summary.generatedCopyDiversity.awkwardCopyPatternCount} awkward repeated patterns`,
   summary.generatedCopyDiversity.uniqueQuotes === summary.addedOpenRouterCount
     ? null
     : 'generated OpenRouter model quotes are not unique',

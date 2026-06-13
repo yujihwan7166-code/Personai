@@ -320,6 +320,15 @@ function isReasoningModel(model) {
     || /\b(reasoning|thinking|r1|o1|o3|o4|opus|pro|max)\b/.test(haystack);
 }
 
+function isReasoningTagModel(model) {
+  const haystack = `${model.id} ${model.name} ${model.description ?? ''}`.toLowerCase();
+  return model.supported_parameters?.includes('reasoning')
+    || model.supported_parameters?.includes('include_reasoning')
+    || /\b(reasoning|reasoner|thinking|deep[-\s]?research|r1|qwq|qvq|o1|o3|o4)\b/.test(haystack)
+    || /(?:^|[/:._-])grok-4/.test(model.id)
+    || /(?:^|[/:._-])claude-opus/.test(model.id);
+}
+
 function isCodingModel(model) {
   const haystack = `${model.id} ${model.name} ${model.description ?? ''}`.toLowerCase();
   return /\b(code|coding|coder|codestral|devstral|programming|software|agentic)\b/.test(haystack);
@@ -455,18 +464,23 @@ function abilitiesFor(model) {
 function tagsFor(model) {
   const tags = [];
   const searchModel = /search|sonar|perplexity/i.test(model.id);
-  if (isReasoningModel(model)) tags.push('추론');
+  const inputModalities = model.architecture?.input_modalities ?? [];
+  if (isReasoningTagModel(model)) tags.push('추론');
   if (searchModel) tags.push('검색');
   if (isCodingModel(model) && !searchModel) tags.push('코딩');
   if (isOpenWeightModel(model)) tags.push('오픈웨이트');
   if (isVisionModel(model)) tags.push('시각입력');
   if ((model.context_length ?? 0) >= 500_000) tags.push('장문맥');
+  if (inputModalities.includes('file')) tags.push('문서입력');
+  if (inputModalities.includes('audio') || inputModalities.includes('video')) tags.push('멀티모달');
   if (isFree(model)) tags.push('무료');
   if (priceTier(model) === 'low') tags.push('저비용');
   if (/creative|story|writer|writing/i.test(model.id)) tags.push('창작');
+  if (/productivity|office|workflow|assistant/i.test(model.id)) tags.push('생산성');
   if (/mini|small|lite|flash|fast|turbo|haiku|nano/i.test(model.id)) tags.push('고속');
   if (/korean|solar|upstage/i.test(model.id)) tags.push('한국어');
   if (/qwen|glm|ernie|hunyuan|baidu|tencent|moonshot|kimi/i.test(model.id)) tags.push('중국어');
+  if ((model.context_length ?? 0) >= 128_000) tags.push('문맥처리');
   if (model.supported_parameters?.includes('tools') || model.supported_parameters?.includes('tool_choice')) tags.push('툴사용');
   if (model.supported_parameters?.includes('structured_outputs') || model.supported_parameters?.includes('response_format')) tags.push('구조화');
   if (tags.length < 3) tags.push('범용');
@@ -566,7 +580,7 @@ function descriptionForExistingModel(entry, model) {
 function tagsForExistingModel(entry, model) {
   const tags = tagsFor(model);
   if (entry.id === 'ancano-pro') {
-    return ['추론', '자동선택', '장문맥', '저비용'];
+    return ['자동선택', '장문맥', '저비용', '범용'];
   }
   if (entry.id === 'deepseek') {
     return ['코딩', '오픈웨이트', '저비용', '구조화'];

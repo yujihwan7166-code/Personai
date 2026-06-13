@@ -68,12 +68,17 @@ describe('openrouter added model catalog', () => {
     expect(summary.providerCoverage.requiredProviderCount).toBeGreaterThanOrEqual(10);
     expect(summary.providerCoverage.missingRequiredProviders).toEqual([]);
     expect(summary.tagDiversity.uniqueTags).toBeGreaterThanOrEqual(14);
-    expect(summary.tagDiversity.overHalfTags.length).toBeLessThanOrEqual(1);
+    expect(summary.tagDiversity.overHalfTags.length).toBe(0);
+    expect(summary.tagDiversity.invalidTagCount).toBe(0);
+    expect(summary.tagDiversity.invalidTags).toEqual([]);
+    expect(summary.tagDiversity.metadataMismatchCount).toBe(0);
+    expect(summary.tagDiversity.metadataMismatches).toEqual([]);
     expect(summary.abilityQuality.missingAbilityCount).toBe(0);
     Object.values(summary.abilityQuality.ranges).forEach((range) => {
       expect((range as { unique: number }).unique).toBeGreaterThanOrEqual(12);
     });
     expect(summary.copyDiversity.uniqueDescriptionSkeletons).toBeGreaterThanOrEqual(70);
+    expect(summary.copyDiversity.awkwardCopyPatternCount).toBe(0);
     expect(summary.copyCompleteness).toEqual({
       missingGreetingCount: 0,
       staleGreetingNameCount: 0,
@@ -95,6 +100,11 @@ describe('openrouter added model catalog', () => {
     Object.values(summary.explorerFilterCoverage.detail).forEach((count) => {
       expect(count as number).toBeGreaterThan(0);
     });
+    expect(summary.explorerFilterCoverage.detail['input-file']).toBe(summary.filterBuckets.input.file);
+    expect(summary.explorerFilterCoverage.detail['input-audio-video']).toBe(summary.filterBuckets.input.audioVideo);
+    expect(summary.explorerFilterCoverage.detail['input-vision']).toBe(summary.filterBuckets.input.image);
+    expect(summary.explorerFilterCoverage.detail['input-text']).toBe(summary.filterBuckets.input.textOnly);
+    expect(summary.explorerFilterCoverage.detail['speed-fast'] + summary.explorerFilterCoverage.detail['speed-normal']).toBe(summary.visibleGeneralCount);
     expect(summary.selectionGroups.every((group: { duplicateCount: number; hiddenCount: number }) =>
       group.duplicateCount === 0 && group.hiddenCount === 0)).toBe(true);
     expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_flagship')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
@@ -719,8 +729,15 @@ describe('openrouter added model catalog', () => {
     expect(explorerSource).not.toContain('function DetailPanel');
     expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
     expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-vision');
+    expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-file');
     expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-audio-video');
+    const fileInputModel = DEFAULT_EXPERTS
+      .filter(isVisibleGeneralTextModel)
+      .find((expert) => expert.modelInfo?.inputModalities?.includes('file'));
+    expect(fileInputModel).toBeTruthy();
+    expect(getGeneralSpecIds(fileInputModel!)).toContain('input-file');
     expect(filterSource).toContain("inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null");
+    expect(filterSource).toContain("inputModalities.includes('file') ? 'input-file' : null");
     expect(explorerSource).toContain("inputModalities.includes('file') ?");
   });
   it('keeps special and non-text-output cards out of the general model selection group', () => {

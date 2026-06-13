@@ -15,15 +15,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 3.1 Flash Lite로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 3.1 Flash Lite로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ?? ?? ??? ???? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 3.1 Flash Lite입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -56,15 +56,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -95,15 +95,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5 Pro로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5 Pro로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ??? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5 Pro입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -134,15 +134,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5 Mini로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5 Mini로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5 Mini입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "고속",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -173,15 +173,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5 Nano로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5 Nano로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5 Nano입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "저비용",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -212,15 +212,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.4 Nano로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.4 Nano로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Nano입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "저비용",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -251,14 +251,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.3 Chat로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.3 Chat로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.3 Chat입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -289,15 +290,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.3-Codex로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.3-Codex로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.3-Codex입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -328,15 +329,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.2 Pro로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.2 Pro로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.2 Pro입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -367,15 +368,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.2로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.2로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ??? ?? ?? ???? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.2입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -406,15 +407,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.2 Chat로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.2 Chat로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.2 Chat입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -445,15 +446,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.2-Codex로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.2-Codex로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ??? ???? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.2-Codex입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -483,15 +484,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5 Codex로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5 Codex로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5 Codex입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -521,15 +522,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.1 Chat로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.1 Chat로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.1 Chat입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -560,15 +561,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.1-Codex-Max로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.1-Codex-Max로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex-Max입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -598,15 +599,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.1-Codex로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.1-Codex로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ??? ??? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -636,15 +637,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.1-Codex-Mini로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.1-Codex-Mini로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ??? ???? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.1-Codex-Mini입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "고속",
-      "툴사용"
+      "툴사용",
+      "코딩"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -674,15 +675,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.5 Pro로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.5 Pro로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.5 Pro입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -713,15 +714,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.5로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.5로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.5입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -752,15 +753,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.4 Pro로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.4 Pro로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Pro입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -791,15 +792,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.4로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.4로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.4입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -830,15 +831,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.1로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.1로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.1입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -869,14 +870,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT Chat Latest로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT Chat Latest로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT Chat Latest입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -907,15 +909,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o3 Pro로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o3 Pro로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o3 Pro입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -946,15 +948,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o3로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o3로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o3입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -985,15 +987,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o3 Deep Research로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o3 Deep Research로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o3 Deep Research입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1024,15 +1026,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o4 Mini Deep Research로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o4 Mini Deep Research로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o4 Mini Deep Research입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
       "시각입력",
-      "고속"
+      "고속",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1059,19 +1061,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "blue",
     "category": "ai",
     "openrouterModel": "openai/o4-mini",
-    "description": "o4 Mini: 추론형 성향으로 복잡한 선택지를 기준별로 채점하는 OpenAI 모델",
+    "description": "o4 Mini: 추론형 작업에 맞춰 복잡한 선택지를 기준별로 채점하는 OpenAI 모델",
     "quote": "o4 Mini로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o4 Mini로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o4 Mini입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "고속"
+      "고속",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1102,15 +1104,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o4 Mini High로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o4 Mini High로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o4 Mini High입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "고속",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1141,15 +1143,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o3 Mini High로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o3 Mini High로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ??? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o3 Mini High입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "고속",
       "툴사용",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1179,15 +1181,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o3 Mini로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o3 Mini로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ??? ??? ??? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o3 Mini입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "고속",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1217,14 +1219,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o1-pro로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o1-pro로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ??? ??? ??? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o1-pro입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
-      "구조화"
+      "구조화",
+      "문서입력",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1255,15 +1258,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "o1로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "o1로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 o1입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1294,14 +1297,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4o로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4o로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4o입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1332,7 +1336,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4o-mini로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4o-mini로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4o-mini입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -1371,14 +1375,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4o Search Preview로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4o Search Preview로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4o Search Preview입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "검색",
       "구조화",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1407,7 +1412,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4o-mini Search Preview로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4o-mini Search Preview로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ??? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4o-mini Search Preview입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
@@ -1444,15 +1449,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "gpt-oss-120b로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "gpt-oss-120b로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 오픈웨이트 GPT 계열 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ????? GPT ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 gpt-oss-120b입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1481,15 +1486,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "gpt-oss-120b Free로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "gpt-oss-120b Free로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 오픈웨이트 GPT 계열 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ????? GPT ?? ?? ??? ???? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 gpt-oss-120b Free입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "무료",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1518,15 +1523,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "gpt-oss-20b로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "gpt-oss-20b로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 오픈웨이트 GPT 계열 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ????? GPT ?? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 gpt-oss-20b입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "저비용",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1551,18 +1556,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "blue",
     "category": "ai",
     "openrouterModel": "openai/gpt-oss-20b:free",
-    "description": "gpt-oss-20b Free: 오픈웨이트 GPT 계열 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 OpenAI 모델",
+    "description": "gpt-oss-20b Free: 오픈웨이트 GPT 계열 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 OpenAI 모델",
     "quote": "gpt-oss-20b Free로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "gpt-oss-20b Free로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 오픈웨이트 GPT 계열 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 gpt-oss-20b Free입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "무료",
-      "툴사용"
+      "툴사용",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -1591,15 +1597,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Max로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Max로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Max입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1628,15 +1634,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.7 Plus로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.7 Plus로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ?? ??? ?? ?? ?? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.7 Plus입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1666,15 +1672,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.5 Plus 2026-04-20로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.5 Plus 2026-04-20로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.5 Plus 2026-04-20입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1705,15 +1711,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.6 Flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.6 Flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 Flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1744,15 +1750,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.6 35B A3B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.6 35B A3B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 35B A3B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1783,15 +1789,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.6 27B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.6 27B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ??? ?? ?? ???? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 27B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "중국어"
+      "중국어",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1822,15 +1828,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Next 80B A3B Thinking로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Next 80B A3B Thinking로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "장문 자료를 추론형 관점에서 핵심만 비교해줘",
+      "?? ??? ??? ?? ??? ?? ?? ?? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Thinking입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1859,7 +1865,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder Next로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder Next로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder Next입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
@@ -1896,15 +1902,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.6 Max Preview로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.6 Max Preview로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.6 Max Preview입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1933,15 +1939,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen Plus 0728 (thinking)로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen Plus 0728 (thinking)로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 추론형 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ??? ?? ??? ???? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen Plus 0728 (thinking)입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "저비용"
+      "저비용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -1970,15 +1976,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen Plus 0728로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen Plus 0728로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen Plus 0728입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "저비용"
+      "저비용",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2007,7 +2013,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder Plus로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder Plus로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "??? ???? ???? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder Plus입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
@@ -2044,7 +2050,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder Flash로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder Flash로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "??? ???? ???? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder Flash입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
@@ -2081,15 +2087,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder 480B A35B로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder 480B A35B로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder 480B A35B입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "장문맥"
+      "장문맥",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2118,15 +2124,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder 480B A35B Free로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder 480B A35B Free로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "??? ??? ???? ?? ??? ?? ?? ?? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder 480B A35B Free입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "장문맥"
+      "장문맥",
+      "무료"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2155,7 +2161,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Coder 30B A3B Instruct로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Coder 30B A3B Instruct로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Coder 30B A3B Instruct입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
@@ -2192,15 +2198,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Next 80B A3B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Next 80B A3B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2229,15 +2235,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 Next 80B A3B Instruct Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 Next 80B A3B Instruct Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 Next 80B A3B Instruct Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "무료"
+      "무료",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2266,15 +2272,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 235B A22B Thinking 2507로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 235B A22B Thinking 2507로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "장문 자료를 추론형 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 235B A22B Thinking 2507입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2303,15 +2309,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 30B A3B Thinking 2507로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 30B A3B Thinking 2507로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 30B A3B Thinking 2507입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2340,7 +2346,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 235B A22B Instruct 2507로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 235B A22B Instruct 2507로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 235B A22B Instruct 2507입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -2377,15 +2383,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 30B A3B Instruct 2507로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 30B A3B Instruct 2507로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 30B A3B Instruct 2507입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2414,15 +2420,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 235B A22B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 235B A22B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 235B A22B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2451,15 +2457,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 32B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 32B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 32B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2488,15 +2494,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 14B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 14B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 14B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2525,15 +2531,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 8B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 8B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 8B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2562,15 +2568,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3 30B A3B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3 30B A3B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3 30B A3B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2599,15 +2605,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen2.5 Coder 32B Instruct로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen2.5 Coder 32B Instruct로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen2.5 Coder 32B Instruct입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2636,15 +2642,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5.4 Mini로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5.4 Mini로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5.4 Mini입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -2675,15 +2681,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Fable 5로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Fable 5로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ?? ??? ?? ?? ?? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Fable 5입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -2714,15 +2720,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 3.5 Flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 3.5 Flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ???? ? ???? ?? ??? ???",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 3.5 Flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -2755,15 +2761,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Grok Build 0.1로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Grok Build 0.1로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "xAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "xAI의 Grok Build 0.1입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "xAI",
@@ -2793,15 +2799,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Sonar Pro Search로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Sonar Pro Search로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ??? ??? ?? ?? ???? ???",
       "Perplexity 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Perplexity의 Sonar Pro Search입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
       "시각입력",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Perplexity",
@@ -2831,15 +2837,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V4 Pro로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V4 Pro로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ??? ??? ??? ?? ?? ???? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V4 Pro입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "장문맥"
+      "장문맥",
+      "저비용"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -2868,15 +2874,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen3.7 Max로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen3.7 Max로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen3.7 Max입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "장문맥"
+      "장문맥",
+      "중국어"
     ],
     "modelInfo": {
       "provider": "Alibaba Qwen",
@@ -2905,14 +2911,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.2 3B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.2 3B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.2 3B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -2941,15 +2948,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Medium 3.5로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Medium 3.5로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Medium 3.5입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "시각입력"
+      "시각입력",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -2980,15 +2987,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Command R (08-2024)로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Command R (08-2024)로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Cohere 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Cohere의 Command R (08-2024)입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Cohere",
@@ -3017,15 +3024,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Phi 4 Mini Instruct로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Phi 4 Mini Instruct로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Microsoft 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Microsoft의 Phi 4 Mini Instruct입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Microsoft",
@@ -3054,14 +3061,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nova Pro 1.0로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nova Pro 1.0로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Amazon 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Amazon의 Nova Pro 1.0입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Amazon",
@@ -3091,15 +3099,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Nano 30B A3B로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Nano 30B A3B로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano 30B A3B입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -3128,15 +3136,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Kimi K2.7 Code로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Kimi K2.7 Code로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "Moonshot AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2.7 Code입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "중국어"
+      "중국어",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -3167,15 +3175,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 5로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 5로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 5입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -3204,15 +3212,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiniMax M3로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiniMax M3로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "MiniMax 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M3입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -3243,15 +3251,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Hy3 preview로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Hy3 preview로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ?? ??? ??? ?? ??? ???",
       "Tencent 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Tencent의 Hy3 preview입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Tencent",
@@ -3280,7 +3288,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Granite 4.1 8B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Granite 4.1 8B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "IBM 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "IBM의 Granite 4.1 8B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -3317,15 +3325,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Seed 1.6 Flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Seed 1.6 Flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ???? ?? ??? ??? ?? ??? ???",
       "ByteDance Seed 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "ByteDance Seed의 Seed 1.6 Flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "저비용",
-      "고속"
+      "고속",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "ByteDance Seed",
@@ -3356,15 +3364,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.7로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.7로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ??? ??? ??? ?? ?? ???? ???",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.7입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3395,15 +3403,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Sonnet 4로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Sonnet 4로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ?? ?? ??? ???? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Sonnet 4입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3434,15 +3442,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.8 (Fast)로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.8 (Fast)로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ?? ?? ??? ???? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.8 (Fast)입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3473,15 +3481,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.8로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.8로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ???? ???? ? ???? ?? ??? ???",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.8입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3512,15 +3520,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.7 (Fast)로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.7 (Fast)로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ?? ??? ?? ?? ?? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.7 (Fast)입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3551,15 +3559,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.5로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.5로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ??? ??? ??? ?? ??? ???",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.5입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3590,15 +3598,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.6 (Fast)로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.6 (Fast)로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.6 (Fast)입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3629,15 +3637,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4.1로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4.1로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4.1입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3668,15 +3676,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 2.5 Pro로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 2.5 Pro로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ??? ??? ???",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3709,15 +3717,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude Opus 4로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude Opus 4로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ??? ?? ??? ???? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude Opus 4입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Anthropic",
@@ -3748,15 +3756,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemma 4 26B A4B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemma 4 26B A4B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemma 4 26B A4B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3787,15 +3795,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemma 4 26B A4B Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemma 4 26B A4B Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemma 4 26B A4B Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "무료"
+      "무료",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3826,15 +3834,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemma 4 31B Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemma 4 31B Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemma 4 31B Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "무료"
+      "무료",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3865,15 +3873,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 2.5 Pro Preview 06-05로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 2.5 Pro Preview 06-05로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro Preview 06-05입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3905,15 +3913,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 2.5 Pro Preview 05-06로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 2.5 Pro Preview 05-06로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ??? ?? ?? ???? ???",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 2.5 Pro Preview 05-06입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -3946,15 +3954,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Grok 4.20 Multi-Agent로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Grok 4.20 Multi-Agent로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ??? ?? ?? ???? ???",
       "xAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "xAI의 Grok 4.20 Multi-Agent입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "xAI",
@@ -3985,15 +3993,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Kimi K2.6로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Kimi K2.6로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Moonshot AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2.6입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -4023,15 +4031,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 3.1 Pro Preview Custom Tools로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 3.1 Pro Preview Custom Tools로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 3.1 Pro Preview Custom Tools입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "고속"
+      "고속",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -4064,15 +4072,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemini 2.5 Flash Lite Preview 09-2025로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemini 2.5 Flash Lite Preview 09-2025로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ?? ?? ??? ???? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemini 2.5 Flash Lite Preview 09-2025입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "장문맥",
-      "저비용"
+      "저비용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -4105,15 +4113,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V4 Flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V4 Flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V4 Flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -4142,15 +4150,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V3.2로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V3.2로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.2입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -4179,7 +4187,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude 3.5 Haiku로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude 3.5 Haiku로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude 3.5 Haiku입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -4217,15 +4225,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiMo-V2.5로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiMo-V2.5로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ????? ?? ??? ????",
       "Xiaomi 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Xiaomi의 MiMo-V2.5입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "장문맥"
+      "장문맥",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Xiaomi",
@@ -4257,15 +4265,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nex-N2-Pro Free로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nex-N2-Pro Free로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Nex AGI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Nex AGI의 Nex-N2-Pro Free입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "시각입력",
-      "무료"
+      "무료",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Nex AGI",
@@ -4295,15 +4303,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Ultra로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Ultra로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Ultra입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -4332,15 +4340,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Trinity Large Thinking로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Trinity Large Thinking로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "장문 자료를 추론형 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Arcee AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Arcee AI의 Trinity Large Thinking입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Arcee AI",
@@ -4369,15 +4377,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.7 Flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.7 Flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.7 Flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -4406,15 +4414,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Ring-2.6-1T로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Ring-2.6-1T로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ?? ??? ????",
       "InclusionAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "InclusionAI의 Ring-2.6-1T입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "InclusionAI",
@@ -4443,15 +4451,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V3.2 Exp로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V3.2 Exp로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.2 Exp입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -4480,15 +4488,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiniMax M2.5로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiniMax M2.5로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "MiniMax 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M2.5입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -4517,15 +4525,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Ultra Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Ultra Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Ultra Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "무료"
+      "무료",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -4554,15 +4562,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V3.1 Terminus로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V3.1 Terminus로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.1 Terminus입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -4591,15 +4599,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.7로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.7로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.7입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -4628,14 +4636,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Sonar Reasoning Pro로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Sonar Reasoning Pro로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ??? ?? ??? ???? ????",
       "Perplexity 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Perplexity의 Sonar Reasoning Pro입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
-      "시각입력"
+      "시각입력",
+      "문맥처리",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Perplexity",
@@ -4665,15 +4674,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.3 Nemotron Super 49B V1.5로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.3 Nemotron Super 49B V1.5로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Llama 3.3 Nemotron Super 49B V1.5입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -4702,15 +4711,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V3.1로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V3.1로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3.1입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -4739,15 +4748,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Nano 30B A3B Free로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Nano 30B A3B Free로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano 30B A3B Free입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "무료"
+      "무료",
+      "고속"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -4772,19 +4781,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "blue",
     "category": "ai",
     "openrouterModel": "poolside/laguna-xs.2:free",
-    "description": "Laguna XS.2 Free: 범용 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Poolside 모델",
+    "description": "Laguna XS.2 Free: 범용 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Poolside 모델",
     "quote": "Laguna XS.2 Free로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Laguna XS.2 Free로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Poolside 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Poolside의 Laguna XS.2 Free입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "무료",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Poolside",
@@ -4813,15 +4822,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Laguna M.1 Free로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Laguna M.1 Free로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ???? ? ???? ?? ??? ???",
       "Poolside 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Poolside의 Laguna M.1 Free입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "무료",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Poolside",
@@ -4850,7 +4859,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Ministral 3 14B 2512로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Ministral 3 14B 2512로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Ministral 3 14B 2512입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -4888,15 +4897,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiniMax M2.1로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiniMax M2.1로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "MiniMax 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M2.1입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -4925,15 +4934,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Large 2407로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Large 2407로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Large 2407입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -4963,15 +4972,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 5 Turbo로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 5 Turbo로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ?? ??? ????",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 5 Turbo입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "고속",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -5000,15 +5009,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Medium 3로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Medium 3로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Medium 3입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -5039,15 +5048,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Nano Omni Free로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Nano Omni Free로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Nano Omni Free입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "무료"
+      "무료",
+      "추론"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -5079,15 +5088,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron 3 Super Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron 3 Super Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "??? ?? ???? ??? ?? ??? ???? ????",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron 3 Super Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "장문맥",
-      "무료"
+      "무료",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -5116,15 +5125,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiniMax M2로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiniMax M2로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "MiniMax 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M2입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -5153,15 +5162,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "R1 0528로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "R1 0528로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 R1 0528입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "툴사용",
-      "구조화"
+      "구조화",
+      "추론"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -5190,15 +5199,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Small 3.1 24B로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Small 3.1 24B로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3.1 24B입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -5228,15 +5237,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Seed 1.6로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Seed 1.6로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "ByteDance Seed 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "ByteDance Seed의 Seed 1.6입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "시각입력",
       "툴사용",
-      "구조화"
+      "구조화",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "ByteDance Seed",
@@ -5267,15 +5276,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.6V로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.6V로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.6V입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "시각입력",
-      "저비용"
+      "저비용",
+      "멀티모달"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -5306,15 +5315,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "R1 Distill Qwen 32B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "R1 Distill Qwen 32B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 R1 Distill Qwen 32B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "추론"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -5343,14 +5352,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "R1 Distill Llama 70B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "R1 Distill Llama 70B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 R1 Distill Llama 70B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
-      "범용"
+      "범용",
+      "문맥처리",
+      "추론"
     ],
     "modelInfo": {
       "provider": "DeepSeek",
@@ -5379,14 +5389,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Sonar Deep Research로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Sonar Deep Research로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ??? ?? ??? ?? ?? ?? ????",
       "Perplexity 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Perplexity의 Sonar Deep Research입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
-      "범용"
+      "범용",
+      "문맥처리",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Perplexity",
@@ -5415,7 +5426,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "DeepSeek V3로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "DeepSeek V3로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "DeepSeek 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "DeepSeek의 DeepSeek V3입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -5452,15 +5463,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Large로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Large로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ??? ??? ?? ?? ???? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Large입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "툴사용"
+      "툴사용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "Mistral AI",
@@ -5490,15 +5501,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "LFM2.5-1.2B-Thinking Free로 복잡한 추론과 단계별 판단 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "LFM2.5-1.2B-Thinking Free로 복잡한 추론과 단계별 판단에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 추론형 관점에서 핵심만 비교해줘",
+      "?? ?? ??? ??? ??? ?? ?? ???? ???",
       "Liquid AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Liquid AI의 LFM2.5-1.2B-Thinking Free입니다. 복잡한 추론과 단계별 판단에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "무료"
+      "무료",
+      "추론"
     ],
     "modelInfo": {
       "provider": "Liquid AI",
@@ -5527,7 +5538,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Claude 3 Haiku로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Claude 3 Haiku로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "Anthropic 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Anthropic의 Claude 3 Haiku입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -5565,15 +5576,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "MiniMax M1로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "MiniMax M1로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "??? ??? ?? ?? ??? ?? ?? ?? ????",
       "MiniMax 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "MiniMax의 MiniMax M1입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "장문맥",
       "고속",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "MiniMax",
@@ -5602,14 +5613,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemma 3n 4B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemma 3n 4B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ?? ??? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemma 3n 4B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "범용"
+      "범용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -5638,7 +5650,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Small 3.2 24B로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Small 3.2 24B로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3.2 24B입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -5676,15 +5688,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.6로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.6로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.6입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -5713,15 +5725,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "KAT-Coder-Pro V2로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "KAT-Coder-Pro V2로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "KwaiPilot 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "KwaiPilot의 KAT-Coder-Pro V2입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "KwaiPilot",
@@ -5750,14 +5762,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.2 3B Instruct Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.2 3B Instruct Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.2 3B Instruct Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
-      "무료"
+      "무료",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -5786,15 +5799,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nemotron Nano 9B V2 Free로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nemotron Nano 9B V2 Free로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "NVIDIA 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "NVIDIA의 Nemotron Nano 9B V2 Free입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "무료",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "NVIDIA",
@@ -5823,15 +5836,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.5로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.5로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.5입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "중국어",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -5860,15 +5873,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GLM 4.5 Air로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GLM 4.5 Air로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Z.ai 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Z.ai의 GLM 4.5 Air입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "중국어"
+      "중국어",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Z.ai",
@@ -5897,14 +5910,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Kimi K2 0905로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Kimi K2 0905로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ?? ??? ??? ?? ??? ???",
       "Moonshot AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2 0905입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "중국어",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -5933,7 +5947,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Voxtral Small 24B 2507로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Voxtral Small 24B 2507로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ?? ???? ?? ?? ??? ???? ????",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Voxtral Small 24B 2507입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -5968,19 +5982,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "orange",
     "category": "ai",
     "openrouterModel": "essentialai/rnj-1-instruct",
-    "description": "Rnj 1 Instruct: 범용 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Essential AI 모델",
+    "description": "Rnj 1 Instruct: 범용 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Essential AI 모델",
     "quote": "Rnj 1 Instruct로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Rnj 1 Instruct로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ? ???? ?? ??? ???",
       "Essential AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Essential AI의 Rnj 1 Instruct입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Essential AI",
@@ -6009,14 +6023,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Command R7B (12-2024)로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Command R7B (12-2024)로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Cohere 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Cohere의 Command R7B (12-2024)입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "저비용",
-      "구조화"
+      "구조화",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Cohere",
@@ -6045,15 +6060,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Reka Flash 3로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Reka Flash 3로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ??? ??? ?? ??? ???",
       "Reka AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Reka AI의 Reka Flash 3입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "고속"
     ],
     "modelInfo": {
       "provider": "Reka AI",
@@ -6082,7 +6097,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Nova Lite 1.0로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nova Lite 1.0로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Amazon 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Amazon의 Nova Lite 1.0입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -6120,14 +6135,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Gemma 2 27B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Gemma 2 27B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ?? ???? ?? ?? ??? ???? ????",
       "Google 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Google의 Gemma 2 27B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Google",
@@ -6156,7 +6172,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mixtral 8x22B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mixtral 8x22B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ??? ?? ??? ?? ?? ???? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mixtral 8x22B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6194,15 +6210,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Trinity Mini로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Trinity Mini로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Arcee AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Arcee AI의 Trinity Mini입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "고속"
+      "고속",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Arcee AI",
@@ -6231,15 +6247,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Hermes 4 70B로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Hermes 4 70B로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ?? ??? ????",
       "Nous Research 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Nous Research의 Hermes 4 70B입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Nous Research",
@@ -6268,15 +6284,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Hermes 4 405B로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Hermes 4 405B로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ??? ??? ??? ?? ??? ???",
       "Nous Research 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Nous Research의 Hermes 4 405B입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "검색",
       "오픈웨이트",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Nous Research",
@@ -6305,14 +6321,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Morph V3 Large로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Morph V3 Large로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "장문 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "Morph 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Morph의 Morph V3 Large입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "코딩",
       "범용",
-      "업무"
+      "업무",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Morph",
@@ -6341,14 +6358,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4 Turbo Preview로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4 Turbo Preview로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4 Turbo Preview입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "고속",
       "툴사용",
-      "구조화"
+      "구조화",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -6377,7 +6395,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Saba로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Saba로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ??? ?? ??? ?? ?? ???? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Saba입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6415,7 +6433,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.3 70B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.3 70B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.3 70B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6452,7 +6470,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Small 3로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Small 3로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ? ???? ?? ??? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Small 3입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -6489,7 +6507,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Ling-2.6-1T로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Ling-2.6-1T로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ???? ????? ??? ??? ???",
       "InclusionAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "InclusionAI의 Ling-2.6-1T입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6526,7 +6544,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Ling-2.6-flash로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Ling-2.6-flash로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "장문 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ?? ??? ???? ????",
       "InclusionAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "InclusionAI의 Ling-2.6-flash입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
@@ -6559,18 +6577,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "slate",
     "category": "ai",
     "openrouterModel": "moonshotai/kimi-k2",
-    "description": "Kimi K2 0711: 범용 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Moonshot AI 모델",
+    "description": "Kimi K2 0711: 범용 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Moonshot AI 모델",
     "quote": "Kimi K2 0711로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Kimi K2 0711로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Moonshot AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Moonshot AI의 Kimi K2 0711입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "중국어",
       "툴사용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Moonshot AI",
@@ -6599,15 +6618,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "INTELLECT-3로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "INTELLECT-3로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ???? ? ???? ?? ??? ???",
       "Prime Intellect 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Prime Intellect의 INTELLECT-3입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Prime Intellect",
@@ -6636,15 +6655,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Olmo 3 32B Think로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Olmo 3 32B Think로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Ai2 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Ai2의 Olmo 3 32B Think입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
       "저비용",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Ai2",
@@ -6673,14 +6692,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.3 70B Instruct Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.3 70B Instruct Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.3 70B Instruct Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "무료",
-      "툴사용"
+      "툴사용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -6709,14 +6729,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.2 1B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.2 1B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.2 1B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -6745,14 +6766,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Cogito v2.1 671B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Cogito v2.1 671B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Deep Cogito 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Deep Cogito의 Cogito v2.1 671B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
-      "구조화"
+      "구조화",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Deep Cogito",
@@ -6781,7 +6803,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.1 8B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.1 8B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.1 8B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6818,7 +6840,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3.1 70B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3.1 70B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3.1 70B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -6855,14 +6877,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Virtuoso Large로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Virtuoso Large로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ??? ??? ??? ?? ??? ???",
       "Arcee AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Arcee AI의 Virtuoso Large입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "오픈웨이트",
-      "툴사용"
+      "툴사용",
+      "문맥처리",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Arcee AI",
@@ -6891,14 +6914,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Relace Search로 근거 검색과 최신 정보 요약 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Relace Search로 근거 검색과 최신 정보 요약에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 검색형 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ??? ??? ?? ?? ???? ???",
       "Relace 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Relace의 Relace Search입니다. 근거 검색과 최신 정보 요약에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "검색",
       "툴사용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Relace",
@@ -6927,14 +6951,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Coder Large로 코드 작성, 리팩터링, 저장소 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Coder Large로 코드 작성, 리팩터링, 저장소 분석에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 개발자용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ? ???? ?? ??? ???",
       "Arcee AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Arcee AI의 Coder Large입니다. 코드 작성, 리팩터링, 저장소 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "코딩",
       "오픈웨이트",
-      "저비용"
+      "저비용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Arcee AI",
@@ -6963,7 +6988,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Mistral Nemo로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Mistral Nemo로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ????? ??? ??? ???",
       "Mistral AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Mistral AI의 Mistral Nemo입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -7000,14 +7025,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3 8B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3 8B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ?? ??? ??? ?? ??? ???",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3 8B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "범용"
+      "범용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -7036,14 +7062,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Llama 3 70B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Llama 3 70B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ??? ??? ???",
       "Meta 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Meta의 Llama 3 70B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Meta",
@@ -7072,14 +7099,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Morph V3 Fast로 빠른 응답과 대량 처리 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Morph V3 Fast로 빠른 응답과 대량 처리에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 경량 관점에서 핵심만 비교해줘",
+      "?? ?? ??? ?? ??? ?? ?? ???? ???",
       "Morph 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Morph의 Morph V3 Fast입니다. 빠른 응답과 대량 처리에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "코딩",
       "고속",
-      "범용"
+      "범용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Morph",
@@ -7104,18 +7132,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "emerald",
     "category": "ai",
     "openrouterModel": "relace/relace-apply-3",
-    "description": "Relace Apply 3: 범용 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Relace 모델",
+    "description": "Relace Apply 3: 범용 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Relace 모델",
     "quote": "Relace Apply 3로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Relace Apply 3로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ???? ?? ??? ??? ?? ??? ???",
       "Relace 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Relace의 Relace Apply 3입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "코딩",
       "범용",
-      "업무"
+      "업무",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Relace",
@@ -7144,14 +7173,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "LFM2-24B-A2B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "LFM2-24B-A2B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "Liquid AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Liquid AI의 LFM2-24B-A2B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Liquid AI",
@@ -7176,18 +7206,19 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "amber",
     "category": "ai",
     "openrouterModel": "amazon/nova-micro-v1",
-    "description": "Nova Micro 1.0: 범용 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Amazon 모델",
+    "description": "Nova Micro 1.0: 범용 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Amazon 모델",
     "quote": "Nova Micro 1.0로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Nova Micro 1.0로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ?? ???? ?? ?? ??? ???? ????",
       "Amazon 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Amazon의 Nova Micro 1.0입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "저비용",
       "툴사용",
-      "범용"
+      "범용",
+      "문맥처리"
     ],
     "modelInfo": {
       "provider": "Amazon",
@@ -7216,14 +7247,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "LFM2.5-1.2B-Instruct Free로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "LFM2.5-1.2B-Instruct Free로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ???? ? ???? ?? ??? ???",
       "Liquid AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Liquid AI의 LFM2.5-1.2B-Instruct Free입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "무료",
-      "범용"
+      "범용",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Liquid AI",
@@ -7252,14 +7284,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "WizardLM-2 8x22B로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "WizardLM-2 8x22B로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ??? ??? ???",
       "Microsoft 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Microsoft의 WizardLM-2 8x22B입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "오픈웨이트",
       "저비용",
-      "구조화"
+      "구조화",
+      "업무"
     ],
     "modelInfo": {
       "provider": "Microsoft",
@@ -7284,17 +7317,18 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "color": "blue",
     "category": "ai",
     "openrouterModel": "inflection/inflection-3-productivity",
-    "description": "Inflection 3 Productivity: 상위 성향으로 초안 작성, 정리, 의사결정 보조를 맡기 좋은 Inflection AI 모델",
+    "description": "Inflection 3 Productivity: 생산성 업무에 맞춰 초안 작성과 의사결정 보조를 맡기 좋은 Inflection AI 모델",
     "quote": "Inflection 3 Productivity로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Inflection 3 Productivity로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 상위 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ?? ??? ????",
       "Inflection AI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Inflection AI의 Inflection 3 Productivity입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "범용",
-      "업무"
+      "업무",
+      "생산성"
     ],
     "modelInfo": {
       "provider": "Inflection AI",
@@ -7323,14 +7357,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-5 Chat로 문서와 화면까지 함께 보는 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-5 Chat로 문서와 화면까지 함께 보는 분석에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ?? ??? ?? ?? ?? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-5 Chat입니다. 문서와 화면까지 함께 보는 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
       "시각입력",
       "구조화",
-      "범용"
+      "범용",
+      "문서입력"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -7361,14 +7396,15 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-4로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-4로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-4입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
     "tags": [
-      "추론",
       "툴사용",
-      "구조화"
+      "구조화",
+      "업무",
+      "범용"
     ],
     "modelInfo": {
       "provider": "OpenAI",
@@ -7397,7 +7433,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "GPT-3.5 Turbo로 업무 문서, 요약, 대화형 분석 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "GPT-3.5 Turbo로 업무 문서, 요약, 대화형 분석에 맞는 작업 순서를 짜줘",
-      "표준 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "?? ?? ???? ????? ?? ??? ????",
       "OpenAI 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "OpenAI의 GPT-3.5 Turbo입니다. 업무 문서, 요약, 대화형 분석에 맞춰 핵심부터 정리해드릴게요.",
@@ -7434,7 +7470,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen2.5 7B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen2.5 7B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen2.5 7B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -7471,7 +7507,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen2.5 72B Instruct로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen2.5 72B Instruct로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "128K급 문맥 자료를 범용 관점에서 핵심만 비교해줘",
+      "128K? ?? ??? ?? ??? ?? ?? ???? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen2.5 72B Instruct입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
@@ -7508,7 +7544,7 @@ export const OPENROUTER_ADDED_EXPERTS = [
     "quote": "Qwen-Plus로 오픈웨이트 실험과 자체 배포 검토 흐름을 먼저 잡아보겠습니다.",
     "sampleQuestions": [
       "Qwen-Plus로 오픈웨이트 실험과 자체 배포 검토에 맞는 작업 순서를 짜줘",
-      "초장문 자료를 범용 관점에서 핵심만 비교해줘",
+      "??? ???? ?? ??? ??? ?? ??? ???",
       "Alibaba Qwen 모델이 잘 맞는 상황과 피해야 할 상황을 알려줘"
     ],
     "greeting": "Alibaba Qwen의 Qwen-Plus입니다. 오픈웨이트 실험과 자체 배포 검토에 맞춰 핵심부터 정리해드릴게요.",
