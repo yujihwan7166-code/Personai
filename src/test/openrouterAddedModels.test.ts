@@ -18,8 +18,16 @@ import {
   FLAGSHIP_MODEL_IDS,
 } from '@/lib/expertSelectionGroups';
 import { getExpertPrompt } from '@/lib/expertPromptLoader';
+import {
+  GENERAL_SPEC_LABELS,
+  getGeneralSpecIds,
+  getGeneralTraitIds,
+  isFastModel,
+  matchesGeneralQuickFilter,
+} from '@/lib/generalModelExplorerFilters';
 import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
+import { mergePersistedExperts } from '@/lib/expertPersistence';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 
 describe('openrouter added model catalog', () => {
@@ -346,14 +354,23 @@ describe('openrouter added model catalog', () => {
 
     expect(OPENROUTER_ADDED_FLAGSHIP_IDS.length).toBeGreaterThan(0);
     OPENROUTER_ADDED_FLAGSHIP_IDS.forEach((id) => {
+      const expert = DEFAULT_EXPERTS.find((item) => item.id === id);
       expect(FLAGSHIP_MODEL_IDS, `${id} should be available through the shared flagship filter`).toContain(id);
+      expect(expert, `${id} should resolve to an expert`).toBeDefined();
+      expect(matchesGeneralQuickFilter(expert!, 'flagship'), `${id} should match the shared flagship explorer filter`).toBe(true);
     });
-    expect(explorerSource).toContain('FAST_MODEL_ID_SET.has(expert.id)');
-    expect(explorerSource).toContain('FLAGSHIP_MODEL_ID_SET.has(expert.id)');
-    expect(explorerSource).toContain('function isFastModel(expert: Expert)');
-    expect(explorerSource).toContain("isFastModel(expert) ? 'fast' : null");
-    expect(explorerSource).toContain("isFastModel(expert) ? 'speed-fast' : 'speed-normal'");
-    expect(explorerSource).toContain("['속도', isFastModel(expert) ? '빠름' : '보통']");
+
+    OPENROUTER_ADDED_FAST_IDS.forEach((id) => {
+      const expert = DEFAULT_EXPERTS.find((item) => item.id === id);
+      expect(expert, `${id} should resolve to an expert`).toBeDefined();
+      expect(isFastModel(expert!), `${id} should match the shared fast helper`).toBe(true);
+      expect(getGeneralTraitIds(expert!), `${id} should expose fast as a trait`).toContain('fast');
+      expect(getGeneralSpecIds(expert!), `${id} should expose speed-fast as a spec`).toContain('speed-fast');
+      expect(matchesGeneralQuickFilter(expert!, 'fast'), `${id} should match the shared fast explorer filter`).toBe(true);
+    });
+
+    expect(explorerSource).toContain("from '@/lib/generalModelExplorerFilters'");
+    expect(explorerSource).toContain('matchesGeneralQuickFilter(expert, filterId)');
     expect(explorerSource).toContain('orderExpertsByIds(experts, SELECTION_FAST_MODEL_IDS)');
     expect(explorerSource).toContain('initialQuickFilter');
     expect(explorerSource).toContain("type HomeQuickFilterId = 'recommended' | 'fast' | 'reasoning'");
@@ -367,9 +384,7 @@ describe('openrouter added model catalog', () => {
     expect(explorerSource).toContain("reasoning: 'reasoning'");
     expect(explorerSource).not.toContain('LegacyGeneralAiHome');
     expect(explorerSource).not.toContain('HomeModelCard');
-    expect(explorerSource).toContain('검색/필터 초기화');
   });
-
   it('uses varied tags instead of repetitive consultation labels', () => {
     const tags = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.tags ?? []);
     const uniqueTags = new Set(tags);
@@ -694,19 +709,20 @@ describe('openrouter added model catalog', () => {
 
   it('keeps general model trait filters selective and clearly labeled', () => {
     const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
+    const filterSource = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'generalModelExplorerFilters.ts'), 'utf8');
 
     expect(REASONING_MODEL_IDS.length).toBeLessThanOrEqual(40);
-    expect(explorerSource).toContain('FilterGroup title="특징"');
-    expect(explorerSource).not.toContain('FilterGroup title="강점"');
+    expect(explorerSource).toContain('items={traitItems}');
+    expect(explorerSource).toContain('items={detailItems}');
+    expect(explorerSource).not.toContain('title="Strengths"');
     expect(explorerSource).not.toContain('modelStrengthTags');
     expect(explorerSource).not.toContain('function DetailPanel');
     expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
-    expect(explorerSource).toContain("['input-vision', '이미지 입력']");
-    expect(explorerSource).toContain("['input-audio-video', '음성/영상 입력']");
-    expect(explorerSource).toContain("inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null");
-    expect(explorerSource).toContain("inputModalities.includes('file') ? '파일' : null");
+    expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-vision');
+    expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-audio-video');
+    expect(filterSource).toContain("inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null");
+    expect(explorerSource).toContain("inputModalities.includes('file') ?");
   });
-
   it('keeps special and non-text-output cards out of the general model selection group', () => {
     const groups = buildExpertSelectionGroups({
       experts: DEFAULT_EXPERTS,
@@ -742,6 +758,43 @@ describe('openrouter added model catalog', () => {
       .sort();
 
     expect(selectionVisibleIds).toEqual(explorerVisibleIds);
+  });
+
+  it('drops stale persisted AI cards that are no longer in the managed general catalog', () => {
+    const gpt = DEFAULT_EXPERTS.find((expert) => expert.id === 'gpt');
+    const doctor = DEFAULT_EXPERTS.find((expert) => expert.id === 'doctor');
+    expect(gpt).toBeDefined();
+    expect(doctor).toBeDefined();
+
+    const merged = mergePersistedExperts([
+      {
+        ...gpt!,
+        id: 'stale-or-image-model',
+        name: 'Stale Image Model',
+        nameKo: 'Stale Image Model',
+        category: 'ai',
+        openrouterModel: 'example/stale-image-model',
+        modelInfo: {
+          provider: 'Example',
+          contextLength: 8192,
+          inputModalities: ['text'],
+          outputModalities: ['image'],
+          priceTier: 'standard',
+          createdAt: '2025-01-01',
+        },
+      },
+      {
+        ...doctor!,
+        id: 'custom-doctor-copy',
+        name: 'Custom Doctor',
+        nameKo: '커스텀 의사',
+        category: 'occupation',
+      },
+    ]);
+
+    expect(merged.some((expert) => expert.id === 'stale-or-image-model')).toBe(false);
+    expect(merged.some((expert) => expert.id === 'custom-doctor-copy')).toBe(true);
+    expect(merged.filter(isVisibleGeneralTextModel)).toHaveLength(251);
   });
 
   it('adds varied stats to custom non-model experts', () => {

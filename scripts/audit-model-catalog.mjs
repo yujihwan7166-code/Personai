@@ -13,19 +13,20 @@ const {
   hasNonTextOutput,
   isVisibleGeneralTextModel,
 } = await import('../src/lib/generalModelCatalog.ts');
+const { mergePersistedExperts } = await import('../src/lib/expertPersistence.ts');
 const {
   AI_GROUP_CATS,
   buildExpertSelectionGroups,
-  FAST_MODEL_IDS,
-  FLAGSHIP_MODEL_IDS,
 } = await import('../src/lib/expertSelectionGroups.ts');
 const { getExpertPrompt } = await import('../src/lib/expertPromptLoader.ts');
 const {
-  MODEL_BRAND,
-  MODEL_IS_OPENSOURCE,
-  REASONING_MODEL_IDS,
-  RECOMMENDED_MODEL_IDS,
-} = await import('../src/lib/modelTaxonomy.ts');
+  GENERAL_QUICK_FILTER_IDS,
+  GENERAL_SPEC_LABELS,
+  GENERAL_TRAIT_LABELS,
+  getGeneralSpecIds,
+  getGeneralTraitIds,
+  matchesGeneralQuickFilter,
+} = await import('../src/lib/generalModelExplorerFilters.ts');
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
@@ -48,49 +49,8 @@ const REQUIRED_VISIBLE_GENERAL_PROVIDERS = [
   'Z.ai',
   'MiniMax',
 ];
-const GENERAL_QUICK_FILTER_IDS = [
-  'recommended',
-  'new',
-  'flagship',
-  'fast',
-  'reasoning',
-  'coding',
-  'low-cost',
-  'long-context',
-  'minor',
-  'search',
-  'opensource',
-];
-const GENERAL_TRAIT_FILTER_IDS = ['reasoning', 'fast', 'coding', 'search', 'opensource'];
-const GENERAL_SPEC_FILTER_IDS = [
-  'speed-fast',
-  'speed-normal',
-  'price-free',
-  'price-low',
-  'price-standard',
-  'price-premium',
-  'context-xl',
-  'context-long',
-  'context-standard',
-  'input-text',
-  'input-vision',
-  'input-audio-video',
-];
-const NEW_MODEL_IDS = new Set([
-  'gpt',
-  'claude-sonnet-4.6',
-  'gemini-3-flash',
-  'gemini-3.1',
-  'grok-4.2',
-  'qwen-plus',
-  'nova-2-lite',
-  'glm',
-  'mimo',
-  'mercury',
-]);
-const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'deepseek', 'qwen']);
-const FAST_MODEL_ID_SET = new Set(FAST_MODEL_IDS);
-const FLAGSHIP_MODEL_ID_SET = new Set(FLAGSHIP_MODEL_IDS);
+const GENERAL_TRAIT_FILTER_IDS = GENERAL_TRAIT_LABELS.map(([id]) => id);
+const GENERAL_SPEC_FILTER_IDS = GENERAL_SPEC_LABELS.map(([id]) => id);
 const SELECTION_GROUP_QUALITY_RULES = {
   ai_recommended: {
     minProviderCount: 6,
@@ -137,6 +97,34 @@ const SELECTION_GROUP_QUALITY_RULES = {
 };
 const aiExperts = DEFAULT_EXPERTS.filter((expert) => expert.category === 'ai');
 const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
+const persistedMergeFixture = mergePersistedExperts([
+  {
+    ...DEFAULT_EXPERTS.find((expert) => expert.id === 'gpt'),
+    id: 'stale-persisted-image-ai',
+    name: 'Stale Persisted Image AI',
+    nameKo: 'Stale Persisted Image AI',
+    category: 'ai',
+    openrouterModel: 'example/stale-persisted-image-ai',
+    modelInfo: {
+      provider: 'Example',
+      contextLength: 8192,
+      inputModalities: ['text'],
+      outputModalities: ['image'],
+      priceTier: 'standard',
+      createdAt: '2025-01-01',
+    },
+  },
+  {
+    ...DEFAULT_EXPERTS.find((expert) => expert.id === 'doctor'),
+    id: 'persisted-custom-doctor-copy',
+    name: 'Persisted Custom Doctor',
+    nameKo: '저장된 커스텀 의사',
+    category: 'occupation',
+  },
+]);
+const persistedMergeVisibleGeneral = persistedMergeFixture.filter(isVisibleGeneralTextModel);
+const persistedMergeStaleAiRetained = persistedMergeFixture.filter((expert) => expert.id === 'stale-persisted-image-ai');
+const persistedMergeCustomRetained = persistedMergeFixture.filter((expert) => expert.id === 'persisted-custom-doctor-copy');
 const selectionGroups = buildExpertSelectionGroups({
   experts: DEFAULT_EXPERTS,
   favoriteIds: [],
@@ -204,65 +192,6 @@ const visibleGeneralRuntimePromptMissingIdentity = visibleGeneralRuntimePromptEn
     const provider = expert.modelInfo?.provider ?? '';
     return !prompt.includes(name) && Boolean(provider) && !prompt.includes(provider);
   });
-function modelFieldTags(expert) {
-  return expert.tags ?? [];
-}
-
-function isFastModel(expert) {
-  return FAST_MODEL_ID_SET.has(expert.id) || (expert.abilities?.speed ?? 0) >= 85;
-}
-
-function getGeneralTraitIds(expert) {
-  const brand = MODEL_BRAND[expert.id];
-  const isOpenWeight = Boolean(expert.modelInfo?.openWeight) || MODEL_IS_OPENSOURCE.has(expert.id);
-  const fieldTags = modelFieldTags(expert);
-  const isReasoningModel =
-    REASONING_MODEL_IDS.includes(expert.id)
-    || fieldTags.some((tag) => tag.includes('수학') || tag.includes('논리'));
-  return [
-    isReasoningModel ? 'reasoning' : null,
-    isFastModel(expert) ? 'fast' : null,
-    expert.description.includes('코딩') || fieldTags.some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
-    brand === 'perplexity' || fieldTags.some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
-    isOpenWeight ? 'opensource' : null,
-  ].filter(Boolean);
-}
-
-function getGeneralSpecIds(expert) {
-  const priceTier = expert.modelInfo?.priceTier;
-  const contextLength = expert.modelInfo?.contextLength ?? 0;
-  const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
-  const inputSpecIds = [
-    inputModalities.some((modality) => modality !== 'text') ? null : 'input-text',
-    inputModalities.includes('image') ? 'input-vision' : null,
-    inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null,
-  ].filter(Boolean);
-  return [
-    isFastModel(expert) ? 'speed-fast' : 'speed-normal',
-    priceTier ? `price-${priceTier}` : MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-standard',
-    contextLength >= 1_000_000 ? 'context-xl' : contextLength >= 262_144 ? 'context-long' : 'context-standard',
-    ...inputSpecIds,
-  ];
-}
-
-function matchesGeneralQuickFilter(expert, filterId) {
-  if (filterId === 'recommended') return RECOMMENDED_MODEL_IDS.includes(expert.id);
-  if (filterId === 'new') return NEW_MODEL_IDS.has(expert.id);
-  if (filterId === 'flagship') return FLAGSHIP_MODEL_ID_SET.has(expert.id);
-  if (filterId === 'fast') return getGeneralSpecIds(expert).includes('speed-fast');
-  if (filterId === 'reasoning') return getGeneralTraitIds(expert).includes('reasoning');
-  if (filterId === 'low-cost') return getGeneralSpecIds(expert).some((id) => id === 'price-free' || id === 'price-low');
-  if (filterId === 'long-context') return getGeneralSpecIds(expert).some((id) => id === 'context-xl' || id === 'context-long');
-  if (filterId === 'minor') {
-    const brand = MODEL_BRAND[expert.id] ?? 'other';
-    return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_ID_SET.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));
-  }
-  if (filterId === 'coding') return getGeneralTraitIds(expert).includes('coding') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발'));
-  if (filterId === 'search') return getGeneralTraitIds(expert).includes('search') || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG');
-  if (filterId === 'opensource') return getGeneralTraitIds(expert).includes('opensource');
-  return true;
-}
-
 function countFilterMatches(ids, predicate) {
   return Object.fromEntries(ids.map((id) => [
     id,
@@ -608,6 +537,13 @@ const summary = {
   visibleGeneralDuplicateOpenRouterModelCount: visibleGeneralDuplicateOpenRouterModels.length,
   visibleGeneralDuplicateOpenRouterModels,
   visibleGeneralSelectionGroupQuality,
+  persistedMergeSafety: {
+    mergedVisibleGeneralCount: persistedMergeVisibleGeneral.length,
+    stalePersistedAiRetainedCount: persistedMergeStaleAiRetained.length,
+    stalePersistedAiRetainedIds: persistedMergeStaleAiRetained.map((expert) => expert.id),
+    customPersistedRetainedCount: persistedMergeCustomRetained.length,
+    customPersistedRetainedIds: persistedMergeCustomRetained.map((expert) => expert.id),
+  },
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
   badTextAiCount: badTextAi.length,
@@ -704,6 +640,11 @@ const compactSummary = {
   runtimePromptQuality: {
     missingRuntimePromptCount: summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount,
     missingIdentityCount: summary.visibleGeneralRuntimePromptQuality.missingIdentityCount,
+  },
+  persistedMergeSafety: {
+    mergedVisibleGeneralCount: summary.persistedMergeSafety.mergedVisibleGeneralCount,
+    stalePersistedAiRetainedCount: summary.persistedMergeSafety.stalePersistedAiRetainedCount,
+    customPersistedRetainedCount: summary.persistedMergeSafety.customPersistedRetainedCount,
   },
   explorerFilterCoverage: summary.visibleGeneralExplorerFilterCoverage,
   filterBuckets: summary.visibleGeneralFilterBuckets,
@@ -809,6 +750,15 @@ const failedChecks = [
   summary.visibleGeneralRuntimePromptQuality.missingIdentityCount === 0
     ? null
     : `visible general catalog has ${summary.visibleGeneralRuntimePromptQuality.missingIdentityCount} runtime prompts without model identity`,
+  summary.persistedMergeSafety.mergedVisibleGeneralCount === summary.visibleGeneralCount
+    ? null
+    : `persisted expert merge changes visible general model count to ${summary.persistedMergeSafety.mergedVisibleGeneralCount}`,
+  summary.persistedMergeSafety.stalePersistedAiRetainedCount === 0
+    ? null
+    : `persisted expert merge retained stale AI ids: ${summary.persistedMergeSafety.stalePersistedAiRetainedIds.join(', ')}`,
+  summary.persistedMergeSafety.customPersistedRetainedCount === 1
+    ? null
+    : `persisted expert merge failed to retain custom non-AI experts`,
   ...Object.entries(summary.visibleGeneralExplorerFilterCoverage.quick).flatMap(([id, count]) => [
     count >= 5 ? null : `general quick filter ${id} only matches ${count} models`,
     count <= Math.ceil(summary.visibleGeneralCount * 0.55) ? null : `general quick filter ${id} is too broad with ${count} models`,
