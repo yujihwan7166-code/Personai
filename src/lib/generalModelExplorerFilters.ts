@@ -49,15 +49,16 @@ export const GENERAL_QUICK_FILTER_IDS = [
 ] as const;
 
 export const NEW_GENERAL_MODEL_IDS = new Set([
-  'gpt',
+  'claude',
   'claude-sonnet-4.6',
-  'gemini-3-flash',
   'gemini-3.1',
-  'grok-4.2',
+  'grok',
   'qwen-plus',
-  'nova-2-lite',
   'glm',
   'mimo',
+  'minimax',
+  'kimi',
+  'solar',
   'mercury',
 ]);
 
@@ -134,6 +135,21 @@ export function modelFieldTags(expert: Expert) {
   if ((expert.abilities?.contextWindow ?? 0) >= 85) return ['장문맥', '문서', '분석'];
   if (isFastModel(expert)) return ['빠른 응답', '일상', '업무'];
   return ['범용', '대화', '업무'];
+}
+
+export function getGeneralModelDisplayTags(expert: Expert) {
+  const sourceTags = expert.tags && expert.tags.length > 0 ? expert.tags : modelFieldTags(expert);
+  const inputModalities = expert.modelInfo?.inputModalities ?? [];
+  const priorityTags = [
+    expert.modelInfo?.priceTier === 'free' ? '무료' : null,
+    expert.modelInfo?.priceTier === 'low' ? '저비용' : null,
+    inputModalities.includes('file') ? '문서입력' : null,
+    inputModalities.includes('image') ? '시각입력' : null,
+    expert.modelInfo?.openWeight ? '오픈웨이트' : null,
+    isFastModel(expert) ? '고속' : null,
+  ].filter((tag): tag is string => Boolean(tag) && sourceTags.includes(tag));
+
+  return [...new Set([...priorityTags, ...sourceTags])].slice(0, 3);
 }
 
 export function getGeneralTraitIds(expert: Expert) {

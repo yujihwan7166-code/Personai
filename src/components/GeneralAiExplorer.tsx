@@ -24,7 +24,6 @@ import {
   BRAND_LABEL,
   BRAND_ORDER,
   MODEL_BRAND,
-  MODEL_IS_OPENSOURCE,
 } from '@/lib/modelTaxonomy';
 import { REASONING_MODEL_IDS, RECOMMENDED_MODEL_IDS } from '@/lib/modelTaxonomy';
 import {
@@ -33,12 +32,14 @@ import {
 import {
   GENERAL_SPEC_LABELS,
   GENERAL_TRAIT_LABELS,
+  getGeneralModelDisplayTags,
   getGeneralSpecIds,
   getGeneralTraitIds,
   isFastModel,
   matchesGeneralQuickFilter,
-  modelFieldTags,
 } from '@/lib/generalModelExplorerFilters';
+import { buildGeneralModelMeta } from '@/lib/generalModelExplorerMeta';
+import { matchesGeneralModelQuery } from '@/lib/generalModelSearch';
 import { cn } from '@/lib/utils';
 
 type ExplorerTab = 'general' | 'custom';
@@ -336,7 +337,7 @@ function customFieldTags(expert: Expert) {
 
 function tagsForExpert(expert: Expert) {
   if (expert.category === 'ai') {
-    return modelFieldTags(expert).slice(0, 3);
+    return getGeneralModelDisplayTags(expert);
   }
 
   return customFieldTags(expert).slice(0, 3);
@@ -381,40 +382,7 @@ function getCustomMeta(expert: Expert) {
 }
 
 function getModelMeta(expert: Expert) {
-  const contextLength = expert.modelInfo?.contextLength ?? 0;
-  const contextLabel = contextLength >= 1_000_000
-    ? '1M+ 토큰'
-    : contextLength >= 262_144
-      ? `${Math.round(contextLength / 1024)}K 토큰`
-      : contextLength > 0
-        ? `${Math.round(contextLength / 1000)}K 토큰`
-        : '128K 토큰';
-  const priceLabel: Record<NonNullable<Expert['modelInfo']>['priceTier'], string> = {
-    free: '무료',
-    low: '저비용',
-    standard: '표준',
-    premium: '프리미엄',
-  };
-  const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
-  const modalityParts = [
-    inputModalities.includes('text') ? '텍스트' : null,
-    inputModalities.includes('image') ? '이미지' : null,
-    inputModalities.includes('audio') ? '음성' : null,
-    inputModalities.includes('video') ? '비디오' : null,
-    inputModalities.includes('file') ? '파일' : null,
-  ].filter(Boolean);
-  const modalityLabel = modalityParts.length > 0 ? modalityParts.join('+') : '텍스트';
-
-  return [
-    ['제공사', modelProviderLabel(expert)],
-    ['분야', modelFieldTags(expert).join(', ')],
-    ['속도', isFastModel(expert) ? '빠름' : '보통'],
-    ['가격', expert.modelInfo?.priceTier ? priceLabel[expert.modelInfo.priceTier] : expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '무료/저비용' : '표준 가격'],
-    ['컨텍스트 길이', contextLabel],
-    ['출시일', expert.modelInfo?.createdAt ?? '2025년 5월'],
-    ['입력', modalityLabel],
-    ['모델 유형', expert.modelInfo?.openWeight || MODEL_IS_OPENSOURCE.has(expert.id) ? '오픈웨이트' : '폐쇄형'],
-  ];
+  return buildGeneralModelMeta(expert, modelProviderLabel(expert));
 }
 
 function isCustomExpert(expert: Expert) {
@@ -523,6 +491,9 @@ function CustomPortrait({ expert, className }: { expert: Expert; className?: str
 function matchesQuery(expert: Expert, query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
+  if (expert.category === 'ai') {
+    return matchesGeneralModelQuery(expert, query, providerLabel(expert), tagsForExpert(expert));
+  }
   return [
     expert.name,
     expert.nameKo,

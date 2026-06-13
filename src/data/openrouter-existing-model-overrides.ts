@@ -1224,7 +1224,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "solar": {
     "name": "Solar Pro 3",
     "nameKo": "Solar Pro 3",
-    "description": "Solar Pro 3: 한국어 업무 문서와 논리 정리에 강점을 둔 Upstage 모델",
+    "description": "Solar Pro 3: 한국어 업무 문서와 논리 정리에 맞춘 Upstage 모델",
     "tags": [
       "저비용",
       "한국어",

@@ -514,7 +514,7 @@ function descriptionFor(model) {
     if (id.includes('qwen') && id.includes('thinking')) return name + ': 긴 문맥에서 사고 과정을 길게 유지하는 Qwen 사고형 모델';
     if (id.includes('phi')) return name + ': 작은 문맥에서도 논리 문제와 구조화 응답을 겨냥한 Microsoft 경량 추론 모델';
     if (id.includes('nemotron')) return name + ': 합성 데이터와 기업형 추론 워크로드에 맞춘 NVIDIA 대형 모델';
-    if (id.includes('solar') || id.includes('upstage')) return name + ': 한국어 업무 문서와 논리 정리에 강점을 둔 Upstage 모델';
+    if (id.includes('solar') || id.includes('upstage')) return name + ': 한국어 업무 문서와 논리 정리에 맞춘 Upstage 모델';
     if (id.includes('mercury') || id.includes('inception')) return name + ': 지연 시간을 낮춘 빠른 추론과 실시간 응답 흐름에 맞춘 Inception Labs 모델';
     if (id.includes('hunyuan') || id.includes('tencent')) return name + ': 중국어권 업무 대화와 구조화 답변에 맞춘 Tencent 모델';
     if (id.includes('stepfun') || id.includes('step-')) return name + ': 빠른 응답과 중국어권 실무 질의에 맞춘 StepFun 모델';

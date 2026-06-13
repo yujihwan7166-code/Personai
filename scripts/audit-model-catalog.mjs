@@ -21,6 +21,7 @@ const {
 const { getExpertPrompt } = await import('../src/lib/expertPromptLoader.ts');
 const {
   GENERAL_QUICK_FILTER_IDS,
+  NEW_GENERAL_MODEL_IDS,
   GENERAL_SPEC_LABELS,
   GENERAL_TRAIT_LABELS,
   getGeneralSpecIds,
@@ -31,6 +32,7 @@ const {
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
 const TODAY_ISO = '2026-06-13';
+const MIN_AVATAR_DIMENSION = 24;
 const compactOutput = process.argv.includes('--compact');
 const REQUIRED_VISIBLE_GENERAL_PROVIDERS = [
   'OpenAI',
@@ -73,6 +75,7 @@ const KNOWN_VISIBLE_GENERAL_TAGS = new Set([
 ]);
 const GENERAL_TRAIT_FILTER_IDS = GENERAL_TRAIT_LABELS.map(([id]) => id);
 const GENERAL_SPEC_FILTER_IDS = GENERAL_SPEC_LABELS.map(([id]) => id);
+const AWKWARD_COPY_PATTERN = /성향으로|관점에서 핵심만 비교|\?{2,}|강점을 둔|범용 모델답게/;
 const SELECTION_GROUP_QUALITY_RULES = {
   ai_recommended: {
     minProviderCount: 6,
@@ -229,6 +232,21 @@ const visibleGeneralStaleGreetingNames = visibleGeneralAiExperts.filter((expert)
 });
 const visibleGeneralMissingQuotes = visibleGeneralAiExperts.filter((expert) => !expert.quote?.trim());
 const visibleGeneralTooShortQuotes = visibleGeneralAiExperts.filter((expert) => (expert.quote?.trim().length ?? 0) < 6);
+const visibleGeneralAwkwardCopyPatterns = visibleGeneralAiExperts.flatMap((expert) => {
+  const fields = [
+    ['description', expert.description],
+    ['quote', expert.quote],
+    ['greeting', expert.greeting],
+    ...(expert.sampleQuestions ?? []).map((question, index) => [`sampleQuestions[${index}]`, question]),
+  ];
+  return fields
+    .filter(([, value]) => AWKWARD_COPY_PATTERN.test(value ?? ''))
+    .map(([field, value]) => ({
+      id: expert.id,
+      field,
+      value,
+    }));
+});
 const visibleGeneralRuntimePromptEntries = await Promise.all(visibleGeneralAiExperts.map(async (expert) => ({
   expert,
   prompt: await getExpertPrompt(expert),
@@ -253,6 +271,11 @@ const visibleGeneralExplorerFilterCoverage = {
   trait: countFilterMatches(GENERAL_TRAIT_FILTER_IDS, (expert, id) => getGeneralTraitIds(expert).includes(id)),
   detail: countFilterMatches(GENERAL_SPEC_FILTER_IDS, (expert, id) => getGeneralSpecIds(expert).includes(id)),
 };
+const visibleGeneralNewFilterModels = visibleGeneralAiExperts.filter((expert) => matchesGeneralQuickFilter(expert, 'new'));
+const visibleGeneralNewFilterOlderModels = visibleGeneralNewFilterModels.filter((expert) => (expert.modelInfo?.createdAt ?? '') < '2026-01-01');
+const visibleGeneralNewFilterProviderCount = new Set(visibleGeneralNewFilterModels.map((expert) => expert.modelInfo?.provider ?? 'missing')).size;
+const visibleGeneralNewFilterMissingIds = [...NEW_GENERAL_MODEL_IDS]
+  .filter((id) => !visibleGeneralAiExperts.some((expert) => expert.id === id));
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
 const roleplayHeavyProviderPrefixes = [
@@ -362,6 +385,59 @@ const missingAvatars = DEFAULT_EXPERTS.filter((expert) => {
   return !fs.existsSync(path.join(PUBLIC_DIR, expert.avatarUrl));
 });
 
+function readImageAssetInfo(avatarUrl) {
+  if (!avatarUrl?.startsWith('/')) return { type: 'external-or-empty', width: 0, height: 0, bytes: 0 };
+  const filePath = path.join(PUBLIC_DIR, avatarUrl);
+  if (!fs.existsSync(filePath)) return { type: 'missing', width: 0, height: 0, bytes: 0 };
+  const buffer = fs.readFileSync(filePath);
+  if (buffer.length < 16) return { type: 'unknown', width: 0, height: 0, bytes: buffer.length };
+  if (buffer.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return { type: 'png', width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20), bytes: buffer.length };
+  }
+  if (buffer.slice(0, 2).equals(Buffer.from([0xff, 0xd8]))) {
+    let offset = 2;
+    while (offset < buffer.length - 9) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (marker >= 0xc0 && marker <= 0xc3) {
+        return { type: 'jpeg', width: buffer.readUInt16BE(offset + 7), height: buffer.readUInt16BE(offset + 5), bytes: buffer.length };
+      }
+      offset += 2 + length;
+    }
+    return { type: 'jpeg', width: 0, height: 0, bytes: buffer.length };
+  }
+  const head = buffer.slice(0, 500).toString('utf8');
+  if (head.includes('<svg')) {
+    const widthMatch = head.match(/width="([0-9.]+)/);
+    const heightMatch = head.match(/height="([0-9.]+)/);
+    const viewBoxMatch = head.match(/viewBox="[^"]*?([0-9.]+)\s+([0-9.]+)"/);
+    return {
+      type: 'svg',
+      width: Number(widthMatch?.[1] ?? viewBoxMatch?.[1] ?? 0),
+      height: Number(heightMatch?.[1] ?? viewBoxMatch?.[2] ?? 0),
+      bytes: buffer.length,
+    };
+  }
+  return { type: 'unknown', width: 0, height: 0, bytes: buffer.length };
+}
+
+const visibleGeneralAvatarAssetIssues = visibleGeneralAiExperts
+  .map((expert) => ({
+    id: expert.id,
+    avatarUrl: expert.avatarUrl,
+    asset: readImageAssetInfo(expert.avatarUrl),
+  }))
+  .filter(({ asset }) =>
+    asset.type === 'missing'
+    || asset.type === 'unknown'
+    || asset.width < MIN_AVATAR_DIMENSION
+    || asset.height < MIN_AVATAR_DIMENSION
+    || asset.bytes <= 0);
+
 const badTextAi = aiExperts.filter((expert) =>
   hasLikelyMojibake([expert.name, expert.nameKo, expert.description, ...(expert.tags ?? [])].join(' ')),
 );
@@ -432,7 +508,7 @@ const generatedAwkwardCopyPatterns = OPENROUTER_ADDED_EXPERTS.flatMap((expert) =
     ...(expert.sampleQuestions ?? []).map((question, index) => [`sampleQuestions[${index}]`, question]),
   ];
   return fields
-    .filter(([, value]) => /성향으로|관점에서 핵심만 비교/.test(value ?? ''))
+    .filter(([, value]) => AWKWARD_COPY_PATTERN.test(value ?? ''))
     .map(([field, value]) => ({
       id: expert.id,
       field,
@@ -556,6 +632,8 @@ const summary = {
       id: expert.id,
       quote: expert.quote,
     })),
+    awkwardCopyPatternCount: visibleGeneralAwkwardCopyPatterns.length,
+    awkwardCopyPatterns: visibleGeneralAwkwardCopyPatterns.slice(0, 20),
   },
   visibleGeneralRuntimePromptQuality: {
     missingRuntimePromptCount: visibleGeneralMissingRuntimePrompts.length,
@@ -572,6 +650,18 @@ const summary = {
     })),
   },
   visibleGeneralExplorerFilterCoverage,
+  visibleGeneralNewFilterQuality: {
+    count: visibleGeneralNewFilterModels.length,
+    uniqueProviderCount: visibleGeneralNewFilterProviderCount,
+    olderModelCount: visibleGeneralNewFilterOlderModels.length,
+    olderModels: visibleGeneralNewFilterOlderModels.map((expert) => ({
+      id: expert.id,
+      name: expert.nameKo || expert.name,
+      createdAt: expert.modelInfo?.createdAt,
+      provider: expert.modelInfo?.provider,
+    })),
+    missingConfiguredIds: visibleGeneralNewFilterMissingIds,
+  },
   visibleGeneralFilterBuckets,
   visibleGeneralMetadataQuality: {
     checkedAsOf: TODAY_ISO,
@@ -615,6 +705,8 @@ const summary = {
   },
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
+  visibleGeneralAvatarAssetIssueCount: visibleGeneralAvatarAssetIssues.length,
+  visibleGeneralAvatarAssetIssues,
   badTextAiCount: badTextAi.length,
   badTextAi: badTextAi.slice(0, 20).map((expert) => ({
     id: expert.id,
@@ -668,6 +760,7 @@ const compactSummary = {
   visibleGeneralRoleplayHeavyModelCount: summary.visibleGeneralRoleplayHeavyModelCount,
   visibleGeneralDuplicateOpenRouterModelCount: summary.visibleGeneralDuplicateOpenRouterModelCount,
   missingAvatarCount: summary.missingAvatarCount,
+  visibleGeneralAvatarAssetIssueCount: summary.visibleGeneralAvatarAssetIssueCount,
   badTextAiCount: summary.badTextAiCount,
   avatarProviderMismatchCount: summary.avatarProviderMismatchCount,
   metadataQuality: {
@@ -712,6 +805,7 @@ const compactSummary = {
     staleGreetingNameCount: summary.visibleGeneralCopyCompleteness.staleGreetingNameCount,
     missingQuoteCount: summary.visibleGeneralCopyCompleteness.missingQuoteCount,
     tooShortQuoteCount: summary.visibleGeneralCopyCompleteness.tooShortQuoteCount,
+    awkwardCopyPatternCount: summary.visibleGeneralCopyCompleteness.awkwardCopyPatternCount,
   },
   runtimePromptQuality: {
     missingRuntimePromptCount: summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount,
@@ -723,6 +817,7 @@ const compactSummary = {
     customPersistedRetainedCount: summary.persistedMergeSafety.customPersistedRetainedCount,
   },
   explorerFilterCoverage: summary.visibleGeneralExplorerFilterCoverage,
+  newFilterQuality: summary.visibleGeneralNewFilterQuality,
   filterBuckets: summary.visibleGeneralFilterBuckets,
   selectionGroups: summary.visibleGeneralSelectionGroupQuality.map((group) => ({
     cat: group.cat,
@@ -807,6 +902,15 @@ const failedChecks = [
   (detailFilterCounts['speed-fast'] ?? 0) + (detailFilterCounts['speed-normal'] ?? 0) === summary.visibleGeneralCount
     ? null
     : `visible general speed filter counts do not cover the catalog: fast ${detailFilterCounts['speed-fast'] ?? 0} + normal ${detailFilterCounts['speed-normal'] ?? 0} != ${summary.visibleGeneralCount}`,
+  summary.visibleGeneralNewFilterQuality.missingConfiguredIds.length === 0
+    ? null
+    : `new model quick filter references hidden or missing ids: ${summary.visibleGeneralNewFilterQuality.missingConfiguredIds.join(', ')}`,
+  summary.visibleGeneralNewFilterQuality.olderModelCount === 0
+    ? null
+    : `new model quick filter includes older models: ${summary.visibleGeneralNewFilterQuality.olderModels.map((item) => `${item.id}:${item.createdAt}`).join(', ')}`,
+  summary.visibleGeneralNewFilterQuality.uniqueProviderCount >= 8
+    ? null
+    : `new model quick filter only covers ${summary.visibleGeneralNewFilterQuality.uniqueProviderCount} providers`,
   summary.visibleGeneralAbilityQuality.missingAbilityCount === 0
     ? null
     : `visible general catalog has ${summary.visibleGeneralAbilityQuality.missingAbilityCount} models without ability stats`,
@@ -816,6 +920,9 @@ const failedChecks = [
     range.unique >= 12 ? null : `${key} ability only has ${range.unique} unique values`,
   ]),
   summary.missingAvatarCount === 0 ? null : `catalog has ${summary.missingAvatarCount} missing local avatars`,
+  summary.visibleGeneralAvatarAssetIssueCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralAvatarAssetIssueCount} invalid avatar assets`,
   summary.badTextAiCount === 0 ? null : `AI catalog has ${summary.badTextAiCount} mojibake text entries`,
   summary.badGenericAvatarCount === 0 ? null : `AI catalog has ${summary.badGenericAvatarCount} generic router avatars`,
   summary.avatarProviderMismatchCount === 0
@@ -854,6 +961,9 @@ const failedChecks = [
   summary.visibleGeneralCopyCompleteness.tooShortQuoteCount === 0
     ? null
     : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.tooShortQuoteCount} quotes shorter than 6 characters`,
+  summary.visibleGeneralCopyCompleteness.awkwardCopyPatternCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.awkwardCopyPatternCount} awkward copy patterns`,
   summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount === 0
     ? null
     : `visible general catalog has ${summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount} missing runtime prompts`,

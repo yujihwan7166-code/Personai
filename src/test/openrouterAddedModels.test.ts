@@ -20,11 +20,19 @@ import {
 import { getExpertPrompt } from '@/lib/expertPromptLoader';
 import {
   GENERAL_SPEC_LABELS,
+  getGeneralModelDisplayTags,
   getGeneralSpecIds,
   getGeneralTraitIds,
   isFastModel,
   matchesGeneralQuickFilter,
 } from '@/lib/generalModelExplorerFilters';
+import {
+  buildGeneralModelMeta,
+  formatGeneralModelContextLength,
+  formatGeneralModelInputModalities,
+  formatGeneralModelPriceTier,
+} from '@/lib/generalModelExplorerMeta';
+import { matchesGeneralModelQuery } from '@/lib/generalModelSearch';
 import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
 import { mergePersistedExperts } from '@/lib/expertPersistence';
@@ -64,6 +72,7 @@ describe('openrouter added model catalog', () => {
     expect(summary.visibleGeneralNonTextOutputModelCount).toBe(0);
     expect(summary.visibleGeneralRoleplayHeavyModelCount).toBe(0);
     expect(summary.visibleGeneralDuplicateOpenRouterModelCount).toBe(0);
+    expect(summary.visibleGeneralAvatarAssetIssueCount).toBe(0);
     expect(summary.metadataQuality.missingCreatedAtCount).toBe(0);
     expect(summary.providerCoverage.requiredProviderCount).toBeGreaterThanOrEqual(10);
     expect(summary.providerCoverage.missingRequiredProviders).toEqual([]);
@@ -84,6 +93,7 @@ describe('openrouter added model catalog', () => {
       staleGreetingNameCount: 0,
       missingQuoteCount: 0,
       tooShortQuoteCount: 0,
+      awkwardCopyPatternCount: 0,
     });
     expect(summary.runtimePromptQuality).toEqual({
       missingRuntimePromptCount: 0,
@@ -105,6 +115,9 @@ describe('openrouter added model catalog', () => {
     expect(summary.explorerFilterCoverage.detail['input-vision']).toBe(summary.filterBuckets.input.image);
     expect(summary.explorerFilterCoverage.detail['input-text']).toBe(summary.filterBuckets.input.textOnly);
     expect(summary.explorerFilterCoverage.detail['speed-fast'] + summary.explorerFilterCoverage.detail['speed-normal']).toBe(summary.visibleGeneralCount);
+    expect(summary.newFilterQuality.olderModelCount).toBe(0);
+    expect(summary.newFilterQuality.missingConfiguredIds).toEqual([]);
+    expect(summary.newFilterQuality.uniqueProviderCount).toBeGreaterThanOrEqual(8);
     expect(summary.selectionGroups.every((group: { duplicateCount: number; hiddenCount: number }) =>
       group.duplicateCount === 0 && group.hiddenCount === 0)).toBe(true);
     expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_flagship')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
@@ -720,6 +733,7 @@ describe('openrouter added model catalog', () => {
   it('keeps general model trait filters selective and clearly labeled', () => {
     const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
     const filterSource = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'generalModelExplorerFilters.ts'), 'utf8');
+    const metaSource = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'generalModelExplorerMeta.ts'), 'utf8');
 
     expect(REASONING_MODEL_IDS.length).toBeLessThanOrEqual(40);
     expect(explorerSource).toContain('items={traitItems}');
@@ -727,6 +741,7 @@ describe('openrouter added model catalog', () => {
     expect(explorerSource).not.toContain('title="Strengths"');
     expect(explorerSource).not.toContain('modelStrengthTags');
     expect(explorerSource).not.toContain('function DetailPanel');
+    expect(explorerSource.slice(explorerSource.indexOf('function ExplorerDetailPanel'), explorerSource.indexOf('export function AllAiExplorerModal'))).not.toContain('강점');
     expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
     expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-vision');
     expect(GENERAL_SPEC_LABELS.map(([id]) => id)).toContain('input-file');
@@ -738,8 +753,68 @@ describe('openrouter added model catalog', () => {
     expect(getGeneralSpecIds(fileInputModel!)).toContain('input-file');
     expect(filterSource).toContain("inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null");
     expect(filterSource).toContain("inputModalities.includes('file') ? 'input-file' : null");
-    expect(explorerSource).toContain("inputModalities.includes('file') ?");
+    expect(metaSource).toContain("inputModalities.includes('file') ?");
   });
+
+  it('formats general model detail metadata from the same modelInfo used by filters', () => {
+    expect(formatGeneralModelContextLength(1_000_000)).toBe('1M+ 토큰');
+    expect(formatGeneralModelContextLength(262_144)).toBe('256K 토큰');
+    expect(formatGeneralModelInputModalities(['text', 'image', 'file'])).toBe('텍스트+이미지+파일');
+
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+    const freeModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'free');
+    const fileInputModel = visibleGeneralModels.find((expert) => expert.modelInfo?.inputModalities?.includes('file'));
+    const openWeightModel = visibleGeneralModels.find((expert) => expert.modelInfo?.openWeight);
+
+    expect(freeModel).toBeTruthy();
+    expect(fileInputModel).toBeTruthy();
+    expect(openWeightModel).toBeTruthy();
+    expect(formatGeneralModelPriceTier(freeModel!)).toBe('무료');
+
+    const fileMeta = Object.fromEntries(buildGeneralModelMeta(fileInputModel!, fileInputModel!.modelInfo?.provider ?? ''));
+    expect(fileMeta['입력']).toContain('파일');
+    expect(fileMeta['컨텍스트 길이']).toMatch(/토큰$/);
+    expect(fileMeta['출시일']).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    const openMeta = Object.fromEntries(buildGeneralModelMeta(openWeightModel!, openWeightModel!.modelInfo?.provider ?? ''));
+    expect(openMeta['모델 유형']).toBe('오픈웨이트');
+  });
+
+  it('prioritizes user-visible model card tags from the same metadata as detail filters', () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+    const freeModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'free');
+    const lowCostModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'low');
+    const fileInputModel = visibleGeneralModels.find((expert) => expert.modelInfo?.inputModalities?.includes('file'));
+    const visionModel = visibleGeneralModels.find((expert) => expert.modelInfo?.inputModalities?.includes('image'));
+
+    expect(freeModel).toBeTruthy();
+    expect(lowCostModel).toBeTruthy();
+    expect(fileInputModel).toBeTruthy();
+    expect(visionModel).toBeTruthy();
+    expect(getGeneralModelDisplayTags(freeModel!)).toContain('무료');
+    expect(getGeneralModelDisplayTags(lowCostModel!)).toContain('저비용');
+    expect(getGeneralModelDisplayTags(fileInputModel!)).toContain('문서입력');
+    expect(getGeneralModelDisplayTags(visionModel!)).toContain('시각입력');
+  });
+
+  it('searches general models by user-facing metadata labels', () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+    const freeModel = visibleGeneralModels.find((expert) => expert.modelInfo?.priceTier === 'free');
+    const fileInputModel = visibleGeneralModels.find((expert) => expert.modelInfo?.inputModalities?.includes('file'));
+    const openWeightModel = visibleGeneralModels.find((expert) => expert.modelInfo?.openWeight);
+    const providerModel = visibleGeneralModels.find((expert) => expert.modelInfo?.provider === 'Moonshot AI');
+
+    expect(freeModel).toBeTruthy();
+    expect(fileInputModel).toBeTruthy();
+    expect(openWeightModel).toBeTruthy();
+    expect(providerModel).toBeTruthy();
+
+    expect(matchesGeneralModelQuery(freeModel!, '무료', freeModel!.modelInfo?.provider ?? '', freeModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(fileInputModel!, '파일', fileInputModel!.modelInfo?.provider ?? '', fileInputModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(openWeightModel!, '오픈웨이트', openWeightModel!.modelInfo?.provider ?? '', openWeightModel!.tags ?? [])).toBe(true);
+    expect(matchesGeneralModelQuery(providerModel!, 'moonshot', providerModel!.modelInfo?.provider ?? '', providerModel!.tags ?? [])).toBe(true);
+  });
+
   it('keeps special and non-text-output cards out of the general model selection group', () => {
     const groups = buildExpertSelectionGroups({
       experts: DEFAULT_EXPERTS,
