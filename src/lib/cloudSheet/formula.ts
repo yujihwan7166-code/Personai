@@ -51,9 +51,21 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   PMT:       { sig: 'PMT(rate, nper, pv, [fv], [type])', desc: 'Payment for a loan based on constant payments and rate' },
   IPMT:      { sig: 'IPMT(rate, per, nper, pv, [fv], [type])', desc: 'Interest payment for a period' },
   PPMT:      { sig: 'PPMT(rate, per, nper, pv, [fv], [type])', desc: 'Principal payment for a period' },
+  CUMIPMT:   { sig: 'CUMIPMT(rate, nper, pv, start_period, end_period, type)', desc: 'Cumulative interest paid between periods' },
+  CUMPRINC:  { sig: 'CUMPRINC(rate, nper, pv, start_period, end_period, type)', desc: 'Cumulative principal paid between periods' },
+  SLN:       { sig: 'SLN(cost, salvage, life)', desc: 'Straight-line depreciation for one period' },
+  SYD:       { sig: 'SYD(cost, salvage, life, per)', desc: 'Sum-of-years digits depreciation' },
+  DB:        { sig: 'DB(cost, salvage, life, period, [month])', desc: 'Fixed-declining balance depreciation' },
+  DDB:       { sig: 'DDB(cost, salvage, life, period, [factor])', desc: 'Double-declining balance depreciation' },
+  RATE:      { sig: 'RATE(nper, pmt, pv, [fv], [type], [guess])', desc: 'Interest rate per period' },
+  NPER:      { sig: 'NPER(rate, pmt, pv, [fv], [type])', desc: 'Number of periods for an investment or loan' },
   PV:        { sig: 'PV(rate, nper, pmt, [fv], [type])', desc: 'Present value of an investment' },
   FV:        { sig: 'FV(rate, nper, pmt, [pv], [type])', desc: 'Future value of an investment' },
   NPV:       { sig: 'NPV(rate, value1, [value2], ...)', desc: 'Net present value of future cash flows' },
+  XNPV:      { sig: 'XNPV(rate, values, dates)', desc: 'Net present value for dated cash flows' },
+  IRR:       { sig: 'IRR(values, [guess])', desc: 'Internal rate of return for periodic cash flows' },
+  XIRR:      { sig: 'XIRR(values, dates, [guess])', desc: 'Internal rate of return for dated cash flows' },
+  MIRR:      { sig: 'MIRR(values, finance_rate, reinvest_rate)', desc: 'Modified internal rate of return' },
   VALUE:     { sig: 'VALUE(text)', desc: 'Converts numeric text to a number' },
   PRODUCT:   { sig: 'PRODUCT(range)', desc: 'Multiplies numbers together' },
   SUMPRODUCT:{ sig: 'SUMPRODUCT(range1, range2, ...)', desc: 'Sums products of matching ranges' },
@@ -75,6 +87,19 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   ROUND:     { sig: 'ROUND(숫자, 소수자리)',           desc: '반올림' },
   POWER:     { sig: 'POWER(밑, 지수)',                 desc: '거듭제곱' },
   SQRT:      { sig: 'SQRT(숫자)',                      desc: '제곱근' },
+  EXP:       { sig: 'EXP(number)', desc: 'Returns e raised to a power' },
+  LN:        { sig: 'LN(number)', desc: 'Natural logarithm' },
+  LOG:       { sig: 'LOG(number, [base])', desc: 'Logarithm with an optional base' },
+  LOG10:     { sig: 'LOG10(number)', desc: 'Base-10 logarithm' },
+  PI:        { sig: 'PI()', desc: 'Returns the value of pi' },
+  SIN:       { sig: 'SIN(number)', desc: 'Sine of an angle in radians' },
+  COS:       { sig: 'COS(number)', desc: 'Cosine of an angle in radians' },
+  TAN:       { sig: 'TAN(number)', desc: 'Tangent of an angle in radians' },
+  ASIN:      { sig: 'ASIN(number)', desc: 'Arcsine in radians' },
+  ACOS:      { sig: 'ACOS(number)', desc: 'Arccosine in radians' },
+  ATAN:      { sig: 'ATAN(number)', desc: 'Arctangent in radians' },
+  RADIANS:   { sig: 'RADIANS(angle)', desc: 'Converts degrees to radians' },
+  DEGREES:   { sig: 'DEGREES(angle)', desc: 'Converts radians to degrees' },
   MOD:       { sig: 'MOD(피제수, 제수)',               desc: '나머지' },
   INT:       { sig: 'INT(숫자)',                       desc: '소수 버림 (내림)' },
   SUMIF:     { sig: 'SUMIF(range, criteria, [sum_range])', desc: '조건 만족 셀 합계' },
@@ -147,6 +172,22 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   STDEV:     { sig: 'STDEV(range)',                    desc: '표본 표준편차' },
   VAR:       { sig: 'VAR(range)',                      desc: '표본 분산' },
   RANK:      { sig: 'RANK(값, range, [오름차순=0])',  desc: '범위 내 순위' },
+  CORREL:    { sig: 'CORREL(array1, array2)', desc: 'Correlation coefficient between two data sets' },
+  PEARSON:   { sig: 'PEARSON(array1, array2)', desc: 'Pearson product-moment correlation coefficient' },
+  SLOPE:     { sig: 'SLOPE(known_y, known_x)', desc: 'Slope of the linear regression line' },
+  INTERCEPT: { sig: 'INTERCEPT(known_y, known_x)', desc: 'Intercept of the linear regression line' },
+  RSQ:       { sig: 'RSQ(known_y, known_x)', desc: 'Square of the Pearson correlation coefficient' },
+  STEYX:     { sig: 'STEYX(known_y, known_x)', desc: 'Standard error of predicted y values' },
+  FORECAST_LINEAR: { sig: 'FORECAST.LINEAR(x, known_y, known_x)', desc: 'Predicts a value along a linear trend' },
+  TREND:     { sig: 'TREND(known_y, [known_x], [new_x], [const])', desc: 'Returns values along a linear trend' },
+  STANDARDIZE: { sig: 'STANDARDIZE(x, mean, standard_dev)', desc: 'Normalized z-score' },
+  NORM_DIST: { sig: 'NORM.DIST(x, mean, standard_dev, cumulative)', desc: 'Normal distribution value' },
+  NORM_INV:  { sig: 'NORM.INV(probability, mean, standard_dev)', desc: 'Inverse normal cumulative distribution' },
+  NORM_S_DIST: { sig: 'NORM.S.DIST(z, cumulative)', desc: 'Standard normal distribution value' },
+  NORM_S_INV: { sig: 'NORM.S.INV(probability)', desc: 'Inverse standard normal cumulative distribution' },
+  LOGNORM_DIST: { sig: 'LOGNORM.DIST(x, mean, standard_dev, cumulative)', desc: 'Lognormal distribution value' },
+  LOGNORM_INV: { sig: 'LOGNORM.INV(probability, mean, standard_dev)', desc: 'Inverse lognormal cumulative distribution' },
+  EXPON_DIST: { sig: 'EXPON.DIST(x, lambda, cumulative)', desc: 'Exponential distribution value' },
   // ── 날짜 ──
   DATE:      { sig: 'DATE(년, 월, 일)',                desc: '날짜 만들기' },
   EOMONTH:   { sig: 'EOMONTH(시작, [개월]=0)',         desc: '월말 (개월 더한 뒤)' },
@@ -229,9 +270,11 @@ const FUNC_ORDER = [
   'NETWORKDAYS_INTL',
   'SUBTOTAL',
   // 11자
+  'FORECAST_LINEAR',
   'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS', 'SUMPRODUCT',
   'CHOOSECOLS', 'CHOOSEROWS',
   'TRANSPOSE',
+  'CUMIPMT', 'CUMPRINC',
   // 10자
   'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'TIMEVALUE', 'PERCENTILE', 'TEXTBEFORE', 'ISOWEEKNUM',
   // 9자
@@ -251,27 +294,33 @@ const FUNC_ORDER = [
   'WORKDAY_INTL',
   'QUARTILEEXC', 'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE', 'QUARTILE',
   // 6자
+  'INTERCEPT',
   'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT', 'LOOKUP',
   'MINIFS', 'MAXIFS',
   // 5자
-  'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
+  'POWER', 'SQRT', 'LOG10', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
   'MINUTE', 'SECOND',
   'STDEVP', 'STDEV', 'SMALL', 'LARGE', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
   'XMATCH', 'CHOOSE', 'RIGHT', 'VALUE',
   // 4자
-  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'WEEKNUM', 'DAYS360', 'RANK', 'VARP', 'DATE', 'TEXT',
+  'STANDARDIZE', 'LOGNORM_DIST', 'NORM_S_DIST',
+  'DEGREES', 'RADIANS',
+  'NORM_DIST', 'NORM_S_INV',
+  'EXPON_DIST',
+  'COUNTIF', 'PEARSON', 'LEFT', 'YEAR', 'WEEKDAY', 'WEEKNUM', 'DAYS360', 'CORREL', 'SLOPE', 'STEYX', 'TREND', 'LOGNORM_INV', 'NORM_INV', 'RANK', 'VARP', 'DATE', 'TEXT',
   'ROWS', 'IFNA', 'ISNA', 'FIND', 'DAYS',
-  'PMT', 'IPMT', 'PPMT',
+  'PMT', 'IPMT', 'PPMT', 'RATE', 'NPER', 'XNPV', 'XIRR', 'MIRR', 'IRR', 'SLN', 'SYD', 'DDB', 'DB',
   // 7??
   'PRODUCT', 'COLUMNS',
   // 3자
   'SUM', 'AVG', 'MIN', 'MAX', 'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT',
-  'NOW', 'DAY', 'VAR', 'IFS', 'ROW',
-  'TIME', 'HOUR', 'NPV',
+  'NOW', 'DAY', 'VAR', 'RSQ', 'LOG', 'SIN', 'COS', 'TAN', 'IFS', 'ROW',
+  'TIME', 'HOUR', 'EXP', 'NPV',
   // 6??
   'COLUMN',
   // 2자
-  'IF', 'OR', 'ABS', 'PV', 'FV',
+  'IF', 'OR', 'LN', 'PI', 'ABS', 'PV', 'FV',
+  'ASIN', 'ACOS', 'ATAN',
   // AI (특수 — '_' 포함). 위에서 긴 것부터 처리되지만 'AI' 는 'AI_*' 와 \b 경계 덕에 별 충돌 없음.
   'AI',
 ];
@@ -441,7 +490,7 @@ const SAFE_EVAL_IDENTIFIERS = new Set([
   '__concat', '__concatenate',
   '__and', '__or', '__not',
   '__today', '__now', '__time', '__timevalue', '__hour', '__minute', '__second', '__year', '__month', '__day', '__weekday', '__weeknum', '__isoweeknum',
-  '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
+  '__power', '__sqrt', '__exp', '__ln', '__log', '__log10', '__pi', '__sin', '__cos', '__tan', '__asin', '__acos', '__atan', '__radians', '__degrees', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
   '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
   '__rows', '__columns', '__row', '__column', '__choose',
   '__image', '__sparkline',
@@ -449,8 +498,9 @@ const SAFE_EVAL_IDENTIFIERS = new Set([
   '__ifs', '__switch', '__xlookup',
   '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
   '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
-  '__pmt', '__ipmt', '__ppmt', '__pv', '__fv', '__npv',
-  '__stdev', '__stdevp', '__var', '__varp', '__rank',
+  '__pmt', '__ipmt', '__ppmt', '__cumipmt', '__cumprinc', '__sln', '__syd', '__db', '__ddb', '__rate', '__nper', '__pv', '__fv', '__npv', '__xnpv', '__irr', '__xirr', '__mirr',
+  '__stdev', '__stdevp', '__var', '__varp', '__rank', '__correl', '__pearson', '__slope', '__intercept', '__rsq', '__steyx', '__forecast_linear', '__trend',
+  '__standardize', '__norm_dist', '__norm_inv', '__norm_s_dist', '__norm_s_inv', '__lognorm_dist', '__lognorm_inv', '__expon_dist',
   '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__networkdays_intl', '__workday', '__workday_intl', '__datevalue', '__days', '__days360', '__yearfrac',
   '__value',
   '__text', '__regexmatch', '__regexextract', '__regexreplace',
@@ -765,6 +815,15 @@ function normalizeExcelFunctionAliases(src: string): string {
     .replace(/\bPERCENTILE\.EXC\b/gi, 'PERCENTILEEXC')
     .replace(/\bQUARTILE\.INC\b/gi, 'QUARTILE')
     .replace(/\bQUARTILE\.EXC\b/gi, 'QUARTILEEXC')
+    .replace(/\bNORM\.S\.DIST\b/gi, 'NORM_S_DIST')
+    .replace(/\bNORM\.S\.INV\b/gi, 'NORM_S_INV')
+    .replace(/\bNORM\.DIST\b/gi, 'NORM_DIST')
+    .replace(/\bNORM\.INV\b/gi, 'NORM_INV')
+    .replace(/\bLOGNORM\.DIST\b/gi, 'LOGNORM_DIST')
+    .replace(/\bLOGNORM\.INV\b/gi, 'LOGNORM_INV')
+    .replace(/\bEXPON\.DIST\b/gi, 'EXPON_DIST')
+    .replace(/\bFORECAST\.LINEAR\b/gi, 'FORECAST_LINEAR')
+    .replace(/\bFORECAST\b/gi, 'FORECAST_LINEAR')
     .replace(/\bSTDEV\.S\b/gi, 'STDEV')
     .replace(/\bSTDEV\.P\b/gi, 'STDEVP')
     .replace(/\bVAR\.S\b/gi, 'VAR')
@@ -1904,6 +1963,32 @@ function evalExpr(
   // ─── 수치 추가 ───
   const __power  = (b: unknown, e: unknown) => Math.pow(Number(b), Number(e));
   const __sqrt   = (n: unknown) => Math.sqrt(Number(n));
+  const __exp    = (n: unknown) => Math.exp(Number(n));
+  const __ln     = (n: unknown) => {
+    const value = Number(n);
+    return value > 0 ? Math.log(value) : '#NUM!';
+  };
+  const __log    = (n: unknown, baseValue: unknown = 10) => {
+    const value = Number(n);
+    const base = Number(baseValue);
+    return value > 0 && base > 0 && base !== 1 ? Math.log(value) / Math.log(base) : '#NUM!';
+  };
+  const __log10  = (n: unknown) => __log(n, 10);
+  const __pi     = () => Math.PI;
+  const __sin    = (n: unknown) => Math.sin(Number(n));
+  const __cos    = (n: unknown) => Math.cos(Number(n));
+  const __tan    = (n: unknown) => Math.tan(Number(n));
+  const __asin   = (n: unknown) => {
+    const value = Number(n);
+    return value >= -1 && value <= 1 ? Math.asin(value) : '#NUM!';
+  };
+  const __acos   = (n: unknown) => {
+    const value = Number(n);
+    return value >= -1 && value <= 1 ? Math.acos(value) : '#NUM!';
+  };
+  const __atan   = (n: unknown) => Math.atan(Number(n));
+  const __radians = (angle: unknown) => Number(angle) * Math.PI / 180;
+  const __degrees = (angle: unknown) => Number(angle) * 180 / Math.PI;
   const __mod    = (a: unknown, b: unknown) => {
     const bb = Number(b);
     return bb === 0 ? NaN : Number(a) % bb;
@@ -2156,6 +2241,187 @@ function evalExpr(
     }
     const idx = approximateLookupIndex(key, arr, mode < 0 ? 1 : -1);
     return idx < 0 ? '#N/A' : idx + 1;
+  };
+  const pairedRegressionData = (knownY: unknown, knownX: unknown): Array<{ x: number; y: number }> | string => {
+    const yValues = toArr(knownY);
+    const xValues = toArr(knownX);
+    if (xValues.length !== yValues.length) return '#N/A';
+    const pairs: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < yValues.length; i++) {
+      const x = Number(xValues[i]);
+      const y = Number(yValues[i]);
+      if (Number.isFinite(x) && Number.isFinite(y)) pairs.push({ x, y });
+    }
+    return pairs.length >= 2 ? pairs : '#DIV/0!';
+  };
+  const regressionStats = (knownY: unknown, knownX: unknown) => {
+    const pairs = pairedRegressionData(knownY, knownX);
+    if (typeof pairs === 'string') return pairs;
+    const meanX = pairs.reduce((total, pair) => total + pair.x, 0) / pairs.length;
+    const meanY = pairs.reduce((total, pair) => total + pair.y, 0) / pairs.length;
+    const sums = pairs.reduce((acc, pair) => {
+      const dx = pair.x - meanX;
+      const dy = pair.y - meanY;
+      return {
+        ssx: acc.ssx + dx * dx,
+        ssy: acc.ssy + dy * dy,
+        sxy: acc.sxy + dx * dy,
+      };
+    }, { ssx: 0, ssy: 0, sxy: 0 });
+    if (sums.ssx === 0 || sums.ssy === 0) return '#DIV/0!';
+    const slope = sums.sxy / sums.ssx;
+    const correl = sums.sxy / Math.sqrt(sums.ssx * sums.ssy);
+    return {
+      slope,
+      intercept: meanY - slope * meanX,
+      correl,
+      rsq: correl * correl,
+    };
+  };
+  const __correl = (array1: unknown, array2: unknown) => {
+    const stats = regressionStats(array1, array2);
+    return typeof stats === 'string' ? stats : stats.correl;
+  };
+  const __pearson = __correl;
+  const __slope = (knownY: unknown, knownX: unknown) => {
+    const stats = regressionStats(knownY, knownX);
+    return typeof stats === 'string' ? stats : stats.slope;
+  };
+  const __intercept = (knownY: unknown, knownX: unknown) => {
+    const stats = regressionStats(knownY, knownX);
+    return typeof stats === 'string' ? stats : stats.intercept;
+  };
+  const __rsq = (knownY: unknown, knownX: unknown) => {
+    const stats = regressionStats(knownY, knownX);
+    return typeof stats === 'string' ? stats : stats.rsq;
+  };
+  const __steyx = (knownY: unknown, knownX: unknown) => {
+    const pairs = pairedRegressionData(knownY, knownX);
+    if (typeof pairs === 'string') return pairs;
+    if (pairs.length < 3) return '#DIV/0!';
+    const stats = regressionStats(knownY, knownX);
+    if (typeof stats === 'string') return stats;
+    const residualSum = pairs.reduce((total, pair) => {
+      const predicted = stats.intercept + stats.slope * pair.x;
+      return total + Math.pow(pair.y - predicted, 2);
+    }, 0);
+    return Math.sqrt(residualSum / (pairs.length - 2));
+  };
+  const __forecast_linear = (xValue: unknown, knownY: unknown, knownX: unknown) => {
+    const x = Number(xValue);
+    if (!Number.isFinite(x)) return '#VALUE!';
+    const stats = regressionStats(knownY, knownX);
+    return typeof stats === 'string' ? stats : stats.intercept + stats.slope * x;
+  };
+  const __trend = (knownY: unknown, knownX?: unknown, newX?: unknown, constValue: unknown = true) => {
+    const yValues = toNums(knownY);
+    const knownXValues = knownX === undefined || knownX === null || knownX === ''
+      ? yValues.map((_, index) => index + 1)
+      : toNums(knownX);
+    const xTargets = newX === undefined || newX === null || newX === '' ? knownXValues : toNums(newX);
+    if (yValues.length !== knownXValues.length || yValues.length < 2 || xTargets.length === 0) return '#N/A';
+    const forceZero = constValue === false || String(constValue).toLowerCase() === 'false' || Number(constValue) === 0;
+    let slope: number;
+    let intercept: number;
+    if (forceZero) {
+      const sumXX = knownXValues.reduce((total, x) => total + x * x, 0);
+      if (sumXX === 0) return '#DIV/0!';
+      slope = knownXValues.reduce((total, x, index) => total + x * yValues[index], 0) / sumXX;
+      intercept = 0;
+    } else {
+      const stats = regressionStats(yValues, knownXValues);
+      if (typeof stats === 'string') return stats;
+      slope = stats.slope;
+      intercept = stats.intercept;
+    }
+    const predicted = xTargets.map((x) => intercept + slope * x);
+    return Array.isArray(newX) ? spillVertical(predicted) : predicted[0];
+  };
+  const erf = (x: number) => {
+    const sign = x < 0 ? -1 : 1;
+    const abs = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * abs);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-abs * abs);
+    return sign * y;
+  };
+  const normalPdf = (z: number) => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+  const normalCdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
+  const inverseStandardNormal = (probability: number) => {
+    if (probability <= 0 || probability >= 1 || !Number.isFinite(probability)) return Number.NaN;
+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+    const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+    const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+    const low = 0.02425;
+    const high = 1 - low;
+    if (probability < low) {
+      const q = Math.sqrt(-2 * Math.log(probability));
+      return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    }
+    if (probability > high) {
+      const q = Math.sqrt(-2 * Math.log(1 - probability));
+      return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    }
+    const q = probability - 0.5;
+    const r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  };
+  const __standardize = (xValue: unknown, meanValue: unknown, standardDevValue: unknown) => {
+    const x = Number(xValue);
+    const mean = Number(meanValue);
+    const standardDev = Number(standardDevValue);
+    if (![x, mean, standardDev].every(Number.isFinite)) return '#VALUE!';
+    return standardDev > 0 ? (x - mean) / standardDev : '#NUM!';
+  };
+  const __norm_s_dist = (zValue: unknown, cumulativeValue: unknown = true) => {
+    const z = Number(zValue);
+    if (!Number.isFinite(z)) return '#VALUE!';
+    return cumulativeValue ? normalCdf(z) : normalPdf(z);
+  };
+  const __norm_dist = (xValue: unknown, meanValue: unknown, standardDevValue: unknown, cumulativeValue: unknown = true) => {
+    const z = __standardize(xValue, meanValue, standardDevValue);
+    if (typeof z !== 'number') return z;
+    return cumulativeValue ? normalCdf(z) : normalPdf(z) / Number(standardDevValue);
+  };
+  const __norm_s_inv = (probabilityValue: unknown) => {
+    const probability = Number(probabilityValue);
+    const result = inverseStandardNormal(probability);
+    return Number.isFinite(result) ? result : '#NUM!';
+  };
+  const __norm_inv = (probabilityValue: unknown, meanValue: unknown, standardDevValue: unknown) => {
+    const mean = Number(meanValue);
+    const standardDev = Number(standardDevValue);
+    if (![mean, standardDev].every(Number.isFinite)) return '#VALUE!';
+    if (standardDev <= 0) return '#NUM!';
+    const z = __norm_s_inv(probabilityValue);
+    return typeof z === 'number' ? mean + standardDev * z : z;
+  };
+  const __lognorm_dist = (xValue: unknown, meanValue: unknown, standardDevValue: unknown, cumulativeValue: unknown = true) => {
+    const x = Number(xValue);
+    const mean = Number(meanValue);
+    const standardDev = Number(standardDevValue);
+    if (![x, mean, standardDev].every(Number.isFinite)) return '#VALUE!';
+    if (x <= 0 || standardDev <= 0) return '#NUM!';
+    const z = (Math.log(x) - mean) / standardDev;
+    return cumulativeValue ? normalCdf(z) : normalPdf(z) / (x * standardDev);
+  };
+  const __lognorm_inv = (probabilityValue: unknown, meanValue: unknown, standardDevValue: unknown) => {
+    const mean = Number(meanValue);
+    const standardDev = Number(standardDevValue);
+    if (![mean, standardDev].every(Number.isFinite)) return '#VALUE!';
+    if (standardDev <= 0) return '#NUM!';
+    const z = __norm_s_inv(probabilityValue);
+    return typeof z === 'number' ? Math.exp(mean + standardDev * z) : z;
+  };
+  const __expon_dist = (xValue: unknown, lambdaValue: unknown, cumulativeValue: unknown = true) => {
+    const x = Number(xValue);
+    const lambda = Number(lambdaValue);
+    if (![x, lambda].every(Number.isFinite)) return '#VALUE!';
+    if (x < 0 || lambda <= 0) return '#NUM!';
+    return cumulativeValue ? 1 - Math.exp(-lambda * x) : lambda * Math.exp(-lambda * x);
   };
 
   // ─── 에러 처리 ───
@@ -2560,6 +2826,118 @@ function evalExpr(
     if (typeof ipmt !== 'number') return ipmt;
     return pmt - ipmt;
   };
+  const cumulativePayment = (
+    kind: 'interest' | 'principal',
+    rateValue: unknown,
+    nperValue: unknown,
+    pvValue: unknown,
+    startPeriodValue: unknown,
+    endPeriodValue: unknown,
+    typeValue: unknown,
+  ) => {
+    const rate = Number(rateValue);
+    const nper = Math.trunc(Number(nperValue));
+    const pv = Number(pvValue);
+    const startPeriod = Math.trunc(Number(startPeriodValue));
+    const endPeriod = Math.trunc(Number(endPeriodValue));
+    const type = Number(typeValue);
+    if (![rate, nper, pv, startPeriod, endPeriod, type].every(Number.isFinite)) return '#VALUE!';
+    if (rate <= 0 || nper <= 0 || pv <= 0 || startPeriod < 1 || endPeriod < startPeriod || endPeriod > nper || (type !== 0 && type !== 1)) return '#NUM!';
+    let total = 0;
+    for (let period = startPeriod; period <= endPeriod; period++) {
+      const value = kind === 'interest'
+        ? __ipmt(rate, period, nper, pv, 0, type)
+        : __ppmt(rate, period, nper, pv, 0, type);
+      if (typeof value !== 'number') return value;
+      total += value;
+    }
+    return total;
+  };
+  const __cumipmt = (rateValue: unknown, nperValue: unknown, pvValue: unknown, startPeriodValue: unknown, endPeriodValue: unknown, typeValue: unknown) =>
+    cumulativePayment('interest', rateValue, nperValue, pvValue, startPeriodValue, endPeriodValue, typeValue);
+  const __cumprinc = (rateValue: unknown, nperValue: unknown, pvValue: unknown, startPeriodValue: unknown, endPeriodValue: unknown, typeValue: unknown) =>
+    cumulativePayment('principal', rateValue, nperValue, pvValue, startPeriodValue, endPeriodValue, typeValue);
+  const depreciationInputs = (costValue: unknown, salvageValue: unknown, lifeValue: unknown) => {
+    const cost = Number(costValue);
+    const salvage = Number(salvageValue);
+    const life = Number(lifeValue);
+    if (![cost, salvage, life].every(Number.isFinite)) return '#VALUE!' as const;
+    if (cost < 0 || salvage < 0 || life <= 0) return '#NUM!' as const;
+    return { cost, salvage, life };
+  };
+  const __sln = (costValue: unknown, salvageValue: unknown, lifeValue: unknown) => {
+    const inputs = depreciationInputs(costValue, salvageValue, lifeValue);
+    if (typeof inputs === 'string') return inputs;
+    return (inputs.cost - inputs.salvage) / inputs.life;
+  };
+  const __syd = (costValue: unknown, salvageValue: unknown, lifeValue: unknown, periodValue: unknown) => {
+    const inputs = depreciationInputs(costValue, salvageValue, lifeValue);
+    if (typeof inputs === 'string') return inputs;
+    const period = Number(periodValue);
+    if (!Number.isFinite(period)) return '#VALUE!';
+    if (period <= 0 || period > inputs.life) return '#NUM!';
+    return ((inputs.cost - inputs.salvage) * (inputs.life - period + 1) * 2) / (inputs.life * (inputs.life + 1));
+  };
+  const __ddb = (costValue: unknown, salvageValue: unknown, lifeValue: unknown, periodValue: unknown, factorValue: unknown = 2) => {
+    const inputs = depreciationInputs(costValue, salvageValue, lifeValue);
+    if (typeof inputs === 'string') return inputs;
+    const period = Math.trunc(Number(periodValue));
+    const factor = Number(factorValue);
+    if (![period, factor].every(Number.isFinite)) return '#VALUE!';
+    if (period <= 0 || period > inputs.life || factor <= 0) return '#NUM!';
+    let book = inputs.cost;
+    let depreciation = 0;
+    for (let i = 1; i <= period; i++) {
+      depreciation = Math.min(book * factor / inputs.life, Math.max(0, book - inputs.salvage));
+      book -= depreciation;
+    }
+    return depreciation;
+  };
+  const __db = (costValue: unknown, salvageValue: unknown, lifeValue: unknown, periodValue: unknown, monthValue: unknown = 12) => {
+    const inputs = depreciationInputs(costValue, salvageValue, lifeValue);
+    if (typeof inputs === 'string') return inputs;
+    const period = Math.trunc(Number(periodValue));
+    const month = Math.trunc(Number(monthValue));
+    if (![period, month].every(Number.isFinite)) return '#VALUE!';
+    if (inputs.cost === 0) return 0;
+    if (inputs.salvage >= inputs.cost) return 0;
+    if (period <= 0 || month <= 0 || month > 12 || period > inputs.life + (month < 12 ? 1 : 0)) return '#NUM!';
+    const rate = Math.round((1 - Math.pow(inputs.salvage / inputs.cost, 1 / inputs.life)) * 1000) / 1000;
+    let accumulated = 0;
+    for (let i = 1; i <= period; i++) {
+      let depreciation: number;
+      if (i === 1) {
+        depreciation = inputs.cost * rate * month / 12;
+      } else if (i > inputs.life) {
+        depreciation = (inputs.cost - accumulated) * rate * (12 - month) / 12;
+      } else {
+        depreciation = (inputs.cost - accumulated) * rate;
+      }
+      depreciation = Math.min(depreciation, Math.max(0, inputs.cost - inputs.salvage - accumulated));
+      if (i === period) return depreciation;
+      accumulated += depreciation;
+    }
+    return '#NUM!';
+  };
+  const __nper = (rateValue: unknown, pmtValue: unknown, pvValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
+    const rate = Number(rateValue);
+    const pmt = Number(pmtValue);
+    const pv = Number(pvValue);
+    const fv = Number(fvValue) || 0;
+    const type = Number(typeValue) === 1 ? 1 : 0;
+    if (![rate, pmt, pv, fv].every(Number.isFinite)) return '#NUM!';
+    if (rate === 0) {
+      if (pmt === 0) return '#NUM!';
+      return -(pv + fv) / pmt;
+    }
+    const paymentFactor = pmt * (1 + rate * type);
+    const numerator = paymentFactor - fv * rate;
+    const denominator = pv * rate + paymentFactor;
+    const ratio = numerator / denominator;
+    if (ratio <= 0 || rate <= -1) return '#NUM!';
+    const result = Math.log(ratio) / Math.log(1 + rate);
+    return Number.isFinite(result) ? result : '#NUM!';
+  };
   const __pv = (rateValue: unknown, nperValue: unknown, pmtValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
     const rate = Number(rateValue);
     const nper = Number(nperValue);
@@ -2585,6 +2963,173 @@ function evalExpr(
     if (!Number.isFinite(rate)) return '#VALUE!';
     const cashFlows = values.flatMap(toNums);
     return cashFlows.reduce((total, value, index) => total + value / Math.pow(1 + rate, index + 1), 0);
+  };
+  const datedCashFlows = (values: unknown, dates: unknown[]): Array<{ value: number; serial: number }> | string => {
+    const cashFlows = toArr(values).map((value) => Number(value));
+    const dateValues = toArr(dates);
+    if (cashFlows.length === 0 || cashFlows.length !== dateValues.length) return '#NUM!';
+    const rows: Array<{ value: number; serial: number }> = [];
+    for (let i = 0; i < cashFlows.length; i++) {
+      const date = parseDate(dateValues[i]);
+      if (!Number.isFinite(cashFlows[i]) || !date) return '#VALUE!';
+      rows.push({ value: cashFlows[i], serial: dateToExcelSerial(date) });
+    }
+    const firstSerial = rows[0]?.serial;
+    if (firstSerial === undefined || rows.some((row) => row.serial < firstSerial)) return '#NUM!';
+    return rows;
+  };
+  const xnpvFromRows = (rate: number, rows: Array<{ value: number; serial: number }>) => {
+    if (rate <= -1) return Number.NaN;
+    const firstSerial = rows[0].serial;
+    return rows.reduce((total, row) => total + row.value / Math.pow(1 + rate, (row.serial - firstSerial) / 365), 0);
+  };
+  const __xnpv = (rateValue: unknown, values: unknown, dates: unknown[]) => {
+    const rate = Number(rateValue);
+    if (!Number.isFinite(rate)) return '#VALUE!';
+    const rows = datedCashFlows(values, dates);
+    if (typeof rows === 'string') return rows;
+    const result = xnpvFromRows(rate, rows);
+    return Number.isFinite(result) ? result : '#NUM!';
+  };
+  const npvAtRate = (rate: number, cashFlows: number[]) => {
+    if (rate <= -1) return Number.NaN;
+    return cashFlows.reduce((total, value, index) => total + value / Math.pow(1 + rate, index), 0);
+  };
+  const solveRate = (initialGuess: number, valueAtRate: (rate: number) => number) => {
+    let rate = Number.isFinite(initialGuess) && initialGuess > -1 ? initialGuess : 0.1;
+    for (let i = 0; i < 100; i++) {
+      const value = valueAtRate(rate);
+      if (!Number.isFinite(value)) break;
+      if (Math.abs(value) < 1e-7) return rate;
+      const delta = Math.max(1e-7, Math.abs(rate) * 1e-6);
+      const nextValue = valueAtRate(rate + delta);
+      const slope = (nextValue - value) / delta;
+      if (!Number.isFinite(slope) || slope === 0) break;
+      const nextRate = Math.max(-0.999999999, rate - value / slope);
+      if (Math.abs(nextRate - rate) < 1e-12) return nextRate;
+      rate = nextRate;
+    }
+
+    const samples = [-0.9999, -0.9, -0.75, -0.5, -0.25, -0.1, -0.01, 0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
+    let low: number | undefined;
+    let high: number | undefined;
+    let prevRate = samples[0];
+    let prevValue = valueAtRate(prevRate);
+    for (const currentRate of samples.slice(1)) {
+      const currentValue = valueAtRate(currentRate);
+      if (Number.isFinite(prevValue) && Number.isFinite(currentValue) && prevValue * currentValue <= 0) {
+        low = prevRate;
+        high = currentRate;
+        break;
+      }
+      prevRate = currentRate;
+      prevValue = currentValue;
+    }
+    if (low === undefined || high === undefined) return '#NUM!';
+
+    for (let i = 0; i < 120; i++) {
+      const mid = (low + high) / 2;
+      const lowValue = valueAtRate(low);
+      const midValue = valueAtRate(mid);
+      if (!Number.isFinite(midValue)) return '#NUM!';
+      if (Math.abs(midValue) < 1e-7 || Math.abs(high - low) < 1e-12) return mid;
+      if (Number.isFinite(lowValue) && lowValue * midValue <= 0) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+    return '#NUM!';
+  };
+  const __irr = (values: unknown, guessValue: unknown = 0.1) => {
+    const cashFlows = toNums(values);
+    if (cashFlows.length < 2 || !cashFlows.some((value) => value > 0) || !cashFlows.some((value) => value < 0)) return '#NUM!';
+    return solveRate(Number(guessValue), (rate) => npvAtRate(rate, cashFlows));
+  };
+  const __xirr = (values: unknown, dates: unknown[], guessValue: unknown = 0.1) => {
+    const rows = datedCashFlows(values, dates);
+    if (typeof rows === 'string') return rows;
+    const hasPositive = rows.some((row) => row.value > 0);
+    const hasNegative = rows.some((row) => row.value < 0);
+    if (!hasPositive || !hasNegative) return '#NUM!';
+    return solveRate(Number(guessValue), (rate) => xnpvFromRows(rate, rows));
+  };
+  const __mirr = (values: unknown, financeRateValue: unknown, reinvestRateValue: unknown) => {
+    const cashFlows = toNums(values);
+    const financeRate = Number(financeRateValue);
+    const reinvestRate = Number(reinvestRateValue);
+    if (cashFlows.length < 2 || !Number.isFinite(financeRate) || !Number.isFinite(reinvestRate)) return '#NUM!';
+    const positive = cashFlows.filter((value) => value > 0);
+    const negative = cashFlows.filter((value) => value < 0);
+    if (positive.length === 0 || negative.length === 0) return '#DIV/0!';
+    const periods = cashFlows.length - 1;
+    const pvNegative = cashFlows.reduce((total, value, index) =>
+      value < 0 ? total + value / Math.pow(1 + financeRate, index) : total, 0);
+    const fvPositive = cashFlows.reduce((total, value, index) =>
+      value > 0 ? total + value * Math.pow(1 + reinvestRate, periods - index) : total, 0);
+    if (pvNegative === 0 || fvPositive === 0) return '#DIV/0!';
+    const result = Math.pow(-fvPositive / pvNegative, 1 / periods) - 1;
+    return Number.isFinite(result) ? result : '#NUM!';
+  };
+  const financialBalance = (rate: number, nper: number, pmt: number, pv: number, fv: number, type: number) => {
+    if (rate <= -1) return Number.NaN;
+    if (Math.abs(rate) < 1e-12) return pv + pmt * nper + fv;
+    const pow = Math.pow(1 + rate, nper);
+    return pv * pow + pmt * (1 + rate * type) * (pow - 1) / rate + fv;
+  };
+  const __rate = (nperValue: unknown, pmtValue: unknown, pvValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0, guessValue: unknown = 0.1) => {
+    const nper = Number(nperValue);
+    const pmt = Number(pmtValue);
+    const pv = Number(pvValue);
+    const fv = Number(fvValue) || 0;
+    const type = Number(typeValue) === 1 ? 1 : 0;
+    let rate = Number(guessValue);
+    if (![nper, pmt, pv, fv, rate].every(Number.isFinite) || nper <= 0) return '#NUM!';
+    if (rate <= -1) rate = 0.1;
+
+    for (let i = 0; i < 80; i++) {
+      const value = financialBalance(rate, nper, pmt, pv, fv, type);
+      if (!Number.isFinite(value)) break;
+      if (Math.abs(value) < 1e-7) return rate;
+      const delta = Math.max(1e-7, Math.abs(rate) * 1e-6);
+      const nextValue = financialBalance(rate + delta, nper, pmt, pv, fv, type);
+      const slope = (nextValue - value) / delta;
+      if (!Number.isFinite(slope) || slope === 0) break;
+      const nextRate = Math.max(-0.999999999, rate - value / slope);
+      if (Math.abs(nextRate - rate) < 1e-12) return nextRate;
+      rate = nextRate;
+    }
+
+    const samples = [-0.9999, -0.9, -0.75, -0.5, -0.25, -0.1, -0.01, 0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
+    let low: number | undefined;
+    let high: number | undefined;
+    let prevRate = samples[0];
+    let prevValue = financialBalance(prevRate, nper, pmt, pv, fv, type);
+    for (const currentRate of samples.slice(1)) {
+      const currentValue = financialBalance(currentRate, nper, pmt, pv, fv, type);
+      if (Number.isFinite(prevValue) && Number.isFinite(currentValue) && prevValue * currentValue <= 0) {
+        low = prevRate;
+        high = currentRate;
+        break;
+      }
+      prevRate = currentRate;
+      prevValue = currentValue;
+    }
+    if (low === undefined || high === undefined) return '#NUM!';
+
+    for (let i = 0; i < 120; i++) {
+      const mid = (low + high) / 2;
+      const lowValue = financialBalance(low, nper, pmt, pv, fv, type);
+      const midValue = financialBalance(mid, nper, pmt, pv, fv, type);
+      if (!Number.isFinite(midValue)) return '#NUM!';
+      if (Math.abs(midValue) < 1e-7 || Math.abs(high - low) < 1e-12) return mid;
+      if (Number.isFinite(lowValue) && lowValue * midValue <= 0) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+    return '#NUM!';
   };
 
   // ─── 통계 ───
@@ -3194,7 +3739,7 @@ function evalExpr(
     '__concat', '__concatenate',
     '__and', '__or', '__not',
     '__today', '__now', '__time', '__timevalue', '__hour', '__minute', '__second', '__year', '__month', '__day', '__weekday', '__weeknum', '__isoweeknum',
-    '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
+    '__power', '__sqrt', '__exp', '__ln', '__log', '__log10', '__pi', '__sin', '__cos', '__tan', '__asin', '__acos', '__atan', '__radians', '__degrees', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
     '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
     '__rows', '__columns', '__row', '__column', '__choose',
     '__image', '__sparkline',
@@ -3202,8 +3747,9 @@ function evalExpr(
     '__ifs', '__switch', '__xlookup',
     '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
     '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
-    '__pmt', '__ipmt', '__ppmt', '__pv', '__fv', '__npv',
-    '__stdev', '__stdevp', '__var', '__varp', '__rank',
+    '__pmt', '__ipmt', '__ppmt', '__cumipmt', '__cumprinc', '__sln', '__syd', '__db', '__ddb', '__rate', '__nper', '__pv', '__fv', '__npv', '__xnpv', '__irr', '__xirr', '__mirr',
+    '__stdev', '__stdevp', '__var', '__varp', '__rank', '__correl', '__pearson', '__slope', '__intercept', '__rsq', '__steyx', '__forecast_linear', '__trend',
+    '__standardize', '__norm_dist', '__norm_inv', '__norm_s_dist', '__norm_s_inv', '__lognorm_dist', '__lognorm_inv', '__expon_dist',
     '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__networkdays_intl', '__workday', '__workday_intl', '__datevalue', '__days', '__days360', '__yearfrac',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
@@ -3221,7 +3767,7 @@ function evalExpr(
     __concat, __concatenate,
     __and, __or, __not,
     __today, __now, __time, __timevalue, __hour, __minute, __second, __year, __month, __day, __weekday, __weeknum, __isoweeknum,
-    __power, __sqrt, __mod, __int, __median, __large, __small, __percentile, __percentileexc, __quartile, __quartileexc,
+    __power, __sqrt, __exp, __ln, __log, __log10, __pi, __sin, __cos, __tan, __asin, __acos, __atan, __radians, __degrees, __mod, __int, __median, __large, __small, __percentile, __percentileexc, __quartile, __quartileexc,
     __vlookup, __hlookup, __lookup, __index, __match, __xmatch,
     __rows, __columns, __row, __column, __choose,
     __image, __sparkline,
@@ -3229,8 +3775,9 @@ function evalExpr(
     __ifs, __switch, __xlookup,
     __textjoin, __substitute, __replace, __find, __search, __textbefore, __textafter, __hyperlink,
     __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
-    __pmt, __ipmt, __ppmt, __pv, __fv, __npv,
-    __stdev, __stdevp, __var, __varp, __rank,
+    __pmt, __ipmt, __ppmt, __cumipmt, __cumprinc, __sln, __syd, __db, __ddb, __rate, __nper, __pv, __fv, __npv, __xnpv, __irr, __xirr, __mirr,
+    __stdev, __stdevp, __var, __varp, __rank, __correl, __pearson, __slope, __intercept, __rsq, __steyx, __forecast_linear, __trend,
+    __standardize, __norm_dist, __norm_inv, __norm_s_dist, __norm_s_inv, __lognorm_dist, __lognorm_inv, __expon_dist,
     __date, __eomonth, __edate, __datedif, __networkdays, __networkdays_intl, __workday, __workday_intl, __datevalue, __days, __days360, __yearfrac,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,

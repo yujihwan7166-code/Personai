@@ -13,10 +13,11 @@ const FUNC_CATEGORIES: Array<{ name: string; funcs: string[] }> = [
   { name: '에러/타입', funcs: ['IFERROR', 'IFNA', 'ISNUMBER', 'ISBLANK', 'ISTEXT', 'ISERROR', 'ISNA'] },
   { name: '검색', funcs: ['VLOOKUP', 'HLOOKUP', 'XLOOKUP', 'INDEX', 'MATCH'] },
   { name: '조건 집계', funcs: ['SUMIF', 'COUNTIF', 'SUMIFS', 'COUNTIFS'] },
-  { name: '수치', funcs: ['ABS', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'CEILING', 'FLOOR', 'POWER', 'SQRT', 'MOD', 'INT'] },
-  { name: '통계', funcs: ['STDEV', 'VAR', 'RANK'] },
+  { name: '수치', funcs: ['ABS', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'CEILING', 'FLOOR', 'POWER', 'SQRT', 'EXP', 'LN', 'LOG', 'LOG10', 'PI', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'RADIANS', 'DEGREES', 'MOD', 'INT'] },
+  { name: '통계', funcs: ['STDEV', 'VAR', 'RANK', 'CORREL', 'PEARSON', 'SLOPE', 'INTERCEPT', 'RSQ', 'STEYX', 'FORECAST_LINEAR', 'TREND', 'STANDARDIZE', 'NORM_DIST', 'NORM_INV', 'NORM_S_DIST', 'NORM_S_INV', 'LOGNORM_DIST', 'LOGNORM_INV', 'EXPON_DIST'] },
   { name: '문자열', funcs: ['LEFT', 'RIGHT', 'MID', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'CONCAT', 'CONCATENATE', 'TEXTJOIN', 'SUBSTITUTE', 'REPLACE', 'FIND', 'SEARCH', 'HYPERLINK', 'TEXT'] },
   { name: '날짜', funcs: ['TODAY', 'NOW', 'TIME', 'TIMEVALUE', 'HOUR', 'MINUTE', 'SECOND', 'YEAR', 'MONTH', 'DAY', 'WEEKDAY', 'WEEKNUM', 'ISOWEEKNUM', 'DATE', 'EOMONTH', 'EDATE', 'DATEDIF', 'DAYS360', 'YEARFRAC', 'NETWORKDAYS', 'NETWORKDAYS_INTL', 'WORKDAY', 'WORKDAY_INTL'] },
+  { name: '금융', funcs: ['PMT', 'IPMT', 'PPMT', 'CUMIPMT', 'CUMPRINC', 'SLN', 'SYD', 'DB', 'DDB', 'RATE', 'NPER', 'PV', 'FV', 'NPV', 'XNPV', 'IRR', 'XIRR', 'MIRR'] },
   { name: '특수', funcs: ['IMAGE', 'REGEXMATCH', 'REGEXEXTRACT', 'REGEXREPLACE'] },
 ];
 

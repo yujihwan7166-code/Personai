@@ -316,6 +316,29 @@ describe('formula — 수치', () => {
     expect(evaluate('FLOOR(23, 10)')).toBe('20');
   });
 
+  it('EXP / LN / LOG / LOG10', () => {
+    expect(evaluate('ROUND(EXP(1), 6)')).toBe('2.718282');
+    expect(evaluate('LN(EXP(1))')).toBe('1');
+    expect(evaluate('LOG(8, 2)')).toBe('3');
+    expect(evaluate('LOG10(1000)')).toBe('3');
+    expect(evaluate('LN(0)')).toBe('#NUM!');
+    expect(evaluate('LOG(10, 1)')).toBe('#NUM!');
+  });
+
+  it('PI / trig / degree conversion', () => {
+    expect(evaluate('ROUND(PI(), 6)')).toBe('3.141593');
+    expect(evaluate('ROUND(SIN(PI()/2), 6)')).toBe('1');
+    expect(evaluate('ROUND(COS(PI()), 6)')).toBe('-1');
+    expect(evaluate('ROUND(TAN(PI()/4), 6)')).toBe('1');
+    expect(evaluate('ROUND(ASIN(1), 6)')).toBe('1.570796');
+    expect(evaluate('ROUND(ACOS(-1), 6)')).toBe('3.141593');
+    expect(evaluate('ROUND(ATAN(1), 6)')).toBe('0.785398');
+    expect(evaluate('ROUND(RADIANS(180), 6)')).toBe('3.141593');
+    expect(evaluate('ROUND(DEGREES(PI()), 6)')).toBe('180');
+    expect(evaluate('ASIN(2)')).toBe('#NUM!');
+    expect(evaluate('ACOS(-2)')).toBe('#NUM!');
+  });
+
   it('PRODUCT / SUMPRODUCT / CHOOSE', () => {
     expect(evaluate('PRODUCT(A1:A3)', { A1: '2', A2: '3', A3: '4' })).toBe('24');
     expect(evaluate('SUMPRODUCT(A1:A3, B1:B3)', {
@@ -364,6 +387,51 @@ describe('formula — 통계', () => {
     const ctx: Cells = { A1: '10', A2: '30', A3: '20', A4: '40' };
     expect(evaluate('RANK(30, A1:A4)', ctx)).toBe('2');   // 40,30,20,10
     expect(evaluate('RANK(30, A1:A4, 1)', ctx)).toBe('3'); // 10,20,30,40
+  });
+
+  it('supports Excel linear regression functions', () => {
+    const ctx: Cells = {
+      A1: '2', A2: '4', A3: '6',
+      B1: '1', B2: '2', B3: '3',
+    };
+    expect(evaluate('CORREL(A1:A3, B1:B3)', ctx)).toBe('1');
+    expect(evaluate('SLOPE(A1:A3, B1:B3)', ctx)).toBe('2');
+    expect(evaluate('INTERCEPT(A1:A3, B1:B3)', ctx)).toBe('0');
+    expect(evaluate('RSQ(A1:A3, B1:B3)', ctx)).toBe('1');
+    expect(evaluate('FORECAST.LINEAR(4, A1:A3, B1:B3)', ctx)).toBe('8');
+    expect(evaluate('FORECAST(4, A1:A3, B1:B3)', ctx)).toBe('8');
+    expect(evaluate('PEARSON(A1:A3, B1:B3)', ctx)).toBe('1');
+    expect(evaluate('STEYX(A1:A3, B1:B3)', ctx)).toBe('0');
+    expect(evaluate('TREND(A1:A3, B1:B3, 4)', ctx)).toBe('8');
+    expect(evaluate('TREND(A1:A3, B1:B3, C1:C2)', {
+      ...ctx,
+      C1: '4',
+      C2: '5',
+    })).toBe('__CLOUDSHEET_SPILL__:[["8"],["10"]]');
+    expect(evaluate('SLOPE(A1:A2, B1:B3)', ctx)).toBe('#N/A');
+    expect(evaluate('SLOPE(A1:A3, C1:C3)', {
+      ...ctx,
+      C1: '1', C2: '1', C3: '1',
+    })).toBe('#DIV/0!');
+  });
+
+  it('supports Excel normal distribution functions', () => {
+    expect(evaluate('STANDARDIZE(42, 40, 1.5)')).toBe('1.333333');
+    expect(evaluate('NORM.S.DIST(0, TRUE)')).toBe('0.5');
+    expect(evaluate('ROUND(NORM.S.DIST(0, FALSE), 6)')).toBe('0.398942');
+    expect(evaluate('ROUND(NORM.DIST(42, 40, 1.5, TRUE), 6)')).toBe('0.908789');
+    expect(evaluate('ROUND(NORM.DIST(40, 40, 1.5, FALSE), 6)')).toBe('0.265962');
+    expect(evaluate('ROUND(NORM.S.INV(0.5), 6)')).toBe('0');
+    expect(evaluate('ROUND(NORM.INV(0.9087888, 40, 1.5), 4)')).toBe('42');
+    expect(evaluate('NORM.INV(0, 40, 1.5)')).toBe('#NUM!');
+    expect(evaluate('STANDARDIZE(42, 40, 0)')).toBe('#NUM!');
+    expect(evaluate('ROUND(LOGNORM.DIST(2.718281828459045, 1, 0.5, TRUE), 6)')).toBe('0.5');
+    expect(evaluate('ROUND(LOGNORM.DIST(2.718281828459045, 1, 0.5, FALSE), 6)')).toBe('0.293525');
+    expect(evaluate('ROUND(LOGNORM.INV(0.5, 1, 0.5), 6)')).toBe('2.718282');
+    expect(evaluate('ROUND(EXPON.DIST(2, 0.5, TRUE), 6)')).toBe('0.632121');
+    expect(evaluate('ROUND(EXPON.DIST(2, 0.5, FALSE), 6)')).toBe('0.18394');
+    expect(evaluate('LOGNORM.DIST(0, 1, 0.5, TRUE)')).toBe('#NUM!');
+    expect(evaluate('EXPON.DIST(2, 0, TRUE)')).toBe('#NUM!');
   });
 });
 
@@ -454,6 +522,52 @@ describe('formula — 날짜', () => {
     expect(evaluate('ROUND(IPMT(0.05/12, 1, 60, 10000) + PPMT(0.05/12, 1, 60, 10000), 2)')).toBe('-188.71');
     expect(evaluate('IPMT(0.05/12, 1, 60, 10000, 0, 1)')).toBe('0');
     expect(evaluate('IPMT(0.05/12, 61, 60, 10000)')).toBe('#NUM!');
+    expect(evaluate('ROUND(CUMIPMT(0.05/12, 60, 10000, 1, 1, 0), 2)')).toBe('-41.67');
+    expect(evaluate('ROUND(CUMPRINC(0.05/12, 60, 10000, 1, 1, 0), 2)')).toBe('-147.05');
+    expect(evaluate('ROUND(CUMPRINC(0.05/12, 60, 10000, 1, 60, 0), 2)')).toBe('-10000');
+    expect(evaluate('CUMIPMT(0.05/12, 60, 10000, 0, 12, 0)')).toBe('#NUM!');
+    expect(evaluate('ROUND(NPER(0.05/12, PMT(0.05/12, 60, 10000), 10000), 6)')).toBe('60');
+    expect(evaluate('NPER(0, -100, 1000)')).toBe('10');
+    expect(evaluate('ROUND(RATE(60, PMT(0.05/12, 60, 10000), 10000) * 12, 4)')).toBe('0.05');
+    expect(evaluate('RATE(0, -100, 1000)')).toBe('#NUM!');
+    expect(evaluate('ROUND(XNPV(0.1, A1:A2, B1:B2), 6)', {
+      A1: '-1000',
+      A2: '1100',
+      B1: '2026-01-01',
+      B2: '2027-01-01',
+    })).toBe('0');
+    expect(evaluate('ROUND(XIRR(A1:A2, B1:B2), 6)', {
+      A1: '-1000',
+      A2: '1100',
+      B1: '2026-01-01',
+      B2: '2027-01-01',
+    })).toBe('0.1');
+    expect(evaluate('XIRR(A1:A2, B1:B2)', {
+      A1: '1000',
+      A2: '1100',
+      B1: '2026-01-01',
+      B2: '2027-01-01',
+    })).toBe('#NUM!');
+    expect(evaluate('ROUND(IRR(A1:A2), 6)', {
+      A1: '-1000',
+      A2: '1100',
+    })).toBe('0.1');
+    expect(evaluate('IRR(A1:A2)', {
+      A1: '1000',
+      A2: '1100',
+    })).toBe('#NUM!');
+    expect(evaluate('ROUND(MIRR(A1:A5, 0.1, 0.12), 6)', {
+      A1: '-120000',
+      A2: '39000',
+      A3: '30000',
+      A4: '21000',
+      A5: '37000',
+    })).toBe('0.062522');
+    expect(evaluate('SLN(30000, 7500, 10)')).toBe('2250');
+    expect(evaluate('ROUND(SYD(30000, 7500, 10, 1), 2)')).toBe('4090.91');
+    expect(evaluate('DDB(2400, 300, 10, 1)')).toBe('480');
+    expect(evaluate('ROUND(DB(1000000, 100000, 6, 1, 7), 0)')).toBe('186083');
+    expect(evaluate('DDB(2400, 300, 10, 11)')).toBe('#NUM!');
   });
 
   it('NETWORKDAYS — 주말 제외', () => {
