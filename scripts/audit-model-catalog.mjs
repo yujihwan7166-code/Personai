@@ -13,12 +13,40 @@ const {
   hasNonTextOutput,
   isVisibleGeneralTextModel,
 } = await import('../src/lib/generalModelCatalog.ts');
+const {
+  AI_GROUP_CATS,
+  buildExpertSelectionGroups,
+} = await import('../src/lib/expertSelectionGroups.ts');
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
 const TODAY_ISO = '2026-06-13';
+const compactOutput = process.argv.includes('--compact');
+const REQUIRED_VISIBLE_GENERAL_PROVIDERS = [
+  'OpenAI',
+  'Anthropic',
+  'Google',
+  'xAI',
+  'Perplexity',
+  'DeepSeek',
+  'Alibaba Qwen',
+  'Meta',
+  'Mistral AI',
+  'Cohere',
+  'Amazon',
+  'NVIDIA',
+  'Moonshot AI',
+  'Z.ai',
+  'MiniMax',
+];
 const aiExperts = DEFAULT_EXPERTS.filter((expert) => expert.category === 'ai');
 const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
+const selectionGroups = buildExpertSelectionGroups({
+  experts: DEFAULT_EXPERTS,
+  favoriteIds: [],
+  visibleCategories: ['ai'],
+  aiAgentIds: [],
+});
 const genericBadAvatars = new Set(['/logos/router.svg']);
 const multimodalInputModels = aiExperts.filter((expert) => {
   const input = expert.modelInfo?.inputModalities ?? [];
@@ -27,6 +55,37 @@ const multimodalInputModels = aiExperts.filter((expert) => {
 const imageVideoOutputModels = aiExperts.filter(hasImageVideoOutput);
 const nonTextOutputModels = aiExperts.filter(hasNonTextOutput);
 const visibleGeneralAiExperts = aiExperts.filter(isVisibleGeneralTextModel);
+const visibleGeneralProviderCounts = visibleGeneralAiExperts.reduce((acc, expert) => {
+  const provider = expert.modelInfo?.provider ?? 'missing';
+  acc[provider] = (acc[provider] ?? 0) + 1;
+  return acc;
+}, {});
+const visibleGeneralMajorProviderMissing = REQUIRED_VISIBLE_GENERAL_PROVIDERS
+  .filter((provider) => !visibleGeneralProviderCounts[provider]);
+const visibleGeneralTags = visibleGeneralAiExperts.flatMap((expert) => expert.tags ?? []);
+const visibleGeneralTagCounts = visibleGeneralTags.reduce((acc, tag) => {
+  acc[tag] = (acc[tag] ?? 0) + 1;
+  return acc;
+}, {});
+const visibleGeneralTopTags = Object.entries(visibleGeneralTagCounts)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 20)
+  .map(([tag, count]) => ({ tag, count }));
+const visibleGeneralOverHalfTags = Object.entries(visibleGeneralTagCounts)
+  .filter(([, count]) => count > visibleGeneralAiExperts.length / 2)
+  .map(([tag, count]) => ({ tag, count }));
+const visibleGeneralMissingAbilities = visibleGeneralAiExperts.filter((expert) => !expert.abilities);
+const visibleGeneralAbilityRanges = Object.fromEntries(statsKeys.map((key) => {
+  const values = visibleGeneralAiExperts
+    .map((expert) => expert.abilities?.[key])
+    .filter((value) => typeof value === 'number');
+  return [key, {
+    count: values.length,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    unique: new Set(values).size,
+  }];
+}));
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
 const roleplayHeavyProviderPrefixes = [
@@ -88,6 +147,33 @@ const visibleGeneralFutureCreatedAt = visibleGeneralAiExperts.filter((expert) =>
   Boolean(expert.modelInfo?.createdAt) && expert.modelInfo.createdAt > TODAY_ISO);
 const visibleGeneralMissingContextLength = visibleGeneralAiExperts.filter((expert) => !(expert.modelInfo?.contextLength > 0));
 const visibleGeneralMissingPriceTier = visibleGeneralAiExperts.filter((expert) => !expert.modelInfo?.priceTier);
+const visibleGeneralIdSet = new Set(visibleGeneralAiExperts.map((expert) => expert.id));
+const visibleGeneralOpenRouterModelCounts = visibleGeneralAiExperts.reduce((acc, expert) => {
+  if (!expert.openrouterModel) return acc;
+  acc[expert.openrouterModel] = [...(acc[expert.openrouterModel] ?? []), expert];
+  return acc;
+}, {});
+const visibleGeneralDuplicateOpenRouterModels = Object.entries(visibleGeneralOpenRouterModelCounts)
+  .filter(([, experts]) => experts.length > 1)
+  .map(([openrouterModel, experts]) => ({
+    openrouterModel,
+    ids: experts.map((expert) => expert.id),
+    names: experts.map((expert) => expert.name),
+  }));
+const visibleGeneralSelectionGroupQuality = selectionGroups
+  .filter((group) => AI_GROUP_CATS.includes(group.cat))
+  .map((group) => {
+    const ids = group.items.map((expert) => expert.id);
+    const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+    const hiddenIds = ids.filter((id) => !visibleGeneralIdSet.has(id));
+    return {
+      cat: group.cat,
+      label: group.label,
+      count: ids.length,
+      duplicateIds: [...new Set(duplicateIds)],
+      hiddenIds,
+    };
+  });
 
 const missingAvatars = DEFAULT_EXPERTS.filter((expert) => {
   if (!expert.avatarUrl?.startsWith('/logos/')) return false;
@@ -186,6 +272,7 @@ const customAbilityRanges = Object.fromEntries(statsKeys.map((key) => {
 const summary = {
   aiCount: aiExperts.length,
   customCount: customExperts.length,
+  visibleGeneralCount: visibleGeneralAiExperts.length,
   addedOpenRouterCount: OPENROUTER_ADDED_EXPERTS.length,
   existingOverrideCount: Object.keys(OPENROUTER_EXISTING_MODEL_OVERRIDES).length,
   multimodalInputModelCount: multimodalInputModels.length,
@@ -236,6 +323,22 @@ const summary = {
     codingTemplateIds: visibleExistingDescriptionTemplates.codingTemplate.map((expert) => expert.id),
     visionTemplateIds: visibleExistingDescriptionTemplates.visionTemplate.map((expert) => expert.id),
   },
+  visibleGeneralProviderCoverage: {
+    requiredProviders: REQUIRED_VISIBLE_GENERAL_PROVIDERS,
+    providerCounts: visibleGeneralProviderCounts,
+    missingRequiredProviders: visibleGeneralMajorProviderMissing,
+  },
+  visibleGeneralTagDiversity: {
+    totalTags: visibleGeneralTags.length,
+    uniqueTags: Object.keys(visibleGeneralTagCounts).length,
+    topTags: visibleGeneralTopTags,
+    overHalfTags: visibleGeneralOverHalfTags,
+  },
+  visibleGeneralAbilityQuality: {
+    missingAbilityCount: visibleGeneralMissingAbilities.length,
+    missingAbilityIds: visibleGeneralMissingAbilities.map((expert) => expert.id),
+    ranges: visibleGeneralAbilityRanges,
+  },
   visibleGeneralFilterBuckets,
   visibleGeneralMetadataQuality: {
     checkedAsOf: TODAY_ISO,
@@ -267,6 +370,9 @@ const summary = {
       openrouterModel: expert.openrouterModel,
     })),
   },
+  visibleGeneralDuplicateOpenRouterModelCount: visibleGeneralDuplicateOpenRouterModels.length,
+  visibleGeneralDuplicateOpenRouterModels,
+  visibleGeneralSelectionGroupQuality,
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
   badTextAiCount: badTextAi.length,
@@ -312,4 +418,139 @@ const summary = {
   customAbilityRanges,
 };
 
-console.log(JSON.stringify(summary, null, 2));
+const compactSummary = {
+  aiCount: summary.aiCount,
+  addedOpenRouterCount: summary.addedOpenRouterCount,
+  visibleGeneralCount: visibleGeneralAiExperts.length,
+  visibleGeneralNonTextOutputModelCount: summary.visibleGeneralNonTextOutputModelCount,
+  visibleGeneralRoleplayHeavyModelCount: summary.visibleGeneralRoleplayHeavyModelCount,
+  visibleGeneralDuplicateOpenRouterModelCount: summary.visibleGeneralDuplicateOpenRouterModelCount,
+  missingAvatarCount: summary.missingAvatarCount,
+  badTextAiCount: summary.badTextAiCount,
+  avatarProviderMismatchCount: summary.avatarProviderMismatchCount,
+  metadataQuality: {
+    missingCreatedAtCount: summary.visibleGeneralMetadataQuality.missingCreatedAtCount,
+    invalidCreatedAtCount: summary.visibleGeneralMetadataQuality.invalidCreatedAtCount,
+    futureCreatedAtCount: summary.visibleGeneralMetadataQuality.futureCreatedAtCount,
+    missingContextLengthCount: summary.visibleGeneralMetadataQuality.missingContextLengthCount,
+    missingPriceTierCount: summary.visibleGeneralMetadataQuality.missingPriceTierCount,
+  },
+  providerCoverage: {
+    requiredProviderCount: summary.visibleGeneralProviderCoverage.requiredProviders.length,
+    missingRequiredProviders: summary.visibleGeneralProviderCoverage.missingRequiredProviders,
+    topProviders: Object.entries(summary.visibleGeneralProviderCoverage.providerCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([provider, count]) => ({ provider, count })),
+  },
+  tagDiversity: {
+    totalTags: summary.visibleGeneralTagDiversity.totalTags,
+    uniqueTags: summary.visibleGeneralTagDiversity.uniqueTags,
+    topTags: summary.visibleGeneralTagDiversity.topTags.slice(0, 12),
+    overHalfTags: summary.visibleGeneralTagDiversity.overHalfTags,
+  },
+  abilityQuality: {
+    missingAbilityCount: summary.visibleGeneralAbilityQuality.missingAbilityCount,
+    ranges: summary.visibleGeneralAbilityQuality.ranges,
+  },
+  copyDiversity: {
+    uniqueDescriptionSkeletons: summary.generatedCopyDiversity.uniqueDescriptionSkeletons,
+    maxDescriptionSkeletonRepeat: summary.generatedCopyDiversity.maxDescriptionSkeletonRepeat,
+    uniqueSampleQuestions: summary.generatedCopyDiversity.uniqueSampleQuestions,
+    uniqueQuotes: summary.generatedCopyDiversity.uniqueQuotes,
+    modelSpecificQuestionCount: summary.generatedCopyDiversity.modelSpecificQuestionCount,
+  },
+  filterBuckets: summary.visibleGeneralFilterBuckets,
+  selectionGroups: summary.visibleGeneralSelectionGroupQuality.map((group) => ({
+    cat: group.cat,
+    count: group.count,
+    duplicateCount: group.duplicateIds.length,
+    hiddenCount: group.hiddenIds.length,
+  })),
+};
+
+console.log(JSON.stringify(compactOutput ? compactSummary : summary, null, 2));
+
+const failedChecks = [
+  summary.addedOpenRouterCount === 200 ? null : `expected 200 added OpenRouter models, got ${summary.addedOpenRouterCount}`,
+  summary.visibleGeneralImageVideoOutputModelCount === 0
+    ? null
+    : `visible general catalog includes ${summary.visibleGeneralImageVideoOutputModelCount} image/video output models`,
+  summary.visibleGeneralNonTextOutputModelCount === 0
+    ? null
+    : `visible general catalog includes ${summary.visibleGeneralNonTextOutputModelCount} non-text output models`,
+  summary.visibleGeneralRoleplayHeavyModelCount === 0
+    ? null
+    : `visible general catalog includes ${summary.visibleGeneralRoleplayHeavyModelCount} roleplay-heavy models`,
+  summary.visibleGeneralMetadataQuality.missingCreatedAtCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralMetadataQuality.missingCreatedAtCount} models without createdAt`,
+  summary.visibleGeneralMetadataQuality.invalidCreatedAtCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralMetadataQuality.invalidCreatedAtCount} invalid createdAt values`,
+  summary.visibleGeneralMetadataQuality.futureCreatedAtCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralMetadataQuality.futureCreatedAtCount} future createdAt values`,
+  summary.visibleGeneralMetadataQuality.missingContextLengthCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralMetadataQuality.missingContextLengthCount} models without context length`,
+  summary.visibleGeneralMetadataQuality.missingPriceTierCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralMetadataQuality.missingPriceTierCount} models without price tier`,
+  summary.visibleGeneralDuplicateOpenRouterModelCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralDuplicateOpenRouterModelCount} duplicate OpenRouter model ids`,
+  summary.visibleGeneralProviderCoverage.missingRequiredProviders.length === 0
+    ? null
+    : `visible general catalog is missing required providers: ${summary.visibleGeneralProviderCoverage.missingRequiredProviders.join(', ')}`,
+  summary.visibleGeneralTagDiversity.uniqueTags >= 14
+    ? null
+    : `visible general catalog only has ${summary.visibleGeneralTagDiversity.uniqueTags} unique tags`,
+  summary.visibleGeneralTagDiversity.overHalfTags.length <= 1
+    ? null
+    : `visible general catalog has too many over-repeated tags: ${summary.visibleGeneralTagDiversity.overHalfTags.map((item) => item.tag).join(', ')}`,
+  summary.visibleGeneralAbilityQuality.missingAbilityCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralAbilityQuality.missingAbilityCount} models without ability stats`,
+  ...Object.entries(summary.visibleGeneralAbilityQuality.ranges).flatMap(([key, range]) => [
+    range.count === summary.visibleGeneralCount ? null : `${key} ability is missing on ${summary.visibleGeneralCount - range.count} visible general models`,
+    range.min >= 0 && range.max <= 100 ? null : `${key} ability range is out of bounds: ${range.min}-${range.max}`,
+    range.unique >= 12 ? null : `${key} ability only has ${range.unique} unique values`,
+  ]),
+  summary.missingAvatarCount === 0 ? null : `catalog has ${summary.missingAvatarCount} missing local avatars`,
+  summary.badTextAiCount === 0 ? null : `AI catalog has ${summary.badTextAiCount} mojibake text entries`,
+  summary.badGenericAvatarCount === 0 ? null : `AI catalog has ${summary.badGenericAvatarCount} generic router avatars`,
+  summary.avatarProviderMismatchCount === 0
+    ? null
+    : `generated OpenRouter catalog has ${summary.avatarProviderMismatchCount} provider/avatar mismatches`,
+  summary.generatedCopyDiversity.uniqueDescriptions === summary.addedOpenRouterCount
+    ? null
+    : 'generated OpenRouter model descriptions are not unique',
+  summary.generatedCopyDiversity.uniqueDescriptionSkeletons >= 70
+    ? null
+    : `generated descriptions only have ${summary.generatedCopyDiversity.uniqueDescriptionSkeletons} skeletons`,
+  summary.generatedCopyDiversity.maxDescriptionSkeletonRepeat <= 10
+    ? null
+    : `generated description skeleton repeats ${summary.generatedCopyDiversity.maxDescriptionSkeletonRepeat} times`,
+  summary.generatedCopyDiversity.awkwardProviderParticleQuestionCount === 0
+    ? null
+    : `generated questions contain ${summary.generatedCopyDiversity.awkwardProviderParticleQuestionCount} awkward provider particles`,
+  summary.generatedCopyDiversity.uniqueQuotes === summary.addedOpenRouterCount
+    ? null
+    : 'generated OpenRouter model quotes are not unique',
+  summary.generatedCopyDiversity.modelSpecificQuestionCount === summary.addedOpenRouterCount
+    ? null
+    : 'not every generated model has a model/provider-specific question',
+  summary.generatedTagCoverage.openWeightTagMissingCount === 0
+    ? null
+    : `${summary.generatedTagCoverage.openWeightTagMissingCount} open-weight models are missing the open-weight tag`,
+  ...summary.visibleGeneralSelectionGroupQuality.flatMap((group) => [
+    group.duplicateIds.length === 0 ? null : `${group.cat} has duplicate ids: ${group.duplicateIds.join(', ')}`,
+    group.hiddenIds.length === 0 ? null : `${group.cat} exposes hidden ids: ${group.hiddenIds.join(', ')}`,
+  ]),
+].filter(Boolean);
+
+if (failedChecks.length > 0) {
+  console.error(`\nModel catalog audit failed:\n- ${failedChecks.join('\n- ')}`);
+  process.exitCode = 1;
+}

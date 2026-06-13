@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,6 +12,7 @@ import {
 import { AI_MODEL_IDS, AI_MODEL_PROMPTS } from '@/data/prompts/ai-models';
 import { OPENROUTER_EXISTING_MODEL_OVERRIDES } from '@/data/openrouter-existing-model-overrides';
 import {
+  AI_GROUP_CATS,
   buildExpertSelectionGroups,
   FAST_MODEL_IDS,
   FLAGSHIP_MODEL_IDS,
@@ -26,6 +28,45 @@ describe('openrouter added model catalog', () => {
     expect(OPENROUTER_ADDED_EXPERTS).toHaveLength(200);
     expect(OPENROUTER_ADDED_EXPERTS.every((expert) => expert.category === 'ai')).toBe(true);
     expect(OPENROUTER_ADDED_EXPERTS.every((expert) => expert.openrouterModel)).toBe(true);
+  });
+
+  it('keeps model catalog audits available through npm scripts', () => {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+
+    expect(packageJson.scripts['audit:models']).toBe('vite-node scripts/audit-model-catalog.mjs');
+    expect(packageJson.scripts['audit:models:compact']).toBe('vite-node scripts/audit-model-catalog.mjs --compact');
+    expect(packageJson.scripts['audit:openrouter']).toBe('vite-node scripts/audit-openrouter-coverage.mjs');
+    expect(packageJson.scripts['audit:openrouter:compact']).toBe('vite-node scripts/audit-openrouter-coverage.mjs --compact');
+  });
+
+  it('emits a parseable compact local model audit summary', () => {
+    const output = execFileSync(process.execPath, [
+      path.join(process.cwd(), 'node_modules', 'vite-node', 'vite-node.mjs'),
+      'scripts/audit-model-catalog.mjs',
+      '--compact',
+    ], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    });
+    const summary = JSON.parse(output);
+
+    expect(summary.addedOpenRouterCount).toBe(200);
+    expect(summary.visibleGeneralCount).toBeGreaterThanOrEqual(200);
+    expect(summary.visibleGeneralNonTextOutputModelCount).toBe(0);
+    expect(summary.visibleGeneralRoleplayHeavyModelCount).toBe(0);
+    expect(summary.visibleGeneralDuplicateOpenRouterModelCount).toBe(0);
+    expect(summary.metadataQuality.missingCreatedAtCount).toBe(0);
+    expect(summary.providerCoverage.requiredProviderCount).toBeGreaterThanOrEqual(10);
+    expect(summary.providerCoverage.missingRequiredProviders).toEqual([]);
+    expect(summary.tagDiversity.uniqueTags).toBeGreaterThanOrEqual(14);
+    expect(summary.tagDiversity.overHalfTags.length).toBeLessThanOrEqual(1);
+    expect(summary.abilityQuality.missingAbilityCount).toBe(0);
+    Object.values(summary.abilityQuality.ranges).forEach((range) => {
+      expect((range as { unique: number }).unique).toBeGreaterThanOrEqual(12);
+    });
+    expect(summary.copyDiversity.uniqueDescriptionSkeletons).toBeGreaterThanOrEqual(70);
+    expect(summary.selectionGroups.every((group: { duplicateCount: number; hiddenCount: number }) =>
+      group.duplicateCount === 0 && group.hiddenCount === 0)).toBe(true);
   });
 
   it('keeps generated general models text-output only', () => {
@@ -248,6 +289,20 @@ describe('openrouter added model catalog', () => {
       expect(expert.modelInfo?.contextLength, `${expert.id} should expose context length`).toBeGreaterThan(0);
       expect(expert.modelInfo?.priceTier, `${expert.id} should expose price tier`).toMatch(/^(free|low|standard|premium)$/);
     });
+  });
+
+  it('does not expose the same OpenRouter model twice in visible general models', () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+    const openrouterModelCounts = visibleGeneralModels.reduce<Record<string, string[]>>((acc, expert) => {
+      if (!expert.openrouterModel) return acc;
+      acc[expert.openrouterModel] = [...(acc[expert.openrouterModel] ?? []), expert.id];
+      return acc;
+    }, {});
+    const duplicateOpenrouterModels = Object.entries(openrouterModelCounts)
+      .filter(([, ids]) => ids.length > 1)
+      .map(([openrouterModel, ids]) => ({ openrouterModel, ids }));
+
+    expect(duplicateOpenrouterModels).toEqual([]);
   });
 
   it('keeps generated fast model shortcuts populated and speed-aligned', () => {
@@ -505,6 +560,26 @@ describe('openrouter added model catalog', () => {
       expect(actualOpenWeightIds.has(id), `${id} should be available through the open-weight group`).toBe(true);
     });
     expect(explorerSource).toContain("{ id: 'coding', label: '코딩' }");
+  });
+
+  it('keeps every AI selection group aligned with visible general models', () => {
+    const visibleGeneralIds = new Set(DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel).map((expert) => expert.id));
+    const groups = buildExpertSelectionGroups({
+      experts: DEFAULT_EXPERTS,
+      favoriteIds: [],
+      visibleCategories: ['ai'],
+      aiAgentIds: [],
+    });
+
+    groups.filter((group) => AI_GROUP_CATS.includes(group.cat)).forEach((group) => {
+      const ids = group.items.map((expert) => expert.id);
+      const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+      const hiddenIds = ids.filter((id) => !visibleGeneralIds.has(id));
+
+      expect(new Set(ids).size, `${group.cat} should not contain duplicate models`).toBe(ids.length);
+      expect(duplicateIds, `${group.cat} duplicate ids`).toEqual([]);
+      expect(hiddenIds, `${group.cat} should only contain visible general text models`).toEqual([]);
+    });
   });
 
   it('keeps general model trait filters selective and clearly labeled', () => {

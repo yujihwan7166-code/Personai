@@ -2,6 +2,7 @@ const { DEFAULT_EXPERTS } = await import('../src/types/expert.ts');
 const { isVisibleGeneralTextModel } = await import('../src/lib/generalModelCatalog.ts');
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+const compactOutput = process.argv.includes('--compact');
 const MAJOR_PROVIDER_PREFIX = /^(openai|anthropic|google|x-ai|perplexity|deepseek|qwen|meta-llama|mistralai|cohere|microsoft|amazon|nvidia|moonshotai|z-ai|minimax)\//;
 const LOW_CONFIDENCE_PROVIDER_PREFIXES = [
   'aion-labs/',
@@ -106,7 +107,7 @@ const visibleExistingGeneralModels = visibleGeneralModels
     contextLength: expert.modelInfo?.contextLength,
   }));
 
-console.log(JSON.stringify({
+const summary = {
   fetchedAt: new Date().toISOString(),
   source: OPENROUTER_MODELS_URL,
   openrouterModelCount: models.length,
@@ -115,4 +116,38 @@ console.log(JSON.stringify({
   staleLocalOpenRouterIds,
   majorMissingTop,
   visibleExistingGeneralModels,
-}, null, 2));
+};
+
+const compactSummary = {
+  fetchedAt: summary.fetchedAt,
+  openrouterModelCount: summary.openrouterModelCount,
+  localOpenRouterCount: summary.localOpenRouterCount,
+  visibleGeneralCount: summary.visibleGeneralCount,
+  staleLocalOpenRouterIdCount: summary.staleLocalOpenRouterIds.length,
+  majorMissingTopCount: summary.majorMissingTop.length,
+  staleLocalOpenRouterIds: summary.staleLocalOpenRouterIds.slice(0, 20),
+  majorMissingTop: summary.majorMissingTop.slice(0, 20).map((model) => ({
+    id: model.id,
+    name: model.name,
+    createdAt: model.createdAt,
+  })),
+};
+
+console.log(JSON.stringify(compactOutput ? compactSummary : summary, null, 2));
+
+const failedChecks = [
+  summary.staleLocalOpenRouterIds.length === 0
+    ? null
+    : `local catalog contains ${summary.staleLocalOpenRouterIds.length} OpenRouter ids missing from the live API`,
+  summary.majorMissingTop.length === 0
+    ? null
+    : `local catalog is missing ${summary.majorMissingTop.length} high-priority major-provider text models`,
+  summary.visibleGeneralCount >= 200
+    ? null
+    : `visible general catalog only has ${summary.visibleGeneralCount} models`,
+].filter(Boolean);
+
+if (failedChecks.length > 0) {
+  console.error(`\nOpenRouter coverage audit failed:\n- ${failedChecks.join('\n- ')}`);
+  process.exitCode = 1;
+}
