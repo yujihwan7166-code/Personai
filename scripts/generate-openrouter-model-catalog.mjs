@@ -845,6 +845,30 @@ function overrideForExistingModel(entry, model) {
   ];
 }
 
+function selectBalancedIds(experts, {
+  filter,
+  score,
+  limit,
+  maxPerProvider,
+}) {
+  const providerCounts = new Map();
+  const selected = [];
+  const sorted = experts
+    .filter(filter)
+    .sort((a, b) => score(b) - score(a));
+
+  for (const expert of sorted) {
+    const provider = expert.modelInfo?.provider ?? 'Other';
+    const providerCount = providerCounts.get(provider) ?? 0;
+    if (providerCount >= maxPerProvider) continue;
+    selected.push(expert.id);
+    providerCounts.set(provider, providerCount + 1);
+    if (selected.length >= limit) break;
+  }
+
+  return selected;
+}
+
 async function main() {
   const source = await fs.readFile(EXPERTS_PATH, 'utf8');
   const existing = readExistingModels(source);
@@ -866,20 +890,23 @@ async function main() {
   const abilityEntries = Object.fromEntries(generated.map((item) => [item.expert.id, item.abilities]));
   const brandEntries = Object.fromEntries(generated.map((item) => [item.expert.id, item.brand]));
   const openSourceIds = experts.filter((expert) => expert.modelInfo?.openWeight).map((expert) => expert.id);
-  const reasoningIds = experts
-    .filter((expert) => (expert.tags ?? []).includes('추론'))
-    .sort((a, b) => (b.abilities?.reasoning ?? abilityEntries[b.id].reasoning) - (a.abilities?.reasoning ?? abilityEntries[a.id].reasoning))
-    .slice(0, 16)
-    .map((expert) => expert.id);
+  const reasoningIds = selectBalancedIds(experts, {
+    filter: (expert) => (expert.tags ?? []).includes('추론'),
+    score: (expert) => abilityEntries[expert.id]?.reasoning ?? 0,
+    limit: 16,
+    maxPerProvider: 3,
+  });
   const fastIds = experts
     .filter((expert) => (abilityEntries[expert.id]?.speed ?? 0) >= 80)
     .sort((a, b) => (abilityEntries[b.id]?.speed ?? 0) - (abilityEntries[a.id]?.speed ?? 0))
     .slice(0, 16)
     .map((expert) => expert.id);
-  const flagshipIds = experts
-    .filter((expert) => (abilityEntries[expert.id]?.reasoning ?? 0) >= 88 || (expert.tags ?? []).includes('코딩'))
-    .slice(0, 20)
-    .map((expert) => expert.id);
+  const flagshipIds = selectBalancedIds(experts, {
+    filter: (expert) => (abilityEntries[expert.id]?.reasoning ?? 0) >= 88 || (expert.tags ?? []).includes('코딩'),
+    score: (expert) => (abilityEntries[expert.id]?.reasoning ?? 0) + ((abilityEntries[expert.id]?.coding ?? 0) / 5),
+    limit: 20,
+    maxPerProvider: 4,
+  });
 
   const output = `import type { AIAbilityStats, Expert, ModelInfo } from '@/types/expert';\nimport type { ModelBrand } from '@/lib/modelTaxonomy';\n\nexport const OPENROUTER_ADDED_EXPERTS = ${toTsString(experts)} satisfies Expert[];\n\nexport const OPENROUTER_ADDED_ABILITIES = ${toTsString(abilityEntries)} satisfies Record<string, AIAbilityStats>;\n\nexport const OPENROUTER_ADDED_BRANDS = ${toTsString(brandEntries)} satisfies Record<string, ModelBrand>;\n\nexport const OPENROUTER_ADDED_OPENSOURCE_IDS = ${toTsString(openSourceIds)} as const;\n\nexport const OPENROUTER_ADDED_REASONING_IDS = ${toTsString(reasoningIds)} as const;\n\nexport const OPENROUTER_ADDED_FAST_IDS = ${toTsString(fastIds)} as const;\n\nexport const OPENROUTER_ADDED_FLAGSHIP_IDS = ${toTsString(flagshipIds)} as const;\n\nexport type { ModelInfo };\n`;
   const overridesOutput = `import type { Expert } from '@/types/expert';\n\nexport const OPENROUTER_EXISTING_MODEL_OVERRIDES = ${toTsString(existingOverrides)} satisfies Partial<Record<string, Pick<Expert, 'name' | 'nameKo' | 'description' | 'tags' | 'modelInfo'>>>;\n`;

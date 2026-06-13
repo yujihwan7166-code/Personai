@@ -3177,13 +3177,45 @@ function deriveCustomAbilities(expert: Expert): AIAbilityStats {
   };
 }
 
+function applyExistingModelOverride(expert: Expert): Expert {
+  const override = OPENROUTER_EXISTING_MODEL_OVERRIDES[expert.id];
+  if (!override) return expert;
+
+  const merged = { ...expert, ...override };
+  const oldNames = [expert.name, expert.nameKo].filter(Boolean);
+  const newName = merged.nameKo || merged.name;
+  const greeting = merged.greeting;
+  const shouldRefreshGreeting = Boolean(
+    greeting
+    && newName
+    && !greeting.includes(newName)
+    && (
+      oldNames.some((oldName) => greeting.includes(oldName))
+      || /에서 개발한 .+?입니다/u.test(greeting)
+    ),
+  );
+
+  if (!shouldRefreshGreeting) return merged;
+
+  const refreshedGreeting = oldNames.some((oldName) => greeting?.includes(oldName))
+    ? oldNames.reduce(
+      (nextGreeting, oldName) => nextGreeting.split(oldName).join(newName),
+      greeting ?? '',
+    )
+    : (greeting ?? '').replace(/에서 개발한 .+?입니다/u, `에서 개발한 ${newName}입니다`);
+
+  return {
+    ...merged,
+    greeting: refreshedGreeting,
+  };
+}
+
 // abilities 맵과 OpenRouter 메타데이터를 DEFAULT_EXPERTS에 주입
 export const DEFAULT_EXPERTS: Expert[] = [
   ..._DEFAULT_EXPERTS_RAW,
   ...OPENROUTER_ADDED_EXPERTS,
 ].map(e => {
-  const override = OPENROUTER_EXISTING_MODEL_OVERRIDES[e.id];
-  const expert = override ? { ...e, ...override } : e;
+  const expert = applyExistingModelOverride(e);
   const ab = AI_ABILITIES[expert.id] ?? OPENROUTER_ADDED_ABILITIES[expert.id];
   if (ab) return { ...expert, abilities: ab };
   return expert.category === 'ai' ? expert : { ...expert, abilities: deriveCustomAbilities(expert) };

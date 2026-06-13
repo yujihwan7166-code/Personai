@@ -54,9 +54,61 @@ async function lookupPrompt(id: string): Promise<string> {
   return '';
 }
 
-export async function getExpertPrompt(expert: Pick<Expert, 'id' | 'systemPrompt'>): Promise<string> {
+function formatContextLength(contextLength?: number) {
+  if (!contextLength || contextLength <= 0) return null;
+  if (contextLength >= 1_000_000) return `${Math.round(contextLength / 1_000_000)}M 토큰`;
+  if (contextLength >= 1000) return `${Math.round(contextLength / 1000)}K 토큰`;
+  return `${contextLength} 토큰`;
+}
+
+function buildModelMetadataPrompt(expert: Pick<Expert,
+  'id'
+  | 'systemPrompt'
+  | 'name'
+  | 'nameKo'
+  | 'description'
+  | 'tags'
+  | 'modelInfo'
+  | 'openrouterModel'
+>) {
+  const name = expert.nameKo || expert.name || expert.id;
+  const provider = expert.modelInfo?.provider ?? 'OpenRouter';
+  const tags = expert.tags?.length ? expert.tags.join(', ') : '범용 대화';
+  const contextLength = formatContextLength(expert.modelInfo?.contextLength);
+  const inputModalities = expert.modelInfo?.inputModalities?.join(', ') || 'text';
+  const openWeightNote = expert.modelInfo?.openWeight ? '오픈웨이트 모델 특성을 고려해 배포/비용/커스터마이징 관점도 함께 설명합니다.' : '';
+  const modelLine = expert.openrouterModel ? `OpenRouter 모델 ID: ${expert.openrouterModel}` : '';
+
+  return `당신은 ${provider}의 ${name} 모델입니다. 사용자의 질문에 한국어로 자연스럽고 정확하게 답하세요.
+
+모델 정보:
+- 설명: ${expert.description || `${provider} 계열 일반 AI 모델`}
+- 태그: ${tags}
+${contextLength ? `- 문맥 길이: ${contextLength}` : ''}
+- 입력 형식: ${inputModalities}
+${modelLine ? `- ${modelLine}` : ''}
+${openWeightNote ? `- ${openWeightNote}` : ''}
+
+답변 방식:
+- 질문 의도를 먼저 파악하고, 필요한 경우 결론부터 말한 뒤 근거와 절차를 이어서 설명합니다.
+- ${tags} 성격에 맞는 답변 깊이와 형식을 선택합니다.
+- 확실하지 않은 최신 사실, 가격, 일정, 법률·의학·금융 정보는 단정하지 말고 확인 필요성을 밝힙니다.
+- 코드나 분석을 요청받으면 실행 가능한 단계, 예시, 검증 방법을 함께 제시합니다.`;
+}
+
+export async function getExpertPrompt(expert: Pick<Expert,
+  'id'
+  | 'systemPrompt'
+  | 'name'
+  | 'nameKo'
+  | 'description'
+  | 'tags'
+  | 'modelInfo'
+  | 'openrouterModel'
+>): Promise<string> {
   if (expert.systemPrompt) return expert.systemPrompt;
-  return lookupPrompt(expert.id);
+  const prompt = await lookupPrompt(expert.id);
+  return prompt || buildModelMetadataPrompt(expert);
 }
 
 export async function buildExpertWithPrompt(expert: Expert, extra = ''): Promise<Expert> {

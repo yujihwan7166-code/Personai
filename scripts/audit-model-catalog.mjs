@@ -16,7 +16,16 @@ const {
 const {
   AI_GROUP_CATS,
   buildExpertSelectionGroups,
+  FAST_MODEL_IDS,
+  FLAGSHIP_MODEL_IDS,
 } = await import('../src/lib/expertSelectionGroups.ts');
+const { getExpertPrompt } = await import('../src/lib/expertPromptLoader.ts');
+const {
+  MODEL_BRAND,
+  MODEL_IS_OPENSOURCE,
+  REASONING_MODEL_IDS,
+  RECOMMENDED_MODEL_IDS,
+} = await import('../src/lib/modelTaxonomy.ts');
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
@@ -39,6 +48,93 @@ const REQUIRED_VISIBLE_GENERAL_PROVIDERS = [
   'Z.ai',
   'MiniMax',
 ];
+const GENERAL_QUICK_FILTER_IDS = [
+  'recommended',
+  'new',
+  'flagship',
+  'fast',
+  'reasoning',
+  'coding',
+  'low-cost',
+  'long-context',
+  'minor',
+  'search',
+  'opensource',
+];
+const GENERAL_TRAIT_FILTER_IDS = ['reasoning', 'fast', 'coding', 'search', 'opensource'];
+const GENERAL_SPEC_FILTER_IDS = [
+  'speed-fast',
+  'speed-normal',
+  'price-free',
+  'price-low',
+  'price-standard',
+  'price-premium',
+  'context-xl',
+  'context-long',
+  'context-standard',
+  'input-text',
+  'input-vision',
+  'input-audio-video',
+];
+const NEW_MODEL_IDS = new Set([
+  'gpt',
+  'claude-sonnet-4.6',
+  'gemini-3-flash',
+  'gemini-3.1',
+  'grok-4.2',
+  'qwen-plus',
+  'nova-2-lite',
+  'glm',
+  'mimo',
+  'mercury',
+]);
+const MAJOR_MODEL_BRANDS = new Set(['gpt', 'claude', 'gemini', 'grok', 'perplexity', 'deepseek', 'qwen']);
+const FAST_MODEL_ID_SET = new Set(FAST_MODEL_IDS);
+const FLAGSHIP_MODEL_ID_SET = new Set(FLAGSHIP_MODEL_IDS);
+const SELECTION_GROUP_QUALITY_RULES = {
+  ai_recommended: {
+    minProviderCount: 6,
+    maxProviderShare: 0.35,
+    minCreatedAt2025Share: 1,
+    minCreatedAt2026Count: 2,
+  },
+  ai_flagship: {
+    minProviderCount: 10,
+    maxProviderShare: 0.35,
+    minCreatedAt2025Share: 1,
+    minCreatedAt2026Count: 8,
+  },
+  ai_fast: {
+    minProviderCount: 10,
+    maxProviderShare: 0.35,
+    minCreatedAt2025Share: 0.85,
+    minCreatedAt2026Count: 8,
+  },
+  ai_reasoning: {
+    minProviderCount: 10,
+    maxProviderShare: 0.35,
+    minCreatedAt2025Share: 1,
+    minCreatedAt2026Count: 8,
+  },
+  ai_minor: {
+    minProviderCount: 8,
+    maxProviderShare: 0.3,
+    minCreatedAt2025Share: 1,
+    minCreatedAt2026Count: 6,
+  },
+  ai_open: {
+    minProviderCount: 12,
+    maxProviderShare: 0.35,
+    minCreatedAt2025Share: 0.8,
+    minCreatedAt2026Count: 30,
+  },
+  ai: {
+    minProviderCount: 30,
+    maxProviderShare: 0.25,
+    minCreatedAt2025Share: 0.8,
+    minCreatedAt2026Count: 70,
+  },
+};
 const aiExperts = DEFAULT_EXPERTS.filter((expert) => expert.category === 'ai');
 const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
 const selectionGroups = buildExpertSelectionGroups({
@@ -86,6 +182,99 @@ const visibleGeneralAbilityRanges = Object.fromEntries(statsKeys.map((key) => {
     unique: new Set(values).size,
   }];
 }));
+const visibleGeneralMissingGreeting = visibleGeneralAiExperts.filter((expert) => !expert.greeting?.trim());
+const visibleGeneralStaleGreetingNames = visibleGeneralAiExperts.filter((expert) => {
+  const name = expert.nameKo || expert.name;
+  const greeting = expert.greeting ?? '';
+  return Boolean(name)
+    && !greeting.includes(name)
+    && /에서 개발한 .+?입니다/u.test(greeting);
+});
+const visibleGeneralMissingQuotes = visibleGeneralAiExperts.filter((expert) => !expert.quote?.trim());
+const visibleGeneralTooShortQuotes = visibleGeneralAiExperts.filter((expert) => (expert.quote?.trim().length ?? 0) < 6);
+const visibleGeneralRuntimePromptEntries = await Promise.all(visibleGeneralAiExperts.map(async (expert) => ({
+  expert,
+  prompt: await getExpertPrompt(expert),
+})));
+const visibleGeneralMissingRuntimePrompts = visibleGeneralRuntimePromptEntries
+  .filter((entry) => entry.prompt.trim().length < 120);
+const visibleGeneralRuntimePromptMissingIdentity = visibleGeneralRuntimePromptEntries
+  .filter(({ expert, prompt }) => {
+    const name = expert.nameKo || expert.name;
+    const provider = expert.modelInfo?.provider ?? '';
+    return !prompt.includes(name) && Boolean(provider) && !prompt.includes(provider);
+  });
+function modelFieldTags(expert) {
+  return expert.tags ?? [];
+}
+
+function isFastModel(expert) {
+  return FAST_MODEL_ID_SET.has(expert.id) || (expert.abilities?.speed ?? 0) >= 85;
+}
+
+function getGeneralTraitIds(expert) {
+  const brand = MODEL_BRAND[expert.id];
+  const isOpenWeight = Boolean(expert.modelInfo?.openWeight) || MODEL_IS_OPENSOURCE.has(expert.id);
+  const fieldTags = modelFieldTags(expert);
+  const isReasoningModel =
+    REASONING_MODEL_IDS.includes(expert.id)
+    || fieldTags.some((tag) => tag.includes('수학') || tag.includes('논리'));
+  return [
+    isReasoningModel ? 'reasoning' : null,
+    isFastModel(expert) ? 'fast' : null,
+    expert.description.includes('코딩') || fieldTags.some((tag) => tag.includes('코딩') || tag.includes('개발')) ? 'coding' : null,
+    brand === 'perplexity' || fieldTags.some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG') ? 'search' : null,
+    isOpenWeight ? 'opensource' : null,
+  ].filter(Boolean);
+}
+
+function getGeneralSpecIds(expert) {
+  const priceTier = expert.modelInfo?.priceTier;
+  const contextLength = expert.modelInfo?.contextLength ?? 0;
+  const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
+  const inputSpecIds = [
+    inputModalities.some((modality) => modality !== 'text') ? null : 'input-text',
+    inputModalities.includes('image') ? 'input-vision' : null,
+    inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null,
+  ].filter(Boolean);
+  return [
+    isFastModel(expert) ? 'speed-fast' : 'speed-normal',
+    priceTier ? `price-${priceTier}` : MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-standard',
+    contextLength >= 1_000_000 ? 'context-xl' : contextLength >= 262_144 ? 'context-long' : 'context-standard',
+    ...inputSpecIds,
+  ];
+}
+
+function matchesGeneralQuickFilter(expert, filterId) {
+  if (filterId === 'recommended') return RECOMMENDED_MODEL_IDS.includes(expert.id);
+  if (filterId === 'new') return NEW_MODEL_IDS.has(expert.id);
+  if (filterId === 'flagship') return FLAGSHIP_MODEL_ID_SET.has(expert.id);
+  if (filterId === 'fast') return getGeneralSpecIds(expert).includes('speed-fast');
+  if (filterId === 'reasoning') return getGeneralTraitIds(expert).includes('reasoning');
+  if (filterId === 'low-cost') return getGeneralSpecIds(expert).some((id) => id === 'price-free' || id === 'price-low');
+  if (filterId === 'long-context') return getGeneralSpecIds(expert).some((id) => id === 'context-xl' || id === 'context-long');
+  if (filterId === 'minor') {
+    const brand = MODEL_BRAND[expert.id] ?? 'other';
+    return brand === 'other' || (!MAJOR_MODEL_BRANDS.has(brand) && !FLAGSHIP_MODEL_ID_SET.has(expert.id) && !RECOMMENDED_MODEL_IDS.includes(expert.id));
+  }
+  if (filterId === 'coding') return getGeneralTraitIds(expert).includes('coding') || modelFieldTags(expert).some((tag) => tag.includes('코딩') || tag.includes('개발'));
+  if (filterId === 'search') return getGeneralTraitIds(expert).includes('search') || modelFieldTags(expert).some((tag) => tag.includes('검색') || tag.includes('출처') || tag.includes('리서치') || tag === 'RAG');
+  if (filterId === 'opensource') return getGeneralTraitIds(expert).includes('opensource');
+  return true;
+}
+
+function countFilterMatches(ids, predicate) {
+  return Object.fromEntries(ids.map((id) => [
+    id,
+    visibleGeneralAiExperts.filter((expert) => predicate(expert, id)).length,
+  ]));
+}
+
+const visibleGeneralExplorerFilterCoverage = {
+  quick: countFilterMatches(GENERAL_QUICK_FILTER_IDS, matchesGeneralQuickFilter),
+  trait: countFilterMatches(GENERAL_TRAIT_FILTER_IDS, (expert, id) => getGeneralTraitIds(expert).includes(id)),
+  detail: countFilterMatches(GENERAL_SPEC_FILTER_IDS, (expert, id) => getGeneralSpecIds(expert).includes(id)),
+};
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
 const roleplayHeavyProviderPrefixes = [
@@ -166,12 +355,26 @@ const visibleGeneralSelectionGroupQuality = selectionGroups
     const ids = group.items.map((expert) => expert.id);
     const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
     const hiddenIds = ids.filter((id) => !visibleGeneralIdSet.has(id));
+    const providerCounts = group.items.reduce((acc, expert) => {
+      const provider = expert.modelInfo?.provider ?? 'missing';
+      acc[provider] = (acc[provider] ?? 0) + 1;
+      return acc;
+    }, {});
+    const maxProviderCount = Math.max(0, ...Object.values(providerCounts));
+    const createdAt2025Count = group.items.filter((expert) => (expert.modelInfo?.createdAt ?? '') >= '2025-01-01').length;
+    const createdAt2026Count = group.items.filter((expert) => (expert.modelInfo?.createdAt ?? '') >= '2026-01-01').length;
     return {
       cat: group.cat,
       label: group.label,
       count: ids.length,
       duplicateIds: [...new Set(duplicateIds)],
       hiddenIds,
+      providerCounts,
+      uniqueProviderCount: Object.keys(providerCounts).length,
+      maxProviderShare: group.items.length > 0 ? maxProviderCount / group.items.length : 0,
+      createdAt2025Count,
+      createdAt2026Count,
+      qualityRule: SELECTION_GROUP_QUALITY_RULES[group.cat] ?? null,
     };
   });
 
@@ -339,6 +542,38 @@ const summary = {
     missingAbilityIds: visibleGeneralMissingAbilities.map((expert) => expert.id),
     ranges: visibleGeneralAbilityRanges,
   },
+  visibleGeneralCopyCompleteness: {
+    missingGreetingCount: visibleGeneralMissingGreeting.length,
+    missingGreetingIds: visibleGeneralMissingGreeting.map((expert) => expert.id),
+    staleGreetingNameCount: visibleGeneralStaleGreetingNames.length,
+    staleGreetingNames: visibleGeneralStaleGreetingNames.map((expert) => ({
+      id: expert.id,
+      name: expert.nameKo || expert.name,
+      greeting: expert.greeting,
+    })),
+    missingQuoteCount: visibleGeneralMissingQuotes.length,
+    missingQuoteIds: visibleGeneralMissingQuotes.map((expert) => expert.id),
+    tooShortQuoteCount: visibleGeneralTooShortQuotes.length,
+    tooShortQuotes: visibleGeneralTooShortQuotes.map((expert) => ({
+      id: expert.id,
+      quote: expert.quote,
+    })),
+  },
+  visibleGeneralRuntimePromptQuality: {
+    missingRuntimePromptCount: visibleGeneralMissingRuntimePrompts.length,
+    missingRuntimePrompts: visibleGeneralMissingRuntimePrompts.map(({ expert, prompt }) => ({
+      id: expert.id,
+      promptLength: prompt.length,
+    })),
+    missingIdentityCount: visibleGeneralRuntimePromptMissingIdentity.length,
+    missingIdentity: visibleGeneralRuntimePromptMissingIdentity.map(({ expert, prompt }) => ({
+      id: expert.id,
+      name: expert.nameKo || expert.name,
+      provider: expert.modelInfo?.provider,
+      promptStart: prompt.slice(0, 140),
+    })),
+  },
+  visibleGeneralExplorerFilterCoverage,
   visibleGeneralFilterBuckets,
   visibleGeneralMetadataQuality: {
     checkedAsOf: TODAY_ISO,
@@ -460,10 +695,25 @@ const compactSummary = {
     uniqueQuotes: summary.generatedCopyDiversity.uniqueQuotes,
     modelSpecificQuestionCount: summary.generatedCopyDiversity.modelSpecificQuestionCount,
   },
+  copyCompleteness: {
+    missingGreetingCount: summary.visibleGeneralCopyCompleteness.missingGreetingCount,
+    staleGreetingNameCount: summary.visibleGeneralCopyCompleteness.staleGreetingNameCount,
+    missingQuoteCount: summary.visibleGeneralCopyCompleteness.missingQuoteCount,
+    tooShortQuoteCount: summary.visibleGeneralCopyCompleteness.tooShortQuoteCount,
+  },
+  runtimePromptQuality: {
+    missingRuntimePromptCount: summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount,
+    missingIdentityCount: summary.visibleGeneralRuntimePromptQuality.missingIdentityCount,
+  },
+  explorerFilterCoverage: summary.visibleGeneralExplorerFilterCoverage,
   filterBuckets: summary.visibleGeneralFilterBuckets,
   selectionGroups: summary.visibleGeneralSelectionGroupQuality.map((group) => ({
     cat: group.cat,
     count: group.count,
+    uniqueProviderCount: group.uniqueProviderCount,
+    maxProviderShare: Number(group.maxProviderShare.toFixed(3)),
+    createdAt2025Count: group.createdAt2025Count,
+    createdAt2026Count: group.createdAt2026Count,
     duplicateCount: group.duplicateIds.length,
     hiddenCount: group.hiddenIds.length,
   })),
@@ -541,12 +791,53 @@ const failedChecks = [
   summary.generatedCopyDiversity.modelSpecificQuestionCount === summary.addedOpenRouterCount
     ? null
     : 'not every generated model has a model/provider-specific question',
+  summary.visibleGeneralCopyCompleteness.missingGreetingCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.missingGreetingCount} models without greetings`,
+  summary.visibleGeneralCopyCompleteness.staleGreetingNameCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.staleGreetingNameCount} stale greeting model names`,
+  summary.visibleGeneralCopyCompleteness.missingQuoteCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.missingQuoteCount} models without quotes`,
+  summary.visibleGeneralCopyCompleteness.tooShortQuoteCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralCopyCompleteness.tooShortQuoteCount} quotes shorter than 6 characters`,
+  summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralRuntimePromptQuality.missingRuntimePromptCount} missing runtime prompts`,
+  summary.visibleGeneralRuntimePromptQuality.missingIdentityCount === 0
+    ? null
+    : `visible general catalog has ${summary.visibleGeneralRuntimePromptQuality.missingIdentityCount} runtime prompts without model identity`,
+  ...Object.entries(summary.visibleGeneralExplorerFilterCoverage.quick).flatMap(([id, count]) => [
+    count >= 5 ? null : `general quick filter ${id} only matches ${count} models`,
+    count <= Math.ceil(summary.visibleGeneralCount * 0.55) ? null : `general quick filter ${id} is too broad with ${count} models`,
+  ]),
+  ...Object.entries(summary.visibleGeneralExplorerFilterCoverage.trait).flatMap(([id, count]) => [
+    count >= 5 ? null : `general trait filter ${id} only matches ${count} models`,
+    count <= Math.ceil(summary.visibleGeneralCount * 0.55) ? null : `general trait filter ${id} is too broad with ${count} models`,
+  ]),
+  ...Object.entries(summary.visibleGeneralExplorerFilterCoverage.detail).map(([id, count]) => (
+    count > 0 ? null : `general detail filter ${id} matches no models`
+  )),
   summary.generatedTagCoverage.openWeightTagMissingCount === 0
     ? null
     : `${summary.generatedTagCoverage.openWeightTagMissingCount} open-weight models are missing the open-weight tag`,
   ...summary.visibleGeneralSelectionGroupQuality.flatMap((group) => [
     group.duplicateIds.length === 0 ? null : `${group.cat} has duplicate ids: ${group.duplicateIds.join(', ')}`,
     group.hiddenIds.length === 0 ? null : `${group.cat} exposes hidden ids: ${group.hiddenIds.join(', ')}`,
+    !group.qualityRule || group.uniqueProviderCount >= group.qualityRule.minProviderCount
+      ? null
+      : `${group.cat} only has ${group.uniqueProviderCount} providers`,
+    !group.qualityRule || group.maxProviderShare <= group.qualityRule.maxProviderShare
+      ? null
+      : `${group.cat} max provider share is ${(group.maxProviderShare * 100).toFixed(1)}%`,
+    !group.qualityRule || group.createdAt2025Count >= Math.ceil(group.count * group.qualityRule.minCreatedAt2025Share)
+      ? null
+      : `${group.cat} only has ${group.createdAt2025Count} models from 2025 or newer`,
+    !group.qualityRule || group.createdAt2026Count >= group.qualityRule.minCreatedAt2026Count
+      ? null
+      : `${group.cat} only has ${group.createdAt2026Count} models from 2026 or newer`,
   ]),
 ].filter(Boolean);
 

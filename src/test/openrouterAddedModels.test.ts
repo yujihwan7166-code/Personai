@@ -17,6 +17,7 @@ import {
   FAST_MODEL_IDS,
   FLAGSHIP_MODEL_IDS,
 } from '@/lib/expertSelectionGroups';
+import { getExpertPrompt } from '@/lib/expertPromptLoader';
 import { hasLikelyMojibake, isVisibleGeneralTextModel } from '@/lib/generalModelCatalog';
 import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
 import { DEFAULT_EXPERTS } from '@/types/expert';
@@ -65,9 +66,34 @@ describe('openrouter added model catalog', () => {
       expect((range as { unique: number }).unique).toBeGreaterThanOrEqual(12);
     });
     expect(summary.copyDiversity.uniqueDescriptionSkeletons).toBeGreaterThanOrEqual(70);
+    expect(summary.copyCompleteness).toEqual({
+      missingGreetingCount: 0,
+      staleGreetingNameCount: 0,
+      missingQuoteCount: 0,
+      tooShortQuoteCount: 0,
+    });
+    expect(summary.runtimePromptQuality).toEqual({
+      missingRuntimePromptCount: 0,
+      missingIdentityCount: 0,
+    });
+    Object.values(summary.explorerFilterCoverage.quick).forEach((count) => {
+      expect(count as number).toBeGreaterThanOrEqual(5);
+      expect(count as number).toBeLessThanOrEqual(Math.ceil(summary.visibleGeneralCount * 0.55));
+    });
+    Object.values(summary.explorerFilterCoverage.trait).forEach((count) => {
+      expect(count as number).toBeGreaterThanOrEqual(5);
+      expect(count as number).toBeLessThanOrEqual(Math.ceil(summary.visibleGeneralCount * 0.55));
+    });
+    Object.values(summary.explorerFilterCoverage.detail).forEach((count) => {
+      expect(count as number).toBeGreaterThan(0);
+    });
     expect(summary.selectionGroups.every((group: { duplicateCount: number; hiddenCount: number }) =>
       group.duplicateCount === 0 && group.hiddenCount === 0)).toBe(true);
-  });
+    expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_flagship')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
+    expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_reasoning')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
+    expect(summary.selectionGroups.find((group: { cat: string }) => group.cat === 'ai_fast')?.uniqueProviderCount).toBeGreaterThanOrEqual(10);
+    expect(summary.selectionGroups.every((group: { maxProviderShare: number }) => group.maxProviderShare <= 0.35)).toBe(true);
+  }, 15_000);
 
   it('keeps generated general models text-output only', () => {
     OPENROUTER_ADDED_EXPERTS.forEach((expert) => {
@@ -439,6 +465,28 @@ describe('openrouter added model catalog', () => {
       expect(prompt, `${id} prompt should avoid the old strengths section`).not.toContain('## 강점');
       expect(prompt, `${id} prompt should describe answer style`).toContain('## 답변 스타일');
     });
+
+    expect(AI_MODEL_PROMPTS.gpt).toContain('GPT-4.1');
+    expect(AI_MODEL_PROMPTS.claude).toContain('Claude Opus 4.6');
+    expect(AI_MODEL_PROMPTS.gemini).toContain('Gemini 2.5 Flash');
+    expect(AI_MODEL_PROMPTS.grok).toContain('Grok 4.3');
+    expect(AI_MODEL_PROMPTS.qwen).toContain('Qwen3.5');
+  });
+
+  it('provides model-aware runtime prompts for every visible general model', async () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+
+    await Promise.all(visibleGeneralModels.map(async (expert) => {
+      const prompt = await getExpertPrompt(expert);
+      const name = expert.nameKo || expert.name;
+      const provider = expert.modelInfo?.provider ?? '';
+
+      expect(prompt.trim().length, `${expert.id} should have a non-empty runtime prompt`).toBeGreaterThanOrEqual(120);
+      expect(
+        prompt.includes(name) || (provider && prompt.includes(provider)),
+        `${expert.id} runtime prompt should include its model name or provider`,
+      ).toBe(true);
+    }));
   });
 
   it('provides bounded ability stats for every generated model', () => {
@@ -493,6 +541,28 @@ describe('openrouter added model catalog', () => {
     expect(visionTemplateDescriptions).toHaveLength(0);
     expect(genericReasoningDescriptions).toHaveLength(0);
     expect(genericChatDescriptions).toHaveLength(0);
+  });
+
+  it('keeps existing OpenRouter-backed model greetings aligned with refreshed names', () => {
+    const byId = new Map(DEFAULT_EXPERTS.map((expert) => [expert.id, expert]));
+
+    [
+      'gpt-mini',
+      'gpt-nano',
+      'qwen',
+      'qwen-9b',
+      'qwen-plus',
+      'seed',
+      'seed-mini',
+      'grok',
+    ].forEach((id) => {
+      const expert = byId.get(id);
+      expect(expert?.greeting, `${id} greeting should use the current model name`).toContain(expert?.nameKo ?? expert?.name);
+    });
+
+    expect(byId.get('gpt-mini')?.greeting).not.toContain('GPT-5.4 Mini');
+    expect(byId.get('gpt-nano')?.greeting).not.toContain('GPT-5.4 Nano');
+    expect(byId.get('grok')?.greeting).not.toContain('Grok 4.1 Fast');
   });
 
   it('keeps existing OpenRouter override descriptions distinct and specific', () => {
@@ -579,6 +649,46 @@ describe('openrouter added model catalog', () => {
       expect(new Set(ids).size, `${group.cat} should not contain duplicate models`).toBe(ids.length);
       expect(duplicateIds, `${group.cat} duplicate ids`).toEqual([]);
       expect(hiddenIds, `${group.cat} should only contain visible general text models`).toEqual([]);
+    });
+  });
+
+  it('keeps prominent AI selection groups provider-balanced and current', () => {
+    const groups = buildExpertSelectionGroups({
+      experts: DEFAULT_EXPERTS,
+      favoriteIds: [],
+      visibleCategories: ['ai'],
+      aiAgentIds: [],
+    });
+    const rules: Record<string, {
+      minProviderCount: number;
+      maxProviderShare: number;
+      minCreatedAt2025Share: number;
+      minCreatedAt2026Count: number;
+    }> = {
+      ai_recommended: { minProviderCount: 6, maxProviderShare: 0.35, minCreatedAt2025Share: 1, minCreatedAt2026Count: 2 },
+      ai_flagship: { minProviderCount: 10, maxProviderShare: 0.35, minCreatedAt2025Share: 1, minCreatedAt2026Count: 8 },
+      ai_fast: { minProviderCount: 10, maxProviderShare: 0.35, minCreatedAt2025Share: 0.85, minCreatedAt2026Count: 8 },
+      ai_reasoning: { minProviderCount: 10, maxProviderShare: 0.35, minCreatedAt2025Share: 1, minCreatedAt2026Count: 8 },
+      ai_minor: { minProviderCount: 8, maxProviderShare: 0.3, minCreatedAt2025Share: 1, minCreatedAt2026Count: 6 },
+      ai_open: { minProviderCount: 12, maxProviderShare: 0.35, minCreatedAt2025Share: 0.8, minCreatedAt2026Count: 30 },
+      ai: { minProviderCount: 30, maxProviderShare: 0.25, minCreatedAt2025Share: 0.8, minCreatedAt2026Count: 70 },
+    };
+
+    Object.entries(rules).forEach(([cat, rule]) => {
+      const group = groups.find((item) => item.cat === cat);
+      const providerCounts = (group?.items ?? []).reduce<Record<string, number>>((acc, expert) => {
+        const provider = expert.modelInfo?.provider ?? 'missing';
+        acc[provider] = (acc[provider] ?? 0) + 1;
+        return acc;
+      }, {});
+      const maxProviderCount = Math.max(0, ...Object.values(providerCounts));
+      const createdAt2025Count = (group?.items ?? []).filter((expert) => (expert.modelInfo?.createdAt ?? '') >= '2025-01-01').length;
+      const createdAt2026Count = (group?.items ?? []).filter((expert) => (expert.modelInfo?.createdAt ?? '') >= '2026-01-01').length;
+
+      expect(Object.keys(providerCounts).length, `${cat} should cover enough providers`).toBeGreaterThanOrEqual(rule.minProviderCount);
+      expect(maxProviderCount / (group?.items.length ?? 1), `${cat} should not be dominated by one provider`).toBeLessThanOrEqual(rule.maxProviderShare);
+      expect(createdAt2025Count, `${cat} should stay mostly current`).toBeGreaterThanOrEqual(Math.ceil((group?.items.length ?? 0) * rule.minCreatedAt2025Share));
+      expect(createdAt2026Count, `${cat} should include current-year models`).toBeGreaterThanOrEqual(rule.minCreatedAt2026Count);
     });
   });
 
