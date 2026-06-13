@@ -115,6 +115,7 @@ interface DocxHtmlEnrichOptions {
     listIndex: number;
     start: number;
     format?: string;
+    suffix?: 'tab' | 'space' | 'nothing';
     leftTwips?: number;
     hangingTwips?: number;
   }>;
@@ -122,6 +123,7 @@ interface DocxHtmlEnrichOptions {
     listIndex: number;
     format?: string;
     text?: string;
+    suffix?: 'tab' | 'space' | 'nothing';
     leftTwips?: number;
     hangingTwips?: number;
   }>;
@@ -180,6 +182,8 @@ interface DocxHtmlEnrichOptions {
     align?: 'left' | 'center' | 'right';
     layout?: 'fixed' | 'autofit';
     cellSpacingTwips?: number;
+    caption?: string;
+    description?: string;
   }>;
   tableRowStyles?: Array<{
     tableIndex: number;
@@ -685,6 +689,7 @@ function normalizeListStarts(
     listIndex: number;
     start: number;
     format?: string;
+    suffix?: 'tab' | 'space' | 'nothing';
     leftTwips?: number;
     hangingTwips?: number;
   }>,
@@ -701,6 +706,7 @@ function normalizeListStarts(
 
     const type = htmlOrderedListType(item.format);
     if (type) list.setAttribute('type', type);
+    applyListSuffix(list, item.suffix);
     applyListIndent(list, item.leftTwips, item.hangingTwips);
   }
 }
@@ -726,6 +732,7 @@ function normalizeBulletListStyles(
     listIndex: number;
     format?: string;
     text?: string;
+    suffix?: 'tab' | 'space' | 'nothing';
     leftTwips?: number;
     hangingTwips?: number;
   }>,
@@ -741,8 +748,13 @@ function normalizeBulletListStyles(
     if (!styleType) continue;
     appendStyle(list, 'list-style-type', styleType);
     list.setAttribute('data-list-style-type', styleType);
+    applyListSuffix(list, item.suffix);
     applyListIndent(list, item.leftTwips, item.hangingTwips);
   }
+}
+
+function applyListSuffix(list: HTMLElement, suffix: 'tab' | 'space' | 'nothing' | undefined): void {
+  if (suffix) list.setAttribute('data-list-suffix', suffix);
 }
 
 function applyListIndent(list: HTMLElement, leftTwips: number | undefined, hangingTwips: number | undefined): void {
@@ -1832,6 +1844,8 @@ function normalizeTables(
     align?: 'left' | 'center' | 'right';
     layout?: 'fixed' | 'autofit';
     cellSpacingTwips?: number;
+    caption?: string;
+    description?: string;
   }>,
 ): void {
   for (const [tableIndex, t] of Array.from(root.querySelectorAll('table')).entries()) {
@@ -1933,6 +1947,8 @@ function applyTableMetadata(
     appendStyle(table, 'border-collapse', 'separate');
     appendStyle(table, 'border-spacing', `${spacingPx}px`);
   }
+  if (style.caption) table.setAttribute('data-table-caption', style.caption);
+  if (style.description) table.setAttribute('data-table-description', style.description);
 }
 
 function applyGridColumnWidths(table: HTMLTableElement, widthsPx: number[]): void {

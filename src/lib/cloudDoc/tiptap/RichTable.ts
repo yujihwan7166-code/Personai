@@ -7,6 +7,8 @@ const TABLE_ALIGN_ATTR = 'data-table-align';
 const TABLE_COLUMN_WIDTHS_ATTR = 'data-table-column-widths';
 const TABLE_LAYOUT_ATTR = 'data-table-layout';
 const TABLE_CELL_SPACING_ATTR = 'data-table-cell-spacing';
+const TABLE_CAPTION_ATTR = 'data-table-caption';
+const TABLE_DESCRIPTION_ATTR = 'data-table-description';
 
 function parseTableWidth(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.round(value);
@@ -40,6 +42,12 @@ function parseTableColumnWidths(value: unknown): number[] | null {
   if (typeof value !== 'string') return null;
   const widths = value.split(',').map(parseTableWidth).filter((width): width is number => width != null);
   return widths.length ? widths : null;
+}
+
+function parseTableText(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 export const RichTable = BaseTable.extend({
@@ -102,6 +110,22 @@ export const RichTable = BaseTable.extend({
         renderHTML: (attributes) => {
           const tableCellSpacing = parseTableWidth(attributes.tableCellSpacing);
           return tableCellSpacing ? { [TABLE_CELL_SPACING_ATTR]: String(tableCellSpacing) } : {};
+        },
+      },
+      tableCaption: {
+        default: null,
+        parseHTML: (element: HTMLElement) => parseTableText(element.getAttribute(TABLE_CAPTION_ATTR)),
+        renderHTML: (attributes) => {
+          const caption = parseTableText(attributes.tableCaption);
+          return caption ? { [TABLE_CAPTION_ATTR]: caption } : {};
+        },
+      },
+      tableDescription: {
+        default: null,
+        parseHTML: (element: HTMLElement) => parseTableText(element.getAttribute(TABLE_DESCRIPTION_ATTR)),
+        renderHTML: (attributes) => {
+          const description = parseTableText(attributes.tableDescription);
+          return description ? { [TABLE_DESCRIPTION_ATTR]: description } : {};
         },
       },
     };

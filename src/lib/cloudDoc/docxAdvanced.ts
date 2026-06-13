@@ -106,6 +106,8 @@ export interface DocxHeaderFooterImage {
   width: number;
   height: number;
   align?: DocxTextAlign;
+  alt?: string;
+  title?: string;
 }
 
 export interface DocxParagraphPagination {
@@ -202,6 +204,7 @@ export interface DocxListStart {
   listIndex: number;
   start: number;
   format?: string;
+  suffix?: 'tab' | 'space' | 'nothing';
   leftTwips?: number;
   hangingTwips?: number;
 }
@@ -210,6 +213,7 @@ export interface DocxBulletListStyle {
   listIndex: number;
   format?: string;
   text?: string;
+  suffix?: 'tab' | 'space' | 'nothing';
   leftTwips?: number;
   hangingTwips?: number;
 }
@@ -319,6 +323,8 @@ export interface DocxTableStyle {
   align?: 'left' | 'center' | 'right';
   layout?: 'fixed' | 'autofit';
   cellSpacingTwips?: number;
+  caption?: string;
+  description?: string;
 }
 
 export interface DocxTableRowStyle {
@@ -684,12 +690,15 @@ async function readHeaderFooterImage(
   const extent = drawingXml.match(/<wp:extent\b[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"[^>]*\/?>/);
   const cx = Number(extent?.[1]);
   const cy = Number(extent?.[2]);
+  const altText = readImageAltText(drawingXml);
   const base64 = await mediaFile.async('base64');
   return {
     src: `data:${mime};base64,${base64}`,
     width: Number.isFinite(cx) && cx > 0 ? Math.max(1, Math.round(cx / EMU_PER_PX)) : 96,
     height: Number.isFinite(cy) && cy > 0 ? Math.max(1, Math.round(cy / EMU_PER_PX)) : 48,
     ...(align ? { align } : {}),
+    ...(altText.alt ? { alt: altText.alt } : {}),
+    ...(altText.title ? { title: altText.title } : {}),
   };
 }
 
@@ -1324,6 +1333,7 @@ interface DocxNumberingLevel {
   start: number;
   format: string;
   text?: string;
+  suffix?: 'tab' | 'space' | 'nothing';
   leftTwips?: number;
   hangingTwips?: number;
 }
@@ -1393,6 +1403,7 @@ function readAbstractNumberingLevels(numberingXml: string): Map<string, Map<numb
           start: level.start,
           format: level.format,
           text: level.text,
+          suffix: level.suffix,
           leftTwips: level.leftTwips,
           hangingTwips: level.hangingTwips,
         });
@@ -1438,6 +1449,7 @@ function readNumberingDefinitions(numberingXml: string): Map<string, DocxNumberi
               start: nestedLevel.start,
               format: nestedLevel.format,
               text: nestedLevel.text,
+              suffix: nestedLevel.suffix,
               leftTwips: nestedLevel.leftTwips,
               hangingTwips: nestedLevel.hangingTwips,
             }
@@ -1460,10 +1472,12 @@ function readListLevel(levelXml: string): ({ ilvl: number } & DocxNumberingLevel
   const startTag = levelXml.match(/<w:start\b[^>]*>/i)?.[0];
   const numFmtTag = levelXml.match(/<w:numFmt\b[^>]*>/i)?.[0];
   const lvlTextTag = levelXml.match(/<w:lvlText\b[^>]*>/i)?.[0];
+  const suffixTag = levelXml.match(/<w:suff\b[^>]*>/i)?.[0];
   const indentTag = levelXml.match(/<w:ind\b[^>]*>/i)?.[0];
   const startRaw = startTag ? readXmlAttr(startTag, 'w:val') : undefined;
   const format = numFmtTag ? readXmlAttr(numFmtTag, 'w:val') : undefined;
   const text = lvlTextTag ? readXmlAttr(lvlTextTag, 'w:val') : undefined;
+  const suffix = readListSuffix(suffixTag ? readXmlAttr(suffixTag, 'w:val') : undefined);
   const leftTwips = indentTag ? parseTwips(readXmlAttr(indentTag, 'w:left') ?? readXmlAttr(indentTag, 'w:start')) : 0;
   const hangingTwips = indentTag ? parseTwips(readXmlAttr(indentTag, 'w:hanging')) : 0;
   const start = startRaw ? Number(startRaw) : 1;
@@ -1472,9 +1486,14 @@ function readListLevel(levelXml: string): ({ ilvl: number } & DocxNumberingLevel
     start: Number.isFinite(start) && start > 0 ? start : 1,
     format: format ?? 'decimal',
     ...(text ? { text } : {}),
+    ...(suffix ? { suffix } : {}),
     ...(leftTwips ? { leftTwips } : {}),
     ...(hangingTwips ? { hangingTwips } : {}),
   };
+}
+
+function readListSuffix(value: string | undefined): DocxNumberingLevel['suffix'] | undefined {
+  return value === 'tab' || value === 'space' || value === 'nothing' ? value : undefined;
 }
 
 function readDocumentListStarts(
@@ -1522,6 +1541,7 @@ function readDocumentListStarts(
           listIndex: listStarts.length,
           start: level.start,
           format: level.format,
+          ...(level.suffix ? { suffix: level.suffix } : {}),
           ...(level.leftTwips ? { leftTwips: level.leftTwips } : {}),
           ...(level.hangingTwips ? { hangingTwips: level.hangingTwips } : {}),
         });
@@ -1530,6 +1550,7 @@ function readDocumentListStarts(
           listIndex: bulletListStyles.length,
           format: level.format,
           ...(level.text ? { text: level.text } : {}),
+          ...(level.suffix ? { suffix: level.suffix } : {}),
           ...(level.leftTwips ? { leftTwips: level.leftTwips } : {}),
           ...(level.hangingTwips ? { hangingTwips: level.hangingTwips } : {}),
         });
@@ -1555,6 +1576,7 @@ function resolveNumberingLevel(
     start: override?.start ?? base?.start ?? 1,
     format: override?.format ?? base?.format ?? 'decimal',
     text: override?.text ?? base?.text,
+    suffix: override?.suffix ?? base?.suffix,
     leftTwips: override?.leftTwips ?? base?.leftTwips,
     hangingTwips: override?.hangingTwips ?? base?.hangingTwips,
   };
@@ -2089,7 +2111,9 @@ async function extractTableStyles(zip: JSZip, parser: XMLParser): Promise<DocxTa
       const align = readTableAlign(tblPr);
       const layout = readTableLayout(tblPr);
       const cellSpacingTwips = readTableCellSpacing(tblPr);
-      if (!width && !columnWidthsTwips.length && !align && !layout && !cellSpacingTwips) return;
+      const caption = readTableStringProperty(tblPr, 'w:tblCaption');
+      const description = readTableStringProperty(tblPr, 'w:tblDescription');
+      if (!width && !columnWidthsTwips.length && !align && !layout && !cellSpacingTwips && !caption && !description) return;
       out.push({
         tableIndex,
         ...(width ? width : {}),
@@ -2097,6 +2121,8 @@ async function extractTableStyles(zip: JSZip, parser: XMLParser): Promise<DocxTa
         ...(align ? { align } : {}),
         ...(layout ? { layout } : {}),
         ...(cellSpacingTwips ? { cellSpacingTwips } : {}),
+        ...(caption ? { caption } : {}),
+        ...(description ? { description } : {}),
       });
     });
 
@@ -2104,6 +2130,15 @@ async function extractTableStyles(zip: JSZip, parser: XMLParser): Promise<DocxTa
   } catch {
     return [];
   }
+}
+
+function readTableStringProperty(
+  tblPr: Record<string, unknown> | undefined,
+  key: 'w:tblCaption' | 'w:tblDescription',
+): string | undefined {
+  const property = tblPr?.[key] as Record<string, unknown> | undefined;
+  const value = property?.['@_w:val'];
+  return typeof value === 'string' && value.trim() ? decodeXmlText(value.trim()) : undefined;
 }
 
 function readTableWidth(

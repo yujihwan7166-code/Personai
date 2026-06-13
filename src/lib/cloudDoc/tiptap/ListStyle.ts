@@ -9,6 +9,11 @@ function readNumericDataAttr(element: HTMLElement, attr: string): number | null 
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function readListSuffix(element: HTMLElement): string | null {
+  const value = element.getAttribute('data-list-suffix');
+  return value === 'tab' || value === 'space' || value === 'nothing' ? value : null;
+}
+
 function readListStyleType(element: HTMLElement): string | null {
   const style = element.style.listStyleType;
   if (LIST_STYLE_TYPES.has(style)) return style;
@@ -61,6 +66,13 @@ const listIndentAttributes = {
   },
 };
 
+const listSuffixAttribute = {
+  listSuffix: {
+    default: null,
+    parseHTML: (element: HTMLElement) => readListSuffix(element),
+  },
+};
+
 export const RichBulletList = BulletList.extend({
   addOptions() {
     return {
@@ -72,6 +84,7 @@ export const RichBulletList = BulletList.extend({
   addAttributes() {
     return {
       ...listIndentAttributes,
+      ...listSuffixAttribute,
       listStyleType: {
         default: null,
         parseHTML: (element: HTMLElement) => readListStyleType(element),
@@ -85,6 +98,7 @@ export const RichBulletList = BulletList.extend({
     return ['ul', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
       ...(style ? { style } : {}),
       ...(listStyleType && LIST_STYLE_TYPES.has(listStyleType) ? { 'data-list-style-type': listStyleType } : {}),
+      ...(node.attrs.listSuffix ? { 'data-list-suffix': node.attrs.listSuffix } : {}),
       ...listIndentAttrs(node.attrs),
     }), 0];
   },
@@ -102,6 +116,7 @@ export const RichOrderedList = OrderedList.extend({
     return {
       ...this.parent?.(),
       ...listIndentAttributes,
+      ...listSuffixAttribute,
     };
   },
 
@@ -112,6 +127,7 @@ export const RichOrderedList = OrderedList.extend({
     return ['ol', mergeAttributes(this.options.HTMLAttributes, attrs, {
       ...(node.attrs.type ? { type: node.attrs.type } : {}),
       ...(style ? { style } : {}),
+      ...(node.attrs.listSuffix ? { 'data-list-suffix': node.attrs.listSuffix } : {}),
       ...listIndentAttrs(node.attrs),
     }), 0];
   },

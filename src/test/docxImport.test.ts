@@ -768,6 +768,11 @@ async function makeHeaderFooterDocx(): Promise<File> {
                     data: tinyPngBytes(),
                     transformation: { width: 32, height: 24 },
                     type: 'png',
+                    altText: {
+                      name: 'Header logo',
+                      description: 'Company logo in header',
+                      title: 'Header logo',
+                    },
                   }),
                   new TextRun('Right header'),
                 ],
@@ -892,7 +897,14 @@ async function makeStyledTableDocx(): Promise<File> {
     ],
   });
   const buffer = await Packer.toBuffer(doc);
-  return new File([new Uint8Array(buffer)], 'styled-table.docx', {
+  const zip = await JSZip.loadAsync(buffer);
+  const documentXml = await zip.file('word/document.xml')!.async('string');
+  zip.file('word/document.xml', documentXml.replace(
+    '<w:tblPr>',
+    '<w:tblPr><w:tblCaption w:val="Revenue table"/><w:tblDescription w:val="Quarterly revenue by region"/>',
+  ));
+  const patched = await zip.generateAsync({ type: 'uint8array' });
+  return new File([patched], 'styled-table.docx', {
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 }
@@ -1063,7 +1075,7 @@ async function makeStartedOrderedListDocx(): Promise<File> {
     content: [
       {
         type: 'orderedList',
-        attrs: { start: 5 },
+        attrs: { start: 5, listSuffix: 'space' },
         content: [
           {
             type: 'listItem',
@@ -1147,7 +1159,7 @@ async function makeSquareBulletListDocx(): Promise<File> {
     content: [
       {
         type: 'bulletList',
-        attrs: { listStyleType: 'square', listIndentLeft: 1440, listIndentHanging: 360 },
+        attrs: { listStyleType: 'square', listIndentLeft: 1440, listIndentHanging: 360, listSuffix: 'nothing' },
         content: [
           {
             type: 'listItem',
@@ -1504,7 +1516,13 @@ describe('importDocxFile', () => {
     expect(result.footerText).toContain('Left footer');
     expect(result.footerText).toContain('Doc No | D-001');
     expect(result.headerImages).toHaveLength(1);
-    expect(result.headerImages?.[0]).toMatchObject({ width: 32, height: 24, align: 'right' });
+    expect(result.headerImages?.[0]).toMatchObject({
+      width: 32,
+      height: 24,
+      align: 'right',
+      alt: 'Company logo in header',
+      title: 'Header logo',
+    });
     expect(result.headerImages?.[0].src).toContain('data:image/png;base64,');
     expect(result.headerAlign).toBe('right');
     expect(result.footerAlign).toBe('left');
@@ -1531,6 +1549,8 @@ describe('importDocxFile', () => {
     expect(result.html).toContain('data-table-align="center"');
     expect(result.html).toContain('data-table-layout="fixed"');
     expect(result.html).toContain('data-table-cell-spacing="8"');
+    expect(result.html).toContain('data-table-caption="Revenue table"');
+    expect(result.html).toContain('data-table-description="Quarterly revenue by region"');
     expect(result.html).toContain('width: 240px');
     expect(result.html).toContain('margin-left: auto');
     expect(result.html).toContain('table-layout: fixed');
@@ -1619,6 +1639,7 @@ describe('importDocxFile', () => {
     expect(result.html).toContain('Fifth item');
     expect(result.html).toContain('Sixth item');
     expect(result.html).toMatch(/<ol[^>]+start="5"[^>]*>/);
+    expect(result.html).toContain('data-list-suffix="space"');
   });
 
   it('restores nested ordered list start values and formats', async () => {
@@ -1638,6 +1659,7 @@ describe('importDocxFile', () => {
     expect(result.html).toContain('list-style-type: square');
     expect(result.html).toContain('data-list-indent-left="1440"');
     expect(result.html).toContain('data-list-indent-hanging="360"');
+    expect(result.html).toContain('data-list-suffix="nothing"');
     expect(result.html).toContain('padding-left: 96px');
   });
 });

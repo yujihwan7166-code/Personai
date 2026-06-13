@@ -44,6 +44,7 @@ const DEFAULT_SLIDE_SIZE_EMU = {
 const EMU_PER_INCH = 914400;
 const PX_PER_INCH = 96;
 const BASE64_CHUNK_BYTES = 0x6000; // divisible by 3, so chunks can be concatenated safely.
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 const SCHEME_COLOR_FALLBACKS: Record<string, string> = {
   tx1: '#000000',
   tx2: '#44546A',
@@ -701,6 +702,10 @@ async function extractChartElement(
         hPct: 30,
         chartType,
         title: extractChartTitle(chart),
+        ...extractChartAxisTitles(plotArea),
+        ...extractChartAxisDisplay(plotArea),
+        ...extractChartLegend(chart),
+        ...extractChartDataLabels(node),
         categories: categories.length > 0 ? categories : series[0].values.map((_, i) => `Category ${i + 1}`),
         series,
       };
@@ -713,7 +718,131 @@ async function extractChartElement(
 }
 
 function extractChartTitle(chart: Record<string, unknown> | undefined): string | undefined {
-  const title = chart?.['c:title'] as Record<string, unknown> | undefined;
+  return extractChartTitleText(chart?.['c:title'] as Record<string, unknown> | undefined);
+}
+
+function extractChartAxisTitles(plotArea: Record<string, unknown>): Pick<SlideChartEl, 'categoryAxisTitle' | 'valueAxisTitle'> {
+  const categoryAxis = asArray<Record<string, unknown>>(plotArea['c:catAx'])[0];
+  const valueAxis = asArray<Record<string, unknown>>(plotArea['c:valAx'])[0];
+  const categoryAxisTitle = extractChartTitleText(categoryAxis?.['c:title'] as Record<string, unknown> | undefined);
+  const valueAxisTitle = extractChartTitleText(valueAxis?.['c:title'] as Record<string, unknown> | undefined);
+  return {
+    ...(categoryAxisTitle ? { categoryAxisTitle } : {}),
+    ...(valueAxisTitle ? { valueAxisTitle } : {}),
+  };
+}
+
+function extractChartAxisDisplay(plotArea: Record<string, unknown>): Pick<
+  SlideChartEl,
+  | 'categoryAxisHidden'
+  | 'valueAxisHidden'
+  | 'showCategoryGridLines'
+  | 'showValueGridLines'
+  | 'categoryAxisLabelPosition'
+  | 'valueAxisLabelPosition'
+  | 'categoryAxisLabelFormatCode'
+  | 'valueAxisLabelFormatCode'
+> {
+  const categoryAxis = asArray<Record<string, unknown>>(plotArea['c:catAx'])[0];
+  const valueAxis = asArray<Record<string, unknown>>(plotArea['c:valAx'])[0];
+  return {
+    ...(categoryAxis ? { categoryAxisHidden: readChartBoolean(categoryAxis['c:delete']) ?? false } : {}),
+    ...(valueAxis ? { valueAxisHidden: readChartBoolean(valueAxis['c:delete']) ?? false } : {}),
+    ...(categoryAxis ? { showCategoryGridLines: hasChartChild(categoryAxis, 'c:majorGridlines') } : {}),
+    ...(valueAxis ? { showValueGridLines: hasChartChild(valueAxis, 'c:majorGridlines') } : {}),
+    ...(categoryAxis ? readChartAxisLabelOptions(categoryAxis, 'category') : {}),
+    ...(valueAxis ? readChartAxisLabelOptions(valueAxis, 'value') : {}),
+  };
+}
+
+function hasChartChild(node: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(node, key);
+}
+
+function readChartAxisLabelOptions(
+  axis: Record<string, unknown>,
+  axisType: 'category' | 'value',
+): Pick<SlideChartEl, 'categoryAxisLabelPosition' | 'valueAxisLabelPosition' | 'categoryAxisLabelFormatCode' | 'valueAxisLabelFormatCode'> {
+  const position = readChartAxisLabelPosition(axis['c:tickLblPos']);
+  const formatCode = readChartAxisLabelFormatCode(axis['c:numFmt']);
+  if (axisType === 'category') {
+    return {
+      ...(position ? { categoryAxisLabelPosition: position } : {}),
+      ...(formatCode ? { categoryAxisLabelFormatCode: formatCode } : {}),
+    };
+  }
+  return {
+    ...(position ? { valueAxisLabelPosition: position } : {}),
+    ...(formatCode ? { valueAxisLabelFormatCode: formatCode } : {}),
+  };
+}
+
+function readChartAxisLabelPosition(value: unknown): SlideChartEl['categoryAxisLabelPosition'] | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = (value as Record<string, unknown>)['@_val'];
+  return raw === 'none' || raw === 'low' || raw === 'high' || raw === 'nextTo' ? raw : undefined;
+}
+
+function readChartAxisLabelFormatCode(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = (value as Record<string, unknown>)['@_formatCode'];
+  return typeof raw === 'string' && raw.trim() && raw !== 'General' ? raw : undefined;
+}
+
+function extractChartLegend(chart: Record<string, unknown> | undefined): Pick<SlideChartEl, 'showLegend' | 'legendPosition'> {
+  const legend = chart?.['c:legend'] as Record<string, unknown> | undefined;
+  if (!legend) return { showLegend: false };
+  const position = readChartLegendPosition(legend['c:legendPos']);
+  return {
+    showLegend: true,
+    ...(position ? { legendPosition: position } : {}),
+  };
+}
+
+function readChartLegendPosition(value: unknown): SlideChartEl['legendPosition'] | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = (value as Record<string, unknown>)['@_val'];
+  return raw === 'b' || raw === 'l' || raw === 'r' || raw === 't' || raw === 'tr' ? raw : undefined;
+}
+
+function extractChartDataLabels(chartNode: Record<string, unknown>): Pick<
+  SlideChartEl,
+  'showDataLabels' | 'showDataLabelValue' | 'showDataLabelCategory' | 'showDataLabelPercent' | 'showDataLabelSeriesName' | 'dataLabelPosition'
+> {
+  const labels = chartNode['c:dLbls'] as Record<string, unknown> | undefined;
+  if (!labels) return {};
+  const value = readChartBoolean(labels['c:showVal']);
+  const category = readChartBoolean(labels['c:showCatName']);
+  const percent = readChartBoolean(labels['c:showPercent']);
+  const seriesName = readChartBoolean(labels['c:showSerName']);
+  const position = readChartDataLabelPosition(labels['c:dLblPos']);
+  return {
+    showDataLabels: true,
+    ...(value !== undefined ? { showDataLabelValue: value } : {}),
+    ...(category !== undefined ? { showDataLabelCategory: category } : {}),
+    ...(percent !== undefined ? { showDataLabelPercent: percent } : {}),
+    ...(seriesName !== undefined ? { showDataLabelSeriesName: seriesName } : {}),
+    ...(position ? { dataLabelPosition: position } : {}),
+  };
+}
+
+function readChartBoolean(value: unknown): boolean | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = (value as Record<string, unknown>)['@_val'];
+  if (raw === true || raw === 1 || raw === '1' || raw === 'true') return true;
+  if (raw === false || raw === 0 || raw === '0' || raw === 'false') return false;
+  return undefined;
+}
+
+function readChartDataLabelPosition(value: unknown): SlideChartEl['dataLabelPosition'] | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = (value as Record<string, unknown>)['@_val'];
+  return raw === 'b' || raw === 'bestFit' || raw === 'ctr' || raw === 'l' || raw === 'r' || raw === 't' || raw === 'inEnd' || raw === 'outEnd'
+    ? raw
+    : undefined;
+}
+
+function extractChartTitleText(title: Record<string, unknown> | undefined): string | undefined {
   const tx = title?.['c:tx'] as Record<string, unknown> | undefined;
   const rich = tx?.['c:rich'] as Record<string, unknown> | undefined;
   const text = extractTextInfo(rich).content;
@@ -2034,6 +2163,34 @@ async function patchPptxSlidesXml(
   return zip.generateAsync({ type: 'blob' });
 }
 
+async function patchPptxChartDataLabelPositionsXml(
+  pptxBlob: Blob,
+  chartDataLabelPositions: Array<SlideChartEl['dataLabelPosition'] | undefined>,
+): Promise<Blob> {
+  if (!chartDataLabelPositions.some(Boolean)) return pptxBlob;
+  const zip = await JSZip.loadAsync(pptxBlob);
+  const chartPaths = Object.keys(zip.files)
+    .filter((path) => /^ppt\/charts\/chart\d+\.xml$/.test(path))
+    .sort((a, b) => Number(a.match(/chart(\d+)\.xml$/)?.[1] ?? 0) - Number(b.match(/chart(\d+)\.xml$/)?.[1] ?? 0));
+  await Promise.all(chartPaths.map(async (path, idx) => {
+    const position = chartDataLabelPositions[idx];
+    if (!position) return;
+    const file = zip.file(path);
+    if (!file) return;
+    const xml = await file.async('string');
+    const patched = patchChartDataLabelPositionXml(xml, position);
+    if (patched !== xml) zip.file(path, patched);
+  }));
+  return zip.generateAsync({ type: 'blob' });
+}
+
+function patchChartDataLabelPositionXml(xml: string, position: NonNullable<SlideChartEl['dataLabelPosition']>): string {
+  return xml.replace(/<c:dLbls>([\s\S]*?)<\/c:dLbls>/g, (match, body: string) => {
+    if (body.includes('<c:dLblPos')) return match;
+    return `<c:dLbls><c:dLblPos val="${position}"/>${body}</c:dLbls>`;
+  });
+}
+
 export function pptxBulletOptions(
   listStyle: SlideTextEl['listStyle'],
   listStart?: number,
@@ -2062,12 +2219,11 @@ function partsPctToInches(parts: number[] | undefined, totalInches: number): num
   return parts.map((p) => (p / total) * totalInches);
 }
 
-export async function exportPptxFile(
+export async function exportPptxBlob(
   slides: Slide[],
-  fileName: string,
   themeId?: string,
   slideSize?: SlideSize,
-): Promise<void> {
+): Promise<Blob> {
   const pres = new pptxgen();
   const safeSlideSize = normalizeSlideSize(slideSize);
   const W = safeSlideSize.width / PX_PER_INCH;
@@ -2088,6 +2244,7 @@ export async function exportPptxFile(
   const slideTransitions: Array<SlideTransition | undefined> = [];
   const slideHidden: Array<boolean | undefined> = [];
   const slideInternalLinks: Array<boolean | undefined> = [];
+  const chartDataLabelPositions: Array<SlideChartEl['dataLabelPosition'] | undefined> = [];
 
   for (const s of slides) {
     const slide = pres.addSlide();
@@ -2223,6 +2380,7 @@ export async function exportPptxFile(
           rowH: partsPctToInches(el.rowHeightsPct, h),
         });
       } else if (el.type === 'chart') {
+        chartDataLabelPositions.push(el.showDataLabels ? el.dataLabelPosition : undefined);
         const chartType = el.chartType === 'line'
           ? pres.ChartType.line
           : el.chartType === 'pie'
@@ -2238,9 +2396,27 @@ export async function exportPptxFile(
           : Math.max(el.series.length, 1);
         slide.addChart(chartType, chartData, {
           x, y, w, h,
-          showLegend: el.series.length > 1,
+          showLegend: el.showLegend ?? el.series.length > 1,
+          ...(el.legendPosition ? { legendPos: el.legendPosition } : {}),
           showTitle: !!el.title,
           title: el.title,
+          ...(el.categoryAxisHidden !== undefined ? { catAxisHidden: el.categoryAxisHidden } : {}),
+          ...(el.valueAxisHidden !== undefined ? { valAxisHidden: el.valueAxisHidden } : {}),
+          ...(el.showCategoryGridLines !== undefined ? { catGridLine: el.showCategoryGridLines ? { style: 'solid' } : { style: 'none' } } : {}),
+          ...(el.showValueGridLines !== undefined ? { valGridLine: el.showValueGridLines ? { style: 'solid' } : { style: 'none' } } : {}),
+          ...(el.categoryAxisLabelPosition ? { catAxisLabelPos: el.categoryAxisLabelPosition } : {}),
+          ...(el.valueAxisLabelPosition ? { valAxisLabelPos: el.valueAxisLabelPosition } : {}),
+          ...(el.categoryAxisLabelFormatCode ? { catLabelFormatCode: el.categoryAxisLabelFormatCode } : {}),
+          ...(el.valueAxisLabelFormatCode ? { valAxisLabelFormatCode: el.valueAxisLabelFormatCode } : {}),
+          ...(el.categoryAxisTitle ? { catAxisTitle: el.categoryAxisTitle, showCatAxisTitle: true } : {}),
+          ...(el.valueAxisTitle ? { valAxisTitle: el.valueAxisTitle, showValAxisTitle: true } : {}),
+          ...(el.showDataLabels ? {
+            showValue: el.showDataLabelValue ?? true,
+            showLabel: !!el.showDataLabelCategory,
+            showPercent: !!el.showDataLabelPercent,
+            showSerName: !!el.showDataLabelSeriesName,
+            ...(el.dataLabelPosition ? { dataLabelPosition: el.dataLabelPosition } : {}),
+          } : {}),
           chartColors: Array.from({ length: chartColorCount }, (_, idx) => {
             const color = el.series[idx]?.color ?? CHART_COLORS[idx % CHART_COLORS.length];
             return pptxColor(color, CHART_COLORS[idx % CHART_COLORS.length].slice(1));
@@ -2250,12 +2426,24 @@ export async function exportPptxFile(
     }
   }
 
-  const safeName = (fileName.endsWith('.pptx') ? fileName : `${fileName}.pptx`).replace(/[\\/:*?"<>|]/g, '_');
+  let blob = normalizePptxBlob(await pres.write({ outputType: 'blob' }));
   if (slideImageSrcRects.some((srcRects) => srcRects.some(Boolean)) || slideTransitions.some(Boolean) || slideHidden.some(Boolean) || slideInternalLinks.some(Boolean)) {
-    const blob = await pres.write({ outputType: 'blob' }) as Blob;
-    const patchedBlob = await patchPptxSlidesXml(blob, slideImageSrcRects, slideTransitions, slideHidden, slideInternalLinks);
-    downloadBlob(patchedBlob, safeName);
-    return;
+    blob = await patchPptxSlidesXml(blob, slideImageSrcRects, slideTransitions, slideHidden, slideInternalLinks);
   }
-  await pres.writeFile({ fileName: safeName });
+  return patchPptxChartDataLabelPositionsXml(blob, chartDataLabelPositions);
+}
+
+function normalizePptxBlob(value: unknown): Blob {
+  if (value instanceof Blob && typeof value.arrayBuffer === 'function') return value;
+  return new Blob([value as BlobPart], { type: PPTX_MIME });
+}
+
+export async function exportPptxFile(
+  slides: Slide[],
+  fileName: string,
+  themeId?: string,
+  slideSize?: SlideSize,
+): Promise<void> {
+  const safeName = (fileName.endsWith('.pptx') ? fileName : `${fileName}.pptx`).replace(/[\\/:*?"<>|]/g, '_');
+  downloadBlob(await exportPptxBlob(slides, themeId, slideSize), safeName);
 }

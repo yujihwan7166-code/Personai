@@ -12,6 +12,7 @@
  */
 
 import mammoth from 'mammoth';
+import JSZip from 'jszip';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Table, TableRow, TableCell, ImageRun, WidthType, BorderStyle,
@@ -26,6 +27,7 @@ import {
   Bookmark, InternalHyperlink,
   InsertedTextRun, DeletedTextRun,
   VerticalMergeType,
+  LevelSuffix,
   SimpleField,
   ImportedXmlComponent,
   Textbox,
@@ -81,6 +83,8 @@ export interface DocxHeaderFooterImage {
   width: number;
   height: number;
   align?: DocxHeaderFooterAlign;
+  alt?: string;
+  title?: string;
 }
 
 /** 한글 Word 스타일 → HTML 매핑 (영문 기본 매핑 + 한글 변형). */
@@ -272,6 +276,7 @@ export async function exportDocxBlobFromJson(
     numberingConfigs: [],
     nextNumberingId: 1,
     nextRevisionId: 1,
+    tableMetadata: [],
   };
   const headerNode = buildHeaderNode(options);
   const footerNode = buildFooterNode(options);
@@ -297,7 +302,8 @@ export async function exportDocxBlobFromJson(
       : undefined,
     sections,
   });
-  return Packer.toBlob(doc);
+  const blob = await Packer.toBlob(doc);
+  return patchDocxTableMetadata(blob, context.tableMetadata);
 }
 
 function buildDocumentSections(
@@ -384,6 +390,8 @@ function headerFooterImageParagraphs(images: DocxHeaderFooterImage[] | undefined
       src: image.src,
       width: image.width,
       height: image.height,
+      alt: image.alt,
+      title: image.title,
     });
     if (!run) return [];
     return [new Paragraph({
@@ -577,6 +585,13 @@ interface ExportContext {
   }>;
   nextNumberingId: number;
   nextRevisionId: number;
+  tableMetadata: DocxExportTableMetadata[];
+}
+
+interface DocxExportTableMetadata {
+  tableIndex: number;
+  caption?: string;
+  description?: string;
 }
 
 interface ListIndentAttrs {
@@ -584,11 +599,14 @@ interface ListIndentAttrs {
   hanging?: number;
 }
 
-function buildBulletLevels(listStyleType?: string, startLevel = 0, listIndent?: ListIndentAttrs) {
+type ListSuffixAttr = (typeof LevelSuffix)[keyof typeof LevelSuffix];
+
+function buildBulletLevels(listStyleType?: string, startLevel = 0, listIndent?: ListIndentAttrs, suffix?: ListSuffixAttr) {
   return [0, 1, 2].map((level) => ({
     level,
     format: LevelFormat.BULLET,
     text: bulletTextForLevel(level === startLevel ? listStyleType : undefined, level),
+    suffix: level === startLevel ? suffix : undefined,
     alignment: AlignmentType.LEFT,
     style: {
       paragraph: {
@@ -609,12 +627,14 @@ function buildOrderedLevels(
   startLevel = 0,
   listIndent?: ListIndentAttrs,
   orderedType?: string,
+  suffix?: ListSuffixAttr,
 ) {
   return [0, 1, 2].map((level) => ({
     level,
     format: orderedLevelFormat(level, level === startLevel ? orderedType : undefined),
     text: `%${level + 1}.`,
     start: level === startLevel && start > 1 ? start : undefined,
+    suffix: level === startLevel ? suffix : undefined,
     alignment: AlignmentType.LEFT,
     style: {
       paragraph: {
@@ -649,15 +669,16 @@ function registerBulletListReference(
   level: number,
 ): string {
   const listStyleType = typeof attrs?.listStyleType === 'string' ? attrs.listStyleType : undefined;
+  const suffix = listSuffixAttr(attrs?.listSuffix);
   const listIndent = listIndentFromAttrs(attrs);
-  if (!listStyleType && !listIndent.left) return 'doc-bullets';
+  if (!listStyleType && !listIndent.left && !suffix) return 'doc-bullets';
 
   const safeLevel = Math.max(0, Math.min(2, level));
   const reference = `doc-bullets-${context.nextNumberingId}`;
   context.nextNumberingId += 1;
   context.numberingConfigs.push({
     reference,
-    levels: buildBulletLevels(listStyleType, safeLevel, listIndent),
+    levels: buildBulletLevels(listStyleType, safeLevel, listIndent, suffix),
   });
   return reference;
 }
@@ -669,15 +690,23 @@ function registerOrderedListReference(
 ): string {
   const start = Math.max(1, Math.round(numericAttr(attrs?.start) ?? 1));
   const orderedType = orderedTypeAttr(attrs?.type);
+  const suffix = listSuffixAttr(attrs?.listSuffix);
   const listIndent = listIndentFromAttrs(attrs);
   const safeLevel = Math.max(0, Math.min(2, level));
   const reference = `doc-numbering-${context.nextNumberingId}`;
   context.nextNumberingId += 1;
   context.numberingConfigs.push({
     reference,
-    levels: buildOrderedLevels(start, safeLevel, listIndent, orderedType),
+    levels: buildOrderedLevels(start, safeLevel, listIndent, orderedType, suffix),
   });
   return reference;
+}
+
+function listSuffixAttr(value: unknown): ListSuffixAttr | undefined {
+  if (value === LevelSuffix.SPACE || value === LevelSuffix.TAB || value === LevelSuffix.NOTHING) {
+    return value;
+  }
+  return undefined;
 }
 
 function orderedTypeAttr(value: unknown): string | undefined {
@@ -866,6 +895,7 @@ const TABLE_BORDER = {
 };
 
 function buildTable(block: PMNode, context: ExportContext): Table {
+  collectTableMetadata(block.attrs, context);
   const rows: TableRow[] = [];
   const verticalMerges = new Map<number, { remaining: number; columnSpan: number; borders?: ITableCellBorders }>();
   for (const row of block.content ?? []) {
@@ -958,6 +988,82 @@ function buildTable(block: PMNode, context: ExportContext): Table {
 // ─────────────────────────────────────────────
 
 /** TipTap image attrs → ImageRun. data URL 만 처리 (외부 URL 은 CORS) */
+function collectTableMetadata(attrs: Record<string, unknown> | undefined, context: ExportContext): void {
+  const caption = stringAttr(attrs?.tableCaption);
+  const description = stringAttr(attrs?.tableDescription);
+  const tableIndex = context.tableMetadata.length;
+  context.tableMetadata.push({
+    tableIndex,
+    ...(caption ? { caption } : {}),
+    ...(description ? { description } : {}),
+  });
+}
+
+async function patchDocxTableMetadata(blob: Blob, metadata: DocxExportTableMetadata[]): Promise<Blob> {
+  if (!metadata.some((item) => item.caption || item.description)) return blob;
+  const buffer = await readBlobArrayBufferForPatch(blob);
+  const zip = await JSZip.loadAsync(buffer);
+  const file = zip.file('word/document.xml');
+  if (!file) return blob;
+  const xml = await file.async('string');
+  const patched = patchDocumentTablesXml(xml, metadata);
+  if (patched === xml) return blob;
+  zip.file('word/document.xml', patched);
+  const out = await zip.generateAsync({ type: 'uint8array' });
+  return new Blob([out], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+function patchDocumentTablesXml(xml: string, metadata: DocxExportTableMetadata[]): string {
+  let tableIndex = 0;
+  return xml.replace(/<w:tbl\b[\s\S]*?<\/w:tbl>/g, (tableXml) => {
+    const item = metadata[tableIndex++];
+    if (!item?.caption && !item?.description) return tableXml;
+    return patchSingleTableXml(tableXml, item);
+  });
+}
+
+function patchSingleTableXml(tableXml: string, metadata: DocxExportTableMetadata): string {
+  const additions = [
+    metadata.caption ? `<w:tblCaption w:val="${escapeXmlAttr(metadata.caption)}"/>` : '',
+    metadata.description ? `<w:tblDescription w:val="${escapeXmlAttr(metadata.description)}"/>` : '',
+  ].filter(Boolean).join('');
+  if (!additions) return tableXml;
+
+  if (/<w:tblPr\b[\s\S]*?<\/w:tblPr>/.test(tableXml)) {
+    return tableXml.replace(/<w:tblPr\b([^>]*)>([\s\S]*?)<\/w:tblPr>/, (_match, attrs, body) => {
+      const cleaned = String(body)
+        .replace(/<w:tblCaption\b[^>]*\/>/g, '')
+        .replace(/<w:tblDescription\b[^>]*\/>/g, '');
+      return `<w:tblPr${attrs}>${additions}${cleaned}</w:tblPr>`;
+    });
+  }
+  return tableXml.replace(/<w:tbl\b([^>]*)>/, `<w:tbl$1><w:tblPr>${additions}</w:tblPr>`);
+}
+
+function escapeXmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function readBlobArrayBufferForPatch(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) resolve(reader.result);
+      else reject(new Error('DOCX Blob could not be read as ArrayBuffer.'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('DOCX Blob read failed.'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 function createVerticalMergeContinueCell(merge: { columnSpan: number; borders?: ITableCellBorders }): TableCell {
   return new TableCell({
     children: [new Paragraph({ children: [new TextRun('')] })],

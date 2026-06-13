@@ -323,7 +323,14 @@ describe('exportDocxBlobFromJson', () => {
         footerText: 'Left footer\nDoc No | D-001',
         headerAlign: 'right',
         footerAlign: 'left',
-        headerImages: [{ src: TINY_PNG_DATA_URL, width: 32, height: 24, align: 'right' }],
+        headerImages: [{
+          src: TINY_PNG_DATA_URL,
+          width: 32,
+          height: 24,
+          align: 'right',
+          alt: 'Company logo in header',
+          title: 'Header logo',
+        }],
         showPageNumber: true,
         pageNumberPlacement: 'header',
       },
@@ -336,6 +343,8 @@ describe('exportDocxBlobFromJson', () => {
     expect(headerXml).toContain('wp:extent');
     expect(headerXml).toContain('cx="304800"');
     expect(headerXml).toContain('cy="228600"');
+    expect(headerXml).toContain('descr="Company logo in header"');
+    expect(headerXml).toContain('title="Header logo"');
     expect((headerXml.match(/<w:p>/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(headerXml).toContain('w:jc w:val="right"');
     expect(headerXml).toContain('PAGE');
@@ -783,7 +792,7 @@ describe('exportDocxBlobFromJson', () => {
       content: [
         {
           type: 'orderedList',
-          attrs: { start: 5 },
+          attrs: { start: 5, listSuffix: 'space' },
           content: [
             {
               type: 'listItem',
@@ -804,6 +813,7 @@ describe('exportDocxBlobFromJson', () => {
     expect(documentXml).toContain('w:numPr');
     expect(numberingXml).toContain('w:start');
     expect(numberingXml).toContain('w:val="5"');
+    expect(numberingXml).toContain('w:suff w:val="space"');
     expect(documentXml).toContain('Starts at five');
   });
 
@@ -858,7 +868,7 @@ describe('exportDocxBlobFromJson', () => {
       content: [
         {
           type: 'bulletList',
-          attrs: { listStyleType: 'square', listIndentLeft: 1440, listIndentHanging: 360 },
+          attrs: { listStyleType: 'square', listIndentLeft: 1440, listIndentHanging: 360, listSuffix: 'nothing' },
           content: [
             {
               type: 'listItem',
@@ -882,6 +892,7 @@ describe('exportDocxBlobFromJson', () => {
     expect(numberingXml).toContain('w:lvlText w:val="▪"');
     expect(numberingXml).toContain('w:left="1440"');
     expect(numberingXml).toContain('w:hanging="360"');
+    expect(numberingXml).toContain('w:suff w:val="nothing"');
   });
 
   it('exports resized image dimensions to DOCX', async () => {
@@ -1011,6 +1022,8 @@ describe('exportDocxBlobFromJson', () => {
             tableAlign: 'center',
             tableLayout: 'fixed',
             tableCellSpacing: 8,
+            tableCaption: 'Revenue table',
+            tableDescription: 'Quarterly revenue by region',
           },
           content: [
             {
@@ -1069,6 +1082,8 @@ describe('exportDocxBlobFromJson', () => {
     expect(documentXml).toContain('w:type="fixed"');
     expect(documentXml).toContain('w:tblCellSpacing');
     expect(documentXml).toContain('w:w="120"');
+    expect(documentXml).toContain('w:tblCaption w:val="Revenue table"');
+    expect(documentXml).toContain('w:tblDescription w:val="Quarterly revenue by region"');
     expect(documentXml).toContain('w:fill="FFEEAA"');
     expect(documentXml).toContain('w:tcW');
     expect(documentXml).toContain('w:w="2400"');

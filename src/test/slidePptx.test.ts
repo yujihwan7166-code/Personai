@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import {
+  exportPptxBlob,
   importPptxDeck,
   importPptxFile,
   patchSlideHiddenXml,
@@ -35,6 +36,20 @@ async function makePptxFile(
   for (const [path, content] of Object.entries(extraFiles ?? {})) zip.file(path, content);
   const bytes = await zip.generateAsync({ type: 'uint8array' });
   return new File([bytes], 'deck.pptx', { type: PPTX_MIME });
+}
+
+function readBlobArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) resolve(reader.result);
+      else reject(new Error('Unable to read blob as ArrayBuffer'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Unable to read blob as ArrayBuffer'));
+    reader.readAsArrayBuffer(blob);
+  });
 }
 
 describe('cloudSlide pptx import', () => {
@@ -1533,6 +1548,27 @@ describe('cloudSlide pptx import', () => {
     expect(slide.notes).toBe('Absolute note target');
   });
 
+  it('exports speaker notes as PowerPoint notes slides', async () => {
+    const blob = await exportPptxBlob([{
+      id: 'slide_notes',
+      elements: [],
+      notes: 'Opening cue\nFollow-up detail',
+    }]);
+    const buffer = await readBlobArrayBuffer(blob);
+    const zip = await JSZip.loadAsync(buffer);
+    const notesPath = Object.keys(zip.files).find((path) => /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(path));
+    expect(notesPath).toBeTruthy();
+
+    const slideRels = await zip.file('ppt/slides/_rels/slide1.xml.rels')?.async('string');
+    const notesXml = notesPath ? await zip.file(notesPath)?.async('string') : '';
+    expect(slideRels).toContain('/notesSlide');
+    expect(notesXml).toContain('Opening cue');
+    expect(notesXml).toContain('Follow-up detail');
+
+    const deck = await importPptxDeck(new File([buffer], 'notes.pptx', { type: PPTX_MIME }));
+    expect(deck.slides[0]?.notes).toBe('Opening cue\nFollow-up detail');
+  });
+
   it('preserves safe table cell hyperlinks and drops unsafe ones on import', async () => {
     const file = await makePptxFile(`
       <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -1660,8 +1696,31 @@ describe('cloudSlide pptx import', () => {
                     <c:pt idx="1"><c:v>25</c:v></c:pt>
                   </c:numCache></c:numRef></c:val>
                 </c:ser>
+                <c:dLbls>
+                  <c:dLblPos val="outEnd"/>
+                  <c:showVal val="1"/>
+                  <c:showCatName val="0"/>
+                  <c:showPercent val="0"/>
+                  <c:showSerName val="0"/>
+                </c:dLbls>
               </c:barChart>
+              <c:catAx>
+                <c:delete val="1"/>
+                <c:title><c:tx><c:rich><a:p><a:r><a:t>Quarter</a:t></a:r></a:p></c:rich></c:tx></c:title>
+                <c:numFmt formatCode="@" sourceLinked="0"/>
+                <c:tickLblPos val="low"/>
+              </c:catAx>
+              <c:valAx>
+                <c:delete val="0"/>
+                <c:majorGridlines/>
+                <c:title><c:tx><c:rich><a:p><a:r><a:t>Revenue USD</a:t></a:r></a:p></c:rich></c:tx></c:title>
+                <c:numFmt formatCode="$#,##0" sourceLinked="0"/>
+                <c:tickLblPos val="high"/>
+              </c:valAx>
             </c:plotArea>
+            <c:legend>
+              <c:legendPos val="r"/>
+            </c:legend>
           </c:chart>
         </c:chartSpace>
       `,
@@ -1674,6 +1733,24 @@ describe('cloudSlide pptx import', () => {
       type: 'chart',
       chartType: 'bar',
       title: 'Revenue',
+      categoryAxisTitle: 'Quarter',
+      valueAxisTitle: 'Revenue USD',
+      showLegend: true,
+      legendPosition: 'r',
+      showDataLabels: true,
+      showDataLabelValue: true,
+      showDataLabelCategory: false,
+      showDataLabelPercent: false,
+      showDataLabelSeriesName: false,
+      dataLabelPosition: 'outEnd',
+      categoryAxisHidden: true,
+      valueAxisHidden: false,
+      showCategoryGridLines: false,
+      showValueGridLines: true,
+      categoryAxisLabelFormatCode: '@',
+      categoryAxisLabelPosition: 'low',
+      valueAxisLabelFormatCode: '$#,##0',
+      valueAxisLabelPosition: 'high',
       categories: ['Q1', 'Q2'],
       series: [{ name: 'North', values: [10, 25], color: '#AA3377' }],
     });
@@ -1681,6 +1758,75 @@ describe('cloudSlide pptx import', () => {
     expect(chart?.yPct).toBeCloseTo(10);
     expect(chart?.wPct).toBeCloseTo(50);
     expect(chart?.hPct).toBeCloseTo(30);
+  });
+
+  it('exports chart axis titles to editable PowerPoint charts', async () => {
+    const blob = await exportPptxBlob([{
+      id: 'slide_chart_axes',
+      elements: [{
+        id: 'chart_axes',
+        type: 'chart',
+        xPct: 10,
+        yPct: 10,
+        wPct: 50,
+        hPct: 30,
+        chartType: 'bar',
+        title: 'Revenue',
+        categoryAxisTitle: 'Quarter',
+        valueAxisTitle: 'Revenue USD',
+        showLegend: true,
+        legendPosition: 'r',
+        showDataLabels: true,
+        showDataLabelValue: true,
+        dataLabelPosition: 'outEnd',
+        categoryAxisHidden: true,
+        valueAxisHidden: false,
+        showCategoryGridLines: false,
+        showValueGridLines: true,
+        categoryAxisLabelFormatCode: '@',
+        categoryAxisLabelPosition: 'low',
+        valueAxisLabelFormatCode: '$#,##0',
+        valueAxisLabelPosition: 'high',
+        categories: ['Q1', 'Q2'],
+        series: [{ name: 'North', values: [10, 25], color: '#AA3377' }],
+      }],
+    }]);
+    const buffer = await readBlobArrayBuffer(blob);
+    const zip = await JSZip.loadAsync(buffer);
+    const chartPath = Object.keys(zip.files).find((path) => /^ppt\/charts\/chart\d+\.xml$/.test(path));
+    expect(chartPath).toBeTruthy();
+    const chartXml = chartPath ? await zip.file(chartPath)?.async('string') : '';
+    expect(chartXml).toContain('Revenue');
+    expect(chartXml).toContain('Quarter');
+    expect(chartXml).toContain('Revenue USD');
+    expect(chartXml).toMatch(/<c:legendPos val="r"\/>/);
+    expect(chartXml).toMatch(/<c:dLblPos val="outEnd"\/>/);
+    expect(chartXml).toMatch(/<c:showVal val="1"\/>/);
+    expect(chartXml).toMatch(/<c:delete val="1"\/>/);
+    expect(chartXml).toContain('<c:majorGridlines>');
+    expect(chartXml).toContain('formatCode="$#,##0"');
+    expect(chartXml).toMatch(/<c:tickLblPos val="high"\/>/);
+  });
+
+  it('exports image alt text to PowerPoint picture metadata', async () => {
+    const transparentPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+    const blob = await exportPptxBlob([{
+      id: 'slide_image_alt',
+      elements: [{
+        id: 'image_alt',
+        type: 'image',
+        xPct: 10,
+        yPct: 10,
+        wPct: 20,
+        hPct: 20,
+        src: transparentPng,
+        alt: 'Quarterly product screenshot',
+      }],
+    }]);
+    const buffer = await readBlobArrayBuffer(blob);
+    const zip = await JSZip.loadAsync(buffer);
+    const slideXml = await zip.file('ppt/slides/slide1.xml')?.async('string');
+    expect(slideXml).toContain('Quarterly product screenshot');
   });
 
   it('preserves safe text hyperlinks from PowerPoint relationships', async () => {

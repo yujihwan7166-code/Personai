@@ -101,6 +101,24 @@ describe('formula — Excel-compatible lookup ranges', () => {
     })).toBe('mid');
   });
 
+  it('LOOKUP supports approximate vector lookup with optional result vector', () => {
+    expect(evaluate('LOOKUP(25, A1:A3, B1:B3)', {
+      A1: '10', B1: 'low',
+      A2: '20', B2: 'mid',
+      A3: '30', B3: 'high',
+    })).toBe('mid');
+    expect(evaluate('LOOKUP(25, A1:A3)', {
+      A1: '10',
+      A2: '20',
+      A3: '30',
+    })).toBe('20');
+    expect(evaluate('LOOKUP("blueberry", A1:A3, B1:B3)', {
+      A1: 'apple', B1: 'A',
+      A2: 'blue', B2: 'B',
+      A3: 'carrot', B3: 'C',
+    })).toBe('B');
+  });
+
   it('INDEX supports row and column arguments on a rectangular range', () => {
     expect(evaluate('INDEX(A1:C3, 2, 3)', {
       A1: 'a', B1: 'b', C1: 'c',
@@ -237,6 +255,19 @@ describe('formula — 텍스트', () => {
     expect(evaluate('FIND("l", "Hello")')).toBe('3');     // 케이스 일치
     expect(evaluate('FIND("L", "Hello")')).toBe('#VALUE!'); // 대문자 L 없음 (case-sensitive)
     expect(evaluate('SEARCH("L", "Hello")')).toBe('3');    // 케이스 무시
+  });
+
+  it('TEXTBEFORE and TEXTAFTER support Excel 365 delimiter extraction', () => {
+    expect(evaluate('TEXTBEFORE("team-east-2026", "-")')).toBe('team');
+    expect(evaluate('TEXTAFTER("team-east-2026", "-")')).toBe('east-2026');
+    expect(evaluate('TEXTBEFORE("team-east-2026", "-", 2)')).toBe('team-east');
+    expect(evaluate('TEXTAFTER("team-east-2026", "-", -1)')).toBe('2026');
+    expect(evaluate('TEXTBEFORE("Alpha/Beta", "beta", 1, 1)')).toBe('Alpha/');
+    expect(evaluate('TEXTBEFORE("Alpha/Beta", "/",,1)')).toBe('Alpha');
+    expect(evaluate('TEXTAFTER("Alpha/Beta", "/",,1)')).toBe('Beta');
+    expect(evaluate('TEXTAFTER("abc", "-", 1, 0, FALSE, "missing")')).toBe('missing');
+    expect(evaluate('TEXTBEFORE("abc", "-", 1, 0, TRUE)')).toBe('abc');
+    expect(evaluate('TEXTAFTER("abc", "-", 0)')).toBe('#N/A');
   });
 
   it('HYPERLINK v2 (PR #6) — sentinel + JSON 페이로드', () => {

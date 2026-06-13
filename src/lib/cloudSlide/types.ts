@@ -87,6 +87,24 @@ export interface SlideChartEl extends BaseEl {
   locked?: boolean;
   chartType: 'bar' | 'line' | 'pie';
   title?: string;
+  categoryAxisTitle?: string;
+  valueAxisTitle?: string;
+  showLegend?: boolean;
+  legendPosition?: 'b' | 'l' | 'r' | 't' | 'tr';
+  showDataLabels?: boolean;
+  showDataLabelValue?: boolean;
+  showDataLabelCategory?: boolean;
+  showDataLabelPercent?: boolean;
+  showDataLabelSeriesName?: boolean;
+  dataLabelPosition?: 'b' | 'bestFit' | 'ctr' | 'l' | 'r' | 't' | 'inEnd' | 'outEnd';
+  categoryAxisHidden?: boolean;
+  valueAxisHidden?: boolean;
+  showCategoryGridLines?: boolean;
+  showValueGridLines?: boolean;
+  categoryAxisLabelPosition?: 'none' | 'low' | 'high' | 'nextTo';
+  valueAxisLabelPosition?: 'none' | 'low' | 'high' | 'nextTo';
+  categoryAxisLabelFormatCode?: string;
+  valueAxisLabelFormatCode?: string;
   categories: string[];
   series: SlideChartSeries[];
 }

@@ -38,6 +38,7 @@ interface FormulaTable {
  * key 는 함수 이름 (대문자). 도움말 모달과 popover 모두 이걸 사용.
  */
 export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
+  LOOKUP:    { sig: 'LOOKUP(key, lookup_vector, [result_vector])', desc: 'Approximate vector lookup' },
   DATEVALUE: { sig: 'DATEVALUE(date_text)', desc: 'Converts date text to an Excel serial date' },
   DAYS:      { sig: 'DAYS(end_date, start_date)', desc: 'Returns the number of days between two dates' },
   VALUE:     { sig: 'VALUE(text)', desc: 'Converts numeric text to a number' },
@@ -56,6 +57,7 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   COUNT:     { sig: 'COUNT(range)',                    desc: '숫자 셀 개수' },
   MEDIAN:    { sig: 'MEDIAN(range)',                   desc: '중앙값' },
   IF:        { sig: 'IF(조건, 참값, 거짓값)',          desc: '조건부 분기' },
+  LET:       { sig: 'LET(name, value, calculation)',   desc: '수식 안에서 지역 이름을 정의' },
   ABS:       { sig: 'ABS(숫자)',                       desc: '절댓값' },
   ROUND:     { sig: 'ROUND(숫자, 소수자리)',           desc: '반올림' },
   POWER:     { sig: 'POWER(밑, 지수)',                 desc: '거듭제곱' },
@@ -147,8 +149,21 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   // ── 동적 배열 (spill) ──
   FILTER:       { sig: 'FILTER(range, 조건range)',      desc: '조건이 참인 값만 (인접 셀로 spill)' },
   SORT:         { sig: 'SORT(range, [내림차순=0])',     desc: '정렬 (인접 셀로 spill)' },
+  SORTBY:       { sig: 'SORTBY(array, by_array1, [sort_order1], ...)', desc: 'Sorts an array by one or more companion arrays' },
   UNIQUE:       { sig: 'UNIQUE(range)',                 desc: '중복 제거 (인접 셀로 spill)' },
   SEQUENCE:     { sig: 'SEQUENCE(rows, [columns], [start], [step])', desc: '연속 숫자 배열 (인접 셀로 spill)' },
+  HSTACK:       { sig: 'HSTACK(array1, [array2], ...)', desc: 'Arrays appended horizontally' },
+  VSTACK:       { sig: 'VSTACK(array1, [array2], ...)', desc: 'Arrays appended vertically' },
+  TOCOL:        { sig: 'TOCOL(array, [ignore], [scan_by_column])', desc: 'Flattens an array into one column' },
+  TOROW:        { sig: 'TOROW(array, [ignore], [scan_by_column])', desc: 'Flattens an array into one row' },
+  WRAPROWS:     { sig: 'WRAPROWS(vector, wrap_count, [pad_with])', desc: 'Wraps a row or column vector into rows' },
+  WRAPCOLS:     { sig: 'WRAPCOLS(vector, wrap_count, [pad_with])', desc: 'Wraps a row or column vector into columns' },
+  TEXTSPLIT:    { sig: 'TEXTSPLIT(text, col_delimiter, [row_delimiter])', desc: 'Splits text into a dynamic array' },
+  TEXTBEFORE:   { sig: 'TEXTBEFORE(text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found])', desc: 'Text before a delimiter' },
+  TEXTAFTER:    { sig: 'TEXTAFTER(text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found])', desc: 'Text after a delimiter' },
+  CHOOSECOLS:   { sig: 'CHOOSECOLS(array, col_num1, ...)', desc: 'Returns selected columns from an array' },
+  CHOOSEROWS:   { sig: 'CHOOSEROWS(array, row_num1, ...)', desc: 'Returns selected rows from an array' },
+  EXPAND:       { sig: 'EXPAND(array, rows, [columns], [pad_with])', desc: 'Pads an array to a target size' },
   // ── AI (비동기 — 결과 캐시) ──
   AI:           { sig: 'AI("프롬프트", [모델])',         desc: 'AI 에 자연어 질문 → 결과 텍스트 (30일 캐시)' },
   AI_CLASSIFY:  { sig: 'AI_CLASSIFY(텍스트, "카테고리1,카테고리2,…")', desc: 'AI 가 텍스트를 카테고리 중 하나로 분류' },
@@ -196,24 +211,27 @@ const FUNC_ORDER = [
   'SUBTOTAL',
   // 11자
   'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS', 'SUMPRODUCT',
+  'CHOOSECOLS', 'CHOOSEROWS',
   'TRANSPOSE',
   // 10자
-  'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'PERCENTILE',
+  'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'PERCENTILE', 'TEXTBEFORE',
   // 9자
-  'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE',
+  'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE', 'TEXTSPLIT', 'TEXTAFTER',
   // 8자
-  'SEQUENCE',
+  'SEQUENCE', 'WRAPROWS', 'WRAPCOLS',
   // 6자
-  'FILTER', 'UNIQUE',
+  'FILTER', 'UNIQUE', 'EXPAND',
   // 4자
-  'SORT', 'TAKE', 'DROP',
+  'SORTBY', 'SORT', 'TAKE', 'DROP',
+  'HSTACK', 'VSTACK',
+  'TOCOL', 'TOROW',
   // 8자
   'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
   // 7자
   'AVERAGE', 'VLOOKUP', 'HLOOKUP', 'DATEDIF', 'CEILING', 'ROUNDUP', 'EOMONTH',
   'QUARTILEEXC', 'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE', 'QUARTILE',
   // 6자
-  'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT',
+  'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT', 'LOOKUP',
   'MINIFS', 'MAXIFS',
   // 5자
   'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
@@ -340,6 +358,18 @@ function evalWithGuard(
 
 function formatResult(v: unknown): string {
   if (v === null || v === undefined) return '';
+  if (Array.isArray(v)) {
+    const cols = typeof (v as { __cols?: unknown }).__cols === 'number'
+      ? Math.max(1, Math.floor((v as { __cols: number }).__cols))
+      : 1;
+    const rows = typeof (v as { __rows?: unknown }).__rows === 'number'
+      ? Math.max(1, Math.floor((v as { __rows: number }).__rows))
+      : Math.max(1, Math.ceil(v.length / cols));
+    const grid = Array.from({ length: rows }, (_, row) => (
+      Array.from({ length: cols }, (_, col) => String(v[row * cols + col] ?? ''))
+    ));
+    return `${SPILL_SENTINEL}${JSON.stringify(grid)}`;
+  }
   if (typeof v === 'number') {
     if (Number.isNaN(v)) return '#NUM!';
     if (!Number.isFinite(v)) return '#DIV/0!';
@@ -380,7 +410,7 @@ function escapeStringLiterals(src: string): string {
 }
 
 const SAFE_EVAL_IDENTIFIERS = new Set([
-  'true', 'false',
+  'true', 'false', 'undefined',
   '__range',
   '__sum', '__product', '__sumproduct', '__subtotal', '__avg', '__average', '__min', '__max', '__count', '__if', '__abs', '__round',
   '__sumif', '__countif', '__averageif', '__sumifs', '__countifs', '__averageifs', '__minifs', '__maxifs',
@@ -389,20 +419,22 @@ const SAFE_EVAL_IDENTIFIERS = new Set([
   '__and', '__or', '__not',
   '__today', '__now', '__year', '__month', '__day', '__weekday',
   '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
-  '__vlookup', '__hlookup', '__index', '__match', '__xmatch',
+  '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
   '__rows', '__columns', '__row', '__column', '__choose',
   '__image', '__sparkline',
   '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
   '__ifs', '__switch', '__xlookup',
-  '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
+  '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
   '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
   '__stdev', '__stdevp', '__var', '__varp', '__rank',
   '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
   '__value',
   '__text', '__regexmatch', '__regexextract', '__regexreplace',
   '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
-  '__filter', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence',
-  '__cmp',
+  '__filter', '__sortby', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence',
+  '__hstack', '__vstack', '__tocol', '__torow', '__wraprows', '__wrapcols', '__textsplit',
+  '__choosecols', '__chooserows', '__expand',
+  '__cmp', '__criteria',
 ]);
 
 function maskStringLiterals(src: string): string {
@@ -550,17 +582,122 @@ function normalizeExcelConcatenation(src: string): string {
 function rewriteRangeComparisons(src: string): string {
   const rangePattern = String.raw`__range\(\[[^\]]*\],[^)]*\)`;
   const valuePattern = String.raw`(?:-?\d+(?:\.\d+)?|true|false|"(?:\\.|[^"])*")`;
-  return replaceOutsideStringLiterals(src, (chunk) => {
-    let out = chunk.replace(
-      new RegExp(`(${rangePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${valuePattern})`, 'g'),
-      (_match, range, op, value) => `__cmp(${range},${value},"${op}")`,
-    );
-    out = out.replace(
-      new RegExp(`(${valuePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${rangePattern})`, 'g'),
-      (_match, value, op, range) => `__cmp(${value},${range},"${op}")`,
-    );
-    return out;
-  });
+  let out = src.replace(
+    new RegExp(`(${rangePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${valuePattern})`, 'g'),
+    (_match, range, op, value) => `__cmp(${range},${value},"${op}")`,
+  );
+  out = out.replace(
+    new RegExp(`(${valuePattern})\\s*(>=|<=|==|!=|>|<)\\s*(${rangePattern})`, 'g'),
+    (_match, value, op, range) => `__cmp(${value},${range},"${op}")`,
+  );
+  return rewriteArrayFunctionComparisons(out);
+}
+
+function readArrayFunctionCall(src: string, start: number): { expr: string; end: number } | null {
+  let i = start;
+  while (/\s/.test(src[i] ?? '')) i += 1;
+  const wrapped = src[i] === '(';
+  if (wrapped) i += 1;
+  while (/\s/.test(src[i] ?? '')) i += 1;
+  const name = src.startsWith('__index', i) || src.startsWith('__choose', i) ? src.slice(i, src.indexOf('(', i)) : '';
+  if (name !== '__index' && name !== '__choose') return null;
+  const open = src.indexOf('(', i + name.length);
+  if (open < 0) return null;
+  const close = findMatchingParen(src, open);
+  if (close < 0) return null;
+  let end = close + 1;
+  if (wrapped) {
+    let j = end;
+    while (/\s/.test(src[j] ?? '')) j += 1;
+    if (src[j] !== ')') return null;
+    end = j + 1;
+  }
+  return { expr: src.slice(i, close + 1), end };
+}
+
+function rewriteArrayFunctionComparisons(src: string): string {
+  const valueRe = /^(-?\d+(?:\.\d+)?|true|false|"(?:\\.|[^"])*")/i;
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const left = readArrayFunctionCall(src, i);
+    if (!left) {
+      out += src[i];
+      i += 1;
+      continue;
+    }
+    let j = left.end;
+    while (/\s/.test(src[j] ?? '')) j += 1;
+    const op = src.slice(j).match(/^(>=|<=|==|!=|>|<)/)?.[1];
+    if (!op) {
+      out += src.slice(i, left.end);
+      i = left.end;
+      continue;
+    }
+    j += op.length;
+    while (/\s/.test(src[j] ?? '')) j += 1;
+    const value = src.slice(j).match(valueRe)?.[1];
+    if (!value) {
+      out += src.slice(i, left.end);
+      i = left.end;
+      continue;
+    }
+    out += `__cmp(${left.expr},${value},"${op}")`;
+    i = j + value.length;
+  }
+  return out;
+}
+
+function readCriteriaCall(src: string, start: number): { expr: string; end: number } | null {
+  let i = start;
+  while (/\s/.test(src[i] ?? '')) i += 1;
+  const wrapped = src[i] === '(';
+  if (wrapped) i += 1;
+  while (/\s/.test(src[i] ?? '')) i += 1;
+  const name = src.startsWith('__cmp', i) ? '__cmp' : src.startsWith('__criteria', i) ? '__criteria' : '';
+  if (!name) return null;
+  const open = src.indexOf('(', i + name.length);
+  if (open < 0) return null;
+  const close = findMatchingParen(src, open);
+  if (close < 0) return null;
+  let end = close + 1;
+  if (wrapped) {
+    let j = end;
+    while (/\s/.test(src[j] ?? '')) j += 1;
+    if (src[j] !== ')') return null;
+    end = j + 1;
+  }
+  return { expr: src.slice(i, close + 1), end };
+}
+
+function rewriteArrayCriteriaArithmetic(src: string): string {
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const left = readCriteriaCall(src, i);
+    if (!left) {
+      out += src[i];
+      i += 1;
+      continue;
+    }
+    let j = left.end;
+    while (/\s/.test(src[j] ?? '')) j += 1;
+    const op = src[j];
+    if (op !== '*' && op !== '+') {
+      out += src.slice(i, left.end);
+      i = left.end;
+      continue;
+    }
+    const right = readCriteriaCall(src, j + 1);
+    if (!right) {
+      out += src.slice(i, left.end);
+      i = left.end;
+      continue;
+    }
+    out += `__criteria(${left.expr},${right.expr},"${op}")`;
+    i = right.end;
+  }
+  return out;
 }
 
 function normalizeExcelPercentLiterals(src: string): string {
@@ -946,6 +1083,181 @@ function replaceStructuredReferences(
   });
 }
 
+function findMatchingParen(src: string, openIndex: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = openIndex; i < src.length; i++) {
+    const ch = src[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '(') depth += 1;
+    if (ch === ')') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function splitFormulaArgs(src: string): string[] {
+  const args: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '(') depth += 1;
+    if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) {
+      args.push(src.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  args.push(src.slice(start).trim());
+  return args;
+}
+
+function isLetName(value: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value) && !/^\$?[A-Z]{1,3}\$?\d+$/i.test(value);
+}
+
+function isSimpleLetReferenceExpression(value: string): boolean {
+  const sheet = String.raw`(?:'(?:[^']|'')+'|[A-Za-z]\w*)!`;
+  const cell = String.raw`\$?[A-Z]{1,3}\$?\d+`;
+  const range = new RegExp(`^(?:${sheet})?${cell}:(?:${sheet})?${cell}$`, 'i');
+  const single = new RegExp(`^(?:${sheet})?${cell}$`, 'i');
+  return range.test(value) || single.test(value);
+}
+
+function valueToFormulaLiteral(value: unknown): string {
+  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (Array.isArray(value)) return JSON.stringify(String(value[0] ?? ''));
+  const text = String(value ?? '');
+  const n = Number(text);
+  if (Number.isFinite(n) && text.trim() !== '') return String(n);
+  if (text === 'TRUE' || text === 'FALSE') return text;
+  return JSON.stringify(text);
+}
+
+function replaceLetExpressions(
+  src: string,
+  currentSheet: string,
+  currentRef: string,
+  allSheets: Record<string, Cells>,
+  namedRanges: Record<string, string>,
+  tables: Record<string, FormulaTable[]>,
+  visiting: Set<string>,
+  formulaCache?: Map<string, string>,
+  nonCacheable?: Set<string>,
+): string {
+  let out = '';
+  let cursor = 0;
+  const letRe = /\bLET\s*\(/gi;
+  let match: RegExpExecArray | null;
+  while ((match = letRe.exec(src))) {
+    const openIndex = src.indexOf('(', match.index);
+    const closeIndex = findMatchingParen(src, openIndex);
+    if (closeIndex < 0) break;
+
+    out += src.slice(cursor, match.index);
+    const args = splitFormulaArgs(src.slice(openIndex + 1, closeIndex));
+    if (args.length < 3 || args.length % 2 === 0) {
+      out += valueToFormulaLiteral('#VALUE!');
+    } else {
+      const scopedNames: Record<string, string> = { ...namedRanges };
+      let failed = false;
+      for (let i = 0; i < args.length - 1; i += 2) {
+        const name = args[i];
+        const valueExpr = args[i + 1];
+        if (!isLetName(name)) {
+          failed = true;
+          break;
+        }
+        if (isSimpleLetReferenceExpression(valueExpr)) {
+          scopedNames[name] = valueExpr;
+        } else {
+          const value = evalExpr(valueExpr, currentSheet, currentRef, allSheets, scopedNames, tables, visiting, formulaCache, nonCacheable);
+          scopedNames[name] = valueToFormulaLiteral(value);
+        }
+      }
+      if (failed) {
+        out += valueToFormulaLiteral('#VALUE!');
+      } else {
+        const value = evalExpr(args[args.length - 1], currentSheet, currentRef, allSheets, scopedNames, tables, visiting, formulaCache, nonCacheable);
+        out += valueToFormulaLiteral(value);
+      }
+    }
+    cursor = closeIndex + 1;
+    letRe.lastIndex = closeIndex + 1;
+  }
+  return out + src.slice(cursor);
+}
+
+function normalizeOmittedFunctionArgs(src: string, names: string[]): string {
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const name = names.find((candidate) => (
+      src.startsWith(candidate, i) &&
+      !/[A-Za-z0-9_$]/.test(src[i - 1] ?? '') &&
+      !/[A-Za-z0-9_$]/.test(src[i + candidate.length] ?? '')
+    ));
+    if (!name) {
+      out += src[i];
+      i += 1;
+      continue;
+    }
+
+    let open = i + name.length;
+    while (/\s/.test(src[open] ?? '')) open += 1;
+    if (src[open] !== '(') {
+      out += src[i];
+      i += 1;
+      continue;
+    }
+    const close = findMatchingParen(src, open);
+    if (close < 0) {
+      out += src.slice(i);
+      break;
+    }
+
+    const args = splitFormulaArgs(src.slice(open + 1, close))
+      .map((arg) => (arg === '' ? 'undefined' : normalizeOmittedFunctionArgs(arg, names)));
+    out += `${name}${src.slice(i + name.length, open + 1)}${args.join(',')})`;
+    i = close + 1;
+  }
+  return out;
+}
+
 function evalExpr(
   expr: string,
   currentSheet: string,
@@ -974,6 +1286,9 @@ function evalExpr(
   // Table1[[#All],[Column]] -> ordinary A1 ranges before the standard range pass.
   work = replaceStructuredReferences(work, currentSheet, currentRef, tables, allSheets);
 
+  // -0.2. LET has formula-local names, so resolve it before the ordinary name/range/function passes.
+  work = replaceLetExpressions(work, currentSheet, currentRef, allSheets, namedRanges, tables, visiting, formulaCache, nonCacheable);
+
   // 0. Named Range 치환 — 가장 먼저. 이름이 함수명·기존 ref 와 안 겹친다 가정.
   //    토큰 경계: 앞뒤가 알파뉴 X. case-insensitive.
   if (Object.keys(namedRanges).length > 0) {
@@ -1000,7 +1315,7 @@ function evalExpr(
       const refs = collectRange(c1 as string, Number(r1), c2 as string, Number(r2));
       const tokens = refs.map((r) => {
         const v = evalWithGuard(sheet, r, allSheets, namedRanges, tables, visiting, formulaCache, nonCacheable);
-        if (v.startsWith('#')) return '0';
+        if (v.startsWith('#')) return JSON.stringify(v);
         const n = Number(v);
         if (Number.isFinite(n) && v.trim() !== '') return String(n);
         if (v === '') return '""';
@@ -1035,12 +1350,14 @@ function evalExpr(
     }
     return replaced;
   });
+  work = normalizeOmittedFunctionArgs(work, ['__take', '__drop', '__textsplit', '__textbefore', '__textafter']);
 
   // 4. ^ → ** (지수)
   work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(/\^/g, '**'));
   work = normalizeExcelComparisons(work);
   work = normalizeExcelConcatenation(work);
   work = rewriteRangeComparisons(work);
+  work = rewriteArrayCriteriaArithmetic(work);
   work = normalizeExcelPercentLiterals(work);
   assertSafeEvalExpression(work);
 
@@ -1093,6 +1410,19 @@ function evalExpr(
     const values = Array.from({ length: len }, (_, idx) => (
       compareValues(leftArr[idx % leftArr.length], rightArr[idx % rightArr.length], op)
     ));
+    const cols = Array.isArray(left) ? rangeCols(left, values.length) : rangeCols(right, values.length);
+    const rows = Array.isArray(left) ? rangeRows(left, Math.ceil(values.length / cols)) : rangeRows(right, Math.ceil(values.length / cols));
+    return __range(values, cols, rows);
+  };
+  const __criteria = (left: unknown, right: unknown, op: unknown): unknown => {
+    const leftArr = toArr(left);
+    const rightArr = toArr(right);
+    const len = Math.max(leftArr.length, rightArr.length);
+    const values = Array.from({ length: len }, (_, idx) => {
+      const a = spillTruthy(leftArr[idx % leftArr.length]);
+      const b = spillTruthy(rightArr[idx % rightArr.length]);
+      return String(op) === '+' ? a || b : a && b;
+    });
     const cols = Array.isArray(left) ? rangeCols(left, values.length) : rangeCols(right, values.length);
     const rows = Array.isArray(left) ? rangeRows(left, Math.ceil(values.length / cols)) : rangeRows(right, Math.ceil(values.length / cols));
     return __range(values, cols, rows);
@@ -1264,6 +1594,10 @@ function evalExpr(
       const rhsStr = opMatch[2].trim();
       const rhsNum = Number(rhsStr);
       const valStr = String(value);
+      if (rhsStr === '' && (op === '=' || op === '<>')) {
+        const isEqual = textCriteriaEquals(value, rhsStr);
+        return op === '=' ? isEqual : !isEqual;
+      }
       // 숫자 비교 우선
       if (Number.isFinite(rhsNum) && Number.isFinite(Number(value))) {
         const v = Number(value);
@@ -1553,6 +1887,33 @@ function evalExpr(
     rangeLookup === 0 ||
     (typeof rangeLookup === 'string' && rangeLookup.trim().toLowerCase() === 'false')
   );
+  const approximateTextLookupIndex = (key: unknown, values: unknown[]): number => {
+    const keyText = String(key ?? '').toLocaleLowerCase();
+    let bestIdx = -1;
+    let bestValue = '';
+    for (let i = 0; i < values.length; i++) {
+      const value = String(values[i] ?? '').toLocaleLowerCase();
+      if (value <= keyText && (bestIdx < 0 || value >= bestValue)) {
+        bestIdx = i;
+        bestValue = value;
+      }
+    }
+    return bestIdx;
+  };
+  const approximateVectorLookupIndex = (key: unknown, values: unknown[]): number => {
+    const numericIdx = approximateLookupIndex(key, values, -1);
+    if (numericIdx >= 0) return numericIdx;
+    return approximateTextLookupIndex(key, values);
+  };
+
+  const __lookup = (key: unknown, lookupVector: unknown, resultVector?: unknown) => {
+    const lookup = toArr(lookupVector);
+    if (lookup.length === 0) return '#N/A';
+    const result = resultVector === undefined ? lookup : toArr(resultVector);
+    const idx = approximateVectorLookupIndex(key, lookup);
+    if (idx < 0) return '#N/A';
+    return idx < result.length ? result[idx] : '#N/A';
+  };
 
   /** VLOOKUP(search, range, colIdx, exactOnly=true)
    *  range 는 2D 가 아니라 1D 배열 (셀 값들이 행 우선 평탄화됨).
@@ -1602,15 +1963,25 @@ function evalExpr(
     }
     return '#N/A';
   };
-  /** INDEX(range, idx) — 단순 1-based 인덱싱 (평탄화 배열) */
+  /** INDEX(range, row, [column]) with Excel row/column zero spill semantics. */
   const __index = (range: unknown, idx: unknown, colIdx?: unknown) => {
-    const arr = toArr(range);
-    const cols = rangeCols(range, arr.length || 1);
-    const row = Math.max(1, Math.floor(Number(idx) || 1));
-    const col = colIdx === undefined ? 1 : Math.max(1, Math.floor(Number(colIdx) || 1));
-    const i = colIdx === undefined ? row : ((row - 1) * cols) + col;
-    if (i > arr.length) return '#REF!';
-    return arr[i - 1];
+    const grid = rangeGrid(range);
+    const rows = grid.length;
+    const cols = gridCols(grid);
+    const row = Math.floor(Number(idx) || 0);
+    const col = colIdx === undefined ? 1 : Math.floor(Number(colIdx) || 0);
+    if (rows === 0 || cols === 0) return '#REF!';
+    if (row === 0 && col === 0) return __range(grid.flat(), cols, rows);
+    if (row === 0) {
+      if (col < 1 || col > cols) return '#REF!';
+      return __range(Array.from({ length: rows }, (_, rowIdx) => grid[rowIdx]?.[col - 1] ?? ''), 1, rows);
+    }
+    if (col === 0) {
+      if (row < 1 || row > rows) return '#REF!';
+      return __range(Array.from({ length: cols }, (_, colIdx) => grid[row - 1]?.[colIdx] ?? ''), cols, 1);
+    }
+    if (row < 1 || row > rows || col < 1 || col > cols) return '#REF!';
+    return grid[row - 1]?.[col - 1] ?? '';
   };
   /** IMAGE(url) — sentinel 문자열 반환. 셀 렌더가 prefix 보고 <img> 표시. */
   const __image = (url: unknown) => {
@@ -1698,7 +2069,9 @@ function evalExpr(
   );
   const __choose = (idx: unknown, ...values: unknown[]) => {
     const i = Math.floor(Number(idx));
-    return i >= 1 && i <= values.length ? values[i - 1] : '#VALUE!';
+    if (i < 1 || i > values.length) return '#VALUE!';
+    const value = values[i - 1];
+    return Array.isArray(value) ? spillGrid(rangeGrid(value)) : value;
   };
 
   const isErrorStr = (v: unknown): boolean =>
@@ -1784,6 +2157,42 @@ function evalExpr(
     return Array.from({ length: rows }, (_, row) => (
       Array.from({ length: cols }, (_, col) => arr[row * cols + col] ?? '')
     ));
+  };
+  const gridCols = (grid: unknown[][]): number => grid.reduce((max, row) => Math.max(max, row.length), 0);
+  const normalizeGridWidth = (grid: unknown[][], cols = gridCols(grid), pad: unknown = '#N/A'): unknown[][] =>
+    grid.map((row) => Array.from({ length: cols }, (_, col) => row[col] ?? pad));
+  const normalizeSignedIndex = (value: unknown, length: number): number | undefined => {
+    const raw = Math.trunc(Number(value));
+    if (!Number.isFinite(raw) || raw === 0) return undefined;
+    const idx = raw > 0 ? raw - 1 : length + raw;
+    return idx >= 0 && idx < length ? idx : undefined;
+  };
+  const flattenGrid = (range: unknown, byColumn: unknown = false): unknown[] => {
+    const grid = rangeGrid(range);
+    const rows = grid.length;
+    const cols = gridCols(grid);
+    const out: unknown[] = [];
+    if (byColumn) {
+      for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < rows; row++) out.push(grid[row]?.[col] ?? '');
+      }
+      return out;
+    }
+    for (const row of grid) {
+      for (let col = 0; col < cols; col++) out.push(row[col] ?? '');
+    }
+    return out;
+  };
+  const filterIgnoredSpillValues = (values: unknown[], ignore: unknown = 0): unknown[] => {
+    const mode = Math.trunc(Number(ignore) || 0);
+    return values.filter((value) => {
+      const isBlank = value == null || String(value) === '';
+      const isError = typeof value === 'string' && value.startsWith('#');
+      if (mode === 1) return !isBlank;
+      if (mode === 2) return !isError;
+      if (mode === 3) return !isBlank && !isError;
+      return true;
+    });
   };
   const spillTruthy = (value: unknown): boolean => (
     value === true ||
@@ -1904,6 +2313,56 @@ function evalExpr(
   };
   // HYPERLINK v2 (PR #6) — sentinel + JSON {url, label} 반환. 셀 렌더가 <a> 로 표시.
   // 라벨이 비어있으면 URL 자체가 라벨. 안전한 스킴만 통과.
+  const delimiterIndex = (
+    text: string,
+    delimiter: string,
+    instance: unknown = 1,
+    matchMode: unknown = 0,
+  ): number | undefined => {
+    const rawInstance = instance === undefined ? 1 : Number(instance);
+    if (!Number.isFinite(rawInstance)) return undefined;
+    const nth = Math.trunc(rawInstance);
+    if (nth === 0 || delimiter === '') return undefined;
+    const haystack = Number(matchMode) === 1 ? text.toLocaleLowerCase() : text;
+    const needle = Number(matchMode) === 1 ? delimiter.toLocaleLowerCase() : delimiter;
+    const positions: number[] = [];
+    let cursor = 0;
+    while (cursor <= haystack.length) {
+      const idx = haystack.indexOf(needle, cursor);
+      if (idx < 0) break;
+      positions.push(idx);
+      cursor = idx + Math.max(needle.length, 1);
+    }
+    return nth > 0 ? positions[nth - 1] : positions[positions.length + nth];
+  };
+  const __textbefore = (
+    text: unknown,
+    delimiter: unknown,
+    instance: unknown = 1,
+    matchMode: unknown = 0,
+    matchEnd: unknown = false,
+    ifNotFound: unknown = '#N/A',
+  ) => {
+    const source = String(text ?? '');
+    const delim = String(delimiter ?? '');
+    const idx = delimiterIndex(source, delim, instance, matchMode);
+    if (idx === undefined) return matchEnd ? source : ifNotFound;
+    return source.slice(0, idx);
+  };
+  const __textafter = (
+    text: unknown,
+    delimiter: unknown,
+    instance: unknown = 1,
+    matchMode: unknown = 0,
+    matchEnd: unknown = false,
+    ifNotFound: unknown = '#N/A',
+  ) => {
+    const source = String(text ?? '');
+    const delim = String(delimiter ?? '');
+    const idx = delimiterIndex(source, delim, instance, matchMode);
+    if (idx === undefined) return matchEnd ? '' : ifNotFound;
+    return source.slice(idx + delim.length);
+  };
   const __hyperlink = (url: unknown, label?: unknown) => {
     const u = String(url ?? '').trim();
     if (!u) return '#VALUE!';
@@ -2081,6 +2540,45 @@ function evalExpr(
     }
     return filteredGrid.length === 0 ? ifEmpty : spillGrid(filteredGrid);
   };
+  const __sortby = (range: unknown, ...criteria: unknown[]) => {
+    const grid = rangeGrid(range);
+    if (grid.length === 0 || grid[0]?.length === 0) return spillGrid([]);
+    if (criteria.length === 0) return spillGrid(grid);
+    const sortKeys = [];
+    for (let i = 0; i < criteria.length; i += 2) {
+      sortKeys.push({
+        values: toArr(criteria[i]),
+        order: Number(criteria[i + 1] ?? 1) < 0 ? -1 : 1,
+      });
+    }
+    const rows = grid.length;
+    const cols = gridCols(grid);
+    const rowSort = sortKeys.every((key) => key.values.length === rows);
+    const colSort = !rowSort && sortKeys.every((key) => key.values.length === cols);
+    if (rowSort) {
+      const indexes = Array.from({ length: rows }, (_, idx) => idx);
+      indexes.sort((a, b) => {
+        for (const key of sortKeys) {
+          const cmp = compareSpreadsheetValues(key.values[a], key.values[b]);
+          if (cmp !== 0) return cmp * key.order;
+        }
+        return a - b;
+      });
+      return spillGrid(indexes.map((idx) => grid[idx]));
+    }
+    if (colSort) {
+      const indexes = Array.from({ length: cols }, (_, idx) => idx);
+      indexes.sort((a, b) => {
+        for (const key of sortKeys) {
+          const cmp = compareSpreadsheetValues(key.values[a], key.values[b]);
+          if (cmp !== 0) return cmp * key.order;
+        }
+        return a - b;
+      });
+      return spillGrid(grid.map((row) => indexes.map((idx) => row[idx] ?? '')));
+    }
+    return '#VALUE!';
+  };
   const __sort = (range: unknown, descending: unknown = 0, sortOrder?: unknown, byCol: unknown = false) => {
     const grid = rangeGrid(range);
     if (grid.length > 0 && (grid[0]?.length ?? 0) > 1) {
@@ -2146,12 +2644,14 @@ function evalExpr(
     return n > 0 ? items.slice(n) : items.slice(0, Math.max(0, items.length + n));
   };
   const __take = (range: unknown, rows: unknown, cols?: unknown) => {
-    let grid = sliceBySignedCount(rangeGrid(range), rows);
+    let grid = rangeGrid(range);
+    if (rows !== undefined) grid = sliceBySignedCount(grid, rows);
     if (cols !== undefined) grid = grid.map((row) => sliceBySignedCount(row, cols));
     return spillGrid(grid);
   };
   const __drop = (range: unknown, rows: unknown, cols?: unknown) => {
-    let grid = sliceBySignedCount(rangeGrid(range), rows, true);
+    let grid = rangeGrid(range);
+    if (rows !== undefined) grid = sliceBySignedCount(grid, rows, true);
     if (cols !== undefined) grid = grid.map((row) => sliceBySignedCount(row, cols, true));
     return spillGrid(grid);
   };
@@ -2168,6 +2668,103 @@ function evalExpr(
   // ─── AI 함수 (비동기 — 캐시 hit 면 결과, miss 면 sentinel 로 진행 알림) ───
   // sentinel 이 셀에 떠있는 동안 백그라운드 fetch 가 동작하고, 결과가 오면
   // AI_CHANGED 이벤트가 발행 → CloudSheetEditor 가 해당 셀 재평가 → 결과 표시.
+  const __hstack = (...ranges: unknown[]) => {
+    if (ranges.length === 0) return '#VALUE!';
+    const grids = ranges.map((range) => rangeGrid(range));
+    const rowCount = Math.max(...grids.map((grid) => grid.length), 0);
+    const widths = grids.map((grid) => Math.max(1, gridCols(grid)));
+    return spillGrid(Array.from({ length: rowCount }, (_, row) => (
+      grids.flatMap((grid, gridIdx) => (
+        Array.from({ length: widths[gridIdx] }, (_, col) => grid[row]?.[col] ?? '#N/A')
+      ))
+    )));
+  };
+  const __vstack = (...ranges: unknown[]) => {
+    if (ranges.length === 0) return '#VALUE!';
+    const grids = ranges.map((range) => rangeGrid(range));
+    const colCount = Math.max(...grids.map((grid) => gridCols(grid)), 1);
+    return spillGrid(grids.flatMap((grid) => normalizeGridWidth(grid, colCount, '#N/A')));
+  };
+  const __tocol = (range: unknown, ignore: unknown = 0, scanByColumn: unknown = false) =>
+    spillVertical(filterIgnoredSpillValues(flattenGrid(range, scanByColumn), ignore));
+  const __torow = (range: unknown, ignore: unknown = 0, scanByColumn: unknown = false) =>
+    spillGrid([filterIgnoredSpillValues(flattenGrid(range, scanByColumn), ignore)]);
+  const __wraprows = (vector: unknown, wrapCount: unknown, padWith: unknown = '#N/A') => {
+    const values = flattenGrid(vector);
+    const width = Math.trunc(Number(wrapCount));
+    if (!Number.isFinite(width) || width < 1) return '#VALUE!';
+    const rows = Math.ceil(values.length / width);
+    return spillGrid(Array.from({ length: rows }, (_, row) => (
+      Array.from({ length: width }, (_, col) => values[row * width + col] ?? padWith)
+    )));
+  };
+  const __wrapcols = (vector: unknown, wrapCount: unknown, padWith: unknown = '#N/A') => {
+    const values = flattenGrid(vector);
+    const height = Math.trunc(Number(wrapCount));
+    if (!Number.isFinite(height) || height < 1) return '#VALUE!';
+    const cols = Math.ceil(values.length / height);
+    return spillGrid(Array.from({ length: height }, (_, row) => (
+      Array.from({ length: cols }, (_, col) => values[col * height + row] ?? padWith)
+    )));
+  };
+  const __textsplit = (
+    text: unknown,
+    columnDelimiter: unknown,
+    rowDelimiter?: unknown,
+    ignoreEmpty: unknown = false,
+    matchMode: unknown = 0,
+    padWith: unknown = '#N/A',
+  ) => {
+    const source = String(text ?? '');
+    const colDelim = String(columnDelimiter ?? '');
+    const rowDelim = rowDelimiter === undefined ? undefined : String(rowDelimiter ?? '');
+    if (colDelim === '' && (!rowDelim || rowDelim === '')) return '#VALUE!';
+    const insensitive = Number(matchMode) === 1;
+    const splitBy = (value: string, delimiter: string): string[] => {
+      if (delimiter === '') return [value];
+      if (!insensitive) return value.split(delimiter);
+      return value.split(new RegExp(delimiter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+    };
+    const rows = rowDelim && rowDelim !== '' ? splitBy(source, rowDelim) : [source];
+    let grid = rows.map((row) => splitBy(row, colDelim));
+    if (ignoreEmpty) grid = grid.map((row) => row.filter((cell) => cell !== ''));
+    const width = Math.max(...grid.map((row) => row.length), 1);
+    return spillGrid(normalizeGridWidth(grid, width, padWith));
+  };
+  const __choosecols = (range: unknown, ...indexes: unknown[]) => {
+    const grid = rangeGrid(range);
+    const colCount = gridCols(grid);
+    if (indexes.length === 0 || colCount === 0) return '#VALUE!';
+    const selected = indexes.map((idx) => normalizeSignedIndex(idx, colCount));
+    if (selected.some((idx) => idx === undefined)) return '#VALUE!';
+    return spillGrid(grid.map((row) => selected.map((idx) => row[idx!] ?? '')));
+  };
+  const __chooserows = (range: unknown, ...indexes: unknown[]) => {
+    const grid = rangeGrid(range);
+    if (indexes.length === 0 || grid.length === 0) return '#VALUE!';
+    const selected = indexes.map((idx) => normalizeSignedIndex(idx, grid.length));
+    if (selected.some((idx) => idx === undefined)) return '#VALUE!';
+    return spillGrid(selected.map((idx) => normalizeGridWidth([grid[idx!] ?? []], gridCols(grid), '')[0]));
+  };
+  const __expand = (range: unknown, rows: unknown, columns?: unknown, padWith: unknown = '#N/A') => {
+    const grid = rangeGrid(range);
+    const sourceRows = grid.length;
+    const sourceCols = gridCols(grid);
+    const targetRows = Math.trunc(Number(rows));
+    const targetCols = columns === undefined ? sourceCols : Math.trunc(Number(columns));
+    if (
+      !Number.isFinite(targetRows) ||
+      !Number.isFinite(targetCols) ||
+      targetRows < sourceRows ||
+      targetCols < sourceCols ||
+      targetRows < 1 ||
+      targetCols < 1
+    ) return '#VALUE!';
+    return spillGrid(Array.from({ length: targetRows }, (_, row) => (
+      Array.from({ length: targetCols }, (_, col) => grid[row]?.[col] ?? padWith)
+    )));
+  };
+
   const clampAiText = (value: unknown, limit = AI_CELL_TEXT_LIMIT) => {
     const text = String(value ?? '');
     return text.length > limit ? text.slice(0, limit) : text;
@@ -2234,18 +2831,21 @@ function evalExpr(
     '__and', '__or', '__not',
     '__today', '__now', '__year', '__month', '__day', '__weekday',
     '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
-    '__vlookup', '__hlookup', '__index', '__match', '__xmatch',
+    '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
     '__rows', '__columns', '__row', '__column', '__choose',
     '__image', '__sparkline',
     '__iferror', '__ifna', '__isnumber', '__isblank', '__istext', '__iserror', '__isna',
     '__ifs', '__switch', '__xlookup',
-    '__textjoin', '__substitute', '__replace', '__find', '__search', '__hyperlink',
+    '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
     '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
     '__stdev', '__stdevp', '__var', '__varp', '__rank',
     '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
-    '__filter', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence', '__cmp',
+    '__filter', '__sortby', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence',
+    '__hstack', '__vstack', '__tocol', '__torow', '__wraprows', '__wrapcols', '__textsplit',
+    '__choosecols', '__chooserows', '__expand',
+    '__cmp', '__criteria',
     `"use strict"; return (${work});`,
   );
   return fn(
@@ -2257,18 +2857,21 @@ function evalExpr(
     __and, __or, __not,
     __today, __now, __year, __month, __day, __weekday,
     __power, __sqrt, __mod, __int, __median, __large, __small, __percentile, __percentileexc, __quartile, __quartileexc,
-    __vlookup, __hlookup, __index, __match, __xmatch,
+    __vlookup, __hlookup, __lookup, __index, __match, __xmatch,
     __rows, __columns, __row, __column, __choose,
     __image, __sparkline,
     __iferror, __ifna, __isnumber, __isblank, __istext, __iserror, __isna,
     __ifs, __switch, __xlookup,
-    __textjoin, __substitute, __replace, __find, __search, __hyperlink,
+    __textjoin, __substitute, __replace, __find, __search, __textbefore, __textafter, __hyperlink,
     __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
     __stdev, __stdevp, __var, __varp, __rank,
     __date, __eomonth, __edate, __datedif, __networkdays, __datevalue, __days,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,
-    __filter, __sort, __unique, __transpose, __take, __drop, __sequence, __cmp,
+    __filter, __sortby, __sort, __unique, __transpose, __take, __drop, __sequence,
+    __hstack, __vstack, __tocol, __torow, __wraprows, __wrapcols, __textsplit,
+    __choosecols, __chooserows, __expand,
+    __cmp, __criteria,
   );
 }
 

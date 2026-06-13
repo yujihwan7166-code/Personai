@@ -84,6 +84,19 @@ describe('cloud sheet formula conditional aggregation compatibility', () => {
     expect(evaluate('AVERAGEIFS(C1:C4, A1:A4, "w*", B1:B4, "<>Closed")', ctx)).toBe('30');
   });
 
+  it('matches blank and nonblank criteria without treating zero as blank', () => {
+    const ctx = {
+      A1: '', B1: '10',
+      A2: '0', B2: '20',
+      A3: 'Text', B3: '30',
+      A4: '', B4: '40',
+    };
+    expect(evaluate('COUNTIF(A1:A4, "=")', ctx)).toBe('2');
+    expect(evaluate('COUNTIF(A1:A4, "<>")', ctx)).toBe('2');
+    expect(evaluate('SUMIF(A1:A4, "<>", B1:B4)', ctx)).toBe('50');
+    expect(evaluate('COUNTIFS(A1:A4, "<>", B1:B4, ">=20")', ctx)).toBe('2');
+  });
+
   it('supports AVERAGEIF with same-range and separate average-range forms', () => {
     expect(evaluate('AVERAGEIF(A1:A4, ">=20")', {
       A1: '10', A2: '20', A3: '30', A4: 'text',
