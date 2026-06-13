@@ -372,19 +372,88 @@ describe('formula — 날짜', () => {
     expect(evaluate('DATE(2026, 5, 11)')).toBe('2026-05-11');
   });
 
+  it('WEEKDAY supports Excel return_type modes', () => {
+    expect(evaluate('WEEKDAY("2026-05-10")')).toBe('1');
+    expect(evaluate('WEEKDAY("2026-05-10", 2)')).toBe('7');
+    expect(evaluate('WEEKDAY("2026-05-10", 3)')).toBe('6');
+    expect(evaluate('WEEKDAY("2026-05-10", 12)')).toBe('6');
+    expect(evaluate('WEEKDAY("2026-05-10", 99)')).toBe('#NUM!');
+  });
+
+  it('WEEKNUM and ISOWEEKNUM support Excel week numbering', () => {
+    expect(evaluate('WEEKNUM("2026-01-01")')).toBe('1');
+    expect(evaluate('WEEKNUM("2026-01-04")')).toBe('2');
+    expect(evaluate('WEEKNUM("2026-01-04", 2)')).toBe('1');
+    expect(evaluate('WEEKNUM("2026-01-04", 21)')).toBe('1');
+    expect(evaluate('ISOWEEKNUM("2026-01-04")')).toBe('1');
+    expect(evaluate('ISOWEEKNUM("2021-01-01")')).toBe('53');
+    expect(evaluate('WEEKNUM("2026-01-01", 99)')).toBe('#NUM!');
+  });
+
+  it('TIME, HOUR, MINUTE, and SECOND support Excel time serials', () => {
+    expect(evaluate('TIME(12, 0, 0)')).toBe('0.5');
+    expect(evaluate('TIME(25, 0, 0)')).toBe('0.041667');
+    expect(evaluate('HOUR(TIME(13, 5, 9))')).toBe('13');
+    expect(evaluate('MINUTE(TIME(13, 5, 9))')).toBe('5');
+    expect(evaluate('SECOND(TIME(13, 5, 9))')).toBe('9');
+    expect(evaluate('HOUR("1:05:09 PM")')).toBe('13');
+    expect(evaluate('MINUTE("2026-05-11T09:07:03")')).toBe('7');
+    expect(evaluate('SECOND("not a time")')).toBe('#VALUE!');
+    expect(evaluate('TIMEVALUE("1:05:09 PM")')).toBe('0.545243');
+    expect(evaluate('HOUR(TIMEVALUE("23:15:10"))')).toBe('23');
+    expect(evaluate('TIMEVALUE("not a time")')).toBe('#VALUE!');
+  });
+
   it('EOMONTH — 월말', () => {
     expect(evaluate('EOMONTH("2026-05-11", 0)')).toBe('2026-05-31');
     expect(evaluate('EOMONTH("2026-05-11", 1)')).toBe('2026-06-30');
+    expect(evaluate('EOMONTH("2026-01-31", 1.9)')).toBe('2026-02-28');
   });
 
   it('EDATE — N개월 후 같은 날', () => {
     expect(evaluate('EDATE("2026-01-15", 3)')).toBe('2026-04-15');
+    expect(evaluate('EDATE("2026-01-31", 1)')).toBe('2026-02-28');
+    expect(evaluate('EDATE("2024-01-31", 1)')).toBe('2024-02-29');
+    expect(evaluate('EDATE("2026-03-31", -1)')).toBe('2026-02-28');
   });
 
   it('DATEDIF — Y/M/D 단위', () => {
     expect(evaluate('DATEDIF("2024-05-11", "2026-05-11", "Y")')).toBe('2');
     expect(evaluate('DATEDIF("2026-01-01", "2026-05-11", "M")')).toBe('4');
     expect(evaluate('DATEDIF("2026-05-01", "2026-05-11", "D")')).toBe('10');
+    expect(evaluate('DATEDIF("2024-01-15", "2026-05-20", "YM")')).toBe('4');
+    expect(evaluate('DATEDIF("2024-05-11", "2026-06-20", "YD")')).toBe('40');
+    expect(evaluate('DATEDIF("2026-01-31", "2026-03-05", "MD")')).toBe('5');
+    expect(evaluate('DATEDIF("2026-05-11", "2026-01-01", "D")')).toBe('#NUM!');
+  });
+
+  it('DAYS360 supports US and European 30/360 methods', () => {
+    expect(evaluate('DAYS360("2026-01-31", "2026-02-28")')).toBe('28');
+    expect(evaluate('DAYS360("2026-02-28", "2026-03-31")')).toBe('30');
+    expect(evaluate('DAYS360("2026-01-31", "2026-02-28", TRUE)')).toBe('28');
+    expect(evaluate('DAYS360(DATEVALUE("2026-01-15"), DATEVALUE("2026-02-15"))')).toBe('30');
+  });
+
+  it('YEARFRAC supports common Excel day-count bases', () => {
+    expect(evaluate('YEARFRAC("2026-01-01", "2026-07-01", 0)')).toBe('0.5');
+    expect(evaluate('ROUND(YEARFRAC("2024-01-01", "2025-01-01", 1), 6)')).toBe('1');
+    expect(evaluate('YEARFRAC("2026-01-01", "2026-07-01", 2)')).toBe('0.502778');
+    expect(evaluate('YEARFRAC("2026-01-01", "2026-07-01", 3)')).toBe('0.49589');
+    expect(evaluate('YEARFRAC("2026-01-31", "2026-02-28", 4)')).toBe('0.077778');
+    expect(evaluate('YEARFRAC("2026-01-01", "2026-07-01", 9)')).toBe('#NUM!');
+  });
+
+  it('supports core Excel financial functions', () => {
+    expect(evaluate('ROUND(PMT(0.05/12, 60, 10000), 2)')).toBe('-188.71');
+    expect(evaluate('ROUND(PV(0.05/12, 60, PMT(0.05/12, 60, 10000)), 2)')).toBe('10000');
+    expect(evaluate('ROUND(FV(0.05/12, 60, PMT(0.05/12, 60, 10000)), 2)')).toBe('12833.59');
+    expect(evaluate('ROUND(NPV(0.1, 100, 100, 100), 2)')).toBe('248.69');
+    expect(evaluate('PMT(0, 10, 1000)')).toBe('-100');
+    expect(evaluate('ROUND(IPMT(0.05/12, 1, 60, 10000), 2)')).toBe('-41.67');
+    expect(evaluate('ROUND(PPMT(0.05/12, 1, 60, 10000), 2)')).toBe('-147.05');
+    expect(evaluate('ROUND(IPMT(0.05/12, 1, 60, 10000) + PPMT(0.05/12, 1, 60, 10000), 2)')).toBe('-188.71');
+    expect(evaluate('IPMT(0.05/12, 1, 60, 10000, 0, 1)')).toBe('0');
+    expect(evaluate('IPMT(0.05/12, 61, 60, 10000)')).toBe('#NUM!');
   });
 
   it('NETWORKDAYS — 주말 제외', () => {
@@ -392,6 +461,28 @@ describe('formula — 날짜', () => {
     expect(evaluate('NETWORKDAYS("2026-05-04", "2026-05-08")')).toBe('5');
     // 2026-05-04(월) ~ 2026-05-10(일) = 5일 (월~금만)
     expect(evaluate('NETWORKDAYS("2026-05-04", "2026-05-10")')).toBe('5');
+    expect(evaluate('NETWORKDAYS("2026-05-04", "2026-05-08", A1:A2)', {
+      A1: '2026-05-05',
+      A2: '2026-05-06',
+    })).toBe('3');
+    expect(evaluate('NETWORKDAYS("2026-05-08", "2026-05-04")')).toBe('-5');
+  });
+
+  it('WORKDAY skips weekends and optional holidays', () => {
+    expect(evaluate('WORKDAY("2026-05-08", 1)')).toBe('2026-05-11');
+    expect(evaluate('WORKDAY("2026-05-04", 3, A1:A1)', {
+      A1: '2026-05-06',
+    })).toBe('2026-05-08');
+    expect(evaluate('WORKDAY("2026-05-11", -1)')).toBe('2026-05-08');
+  });
+
+  it('NETWORKDAYS.INTL and WORKDAY.INTL support custom weekends', () => {
+    expect(evaluate('NETWORKDAYS.INTL("2026-05-04", "2026-05-10", 11)')).toBe('6');
+    expect(evaluate('NETWORKDAYS.INTL("2026-05-04", "2026-05-10", "0000110", A1:A1)', {
+      A1: '2026-05-07',
+    })).toBe('4');
+    expect(evaluate('WORKDAY.INTL("2026-05-08", 1, 11)')).toBe('2026-05-09');
+    expect(evaluate('WORKDAY.INTL("2026-05-08", 1, "0000110")')).toBe('2026-05-10');
   });
 });
 

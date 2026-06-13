@@ -16,7 +16,7 @@ const FUNC_CATEGORIES: Array<{ name: string; funcs: string[] }> = [
   { name: '수치', funcs: ['ABS', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'CEILING', 'FLOOR', 'POWER', 'SQRT', 'MOD', 'INT'] },
   { name: '통계', funcs: ['STDEV', 'VAR', 'RANK'] },
   { name: '문자열', funcs: ['LEFT', 'RIGHT', 'MID', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'CONCAT', 'CONCATENATE', 'TEXTJOIN', 'SUBSTITUTE', 'REPLACE', 'FIND', 'SEARCH', 'HYPERLINK', 'TEXT'] },
-  { name: '날짜', funcs: ['TODAY', 'NOW', 'YEAR', 'MONTH', 'DAY', 'WEEKDAY', 'DATE', 'EOMONTH', 'EDATE', 'DATEDIF', 'NETWORKDAYS'] },
+  { name: '날짜', funcs: ['TODAY', 'NOW', 'TIME', 'TIMEVALUE', 'HOUR', 'MINUTE', 'SECOND', 'YEAR', 'MONTH', 'DAY', 'WEEKDAY', 'WEEKNUM', 'ISOWEEKNUM', 'DATE', 'EOMONTH', 'EDATE', 'DATEDIF', 'DAYS360', 'YEARFRAC', 'NETWORKDAYS', 'NETWORKDAYS_INTL', 'WORKDAY', 'WORKDAY_INTL'] },
   { name: '특수', funcs: ['IMAGE', 'REGEXMATCH', 'REGEXEXTRACT', 'REGEXREPLACE'] },
 ];
 

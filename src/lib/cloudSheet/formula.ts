@@ -41,6 +41,19 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   LOOKUP:    { sig: 'LOOKUP(key, lookup_vector, [result_vector])', desc: 'Approximate vector lookup' },
   DATEVALUE: { sig: 'DATEVALUE(date_text)', desc: 'Converts date text to an Excel serial date' },
   DAYS:      { sig: 'DAYS(end_date, start_date)', desc: 'Returns the number of days between two dates' },
+  DAYS360:   { sig: 'DAYS360(start_date, end_date, [method])', desc: 'Days between dates using a 360-day year' },
+  YEARFRAC:  { sig: 'YEARFRAC(start_date, end_date, [basis])', desc: 'Fraction of a year between two dates' },
+  TIME:      { sig: 'TIME(hour, minute, second)', desc: 'Builds an Excel time serial fraction' },
+  TIMEVALUE: { sig: 'TIMEVALUE(time_text)', desc: 'Converts text time to an Excel time serial' },
+  HOUR:      { sig: 'HOUR(time)', desc: 'Returns the hour from a time value' },
+  MINUTE:    { sig: 'MINUTE(time)', desc: 'Returns the minute from a time value' },
+  SECOND:    { sig: 'SECOND(time)', desc: 'Returns the second from a time value' },
+  PMT:       { sig: 'PMT(rate, nper, pv, [fv], [type])', desc: 'Payment for a loan based on constant payments and rate' },
+  IPMT:      { sig: 'IPMT(rate, per, nper, pv, [fv], [type])', desc: 'Interest payment for a period' },
+  PPMT:      { sig: 'PPMT(rate, per, nper, pv, [fv], [type])', desc: 'Principal payment for a period' },
+  PV:        { sig: 'PV(rate, nper, pmt, [fv], [type])', desc: 'Present value of an investment' },
+  FV:        { sig: 'FV(rate, nper, pmt, [pv], [type])', desc: 'Future value of an investment' },
+  NPV:       { sig: 'NPV(rate, value1, [value2], ...)', desc: 'Net present value of future cash flows' },
   VALUE:     { sig: 'VALUE(text)', desc: 'Converts numeric text to a number' },
   PRODUCT:   { sig: 'PRODUCT(range)', desc: 'Multiplies numbers together' },
   SUMPRODUCT:{ sig: 'SUMPRODUCT(range1, range2, ...)', desc: 'Sums products of matching ranges' },
@@ -89,7 +102,9 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   YEAR:      { sig: 'YEAR(날짜)',                      desc: '연도' },
   MONTH:     { sig: 'MONTH(날짜)',                     desc: '월 (1~12)' },
   DAY:       { sig: 'DAY(날짜)',                       desc: '일 (1~31)' },
-  WEEKDAY:   { sig: 'WEEKDAY(날짜)',                   desc: '요일 (1=일, 7=토)' },
+  WEEKDAY:   { sig: 'WEEKDAY(날짜, [return_type])',    desc: '요일 번호 (Excel return_type 지원)' },
+  WEEKNUM:   { sig: 'WEEKNUM(날짜, [return_type])',    desc: 'Excel week number' },
+  ISOWEEKNUM:{ sig: 'ISOWEEKNUM(날짜)',                desc: 'ISO 8601 week number' },
   VLOOKUP:   { sig: 'VLOOKUP(key, range, returnCol, [range_lookup])', desc: '세로 검색' },
   HLOOKUP:   { sig: 'HLOOKUP(key, range, returnRow, [range_lookup])', desc: '가로 검색' },
   INDEX:     { sig: 'INDEX(range, row, [column])',      desc: '범위 내 값 반환' },
@@ -136,8 +151,11 @@ export const FUNC_HELP: Record<string, { sig: string; desc: string }> = {
   DATE:      { sig: 'DATE(년, 월, 일)',                desc: '날짜 만들기' },
   EOMONTH:   { sig: 'EOMONTH(시작, [개월]=0)',         desc: '월말 (개월 더한 뒤)' },
   EDATE:     { sig: 'EDATE(시작, 개월)',               desc: '개월 더한 같은 날짜' },
-  DATEDIF:   { sig: 'DATEDIF(시작, 끝, "Y"|"M"|"D")',  desc: '두 날짜 간격' },
-  NETWORKDAYS: { sig: 'NETWORKDAYS(시작, 끝)',         desc: '평일 일수 (주말 제외)' },
+  DATEDIF:   { sig: 'DATEDIF(시작, 끝, "Y"|"M"|"D"|"YM"|"YD"|"MD")', desc: '두 날짜 간격' },
+  NETWORKDAYS: { sig: 'NETWORKDAYS(시작, 끝, [휴일])', desc: '평일 일수 (주말/휴일 제외)' },
+  NETWORKDAYS_INTL: { sig: 'NETWORKDAYS.INTL(시작, 끝, [주말], [휴일])', desc: '사용자 지정 주말을 적용한 평일 일수' },
+  WORKDAY:   { sig: 'WORKDAY(시작, 일수, [휴일])',      desc: '영업일 기준 날짜 계산' },
+  WORKDAY_INTL: { sig: 'WORKDAY.INTL(시작, 일수, [주말], [휴일])', desc: '사용자 지정 주말을 적용한 영업일 계산' },
   // ── 포맷 ──
   TEXT:      { sig: 'TEXT(값, 형식)',                  desc: '숫자·날짜 포맷 (yyyy-mm-dd, #,##0.00 등)' },
   // ── 정규표현식 ──
@@ -208,15 +226,16 @@ import {
 const FUNC_ORDER = [
   // 12자
   'REGEXREPLACE', 'REGEXEXTRACT', 'AI_SUMMARIZE', 'AI_TRANSLATE',
+  'NETWORKDAYS_INTL',
   'SUBTOTAL',
   // 11자
   'NETWORKDAYS', 'CONCATENATE', 'AI_CLASSIFY', 'AVERAGEIFS', 'SUMPRODUCT',
   'CHOOSECOLS', 'CHOOSEROWS',
   'TRANSPOSE',
   // 10자
-  'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'PERCENTILE', 'TEXTBEFORE',
+  'PERCENTILEEXC', 'REGEXMATCH', 'COUNTBLANK', 'SUBSTITUTE', 'AVERAGEIF', 'DATEVALUE', 'TIMEVALUE', 'PERCENTILE', 'TEXTBEFORE', 'ISOWEEKNUM',
   // 9자
-  'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE', 'TEXTSPLIT', 'TEXTAFTER',
+  'ROUNDDOWN', 'HYPERLINK', 'SPARKLINE', 'TEXTSPLIT', 'TEXTAFTER', 'YEARFRAC',
   // 8자
   'SEQUENCE', 'WRAPROWS', 'WRAPCOLS',
   // 6자
@@ -228,27 +247,31 @@ const FUNC_ORDER = [
   // 8자
   'TEXTJOIN', 'ISNUMBER', 'COUNTIFS',
   // 7자
-  'AVERAGE', 'VLOOKUP', 'HLOOKUP', 'DATEDIF', 'CEILING', 'ROUNDUP', 'EOMONTH',
+  'AVERAGE', 'VLOOKUP', 'HLOOKUP', 'DATEDIF', 'CEILING', 'ROUNDUP', 'EOMONTH', 'WORKDAY',
+  'WORKDAY_INTL',
   'QUARTILEEXC', 'XLOOKUP', 'IFERROR', 'ISBLANK', 'ISERROR', 'REPLACE', 'QUARTILE',
   // 6자
   'SUMIFS', 'MEDIAN', 'ISTEXT', 'COUNTA', 'SWITCH', 'SEARCH', 'CONCAT', 'LOOKUP',
   'MINIFS', 'MAXIFS',
   // 5자
   'POWER', 'SQRT', 'UPPER', 'LOWER', 'TRIM', 'MONTH', 'TODAY', 'IMAGE',
+  'MINUTE', 'SECOND',
   'STDEVP', 'STDEV', 'SMALL', 'LARGE', 'EDATE', 'FLOOR', 'SUMIF', 'COUNT', 'ROUND', 'INDEX', 'MATCH',
   'XMATCH', 'CHOOSE', 'RIGHT', 'VALUE',
   // 4자
-  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'RANK', 'VARP', 'DATE', 'TEXT',
+  'COUNTIF', 'LEFT', 'YEAR', 'WEEKDAY', 'WEEKNUM', 'DAYS360', 'RANK', 'VARP', 'DATE', 'TEXT',
   'ROWS', 'IFNA', 'ISNA', 'FIND', 'DAYS',
+  'PMT', 'IPMT', 'PPMT',
   // 7??
   'PRODUCT', 'COLUMNS',
   // 3자
   'SUM', 'AVG', 'MIN', 'MAX', 'AND', 'NOT', 'MID', 'LEN', 'MOD', 'INT',
   'NOW', 'DAY', 'VAR', 'IFS', 'ROW',
+  'TIME', 'HOUR', 'NPV',
   // 6??
   'COLUMN',
   // 2자
-  'IF', 'OR', 'ABS',
+  'IF', 'OR', 'ABS', 'PV', 'FV',
   // AI (특수 — '_' 포함). 위에서 긴 것부터 처리되지만 'AI' 는 'AI_*' 와 \b 경계 덕에 별 충돌 없음.
   'AI',
 ];
@@ -417,7 +440,7 @@ const SAFE_EVAL_IDENTIFIERS = new Set([
   '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim',
   '__concat', '__concatenate',
   '__and', '__or', '__not',
-  '__today', '__now', '__year', '__month', '__day', '__weekday',
+  '__today', '__now', '__time', '__timevalue', '__hour', '__minute', '__second', '__year', '__month', '__day', '__weekday', '__weeknum', '__isoweeknum',
   '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
   '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
   '__rows', '__columns', '__row', '__column', '__choose',
@@ -426,8 +449,9 @@ const SAFE_EVAL_IDENTIFIERS = new Set([
   '__ifs', '__switch', '__xlookup',
   '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
   '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
+  '__pmt', '__ipmt', '__ppmt', '__pv', '__fv', '__npv',
   '__stdev', '__stdevp', '__var', '__varp', '__rank',
-  '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
+  '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__networkdays_intl', '__workday', '__workday_intl', '__datevalue', '__days', '__days360', '__yearfrac',
   '__value',
   '__text', '__regexmatch', '__regexextract', '__regexreplace',
   '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
@@ -1328,7 +1352,7 @@ function evalExpr(
   // 2. 단일 셀 참조 — Sheet1!$A$1 또는 A1
   //    함수 이름과 혼동 방지: lookbehind 로 알파벳·_ 뒤가 아닐 때만 매칭
   work = replaceOutsideStringLiterals(work, (chunk) => chunk.replace(
-    /(?<![A-Za-z_0-9$])(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b/g,
+    /(?<![A-Za-z_0-9$])(?:('(?:[^']|'')+'|[A-Za-z]\w*)!)?\$?([A-Z]+)\$?(\d+)\b(?!\s*\()/g,
     (_m, sheetRaw, c, r) => {
       const sheet = parseSheetPrefix(sheetRaw, currentSheet);
       const ref = `${c}${r}`;
@@ -1342,6 +1366,9 @@ function evalExpr(
   ));
 
   // 3. 함수 이름 → __funcname (긴 이름부터 처리: AVERAGE 먼저)
+  work = replaceOutsideStringLiterals(work, (chunk) => chunk
+    .replace(/\bNETWORKDAYS\.INTL\b/gi, 'NETWORKDAYS_INTL')
+    .replace(/\bWORKDAY\.INTL\b/gi, 'WORKDAY_INTL'));
   work = replaceOutsideStringLiterals(work, (chunk) => {
     let replaced = chunk;
     for (const fn of FUNC_ORDER) {
@@ -1774,10 +1801,105 @@ function evalExpr(
     const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
   };
+  const normalizeTimeSerial = (value: number) => ((value % 1) + 1) % 1;
+  const parseTimeParts = (v: unknown): { hour: number; minute: number; second: number } | null => {
+    if (v instanceof Date) return { hour: v.getHours(), minute: v.getMinutes(), second: v.getSeconds() };
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      const totalSeconds = Math.floor(normalizeTimeSerial(v) * 86_400 + 1e-9);
+      return {
+        hour: Math.floor(totalSeconds / 3600) % 24,
+        minute: Math.floor(totalSeconds / 60) % 60,
+        second: totalSeconds % 60,
+      };
+    }
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+    const timeMatch = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?$/i);
+    if (timeMatch) {
+      let hour = Number(timeMatch[1]);
+      const minute = Number(timeMatch[2]);
+      const second = Number(timeMatch[3] ?? 0);
+      const ampm = timeMatch[4]?.toUpperCase();
+      if (ampm === 'PM' && hour < 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
+      return { hour, minute, second };
+    }
+    const d = parseDate(v);
+    return d ? { hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() } : null;
+  };
+  const __time = (hour: unknown, minute: unknown, second: unknown) => {
+    const h = Math.trunc(Number(hour));
+    const m = Math.trunc(Number(minute));
+    const s = Math.trunc(Number(second));
+    if (![h, m, s].every(Number.isFinite)) return '#VALUE!';
+    return normalizeTimeSerial((h * 3600 + m * 60 + s) / 86_400);
+  };
+  const __timevalue = (text: unknown) => {
+    if (typeof text === 'number') return normalizeTimeSerial(text);
+    const time = parseTimeParts(text);
+    return time ? normalizeTimeSerial((time.hour * 3600 + time.minute * 60 + time.second) / 86_400) : '#VALUE!';
+  };
+  const __hour = (v: unknown) => {
+    const time = parseTimeParts(v);
+    return time ? time.hour : '#VALUE!';
+  };
+  const __minute = (v: unknown) => {
+    const time = parseTimeParts(v);
+    return time ? time.minute : '#VALUE!';
+  };
+  const __second = (v: unknown) => {
+    const time = parseTimeParts(v);
+    return time ? time.second : '#VALUE!';
+  };
   const __year  = (v: unknown) => { const d = parseDate(v); return d ? d.getFullYear() : 0; };
   const __month = (v: unknown) => { const d = parseDate(v); return d ? d.getMonth() + 1 : 0; };
   const __day   = (v: unknown) => { const d = parseDate(v); return d ? d.getDate() : 0; };
-  const __weekday = (v: unknown) => { const d = parseDate(v); return d ? d.getDay() + 1 : 0; }; // 1=일, 7=토
+  const __weekday = (v: unknown, returnType: unknown = 1) => {
+    const d = parseDate(v);
+    if (!d) return 0;
+    const wd = d.getDay();
+    const type = Math.trunc(Number(returnType) || 1);
+    if (type === 1 || type === 17) return wd + 1;
+    if (type === 2 || type === 11) return wd === 0 ? 7 : wd;
+    if (type === 3) return wd === 0 ? 6 : wd - 1;
+    if (type >= 12 && type <= 16) {
+      const firstDay = type - 10;
+      return ((wd - firstDay + 7) % 7) + 1;
+    }
+    return '#NUM!';
+  };
+  const daysBetweenDates = (start: Date, end: Date) => Math.floor(
+    (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+      Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / MS_PER_DAY,
+  );
+  const startDayForWeeknum = (returnType: number): number | null => {
+    if (returnType === 1 || returnType === 17) return 0;
+    if (returnType === 2 || returnType === 11) return 1;
+    if (returnType >= 12 && returnType <= 16) return returnType - 10;
+    return null;
+  };
+  const isoWeekNumber = (d: Date) => {
+    const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = utc.getUTCDay() || 7;
+    utc.setUTCDate(utc.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    return Math.ceil((((utc.getTime() - yearStart.getTime()) / MS_PER_DAY) + 1) / 7);
+  };
+  const __isoweeknum = (v: unknown) => {
+    const d = parseDate(v);
+    return d ? isoWeekNumber(d) : '#VALUE!';
+  };
+  const __weeknum = (v: unknown, returnType: unknown = 1) => {
+    const d = parseDate(v);
+    if (!d) return '#VALUE!';
+    const type = Math.trunc(Number(returnType) || 1);
+    if (type === 21) return isoWeekNumber(d);
+    const firstDay = startDayForWeeknum(type);
+    if (firstDay == null) return '#NUM!';
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const startOffset = (yearStart.getDay() - firstDay + 7) % 7;
+    return Math.floor((daysBetweenDates(yearStart, d) + startOffset) / 7) + 1;
+  };
 
   // ─── 수치 추가 ───
   const __power  = (b: unknown, e: unknown) => Math.pow(Number(b), Number(e));
@@ -2397,6 +2519,74 @@ function evalExpr(
   const __countblank = (...args: unknown[]) =>
     args.flatMap(toArr).filter((x) => x == null || String(x).trim() === '').length;
 
+  const paymentTimingFactor = (rate: number, type: unknown = 0) => (Number(type) === 1 ? 1 + rate : 1);
+  const __pmt = (rateValue: unknown, nperValue: unknown, pvValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
+    const rate = Number(rateValue);
+    const nper = Number(nperValue);
+    const pv = Number(pvValue);
+    const fv = Number(fvValue) || 0;
+    if (![rate, nper, pv, fv].every(Number.isFinite) || nper === 0) return '#NUM!';
+    if (rate === 0) return -(pv + fv) / nper;
+    const pow = Math.pow(1 + rate, nper);
+    return -(rate * (fv + pv * pow)) / ((pow - 1) * paymentTimingFactor(rate, typeValue));
+  };
+  const remainingBalance = (rate: number, per: number, payment: number, pv: number, type: number) => {
+    if (per <= 1) return pv;
+    if (rate === 0) return pv + payment * (per - 1);
+    if (type === 1) {
+      const periods = per - 2;
+      return (pv + payment) * Math.pow(1 + rate, periods + 1) + payment * (Math.pow(1 + rate, periods + 1) - 1) / rate;
+    }
+    const periods = per - 1;
+    return pv * Math.pow(1 + rate, periods) + payment * (Math.pow(1 + rate, periods) - 1) / rate;
+  };
+  const __ipmt = (rateValue: unknown, perValue: unknown, nperValue: unknown, pvValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
+    const rate = Number(rateValue);
+    const per = Math.trunc(Number(perValue));
+    const nper = Number(nperValue);
+    const pv = Number(pvValue);
+    const fv = Number(fvValue) || 0;
+    const type = Number(typeValue) === 1 ? 1 : 0;
+    if (![rate, per, nper, pv, fv].every(Number.isFinite) || per < 1 || per > nper) return '#NUM!';
+    const pmt = __pmt(rate, nper, pv, fv, type);
+    if (typeof pmt !== 'number') return pmt;
+    if (type === 1 && per === 1) return 0;
+    return -remainingBalance(rate, per, pmt, pv, type) * rate;
+  };
+  const __ppmt = (rateValue: unknown, perValue: unknown, nperValue: unknown, pvValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
+    const pmt = __pmt(rateValue, nperValue, pvValue, fvValue, typeValue);
+    const ipmt = __ipmt(rateValue, perValue, nperValue, pvValue, fvValue, typeValue);
+    if (typeof pmt !== 'number') return pmt;
+    if (typeof ipmt !== 'number') return ipmt;
+    return pmt - ipmt;
+  };
+  const __pv = (rateValue: unknown, nperValue: unknown, pmtValue: unknown, fvValue: unknown = 0, typeValue: unknown = 0) => {
+    const rate = Number(rateValue);
+    const nper = Number(nperValue);
+    const pmt = Number(pmtValue);
+    const fv = Number(fvValue) || 0;
+    if (![rate, nper, pmt, fv].every(Number.isFinite)) return '#NUM!';
+    if (rate === 0) return -(fv + pmt * nper);
+    const pow = Math.pow(1 + rate, nper);
+    return -(fv + pmt * paymentTimingFactor(rate, typeValue) * (pow - 1) / rate) / pow;
+  };
+  const __fv = (rateValue: unknown, nperValue: unknown, pmtValue: unknown, pvValue: unknown = 0, typeValue: unknown = 0) => {
+    const rate = Number(rateValue);
+    const nper = Number(nperValue);
+    const pmt = Number(pmtValue);
+    const pv = Number(pvValue) || 0;
+    if (![rate, nper, pmt, pv].every(Number.isFinite)) return '#NUM!';
+    if (rate === 0) return -(pv + pmt * nper);
+    const pow = Math.pow(1 + rate, nper);
+    return -(pv * pow + pmt * paymentTimingFactor(rate, typeValue) * (pow - 1) / rate);
+  };
+  const __npv = (rateValue: unknown, ...values: unknown[]) => {
+    const rate = Number(rateValue);
+    if (!Number.isFinite(rate)) return '#VALUE!';
+    const cashFlows = values.flatMap(toNums);
+    return cashFlows.reduce((total, value, index) => total + value / Math.pow(1 + rate, index + 1), 0);
+  };
+
   // ─── 통계 ───
   const __stdev = (...args: unknown[]) => {
     const nums = args.flatMap(toNums);
@@ -2436,6 +2626,7 @@ function evalExpr(
   // ─── 날짜 (parseDate 위에서 정의됨) ───
   const fmtDate = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const daysInMonth = (year: number, monthIndex: number) => new Date(year, monthIndex + 1, 0).getDate();
   const __date = (y: unknown, m: unknown, d: unknown) => {
     const Y = Number(y), M = Number(m), D = Number(d);
     if (![Y, M, D].every(Number.isFinite)) return '#VALUE!';
@@ -2444,40 +2635,159 @@ function evalExpr(
   const __eomonth = (start: unknown, months: unknown = 0) => {
     const d = parseDate(start);
     if (!d) return '#VALUE!';
-    const end = new Date(d.getFullYear(), d.getMonth() + (Number(months) || 0) + 1, 0);
+    const offset = Math.trunc(Number(months) || 0);
+    const end = new Date(d.getFullYear(), d.getMonth() + offset + 1, 0);
     return fmtDate(end);
   };
   const __edate = (start: unknown, months: unknown = 0) => {
     const d = parseDate(start);
     if (!d) return '#VALUE!';
-    const next = new Date(d.getFullYear(), d.getMonth() + (Number(months) || 0), d.getDate());
+    const offset = Math.trunc(Number(months) || 0);
+    const targetMonthStart = new Date(d.getFullYear(), d.getMonth() + offset, 1);
+    const day = Math.min(d.getDate(), daysInMonth(targetMonthStart.getFullYear(), targetMonthStart.getMonth()));
+    const next = new Date(targetMonthStart.getFullYear(), targetMonthStart.getMonth(), day);
     return fmtDate(next);
   };
   const __datedif = (start: unknown, end: unknown, unit: unknown) => {
     const a = parseDate(start), b = parseDate(end);
     if (!a || !b) return '#VALUE!';
+    if (b < a) return '#NUM!';
     const u = String(unit ?? '').toUpperCase();
-    if (u === 'D') return Math.floor((b.getTime() - a.getTime()) / 86_400_000);
-    if (u === 'M') return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    const totalDays = Math.floor((b.getTime() - a.getTime()) / 86_400_000);
+    const totalMonths = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    const completedMonths = totalMonths - (b.getDate() < a.getDate() ? 1 : 0);
+    if (u === 'D') return totalDays;
+    if (u === 'M') return completedMonths;
     if (u === 'Y') {
       let y = b.getFullYear() - a.getFullYear();
       if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) y--;
       return y;
     }
+    if (u === 'YM') return ((completedMonths % 12) + 12) % 12;
+    if (u === 'YD') {
+      let anchor = new Date(b.getFullYear(), a.getMonth(), a.getDate());
+      if (anchor > b) anchor = new Date(b.getFullYear() - 1, a.getMonth(), a.getDate());
+      return Math.floor((b.getTime() - anchor.getTime()) / 86_400_000);
+    }
+    if (u === 'MD') {
+      const anchorMonth = new Date(a.getFullYear(), a.getMonth() + completedMonths, 1);
+      const anchorDay = Math.min(a.getDate(), daysInMonth(anchorMonth.getFullYear(), anchorMonth.getMonth()));
+      const anchor = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth(), anchorDay);
+      return Math.floor((b.getTime() - anchor.getTime()) / 86_400_000);
+    }
     return '#NUM!';
   };
-  const __networkdays = (start: unknown, end: unknown) => {
+  const dateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const holidaySet = (holidays?: unknown) => {
+    const set = new Set<string>();
+    if (holidays === undefined) return set;
+    for (const value of toArr(holidays)) {
+      const d = parseDate(value);
+      if (d) set.add(dateKey(d));
+    }
+    return set;
+  };
+  const defaultWeekend = new Set([0, 6]);
+  const weekendSet = (weekend?: unknown): Set<number> | string => {
+    if (weekend === undefined || weekend === null || weekend === '') return defaultWeekend;
+    const raw = String(weekend).trim();
+    if (/^[01]{7}$/.test(raw)) {
+      const days = new Set<number>();
+      for (let i = 0; i < raw.length; i++) {
+        if (raw[i] === '1') days.add((i + 1) % 7);
+      }
+      return days;
+    }
+    const code = Math.trunc(Number(weekend));
+    const pairs: Record<number, [number, number]> = {
+      1: [6, 0],
+      2: [0, 1],
+      3: [1, 2],
+      4: [2, 3],
+      5: [3, 4],
+      6: [4, 5],
+      7: [5, 6],
+    };
+    if (pairs[code]) return new Set(pairs[code]);
+    if (code >= 11 && code <= 17) return new Set([code === 17 ? 6 : code - 10]);
+    return '#VALUE!';
+  };
+  const isBusinessDay = (d: Date, holidays = new Set<string>(), weekends = defaultWeekend) => {
+    const wd = d.getDay();
+    return !weekends.has(wd) && !holidays.has(dateKey(d));
+  };
+  const __networkdays = (start: unknown, end: unknown, holidays?: unknown) => {
     const a = parseDate(start), b = parseDate(end);
     if (!a || !b) return '#VALUE!';
-    const cur = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-    const stop = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    const sign = a <= b ? 1 : -1;
+    const cur = sign > 0
+      ? new Date(a.getFullYear(), a.getMonth(), a.getDate())
+      : new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    const stop = sign > 0
+      ? new Date(b.getFullYear(), b.getMonth(), b.getDate())
+      : new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    const excluded = holidaySet(holidays);
     let n = 0;
     while (cur <= stop) {
-      const wd = cur.getDay();
-      if (wd !== 0 && wd !== 6) n++;
+      if (isBusinessDay(cur, excluded)) n++;
       cur.setDate(cur.getDate() + 1);
     }
-    return n;
+    return n * sign;
+  };
+  const __networkdays_intl = (start: unknown, end: unknown, weekend: unknown = 1, holidays?: unknown) => {
+    const weekends = weekendSet(weekend);
+    if (typeof weekends === 'string') return weekends;
+    const a = parseDate(start), b = parseDate(end);
+    if (!a || !b) return '#VALUE!';
+    const sign = a <= b ? 1 : -1;
+    const cur = sign > 0
+      ? new Date(a.getFullYear(), a.getMonth(), a.getDate())
+      : new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    const stop = sign > 0
+      ? new Date(b.getFullYear(), b.getMonth(), b.getDate())
+      : new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    const excluded = holidaySet(holidays);
+    let n = 0;
+    while (cur <= stop) {
+      if (isBusinessDay(cur, excluded, weekends)) n++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return n * sign;
+  };
+  const __workday = (start: unknown, days: unknown, holidays?: unknown) => {
+    const d = parseDate(start);
+    const amount = Number(days);
+    if (!d || !Number.isFinite(amount)) return '#VALUE!';
+    const wholeDays = Math.trunc(amount);
+    if (wholeDays === 0) return fmtDate(d);
+    const excluded = holidaySet(holidays);
+    const step = wholeDays > 0 ? 1 : -1;
+    let remaining = Math.abs(wholeDays);
+    const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    while (remaining > 0) {
+      cur.setDate(cur.getDate() + step);
+      if (isBusinessDay(cur, excluded)) remaining--;
+    }
+    return fmtDate(cur);
+  };
+  const __workday_intl = (start: unknown, days: unknown, weekend: unknown = 1, holidays?: unknown) => {
+    const d = parseDate(start);
+    const amount = Number(days);
+    const weekends = weekendSet(weekend);
+    if (!d || !Number.isFinite(amount)) return '#VALUE!';
+    if (typeof weekends === 'string') return weekends;
+    const wholeDays = Math.trunc(amount);
+    if (wholeDays === 0) return fmtDate(d);
+    const excluded = holidaySet(holidays);
+    const step = wholeDays > 0 ? 1 : -1;
+    let remaining = Math.abs(wholeDays);
+    const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    while (remaining > 0) {
+      cur.setDate(cur.getDate() + step);
+      if (isBusinessDay(cur, excluded, weekends)) remaining--;
+    }
+    return fmtDate(cur);
   };
 
   // ─── 포맷 (단순 지원) ───
@@ -2492,6 +2802,60 @@ function evalExpr(
       (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
         Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / MS_PER_DAY,
     );
+  };
+  const isLastDayOfFebruary = (d: Date) => d.getMonth() === 1 && d.getDate() === daysInMonth(d.getFullYear(), 1);
+  const __days360 = (startDate: unknown, endDate: unknown, method: unknown = false) => {
+    const start = parseDate(startDate), end = parseDate(endDate);
+    if (!start || !end) return '#VALUE!';
+    const sy = start.getFullYear();
+    const sm = start.getMonth() + 1;
+    let sd = start.getDate();
+    const ey = end.getFullYear();
+    const em = end.getMonth() + 1;
+    let ed = end.getDate();
+    const european = method === true || String(method).toUpperCase() === 'TRUE' || Number(method) === 1;
+    if (european) {
+      if (sd === 31) sd = 30;
+      if (ed === 31) ed = 30;
+    } else {
+      const startIsFebEnd = isLastDayOfFebruary(start);
+      const endIsFebEnd = isLastDayOfFebruary(end);
+      if (startIsFebEnd || sd === 31) sd = 30;
+      if (ed === 31 && sd >= 30) ed = 30;
+      if (endIsFebEnd && startIsFebEnd) ed = 30;
+    }
+    return (ey - sy) * 360 + (em - sm) * 30 + (ed - sd);
+  };
+  const isLeapYear = (year: number) => daysInMonth(year, 1) === 29;
+  const actualDays = (start: Date, end: Date) => Math.floor(
+    (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+      Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / MS_PER_DAY,
+  );
+  const actualActualYearFrac = (start: Date, end: Date) => {
+    if (start.getTime() === end.getTime()) return 0;
+    const sign = start <= end ? 1 : -1;
+    let cur = sign > 0 ? new Date(start) : new Date(end);
+    const stop = sign > 0 ? end : start;
+    let total = 0;
+    while (cur < stop) {
+      const nextYear = new Date(cur.getFullYear() + 1, 0, 1);
+      const segmentEnd = nextYear < stop ? nextYear : stop;
+      total += actualDays(cur, segmentEnd) / (isLeapYear(cur.getFullYear()) ? 366 : 365);
+      cur = segmentEnd;
+    }
+    return total * sign;
+  };
+  const __yearfrac = (startDate: unknown, endDate: unknown, basis: unknown = 0) => {
+    const start = parseDate(startDate), end = parseDate(endDate);
+    if (!start || !end) return '#VALUE!';
+    const mode = Math.trunc(Number(basis) || 0);
+    if (mode < 0 || mode > 4) return '#NUM!';
+    if (mode === 0) return Number(__days360(start, end)) / 360;
+    if (mode === 1) return actualActualYearFrac(start, end);
+    const days = actualDays(start, end);
+    if (mode === 2) return days / 360;
+    if (mode === 3) return days / 365;
+    return Number(__days360(start, end, true)) / 360;
   };
 
   const __text = (val: unknown, format: unknown) => {
@@ -2829,7 +3193,7 @@ function evalExpr(
     '__left', '__right', '__mid', '__len', '__upper', '__lower', '__trim', '__value',
     '__concat', '__concatenate',
     '__and', '__or', '__not',
-    '__today', '__now', '__year', '__month', '__day', '__weekday',
+    '__today', '__now', '__time', '__timevalue', '__hour', '__minute', '__second', '__year', '__month', '__day', '__weekday', '__weeknum', '__isoweeknum',
     '__power', '__sqrt', '__mod', '__int', '__median', '__large', '__small', '__percentile', '__percentileexc', '__quartile', '__quartileexc',
     '__vlookup', '__hlookup', '__lookup', '__index', '__match', '__xmatch',
     '__rows', '__columns', '__row', '__column', '__choose',
@@ -2838,8 +3202,9 @@ function evalExpr(
     '__ifs', '__switch', '__xlookup',
     '__textjoin', '__substitute', '__replace', '__find', '__search', '__textbefore', '__textafter', '__hyperlink',
     '__roundup', '__rounddown', '__ceiling', '__floor', '__counta', '__countblank',
+    '__pmt', '__ipmt', '__ppmt', '__pv', '__fv', '__npv',
     '__stdev', '__stdevp', '__var', '__varp', '__rank',
-    '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__datevalue', '__days',
+    '__date', '__eomonth', '__edate', '__datedif', '__networkdays', '__networkdays_intl', '__workday', '__workday_intl', '__datevalue', '__days', '__days360', '__yearfrac',
     '__text', '__regexmatch', '__regexextract', '__regexreplace',
     '__ai', '__ai_classify', '__ai_translate', '__ai_summarize',
     '__filter', '__sortby', '__sort', '__unique', '__transpose', '__take', '__drop', '__sequence',
@@ -2855,7 +3220,7 @@ function evalExpr(
     __left, __right, __mid, __len, __upper, __lower, __trim, __value,
     __concat, __concatenate,
     __and, __or, __not,
-    __today, __now, __year, __month, __day, __weekday,
+    __today, __now, __time, __timevalue, __hour, __minute, __second, __year, __month, __day, __weekday, __weeknum, __isoweeknum,
     __power, __sqrt, __mod, __int, __median, __large, __small, __percentile, __percentileexc, __quartile, __quartileexc,
     __vlookup, __hlookup, __lookup, __index, __match, __xmatch,
     __rows, __columns, __row, __column, __choose,
@@ -2864,8 +3229,9 @@ function evalExpr(
     __ifs, __switch, __xlookup,
     __textjoin, __substitute, __replace, __find, __search, __textbefore, __textafter, __hyperlink,
     __roundup, __rounddown, __ceiling, __floor, __counta, __countblank,
+    __pmt, __ipmt, __ppmt, __pv, __fv, __npv,
     __stdev, __stdevp, __var, __varp, __rank,
-    __date, __eomonth, __edate, __datedif, __networkdays, __datevalue, __days,
+    __date, __eomonth, __edate, __datedif, __networkdays, __networkdays_intl, __workday, __workday_intl, __datevalue, __days, __days360, __yearfrac,
     __text, __regexmatch, __regexextract, __regexreplace,
     __ai, __ai_classify, __ai_translate, __ai_summarize,
     __filter, __sortby, __sort, __unique, __transpose, __take, __drop, __sequence,
