@@ -28,6 +28,25 @@ const nonTextOutputModels = aiExperts.filter(hasNonTextOutput);
 const visibleGeneralAiExperts = aiExperts.filter(isVisibleGeneralTextModel);
 const visibleGeneralImageVideoOutputModels = visibleGeneralAiExperts.filter(hasImageVideoOutput);
 const visibleGeneralNonTextOutputModels = visibleGeneralAiExperts.filter(hasNonTextOutput);
+const roleplayHeavyProviderPrefixes = [
+  'aion-labs/',
+  'anthracite-org/',
+  'gryphe/',
+  'mancer/',
+  'sao10k/',
+  'thedrummer/',
+  'undi95/',
+];
+const visibleGeneralRoleplayHeavyModels = visibleGeneralAiExperts.filter((expert) => {
+  const text = [
+    expert.openrouterModel,
+    expert.name,
+    expert.nameKo,
+    expert.description,
+  ].join(' ');
+  return /\b(rp|role[-\s]?play(?:ing)?|uncensored)\b/i.test(text)
+    || roleplayHeavyProviderPrefixes.some((prefix) => expert.openrouterModel?.startsWith(prefix));
+});
 const visibleExistingGeneralModels = visibleGeneralAiExperts.filter((expert) => !expert.id.startsWith('or-'));
 const visibleExistingDescriptionTemplates = {
   codingTemplate: visibleExistingGeneralModels.filter((expert) => expert.description?.includes('코드 작성·리팩터링 중심 모델') ?? false),
@@ -160,6 +179,13 @@ const summary = {
     openrouterModel: expert.openrouterModel,
     input: expert.modelInfo?.inputModalities,
     output: expert.modelInfo?.outputModalities,
+  })),
+  visibleGeneralRoleplayHeavyModelCount: visibleGeneralRoleplayHeavyModels.length,
+  visibleGeneralRoleplayHeavyModels: visibleGeneralRoleplayHeavyModels.map((expert) => ({
+    id: expert.id,
+    name: expert.nameKo,
+    openrouterModel: expert.openrouterModel,
+    description: expert.description,
   })),
   visibleExistingDescriptionTemplateCounts: {
     codingTemplate: visibleExistingDescriptionTemplates.codingTemplate.length,

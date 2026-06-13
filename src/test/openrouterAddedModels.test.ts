@@ -205,6 +205,35 @@ describe('openrouter added model catalog', () => {
     });
   });
 
+  it('keeps the final visible general catalog free of roleplay-heavy providers', () => {
+    const blockedPattern = /\b(rp|role[-\s]?play(?:ing)?|uncensored)\b/i;
+    const lowConfidencePrefixes = [
+      'aion-labs/',
+      'anthracite-org/',
+      'gryphe/',
+      'mancer/',
+      'sao10k/',
+      'thedrummer/',
+      'undi95/',
+    ];
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+
+    visibleGeneralModels.forEach((expert) => {
+      const text = [
+        expert.openrouterModel,
+        expert.name,
+        expert.nameKo,
+        expert.description,
+      ].join(' ');
+
+      expect(text, `${expert.id} should not expose RP or uncensored variants in general models`).not.toMatch(blockedPattern);
+      expect(
+        lowConfidencePrefixes.some((prefix) => expert.openrouterModel?.startsWith(prefix)),
+        `${expert.id} should not expose a roleplay-heavy provider in general models`,
+      ).toBe(false);
+    });
+  });
+
   it('keeps generated fast model shortcuts populated and speed-aligned', () => {
     expect(OPENROUTER_ADDED_FAST_IDS.length).toBeGreaterThan(0);
     expect(OPENROUTER_ADDED_FAST_IDS.length).toBeLessThanOrEqual(16);
@@ -224,6 +253,24 @@ describe('openrouter added model catalog', () => {
     });
     expect(explorerSource).toContain('FAST_MODEL_ID_SET.has(expert.id)');
     expect(explorerSource).toContain('FLAGSHIP_MODEL_ID_SET.has(expert.id)');
+    expect(explorerSource).toContain('function isFastModel(expert: Expert)');
+    expect(explorerSource).toContain("isFastModel(expert) ? 'fast' : null");
+    expect(explorerSource).toContain("isFastModel(expert) ? 'speed-fast' : 'speed-normal'");
+    expect(explorerSource).toContain("['속도', isFastModel(expert) ? '빠름' : '보통']");
+    expect(explorerSource).toContain('orderExpertsByIds(experts, SELECTION_FAST_MODEL_IDS)');
+    expect(explorerSource).toContain('initialQuickFilter');
+    expect(explorerSource).toContain("type HomeQuickFilterId = 'recommended' | 'fast' | 'reasoning'");
+    expect(explorerSource).toContain('previousTabRef.current === tab');
+    expect(explorerSource).toContain('const clearSearchAndFilters = () =>');
+    expect(explorerSource).toContain('{mobileFilterOpen &&');
+    expect(explorerSource).toContain('onClick={clearFilters}');
+    expect(explorerSource).not.toContain("favorites: 'favorites'");
+    expect(explorerSource).toContain("recommended: 'recommended'");
+    expect(explorerSource).toContain("fast: 'fast'");
+    expect(explorerSource).toContain("reasoning: 'reasoning'");
+    expect(explorerSource).not.toContain('LegacyGeneralAiHome');
+    expect(explorerSource).not.toContain('HomeModelCard');
+    expect(explorerSource).toContain('검색/필터 초기화');
   });
 
   it('uses varied tags instead of repetitive consultation labels', () => {
@@ -414,7 +461,7 @@ describe('openrouter added model catalog', () => {
     });
     const openWeightGroup = groups.find((group) => group.cat === 'ai_open');
     const expectedOpenWeightIds = DEFAULT_EXPERTS
-      .filter((expert) => expert.category === 'ai' && expert.modelInfo?.openWeight)
+      .filter((expert) => isVisibleGeneralTextModel(expert) && expert.modelInfo?.openWeight)
       .map((expert) => expert.id);
     const actualOpenWeightIds = new Set(openWeightGroup?.items.map((expert) => expert.id) ?? []);
     const explorerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'GeneralAiExplorer.tsx'), 'utf8');
@@ -433,6 +480,8 @@ describe('openrouter added model catalog', () => {
     expect(REASONING_MODEL_IDS.length).toBeLessThanOrEqual(40);
     expect(explorerSource).toContain('FilterGroup title="특징"');
     expect(explorerSource).not.toContain('FilterGroup title="강점"');
+    expect(explorerSource).not.toContain('modelStrengthTags');
+    expect(explorerSource).not.toContain('function DetailPanel');
     expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
   });
 

@@ -1,6 +1,6 @@
 import type { Expert } from '@/types/expert';
 
-const HIDDEN_GENERAL_MODEL_IDS = new Set(['ancano-pro', 'developer-yjh']);
+const HIDDEN_GENERAL_MODEL_IDS = new Set(['ancano-pro', 'developer-yjh', 'dolphin']);
 const MOJIBAKE_MARKERS = /[\uFFFD\u5360\u7B4C\u75AB\u7652\u7570\u8084\u934E\u936E\uF900-\uFAFF]/u;
 
 export function hasImageVideoOutput(expert: Expert) {
