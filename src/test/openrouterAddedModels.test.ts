@@ -20,6 +20,8 @@ import { REASONING_MODEL_IDS } from '@/lib/modelTaxonomy';
 import { DEFAULT_EXPERTS } from '@/types/expert';
 
 describe('openrouter added model catalog', () => {
+  const metadataCheckedAsOf = '2026-06-13';
+
   it('adds OpenRouter-backed text AI models', () => {
     expect(OPENROUTER_ADDED_EXPERTS).toHaveLength(200);
     expect(OPENROUTER_ADDED_EXPERTS.every((expert) => expert.category === 'ai')).toBe(true);
@@ -234,6 +236,20 @@ describe('openrouter added model catalog', () => {
     });
   });
 
+  it('keeps visible general model metadata complete and date-bounded', () => {
+    const visibleGeneralModels = DEFAULT_EXPERTS.filter(isVisibleGeneralTextModel);
+
+    visibleGeneralModels.forEach((expert) => {
+      expect(expert.modelInfo?.createdAt, `${expert.id} should have an OpenRouter createdAt date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(
+        (expert.modelInfo?.createdAt ?? '') <= metadataCheckedAsOf,
+        `${expert.id} should not have a future createdAt date`,
+      ).toBe(true);
+      expect(expert.modelInfo?.contextLength, `${expert.id} should expose context length`).toBeGreaterThan(0);
+      expect(expert.modelInfo?.priceTier, `${expert.id} should expose price tier`).toMatch(/^(free|low|standard|premium)$/);
+    });
+  });
+
   it('keeps generated fast model shortcuts populated and speed-aligned', () => {
     expect(OPENROUTER_ADDED_FAST_IDS.length).toBeGreaterThan(0);
     expect(OPENROUTER_ADDED_FAST_IDS.length).toBeLessThanOrEqual(16);
@@ -284,7 +300,21 @@ describe('openrouter added model catalog', () => {
 
   it('keeps generated copy varied across the larger catalog', () => {
     const descriptions = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description);
+    const providers = [...new Set(OPENROUTER_ADDED_EXPERTS
+      .map((expert) => expert.modelInfo?.provider)
+      .filter(Boolean))]
+      .sort((a, b) => b.length - a.length);
+    const providerPattern = new RegExp(` (${providers.map((provider) => provider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
+    const descriptionSkeletons = descriptions.map((description) => description
+      .replace(/^[^:]+: /, '')
+      .replace(providerPattern, ' {provider}'));
+    const skeletonCounts = descriptionSkeletons.reduce<Record<string, number>>((acc, skeleton) => {
+      acc[skeleton] = (acc[skeleton] ?? 0) + 1;
+      return acc;
+    }, {});
+    const maxSkeletonRepeat = Math.max(...Object.values(skeletonCounts));
     const sampleQuestions = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? []);
+    const awkwardProviderParticleQuestions = sampleQuestions.filter((question) => /[A-Za-z0-9. ]+를 써야/.test(question));
     const quotes = OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote);
     const modelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
       const name = expert.nameKo || expert.name;
@@ -293,6 +323,9 @@ describe('openrouter added model catalog', () => {
     }).length;
 
     expect(new Set(descriptions).size).toBe(descriptions.length);
+    expect(new Set(descriptionSkeletons).size).toBeGreaterThanOrEqual(70);
+    expect(maxSkeletonRepeat).toBeLessThanOrEqual(10);
+    expect(awkwardProviderParticleQuestions).toHaveLength(0);
     expect(new Set(sampleQuestions).size).toBeGreaterThanOrEqual(200);
     expect(new Set(quotes).size).toBeGreaterThanOrEqual(200);
     ['해석와', '균형와', '요약와', '검증와', '화면와', '활용와', '적용와', '압축와'].forEach((token) => {
@@ -483,6 +516,10 @@ describe('openrouter added model catalog', () => {
     expect(explorerSource).not.toContain('modelStrengthTags');
     expect(explorerSource).not.toContain('function DetailPanel');
     expect(explorerSource).not.toContain("expert.abilities?.reasoning && expert.abilities.reasoning >= 85 ? 'reasoning'");
+    expect(explorerSource).toContain("['input-vision', '이미지 입력']");
+    expect(explorerSource).toContain("['input-audio-video', '음성/영상 입력']");
+    expect(explorerSource).toContain("inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null");
+    expect(explorerSource).toContain("inputModalities.includes('file') ? '파일' : null");
   });
 
   it('keeps special and non-text-output cards out of the general model selection group', () => {

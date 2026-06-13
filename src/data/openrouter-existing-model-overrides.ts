@@ -79,7 +79,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gpt": {
     "name": "GPT-4.1",
     "nameKo": "GPT-4.1",
-    "description": "GPT-4.1: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 OpenAI 모델",
+    "description": "GPT-4.1: 1M급 문맥에서 코드, 문서, 시각 입력을 함께 다루는 OpenAI 주력 모델",
     "tags": [
       "추론",
       "코딩",
@@ -235,7 +235,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "claude-haiku": {
     "name": "Claude Haiku 4.5",
     "nameKo": "Claude Haiku 4.5",
-    "description": "Claude Haiku 4.5: 128K급 장문에서 이미지, 표, 문서 화면을 함께 읽어내는 Anthropic 모델",
+    "description": "Claude Haiku 4.5: 빠른 응답과 시각 입력 처리를 균형 있게 제공하는 Anthropic 경량 모델",
     "tags": [
       "추론",
       "시각입력",
@@ -574,7 +574,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "qwen-9b": {
     "name": "Qwen3.5-9B",
     "nameKo": "Qwen3.5-9B",
-    "description": "Qwen3.5-9B: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Alibaba Qwen 모델",
+    "description": "Qwen3.5-9B: 9B급 크기로 다국어 코딩 보조와 저비용 추론을 노리는 Qwen 오픈웨이트 모델",
     "tags": [
       "추론",
       "코딩",
@@ -726,7 +726,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mistral-medium": {
     "name": "Mistral Medium 3.1",
     "nameKo": "Mistral Medium 3.1",
-    "description": "Mistral Medium 3.1: 128K급 장문에서 이미지, 표, 문서 화면을 함께 읽어내는 Mistral AI 모델",
+    "description": "Mistral Medium 3.1: 문서와 이미지 입력을 함께 처리하며 유럽권 언어와 도구 사용에 강한 Mistral 모델",
     "tags": [
       "오픈웨이트",
       "시각입력",
@@ -827,7 +827,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "gemma": {
     "name": "Gemma 4 31B",
     "nameKo": "Gemma 4 31B",
-    "description": "Gemma 4 31B: 대용량 문맥에서 이미지, 표, 문서 화면을 함께 읽어내는 Google 모델",
+    "description": "Gemma 4 31B: 공개 계열 운용을 염두에 둔 멀티모달·저비용 Google 오픈웨이트 모델",
     "tags": [
       "추론",
       "오픈웨이트",
@@ -900,7 +900,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "command-a": {
     "name": "Command A",
     "nameKo": "Command A",
-    "description": "Command A: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Cohere 모델",
+    "description": "Command A: 기업 지식 질의, 구조화 응답, RAG 워크플로에 맞춘 Cohere 범용 모델",
     "tags": [
       "코딩",
       "구조화",
@@ -998,7 +998,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "glm": {
     "name": "GLM 5.1",
     "nameKo": "GLM 5.1",
-    "description": "GLM 5.1: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Z.ai 모델",
+    "description": "GLM 5.1: 중국어권 업무와 코드 추론을 장문 문맥으로 연결하는 Z.ai 오픈웨이트 모델",
     "tags": [
       "추론",
       "코딩",
@@ -1022,7 +1022,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mimo": {
     "name": "MiMo-V2.5-Pro",
     "nameKo": "MiMo-V2.5-Pro",
-    "description": "MiMo-V2.5-Pro: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 Xiaomi 모델",
+    "description": "MiMo-V2.5-Pro: 1M급 문맥에서 수학·코딩·도구 사용 흐름을 다루는 Xiaomi 상위 모델",
     "tags": [
       "추론",
       "코딩",
@@ -1046,7 +1046,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "mimo-flash": {
     "name": "MiMo-V2-Flash",
     "nameKo": "MiMo-V2-Flash",
-    "description": "MiMo-V2-Flash: 전제 정리, 대안 비교, 단계적 판단에 초점을 둔 Xiaomi 모델",
+    "description": "MiMo-V2-Flash: 빠른 판단과 낮은 비용을 우선하는 Xiaomi 경량 추론 모델",
     "tags": [
       "추론",
       "저비용",
@@ -1146,7 +1146,7 @@ export const OPENROUTER_EXISTING_MODEL_OVERRIDES = {
   "minimax": {
     "name": "MiniMax M2.7",
     "nameKo": "MiniMax M2.7",
-    "description": "MiniMax M2.7: 코드 구조 파악, 수정안 제안, 테스트 관점 점검에 강한 MiniMax 모델",
+    "description": "MiniMax M2.7: 빠른 응답과 실무 코딩 보조를 저비용으로 제공하는 MiniMax 모델",
     "tags": [
       "추론",
       "코딩",

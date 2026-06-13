@@ -454,11 +454,15 @@ function getModelMeta(expert: Expert) {
     standard: '표준',
     premium: '프리미엄',
   };
-  const modalityLabel = expert.modelInfo?.inputModalities?.includes('video')
-    ? '텍스트+이미지+비디오'
-    : expert.modelInfo?.inputModalities?.includes('image')
-      ? '텍스트+이미지'
-      : '텍스트';
+  const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
+  const modalityParts = [
+    inputModalities.includes('text') ? '텍스트' : null,
+    inputModalities.includes('image') ? '이미지' : null,
+    inputModalities.includes('audio') ? '음성' : null,
+    inputModalities.includes('video') ? '비디오' : null,
+    inputModalities.includes('file') ? '파일' : null,
+  ].filter(Boolean);
+  const modalityLabel = modalityParts.length > 0 ? modalityParts.join('+') : '텍스트';
 
   return [
     ['제공사', modelProviderLabel(expert)],
@@ -614,6 +618,7 @@ const GENERAL_SPEC_LABELS = [
   ['context-standard', '표준 컨텍스트'],
   ['input-text', '텍스트 전용'],
   ['input-vision', '이미지 입력'],
+  ['input-audio-video', '음성/영상 입력'],
 ] as const;
 
 const CUSTOM_TONE_LABELS = [
@@ -714,11 +719,16 @@ function getGeneralSpecIds(expert: Expert) {
   const priceTier = expert.modelInfo?.priceTier;
   const contextLength = expert.modelInfo?.contextLength ?? 0;
   const inputModalities = expert.modelInfo?.inputModalities ?? ['text'];
+  const inputSpecIds = [
+    inputModalities.some((modality) => modality !== 'text') ? null : 'input-text',
+    inputModalities.includes('image') ? 'input-vision' : null,
+    inputModalities.includes('audio') || inputModalities.includes('video') ? 'input-audio-video' : null,
+  ].filter(Boolean) as string[];
   return [
     isFastModel(expert) ? 'speed-fast' : 'speed-normal',
     priceTier ? `price-${priceTier}` : MODEL_IS_OPENSOURCE.has(expert.id) ? 'price-free' : 'price-standard',
     contextLength >= 1_000_000 ? 'context-xl' : contextLength >= 262_144 ? 'context-long' : 'context-standard',
-    inputModalities.includes('image') ? 'input-vision' : 'input-text',
+    ...inputSpecIds,
   ];
 }
 

@@ -16,6 +16,7 @@ const {
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const statsKeys = ['coding', 'creativity', 'reasoning', 'math', 'multilingual', 'speed', 'costEfficiency', 'contextWindow'];
+const TODAY_ISO = '2026-06-13';
 const aiExperts = DEFAULT_EXPERTS.filter((expert) => expert.category === 'ai');
 const customExperts = DEFAULT_EXPERTS.filter((expert) => expert.category !== 'ai');
 const genericBadAvatars = new Set(['/logos/router.svg']);
@@ -66,11 +67,27 @@ const visibleGeneralFilterBuckets = {
   }, {}),
   input: visibleGeneralAiExperts.reduce((acc, expert) => {
     const input = expert.modelInfo?.inputModalities ?? [];
-    const key = input.includes('image') ? 'vision' : 'text';
-    acc[key] = (acc[key] ?? 0) + 1;
+    const keys = [
+      input.some((item) => item !== 'text') ? null : 'textOnly',
+      input.includes('image') ? 'image' : null,
+      input.includes('audio') ? 'audio' : null,
+      input.includes('video') ? 'video' : null,
+      input.includes('file') ? 'file' : null,
+    ].filter(Boolean);
+    keys.forEach((key) => {
+      acc[key] = (acc[key] ?? 0) + 1;
+    });
     return acc;
   }, {}),
 };
+
+const visibleGeneralMissingCreatedAt = visibleGeneralAiExperts.filter((expert) => !expert.modelInfo?.createdAt);
+const visibleGeneralInvalidCreatedAt = visibleGeneralAiExperts.filter((expert) =>
+  Boolean(expert.modelInfo?.createdAt) && !/^\d{4}-\d{2}-\d{2}$/.test(expert.modelInfo.createdAt));
+const visibleGeneralFutureCreatedAt = visibleGeneralAiExperts.filter((expert) =>
+  Boolean(expert.modelInfo?.createdAt) && expert.modelInfo.createdAt > TODAY_ISO);
+const visibleGeneralMissingContextLength = visibleGeneralAiExperts.filter((expert) => !(expert.modelInfo?.contextLength > 0));
+const visibleGeneralMissingPriceTier = visibleGeneralAiExperts.filter((expert) => !expert.modelInfo?.priceTier);
 
 const missingAvatars = DEFAULT_EXPERTS.filter((expert) => {
   if (!expert.avatarUrl?.startsWith('/logos/')) return false;
@@ -113,6 +130,32 @@ const duplicateCustomStats = customExperts.length
 const generatedDescriptionCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.description)).size;
 const generatedSampleQuestionCount = new Set(OPENROUTER_ADDED_EXPERTS.flatMap((expert) => expert.sampleQuestions ?? [])).size;
 const generatedQuoteCount = new Set(OPENROUTER_ADDED_EXPERTS.map((expert) => expert.quote)).size;
+const generatedProviders = [...new Set(OPENROUTER_ADDED_EXPERTS
+  .map((expert) => expert.modelInfo?.provider)
+  .filter(Boolean))]
+  .sort((a, b) => b.length - a.length);
+const generatedProviderPattern = generatedProviders.length > 0
+  ? new RegExp(` (${generatedProviders.map((provider) => provider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
+  : null;
+const generatedDescriptionSkeletons = OPENROUTER_ADDED_EXPERTS.map((expert) => {
+  const withoutName = expert.description?.replace(/^[^:]+: /, '') ?? '';
+  return generatedProviderPattern ? withoutName.replace(generatedProviderPattern, ' {provider}') : withoutName;
+});
+const generatedDescriptionSkeletonCounts = generatedDescriptionSkeletons.reduce((acc, skeleton) => {
+  acc[skeleton] = (acc[skeleton] ?? 0) + 1;
+  return acc;
+}, {});
+const generatedDescriptionMaxSkeletonRepeat = Math.max(0, ...Object.values(generatedDescriptionSkeletonCounts));
+const generatedDescriptionTopSkeletons = Object.entries(generatedDescriptionSkeletonCounts)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([skeleton, count]) => ({ skeleton, count }));
+const generatedAwkwardProviderParticleQuestions = OPENROUTER_ADDED_EXPERTS.flatMap((expert) => (expert.sampleQuestions ?? [])
+  .filter((question) => /[A-Za-z0-9. ]+를 써야/.test(question))
+  .map((question) => ({
+    id: expert.id,
+    question,
+  })));
 const generatedModelSpecificQuestionCount = OPENROUTER_ADDED_EXPERTS.filter((expert) => {
   const name = expert.nameKo || expert.name;
   const provider = expert.modelInfo?.provider ?? '';
@@ -194,6 +237,36 @@ const summary = {
     visionTemplateIds: visibleExistingDescriptionTemplates.visionTemplate.map((expert) => expert.id),
   },
   visibleGeneralFilterBuckets,
+  visibleGeneralMetadataQuality: {
+    checkedAsOf: TODAY_ISO,
+    missingCreatedAtCount: visibleGeneralMissingCreatedAt.length,
+    missingCreatedAt: visibleGeneralMissingCreatedAt.map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+    })),
+    invalidCreatedAtCount: visibleGeneralInvalidCreatedAt.length,
+    invalidCreatedAt: visibleGeneralInvalidCreatedAt.map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+      createdAt: expert.modelInfo?.createdAt,
+    })),
+    futureCreatedAtCount: visibleGeneralFutureCreatedAt.length,
+    futureCreatedAt: visibleGeneralFutureCreatedAt.map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+      createdAt: expert.modelInfo?.createdAt,
+    })),
+    missingContextLengthCount: visibleGeneralMissingContextLength.length,
+    missingContextLength: visibleGeneralMissingContextLength.map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+    })),
+    missingPriceTierCount: visibleGeneralMissingPriceTier.length,
+    missingPriceTier: visibleGeneralMissingPriceTier.map((expert) => ({
+      id: expert.id,
+      openrouterModel: expert.openrouterModel,
+    })),
+  },
   missingAvatarCount: missingAvatars.length,
   missingAvatars: missingAvatars.map((expert) => ({ id: expert.id, avatarUrl: expert.avatarUrl })),
   badTextAiCount: badTextAi.length,
@@ -216,6 +289,11 @@ const summary = {
   duplicateCustomStats,
   generatedCopyDiversity: {
     uniqueDescriptions: generatedDescriptionCount,
+    uniqueDescriptionSkeletons: new Set(generatedDescriptionSkeletons).size,
+    maxDescriptionSkeletonRepeat: generatedDescriptionMaxSkeletonRepeat,
+    topDescriptionSkeletons: generatedDescriptionTopSkeletons,
+    awkwardProviderParticleQuestionCount: generatedAwkwardProviderParticleQuestions.length,
+    awkwardProviderParticleQuestions: generatedAwkwardProviderParticleQuestions.slice(0, 20),
     uniqueSampleQuestions: generatedSampleQuestionCount,
     uniqueQuotes: generatedQuoteCount,
     modelSpecificQuestionCount: generatedModelSpecificQuestionCount,
