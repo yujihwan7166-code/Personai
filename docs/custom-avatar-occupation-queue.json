@@ -1,0 +1,169 @@
+{
+  "artDirection": {
+    "format": "16:9 landscape",
+    "style": "bright polished semi-realistic anime character illustration",
+    "constraints": [
+      "one central character unless role clarity needs a small object or animal",
+      "role readable within one second from thumbnail",
+      "clear role clothing, prop, and background cue",
+      "no readable text",
+      "no logo",
+      "no watermark",
+      "not infographic",
+      "not flat icon",
+      "not photorealistic"
+    ]
+  },
+  "remainingOccupationQueue": [
+    {
+      "id": "architect",
+      "nameKo": "건축가",
+      "outputPath": "/logos/occupation/architect.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean architect in a bright architecture studio, short neat hair, thin glasses, cream blazer, examining a white scale building model with blank blueprints and drafting tools nearby, soft daylight, polished clean character art, no text."
+    },
+    {
+      "id": "scientist",
+      "nameKo": "과학자",
+      "outputPath": "/logos/occupation/scientist.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean scientist in a bright laboratory, older man with silver hair, white lab coat and goggles, holding a flask beside a microscope and glassware, clean polished character art, no text."
+    },
+    {
+      "id": "taxadvisor",
+      "nameKo": "세무사",
+      "outputPath": "/logos/occupation/taxadvisor.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean tax advisor in a tidy office, middle-aged woman in a navy blazer, calculator, blank forms, organized folders, reassuring professional expression, clean daylight, no text."
+    },
+    {
+      "id": "stocktrader",
+      "nameKo": "펀드매니저",
+      "outputPath": "/logos/occupation/stocktrader.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean fund manager in a modern finance office, sharp suit, tablet with abstract chart blocks, trading floor screens blurred with no numbers, focused strategic expression, no text."
+    },
+    {
+      "id": "writer",
+      "nameKo": "작가",
+      "outputPath": "/logos/occupation/writer.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean novelist in a cozy writing studio, woman in her 40s with short dark hair, fountain pen over blank manuscript pages, bookshelves, warm desk lamp, rainy window, no text."
+    },
+    {
+      "id": "gamedev",
+      "nameKo": "게임개발자",
+      "outputPath": "/logos/occupation/gamedev.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean game developer in a creative studio, young man with tied hair, game controller, drawing tablet, abstract game scene on monitor with no text, concept art wall, no logo."
+    },
+    {
+      "id": "athlete",
+      "nameKo": "운동선수",
+      "outputPath": "/logos/occupation/athlete.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean athlete in a bright training stadium, athletic woman in track jacket, towel around neck, medal in hand, running track and gym equipment behind, dynamic confident pose, no text."
+    },
+    {
+      "id": "barista",
+      "nameKo": "바리스타",
+      "outputPath": "/logos/occupation/barista.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean cafe barista holding a latte art cup beside an espresso machine, canvas apron, cozy cafe counter, coffee beans, soft daylight, polished clean character art, no text."
+    },
+    {
+      "id": "hairstylist",
+      "nameKo": "미용사",
+      "outputPath": "/logos/occupation/hairstylist.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean hairstylist in a bright salon, stylish short hair, black apron, holding scissors and comb, salon chair and mirror behind, confident creative expression, no text."
+    },
+    {
+      "id": "counselor",
+      "nameKo": "상담사",
+      "outputPath": "/logos/occupation/counselor.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean counselor in a calm therapy room, gentle older woman with cardigan, notebook in hand, soft chairs, plant, warm neutral light, empathetic expression, no text."
+    },
+    {
+      "id": "socialworker",
+      "nameKo": "사회복지사",
+      "outputPath": "/logos/occupation/socialworker.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean social worker in a community center, friendly man in casual blazer, clipboard, donation boxes and family support space behind, supportive posture, no text."
+    },
+    {
+      "id": "diplomat",
+      "nameKo": "외교관",
+      "outputPath": "/logos/occupation/diplomat.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean diplomat in a formal meeting room, elegant woman in suit, globe, conference table, abstract blank flags with no symbols, poised negotiation expression, no text."
+    },
+    {
+      "id": "judge",
+      "nameKo": "판사",
+      "outputPath": "/logos/occupation/judge.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean judge in a dignified courtroom, black robe, gavel, blank law books, warm sunlight, serious balanced expression, centered upper body, no text."
+    },
+    {
+      "id": "sailor",
+      "nameKo": "선원",
+      "outputPath": "/logos/occupation/sailor.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean sailor on a ship deck, nautical uniform, cap, ropes, harbor and ocean behind, practical weathered expression, bright sea daylight, no text."
+    },
+    {
+      "id": "model",
+      "nameKo": "모델",
+      "outputPath": "/logos/occupation/model.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean fashion model in a studio runway setting, elegant outfit, garment rack, softbox lights, poised confident pose, polished editorial feel, no text."
+    },
+    {
+      "id": "flightcrew",
+      "nameKo": "승무원",
+      "outputPath": "/logos/occupation/flightcrew.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean flight attendant in a neat fictional airline uniform, aircraft cabin aisle, service cart, warm professional smile, no logos, no text."
+    },
+    {
+      "id": "bodyguard",
+      "nameKo": "경호원",
+      "outputPath": "/logos/occupation/bodyguard.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean bodyguard in a dark suit with discreet earpiece, event entrance background, alert protective stance, calm serious expression, no logos, no text."
+    },
+    {
+      "id": "musician",
+      "nameKo": "음악가",
+      "outputPath": "/logos/occupation/musician.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean musician in a recording studio, shoulder-length hair, holding a guitar near a microphone and audio mixer, expressive creative mood, no text."
+    },
+    {
+      "id": "comedian",
+      "nameKo": "코미디언",
+      "outputPath": "/logos/occupation/comedian.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean stand-up comedian on a small stage, handheld microphone, warm spotlight, casual jacket, playful expressive face, no clown costume, no text."
+    },
+    {
+      "id": "producer",
+      "nameKo": "프로듀서",
+      "outputPath": "/logos/occupation/producer.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean producer in a media control room, headphones around neck, mixing console, blank monitors, storyboard shapes on wall, decisive creative expression, no text."
+    },
+    {
+      "id": "miner",
+      "nameKo": "광부",
+      "outputPath": "/logos/occupation/miner.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean miner with helmet lamp and work gear in a clean mine tunnel, equipment and rock wall behind, rugged but bright card-friendly lighting, no text."
+    },
+    {
+      "id": "fisher",
+      "nameKo": "어부",
+      "outputPath": "/logos/occupation/fisher.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean fisher on a boat dock at sunrise, waterproof jacket, fishing net and crates, sea background, practical weathered expression, no text."
+    },
+    {
+      "id": "sommelier",
+      "nameKo": "소믈리에",
+      "outputPath": "/logos/occupation/sommelier.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean sommelier in a refined restaurant cellar, black vest, holding wine glass and bottle with blank label, wine shelves behind, elegant expert expression, no text."
+    },
+    {
+      "id": "detective",
+      "nameKo": "탐정",
+      "outputPath": "/logos/occupation/detective.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean detective in a smart trench coat, magnifying glass and blank case folder, dim but clean office with evidence board using only abstract blank pins and lines, no text."
+    },
+    {
+      "id": "explorer",
+      "nameKo": "탐험가",
+      "outputPath": "/logos/occupation/explorer.png",
+      "prompt": "Wide semi-realistic anime illustration of one Korean explorer with hat, backpack, compass, and map, bright expedition camp with mountains and travel gear behind, adventurous expression, no text."
+    }
+  ]
+}
