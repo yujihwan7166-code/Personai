@@ -54,24 +54,24 @@
     color 320ms ease;
 }
 
-/* ────── GPT (OpenAI) — 라이트 화이트 (OpenAI 코퍼레이트 톤) + 그린 도트 ────── */
+/* ────── GPT (OpenAI) — 정제된 라이트, 최소한의 그린 accent ────── */
 .hero-brand-canvas[data-brand='gpt'] {
-  --hero-bg: #f7f7f8;
+  --hero-bg: #fafafa;
   --hero-mesh:
-    radial-gradient(75% 45% at 50% 0%, rgba(16, 163, 127, 0.14), transparent 60%);
+    radial-gradient(60% 40% at 50% 0%, rgba(16, 163, 127, 0.08), transparent 60%);
   --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(16, 163, 127, 0.08) 1px, transparent 0);
-  --hero-fg: #111827;
-  --hero-fg-muted: #6b7280;
+    radial-gradient(circle at 1px 1px, rgba(16, 163, 127, 0.05) 1px, transparent 0);
+  --hero-fg: #0d1117;
+  --hero-fg-muted: #57606a;
   --hero-accent: #10a37f;
-  --hero-accent-soft: rgba(16, 163, 127, 0.12);
+  --hero-accent-soft: rgba(16, 163, 127, 0.08);
   --hero-ring: #10a37f;
   --hero-radius-input: 14px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(17, 24, 39, 0.10);
+  --hero-hairline: rgba(13, 17, 23, 0.08);
   --hero-input-bg: #ffffff;
-  --hero-input-border: rgba(17, 24, 39, 0.12);
+  --hero-input-border: rgba(13, 17, 23, 0.10);
 }
 
 /* ────── Claude (Anthropic) — 라이트 크림 (유저 만족, 유지) ────── */
@@ -200,6 +200,74 @@
   --hero-input-border: rgba(0, 120, 212, 0.36);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 검색엔진 armed 시 테마 오버라이드 — data-brand 를 검색엔진 id 로 스왑.
+ * 브랜드와 동일한 CSS 변수 스코프로 히어로 전체 배경/액센트가 morph.
+ * 내부 컨텐츠(헤드라인·모델셀렉트) 는 AI 브랜드 기준으로 유지.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ────── 네이버 검색 armed — 라이트 화이트 + 네이버 그린 ────── */
+.hero-brand-canvas[data-brand='naver'] {
+  --hero-bg: #f6fdf8;
+  --hero-mesh:
+    radial-gradient(70% 45% at 50% 0%, rgba(3, 199, 90, 0.20), transparent 60%);
+  --hero-pattern:
+    radial-gradient(circle at 1px 1px, rgba(3, 199, 90, 0.06) 1px, transparent 0);
+  --hero-fg: #191919;
+  --hero-fg-muted: #4b5563;
+  --hero-accent: #03c75a;
+  --hero-accent-soft: rgba(3, 199, 90, 0.14);
+  --hero-ring: #03c75a;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(25, 25, 25, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(3, 199, 90, 0.30);
+}
+
+/* ────── 구글 검색 armed — 화이트 + 4색 오로라 ────── */
+.hero-brand-canvas[data-brand='google'] {
+  --hero-bg: #ffffff;
+  --hero-mesh:
+    radial-gradient(50% 40% at 20% 10%,  rgba(66, 133, 244, 0.18), transparent 55%),
+    radial-gradient(50% 40% at 80% 10%,  rgba(234, 67, 53, 0.14),  transparent 55%),
+    radial-gradient(50% 45% at 30% 100%, rgba(251, 188, 4, 0.14),  transparent 55%),
+    radial-gradient(50% 45% at 80% 100%, rgba(52, 168, 83, 0.16),  transparent 55%);
+  --hero-pattern: none;
+  --hero-fg: #202124;
+  --hero-fg-muted: #5f6368;
+  --hero-accent: #4285f4;
+  --hero-accent-soft: rgba(66, 133, 244, 0.12);
+  --hero-ring: #4285f4;
+  --hero-radius-input: 24px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(32, 33, 36, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(66, 133, 244, 0.28);
+}
+
+/* ────── 다음 검색 armed — 옐로우 크림 ────── */
+.hero-brand-canvas[data-brand='daum'] {
+  --hero-bg: #fffbeb;
+  --hero-mesh:
+    radial-gradient(70% 45% at 50% 0%, rgba(255, 206, 0, 0.22), transparent 60%);
+  --hero-pattern:
+    radial-gradient(circle at 1px 1px, rgba(255, 206, 0, 0.10) 1px, transparent 0);
+  --hero-fg: #1f1f00;
+  --hero-fg-muted: #6b6600;
+  --hero-accent: #d99a00;   /* 옐로우는 순수하면 안 보여서 약간 오렌지 톤으로 */
+  --hero-accent-soft: rgba(255, 206, 0, 0.18);
+  --hero-ring: #ffce00;
+  --hero-radius-input: 10px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(80, 60, 0, 0.12);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(255, 206, 0, 0.40);
+}
+
 /* ────── Mistral — 실제 mistral.ai 톤 (웜 브라운) ────── */
 .hero-brand-canvas[data-brand='mistral'] {
   --hero-bg: #2e211d;
@@ -267,6 +335,22 @@
 }
 
 .hero-brand-canvas[data-brand='gpt'] {
+  background-size: auto, 22px 22px;
+  background-repeat: no-repeat, repeat;
+}
+
+/* 검색엔진 armed 시 배경 스택 조정. */
+.hero-brand-canvas[data-brand='naver'] {
+  background-size: auto, 22px 22px;
+  background-repeat: no-repeat, repeat;
+}
+
+.hero-brand-canvas[data-brand='google'] {
+  background-size: auto, auto;
+  background-repeat: no-repeat, no-repeat;
+}
+
+.hero-brand-canvas[data-brand='daum'] {
   background-size: auto, 22px 22px;
   background-repeat: no-repeat, repeat;
 }

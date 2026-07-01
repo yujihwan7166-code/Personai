@@ -93,7 +93,9 @@ export function HeroSection({
   return (
     <div
       className="hero-brand-canvas relative w-full min-h-full flex flex-col items-center justify-center overflow-hidden"
-      data-brand={brand}
+      // 검색 armed 시 → 전체 배경/변수 를 그 검색엔진 테마로 morph.
+      // 내부 컨텐츠(헤드라인·모델셀렉트) 는 여전히 brand 기준.
+      data-brand={armedChip?.external ? armedChip.id : brand}
     >
       {/* 브랜드 워터마크 — 로고를 히어로 뒤에 거대 반투명으로. */}
       <div
@@ -110,7 +112,7 @@ export function HeroSection({
           path={activeBrand.icon.path}
           fill={`#${activeBrand.icon.hex}`}
           forceWhite={false}  // 워터마크는 브랜드 원본 컬러 유지 (몰입감)
-          size={520}
+          size={320}
           className="animate-in fade-in duration-500 ease-out"
         />
       </div>
@@ -197,36 +199,6 @@ export function HeroSection({
           }
         />
 
-        {/* armed 상태 인디케이터 — 검색으로 라우팅 될 때만 표시.
-         * "이 메시지는 AI 로 안 가고 외부 검색으로 갑니다" 를 명확히. */}
-        {armedChip?.external && (
-          <div
-            className="mt-2 flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-200"
-          >
-            <span
-              className="flex items-center gap-1 px-2 py-1 rounded-full text-[10.5px] font-medium"
-              style={{
-                backgroundColor: `${armedChip.ring}22`,
-                color: armedChip.ring,
-                border: `1px solid ${armedChip.ring}44`,
-              }}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full animate-pulse"
-                style={{ backgroundColor: armedChip.ring }}
-              />
-              Enter 시 {armedChip.name} 새 탭 · AI 로 안 감
-              <button
-                type="button"
-                onClick={() => disarm()}
-                className="ml-1 opacity-70 hover:opacity-100 transition-opacity"
-                aria-label="검색 취소"
-              >
-                ×
-              </button>
-            </span>
-          </div>
-        )}
       </div>
 
       <AiPickerSheet
