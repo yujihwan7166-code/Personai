@@ -14,6 +14,7 @@ import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
+import { CustomAiCreatorSheet } from './CustomAiCreatorSheet';
 import { BrandLogo } from './BrandLogo';
 import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
@@ -21,6 +22,8 @@ import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { useVisibleBrands } from '@/hooks/useVisibleBrands';
 import { useVisiblePortals } from '@/hooks/useVisiblePortals';
+import { useCustomAis } from '@/hooks/useCustomAis';
+import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
@@ -61,9 +64,23 @@ export function HeroSection({
   const { armed, toggle, disarm } = useSearchEngineArm();
   const { visibleIds, toggleBrand, showAll } = useVisibleBrands();
   const portalsHook = useVisiblePortals();
+  const customAisHook = useCustomAis();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const [editingCustom, setEditingCustom] = useState<CustomAi | undefined>();
 
-  const activeBrand = BRAND_BY_ID[brand];
+  // 커스텀 AI 배열을 Brand 형태로 변환.
+  const customBrands = customAisHook.customAis.map(customAiToBrand);
+  const customBrandById = new Map(customBrands.map((b) => [b.id, b]));
+
+  // 선택된 브랜드가 커스텀이면 그 값, 아니면 built-in.
+  const activeBrand = isCustomBrandId(brand)
+    ? customBrandById.get(brand) ?? BRAND_BY_ID.gpt  // 삭제된 커스텀 → GPT 폴백
+    : BRAND_BY_ID[brand];
+  // 선택된 브랜드가 커스텀이면 systemPrompt 사용.
+  const selectedCustom = isCustomBrandId(brand)
+    ? customAisHook.customAis.find((c) => c.id === brand)
+    : undefined;
   const armedChip = armed ? HERO_SEARCH_CHIP_BY_ID[armed] : null;
   // 외부 검색 armed 여부 (북마크는 armed 로 취급 X — 즉시 모달).
   const isSearchArmed = !!armedChip?.external;
@@ -96,7 +113,14 @@ export function HeroSection({
     }
 
     // AI 채팅.
-    onSubmitToAi(brand, model?.id ?? activeBrand.expertId, trimmed);
+    // 커스텀 AI 이면 시스템 프롬프트를 앞에 붙여 베이스 모델로 라우팅.
+    const routedText = selectedCustom
+      ? `[System]\n${selectedCustom.systemPrompt}\n\n[User]\n${trimmed}`
+      : trimmed;
+    const routedExpertId = selectedCustom
+      ? selectedCustom.baseExpertId
+      : (model?.id ?? activeBrand.expertId);
+    onSubmitToAi(brand, routedExpertId, routedText);
   };
 
   // 헤드라인·서브·placeholder·eyebrow·워터마크 = armed 여부에 따라 스왑.
@@ -262,6 +286,7 @@ export function HeroSection({
               onOpenPicker={() => setPickerOpen(true)}
               visibleBrandIds={visibleIds}
               visiblePortalIds={portalsHook.visibleIds}
+              customBrands={customBrands}
             />
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
@@ -278,6 +303,32 @@ export function HeroSection({
         visiblePortalIds={portalsHook.visibleIds}
         onTogglePortal={portalsHook.togglePortal}
         onResetPortalDefaults={portalsHook.resetDefaults}
+        customAis={customAisHook.customAis}
+        onCreateCustom={() => {
+          setEditingCustom(undefined);
+          setCreatorOpen(true);
+        }}
+        onEditCustom={(c) => {
+          setEditingCustom(c);
+          setCreatorOpen(true);
+        }}
+        onDeleteCustom={(id) => {
+          customAisHook.deleteCustomAi(id);
+          // 지금 선택된 커스텀이 삭제되면 GPT 로 돌아감.
+          if (brand === id) setBrand('gpt');
+        }}
+      />
+
+      <CustomAiCreatorSheet
+        open={creatorOpen}
+        onClose={() => setCreatorOpen(false)}
+        editing={editingCustom}
+        onCreate={(input) => {
+          const created = customAisHook.createCustomAi(input);
+          // 만든 즉시 선택하도록 브랜드 스위칭.
+          setBrand(created.id as BrandId);
+        }}
+        onUpdate={customAisHook.updateCustomAi}
       />
     </div>
   );

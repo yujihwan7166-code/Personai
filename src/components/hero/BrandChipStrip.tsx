@@ -6,7 +6,7 @@
  */
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BRANDS, type BrandId } from '@/lib/aiBrands';
+import { BRANDS, type Brand, type BrandId } from '@/lib/aiBrands';
 import { HERO_SEARCH_CHIPS, type HeroChipId } from '@/lib/heroSearchChips';
 import { AiBrandChip } from './AiBrandChip';
 import { SearchEngineChip } from './SearchEngineChip';
@@ -17,12 +17,14 @@ interface Props {
   onSelectBrand: (b: BrandId) => void;
   armedSearch: HeroChipId | null;
   onToggleSearch: (id: HeroChipId) => void;
-  /** 통합 편집 시트 열기 (AI 탭 · 브라우저 탭 모두 여기서). */
+  /** 통합 편집 시트 열기 (AI 탭 · 브라우저 탭 · 나만의 AI 탭 모두 여기서). */
   onOpenPicker: () => void;
   /** 스트립에 표시할 브랜드 id 목록 (미지정 시 전체). */
   visibleBrandIds?: BrandId[];
   /** 스트립에 표시할 포탈 id 목록 (미지정 시 전체). */
   visiblePortalIds?: HeroChipId[];
+  /** 커스텀 AI 브랜드 (built-in 뒤에 이어서 렌더). */
+  customBrands?: Brand[];
   className?: string;
 }
 
@@ -34,6 +36,7 @@ export function BrandChipStrip({
   onOpenPicker,
   visibleBrandIds,
   visiblePortalIds,
+  customBrands = [],
   className,
 }: Props) {
   // visibleBrandIds 미지정 시 전체. 지정 시 그 순서대로 필터.
@@ -82,7 +85,17 @@ export function BrandChipStrip({
         />
       ))}
 
-      {/* `+` 칩 — 통합 편집 시트 오픈 (AI · 브라우저 탭). */}
+      {/* 커스텀 AI 칩 — built-in 뒤에 이어서 렌더. 하이라이트/토글 동일. */}
+      {customBrands.map((brand) => (
+        <AiBrandChip
+          key={brand.id}
+          brand={brand}
+          active={selectedBrand === brand.id}
+          onClick={() => onSelectBrand(brand.id)}
+        />
+      ))}
+
+      {/* `+` 칩 — 통합 편집 시트 오픈 (AI · 브라우저 · 나만의 AI 탭). */}
       <button
         type="button"
         onClick={onOpenPicker}
