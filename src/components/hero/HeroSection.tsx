@@ -132,15 +132,14 @@ export function HeroSection({
       <div className="relative z-10 w-full max-w-[640px] px-6 py-12">
         {/* 헤드라인 + 서브카피 — 브랜드마다 다름. */}
         <div className="text-center mb-8">
-          {/* 브랜드 미니 로고 → 헤드라인 위 작은 accent (몰입감) */}
-          <div className="flex items-center justify-center mb-3.5">
-            <span
-              className="flex h-6 w-6 items-center justify-center rounded-full"
-              style={{ backgroundColor: `#${activeBrand.icon.hex}` }}
-            >
-              <BrandLogo path={activeBrand.icon.path} fill="#FFFFFF" size={13} />
-            </span>
-          </div>
+          {/* 브랜드 이름 eyebrow — 헤드라인 위 작은 브랜드 색 라벨. */}
+          <p
+            key={`${brand}-name`}
+            className="mb-2 text-[11px] font-semibold tracking-[0.14em] uppercase animate-in fade-in duration-300"
+            style={{ color: 'var(--hero-accent)' }}
+          >
+            {activeBrand.name}
+          </p>
           <h1
             key={`${brand}-heading`}
             className="hero-heading text-[28px] sm:text-[34px] leading-[1.2] font-semibold tracking-tight animate-in fade-in slide-in-from-bottom-1 duration-300"
