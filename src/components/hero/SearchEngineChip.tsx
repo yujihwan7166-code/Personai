@@ -28,8 +28,8 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
       className={cn(
         'relative flex items-center justify-center rounded-full shrink-0',
         'transition-all duration-300 ease-out',
-        // armed 시 크게 + 강한 링, 아니면 절제
-        armed ? 'h-10 w-10' : 'h-8 w-8 opacity-70 hover:opacity-100 hover:scale-110',
+        // armed 시 살짝 크게 + 강한 링, 아니면 절제된 크기·투명도
+        armed ? 'h-9 w-9' : 'h-7 w-7 opacity-75 hover:opacity-100 hover:scale-110',
         circleBg === 'transparent' && 'hover:bg-white/5',
       )}
       style={{
@@ -37,13 +37,17 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         ...(armed
           ? {
               boxShadow: `
-                0 0 0 2px var(--hero-bg, #0d0d0d),
-                0 0 0 3.5px ${ring},
-                0 6px 20px -4px ${ring}
+                0 0 0 3px var(--hero-bg, #0d0d0d),
+                0 0 0 4.5px ${ring},
+                0 6px 24px -6px ${ring}
               `,
             }
           : {
-              boxShadow: circleBg === 'transparent' ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+              // hero-bg halo — 칩 사이 border 자연스럽게 가림.
+              boxShadow:
+                circleBg === 'transparent'
+                  ? '0 0 0 3px var(--hero-bg, #0d0d0d)'
+                  : `0 0 0 3px var(--hero-bg, #0d0d0d), inset 0 0 0 1px rgba(255,255,255,0.08)`,
             }),
       }}
     >
@@ -52,7 +56,7 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         text={icon.text}
         lucide={icon.lucide as 'Star' | 'Bookmark' | undefined}
         fill={iconFill}
-        size={armed ? 20 : 15}
+        size={armed ? 17 : 13}
       />
     </button>
   );

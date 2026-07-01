@@ -186,10 +186,10 @@ export function HeroSection({
           ) : null)}
       </div>
 
-      {/* 중앙 컨텐츠 — 헤드라인 + 입력창 컴팩트. */}
-      <div className="relative z-10 w-full max-w-[640px] px-6 py-12">
+      {/* 중앙 컨텐츠 — 헤드라인 + 입력창. 여백 살짝 여유롭게 (세련되게). */}
+      <div className="relative z-10 w-full max-w-[640px] px-6 py-14">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-9">
           {isSearchArmed ? (
             // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
             <p
@@ -216,14 +216,14 @@ export function HeroSection({
           )}
           <h1
             key={`${identityKey}-heading`}
-            className="hero-heading text-[28px] sm:text-[34px] leading-[1.2] font-semibold tracking-tight animate-in fade-in slide-in-from-bottom-1 duration-300"
+            className="hero-heading text-[30px] sm:text-[36px] leading-[1.15] font-medium tracking-[-0.02em] animate-in fade-in slide-in-from-bottom-1 duration-300"
             style={{ color: 'var(--hero-fg)' }}
           >
             {heading}
           </h1>
           <p
             key={`${identityKey}-sub`}
-            className="mt-2 text-[12.5px] tracking-tight animate-in fade-in duration-300"
+            className="mt-2.5 text-[12.5px] tracking-[-0.005em] animate-in fade-in duration-300"
             style={{ color: 'var(--hero-fg-muted)' }}
           >
             {subheading}

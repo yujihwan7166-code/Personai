@@ -70,15 +70,10 @@ export function HeroInput({
   return (
     <div className="relative w-full">
       {/* 칩 스트립 — top border 관통.
-       * 뒤에 hero-bg 색 pill 로 input top border 를 가려서
-       * "칩 사이로 선이 보이던 문제" 해결. */}
+       * 각 칩의 box-shadow 가 hero-bg 색 halo 를 만들어 border 를 자연스럽게 가림.
+       * (여기선 pill 배경 X — 칩끼리 hero-bg halo 로 이어짐). */}
       <div className="absolute left-2 right-2 top-0 z-10 -translate-y-1/2 flex justify-center pointer-events-none">
-        <div
-          className="pointer-events-auto rounded-full px-2 py-1"
-          style={{ backgroundColor: 'var(--hero-bg)' }}
-        >
-          {chipStrip}
-        </div>
+        <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
       {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow. */}
@@ -91,13 +86,13 @@ export function HeroInput({
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
           borderColor: 'var(--hero-input-border, rgba(255,255,255,0.10))',
           // frosted glass — 컬러 mesh bg 위에서도 input 이 확실히 elevated.
-          backdropFilter: 'blur(12px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(140%)',
-          // 브랜드 accent 로 tinted 되는 shadow (라이트/다크 자연스레 어울림) + subtle depth.
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          // 정제된 3-layer shadow — 은은한 inner highlight + brand accent + delicate depth.
           boxShadow: `
-            0 1px 0 rgba(255, 255, 255, 0.04) inset,
-            0 12px 32px -18px var(--hero-accent-soft, rgba(0,0,0,0.2)),
-            0 4px 12px -6px rgba(0, 0, 0, 0.12)
+            0 1px 0 rgba(255, 255, 255, 0.05) inset,
+            0 8px 24px -14px var(--hero-accent-soft, rgba(0,0,0,0.15)),
+            0 2px 8px -4px rgba(0, 0, 0, 0.08)
           `,
         }}
       >
