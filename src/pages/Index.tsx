@@ -2,6 +2,8 @@ import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 're
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
+import { HeroSection } from '@/components/hero/HeroSection';
+import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -159,6 +161,9 @@ const Index = () => {
   }, [location.key]);
   const [mentalTestsOpen, setMentalTestsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  // Genspark-스타일 히어로 — 일반 모드 대화 시작 전 화면.
+  const [heroInputValue, setHeroInputValue] = useState('');
+  const { brand: selectedHeroBrand } = useSelectedBrand();
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4755,7 +4760,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         </Suspense>}
 
 
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+        <div
+          className={cn(
+            "flex-1 flex flex-col min-w-0 h-full overflow-hidden relative",
+            // Genspark-스타일 브랜드 morph — 일반 모드에서만 배경/변수 오버라이드.
+            // 대화 시작 후에도 유지 (Q1: 예).
+            getMainMode(discussionMode) === 'general' && 'hero-brand-canvas',
+          )}
+          data-brand={getMainMode(discussionMode) === 'general' ? selectedHeroBrand : undefined}
+        >
           {/* Deep Research full-screen takeover */}
           {getMainMode(discussionMode) === 'research_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
@@ -4823,6 +4836,20 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               />
             </Suspense>
             </ModeErrorBoundary>
+            </div>
+          ) : (getMainMode(discussionMode) === 'general' && selectable) ? (
+            // Genspark-스타일 히어로 — 일반 모드 + 대화 시작 전.
+            // 대화 시작 후에는 아래 normal path 로 fall-through (브랜드 morph 는 상위 hero-brand-canvas 로 유지).
+            <div className="h-full overflow-y-auto animate-in fade-in duration-500 ease-out fill-mode-both">
+              <HeroSection
+                value={heroInputValue}
+                onChange={setHeroInputValue}
+                onSubmitToAi={(_brand, text) => {
+                  setHeroInputValue('');
+                  startDiscussion(text);
+                }}
+                onOpenBookmarks={() => setBookmarksOpen(true)}
+              />
             </div>
           ) : <>
           {/* Scroll to bottom FAB */}

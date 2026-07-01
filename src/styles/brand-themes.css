@@ -195,16 +195,28 @@
 }
 
 /* ────── 히어로 캔버스 공통 스타일 ────── */
+
+/* 배경 + CSS 변수 스코프만 (color/font 는 자식이 명시적으로 사용) —
+ * 배경만 브랜드로 morph, 자식 UI(사이드바·메시지 등)의 색·폰트는 손대지 않음. */
 .hero-brand-canvas {
   background-color: var(--hero-bg);
   background-image: var(--hero-mesh);
-  color: var(--hero-fg);
-  font-family: var(--hero-font-body);
 }
 
-/* 헤드라인 폰트는 명시 클래스로만 적용 (본문은 body 폰트 유지) */
+/* 히어로 내부 텍스트는 명시 클래스로 브랜드 fg 를 적용. */
+.hero-brand-canvas .hero-fg {
+  color: var(--hero-fg);
+}
+.hero-brand-canvas .hero-fg-muted {
+  color: var(--hero-fg-muted);
+}
 .hero-brand-canvas .hero-heading {
   font-family: var(--hero-font-heading);
+  color: var(--hero-fg);
+}
+.hero-brand-canvas .hero-body {
+  font-family: var(--hero-font-body);
+  color: var(--hero-fg);
 }
 
 /* prefers-reduced-motion 시 트랜지션 제거 */
