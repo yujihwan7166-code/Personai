@@ -74,7 +74,7 @@ export function HeroInput({
         <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
-      {/* 입력 컨테이너 — 컴팩트 · 브랜드 색조 shadow 로 통일감. */}
+      {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow. */}
       <div
         className={cn(
           'relative rounded-[var(--hero-radius-input,14px)] border',
@@ -83,8 +83,15 @@ export function HeroInput({
         style={{
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
           borderColor: 'var(--hero-input-border, rgba(255,255,255,0.10))',
-          // 브랜드 accent 로 tinted 되는 soft shadow — 라이트/다크 자연스럽게 어울림.
-          boxShadow: '0 12px 32px -18px var(--hero-accent-soft, rgba(0,0,0,0.2))',
+          // frosted glass — 컬러 mesh bg 위에서도 input 이 확실히 elevated.
+          backdropFilter: 'blur(12px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+          // 브랜드 accent 로 tinted 되는 shadow (라이트/다크 자연스레 어울림) + subtle depth.
+          boxShadow: `
+            0 1px 0 rgba(255, 255, 255, 0.04) inset,
+            0 12px 32px -18px var(--hero-accent-soft, rgba(0,0,0,0.2)),
+            0 4px 12px -6px rgba(0, 0, 0, 0.12)
+          `,
         }}
       >
         {/* Textarea */}
