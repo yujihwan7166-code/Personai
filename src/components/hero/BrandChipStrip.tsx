@@ -17,10 +17,12 @@ interface Props {
   onSelectBrand: (b: BrandId) => void;
   armedSearch: HeroChipId | null;
   onToggleSearch: (id: HeroChipId) => void;
-  onOpenBookmarks: () => void;
+  onOpenPortalPicker: () => void;
   onOpenAiPicker: () => void;
   /** 스트립에 표시할 브랜드 id 목록 (미지정 시 전체). */
   visibleBrandIds?: BrandId[];
+  /** 스트립에 표시할 포탈 id 목록 (미지정 시 전체). */
+  visiblePortalIds?: HeroChipId[];
   className?: string;
 }
 
@@ -29,15 +31,22 @@ export function BrandChipStrip({
   onSelectBrand,
   armedSearch,
   onToggleSearch,
-  onOpenBookmarks,
+  onOpenPortalPicker,
   onOpenAiPicker,
   visibleBrandIds,
+  visiblePortalIds,
   className,
 }: Props) {
   // visibleBrandIds 미지정 시 전체. 지정 시 그 순서대로 필터.
   const visibleBrands = visibleBrandIds
     ? visibleBrandIds.map((id) => BRANDS.find((b) => b.id === id)).filter((b): b is (typeof BRANDS)[number] => !!b)
     : BRANDS;
+  // visiblePortalIds 미지정 시 전체. 지정 시 그 순서대로 필터.
+  const visiblePortals = visiblePortalIds
+    ? visiblePortalIds
+        .map((id) => HERO_SEARCH_CHIPS.find((c) => c.id === id))
+        .filter((c): c is (typeof HERO_SEARCH_CHIPS)[number] => !!c)
+    : HERO_SEARCH_CHIPS;
   return (
     <div
       className={cn(
@@ -51,21 +60,35 @@ export function BrandChipStrip({
       role="toolbar"
       aria-label="AI 선택 및 검색"
     >
-      {/* 좌측 검색 칩 4개 */}
-      {HERO_SEARCH_CHIPS.map((chip) => (
+      {/* 좌측 포탈 칩 (사용자 커스텀 필터 반영) */}
+      {visiblePortals.map((chip) => (
         <SearchEngineChip
           key={chip.id}
           chip={chip}
           armed={armedSearch === chip.id}
-          onClick={() => {
-            if (chip.id === 'bookmark') {
-              onOpenBookmarks();
-              return;
-            }
-            onToggleSearch(chip.id);
-          }}
+          onClick={() => onToggleSearch(chip.id)}
         />
       ))}
+
+      {/* 좌측 `+` 칩 — 포탈 편집 시트 오픈 */}
+      <button
+        type="button"
+        onClick={onOpenPortalPicker}
+        aria-label="포탈·검색 편집"
+        title="유튜브·트위터·GitHub 등 추가"
+        className={cn(
+          'flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0',
+          'transition-all duration-200 ease-out',
+          'text-[var(--hero-fg,#ececec)] opacity-75 hover:opacity-100 hover:scale-110',
+        )}
+        style={{
+          backgroundColor: 'var(--hero-accent-soft, rgba(255,255,255,0.06))',
+          boxShadow:
+            '0 0 0 3px var(--hero-bg, #0d0d0d), inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.08))',
+        }}
+      >
+        <Plus size={12} strokeWidth={2.4} />
+      </button>
 
       {/* 검색 · AI 사이 여백 — 눈에 띄는 선 없이 넉넉한 gap 으로만 구분. */}
       <span aria-hidden className="w-3 shrink-0" />

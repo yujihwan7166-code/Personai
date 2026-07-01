@@ -14,12 +14,14 @@ import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
+import { PortalPickerSheet } from './PortalPickerSheet';
 import { BrandLogo } from './BrandLogo';
 import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { useVisibleBrands } from '@/hooks/useVisibleBrands';
+import { useVisiblePortals } from '@/hooks/useVisiblePortals';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
@@ -40,7 +42,6 @@ interface Props {
   onAttach?: () => void;
   onImage?: () => void;
   onVoice?: () => void;
-  onOpenBookmarks: () => void;
   disabled?: boolean;
 }
 
@@ -54,14 +55,15 @@ export function HeroSection({
   onAttach,
   onImage,
   onVoice,
-  onOpenBookmarks,
   disabled,
 }: Props) {
   const { brand, setBrand } = useSelectedBrand();
   const { model, setModel } = useSelectedModel(brand);
   const { armed, toggle, disarm } = useSearchEngineArm();
   const { visibleIds, toggleBrand, showAll } = useVisibleBrands();
+  const portalsHook = useVisiblePortals();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [portalPickerOpen, setPortalPickerOpen] = useState(false);
 
   const activeBrand = BRAND_BY_ID[brand];
   const armedChip = armed ? HERO_SEARCH_CHIP_BY_ID[armed] : null;
@@ -259,9 +261,10 @@ export function HeroSection({
               onSelectBrand={handleSelectBrand}
               armedSearch={armed}
               onToggleSearch={handleToggleSearch}
-              onOpenBookmarks={onOpenBookmarks}
+              onOpenPortalPicker={() => setPortalPickerOpen(true)}
               onOpenAiPicker={() => setPickerOpen(true)}
               visibleBrandIds={visibleIds}
+              visiblePortalIds={portalsHook.visibleIds}
             />
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
@@ -275,6 +278,14 @@ export function HeroSection({
         visibleIds={visibleIds}
         onToggle={toggleBrand}
         onShowAll={showAll}
+      />
+
+      <PortalPickerSheet
+        open={portalPickerOpen}
+        onClose={() => setPortalPickerOpen(false)}
+        visibleIds={portalsHook.visibleIds}
+        onToggle={portalsHook.togglePortal}
+        onResetDefaults={portalsHook.resetDefaults}
       />
     </div>
   );

@@ -94,13 +94,13 @@
   --hero-input-border: rgba(44, 24, 16, 0.12);
 }
 
-/* ────── Gemini (Google) — 소프트 오로라 (전체적으로 옅게) ────── */
+/* ────── Gemini (Google) — 밝은 오로라 ────── */
 .hero-brand-canvas[data-brand='gemini'] {
-  --hero-bg: #1a1c26;
+  --hero-bg: #2a2d3e;
   --hero-mesh:
-    radial-gradient(60% 40% at 25% 0%, rgba(66, 133, 244, 0.22), transparent 60%),
-    radial-gradient(60% 55% at 90% 100%, rgba(190, 160, 235, 0.14), transparent 60%),
-    radial-gradient(40% 40% at 50% 50%, rgba(255, 190, 220, 0.09), transparent 60%);
+    radial-gradient(60% 40% at 25% 0%, rgba(66, 133, 244, 0.20), transparent 60%),
+    radial-gradient(60% 55% at 90% 100%, rgba(190, 160, 235, 0.12), transparent 60%),
+    radial-gradient(40% 40% at 50% 50%, rgba(255, 190, 220, 0.08), transparent 60%);
   --hero-pattern:
     radial-gradient(ellipse at 30% 60%, rgba(66, 133, 244, 0.06), transparent 40%),
     radial-gradient(ellipse at 70% 40%, rgba(190, 160, 235, 0.05), transparent 40%);
@@ -117,24 +117,24 @@
   --hero-input-border: rgba(165, 180, 240, 0.32);
 }
 
-/* ────── Perplexity — 실제 perplexity.ai 톤 (라이트한 뉴트럴 + teal 최소) ────── */
+/* ────── Perplexity — 밝은 뉴트럴 (배경 어둡다 피드백 → 좀 더 up) ────── */
 .hero-brand-canvas[data-brand='perplexity'] {
-  --hero-bg: #2e3238;
+  --hero-bg: #3b4046;
   --hero-mesh:
-    radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.10), transparent 65%);
+    radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.12), transparent 65%);
   /* 리서치 페이퍼 라인 — 얇은 수평선, 배경과 대비 아주 은은. */
   --hero-pattern:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  --hero-fg: #f4f7f8;
-  --hero-fg-muted: #adb4b7;
+    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px);
+  --hero-fg: #f6f9fa;
+  --hero-fg-muted: #b6bec1;
   --hero-accent: #20b8cd;
-  --hero-accent-soft: rgba(32, 184, 205, 0.12);
+  --hero-accent-soft: rgba(32, 184, 205, 0.14);
   --hero-ring: #20b8cd;
   --hero-radius-input: 10px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(24, 26, 28, 0.72);
+  --hero-input-bg: rgba(28, 32, 36, 0.72);
   --hero-input-border: rgba(32, 184, 205, 0.30);
 }
 

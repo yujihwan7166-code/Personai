@@ -1,16 +1,24 @@
 /**
- * 히어로 좌측 검색 칩 — 4개 (네이버·구글·다음·북마크).
+ * 히어로 좌측 검색 칩 — 검색엔진 + 포탈 (유튜브·트위터·GitHub 등).
  *
- * 검색 칩은 "armed" 상태로 전환 → 사용자가 입력하고 Enter 시 새 탭으로 리다이렉트.
- * 북마크만 예외: 외부 이동 대신 앱 내부 북마크 모달 오픈.
+ * 각 칩은 "armed" 상태로 전환 → 사용자가 입력하고 Enter 시 새 탭 리다이렉트.
+ * `+` 칩은 armed 아님 — 클릭 시 포탈 편집 모달 오픈 (visibleHeroChipIds 관리).
  *
  * 기존 `searchEngines.ts` 의 SEARCH_ENGINES 는 QuickSearchBar 에서 사용 중이라
- * 건드리지 않고, 히어로 전용 UI 메타(색·아이콘 모양)만 여기에 정의.
+ * 건드리지 않고, 히어로 전용 UI 메타만 여기에 정의.
  */
-import { siNaver, siGoogle } from 'simple-icons';
+import { siNaver, siGoogle, siYoutube, siX, siGithub, siWikipedia, siReddit } from 'simple-icons';
 import { findEngine, buildSearchUrl } from './searchEngines';
 
-export type HeroChipId = 'naver' | 'google' | 'daum' | 'bookmark';
+export type HeroChipId =
+  | 'naver'
+  | 'google'
+  | 'daum'
+  | 'youtube'
+  | 'twitter'
+  | 'github'
+  | 'reddit'
+  | 'wikipedia';
 
 export interface HeroChipIcon {
   /** 'svg' — path 사용, 'text' — 배지 텍스트, 'lucide' — 아이콘 이름. */
@@ -31,10 +39,12 @@ export interface HeroSearchChip {
   /** 아이콘 fill 색 (원 배경 대비). */
   iconFill: string;
   /**
-   * 외부 이동 여부. false = 앱 내부 액션 (북마크).
-   * true 일 때는 findEngine(id) 로 URL 템플릿을 가져와 buildSearchUrl 로 조립.
+   * 외부 이동 여부. 히어로 v3 부터는 항상 true (북마크 제거).
+   * URL 은 findEngine(id) 로 조회 or urlTemplate 직접 사용.
    */
   external: boolean;
+  /** 직접 URL 템플릿. `{Q}` 를 검색어로 치환. searchEngines.ts 미등록 칩용. */
+  urlTemplate?: string;
   /** 히어로 armed 시 헤드라인 (외부 검색 칩만 사용). */
   greeting?: string;
   /** 히어로 armed 시 서브카피. */
@@ -82,13 +92,67 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
-    id: 'bookmark',
-    name: '북마크',
-    icon: { kind: 'lucide', lucide: 'Star' },
-    ring: '#FBBF24',
-    circleBg: 'transparent',
-    iconFill: '#FBBF24',
-    external: false,
+    id: 'youtube',
+    name: 'YouTube',
+    icon: { kind: 'svg', path: siYoutube.path },
+    ring: '#FF0000',
+    circleBg: '#FF0000',
+    iconFill: '#FFFFFF',
+    external: true,
+    greeting: 'YouTube 에서 검색',
+    subtitle: 'YouTube · 동영상 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'twitter',
+    name: 'X (Twitter)',
+    icon: { kind: 'svg', path: siX.path },
+    ring: '#FFFFFF',
+    circleBg: '#000000',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://x.com/search?q={Q}',
+    greeting: 'X (트위터) 에서 검색',
+    subtitle: 'X · 실시간 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'github',
+    name: 'GitHub',
+    icon: { kind: 'svg', path: siGithub.path },
+    ring: '#181717',
+    circleBg: '#181717',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://github.com/search?q={Q}',
+    greeting: 'GitHub 에서 검색',
+    subtitle: 'GitHub · 코드·저장소 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'reddit',
+    name: 'Reddit',
+    icon: { kind: 'svg', path: siReddit.path },
+    ring: '#FF4500',
+    circleBg: '#FF4500',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://www.reddit.com/search/?q={Q}',
+    greeting: 'Reddit 에서 검색',
+    subtitle: 'Reddit · 커뮤니티 토론 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'wikipedia',
+    name: 'Wikipedia',
+    icon: { kind: 'svg', path: siWikipedia.path },
+    ring: '#000000',
+    circleBg: '#FFFFFF',
+    iconFill: '#000000',
+    external: true,
+    greeting: 'Wikipedia 에서 검색',
+    subtitle: 'Wikipedia · 백과 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
   },
 ];
 
@@ -110,9 +174,14 @@ export function buildHeroSearchUrl(
 ): string | null {
   const chip = HERO_SEARCH_CHIP_BY_ID[chipId];
   if (!chip || !chip.external) return null;
-  const engine = findEngine(chipId);
-  if (!engine) return null;
   const trimmed = query.trim();
   if (!trimmed) return null;
+  // urlTemplate 이 정의돼 있으면 그걸 우선 사용 (heroSearchChips 자체 URL).
+  if (chip.urlTemplate) {
+    return chip.urlTemplate.replace('{Q}', encodeURIComponent(trimmed));
+  }
+  // 폴백 — searchEngines.ts 의 findEngine.
+  const engine = findEngine(chipId);
+  if (!engine) return null;
   return buildSearchUrl(engine, trimmed);
 }

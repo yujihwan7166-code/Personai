@@ -11,7 +11,7 @@
  *   - eyebrow → 아래로 (top-full)
  */
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Brand, BrandModel } from '@/lib/aiBrands';
 
@@ -63,9 +63,9 @@ export function ModelPickerButton({
         className={cn(
           isEyebrow
             ? [
-                // eyebrow 스타일 — 헤드라인 위 라벨. uppercase, tracking, 클릭 영역 넓게.
-                'inline-flex items-center gap-1.5 py-1 px-2 -mx-2 rounded-md',
-                'text-[11px] font-semibold tracking-[0.14em] uppercase',
+                // eyebrow 스타일 — 헤드라인 위 라벨. 모델명만 · 살짝 크게 · 클릭 영역 넓게.
+                'inline-flex items-center gap-1.5 py-1.5 px-3 -mx-3 rounded-lg',
+                'text-[13px] font-medium tracking-normal',
                 'transition-colors duration-150',
                 hasChoice && 'hover:bg-[color:var(--hero-accent-soft)]',
               ]
@@ -90,14 +90,13 @@ export function ModelPickerButton({
       >
         {isEyebrow ? (
           <>
-            <span>{brand.name}</span>
-            <span className="opacity-60">·</span>
-            <span className="normal-case tracking-normal">{selectedModel.name}</span>
+            {/* 모델명만 표시 — 브랜드명 중복 제거 (모델명이 이미 브랜드 접두어 포함). */}
+            <span>{selectedModel.name}</span>
             {hasChoice && (
               <ChevronDown
-                size={12}
+                size={14}
                 strokeWidth={2.4}
-                className={cn('opacity-70 transition-transform', open && 'rotate-180')}
+                className={cn('opacity-60 transition-transform', open && 'rotate-180')}
               />
             )}
           </>
@@ -119,31 +118,41 @@ export function ModelPickerButton({
         <div
           role="menu"
           className={cn(
-            'absolute z-50 min-w-[240px] max-w-[280px]',
-            'rounded-xl border p-1',
-            'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)]',
+            // 넉넉한 폭 · 정제된 padding
+            'absolute z-50 min-w-[280px] max-w-[320px]',
+            'rounded-2xl border p-2',
+            'shadow-[0_20px_50px_-14px_rgba(0,0,0,0.40)]',
             'animate-in fade-in zoom-in-95 duration-150',
             isEyebrow
-              ? 'top-full left-1/2 -translate-x-1/2 mt-2 slide-in-from-top-1'
-              : 'bottom-full right-0 mb-2 slide-in-from-bottom-1',
+              ? 'top-full left-1/2 -translate-x-1/2 mt-3 slide-in-from-top-1'
+              : 'bottom-full right-0 mb-3 slide-in-from-bottom-1',
           )}
           style={{
             backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
             borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
-            backdropFilter: 'blur(12px) saturate(140%)',
+            backdropFilter: 'blur(16px) saturate(160%)',
           }}
         >
+          {/* 헤더 — 브랜드 이름만, delicate. */}
           <div
-            className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: 'var(--hero-accent, #10a37f)' }}
+            className="px-2.5 pt-1.5 pb-2 flex items-center gap-1.5"
           >
-            {brand.name} 모델
+            <span
+              className="h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
+            />
+            <span
+              className="text-[11px] font-medium tracking-tight"
+              style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+            >
+              {brand.name} · 모델 {brand.models.length}
+            </span>
           </div>
           {brand.models.map((m) => {
             const active = m.id === selectedModel.id;
             return (
               <button
-                key={m.id}
+                key={`${m.id}-${m.name}`}
                 type="button"
                 role="menuitem"
                 onClick={() => {
@@ -151,7 +160,7 @@ export function ModelPickerButton({
                   setOpen(false);
                 }}
                 className={cn(
-                  'flex w-full items-center gap-2 px-2 py-1.5 rounded-lg text-left',
+                  'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-xl text-left',
                   'transition-colors duration-100',
                 )}
                 style={{
@@ -164,22 +173,24 @@ export function ModelPickerButton({
                   if (!active) e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <Check
-                  size={13}
-                  strokeWidth={2.5}
-                  className={cn('shrink-0', active ? 'opacity-100' : 'opacity-0')}
-                  style={{ color: 'var(--hero-accent, #10a37f)' }}
+                {/* active dot — Check 아이콘 대신 브랜드 색 점으로 정제. */}
+                <span
+                  className={cn(
+                    'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-opacity',
+                    active ? 'opacity-100' : 'opacity-0',
+                  )}
+                  style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
                 />
                 <span className="min-w-0 flex-1">
                   <span
-                    className="block text-[12.5px] font-medium leading-tight truncate"
+                    className="block text-[13.5px] font-medium leading-tight truncate"
                     style={{ color: 'var(--hero-fg, #ececec)' }}
                   >
                     {m.name}
                   </span>
                   {m.description && (
                     <span
-                      className="block text-[10.5px] mt-0.5 truncate"
+                      className="block text-[11px] mt-1 leading-snug"
                       style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
                     >
                       {m.description}
