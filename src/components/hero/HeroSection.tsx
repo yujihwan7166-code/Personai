@@ -20,7 +20,7 @@ import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
-import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl } from '@/lib/heroSearchChips';
+import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
   /** 상단 pill (모드 셀렉트 등). topSlot 지정 시 pill 대신 렌더. */
@@ -61,41 +61,77 @@ export function HeroSection({
   const { model, setModel } = useSelectedModel(brand);
   const { armed, toggle, disarm } = useSearchEngineArm();
   const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * 검색 chip 을 마지막에 눌렀는지 vs AI chip 을 눌렀는지.
+   * - true(검색 나중) + armed → 외부 검색 (Naver 새 탭 등)
+   * - false(AI 나중) + armed → AI 검색 (선택된 AI 가 검색 컨텍스트로 답변)
+   *
+   * 유저 규칙: "네이버 누르면 그냥 검색, 이후에 AI 누르면 AI 검색"
+   */
+  const [searchClickedLast, setSearchClickedLast] = useState(false);
 
   const activeBrand = BRAND_BY_ID[brand];
   const armedChip = armed ? HERO_SEARCH_CHIP_BY_ID[armed] : null;
 
+  const handleSelectBrand = (b: BrandId) => {
+    setBrand(b);
+    // AI 를 나중에 누르면 → 검색이 armed 여도 AI 검색 모드로.
+    if (armedChip?.external) setSearchClickedLast(false);
+  };
+
+  const handleToggleSearch = (id: HeroChipId) => {
+    toggle(id);
+    setSearchClickedLast(true);
+  };
+
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (!trimmed) return;
+
     if (armedChip && armedChip.external) {
-      const url = buildHeroSearchUrl(armedChip.id, trimmed);
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
+      // 검색을 나중에 눌렀으면 → 외부 검색 새 탭.
+      if (searchClickedLast) {
+        const url = buildHeroSearchUrl(armedChip.id, trimmed);
+        if (url) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+          onChange('');
+          disarm();
+          return;
+        }
+      } else {
+        // AI 를 나중에 눌렀으면 → AI 검색 모드.
+        // AI 에게 검색 컨텍스트를 프리픽스로 붙여 전송.
+        const searchPrompt =
+          `[${armedChip.name} 검색 기반으로 답해주세요]\n${trimmed}`;
+        onSubmitToAi(brand, model?.id ?? activeBrand.expertId, searchPrompt);
         onChange('');
         disarm();
+        setSearchClickedLast(false);
         return;
       }
     }
-    // 선택된 모델의 id 로 라우팅 (없으면 brand.expertId 폴백).
+
+    // 기본 AI 채팅.
     onSubmitToAi(brand, model?.id ?? activeBrand.expertId, trimmed);
   };
 
   // 헤드라인·서브 = 항상 브랜드 카피 (armed 여부와 무관).
-  // 유저 피드백: 검색 armed 되어도 헤더는 AI 브랜드가 주인공이어야 함.
   const heading = activeBrand.greeting;
   const subheading = activeBrand.subtitle;
-  // placeholder 만 armed 상태 반영 → 시각 힌트 유지하되 정체성은 브랜드로.
+  // placeholder: 외부 검색 · AI 검색 · 기본 AI 채팅 3분기.
   const placeholder = armedChip?.external
-    ? `${armedChip.name} 검색어를 입력하고 Enter…`
+    ? searchClickedLast
+      ? `${armedChip.name} 검색어를 입력하고 Enter…`
+      : `${armedChip.name} 검색 기반으로 ${activeBrand.name}에게 물어보세요`
     : activeBrand.placeholder;
 
   return (
     <div
       className="hero-brand-canvas relative w-full min-h-full flex flex-col items-center justify-center overflow-hidden"
-      // 검색 armed 시 → 전체 배경/변수 를 그 검색엔진 테마로 morph.
-      // 내부 컨텐츠(헤드라인·모델셀렉트) 는 여전히 brand 기준.
-      data-brand={armedChip?.external ? armedChip.id : brand}
+      // 검색 armed 시 → 그 검색엔진 테마로 morph.
+      // 단, AI 를 나중에 눌러 AI 검색 모드가 되면 → 다시 브랜드 테마로 복귀.
+      // (검색 칩은 여전히 highlight 유지 = "검색 참조" 힌트)
+      data-brand={armedChip?.external && searchClickedLast ? armedChip.id : brand}
     >
       {/* 브랜드 워터마크 — 로고를 히어로 뒤에 거대 반투명으로. */}
       <div
@@ -183,9 +219,9 @@ export function HeroSection({
           chipStrip={
             <BrandChipStrip
               selectedBrand={brand}
-              onSelectBrand={setBrand}
+              onSelectBrand={handleSelectBrand}
               armedSearch={armed}
-              onToggleSearch={toggle}
+              onToggleSearch={handleToggleSearch}
               onOpenBookmarks={onOpenBookmarks}
               onOpenAiPicker={() => setPickerOpen(true)}
             />

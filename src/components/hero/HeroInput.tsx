@@ -74,16 +74,17 @@ export function HeroInput({
         <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
-      {/* 입력 컨테이너 — 컴팩트 */}
+      {/* 입력 컨테이너 — 컴팩트 · 브랜드 색조 shadow 로 통일감. */}
       <div
         className={cn(
           'relative rounded-[var(--hero-radius-input,14px)] border',
-          'shadow-[0_16px_40px_-24px_rgba(0,0,0,0.45)]',
           'transition-colors duration-200',
         )}
         style={{
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
           borderColor: 'var(--hero-input-border, rgba(255,255,255,0.10))',
+          // 브랜드 accent 로 tinted 되는 soft shadow — 라이트/다크 자연스럽게 어울림.
+          boxShadow: '0 12px 32px -18px var(--hero-accent-soft, rgba(0,0,0,0.2))',
         }}
       >
         {/* Textarea */}
