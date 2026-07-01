@@ -122,13 +122,14 @@ export function HeroSection({
       // 상호 배타이므로 AI 브랜드는 감춰짐.
       data-brand={isSearchArmed ? armedChip!.id : brand}
     >
-      {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고. */}
+      {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
+       * opacity 0.045 → 0.075 로 살짝 상향 (뒷배경 흐릿하다는 피드백). */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.045]"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.075]"
         aria-hidden
         style={{
-          maskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
-          WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
+          maskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
         }}
       >
         {isSearchArmed && armedChip!.icon.path ? (

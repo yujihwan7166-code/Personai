@@ -117,45 +117,47 @@
   --hero-input-border: rgba(143, 162, 236, 0.36);
 }
 
-/* ────── Perplexity — 실제 사이트 톤 (#1F2A2D-ish) + 리서치 라인 ────── */
+/* ────── Perplexity — 실제 perplexity.ai 톤 (뉴트럴 near-black + teal accent 만 소량) ────── */
 .hero-brand-canvas[data-brand='perplexity'] {
-  --hero-bg: #1c2f34;
+  --hero-bg: #191c1e;
   --hero-mesh:
-    radial-gradient(80% 55% at 50% 0%, rgba(32, 184, 205, 0.34), transparent 60%);
+    radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.16), transparent 65%);
+  /* 리서치 페이퍼 라인 — 얇은 수평선, 배경과 대비 은은. */
   --hero-pattern:
-    linear-gradient(rgba(32, 184, 205, 0.06) 1px, transparent 1px);
-  --hero-fg: #eef7f9;
-  --hero-fg-muted: #a3c1c9;
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  --hero-fg: #f0f3f4;
+  --hero-fg-muted: #a0a8ab;
   --hero-accent: #20b8cd;
-  --hero-accent-soft: rgba(32, 184, 205, 0.18);
+  --hero-accent-soft: rgba(32, 184, 205, 0.14);
   --hero-ring: #20b8cd;
   --hero-radius-input: 10px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(14, 24, 27, 0.75);
-  --hero-input-border: rgba(32, 184, 205, 0.44);
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(12, 14, 15, 0.78);
+  --hero-input-border: rgba(32, 184, 205, 0.36);
 }
 
-/* ────── Grok (xAI) — 실제 x.ai 톤 (near-black, subtle X 그리드) ────── */
+/* ────── Grok (xAI) — 실제 x.ai · Grok 톤 (순수 블랙 + 미니멀 스타 노이즈) ────── */
 .hero-brand-canvas[data-brand='grok'] {
-  --hero-bg: #191919;
+  --hero-bg: #050505;
+  /* 은은한 화이트 vignette — 헤드라인 뒤에만 살짝 밝기. */
   --hero-mesh:
-    radial-gradient(60% 40% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 55%);
+    radial-gradient(65% 45% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 60%);
+  /* 성긴 도트 노이즈 — Grok 우주적 감성. X 그리드는 산만해서 제거. */
   --hero-pattern:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.04) 75%);
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
   --hero-fg: #ffffff;
-  --hero-fg-muted: #b0b0b0;
+  --hero-fg-muted: #9a9a9a;
   --hero-accent: #ffffff;
-  --hero-accent-soft: rgba(255, 255, 255, 0.16);
+  --hero-accent-soft: rgba(255, 255, 255, 0.10);
   --hero-ring: #ffffff;
-  --hero-radius-input: 6px;
+  --hero-radius-input: 4px;
   --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.20);
-  --hero-input-bg: rgba(10, 10, 10, 0.85);
-  --hero-input-border: rgba(255, 255, 255, 0.32);
+  --hero-hairline: rgba(255, 255, 255, 0.14);
+  --hero-input-bg: rgba(18, 18, 18, 0.88);
+  --hero-input-border: rgba(255, 255, 255, 0.22);
 }
 
 /* ────── DeepSeek — 실제 chat.deepseek.com 톤 (밝은 딥블루) ────── */
@@ -304,13 +306,12 @@
 
 /* GPT / Grok 처럼 다중 background-size 가 필요한 경우는 브랜드 스코프에서 오버라이드. */
 .hero-brand-canvas[data-brand='grok'] {
-  background-size: auto, 32px 32px, 32px 32px;
-  background-position: center, 0 0, 16px 16px;
-  background-repeat: no-repeat, repeat, repeat;
+  background-size: auto, 28px 28px;
+  background-repeat: no-repeat, repeat;
 }
 
 .hero-brand-canvas[data-brand='perplexity'] {
-  background-size: auto, 100% 6px;
+  background-size: auto, 100% 8px;
   background-repeat: no-repeat, repeat;
 }
 
