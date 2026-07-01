@@ -99,8 +99,10 @@ export function HeroSection({
       >
         <BrandLogo
           key={brand}  // 브랜드 바뀔 때 fade-in 재생
+          imgUrl={activeBrand.icon.imgUrl}
           path={activeBrand.icon.path}
           fill={`#${activeBrand.icon.hex}`}
+          forceWhite={false}  // 워터마크는 브랜드 원본 컬러 유지 (몰입감)
           size={520}
           className="animate-in fade-in duration-500 ease-out"
         />

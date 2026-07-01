@@ -34,6 +34,12 @@ export interface BrandIcon {
   path: string;
   /** 로고 원본 컬러 (hex, no #). fill 로 사용. */
   hex: string;
+  /**
+   * 실제 브랜드 로고 파일 경로 (앱 내 /public/logos/*).
+   * 지정 시 BrandLogo 가 path 대신 <img> 로 렌더.
+   * 흰색 오버라이드는 `filter: brightness(0) invert(1)` 로 처리.
+   */
+  imgUrl?: string;
 }
 
 export interface Brand {
@@ -71,7 +77,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'GPT',
     provider: 'OpenAI',
     initials: 'GPT',
-    icon: { path: OPENAI_PATH, hex: '10A37F' },
+    icon: { path: OPENAI_PATH, hex: '10A37F', imgUrl: '/logos/gpt.svg' },
     isDark: true,
     expertId: 'gpt',
     greeting: '무엇을 도와드릴까요?',
@@ -83,7 +89,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'Claude',
     provider: 'Anthropic',
     initials: 'Cl',
-    icon: { path: siAnthropic.path, hex: siAnthropic.hex },
+    icon: { path: siAnthropic.path, hex: siAnthropic.hex, imgUrl: '/logos/claude.png' },
     isDark: false,
     expertId: 'claude',
     greeting: '함께 생각해봐요.',
@@ -95,7 +101,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'Gemini',
     provider: 'Google',
     initials: 'Ge',
-    icon: { path: siGooglegemini.path, hex: siGooglegemini.hex },
+    icon: { path: siGooglegemini.path, hex: siGooglegemini.hex, imgUrl: '/logos/gemini.svg' },
     isDark: true,
     expertId: 'gemini',
     greeting: '어디서부터 시작할까요?',
@@ -107,7 +113,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'Perplexity',
     provider: 'Perplexity AI',
     initials: 'Px',
-    icon: { path: siPerplexity.path, hex: siPerplexity.hex },
+    icon: { path: siPerplexity.path, hex: siPerplexity.hex, imgUrl: '/logos/perplexity.svg' },
     isDark: true,
     expertId: 'perplexity',
     greeting: '무엇을 조사할까요?',
@@ -119,7 +125,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'Grok',
     provider: 'xAI',
     initials: 'Gk',
-    icon: { path: siX.path, hex: 'FFFFFF' },
+    icon: { path: siX.path, hex: 'FFFFFF', imgUrl: '/logos/grok.svg' },
     isDark: true,
     expertId: 'grok',
     greeting: '뭐가 궁금해?',
@@ -131,7 +137,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'DeepSeek',
     provider: 'DeepSeek',
     initials: 'DS',
-    icon: { path: siDeepseek.path, hex: siDeepseek.hex },
+    icon: { path: siDeepseek.path, hex: siDeepseek.hex, imgUrl: '/logos/deepseek-transparent.png' },
     isDark: true,
     expertId: 'deepseek',
     greeting: '깊이 파고들어봐요.',
@@ -143,7 +149,8 @@ export const BRANDS: readonly Brand[] = [
     name: 'Copilot',
     provider: 'Microsoft',
     initials: 'Co',
-    icon: { path: siGithubcopilot.path, hex: '0078D4' },
+    // MS Copilot 자체 파일은 없어 microsoft.png 사용, imgUrl 없으면 simple-icons path 폴백.
+    icon: { path: siGithubcopilot.path, hex: '0078D4', imgUrl: '/logos/microsoft.png' },
     isDark: true,
     // MS Copilot 은 앱에 자체 expert 없음 — GPT 로 폴백 (Copilot 은 GPT-4 기반).
     expertId: 'gpt',
@@ -156,7 +163,7 @@ export const BRANDS: readonly Brand[] = [
     name: 'Mistral',
     provider: 'Mistral AI',
     initials: 'Mi',
-    icon: { path: siMistralai.path, hex: siMistralai.hex },
+    icon: { path: siMistralai.path, hex: siMistralai.hex, imgUrl: '/logos/mistral.png' },
     isDark: true,
     expertId: 'mistral-large',
     greeting: '빠르게, 정확하게.',

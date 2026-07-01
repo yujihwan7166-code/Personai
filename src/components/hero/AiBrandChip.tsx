@@ -46,6 +46,7 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
       }}
     >
       <BrandLogo
+        imgUrl={brand.icon.imgUrl}
         path={brand.icon.path}
         fill="#FFFFFF"
         size={active ? 16 : 12}
