@@ -28,7 +28,7 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
         'group relative flex items-center justify-center rounded-full shrink-0',
         'transition-all duration-300 ease-out',
         // 선택된 칩은 세련되게 살짝 크고, 나머지는 절제된 크기·투명도.
-        active ? 'h-9 w-9' : 'h-7 w-7 opacity-75 hover:opacity-100 hover:scale-110',
+        active ? 'h-[34px] w-[34px]' : 'h-[26px] w-[26px] opacity-75 hover:opacity-100 hover:scale-110',
       )}
       style={{
         backgroundColor: brandColor,
@@ -54,7 +54,7 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
       <BrandLogo
         path={brand.icon.path}
         fill="#FFFFFF"
-        size={active ? 17 : 13}
+        size={active ? 16 : 12}
       />
     </button>
   );

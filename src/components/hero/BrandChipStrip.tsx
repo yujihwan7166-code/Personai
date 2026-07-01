@@ -87,7 +87,7 @@ export function BrandChipStrip({
         aria-label="다른 AI 선택"
         title="더 많은 AI"
         className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-full shrink-0',
+          'flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0',
           'transition-all duration-200 ease-out',
           'text-[var(--hero-fg,#ececec)] opacity-75 hover:opacity-100 hover:scale-110',
         )}
@@ -97,7 +97,7 @@ export function BrandChipStrip({
             '0 0 0 3px var(--hero-bg, #0d0d0d), inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.08))',
         }}
       >
-        <Plus size={13} strokeWidth={2.4} />
+        <Plus size={12} strokeWidth={2.4} />
       </button>
     </div>
   );
