@@ -37,5 +37,17 @@ next-env.d.ts
 output/
 tmp/
 services/**/.venv/
+services/**/__pycache__/
+
+# 임시 스크린샷·업로드 (개발용)
+tmp-*.png
+tmp-*.jpg
+tmp_*.png
+tmp_*.jpg
+ig_*.png
+ig_*.jpg
+tmp-design-snapshots/
+.codex-remote-attachments/
+.codex-start-dev-*.cmd
 
 .vercel
