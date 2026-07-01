@@ -117,25 +117,25 @@
   --hero-input-border: rgba(165, 180, 240, 0.32);
 }
 
-/* ────── Perplexity — 실제 perplexity.ai 톤 (뉴트럴 near-black + teal accent 만 소량) ────── */
+/* ────── Perplexity — 실제 perplexity.ai 톤 (라이트한 뉴트럴 + teal 최소) ────── */
 .hero-brand-canvas[data-brand='perplexity'] {
-  --hero-bg: #191c1e;
+  --hero-bg: #23262a;
   --hero-mesh:
-    radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.16), transparent 65%);
-  /* 리서치 페이퍼 라인 — 얇은 수평선, 배경과 대비 은은. */
+    radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.10), transparent 65%);
+  /* 리서치 페이퍼 라인 — 얇은 수평선, 배경과 대비 아주 은은. */
   --hero-pattern:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  --hero-fg: #f0f3f4;
-  --hero-fg-muted: #a0a8ab;
+    linear-gradient(rgba(255, 255, 255, 0.020) 1px, transparent 1px);
+  --hero-fg: #f2f5f6;
+  --hero-fg-muted: #a6adb0;
   --hero-accent: #20b8cd;
-  --hero-accent-soft: rgba(32, 184, 205, 0.14);
+  --hero-accent-soft: rgba(32, 184, 205, 0.12);
   --hero-ring: #20b8cd;
   --hero-radius-input: 10px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(12, 14, 15, 0.78);
-  --hero-input-border: rgba(32, 184, 205, 0.36);
+  --hero-input-bg: rgba(20, 22, 24, 0.72);
+  --hero-input-border: rgba(32, 184, 205, 0.30);
 }
 
 /* ────── Grok (xAI) — 실제 x.ai · Grok 톤 (순수 블랙 + 미니멀 스타 노이즈) ────── */
