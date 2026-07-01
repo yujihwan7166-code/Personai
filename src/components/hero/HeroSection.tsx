@@ -14,7 +14,6 @@ import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
-import { PortalPickerSheet } from './PortalPickerSheet';
 import { BrandLogo } from './BrandLogo';
 import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
@@ -63,7 +62,6 @@ export function HeroSection({
   const { visibleIds, toggleBrand, showAll } = useVisibleBrands();
   const portalsHook = useVisiblePortals();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [portalPickerOpen, setPortalPickerOpen] = useState(false);
 
   const activeBrand = BRAND_BY_ID[brand];
   const armedChip = armed ? HERO_SEARCH_CHIP_BY_ID[armed] : null;
@@ -261,8 +259,7 @@ export function HeroSection({
               onSelectBrand={handleSelectBrand}
               armedSearch={armed}
               onToggleSearch={handleToggleSearch}
-              onOpenPortalPicker={() => setPortalPickerOpen(true)}
-              onOpenAiPicker={() => setPickerOpen(true)}
+              onOpenPicker={() => setPickerOpen(true)}
               visibleBrandIds={visibleIds}
               visiblePortalIds={portalsHook.visibleIds}
             />
@@ -275,17 +272,12 @@ export function HeroSection({
       <AiPickerSheet
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        visibleIds={visibleIds}
-        onToggle={toggleBrand}
-        onShowAll={showAll}
-      />
-
-      <PortalPickerSheet
-        open={portalPickerOpen}
-        onClose={() => setPortalPickerOpen(false)}
-        visibleIds={portalsHook.visibleIds}
-        onToggle={portalsHook.togglePortal}
-        onResetDefaults={portalsHook.resetDefaults}
+        visibleAiIds={visibleIds}
+        onToggleAi={toggleBrand}
+        onShowAllAi={showAll}
+        visiblePortalIds={portalsHook.visibleIds}
+        onTogglePortal={portalsHook.togglePortal}
+        onResetPortalDefaults={portalsHook.resetDefaults}
       />
     </div>
   );

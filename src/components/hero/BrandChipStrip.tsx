@@ -17,8 +17,8 @@ interface Props {
   onSelectBrand: (b: BrandId) => void;
   armedSearch: HeroChipId | null;
   onToggleSearch: (id: HeroChipId) => void;
-  onOpenPortalPicker: () => void;
-  onOpenAiPicker: () => void;
+  /** 통합 편집 시트 열기 (AI 탭 · 브라우저 탭 모두 여기서). */
+  onOpenPicker: () => void;
   /** 스트립에 표시할 브랜드 id 목록 (미지정 시 전체). */
   visibleBrandIds?: BrandId[];
   /** 스트립에 표시할 포탈 id 목록 (미지정 시 전체). */
@@ -31,8 +31,7 @@ export function BrandChipStrip({
   onSelectBrand,
   armedSearch,
   onToggleSearch,
-  onOpenPortalPicker,
-  onOpenAiPicker,
+  onOpenPicker,
   visibleBrandIds,
   visiblePortalIds,
   className,
@@ -60,7 +59,7 @@ export function BrandChipStrip({
       role="toolbar"
       aria-label="AI 선택 및 검색"
     >
-      {/* 좌측 포탈 칩 (사용자 커스텀 필터 반영) */}
+      {/* 좌측 포탈 칩 (사용자 커스텀 필터 반영). `+` 은 우측에 통합. */}
       {visiblePortals.map((chip) => (
         <SearchEngineChip
           key={chip.id}
@@ -69,26 +68,6 @@ export function BrandChipStrip({
           onClick={() => onToggleSearch(chip.id)}
         />
       ))}
-
-      {/* 좌측 `+` 칩 — 포탈 편집 시트 오픈 */}
-      <button
-        type="button"
-        onClick={onOpenPortalPicker}
-        aria-label="포탈·검색 편집"
-        title="유튜브·트위터·GitHub 등 추가"
-        className={cn(
-          'flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0',
-          'transition-all duration-200 ease-out',
-          'text-[var(--hero-fg,#ececec)] opacity-75 hover:opacity-100 hover:scale-110',
-        )}
-        style={{
-          backgroundColor: 'var(--hero-accent-soft, rgba(255,255,255,0.06))',
-          boxShadow:
-            '0 0 0 3px var(--hero-bg, #0d0d0d), inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.08))',
-        }}
-      >
-        <Plus size={12} strokeWidth={2.4} />
-      </button>
 
       {/* 검색 · AI 사이 여백 — 눈에 띄는 선 없이 넉넉한 gap 으로만 구분. */}
       <span aria-hidden className="w-3 shrink-0" />
@@ -103,12 +82,12 @@ export function BrandChipStrip({
         />
       ))}
 
-      {/* `+` 칩 — 전체 AI 선택 시트 오픈 */}
+      {/* `+` 칩 — 통합 편집 시트 오픈 (AI · 브라우저 탭). */}
       <button
         type="button"
-        onClick={onOpenAiPicker}
-        aria-label="다른 AI 선택"
-        title="더 많은 AI"
+        onClick={onOpenPicker}
+        aria-label="AI · 브라우저 편집"
+        title="AI · 브라우저 편집"
         className={cn(
           'flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0',
           'transition-all duration-200 ease-out',
