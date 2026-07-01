@@ -185,7 +185,9 @@ export const BRANDS: readonly Brand[] = [
     name: 'DeepSeek',
     provider: 'DeepSeek',
     initials: 'DS',
-    icon: { path: siDeepseek.path, hex: siDeepseek.hex, imgUrl: '/logos/deepseek-transparent.png' },
+    // deepseek PNG 는 filter: brightness(0) invert(1) 적용 시 edge anti-alias 뿌옇게 나옴.
+    // simple-icons SVG path 만 사용 (칩·워터마크 모두 vector 로 clean).
+    icon: { path: siDeepseek.path, hex: siDeepseek.hex },
     isDark: true,
     expertId: 'deepseek',
     models: [

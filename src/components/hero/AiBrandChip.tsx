@@ -50,9 +50,10 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
             }),
       }}
     >
-      {/* 칩 안에서는 clean monochrome SVG path 만 사용 (img filter 는 detail 손상).
-       * path 없이 text 만 있는 브랜드(Kimi 등) 는 text badge 로 fallback. */}
+      {/* 칩 안 로고 우선순위: imgUrl (실제 파일) > SVG path > text.
+       * GPT 는 /logos/gpt.svg (실제 OpenAI 마크 파일) 사용해 chip 에 표시. */}
       <BrandLogo
+        imgUrl={brand.icon.imgUrl}
         path={brand.icon.path}
         text={brand.icon.text}
         fill="#FFFFFF"
