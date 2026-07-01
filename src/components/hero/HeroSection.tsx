@@ -151,6 +151,15 @@ export function HeroSection({
           >
             {armedChip!.icon.text}
           </span>
+        ) : activeBrand.icon.text ? (
+          // 로고 미지원 브랜드(Kimi) — 큰 텍스트 뱃지로 워터마크.
+          <span
+            key={`wm-${brand}`}
+            className="font-black leading-none animate-in fade-in duration-500 ease-out"
+            style={{ color: `#${activeBrand.icon.hex}`, fontSize: '320px' }}
+          >
+            {activeBrand.icon.text}
+          </span>
         ) : (
           <BrandLogo
             key={brand}

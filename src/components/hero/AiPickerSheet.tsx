@@ -122,7 +122,7 @@ function BrandRow({
         className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
         style={{ backgroundColor: brandColor, opacity: enabled ? 1 : 0.55 }}
       >
-        <BrandLogo path={brand.icon.path} fill="#FFFFFF" size={20} />
+        <BrandLogo path={brand.icon.path} text={brand.icon.text} fill="#FFFFFF" size={20} />
       </span>
       <span className="min-w-0 flex-1">
         <span className={cn('block text-[13.5px] font-semibold', enabled ? 'text-white' : 'text-white/60')}>

@@ -50,9 +50,11 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
             }),
       }}
     >
-      {/* 칩 안에서는 clean monochrome SVG path 만 사용 (img filter 는 detail 손상). */}
+      {/* 칩 안에서는 clean monochrome SVG path 만 사용 (img filter 는 detail 손상).
+       * path 없이 text 만 있는 브랜드(Kimi 등) 는 text badge 로 fallback. */}
       <BrandLogo
         path={brand.icon.path}
+        text={brand.icon.text}
         fill="#FFFFFF"
         size={active ? 16 : 12}
       />

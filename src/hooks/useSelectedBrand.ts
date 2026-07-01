@@ -6,11 +6,14 @@ import { DEFAULT_BRAND, SELECTED_BRAND_KEY, type BrandId } from '@/lib/aiBrands'
 
 const CHANGED_EVENT = 'personai:hero-brand-changed';
 
+import { BRAND_BY_ID } from '@/lib/aiBrands';
+
 function readStored(): BrandId {
   if (typeof window === 'undefined') return DEFAULT_BRAND;
   try {
     const raw = window.localStorage.getItem(SELECTED_BRAND_KEY);
-    if (raw) return raw as BrandId;
+    // 유효한 BrandId 인 경우에만 반환 (구버전 값 e.g. 'copilot' 대응).
+    if (raw && BRAND_BY_ID[raw as BrandId]) return raw as BrandId;
   } catch {
     /* noop */
   }

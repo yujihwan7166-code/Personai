@@ -76,11 +76,13 @@ export function HeroInput({
         <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
-      {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow. */}
+      {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow.
+       * focus-within 시 브랜드 색으로 border 변경 (default 파랑 outline 대체). */}
       <div
         className={cn(
-          'relative rounded-[var(--hero-radius-input,14px)] border',
-          'transition-colors duration-200',
+          'group relative rounded-[var(--hero-radius-input,14px)] border',
+          'transition-all duration-200',
+          'focus-within:border-[color:var(--hero-ring,#10a37f)]',
         )}
         style={{
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
@@ -107,7 +109,11 @@ export function HeroInput({
             rows={1}
             disabled={disabled}
             className={cn(
-              'w-full resize-none bg-transparent border-0 outline-none',
+              'w-full resize-none bg-transparent border-0',
+              // 브라우저 default 파란 outline 완전 제거 — 컨테이너의 focus-within
+              // border 로 대체 (브랜드 ring 색).
+              'outline-none focus:outline-none focus-visible:outline-none',
+              'ring-0 focus:ring-0 focus-visible:ring-0',
               'text-[14.5px] leading-[1.55]',
               'placeholder:text-[color:var(--hero-fg-muted,#8e8ea0)]',
               'disabled:opacity-60',

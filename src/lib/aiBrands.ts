@@ -14,7 +14,6 @@ import {
   siPerplexity,
   siX,
   siDeepseek,
-  siGithubcopilot,
   siMistralai,
 } from 'simple-icons';
 
@@ -25,18 +24,19 @@ export type BrandId =
   | 'perplexity'
   | 'grok'
   | 'deepseek'
-  | 'copilot'
+  | 'kimi'
   | 'mistral';
 
 export interface BrandIcon {
   /** SVG viewBox 은 항상 "0 0 24 24" (simple-icons 규격). */
-  path: string;
+  path?: string;
+  /** SVG path 대신 텍스트 뱃지 (Kimi 처럼 로고가 미지원인 경우). */
+  text?: string;
   /** 로고 원본 컬러 (hex, no #). fill 로 사용. */
   hex: string;
   /**
    * 실제 브랜드 로고 파일 경로 (앱 내 /public/logos/*).
    * 지정 시 BrandLogo 가 path 대신 <img> 로 렌더.
-   * 흰색 오버라이드는 `filter: brightness(0) invert(1)` 로 처리.
    */
   imgUrl?: string;
 }
@@ -197,22 +197,21 @@ export const BRANDS: readonly Brand[] = [
     placeholder: '문제·코드·개념 정리…',
   },
   {
-    id: 'copilot',
-    name: 'Copilot',
-    provider: 'Microsoft',
-    initials: 'Co',
-    // MS Copilot 자체 파일은 없어 microsoft.png 사용, imgUrl 없으면 simple-icons path 폴백.
-    icon: { path: siGithubcopilot.path, hex: '0078D4', imgUrl: '/logos/microsoft.png' },
+    id: 'kimi',
+    name: 'Kimi',
+    provider: 'Moonshot AI',
+    initials: 'Ki',
+    // 로고 미지원 → 텍스트 뱃지 K. 컬러는 Moonshot 시그니처 퍼플.
+    icon: { text: 'K', hex: '7C3AED' },
     isDark: true,
-    // MS Copilot 은 앱에 자체 expert 없음 — GPT 계열로 폴백 (Copilot 은 GPT 기반).
-    expertId: 'gpt',
+    expertId: 'kimi',
     models: [
-      { id: 'gpt',      name: 'Copilot (GPT-5.4)',      description: 'MS Copilot 기본',  isDefault: true },
-      { id: 'gpt-mini', name: 'Copilot Fast',           description: '고속 응답' },
+      { id: 'kimi',           name: 'Kimi K2',       description: '긴 맥락 · 200K 컨텍스트', isDefault: true },
+      { id: 'kimi-thinking',  name: 'Kimi Thinking', description: '추론 · 심층 분석' },
     ],
-    greeting: '무엇을 만들까요?',
-    subtitle: 'Microsoft · 생산성·코드·문서',
-    placeholder: '문서·시트·코드 · 무엇이든',
+    greeting: '길게 이야기해요.',
+    subtitle: 'Moonshot · 초장문 컨텍스트 · 한중일 강함',
+    placeholder: '긴 문서·복잡한 대화 뭐든 붙여봐요',
   },
   {
     id: 'mistral',

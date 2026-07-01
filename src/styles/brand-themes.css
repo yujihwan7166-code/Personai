@@ -138,69 +138,73 @@
   --hero-input-border: rgba(32, 184, 205, 0.30);
 }
 
-/* ────── Grok (xAI) — 실제 x.ai · Grok 톤 (순수 블랙 + 미니멀 스타 노이즈) ────── */
+/* ────── Grok (xAI) — 우주 감성 + Serif 헤드라인 (모노 아쉬움 반영) ────── */
 .hero-brand-canvas[data-brand='grok'] {
-  --hero-bg: #050505;
-  /* 은은한 화이트 vignette — 헤드라인 뒤에만 살짝 밝기. */
+  --hero-bg: #0a0a0f;
+  /* 헤드라인 뒤 부드러운 vignette + 좌우 미묘한 심연 감. */
   --hero-mesh:
-    radial-gradient(65% 45% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 60%);
-  /* 성긴 도트 노이즈 — Grok 우주적 감성. X 그리드는 산만해서 제거. */
+    radial-gradient(60% 40% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 60%),
+    radial-gradient(50% 50% at 100% 100%, rgba(120, 60, 200, 0.08), transparent 60%);
+  /* 성긴 스타 도트 노이즈 — 우주적 감성. */
   --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   --hero-fg: #ffffff;
-  --hero-fg-muted: #9a9a9a;
-  --hero-accent: #ffffff;
-  --hero-accent-soft: rgba(255, 255, 255, 0.10);
+  --hero-fg-muted: #9c9ca8;
+  --hero-accent: #e0e0ee;
+  --hero-accent-soft: rgba(255, 255, 255, 0.09);
   --hero-ring: #ffffff;
-  --hero-radius-input: 4px;
-  --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
+  --hero-radius-input: 8px;
+  /* Serif 로 변경 — 모노스페이스는 "코더" 느낌만 남고 개성 부족.
+   * Newsreader (이미 로드됨) 로 editorial · 우주 여행자 감성. */
+  --hero-font-heading: 'Newsreader', ui-serif, Georgia, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.14);
-  --hero-input-bg: rgba(18, 18, 18, 0.88);
-  --hero-input-border: rgba(255, 255, 255, 0.22);
+  --hero-hairline: rgba(255, 255, 255, 0.13);
+  --hero-input-bg: rgba(20, 20, 26, 0.85);
+  --hero-input-border: rgba(255, 255, 255, 0.20);
 }
 
-/* ────── DeepSeek — 실제 chat.deepseek.com 톤 (밝은 딥블루) ────── */
+/* ────── DeepSeek — 실제 chat.deepseek.com 톤 (딥블루, 클린) ────── */
 .hero-brand-canvas[data-brand='deepseek'] {
-  --hero-bg: #1e2540;
+  --hero-bg: #14192e;
   --hero-mesh:
-    radial-gradient(75% 50% at 50% 0%, rgba(77, 107, 254, 0.38), transparent 60%),
-    radial-gradient(50% 40% at 20% 90%, rgba(140, 160, 255, 0.18), transparent 55%);
+    radial-gradient(70% 45% at 50% 0%, rgba(77, 107, 254, 0.24), transparent 60%),
+    radial-gradient(55% 40% at 20% 100%, rgba(140, 160, 255, 0.12), transparent 55%);
+  /* Diagonal 라인은 정신없음 → 은은한 도트로. */
   --hero-pattern:
-    linear-gradient(135deg, rgba(77, 107, 254, 0.06) 25%, transparent 25%, transparent 75%, rgba(77, 107, 254, 0.06) 75%);
+    radial-gradient(circle at 1px 1px, rgba(140, 160, 255, 0.06) 1px, transparent 0);
   --hero-fg: #f0f2fc;
-  --hero-fg-muted: #b0b8d8;
+  --hero-fg-muted: #a8afc9;
   --hero-accent: #4d6bfe;
-  --hero-accent-soft: rgba(77, 107, 254, 0.20);
+  --hero-accent-soft: rgba(77, 107, 254, 0.14);
   --hero-ring: #4d6bfe;
   --hero-radius-input: 12px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(14, 18, 40, 0.75);
-  --hero-input-border: rgba(77, 107, 254, 0.46);
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(10, 14, 32, 0.78);
+  --hero-input-border: rgba(77, 107, 254, 0.36);
 }
 
-/* ────── Copilot (Microsoft) — Fluent 톤, 훨씬 밝은 MS 블루 ────── */
-.hero-brand-canvas[data-brand='copilot'] {
-  --hero-bg: #253b60;
+/* ────── Kimi (Moonshot AI) — 밤하늘 퍼플 · 스타 도트 (달·초장문 감성) ────── */
+.hero-brand-canvas[data-brand='kimi'] {
+  --hero-bg: #1a1330;
   --hero-mesh:
-    radial-gradient(70% 45% at 50% 0%, rgba(0, 120, 212, 0.38), transparent 60%),
-    radial-gradient(50% 50% at 15% 90%, rgba(0, 175, 204, 0.28), transparent 55%);
+    radial-gradient(65% 40% at 50% 0%, rgba(124, 58, 237, 0.30), transparent 60%),
+    radial-gradient(50% 45% at 90% 100%, rgba(232, 121, 249, 0.14), transparent 55%);
+  /* 밤하늘 스타 도트 — Moonshot 달 감성. 네모 패턴 X. */
   --hero-pattern:
-    linear-gradient(rgba(0, 120, 212, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 120, 212, 0.06) 1px, transparent 1px);
-  --hero-fg: #f0f3fc;
-  --hero-fg-muted: #b3c1df;
-  --hero-accent: #0078d4;
-  --hero-accent-soft: rgba(0, 120, 212, 0.22);
-  --hero-ring: #0078d4;
-  --hero-radius-input: 4px;
-  --hero-font-heading: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
-  --hero-font-body: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(15, 30, 60, 0.72);
-  --hero-input-border: rgba(0, 120, 212, 0.52);
+    radial-gradient(circle at 1px 1px, rgba(200, 170, 255, 0.06) 1px, transparent 0);
+  --hero-fg: #f3efff;
+  --hero-fg-muted: #b8afd8;
+  --hero-accent: #a78bfa;
+  --hero-accent-soft: rgba(167, 139, 250, 0.16);
+  --hero-ring: #a78bfa;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(16, 10, 32, 0.75);
+  --hero-input-border: rgba(167, 139, 250, 0.34);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -271,25 +275,26 @@
   --hero-input-border: rgba(255, 206, 0, 0.40);
 }
 
-/* ────── Mistral — 실제 mistral.ai 톤 (웜 브라운) ────── */
+/* ────── Mistral — 실제 mistral.ai 톤 (딥 네이비 + 오렌지 sunset 그라디언트) ────── */
 .hero-brand-canvas[data-brand='mistral'] {
-  --hero-bg: #2e211d;
+  --hero-bg: #14161e;
+  /* 하늘의 노을 — 위에서 오렌지→노랑→네이비 로 페이드 (그라디언트만, 네모 X). */
   --hero-mesh:
-    radial-gradient(70% 50% at 50% 0%, rgba(250, 82, 15, 0.32), transparent 60%),
-    radial-gradient(80% 45% at 50% 100%, rgba(250, 82, 15, 0.20), transparent 60%);
-  --hero-pattern:
-    radial-gradient(ellipse at 50% 100%, rgba(250, 82, 15, 0.10), transparent 55%);
-  --hero-fg: #f7f2ea;
-  --hero-fg-muted: #baa89a;
+    radial-gradient(75% 50% at 50% -10%, rgba(250, 82, 15, 0.28), transparent 55%),
+    radial-gradient(60% 40% at 50% 10%, rgba(255, 179, 71, 0.16), transparent 55%);
+  /* 패턴 없음 — 클린한 sunset 만. */
+  --hero-pattern: none;
+  --hero-fg: #f3ede4;
+  --hero-fg-muted: #ac9e8f;
   --hero-accent: #fa520f;
-  --hero-accent-soft: rgba(250, 82, 15, 0.22);
+  --hero-accent-soft: rgba(250, 82, 15, 0.14);
   --hero-ring: #fa520f;
   --hero-radius-input: 10px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(20, 15, 12, 0.72);
-  --hero-input-border: rgba(250, 82, 15, 0.46);
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(10, 12, 20, 0.75);
+  --hero-input-border: rgba(250, 82, 15, 0.36);
 }
 
 /* ────── 히어로 캔버스 공통 스타일 ────── */
@@ -304,9 +309,9 @@
   background-repeat: no-repeat, repeat;
 }
 
-/* GPT / Grok 처럼 다중 background-size 가 필요한 경우는 브랜드 스코프에서 오버라이드. */
+/* 브랜드별 background 스택 조정. */
 .hero-brand-canvas[data-brand='grok'] {
-  background-size: auto, 28px 28px;
+  background-size: auto, 26px 26px;
   background-repeat: no-repeat, repeat;
 }
 
@@ -315,14 +320,13 @@
   background-repeat: no-repeat, repeat;
 }
 
-.hero-brand-canvas[data-brand='copilot'] {
-  background-size: auto, 44px 44px, 44px 44px;
-  background-position: center, 0 0, 0 0;
-  background-repeat: no-repeat, repeat, repeat;
+.hero-brand-canvas[data-brand='kimi'] {
+  background-size: auto, 24px 24px;
+  background-repeat: no-repeat, repeat;
 }
 
 .hero-brand-canvas[data-brand='deepseek'] {
-  background-size: auto, 32px 32px;
+  background-size: auto, 26px 26px;
   background-repeat: no-repeat, repeat;
 }
 
