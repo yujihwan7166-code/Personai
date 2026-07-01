@@ -119,14 +119,14 @@
 
 /* ────── Perplexity — 실제 perplexity.ai 톤 (라이트한 뉴트럴 + teal 최소) ────── */
 .hero-brand-canvas[data-brand='perplexity'] {
-  --hero-bg: #23262a;
+  --hero-bg: #2e3238;
   --hero-mesh:
     radial-gradient(80% 45% at 50% 0%, rgba(32, 184, 205, 0.10), transparent 65%);
   /* 리서치 페이퍼 라인 — 얇은 수평선, 배경과 대비 아주 은은. */
   --hero-pattern:
-    linear-gradient(rgba(255, 255, 255, 0.020) 1px, transparent 1px);
-  --hero-fg: #f2f5f6;
-  --hero-fg-muted: #a6adb0;
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  --hero-fg: #f4f7f8;
+  --hero-fg-muted: #adb4b7;
   --hero-accent: #20b8cd;
   --hero-accent-soft: rgba(32, 184, 205, 0.12);
   --hero-ring: #20b8cd;
@@ -134,7 +134,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(20, 22, 24, 0.72);
+  --hero-input-bg: rgba(24, 26, 28, 0.72);
   --hero-input-border: rgba(32, 184, 205, 0.30);
 }
 
