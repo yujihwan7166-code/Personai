@@ -42,6 +42,18 @@ export interface BrandIcon {
   imgUrl?: string;
 }
 
+/** 브랜드 안의 개별 모델 변형 — GPT-5.4 / GPT-5.4 Mini 등. */
+export interface BrandModel {
+  /** 앱 내 expert ID (types/expert.ts 의 EXPERTS 항목과 일치). */
+  id: string;
+  /** 사용자에게 보일 이름 — "GPT-5.4", "Claude Opus 4.6". */
+  name: string;
+  /** 짧은 설명 — "최상위 추론", "고속 만능". */
+  description?: string;
+  /** 브랜드 안의 기본 모델 여부 — 초기 selectedModel 후보. */
+  isDefault?: boolean;
+}
+
 export interface Brand {
   id: BrandId;
   /** 히어로 상단·칩 라벨 (짧은 이름). */
@@ -54,11 +66,12 @@ export interface Brand {
   /** 히어로 테마가 다크 계열인지 (사이드바 톤 결정 참고용). */
   isDark: boolean;
   /**
-   * 이 브랜드가 대응되는 앱 내 expert ID.
-   * Index.tsx 에서 startDiscussion(question, [expertId]) 형태로 라우팅.
-   * Copilot 은 앱에 자체 expert 가 없어 GPT 로 폴백.
+   * 브랜드 진입 시 폴백 expert ID (models 미로드/미선택 시).
+   * 사용자가 특정 모델을 골랐다면 그 model.id 가 우선.
    */
   expertId: string;
+  /** 브랜드가 지원하는 모델 변형들. models[0] 이 기본. */
+  models: BrandModel[];
   /** 브랜드 성격이 드러나는 히어로 헤드라인. */
   greeting: string;
   /** 헤드라인 밑 서브 카피 — 브랜드 강점 한 줄. */
@@ -80,6 +93,11 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: OPENAI_PATH, hex: '10A37F', imgUrl: '/logos/gpt.svg' },
     isDark: true,
     expertId: 'gpt',
+    models: [
+      { id: 'gpt',      name: 'GPT-5.4',      description: '최상위 추론',   isDefault: true },
+      { id: 'gpt-mini', name: 'GPT-5.4 Mini', description: '고속 범용' },
+      { id: 'gpt-nano', name: 'GPT-5.4 Nano', description: '초경량 즉답' },
+    ],
     greeting: '무엇을 도와드릴까요?',
     subtitle: 'OpenAI · 넓은 지식, 안정된 답변',
     placeholder: '무엇이든 물어보세요',
@@ -92,6 +110,12 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siAnthropic.path, hex: siAnthropic.hex, imgUrl: '/logos/claude.png' },
     isDark: false,
     expertId: 'claude',
+    models: [
+      { id: 'claude',             name: 'Claude Opus 4.6',    description: '최고 지능',   isDefault: true },
+      { id: 'claude-sonnet-4.6',  name: 'Claude Sonnet 4.6',  description: '최신 균형' },
+      { id: 'claude-sonnet',      name: 'Claude Sonnet 4.5',  description: '균형 만능' },
+      { id: 'claude-haiku',       name: 'Claude Haiku 4.5',   description: '초고속 경량' },
+    ],
     greeting: '함께 생각해봐요.',
     subtitle: 'Anthropic · 긴 맥락과 뉘앙스',
     placeholder: '천천히 정리해서 말해보세요…',
@@ -104,6 +128,13 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siGooglegemini.path, hex: siGooglegemini.hex, imgUrl: '/logos/gemini.svg' },
     isDark: true,
     expertId: 'gemini',
+    models: [
+      { id: 'gemini-pro',         name: 'Gemini 3.1 Pro',      description: '최상위 프로', isDefault: true },
+      { id: 'gemini-3-flash',     name: 'Gemini 3 Flash',      description: '차세대 고속' },
+      { id: 'gemini-3.1',         name: 'Gemini 3.1 Lite',     description: '초경량 최신' },
+      { id: 'gemini',             name: 'Gemini 2.5 Flash',    description: '고속 만능' },
+      { id: 'gemini-flash-lite',  name: 'Gemini 2.5 Flash Lite', description: '초경량 가성비' },
+    ],
     greeting: '어디서부터 시작할까요?',
     subtitle: 'Google · 검색·이미지·코드 통합',
     placeholder: '이미지·문서·링크 뭐든 붙여도 돼요',
@@ -116,6 +147,10 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siPerplexity.path, hex: siPerplexity.hex, imgUrl: '/logos/perplexity.svg' },
     isDark: true,
     expertId: 'perplexity',
+    models: [
+      { id: 'perplexity-pro', name: 'Sonar Pro', description: '심층 리서치', isDefault: true },
+      { id: 'perplexity',     name: 'Sonar',     description: '검색·리서치' },
+    ],
     greeting: '무엇을 조사할까요?',
     subtitle: 'Perplexity · 실시간 검색 + 출처',
     placeholder: '조사할 주제를 알려주세요',
@@ -128,6 +163,10 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siX.path, hex: 'FFFFFF', imgUrl: '/logos/grok.svg' },
     isDark: true,
     expertId: 'grok',
+    models: [
+      { id: 'grok',     name: 'Grok 4.3', description: '최신 고성능', isDefault: true },
+      { id: 'grok-4.2', name: 'Grok 4.2', description: '추론 특화' },
+    ],
     greeting: '뭐가 궁금해?',
     subtitle: 'xAI · 직설·유머·최신 X',
     placeholder: '거리낌 없이 물어봐',
@@ -140,6 +179,10 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siDeepseek.path, hex: siDeepseek.hex, imgUrl: '/logos/deepseek-transparent.png' },
     isDark: true,
     expertId: 'deepseek',
+    models: [
+      { id: 'deepseek',    name: 'DeepSeek V3', description: '심층 분석',   isDefault: true },
+      { id: 'deepseek-r1', name: 'DeepSeek R1', description: '추론 특화' },
+    ],
     greeting: '깊이 파고들어봐요.',
     subtitle: 'DeepSeek · 추론·수학·코드 특화',
     placeholder: '문제·코드·개념 정리…',
@@ -152,8 +195,12 @@ export const BRANDS: readonly Brand[] = [
     // MS Copilot 자체 파일은 없어 microsoft.png 사용, imgUrl 없으면 simple-icons path 폴백.
     icon: { path: siGithubcopilot.path, hex: '0078D4', imgUrl: '/logos/microsoft.png' },
     isDark: true,
-    // MS Copilot 은 앱에 자체 expert 없음 — GPT 로 폴백 (Copilot 은 GPT-4 기반).
+    // MS Copilot 은 앱에 자체 expert 없음 — GPT 계열로 폴백 (Copilot 은 GPT 기반).
     expertId: 'gpt',
+    models: [
+      { id: 'gpt',      name: 'Copilot (GPT-5.4)',      description: 'MS Copilot 기본',  isDefault: true },
+      { id: 'gpt-mini', name: 'Copilot Fast',           description: '고속 응답' },
+    ],
     greeting: '무엇을 만들까요?',
     subtitle: 'Microsoft · 생산성·코드·문서',
     placeholder: '문서·시트·코드 · 무엇이든',
@@ -166,6 +213,11 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siMistralai.path, hex: siMistralai.hex, imgUrl: '/logos/mistral.png' },
     isDark: true,
     expertId: 'mistral-large',
+    models: [
+      { id: 'mistral-large',  name: 'Mistral Large 3',   description: '최상위',       isDefault: true },
+      { id: 'mistral-medium', name: 'Mistral Medium 3.1', description: '균형 만능' },
+      { id: 'mistral-small',  name: 'Mistral Small 4',   description: '경량 고속' },
+    ],
     greeting: '빠르게, 정확하게.',
     subtitle: 'Mistral · 유럽의 경량·강한 모델',
     placeholder: '짧고 명확한 답을 원하시면…',
@@ -180,3 +232,11 @@ export const DEFAULT_BRAND: BrandId = 'gpt';
 
 /** localStorage 키 — 선택된 대표 AI 브랜드. */
 export const SELECTED_BRAND_KEY = 'personai.hero.selected_brand';
+
+/** localStorage 키 prefix — 브랜드별 선택된 모델. `${prefix}${brandId}`. */
+export const SELECTED_MODEL_KEY_PREFIX = 'personai.hero.selected_model.';
+
+/** 특정 브랜드의 기본 모델 (isDefault 우선, 없으면 첫 항목). */
+export function getDefaultModel(brand: Brand): BrandModel {
+  return brand.models.find((m) => m.isDefault) ?? brand.models[0];
+}

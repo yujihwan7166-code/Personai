@@ -16,7 +16,9 @@ import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
 import { BrandLogo } from './BrandLogo';
+import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
+import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl } from '@/lib/heroSearchChips';
 
@@ -30,8 +32,11 @@ interface Props {
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
-  /** AI 로 라우팅 (검색 disarm 상태에서 Enter). */
-  onSubmitToAi: (brand: BrandId, text: string) => void;
+  /**
+   * AI 로 라우팅 (검색 disarm 상태에서 Enter).
+   * expertId 는 선택된 모델의 id (없으면 brand.expertId 폴백).
+   */
+  onSubmitToAi: (brand: BrandId, expertId: string, text: string) => void;
   onAttach?: () => void;
   onImage?: () => void;
   onVoice?: () => void;
@@ -53,6 +58,7 @@ export function HeroSection({
   disabled,
 }: Props) {
   const { brand, setBrand } = useSelectedBrand();
+  const { model, setModel } = useSelectedModel(brand);
   const { armed, toggle, disarm } = useSearchEngineArm();
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -71,7 +77,8 @@ export function HeroSection({
         return;
       }
     }
-    onSubmitToAi(brand, trimmed);
+    // 선택된 모델의 id 로 라우팅 (없으면 brand.expertId 폴백).
+    onSubmitToAi(brand, model?.id ?? activeBrand.expertId, trimmed);
   };
 
   // 헤드라인·서브 = 항상 브랜드 카피 (armed 여부와 무관).
@@ -158,7 +165,7 @@ export function HeroSection({
           </p>
         </div>
 
-        {/* 입력창 + 관통 칩 스트립. */}
+        {/* 입력창 + 관통 칩 스트립 + 모델 셀렉트. */}
         <HeroInput
           value={value}
           onChange={onChange}
@@ -176,6 +183,13 @@ export function HeroSection({
               onToggleSearch={toggle}
               onOpenBookmarks={onOpenBookmarks}
               onOpenAiPicker={() => setPickerOpen(true)}
+            />
+          }
+          toolbarRight={
+            <ModelPickerButton
+              brand={activeBrand}
+              selectedModel={model}
+              onSelect={setModel}
             />
           }
         />

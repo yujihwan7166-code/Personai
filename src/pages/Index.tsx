@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
-import { BRAND_BY_ID } from '@/lib/aiBrands';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -4845,10 +4844,10 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               <HeroSection
                 value={heroInputValue}
                 onChange={setHeroInputValue}
-                onSubmitToAi={(brandId, text) => {
+                onSubmitToAi={(_brandId, expertId, text) => {
                   setHeroInputValue('');
-                  const target = BRAND_BY_ID[brandId];
-                  const expertId = target?.expertId;
+                  // 선택된 모델(expertId) 로 직접 라우팅. useSelectedModel 에서 이미
+                  // 브랜드 안의 유효한 model.id 로 resolve 되어 넘어옴.
                   if (expertId) {
                     setSelectedExpertIds([expertId]);
                     startDiscussion(text, [expertId]);

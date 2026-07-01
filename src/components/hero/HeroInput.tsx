@@ -25,6 +25,8 @@ interface Props {
   disabled?: boolean;
   /** 상단 border 관통 칩 스트립 (BrandChipStrip). */
   chipStrip: ReactNode;
+  /** 하단 툴바 우측 슬롯 — send 버튼 옆에 모델 셀렉트 등. */
+  toolbarRight?: ReactNode;
   autoFocus?: boolean;
 }
 
@@ -38,6 +40,7 @@ export function HeroInput({
   placeholder = '무엇이든 물어보세요',
   disabled,
   chipStrip,
+  toolbarRight,
   autoFocus,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -122,31 +125,34 @@ export function HeroInput({
             </ToolbarButton>
           </div>
 
-          {/* Send — 브랜드 색, 크기 축소 */}
-          <button
-            type="button"
-            onClick={() => canSubmit && onSubmit()}
-            disabled={!canSubmit}
-            aria-label="전송"
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-full',
-              'transition-all duration-200 ease-out',
-              canSubmit
-                ? 'hover:scale-105 active:scale-95'
-                : 'opacity-40 cursor-not-allowed',
-            )}
-            style={{
-              backgroundColor: canSubmit
-                ? 'var(--hero-accent, #10a37f)'
-                : 'var(--hero-accent-soft, rgba(16,163,127,0.16))',
-              color: canSubmit ? '#ffffff' : 'var(--hero-fg-muted, #8e8ea0)',
-              ...(canSubmit && {
-                boxShadow: '0 4px 14px -4px var(--hero-accent, #10a37f)',
-              }),
-            }}
-          >
-            <ArrowUp size={14} strokeWidth={2.6} />
-          </button>
+          {/* 우측: 모델 셀렉트 + Send */}
+          <div className="flex items-center gap-1.5">
+            {toolbarRight}
+            <button
+              type="button"
+              onClick={() => canSubmit && onSubmit()}
+              disabled={!canSubmit}
+              aria-label="전송"
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full',
+                'transition-all duration-200 ease-out',
+                canSubmit
+                  ? 'hover:scale-105 active:scale-95'
+                  : 'opacity-40 cursor-not-allowed',
+              )}
+              style={{
+                backgroundColor: canSubmit
+                  ? 'var(--hero-accent, #10a37f)'
+                  : 'var(--hero-accent-soft, rgba(16,163,127,0.16))',
+                color: canSubmit ? '#ffffff' : 'var(--hero-fg-muted, #8e8ea0)',
+                ...(canSubmit && {
+                  boxShadow: '0 4px 14px -4px var(--hero-accent, #10a37f)',
+                }),
+              }}
+            >
+              <ArrowUp size={14} strokeWidth={2.6} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
