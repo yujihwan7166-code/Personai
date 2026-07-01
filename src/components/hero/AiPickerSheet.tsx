@@ -96,7 +96,6 @@ function BrandRow({
         style={{ backgroundColor: brandColor }}
       >
         <BrandLogo
-          imgUrl={brand.icon.imgUrl}
           path={brand.icon.path}
           fill="#FFFFFF"
           size={20}

@@ -127,9 +127,12 @@ export function HeroSection({
                 'group flex items-center gap-1 h-6 pl-2.5 pr-1.5 rounded-full',
                 'text-[11px] font-medium tracking-tight',
                 'border transition-all duration-200',
-                'border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20',
               )}
-              style={{ color: 'var(--hero-fg, #ececec)' }}
+              style={{
+                color: 'var(--hero-fg)',
+                backgroundColor: 'var(--hero-accent-soft)',
+                borderColor: 'var(--hero-hairline)',
+              }}
             >
               <span>{modeLabel}</span>
               <ChevronDown size={11} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100" />

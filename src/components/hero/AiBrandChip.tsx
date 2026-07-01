@@ -45,8 +45,8 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
             }),
       }}
     >
+      {/* 칩 안에서는 clean monochrome SVG path 만 사용 (img filter 는 detail 손상). */}
       <BrandLogo
-        imgUrl={brand.icon.imgUrl}
         path={brand.icon.path}
         fill="#FFFFFF"
         size={active ? 16 : 12}

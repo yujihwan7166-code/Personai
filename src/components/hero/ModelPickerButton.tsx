@@ -105,9 +105,16 @@ export function ModelPickerButton({ brand, selectedModel, onSelect }: Props) {
                 className={cn(
                   'flex w-full items-center gap-2 px-2 py-1.5 rounded-lg text-left',
                   'transition-colors duration-100',
-                  'hover:bg-white/[0.06]',
-                  active && 'bg-white/[0.05]',
                 )}
+                style={{
+                  backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 <Check
                   size={13}
