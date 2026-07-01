@@ -23,7 +23,11 @@ export type BrandId =
   | 'grok'
   | 'deepseek'
   | 'kimi'
-  | 'mistral';
+  | 'mistral'
+  | 'qwen'
+  | 'llama'
+  | 'nemotron'
+  | 'command';
 
 export interface BrandIcon {
   /** SVG viewBox 은 항상 "0 0 24 24" (simple-icons 규격). */
@@ -216,6 +220,71 @@ export const BRANDS: readonly Brand[] = [
     greeting: '길게 이야기해요.',
     subtitle: 'Moonshot · 초장문 컨텍스트 · 한중일 강함',
     placeholder: '긴 문서·복잡한 대화 뭐든 붙여봐요',
+  },
+  {
+    id: 'qwen',
+    name: 'Qwen',
+    provider: 'Alibaba',
+    initials: 'Qw',
+    icon: { text: 'Q', hex: '0EA5E9' },
+    isDark: true,
+    expertId: 'qwen',
+    models: [
+      { id: 'qwen-plus',     name: 'Qwen 3 Plus',     description: '최상위 · 다국어 강함', isDefault: true },
+      { id: 'qwen-thinking', name: 'Qwen 3 Thinking', description: '심층 추론' },
+      { id: 'qwen',          name: 'Qwen 3',          description: '표준 · 균형' },
+      { id: 'qwen-9b',       name: 'Qwen 3 · 9B',     description: '경량 오픈웨이트' },
+    ],
+    greeting: '중국어·한국어도 자유로워요.',
+    subtitle: 'Alibaba · 다국어 · 오픈웨이트 강점',
+    placeholder: '아시아권 언어·문화 특화 질문…',
+  },
+  {
+    id: 'llama',
+    name: 'Llama',
+    provider: 'Meta',
+    initials: 'Ll',
+    icon: { text: 'L', hex: '0866FF' },
+    isDark: true,
+    expertId: 'llama-maverick',
+    models: [
+      { id: 'llama-maverick', name: 'Llama 4 Maverick', description: '최상위 · 오픈웨이트', isDefault: true },
+      { id: 'llama-scout',    name: 'Llama 4 Scout',    description: '고속 경량' },
+    ],
+    greeting: '오픈으로, 자유롭게.',
+    subtitle: 'Meta · 오픈웨이트 · 커스터마이징 자유',
+    placeholder: '실험·튜닝·자체 배포 용도로 좋아요',
+  },
+  {
+    id: 'nemotron',
+    name: 'Nemotron',
+    provider: 'NVIDIA',
+    initials: 'Ne',
+    icon: { text: 'N', hex: '76B900' },
+    isDark: true,
+    expertId: 'nemotron',
+    models: [
+      { id: 'nemotron', name: 'Nemotron', description: 'NVIDIA · 추론 최적화', isDefault: true },
+    ],
+    greeting: 'GPU 로 힘껏.',
+    subtitle: 'NVIDIA · 추론 최적화 · 엔터프라이즈',
+    placeholder: '기술·과학·데이터 분석 특화',
+  },
+  {
+    id: 'command',
+    name: 'Command',
+    provider: 'Cohere',
+    initials: 'Co',
+    icon: { text: 'C', hex: '39594D' },
+    isDark: true,
+    expertId: 'command-r-plus',
+    models: [
+      { id: 'command-r-plus', name: 'Command R+', description: 'RAG · 툴 사용 특화', isDefault: true },
+      { id: 'command-a',      name: 'Command A',  description: '엔터프라이즈 표준' },
+    ],
+    greeting: '엔터프라이즈에 딱.',
+    subtitle: 'Cohere · RAG · 툴 사용 · 다국어',
+    placeholder: '검색·인용·기업 문서 특화',
   },
   {
     id: 'mistral',

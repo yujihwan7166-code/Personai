@@ -10,8 +10,20 @@
  *
  * 브랜드 테마 (--hero-*) 는 상위 `.hero-brand-canvas` 스코프에서 상속.
  */
-import { ArrowUp, Image as ImageIcon, Mic, Paperclip } from 'lucide-react';
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  ArrowUp,
+  Brain,
+  FileText,
+  FolderKanban,
+  Globe,
+  Image as ImageIcon,
+  Lightbulb,
+  Mic,
+  MoreHorizontal,
+  Paperclip,
+  Settings2,
+} from 'lucide-react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -44,6 +56,10 @@ export function HeroInput({
   autoFocus,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // 부가기능 로컬 상태 (프론트엔드 mockup — 실제 배선은 다음 단계).
+  const [webSearchOn, setWebSearchOn] = useState(false);
+  const [deepThinkOn, setDeepThinkOn] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // auto-grow (max ~6 rows)
   useEffect(() => {
@@ -127,7 +143,7 @@ export function HeroInput({
           />
         </div>
 
-        {/* 하단 툴바 — 컴팩트 */}
+        {/* 하단 툴바 — 첨부 · 프로젝트 · 웹 · 심층 · 더보기 */}
         <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
           <div className="flex items-center gap-0">
             <ToolbarButton onClick={onAttach} label="파일 첨부">
@@ -139,6 +155,37 @@ export function HeroInput({
             <ToolbarButton onClick={onVoice} label="음성">
               <Mic size={14} />
             </ToolbarButton>
+            {/* 신규 부가기능 */}
+            <ToolbarToggle
+              active={webSearchOn}
+              onClick={() => setWebSearchOn((v) => !v)}
+              label={webSearchOn ? '웹 검색 켜짐' : '웹 검색'}
+            >
+              <Globe size={14} />
+            </ToolbarToggle>
+            <ToolbarToggle
+              active={deepThinkOn}
+              onClick={() => setDeepThinkOn((v) => !v)}
+              label={deepThinkOn ? '심층 사고 켜짐' : '심층 사고'}
+            >
+              <Brain size={14} />
+            </ToolbarToggle>
+            <div className="relative">
+              <ToolbarButton onClick={() => setMoreOpen((v) => !v)} label="더보기">
+                <MoreHorizontal size={14} />
+              </ToolbarButton>
+              {moreOpen && (
+                <MoreMenu
+                  onClose={() => setMoreOpen(false)}
+                  items={[
+                    { icon: <FolderKanban size={14} />, label: '프로젝트에 연결', hint: '진행 중인 프로젝트에 대화 저장' },
+                    { icon: <FileText size={14} />, label: '문서 모드', hint: '긴 글 · 개요 · 초안 작성' },
+                    { icon: <Lightbulb size={14} />, label: '프롬프트 라이브러리', hint: '자주 쓰는 프롬프트 재사용' },
+                    { icon: <Settings2 size={14} />, label: '대화 설정', hint: '온도 · 스타일 · 시스템 프롬프트' },
+                  ]}
+                />
+              )}
+            </div>
           </div>
 
           {/* 우측: 모델 셀렉트 + Send */}
@@ -200,5 +247,141 @@ function ToolbarButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * ToolbarToggle — 활성/비활성 상태를 시각적으로 보여주는 토글 버튼.
+ * 활성 시 브랜드 accent 색 배경 + 진한 텍스트.
+ */
+function ToolbarToggle({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+      className={cn(
+        'flex h-7 w-7 items-center justify-center rounded-md',
+        'transition-all duration-150',
+        !active && 'hover:bg-[color:var(--hero-accent-soft,rgba(255,255,255,0.06))]',
+      )}
+      style={{
+        color: active ? 'var(--hero-accent)' : 'var(--hero-fg-muted, #8e8ea0)',
+        backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
+        boxShadow: active
+          ? 'inset 0 0 0 1px var(--hero-ring, var(--hero-accent))'
+          : 'none',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface MoreMenuItem {
+  icon: ReactNode;
+  label: string;
+  hint?: string;
+}
+
+/**
+ * MoreMenu — 추가 기능 팝오버 (더보기 · 프로젝트 · 문서 · 프롬프트 · 설정).
+ * 프론트엔드 mockup — 각 아이템 클릭 시 임시로 콘솔에 로그.
+ */
+function MoreMenu({ items, onClose }: { items: MoreMenuItem[]; onClose: () => void }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (rootRef.current?.contains(e.target as Node)) return;
+      onClose();
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('mousedown', onClick);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onClick);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={rootRef}
+      role="menu"
+      className={cn(
+        'absolute bottom-full left-0 mb-2 min-w-[240px]',
+        'rounded-xl border p-1 z-50',
+        'shadow-[0_16px_40px_-14px_rgba(0,0,0,0.35)]',
+        'animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150',
+      )}
+      style={{
+        backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
+        borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
+        backdropFilter: 'blur(16px) saturate(160%)',
+      }}
+    >
+      {items.map((it) => (
+        <button
+          key={it.label}
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            /* frontend mockup — 추후 실제 액션 배선 */
+            onClose();
+          }}
+          className={cn(
+            'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-lg text-left',
+            'transition-colors duration-100',
+          )}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
+            style={{
+              color: 'var(--hero-accent)',
+              backgroundColor: 'var(--hero-accent-soft)',
+            }}
+          >
+            {it.icon}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span
+              className="block text-[12.5px] font-medium leading-tight"
+              style={{ color: 'var(--hero-fg, #ececec)' }}
+            >
+              {it.label}
+            </span>
+            {it.hint && (
+              <span
+                className="block text-[10.5px] mt-0.5"
+                style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+              >
+                {it.hint}
+              </span>
+            )}
+          </span>
+        </button>
+      ))}
+    </div>
   );
 }

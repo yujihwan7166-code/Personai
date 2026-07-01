@@ -113,7 +113,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(18, 20, 32, 0.72);
+  --hero-input-bg: rgba(18, 20, 32, 0.58);
   --hero-input-border: rgba(165, 180, 240, 0.32);
 }
 
@@ -134,7 +134,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(28, 32, 36, 0.72);
+  --hero-input-bg: rgba(28, 32, 36, 0.58);
   --hero-input-border: rgba(32, 184, 205, 0.30);
 }
 
@@ -160,7 +160,7 @@
   --hero-font-heading: 'Newsreader', ui-serif, Georgia, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.13);
-  --hero-input-bg: rgba(18, 20, 32, 0.80);
+  --hero-input-bg: rgba(18, 20, 32, 0.62);
   --hero-input-border: rgba(180, 190, 255, 0.22);
 }
 
@@ -185,7 +185,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(10, 14, 32, 0.78);
+  --hero-input-bg: rgba(10, 14, 32, 0.60);
   --hero-input-border: rgba(77, 107, 254, 0.36);
 }
 
@@ -207,7 +207,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(16, 10, 32, 0.75);
+  --hero-input-bg: rgba(16, 10, 32, 0.58);
   --hero-input-border: rgba(167, 139, 250, 0.34);
 }
 
@@ -277,6 +277,89 @@
   --hero-hairline: rgba(80, 60, 0, 0.12);
   --hero-input-bg: #ffffff;
   --hero-input-border: rgba(255, 206, 0, 0.40);
+}
+
+/* ────── Qwen (Alibaba) — 시안 블루 · 아시아 새벽 감성 ────── */
+.hero-brand-canvas[data-brand='qwen'] {
+  --hero-bg: #10202e;
+  --hero-mesh:
+    radial-gradient(65% 40% at 50% 0%, rgba(14, 165, 233, 0.26), transparent 60%),
+    radial-gradient(50% 45% at 85% 100%, rgba(56, 189, 248, 0.12), transparent 55%);
+  --hero-pattern:
+    radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.05) 1px, transparent 0);
+  --hero-fg: #eaf3fa;
+  --hero-fg-muted: #93aec4;
+  --hero-accent: #0ea5e9;
+  --hero-accent-soft: rgba(14, 165, 233, 0.14);
+  --hero-ring: #38bdf8;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(8, 18, 28, 0.60);
+  --hero-input-border: rgba(56, 189, 248, 0.32);
+}
+
+/* ────── Llama (Meta) — Meta 블루 · 오픈 자유 ────── */
+.hero-brand-canvas[data-brand='llama'] {
+  --hero-bg: #0f1a30;
+  --hero-mesh:
+    radial-gradient(65% 40% at 50% 0%, rgba(8, 102, 255, 0.28), transparent 60%),
+    radial-gradient(55% 45% at 15% 90%, rgba(90, 140, 255, 0.14), transparent 55%);
+  --hero-pattern:
+    radial-gradient(circle at 1px 1px, rgba(120, 160, 255, 0.05) 1px, transparent 0);
+  --hero-fg: #eef2fc;
+  --hero-fg-muted: #a3aecf;
+  --hero-accent: #0866ff;
+  --hero-accent-soft: rgba(8, 102, 255, 0.14);
+  --hero-ring: #4d84ff;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(8, 14, 26, 0.60);
+  --hero-input-border: rgba(77, 132, 255, 0.32);
+}
+
+/* ────── Nemotron (NVIDIA) — 시그니처 그린 · 기술적 ────── */
+.hero-brand-canvas[data-brand='nemotron'] {
+  --hero-bg: #0f1c10;
+  --hero-mesh:
+    radial-gradient(65% 40% at 50% 0%, rgba(118, 185, 0, 0.26), transparent 60%),
+    radial-gradient(50% 45% at 90% 100%, rgba(150, 210, 30, 0.14), transparent 55%);
+  --hero-pattern:
+    radial-gradient(circle at 1px 1px, rgba(150, 210, 30, 0.05) 1px, transparent 0);
+  --hero-fg: #eef5e5;
+  --hero-fg-muted: #a0b58c;
+  --hero-accent: #76b900;
+  --hero-accent-soft: rgba(118, 185, 0, 0.14);
+  --hero-ring: #9dcf3a;
+  --hero-radius-input: 6px;
+  --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(6, 14, 8, 0.60);
+  --hero-input-border: rgba(157, 207, 58, 0.30);
+}
+
+/* ────── Command (Cohere) — 딥 티얼 · 엔터프라이즈 정제 ────── */
+.hero-brand-canvas[data-brand='command'] {
+  --hero-bg: #16261f;
+  --hero-mesh:
+    radial-gradient(65% 40% at 50% 0%, rgba(57, 89, 77, 0.32), transparent 60%),
+    radial-gradient(50% 45% at 15% 100%, rgba(120, 180, 160, 0.10), transparent 55%);
+  --hero-pattern: none;
+  --hero-fg: #eaf1ec;
+  --hero-fg-muted: #9db1a6;
+  --hero-accent: #5daf94;
+  --hero-accent-soft: rgba(93, 175, 148, 0.14);
+  --hero-ring: #6ec4a6;
+  --hero-radius-input: 8px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(10, 20, 16, 0.60);
+  --hero-input-border: rgba(110, 196, 166, 0.30);
 }
 
 /* ────── Mistral — 연한 주황 라이트 (Claude 처럼 warm 크림·복숭아) ────── */
