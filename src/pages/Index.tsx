@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
+import { BRAND_BY_ID } from '@/lib/aiBrands';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -4844,9 +4845,16 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               <HeroSection
                 value={heroInputValue}
                 onChange={setHeroInputValue}
-                onSubmitToAi={(_brand, text) => {
+                onSubmitToAi={(brandId, text) => {
                   setHeroInputValue('');
-                  startDiscussion(text);
+                  const target = BRAND_BY_ID[brandId];
+                  const expertId = target?.expertId;
+                  if (expertId) {
+                    setSelectedExpertIds([expertId]);
+                    startDiscussion(text, [expertId]);
+                  } else {
+                    startDiscussion(text);
+                  }
                 }}
                 onOpenBookmarks={() => setBookmarksOpen(true)}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}

@@ -47,6 +47,12 @@ export interface Brand {
   icon: BrandIcon;
   /** 히어로 테마가 다크 계열인지 (사이드바 톤 결정 참고용). */
   isDark: boolean;
+  /**
+   * 이 브랜드가 대응되는 앱 내 expert ID.
+   * Index.tsx 에서 startDiscussion(question, [expertId]) 형태로 라우팅.
+   * Copilot 은 앱에 자체 expert 가 없어 GPT 로 폴백.
+   */
+  expertId: string;
 }
 
 /** OpenAI 로고 SVG path (public identifier, viewBox 0 0 24 24). */
@@ -61,6 +67,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'GPT',
     icon: { path: OPENAI_PATH, hex: '10A37F' },
     isDark: true,
+    expertId: 'gpt',
   },
   {
     id: 'claude',
@@ -69,6 +76,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Cl',
     icon: { path: siAnthropic.path, hex: siAnthropic.hex },
     isDark: false,
+    expertId: 'claude',
   },
   {
     id: 'gemini',
@@ -77,6 +85,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Ge',
     icon: { path: siGooglegemini.path, hex: siGooglegemini.hex },
     isDark: true,
+    expertId: 'gemini',
   },
   {
     id: 'perplexity',
@@ -85,6 +94,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Px',
     icon: { path: siPerplexity.path, hex: siPerplexity.hex },
     isDark: true,
+    expertId: 'perplexity',
   },
   {
     id: 'grok',
@@ -93,6 +103,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Gk',
     icon: { path: siX.path, hex: 'FFFFFF' },
     isDark: true,
+    expertId: 'grok',
   },
   {
     id: 'deepseek',
@@ -101,6 +112,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'DS',
     icon: { path: siDeepseek.path, hex: siDeepseek.hex },
     isDark: true,
+    expertId: 'deepseek',
   },
   {
     id: 'copilot',
@@ -109,6 +121,8 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Co',
     icon: { path: siGithubcopilot.path, hex: '0078D4' },
     isDark: true,
+    // MS Copilot 은 앱에 자체 expert 없음 — GPT 로 폴백 (Copilot 은 GPT-4 기반).
+    expertId: 'gpt',
   },
   {
     id: 'mistral',
@@ -117,6 +131,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Mi',
     icon: { path: siMistralai.path, hex: siMistralai.hex },
     isDark: true,
+    expertId: 'mistral-large',
   },
 ];
 
