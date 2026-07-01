@@ -9,6 +9,8 @@
  * 실제 라우팅·검색 배선은 Step 4~5 에서 콜백 프롭 통해.
  */
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
@@ -20,6 +22,10 @@ import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl } from '@/lib/heroSearchChip
 interface Props {
   /** 상단 pill (모드 셀렉트 등) — 히어로 최상단에 얹음. */
   topSlot?: React.ReactNode;
+  /** 모드 pill 라벨 (예: "일반"). topSlot 미지정 시 기본 pill 표시. */
+  modeLabel?: string;
+  /** 모드 pill 클릭 시 모드 드롭다운 오픈 콜백. */
+  onOpenModeDropdown?: () => void;
   /** 헤드라인 (기본 "무엇을 도와드릴까요?"). */
   heading?: string;
   subheading?: string;
@@ -40,6 +46,8 @@ interface Props {
 
 export function HeroSection({
   topSlot,
+  modeLabel,
+  onOpenModeDropdown,
   heading = '무엇을 도와드릴까요?',
   subheading = '어떤 AI 든 골라서 물어보세요',
   value,
@@ -87,12 +95,31 @@ export function HeroSection({
       className="hero-brand-canvas relative w-full min-h-[520px] flex flex-col items-center justify-center px-4 py-16"
       data-brand={brand}
     >
-      {/* 상단 슬롯 (모드 pill 등) */}
-      {topSlot && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-          {topSlot}
-        </div>
-      )}
+      {/* 상단 슬롯 (모드 pill) — topSlot 우선, 없으면 modeLabel 로 기본 pill. */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+        {topSlot ??
+          (modeLabel && onOpenModeDropdown ? (
+            <button
+              type="button"
+              onClick={onOpenModeDropdown}
+              aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
+              className={cn(
+                'group flex items-center gap-1.5 h-7 pl-3 pr-2 rounded-full',
+                'text-[12px] font-medium tracking-tight',
+                'border border-white/15 bg-white/[0.04] backdrop-blur',
+                'hover:bg-white/[0.08] hover:border-white/25 transition-colors',
+              )}
+              style={{ color: 'var(--hero-fg, #ececec)' }}
+            >
+              <span>{modeLabel}</span>
+              <ChevronDown
+                size={13}
+                strokeWidth={2}
+                className="opacity-70 group-hover:opacity-100 transition-opacity"
+              />
+            </button>
+          ) : null)}
+      </div>
 
       {/* 헤드라인 + 서브카피 */}
       <div className="text-center mb-10 max-w-2xl">

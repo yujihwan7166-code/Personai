@@ -4849,6 +4849,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   startDiscussion(text);
                 }}
                 onOpenBookmarks={() => setBookmarksOpen(true)}
+                modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
+                onOpenModeDropdown={() => mainModeTabsApiRef.current?.open()}
               />
             </div>
           ) : <>
