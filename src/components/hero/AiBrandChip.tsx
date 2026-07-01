@@ -25,19 +25,31 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
       aria-pressed={active}
       title={`${brand.name} · ${brand.provider}`}
       className={cn(
-        'group relative flex h-8 w-8 items-center justify-center rounded-full shrink-0',
-        'transition-all duration-200 ease-out',
-        'ring-1 ring-inset ring-white/10 hover:ring-white/30',
-        active && 'scale-110',
+        'group relative flex items-center justify-center rounded-full shrink-0',
+        'transition-all duration-300 ease-out',
+        // 선택된 칩은 크게 · 강한 그림자, 나머지는 절제
+        active ? 'h-8 w-8' : 'h-6 w-6 opacity-70 hover:opacity-100 hover:scale-110',
       )}
       style={{
         backgroundColor: brandColor,
         ...(active
-          ? { boxShadow: `0 0 0 2px var(--hero-bg, #0d0d0d), 0 0 0 4px ${brandColor}` }
-          : {}),
+          ? {
+              boxShadow: `
+                0 0 0 2px var(--hero-bg, #0d0d0d),
+                0 0 0 3.5px ${brandColor},
+                0 6px 20px -4px ${brandColor}
+              `,
+            }
+          : {
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+            }),
       }}
     >
-      <BrandLogo path={brand.icon.path} fill="#FFFFFF" size={16} />
+      <BrandLogo
+        path={brand.icon.path}
+        fill="#FFFFFF"
+        size={active ? 16 : 12}
+      />
     </button>
   );
 }

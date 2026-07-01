@@ -42,12 +42,12 @@ export function HeroInput({
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // auto-grow (max ~6 rows)
+  // auto-grow (max ~5 rows)
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [value]);
 
   useEffect(() => {
@@ -66,16 +66,16 @@ export function HeroInput({
 
   return (
     <div className="relative w-full">
-      {/* 칩 스트립 — top border 관통 (-translate-y-1/2) */}
-      <div className="absolute left-4 right-4 top-0 z-10 -translate-y-1/2 flex justify-center pointer-events-none">
+      {/* 칩 스트립 — top border 관통. 여백 넓게 잡아서 컴팩트 입력창에서도 칩이 눌려도 시각적 여유. */}
+      <div className="absolute left-2 right-2 top-0 z-10 -translate-y-1/2 flex justify-center pointer-events-none">
         <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
-      {/* 입력 컨테이너 */}
+      {/* 입력 컨테이너 — 컴팩트 */}
       <div
         className={cn(
           'relative rounded-[var(--hero-radius-input,14px)] border',
-          'shadow-[0_18px_48px_-24px_rgba(0,0,0,0.35)]',
+          'shadow-[0_16px_40px_-24px_rgba(0,0,0,0.45)]',
           'transition-colors duration-200',
         )}
         style={{
@@ -84,7 +84,7 @@ export function HeroInput({
         }}
       >
         {/* Textarea */}
-        <div className="pt-8 px-4 pb-2">
+        <div className="pt-6 px-3.5 pb-1">
           <textarea
             ref={textareaRef}
             value={value}
@@ -95,57 +95,58 @@ export function HeroInput({
             disabled={disabled}
             className={cn(
               'w-full resize-none bg-transparent border-0 outline-none',
-              'text-[15px] leading-6',
+              'text-[14px] leading-[1.55]',
               'placeholder:text-[color:var(--hero-fg-muted,#8e8ea0)]',
               'disabled:opacity-60',
             )}
             style={{
               color: 'var(--hero-fg, #ececec)',
               fontFamily: 'var(--hero-font-body, inherit)',
-              minHeight: '48px',
-              maxHeight: '180px',
+              minHeight: '32px',
+              maxHeight: '140px',
             }}
           />
         </div>
 
-        {/* 하단 툴바 */}
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
-          <div className="flex items-center gap-0.5">
+        {/* 하단 툴바 — 컴팩트 */}
+        <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
+          <div className="flex items-center gap-0">
             <ToolbarButton onClick={onAttach} label="파일 첨부">
-              <Paperclip size={17} />
+              <Paperclip size={14} />
             </ToolbarButton>
             <ToolbarButton onClick={onImage} label="이미지">
-              <ImageIcon size={17} />
+              <ImageIcon size={14} />
             </ToolbarButton>
             <ToolbarButton onClick={onVoice} label="음성">
-              <Mic size={17} />
+              <Mic size={14} />
             </ToolbarButton>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Send */}
-            <button
-              type="button"
-              onClick={() => canSubmit && onSubmit()}
-              disabled={!canSubmit}
-              aria-label="전송"
-              className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-full',
-                'transition-all duration-200 ease-out',
-                canSubmit
-                  ? 'hover:scale-105 active:scale-95'
-                  : 'opacity-40 cursor-not-allowed',
-              )}
-              style={{
-                backgroundColor: canSubmit
-                  ? 'var(--hero-accent, #10a37f)'
-                  : 'var(--hero-accent-soft, rgba(16,163,127,0.16))',
-                color: canSubmit ? '#ffffff' : 'var(--hero-fg-muted, #8e8ea0)',
-              }}
-            >
-              <ArrowUp size={17} strokeWidth={2.4} />
-            </button>
-          </div>
+          {/* Send — 브랜드 색, 크기 축소 */}
+          <button
+            type="button"
+            onClick={() => canSubmit && onSubmit()}
+            disabled={!canSubmit}
+            aria-label="전송"
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-full',
+              'transition-all duration-200 ease-out',
+              canSubmit
+                ? 'hover:scale-105 active:scale-95'
+                : 'opacity-40 cursor-not-allowed',
+            )}
+            style={{
+              backgroundColor: canSubmit
+                ? 'var(--hero-accent, #10a37f)'
+                : 'var(--hero-accent-soft, rgba(16,163,127,0.16))',
+              color: canSubmit ? '#ffffff' : 'var(--hero-fg-muted, #8e8ea0)',
+              ...(canSubmit && {
+                boxShadow: '0 4px 14px -4px var(--hero-accent, #10a37f)',
+              }),
+            }}
+          >
+            <ArrowUp size={14} strokeWidth={2.6} />
+          </button>
         </div>
       </div>
     </div>
@@ -169,7 +170,7 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-lg',
+        'flex h-7 w-7 items-center justify-center rounded-md',
         'transition-colors duration-150',
         'hover:bg-[color:var(--hero-accent-soft,rgba(255,255,255,0.06))]',
       )}

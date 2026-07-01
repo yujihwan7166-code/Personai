@@ -53,6 +53,12 @@ export interface Brand {
    * Copilot 은 앱에 자체 expert 가 없어 GPT 로 폴백.
    */
   expertId: string;
+  /** 브랜드 성격이 드러나는 히어로 헤드라인. */
+  greeting: string;
+  /** 헤드라인 밑 서브 카피 — 브랜드 강점 한 줄. */
+  subtitle: string;
+  /** 입력창 placeholder — 브랜드 톤. */
+  placeholder: string;
 }
 
 /** OpenAI 로고 SVG path (public identifier, viewBox 0 0 24 24). */
@@ -68,6 +74,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: OPENAI_PATH, hex: '10A37F' },
     isDark: true,
     expertId: 'gpt',
+    greeting: '무엇을 도와드릴까요?',
+    subtitle: 'OpenAI · 넓은 지식, 안정된 답변',
+    placeholder: '무엇이든 물어보세요',
   },
   {
     id: 'claude',
@@ -77,6 +86,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siAnthropic.path, hex: siAnthropic.hex },
     isDark: false,
     expertId: 'claude',
+    greeting: '함께 생각해봐요.',
+    subtitle: 'Anthropic · 긴 맥락과 뉘앙스',
+    placeholder: '천천히 정리해서 말해보세요…',
   },
   {
     id: 'gemini',
@@ -86,6 +98,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siGooglegemini.path, hex: siGooglegemini.hex },
     isDark: true,
     expertId: 'gemini',
+    greeting: '어디서부터 시작할까요?',
+    subtitle: 'Google · 검색·이미지·코드 통합',
+    placeholder: '이미지·문서·링크 뭐든 붙여도 돼요',
   },
   {
     id: 'perplexity',
@@ -95,6 +110,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siPerplexity.path, hex: siPerplexity.hex },
     isDark: true,
     expertId: 'perplexity',
+    greeting: '무엇을 조사할까요?',
+    subtitle: 'Perplexity · 실시간 검색 + 출처',
+    placeholder: '조사할 주제를 알려주세요',
   },
   {
     id: 'grok',
@@ -104,6 +122,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siX.path, hex: 'FFFFFF' },
     isDark: true,
     expertId: 'grok',
+    greeting: '뭐가 궁금해?',
+    subtitle: 'xAI · 직설·유머·최신 X',
+    placeholder: '거리낌 없이 물어봐',
   },
   {
     id: 'deepseek',
@@ -113,6 +134,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siDeepseek.path, hex: siDeepseek.hex },
     isDark: true,
     expertId: 'deepseek',
+    greeting: '깊이 파고들어봐요.',
+    subtitle: 'DeepSeek · 추론·수학·코드 특화',
+    placeholder: '문제·코드·개념 정리…',
   },
   {
     id: 'copilot',
@@ -123,6 +147,9 @@ export const BRANDS: readonly Brand[] = [
     isDark: true,
     // MS Copilot 은 앱에 자체 expert 없음 — GPT 로 폴백 (Copilot 은 GPT-4 기반).
     expertId: 'gpt',
+    greeting: '무엇을 만들까요?',
+    subtitle: 'Microsoft · 생산성·코드·문서',
+    placeholder: '문서·시트·코드 · 무엇이든',
   },
   {
     id: 'mistral',
@@ -132,6 +159,9 @@ export const BRANDS: readonly Brand[] = [
     icon: { path: siMistralai.path, hex: siMistralai.hex },
     isDark: true,
     expertId: 'mistral-large',
+    greeting: '빠르게, 정확하게.',
+    subtitle: 'Mistral · 유럽의 경량·강한 모델',
+    placeholder: '짧고 명확한 답을 원하시면…',
   },
 ];
 

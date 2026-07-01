@@ -1,12 +1,12 @@
 /**
- * Genspark-스타일 히어로 섹션 — 브랜드 테마 캔버스 + 헤드라인 + 입력창 (칩 스트립 관통).
+ * Genspark-스타일 히어로 v2 — 브랜드 인격 강조 · 컴팩트 프로포션 · 워터마크.
  *
- * 마운트 조건 (Index.tsx 에서 판단):
- *   - discussionMode ∈ { general, multi, debate } 그룹
- *   - selectable = true (전문가 선택 단계)
- *
- * 대화 시작 후에도 브랜드 테마는 유지 (data-brand attr 그대로).
- * 실제 라우팅·검색 배선은 Step 4~5 에서 콜백 프롭 통해.
+ * v1 대비 변경:
+ *   - 헤드라인·서브·placeholder 를 브랜드에서 가져옴 (인격화)
+ *   - 워터마크: 브랜드 로고 SVG 를 히어로 뒤에 거대 반투명으로
+ *   - 모드 pill 은 top-left 코너로 (헤드라인 방해 X)
+ *   - 전체 스케일 다운 (헤드라인 32/38, 입력창 min-h 축소)
+ *   - 컨텐츠 최대폭 640px (기존 820)
  */
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -15,32 +15,27 @@ import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
+import { BrandLogo } from './BrandLogo';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl } from '@/lib/heroSearchChips';
 
 interface Props {
-  /** 상단 pill (모드 셀렉트 등) — 히어로 최상단에 얹음. */
+  /** 상단 pill (모드 셀렉트 등). topSlot 지정 시 pill 대신 렌더. */
   topSlot?: React.ReactNode;
-  /** 모드 pill 라벨 (예: "일반"). topSlot 미지정 시 기본 pill 표시. */
+  /** 모드 pill 라벨 (예: "일반"). */
   modeLabel?: string;
   /** 모드 pill 클릭 시 모드 드롭다운 오픈 콜백. */
   onOpenModeDropdown?: () => void;
-  /** 헤드라인 (기본 "무엇을 도와드릴까요?"). */
-  heading?: string;
-  subheading?: string;
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
   /** AI 로 라우팅 (검색 disarm 상태에서 Enter). */
   onSubmitToAi: (brand: BrandId, text: string) => void;
-  /** 첨부/이미지/음성 콜백. */
   onAttach?: () => void;
   onImage?: () => void;
   onVoice?: () => void;
-  /** 북마크 모달 오픈. */
   onOpenBookmarks: () => void;
-  /** 대화가 이미 진행중인지. true 면 아직 disable X, 계속 입력 가능. */
   disabled?: boolean;
 }
 
@@ -48,8 +43,6 @@ export function HeroSection({
   topSlot,
   modeLabel,
   onOpenModeDropdown,
-  heading = '무엇을 도와드릴까요?',
-  subheading = '어떤 AI 든 골라서 물어보세요',
   value,
   onChange,
   onSubmitToAi,
@@ -69,34 +62,54 @@ export function HeroSection({
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (!trimmed) return;
-
-    // 검색 armed 상태 → 외부 검색으로 이동.
     if (armedChip && armedChip.external) {
       const url = buildHeroSearchUrl(armedChip.id, trimmed);
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
-        // 검색 후 입력창 비우고 armed 해제.
         onChange('');
         disarm();
         return;
       }
     }
-
-    // 기본: AI 로 라우팅.
     onSubmitToAi(brand, trimmed);
   };
 
+  // 브랜드/armed 상태에 따라 헤드라인·서브·placeholder 스위칭.
+  const heading = armedChip?.external
+    ? `${armedChip.name}에서 검색`
+    : activeBrand.greeting;
+  const subheading = armedChip?.external
+    ? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요'
+    : activeBrand.subtitle;
   const placeholder = armedChip?.external
-    ? `${armedChip.name}에서 검색…`
-    : `${activeBrand.name}에게 무엇이든 물어보세요`;
+    ? `${armedChip.name} 검색어를 입력…`
+    : activeBrand.placeholder;
 
   return (
     <div
-      className="hero-brand-canvas relative w-full min-h-[520px] flex flex-col items-center justify-center px-4 py-16"
+      className="hero-brand-canvas relative w-full min-h-full flex flex-col items-center justify-center overflow-hidden"
       data-brand={brand}
     >
-      {/* 상단 슬롯 (모드 pill) — topSlot 우선, 없으면 modeLabel 로 기본 pill. */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+      {/* 브랜드 워터마크 — 로고를 히어로 뒤에 거대 반투명으로. */}
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.045]"
+        aria-hidden
+        style={{
+          maskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 70%)',
+        }}
+      >
+        <BrandLogo
+          key={brand}  // 브랜드 바뀔 때 fade-in 재생
+          path={activeBrand.icon.path}
+          fill={`#${activeBrand.icon.hex}`}
+          size={520}
+          className="animate-in fade-in duration-500 ease-out"
+        />
+      </div>
+
+      {/* 상단 모드 pill — top-left 코너, 절제된 크기. */}
+      <div className="absolute top-4 left-4 z-20">
         {topSlot ??
           (modeLabel && onOpenModeDropdown ? (
             <button
@@ -104,41 +117,49 @@ export function HeroSection({
               onClick={onOpenModeDropdown}
               aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
               className={cn(
-                'group flex items-center gap-1.5 h-7 pl-3 pr-2 rounded-full',
-                'text-[12px] font-medium tracking-tight',
-                'border border-white/15 bg-white/[0.04] backdrop-blur',
-                'hover:bg-white/[0.08] hover:border-white/25 transition-colors',
+                'group flex items-center gap-1 h-6 pl-2.5 pr-1.5 rounded-full',
+                'text-[11px] font-medium tracking-tight',
+                'border transition-all duration-200',
+                'border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20',
               )}
               style={{ color: 'var(--hero-fg, #ececec)' }}
             >
               <span>{modeLabel}</span>
-              <ChevronDown
-                size={13}
-                strokeWidth={2}
-                className="opacity-70 group-hover:opacity-100 transition-opacity"
-              />
+              <ChevronDown size={11} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100" />
             </button>
           ) : null)}
       </div>
 
-      {/* 헤드라인 + 서브카피 */}
-      <div className="text-center mb-10 max-w-2xl">
-        <h1
-          className="hero-heading text-[40px] sm:text-[48px] leading-[1.15] font-semibold tracking-tight"
-          style={{ color: 'var(--hero-fg)' }}
-        >
-          {heading}
-        </h1>
-        <p
-          className="mt-3 text-[15px] sm:text-[16px]"
-          style={{ color: 'var(--hero-fg-muted)' }}
-        >
-          {subheading}
-        </p>
-      </div>
+      {/* 중앙 컨텐츠 — 헤드라인 + 입력창 컴팩트. */}
+      <div className="relative z-10 w-full max-w-[640px] px-6 py-12">
+        {/* 헤드라인 + 서브카피 — 브랜드마다 다름. */}
+        <div className="text-center mb-8">
+          {/* 브랜드 미니 로고 → 헤드라인 위 작은 accent (몰입감) */}
+          <div className="flex items-center justify-center mb-3.5">
+            <span
+              className="flex h-6 w-6 items-center justify-center rounded-full"
+              style={{ backgroundColor: `#${activeBrand.icon.hex}` }}
+            >
+              <BrandLogo path={activeBrand.icon.path} fill="#FFFFFF" size={13} />
+            </span>
+          </div>
+          <h1
+            key={`${brand}-heading`}
+            className="hero-heading text-[28px] sm:text-[34px] leading-[1.2] font-semibold tracking-tight animate-in fade-in slide-in-from-bottom-1 duration-300"
+            style={{ color: 'var(--hero-fg)' }}
+          >
+            {heading}
+          </h1>
+          <p
+            key={`${brand}-sub`}
+            className="mt-2 text-[12.5px] tracking-tight animate-in fade-in duration-300"
+            style={{ color: 'var(--hero-fg-muted)' }}
+          >
+            {subheading}
+          </p>
+        </div>
 
-      {/* 입력창 + 관통 칩 스트립 */}
-      <div className="w-full max-w-[820px]">
+        {/* 입력창 + 관통 칩 스트립. */}
         <HeroInput
           value={value}
           onChange={onChange}
@@ -161,7 +182,6 @@ export function HeroSection({
         />
       </div>
 
-      {/* AI 전체 선택 시트 */}
       <AiPickerSheet
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
