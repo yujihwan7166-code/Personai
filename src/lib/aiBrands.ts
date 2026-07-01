@@ -12,9 +12,7 @@
 import {
   siGooglegemini,
   siPerplexity,
-  siX,
   siDeepseek,
-  siMistralai,
 } from 'simple-icons';
 
 export type BrandId =
@@ -169,7 +167,9 @@ export const BRANDS: readonly Brand[] = [
     name: 'Grok',
     provider: 'xAI',
     initials: 'Gk',
-    icon: { path: siX.path, hex: 'FFFFFF', imgUrl: '/logos/grok.svg' },
+    // simple-icons 의 siX 는 X.com 트위터 로고임 (Grok 마크가 아님).
+    // 오픈 Grok SVG 가 없어 텍스트 뱃지 G 로 통일 (칩·워터마크 일관).
+    icon: { text: 'G', hex: 'E0E0EE' },
     isDark: true,
     expertId: 'grok',
     models: [
@@ -218,8 +218,10 @@ export const BRANDS: readonly Brand[] = [
     name: 'Mistral',
     provider: 'Mistral AI',
     initials: 'Mi',
-    icon: { path: siMistralai.path, hex: siMistralai.hex, imgUrl: '/logos/mistral.png' },
-    isDark: true,
+    // siMistralai / mistral.png 는 무지개색 세로 막대(rainbow bars) 로고 — 네모 형태라
+    // 워터마크로 확대 시 네모가 눈에 띔. 유저 요청으로 텍스트 M 뱃지 사용.
+    icon: { text: 'M', hex: 'FA520F' },
+    isDark: false,
     expertId: 'mistral-large',
     models: [
       { id: 'mistral-large',  name: 'Mistral Large 3',   description: '최상위',       isDefault: true },
