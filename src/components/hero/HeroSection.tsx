@@ -190,13 +190,30 @@ export function HeroSection({
       <div className="relative z-10 w-full max-w-[640px] px-6 py-12">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
         <div className="text-center mb-8">
-          <p
-            key={`${identityKey}-name`}
-            className="mb-2 text-[11px] font-semibold tracking-[0.14em] uppercase animate-in fade-in duration-300"
-            style={{ color: eyebrowColor }}
-          >
-            {displayName}
-          </p>
+          {isSearchArmed ? (
+            // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
+            <p
+              key={`${identityKey}-name`}
+              className="mb-2 text-[11px] font-semibold tracking-[0.14em] uppercase animate-in fade-in duration-300"
+              style={{ color: eyebrowColor }}
+            >
+              {displayName}
+            </p>
+          ) : (
+            // AI 모드 eyebrow — 모델 셀렉트 트리거 겸용.
+            // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운.
+            <div
+              key={`${identityKey}-name`}
+              className="mb-2 flex justify-center animate-in fade-in duration-300"
+            >
+              <ModelPickerButton
+                variant="eyebrow"
+                brand={activeBrand}
+                selectedModel={model}
+                onSelect={setModel}
+              />
+            </div>
+          )}
           <h1
             key={`${identityKey}-heading`}
             className="hero-heading text-[28px] sm:text-[34px] leading-[1.2] font-semibold tracking-tight animate-in fade-in slide-in-from-bottom-1 duration-300"
@@ -234,16 +251,7 @@ export function HeroSection({
               onOpenAiPicker={() => setPickerOpen(true)}
             />
           }
-          toolbarRight={
-            // 검색 armed 시 모델 셀렉트 hide — 검색은 모델과 무관.
-            !isSearchArmed ? (
-              <ModelPickerButton
-                brand={activeBrand}
-                selectedModel={model}
-                onSelect={setModel}
-              />
-            ) : undefined
-          }
+          // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
 
       </div>

@@ -45,12 +45,12 @@ export function HeroInput({
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // auto-grow (max ~5 rows)
+  // auto-grow (max ~6 rows)
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [value]);
 
   useEffect(() => {
@@ -69,9 +69,16 @@ export function HeroInput({
 
   return (
     <div className="relative w-full">
-      {/* 칩 스트립 — top border 관통. 여백 넓게 잡아서 컴팩트 입력창에서도 칩이 눌려도 시각적 여유. */}
+      {/* 칩 스트립 — top border 관통.
+       * 뒤에 hero-bg 색 pill 로 input top border 를 가려서
+       * "칩 사이로 선이 보이던 문제" 해결. */}
       <div className="absolute left-2 right-2 top-0 z-10 -translate-y-1/2 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto">{chipStrip}</div>
+        <div
+          className="pointer-events-auto rounded-full px-2 py-1"
+          style={{ backgroundColor: 'var(--hero-bg)' }}
+        >
+          {chipStrip}
+        </div>
       </div>
 
       {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow. */}
@@ -94,8 +101,8 @@ export function HeroInput({
           `,
         }}
       >
-        {/* Textarea */}
-        <div className="pt-6 px-3.5 pb-1">
+        {/* Textarea — 세로 약간 여유 (min-h 52px) */}
+        <div className="pt-7 px-4 pb-1.5">
           <textarea
             ref={textareaRef}
             value={value}
@@ -106,15 +113,15 @@ export function HeroInput({
             disabled={disabled}
             className={cn(
               'w-full resize-none bg-transparent border-0 outline-none',
-              'text-[14px] leading-[1.55]',
+              'text-[14.5px] leading-[1.55]',
               'placeholder:text-[color:var(--hero-fg-muted,#8e8ea0)]',
               'disabled:opacity-60',
             )}
             style={{
               color: 'var(--hero-fg, #ececec)',
               fontFamily: 'var(--hero-font-body, inherit)',
-              minHeight: '32px',
-              maxHeight: '140px',
+              minHeight: '52px',
+              maxHeight: '180px',
             }}
           />
         </div>

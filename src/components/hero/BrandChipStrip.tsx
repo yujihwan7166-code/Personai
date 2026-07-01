@@ -83,16 +83,16 @@ export function BrandChipStrip({
         aria-label="다른 AI 선택"
         title="더 많은 AI"
         className={cn(
-          'flex h-6 w-6 items-center justify-center rounded-full shrink-0',
+          'flex h-8 w-8 items-center justify-center rounded-full shrink-0',
           'transition-all duration-200 ease-out',
           'text-[var(--hero-fg,#ececec)] opacity-70 hover:opacity-100 hover:scale-110',
         )}
         style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+          backgroundColor: 'var(--hero-accent-soft, rgba(255,255,255,0.06))',
+          boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.08))',
         }}
       >
-        <Plus size={12} strokeWidth={2.4} />
+        <Plus size={15} strokeWidth={2.4} />
       </button>
     </div>
   );

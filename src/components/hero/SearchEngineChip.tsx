@@ -29,7 +29,7 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         'relative flex items-center justify-center rounded-full shrink-0',
         'transition-all duration-300 ease-out',
         // armed 시 크게 + 강한 링, 아니면 절제
-        armed ? 'h-8 w-8' : 'h-6 w-6 opacity-70 hover:opacity-100 hover:scale-110',
+        armed ? 'h-10 w-10' : 'h-8 w-8 opacity-70 hover:opacity-100 hover:scale-110',
         circleBg === 'transparent' && 'hover:bg-white/5',
       )}
       style={{
@@ -52,7 +52,7 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         text={icon.text}
         lucide={icon.lucide as 'Star' | 'Bookmark' | undefined}
         fill={iconFill}
-        size={armed ? 16 : 12}
+        size={armed ? 20 : 15}
       />
     </button>
   );
