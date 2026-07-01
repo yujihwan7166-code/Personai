@@ -74,15 +74,13 @@ export function HeroSection({
     onSubmitToAi(brand, trimmed);
   };
 
-  // 브랜드/armed 상태에 따라 헤드라인·서브·placeholder 스위칭.
-  const heading = armedChip?.external
-    ? `${armedChip.name}에서 검색`
-    : activeBrand.greeting;
-  const subheading = armedChip?.external
-    ? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요'
-    : activeBrand.subtitle;
+  // 헤드라인·서브 = 항상 브랜드 카피 (armed 여부와 무관).
+  // 유저 피드백: 검색 armed 되어도 헤더는 AI 브랜드가 주인공이어야 함.
+  const heading = activeBrand.greeting;
+  const subheading = activeBrand.subtitle;
+  // placeholder 만 armed 상태 반영 → 시각 힌트 유지하되 정체성은 브랜드로.
   const placeholder = armedChip?.external
-    ? `${armedChip.name} 검색어를 입력…`
+    ? `${armedChip.name} 검색어를 입력하고 Enter…`
     : activeBrand.placeholder;
 
   return (
@@ -180,6 +178,37 @@ export function HeroSection({
             />
           }
         />
+
+        {/* armed 상태 인디케이터 — 검색으로 라우팅 될 때만 표시.
+         * "이 메시지는 AI 로 안 가고 외부 검색으로 갑니다" 를 명확히. */}
+        {armedChip?.external && (
+          <div
+            className="mt-2 flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-200"
+          >
+            <span
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[10.5px] font-medium"
+              style={{
+                backgroundColor: `${armedChip.ring}22`,
+                color: armedChip.ring,
+                border: `1px solid ${armedChip.ring}44`,
+              }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ backgroundColor: armedChip.ring }}
+              />
+              Enter 시 {armedChip.name} 새 탭 · AI 로 안 감
+              <button
+                type="button"
+                onClick={() => disarm()}
+                className="ml-1 opacity-70 hover:opacity-100 transition-opacity"
+                aria-label="검색 취소"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
       </div>
 
       <AiPickerSheet
