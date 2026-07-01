@@ -1,11 +1,12 @@
 /* 폰트는 index.html에서 preconnect + async <link>로 로드 (CSS @import 블로킹 회피) */
 
+/* Genspark-스타일 히어로 — 브랜드별 CSS 변수 스코프.
+ * CSS 스펙상 @import 는 @tailwind 등 다른 rule 보다 앞서야 파싱된다. */
+@import './styles/brand-themes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Genspark-스타일 히어로 — 브랜드별 CSS 변수 스코프. */
-@import './styles/brand-themes.css';
 
 @layer components {
   .app-workspace-shell:has([data-page-ai-panel-open="true"]) [data-app-workspace-switcher] {
