@@ -107,7 +107,9 @@ export const BRANDS: readonly Brand[] = [
     name: 'Claude',
     provider: 'Anthropic',
     initials: 'Cl',
-    icon: { path: siAnthropic.path, hex: siAnthropic.hex, imgUrl: '/logos/claude.png' },
+    // Claude 는 clean SVG path 만 사용 (PNG 는 네모하고 anti-alias 뿌옇게 나옴).
+    // 워터마크·칩 모두 이 path 로 rendering → 어느 크기에서도 vector 로 선명.
+    icon: { path: siAnthropic.path, hex: siAnthropic.hex },
     isDark: false,
     expertId: 'claude',
     models: [

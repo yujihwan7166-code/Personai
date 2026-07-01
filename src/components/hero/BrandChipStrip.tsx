@@ -19,6 +19,8 @@ interface Props {
   onToggleSearch: (id: HeroChipId) => void;
   onOpenBookmarks: () => void;
   onOpenAiPicker: () => void;
+  /** 스트립에 표시할 브랜드 id 목록 (미지정 시 전체). */
+  visibleBrandIds?: BrandId[];
   className?: string;
 }
 
@@ -29,8 +31,13 @@ export function BrandChipStrip({
   onToggleSearch,
   onOpenBookmarks,
   onOpenAiPicker,
+  visibleBrandIds,
   className,
 }: Props) {
+  // visibleBrandIds 미지정 시 전체. 지정 시 그 순서대로 필터.
+  const visibleBrands = visibleBrandIds
+    ? visibleBrandIds.map((id) => BRANDS.find((b) => b.id === id)).filter((b): b is (typeof BRANDS)[number] => !!b)
+    : BRANDS;
   return (
     <div
       className={cn(
@@ -60,18 +67,11 @@ export function BrandChipStrip({
         />
       ))}
 
-      {/* Divider — 얇은 헤어라인, halo 로 감싸 배경과 자연스레 이어짐 */}
-      <span
-        aria-hidden
-        className="mx-1.5 h-3.5 w-px shrink-0"
-        style={{
-          backgroundColor: 'var(--hero-hairline, rgba(255,255,255,0.15))',
-          boxShadow: '0 0 0 3px var(--hero-bg, #0d0d0d)',
-        }}
-      />
+      {/* 검색 · AI 사이 여백 — 눈에 띄는 선 없이 넉넉한 gap 으로만 구분. */}
+      <span aria-hidden className="w-3 shrink-0" />
 
-      {/* 우측 AI 칩 8개 */}
-      {BRANDS.map((brand) => (
+      {/* 우측 AI 칩 (사용자 커스텀 필터 반영) */}
+      {visibleBrands.map((brand) => (
         <AiBrandChip
           key={brand.id}
           brand={brand}

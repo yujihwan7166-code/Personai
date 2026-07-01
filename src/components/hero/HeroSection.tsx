@@ -19,6 +19,7 @@ import { ModelPickerButton } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
+import { useVisibleBrands } from '@/hooks/useVisibleBrands';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
@@ -59,6 +60,7 @@ export function HeroSection({
   const { brand, setBrand } = useSelectedBrand();
   const { model, setModel } = useSelectedModel(brand);
   const { armed, toggle, disarm } = useSearchEngineArm();
+  const { visibleIds, toggleBrand, showAll } = useVisibleBrands();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const activeBrand = BRAND_BY_ID[brand];
@@ -249,6 +251,7 @@ export function HeroSection({
               onToggleSearch={handleToggleSearch}
               onOpenBookmarks={onOpenBookmarks}
               onOpenAiPicker={() => setPickerOpen(true)}
+              visibleBrandIds={visibleIds}
             />
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
@@ -259,11 +262,9 @@ export function HeroSection({
       <AiPickerSheet
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        selectedBrand={brand}
-        onSelect={(b) => {
-          setBrand(b);
-          if (armed) disarm();
-        }}
+        visibleIds={visibleIds}
+        onToggle={toggleBrand}
+        onShowAll={showAll}
       />
     </div>
   );

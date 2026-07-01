@@ -94,28 +94,27 @@
   --hero-input-border: rgba(44, 24, 16, 0.12);
 }
 
-/* ────── Gemini (Google) — 밝은 오로라 (Gemini 실제 UI 톤) ────── */
+/* ────── Gemini (Google) — 밝은 오로라 (블루 위주, 보라 은은하게) ────── */
 .hero-brand-canvas[data-brand='gemini'] {
-  --hero-bg: #22243a;
+  --hero-bg: #1e2438;
   --hero-mesh:
-    radial-gradient(60% 40% at 25% 0%, rgba(66, 133, 244, 0.38), transparent 55%),
-    radial-gradient(60% 55% at 90% 100%, rgba(155, 114, 203, 0.32), transparent 55%),
-    radial-gradient(40% 40% at 50% 50%, rgba(232, 129, 194, 0.16), transparent 55%);
+    radial-gradient(60% 40% at 25% 0%, rgba(66, 133, 244, 0.34), transparent 55%),
+    radial-gradient(60% 55% at 90% 100%, rgba(190, 160, 235, 0.20), transparent 55%),
+    radial-gradient(40% 40% at 50% 50%, rgba(255, 190, 220, 0.14), transparent 55%);
   --hero-pattern:
     radial-gradient(ellipse at 30% 60%, rgba(66, 133, 244, 0.10), transparent 40%),
-    radial-gradient(ellipse at 70% 40%, rgba(155, 114, 203, 0.10), transparent 40%);
+    radial-gradient(ellipse at 70% 40%, rgba(190, 160, 235, 0.08), transparent 40%);
   --hero-fg: #f2f2f7;
   --hero-fg-muted: #b6b9c4;
   --hero-accent: #4285f4;
   --hero-accent-soft: rgba(66, 133, 244, 0.20);
-  --hero-ring: #8b5fe0;
+  --hero-ring: #8fa2ec;
   --hero-radius-input: 20px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
-  /* Input: 뉴트럴 화이트 오버레이 → 컬러풀 오로라 bg 위에서 확실히 elevated. */
-  --hero-input-bg: rgba(20, 22, 42, 0.72);
-  --hero-input-border: rgba(139, 95, 224, 0.42);
+  --hero-input-bg: rgba(20, 22, 42, 0.68);
+  --hero-input-border: rgba(143, 162, 236, 0.36);
 }
 
 /* ────── Perplexity — 실제 사이트 톤 (#1F2A2D-ish) + 리서치 라인 ────── */
