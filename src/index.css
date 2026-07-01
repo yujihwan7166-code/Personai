@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Genspark-스타일 히어로 — 브랜드별 CSS 변수 스코프. */
+@import './styles/brand-themes.css';
+
 @layer components {
   .app-workspace-shell:has([data-page-ai-panel-open="true"]) [data-app-workspace-switcher] {
     display: none;

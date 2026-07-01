@@ -1,0 +1,215 @@
+/**
+ * Genspark-스타일 히어로 — 브랜드별 CSS 변수 스코프.
+ *
+ * 각 `.hero-brand-canvas[data-brand="{id}"]` 스코프 안에서만 CSS 변수를 오버라이드.
+ * 앱 전체 테마(사이드바 · 그 외 페이지)는 영향 받지 않음.
+ *
+ * 사용법:
+ *   <div class="hero-brand-canvas" data-brand="gpt">
+ *     ... 히어로 컨텐츠 ...
+ *   </div>
+ *
+ * 변수 목록:
+ *   --hero-bg              메인 배경
+ *   --hero-mesh            배경 위 radial-gradient 오버레이
+ *   --hero-fg              전경 텍스트
+ *   --hero-fg-muted        서브 텍스트
+ *   --hero-accent          액센트 컬러 (send 버튼, active 링)
+ *   --hero-accent-soft     소프트 액센트 (hover 배경)
+ *   --hero-ring            선택된 칩·send 링 색
+ *   --hero-radius-input    입력창 모서리
+ *   --hero-font-heading    헤드라인 폰트
+ *   --hero-font-body       본문 폰트
+ *   --hero-hairline        경계선/헤어라인
+ *   --hero-input-bg        입력창 배경
+ *   --hero-input-border    입력창 테두리
+ */
+
+.hero-brand-canvas {
+  /* 기본값 (data-brand 없을 때) — GPT 다크 계열로 폴백. */
+  --hero-bg: #0d0d0d;
+  --hero-mesh:
+    radial-gradient(75% 45% at 50% 0%, rgba(16, 163, 127, 0.20), transparent 60%);
+  --hero-fg: #ececec;
+  --hero-fg-muted: #8e8ea0;
+  --hero-accent: #10a37f;
+  --hero-accent-soft: rgba(16, 163, 127, 0.16);
+  --hero-ring: #10a37f;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #1a1a1a;
+  --hero-input-border: rgba(255, 255, 255, 0.10);
+
+  /* 브랜드 전환 트랜지션 — 배경/색만 부드럽게. transform/layout 은 즉시. */
+  transition:
+    background-color 240ms ease,
+    background-image 240ms ease,
+    color 240ms ease;
+}
+
+/* ────── GPT (OpenAI) ────── */
+.hero-brand-canvas[data-brand='gpt'] {
+  --hero-bg: #0d0d0d;
+  --hero-mesh:
+    radial-gradient(75% 45% at 50% 0%, rgba(16, 163, 127, 0.20), transparent 60%);
+  --hero-fg: #ececec;
+  --hero-fg-muted: #8e8ea0;
+  --hero-accent: #10a37f;
+  --hero-accent-soft: rgba(16, 163, 127, 0.16);
+  --hero-ring: #10a37f;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #1a1a1a;
+  --hero-input-border: rgba(255, 255, 255, 0.10);
+}
+
+/* ────── Claude (Anthropic) — 라이트 크림 계열, 유일한 밝은 테마 ────── */
+.hero-brand-canvas[data-brand='claude'] {
+  --hero-bg: #faf9f5;
+  --hero-mesh:
+    radial-gradient(75% 45% at 50% 0%, rgba(217, 119, 87, 0.10), transparent 55%);
+  --hero-fg: #2c1810;
+  --hero-fg-muted: #7a6a5c;
+  --hero-accent: #d97757;
+  --hero-accent-soft: rgba(217, 119, 87, 0.12);
+  --hero-ring: #d97757;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'Newsreader', ui-serif, Georgia, serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(44, 24, 16, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(44, 24, 16, 0.12);
+}
+
+/* ────── Gemini (Google) — 블루→퍼플 그라디언트 ────── */
+.hero-brand-canvas[data-brand='gemini'] {
+  --hero-bg: #0f0f14;
+  --hero-mesh:
+    radial-gradient(70% 45% at 40% 0%, rgba(66, 133, 244, 0.22), transparent 55%),
+    radial-gradient(60% 55% at 90% 90%, rgba(155, 114, 203, 0.16), transparent 55%);
+  --hero-fg: #eeeef2;
+  --hero-fg-muted: #9aa0a6;
+  --hero-accent: #4285f4;
+  --hero-accent-soft: rgba(66, 133, 244, 0.16);
+  --hero-ring: #8b5fe0;
+  --hero-radius-input: 20px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #1a1a24;
+  --hero-input-border: rgba(139, 95, 224, 0.20);
+}
+
+/* ────── Perplexity — 다크 시안 ────── */
+.hero-brand-canvas[data-brand='perplexity'] {
+  --hero-bg: #0c1b1f;
+  --hero-mesh:
+    radial-gradient(75% 50% at 50% 0%, rgba(32, 184, 205, 0.20), transparent 60%);
+  --hero-fg: #e5f1f3;
+  --hero-fg-muted: #7e9aa0;
+  --hero-accent: #20b8cd;
+  --hero-accent-soft: rgba(32, 184, 205, 0.14);
+  --hero-ring: #20b8cd;
+  --hero-radius-input: 10px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #0f262b;
+  --hero-input-border: rgba(32, 184, 205, 0.20);
+}
+
+/* ────── Grok (xAI) — 순수 모노크롬 ────── */
+.hero-brand-canvas[data-brand='grok'] {
+  --hero-bg: #000000;
+  --hero-mesh: none;
+  --hero-fg: #ffffff;
+  --hero-fg-muted: #8b8b8b;
+  --hero-accent: #ffffff;
+  --hero-accent-soft: rgba(255, 255, 255, 0.12);
+  --hero-ring: #ffffff;
+  --hero-radius-input: 6px;
+  --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.15);
+  --hero-input-bg: #0a0a0a;
+  --hero-input-border: rgba(255, 255, 255, 0.20);
+}
+
+/* ────── DeepSeek — 딥 블루 ────── */
+.hero-brand-canvas[data-brand='deepseek'] {
+  --hero-bg: #0a0f1e;
+  --hero-mesh:
+    radial-gradient(75% 50% at 50% 0%, rgba(77, 107, 254, 0.20), transparent 60%);
+  --hero-fg: #e8ebf5;
+  --hero-fg-muted: #8b92b5;
+  --hero-accent: #4d6bfe;
+  --hero-accent-soft: rgba(77, 107, 254, 0.14);
+  --hero-ring: #4d6bfe;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #12162a;
+  --hero-input-border: rgba(77, 107, 254, 0.20);
+}
+
+/* ────── Copilot (Microsoft) — Fluent Design 샤프 모서리 ────── */
+.hero-brand-canvas[data-brand='copilot'] {
+  --hero-bg: #0f1b2e;
+  --hero-mesh:
+    radial-gradient(75% 50% at 50% 0%, rgba(0, 120, 212, 0.18), transparent 60%),
+    radial-gradient(50% 50% at 15% 90%, rgba(0, 175, 204, 0.14), transparent 55%);
+  --hero-fg: #edeef7;
+  --hero-fg-muted: #8797b5;
+  --hero-accent: #0078d4;
+  --hero-accent-soft: rgba(0, 120, 212, 0.14);
+  --hero-ring: #0078d4;
+  --hero-radius-input: 4px;
+  --hero-font-heading: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.08);
+  --hero-input-bg: #14243e;
+  --hero-input-border: rgba(0, 120, 212, 0.22);
+}
+
+/* ────── Mistral — 오렌지-레드 ────── */
+.hero-brand-canvas[data-brand='mistral'] {
+  --hero-bg: #161616;
+  --hero-mesh:
+    radial-gradient(70% 50% at 50% 0%, rgba(250, 82, 15, 0.18), transparent 60%);
+  --hero-fg: #f0efeb;
+  --hero-fg-muted: #8f8b84;
+  --hero-accent: #fa520f;
+  --hero-accent-soft: rgba(250, 82, 15, 0.14);
+  --hero-ring: #fa520f;
+  --hero-radius-input: 10px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: #1f1f1f;
+  --hero-input-border: rgba(250, 82, 15, 0.20);
+}
+
+/* ────── 히어로 캔버스 공통 스타일 ────── */
+.hero-brand-canvas {
+  background-color: var(--hero-bg);
+  background-image: var(--hero-mesh);
+  color: var(--hero-fg);
+  font-family: var(--hero-font-body);
+}
+
+/* 헤드라인 폰트는 명시 클래스로만 적용 (본문은 body 폰트 유지) */
+.hero-brand-canvas .hero-heading {
+  font-family: var(--hero-font-heading);
+}
+
+/* prefers-reduced-motion 시 트랜지션 제거 */
+@media (prefers-reduced-motion: reduce) {
+  .hero-brand-canvas {
+    transition: none;
+  }
+}
