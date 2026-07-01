@@ -12,7 +12,8 @@ import { AiBrandChip } from './AiBrandChip';
 import { SearchEngineChip } from './SearchEngineChip';
 
 interface Props {
-  selectedBrand: BrandId;
+  /** 현재 선택된 브랜드. null 이면 어떤 AI 칩도 highlight 안 됨 (검색 armed 시). */
+  selectedBrand: BrandId | null;
   onSelectBrand: (b: BrandId) => void;
   armedSearch: HeroChipId | null;
   onToggleSearch: (id: HeroChipId) => void;

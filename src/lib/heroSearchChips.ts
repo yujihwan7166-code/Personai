@@ -35,6 +35,12 @@ export interface HeroSearchChip {
    * true 일 때는 findEngine(id) 로 URL 템플릿을 가져와 buildSearchUrl 로 조립.
    */
   external: boolean;
+  /** 히어로 armed 시 헤드라인 (외부 검색 칩만 사용). */
+  greeting?: string;
+  /** 히어로 armed 시 서브카피. */
+  subtitle?: string;
+  /** 입력창 placeholder. */
+  placeholder?: string;
 }
 
 export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
@@ -46,6 +52,9 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     circleBg: '#03C75A',
     iconFill: '#FFFFFF',
     external: true,
+    greeting: '네이버에서 검색해요',
+    subtitle: 'NAVER · 한국어 종합 검색 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
   },
   {
     id: 'google',
@@ -55,6 +64,9 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     circleBg: '#FFFFFF',
     iconFill: `#${siGoogle.hex}`,
     external: true,
+    greeting: '구글에서 검색해요',
+    subtitle: 'Google · 글로벌 검색 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
   },
   {
     id: 'daum',
@@ -65,6 +77,9 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     circleBg: '#FFCE00',
     iconFill: '#000000',
     external: true,
+    greeting: '다음에서 검색해요',
+    subtitle: 'Daum · 한국어 포털 검색 · 새 탭에서 열림',
+    placeholder: '검색어를 입력하고 Enter…',
   },
   {
     id: 'bookmark',
