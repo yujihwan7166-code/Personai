@@ -25,6 +25,25 @@ interface Props {
   onRetry?: (messageId: string, expertId: string) => void;
 }
 
+/**
+ * 브랜드 채팅용 프로즈 — 구조(크기·간격)만. 색은 brand-themes.css 의
+ * `.hero-brand-canvas .hero-chat-prose` 가 --hero-* 변수로 처리 (라이트/다크 자동).
+ */
+const brandProseClasses = `prose prose-sm max-w-none
+  prose-p:my-3 prose-p:leading-[1.75] prose-p:text-[13.5px]
+  prose-headings:font-semibold prose-headings:tracking-tight
+  prose-headings:mt-5 prose-headings:mb-2
+  prose-h2:text-[15px] prose-h3:text-[14px] prose-h4:text-[13px]
+  prose-strong:font-semibold
+  prose-ul:my-3 prose-ul:space-y-1 prose-li:my-0.5 prose-li:text-[13.5px] prose-li:leading-[1.7] prose-li:pl-1
+  prose-ol:my-3 prose-ol:space-y-1
+  prose-blockquote:border-l-2 prose-blockquote:text-[12.5px] prose-blockquote:py-1 prose-blockquote:my-3
+  prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11.5px] prose-code:before:content-none prose-code:after:content-none
+  prose-pre:bg-slate-900 prose-pre:rounded-lg prose-pre:text-[11.5px] prose-pre:my-3
+  prose-table:text-[12px] prose-table:my-3 prose-th:px-2.5 prose-th:py-1.5 prose-th:text-left prose-th:font-semibold prose-td:px-2.5 prose-td:py-1.5 prose-td:border-t
+  prose-a:no-underline hover:prose-a:underline
+  prose-img:rounded-lg prose-img:my-3`;
+
 const proseClasses = `prose prose-sm max-w-none
   prose-p:my-3 prose-p:leading-[1.75] prose-p:text-[13px]
   prose-headings:text-slate-900 prose-headings:font-semibold prose-headings:tracking-tight
@@ -221,6 +240,56 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
   if (variant === 'general-card' || variant === 'agent-card') {
     const isAgentCard = variant === 'agent-card' || isManagedAutoAgent(expert.id);
     const shouldRevealAgentAnswer = !isAgentCard || !message.agentState || Boolean(message.agentState.canRevealAnswer);
+
+    // general-card (비 에이전트) — 브랜드 글래스 패널.
+    // hero-brand-canvas 스코프 안에서만 등장하므로 --hero-* 변수 사용 가능.
+    // 각 AI 의 radius(Grok 4px 샤프, Gemini 20px 라운드)·accent 스트라이프·글래스가
+    // 히어로와 같은 디자인 언어로 이어짐.
+    if (!isAgentCard) {
+      return (
+        <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
+          <div
+            className="relative rounded-[var(--hero-radius-input,16px)] border overflow-hidden transition-all"
+            style={{
+              backgroundColor: 'var(--hero-input-bg, #ffffff)',
+              borderColor: 'var(--hero-input-border, rgba(15,23,42,0.10))',
+              backdropFilter: 'blur(20px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+              boxShadow:
+                'inset 3px 0 0 var(--hero-accent, #6366f1), 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -16px rgba(0,0,0,0.25)',
+            }}
+          >
+            <div className="flex items-center gap-2 px-4 py-3">
+              <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--hero-fg, #334155)' }}>
+                {expert.nameKo}
+              </span>
+              {message.searchSources && (
+                <span
+                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ color: 'var(--hero-accent)', backgroundColor: 'var(--hero-accent-soft)' }}
+                >
+                  <Globe className="w-2.5 h-2.5" /> 웹 검색 반영
+                </span>
+              )}
+              {!message.isStreaming && message.content && (
+                <CopyBtn className="ml-auto text-[color:var(--hero-fg-muted,#94a3b8)] hover:text-[color:var(--hero-fg,#334155)] opacity-0 group-hover:opacity-100 sm:opacity-40 sm:group-hover:opacity-100" />
+              )}
+            </div>
+            <div className="px-4 pb-4 pt-0">
+              <div className={cn('hero-chat-prose text-[13.5px] leading-relaxed', brandProseClasses)}>
+                <GeneratedImageGallery message={message} />
+                <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse onRetry={handleRetry} />
+              </div>
+              {message.searchSources && message.searchSources.sources.length > 0 && !message.isStreaming && (
+                <SearchSourcesCollapsible sources={message.searchSources.sources} />
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className={cn(

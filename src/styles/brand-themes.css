@@ -92,7 +92,8 @@
   --hero-accent-soft: rgba(217, 119, 87, 0.12);
   --hero-ring: #d97757;
   --hero-radius-input: 12px;
-  --hero-font-heading: 'Newsreader', ui-serif, Georgia, serif;
+  /* Newsreader(라틴) + Noto Serif KR(한글 명조) — 한글 헤드라인도 세리프로. */
+  --hero-font-heading: 'Newsreader', 'Noto Serif KR', ui-serif, Georgia, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(44, 24, 16, 0.10);
   --hero-input-bg: #ffffff;
@@ -164,8 +165,8 @@
   --hero-ring: #ffffff;
   /* 샤프한 모서리 — 브루탈리스트 강조 */
   --hero-radius-input: 4px;
-  /* Inter — 실제 Grok UI 는 sans-serif. Serif 대신 clean sans 로 브랜드 톤 정확화. */
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Black Han Sans — 굵고 강렬한 한글 임팩트, 브루탈리즘과 정합. */
+  --hero-font-heading: 'Black Han Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
   --hero-input-bg: rgba(24, 24, 30, 0.52);
@@ -216,7 +217,8 @@
   --hero-accent-soft: rgba(167, 139, 250, 0.16);
   --hero-ring: #a78bfa;
   --hero-radius-input: 14px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Gowun Batang — 따뜻한 한글 명조, 비서의 다정한 톤. */
+  --hero-font-heading: 'Gowun Batang', 'Newsreader', ui-serif, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
   --hero-input-bg: rgba(24, 18, 42, 0.44);
@@ -244,7 +246,8 @@
   --hero-accent-soft: rgba(167, 139, 250, 0.16);
   --hero-ring: #a78bfa;
   --hero-radius-input: 14px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Gowun Batang — 달빛 아래 읽는 책 같은 부드러운 명조. */
+  --hero-font-heading: 'Gowun Batang', 'Newsreader', ui-serif, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.11);
   --hero-input-bg: rgba(24, 18, 46, 0.50);
@@ -370,7 +373,7 @@
   /* 샤프한 모서리 — 인쇄물·백과 정제 */
   --hero-radius-input: 4px;
   /* Wikipedia 는 Linux Libertine (serif) 사용 → 앱에 있는 Newsreader 로 대체. */
-  --hero-font-heading: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
+  --hero-font-heading: 'Newsreader', 'Noto Serif KR', ui-serif, Georgia, 'Times New Roman', serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(162, 169, 177, 0.35);   /* Wikipedia 사이드바 라인 */
   --hero-input-bg: #ffffff;
@@ -497,7 +500,8 @@
   --hero-accent-soft: rgba(234, 88, 16, 0.10);
   --hero-ring: #ea5810;
   --hero-radius-input: 10px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Jua — 둥글고 친근한 한글, 연한 주황 라이트 테마와 정합. */
+  --hero-font-heading: 'Jua', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(70, 40, 20, 0.10);
   --hero-input-bg: #ffffff;
@@ -607,6 +611,40 @@
   /* 4-layer red spotlights — 모두 non-repeating. */
   background-size: auto, auto, auto, auto, auto;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 브랜드 채팅 프로즈 — general 모드 AI 메시지 글래스 패널 내부 마크다운 컬러.
+ * DiscussionMessage 의 general-card 가 .hero-chat-prose 를 사용.
+ * 구조(크기·간격)는 tailwind prose 유틸이, 색은 여기서 hero 변수로.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.hero-brand-canvas .hero-chat-prose,
+.hero-brand-canvas .hero-chat-prose :where(p, li, td) {
+  color: var(--hero-fg);
+}
+.hero-brand-canvas .hero-chat-prose :where(h1, h2, h3, h4, strong, b, th) {
+  color: var(--hero-fg);
+}
+.hero-brand-canvas .hero-chat-prose :where(a) {
+  color: var(--hero-accent);
+}
+.hero-brand-canvas .hero-chat-prose :where(code):not(:where(pre code)) {
+  color: var(--hero-fg);
+  background-color: var(--hero-accent-soft);
+}
+.hero-brand-canvas .hero-chat-prose :where(blockquote) {
+  color: var(--hero-fg-muted);
+  border-left-color: var(--hero-accent);
+}
+.hero-brand-canvas .hero-chat-prose :where(th) {
+  background-color: var(--hero-accent-soft);
+}
+.hero-brand-canvas .hero-chat-prose :where(td) {
+  border-color: var(--hero-hairline);
+}
+.hero-brand-canvas .hero-chat-prose :where(hr) {
+  border-color: var(--hero-hairline);
 }
 
 /* 히어로 내부 텍스트는 명시 클래스로 브랜드 fg 를 적용. */
