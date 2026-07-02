@@ -93,6 +93,13 @@ const OPENAI_PATH =
 const CLAUDE_ASTERISK_PATH =
   'M12 2 L12.77 10.15 L19.07 4.93 L13.85 11.23 L22 12 L13.85 12.77 L19.07 19.07 L12.77 13.85 L12 22 L11.23 13.85 L4.93 19.07 L10.15 12.77 L2 12 L10.15 11.23 L4.93 4.93 L11.23 10.15 Z';
 
+/**
+ * Grok (xAI) 용 간단한 번개 볼트 마크. viewBox 0 0 24 24 · single closed path.
+ * 각진 · 미래지향 · Grok 의 빠른/재치있는 성격 반영. 워터마크로도 큰 크기 clean rendering.
+ */
+const GROK_BOLT_PATH =
+  'M13 2 L4 13 L11 13 L10 22 L20 11 L14 11 Z';
+
 export const BRANDS: readonly Brand[] = [
   {
     id: 'gpt',
@@ -173,9 +180,9 @@ export const BRANDS: readonly Brand[] = [
     name: 'Grok',
     provider: 'xAI',
     initials: 'Gk',
-    // simple-icons 의 siX 는 X.com 트위터 로고임 (Grok 마크가 아님).
-    // 오픈 Grok SVG 가 없어 텍스트 뱃지 G 로 통일 (칩·워터마크 일관).
-    icon: { text: 'G', hex: 'E0E0EE' },
+    // 간단한 커스텀 번개 볼트 마크. 각진·미래지향적 · Grok 의 빠른 성격 반영.
+    // 워터마크에서 큰 사이즈로 clean rendering.
+    icon: { path: GROK_BOLT_PATH, text: 'G', hex: 'FFFFFF' },
     isDark: true,
     expertId: 'grok',
     models: [

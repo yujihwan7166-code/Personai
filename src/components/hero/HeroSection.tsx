@@ -175,16 +175,8 @@ export function HeroSection({
           >
             {armedChip!.icon.text}
           </span>
-        ) : activeBrand.icon.text ? (
-          // 로고 미지원 브랜드(Kimi) — 큰 텍스트 뱃지로 워터마크.
-          <span
-            key={`wm-${brand}`}
-            className="font-black leading-none animate-in fade-in duration-500 ease-out"
-            style={{ color: `#${activeBrand.icon.hex}`, fontSize: '320px' }}
-          >
-            {activeBrand.icon.text}
-          </span>
-        ) : (
+        ) : activeBrand.icon.path || activeBrand.icon.imgUrl ? (
+          // path 또는 이미지가 있으면 그걸 워터마크로 (path 우선 · Grok 볼트 등).
           <BrandLogo
             key={brand}
             imgUrl={activeBrand.icon.imgUrl}
@@ -194,7 +186,16 @@ export function HeroSection({
             size={320}
             className="animate-in fade-in duration-500 ease-out"
           />
-        )}
+        ) : activeBrand.icon.text ? (
+          // path 도 없고 텍스트만 있는 브랜드(Kimi K · Mistral M 등) — 큰 텍스트 뱃지.
+          <span
+            key={`wm-${brand}`}
+            className="font-black leading-none animate-in fade-in duration-500 ease-out"
+            style={{ color: `#${activeBrand.icon.hex}`, fontSize: '320px' }}
+          >
+            {activeBrand.icon.text}
+          </span>
+        ) : null}
       </div>
 
       {/* 상단 모드 pill — top-left 코너, 절제된 크기. */}
