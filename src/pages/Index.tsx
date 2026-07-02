@@ -2,6 +2,7 @@ import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 're
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
+import { ModeLauncher } from '@/components/hero/ModeLauncher';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { notifyDone } from '@/lib/notifications';
@@ -98,6 +99,8 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
   const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
+  // 모드 런처 — 기존 메가메뉴 드롭다운을 대체하는 풀스크린 오버레이.
+  const [modeLauncherOpen, setModeLauncherOpen] = useState(false);
   // /wiki 등 외부 페이지에서 navigate('/', { state: { ... } }) 로 진입 시 처리.
   // - openModePalette: 모드 패널 자동 오픈
   // - selectMainMode: 해당 메인 모드로 자동 전환 (DiscussionMode 매핑)
@@ -151,7 +154,7 @@ const Index = () => {
 
     if (state.openModePalette) {
       const t = window.setTimeout(() => {
-        mainModeTabsApiRef.current?.open();
+        setModeLauncherOpen(true);
       }, 80);
       window.history.replaceState({}, '');
       return () => window.clearTimeout(t);
@@ -4732,7 +4735,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onModeChange={handleModeChange}
             isDiscussing={isDiscussing}
             onNewDiscussion={handleNewDiscussion}
-            onOpenModePalette={() => { mainModeTabsApiRef.current?.open(); }}
+            onOpenModePalette={() => { setModeLauncherOpen(true); }}
             onStartChat={(expertId, mode, content) => {
               handleNewDiscussion();
               setSelectedExpertIds([expertId]);
@@ -4769,6 +4772,36 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           )}
           data-brand={getMainMode(discussionMode) === 'general' ? selectedHeroBrand : undefined}
         >
+          {/* 모드 런처 — 풀스크린 오버레이 (히어로 브랜드 변수 상속을 위해 이 컨테이너 안에 마운트). */}
+          <ModeLauncher
+            open={modeLauncherOpen}
+            onClose={() => setModeLauncherOpen(false)}
+            currentMode={getMainMode(discussionMode)}
+            labels={mainModeLabelMap}
+            onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+            onSelectDebateSub={(sub) => handleModeChange(sub)}
+            onSelectPremiumDomain={(domainId) => {
+              handleModeChange('expert');
+              handleSelectPremiumDomain(domainId);
+            }}
+            onSelectAssistantCard={(cardId) => {
+              // AI 녹음 분석은 voice_main 모드로 직접 진입.
+              if (cardId === 'voice-analysis') {
+                setDiscussionMode('voice');
+                return;
+              }
+              if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+              setSelectedAssistantCard(cardId);
+            }}
+            onSelectTool={(_kind, _toolId, label) => {
+              // 라이프·플레이어 도구 — general 히어로로 전환 + 스타터 프리필.
+              if (getMainMode(discussionMode) !== 'general') {
+                handleModeChange(mainToDiscussion('general'));
+              }
+              setHeroInputValue(`${label} `);
+            }}
+          />
+
           {/* Deep Research full-screen takeover */}
           {getMainMode(discussionMode) === 'research_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
@@ -4856,7 +4889,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   }
                 }}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
-                onOpenModeDropdown={() => mainModeTabsApiRef.current?.open()}
+                onOpenModeDropdown={() => setModeLauncherOpen(true)}
               />
             </div>
           ) : <>
