@@ -146,61 +146,77 @@ export function ModelPickerButton({
               className="text-[11px] font-medium tracking-tight"
               style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
             >
-              {brand.name} · 모델 {brand.models.length}
+              {brand.name} · 모델 {brand.models.length}개
             </span>
           </div>
-          {brand.models.map((m) => {
-            const active = m.id === selectedModel.id;
-            return (
-              <button
-                key={`${m.id}-${m.name}`}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onSelect(m.id);
-                  setOpen(false);
-                }}
-                className={cn(
-                  'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-xl text-left',
-                  'transition-colors duration-100',
-                )}
-                style={{
-                  backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                {/* active dot — Check 아이콘 대신 브랜드 색 점으로 정제. */}
-                <span
+          {/* 모델 리스트 — 많아지면 스크롤 (max 5.5개 높이). */}
+          <div className="max-h-[300px] overflow-y-auto overscroll-contain pr-0.5 scrollbar-thin">
+            {brand.models.map((m) => {
+              const active = m.id === selectedModel.id;
+              return (
+                <button
+                  key={`${m.id}-${m.name}`}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onSelect(m.id);
+                    setOpen(false);
+                  }}
                   className={cn(
-                    'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-opacity',
-                    active ? 'opacity-100' : 'opacity-0',
+                    'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-xl text-left',
+                    'transition-colors duration-100',
                   )}
-                  style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
-                />
-                <span className="min-w-0 flex-1">
+                  style={{
+                    backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  {/* active dot — Check 아이콘 대신 브랜드 색 점으로 정제. */}
                   <span
-                    className="block text-[13.5px] font-medium leading-tight truncate"
-                    style={{ color: 'var(--hero-fg, #ececec)' }}
-                  >
-                    {m.name}
-                  </span>
-                  {m.description && (
-                    <span
-                      className="block text-[11px] mt-1 leading-snug"
-                      style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
-                    >
-                      {m.description}
+                    className={cn(
+                      'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-opacity',
+                      active ? 'opacity-100' : 'opacity-0',
+                    )}
+                    style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="block text-[13.5px] font-medium leading-tight truncate"
+                        style={{ color: 'var(--hero-fg, #ececec)' }}
+                      >
+                        {m.name}
+                      </span>
+                      {m.isDefault && (
+                        <span
+                          className="shrink-0 px-1.5 py-px rounded-full text-[9px] font-semibold tracking-tight"
+                          style={{
+                            color: 'var(--hero-accent, #10a37f)',
+                            backgroundColor: 'var(--hero-accent-soft)',
+                          }}
+                        >
+                          추천
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
+                    {m.description && (
+                      <span
+                        className="block text-[11px] mt-1 leading-snug"
+                        style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+                      >
+                        {m.description}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

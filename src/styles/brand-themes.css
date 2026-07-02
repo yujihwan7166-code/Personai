@@ -31,6 +31,11 @@
  */
 
 .hero-brand-canvas {
+  /* 유저 채팅 버블 — 기본 = 브랜드 accent 배경 + 흰 글자.
+   * accent 가 밝은 브랜드(Grok)는 아래 스코프에서 오버라이드. */
+  --hero-user-bubble-bg: var(--hero-accent);
+  --hero-user-bubble-fg: #ffffff;
+
   /* 기본값 (data-brand 없을 때) — GPT 로 폴백. */
   --hero-bg: #1a1a1a;
   --hero-mesh:
@@ -146,6 +151,9 @@
 
 /* ────── Grok (xAI) — 브루탈리스트 미니멀 (실제 x.ai · Grok UI 톤) ────── */
 .hero-brand-canvas[data-brand='grok'] {
+  /* accent 가 near-white → 유저 버블은 흰 배경 + 검정 글자로 반전. */
+  --hero-user-bubble-bg: #ffffff;
+  --hero-user-bubble-fg: #0a0a0a;
   --hero-bg: #050505;
   /* 상단 화이트 spotlight 만. 컬러 완전 제거 — 순수 모노크롬. */
   --hero-mesh:
@@ -600,9 +608,47 @@
   color: var(--hero-fg);
 }
 
-/* prefers-reduced-motion 시 트랜지션 제거 */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 살아있는 배경 (Living Canvas) — 정지화면이 아닌, 숨쉬는 화면.
+ *
+ * .hero-living-glow    브랜드 accent glow 가 아주 천천히 떠다님 (18s alternate).
+ * .hero-watermark-float 워터마크가 미세하게 상하 부유 (14s).
+ * 모두 transform/opacity 만 사용 (GPU 합성 · 리플로우 없음).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.hero-living-glow {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(32% 26% at 30% 30%, var(--hero-accent-soft, rgba(255,255,255,0.06)), transparent 70%);
+  animation: hero-glow-drift 18s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes hero-glow-drift {
+  0%   { transform: translate3d(-4%, -2%, 0) scale(1);    opacity: 0.65; }
+  50%  { transform: translate3d(3%, 2%, 0)   scale(1.08); opacity: 1; }
+  100% { transform: translate3d(5%, -3%, 0)  scale(1.02); opacity: 0.75; }
+}
+
+.hero-watermark-float {
+  animation: hero-wm-float 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes hero-wm-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
+/* prefers-reduced-motion 시 트랜지션·애니메이션 제거 */
 @media (prefers-reduced-motion: reduce) {
   .hero-brand-canvas {
     transition: none;
+  }
+  .hero-living-glow,
+  .hero-watermark-float {
+    animation: none;
   }
 }

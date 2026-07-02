@@ -28,17 +28,10 @@ import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi'
 import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
-import { addMemo } from '@/lib/memoStore';
-import { taskStore } from '@/services/planner/taskStore';
+import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
+import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
+import { getGreeting } from '@/components/MainModeTabs';
 import { toast } from 'sonner';
-
-type SecretaryTarget = 'memo' | 'schedule' | 'wiki';
-
-const SECRETARY_TARGETS: { id: SecretaryTarget; label: string; emoji: string }[] = [
-  { id: 'memo',     label: '메모',   emoji: '📝' },
-  { id: 'schedule', label: '일정',   emoji: '📅' },
-  { id: 'wiki',     label: '위키',   emoji: '🌐' },
-];
 
 interface Props {
   /** 상단 pill (모드 셀렉트 등). topSlot 지정 시 pill 대신 렌더. */
@@ -85,9 +78,15 @@ export function HeroSection({
   const [editingCustom, setEditingCustom] = useState<CustomAi | undefined>();
   const [portalCreatorOpen, setPortalCreatorOpen] = useState(false);
   // 비서 모드 — 클릭 시 히어로가 비서 모드로 morph. AI/검색 과 상호 배타.
+  // 비서 = 플래너·메모·위키를 읽고 내 상황에 맞게 답하는 개인 컨텍스트 AI.
   const [secretaryMode, setSecretaryMode] = useState(false);
-  const [secretaryTarget, setSecretaryTarget] = useState<SecretaryTarget>('memo');
+  const [secretaryScope, setSecretaryScope] = useState<SecretaryScope>('all');
+  const [secretaryBusy, setSecretaryBusy] = useState(false);
   const [editingCustomPortal, setEditingCustomPortal] = useState<CustomPortal | undefined>();
+  // 입력창 부가기능 — 웹 검색·심층 사고 토글 + 대화 설정 (길이·톤).
+  const [webSearchOn, setWebSearchOn] = useState(false);
+  const [deepThinkOn, setDeepThinkOn] = useState(false);
+  const { prefs: chatPrefs } = useChatPrefs();
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
   const customBrands = customAisHook.customAis.map(customAiToBrand);
@@ -131,30 +130,32 @@ export function HeroSection({
     if (armed) disarm();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmed = value.trim();
     if (!trimmed) return;
 
-    // 비서 모드 → 내부 스토어에 저장 (AI 호출 X).
+    // 부가기능 지시문 — 웹 검색·심층 사고·대화 설정(길이·톤).
+    const directives = buildDirectives({
+      webSearch: webSearchOn,
+      deepThink: deepThinkOn,
+      prefs: chatPrefs,
+    });
+    const directiveSuffix = directives.length > 0
+      ? `\n\n[요청 사항]\n${directives.map((d) => `- ${d}`).join('\n')}`
+      : '';
+
+    // 비서 모드 → 플래너·메모·위키 컨텍스트를 조립해 AI 에게 질문.
     if (secretaryMode) {
-      const target = SECRETARY_TARGETS.find((t) => t.id === secretaryTarget)!;
+      if (secretaryBusy) return;
+      setSecretaryBusy(true);
       try {
-        if (secretaryTarget === 'memo') {
-          addMemo({ body: trimmed });
-        } else if (secretaryTarget === 'schedule') {
-          const firstLine = trimmed.split('\n').find((l) => l.trim()) ?? trimmed;
-          taskStore.add({ title: firstLine.slice(0, 200) });
-        } else {
-          // wiki — 우선 메모로 저장 + 위키 마이그레이션 hint.
-          // (실제 wiki page 생성은 다음 단계.)
-          addMemo({ body: `[위키 초안]\n${trimmed}` });
-        }
-        toast.success(`${target.emoji} ${target.label}에 저장됨`, {
-          description: trimmed.slice(0, 60) + (trimmed.length > 60 ? '…' : ''),
-        });
+        const prompt = await buildSecretaryPrompt(secretaryScope, trimmed);
         onChange('');
+        onSubmitToAi(brand, model?.id ?? activeBrand.expertId, prompt + directiveSuffix);
       } catch {
-        toast.error('저장 실패 — 다시 시도해주세요');
+        toast.error('개인 데이터를 읽지 못했어요 — 다시 시도해주세요');
+      } finally {
+        setSecretaryBusy(false);
       }
       return;
     }
@@ -182,39 +183,45 @@ export function HeroSection({
     const routedExpertId = selectedCustom
       ? selectedCustom.baseExpertId
       : (model?.id ?? activeBrand.expertId);
-    onSubmitToAi(brand, routedExpertId, routedText);
+    onSubmitToAi(brand, routedExpertId, routedText + directiveSuffix);
   };
 
   // 헤드라인·서브·placeholder·eyebrow·워터마크 = 상태에 따라 스왑.
   // 우선순위: 비서 모드 > 검색 armed > AI 브랜드.
-  const secretaryTargetObj = SECRETARY_TARGETS.find((t) => t.id === secretaryTarget)!;
+  const secretaryScopeObj = SECRETARY_SCOPES.find((s) => s.id === secretaryScope)!;
+  const scopeLabel = secretaryScope === 'all'
+    ? '플래너·메모·위키'
+    : secretaryScopeObj.label;
   const displayName = secretaryMode
     ? '비서'
     : isSearchArmed
       ? armedChip!.name
       : activeBrand.name;
   const heading = secretaryMode
-    ? '무엇을 기록할까요?'
+    ? '무엇을 챙겨드릴까요?'
     : isSearchArmed
       ? (armedChip!.greeting ?? `${armedChip!.name}에서 검색해요`)
       : activeBrand.greeting;
   const subheading = secretaryMode
-    ? `${secretaryTargetObj.emoji} ${secretaryTargetObj.label}에 자동 저장돼요 · Enter 로 저장`
+    ? `${secretaryScopeObj.emoji} ${scopeLabel}를 읽고 내 상황에 맞게 답해요`
     : isSearchArmed
       ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요')
       : activeBrand.subtitle;
   const placeholder = secretaryMode
-    ? '기록할 내용을 입력하세요…'
+    ? (secretaryBusy ? '내 데이터를 읽는 중…' : '내 일정·메모·위키에 대해 물어보세요…')
     : isSearchArmed
       ? (armedChip!.placeholder ?? '검색어를 입력하고 Enter…')
       : activeBrand.placeholder;
 
   // key · eyebrow 색.
   const identityKey = secretaryMode
-    ? `secretary-${secretaryTarget}`
+    ? `secretary-${secretaryScope}`
     : isSearchArmed
       ? `search-${armedChip!.id}`
       : `brand-${brand}`;
+
+  // 시간대 인사 — 마운트 시 1회 계산 (분 단위 갱신 불필요).
+  const greeting = getGreeting(new Date().getHours());
   const eyebrowColor = secretaryMode
     ? '#A78BFA'  // 비서 바이올렛 (배경 그라디언트에 잘 어울림)
     : isSearchArmed
@@ -227,10 +234,14 @@ export function HeroSection({
       // 비서 모드 > 검색 armed > AI 브랜드 순 우선순위.
       data-brand={secretaryMode ? 'secretary' : isSearchArmed ? armedChip!.id : brand}
     >
+      {/* 살아있는 배경 — 브랜드 accent glow 가 천천히 떠다님. */}
+      <div className="hero-living-glow" aria-hidden />
+
       {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
-       * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게). */}
+       * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게).
+       * hero-watermark-float 로 미세하게 상하 부유 (살아있는 감성). */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className="hero-watermark-float pointer-events-none absolute inset-0 flex items-center justify-center"
         aria-hidden
         style={{
           opacity: 'var(--hero-watermark-opacity, 0.075)',
@@ -239,13 +250,13 @@ export function HeroSection({
         }}
       >
         {secretaryMode ? (
-          // 비서 모드 워터마크 — 현재 타겟 이모지 (📝/📅/🌐).
+          // 비서 모드 워터마크 — 현재 소스 이모지 (💼/📅/📝/🌐).
           <span
-            key={`wm-secretary-${secretaryTarget}`}
+            key={`wm-secretary-${secretaryScope}`}
             className="font-black leading-none animate-in fade-in duration-500 ease-out"
             style={{ fontSize: '320px' }}
           >
-            {secretaryTargetObj.emoji}
+            {secretaryScopeObj.emoji}
           </span>
         ) : isSearchArmed && armedChip!.icon.path ? (
           // 검색 armed 워터마크 — 검색엔진 실제 로고 컬러.
@@ -319,19 +330,26 @@ export function HeroSection({
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
         <div className="text-center mb-10">
+          {/* 시간대 인사 — 개인화 한 줄 (아침/점심/저녁/밤). */}
+          <p
+            className="mb-3 text-[13px] font-medium animate-in fade-in duration-500"
+            style={{ color: 'var(--hero-fg-muted)' }}
+          >
+            {greeting.emoji} {greeting.text}
+          </p>
           {secretaryMode ? (
-            // 비서 모드 eyebrow — 타겟 선택 (메모/일정/위키) 3-way 토글.
+            // 비서 모드 eyebrow — 어떤 데이터를 읽을지 소스 선택 (전체/플래너/메모/위키).
             <div
               key={`${identityKey}-name`}
               className="mb-2 flex justify-center gap-1 animate-in fade-in duration-300"
             >
-              {SECRETARY_TARGETS.map((t) => {
-                const active = t.id === secretaryTarget;
+              {SECRETARY_SCOPES.map((s) => {
+                const active = s.id === secretaryScope;
                 return (
                   <button
-                    key={t.id}
+                    key={s.id}
                     type="button"
-                    onClick={() => setSecretaryTarget(t.id)}
+                    onClick={() => setSecretaryScope(s.id)}
                     className={cn(
                       'inline-flex items-center gap-1.5 h-9 px-4 rounded-full',
                       'text-[14px] font-medium transition-all duration-150',
@@ -351,8 +369,8 @@ export function HeroSection({
                           }
                     }
                   >
-                    <span>{t.emoji}</span>
-                    <span>{t.label}</span>
+                    <span>{s.emoji}</span>
+                    <span>{s.label}</span>
                   </button>
                 );
               })}
@@ -401,12 +419,16 @@ export function HeroSection({
         <HeroInput
           value={value}
           onChange={onChange}
-          onSubmit={handleSubmit}
+          onSubmit={() => { void handleSubmit(); }}
           onAttach={onAttach}
           onImage={onImage}
           onVoice={onVoice}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || secretaryBusy}
+          webSearchOn={webSearchOn}
+          onToggleWebSearch={() => setWebSearchOn((v) => !v)}
+          deepThinkOn={deepThinkOn}
+          onToggleDeepThink={() => setDeepThinkOn((v) => !v)}
           chipStrip={
             <BrandChipStrip
               // 검색 armed 시 AI 칩 highlight 없음 (null 로 전달).

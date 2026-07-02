@@ -5,16 +5,21 @@
  *   ┌─ [칩 스트립: 상단 border 관통] ─┐
  *   │  플레이스홀더 텍스트             │
  *   │                                 │
- *   │  📎 🖼️ 🎙️            [↑ send]  │
+ *   │  📎 🖼️ 🎙️ 🌐 🧠 ⋯      [↑ send] │
  *   └─────────────────────────────────┘
+ *
+ * 부가기능:
+ *   - 🌐 웹 검색 / 🧠 심층 사고 토글 — 부모(HeroSection)가 상태 관리,
+ *     전송 시 지시문으로 변환되어 메시지에 첨부.
+ *   - ⋯ 더보기 — 프롬프트 템플릿(입력창 자동 채움) · 대화 설정(길이·톤, 영속).
  *
  * 브랜드 테마 (--hero-*) 는 상위 `.hero-brand-canvas` 스코프에서 상속.
  */
 import {
   ArrowUp,
   Brain,
-  FileText,
-  FolderKanban,
+  Check,
+  ChevronLeft,
   Globe,
   Image as ImageIcon,
   Lightbulb,
@@ -25,6 +30,22 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  CHAT_LENGTH_OPTIONS,
+  CHAT_TONE_OPTIONS,
+  DEFAULT_CHAT_PREFS,
+  useChatPrefs,
+} from '@/lib/chatPrefs';
+
+/** 프롬프트 템플릿 — 클릭 시 입력창에 채워짐. */
+const PROMPT_TEMPLATES: { emoji: string; label: string; template: string }[] = [
+  { emoji: '📄', label: '요약',      template: '다음 내용을 핵심 5줄로 요약해줘:\n\n' },
+  { emoji: '✍️', label: '글 다듬기', template: '다음 글을 자연스럽고 명확하게 다듬어줘:\n\n' },
+  { emoji: '🌐', label: '영어 번역', template: '다음을 자연스러운 영어로 번역해줘:\n\n' },
+  { emoji: '📧', label: '이메일 초안', template: '다음 내용으로 정중한 비즈니스 이메일 초안을 써줘:\n\n' },
+  { emoji: '💡', label: '아이디어 10개', template: '이 주제에 대한 아이디어 10개를 브레인스토밍해줘: ' },
+  { emoji: '🧒', label: '쉽게 설명', template: '처음 배우는 사람도 이해할 수 있게 쉽게 설명해줘: ' },
+];
 
 interface Props {
   value: string;
@@ -39,6 +60,12 @@ interface Props {
   chipStrip: ReactNode;
   /** 하단 툴바 우측 슬롯 — send 버튼 옆에 모델 셀렉트 등. */
   toolbarRight?: ReactNode;
+  /** 웹 검색 토글 — 부모가 상태 관리 (전송 시 지시문 반영). */
+  webSearchOn?: boolean;
+  onToggleWebSearch?: () => void;
+  /** 심층 사고 토글. */
+  deepThinkOn?: boolean;
+  onToggleDeepThink?: () => void;
   autoFocus?: boolean;
 }
 
@@ -53,13 +80,18 @@ export function HeroInput({
   disabled,
   chipStrip,
   toolbarRight,
+  webSearchOn = false,
+  onToggleWebSearch,
+  deepThinkOn = false,
+  onToggleDeepThink,
   autoFocus,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // 부가기능 로컬 상태 (프론트엔드 mockup — 실제 배선은 다음 단계).
-  const [webSearchOn, setWebSearchOn] = useState(false);
-  const [deepThinkOn, setDeepThinkOn] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const { prefs } = useChatPrefs();
+  // 기본값에서 벗어난 설정이 있으면 더보기 버튼에 dot 표시.
+  const prefsCustomized =
+    prefs.length !== DEFAULT_CHAT_PREFS.length || prefs.tone !== DEFAULT_CHAT_PREFS.tone;
 
   // auto-grow (max ~6 rows)
   useEffect(() => {
@@ -86,14 +118,13 @@ export function HeroInput({
   return (
     <div className="relative w-full">
       {/* 칩 스트립 — top border 관통.
-       * 각 칩의 box-shadow 가 hero-bg 색 halo 를 만들어 border 를 자연스럽게 가림.
-       * (여기선 pill 배경 X — 칩끼리 hero-bg halo 로 이어짐). */}
+       * 각 칩의 box-shadow 가 hero-bg 색 halo 를 만들어 border 를 자연스럽게 가림. */}
       <div className="absolute left-2 right-2 top-0 z-10 -translate-y-1/2 flex justify-center pointer-events-none">
         <div className="pointer-events-auto">{chipStrip}</div>
       </div>
 
-      {/* 입력 컨테이너 — 컴팩트 · glass elevation · 브랜드 색조 shadow.
-       * focus-within 시 브랜드 색으로 border 변경 (default 파랑 outline 대체). */}
+      {/* 입력 컨테이너 — glass elevation · 브랜드 색조 shadow.
+       * focus-within 시 브랜드 색으로 border 변경. */}
       <div
         className={cn(
           'group relative rounded-[var(--hero-radius-input,14px)] border',
@@ -103,10 +134,8 @@ export function HeroInput({
         style={{
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
           borderColor: 'var(--hero-input-border, rgba(255,255,255,0.10))',
-          // frosted glass — alpha 낮춰서 뒷배경 살짝 비침. blur 강화로 텍스트는 clean.
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          // 3-layer shadow — 은은한 inner highlight + brand accent + delicate depth.
           boxShadow: `
             0 1px 0 rgba(255, 255, 255, 0.06) inset,
             0 8px 28px -14px var(--hero-accent-soft, rgba(0,0,0,0.12)),
@@ -114,7 +143,7 @@ export function HeroInput({
           `,
         }}
       >
-        {/* Textarea — 전체 사이즈 up */}
+        {/* Textarea */}
         <div className="pt-9 px-5 pb-2">
           <textarea
             ref={textareaRef}
@@ -126,7 +155,6 @@ export function HeroInput({
             disabled={disabled}
             className={cn(
               'w-full resize-none bg-transparent border-0',
-              // 브라우저 default 파란 outline 완전 제거.
               'outline-none focus:outline-none focus-visible:outline-none',
               'ring-0 focus:ring-0 focus-visible:ring-0',
               'text-[16px] leading-[1.55]',
@@ -142,7 +170,7 @@ export function HeroInput({
           />
         </div>
 
-        {/* 하단 툴바 — 첨부 · 프로젝트 · 웹 · 심층 · 더보기 */}
+        {/* 하단 툴바 — 첨부 · 이미지 · 음성 · 웹 · 심층 · 더보기 */}
         <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
           <div className="flex items-center gap-0">
             <ToolbarButton onClick={onAttach} label="파일 첨부">
@@ -154,40 +182,51 @@ export function HeroInput({
             <ToolbarButton onClick={onVoice} label="음성">
               <Mic size={17} />
             </ToolbarButton>
-            {/* 신규 부가기능 */}
-            <ToolbarToggle
-              active={webSearchOn}
-              onClick={() => setWebSearchOn((v) => !v)}
-              label={webSearchOn ? '웹 검색 켜짐' : '웹 검색'}
-            >
-              <Globe size={17} />
-            </ToolbarToggle>
-            <ToolbarToggle
-              active={deepThinkOn}
-              onClick={() => setDeepThinkOn((v) => !v)}
-              label={deepThinkOn ? '심층 사고 켜짐' : '심층 사고'}
-            >
-              <Brain size={17} />
-            </ToolbarToggle>
+            {onToggleWebSearch && (
+              <ToolbarToggle
+                active={webSearchOn}
+                onClick={onToggleWebSearch}
+                label={webSearchOn ? '웹 검색 켜짐 — 답변에 최신 정보·출처 요청' : '웹 검색 — 최신 정보·출처 요청'}
+              >
+                <Globe size={17} />
+              </ToolbarToggle>
+            )}
+            {onToggleDeepThink && (
+              <ToolbarToggle
+                active={deepThinkOn}
+                onClick={onToggleDeepThink}
+                label={deepThinkOn ? '심층 사고 켜짐 — 단계별 추론 요청' : '심층 사고 — 단계별 추론 요청'}
+              >
+                <Brain size={17} />
+              </ToolbarToggle>
+            )}
             <div className="relative">
-              <ToolbarButton onClick={() => setMoreOpen((v) => !v)} label="더보기">
-                <MoreHorizontal size={17} />
+              <ToolbarButton onClick={() => setMoreOpen((v) => !v)} label="더보기 — 템플릿·대화 설정">
+                <span className="relative">
+                  <MoreHorizontal size={17} />
+                  {prefsCustomized && (
+                    <span
+                      className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
+                      aria-hidden
+                    />
+                  )}
+                </span>
               </ToolbarButton>
               {moreOpen && (
-                <MoreMenu
+                <MorePopover
                   onClose={() => setMoreOpen(false)}
-                  items={[
-                    { icon: <FolderKanban size={17} />, label: '프로젝트에 연결', hint: '진행 중인 프로젝트에 대화 저장' },
-                    { icon: <FileText size={17} />, label: '문서 모드', hint: '긴 글 · 개요 · 초안 작성' },
-                    { icon: <Lightbulb size={17} />, label: '프롬프트 라이브러리', hint: '자주 쓰는 프롬프트 재사용' },
-                    { icon: <Settings2 size={17} />, label: '대화 설정', hint: '온도 · 스타일 · 시스템 프롬프트' },
-                  ]}
+                  onInsertTemplate={(t) => {
+                    onChange(value ? `${value}\n${t}` : t);
+                    setMoreOpen(false);
+                    textareaRef.current?.focus();
+                  }}
                 />
               )}
             </div>
           </div>
 
-          {/* 우측: 모델 셀렉트 + Send */}
+          {/* 우측: (옵션 슬롯) + Send */}
           <div className="flex items-center gap-1.5">
             {toolbarRight}
             <button
@@ -249,10 +288,7 @@ function ToolbarButton({
   );
 }
 
-/**
- * ToolbarToggle — 활성/비활성 상태를 시각적으로 보여주는 토글 버튼.
- * 활성 시 브랜드 accent 색 배경 + 진한 텍스트.
- */
+/** 활성/비활성 상태를 시각적으로 보여주는 토글 버튼. */
 function ToolbarToggle({
   active,
   onClick,
@@ -289,18 +325,24 @@ function ToolbarToggle({
   );
 }
 
-interface MoreMenuItem {
-  icon: ReactNode;
-  label: string;
-  hint?: string;
-}
+type MoreView = 'main' | 'templates' | 'settings';
 
 /**
- * MoreMenu — 추가 기능 팝오버 (더보기 · 프로젝트 · 문서 · 프롬프트 · 설정).
- * 프론트엔드 mockup — 각 아이템 클릭 시 임시로 콘솔에 로그.
+ * 더보기 팝오버 — 3-view 구조.
+ *   main      → 프롬프트 템플릿 / 대화 설정 진입
+ *   templates → 6개 템플릿 (클릭 시 입력창에 채움)
+ *   settings  → 답변 길이·말투 (localStorage 영속)
  */
-function MoreMenu({ items, onClose }: { items: MoreMenuItem[]; onClose: () => void }) {
+function MorePopover({
+  onClose,
+  onInsertTemplate,
+}: {
+  onClose: () => void;
+  onInsertTemplate: (template: string) => void;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<MoreView>('main');
+  const { prefs, setPrefs } = useChatPrefs();
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -323,8 +365,8 @@ function MoreMenu({ items, onClose }: { items: MoreMenuItem[]; onClose: () => vo
       ref={rootRef}
       role="menu"
       className={cn(
-        'absolute bottom-full left-0 mb-2 min-w-[240px]',
-        'rounded-xl border p-1 z-50',
+        'absolute bottom-full left-0 mb-2 w-[280px]',
+        'rounded-xl border p-1.5 z-50',
         'shadow-[0_16px_40px_-14px_rgba(0,0,0,0.35)]',
         'animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-150',
       )}
@@ -335,53 +377,217 @@ function MoreMenu({ items, onClose }: { items: MoreMenuItem[]; onClose: () => vo
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
       }}
     >
-      {items.map((it) => (
-        <button
-          key={it.label}
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            /* frontend mockup — 추후 실제 액션 배선 */
-            onClose();
-          }}
-          className={cn(
-            'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-lg text-left',
-            'transition-colors duration-100',
-          )}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <span
-            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-            style={{
-              color: 'var(--hero-accent)',
-              backgroundColor: 'var(--hero-accent-soft)',
-            }}
-          >
-            {it.icon}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block text-[12.5px] font-medium leading-tight"
-              style={{ color: 'var(--hero-fg, #ececec)' }}
+      {view === 'main' && (
+        <>
+          <MoreItem
+            icon={<Lightbulb size={16} />}
+            label="프롬프트 템플릿"
+            hint="요약·다듬기·번역·이메일…"
+            onClick={() => setView('templates')}
+          />
+          <MoreItem
+            icon={<Settings2 size={16} />}
+            label="대화 설정"
+            hint={`답변 ${CHAT_LENGTH_OPTIONS.find((o) => o.id === prefs.length)?.label} · ${CHAT_TONE_OPTIONS.find((o) => o.id === prefs.tone)?.label} 말투`}
+            onClick={() => setView('settings')}
+          />
+        </>
+      )}
+
+      {view === 'templates' && (
+        <>
+          <BackHeader label="프롬프트 템플릿" onBack={() => setView('main')} />
+          {PROMPT_TEMPLATES.map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              role="menuitem"
+              onClick={() => onInsertTemplate(t.template)}
+              className="flex w-full items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors duration-100"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              {it.label}
-            </span>
-            {it.hint && (
+              <span className="text-[16px] leading-none shrink-0">{t.emoji}</span>
               <span
-                className="block text-[10.5px] mt-0.5"
-                style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+                className="text-[13px] font-medium"
+                style={{ color: 'var(--hero-fg, #ececec)' }}
               >
-                {it.hint}
+                {t.label}
               </span>
-            )}
-          </span>
-        </button>
-      ))}
+            </button>
+          ))}
+        </>
+      )}
+
+      {view === 'settings' && (
+        <>
+          <BackHeader label="대화 설정" onBack={() => setView('main')} />
+          <SettingsGroup label="답변 길이">
+            {CHAT_LENGTH_OPTIONS.map((o) => (
+              <SettingsChip
+                key={o.id}
+                label={o.label}
+                hint={o.hint}
+                active={prefs.length === o.id}
+                onClick={() => setPrefs({ length: o.id })}
+              />
+            ))}
+          </SettingsGroup>
+          <SettingsGroup label="말투">
+            {CHAT_TONE_OPTIONS.map((o) => (
+              <SettingsChip
+                key={o.id}
+                label={o.label}
+                hint={o.hint}
+                active={prefs.tone === o.id}
+                onClick={() => setPrefs({ tone: o.id })}
+              />
+            ))}
+          </SettingsGroup>
+          <p
+            className="px-2.5 pt-1 pb-1.5 text-[10.5px] leading-snug"
+            style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+          >
+            설정은 저장되어 모든 대화에 적용돼요.
+          </p>
+        </>
+      )}
     </div>
+  );
+}
+
+function MoreItem({
+  icon,
+  label,
+  hint,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="flex w-full items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors duration-100"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        style={{
+          color: 'var(--hero-accent)',
+          backgroundColor: 'var(--hero-accent-soft)',
+        }}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className="block text-[13px] font-medium leading-tight"
+          style={{ color: 'var(--hero-fg, #ececec)' }}
+        >
+          {label}
+        </span>
+        {hint && (
+          <span
+            className="block text-[11px] mt-0.5"
+            style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+          >
+            {hint}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function BackHeader({ label, onBack }: { label: string; onBack: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="flex w-full items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors duration-100"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <ChevronLeft size={14} style={{ color: 'var(--hero-fg-muted)' }} />
+      <span
+        className="text-[11.5px] font-semibold tracking-tight"
+        style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function SettingsGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="px-2.5 py-1.5">
+      <div
+        className="text-[10.5px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+        style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+      >
+        {label}
+      </div>
+      <div className="flex flex-wrap gap-1">{children}</div>
+    </div>
+  );
+}
+
+function SettingsChip({
+  label,
+  hint,
+  active,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={hint}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[11.5px] font-medium',
+        'border transition-all duration-150',
+      )}
+      style={
+        active
+          ? {
+              color: '#FFFFFF',
+              backgroundColor: 'var(--hero-accent)',
+              borderColor: 'var(--hero-accent)',
+            }
+          : {
+              color: 'var(--hero-fg-muted)',
+              backgroundColor: 'transparent',
+              borderColor: 'var(--hero-hairline)',
+            }
+      }
+    >
+      {active && <Check size={11} strokeWidth={3} />}
+      {label}
+    </button>
   );
 }

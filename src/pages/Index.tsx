@@ -7563,18 +7563,25 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                     const isMessenger = getMainMode(discussionMode) === 'general';
                     return (
                       <div key={msg.id} className={cn(isMessenger ? 'flex justify-end' : '')}>
-                        <div className={cn(
-                          isMessenger
-                            ? 'max-w-[75%] bg-indigo-500 dark:bg-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm leading-relaxed'
-                            : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
-                        )}>
+                        <div
+                          className={cn(
+                            isMessenger
+                              ? 'max-w-[75%] rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm leading-relaxed'
+                              : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
+                          )}
+                          // general 모드 유저 버블 = 선택된 AI 브랜드 accent 색 (hero-brand-canvas 변수).
+                          style={isMessenger ? {
+                            backgroundColor: 'var(--hero-user-bubble-bg, #6366f1)',
+                            color: 'var(--hero-user-bubble-fg, #ffffff)',
+                          } : undefined}
+                        >
                           <ReactMarkdownInline content={msg.content} />
                           {msg.attachedFiles && msg.attachedFiles.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {msg.attachedFiles.map((f, i) => (
                                 <span key={i} className={cn(
                                   'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                                  isMessenger ? 'bg-indigo-400/30 text-indigo-100' : 'bg-slate-50 text-slate-500 border border-slate-200'
+                                  isMessenger ? 'bg-black/10' : 'bg-slate-50 text-slate-500 border border-slate-200'
                                 )}>
                                   {f.preview ? (
                                     <img src={f.preview} alt="" className="w-4 h-4 rounded object-cover" />
@@ -7647,7 +7654,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           {/* Bottom Input — 게임 모드에서는 GamePlayer 내부에 입력 있으므로 숨김 */}
           {!activeGame && (messages.length > 0 || isDiscussing) && (
             <div className="shrink-0 relative">
-              <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#f7f7f8] to-transparent pointer-events-none" />
+              {/* 하단 fade — general 모드에선 브랜드 bg 색으로 자연스럽게 (hero-brand-canvas 변수, 밖에선 #f7f7f8 폴백). */}
+              <div
+                className="absolute inset-x-0 -top-8 h-8 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, var(--hero-bg, #f7f7f8), transparent)' }}
+              />
                 <div className={cn("mx-auto px-4 sm:px-6 py-2.5 pb-4 space-y-2", (discussionMode === 'multi' && messages.length > 0) || discussionMode === 'stakeholder' || discussionMode === 'procon' || discussionMode === 'standard' || discussionMode === 'freetalk' || discussionMode === 'aivsuser' ? 'max-w-3xl' : (getMainMode(discussionMode) === 'general' ? 'max-w-[710px]' : 'max-w-2xl'))}>
                 {/* Progress bar + Active bot + Stop */}
                 {isDiscussing && (
