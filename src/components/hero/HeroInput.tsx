@@ -66,7 +66,7 @@ export function HeroInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [value]);
 
   useEffect(() => {
@@ -114,8 +114,8 @@ export function HeroInput({
           `,
         }}
       >
-        {/* Textarea — 세로 약간 여유 (min-h 52px) */}
-        <div className="pt-7 px-4 pb-1.5">
+        {/* Textarea — 전체 사이즈 up */}
+        <div className="pt-9 px-5 pb-2">
           <textarea
             ref={textareaRef}
             value={value}
@@ -126,19 +126,18 @@ export function HeroInput({
             disabled={disabled}
             className={cn(
               'w-full resize-none bg-transparent border-0',
-              // 브라우저 default 파란 outline 완전 제거 — 컨테이너의 focus-within
-              // border 로 대체 (브랜드 ring 색).
+              // 브라우저 default 파란 outline 완전 제거.
               'outline-none focus:outline-none focus-visible:outline-none',
               'ring-0 focus:ring-0 focus-visible:ring-0',
-              'text-[14.5px] leading-[1.55]',
+              'text-[16px] leading-[1.55]',
               'placeholder:text-[color:var(--hero-fg-muted,#8e8ea0)]',
               'disabled:opacity-60',
             )}
             style={{
               color: 'var(--hero-fg, #ececec)',
               fontFamily: 'var(--hero-font-body, inherit)',
-              minHeight: '52px',
-              maxHeight: '180px',
+              minHeight: '64px',
+              maxHeight: '220px',
             }}
           />
         </div>
@@ -147,13 +146,13 @@ export function HeroInput({
         <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
           <div className="flex items-center gap-0">
             <ToolbarButton onClick={onAttach} label="파일 첨부">
-              <Paperclip size={14} />
+              <Paperclip size={17} />
             </ToolbarButton>
             <ToolbarButton onClick={onImage} label="이미지">
-              <ImageIcon size={14} />
+              <ImageIcon size={17} />
             </ToolbarButton>
             <ToolbarButton onClick={onVoice} label="음성">
-              <Mic size={14} />
+              <Mic size={17} />
             </ToolbarButton>
             {/* 신규 부가기능 */}
             <ToolbarToggle
@@ -161,27 +160,27 @@ export function HeroInput({
               onClick={() => setWebSearchOn((v) => !v)}
               label={webSearchOn ? '웹 검색 켜짐' : '웹 검색'}
             >
-              <Globe size={14} />
+              <Globe size={17} />
             </ToolbarToggle>
             <ToolbarToggle
               active={deepThinkOn}
               onClick={() => setDeepThinkOn((v) => !v)}
               label={deepThinkOn ? '심층 사고 켜짐' : '심층 사고'}
             >
-              <Brain size={14} />
+              <Brain size={17} />
             </ToolbarToggle>
             <div className="relative">
               <ToolbarButton onClick={() => setMoreOpen((v) => !v)} label="더보기">
-                <MoreHorizontal size={14} />
+                <MoreHorizontal size={17} />
               </ToolbarButton>
               {moreOpen && (
                 <MoreMenu
                   onClose={() => setMoreOpen(false)}
                   items={[
-                    { icon: <FolderKanban size={14} />, label: '프로젝트에 연결', hint: '진행 중인 프로젝트에 대화 저장' },
-                    { icon: <FileText size={14} />, label: '문서 모드', hint: '긴 글 · 개요 · 초안 작성' },
-                    { icon: <Lightbulb size={14} />, label: '프롬프트 라이브러리', hint: '자주 쓰는 프롬프트 재사용' },
-                    { icon: <Settings2 size={14} />, label: '대화 설정', hint: '온도 · 스타일 · 시스템 프롬프트' },
+                    { icon: <FolderKanban size={17} />, label: '프로젝트에 연결', hint: '진행 중인 프로젝트에 대화 저장' },
+                    { icon: <FileText size={17} />, label: '문서 모드', hint: '긴 글 · 개요 · 초안 작성' },
+                    { icon: <Lightbulb size={17} />, label: '프롬프트 라이브러리', hint: '자주 쓰는 프롬프트 재사용' },
+                    { icon: <Settings2 size={17} />, label: '대화 설정', hint: '온도 · 스타일 · 시스템 프롬프트' },
                   ]}
                 />
               )}
@@ -197,7 +196,7 @@ export function HeroInput({
               disabled={!canSubmit}
               aria-label="전송"
               className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full',
+                'flex h-9 w-9 items-center justify-center rounded-full',
                 'transition-all duration-200 ease-out',
                 canSubmit
                   ? 'hover:scale-105 active:scale-95'
@@ -213,7 +212,7 @@ export function HeroInput({
                 }),
               }}
             >
-              <ArrowUp size={14} strokeWidth={2.6} />
+              <ArrowUp size={20} strokeWidth={2.6} />
             </button>
           </div>
         </div>
@@ -239,7 +238,7 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-md',
+        'flex h-9 w-9 items-center justify-center rounded-md',
         'transition-colors duration-150',
         'hover:bg-[color:var(--hero-accent-soft,rgba(255,255,255,0.06))]',
       )}
@@ -273,7 +272,7 @@ function ToolbarToggle({
       aria-pressed={active}
       title={label}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-md',
+        'flex h-9 w-9 items-center justify-center rounded-md',
         'transition-all duration-150',
         !active && 'hover:bg-[color:var(--hero-accent-soft,rgba(255,255,255,0.06))]',
       )}

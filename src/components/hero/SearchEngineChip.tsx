@@ -29,7 +29,7 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         'relative flex items-center justify-center rounded-full shrink-0',
         'transition-all duration-300 ease-out',
         // armed 시 살짝 크게 + 강한 링, 아니면 절제된 크기·투명도
-        armed ? 'h-[34px] w-[34px]' : 'h-[26px] w-[26px] opacity-75 hover:opacity-100 hover:scale-110',
+        armed ? 'h-[42px] w-[42px]' : 'h-[32px] w-[32px] opacity-75 hover:opacity-100 hover:scale-110',
         circleBg === 'transparent' && 'hover:bg-white/5',
       )}
       style={{
@@ -56,7 +56,7 @@ export function SearchEngineChip({ chip, armed, onClick }: Props) {
         text={icon.text}
         lucide={icon.lucide as 'Star' | 'Bookmark' | undefined}
         fill={iconFill}
-        size={armed ? 16 : 12}
+        size={armed ? 20 : 16}
       />
     </button>
   );

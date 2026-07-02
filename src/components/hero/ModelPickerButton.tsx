@@ -64,8 +64,8 @@ export function ModelPickerButton({
           isEyebrow
             ? [
                 // eyebrow 스타일 — 헤드라인 위 라벨. 모델명만 · 살짝 크게 · 클릭 영역 넓게.
-                'inline-flex items-center gap-1.5 py-1.5 px-3 -mx-3 rounded-lg',
-                'text-[13px] font-medium tracking-normal',
+                'inline-flex items-center gap-1.5 py-2 px-4 -mx-4 rounded-lg',
+                'text-[15px] font-medium tracking-normal',
                 'transition-colors duration-150',
                 hasChoice && 'hover:bg-[color:var(--hero-accent-soft)]',
               ]
@@ -94,7 +94,7 @@ export function ModelPickerButton({
             <span>{selectedModel.name}</span>
             {hasChoice && (
               <ChevronDown
-                size={14}
+                size={16}
                 strokeWidth={2.4}
                 className={cn('opacity-60 transition-transform', open && 'rotate-180')}
               />
