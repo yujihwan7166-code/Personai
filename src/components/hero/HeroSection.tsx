@@ -27,8 +27,18 @@ import { useCustomPortals } from '@/hooks/useCustomPortals';
 import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi';
 import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
-import { SecretarySheet } from './SecretarySheet';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
+import { addMemo } from '@/lib/memoStore';
+import { taskStore } from '@/services/planner/taskStore';
+import { toast } from 'sonner';
+
+type SecretaryTarget = 'memo' | 'schedule' | 'wiki';
+
+const SECRETARY_TARGETS: { id: SecretaryTarget; label: string; emoji: string }[] = [
+  { id: 'memo',     label: '메모',   emoji: '📝' },
+  { id: 'schedule', label: '일정',   emoji: '📅' },
+  { id: 'wiki',     label: '위키',   emoji: '🌐' },
+];
 
 interface Props {
   /** 상단 pill (모드 셀렉트 등). topSlot 지정 시 pill 대신 렌더. */
@@ -74,7 +84,9 @@ export function HeroSection({
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingCustom, setEditingCustom] = useState<CustomAi | undefined>();
   const [portalCreatorOpen, setPortalCreatorOpen] = useState(false);
-  const [secretaryOpen, setSecretaryOpen] = useState(false);
+  // 비서 모드 — 클릭 시 히어로가 비서 모드로 morph. AI/검색 과 상호 배타.
+  const [secretaryMode, setSecretaryMode] = useState(false);
+  const [secretaryTarget, setSecretaryTarget] = useState<SecretaryTarget>('memo');
   const [editingCustomPortal, setEditingCustomPortal] = useState<CustomPortal | undefined>();
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
@@ -100,21 +112,52 @@ export function HeroSection({
   // 외부 검색 armed 여부 (북마크는 armed 로 취급 X — 즉시 모달).
   const isSearchArmed = !!armedChip?.external;
 
-  // AI 클릭 → armed 검색 해제 (상호 배타).
+  // AI 클릭 → armed 검색·비서 모드 해제 (상호 배타).
   const handleSelectBrand = (b: BrandId) => {
     setBrand(b);
     if (armed) disarm();
+    if (secretaryMode) setSecretaryMode(false);
   };
 
-  // 검색 클릭 → 그냥 toggle (같은 칩 다시 클릭 = disarm).
-  // 브랜드 state 는 유지되지만 armed 동안 시각적으로 감춤.
+  // 검색 클릭 → toggle. 비서 모드는 자동 해제.
   const handleToggleSearch = (id: HeroChipId) => {
     toggle(id);
+    if (secretaryMode) setSecretaryMode(false);
+  };
+
+  // 비서 chip 클릭 → 비서 모드 토글. AI/검색 armed 해제.
+  const handleToggleSecretary = () => {
+    setSecretaryMode((prev) => !prev);
+    if (armed) disarm();
   };
 
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (!trimmed) return;
+
+    // 비서 모드 → 내부 스토어에 저장 (AI 호출 X).
+    if (secretaryMode) {
+      const target = SECRETARY_TARGETS.find((t) => t.id === secretaryTarget)!;
+      try {
+        if (secretaryTarget === 'memo') {
+          addMemo({ body: trimmed });
+        } else if (secretaryTarget === 'schedule') {
+          const firstLine = trimmed.split('\n').find((l) => l.trim()) ?? trimmed;
+          taskStore.add({ title: firstLine.slice(0, 200) });
+        } else {
+          // wiki — 우선 메모로 저장 + 위키 마이그레이션 hint.
+          // (실제 wiki page 생성은 다음 단계.)
+          addMemo({ body: `[위키 초안]\n${trimmed}` });
+        }
+        toast.success(`${target.emoji} ${target.label}에 저장됨`, {
+          description: trimmed.slice(0, 60) + (trimmed.length > 60 ? '…' : ''),
+        });
+        onChange('');
+      } catch {
+        toast.error('저장 실패 — 다시 시도해주세요');
+      }
+      return;
+    }
 
     // 검색 armed → 무조건 외부 새 탭.
     if (armedChip && armedChip.external) {
@@ -142,28 +185,47 @@ export function HeroSection({
     onSubmitToAi(brand, routedExpertId, routedText);
   };
 
-  // 헤드라인·서브·placeholder·eyebrow·워터마크 = armed 여부에 따라 스왑.
-  const displayName = isSearchArmed ? armedChip!.name : activeBrand.name;
-  const heading = isSearchArmed
-    ? (armedChip!.greeting ?? `${armedChip!.name}에서 검색해요`)
-    : activeBrand.greeting;
-  const subheading = isSearchArmed
-    ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요')
-    : activeBrand.subtitle;
-  const placeholder = isSearchArmed
-    ? (armedChip!.placeholder ?? '검색어를 입력하고 Enter…')
-    : activeBrand.placeholder;
+  // 헤드라인·서브·placeholder·eyebrow·워터마크 = 상태에 따라 스왑.
+  // 우선순위: 비서 모드 > 검색 armed > AI 브랜드.
+  const secretaryTargetObj = SECRETARY_TARGETS.find((t) => t.id === secretaryTarget)!;
+  const displayName = secretaryMode
+    ? '비서'
+    : isSearchArmed
+      ? armedChip!.name
+      : activeBrand.name;
+  const heading = secretaryMode
+    ? '무엇을 기록할까요?'
+    : isSearchArmed
+      ? (armedChip!.greeting ?? `${armedChip!.name}에서 검색해요`)
+      : activeBrand.greeting;
+  const subheading = secretaryMode
+    ? `${secretaryTargetObj.emoji} ${secretaryTargetObj.label}에 자동 저장돼요 · Enter 로 저장`
+    : isSearchArmed
+      ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요')
+      : activeBrand.subtitle;
+  const placeholder = secretaryMode
+    ? '기록할 내용을 입력하세요…'
+    : isSearchArmed
+      ? (armedChip!.placeholder ?? '검색어를 입력하고 Enter…')
+      : activeBrand.placeholder;
 
-  // key 는 armed 상태도 반영 — armed 스위칭 시 fade-in 재생.
-  const identityKey = isSearchArmed ? `search-${armedChip!.id}` : `brand-${brand}`;
-  const eyebrowColor = isSearchArmed ? armedChip!.ring : 'var(--hero-accent)';
+  // key · eyebrow 색.
+  const identityKey = secretaryMode
+    ? `secretary-${secretaryTarget}`
+    : isSearchArmed
+      ? `search-${armedChip!.id}`
+      : `brand-${brand}`;
+  const eyebrowColor = secretaryMode
+    ? '#A78BFA'  // 비서 바이올렛 (배경 그라디언트에 잘 어울림)
+    : isSearchArmed
+      ? armedChip!.ring
+      : 'var(--hero-accent)';
 
   return (
     <div
       className="hero-brand-canvas relative w-full min-h-full flex flex-col items-center justify-center overflow-hidden"
-      // 검색 armed 시 → 그 검색엔진 테마로 morph.
-      // 상호 배타이므로 AI 브랜드는 감춰짐.
-      data-brand={isSearchArmed ? armedChip!.id : brand}
+      // 비서 모드 > 검색 armed > AI 브랜드 순 우선순위.
+      data-brand={secretaryMode ? 'secretary' : isSearchArmed ? armedChip!.id : brand}
     >
       {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
        * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게). */}
@@ -176,7 +238,16 @@ export function HeroSection({
           WebkitMaskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
         }}
       >
-        {isSearchArmed && armedChip!.icon.path ? (
+        {secretaryMode ? (
+          // 비서 모드 워터마크 — 현재 타겟 이모지 (📝/📅/🌐).
+          <span
+            key={`wm-secretary-${secretaryTarget}`}
+            className="font-black leading-none animate-in fade-in duration-500 ease-out"
+            style={{ fontSize: '320px' }}
+          >
+            {secretaryTargetObj.emoji}
+          </span>
+        ) : isSearchArmed && armedChip!.icon.path ? (
           // 검색 armed 워터마크 — 검색엔진 실제 로고 컬러.
           <BrandLogo
             key={`wm-${armedChip!.id}`}
@@ -248,7 +319,45 @@ export function HeroSection({
       <div className="relative z-10 w-full max-w-[640px] px-6 py-14">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
         <div className="text-center mb-9">
-          {isSearchArmed ? (
+          {secretaryMode ? (
+            // 비서 모드 eyebrow — 타겟 선택 (메모/일정/위키) 3-way 토글.
+            <div
+              key={`${identityKey}-name`}
+              className="mb-2 flex justify-center gap-1 animate-in fade-in duration-300"
+            >
+              {SECRETARY_TARGETS.map((t) => {
+                const active = t.id === secretaryTarget;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSecretaryTarget(t.id)}
+                    className={cn(
+                      'inline-flex items-center gap-1 h-7 px-3 rounded-full',
+                      'text-[12px] font-medium transition-all duration-150',
+                      'border',
+                    )}
+                    style={
+                      active
+                        ? {
+                            color: '#FFFFFF',
+                            backgroundColor: 'var(--hero-accent)',
+                            borderColor: 'var(--hero-accent)',
+                          }
+                        : {
+                            color: 'var(--hero-fg-muted)',
+                            backgroundColor: 'transparent',
+                            borderColor: 'var(--hero-hairline)',
+                          }
+                    }
+                  >
+                    <span>{t.emoji}</span>
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : isSearchArmed ? (
             // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
             <p
               key={`${identityKey}-name`}
@@ -306,8 +415,8 @@ export function HeroSection({
               armedSearch={armed}
               onToggleSearch={handleToggleSearch}
               onOpenPicker={() => setPickerOpen(true)}
-              onOpenSecretary={() => setSecretaryOpen(true)}
-              secretaryOpen={secretaryOpen}
+              onOpenSecretary={handleToggleSecretary}
+              secretaryOpen={secretaryMode}
               visibleBrandIds={visibleIds}
               visiblePortalIds={portalsHook.visibleIds}
               customBrands={customBrands}
@@ -384,15 +493,7 @@ export function HeroSection({
         onUpdate={customPortalsHook.updateCustomPortal}
       />
 
-      {/* 비서 시트 — 사이트 내부 자료 참조 · 삽입. */}
-      <SecretarySheet
-        open={secretaryOpen}
-        onClose={() => setSecretaryOpen(false)}
-        onInsertReference={(ref) => {
-          // 참조 문자열을 현재 입력에 append (개행으로 구분).
-          onChange(value ? `${value}\n${ref}` : ref);
-        }}
-      />
+      {/* 비서 시트(v1 플로팅) 는 폐기 — 이제 secretaryMode 로 히어로 자체가 morph. */}
     </div>
   );
 }

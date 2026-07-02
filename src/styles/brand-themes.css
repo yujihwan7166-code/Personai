@@ -193,6 +193,31 @@
   --hero-watermark-opacity: 0.14;
 }
 
+/* ────── Secretary — 앰버·바이올렛 그라디언트 (비서 모드) ────── */
+.hero-brand-canvas[data-brand='secretary'] {
+  --hero-bg: #1a1225;
+  /* 앰버→바이올렛 대각선 그라디언트 + 상단 소프트 halo. */
+  --hero-mesh:
+    linear-gradient(135deg,
+      rgba(245, 158, 11, 0.14) 0%,
+      rgba(139, 92, 246, 0.20) 55%,
+      transparent 90%),
+    radial-gradient(55% 40% at 50% -5%, rgba(167, 139, 250, 0.24), transparent 60%),
+    radial-gradient(45% 40% at 90% 100%, rgba(245, 158, 11, 0.10), transparent 60%);
+  --hero-pattern: none;
+  --hero-fg: #f5f1fa;
+  --hero-fg-muted: #b8aecf;
+  --hero-accent: #a78bfa;
+  --hero-accent-soft: rgba(167, 139, 250, 0.16);
+  --hero-ring: #a78bfa;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(255, 255, 255, 0.10);
+  --hero-input-bg: rgba(24, 18, 42, 0.44);
+  --hero-input-border: rgba(167, 139, 250, 0.34);
+}
+
 /* ────── Kimi (Moonshot AI) — 밤하늘 퍼플 · 스타 도트 (달·초장문 감성) ────── */
 .hero-brand-canvas[data-brand='kimi'] {
   --hero-bg: #1a1330;
