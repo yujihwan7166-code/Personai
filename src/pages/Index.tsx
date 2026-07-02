@@ -2,7 +2,7 @@ import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 're
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
-import { ModeLauncher } from '@/components/hero/ModeLauncher';
+import { ModeStrip } from '@/components/hero/ModeStrip';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { notifyDone } from '@/lib/notifications';
@@ -4772,8 +4772,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           )}
           data-brand={getMainMode(discussionMode) === 'general' ? selectedHeroBrand : undefined}
         >
-          {/* 모드 런처 — 풀스크린 오버레이 (히어로 브랜드 변수 상속을 위해 이 컨테이너 안에 마운트). */}
-          <ModeLauncher
+          {/* 모드 스트립 — pill 자리에서 제자리 확장되는 인라인 칩 네비 (페이지 전환 없음). */}
+          <ModeStrip
             open={modeLauncherOpen}
             onClose={() => setModeLauncherOpen(false)}
             currentMode={getMainMode(discussionMode)}
