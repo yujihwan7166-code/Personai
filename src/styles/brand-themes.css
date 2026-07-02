@@ -99,54 +99,51 @@
   --hero-input-border: rgba(44, 24, 16, 0.12);
 }
 
-/* ────── Gemini (Google) — 4-color 오로라 리본 (블루→퍼플→핑크→앰버) ────── */
+/* ────── Gemini (Google) — 선명한 인디고 오로라 (DeepSeek 급 채도 · 유기적 blob) ────── */
 .hero-brand-canvas[data-brand='gemini'] {
-  --hero-bg: #1c2033;
-  /* linear + radial 조합 — 화면을 대각선으로 가로지르는 4색 리본. */
+  --hero-bg: #222a52;
+  /* 리본(muddy) 제거 → 4개 유기적 blob. 블루가 주인공, 퍼플·핑크·시안은 hint. */
   --hero-mesh:
-    linear-gradient(115deg,
-      rgba(66, 133, 244, 0.28) 0%,
-      rgba(155, 108, 227, 0.22) 30%,
-      rgba(230, 108, 190, 0.16) 60%,
-      transparent 80%),
-    radial-gradient(45% 35% at 85% 15%, rgba(251, 191, 36, 0.10), transparent 60%),
-    radial-gradient(50% 40% at 15% 90%, rgba(66, 133, 244, 0.14), transparent 60%);
+    radial-gradient(62% 45% at 50% -5%, rgba(96, 136, 255, 0.36), transparent 60%),
+    radial-gradient(45% 38% at 10% 88%, rgba(178, 140, 255, 0.20), transparent 60%),
+    radial-gradient(36% 30% at 90% 18%, rgba(255, 150, 205, 0.12), transparent 60%),
+    radial-gradient(34% 28% at 82% 94%, rgba(110, 220, 255, 0.10), transparent 60%);
   --hero-pattern: none;
-  --hero-fg: #f2f2f7;
-  --hero-fg-muted: #b6b9c4;
-  --hero-accent: #4285f4;
-  --hero-accent-soft: rgba(66, 133, 244, 0.16);
+  --hero-fg: #f2f4ff;
+  --hero-fg-muted: #bac1e4;
+  --hero-accent: #5d8aff;
+  --hero-accent-soft: rgba(93, 138, 255, 0.18);
   --hero-ring: #a5b4f0;
   --hero-radius-input: 20px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(24, 26, 40, 0.42);
-  --hero-input-border: rgba(165, 180, 240, 0.32);
+  --hero-hairline: rgba(255, 255, 255, 0.12);
+  --hero-input-bg: rgba(18, 22, 50, 0.52);
+  --hero-input-border: rgba(150, 172, 255, 0.36);
 }
 
-/* ────── Perplexity — 리서치 뷰포트 (그리드 · 상단 티얼 스포트라이트) ────── */
+/* ────── Perplexity — 리서치 뷰포트 (그리드 유지 · 밝은 스틸 블루그레이) ────── */
 .hero-brand-canvas[data-brand='perplexity'] {
-  --hero-bg: #262a2f;
-  /* 상단에서 아래로 내려오는 티얼 스포트라이트 + 하단 소프트 vignette. */
+  --hero-bg: #333d45;
+  /* 상단 티얼 스포트라이트 강화 · 어두운 vignette 는 걷어냄 (진하다는 피드백). */
   --hero-mesh:
-    radial-gradient(80% 55% at 50% -10%, rgba(32, 184, 205, 0.24), transparent 65%),
-    radial-gradient(90% 50% at 50% 110%, rgba(0, 0, 0, 0.25), transparent 55%);
+    radial-gradient(80% 55% at 50% -10%, rgba(46, 200, 220, 0.28), transparent 65%),
+    radial-gradient(40% 32% at 88% 92%, rgba(32, 184, 205, 0.10), transparent 60%);
   /* 리서치 그리드 — 얇은 수평선 + 수직선. 문서 뷰포트 감성. */
   --hero-pattern:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  --hero-fg: #f7fafb;
-  --hero-fg-muted: #b6bec1;
-  --hero-accent: #20b8cd;
-  --hero-accent-soft: rgba(32, 184, 205, 0.16);
-  --hero-ring: #20b8cd;
+    linear-gradient(rgba(255, 255, 255, 0.034) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  --hero-fg: #f8fbfc;
+  --hero-fg-muted: #bfc9cd;
+  --hero-accent: #22c3d8;
+  --hero-accent-soft: rgba(34, 195, 216, 0.16);
+  --hero-ring: #22c3d8;
   --hero-radius-input: 10px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(24, 28, 32, 0.46);
-  --hero-input-border: rgba(32, 184, 205, 0.32);
+  --hero-hairline: rgba(255, 255, 255, 0.11);
+  --hero-input-bg: rgba(28, 34, 39, 0.52);
+  --hero-input-border: rgba(34, 195, 216, 0.34);
 }
 
 /* ────── Grok (xAI) — 브루탈리스트 미니멀 (실제 x.ai · Grok UI 톤) ────── */
@@ -226,26 +223,32 @@
   --hero-input-border: rgba(167, 139, 250, 0.34);
 }
 
-/* ────── Kimi (Moonshot AI) — 밤하늘 퍼플 · 스타 도트 (달·초장문 감성) ────── */
+/* ────── Kimi (Moonshot AI) — 달빛 밤하늘 (보름달 glow + 고정 별 · 반복 X) ────── */
 .hero-brand-canvas[data-brand='kimi'] {
-  --hero-bg: #1a1330;
+  --hero-bg: #221a42;
+  /* 우상 보름달 warm glow (Moonshot 정체성) + 상단 퍼플 + 좌하 핑크퍼플. */
   --hero-mesh:
-    radial-gradient(65% 40% at 50% 0%, rgba(124, 58, 237, 0.30), transparent 60%),
-    radial-gradient(50% 45% at 90% 100%, rgba(232, 121, 249, 0.14), transparent 55%);
-  /* 밤하늘 스타 도트 — Moonshot 달 감성. 네모 패턴 X. */
+    radial-gradient(24% 20% at 79% 16%, rgba(255, 238, 190, 0.22), transparent 60%),
+    radial-gradient(60% 42% at 50% -5%, rgba(139, 92, 246, 0.28), transparent 60%),
+    radial-gradient(46% 38% at 8% 96%, rgba(232, 121, 249, 0.13), transparent 60%);
+  /* 고정 별 5개 — 반복 없는 밤하늘. */
   --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(200, 170, 255, 0.06) 1px, transparent 0);
-  --hero-fg: #f3efff;
-  --hero-fg-muted: #b8afd8;
+    radial-gradient(circle 1.5px at 18% 26%, rgba(255, 255, 255, 0.45), transparent 3px),
+    radial-gradient(circle 1px   at 34% 12%, rgba(255, 255, 255, 0.35), transparent 2px),
+    radial-gradient(circle 1px   at 60% 20%, rgba(255, 255, 255, 0.30), transparent 2px),
+    radial-gradient(circle 1.5px at 90% 45%, rgba(255, 255, 255, 0.38), transparent 3px),
+    radial-gradient(circle 1px   at 12% 60%, rgba(255, 255, 255, 0.28), transparent 2px);
+  --hero-fg: #f4f0ff;
+  --hero-fg-muted: #bcb2dd;
   --hero-accent: #a78bfa;
   --hero-accent-soft: rgba(167, 139, 250, 0.16);
   --hero-ring: #a78bfa;
   --hero-radius-input: 14px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(22, 16, 40, 0.42);
-  --hero-input-border: rgba(167, 139, 250, 0.34);
+  --hero-hairline: rgba(255, 255, 255, 0.11);
+  --hero-input-bg: rgba(24, 18, 46, 0.50);
+  --hero-input-border: rgba(167, 139, 250, 0.36);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -374,46 +377,47 @@
   --hero-input-border: rgba(162, 169, 177, 0.60);
 }
 
-/* ────── Qwen (Alibaba) — 시안 블루 · 아시아 새벽 감성 ────── */
+/* ────── Qwen (Alibaba) — 새벽 수평선 (하단에서 밝아오는 시안 · 반복 X) ────── */
 .hero-brand-canvas[data-brand='qwen'] {
-  --hero-bg: #10202e;
+  --hero-bg: #143349;
+  /* 상단 시안 spotlight + 하단 새벽빛 (수평선 위로 밝아오는 느낌). */
   --hero-mesh:
-    radial-gradient(65% 40% at 50% 0%, rgba(14, 165, 233, 0.26), transparent 60%),
-    radial-gradient(50% 45% at 85% 100%, rgba(56, 189, 248, 0.12), transparent 55%);
-  --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.05) 1px, transparent 0);
-  --hero-fg: #eaf3fa;
-  --hero-fg-muted: #93aec4;
-  --hero-accent: #0ea5e9;
-  --hero-accent-soft: rgba(14, 165, 233, 0.14);
+    radial-gradient(65% 42% at 50% -5%, rgba(24, 180, 245, 0.30), transparent 60%),
+    linear-gradient(180deg, transparent 58%, rgba(56, 189, 248, 0.12) 100%),
+    radial-gradient(38% 30% at 86% 88%, rgba(125, 211, 252, 0.14), transparent 60%);
+  --hero-pattern: none;
+  --hero-fg: #ecf6fc;
+  --hero-fg-muted: #a2bfd3;
+  --hero-accent: #1fb0f0;
+  --hero-accent-soft: rgba(31, 176, 240, 0.16);
   --hero-ring: #38bdf8;
   --hero-radius-input: 12px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(14, 24, 34, 0.44);
-  --hero-input-border: rgba(56, 189, 248, 0.32);
+  --hero-hairline: rgba(255, 255, 255, 0.11);
+  --hero-input-bg: rgba(14, 30, 44, 0.52);
+  --hero-input-border: rgba(56, 189, 248, 0.34);
 }
 
-/* ────── Llama (Meta) — Meta 블루 · 오픈 자유 ────── */
+/* ────── Llama (Meta) — 선명한 Meta 블루 필드 (유기적 blob · 반복 X) ────── */
 .hero-brand-canvas[data-brand='llama'] {
-  --hero-bg: #0f1a30;
+  --hero-bg: #16264e;
   --hero-mesh:
-    radial-gradient(65% 40% at 50% 0%, rgba(8, 102, 255, 0.28), transparent 60%),
-    radial-gradient(55% 45% at 15% 90%, rgba(90, 140, 255, 0.14), transparent 55%);
-  --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(120, 160, 255, 0.05) 1px, transparent 0);
-  --hero-fg: #eef2fc;
-  --hero-fg-muted: #a3aecf;
-  --hero-accent: #0866ff;
-  --hero-accent-soft: rgba(8, 102, 255, 0.14);
-  --hero-ring: #4d84ff;
+    radial-gradient(66% 45% at 50% -5%, rgba(50, 125, 255, 0.34), transparent 60%),
+    radial-gradient(45% 38% at 10% 92%, rgba(110, 155, 255, 0.18), transparent 60%),
+    radial-gradient(34% 28% at 90% 78%, rgba(150, 195, 255, 0.12), transparent 60%);
+  --hero-pattern: none;
+  --hero-fg: #eff3ff;
+  --hero-fg-muted: #adbadf;
+  --hero-accent: #3d7bff;
+  --hero-accent-soft: rgba(61, 123, 255, 0.16);
+  --hero-ring: #6b9aff;
   --hero-radius-input: 12px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(14, 20, 32, 0.44);
-  --hero-input-border: rgba(77, 132, 255, 0.32);
+  --hero-hairline: rgba(255, 255, 255, 0.11);
+  --hero-input-bg: rgba(14, 24, 48, 0.52);
+  --hero-input-border: rgba(107, 154, 255, 0.34);
 }
 
 /* ────── Nemotron (NVIDIA) — GPU 파워 · 사선 라이트 빔 (반복 X) ────── */
@@ -538,8 +542,21 @@
 }
 
 .hero-brand-canvas[data-brand='kimi'] {
-  background-size: auto, 24px 24px;
-  background-repeat: no-repeat, repeat;
+  /* mesh 3 + 고정 별 5 — 전부 non-repeating (단일 값 = 모든 레이어 적용). */
+  background-size: auto;
+  background-repeat: no-repeat;
+}
+
+.hero-brand-canvas[data-brand='qwen'] {
+  /* mesh 3 (radial+linear+radial) — 전부 non-repeating. */
+  background-size: auto;
+  background-repeat: no-repeat;
+}
+
+.hero-brand-canvas[data-brand='llama'] {
+  /* mesh 3 blob — 전부 non-repeating. */
+  background-size: auto;
+  background-repeat: no-repeat;
 }
 
 .hero-brand-canvas[data-brand='deepseek'] {
@@ -549,9 +566,9 @@
 }
 
 .hero-brand-canvas[data-brand='gemini'] {
-  /* linear ribbon + 2 radial spots — 모두 non-repeating. */
-  background-size: auto, auto, auto;
-  background-repeat: no-repeat, no-repeat, no-repeat;
+  /* 4 radial blob — 전부 non-repeating. */
+  background-size: auto;
+  background-repeat: no-repeat;
 }
 
 .hero-brand-canvas[data-brand='mistral'] {

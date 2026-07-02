@@ -30,7 +30,6 @@ import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
 import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
-import { getGreeting } from '@/components/MainModeTabs';
 import { toast } from 'sonner';
 
 interface Props {
@@ -220,8 +219,6 @@ export function HeroSection({
       ? `search-${armedChip!.id}`
       : `brand-${brand}`;
 
-  // 시간대 인사 — 마운트 시 1회 계산 (분 단위 갱신 불필요).
-  const greeting = getGreeting(new Date().getHours());
   const eyebrowColor = secretaryMode
     ? '#A78BFA'  // 비서 바이올렛 (배경 그라디언트에 잘 어울림)
     : isSearchArmed
@@ -330,13 +327,6 @@ export function HeroSection({
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
         <div className="text-center mb-10">
-          {/* 시간대 인사 — 개인화 한 줄 (아침/점심/저녁/밤). */}
-          <p
-            className="mb-3 text-[13px] font-medium animate-in fade-in duration-500"
-            style={{ color: 'var(--hero-fg-muted)' }}
-          >
-            {greeting.emoji} {greeting.text}
-          </p>
           {secretaryMode ? (
             // 비서 모드 eyebrow — 어떤 데이터를 읽을지 소스 선택 (전체/플래너/메모/위키).
             <div
