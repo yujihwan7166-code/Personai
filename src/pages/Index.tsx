@@ -2,7 +2,7 @@ import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 're
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
-import { ModeStrip } from '@/components/hero/ModeStrip';
+import { ModeMenu } from '@/components/hero/ModeMenu';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { notifyDone } from '@/lib/notifications';
@@ -4772,8 +4772,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
           )}
           data-brand={getMainMode(discussionMode) === 'general' ? selectedHeroBrand : undefined}
         >
-          {/* 모드 스트립 — pill 자리에서 제자리 확장되는 인라인 칩 네비 (페이지 전환 없음). */}
-          <ModeStrip
+          {/* 모드 메뉴 — pill 아래 2-패널 커맨드 팝오버 (hover 전환 · 검색 · 페이지 전환 없음). */}
+          <ModeMenu
             open={modeLauncherOpen}
             onClose={() => setModeLauncherOpen(false)}
             currentMode={getMainMode(discussionMode)}
