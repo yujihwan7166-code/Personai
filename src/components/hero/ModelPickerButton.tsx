@@ -130,7 +130,8 @@ export function ModelPickerButton({
           style={{
             backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
             borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
-            backdropFilter: 'blur(16px) saturate(160%)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           }}
         >
           {/* 헤더 — 브랜드 이름만, delicate. */}

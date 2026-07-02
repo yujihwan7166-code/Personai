@@ -103,14 +103,14 @@ export function HeroInput({
         style={{
           backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
           borderColor: 'var(--hero-input-border, rgba(255,255,255,0.10))',
-          // frosted glass — 컬러 mesh bg 위에서도 input 이 확실히 elevated.
-          backdropFilter: 'blur(16px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-          // 정제된 3-layer shadow — 은은한 inner highlight + brand accent + delicate depth.
+          // frosted glass — alpha 낮춰서 뒷배경 살짝 비침. blur 강화로 텍스트는 clean.
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          // 3-layer shadow — 은은한 inner highlight + brand accent + delicate depth.
           boxShadow: `
-            0 1px 0 rgba(255, 255, 255, 0.05) inset,
-            0 8px 24px -14px var(--hero-accent-soft, rgba(0,0,0,0.15)),
-            0 2px 8px -4px rgba(0, 0, 0, 0.08)
+            0 1px 0 rgba(255, 255, 255, 0.06) inset,
+            0 8px 28px -14px var(--hero-accent-soft, rgba(0,0,0,0.12)),
+            0 2px 10px -4px rgba(0, 0, 0, 0.10)
           `,
         }}
       >
@@ -332,7 +332,8 @@ function MoreMenu({ items, onClose }: { items: MoreMenuItem[]; onClose: () => vo
       style={{
         backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
         borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
-        backdropFilter: 'blur(16px) saturate(160%)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
       }}
     >
       {items.map((it) => (

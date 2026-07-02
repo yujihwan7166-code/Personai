@@ -166,11 +166,12 @@ export function HeroSection({
       data-brand={isSearchArmed ? armedChip!.id : brand}
     >
       {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
-       * opacity 0.045 → 0.075 로 살짝 상향 (뒷배경 흐릿하다는 피드백). */}
+       * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게). */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.075]"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
         aria-hidden
         style={{
+          opacity: 'var(--hero-watermark-opacity, 0.075)',
           maskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
           WebkitMaskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
         }}
@@ -196,12 +197,13 @@ export function HeroSection({
           </span>
         ) : activeBrand.icon.path || activeBrand.icon.imgUrl ? (
           // path 또는 이미지가 있으면 그걸 워터마크로 (path 우선 · Grok 볼트 등).
+          // DeepSeek 은 흰 고래로 강조 (배경 딥블루 위 흰 fill 이 훨씬 뚜렷).
           <BrandLogo
             key={brand}
             imgUrl={activeBrand.icon.imgUrl}
             path={activeBrand.icon.path}
-            fill={`#${activeBrand.icon.hex}`}
-            forceWhite={false}
+            fill={brand === 'deepseek' ? '#FFFFFF' : `#${activeBrand.icon.hex}`}
+            forceWhite={brand === 'deepseek'}
             size={320}
             className="animate-in fade-in duration-500 ease-out"
           />

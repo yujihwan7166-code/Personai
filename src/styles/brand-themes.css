@@ -116,7 +116,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(18, 20, 32, 0.58);
+  --hero-input-bg: rgba(24, 26, 40, 0.42);
   --hero-input-border: rgba(165, 180, 240, 0.32);
 }
 
@@ -140,7 +140,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(18, 22, 26, 0.62);
+  --hero-input-bg: rgba(24, 28, 32, 0.46);
   --hero-input-border: rgba(32, 184, 205, 0.32);
 }
 
@@ -163,7 +163,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(20, 20, 24, 0.72);
+  --hero-input-bg: rgba(24, 24, 30, 0.52);
   --hero-input-border: rgba(255, 255, 255, 0.16);
 }
 
@@ -187,8 +187,10 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(18, 26, 60, 0.60);
+  --hero-input-bg: rgba(24, 32, 66, 0.44);
   --hero-input-border: rgba(107, 133, 255, 0.40);
+  /* DeepSeek 은 흰 고래 워터마크 강조 — 다른 브랜드보다 뚜렷하게. */
+  --hero-watermark-opacity: 0.14;
 }
 
 /* ────── Kimi (Moonshot AI) — 밤하늘 퍼플 · 스타 도트 (달·초장문 감성) ────── */
@@ -209,7 +211,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(16, 10, 32, 0.58);
+  --hero-input-bg: rgba(22, 16, 40, 0.42);
   --hero-input-border: rgba(167, 139, 250, 0.34);
 }
 
@@ -283,32 +285,30 @@
 
 /* ────── YouTube armed — 다크 모드 + 시그니처 레드 스포트라이트 ────── */
 .hero-brand-canvas[data-brand='youtube'] {
-  /* YouTube 다크 모드 실제 bg 색 (#0f0f0f). */
-  --hero-bg: #0f0f0f;
+  /* 이전 #0f0f0f 는 너무 어두워 재디자인. 무겁던 하단 vignette 도 제거.
+   * 미드 다크 회색 (#26262a) + 상단 밝은 레드 halo + 하단 웜 페이드. */
+  --hero-bg: #26262a;
   --hero-mesh:
-    /* 상단 강렬한 레드 spotlight — YouTube 로고 emphasis */
-    radial-gradient(60% 40% at 50% 0%, rgba(255, 0, 0, 0.24), transparent 55%),
-    /* 좌하 딥 레드 — 화면 하단부 색 무게 */
-    radial-gradient(50% 45% at 15% 100%, rgba(200, 0, 30, 0.14), transparent 55%),
-    /* 우상 웜 pink hint — 살아있는 감성 */
-    radial-gradient(38% 30% at 90% 12%, rgba(255, 100, 100, 0.08), transparent 55%),
-    /* 중앙 하단 어둠 vignette — 영상 프레임 감성 */
-    radial-gradient(70% 30% at 50% 100%, rgba(0, 0, 0, 0.30), transparent 55%);
+    /* 상단 강한 레드 halo — YouTube 시그니처. */
+    radial-gradient(65% 42% at 50% -4%, rgba(255, 40, 40, 0.34), transparent 60%),
+    /* 좌상 소프트 웜 오렌지 tint. */
+    radial-gradient(45% 35% at 15% 5%, rgba(255, 120, 90, 0.14), transparent 55%),
+    /* 우상 소프트 핑크 hint. */
+    radial-gradient(40% 32% at 88% 10%, rgba(255, 140, 160, 0.10), transparent 55%),
+    /* 하단 페이드 아웃 (딥 vignette 대신 부드러운 다크 그라디언트). */
+    linear-gradient(180deg, transparent 55%, rgba(15, 15, 18, 0.30) 100%);
   --hero-pattern: none;
-  /* YouTube 텍스트 컬러 정확. */
-  --hero-fg: #ffffff;
-  --hero-fg-muted: #aaaaaa;
-  /* YouTube 시그니처 레드 (#ff0000). */
+  --hero-fg: #f6f6f7;
+  --hero-fg-muted: #b8b8bc;
   --hero-accent: #ff0000;
-  --hero-accent-soft: rgba(255, 0, 0, 0.14);
+  --hero-accent-soft: rgba(255, 0, 0, 0.16);
   --hero-ring: #ff0000;
-  /* YouTube 는 pill 버튼 스타일 → 라운드 크게. */
   --hero-radius-input: 22px;
   /* YouTube 는 Roboto 사용 (없으면 Inter 폴백). */
   --hero-font-heading: 'Roboto', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Roboto', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(30, 30, 30, 0.62);
+  --hero-input-bg: rgba(35, 35, 38, 0.48);
   --hero-input-border: rgba(255, 0, 0, 0.34);
 }
 
@@ -358,7 +358,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(8, 18, 28, 0.60);
+  --hero-input-bg: rgba(14, 24, 34, 0.44);
   --hero-input-border: rgba(56, 189, 248, 0.32);
 }
 
@@ -379,7 +379,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(8, 14, 26, 0.60);
+  --hero-input-bg: rgba(14, 20, 32, 0.44);
   --hero-input-border: rgba(77, 132, 255, 0.32);
 }
 
@@ -411,7 +411,7 @@
   --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(6, 14, 8, 0.58);
+  --hero-input-bg: rgba(12, 20, 14, 0.42);
   --hero-input-border: rgba(157, 207, 58, 0.32);
 }
 
@@ -442,7 +442,7 @@
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(8, 18, 14, 0.58);
+  --hero-input-bg: rgba(14, 24, 20, 0.42);
   --hero-input-border: rgba(110, 196, 166, 0.32);
 }
 
