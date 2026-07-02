@@ -30,12 +30,12 @@ interface Props {
  * `.hero-brand-canvas .hero-chat-prose` 가 --hero-* 변수로 처리 (라이트/다크 자동).
  */
 const brandProseClasses = `prose prose-sm max-w-none
-  prose-p:my-3 prose-p:leading-[1.75] prose-p:text-[13.5px]
+  prose-p:my-3 prose-p:leading-[1.8] prose-p:text-[14px]
   prose-headings:font-semibold prose-headings:tracking-tight
-  prose-headings:mt-5 prose-headings:mb-2
-  prose-h2:text-[15px] prose-h3:text-[14px] prose-h4:text-[13px]
+  prose-headings:mt-6 prose-headings:mb-2
+  prose-h2:text-[16px] prose-h3:text-[15px] prose-h4:text-[14px]
   prose-strong:font-semibold
-  prose-ul:my-3 prose-ul:space-y-1 prose-li:my-0.5 prose-li:text-[13.5px] prose-li:leading-[1.7] prose-li:pl-1
+  prose-ul:my-3 prose-ul:space-y-1 prose-li:my-0.5 prose-li:text-[14px] prose-li:leading-[1.75] prose-li:pl-1
   prose-ol:my-3 prose-ol:space-y-1
   prose-blockquote:border-l-2 prose-blockquote:text-[12.5px] prose-blockquote:py-1 prose-blockquote:my-3
   prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11.5px] prose-code:before:content-none prose-code:after:content-none
@@ -241,43 +241,40 @@ export function DiscussionMessageCard({ message, expert, variant = 'default', on
     const isAgentCard = variant === 'agent-card' || isManagedAutoAgent(expert.id);
     const shouldRevealAgentAnswer = !isAgentCard || !message.agentState || Boolean(message.agentState.canRevealAnswer);
 
-    // general-card (비 에이전트) — 브랜드 글래스 패널.
-    // hero-brand-canvas 스코프 안에서만 등장하므로 --hero-* 변수 사용 가능.
-    // 각 AI 의 radius(Grok 4px 샤프, Gemini 20px 라운드)·accent 스트라이프·글래스가
-    // 히어로와 같은 디자인 언어로 이어짐.
+    // general-card (비 에이전트) — boxless 브랜드 채팅.
+    // 실제 ChatGPT·Claude·Perplexity 처럼 AI 답변은 박스 없이 배경 위에 바로.
+    // 아바타 + 작은 메타 행 + 프로즈. 구분은 여백으로만. 액션은 hover 시 ghost.
+    // 색은 전부 --hero-* 변수 (hero-brand-canvas 스코프 안에서만 등장).
     if (!isAgentCard) {
       return (
-        <div className="group animate-in fade-in slide-in-from-bottom-2 duration-400">
-          <div
-            className="relative rounded-[var(--hero-radius-input,16px)] border overflow-hidden transition-all"
-            style={{
-              backgroundColor: 'var(--hero-input-bg, #ffffff)',
-              borderColor: 'var(--hero-input-border, rgba(15,23,42,0.10))',
-              backdropFilter: 'blur(20px) saturate(160%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-              boxShadow:
-                'inset 3px 0 0 var(--hero-accent, #6366f1), 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -16px rgba(0,0,0,0.25)',
-            }}
-          >
-            <div className="flex items-center gap-2 px-4 py-3">
+        <div className="group animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 mt-0.5">
               <ExpertAvatar expert={expert} size="sm" active={message.isStreaming} />
-              <span className="text-[13px] font-semibold" style={{ color: 'var(--hero-fg, #334155)' }}>
-                {expert.nameKo}
-              </span>
-              {message.searchSources && (
-                <span
-                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ color: 'var(--hero-accent)', backgroundColor: 'var(--hero-accent-soft)' }}
-                >
-                  <Globe className="w-2.5 h-2.5" /> 웹 검색 반영
-                </span>
-              )}
-              {!message.isStreaming && message.content && (
-                <CopyBtn className="ml-auto text-[color:var(--hero-fg-muted,#94a3b8)] hover:text-[color:var(--hero-fg,#334155)] opacity-0 group-hover:opacity-100 sm:opacity-40 sm:group-hover:opacity-100" />
-              )}
             </div>
-            <div className="px-4 pb-4 pt-0">
-              <div className={cn('hero-chat-prose text-[13.5px] leading-relaxed', brandProseClasses)}>
+            <div className="flex-1 min-w-0">
+              {/* 메타 행 — 이름 (muted 소형) + 배지 + hover 복사. */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span
+                  className="text-[11.5px] font-semibold tracking-tight"
+                  style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
+                >
+                  {expert.nameKo}
+                </span>
+                {message.searchSources && (
+                  <span
+                    className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ color: 'var(--hero-accent)', backgroundColor: 'var(--hero-accent-soft)' }}
+                  >
+                    <Globe className="w-2.5 h-2.5" /> 웹 검색
+                  </span>
+                )}
+                {!message.isStreaming && message.content && (
+                  <CopyBtn className="ml-auto text-[color:var(--hero-fg-muted,#94a3b8)] hover:text-[color:var(--hero-fg,#334155)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </div>
+              {/* 본문 — 배경 위에 바로. 넉넉한 행간. */}
+              <div className={cn('hero-chat-prose text-[14px] leading-[1.8]', brandProseClasses)}>
                 <GeneratedImageGallery message={message} />
                 <MessageContent content={displayContent} isStreaming={message.isStreaming} noCollapse onRetry={handleRetry} />
               </div>

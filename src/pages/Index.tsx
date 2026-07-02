@@ -5272,7 +5272,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 !(getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') && (!selectable && getMainMode(discussionMode) === 'general' && messages.length > 0 ? 'pt-6' : 'pt-18 sm:pt-20 md:pt-24 lg:pt-28'),
                 (getMainMode(discussionMode) === 'study_main' || getMainMode(discussionMode) === 'voice_main' || getMainMode(discussionMode) === 'media_main') ? ''
                 : !selectable && discussionMode === 'stakeholder' ? 'hidden'
-                : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-5' : 'max-w-3xl space-y-2.5')
+                : !selectable ? (getMainMode(discussionMode) === 'general' ? 'max-w-[710px] space-y-8' : 'max-w-3xl space-y-2.5')
                   : (discussionMode === 'assistant' || discussionMode === 'expert' || discussionMode === 'stakeholder') ? 'max-w-4xl space-y-3'
                   : (discussionMode === 'multi' && messages.length > 0) ? 'max-w-[960px] space-y-3'
                   : (discussionMode === 'general' || discussionMode === 'multi') ? 'max-w-[710px] space-y-1'
@@ -7599,7 +7599,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         <div
                           className={cn(
                             isMessenger
-                              ? 'max-w-[75%] rounded-2xl rounded-br-md px-4 py-3 text-[13px] shadow-sm leading-relaxed'
+                              ? 'max-w-[75%] rounded-[20px] rounded-br-[6px] px-4 py-2.5 text-[14px] leading-[1.7]'
                               : 'bg-white border border-slate-100 rounded-xl px-3.5 py-2.5 text-[12.5px] text-slate-600'
                           )}
                           // general 모드 유저 버블 = 선택된 AI 브랜드 accent 색 (hero-brand-canvas 변수).
