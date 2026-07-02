@@ -7,12 +7,18 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { HERO_SEARCH_CHIPS, type HeroChipId } from '@/lib/heroSearchChips';
+import { isCustomPortalId } from '@/lib/customPortal';
 
 const STORAGE_KEY = 'personai.hero.visible_portals';
 const CHANGED_EVENT = 'personai:hero-visible-portals-changed';
 
-const ALL_IDS: HeroChipId[] = HERO_SEARCH_CHIPS.map((c) => c.id);
+const BUILT_IN_IDS: HeroChipId[] = HERO_SEARCH_CHIPS.map((c) => c.id);
 const DEFAULT_VISIBLE: HeroChipId[] = ['naver', 'google', 'daum'];
+
+/** 유효한 포탈 id 인지 (built-in 또는 custom-portal-*). */
+function isValidPortalId(id: string): boolean {
+  return BUILT_IN_IDS.includes(id as HeroChipId) || isCustomPortalId(id);
+}
 
 function readStored(): HeroChipId[] {
   if (typeof window === 'undefined') return DEFAULT_VISIBLE;
@@ -20,9 +26,7 @@ function readStored(): HeroChipId[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_VISIBLE;
     const parsed = JSON.parse(raw) as string[];
-    const valid = parsed.filter((id): id is HeroChipId =>
-      ALL_IDS.includes(id as HeroChipId),
-    );
+    const valid = parsed.filter((id): id is HeroChipId => isValidPortalId(id));
     return valid.length > 0 ? valid : DEFAULT_VISIBLE;
   } catch {
     return DEFAULT_VISIBLE;
@@ -57,9 +61,10 @@ export function useVisiblePortals(): {
       const isOn = visibleIds.includes(id);
       // 최소 1개는 유지.
       if (isOn && visibleIds.length <= 1) return;
+      // 켜기: 원래 순서 유지하되 새 id 는 끝에 추가.
       const next = isOn
         ? visibleIds.filter((v) => v !== id)
-        : ALL_IDS.filter((v) => visibleIds.includes(v) || v === id);
+        : [...visibleIds, id];
       persist(next);
     },
     [visibleIds, persist],

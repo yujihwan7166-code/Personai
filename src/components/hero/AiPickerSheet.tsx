@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { BRANDS, type Brand, type BrandId } from '@/lib/aiBrands';
 import { HERO_SEARCH_CHIPS, type HeroChipId, type HeroSearchChip } from '@/lib/heroSearchChips';
 import type { CustomAi } from '@/lib/customAi';
+import type { CustomPortal } from '@/lib/customPortal';
 import { BrandLogo } from './BrandLogo';
 
 interface Props {
@@ -30,6 +31,11 @@ interface Props {
   onCreateCustom: () => void;
   onEditCustom: (custom: CustomAi) => void;
   onDeleteCustom: (id: string) => void;
+  /** 커스텀 포탈 목록·핸들러. */
+  customPortals: CustomPortal[];
+  onCreateCustomPortal: () => void;
+  onEditCustomPortal: (portal: CustomPortal) => void;
+  onDeleteCustomPortal: (id: string) => void;
 }
 
 type Tab = 'ai' | 'custom' | 'portal';
@@ -47,6 +53,10 @@ export function AiPickerSheet({
   onCreateCustom,
   onEditCustom,
   onDeleteCustom,
+  customPortals,
+  onCreateCustomPortal,
+  onEditCustomPortal,
+  onDeleteCustomPortal,
 }: Props) {
   const [tab, setTab] = useState<Tab>('ai');
   if (!open) return null;
@@ -93,19 +103,34 @@ export function AiPickerSheet({
                 </button>
               )}
               {tab === 'portal' && (
-                <button
-                  type="button"
-                  onClick={onResetPortalDefaults}
-                  aria-label="기본값 복원"
-                  title="기본값 (네이버·구글·다음)"
-                  className={cn(
-                    'flex items-center gap-1 h-8 px-2.5 rounded-lg text-[11.5px] font-medium',
-                    'text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors',
-                  )}
-                >
-                  <RotateCcw size={12} strokeWidth={2.2} />
-                  기본값
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={onResetPortalDefaults}
+                    aria-label="기본값 복원"
+                    title="기본값 (네이버·구글·다음)"
+                    className={cn(
+                      'flex items-center gap-1 h-8 px-2.5 rounded-lg text-[11.5px] font-medium',
+                      'text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors',
+                    )}
+                  >
+                    <RotateCcw size={12} strokeWidth={2.2} />
+                    기본값
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onCreateCustomPortal}
+                    aria-label="나만의 포탈 만들기"
+                    title="URL 템플릿으로 검색 엔진 추가"
+                    className={cn(
+                      'flex items-center gap-1 h-8 px-2.5 rounded-lg text-[11.5px] font-semibold',
+                      'bg-blue-600 hover:bg-blue-500 text-white transition-colors',
+                    )}
+                  >
+                    <Plus size={12} strokeWidth={2.6} />
+                    만들기
+                  </button>
+                </>
               )}
               {showingCustom && (
                 <button
@@ -198,15 +223,30 @@ export function AiPickerSheet({
                     onClick={() => onToggleAi(brand.id)}
                   />
                 ))
-              : HERO_SEARCH_CHIPS.map((chip) => (
-                  <PortalRow
-                    key={chip.id}
-                    chip={chip}
-                    enabled={visiblePortalIds.includes(chip.id)}
-                    disabled={visiblePortalIds.includes(chip.id) && visiblePortalIds.length <= 1}
-                    onClick={() => onTogglePortal(chip.id)}
-                  />
-                ))}
+              : (
+                <>
+                  {HERO_SEARCH_CHIPS.map((chip) => (
+                    <PortalRow
+                      key={chip.id}
+                      chip={chip}
+                      enabled={visiblePortalIds.includes(chip.id)}
+                      disabled={visiblePortalIds.includes(chip.id) && visiblePortalIds.length <= 1}
+                      onClick={() => onTogglePortal(chip.id)}
+                    />
+                  ))}
+                  {/* 사용자 커스텀 포탈 — 편집·삭제 가능. */}
+                  {customPortals.map((p) => (
+                    <CustomPortalRow
+                      key={p.id}
+                      portal={p}
+                      onEdit={() => onEditCustomPortal(p)}
+                      onDelete={() => {
+                        if (window.confirm(`"${p.name}" 삭제할까요?`)) onDeleteCustomPortal(p.id);
+                      }}
+                    />
+                  ))}
+                </>
+              )}
           </div>
         )}
       </div>
@@ -357,6 +397,62 @@ function ToggleDot({ enabled }: { enabled: boolean }) {
     >
       {enabled && <Check size={12} strokeWidth={3} className="text-black" />}
     </span>
+  );
+}
+
+/** 커스텀 포탈 카드 — 편집·삭제 버튼 포함. */
+function CustomPortalRow({
+  portal,
+  onEdit,
+  onDelete,
+}: {
+  portal: CustomPortal;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-3 rounded-xl border p-3 text-left',
+        'border-blue-500/20 bg-blue-500/[0.03] hover:bg-blue-500/[0.06]',
+        'transition-all duration-150',
+      )}
+    >
+      <span
+        className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+        style={{ backgroundColor: portal.colorHex }}
+      >
+        <span className="text-[18px] leading-none select-none">{portal.emoji}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-semibold text-white truncate">
+          {portal.name}
+        </span>
+        <span className="block text-[10.5px] text-white/40 truncate font-mono">
+          {portal.urlTemplate}
+        </span>
+      </span>
+      <div className="flex items-center gap-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label="편집"
+          title="편집"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+        >
+          <Pencil size={12} strokeWidth={2.2} />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="삭제"
+          title="삭제"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-white/50 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+        >
+          <Trash2 size={12} strokeWidth={2.2} />
+        </button>
+      </div>
+    </div>
   );
 }
 

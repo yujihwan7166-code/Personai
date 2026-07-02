@@ -7,7 +7,7 @@
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRANDS, type Brand, type BrandId } from '@/lib/aiBrands';
-import { HERO_SEARCH_CHIPS, type HeroChipId } from '@/lib/heroSearchChips';
+import { HERO_SEARCH_CHIPS, type HeroChipId, type HeroSearchChip } from '@/lib/heroSearchChips';
 import { AiBrandChip } from './AiBrandChip';
 import { SearchEngineChip } from './SearchEngineChip';
 
@@ -25,6 +25,8 @@ interface Props {
   visiblePortalIds?: HeroChipId[];
   /** 커스텀 AI 브랜드 (built-in 뒤에 이어서 렌더). */
   customBrands?: Brand[];
+  /** 커스텀 포탈 chip (built-in 뒤에 이어서 렌더 / lookup 대상). */
+  customPortalChips?: HeroSearchChip[];
   className?: string;
 }
 
@@ -37,18 +39,20 @@ export function BrandChipStrip({
   visibleBrandIds,
   visiblePortalIds,
   customBrands = [],
+  customPortalChips = [],
   className,
 }: Props) {
   // visibleBrandIds 미지정 시 전체. 지정 시 그 순서대로 필터.
   const visibleBrands = visibleBrandIds
     ? visibleBrandIds.map((id) => BRANDS.find((b) => b.id === id)).filter((b): b is (typeof BRANDS)[number] => !!b)
     : BRANDS;
-  // visiblePortalIds 미지정 시 전체. 지정 시 그 순서대로 필터.
+  // 포탈 lookup — built-in + 커스텀 통합.
+  const allPortals = [...HERO_SEARCH_CHIPS, ...customPortalChips];
   const visiblePortals = visiblePortalIds
     ? visiblePortalIds
-        .map((id) => HERO_SEARCH_CHIPS.find((c) => c.id === id))
-        .filter((c): c is (typeof HERO_SEARCH_CHIPS)[number] => !!c)
-    : HERO_SEARCH_CHIPS;
+        .map((id) => allPortals.find((c) => c.id === id))
+        .filter((c): c is (typeof allPortals)[number] => !!c)
+    : allPortals;
   return (
     <div
       className={cn(

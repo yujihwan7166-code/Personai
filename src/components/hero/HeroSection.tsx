@@ -23,7 +23,10 @@ import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { useVisibleBrands } from '@/hooks/useVisibleBrands';
 import { useVisiblePortals } from '@/hooks/useVisiblePortals';
 import { useCustomAis } from '@/hooks/useCustomAis';
+import { useCustomPortals } from '@/hooks/useCustomPortals';
 import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi';
+import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
+import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
@@ -65,9 +68,12 @@ export function HeroSection({
   const { visibleIds, toggleBrand, showAll } = useVisibleBrands();
   const portalsHook = useVisiblePortals();
   const customAisHook = useCustomAis();
+  const customPortalsHook = useCustomPortals();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingCustom, setEditingCustom] = useState<CustomAi | undefined>();
+  const [portalCreatorOpen, setPortalCreatorOpen] = useState(false);
+  const [editingCustomPortal, setEditingCustomPortal] = useState<CustomPortal | undefined>();
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
   const customBrands = customAisHook.customAis.map(customAiToBrand);
@@ -81,7 +87,14 @@ export function HeroSection({
   const selectedCustom = isCustomBrandId(brand)
     ? customAisHook.customAis.find((c) => c.id === brand)
     : undefined;
-  const armedChip = armed ? HERO_SEARCH_CHIP_BY_ID[armed] : null;
+
+  // 커스텀 포탈 chip 배열 및 armed lookup.
+  const customPortalChips = customPortalsHook.customPortals.map(customPortalToChip);
+  const armedChip = armed
+    ? HERO_SEARCH_CHIP_BY_ID[armed]
+      ?? customPortalChips.find((c) => c.id === armed)
+      ?? null
+    : null;
   // 외부 검색 armed 여부 (북마크는 armed 로 취급 X — 즉시 모달).
   const isSearchArmed = !!armedChip?.external;
 
@@ -103,7 +116,11 @@ export function HeroSection({
 
     // 검색 armed → 무조건 외부 새 탭.
     if (armedChip && armedChip.external) {
-      const url = buildHeroSearchUrl(armedChip.id, trimmed);
+      // custom portal 은 urlTemplate 이 chip 안에 있고,
+      // built-in 은 heroSearchChips 의 buildHeroSearchUrl 로 조립.
+      const url = armedChip.urlTemplate
+        ? armedChip.urlTemplate.replace('{Q}', encodeURIComponent(trimmed))
+        : buildHeroSearchUrl(armedChip.id, trimmed);
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
         onChange('');
@@ -288,6 +305,7 @@ export function HeroSection({
               visibleBrandIds={visibleIds}
               visiblePortalIds={portalsHook.visibleIds}
               customBrands={customBrands}
+              customPortalChips={customPortalChips}
             />
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
@@ -318,6 +336,20 @@ export function HeroSection({
           // 지금 선택된 커스텀이 삭제되면 GPT 로 돌아감.
           if (brand === id) setBrand('gpt');
         }}
+        customPortals={customPortalsHook.customPortals}
+        onCreateCustomPortal={() => {
+          setEditingCustomPortal(undefined);
+          setPortalCreatorOpen(true);
+        }}
+        onEditCustomPortal={(p) => {
+          setEditingCustomPortal(p);
+          setPortalCreatorOpen(true);
+        }}
+        onDeleteCustomPortal={(id) => {
+          customPortalsHook.deleteCustomPortal(id);
+          // 삭제된 armed 포탈은 disarm.
+          if (armed === id) disarm();
+        }}
       />
 
       <CustomAiCreatorSheet
@@ -330,6 +362,20 @@ export function HeroSection({
           setBrand(created.id as BrandId);
         }}
         onUpdate={customAisHook.updateCustomAi}
+      />
+
+      <CustomPortalCreatorSheet
+        open={portalCreatorOpen}
+        onClose={() => setPortalCreatorOpen(false)}
+        editing={editingCustomPortal}
+        onCreate={(input) => {
+          const created = customPortalsHook.createCustomPortal(input);
+          // 만든 즉시 스트립에 노출 → visible 목록에 추가.
+          if (!portalsHook.visibleIds.includes(created.id as never)) {
+            portalsHook.togglePortal(created.id as never);
+          }
+        }}
+        onUpdate={customPortalsHook.updateCustomPortal}
       />
     </div>
   );
