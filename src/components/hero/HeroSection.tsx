@@ -27,6 +27,7 @@ import { useCustomPortals } from '@/hooks/useCustomPortals';
 import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi';
 import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
+import { SecretarySheet } from './SecretarySheet';
 import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 
 interface Props {
@@ -73,6 +74,7 @@ export function HeroSection({
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingCustom, setEditingCustom] = useState<CustomAi | undefined>();
   const [portalCreatorOpen, setPortalCreatorOpen] = useState(false);
+  const [secretaryOpen, setSecretaryOpen] = useState(false);
   const [editingCustomPortal, setEditingCustomPortal] = useState<CustomPortal | undefined>();
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
@@ -302,6 +304,8 @@ export function HeroSection({
               armedSearch={armed}
               onToggleSearch={handleToggleSearch}
               onOpenPicker={() => setPickerOpen(true)}
+              onOpenSecretary={() => setSecretaryOpen(true)}
+              secretaryOpen={secretaryOpen}
               visibleBrandIds={visibleIds}
               visiblePortalIds={portalsHook.visibleIds}
               customBrands={customBrands}
@@ -376,6 +380,16 @@ export function HeroSection({
           }
         }}
         onUpdate={customPortalsHook.updateCustomPortal}
+      />
+
+      {/* 비서 시트 — 사이트 내부 자료 참조 · 삽입. */}
+      <SecretarySheet
+        open={secretaryOpen}
+        onClose={() => setSecretaryOpen(false)}
+        onInsertReference={(ref) => {
+          // 참조 문자열을 현재 입력에 append (개행으로 구분).
+          onChange(value ? `${value}\n${ref}` : ref);
+        }}
       />
     </div>
   );

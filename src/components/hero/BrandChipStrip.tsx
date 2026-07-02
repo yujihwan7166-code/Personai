@@ -10,6 +10,7 @@ import { BRANDS, type Brand, type BrandId } from '@/lib/aiBrands';
 import { HERO_SEARCH_CHIPS, type HeroChipId, type HeroSearchChip } from '@/lib/heroSearchChips';
 import { AiBrandChip } from './AiBrandChip';
 import { SearchEngineChip } from './SearchEngineChip';
+import { SecretaryChip } from './SecretaryChip';
 
 interface Props {
   /** 현재 선택된 브랜드. null 이면 어떤 AI 칩도 highlight 안 됨 (검색 armed 시). */
@@ -19,6 +20,10 @@ interface Props {
   onToggleSearch: (id: HeroChipId) => void;
   /** 통합 편집 시트 열기 (AI 탭 · 브라우저 탭 · 나만의 AI 탭 모두 여기서). */
   onOpenPicker: () => void;
+  /** 비서 시트 열기 (사이트 내부 자료 참조). */
+  onOpenSecretary: () => void;
+  /** 비서 시트 열려있는지 (active state). */
+  secretaryOpen?: boolean;
   /** 스트립에 표시할 브랜드 id 목록 (미지정 시 전체). */
   visibleBrandIds?: BrandId[];
   /** 스트립에 표시할 포탈 id 목록 (미지정 시 전체). */
@@ -36,6 +41,8 @@ export function BrandChipStrip({
   armedSearch,
   onToggleSearch,
   onOpenPicker,
+  onOpenSecretary,
+  secretaryOpen = false,
   visibleBrandIds,
   visiblePortalIds,
   customBrands = [],
@@ -76,8 +83,14 @@ export function BrandChipStrip({
         />
       ))}
 
-      {/* 검색 · AI 사이 여백 — 눈에 띄는 선 없이 넉넉한 gap 으로만 구분. */}
-      <span aria-hidden className="w-3 shrink-0" />
+      {/* 검색·비서 사이 여백. */}
+      <span aria-hidden className="w-2 shrink-0" />
+
+      {/* 비서 칩 — 항상 고정, 브라우저·AI 사이. */}
+      <SecretaryChip onClick={onOpenSecretary} active={secretaryOpen} />
+
+      {/* 비서·AI 사이 여백. */}
+      <span aria-hidden className="w-2 shrink-0" />
 
       {/* 우측 AI 칩 (사용자 커스텀 필터 반영) */}
       {visibleBrands.map((brand) => (

@@ -7,7 +7,19 @@
  * 기존 `searchEngines.ts` 의 SEARCH_ENGINES 는 QuickSearchBar 에서 사용 중이라
  * 건드리지 않고, 히어로 전용 UI 메타만 여기에 정의.
  */
-import { siNaver, siGoogle, siYoutube, siX, siGithub, siWikipedia, siReddit } from 'simple-icons';
+import {
+  siNaver,
+  siGoogle,
+  siYoutube,
+  siX,
+  siGithub,
+  siWikipedia,
+  siReddit,
+  siNamuwiki,
+  siStackoverflow,
+  siTiktok,
+  siInstagram,
+} from 'simple-icons';
 import { findEngine, buildSearchUrl } from './searchEngines';
 
 export type HeroChipId =
@@ -18,7 +30,11 @@ export type HeroChipId =
   | 'twitter'
   | 'github'
   | 'reddit'
-  | 'wikipedia';
+  | 'wikipedia'
+  | 'namuwiki'
+  | 'stackoverflow'
+  | 'tiktok'
+  | 'instagram';
 
 export interface HeroChipIcon {
   /** 'svg' — path 사용, 'text' — 배지 텍스트, 'lucide' — 아이콘 이름. */
@@ -153,6 +169,58 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     greeting: 'Wikipedia 에서 검색',
     subtitle: 'Wikipedia · 백과 · 새 탭에서 열림',
     placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'namuwiki',
+    name: '나무위키',
+    icon: { kind: 'svg', path: siNamuwiki.path },
+    ring: '#008275',
+    circleBg: '#008275',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://namu.wiki/Search?q={Q}',
+    greeting: '나무위키에서 검색해요',
+    subtitle: '나무위키 · 한국어 종합 백과 · 새 탭',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'stackoverflow',
+    name: 'Stack Overflow',
+    icon: { kind: 'svg', path: siStackoverflow.path },
+    ring: '#F58025',
+    circleBg: '#F58025',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://stackoverflow.com/search?q={Q}',
+    greeting: 'Stack Overflow 에서 검색',
+    subtitle: 'Stack Overflow · 개발 Q&A · 새 탭',
+    placeholder: '에러·API·라이브러리 물어보기…',
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok',
+    icon: { kind: 'svg', path: siTiktok.path },
+    ring: '#FE2C55',
+    circleBg: '#000000',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://www.tiktok.com/search?q={Q}',
+    greeting: 'TikTok 에서 검색',
+    subtitle: 'TikTok · 숏폼 영상 · 새 탭',
+    placeholder: '검색어를 입력하고 Enter…',
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    icon: { kind: 'svg', path: siInstagram.path },
+    ring: '#FF0069',
+    circleBg: '#FF0069',
+    iconFill: '#FFFFFF',
+    external: true,
+    urlTemplate: 'https://www.instagram.com/explore/tags/{Q}/',
+    greeting: 'Instagram 에서 검색',
+    subtitle: 'Instagram · 태그 검색 · 새 탭',
+    placeholder: '해시태그 (# 없이) 입력…',
   },
 ];
 
