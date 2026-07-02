@@ -116,7 +116,7 @@
   --hero-accent-soft: rgba(93, 138, 255, 0.18);
   --hero-ring: #a5b4f0;
   --hero-radius-input: 20px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-heading: 'Gowun Dodum', 'Inter', ui-sans-serif, system-ui, sans-serif;   /* 모던 라운드 — Google 친근함 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
   --hero-input-bg: rgba(18, 22, 50, 0.52);
@@ -140,7 +140,7 @@
   --hero-accent-soft: rgba(34, 195, 216, 0.16);
   --hero-ring: #22c3d8;
   --hero-radius-input: 10px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-heading: 'IBM Plex Sans KR', 'Inter', ui-sans-serif, system-ui, sans-serif; /* 테크니컬 리서치 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.11);
   --hero-input-bg: rgba(28, 34, 39, 0.52);
@@ -190,7 +190,7 @@
   --hero-accent-soft: rgba(107, 133, 255, 0.16);
   --hero-ring: #6b85ff;
   --hero-radius-input: 12px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-heading: 'Song Myung', 'Noto Serif KR', ui-serif, serif;                  /* 클래식 명조 — 학술적 깊이 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
   --hero-input-bg: rgba(24, 32, 66, 0.44);
@@ -395,7 +395,7 @@
   --hero-accent-soft: rgba(31, 176, 240, 0.16);
   --hero-ring: #38bdf8;
   --hero-radius-input: 12px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-heading: 'Do Hyeon', 'Inter', ui-sans-serif, system-ui, sans-serif;       /* 다이내믹 — 새벽의 에너지 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.11);
   --hero-input-bg: rgba(14, 30, 44, 0.52);
@@ -416,7 +416,7 @@
   --hero-accent-soft: rgba(61, 123, 255, 0.16);
   --hero-ring: #6b9aff;
   --hero-radius-input: 12px;
-  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-heading: 'Gothic A1', 'Inter', ui-sans-serif, system-ui, sans-serif;      /* 오픈 스탠다드 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.11);
   --hero-input-bg: rgba(14, 24, 48, 0.52);
@@ -448,7 +448,7 @@
   --hero-accent-soft: rgba(118, 185, 0, 0.14);
   --hero-ring: #9dcf3a;
   --hero-radius-input: 6px;
-  --hero-font-heading: 'JetBrains Mono', ui-monospace, monospace;
+  --hero-font-heading: 'JetBrains Mono', 'IBM Plex Sans KR', ui-monospace, monospace;   /* 라틴 모노 + 한글 테크 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.10);
   --hero-input-bg: rgba(12, 20, 14, 0.42);
@@ -704,6 +704,269 @@
   }
   .hero-living-glow,
   .hero-watermark-float {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 브랜드 FX — 브랜드마다 고유한 배경 모션 요소.
+ *
+ * HeroSection 의 `<div class="hero-fx" />` 위에 ::before/::after 로 그림.
+ * 전부 transform/opacity 만 애니메이트 (GPU 합성 · 리플로우 없음).
+ *
+ * 컨셉 맵:
+ *   GPT        떠다니는 그린 오브 (미니멀)
+ *   Claude     따뜻한 햇살 숨쉬기
+ *   Gemini     오로라 오브 2개 교차 유영
+ *   Perplexity 리서치 스캔라인 (위→아래 sweep)
+ *   Grok       별 반짝임 + 이따금 유성
+ *   DeepSeek   심해 기포 상승 (고래 세계관)
+ *   Kimi       보름달 halo 맥동 + 별
+ *   Qwen       새벽 수평선 빛 번짐
+ *   Llama      파란 오브 유영
+ *   Mistral    바람 줄기 (mistral = 프랑스 북서풍)
+ *   Nemotron   GPU 빔 스윕
+ *   Command    골드 glow 숨쉬기 (엔터프라이즈 프리미엄)
+ *   비서        바이올렛 glow 숨쉬기
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.hero-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-fx::before,
+.hero-fx::after {
+  content: '';
+  position: absolute;
+  will-change: transform, opacity;
+}
+
+/* ── 공용 keyframes ── */
+
+@keyframes fx-orbit {
+  0%   { transform: translate3d(0, 0, 0); }
+  33%  { transform: translate3d(7%, 9%, 0); }
+  66%  { transform: translate3d(-6%, 4%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fx-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.85; transform: scale(1.12); }
+}
+
+@keyframes fx-scan {
+  0%   { transform: translateY(-140px); opacity: 0; }
+  6%   { opacity: 0.5; }
+  60%  { opacity: 0.35; }
+  72%  { transform: translateY(110vh); opacity: 0; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+@keyframes fx-shoot {
+  0%    { transform: translate3d(0, 0, 0) rotate(-32deg); opacity: 0; }
+  1.5%  { opacity: 0.8; }
+  9%    { transform: translate3d(-58vw, 36vh, 0) rotate(-32deg); opacity: 0; }
+  100%  { transform: translate3d(-58vw, 36vh, 0) rotate(-32deg); opacity: 0; }
+}
+
+@keyframes fx-rise {
+  0%   { transform: translateY(12vh) scale(0.9); opacity: 0; }
+  15%  { opacity: 0.5; }
+  85%  { opacity: 0.25; }
+  100% { transform: translateY(-85vh) scale(1.05); opacity: 0; }
+}
+
+@keyframes fx-wind {
+  0%   { transform: translateX(-18%) skewX(-18deg); }
+  100% { transform: translateX(10%) skewX(-18deg); }
+}
+
+@keyframes fx-beam {
+  0%   { transform: translateX(-140%) skewX(-22deg); opacity: 0; }
+  10%  { opacity: 0.55; }
+  45%  { transform: translateX(240%) skewX(-22deg); opacity: 0; }
+  100% { transform: translateX(240%) skewX(-22deg); opacity: 0; }
+}
+
+@keyframes fx-twinkle {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.7; }
+}
+
+/* ── GPT — 떠다니는 그린 오브 ── */
+.hero-brand-canvas[data-brand='gpt'] .hero-fx::before {
+  top: 8%; right: 12%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 163, 127, 0.14), transparent 70%);
+  filter: blur(50px);
+  animation: fx-orbit 26s ease-in-out infinite;
+}
+
+/* ── Claude — 따뜻한 햇살 숨쉬기 ── */
+.hero-brand-canvas[data-brand='claude'] .hero-fx::before {
+  top: -6%; left: 30%;
+  width: 46%; height: 40%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 119, 87, 0.16), transparent 70%);
+  filter: blur(56px);
+  animation: fx-breathe 12s ease-in-out infinite;
+}
+
+/* ── Gemini — 오로라 오브 2개 교차 유영 ── */
+.hero-brand-canvas[data-brand='gemini'] .hero-fx::before {
+  top: 12%; left: 8%;
+  width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(96, 136, 255, 0.20), transparent 70%);
+  filter: blur(52px);
+  animation: fx-orbit 22s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='gemini'] .hero-fx::after {
+  bottom: 8%; right: 6%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(178, 140, 255, 0.18), transparent 70%);
+  filter: blur(52px);
+  animation: fx-orbit 28s ease-in-out infinite reverse;
+}
+
+/* ── Perplexity — 리서치 스캔라인 ── */
+.hero-brand-canvas[data-brand='perplexity'] .hero-fx::after {
+  left: 0; right: 0; top: 0;
+  height: 120px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(34, 195, 216, 0.10) 45%,
+    rgba(34, 195, 216, 0.22) 50%,
+    rgba(34, 195, 216, 0.10) 55%,
+    transparent);
+  animation: fx-scan 11s ease-in-out infinite;
+}
+
+/* ── Grok — 별 반짝임 + 유성 ── */
+.hero-brand-canvas[data-brand='grok'] .hero-fx::before {
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 22% 24%, rgba(255, 255, 255, 0.8), transparent 3px),
+    radial-gradient(circle 1px   at 68% 14%, rgba(255, 255, 255, 0.7), transparent 2px),
+    radial-gradient(circle 1px   at 84% 52%, rgba(255, 255, 255, 0.6), transparent 2px),
+    radial-gradient(circle 1.5px at 10% 66%, rgba(255, 255, 255, 0.6), transparent 3px);
+  animation: fx-twinkle 5.5s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='grok'] .hero-fx::after {
+  top: 12%; right: 6%;
+  width: 150px; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85));
+  animation: fx-shoot 13s linear infinite;
+}
+
+/* ── DeepSeek — 심해 기포 상승 ── */
+.hero-brand-canvas[data-brand='deepseek'] .hero-fx::before {
+  bottom: -10%; left: 22%;
+  width: 170px; height: 170px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(180, 200, 255, 0.16), transparent 70%);
+  filter: blur(30px);
+  animation: fx-rise 18s ease-in infinite;
+}
+.hero-brand-canvas[data-brand='deepseek'] .hero-fx::after {
+  bottom: -10%; right: 18%;
+  width: 110px; height: 110px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(150, 175, 255, 0.14), transparent 70%);
+  filter: blur(24px);
+  animation: fx-rise 24s ease-in infinite;
+  animation-delay: 7s;
+}
+
+/* ── Kimi — 보름달 halo 맥동 + 별 ── */
+.hero-brand-canvas[data-brand='kimi'] .hero-fx::before {
+  top: 6%; right: 12%;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 238, 190, 0.18), transparent 70%);
+  filter: blur(34px);
+  animation: fx-breathe 10s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='kimi'] .hero-fx::after {
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 30% 22%, rgba(255, 255, 255, 0.7), transparent 3px),
+    radial-gradient(circle 1px   at 55% 36%, rgba(255, 255, 255, 0.55), transparent 2px),
+    radial-gradient(circle 1px   at 14% 44%, rgba(255, 255, 255, 0.5), transparent 2px);
+  animation: fx-twinkle 6.5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* ── Qwen — 새벽 수평선 빛 번짐 ── */
+.hero-brand-canvas[data-brand='qwen'] .hero-fx::before {
+  left: 10%; right: 10%; bottom: -6%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(56, 189, 248, 0.20), transparent 70%);
+  filter: blur(44px);
+  transform-origin: 50% 100%;
+  animation: fx-breathe 14s ease-in-out infinite;
+}
+
+/* ── Llama — 파란 오브 유영 ── */
+.hero-brand-canvas[data-brand='llama'] .hero-fx::before {
+  top: 16%; right: 10%;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(80, 145, 255, 0.18), transparent 70%);
+  filter: blur(50px);
+  animation: fx-orbit 24s ease-in-out infinite;
+}
+
+/* ── Mistral — 바람 줄기 (mistral = 북서풍) ── */
+.hero-brand-canvas[data-brand='mistral'] .hero-fx::before {
+  top: 18%; left: -20%;
+  width: 150%; height: 55%;
+  background: repeating-linear-gradient(
+    100deg,
+    transparent 0px,
+    transparent 90px,
+    rgba(234, 88, 16, 0.05) 110px,
+    rgba(234, 88, 16, 0.08) 130px,
+    transparent 160px,
+    transparent 260px
+  );
+  animation: fx-wind 13s ease-in-out infinite alternate;
+}
+
+/* ── Nemotron — GPU 빔 스윕 ── */
+.hero-brand-canvas[data-brand='nemotron'] .hero-fx::after {
+  top: 0; bottom: 0; left: 0;
+  width: 26%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(157, 207, 58, 0.10) 45%,
+    rgba(157, 207, 58, 0.16) 50%,
+    rgba(157, 207, 58, 0.10) 55%,
+    transparent);
+  animation: fx-beam 9s ease-in-out infinite;
+}
+
+/* ── Command — 골드 glow 숨쉬기 ── */
+.hero-brand-canvas[data-brand='command'] .hero-fx::before {
+  bottom: 4%; right: 6%;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 176, 100, 0.14), transparent 70%);
+  filter: blur(46px);
+  animation: fx-breathe 16s ease-in-out infinite;
+}
+
+/* ── 비서 — 바이올렛 glow 숨쉬기 ── */
+.hero-brand-canvas[data-brand='secretary'] .hero-fx::before {
+  top: 4%; left: 26%;
+  width: 46%; height: 36%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.16), transparent 70%);
+  filter: blur(52px);
+  animation: fx-breathe 12s ease-in-out infinite;
+}
+
+/* 모션 축소 설정 시 FX 전체 정지 */
+@media (prefers-reduced-motion: reduce) {
+  .hero-fx::before,
+  .hero-fx::after {
     animation: none;
   }
 }
