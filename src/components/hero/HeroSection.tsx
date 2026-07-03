@@ -240,14 +240,14 @@ export function HeroSection({
       <div className="hero-fx" aria-hidden />
       <div className="hero-fx2" aria-hidden />
 
-      {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
-       * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게).
-       * hero-watermark-float 로 미세하게 상하 부유 (살아있는 감성). */}
+      {/* 워터마크 — 기본 숨김 (2026-07-03 유저 피드백: 정중앙 로고 불필요,
+       * 배경 색·패턴·모션만으로 브랜드 느낌 전달). 특정 브랜드가 원하면
+       * CSS 에서 --hero-watermark-opacity 로 opt-in 가능. */}
       <div
         className="hero-watermark-float pointer-events-none absolute inset-0 flex items-center justify-center"
         aria-hidden
         style={{
-          opacity: 'var(--hero-watermark-opacity, 0.075)',
+          opacity: 'var(--hero-watermark-opacity, 0)',
           maskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
           WebkitMaskImage: 'radial-gradient(circle at center, black 35%, transparent 75%)',
         }}

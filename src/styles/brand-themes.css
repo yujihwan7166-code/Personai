@@ -195,33 +195,26 @@
   --hero-input-border: rgba(255, 255, 255, 0.18);
 }
 
-/* ────── DeepSeek — 밝은 로얄 블루 (bg 밝게 · 더 vivid) ────── */
+/* ────── DeepSeek — 라이트 화이트블루 (deepseek.com 공식 톤 · 2026-07 재디자인) ────── */
 .hero-brand-canvas[data-brand='deepseek'] {
-  --hero-bg: #26356e;
-  /* 심해 빛내림 (god rays) 2줄기 + 기존 spotlight — 수면 위에서 내려오는 빛. */
+  /* 다크 로얄블루 → 공식 사이트의 아주 밝은 블루화이트 + 콘플라워 블루 #4D6BFE. */
+  --hero-bg: #f3f6fe;
   --hero-mesh:
-    linear-gradient(112deg, transparent 28%, rgba(190, 210, 255, 0.08) 37%, transparent 46%),
-    linear-gradient(104deg, transparent 54%, rgba(190, 210, 255, 0.05) 61%, transparent 69%),
-    radial-gradient(70% 45% at 50% 0%, rgba(120, 140, 255, 0.30), transparent 60%),
-    radial-gradient(55% 40% at 15% 90%, rgba(180, 200, 255, 0.16), transparent 55%);
-  --hero-pattern:
-    radial-gradient(30% 22% at 18% 40%, rgba(150, 170, 255, 0.12), transparent 60%),
-    radial-gradient(28% 20% at 75% 30%, rgba(120, 140, 255, 0.10), transparent 60%),
-    radial-gradient(25% 30% at 55% 85%, rgba(200, 220, 255, 0.07), transparent 60%),
-    radial-gradient(22% 18% at 88% 70%, rgba(160, 180, 255, 0.09), transparent 60%);
-  --hero-fg: #f2f4ff;
-  --hero-fg-muted: #b8c0e8;
-  --hero-accent: #6b85ff;
-  --hero-accent-soft: rgba(107, 133, 255, 0.16);
-  --hero-ring: #6b85ff;
-  --hero-radius-input: 12px;
+    radial-gradient(65% 48% at 80% 12%, rgba(77, 107, 254, 0.14), transparent 62%),
+    radial-gradient(52% 42% at 10% 90%, rgba(120, 150, 255, 0.11), transparent 60%),
+    radial-gradient(48% 38% at 45% -8%, rgba(77, 107, 254, 0.08), transparent 60%);
+  --hero-pattern: none;
+  --hero-fg: #1a2340;
+  --hero-fg-muted: #5e6a8c;
+  --hero-accent: #4d6bfe;
+  --hero-accent-soft: rgba(77, 107, 254, 0.10);
+  --hero-ring: #4d6bfe;
+  --hero-radius-input: 14px;
   --hero-font-heading: 'Song Myung', 'Noto Serif KR', ui-serif, serif;                  /* 클래식 명조 — 학술적 깊이 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(24, 32, 66, 0.44);
-  --hero-input-border: rgba(107, 133, 255, 0.40);
-  /* DeepSeek 은 흰 고래 워터마크 강조 — 다른 브랜드보다 뚜렷하게. */
-  --hero-watermark-opacity: 0.14;
+  --hero-hairline: rgba(26, 35, 64, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(77, 107, 254, 0.26);
 }
 
 /* ────── Secretary — 앰버·바이올렛 그라디언트 (비서 모드) ────── */
@@ -761,7 +754,7 @@
  *   Gemini     오로라 오브 2개 교차 + 쌍둥이 성좌 (pattern)
  *   Perplexity 리서치 스캔라인
  *   Grok       별 7개 반짝임 + 이따금 유성
- *   DeepSeek   심해 기포 상승 + 빛내림 (고래 세계관)
+ *   DeepSeek   기포 상승 (라이트 블루 · 고래 세계관)
  *   Kimi       보름달 halo 맥동 + 별
  *   Qwen       새벽 수평선 빛 번짐 + 수평선 빛줄기
  *   Llama      파란 오브 2개 교차 유영
@@ -959,18 +952,18 @@
   animation: fx-shoot 13s linear infinite;
 }
 
-/* ── DeepSeek — 심해 기포 상승 ── */
+/* ── DeepSeek — 기포 상승 (라이트 배경 · 블루 틴트, 고래 세계관 유지) ── */
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx::before {
   bottom: -10%; left: 22%;
   width: 170px; height: 170px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(180, 200, 255, 0.16), transparent 70%);
+  background: radial-gradient(circle, rgba(77, 107, 254, 0.12), transparent 70%);
   filter: blur(30px);
   animation: fx-rise 18s ease-in infinite;
 }
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx::after {
   bottom: -10%; right: 18%;
   width: 110px; height: 110px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(150, 175, 255, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(77, 107, 254, 0.10), transparent 70%);
   filter: blur(24px);
   animation: fx-rise 24s ease-in infinite;
   animation-delay: 7s;
@@ -1235,11 +1228,11 @@
   animation-delay: 7s;
 }
 
-/* ── DeepSeek — 잔기포 + 수중 shimmer ── */
+/* ── DeepSeek — 잔기포 + 라이트 shimmer ── */
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx2::before {
   bottom: -8%; left: 55%;
   width: 64px; height: 64px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(200, 215, 255, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(77, 107, 254, 0.10), transparent 70%);
   filter: blur(14px);
   animation: fx-rise 15s ease-in infinite;
   animation-delay: 3s;
@@ -1249,9 +1242,9 @@
   width: 24%;
   background: linear-gradient(90deg,
     transparent,
-    rgba(190, 210, 255, 0.04) 45%,
-    rgba(190, 210, 255, 0.07) 50%,
-    rgba(190, 210, 255, 0.04) 55%,
+    rgba(77, 107, 254, 0.04) 45%,
+    rgba(77, 107, 254, 0.07) 50%,
+    rgba(77, 107, 254, 0.04) 55%,
     transparent);
   animation: fx-beam 16s ease-in-out infinite;
   animation-delay: 5s;
@@ -1387,7 +1380,7 @@
 [data-brand='gemini']       { --sb-accent: #5d8aff; }
 [data-brand='perplexity']   { --sb-accent: #1ba9bd; }
 [data-brand='grok']         { --sb-accent: #17181c; } /* 히어로 accent(흰색)는 라이트 사이드바에서 안 보임 */
-[data-brand='deepseek']     { --sb-accent: #6b85ff; }
+[data-brand='deepseek']     { --sb-accent: #4d6bfe; }
 [data-brand='secretary']    { --sb-accent: #a78bfa; }
 [data-brand='kimi']         { --sb-accent: #8b6ef5; }
 [data-brand='naver']        { --sb-accent: #03c75a; }
