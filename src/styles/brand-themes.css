@@ -62,8 +62,11 @@
 /* ────── GPT (OpenAI) — 정제된 라이트, 최소한의 그린 accent ────── */
 .hero-brand-canvas[data-brand='gpt'] {
   --hero-bg: #f2f4f7;
+  /* 그린 spotlight + 우상 시안 hint + 좌하 그린 echo — 라이트 미니멀에 깊이 한 겹. */
   --hero-mesh:
-    radial-gradient(60% 40% at 50% 0%, rgba(16, 163, 127, 0.10), transparent 60%);
+    radial-gradient(60% 40% at 50% 0%, rgba(16, 163, 127, 0.10), transparent 60%),
+    radial-gradient(40% 30% at 88% 18%, rgba(56, 189, 248, 0.06), transparent 60%),
+    radial-gradient(45% 35% at 8% 92%, rgba(16, 163, 127, 0.05), transparent 60%);
   --hero-pattern:
     radial-gradient(circle at 1px 1px, rgba(16, 163, 127, 0.05) 1px, transparent 0);
   --hero-fg: #0d1117;
@@ -109,7 +112,14 @@
     radial-gradient(45% 38% at 10% 88%, rgba(178, 140, 255, 0.20), transparent 60%),
     radial-gradient(36% 30% at 90% 18%, rgba(255, 150, 205, 0.12), transparent 60%),
     radial-gradient(34% 28% at 82% 94%, rgba(110, 220, 255, 0.10), transparent 60%);
-  --hero-pattern: none;
+  /* 쌍둥이자리 성좌 — 별 2쌍 (twin pairs) + 외곽 잔별. Gemini = 쌍둥이. */
+  --hero-pattern:
+    radial-gradient(circle 1.5px at 22% 16%, rgba(255, 255, 255, 0.50), transparent 3px),
+    radial-gradient(circle 1px   at 28% 27%, rgba(255, 255, 255, 0.35), transparent 2px),
+    radial-gradient(circle 1.5px at 74% 13%, rgba(255, 255, 255, 0.45), transparent 3px),
+    radial-gradient(circle 1px   at 80% 24%, rgba(255, 255, 255, 0.32), transparent 2px),
+    radial-gradient(circle 1px   at 10% 68%, rgba(255, 255, 255, 0.28), transparent 2px),
+    radial-gradient(circle 1px   at 90% 60%, rgba(255, 255, 255, 0.28), transparent 2px);
   --hero-fg: #f2f4ff;
   --hero-fg-muted: #bac1e4;
   --hero-accent: #5d8aff;
@@ -176,7 +186,10 @@
 /* ────── DeepSeek — 밝은 로얄 블루 (bg 밝게 · 더 vivid) ────── */
 .hero-brand-canvas[data-brand='deepseek'] {
   --hero-bg: #26356e;
+  /* 심해 빛내림 (god rays) 2줄기 + 기존 spotlight — 수면 위에서 내려오는 빛. */
   --hero-mesh:
+    linear-gradient(112deg, transparent 28%, rgba(190, 210, 255, 0.08) 37%, transparent 46%),
+    linear-gradient(104deg, transparent 54%, rgba(190, 210, 255, 0.05) 61%, transparent 69%),
     radial-gradient(70% 45% at 50% 0%, rgba(120, 140, 255, 0.30), transparent 60%),
     radial-gradient(55% 40% at 15% 90%, rgba(180, 200, 255, 0.16), transparent 55%);
   --hero-pattern:
@@ -441,7 +454,10 @@
     radial-gradient(42% 35% at 92% 100%, rgba(180, 230, 60, 0.16), transparent 55%),
     /* 좌하 어둠 vignette — 깊이감 */
     radial-gradient(50% 40% at 5% 95%, rgba(0, 0, 0, 0.30), transparent 60%);
-  --hero-pattern: none;
+  /* 서킷 그리드 — GPU 다이 감성의 미세 그린 격자. */
+  --hero-pattern:
+    linear-gradient(rgba(118, 185, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(118, 185, 0, 0.04) 1px, transparent 1px);
   --hero-fg: #f0f7e8;
   --hero-fg-muted: #a8bd93;
   --hero-accent: #76b900;
@@ -528,9 +544,9 @@
 }
 
 .hero-brand-canvas[data-brand='nemotron'] {
-  /* mesh (linear beam + 3 radials) + pattern (none) — 모두 non-repeating. */
-  background-size: auto, auto, auto, auto, auto;
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  /* mesh (linear beam + 3 radials) non-repeat + pattern (서킷 격자 2 layers) repeat. */
+  background-size: auto, auto, auto, auto, 44px 44px, 44px 44px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat;
 }
 
 .hero-brand-canvas[data-brand='command'] {
@@ -581,8 +597,9 @@
 }
 
 .hero-brand-canvas[data-brand='gpt'] {
-  background-size: auto, 22px 22px;
-  background-repeat: no-repeat, repeat;
+  /* mesh 3 + pattern (도트 그리드). */
+  background-size: auto, auto, auto, 22px 22px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
 }
 
 /* 검색엔진 armed 시 배경 스택 조정. */
@@ -718,17 +735,17 @@
  *
  * 컨셉 맵:
  *   GPT        떠다니는 그린 오브 2개 교차 (미니멀)
- *   Claude     따뜻한 햇살 숨쉬기
- *   Gemini     오로라 오브 2개 교차 유영
- *   Perplexity 리서치 스캔라인 (위→아래 sweep)
- *   Grok       별 반짝임 + 이따금 유성
- *   DeepSeek   심해 기포 상승 (고래 세계관)
+ *   Claude     따뜻한 햇살 숨쉬기 + 사선 햇살 빔
+ *   Gemini     오로라 오브 2개 교차 + 쌍둥이 성좌 (pattern)
+ *   Perplexity 검색 소나 핑 + 리서치 스캔라인
+ *   Grok       별 7개 반짝임 + 이따금 유성
+ *   DeepSeek   심해 기포 상승 + 빛내림 (고래 세계관)
  *   Kimi       보름달 halo 맥동 + 별
  *   Qwen       새벽 수평선 빛 번짐 + 수평선 빛줄기
  *   Llama      파란 오브 2개 교차 유영
- *   Mistral    바람 줄기 (mistral = 프랑스 북서풍)
- *   Nemotron   GPU 빔 스윕
- *   Command    골드 glow 숨쉬기 (엔터프라이즈 프리미엄)
+ *   Mistral    바람 줄기 2겹 패럴랙스 (mistral = 프랑스 북서풍)
+ *   Nemotron   GPU 빔 스윕 + 서킷 그리드 (pattern)
+ *   Command    골드 glow 숨쉬기 + 골드 shimmer 스윕
  *   비서        바이올렛·앰버 glow 교차 숨쉬기
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -799,6 +816,13 @@
   50%      { opacity: 0.7; }
 }
 
+@keyframes fx-pulse {
+  0%   { transform: scale(0.25); opacity: 0; }
+  12%  { opacity: 0.5; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
 /* ── GPT — 떠다니는 그린 오브 2개 (교차 유영 · 미니멀 유지) ── */
 .hero-brand-canvas[data-brand='gpt'] .hero-fx::before {
   top: 8%; right: 12%;
@@ -815,13 +839,21 @@
   animation: fx-orbit 34s ease-in-out infinite reverse;
 }
 
-/* ── Claude — 따뜻한 햇살 숨쉬기 ── */
+/* ── Claude — 따뜻한 햇살 숨쉬기 + 사선 햇살 빔 ── */
 .hero-brand-canvas[data-brand='claude'] .hero-fx::before {
   top: -6%; left: 30%;
   width: 46%; height: 40%; border-radius: 50%;
   background: radial-gradient(circle, rgba(217, 119, 87, 0.16), transparent 70%);
   filter: blur(56px);
   animation: fx-breathe 12s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='claude'] .hero-fx::after {
+  inset: 0;
+  /* 창으로 들어오는 오후 햇살 — 사선 웜 빔 2줄기가 아주 천천히 명멸. */
+  background:
+    linear-gradient(118deg, transparent 34%, rgba(230, 150, 100, 0.07) 42%, transparent 50%),
+    linear-gradient(112deg, transparent 58%, rgba(230, 150, 100, 0.05) 64%, transparent 71%);
+  animation: fx-twinkle 16s ease-in-out infinite;
 }
 
 /* ── Gemini — 오로라 오브 2개 교차 유영 ── */
@@ -840,7 +872,15 @@
   animation: fx-orbit 28s ease-in-out infinite reverse;
 }
 
-/* ── Perplexity — 리서치 스캔라인 ── */
+/* ── Perplexity — 검색 소나 핑 + 리서치 스캔라인 ── */
+.hero-brand-canvas[data-brand='perplexity'] .hero-fx::before {
+  top: 14%; left: 50%;
+  width: 90px; height: 90px;
+  margin-left: -45px;
+  border: 1.5px solid rgba(34, 195, 216, 0.45);
+  border-radius: 50%;
+  animation: fx-pulse 8s ease-out infinite;
+}
 .hero-brand-canvas[data-brand='perplexity'] .hero-fx::after {
   left: 0; right: 0; top: 0;
   height: 120px;
@@ -860,7 +900,10 @@
     radial-gradient(circle 1.5px at 22% 24%, rgba(255, 255, 255, 0.8), transparent 3px),
     radial-gradient(circle 1px   at 68% 14%, rgba(255, 255, 255, 0.7), transparent 2px),
     radial-gradient(circle 1px   at 84% 52%, rgba(255, 255, 255, 0.6), transparent 2px),
-    radial-gradient(circle 1.5px at 10% 66%, rgba(255, 255, 255, 0.6), transparent 3px);
+    radial-gradient(circle 1.5px at 10% 66%, rgba(255, 255, 255, 0.6), transparent 3px),
+    radial-gradient(circle 1px   at 42% 8%,  rgba(255, 255, 255, 0.55), transparent 2px),
+    radial-gradient(circle 1px   at 56% 60%, rgba(255, 255, 255, 0.45), transparent 2px),
+    radial-gradient(circle 1.5px at 92% 30%, rgba(255, 255, 255, 0.5), transparent 3px);
   animation: fx-twinkle 5.5s ease-in-out infinite;
 }
 .hero-brand-canvas[data-brand='grok'] .hero-fx::after {
@@ -945,7 +988,7 @@
   animation: fx-orbit 30s ease-in-out infinite reverse;
 }
 
-/* ── Mistral — 바람 줄기 (mistral = 북서풍) ── */
+/* ── Mistral — 바람 줄기 2겹 (패럴랙스 · mistral = 북서풍) ── */
 .hero-brand-canvas[data-brand='mistral'] .hero-fx::before {
   top: 18%; left: -20%;
   width: 150%; height: 55%;
@@ -959,6 +1002,21 @@
     transparent 260px
   );
   animation: fx-wind 13s ease-in-out infinite alternate;
+}
+.hero-brand-canvas[data-brand='mistral'] .hero-fx::after {
+  top: 42%; left: -20%;
+  width: 150%; height: 40%;
+  /* 더 얇고 빠른 앞바람 — 두 겹 시차로 바람의 깊이감. */
+  background: repeating-linear-gradient(
+    100deg,
+    transparent 0px,
+    transparent 120px,
+    rgba(234, 88, 16, 0.035) 134px,
+    rgba(234, 88, 16, 0.055) 146px,
+    transparent 170px,
+    transparent 300px
+  );
+  animation: fx-wind 9s ease-in-out infinite alternate-reverse;
 }
 
 /* ── Nemotron — GPU 빔 스윕 ── */
@@ -974,13 +1032,25 @@
   animation: fx-beam 9s ease-in-out infinite;
 }
 
-/* ── Command — 골드 glow 숨쉬기 ── */
+/* ── Command — 골드 glow 숨쉬기 + 골드 shimmer 스윕 ── */
 .hero-brand-canvas[data-brand='command'] .hero-fx::before {
   bottom: 4%; right: 6%;
   width: 240px; height: 240px; border-radius: 50%;
   background: radial-gradient(circle, rgba(214, 176, 100, 0.14), transparent 70%);
   filter: blur(46px);
   animation: fx-breathe 16s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='command'] .hero-fx::after {
+  top: 0; bottom: 0; left: 0;
+  width: 28%;
+  /* 이따금 지나가는 골드 빔 — 엔터프라이즈 프리미엄 shimmer. */
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(214, 176, 100, 0.05) 45%,
+    rgba(214, 176, 100, 0.09) 50%,
+    rgba(214, 176, 100, 0.05) 55%,
+    transparent);
+  animation: fx-beam 18s ease-in-out infinite;
 }
 
 /* ── 비서 — 바이올렛·앰버 glow 교차 숨쉬기 (듀얼 아이덴티티) ── */
