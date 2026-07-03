@@ -1424,7 +1424,7 @@ export function AppSidebar({
                   text={activeBrand.icon.text}
                   fill={pickContrastingText(`#${activeBrand.icon.hex}`)}
                   forceWhite={pickContrastingText(`#${activeBrand.icon.hex}`) === '#ffffff'}
-                  size={11}
+                  size={Math.round(11 * (activeBrand.icon.logoScale ?? 1))}
                 />
               </span>
               <span className="flex-1 min-w-0 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate">

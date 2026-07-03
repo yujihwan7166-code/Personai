@@ -107,7 +107,7 @@ export function ModelPickerButton({
                 text={brand.icon.text}
                 fill={pickContrastingText(`#${brand.icon.hex}`)}
                 forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
-                size={14}
+                size={Math.round(14 * (brand.icon.logoScale ?? 1))}
               />
             </span>
             {/* 모델명만 표시 — 브랜드명 중복 제거 (모델명이 이미 브랜드 접두어 포함). */}

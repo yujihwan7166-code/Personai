@@ -68,7 +68,7 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
         text={brand.icon.text}
         fill={pickContrastingText(brandColor)}
         forceWhite={pickContrastingText(brandColor) === '#ffffff'}
-        size={active ? 20 : 16}
+        size={Math.round((active ? 20 : 16) * (brand.icon.logoScale ?? 1))}
       />
     </button>
   );

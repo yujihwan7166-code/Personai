@@ -41,6 +41,11 @@ export interface BrandIcon {
    * 지정 시 BrandLogo 가 path 대신 <img> 로 렌더.
    */
   imgUrl?: string;
+  /**
+   * 칩·마크 안에서 로고 렌더 크기 배율 (기본 1).
+   * 가시처럼 얇은 마크(Claude asterisk)는 시각 밀도가 낮아 키워서 보정.
+   */
+  logoScale?: number;
 }
 
 /** 브랜드 안의 개별 모델 변형 — GPT-5.4 / GPT-5.4 Mini 등. */
@@ -127,7 +132,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'Cl',
     // Claude 실제 asterisk 마크 (Claude/Claude Code 앱 아이콘 8-arm 스타버스트).
     // simple-icons/anthropic 의 "A" 스월 대신 실제 유저 앱에서 보는 마크로.
-    icon: { path: CLAUDE_ASTERISK_PATH, hex: 'D97757' },
+    icon: { path: CLAUDE_ASTERISK_PATH, hex: 'D97757', logoScale: 1.3 },
     isDark: false,
     expertId: 'claude',
     models: [
