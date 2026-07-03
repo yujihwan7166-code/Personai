@@ -754,7 +754,7 @@
  *   Claude     따뜻한 햇살 숨쉬기 + 사선 햇살 빔
  *   Gemini     오로라 오브 2개 교차 + 쌍둥이 성좌 (pattern)
  *   Perplexity 리서치 스캔라인
- *   Grok       별 7개 반짝임 + 이따금 유성
+ *   Grok       별 7개 반짝임 + 로켓 발사 트레일 (호라이즌 발사)
  *   DeepSeek   기포 상승 (라이트 블루 · 고래 세계관)
  *   Kimi       보름달 halo 맥동 + 별
  *   Qwen       새벽 수평선 빛 번짐 + 수평선 빛줄기
@@ -804,13 +804,22 @@
   100% { transform: translateY(110vh); opacity: 0; }
 }
 
-/* 유성 — rotate(148deg) 로 요소 +x 축이 진행 방향(좌하)과 일치.
- * gradient 밝은 끝(오른쪽) = 머리가 앞장서고 꼬리가 뒤로 빠짐. */
-@keyframes fx-shoot {
-  0%    { transform: translate3d(0, 0, 0) rotate(148deg); opacity: 0; }
-  2%    { opacity: 1; }
-  9%    { transform: translate3d(-58vw, 36vh, 0) rotate(148deg); opacity: 0; }
-  100%  { transform: translate3d(-58vw, 36vh, 0) rotate(148deg); opacity: 0; }
+/* 로켓 발사 트레일 — 지구 호라이즌에서 하늘로 솟아오르는 빛줄기 (Grok).
+ * 머리(위쪽 끝)가 밝고 배기 꼬리가 아래로 페이드. 살짝 기울여 자연스럽게. */
+@keyframes fx-launch {
+  0%    { transform: translate3d(0, 0, 0) rotate(4deg) scaleY(0.5); opacity: 0; }
+  3%    { opacity: 0.95; }
+  15%   { transform: translate3d(6vw, -118vh, 0) rotate(4deg) scaleY(1); opacity: 0; }
+  100%  { transform: translate3d(6vw, -118vh, 0) rotate(4deg) scaleY(1); opacity: 0; }
+}
+
+/* 궤도 위성 패스 — 완만한 호를 그리며 화면을 천천히 가로지르는 빛점 (Grok). */
+@keyframes fx-orbitpass {
+  0%   { transform: translate3d(-4vw, 0, 0); opacity: 0; }
+  7%   { opacity: 0.75; }
+  50%  { transform: translate3d(52vw, -3.5vh, 0); }
+  93%  { opacity: 0.6; }
+  100% { transform: translate3d(108vw, 0.5vh, 0); opacity: 0; }
 }
 
 @keyframes fx-rise {
@@ -926,7 +935,7 @@
   animation: fx-scan 11s ease-in-out infinite;
 }
 
-/* ── Grok — 별 반짝임 + 유성 ── */
+/* ── Grok — 별 반짝임 + 로켓 발사 트레일 ── */
 .hero-brand-canvas[data-brand='grok'] .hero-fx::before {
   inset: 0;
   background:
@@ -940,17 +949,18 @@
   animation: fx-twinkle 5.5s ease-in-out infinite;
 }
 .hero-brand-canvas[data-brand='grok'] .hero-fx::after {
-  top: 12%; right: 6%;
-  width: 170px; height: 2px;
+  /* 로켓 발사 트레일 — 하단 호라이즌 바로 아래서 출발해 하늘로. */
+  bottom: -18%; left: 40%;
+  width: 2px; height: 120px;
   border-radius: 999px;
-  /* 긴 페이드 꼬리 → 머리로 갈수록 밝고 굵게. */
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.20) 55%,
-    rgba(255, 255, 255, 0.55) 82%,
-    rgba(255, 255, 255, 0.95));
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
-  animation: fx-shoot 13s linear infinite;
+  transform-origin: 50% 100%;
+  /* 머리(위) 밝게 → 배기 꼬리(아래) 페이드. */
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.30) 45%,
+    transparent);
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.55));
+  animation: fx-launch 17s linear infinite;
 }
 
 /* ── DeepSeek — 기포 상승 (라이트 배경 · 블루 틴트, 고래 세계관 유지) ── */
@@ -1118,7 +1128,7 @@
  *   Claude     햇빛 속 먼지 입자 (dust motes)
  *   Gemini     성좌 별 반짝임 + 오로라 리본 표류
  *   Perplexity 시그널 라인 상승 (도트 헤드)
- *   Grok       별 심도 2겹 + 두 번째 유성
+ *   Grok       별 심도 2겹 + 궤도 위성 패스
  *   DeepSeek   세 번째 잔기포 + 수중 shimmer sweep
  *   Kimi       달 앞을 지나는 구름 wisp + 잔별
  *   Qwen       새벽 빛 입자 2개 상승
@@ -1216,17 +1226,14 @@
   animation-delay: 2.5s;
 }
 .hero-brand-canvas[data-brand='grok'] .hero-fx2::after {
-  top: 46%; right: 24%;
-  width: 120px; height: 1.5px;
-  border-radius: 999px;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.14) 55%,
-    rgba(255, 255, 255, 0.40) 82%,
-    rgba(255, 255, 255, 0.75));
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4));
-  animation: fx-shoot 19s linear infinite;
-  animation-delay: 7s;
+  /* 궤도 위성 패스 — 상공을 천천히 가로지르는 빛점 (ISS 감성). */
+  top: 20%; left: 0;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px 1.5px rgba(255, 255, 255, 0.45);
+  animation: fx-orbitpass 36s linear infinite;
+  animation-delay: 4s;
 }
 
 /* ── DeepSeek — 잔기포 + 라이트 shimmer ── */
