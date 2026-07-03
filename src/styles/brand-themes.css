@@ -193,8 +193,18 @@
   --hero-font-heading: 'Black Han Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(42, 42, 48, 0.52);
-  --hero-input-border: rgba(255, 255, 255, 0.18);
+  /* 입력창 = 화이트 반전 (다크 캔버스 위 브루탈리스트 블랙/화이트 대비). */
+  --hero-input-bg: rgba(255, 255, 255, 0.94);
+  --hero-input-border: rgba(23, 24, 28, 0.14);
+}
+
+/* Grok 입력창 내부 — 화이트 배경 위 다크 텍스트·아이콘으로 변수 반전. */
+.hero-brand-canvas[data-brand='grok'] .hero-input-shell {
+  --hero-fg: #17181c;
+  --hero-fg-muted: #6b6b76;
+  --hero-accent: #17181c;
+  --hero-accent-soft: rgba(23, 24, 28, 0.08);
+  --hero-ring: #17181c;
 }
 
 /* ────── DeepSeek — 라이트 화이트블루 (deepseek.com 공식 톤 · 2026-07 재디자인) ────── */
@@ -857,13 +867,19 @@
   50%      { opacity: 0.7; }
 }
 
-/* 고래 유영 — 화면 하단을 아주 천천히 가로지르며 살짝 떠올랐다 가라앉음 (DeepSeek). */
+/* 고래 유영 — 화면을 아주 천천히 가로지르며 살짝 떠올랐다 가라앉음 (DeepSeek 새끼 고래). */
 @keyframes fx-swim {
   0%   { transform: translate3d(-22vw, 0, 0); opacity: 0; }
-  8%   { opacity: 0.10; }
+  8%   { opacity: 0.08; }
   46%  { transform: translate3d(38vw, -2.5vh, 0); }
-  88%  { opacity: 0.09; }
+  88%  { opacity: 0.07; }
   100% { transform: translate3d(88vw, 0.5vh, 0); opacity: 0; }
+}
+
+/* 물결 부유 — 제자리에서 천천히 오르내리며 살짝 기우는 상주 고래 (DeepSeek). */
+@keyframes fx-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-12px) rotate(1.5deg); }
 }
 
 /* 느린 수평 표류 — 구름·안개 (Kimi 달구름 등). */
@@ -1159,7 +1175,7 @@
  *   Gemini     성좌 반짝임 + 4-point 스파클 ✦ pulse
  *   Perplexity 시그널 라인 상승 (도트 헤드)
  *   Grok       별 심도 2겹 + 궤도 위성 패스
- *   DeepSeek   잔기포 + 고래 유영 (fx-swim · 55s)
+ *   DeepSeek   상주 고래 부유 (fx-bob) + 원경 새끼 고래 (fx-swim)
  *   Kimi       달 앞을 지나는 구름 wisp + 잔별
  *   Qwen       새벽 빛 입자 2개 상승
  *   Llama      블루 라이트 밴드 sweep
@@ -1266,21 +1282,22 @@
   animation-delay: 4s;
 }
 
-/* ── DeepSeek — 잔기포 + 라이트 shimmer ── */
+/* ── DeepSeek — 상주 고래 (우하단 부유) + 원경 새끼 고래 유영 ── */
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx2::before {
-  bottom: -8%; left: 55%;
-  width: 64px; height: 64px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(77, 107, 254, 0.10), transparent 70%);
-  filter: blur(14px);
-  animation: fx-rise 15s ease-in infinite;
-  animation-delay: 3s;
+  /* 새끼 고래 — 상단 원경을 75초에 걸쳐 아주 천천히 가로지름 (원근감). */
+  top: 14%; left: 0;
+  width: 110px; height: 74px;
+  background: url('/logos/deepseek-transparent.png') center / contain no-repeat;
+  animation: fx-swim 75s linear infinite;
+  animation-delay: 12s;
 }
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx2::after {
-  /* 고래 유영 — 브랜드 고래가 하단을 55초에 걸쳐 천천히 헤엄침 (기포와 한 장면). */
-  top: 62%; left: 0;
-  width: 280px; height: 190px;
+  /* 상주 고래 — 우하단 지정석에서 물결 따라 부유 (브랜드 마스코트). */
+  bottom: 7%; right: 5%;
+  width: 250px; height: 170px;
   background: url('/logos/deepseek-transparent.png') center / contain no-repeat;
-  animation: fx-swim 55s linear infinite;
+  opacity: 0.13;
+  animation: fx-bob 9s ease-in-out infinite;
 }
 
 /* ── Kimi — 달 앞을 지나는 구름 wisp + 잔별 ── */

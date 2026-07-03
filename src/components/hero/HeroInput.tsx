@@ -127,7 +127,9 @@ export function HeroInput({
        * focus-within 시 브랜드 색으로 border 변경. */}
       <div
         className={cn(
-          'group relative rounded-[var(--hero-radius-input,14px)] border',
+          // hero-input-shell — 브랜드 CSS 가 입력창 내부만 변수 오버라이드할 수 있는 스코프
+          // (Grok: 다크 캔버스 + 화이트 입력창 반전).
+          'hero-input-shell group relative rounded-[var(--hero-radius-input,14px)] border',
           'transition-all duration-200',
           'focus-within:border-[color:var(--hero-ring,#10a37f)]',
         )}
