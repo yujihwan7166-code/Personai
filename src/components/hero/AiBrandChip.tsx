@@ -18,6 +18,12 @@ interface Props {
 
 export function AiBrandChip({ brand, active, onClick }: Props) {
   const brandColor = `#${brand.icon.hex}`;
+  const logoTone = pickContrastingText(brandColor);
+  // 밝은 칩(GPT·Grok 흰 원)은 라이트 배경에서 경계가 사라지므로 어두운 inset 테두리.
+  const edgeInset =
+    logoTone === '#000000'
+      ? 'inset 0 0 0 1px rgba(0,0,0,0.12)'
+      : 'inset 0 0 0 1px rgba(255,255,255,0.08)';
   return (
     <button
       type="button"
@@ -35,18 +41,20 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
         backgroundColor: brandColor,
         ...(active
           ? {
-              // 얇은 hero-bg halo + 브랜드 링 + 은은한 glow — 정제된 3단.
+              // 얇은 hero-bg halo + 브랜드 accent 링 + 은은한 glow — 정제된 3단.
+              // 링은 --hero-ring (칩 색이 아니라 accent) — 흰 칩도 라이트 배경에서 선명.
               boxShadow: `
                 0 0 0 3px var(--hero-bg, #0d0d0d),
-                0 0 0 4.5px ${brandColor},
-                0 6px 24px -6px ${brandColor}
+                0 0 0 4.5px var(--hero-ring, ${brandColor}),
+                0 6px 24px -6px var(--hero-ring, ${brandColor}),
+                ${edgeInset}
               `,
             }
           : {
               // hero-bg halo 로 칩 사이 border 자연스럽게 가림 (회색 pill 대신).
               boxShadow: `
                 0 0 0 3px var(--hero-bg, #0d0d0d),
-                inset 0 0 0 1px rgba(255,255,255,0.08)
+                ${edgeInset}
               `,
             }),
       }}

@@ -106,40 +106,41 @@
   --hero-input-border: rgba(44, 24, 16, 0.12);
 }
 
-/* ────── Gemini (Google) — 선명한 인디고 오로라 (DeepSeek 급 채도 · 유기적 blob) ────── */
+/* ────── Gemini (Google) — 라이트 오로라 (gemini.google.com 톤 · 2026-07 재디자인) ──────
+ * 다크 인디고가 너무 어둡다는 피드백 → 실제 Gemini 앱처럼 라이트 배경 +
+ * 시그니처 블루→퍼플→핑크 그라디언트가 사방에서 은은하게 (한눈에 Gemini). */
 .hero-brand-canvas[data-brand='gemini'] {
-  --hero-bg: #222a52;
-  /* 리본(muddy) 제거 → 4개 유기적 blob. 블루가 주인공, 퍼플·핑크·시안은 hint. */
+  --hero-bg: #f7f8ff;
   --hero-mesh:
-    radial-gradient(62% 45% at 50% -5%, rgba(96, 136, 255, 0.36), transparent 60%),
-    radial-gradient(45% 38% at 10% 88%, rgba(178, 140, 255, 0.20), transparent 60%),
-    radial-gradient(36% 30% at 90% 18%, rgba(255, 150, 205, 0.12), transparent 60%),
-    radial-gradient(34% 28% at 82% 94%, rgba(110, 220, 255, 0.10), transparent 60%);
-  /* 쌍둥이자리 성좌 — 별 2쌍 (twin pairs) + 잔별 하늘. Gemini = 쌍둥이. */
+    radial-gradient(58% 44% at 12% 6%,  rgba(66, 133, 244, 0.17), transparent 60%),
+    radial-gradient(50% 40% at 90% 14%, rgba(155, 114, 203, 0.16), transparent 60%),
+    radial-gradient(46% 38% at 18% 96%, rgba(217, 101, 112, 0.10), transparent 60%),
+    radial-gradient(42% 34% at 86% 92%, rgba(66, 133, 244, 0.10), transparent 60%);
+  /* 쌍둥이자리 성좌 — 라이트 배경용 퍼플 틴트 별. */
   --hero-pattern:
-    radial-gradient(circle 1.5px at 22% 16%, rgba(255, 255, 255, 0.50), transparent 3px),
-    radial-gradient(circle 1px   at 28% 27%, rgba(255, 255, 255, 0.35), transparent 2px),
-    radial-gradient(circle 1.5px at 74% 13%, rgba(255, 255, 255, 0.45), transparent 3px),
-    radial-gradient(circle 1px   at 80% 24%, rgba(255, 255, 255, 0.32), transparent 2px),
-    radial-gradient(circle 1px   at 10% 68%, rgba(255, 255, 255, 0.28), transparent 2px),
-    radial-gradient(circle 1px   at 90% 60%, rgba(255, 255, 255, 0.28), transparent 2px),
-    radial-gradient(circle 1px   at 44% 10%, rgba(255, 255, 255, 0.30), transparent 2px),
-    radial-gradient(circle 1.5px at 58% 22%, rgba(255, 255, 255, 0.36), transparent 3px),
-    radial-gradient(circle 1px   at 6%  34%, rgba(255, 255, 255, 0.26), transparent 2px),
-    radial-gradient(circle 1px   at 94% 40%, rgba(255, 255, 255, 0.24), transparent 2px),
-    radial-gradient(circle 1px   at 36% 58%, rgba(255, 255, 255, 0.22), transparent 2px),
-    radial-gradient(circle 1px   at 66% 66%, rgba(255, 255, 255, 0.22), transparent 2px);
-  --hero-fg: #f2f4ff;
-  --hero-fg-muted: #bac1e4;
-  --hero-accent: #5d8aff;
-  --hero-accent-soft: rgba(93, 138, 255, 0.18);
-  --hero-ring: #a5b4f0;
+    radial-gradient(circle 1.5px at 22% 16%, rgba(106, 82, 224, 0.34), transparent 3px),
+    radial-gradient(circle 1px   at 28% 27%, rgba(106, 82, 224, 0.24), transparent 2px),
+    radial-gradient(circle 1.5px at 74% 13%, rgba(106, 82, 224, 0.30), transparent 3px),
+    radial-gradient(circle 1px   at 80% 24%, rgba(106, 82, 224, 0.22), transparent 2px),
+    radial-gradient(circle 1px   at 10% 68%, rgba(106, 82, 224, 0.18), transparent 2px),
+    radial-gradient(circle 1px   at 90% 60%, rgba(106, 82, 224, 0.18), transparent 2px),
+    radial-gradient(circle 1px   at 44% 10%, rgba(106, 82, 224, 0.20), transparent 2px),
+    radial-gradient(circle 1.5px at 58% 22%, rgba(106, 82, 224, 0.24), transparent 3px),
+    radial-gradient(circle 1px   at 6%  34%, rgba(106, 82, 224, 0.16), transparent 2px),
+    radial-gradient(circle 1px   at 94% 40%, rgba(106, 82, 224, 0.15), transparent 2px),
+    radial-gradient(circle 1px   at 36% 58%, rgba(106, 82, 224, 0.14), transparent 2px),
+    radial-gradient(circle 1px   at 66% 66%, rgba(106, 82, 224, 0.14), transparent 2px);
+  --hero-fg: #202142;
+  --hero-fg-muted: #62648a;
+  --hero-accent: #6a52e0;
+  --hero-accent-soft: rgba(106, 82, 224, 0.10);
+  --hero-ring: #6a52e0;
   --hero-radius-input: 20px;
   --hero-font-heading: 'Gowun Dodum', 'Inter', ui-sans-serif, system-ui, sans-serif;   /* 모던 라운드 — Google 친근함 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.12);
-  --hero-input-bg: rgba(18, 22, 50, 0.52);
-  --hero-input-border: rgba(150, 172, 255, 0.36);
+  --hero-hairline: rgba(32, 33, 66, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(106, 82, 224, 0.26);
 }
 
 /* ────── Perplexity — 딥 피콕 (공식 브랜드 그래픽: 다크 네이비틸 + 핑크·블루 힌트) ────── */
@@ -896,18 +897,18 @@
   animation: fx-twinkle 16s ease-in-out infinite;
 }
 
-/* ── Gemini — 오로라 오브 2개 교차 유영 ── */
+/* ── Gemini — 파스텔 오로라 오브 2개 교차 유영 (라이트) ── */
 .hero-brand-canvas[data-brand='gemini'] .hero-fx::before {
   top: 12%; left: 8%;
   width: 300px; height: 300px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(96, 136, 255, 0.20), transparent 70%);
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.14), transparent 70%);
   filter: blur(52px);
   animation: fx-orbit 22s ease-in-out infinite;
 }
 .hero-brand-canvas[data-brand='gemini'] .hero-fx::after {
   bottom: 8%; right: 6%;
   width: 260px; height: 260px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(178, 140, 255, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(155, 114, 203, 0.13), transparent 70%);
   filter: blur(52px);
   animation: fx-orbit 28s ease-in-out infinite reverse;
 }
@@ -1158,11 +1159,11 @@
 .hero-brand-canvas[data-brand='gemini'] .hero-fx2::before {
   inset: 0;
   background:
-    radial-gradient(circle 2px   at 22% 16%, rgba(255, 255, 255, 0.55), transparent 4px),
-    radial-gradient(circle 2px   at 74% 13%, rgba(255, 255, 255, 0.50), transparent 4px),
-    radial-gradient(circle 1.5px at 58% 22%, rgba(255, 255, 255, 0.45), transparent 3px),
-    radial-gradient(circle 1.5px at 10% 68%, rgba(255, 255, 255, 0.38), transparent 3px),
-    radial-gradient(circle 1.5px at 90% 60%, rgba(255, 255, 255, 0.36), transparent 3px);
+    radial-gradient(circle 2px   at 22% 16%, rgba(106, 82, 224, 0.45), transparent 4px),
+    radial-gradient(circle 2px   at 74% 13%, rgba(106, 82, 224, 0.40), transparent 4px),
+    radial-gradient(circle 1.5px at 58% 22%, rgba(106, 82, 224, 0.35), transparent 3px),
+    radial-gradient(circle 1.5px at 10% 68%, rgba(106, 82, 224, 0.28), transparent 3px),
+    radial-gradient(circle 1.5px at 90% 60%, rgba(106, 82, 224, 0.26), transparent 3px);
   animation: fx-twinkle 6s ease-in-out infinite;
   animation-delay: 2s;
 }
@@ -1170,9 +1171,9 @@
   top: 26%; left: -12%;
   width: 124%; height: 24%;
   background: linear-gradient(90deg,
-    rgba(96, 136, 255, 0.06),
-    rgba(178, 140, 255, 0.09) 40%,
-    rgba(255, 150, 205, 0.06) 70%,
+    rgba(66, 133, 244, 0.07),
+    rgba(155, 114, 203, 0.09) 40%,
+    rgba(217, 101, 112, 0.06) 70%,
     transparent);
   filter: blur(38px);
   animation: fx-wind 24s ease-in-out infinite alternate;
@@ -1377,7 +1378,7 @@
 [data-brand]                { --sb-accent: #10a37f; --sb-accent-fg: #ffffff; } /* 폴백 = GPT */
 [data-brand='gpt']          { --sb-accent: #10a37f; }
 [data-brand='claude']       { --sb-accent: #d97757; }
-[data-brand='gemini']       { --sb-accent: #5d8aff; }
+[data-brand='gemini']       { --sb-accent: #6a52e0; }
 [data-brand='perplexity']   { --sb-accent: #1ba9bd; }
 [data-brand='grok']         { --sb-accent: #17181c; } /* 히어로 accent(흰색)는 라이트 사이드바에서 안 보임 */
 [data-brand='deepseek']     { --sb-accent: #4d6bfe; }
