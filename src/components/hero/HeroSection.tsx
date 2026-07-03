@@ -373,7 +373,7 @@ export function HeroSection({
             // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
             <p
               key={`${identityKey}-name`}
-              className="mb-2 text-[11px] font-semibold tracking-[0.14em] uppercase animate-in fade-in duration-300"
+              className="mb-2 text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
               style={{ color: eyebrowColor }}
             >
               {displayName}
@@ -383,7 +383,7 @@ export function HeroSection({
             // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운.
             <div
               key={`${identityKey}-name`}
-              className="mb-2 flex justify-center animate-in fade-in duration-300"
+              className="mb-2 flex justify-center hero-name-in"
             >
               <ModelPickerButton
                 variant="eyebrow"

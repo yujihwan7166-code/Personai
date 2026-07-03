@@ -8,6 +8,7 @@
 import { cn } from '@/lib/utils';
 import type { Brand } from '@/lib/aiBrands';
 import { BrandLogo } from './BrandLogo';
+import { pickContrastingText } from '@/lib/colorUtils';
 
 interface Props {
   brand: Brand;
@@ -52,11 +53,13 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
     >
       {/* 칩 안 로고 우선순위: imgUrl (실제 파일) > SVG path > text.
        * GPT 는 /logos/gpt.svg (실제 OpenAI 마크 파일) 사용해 chip 에 표시. */}
+      {/* 로고 색 = 칩 배경 휘도 기준 자동 — Grok(흰 칩)은 검정 로고. */}
       <BrandLogo
         imgUrl={brand.icon.imgUrl}
         path={brand.icon.path}
         text={brand.icon.text}
-        fill="#FFFFFF"
+        fill={pickContrastingText(brandColor)}
+        forceWhite={pickContrastingText(brandColor) === '#ffffff'}
         size={active ? 20 : 16}
       />
     </button>

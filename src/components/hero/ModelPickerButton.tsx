@@ -14,6 +14,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Brand, BrandModel } from '@/lib/aiBrands';
+import { BrandLogo } from './BrandLogo';
+import { pickContrastingText } from '@/lib/colorUtils';
 
 interface Props {
   brand: Brand;
@@ -63,11 +65,11 @@ export function ModelPickerButton({
         className={cn(
           isEyebrow
             ? [
-                // eyebrow 스타일 — 헤드라인 위 라벨. 모델명만 · 살짝 크게 · 클릭 영역 넓게.
-                'inline-flex items-center gap-1.5 py-2 px-4 -mx-4 rounded-lg',
-                'text-[15px] font-medium tracking-normal',
-                'transition-colors duration-150',
-                hasChoice && 'hover:bg-[color:var(--hero-accent-soft)]',
+                // eyebrow 스타일 — 브랜드 로고 + 모델명. AI 정체성이 한눈에.
+                'inline-flex items-center gap-2 py-2 px-4 -mx-4 rounded-xl',
+                'text-[19px] font-semibold tracking-[-0.01em]',
+                'transition-all duration-200',
+                hasChoice && 'hover:bg-[color:var(--hero-accent-soft)] hover:-translate-y-px active:translate-y-0',
               ]
             : [
                 // toolbar 스타일 — 입력창 우측 pill.
@@ -90,13 +92,31 @@ export function ModelPickerButton({
       >
         {isEyebrow ? (
           <>
+            {/* 브랜드 로고 마크 — 브랜드 컬러 원 (스트립·사이드바 칩과 동일 언어).
+             * 로고 색은 원 배경 휘도 기준 자동 (Grok 흰 원 → 검정 로고). */}
+            <span
+              className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
+              style={{
+                backgroundColor: `#${brand.icon.hex}`,
+                boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
+              }}
+            >
+              <BrandLogo
+                imgUrl={brand.icon.imgUrl}
+                path={brand.icon.path}
+                text={brand.icon.text}
+                fill={pickContrastingText(`#${brand.icon.hex}`)}
+                forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
+                size={14}
+              />
+            </span>
             {/* 모델명만 표시 — 브랜드명 중복 제거 (모델명이 이미 브랜드 접두어 포함). */}
             <span>{selectedModel.name}</span>
             {hasChoice && (
               <ChevronDown
-                size={16}
+                size={18}
                 strokeWidth={2.4}
-                className={cn('opacity-60 transition-transform', open && 'rotate-180')}
+                className={cn('opacity-60 transition-transform duration-200', open && 'rotate-180')}
               />
             )}
           </>

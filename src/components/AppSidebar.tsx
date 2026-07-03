@@ -5,6 +5,7 @@ import { Expert, DiscussionMode, AIAbilityStats, getMainMode } from '@/types/exp
 import { BRAND_BY_ID } from '@/lib/aiBrands';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { BrandLogo } from './hero/BrandLogo';
+import { pickContrastingText } from '@/lib/colorUtils';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -1414,14 +1415,15 @@ export function AppSidebar({
               }}
             >
               <span
-                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 ring-1 ring-black/5"
                 style={{ backgroundColor: `#${activeBrand.icon.hex}` }}
               >
                 <BrandLogo
                   imgUrl={activeBrand.icon.imgUrl}
                   path={activeBrand.icon.path}
                   text={activeBrand.icon.text}
-                  fill="#ffffff"
+                  fill={pickContrastingText(`#${activeBrand.icon.hex}`)}
+                  forceWhite={pickContrastingText(`#${activeBrand.icon.hex}`) === '#ffffff'}
                   size={11}
                 />
               </span>
