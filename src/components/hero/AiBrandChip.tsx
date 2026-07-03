@@ -41,19 +41,21 @@ export function AiBrandChip({ brand, active, onClick }: Props) {
         backgroundColor: brandColor,
         ...(active
           ? {
-              // 얇은 hero-bg halo + 브랜드 accent 링 + 은은한 glow — 정제된 3단.
+              // 얇은 halo + 브랜드 accent 링 + 은은한 glow — 정제된 3단.
+              // halo 색은 --hero-chip-halo (기본 hero-bg) — 입력창과 캔버스 색이 크게
+              // 다른 브랜드(Grok 화이트 입력창)는 transparent 로 꺼서 이음새 방지.
               // 링은 --hero-ring (칩 색이 아니라 accent) — 흰 칩도 라이트 배경에서 선명.
               boxShadow: `
-                0 0 0 3px var(--hero-bg, #0d0d0d),
+                0 0 0 3px var(--hero-chip-halo, var(--hero-bg, #0d0d0d)),
                 0 0 0 4.5px var(--hero-ring, ${brandColor}),
                 0 6px 24px -6px var(--hero-ring, ${brandColor}),
                 ${edgeInset}
               `,
             }
           : {
-              // hero-bg halo 로 칩 사이 border 자연스럽게 가림 (회색 pill 대신).
+              // halo 로 칩 사이 border 자연스럽게 가림 (회색 pill 대신).
               boxShadow: `
-                0 0 0 3px var(--hero-bg, #0d0d0d),
+                0 0 0 3px var(--hero-chip-halo, var(--hero-bg, #0d0d0d)),
                 ${edgeInset}
               `,
             }),
