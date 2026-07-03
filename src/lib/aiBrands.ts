@@ -304,9 +304,11 @@ export const BRANDS: readonly Brand[] = [
     isDark: false,
     expertId: 'mistral-large',
     models: [
-      { id: 'mistral-large',  name: 'Mistral Large 3',   description: '최상위',       isDefault: true },
+      { id: 'mistral-large',  name: 'Mistral Large 3',    description: '최상위',       isDefault: true },
       { id: 'mistral-medium', name: 'Mistral Medium 3.1', description: '균형 만능' },
-      { id: 'mistral-small',  name: 'Mistral Small 4',   description: '경량 고속' },
+      { id: 'mistral-small',  name: 'Mistral Small 4',    description: '경량 고속' },
+      { id: 'codestral',      name: 'Codestral',          description: '코드 생성 특화' },
+      { id: 'devstral',       name: 'Devstral',           description: '개발 에이전트 특화' },
     ],
     greeting: '빠르게, 정확하게.',
     subtitle: 'Mistral · 유럽의 경량·강한 모델',
