@@ -313,9 +313,9 @@ export function HeroSection({
               onClick={onOpenModeDropdown}
               aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
               className={cn(
-                'group flex items-center gap-1 h-6 pl-2.5 pr-1.5 rounded-full',
-                'text-[11px] font-medium tracking-tight',
-                'border transition-all duration-200',
+                'group flex items-center gap-1.5 h-8 pl-3.5 pr-2 rounded-full',
+                'text-[13px] font-semibold tracking-tight',
+                'border transition-all duration-200 hover:-translate-y-px',
               )}
               style={{
                 color: 'var(--hero-fg)',
@@ -324,7 +324,7 @@ export function HeroSection({
               }}
             >
               <span>{modeLabel}</span>
-              <ChevronDown size={11} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100" />
+              <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </button>
           ) : null)}
       </div>

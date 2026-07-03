@@ -61,19 +61,19 @@
 
 /* ────── GPT (OpenAI) — 정제된 라이트, 최소한의 그린 accent ────── */
 .hero-brand-canvas[data-brand='gpt'] {
+  /* 그린 제거 (유저 피드백) — ChatGPT 실제 앱처럼 순수 뉴트럴 그레이 + 블랙 CTA. */
   --hero-bg: #f2f4f7;
-  /* 그린 spotlight + 우상 시안 hint + 좌하 그린 echo — 라이트 미니멀에 깊이 한 겹. */
   --hero-mesh:
-    radial-gradient(60% 40% at 50% 0%, rgba(16, 163, 127, 0.10), transparent 60%),
-    radial-gradient(40% 30% at 88% 18%, rgba(56, 189, 248, 0.06), transparent 60%),
-    radial-gradient(45% 35% at 8% 92%, rgba(16, 163, 127, 0.05), transparent 60%);
+    radial-gradient(60% 40% at 50% 0%, rgba(13, 17, 23, 0.05), transparent 60%),
+    radial-gradient(40% 30% at 88% 18%, rgba(87, 96, 106, 0.05), transparent 60%),
+    radial-gradient(45% 35% at 8% 92%, rgba(13, 17, 23, 0.03), transparent 60%);
   --hero-pattern:
-    radial-gradient(circle at 1px 1px, rgba(16, 163, 127, 0.05) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(13, 17, 23, 0.05) 1px, transparent 0);
   --hero-fg: #0d1117;
   --hero-fg-muted: #57606a;
-  --hero-accent: #10a37f;
-  --hero-accent-soft: rgba(16, 163, 127, 0.10);
-  --hero-ring: #10a37f;
+  --hero-accent: #0d1117;
+  --hero-accent-soft: rgba(13, 17, 23, 0.07);
+  --hero-ring: #0d1117;
   --hero-radius-input: 14px;
   --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -177,8 +177,12 @@
   /* 순흑(#050505)은 너무 어둡다는 피드백 → 다크 그레이로 상향 (YouTube 전례).
    * 모노크롬 브루탈리즘 유지 + 하단 지구 호라이즌 림 (궤도에서 본 일출 — xAI/SpaceX 감성). */
   --hero-bg: #232327;
+  /* 우주 + 화성 (인터스텔라): 상단 콜드 spotlight · 지구 호라이즌 림 ·
+   * 호라이즌 위 러스트 화성 디스크 (모노크롬 + 단 하나의 색 포인트). */
   --hero-mesh:
     radial-gradient(60% 42% at 50% -5%, rgba(255, 255, 255, 0.10), transparent 60%),
+    radial-gradient(circle 30px at 79% 63%, rgba(199, 93, 58, 0.38) 0px 25px, rgba(199, 93, 58, 0.12) 28px, transparent 33px),
+    radial-gradient(circle 52px at 79% 63%, rgba(199, 93, 58, 0.10), transparent 70%),
     radial-gradient(95% 40% at 50% 121%, transparent 57%, rgba(255, 255, 255, 0.14) 60.5%, rgba(255, 255, 255, 0.04) 65%, transparent 71%),
     radial-gradient(80% 30% at 50% 112%, rgba(255, 255, 255, 0.06), transparent 60%);
   --hero-pattern: none;
@@ -263,8 +267,9 @@
 /* ────── Kimi (Moonshot AI) — 달빛 밤하늘 (보름달 glow + 고정 별 · 반복 X) ────── */
 .hero-brand-canvas[data-brand='kimi'] {
   --hero-bg: #221a42;
-  /* 우상 보름달 warm glow (Moonshot 정체성) + 상단 퍼플 + 좌하 핑크퍼플. */
+  /* 우상 실제 보름달 디스크 + warm halo (Moonshot = 달) + 상단 퍼플 + 좌하 핑크퍼플. */
   --hero-mesh:
+    radial-gradient(circle 54px at 79% 15%, rgba(255, 243, 216, 0.36) 0 47px, rgba(255, 243, 216, 0.12) 51px, transparent 58px),
     radial-gradient(24% 20% at 79% 16%, rgba(255, 238, 190, 0.22), transparent 60%),
     radial-gradient(60% 42% at 50% -5%, rgba(139, 92, 246, 0.28), transparent 60%),
     radial-gradient(46% 38% at 8% 96%, rgba(232, 121, 249, 0.13), transparent 60%);
@@ -415,38 +420,42 @@
   --hero-input-border: rgba(162, 169, 177, 0.60);
 }
 
-/* ────── Qwen (Alibaba) — 새벽 수평선 (하단에서 밝아오는 시안 · 반복 X) ────── */
+/* ────── Qwen (Alibaba) — 라이트 인디고 (chat.qwen.ai 공식 톤 · 2026-07 재디자인) ────── */
 .hero-brand-canvas[data-brand='qwen'] {
-  --hero-bg: #143349;
-  /* 상단 시안 spotlight + 하단 새벽빛 (수평선 위로 밝아오는 느낌). */
+  /* 다크 새벽 → 실제 Qwen Chat 의 화이트 + 인디고 바이올렛 #615CED. */
+  --hero-bg: #f6f6fe;
   --hero-mesh:
-    radial-gradient(65% 42% at 50% -5%, rgba(24, 180, 245, 0.30), transparent 60%),
-    linear-gradient(180deg, transparent 58%, rgba(56, 189, 248, 0.12) 100%),
-    radial-gradient(38% 30% at 86% 88%, rgba(125, 211, 252, 0.14), transparent 60%);
+    radial-gradient(60% 44% at 50% -8%, rgba(97, 92, 237, 0.13), transparent 60%),
+    radial-gradient(46% 38% at 90% 88%, rgba(140, 100, 245, 0.09), transparent 60%),
+    radial-gradient(42% 34% at 8% 90%, rgba(97, 92, 237, 0.07), transparent 60%);
   --hero-pattern: none;
-  --hero-fg: #ecf6fc;
-  --hero-fg-muted: #a2bfd3;
-  --hero-accent: #1fb0f0;
-  --hero-accent-soft: rgba(31, 176, 240, 0.16);
-  --hero-ring: #38bdf8;
-  --hero-radius-input: 12px;
-  --hero-font-heading: 'Do Hyeon', 'Inter', ui-sans-serif, system-ui, sans-serif;       /* 다이내믹 — 새벽의 에너지 */
+  --hero-fg: #22213f;
+  --hero-fg-muted: #63628a;
+  --hero-accent: #615ced;
+  --hero-accent-soft: rgba(97, 92, 237, 0.10);
+  --hero-ring: #615ced;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Do Hyeon', 'Inter', ui-sans-serif, system-ui, sans-serif;       /* 다이내믹 에너지 */
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.11);
-  --hero-input-bg: rgba(14, 30, 44, 0.52);
-  --hero-input-border: rgba(56, 189, 248, 0.34);
+  --hero-hairline: rgba(34, 33, 63, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(97, 92, 237, 0.26);
 }
 
 /* ────── Llama (Meta) — 선명한 Meta 블루 필드 (유기적 blob · 반복 X) ────── */
 .hero-brand-canvas[data-brand='llama'] {
   --hero-bg: #16264e;
-  /* Meta AI 그라디언트 (블루→퍼플→핑크) 를 우하단 힌트로 — 한눈에 Meta. */
+  /* Llama 4 공식 그라디언트 (시안→블루→퍼플→마젠타→코럴) 대각 스윕 —
+   * 블루 필드 위로 브랜드 스펙트럼이 우하단으로 갈수록 물듦. */
   --hero-mesh:
     radial-gradient(66% 45% at 50% -5%, rgba(50, 125, 255, 0.34), transparent 60%),
-    radial-gradient(45% 38% at 10% 92%, rgba(110, 155, 255, 0.18), transparent 60%),
-    radial-gradient(34% 28% at 90% 78%, rgba(150, 195, 255, 0.12), transparent 60%),
-    radial-gradient(30% 26% at 88% 96%, rgba(190, 120, 255, 0.12), transparent 60%),
-    radial-gradient(22% 20% at 72% 102%, rgba(255, 120, 190, 0.08), transparent 60%);
+    linear-gradient(116deg,
+      transparent 38%,
+      rgba(0, 190, 255, 0.09) 52%,
+      rgba(120, 110, 255, 0.13) 66%,
+      rgba(220, 90, 235, 0.12) 80%,
+      rgba(255, 120, 110, 0.10) 94%),
+    radial-gradient(45% 38% at 10% 92%, rgba(110, 155, 255, 0.18), transparent 60%);
   --hero-pattern: none;
   --hero-fg: #eff3ff;
   --hero-fg-muted: #adbadf;
@@ -463,22 +472,17 @@
 
 /* ────── Nemotron (NVIDIA) — GPU 파워 · 사선 라이트 빔 (반복 X) ────── */
 .hero-brand-canvas[data-brand='nemotron'] {
-  --hero-bg: #0c1a0f;
-  /* 대각선 3-layer 라이트 빔 · GPU 렌더 감성.
-   * linear-gradient stripes + radial spots — 모두 non-repeating. */
+  /* NVIDIA 공식 톤 — 순수 블랙 + 그린 단색. 라임 blob·vignette 걷어내고
+   * 상단 spotlight · 대각 빔 · 하단 GPU 언더글로우 3장으로 슬릭하게. */
+  --hero-bg: #0a0e0a;
   --hero-mesh:
-    /* 대각선 그린 스트라이프 (좌상→우하) — 넓은 sweep */
     linear-gradient(115deg,
       transparent 20%,
-      rgba(118, 185, 0, 0.15) 40%,
-      rgba(150, 210, 30, 0.08) 55%,
+      rgba(118, 185, 0, 0.13) 40%,
+      rgba(150, 210, 30, 0.07) 55%,
       transparent 75%),
-    /* 상단 그린 spotlight — 헤드라인 뒤 */
-    radial-gradient(55% 40% at 50% 0%, rgba(118, 185, 0, 0.24), transparent 60%),
-    /* 우하 라임 accent */
-    radial-gradient(42% 35% at 92% 100%, rgba(180, 230, 60, 0.16), transparent 55%),
-    /* 좌하 어둠 vignette — 깊이감 */
-    radial-gradient(50% 40% at 5% 95%, rgba(0, 0, 0, 0.30), transparent 60%);
+    radial-gradient(55% 38% at 50% 0%, rgba(118, 185, 0, 0.26), transparent 60%),
+    linear-gradient(180deg, transparent 82%, rgba(118, 185, 0, 0.08) 100%);
   /* 서킷 그리드 — GPU 다이 감성의 미세 그린 격자. */
   --hero-pattern:
     linear-gradient(rgba(118, 185, 0, 0.05) 1px, transparent 1px),
@@ -530,18 +534,12 @@
 /* ────── Mistral — 연한 주황 라이트 (Claude 처럼 warm 크림·복숭아) ────── */
 .hero-brand-canvas[data-brand='mistral'] {
   --hero-bg: #fef4e8;
-  /* 상단 소프트 오렌지 글로우 + 하단 브랜드 플래그 리본 (공식 로고의 5색 스트라이프). */
+  /* 상단 소프트 오렌지 글로우 + 우하단 시그니처 픽셀 M (공식 로고 응용). */
   --hero-mesh:
-    linear-gradient(0deg,
-      rgba(225, 5, 0, 0.38) 0 4px,
-      rgba(250, 80, 15, 0.38) 4px 8px,
-      rgba(255, 130, 5, 0.38) 8px 12px,
-      rgba(255, 175, 0, 0.38) 12px 16px,
-      rgba(255, 216, 0, 0.38) 16px 20px,
-      transparent 20px),
     radial-gradient(75% 50% at 50% -8%, rgba(250, 130, 60, 0.20), transparent 55%),
     radial-gradient(55% 40% at 90% 100%, rgba(255, 170, 80, 0.14), transparent 60%);
-  --hero-pattern: none;
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Cg%3E%3Crect x='0' y='0' width='18' height='18' fill='%23FFD800' fill-opacity='0.30'/%3E%3Crect x='100' y='0' width='18' height='18' fill='%23FFD800' fill-opacity='0.30'/%3E%3Crect x='0' y='20' width='18' height='18' fill='%23FFAF00' fill-opacity='0.30'/%3E%3Crect x='20' y='20' width='18' height='18' fill='%23FFAF00' fill-opacity='0.30'/%3E%3Crect x='80' y='20' width='18' height='18' fill='%23FFAF00' fill-opacity='0.30'/%3E%3Crect x='100' y='20' width='18' height='18' fill='%23FFAF00' fill-opacity='0.30'/%3E%3Crect x='0' y='40' width='18' height='18' fill='%23FF8205' fill-opacity='0.30'/%3E%3Crect x='40' y='40' width='18' height='18' fill='%23FF8205' fill-opacity='0.30'/%3E%3Crect x='60' y='40' width='18' height='18' fill='%23FF8205' fill-opacity='0.30'/%3E%3Crect x='100' y='40' width='18' height='18' fill='%23FF8205' fill-opacity='0.30'/%3E%3Crect x='0' y='60' width='18' height='18' fill='%23FA500F' fill-opacity='0.30'/%3E%3Crect x='100' y='60' width='18' height='18' fill='%23FA500F' fill-opacity='0.30'/%3E%3Crect x='0' y='80' width='18' height='18' fill='%23E10500' fill-opacity='0.30'/%3E%3Crect x='100' y='80' width='18' height='18' fill='%23E10500' fill-opacity='0.30'/%3E%3C/g%3E%3C/svg%3E");
   --hero-fg: #3d2418;
   --hero-fg-muted: #8f6d55;
   --hero-accent: #ea5810;
@@ -583,9 +581,9 @@
 }
 
 .hero-brand-canvas[data-brand='nemotron'] {
-  /* mesh (linear beam + 3 radials) non-repeat + pattern (서킷 격자 2 layers) repeat. */
-  background-size: auto, auto, auto, auto, 44px 44px, 44px 44px;
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat;
+  /* mesh 3 (빔 + spotlight + 언더글로우) non-repeat + pattern (서킷 격자 2) repeat. */
+  background-size: auto, auto, auto, 44px 44px, 44px 44px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
 }
 
 .hero-brand-canvas[data-brand='command'] {
@@ -631,8 +629,10 @@
 }
 
 .hero-brand-canvas[data-brand='mistral'] {
-  background-size: auto, auto;
-  background-repeat: no-repeat, no-repeat;
+  /* mesh 2 + 픽셀 M (우하단 고정). */
+  background-size: auto, auto, 156px 130px;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, right 7% bottom 12%;
 }
 
 .hero-brand-canvas[data-brand='gpt'] {
@@ -783,7 +783,7 @@
  *   Grok       별 7개 반짝임 + 로켓 발사 트레일 (호라이즌 발사)
  *   DeepSeek   기포 상승 (라이트 블루 · 고래 세계관)
  *   Kimi       보름달 halo 맥동 + 별
- *   Qwen       새벽 수평선 빛 번짐 + 수평선 빛줄기
+ *   Qwen       인디고 오브 숨쉬기 (라이트)
  *   Llama      파란 오브 2개 교차 유영
  *   Mistral    바람 줄기 2겹 패럴랙스 (mistral = 프랑스 북서풍)
  *   Nemotron   GPU 빔 스윕 + 서킷 그리드 (pattern)
@@ -905,18 +905,18 @@
   animation: hero-name-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* ── GPT — 떠다니는 그린 오브 2개 (교차 유영 · 미니멀 유지) ── */
+/* ── GPT — 떠다니는 뉴트럴 오브 2개 (교차 유영 · 미니멀 유지) ── */
 .hero-brand-canvas[data-brand='gpt'] .hero-fx::before {
   top: 8%; right: 12%;
   width: 260px; height: 260px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 163, 127, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(13, 17, 23, 0.07), transparent 70%);
   filter: blur(50px);
   animation: fx-orbit 26s ease-in-out infinite;
 }
 .hero-brand-canvas[data-brand='gpt'] .hero-fx::after {
   bottom: 10%; left: 8%;
   width: 200px; height: 200px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 163, 127, 0.09), transparent 70%);
+  background: radial-gradient(circle, rgba(13, 17, 23, 0.05), transparent 70%);
   filter: blur(46px);
   animation: fx-orbit 34s ease-in-out infinite reverse;
 }
@@ -1040,28 +1040,13 @@
   animation-delay: 1.5s;
 }
 
-/* ── Qwen — 새벽 수평선 빛 번짐 + 수평선 빛줄기 ── */
+/* ── Qwen — 인디고 오브 숨쉬기 (라이트) ── */
 .hero-brand-canvas[data-brand='qwen'] .hero-fx::before {
-  left: 10%; right: 10%; bottom: -6%;
-  height: 34%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 100%, rgba(56, 189, 248, 0.20), transparent 70%);
-  filter: blur(44px);
-  transform-origin: 50% 100%;
+  top: 10%; right: 10%;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(97, 92, 237, 0.11), transparent 70%);
+  filter: blur(48px);
   animation: fx-breathe 14s ease-in-out infinite;
-}
-.hero-brand-canvas[data-brand='qwen'] .hero-fx::after {
-  left: 18%; right: 18%; bottom: 11%;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(125, 211, 252, 0.40) 30%,
-    rgba(186, 230, 253, 0.60) 50%,
-    rgba(125, 211, 252, 0.40) 70%,
-    transparent);
-  filter: blur(1px);
-  animation: fx-twinkle 9s ease-in-out infinite;
 }
 
 /* ── Llama — 파란 오브 2개 교차 유영 (톤온톤 깊이감) ── */
@@ -1173,7 +1158,7 @@
  *   Grok       별 심도 2겹 + 궤도 위성 패스
  *   DeepSeek   상주 고래 부유 (fx-bob) + 잔기포
  *   Kimi       달 앞을 지나는 구름 wisp + 잔별
- *   Qwen       새벽 빛 입자 2개 상승
+ *   Qwen       인디고 빛 입자 2개 상승
  *   Llama      블루 라이트 밴드 sweep
  *   Mistral    돌풍에 날리는 입자 2개
  *   Nemotron   코어 점등 (그리드 교차점) + 세로 렌더 스캔
@@ -1181,15 +1166,15 @@
  *   비서        스파클 점 3개 반짝임
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── GPT — 상단 그린 라이트 sweep ── */
+/* ── GPT — 상단 뉴트럴 라이트 sweep ── */
 .hero-brand-canvas[data-brand='gpt'] .hero-fx2::before {
   top: 0; bottom: 55%; left: 0;
   width: 30%;
   background: linear-gradient(90deg,
     transparent,
-    rgba(16, 163, 127, 0.04) 45%,
-    rgba(16, 163, 127, 0.07) 50%,
-    rgba(16, 163, 127, 0.04) 55%,
+    rgba(13, 17, 23, 0.025) 45%,
+    rgba(13, 17, 23, 0.045) 50%,
+    rgba(13, 17, 23, 0.025) 55%,
     transparent);
   animation: fx-beam 22s ease-in-out infinite;
   animation-delay: 4s;
@@ -1220,13 +1205,14 @@
   animation-delay: 2s;
 }
 .hero-brand-canvas[data-brand='gemini'] .hero-fx2::after {
-  /* Gemini 시그니처 4-point 스파클 ✦ 2개 — 우상 퍼플(대) + 좌하 블루(소), 숨쉬기. */
+  /* Gemini 시그니처 4-point 스파클 ✦ 3개 — 우상 퍼플(대) + 좌하 블루(소) + 우하 핑크(중). */
   inset: 0;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 C13.1 7.6 16.4 10.9 24 12 C16.4 13.1 13.1 16.4 12 24 C10.9 16.4 7.6 13.1 0 12 C7.6 10.9 10.9 7.6 12 0 Z' fill='rgba(155,114,203,0.16)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 C13.1 7.6 16.4 10.9 24 12 C16.4 13.1 13.1 16.4 12 24 C10.9 16.4 7.6 13.1 0 12 C7.6 10.9 10.9 7.6 12 0 Z' fill='rgba(66,133,244,0.13)'/%3E%3C/svg%3E");
-  background-size: 168px 168px, 92px 92px;
-  background-position: 86% 16%, 9% 80%;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 C13.1 7.6 16.4 10.9 24 12 C16.4 13.1 13.1 16.4 12 24 C10.9 16.4 7.6 13.1 0 12 C7.6 10.9 10.9 7.6 12 0 Z' fill='rgba(66,133,244,0.13)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 C13.1 7.6 16.4 10.9 24 12 C16.4 13.1 13.1 16.4 12 24 C10.9 16.4 7.6 13.1 0 12 C7.6 10.9 10.9 7.6 12 0 Z' fill='rgba(217,101,112,0.13)'/%3E%3C/svg%3E");
+  background-size: 168px 168px, 92px 92px, 122px 122px;
+  background-position: 86% 16%, 9% 80%, 80% 86%;
   background-repeat: no-repeat;
   animation: fx-breathe 14s ease-in-out infinite;
 }
@@ -1289,12 +1275,13 @@
   animation-delay: 3s;
 }
 .hero-brand-canvas[data-brand='deepseek'] .hero-fx2::after {
-  /* 상주 고래 — 우하단 지정석에서 물결 따라 부유 (브랜드 마스코트). */
-  bottom: 7%; right: 5%;
-  width: 250px; height: 170px;
+  /* 상주 고래 — 우하단 코너에 크게 걸쳐서 (부분 크롭 = 배경 그래픽의 일부),
+   * 아주 느리게 미세 부유. 스티커가 아니라 환경으로 읽히게. */
+  bottom: -7%; right: -70px;
+  width: 430px; height: 300px;
   background: url('/logos/deepseek-transparent.png') center / contain no-repeat;
-  opacity: 0.13;
-  animation: fx-bob 9s ease-in-out infinite;
+  opacity: 0.09;
+  animation: fx-bob 16s ease-in-out infinite;
 }
 
 /* ── Kimi — 달 앞을 지나는 구름 wisp + 잔별 ── */
@@ -1316,11 +1303,11 @@
   animation-delay: 3.5s;
 }
 
-/* ── Qwen — 새벽 빛 입자 상승 ── */
+/* ── Qwen — 인디고 빛 입자 상승 ── */
 .hero-brand-canvas[data-brand='qwen'] .hero-fx2::before {
   bottom: -4%; left: 30%;
   width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(125, 211, 252, 0.45);
+  background: rgba(97, 92, 237, 0.32);
   filter: blur(2px);
   animation: fx-rise 20s ease-in infinite;
   animation-delay: 2s;
@@ -1328,7 +1315,7 @@
 .hero-brand-canvas[data-brand='qwen'] .hero-fx2::after {
   bottom: -4%; right: 36%;
   width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(186, 230, 253, 0.40);
+  background: rgba(140, 100, 245, 0.28);
   filter: blur(1.5px);
   animation: fx-rise 26s ease-in infinite;
   animation-delay: 10s;
@@ -1422,7 +1409,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 [data-brand]                { --sb-accent: #10a37f; --sb-accent-fg: #ffffff; } /* 폴백 = GPT */
-[data-brand='gpt']          { --sb-accent: #10a37f; }
+[data-brand='gpt']          { --sb-accent: #0d1117; }
 [data-brand='claude']       { --sb-accent: #d97757; }
 [data-brand='gemini']       { --sb-accent: #6a52e0; }
 [data-brand='perplexity']   { --sb-accent: #20808d; }
@@ -1435,7 +1422,7 @@
 [data-brand='daum']         { --sb-accent: #d99a00; }
 [data-brand='youtube']      { --sb-accent: #e02020; }
 [data-brand='wikipedia']    { --sb-accent: #3366cc; }
-[data-brand='qwen']         { --sb-accent: #1fb0f0; }
+[data-brand='qwen']         { --sb-accent: #615ced; }
 [data-brand='llama']        { --sb-accent: #3d7bff; }
 [data-brand='nemotron']     { --sb-accent: #76b900; }
 [data-brand='command']      { --sb-accent: #5daf94; }
@@ -1443,6 +1430,7 @@
 
 /* 다크 모드 보정 — 어두운 사이드바 위에서 안 보이는 다크 액센트만 반전 */
 .dark [data-brand='grok']   { --sb-accent: #e7e9ee; --sb-accent-fg: #17181c; }
+.dark [data-brand='gpt']    { --sb-accent: #e7e9ee; --sb-accent-fg: #0d1117; }
 
 /* 사이드바-히어로 경계 hairline — 브랜드 색이 은은하게 이어지는 세로 그라디언트 */
 aside.app-sidebar[data-brand]::after {

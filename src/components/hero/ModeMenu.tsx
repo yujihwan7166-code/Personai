@@ -20,7 +20,11 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, Clock, Search } from 'lucide-react';
+import {
+  ArrowLeft, ChevronRight, Clock, Search,
+  MessagesSquare, Swords, SlidersHorizontal, Sprout, NotebookPen,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import {
@@ -97,13 +101,14 @@ interface MenuItem {
 type CategoryId = 'recent' | 'chat' | 'debate' | 'studio' | 'life' | 'hub';
 type SubView = 'premium' | LifeSubgroupId;
 
-const CATEGORIES: { id: CategoryId; label: string; emoji: string }[] = [
-  { id: 'recent', label: '최근',       emoji: '' },   // 아이콘은 lucide Clock
-  { id: 'chat',   label: '대화',       emoji: '💬' },
-  { id: 'debate', label: '토론·시뮬',  emoji: '⚔️' },
-  { id: 'studio', label: '스튜디오',   emoji: '🎛️' },
-  { id: 'life',   label: '라이프',     emoji: '🌱' },
-  { id: 'hub',    label: '노트',       emoji: '📔' },
+/* 레일 아이콘 — 이모지 대신 모노크롬 lucide (유아틱 → 커맨드 팔레트 감성). */
+const CATEGORIES: { id: CategoryId; label: string; icon: LucideIcon }[] = [
+  { id: 'recent', label: '최근',       icon: Clock },
+  { id: 'chat',   label: '대화',       icon: MessagesSquare },
+  { id: 'debate', label: '토론·시뮬',  icon: Swords },
+  { id: 'studio', label: '스튜디오',   icon: SlidersHorizontal },
+  { id: 'life',   label: '라이프',     icon: Sprout },
+  { id: 'hub',    label: '노트',       icon: NotebookPen },
 ];
 
 interface Props {
@@ -429,11 +434,7 @@ export function ModeMenu({
                     : 'transparent',
                 }}
               >
-                {c.id === 'recent' ? (
-                  <Clock size={13} className="shrink-0 opacity-80" />
-                ) : (
-                  <span className="text-[14px] leading-none select-none shrink-0">{c.emoji}</span>
-                )}
+                <c.icon size={14} strokeWidth={1.9} className="shrink-0 opacity-75" />
                 <span className="truncate">{c.label}</span>
               </button>
             );
@@ -493,9 +494,10 @@ export function ModeMenu({
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
+                  {/* 파스텔 컬러 타일 제거 — 이모지를 배경 없이 차분하게 (채도 살짝 낮춤). */}
                   <span
-                    className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 text-[15px] leading-none select-none"
-                    style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 13%, transparent)` }}
+                    className="flex h-7 w-7 items-center justify-center shrink-0 text-[15px] leading-none select-none"
+                    style={{ filter: 'saturate(0.8)', opacity: 0.92 }}
                   >
                     {item.emoji}
                   </span>
