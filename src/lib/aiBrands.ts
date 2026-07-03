@@ -106,7 +106,8 @@ export const BRANDS: readonly Brand[] = [
     name: 'GPT',
     provider: 'OpenAI',
     initials: 'GPT',
-    icon: { path: OPENAI_PATH, hex: '10A37F', imgUrl: '/logos/gpt.svg' },
+    /* 마크 원 = 검정 (OpenAI 실제 브랜딩 — 그린은 accent 로만). */
+    icon: { path: OPENAI_PATH, hex: '0D0D0D', imgUrl: '/logos/gpt.svg' },
     isDark: true,
     expertId: 'gpt',
     models: [

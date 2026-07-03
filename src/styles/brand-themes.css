@@ -115,14 +115,20 @@
     radial-gradient(45% 38% at 10% 88%, rgba(178, 140, 255, 0.20), transparent 60%),
     radial-gradient(36% 30% at 90% 18%, rgba(255, 150, 205, 0.12), transparent 60%),
     radial-gradient(34% 28% at 82% 94%, rgba(110, 220, 255, 0.10), transparent 60%);
-  /* 쌍둥이자리 성좌 — 별 2쌍 (twin pairs) + 외곽 잔별. Gemini = 쌍둥이. */
+  /* 쌍둥이자리 성좌 — 별 2쌍 (twin pairs) + 잔별 하늘. Gemini = 쌍둥이. */
   --hero-pattern:
     radial-gradient(circle 1.5px at 22% 16%, rgba(255, 255, 255, 0.50), transparent 3px),
     radial-gradient(circle 1px   at 28% 27%, rgba(255, 255, 255, 0.35), transparent 2px),
     radial-gradient(circle 1.5px at 74% 13%, rgba(255, 255, 255, 0.45), transparent 3px),
     radial-gradient(circle 1px   at 80% 24%, rgba(255, 255, 255, 0.32), transparent 2px),
     radial-gradient(circle 1px   at 10% 68%, rgba(255, 255, 255, 0.28), transparent 2px),
-    radial-gradient(circle 1px   at 90% 60%, rgba(255, 255, 255, 0.28), transparent 2px);
+    radial-gradient(circle 1px   at 90% 60%, rgba(255, 255, 255, 0.28), transparent 2px),
+    radial-gradient(circle 1px   at 44% 10%, rgba(255, 255, 255, 0.30), transparent 2px),
+    radial-gradient(circle 1.5px at 58% 22%, rgba(255, 255, 255, 0.36), transparent 3px),
+    radial-gradient(circle 1px   at 6%  34%, rgba(255, 255, 255, 0.26), transparent 2px),
+    radial-gradient(circle 1px   at 94% 40%, rgba(255, 255, 255, 0.24), transparent 2px),
+    radial-gradient(circle 1px   at 36% 58%, rgba(255, 255, 255, 0.22), transparent 2px),
+    radial-gradient(circle 1px   at 66% 66%, rgba(255, 255, 255, 0.22), transparent 2px);
   --hero-fg: #f2f4ff;
   --hero-fg-muted: #bac1e4;
   --hero-accent: #5d8aff;
@@ -753,7 +759,7 @@
  *   GPT        떠다니는 그린 오브 2개 교차 (미니멀)
  *   Claude     따뜻한 햇살 숨쉬기 + 사선 햇살 빔
  *   Gemini     오로라 오브 2개 교차 + 쌍둥이 성좌 (pattern)
- *   Perplexity 검색 소나 핑 + 리서치 스캔라인
+ *   Perplexity 리서치 스캔라인
  *   Grok       별 7개 반짝임 + 이따금 유성
  *   DeepSeek   심해 기포 상승 + 빛내림 (고래 세계관)
  *   Kimi       보름달 halo 맥동 + 별
@@ -804,11 +810,13 @@
   100% { transform: translateY(110vh); opacity: 0; }
 }
 
+/* 유성 — rotate(148deg) 로 요소 +x 축이 진행 방향(좌하)과 일치.
+ * gradient 밝은 끝(오른쪽) = 머리가 앞장서고 꼬리가 뒤로 빠짐. */
 @keyframes fx-shoot {
-  0%    { transform: translate3d(0, 0, 0) rotate(-32deg); opacity: 0; }
-  1.5%  { opacity: 0.8; }
-  9%    { transform: translate3d(-58vw, 36vh, 0) rotate(-32deg); opacity: 0; }
-  100%  { transform: translate3d(-58vw, 36vh, 0) rotate(-32deg); opacity: 0; }
+  0%    { transform: translate3d(0, 0, 0) rotate(148deg); opacity: 0; }
+  2%    { opacity: 1; }
+  9%    { transform: translate3d(-58vw, 36vh, 0) rotate(148deg); opacity: 0; }
+  100%  { transform: translate3d(-58vw, 36vh, 0) rotate(148deg); opacity: 0; }
 }
 
 @keyframes fx-rise {
@@ -833,13 +841,6 @@
 @keyframes fx-twinkle {
   0%, 100% { opacity: 0.15; }
   50%      { opacity: 0.7; }
-}
-
-@keyframes fx-pulse {
-  0%   { transform: scale(0.25); opacity: 0; }
-  12%  { opacity: 0.5; }
-  70%  { transform: scale(2.6); opacity: 0; }
-  100% { transform: scale(2.6); opacity: 0; }
 }
 
 /* 느린 수평 표류 — 구름·안개 (Kimi 달구름 등). */
@@ -918,15 +919,7 @@
   animation: fx-orbit 28s ease-in-out infinite reverse;
 }
 
-/* ── Perplexity — 검색 소나 핑 + 리서치 스캔라인 ── */
-.hero-brand-canvas[data-brand='perplexity'] .hero-fx::before {
-  top: 14%; left: 50%;
-  width: 90px; height: 90px;
-  margin-left: -45px;
-  border: 1.5px solid rgba(34, 195, 216, 0.45);
-  border-radius: 50%;
-  animation: fx-pulse 8s ease-out infinite;
-}
+/* ── Perplexity — 리서치 스캔라인 (소나 핑은 유저 피드백으로 제거) ── */
 .hero-brand-canvas[data-brand='perplexity'] .hero-fx::after {
   left: 0; right: 0; top: 0;
   height: 120px;
@@ -954,8 +947,15 @@
 }
 .hero-brand-canvas[data-brand='grok'] .hero-fx::after {
   top: 12%; right: 6%;
-  width: 150px; height: 1.5px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85));
+  width: 170px; height: 2px;
+  border-radius: 999px;
+  /* 긴 페이드 꼬리 → 머리로 갈수록 밝고 굵게. */
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.20) 55%,
+    rgba(255, 255, 255, 0.55) 82%,
+    rgba(255, 255, 255, 0.95));
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
   animation: fx-shoot 13s linear infinite;
 }
 
@@ -1123,7 +1123,7 @@
  *   GPT        상단 그린 라이트 sweep
  *   Claude     햇빛 속 먼지 입자 (dust motes)
  *   Gemini     성좌 별 반짝임 + 오로라 리본 표류
- *   Perplexity 두 번째 소나 핑 (시차 더블 핑)
+ *   Perplexity 시그널 라인 상승 (도트 헤드)
  *   Grok       별 심도 2겹 + 두 번째 유성
  *   DeepSeek   세 번째 잔기포 + 수중 shimmer sweep
  *   Kimi       달 앞을 지나는 구름 wisp + 잔별
@@ -1165,8 +1165,11 @@
 .hero-brand-canvas[data-brand='gemini'] .hero-fx2::before {
   inset: 0;
   background:
-    radial-gradient(circle 2px at 22% 16%, rgba(255, 255, 255, 0.55), transparent 4px),
-    radial-gradient(circle 2px at 74% 13%, rgba(255, 255, 255, 0.50), transparent 4px);
+    radial-gradient(circle 2px   at 22% 16%, rgba(255, 255, 255, 0.55), transparent 4px),
+    radial-gradient(circle 2px   at 74% 13%, rgba(255, 255, 255, 0.50), transparent 4px),
+    radial-gradient(circle 1.5px at 58% 22%, rgba(255, 255, 255, 0.45), transparent 3px),
+    radial-gradient(circle 1.5px at 10% 68%, rgba(255, 255, 255, 0.38), transparent 3px),
+    radial-gradient(circle 1.5px at 90% 60%, rgba(255, 255, 255, 0.36), transparent 3px);
   animation: fx-twinkle 6s ease-in-out infinite;
   animation-delay: 2s;
 }
@@ -1182,16 +1185,7 @@
   animation: fx-wind 24s ease-in-out infinite alternate;
 }
 
-/* ── Perplexity — 두 번째 소나 핑 (시차) + 시그널 라인 상승 ── */
-.hero-brand-canvas[data-brand='perplexity'] .hero-fx2::before {
-  top: 14%; left: 50%;
-  width: 90px; height: 90px;
-  margin-left: -45px;
-  border: 1px solid rgba(33, 184, 205, 0.30);
-  border-radius: 50%;
-  animation: fx-pulse 8s ease-out infinite;
-  animation-delay: 4s;
-}
+/* ── Perplexity — 시그널 라인 상승 ── */
 .hero-brand-canvas[data-brand='perplexity'] .hero-fx2::after {
   inset: 0;
   /* 검색 시그널 — 끝에 도트가 달린 세로 라인 5개 (높이 불규칙, 아래로 페이드). */
@@ -1229,8 +1223,14 @@
 }
 .hero-brand-canvas[data-brand='grok'] .hero-fx2::after {
   top: 46%; right: 24%;
-  width: 110px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7));
+  width: 120px; height: 1.5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.14) 55%,
+    rgba(255, 255, 255, 0.40) 82%,
+    rgba(255, 255, 255, 0.75));
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4));
   animation: fx-shoot 19s linear infinite;
   animation-delay: 7s;
 }
