@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Expert, DiscussionMode, AIAbilityStats } from '@/types/expert';
+import { Expert, DiscussionMode, AIAbilityStats, getMainMode } from '@/types/expert';
+import { BRAND_BY_ID } from '@/lib/aiBrands';
+import { useSelectedBrand } from '@/hooks/useSelectedBrand';
+import { BrandLogo } from './hero/BrandLogo';
 import { DiscussionRecord, deleteDiscussionFromHistory, getDiscussionHistory } from '@/lib/discussionHistoryStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -342,6 +345,10 @@ export function AppSidebar({
   useEffect(() => {
     try { localStorage.setItem('ancano-sidebar-open', isOpen ? 'true' : 'false'); } catch { /* noop */ }
   }, [isOpen]);
+  // ── 브랜드 틴트 (A안): general 모드에서 선택된 히어로 브랜드가 사이드바 액센트를 물들임.
+  // 배경·밝기·레이아웃은 불변 — <aside data-brand> 로 --sb-accent 변수만 활성화.
+  const { brand: heroBrand } = useSelectedBrand();
+  const activeBrand = getMainMode(discussionMode) === 'general' ? BRAND_BY_ID[heroBrand] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
   const [historyRecords, setHistoryRecords] = useState<DiscussionRecord[]>(() => getDiscussionHistory());
@@ -795,14 +802,21 @@ export function AppSidebar({
         className={cn(
           'relative px-2.5 py-[6px] rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors mx-1.5 h-8',
           isActive
-            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
+            ? activeBrand
+              ? 'text-slate-800 dark:text-slate-100'
+              : 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
             : 'hover:bg-slate-100 dark:hover:bg-slate-800',
         )}
+        style={isActive && activeBrand ? { backgroundColor: 'color-mix(in srgb, var(--sb-accent) 9%, transparent)' } : undefined}
         onClick={() => !isEditing && handleLoadHistory(record)}
       >
-        {/* active 좌측 stripe */}
+        {/* active 좌측 stripe — 브랜드 틴트 시 accent 색 */}
         {isActive && (
-          <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-blue-500" aria-hidden />
+          <span
+            className={cn('absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full', !activeBrand && 'bg-blue-500')}
+            style={activeBrand ? { backgroundColor: 'var(--sb-accent)' } : undefined}
+            aria-hidden
+          />
         )}
         {/* AI model icon circle */}
         <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0">
@@ -1004,8 +1018,9 @@ export function AppSidebar({
 
       {/* Sidebar — 열림: 220px / 닫힘: 아이콘 미니모드 48px */}
       <aside
+        data-brand={activeBrand?.id}
         className={cn(
-          'fixed top-0 left-0 h-full z-50 flex flex-col transition-all duration-300 ease-out',
+          'app-sidebar fixed top-0 left-0 h-full z-50 flex flex-col transition-all duration-300 ease-out',
           'bg-white dark:bg-[#0f0f0f]',
           'border-r border-slate-200 dark:border-slate-800',
           'md:relative',
@@ -1385,6 +1400,41 @@ export function AppSidebar({
           onClose={() => setShowIconPicker(null)}
         />
 
+        {/* ── 현재 브랜드 칩 — general 모드에서 지금 응답하는 AI 표시, 클릭 시 히어로로 ── */}
+        {isOpen && activeBrand && (
+          <div className="shrink-0 px-2.5 pt-2">
+            <button
+              type="button"
+              onClick={handleGoHome}
+              title={`${activeBrand.name} 홈으로`}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-300 hover:opacity-80"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--sb-accent) 7%, transparent)',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--sb-accent) 22%, transparent)',
+              }}
+            >
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `#${activeBrand.icon.hex}` }}
+              >
+                <BrandLogo
+                  imgUrl={activeBrand.icon.imgUrl}
+                  path={activeBrand.icon.path}
+                  text={activeBrand.icon.text}
+                  fill="#ffffff"
+                  size={11}
+                />
+              </span>
+              <span className="flex-1 min-w-0 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate">
+                {activeBrand.name}
+              </span>
+              <span className="text-[9px] font-medium shrink-0" style={{ color: 'var(--sb-accent)' }}>
+                응답 AI
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* ── 4. Conversation List Header — 헤더 옆 돋보기 (⌘K 팔레트) ── */}
         {isOpen && <div className="shrink-0 px-2 pt-2 pb-1">
           <div className="flex items-center justify-between px-1">
@@ -1459,7 +1509,11 @@ export function AppSidebar({
                   <button
                     type="button"
                     onClick={handleGoHome}
-                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                    className={cn(
+                      "mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-semibold hover:opacity-90 transition-all duration-300",
+                      !activeBrand && "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
+                    )}
+                    style={activeBrand ? { backgroundColor: 'var(--sb-accent)', color: 'var(--sb-accent-fg)' } : undefined}
                   >
                     <Plus className="w-3 h-3" />
                     새 채팅

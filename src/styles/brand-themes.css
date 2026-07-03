@@ -896,6 +896,60 @@
   animation-delay: 1.5s;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   사이드바 브랜드 틴트 (A안, 2026-07-03)
+
+   AppSidebar <aside class="app-sidebar" data-brand="..."> 에서만 소비.
+   격리 원칙 완화: "변수는 내려주되, 쓰는 곳만 물든다" —
+   사이드바의 배경·밝기·레이아웃은 불변, 액센트 색만 브랜드를 따라감.
+
+   --sb-accent 는 히어로 --hero-accent 와 같은 값이되,
+   라이트 사이드바 위에서 안 보이는 색(Grok 흰색 등)만 별도 보정.
+   soft 배경은 색별 변수 대신 color-mix 로 파생 (중복 정의 방지).
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-brand]                { --sb-accent: #10a37f; --sb-accent-fg: #ffffff; } /* 폴백 = GPT */
+[data-brand='gpt']          { --sb-accent: #10a37f; }
+[data-brand='claude']       { --sb-accent: #d97757; }
+[data-brand='gemini']       { --sb-accent: #5d8aff; }
+[data-brand='perplexity']   { --sb-accent: #1ba9bd; }
+[data-brand='grok']         { --sb-accent: #17181c; } /* 히어로 accent(흰색)는 라이트 사이드바에서 안 보임 */
+[data-brand='deepseek']     { --sb-accent: #6b85ff; }
+[data-brand='secretary']    { --sb-accent: #a78bfa; }
+[data-brand='kimi']         { --sb-accent: #8b6ef5; }
+[data-brand='naver']        { --sb-accent: #03c75a; }
+[data-brand='google']       { --sb-accent: #4285f4; }
+[data-brand='daum']         { --sb-accent: #d99a00; }
+[data-brand='youtube']      { --sb-accent: #e02020; }
+[data-brand='wikipedia']    { --sb-accent: #3366cc; }
+[data-brand='qwen']         { --sb-accent: #1fb0f0; }
+[data-brand='llama']        { --sb-accent: #3d7bff; }
+[data-brand='nemotron']     { --sb-accent: #76b900; }
+[data-brand='command']      { --sb-accent: #5daf94; }
+[data-brand='mistral']      { --sb-accent: #ea5810; }
+
+/* 다크 모드 보정 — 어두운 사이드바 위에서 안 보이는 다크 액센트만 반전 */
+.dark [data-brand='grok']   { --sb-accent: #e7e9ee; --sb-accent-fg: #17181c; }
+
+/* 사이드바-히어로 경계 hairline — 브랜드 색이 은은하게 이어지는 세로 그라디언트 */
+aside.app-sidebar[data-brand]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px; /* border-r 라인 위에 겹침 */
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--sb-accent) 45%, transparent) 30%,
+    color-mix(in srgb, var(--sb-accent) 45%, transparent) 70%,
+    transparent 100%
+  );
+  transition: background 320ms ease;
+}
+
 /* ── Qwen — 새벽 수평선 빛 번짐 ── */
 .hero-brand-canvas[data-brand='qwen'] .hero-fx::before {
   left: 10%; right: 10%; bottom: -6%;
