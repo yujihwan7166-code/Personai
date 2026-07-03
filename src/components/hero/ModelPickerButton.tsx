@@ -110,8 +110,13 @@ export function ModelPickerButton({
                 size={Math.round(14 * (brand.icon.logoScale ?? 1))}
               />
             </span>
-            {/* 모델명만 표시 — 브랜드명 중복 제거 (모델명이 이미 브랜드 접두어 포함). */}
-            <span>{selectedModel.name}</span>
+            {/* 모델명에 브랜드가 이미 들어있으면 그대로 (GPT-5.4 · Claude Opus 4.6),
+             * 없으면 브랜드명을 앞에 붙임 (Sonar Pro → Perplexity Sonar Pro). */}
+            <span>
+              {selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
+                ? selectedModel.name
+                : `${brand.name} ${selectedModel.name}`}
+            </span>
             {hasChoice && (
               <ChevronDown
                 size={18}
