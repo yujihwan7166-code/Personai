@@ -235,8 +235,10 @@ export function HeroSection({
       <div className="hero-living-glow" aria-hidden />
 
       {/* 브랜드 FX — 브랜드마다 고유 모션 요소 (스캔라인·유성·기포·바람 등).
-       * 효과 정의는 brand-themes.css 의 [data-brand] .hero-fx 스코프. */}
+       * 효과 정의는 brand-themes.css 의 [data-brand] .hero-fx 스코프.
+       * hero-fx2 = 보조 레이어 (브랜드당 모션 슬롯 2 → 4개). */}
       <div className="hero-fx" aria-hidden />
+      <div className="hero-fx2" aria-hidden />
 
       {/* 워터마크 — armed 시 검색엔진 로고, 아니면 브랜드 로고.
        * opacity 는 CSS var 로 브랜드마다 오버라이드 가능 (DeepSeek 은 더 밝게).
