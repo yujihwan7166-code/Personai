@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { ModeMenu } from '@/components/hero/ModeMenu';
 import { HeroSection } from '@/components/hero/HeroSection';
+import { MultiHero } from '@/components/hero/MultiHero';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { notifyDone } from '@/lib/notifications';
@@ -4932,6 +4933,24 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
                 modeId={getMainMode(discussionMode)}
                 onOpenModeDropdown={() => setModeLauncherOpen(true)}
+              />
+            </div>
+          ) : (getMainMode(discussionMode) === 'multi' && selectable) ? (
+            // 다중 AI 히어로 — general 히어로 문법 + 다중선택 스트립 (최대 3개).
+            // 기존 ExpertSelectionPanel 그리드 대체 (2026-07-04), 채팅 화면은 불변.
+            <div className="h-full overflow-y-auto animate-in fade-in duration-500 ease-out fill-mode-both">
+              <MultiHero
+                modeLabel={mainModeLabelMap.multi}
+                onOpenModeDropdown={() => setModeLauncherOpen(true)}
+                value={heroInputValue}
+                onChange={setHeroInputValue}
+                disabled={isDiscussing}
+                onSubmit={(expertIds, text) => {
+                  setHeroInputValue('');
+                  setSelectedExpertIds(expertIds);
+                  // startDiscussion 이 멀티 명확화 질문 등 기존 플로우를 그대로 처리.
+                  void startDiscussion(text, expertIds, 'multi');
+                }}
               />
             </div>
           ) : <>
