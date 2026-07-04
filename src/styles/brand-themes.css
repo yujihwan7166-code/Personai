@@ -378,7 +378,9 @@
   --hero-mesh:
     radial-gradient(60% 40% at 50% -6%, rgba(255, 0, 0, 0.10), transparent 60%),
     radial-gradient(40% 32% at 90% 92%, rgba(255, 0, 0, 0.05), transparent 60%);
-  --hero-pattern: none;
+  /* 플레이 버튼 — 유튜브 상징 (우하단). */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 100'%3E%3Crect width='144' height='100' rx='24' fill='rgba(255,0,0,0.12)'/%3E%3Cpath d='M58 30 L98 50 L58 70 Z' fill='rgba(255,0,0,0.30)'/%3E%3C/svg%3E");
   --hero-fg: #0f0f0f;
   --hero-fg-muted: #606060;
   --hero-accent: #ff0000;
@@ -430,7 +432,9 @@
   --hero-mesh:
     radial-gradient(60% 42% at 50% -5%, rgba(255, 255, 255, 0.09), transparent 60%),
     linear-gradient(115deg, transparent 44%, rgba(255, 255, 255, 0.05) 50%, transparent 56%);
-  --hero-pattern: none;
+  /* 대형 X 모노그램 — 좌하단 (저채도 화이트). */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg fill='rgba(255,255,255,0.06)'%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(36 60 60)'/%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(-36 60 60)'/%3E%3C/g%3E%3C/svg%3E");
   --hero-fg: #ffffff;
   --hero-fg-muted: #9a9aa4;
   --hero-accent: #ffffff;
@@ -479,7 +483,9 @@
   --hero-mesh:
     radial-gradient(65% 44% at 50% -6%, rgba(255, 69, 0, 0.13), transparent 60%),
     radial-gradient(40% 34% at 90% 92%, rgba(255, 69, 0, 0.06), transparent 60%);
-  --hero-pattern: none;
+  /* 업보트 (오렌지) + 다운보트 (그레이) 페어 — 레딧 상징. */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 200'%3E%3Cpath d='M20 62 L50 24 L80 62 H64 V92 H36 V62 Z' fill='rgba(255,69,0,0.16)'/%3E%3Cpath d='M80 138 L50 176 L20 138 H36 V108 H64 V138 Z' fill='rgba(120,124,130,0.13)'/%3E%3C/svg%3E");
   --hero-fg: #1a1a1b;
   --hero-fg-muted: #6b6560;
   --hero-accent: #ff4500;
@@ -499,9 +505,10 @@
   --hero-mesh:
     radial-gradient(65% 44% at 50% -6%, rgba(0, 130, 117, 0.12), transparent 60%),
     radial-gradient(40% 34% at 8% 94%, rgba(0, 130, 117, 0.06), transparent 60%);
-  /* 문서 수평선 — 위키 문단 감성. */
+  /* 문서 수평선 + 시그니처 나무 (지식 트리, 우하단). */
   --hero-pattern:
-    linear-gradient(rgba(0, 130, 117, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(0, 130, 117, 0.045) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 140'%3E%3Cg stroke='rgba(0,130,117,0.22)' stroke-width='5' fill='none' stroke-linecap='round'%3E%3Cpath d='M60 132 V72 M60 92 L34 64 M60 84 L88 56 M60 72 V46'/%3E%3C/g%3E%3Cg fill='rgba(0,130,117,0.16)'%3E%3Ccircle cx='60' cy='34' r='16'/%3E%3Ccircle cx='30' cy='54' r='12'/%3E%3Ccircle cx='92' cy='46' r='13'/%3E%3C/g%3E%3C/svg%3E");
   --hero-fg: #1c2b27;
   --hero-fg-muted: #5b6e68;
   --hero-accent: #008275;
@@ -544,7 +551,9 @@
     radial-gradient(52% 42% at 84% 14%, rgba(254, 44, 85, 0.15), transparent 58%),
     radial-gradient(42% 36% at 78% 94%, rgba(37, 244, 238, 0.08), transparent 60%),
     radial-gradient(40% 34% at 12% 92%, rgba(254, 44, 85, 0.07), transparent 60%);
-  --hero-pattern: none;
+  /* 글리치 음표 — 시안·핑크 오프셋 뒤에 화이트 코어 (틱톡 로고 문법). */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 150'%3E%3Cg fill='none' stroke-width='9' stroke-linecap='round'%3E%3Cg stroke='rgba(37,244,238,0.35)' transform='translate(-4,-3)'%3E%3Cpath d='M66 108 V28 C72 46 88 56 106 58'/%3E%3C/g%3E%3Cg stroke='rgba(254,44,85,0.35)' transform='translate(4,3)'%3E%3Cpath d='M66 108 V28 C72 46 88 56 106 58'/%3E%3C/g%3E%3Cg stroke='rgba(245,245,248,0.45)'%3E%3Cpath d='M66 108 V28 C72 46 88 56 106 58'/%3E%3C/g%3E%3C/g%3E%3Cellipse cx='48' cy='112' rx='20' ry='15' fill='rgba(37,244,238,0.30)' transform='translate(-4,-3)'/%3E%3Cellipse cx='48' cy='112' rx='20' ry='15' fill='rgba(254,44,85,0.30)' transform='translate(4,3)'/%3E%3Cellipse cx='48' cy='112' rx='20' ry='15' fill='rgba(245,245,248,0.40)'/%3E%3C/svg%3E");
   --hero-fg: #f5f5f8;
   --hero-fg-muted: #9d9dae;
   --hero-accent: #fe2c55;
@@ -566,7 +575,10 @@
     radial-gradient(56% 46% at 55% 55%, rgba(255, 0, 105, 0.08), transparent 62%),
     radial-gradient(50% 42% at 90% 6%, rgba(131, 58, 180, 0.12), transparent 60%),
     radial-gradient(40% 34% at 88% 92%, rgba(253, 89, 73, 0.10), transparent 60%);
-  --hero-pattern: none;
+  /* 카메라 아웃라인 (우상) + 하트 (좌하) — 인스타 상징 2종. */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg stroke='rgba(255,0,105,0.20)' stroke-width='7' fill='none'%3E%3Crect x='10' y='10' width='100' height='100' rx='28'/%3E%3Ccircle cx='60' cy='60' r='24'/%3E%3C/g%3E%3Ccircle cx='90' cy='30' r='6' fill='rgba(255,0,105,0.24)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M50 82 C20 60 6 42 6 27 C6 13 17 4 29 4 C38 4 46 9 50 17 C54 9 62 4 71 4 C83 4 94 13 94 27 C94 42 80 60 50 82 Z' fill='rgba(255,0,105,0.13)'/%3E%3C/svg%3E");
   --hero-fg: #262626;
   --hero-fg-muted: #737373;
   --hero-accent: #ff0069;
@@ -831,18 +843,38 @@
 }
 
 .hero-brand-canvas[data-brand='youtube'] {
-  /* mesh 2 (레드 halo 상·하) — non-repeating. */
-  background-size: auto, auto;
-  background-repeat: no-repeat, no-repeat;
+  /* mesh 2 + 플레이 버튼 (우하단 고정). */
+  background-size: auto, auto, 150px 104px;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, right 7% bottom 15%;
 }
 
-.hero-brand-canvas[data-brand='twitter'],
-.hero-brand-canvas[data-brand='reddit'],
-.hero-brand-canvas[data-brand='tiktok'],
+.hero-brand-canvas[data-brand='twitter'] {
+  /* mesh 2 + X 모노그램 (좌하단 고정). */
+  background-size: auto, auto, 190px 190px;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, left 6% bottom 8%;
+}
+
+.hero-brand-canvas[data-brand='reddit'] {
+  /* mesh 2 + 업/다운보트 페어 (우측 중단 고정). */
+  background-size: auto, auto, 96px 192px;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, right 7% center;
+}
+
+.hero-brand-canvas[data-brand='tiktok'] {
+  /* mesh 4 + 글리치 음표 (우하단 고정). */
+  background-size: auto, auto, auto, auto, 130px 150px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: center, center, center, center, right 8% bottom 16%;
+}
+
 .hero-brand-canvas[data-brand='instagram'] {
-  /* mesh 만 — 전부 non-repeating. */
-  background-size: auto;
-  background-repeat: no-repeat;
+  /* mesh 4 + 카메라 (우상) + 하트 (좌하). */
+  background-size: auto, auto, auto, auto, 132px 132px, 88px 79px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: center, center, center, center, right 6% top 14%, left 6% bottom 13%;
 }
 
 .hero-brand-canvas[data-brand='github'] {
@@ -853,9 +885,10 @@
 }
 
 .hero-brand-canvas[data-brand='namuwiki'] {
-  /* mesh 2 + 문서 수평선 (26px 반복). */
-  background-size: auto, auto, 100% 26px;
-  background-repeat: no-repeat, no-repeat, repeat;
+  /* mesh 2 + 문서 수평선 (26px 반복) + 지식 트리 (우하단 고정). */
+  background-size: auto, auto, 100% 26px, 126px 147px;
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-position: center, center, 0 0, right 6% bottom 12%;
 }
 
 .hero-brand-canvas[data-brand='stackoverflow'] {
