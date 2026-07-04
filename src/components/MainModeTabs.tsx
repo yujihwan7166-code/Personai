@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
 import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
 import { getTodayUsage, summarizeUsage, USAGE_CHANGED_EVENT, type UsageSummary } from '@/services/usageTracker';
+import { useFavoriteModes, MAX_FAVS, type FavEntry } from '@/hooks/useFavoriteModes';
+import { toast } from 'sonner';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { BRAND_BY_ID } from '@/lib/aiBrands';
@@ -558,6 +560,8 @@ export function MainModeTabs({
   /** 현재 선택된 AI 브랜드·모델 — "지금" 카드. */
   const { brand: currentBrandId } = useSelectedBrand();
   const { model: currentModel } = useSelectedModel(currentBrandId);
+  /** 즐겨찾기 — 별 토글 → 히어로 좌측 상단 칩 (FavoriteChips 연동). */
+  const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
   /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
   const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
   /** 읽은 알림 id 세트 — localStorage 유지. */
@@ -709,13 +713,46 @@ export function MainModeTabs({
     }
   };
 
+  /* ── 즐겨찾기 별 — 아이템 hover 시 우상단 노출, 켜면 히어로 좌상단 칩으로
+   * (useFavoriteModes, FavoriteChips 와 동일 id 계약. 2026-07-05). ── */
+  const handleToggleFav = (entry: FavEntry) => {
+    const result = toggleFavRaw(entry);
+    if (result === 'full') {
+      toast(`즐겨찾기 칩은 ${MAX_FAVS}개까지예요`, {
+        description: '기존 칩을 하나 해제하고 다시 시도해주세요.',
+      });
+    } else if (result === 'added') {
+      toast(`'${entry.label}' 칩이 메인 좌측 상단에 추가됐어요`);
+    }
+  };
+
+  const withFavStar = (entry: FavEntry, node: ReactNode) => {
+    const faved = isFav(entry.id);
+    return (
+      <div key={entry.id} className="group/fav relative">
+        {node}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleToggleFav(entry); }}
+          aria-label={faved ? `${entry.label} 즐겨찾기 해제` : `${entry.label} 즐겨찾기 등록`}
+          className={cn(
+            'absolute right-1.5 top-1.5 z-10 rounded p-0.5 transition-all duration-100',
+            faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover/fav:opacity-100 text-slate-300 hover:text-amber-400',
+          )}
+        >
+          <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
+        </button>
+      </div>
+    );
+  };
+
   const renderModeItem = (m: MainMode) => {
     const Icon = MODE_ICON[m];
     const tint = MODE_TINT[m];
     const isActive = m === currentMode;
-    return (
+    return withFavStar(
+      { id: `mode-${m}`, label: labels[m] ?? m, desc: MODE_DESCRIPTION[m], tint, target: { kind: 'mode', mode: m } },
       <button
-        key={m}
         type="button"
         onClick={() => handleSelect(m)}
         role="menuitem"
@@ -744,14 +781,14 @@ export function MainModeTabs({
             </span>
           )}
         </span>
-      </button>
+      </button>,
     );
   };
 
   /** 플레이어 도구 아이템 — 라이프와 동일한 이모지 기반 포맷. */
-  const renderPlayerToolItem = (tool: typeof PLAYER_TOOLS[number]) => (
+  const renderPlayerToolItem = (tool: typeof PLAYER_TOOLS[number]) => withFavStar(
+    { id: `player-${tool.id}`, label: tool.label, desc: tool.desc, tint: tool.tint, target: { kind: 'player', toolId: tool.id } },
     <button
-      key={`player-${tool.id}`}
       type="button"
       onClick={() => handleSelectPlayerTool(tool.id)}
       role="menuitem"
@@ -767,14 +804,14 @@ export function MainModeTabs({
         <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">{tool.label}</span>
         {tool.desc && <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">{tool.desc}</span>}
       </span>
-    </button>
+    </button>,
   );
 
   /** 어시스턴트 개별 도구를 mode 아이템과 동일한 형태로 렌더. */
   /** 라이프·재미 도구 아이템 — 이모지 기반 아이콘 + 각자 고유 tint. */
-  const renderLifeToolItem = (tool: typeof LIFE_TOOLS[number]) => (
+  const renderLifeToolItem = (tool: typeof LIFE_TOOLS[number]) => withFavStar(
+    { id: `life-${tool.id}`, label: tool.label, desc: tool.desc, tint: tool.tint, target: { kind: 'life', toolId: tool.id } },
     <button
-      key={`life-${tool.id}`}
       type="button"
       onClick={() => handleSelectLifeTool(tool.id)}
       role="menuitem"
@@ -799,7 +836,7 @@ export function MainModeTabs({
           </span>
         )}
       </span>
-    </button>
+    </button>,
   );
 
   const renderFloatingSubmenu = ({
@@ -1002,9 +1039,9 @@ export function MainModeTabs({
     const tint = sub.tint;
     const Icon = sub.icon;
     const isActive = currentMode === 'debate' && currentDebateSub === sub.key;
-    return (
+    return withFavStar(
+      { id: `debate-${sub.key}`, label: sub.label, desc: sub.desc, tint, target: { kind: 'debate', sub: sub.key } },
       <button
-        key={sub.key}
         type="button"
         onClick={() => handleSelectSub(sub.key)}
         role="menuitem"
@@ -1031,16 +1068,16 @@ export function MainModeTabs({
             {sub.desc}
           </span>
         </span>
-      </button>
+      </button>,
     );
   };
 
   const renderPremiumToolItem = (tool: typeof PREMIUM_AI_TOOLS[number]) => {
     const Icon = tool.icon;
     const isActive = currentMode === 'premium_main' && currentPremiumDomain === tool.key;
-    return (
+    return withFavStar(
+      { id: `premium-${tool.key}`, label: tool.label, desc: tool.desc, tint: tool.tint, target: { kind: 'premium', domainId: tool.key } },
       <button
-        key={tool.key}
         type="button"
         onClick={() => handleSelectPremium(tool.key)}
         role="menuitem"
@@ -1067,7 +1104,7 @@ export function MainModeTabs({
             {tool.desc}
           </span>
         </span>
-      </button>
+      </button>,
     );
   };
 
@@ -1129,15 +1166,19 @@ export function MainModeTabs({
                 // 좌상단 고정 — 중앙 플로팅 대신 pill 아래 앵커 (2026-07-05).
                 position: 'fixed',
                 top: 56,
-                left: 16,
+                left: 8,
                 transformOrigin: 'top left',
                 maxHeight: 'calc(100vh - 72px)',
+                // 히어로 글래스 문법 — 반투명 + blur (칩 캡슐·입력창과 동일 재질).
+                backgroundColor: 'hsl(var(--card) / 0.92)',
+                backdropFilter: 'blur(20px) saturate(160%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(160%)',
               }}
               className={cn(
                 'z-[120]',
                 // dim 이 없어진 만큼 패널 스스로 경계가 서야 함 — 보더 강화 + 사이즈 업.
                 'w-[1040px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
-                'bg-[hsl(var(--card))] border border-slate-300/80 dark:border-slate-600/80',
+                'border border-slate-300/80 dark:border-slate-600/80',
                 'ring-1 ring-black/[0.04] dark:ring-white/[0.06]',
                 'shadow-[0_24px_70px_-18px_hsl(220_20%_5%_/_0.35),0_4px_18px_-8px_hsl(220_20%_5%_/_0.18)]',
               )}
@@ -2021,9 +2062,9 @@ export function MainModeTabs({
                 <div className="grid grid-cols-2 gap-x-3">
                   {(['정리', '기록'] as HubAxis[]).map((axis) => (
                     <div key={axis} className="space-y-0.5">
-                      {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => (
+                      {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => withFavStar(
+                        { id: `hub-${item.id}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'hub', hubId: item.id } },
                         <button
-                          key={item.id}
                           type="button"
                           onClick={() => {
                             // v1 라우팅 = wiki / planner / memo / journal / meeting / cloud. 다른 도구는 아직 no-op.
@@ -2069,7 +2110,7 @@ export function MainModeTabs({
                               {item.desc}
                             </span>
                           </span>
-                        </button>
+                        </button>,
                       ))}
                     </div>
                   ))}
@@ -2161,9 +2202,9 @@ export function MainModeTabs({
                 {ASSISTANT_TILES.slice(0, 6).map((tile) => {
                   const Icon = tile.icon;
                   const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
-                  return (
+                  return withFavStar(
+                    { id: `assistant-${tile.cardId}`, label: tile.label, tint: tile.tint, target: { kind: 'assistant', cardId: tile.cardId } },
                     <button
-                      key={`hero-${tile.cardId}`}
                       type="button"
                       onClick={() => handleSelectAssistantTool(tile.cardId)}
                       role="menuitem"
@@ -2183,7 +2224,7 @@ export function MainModeTabs({
                       <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
                         {tile.label}
                       </span>
-                    </button>
+                    </button>,
                   );
                 })}
               </div>

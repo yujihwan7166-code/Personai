@@ -231,12 +231,15 @@ export function HeroSection({
     onPick: () => void;
     onStar?: () => void;
     circle: React.ReactNode;
+    /** true 면 클릭해도 패널 유지 (AI 전환 → 아래 모델 이어서 고르기). */
+    keepOpen?: boolean;
   }) => (
     <div key={opts.key} className="group/cell relative">
       <button
         type="button"
         title={opts.name}
         onClick={opts.onPick}
+        {...(opts.keepOpen ? { 'data-keep-open': true } : {})}
         className={cn(
           'flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
           opts.active && 'bg-black/[0.05]',
@@ -304,6 +307,8 @@ export function HeroSection({
             key: b.id,
             name: b.name,
             active: !armed && !secretaryMode && brand === b.id,
+            // AI 클릭 = 전환하되 패널 유지 — 아래 모델 리스트가 새 브랜드로 갱신됨.
+            keepOpen: true,
             // 커스텀 AI 는 스트립 상시 노출이라 별 없음.
             starred: isCustomBrandId(b.id) ? undefined : visibleIds.includes(b.id),
             onPick: () => handleSelectBrand(b.id),
@@ -325,6 +330,21 @@ export function HeroSection({
             ),
           }),
         )}
+        {/* 비서 셀 — AI 그리드 안으로 편입 (2026-07-05, 별도 버튼 행 제거). */}
+        {selectCell({
+          key: 'secretary',
+          name: '비서',
+          active: secretaryMode,
+          onPick: handleToggleSecretary,
+          circle: (
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: '#475569', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
+            >
+              <Briefcase size={14} strokeWidth={2} color="#ffffff" />
+            </span>
+          ),
+        })}
         {/* + 셀 — AI 그리드 맨 끝, 커스텀 AI 생성 (2026-07-05). */}
         <button
           type="button"
@@ -342,23 +362,7 @@ export function HeroSection({
           <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
       </div>
-      {/* 하단 진입로 — 비서 · AI/포탈 관리. */}
-      <div className="mt-1.5 flex items-center gap-1 px-1">
-        <button
-          type="button"
-          onClick={handleToggleSecretary}
-          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
-        >
-          비서
-        </button>
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
-        >
-          AI·포탈 관리
-        </button>
-      </div>
+      {/* 비서는 AI 그리드로 편입, AI·포탈 관리는 제거 (2026-07-05). */}
       <div className="my-1.5 h-px bg-black/[0.06]" />
     </div>
   );
@@ -662,7 +666,8 @@ export function HeroSection({
             </div>
           ) : isSearchArmed ? (
             // armed — 라벨도 항상 픽커 트리거 (패널 = 전환 허브, 2026-07-05 재정의).
-            <div key={`${identityKey}-name`} className="flex justify-center hero-name-in">
+            // key 없음 — armed↔AI 전환 시 픽커가 리마운트되지 않게 (패널 유지).
+            <div className="flex justify-center">
               <ModelPickerButton
                 variant="eyebrow"
                 brand={activeBrand}
@@ -676,10 +681,9 @@ export function HeroSection({
             </div>
           ) : (
             // AI 모드 eyebrow — 클릭하면 항상 선택 패널 (브라우저 → AI → 모델).
-            <div
-              key={`${identityKey}-name`}
-              className="flex justify-center hero-name-in"
-            >
+            // key 없음 — 브랜드 전환 시 리마운트되면 열린 패널이 닫혀버림.
+            // 이름 재등장 애니메이션은 ModelPickerButton 내부 span key 로.
+            <div className="flex justify-center">
               <ModelPickerButton
                 variant="eyebrow"
                 brand={activeBrand}

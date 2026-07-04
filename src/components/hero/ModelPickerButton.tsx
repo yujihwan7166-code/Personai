@@ -154,7 +154,9 @@ export function ModelPickerButton({
             )}
             {/* 모델명에 브랜드가 이미 들어있으면 그대로 (GPT-5.4 · Claude Opus 4.6),
              * 없으면 브랜드명을 앞에 붙임 (Sonar Pro → Perplexity Sonar Pro). */}
-            <span>
+            {/* key=brand.id — 브랜드 전환 시 이름만 재등장 애니메이션 (컴포넌트
+             * 자체는 유지 → 패널 열린 채 브랜드 바꿔도 안 닫힘). */}
+            <span key={displayOverride ? `ov-${displayOverride.label}` : brand.id} className="hero-name-in">
               {displayOverride
                 ? displayOverride.label
                 : selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
@@ -191,7 +193,7 @@ export function ModelPickerButton({
             // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
             // 등장 모션은 fade 만 (슬라이드·줌 X).
             'fixed z-[300]',
-            selectSection ? 'w-[720px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
+            selectSection ? 'w-[760px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
             'rounded-xl border border-black/[0.08] bg-white p-1.5',
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
@@ -199,7 +201,7 @@ export function ModelPickerButton({
           // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
           // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
           style={(() => {
-            const w = selectSection ? Math.min(720, window.innerWidth - 16) : 300;
+            const w = selectSection ? Math.min(760, window.innerWidth - 16) : 300;
             return isEyebrow
               ? {
                   top: anchor.bottom + 8,
