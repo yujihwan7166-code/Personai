@@ -154,10 +154,10 @@
     radial-gradient(70% 48% at 50% -8%, rgba(32, 128, 141, 0.13), transparent 60%),
     radial-gradient(42% 36% at 6% 94%, rgba(32, 128, 141, 0.08), transparent 60%),
     radial-gradient(40% 34% at 94% 88%, rgba(32, 128, 141, 0.07), transparent 60%);
-  /* 리서치 그리드 — 얇은 수평선 + 수직선. 문서 뷰포트 감성 (잉크 톤). */
+  /* 리서치 그리드 — 얇은 수평선 + 수직선. 문서 뷰포트 감성 (잉크 톤, 흐릿하게). */
   --hero-pattern:
-    linear-gradient(rgba(19, 52, 59, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(19, 52, 59, 0.030) 1px, transparent 1px);
+    linear-gradient(rgba(19, 52, 59, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 52, 59, 0.017) 1px, transparent 1px);
   --hero-fg: #13343b;
   --hero-fg-muted: #5d6f74;
   --hero-accent: #20808d;
