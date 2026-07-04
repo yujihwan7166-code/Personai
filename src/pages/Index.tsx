@@ -2,7 +2,6 @@ import { Suspense, useState, useRef, useEffect, useCallback, Fragment } from 're
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
-import { ModeMenu } from '@/components/hero/ModeMenu';
 import { FavoriteChips } from '@/components/hero/FavoriteChips';
 import { FeatureRail } from '@/components/hero/FeatureRail';
 import { HeroSection } from '@/components/hero/HeroSection';
@@ -105,8 +104,7 @@ const Index = () => {
   const [isDiscussing, setIsDiscussing] = useState(false);
   // 사이드바 LayoutGrid 버튼 → MainModeTabs 패널 외부 트리거
   const mainModeTabsApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
-  // 모드 런처 — 기존 메가메뉴 드롭다운을 대체하는 풀스크린 오버레이.
-  const [modeLauncherOpen, setModeLauncherOpen] = useState(false);
+  // 모드 런처 — MainModeTabs 메가메뉴로 통합 (2026-07-05, ModeMenu 폐기).
   // /wiki 등 외부 페이지에서 navigate('/', { state: { ... } }) 로 진입 시 처리.
   // - openModePalette: 모드 패널 자동 오픈
   // - selectMainMode: 해당 메인 모드로 자동 전환 (DiscussionMode 매핑)
@@ -160,7 +158,7 @@ const Index = () => {
 
     if (state.openModePalette) {
       const t = window.setTimeout(() => {
-        setModeLauncherOpen(true);
+        mainModeTabsApiRef.current?.open();
       }, 80);
       window.history.replaceState({}, '');
       return () => window.clearTimeout(t);
@@ -4749,7 +4747,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             onModeChange={handleModeChange}
             isDiscussing={isDiscussing}
             onNewDiscussion={handleNewDiscussion}
-            onOpenModePalette={() => { setModeLauncherOpen(true); }}
+            onOpenModePalette={() => { mainModeTabsApiRef.current?.open(); }}
             onStartChat={(expertId, mode, content) => {
               handleNewDiscussion();
               setSelectedExpertIds([expertId]);
@@ -4805,35 +4803,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               <div className="hero-fx2" aria-hidden />
             </>
           )}
-          {/* 모드 메뉴 — pill 아래 2-패널 커맨드 팝오버 (hover 전환 · 검색 · 페이지 전환 없음). */}
-          <ModeMenu
-            open={modeLauncherOpen}
-            onClose={() => setModeLauncherOpen(false)}
-            currentMode={getMainMode(discussionMode)}
-            labels={mainModeLabelMap}
-            onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
-            onSelectDebateSub={(sub) => handleModeChange(sub)}
-            onSelectPremiumDomain={(domainId) => {
-              handleModeChange('expert');
-              handleSelectPremiumDomain(domainId);
-            }}
-            onSelectAssistantCard={(cardId) => {
-              // AI 녹음 분석은 voice_main 모드로 직접 진입.
-              if (cardId === 'voice-analysis') {
-                setDiscussionMode('voice');
-                return;
-              }
-              if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
-              setSelectedAssistantCard(cardId);
-            }}
-            onSelectTool={(_kind, _toolId, label) => {
-              // 라이프·플레이어 도구 — general 히어로로 전환 + 스타터 프리필.
-              if (getMainMode(discussionMode) !== 'general') {
-                handleModeChange(mainToDiscussion('general'));
-              }
-              setHeroInputValue(`${label} `);
-            }}
-          />
+          {/* 모드 메뉴 — MainModeTabs 메가메뉴 (mainModeTabsApiRef.open) 로 통합.
+           * ModeMenu 팝오버는 폐기 (2026-07-05, 유저가 메가메뉴 디자인 선호). */}
 
           {/* Deep Research full-screen takeover */}
           {getMainMode(discussionMode) === 'research_main' ? (
@@ -4937,7 +4908,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 }}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
                 modeId={getMainMode(discussionMode)}
-                onOpenModeDropdown={() => setModeLauncherOpen(true)}
+                onOpenModeDropdown={() => mainModeTabsApiRef.current?.open()}
                 favoriteChips={
                   // 즐겨찾기 칩 — 실행 로직은 ModeMenu 콜백과 동일 계약.
                   <FavoriteChips
@@ -4967,7 +4938,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 featureRail={
                   // 기능 레일 — 입력창 아래 발견성 장치, 실행 계약은 위와 동일.
                   <FeatureRail
-                    onOpenMenu={() => setModeLauncherOpen(true)}
+                    onOpenMenu={() => mainModeTabsApiRef.current?.open()}
                     onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
                     onSelectDebateSub={(sub) => handleModeChange(sub)}
                     onSelectPremiumDomain={(domainId) => {
@@ -4998,7 +4969,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             <div className="h-full overflow-y-auto animate-in fade-in duration-500 ease-out fill-mode-both">
               <MultiHero
                 modeLabel={mainModeLabelMap.multi}
-                onOpenModeDropdown={() => setModeLauncherOpen(true)}
+                onOpenModeDropdown={() => mainModeTabsApiRef.current?.open()}
                 value={heroInputValue}
                 onChange={setHeroInputValue}
                 disabled={isDiscussing}

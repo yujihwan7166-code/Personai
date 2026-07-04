@@ -258,6 +258,10 @@ export const MODE_TINT: Record<MainMode, string> = {
   media_main:       'hsl(var(--mode-assistant))',
 };
 
+/* 모드창 순수화 — 좌측 TODAY 위젯(시계·달력·검색·계정) 컬럼 숨김 (2026-07-05
+ * 유저 요청: 모드창 기능만). 코드는 보존, 플래그만 되돌리면 복귀. */
+const SHOW_TODAY_COL = false;
+
 /** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 드릴다운으로 노출. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
   { label: '대화',  description: '질문하고 답받기',         modes: ['general', 'multi', 'research_main', 'premium_main'] },
@@ -1099,7 +1103,8 @@ export function MainModeTabs({
               }}
               className={cn(
                 'z-[120]',
-                'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                SHOW_TODAY_COL ? 'w-[960px]' : 'w-[760px]',
+                'max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
                 'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
                 'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
               )}
@@ -1109,8 +1114,9 @@ export function MainModeTabs({
                   Col 2: 대화        →  Col 3: 전문
                        └ 노트 계획   └ 노트 기록  (col-span-2 row-2 로 합침)
                   Col 4: 라이프 (row-span-2) */}
-            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-4 pt-4">
+            <div className={cn('grid grid-rows-[auto_1fr] gap-x-3 px-4 pt-4', SHOW_TODAY_COL ? 'grid-cols-4' : 'grid-cols-3')}>
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
+              {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
                 <div className="px-1 -mt-1">
                   <QuickSearchBar variant="inline" />
@@ -1641,13 +1647,16 @@ export function MainModeTabs({
                   })()}
                 </div>
               </div>
+              )}
               {/* Col 2 = 대화, Col 3 = 전문 — 각자 독립 컬럼 (row-start-1 row 1 고정) */}
               {[0, 1].map((idx) => {
                     const group = MODE_GROUPS[idx];
                     const isExpert = group.label === '전문';
                     const isConversation = group.label === '대화';
                     const isAssistant = false;
-                    const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
+                    const colClass = SHOW_TODAY_COL
+                      ? (idx === 0 ? 'col-start-2' : 'col-start-3')
+                      : (idx === 0 ? 'col-start-1' : 'col-start-2');
                     return (
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
                         {/* 헤더 */}
@@ -1825,7 +1834,7 @@ export function MainModeTabs({
                   })}
               {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
                   단일 헤더가 두 컬럼 위에 spans. */}
-              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3">
+              <div className={cn('col-span-2 row-start-2 min-w-0 flex flex-col mt-3', SHOW_TODAY_COL ? 'col-start-2' : 'col-start-1')}>
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                 <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                   <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -1893,7 +1902,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className="col-start-4 row-span-2 min-w-0 flex flex-col">
+              <div className={cn('row-span-2 min-w-0 flex flex-col', SHOW_TODAY_COL ? 'col-start-4' : 'col-start-3')}>
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -1948,38 +1957,7 @@ export function MainModeTabs({
                           </button>
                         );
                       })}
-                          {/* 라이프 컬럼 하단 — 광고 슬롯 (캐릭터챗·AI 게임은 전문 컬럼 AI Play 로 이동). */}
-                          <div className="!mt-1 mb-0.5 mx-2 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                          <div className="!pt-2">
-                            <div className="mb-1 flex items-center justify-between px-0.5">
-                              <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                                💡 오늘의 추천
-                              </span>
-                              <span className="text-[8.5px] font-mono uppercase text-muted-foreground/60">AD</span>
-                            </div>
-                            <button
-                              type="button"
-                              className="group w-full text-left rounded-xl px-2.5 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                              style={{ backgroundColor: `color-mix(in oklab, hsl(95 60% 42%) 12%, transparent)` }}
-                              aria-label="오늘의 추천: 환절기 비타민D"
-                            >
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className="text-[14px] leading-none">🌿</span>
-                                <span className="text-[9px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
-                                  영양제
-                                </span>
-                              </div>
-                              <div className="text-[12px] font-semibold leading-tight text-foreground">
-                                환절기 비타민D
-                              </div>
-                              <div className="text-[9.5px] text-muted-foreground leading-tight mt-0.5">
-                                한국 22% 부족 (질병관리청)
-                              </div>
-                              <div className="text-[10px] font-medium text-foreground/85 mt-1.5 inline-flex items-center gap-0.5">
-                                아이허브에서 보기 <ChevronRight className="h-2.5 w-2.5" />
-                              </div>
-                            </button>
-                          </div>
+                          {/* 광고 슬롯 제거 — 모드창 순수화 (2026-07-05). */}
                     </motion.div>
                   </div>
                 </div>
