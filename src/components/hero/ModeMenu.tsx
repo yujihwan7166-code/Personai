@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Star, ChevronDown, MessagesSquare, Layers, FlaskConical, ArrowRight, X,
+  Star, ChevronDown, MessagesSquare, Layers, FlaskConical, ArrowRight,
   CalendarDays, Globe, Cloud, StickyNote, Shapes, NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
@@ -44,7 +44,7 @@ import {
 
 /* 노트 도구 아이콘 — HUB_TOOLS 는 emoji 기반이라 (메뉴 이모지 X 피드백)
  * lucide 라인 아이콘으로 매핑. */
-const HUB_ICONS: Record<string, LucideIcon> = {
+export const HUB_ICONS: Record<string, LucideIcon> = {
   planner: CalendarDays,
   wiki: Globe,
   cloud: Cloud,
@@ -116,10 +116,9 @@ export function ModeMenu({
 }: Props) {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { favs, isFav, toggleFav: toggleFavRaw, removeFav } = useFavoriteModes();
+  const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
   const [openLifeGroup, setOpenLifeGroup] = useState<LifeSubgroupId | null>(null);
-  // 즐겨찾기 편집 모드 (× 노출) · 하단 섹션 펼침 (토론·라이프).
-  const [editFavs, setEditFavs] = useState(false);
+  // 하단 섹션 펼침 (토론·라이프).
   const [showAll, setShowAll] = useState(false);
   // 프라이머리 슬라이딩 인디케이터 — 클릭 시 먼저 활성 pill 이 미끄러진 뒤 닫힘.
   // (즉시 닫으면 슬라이드가 안 보여서 280ms 시퀀스.)
@@ -130,7 +129,6 @@ export function ModeMenu({
     if (open) {
       setOpenLifeGroup(null);
       setPendingPrimary(null);
-      setEditFavs(false);
       setShowAll(false);
     }
   }, [open]);
@@ -159,7 +157,7 @@ export function ModeMenu({
 
   /* ── 데이터 ── */
 
-  const { primaryItems, zones, lifeGroups, itemById } = useMemo(() => {
+  const { primaryItems, zones, lifeGroups } = useMemo(() => {
     const modeItem = (m: MainMode): MenuItem => ({
       id: `mode-${m}`,
       label: labels[m] ?? m,
@@ -245,14 +243,7 @@ export function ModeMenu({
       },
     ];
 
-    // 즐겨찾기 카드가 아이콘·최신 라벨을 다시 얻을 수 있게 id 역매핑.
-    const byId = new Map<string, MenuItem>(
-      [...primary, ...zoneList.flatMap((z) => z.items), ...groups.flatMap((g) => g.items)].map(
-        (it) => [it.id, it],
-      ),
-    );
-
-    return { primaryItems: primary, zones: zoneList, lifeGroups: groups, itemById: byId };
+    return { primaryItems: primary, zones: zoneList, lifeGroups: groups };
 
   }, [labels]);
 
@@ -303,9 +294,8 @@ export function ModeMenu({
 
   const PRIMARY_ICONS: LucideIcon[] = [MessagesSquare, Layers, FlaskConical];
 
-  /* ── 아이콘 카드 (섹션 공통) — 틴트 사각 아이콘 + 라벨 + 설명 한 줄.
-   * showRemove: 즐겨찾기 편집 모드에서 × 노출 (별 대신). ── */
-  const ItemCard = ({ item, showRemove }: { item: MenuItem; showRemove?: boolean }) => {
+  /* ── 아이콘 카드 (섹션 공통) — 틴트 사각 아이콘 + 라벨 + 설명 한 줄. ── */
+  const ItemCard = ({ item }: { item: MenuItem }) => {
     const isActive = item.target.kind === 'mode' && item.target.mode === currentMode;
     const faved = isFav(item.id);
     const Icon = item.icon;
@@ -340,28 +330,17 @@ export function ModeMenu({
             )}
           </span>
         </button>
-        {showRemove ? (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); removeFav(item.id); }}
-            aria-label={`${item.label} 즐겨찾기 삭제`}
-            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-400 text-white shadow-sm hover:bg-rose-500 transition-colors"
-          >
-            <X size={9} strokeWidth={3} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
-            aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-            className={cn(
-              'absolute right-1 top-1 rounded p-0.5 transition-all duration-100',
-              faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
-            )}
-          >
-            <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
+          aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+          className={cn(
+            'absolute right-1 top-1 rounded p-0.5 transition-all duration-100',
+            faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
+          )}
+        >
+          <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
+        </button>
       </div>
     );
   };
@@ -392,40 +371,8 @@ export function ModeMenu({
       )}
     >
       <div className="max-h-[min(640px,calc(100vh-140px))] space-y-2.5 overflow-y-auto overscroll-contain p-3 scrollbar-thin">
-        {/* 즐겨찾기 — 있을 때만 최상단. 편집 토글로 × 노출. */}
-        {favs.length > 0 && (
-          <Section
-            label="★ 즐겨찾기"
-            color={ZONE_COLORS.favorites}
-            action={
-              <button
-                type="button"
-                onClick={() => setEditFavs((v) => !v)}
-                className={cn(
-                  'rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors',
-                  editFavs
-                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                    : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800',
-                )}
-              >
-                {editFavs ? '완료' : '편집'}
-              </button>
-            }
-          >
-            <div className="grid grid-cols-3 gap-1.5">
-              {favs.map((f) => {
-                const fresh = itemById.get(f.id);
-                return (
-                  <ItemCard
-                    key={`fav-${f.id}`}
-                    showRemove={editFavs}
-                    item={fresh ?? { id: f.id, label: f.label, desc: f.desc, tint: f.tint, target: f.target }}
-                  />
-                );
-              })}
-            </div>
-          </Section>
-        )}
+        {/* 즐겨찾기는 메뉴 안에 중복 노출하지 않음 — 히어로 상단 칩이 유일한
+         * 표면 (2026-07-05 피드백). 별 토글은 카드에서 그대로. */}
 
         {/* 프라이머리 — AI 대화 3종 큰 타일 + 슬라이딩 인디케이터.
          * 활성 링이 고정 표시 대신 세그먼트처럼 미끄러져 이동 (uiverse 세그먼트 각색). */}

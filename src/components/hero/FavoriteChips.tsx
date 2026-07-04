@@ -10,13 +10,27 @@
  * 항상 펴놓고 쓰는 사람의 원클릭 접근성 보존. 기본값은 펼침.
  */
 import { useState } from 'react';
-import { X, Plus, ArrowRight, Star } from 'lucide-react';
+import { X, Plus, ArrowRight, Star, type LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { useFavoriteModes, type ItemTarget } from '@/hooks/useFavoriteModes';
+import { MODE_ICON, ASSISTANT_TILES, PREMIUM_AI_TOOLS, DEBATE_SUBS } from '@/components/MainModeTabs';
+import { HUB_ICONS } from './ModeMenu';
 
 const OPEN_KEY = 'personai.fav_chips_open';
+
+/* 즐겨찾기 id → 아이콘 — FavEntry 는 직렬화 저장이라 아이콘을 못 담음.
+ * id 접두사(mode-/hub-/assistant-/premium-/debate-)로 원본 데이터에서 역해석.
+ * 라이프·플레이어 도구는 아이콘이 없어 라벨 첫 글자 폴백. */
+function resolveFavIcon(id: string): LucideIcon | undefined {
+  if (id.startsWith('mode-')) return MODE_ICON[id.slice(5) as MainMode];
+  if (id.startsWith('hub-')) return HUB_ICONS[id.slice(4)];
+  if (id.startsWith('assistant-')) return ASSISTANT_TILES.find((t) => t.cardId === id.slice(10))?.icon;
+  if (id.startsWith('premium-')) return PREMIUM_AI_TOOLS.find((p) => p.key === id.slice(8))?.icon;
+  if (id.startsWith('debate-')) return DEBATE_SUBS.find((s) => s.key === id.slice(7))?.icon;
+  return undefined;
+}
 
 interface Props {
   currentMode: MainMode;
@@ -145,24 +159,37 @@ export function FavoriteChips({
               onClick={() => runTarget(f.target, f.label)}
               tabIndex={open ? 0 : -1}
               title={f.desc ? `${f.label} — ${f.desc}` : f.label}
-              className="flex h-full max-w-[140px] items-center gap-1.5 pl-2.5 pr-2.5 text-[12px] font-medium tracking-tight"
-              style={{ color: 'var(--hero-fg)' }}
+              aria-label={f.label}
+              className="flex h-7 w-7 items-center justify-center rounded-full"
             >
-              {/* 틴트 점 → hover 시 화살표 morph — 고정 슬롯이라 레이아웃 점프 없음.
-               * "누르면 이동" 어포던스를 색 점 하나로 전달 (CTA 화살표 각색). */}
-              <span className="relative h-2.5 w-2.5 shrink-0">
-                <span
-                  className="absolute inset-0 m-auto h-1.5 w-1.5 rounded-full transition-all duration-150 group-hover/chip:scale-50 group-hover/chip:opacity-0"
-                  style={{ backgroundColor: f.tint }}
-                />
+              {/* 아이콘 전용 칩 (이름 X) — hover 시 아이콘이 화살표로 crossfade
+               * ("누르면 이동" 어포던스 유지). 아이콘 없는 도구는 첫 글자. */}
+              <span className="relative h-3.5 w-3.5">
+                {(() => {
+                  const Icon = resolveFavIcon(f.id);
+                  return Icon ? (
+                    <Icon
+                      size={14}
+                      strokeWidth={2.2}
+                      className="absolute inset-0 m-auto transition-all duration-150 group-hover/chip:scale-75 group-hover/chip:opacity-0"
+                      style={{ color: f.tint }}
+                    />
+                  ) : (
+                    <span
+                      className="absolute inset-0 m-auto flex items-center justify-center text-[11px] font-bold leading-none transition-all duration-150 group-hover/chip:scale-75 group-hover/chip:opacity-0"
+                      style={{ color: f.tint }}
+                    >
+                      {f.label.charAt(0)}
+                    </span>
+                  );
+                })()}
                 <ArrowRight
-                  size={10}
-                  strokeWidth={3}
+                  size={13}
+                  strokeWidth={2.6}
                   className="absolute inset-0 m-auto -translate-x-0.5 opacity-0 transition-all duration-150 group-hover/chip:translate-x-0 group-hover/chip:opacity-100"
                   style={{ color: f.tint }}
                 />
               </span>
-              <span className="truncate transition-transform duration-150 group-hover/chip:translate-x-px">{f.label}</span>
             </button>
             {/* hover 시만 나타나는 제거 × — 칩 우상단 부유. */}
             <button
