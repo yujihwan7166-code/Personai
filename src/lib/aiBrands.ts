@@ -120,7 +120,7 @@ export const BRANDS: readonly Brand[] = [
     provider: 'OpenAI',
     initials: 'GPT',
     /* 마크 원 = 흰색 + 검정 로고 (gpt.svg 원본 #111827 — OpenAI 앱 아이콘 스타일). */
-    icon: { path: OPENAI_PATH, hex: 'FFFFFF', imgUrl: '/logos/gpt.svg' },
+    icon: { path: OPENAI_PATH, hex: 'FFFFFF', imgUrl: '/logos/gpt.svg', logoScale: 1.2 },
     isDark: true,
     expertId: 'gpt',
     models: [
