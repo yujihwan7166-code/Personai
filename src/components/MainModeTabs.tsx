@@ -31,6 +31,10 @@ import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
 import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
+import { getTodayUsage, summarizeUsage, USAGE_CHANGED_EVENT, type UsageSummary } from '@/services/usageTracker';
+import { useSelectedBrand } from '@/hooks/useSelectedBrand';
+import { useSelectedModel } from '@/hooks/useSelectedModel';
+import { BRAND_BY_ID } from '@/lib/aiBrands';
 import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
 import { taskStore } from '@/services/planner/taskStore';
@@ -258,9 +262,28 @@ export const MODE_TINT: Record<MainMode, string> = {
   media_main:       'hsl(var(--mode-assistant))',
 };
 
-/* 모드창 순수화 — 좌측 TODAY 위젯(시계·달력·검색·계정) 컬럼 숨김 (2026-07-05
- * 유저 요청: 모드창 기능만). 코드는 보존, 플래그만 되돌리면 복귀. */
+/* 모드창 순수화 — 좌측 TODAY 위젯(시계·달력·검색) 컬럼 숨김 (2026-07-05
+ * 유저 요청). 대신 계정·사용량 정보 컬럼이 그 자리를 채움. 코드는 보존. */
 const SHOW_TODAY_COL = false;
+
+/** 플랜별 일일 토큰 소프트 예산 — 게이지 기준선 (하드 리밋 아님). */
+const PLAN_DAILY_TOKEN_BUDGET: Record<string, number> = {
+  free: 200_000,
+  pro: 2_000_000,
+  premium: 10_000_000,
+};
+
+function fmtTokens(n: number): string {
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, '')}M`;
+}
+
+function fmtUsd(n: number): string {
+  if (n < 0.01) return '$0';
+  if (n < 1) return `$${n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}`;
+  return `$${n.toFixed(2)}`;
+}
 
 /** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 드릴다운으로 노출. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
@@ -523,6 +546,18 @@ export function MainModeTabs({
   /** 로그인 상태 — 좌측 컬럼 로그인 줄에 사용. */
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  /** 좌측 정보 컬럼 — 오늘 사용량 (usageTracker). 열려 있을 때만 구독. */
+  const [todayUsage, setTodayUsage] = useState<UsageSummary>(() => summarizeUsage([]));
+  useEffect(() => {
+    if (!open) return;
+    const refresh = () => setTodayUsage(summarizeUsage(getTodayUsage()));
+    refresh();
+    window.addEventListener(USAGE_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(USAGE_CHANGED_EVENT, refresh);
+  }, [open]);
+  /** 현재 선택된 AI 브랜드·모델 — "지금" 카드. */
+  const { brand: currentBrandId } = useSelectedBrand();
+  const { model: currentModel } = useSelectedModel(currentBrandId);
   /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
   const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
   /** 읽은 알림 id 세트 — localStorage 유지. */
@@ -1094,27 +1129,26 @@ export function MainModeTabs({
               role="menu"
               aria-label="모드 전환"
               style={{
+                // 좌상단 고정 — 중앙 플로팅 대신 pill 아래 앵커 (2026-07-05).
                 position: 'fixed',
                 top: 56,
-                left: '50%',
-                translateX: '-50%',
-                transformOrigin: 'top center',
+                left: 16,
+                transformOrigin: 'top left',
                 maxHeight: 'calc(100vh - 72px)',
               }}
               className={cn(
                 'z-[120]',
-                SHOW_TODAY_COL ? 'w-[960px]' : 'w-[760px]',
-                'max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
                 'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
                 'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
               )}
             >
             {/* 4 컬럼 그리드 (재구성):
-                  Col 1: TODAY (row-span-2)
+                  Col 1: 계정·사용량 (row-span-2, 구 TODAY 위젯 대체)
                   Col 2: 대화        →  Col 3: 전문
                        └ 노트 계획   └ 노트 기록  (col-span-2 row-2 로 합침)
                   Col 4: 라이프 (row-span-2) */}
-            <div className={cn('grid grid-rows-[auto_1fr] gap-x-3 px-4 pt-4', SHOW_TODAY_COL ? 'grid-cols-4' : 'grid-cols-3')}>
+            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-4 pt-4">
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
               {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
@@ -1648,15 +1682,156 @@ export function MainModeTabs({
                 </div>
               </div>
               )}
+              {/* 좌측 정보 컬럼 — 계정 · 오늘 사용량 · 지금 컨텍스트 (2026-07-05). */}
+              {!SHOW_TODAY_COL && (() => {
+                const isReal = !!user;
+                const displayEmail = user?.email ?? 'demo@personai.kr';
+                const displayName = displayEmail.split('@')[0];
+                const displayPlan = profile?.plan ?? 'free';
+                const initialChar = displayEmail[0]?.toUpperCase() ?? 'U';
+                const hueA = (displayEmail.charCodeAt(0) ?? 65) * 7 % 360;
+                const hueB = (displayEmail.charCodeAt(1) ?? 66) * 11 % 360;
+                const budget = PLAN_DAILY_TOKEN_BUDGET[displayPlan] ?? PLAN_DAILY_TOKEN_BUDGET.free;
+                const usedRatio = Math.min(1, todayUsage.totalTokens / budget);
+                const topModels = Object.entries(todayUsage.byModel)
+                  .map(([name, v]) => ({ name, tokens: v.inputTokens + v.outputTokens }))
+                  .sort((a, b) => b.tokens - a.tokens)
+                  .slice(0, 3);
+                const maxModelTokens = topModels[0]?.tokens || 1;
+                const currentBrand = BRAND_BY_ID[currentBrandId as keyof typeof BRAND_BY_ID];
+                return (
+                  <div className="row-span-2 min-w-0 flex flex-col gap-2">
+                    {/* 계정 카드 — 아바타 + 플랜 뱃지 + 관리 드롭다운. */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-[hsl(var(--hairline))] transition-colors hover:bg-[hsl(var(--accent))]"
+                        >
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+                            style={{ background: `linear-gradient(135deg, hsl(${hueA} 70% 55%), hsl(${hueB} 70% 45%))` }}
+                          >
+                            {initialChar}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12.5px] font-semibold text-foreground">{displayName}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">{displayEmail}</span>
+                          </span>
+                          <span
+                            className={cn(
+                              'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                              displayPlan === 'pro' && 'bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-300',
+                              displayPlan === 'premium' && 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-300',
+                              displayPlan === 'free' && 'bg-muted text-muted-foreground',
+                            )}
+                          >
+                            {displayPlan}
+                          </span>
+                          <Settings className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" side="bottom" className="w-56 z-[125]">
+                        <DropdownMenuLabel className="flex flex-col gap-0.5 pb-2">
+                          <span className="text-[12px] font-semibold truncate">{displayEmail}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            {displayPlan} 플랜 {!isReal && '· 데모'}
+                          </span>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {isReal ? (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => { setOpen(false); setTimeout(() => navigate('/admin'), 40); }}
+                              className="cursor-pointer"
+                            >
+                              <UserIcon className="h-3.5 w-3.5 mr-2" />
+                              <span className="text-[12px]">계정 관리</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => { setOpen(false); await signOut(); }}
+                              className="cursor-pointer text-rose-600 dark:text-rose-400 focus:text-rose-700"
+                            >
+                              <LogOut className="h-3.5 w-3.5 mr-2" />
+                              <span className="text-[12px]">로그아웃</span>
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => { setOpen(false); setTimeout(() => navigate('/auth'), 40); }}
+                            className="cursor-pointer"
+                          >
+                            <LogIn className="h-3.5 w-3.5 mr-2" />
+                            <span className="text-[12px]">실제 로그인 / 가입</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* 오늘 사용량 — 호출·비용 + 토큰/일일 예산 게이지 + 모델 TOP3. */}
+                    <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
+                      <div className="mb-1.5 flex items-baseline justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">오늘 사용량</span>
+                        <span className="text-[10px] tabular-nums text-muted-foreground">{todayUsage.entries}회 · {fmtUsd(todayUsage.costUsd)}</span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[20px] font-semibold leading-none tabular-nums text-foreground">{fmtTokens(todayUsage.totalTokens)}</span>
+                        <span className="text-[10px] text-muted-foreground">/ {fmtTokens(budget)} 토큰</span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.max(2, usedRatio * 100)}%`,
+                            backgroundColor: usedRatio > 0.85 ? 'hsl(0 72% 55%)' : usedRatio > 0.6 ? 'hsl(35 90% 50%)' : 'hsl(160 60% 42%)',
+                          }}
+                        />
+                      </div>
+                      <div className="mt-1 text-[9px] text-muted-foreground/70">플랜 기준 일일 예산 · 초과해도 차단되지 않아요</div>
+                      {topModels.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {topModels.map((m) => (
+                            <div key={m.name} className="flex items-center gap-1.5">
+                              <span className="w-[76px] shrink-0 truncate text-[9.5px] text-muted-foreground">{m.name}</span>
+                              <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                                <span
+                                  className="block h-full rounded-full bg-foreground/30"
+                                  style={{ width: `${(m.tokens / maxModelTokens) * 100}%` }}
+                                />
+                              </span>
+                              <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground/80">{fmtTokens(m.tokens)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 지금 — 현재 모드 · 선택된 AI (모드창 맥락 확인용). */}
+                    <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
+                      <div className="mb-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">지금</div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-foreground/90">
+                          <span className="w-[30px] shrink-0 text-[10px] text-muted-foreground">모드</span>
+                          <span className="truncate font-medium">{labels[currentMode] ?? currentMode}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-foreground/90">
+                          <span className="w-[30px] shrink-0 text-[10px] text-muted-foreground">AI</span>
+                          <span className="truncate font-medium">
+                            {currentBrand ? `${currentBrand.name} · ${currentModel?.name ?? ''}` : String(currentBrandId)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Col 2 = 대화, Col 3 = 전문 — 각자 독립 컬럼 (row-start-1 row 1 고정) */}
               {[0, 1].map((idx) => {
                     const group = MODE_GROUPS[idx];
                     const isExpert = group.label === '전문';
                     const isConversation = group.label === '대화';
                     const isAssistant = false;
-                    const colClass = SHOW_TODAY_COL
-                      ? (idx === 0 ? 'col-start-2' : 'col-start-3')
-                      : (idx === 0 ? 'col-start-1' : 'col-start-2');
+                    const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
                     return (
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
                         {/* 헤더 */}
@@ -1834,7 +2009,7 @@ export function MainModeTabs({
                   })}
               {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
                   단일 헤더가 두 컬럼 위에 spans. */}
-              <div className={cn('col-span-2 row-start-2 min-w-0 flex flex-col mt-3', SHOW_TODAY_COL ? 'col-start-2' : 'col-start-1')}>
+              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3">
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                 <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                   <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -1902,7 +2077,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className={cn('row-span-2 min-w-0 flex flex-col', SHOW_TODAY_COL ? 'col-start-4' : 'col-start-3')}>
+              <div className="col-start-4 row-span-2 min-w-0 flex flex-col">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
