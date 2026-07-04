@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star,
+  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus,
   MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
   Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
   type LucideIcon,
@@ -325,19 +325,25 @@ export function HeroSection({
             ),
           }),
         )}
-      </div>
-      {/* 하단 진입로 — 커스텀 AI 생성 · 비서 · AI/포탈 관리. */}
-      <div className="mt-1.5 flex items-center gap-1 px-1">
+        {/* + 셀 — AI 그리드 맨 끝, 커스텀 AI 생성 (2026-07-05). */}
         <button
           type="button"
+          title="커스텀 AI 만들기"
+          aria-label="커스텀 AI 만들기"
           onClick={() => {
             setEditingCustom(undefined);
             setCreatorOpen(true);
           }}
-          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
+          className="flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]"
         >
-          + 커스텀 AI
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
+            <Plus size={14} strokeWidth={2.2} />
+          </span>
+          <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
+      </div>
+      {/* 하단 진입로 — 비서 · AI/포탈 관리. */}
+      <div className="mt-1.5 flex items-center gap-1 px-1">
         <button
           type="button"
           onClick={handleToggleSecretary}
@@ -727,7 +733,7 @@ export function HeroSection({
               onSelectBrand={handleSelectBrand}
               armedSearch={armed}
               onToggleSearch={handleToggleSearch}
-              onOpenPicker={() => setPickerOpen(true)}
+              // + 칩 제거 — 칩 구성은 eyebrow 패널 별 토글로 (2026-07-05).
               onOpenSecretary={handleToggleSecretary}
               secretaryOpen={secretaryMode}
               visibleBrandIds={visibleIds}

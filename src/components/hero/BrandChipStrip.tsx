@@ -18,8 +18,8 @@ interface Props {
   onSelectBrand: (b: BrandId) => void;
   armedSearch: HeroChipId | null;
   onToggleSearch: (id: HeroChipId) => void;
-  /** 통합 편집 시트 열기 (AI 탭 · 브라우저 탭 · 나만의 AI 탭 모두 여기서). */
-  onOpenPicker: () => void;
+  /** 통합 편집 시트 열기 — 미지정 시 `+` 칩 숨김 (구성은 eyebrow 패널 별로). */
+  onOpenPicker?: () => void;
   /** 비서 시트 열기 (사이트 내부 자료 참조). */
   onOpenSecretary: () => void;
   /** 비서 시트 열려있는지 (active state). */
@@ -112,7 +112,9 @@ export function BrandChipStrip({
         />
       ))}
 
-      {/* `+` 칩 — 통합 편집 시트 오픈 (AI · 브라우저 · 나만의 AI 탭). */}
+      {/* `+` 칩 — 통합 편집 시트 오픈. 칩 구성이 eyebrow 패널 별 토글로
+       * 이동한 뒤엔 미전달로 숨김 (2026-07-05). */}
+      {onOpenPicker && (
       <button
         type="button"
         onClick={onOpenPicker}
@@ -131,6 +133,7 @@ export function BrandChipStrip({
       >
         <Plus size={15} strokeWidth={2.4} />
       </button>
+      )}
     </div>
   );
 }
