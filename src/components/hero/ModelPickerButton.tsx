@@ -18,11 +18,20 @@ import { BRAND_ACCENT, type Brand, type BrandModel } from '@/lib/aiBrands';
 import { BrandLogo } from './BrandLogo';
 import { pickContrastingText } from '@/lib/colorUtils';
 
+export type HeroPickerMode = 'chips' | 'select';
+
 interface Props {
   brand: Brand;
   selectedModel: BrandModel;
   onSelect: (modelId: string) => void;
   variant?: 'toolbar' | 'eyebrow';
+  /** 칩모드/선택모드 — 지정 시 드롭다운 우측 상단에 토글 노출. */
+  pickerMode?: HeroPickerMode;
+  onPickerModeChange?: (m: HeroPickerMode) => void;
+  /** 선택모드 전용 — 모델 리스트 위에 렌더할 AI·브라우저 그리드. */
+  selectSection?: React.ReactNode;
+  /** armed 등 브랜드 외 표시 — 라벨만 오버라이드, 모델 리스트 숨김. */
+  displayOverride?: { label: string };
 }
 
 export function ModelPickerButton({
@@ -30,6 +39,10 @@ export function ModelPickerButton({
   selectedModel,
   onSelect,
   variant = 'toolbar',
+  pickerMode,
+  onPickerModeChange,
+  selectSection,
+  displayOverride,
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -74,6 +87,8 @@ export function ModelPickerButton({
 
   const hasChoice = brand.models.length > 1;
   const isEyebrow = variant === 'eyebrow';
+  // 선택모드는 브랜드 그리드가 있으니 단일 모델 브랜드여도 열 수 있어야 함.
+  const openable = hasChoice || (pickerMode === 'select' && !!selectSection);
   // 흰색 패널 내부 액센트 — --hero-accent 는 grok/x 에서 흰색이라 못 씀.
   const panelAccent = BRAND_ACCENT[brand.id] ?? '#10a37f';
 
@@ -81,11 +96,11 @@ export function ModelPickerButton({
     <div ref={rootRef} className={cn('relative', isEyebrow && 'inline-flex')}>
       <button
         type="button"
-        onClick={() => hasChoice && toggleOpen()}
-        disabled={!hasChoice}
+        onClick={() => openable && toggleOpen()}
+        disabled={!openable}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={hasChoice ? '모델 변경' : '이 브랜드는 단일 모델'}
+        title={openable ? (pickerMode === 'select' ? 'AI·브라우저 선택' : '모델 변경') : '이 브랜드는 단일 모델'}
         className={cn(
           isEyebrow
             ? [
@@ -93,7 +108,7 @@ export function ModelPickerButton({
                 'inline-flex items-center gap-2 py-2 px-4 -mx-4 rounded-xl',
                 'text-[19px] font-semibold tracking-[-0.01em]',
                 'transition-all duration-200',
-                hasChoice && 'hover:bg-[color:var(--hero-accent-soft)] hover:-translate-y-px active:translate-y-0',
+                openable && 'hover:bg-[color:var(--hero-accent-soft)] hover:-translate-y-px active:translate-y-0',
               ]
             : [
                 // toolbar 스타일 — 입력창 우측 pill.
@@ -103,7 +118,7 @@ export function ModelPickerButton({
                 'border-[color:var(--hero-hairline,rgba(255,255,255,0.10))]',
                 'hover:border-[color:var(--hero-ring,#10a37f)]',
               ],
-          !hasChoice && 'opacity-70 cursor-not-allowed',
+          !openable && 'opacity-70 cursor-not-allowed',
         )}
         style={
           isEyebrow
@@ -117,31 +132,36 @@ export function ModelPickerButton({
         {isEyebrow ? (
           <>
             {/* 브랜드 로고 마크 — 브랜드 컬러 원 (스트립·사이드바 칩과 동일 언어).
-             * 로고 색은 원 배경 휘도 기준 자동 (Grok 흰 원 → 검정 로고). */}
-            <span
-              className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
-              style={{
-                backgroundColor: `#${brand.icon.hex}`,
-                boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
-              }}
-            >
-              <BrandLogo
-                imgUrl={brand.icon.imgUrl}
-                path={brand.icon.path}
-                text={brand.icon.text}
-                fill={pickContrastingText(`#${brand.icon.hex}`)}
-                forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
-                size={Math.round(14 * (brand.icon.logoScale ?? 1))}
-              />
-            </span>
+             * 로고 색은 원 배경 휘도 기준 자동 (Grok 흰 원 → 검정 로고).
+             * displayOverride(armed 검색엔진)는 로고 원 없이 라벨만. */}
+            {!displayOverride && (
+              <span
+                className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
+                style={{
+                  backgroundColor: `#${brand.icon.hex}`,
+                  boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
+                }}
+              >
+                <BrandLogo
+                  imgUrl={brand.icon.imgUrl}
+                  path={brand.icon.path}
+                  text={brand.icon.text}
+                  fill={pickContrastingText(`#${brand.icon.hex}`)}
+                  forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
+                  size={Math.round(14 * (brand.icon.logoScale ?? 1))}
+                />
+              </span>
+            )}
             {/* 모델명에 브랜드가 이미 들어있으면 그대로 (GPT-5.4 · Claude Opus 4.6),
              * 없으면 브랜드명을 앞에 붙임 (Sonar Pro → Perplexity Sonar Pro). */}
             <span>
-              {selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
-                ? selectedModel.name
-                : `${brand.name} ${selectedModel.name}`}
+              {displayOverride
+                ? displayOverride.label
+                : selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
+                  ? selectedModel.name
+                  : `${brand.name} ${selectedModel.name}`}
             </span>
-            {hasChoice && (
+            {openable && (
               <ChevronDown
                 size={18}
                 strokeWidth={2.4}
@@ -163,40 +183,69 @@ export function ModelPickerButton({
         )}
       </button>
 
-      {open && hasChoice && anchor && createPortal(
+      {open && openable && anchor && createPortal(
         <div
           ref={panelRef}
           role="menu"
           className={cn(
             // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
             // 등장 모션은 fade 만 (슬라이드·줌 X).
-            'fixed z-[300] w-[300px]',
+            'fixed z-[300]',
+            pickerMode === 'select' && selectSection ? 'w-[340px]' : 'w-[300px]',
             'rounded-xl border border-black/[0.08] bg-white p-1.5',
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
           )}
           // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
           // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
-          style={
-            isEyebrow
+          style={(() => {
+            const w = pickerMode === 'select' && selectSection ? 340 : 300;
+            return isEyebrow
               ? {
                   top: anchor.bottom + 8,
-                  left: Math.max(8, Math.min(anchor.centerX - 150, window.innerWidth - 308)),
+                  left: Math.max(8, Math.min(anchor.centerX - w / 2, window.innerWidth - w - 8)),
                 }
-              : { bottom: window.innerHeight - anchor.top + 8, left: Math.min(anchor.right - 300, window.innerWidth - 316) }
-          }
+              : { bottom: window.innerHeight - anchor.top + 8, left: Math.min(anchor.right - w, window.innerWidth - w - 16) };
+          })()}
         >
-          {/* 헤더 — 브랜드 · 개수, 최소한으로. */}
+          {/* 헤더 — 좌: 컨텍스트 라벨 · 우: 칩모드/선택모드 토글. */}
           <div className="px-2.5 pt-1 pb-1.5 flex items-center gap-1.5">
             <span
               className="h-1.5 w-1.5 rounded-full shrink-0"
               style={{ backgroundColor: panelAccent }}
             />
             <span className="text-[10.5px] font-medium tracking-tight text-[#9aa0a8]">
-              {brand.name} · 모델 {brand.models.length}개
+              {displayOverride
+                ? `${displayOverride.label} 검색 중`
+                : `${brand.name} · 모델 ${brand.models.length}개`}
             </span>
+            {pickerMode && onPickerModeChange && (
+              <span className="ml-auto flex items-center gap-0.5 rounded-full bg-black/[0.05] p-0.5">
+                {(['chips', 'select'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => onPickerModeChange(m)}
+                    aria-pressed={pickerMode === m}
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                      pickerMode === m
+                        ? 'bg-white text-[#1f2023] shadow-sm'
+                        : 'text-[#9aa0a8] hover:text-[#4b4f56]',
+                    )}
+                  >
+                    {m === 'chips' ? '칩모드' : '선택모드'}
+                  </button>
+                ))}
+              </span>
+            )}
           </div>
-          {/* 모델 리스트 — 한 줄 컴팩트 (이름 + 설명 인라인), 최대한 많이 보이게. */}
+          {/* 선택모드 — AI·브라우저 그리드 (클릭 시 화면 전환, 패널 닫힘). */}
+          {pickerMode === 'select' && selectSection && (
+            <div onClickCapture={() => setOpen(false)}>{selectSection}</div>
+          )}
+          {/* 모델 리스트 — 한 줄 컴팩트. armed(displayOverride) 땐 모델 개념이 없어 숨김. */}
+          {!displayOverride && (
           <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
             {brand.models.map((m) => {
               const active = m.id === selectedModel.id;
@@ -247,6 +296,7 @@ export function ModelPickerButton({
               );
             })}
           </div>
+          )}
         </div>,
         document.body,
       )}

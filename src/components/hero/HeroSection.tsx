@@ -35,13 +35,14 @@ const MODE_PILL_ICONS: Partial<Record<MainMode, LucideIcon>> = {
   brainstorm_main: Lightbulb,
 };
 import { cn } from '@/lib/utils';
-import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
+import { BRANDS, BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
+import { pickContrastingText } from '@/lib/colorUtils';
 import { BrandChipStrip } from './BrandChipStrip';
 import { HeroInput } from './HeroInput';
 import { AiPickerSheet } from './AiPickerSheet';
 import { CustomAiCreatorSheet } from './CustomAiCreatorSheet';
 import { BrandLogo } from './BrandLogo';
-import { ModelPickerButton } from './ModelPickerButton';
+import { ModelPickerButton, type HeroPickerMode } from './ModelPickerButton';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
@@ -189,6 +190,24 @@ export function HeroSection({
     if (secretaryMode) setSecretaryMode(false);
   };
 
+  // 칩모드/선택모드 — 칩모드는 입력창 위 스트립, 선택모드는 eyebrow 드롭다운에서
+  // AI·브라우저 전체 선택 (스트립 숨김). 드롭다운 우측 상단 토글로 전환.
+  const [pickerMode, setPickerMode] = useState<HeroPickerMode>(() => {
+    try {
+      return window.localStorage.getItem('personai.hero.picker_mode') === 'select' ? 'select' : 'chips';
+    } catch {
+      return 'chips';
+    }
+  });
+  const changePickerMode = (m: HeroPickerMode) => {
+    setPickerMode(m);
+    try {
+      window.localStorage.setItem('personai.hero.picker_mode', m);
+    } catch {
+      /* noop */
+    }
+  };
+
   // 검색 클릭 → toggle. 비서 모드는 자동 해제.
   const handleToggleSearch = (id: HeroChipId) => {
     toggle(id);
@@ -200,6 +219,100 @@ export function HeroSection({
     setSecretaryMode((prev) => !prev);
     if (armed) disarm();
   };
+
+  /* 선택모드 패널 — eyebrow 드롭다운 안 AI·브라우저 그리드.
+   * 클릭 시 화면 전환 (패널은 onClickCapture 로 닫힘, ModelPickerButton 쪽). */
+  const selectSection = (
+    <div className="px-1 pb-0.5">
+      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
+      <div className="grid grid-cols-5 gap-0.5">
+        {[...BRANDS, ...customBrands].map((b) => {
+          const active = !armed && !secretaryMode && brand === b.id;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              title={b.name}
+              onClick={() => handleSelectBrand(b.id)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
+                active && 'bg-black/[0.05]',
+              )}
+            >
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full"
+                style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
+              >
+                <BrandLogo
+                  imgUrl={b.icon.imgUrl}
+                  path={b.icon.path}
+                  text={b.icon.text}
+                  fill={pickContrastingText(`#${b.icon.hex}`)}
+                  forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
+                  size={Math.round(15 * (b.icon.logoScale ?? 1))}
+                />
+              </span>
+              <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{b.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">브라우저</div>
+      <div className="grid grid-cols-5 gap-0.5">
+        {portalsHook.visibleIds.map((id) => {
+          const c = HERO_SEARCH_CHIP_BY_ID[id];
+          if (!c) return null;
+          const active = armed === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              title={c.name}
+              onClick={() => handleToggleSearch(id)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
+                active && 'bg-black/[0.05]',
+              )}
+            >
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full"
+                style={{ backgroundColor: c.circleBg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
+              >
+                {c.icon.kind === 'svg' && c.icon.path ? (
+                  <svg viewBox="0 0 24 24" width={15} height={15} fill={c.iconFill} aria-hidden>
+                    <path d={c.icon.path} />
+                  </svg>
+                ) : (
+                  <span className="text-[11px] font-bold leading-none" style={{ color: c.iconFill }}>
+                    {c.icon.text ?? c.name.charAt(0)}
+                  </span>
+                )}
+              </span>
+              <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{c.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* 스트립이 숨는 동안 잃는 진입로 보전 — 비서 · AI/포탈 관리. */}
+      <div className="mt-1.5 flex items-center gap-1 px-1">
+        <button
+          type="button"
+          onClick={handleToggleSecretary}
+          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
+        >
+          비서
+        </button>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
+        >
+          AI·포탈 관리
+        </button>
+      </div>
+      <div className="my-1.5 h-px bg-black/[0.06]" />
+    </div>
+  );
 
   const handleSubmit = async () => {
     const trimmed = value.trim();
@@ -499,17 +612,33 @@ export function HeroSection({
               })}
             </div>
           ) : isSearchArmed ? (
-            // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
-            <p
-              key={`${identityKey}-name`}
-              className="text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
-              style={{ color: eyebrowColor }}
-            >
-              {displayName}
-            </p>
+            pickerMode === 'select' ? (
+              // 선택모드 armed — 라벨도 픽커 트리거 (칩 스트립이 없어 유일한 전환 경로).
+              <div key={`${identityKey}-name`} className="flex justify-center hero-name-in">
+                <ModelPickerButton
+                  variant="eyebrow"
+                  brand={activeBrand}
+                  selectedModel={model}
+                  onSelect={setModel}
+                  pickerMode={pickerMode}
+                  onPickerModeChange={changePickerMode}
+                  selectSection={selectSection}
+                  displayOverride={{ label: displayName }}
+                />
+              </div>
+            ) : (
+              // 칩모드 armed — 단순 라벨 (전환은 칩 스트립에서).
+              <p
+                key={`${identityKey}-name`}
+                className="text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
+                style={{ color: eyebrowColor }}
+              >
+                {displayName}
+              </p>
+            )
           ) : (
             // AI 모드 eyebrow — 모델 셀렉트 트리거 겸용.
-            // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운.
+            // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운 (+ 선택모드 AI·브라우저 그리드).
             <div
               key={`${identityKey}-name`}
               className="flex justify-center hero-name-in"
@@ -519,6 +648,9 @@ export function HeroSection({
                 brand={activeBrand}
                 selectedModel={model}
                 onSelect={setModel}
+                pickerMode={pickerMode}
+                onPickerModeChange={changePickerMode}
+                selectSection={pickerMode === 'select' ? selectSection : undefined}
               />
             </div>
           )}
@@ -555,6 +687,9 @@ export function HeroSection({
           onToggleDeepThink={() => setDeepThinkOn((v) => !v)}
           onOpenModeMenu={onOpenModeDropdown ? openModeMenu : undefined}
           chipStrip={
+            // 선택모드는 스트립 숨김 (선택은 eyebrow 패널에서) — 비서 모드는
+            // 스트립이 유일한 복귀 경로라 항상 유지.
+            pickerMode === 'select' && !secretaryMode ? undefined : (
             <BrandChipStrip
               // 검색 armed 시 AI 칩 highlight 없음 (null 로 전달).
               selectedBrand={isSearchArmed ? null : brand}
@@ -569,6 +704,7 @@ export function HeroSection({
               customBrands={customBrands}
               customPortalChips={customPortalChips}
             />
+            )
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
