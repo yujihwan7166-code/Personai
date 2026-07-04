@@ -220,11 +220,19 @@
 .hero-brand-canvas[data-brand='deepseek'] {
   /* 다크 로얄블루 → 공식 사이트의 아주 밝은 블루화이트 + 콘플라워 블루 #4D6BFE. */
   --hero-bg: #f3f6fe;
+  /* 하단 1/3 = 바다 — 수면 아래로 갈수록 깊어지는 블루 + 수면 물결 라인 2겹.
+   * 고래·기포가 바닷속에 있는 한 장면이 됨. */
   --hero-mesh:
+    linear-gradient(180deg,
+      transparent 56%,
+      rgba(77, 107, 254, 0.05) 66%,
+      rgba(77, 107, 254, 0.11) 80%,
+      rgba(58, 88, 230, 0.18) 100%),
     radial-gradient(65% 48% at 80% 12%, rgba(77, 107, 254, 0.14), transparent 62%),
-    radial-gradient(52% 42% at 10% 90%, rgba(120, 150, 255, 0.11), transparent 60%),
     radial-gradient(48% 38% at 45% -8%, rgba(77, 107, 254, 0.08), transparent 60%);
-  --hero-pattern: none;
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16'%3E%3Cpath d='M0 8 Q30 2 60 8 T120 8' fill='none' stroke='rgba(77,107,254,0.20)' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16'%3E%3Cpath d='M0 8 Q30 2 60 8 T120 8' fill='none' stroke='rgba(77,107,254,0.12)' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
   --hero-fg: #1a2340;
   --hero-fg-muted: #5e6a8c;
   --hero-accent: #4d6bfe;
@@ -617,9 +625,10 @@
 }
 
 .hero-brand-canvas[data-brand='deepseek'] {
-  /* mesh (2 layers) + pattern (4 radials) 모두 non-repeating fixed radials. */
-  background-size: auto, auto;
-  background-repeat: no-repeat, no-repeat;
+  /* mesh 3 (바다 그라디언트 + 라디얼 2) non-repeat + 수면 물결 2겹 repeat-x (시차 오프셋). */
+  background-size: auto, auto, auto, 140px 16px, 170px 16px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x, repeat-x;
+  background-position: center, center, center, left 0 top 58%, left -40px top 61%;
 }
 
 .hero-brand-canvas[data-brand='gemini'] {
