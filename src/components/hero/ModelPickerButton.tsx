@@ -11,6 +11,7 @@
  *   - eyebrow → 아래로 (top-full)
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Brand, BrandModel } from '@/lib/aiBrands';
@@ -32,21 +33,42 @@ export function ModelPickerButton({
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // 드롭다운은 portal(body) 렌더 — 칩 스트립 등 어떤 stacking context 도
+  // 위를 덮지 못하게 (2026-07-04 z-fighting fix). 버튼 rect 기준 fixed 배치.
+  const [anchor, setAnchor] = useState<{ top: number; bottom: number; centerX: number; right: number } | null>(null);
+
+  const toggleOpen = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const r = rootRef.current?.getBoundingClientRect();
+    if (r) setAnchor({ top: r.top, bottom: r.bottom, centerX: r.left + r.width / 2, right: r.right });
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (rootRef.current?.contains(e.target as Node)) return;
+      if (panelRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
+    // 스크롤·리사이즈 시 위치가 어긋나므로 닫기 (간단·안전).
+    const onMove = () => setOpen(false);
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
     return () => {
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
     };
   }, [open]);
 
@@ -57,7 +79,7 @@ export function ModelPickerButton({
     <div ref={rootRef} className={cn('relative', isEyebrow && 'inline-flex')}>
       <button
         type="button"
-        onClick={() => hasChoice && setOpen((v) => !v)}
+        onClick={() => hasChoice && toggleOpen()}
         disabled={!hasChoice}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -139,20 +161,22 @@ export function ModelPickerButton({
         )}
       </button>
 
-      {open && hasChoice && (
+      {open && hasChoice && anchor && createPortal(
         <div
+          ref={panelRef}
           role="menu"
           className={cn(
-            // 넉넉한 폭 · 정제된 padding
-            'absolute z-50 min-w-[280px] max-w-[320px]',
+            // 넉넉한 폭 · 정제된 padding — portal + fixed 라 무엇에도 안 가림.
+            'fixed z-[300] min-w-[280px] max-w-[320px]',
             'rounded-2xl border p-2',
             'shadow-[0_20px_50px_-14px_rgba(0,0,0,0.40)]',
             'animate-in fade-in zoom-in-95 duration-150',
-            isEyebrow
-              ? 'top-full left-1/2 -translate-x-1/2 mt-3 slide-in-from-top-1'
-              : 'bottom-full right-0 mb-3 slide-in-from-bottom-1',
+            isEyebrow ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1',
           )}
           style={{
+            ...(isEyebrow
+              ? { top: anchor.bottom + 10, left: anchor.centerX, transform: 'translateX(-50%)' }
+              : { bottom: window.innerHeight - anchor.top + 10, left: Math.min(anchor.right - 280, window.innerWidth - 300) }),
             backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
             borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
             backdropFilter: 'blur(24px) saturate(180%)',
@@ -242,7 +266,8 @@ export function ModelPickerButton({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

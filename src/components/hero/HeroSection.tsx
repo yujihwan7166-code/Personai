@@ -494,7 +494,8 @@ export function HeroSection({
             // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운.
             <div
               key={`${identityKey}-name`}
-              className="mb-2 flex justify-center hero-name-in"
+              // z-30 — 모델 드롭다운이 칩 스트립·입력창 위에 뜨도록 (stacking fix).
+              className="relative z-30 mb-2 flex justify-center hero-name-in"
             >
               <ModelPickerButton
                 variant="eyebrow"
