@@ -486,7 +486,8 @@ export function ModeMenu({
                   role="menuitem"
                   onClick={() => runItem(item)}
                   className={cn(
-                    'group flex w-full items-center gap-2.5 px-2 py-[7px] rounded-lg text-left',
+                    // 이모지·아이콘 없는 타이포 중심 리스트 (Raycast·Linear 감성).
+                    'group flex w-full items-center gap-2.5 px-3 py-[8px] rounded-lg text-left',
                     'transition-colors duration-100',
                     'animate-in fade-in fill-mode-both',
                   )}
@@ -494,13 +495,6 @@ export function ModeMenu({
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
-                  {/* 파스텔 컬러 타일 제거 — 이모지를 배경 없이 차분하게 (채도 살짝 낮춤). */}
-                  <span
-                    className="flex h-7 w-7 items-center justify-center shrink-0 text-[15px] leading-none select-none"
-                    style={{ filter: 'saturate(0.8)', opacity: 0.92 }}
-                  >
-                    {item.emoji}
-                  </span>
                   <span className="min-w-0 flex-1">
                     <span
                       className="flex items-center gap-1.5 text-[13px] font-medium leading-tight"
@@ -517,7 +511,7 @@ export function ModeMenu({
                     </span>
                     {item.desc && (
                       <span
-                        className="block text-[10.5px] mt-0.5 truncate"
+                        className="block text-[11px] mt-[3px] truncate"
                         style={{ color: 'var(--hero-fg-muted)' }}
                       >
                         {item.desc}
