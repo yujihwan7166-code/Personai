@@ -175,9 +175,14 @@ export function ModelPickerButton({
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
           )}
+          // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
+          // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
           style={
             isEyebrow
-              ? { top: anchor.bottom + 8, left: anchor.centerX, transform: 'translateX(-50%)' }
+              ? {
+                  top: anchor.bottom + 8,
+                  left: Math.max(8, Math.min(anchor.centerX - 150, window.innerWidth - 308)),
+                }
               : { bottom: window.innerHeight - anchor.top + 8, left: Math.min(anchor.right - 300, window.innerWidth - 316) }
           }
         >
