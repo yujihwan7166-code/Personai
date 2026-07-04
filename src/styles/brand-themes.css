@@ -750,6 +750,29 @@
   --hero-input-border: rgba(43, 75, 219, 0.24);
 }
 
+/* ────── Multi (다중 AI) — 스펙트럼 (여러 브랜드 색이 모이는 모드) ────── */
+.hero-brand-canvas[data-brand='multi'] {
+  --hero-bg: #f7f8fc;
+  /* 네 모서리에서 GPT 그린 · Claude 테라코타 · DeepSeek 코발트 · Gemini 퍼플이 은은하게. */
+  --hero-mesh:
+    radial-gradient(52% 42% at 10% 8%, rgba(16, 163, 127, 0.09), transparent 60%),
+    radial-gradient(48% 40% at 90% 10%, rgba(217, 119, 87, 0.09), transparent 60%),
+    radial-gradient(46% 40% at 12% 94%, rgba(77, 107, 254, 0.09), transparent 60%),
+    radial-gradient(44% 38% at 90% 92%, rgba(155, 114, 203, 0.09), transparent 60%);
+  --hero-pattern: none;
+  --hero-fg: #1e2235;
+  --hero-fg-muted: #62687f;
+  --hero-accent: #6a5ae8;
+  --hero-accent-soft: rgba(106, 90, 232, 0.09);
+  --hero-ring: #6a5ae8;
+  --hero-radius-input: 16px;
+  --hero-font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(30, 34, 53, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(106, 90, 232, 0.24);
+}
+
 /* ────── 히어로 캔버스 공통 스타일 ────── */
 
 /* 배경 = base color + mesh (accent) + pattern (signature).
@@ -1333,6 +1356,22 @@
   animation: fx-orbit 30s ease-in-out infinite reverse;
 }
 
+/* ── Multi — 스펙트럼 오브 2개 교차 유영 (그린 ↔ 퍼플) ── */
+.hero-brand-canvas[data-brand='multi'] .hero-fx::before {
+  top: 10%; left: 8%;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 163, 127, 0.09), transparent 70%);
+  filter: blur(50px);
+  animation: fx-orbit 24s ease-in-out infinite;
+}
+.hero-brand-canvas[data-brand='multi'] .hero-fx::after {
+  bottom: 8%; right: 8%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(155, 114, 203, 0.09), transparent 70%);
+  filter: blur(50px);
+  animation: fx-orbit 30s ease-in-out infinite reverse;
+}
+
 /* ── MiniMax — 코발트 오브 유영 ── */
 .hero-brand-canvas[data-brand='minimax'] .hero-fx::before {
   top: 12%; right: 10%;
@@ -1721,6 +1760,7 @@
 [data-brand='command']      { --sb-accent: #39594d; }
 [data-brand='mistral']      { --sb-accent: #ea5810; }
 [data-brand='minimax']      { --sb-accent: #2b4bdb; }
+[data-brand='multi']        { --sb-accent: #6a5ae8; }
 
 /* 다크 모드 보정 — 어두운 사이드바 위에서 안 보이는 다크 액센트만 반전 */
 .dark [data-brand='grok']   { --sb-accent: #e7e9ee; --sb-accent-fg: #17181c; }

@@ -4776,15 +4776,29 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
         <div
           className={cn(
             "flex-1 flex flex-col min-w-0 h-full overflow-hidden relative",
-            // Genspark-스타일 브랜드 morph — 일반 모드에서만 배경/변수 오버라이드.
+            // Genspark-스타일 브랜드 morph — 일반 모드 + 다중 AI 에서 배경/변수 오버라이드.
             // 대화 시작 후에도 유지 (Q1: 예).
-            getMainMode(discussionMode) === 'general' && 'hero-brand-canvas',
+            ['general', 'multi'].includes(getMainMode(discussionMode)) && 'hero-brand-canvas',
             // 대화 중 — 장식 감쇠 + 다크 브랜드 배경 밝힘 (채팅 가독성, brand-themes.css).
-            getMainMode(discussionMode) === 'general' && messages.length > 0 && 'hero-in-chat',
+            ['general', 'multi'].includes(getMainMode(discussionMode)) && messages.length > 0 && 'hero-in-chat',
           )}
           // 검색엔진 armed 시 외부 캔버스도 검색엔진 테마 — AI 와 브라우저는 완전 개별.
-          data-brand={getMainMode(discussionMode) === 'general' ? (armedSearchEngine ?? selectedHeroBrand) : undefined}
+          // 다중 AI 는 전용 스펙트럼 테마 (여러 브랜드 색이 모이는 모드 정체성).
+          data-brand={
+            getMainMode(discussionMode) === 'general'
+              ? (armedSearchEngine ?? selectedHeroBrand)
+              : getMainMode(discussionMode) === 'multi'
+                ? 'multi'
+                : undefined
+          }
         >
+          {/* 다중 AI — 스펙트럼 오브 모션 레이어 (general 은 HeroSection 이 렌더). */}
+          {getMainMode(discussionMode) === 'multi' && (
+            <>
+              <div className="hero-fx" aria-hidden />
+              <div className="hero-fx2" aria-hidden />
+            </>
+          )}
           {/* 모드 메뉴 — pill 아래 2-패널 커맨드 팝오버 (hover 전환 · 검색 · 페이지 전환 없음). */}
           <ModeMenu
             open={modeLauncherOpen}
