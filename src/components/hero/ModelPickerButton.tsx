@@ -267,7 +267,13 @@ export function ModelPickerButton({
               {brand.name} 모델
             </div>
           )}
-          <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
+          <div
+            className={cn(
+              'max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin',
+              // 와이드 패널에선 4열 그리드 — 모델 8개+ 여도 세로 낭비 없음.
+              selectSection && 'grid grid-cols-4 gap-0.5',
+            )}
+          >
             {brand.models.map((m) => {
               const active = m.id === selectedModel.id;
               return (
@@ -279,9 +285,10 @@ export function ModelPickerButton({
                     onSelect(m.id);
                     setOpen(false);
                   }}
+                  title={m.description}
                   className={cn(
-                    'flex w-full items-center gap-2 px-2.5 py-[7px] rounded-lg text-left',
-                    'transition-colors duration-100',
+                    'flex w-full items-center gap-1.5 rounded-lg text-left transition-colors duration-100',
+                    selectSection ? 'px-2 py-[6px]' : 'gap-2 px-2.5 py-[7px]',
                     active ? 'bg-black/[0.05]' : 'hover:bg-black/[0.035]',
                   )}
                 >
@@ -293,10 +300,11 @@ export function ModelPickerButton({
                     style={{ backgroundColor: panelAccent }}
                   />
                   <span className="min-w-0 flex-1 flex items-baseline gap-1.5">
-                    <span className="shrink-0 text-[13px] font-medium leading-tight text-[#1f2023]">
+                    <span className={cn('text-[12.5px] font-medium leading-tight text-[#1f2023]', selectSection ? 'truncate' : 'shrink-0 text-[13px]')}>
                       {m.name}
                     </span>
-                    {m.description && (
+                    {/* 그리드 모드에선 설명은 툴팁으로만 (칸 절약). */}
+                    {!selectSection && m.description && (
                       <span className="min-w-0 truncate text-[11px] leading-tight text-[#9aa0a8]">
                         {m.description}
                       </span>
