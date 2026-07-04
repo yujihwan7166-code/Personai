@@ -9,6 +9,7 @@ import {
   Loader2, Search, FileText, Sparkles, CheckCircle2, ShieldCheck,
   AlertTriangle, Scale, Clock, Circle, ChevronDown,
   Target, PenLine, Wand2, ArrowRight, Telescope,
+  Copy as CopyIcon, Check,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -681,6 +682,10 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
         if (Array.isArray(data.modelsUsed)) {
           setModelsUsed(data.modelsUsed as ModelInfo[]);
         }
+        // 서버가 인용 리페어를 거친 최종본을 보냄 — 스트리밍 누적본을 교체.
+        if (typeof data.finalAnswer === 'string' && (data.finalAnswer as string).trim()) {
+          setPolishedAnswer(data.finalAnswer as string);
+        }
         setPhase('done');
         setProgress(null);
         break;
@@ -803,6 +808,29 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
   };
 
   const displayAnswer = polishedAnswer || finalAnswer;
+
+  // 완료 후 인용을 클릭 가능하게 — [n] → 해당 출처 링크 (새 탭).
+  // 스트리밍 중에는 원문 그대로 (성능 + 깜빡임 방지).
+  const linkedAnswer = useMemo(() => {
+    if (phase !== 'done' || globalSources.length === 0) return displayAnswer;
+    const byId = new Map(globalSources.map((s) => [s.globalId, s.link]));
+    return displayAnswer.replace(/\[(\d+)\](?!\()/g, (m, n) => {
+      const link = byId.get(Number(n));
+      return link ? `[${m}](${link})` : m;
+    });
+  }, [displayAnswer, phase, globalSources]);
+
+  // 리포트 마크다운 복사.
+  const [reportCopied, setReportCopied] = useState(false);
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(displayAnswer);
+      setReportCopied(true);
+      window.setTimeout(() => setReportCopied(false), 1600);
+    } catch {
+      /* noop */
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto p-4 md:p-6 min-h-full">
@@ -1301,9 +1329,12 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
                 {phase === 'done' ? '최종 리포트' : '답변 작성 중...'}
                 {phase === 'running' && <Loader2 className="w-3 h-3 animate-spin" />}
 
-                {/* Trust 배지 — verifier 결과 있을 때만 */}
+                {/* Trust 배지 + 메타 스트립 + 복사 — verifier 결과 있을 때만 */}
                 {verifier && phase === 'done' && (
-                  <div className="ml-auto flex items-center gap-2 text-xs">
+                  <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-200 font-medium">
+                      출처 {globalSources.length} · 주장 {atomicClaims.length}
+                    </span>
                     <span className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full border font-semibold',
                       confidenceColor(verifier.confidence),
@@ -1312,9 +1343,9 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
                       신뢰도 {verifier.confidence}
                     </span>
                     {verifier.flaggedCitations.length > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 font-semibold">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 font-semibold" title="범위 밖 인용은 최종본에서 자동 제거됨">
                         <AlertTriangle className="w-3 h-3" />
-                        {verifier.flaggedCitations.length} 환각
+                        {verifier.flaggedCitations.length} 인용 정리됨
                       </span>
                     )}
                     {conflicts.length > 0 && (
@@ -1323,10 +1354,19 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
                         {conflicts.length} 모순
                       </span>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => { void copyReport(); }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-slate-200 bg-white font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                      title="리포트 마크다운 복사"
+                    >
+                      {reportCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <CopyIcon className="w-3 h-3" />}
+                      {reportCopied ? '복사됨' : '복사'}
+                    </button>
                   </div>
                 )}
               </div>
-              <LazyMarkdown content={displayAnswer} className="prose prose-sm dark:prose-invert max-w-none" />
+              <LazyMarkdown content={linkedAnswer} className="prose prose-sm dark:prose-invert max-w-none" />
 
               {/* Verifier 디테일 — 펼쳐서 보기 */}
               {verifier && phase === 'done' && (verifier.flaggedCitations.length > 0 || verifier.claimVerdicts.some((v) => v.status !== 'verified')) && (

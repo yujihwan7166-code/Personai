@@ -194,6 +194,23 @@ const S5_COMPILER_SYSTEM = `당신은 리서치 노트에서 atomic claim을 추
 - conflicts: 서로 다른 출처가 같은 주제에 대해 다른 수치·방향의 주장을 할 때만 생성 (억지로 만들지 않음)
 - claim 개수 20개 이내 권장`;
 
+const S6_GAP_SYSTEM = `당신은 리서치 커버리지 감사관이다. outline 대비 수집된 claim 의 빈틈을 찾는다.
+
+입력: outline 섹션 목록 + 수집된 atomicClaims (topic 태그 포함) + 이미 수행한 서브질문들
+
+출력 JSON (다른 텍스트 없이):
+{
+  "gaps": [
+    { "section": "커버리지가 약한 outline 섹션", "query": "그 빈틈을 메울 구체적 검색 쿼리 (한국어 또는 영어)" }
+  ]
+}
+
+규칙:
+- claim 이 0~1개뿐인 outline 섹션, 수치·최신 데이터가 없는 섹션을 우선
+- 이미 수행한 서브질문과 중복되는 쿼리 금지
+- 빈틈이 없으면 gaps: []
+- 최대 2개`;
+
 const S7_WRITER_SYSTEM = `당신은 심층 리서치 리포트 작성자다.
 
 입력:
@@ -203,15 +220,21 @@ const S7_WRITER_SYSTEM = `당신은 심층 리서치 리포트 작성자다.
 - conflicts 리스트 — 출처 간 모순
 - 전역 출처 리스트 (번호 부여됨)
 
-출력 규칙:
-- 마크다운, outline 순서 따라 섹션 구조
+리포트 구조 (반드시 이 순서):
+1. "## 핵심 요약" — 가장 중요한 발견 3~5개 불릿 (각 불릿에 [n] 인용) + 마지막 줄에 **한 줄 결론** 볼드
+2. outline 순서대로 본문 섹션 — 각 섹션 끝에 "**소결:** 한 줄" 형태의 섹션 소결론
+3. conflicts 가 있으면 "## 미해결 모순" 섹션 — "출처 [a]는 X, 출처 [b]는 Y" 병기
+4. "## 결론" — 세 부분으로 구조화: **확실한 것** (고신뢰 claim 기반) / **불확실한 것** (low confidence·모순) / **지켜볼 포인트** (다음 관찰 지점)
+5. "## 참고 출처" — 전체 출처 리스트
+
+작성 규칙:
 - 사실 주장은 **반드시 atomicClaims 리스트 안에서만 선택**해서 쓴다
 - 주장을 쓸 때 해당 claim의 sourceIds를 전부 [n] 인라인 인용 (복수 출처는 [1][3] 연속 표기)
 - atomicClaims에 없는 사실·수치는 절대 꺼내지 말 것 (환각 금지)
 - 일반론·배경 설명은 인용 없이 가능하지만 수치·고유명사·날짜는 반드시 [n]
-- conflicts 리스트의 모순은 "## 미해결 모순" 섹션에 "출처 [a]는 X, 출처 [b]는 Y" 형태로 병기
-- 마지막에 "## 참고 출처" 섹션에 전체 출처 리스트
-- 결론 섹션 포함
+- 수치가 3개 이상 나열되는 비교·추이는 마크다운 표로 정리 (format 이 table/compare 면 표 필수)
+- confidence 가 low 인 claim 은 "~로 알려져 있으나 근거는 제한적" 처럼 불확실성을 명시
+- depth 가 deep/technical 이면 섹션당 2~3문단으로 상세히, overview 면 간결히
 - 한국어, 경어체 통일`;
 
 const S8_VERIFIER_SYSTEM = `당신은 리서치 리포트의 중요 주장을 원본 출처와 대조해 검증하는 검수관이다.
@@ -704,6 +727,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     sseWrite(res, 'compiler_done', { atomicClaims, conflicts });
 
+    // ── S6 Gap-fill: 커버리지 빈틈 감지 → 보강 검색 → claim 병합 (품질 라운드) ──
+    try {
+      sseWrite(res, 'progress', { stage: 'compiler', label: '커버리지 점검·보강 검색 중...' });
+      const gapRaw = await callAgent(
+        apiKey,
+        S6_GAP_SYSTEM,
+        [
+          `Outline: ${plan.outline.join(' / ')}`,
+          `수집된 claims (topic): ${atomicClaims.map((c) => `[${c.topic || '-'}] ${c.text.slice(0, 60)}`).join(' | ')}`,
+          `이미 수행한 서브질문: ${plan.subQuestions.map((s) => s.question).join(' / ')}`,
+        ].join('\n'),
+        400,
+        0.2,
+        MODEL_CLAUDE_HAIKU,
+      );
+      const gapPlan = safeParseJson<{ gaps?: { section: string; query: string }[] }>(gapRaw);
+      const gaps = (gapPlan?.gaps || []).slice(0, 2);
+
+      const gapNotes: { subQuestionId: string; summary: string }[] = [];
+      for (const [gi, gap] of gaps.entries()) {
+        try {
+          const searchRes = await searchSerper(gap.query);
+          // 기존 출처와 중복 제거 후 새 전역 id 부여.
+          const fresh = searchRes.results.filter((s) => !linkToId.has(s.link)).slice(0, 6);
+          if (fresh.length === 0) continue;
+          const localToGlobal: number[] = [];
+          for (const s of fresh) {
+            const id = globalSources.length + 1;
+            linkToId.set(s.link, id);
+            globalSources.push({ ...s, globalId: id, subQuestionId: `g${gi + 1}` });
+            localToGlobal.push(id);
+          }
+          const sourcesList = fresh
+            .map((s, i) => `[${i + 1}] ${s.title}\n${s.snippet}\n(${s.link})`)
+            .join('\n\n');
+          const { text: rawNote } = await callAgentWithFallback(
+            apiKey,
+            S3_RESEARCHER_SYSTEM,
+            `서브질문: ${gap.query}\n\n검색 결과:\n${sourcesList}\n\n⚠️ 인용 표기는 반드시 [1], [2] 형식.`,
+            600,
+            0.3,
+            MODEL_GEMINI,
+          );
+          let note = normalizeCitations(rawNote.trim());
+          localToGlobal.forEach((globalId, i) => {
+            note = note.split(`[${i + 1}]`).join(`[${globalId}]`);
+          });
+          gapNotes.push({ subQuestionId: `g${gi + 1}`, summary: normalizeCitations(note) });
+        } catch (err) {
+          console.warn('[deep-research] gap-fill researcher failed:', err);
+        }
+      }
+
+      if (gapNotes.length > 0) {
+        // 갱신된 전역 출처 재전송 + 신규 노트만 컴파일해 claim 병합.
+        sseWrite(res, 'sources', { globalSources });
+        const appendRaw = await callAgent(
+          apiKey,
+          S5_COMPILER_SYSTEM,
+          [
+            '=== 서브질문별 리서치 노트 (전역 [n]) ===',
+            ...gapNotes.map((n) => `[${n.subQuestionId}] 보강 리서치\n${n.summary}`),
+            '',
+            '=== 전역 출처 목록 ===',
+            ...globalSources.map((s) => `[${s.globalId}] ${s.title} — ${s.snippet.slice(0, 150)}`),
+          ].join('\n'),
+          1400,
+          0.3,
+        );
+        const appended = safeParseJson<{ atomicClaims?: AtomicClaim[]; conflicts?: Conflict[] }>(appendRaw);
+        if (appended?.atomicClaims?.length) {
+          const extra = appended.atomicClaims.slice(0, 12).map((c, i) => ({ ...c, id: `g${i + 1}` }));
+          atomicClaims = [...atomicClaims, ...extra].slice(0, 40);
+        }
+        if (appended?.conflicts?.length) {
+          conflicts = [...conflicts, ...appended.conflicts].slice(0, 12);
+        }
+        remappedNotes.push(...gapNotes);
+        sseWrite(res, 'compiler_done', { atomicClaims, conflicts });
+      }
+    } catch (err) {
+      console.warn('[deep-research] gap-fill round failed (무시하고 진행):', err);
+    }
+
     // ── S7 Writer (streaming) — atomic claims 기반 ──
     sseWrite(res, 'progress', { stage: 'writer', label: '최종 답변 작성 중...' });
 
@@ -730,11 +837,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }),
     ].join('\n');
 
+    // depth 가 깊을수록 긴 리포트 허용.
+    const isDeep = spec.depth === 'deep' || spec.depth === 'technical';
+    const writerTokens = isDeep ? 6000 : 4500;
+
     const writerDraft = await streamAgent(
       apiKey,
       S7_WRITER_SYSTEM,
       writerInput,
-      4000,
+      writerTokens,
       (text) => sseWrite(res, 'writer_delta', { text }),
     );
 
@@ -747,7 +858,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey,
       S9_POLISH_SYSTEM,
       writerDraft,
-      4200,
+      writerTokens + 300,
       (text) => sseWrite(res, 'polish_delta', { text }),
     );
 
@@ -758,8 +869,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const verificationResult = await verification;
     sseWrite(res, 'verifier_done', verificationResult);
 
+    // ── 인용 리페어 (rule-based): 범위 밖 [n] 은 본문에서 제거 — 환각 인용이
+    // 최종본에 남지 않게. 클라이언트는 done.finalAnswer 로 교체 렌더. ──
+    let repairedAnswer = polished;
+    if (verificationResult.flaggedCitations.length > 0) {
+      const badIds = new Set(verificationResult.flaggedCitations.map((f) => f.n));
+      repairedAnswer = polished.replace(/\[(\d+)\](?!\()/g, (m, n) => (badIds.has(Number(n)) ? '' : m));
+    }
+
     sseWrite(res, 'done', {
-      finalAnswer: polished,
+      finalAnswer: repairedAnswer,
       sourcesCount: globalSources.length,
       subQuestionsCount: plan.subQuestions.length,
       atomicClaimsCount: atomicClaims.length,
