@@ -452,14 +452,17 @@ export function HeroSection({
 
       {/* 중앙 컨텐츠 — 전체 사이즈 up (유저 요청). */}
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
-        {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑. */}
+        {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑.
+         * eyebrow 는 고정 높이 래퍼 — AI(픽커 버튼 42px)/브라우저(텍스트 18px) 간
+         * 높이 차로 화면 전체가 위아래로 밀리던 문제 방지 (2026-07-05). */}
         <div className="text-center mb-10">
+          <div className="relative z-30 mb-2 flex h-[44px] items-center justify-center">
           {secretaryMode ? (
             // 비서 모드 eyebrow — 어떤 데이터를 읽을지 소스 선택 (전체/플래너/메모/위키).
             // 이모지 대신 lucide 아이콘 — 컨시어지 무드에 맞게 절제 (2026-07-04 피드백).
             <div
               key={`${identityKey}-name`}
-              className="mb-2 flex justify-center gap-1 animate-in fade-in duration-300"
+              className="flex justify-center gap-1 animate-in fade-in duration-300"
             >
               {SECRETARY_SCOPES.map((s) => {
                 const active = s.id === secretaryScope;
@@ -499,7 +502,7 @@ export function HeroSection({
             // 검색 armed 시 eyebrow — 단순 라벨 (검색엔진은 모델 개념 없음).
             <p
               key={`${identityKey}-name`}
-              className="mb-2 text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
+              className="text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
               style={{ color: eyebrowColor }}
             >
               {displayName}
@@ -509,8 +512,7 @@ export function HeroSection({
             // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운.
             <div
               key={`${identityKey}-name`}
-              // z-30 — 모델 드롭다운이 칩 스트립·입력창 위에 뜨도록 (stacking fix).
-              className="relative z-30 mb-2 flex justify-center hero-name-in"
+              className="flex justify-center hero-name-in"
             >
               <ModelPickerButton
                 variant="eyebrow"
@@ -520,6 +522,7 @@ export function HeroSection({
               />
             </div>
           )}
+          </div>
           <h1
             key={`${identityKey}-heading`}
             className="hero-heading text-[36px] sm:text-[44px] leading-[1.15] font-medium tracking-[-0.02em] animate-in fade-in slide-in-from-bottom-1 duration-300"
@@ -570,8 +573,9 @@ export function HeroSection({
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
 
-        {/* 기능 레일 — AI 기본 모드에서만 (검색 armed·비서 모드는 집중 경험이라 제외). */}
-        {!isSearchArmed && !secretaryMode && featureRail}
+        {/* 기능 레일 — AI·브라우저 공통 (비서 모드만 집중 경험이라 제외).
+         * 브라우저에도 노출 + 두 상태 간 높이 동일 → 전환 시 화면 안 밀림. */}
+        {!secretaryMode && featureRail}
 
       </div>
 
