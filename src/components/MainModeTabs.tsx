@@ -1820,6 +1820,94 @@ export function MainModeTabs({
                       </DropdownMenuContent>
                     </DropdownMenu>
 
+                    {/* 북마크 — 메인에서 2클릭 (pill → 슬롯) 바로가기 (2026-07-05).
+                     * url 은 새 탭, 내부 기능은 기존 셀렉트 핸들러로 라우팅. */}
+                    {(() => {
+                      const openBookmark = (slot: BookmarkSlot) => {
+                        if (slot.kind === 'url') {
+                          window.open(slot.url, '_blank', 'noopener,noreferrer');
+                          setOpen(false);
+                          return;
+                        }
+                        if (slot.kind !== 'internal') return;
+                        const t = slot.target;
+                        if (t.type === 'mode') {
+                          const map: Record<string, MainMode> = {
+                            'general': 'general',
+                            'multi-chat': 'multi',
+                            'deep-research': 'research_main',
+                            'debate': 'debate',
+                            'study': 'study_main',
+                            'assistant': 'assistant',
+                          };
+                          handleSelect(map[t.mode] ?? 'general');
+                        } else if (t.type === 'life') {
+                          handleSelectLifeTool(t.toolId);
+                        } else if (t.type === 'player') {
+                          handleSelectPlayerTool(t.toolId);
+                        } else if (t.type === 'assistant') {
+                          handleSelectAssistantTool(t.cardId);
+                        }
+                      };
+                      const openEditor = () => {
+                        setOpen(false);
+                        if (onOpenBookmarks) setTimeout(() => onOpenBookmarks(), 40);
+                      };
+                      return (
+                        <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">북마크</span>
+                            {onOpenBookmarks && (
+                              <button
+                                type="button"
+                                onClick={openEditor}
+                                className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                              >
+                                편집
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            {favoriteBookmarks.map((slot, i) =>
+                              slot.kind === 'empty' ? (
+                                <button
+                                  key={`bm-${i}`}
+                                  type="button"
+                                  onClick={openEditor}
+                                  title="북마크 추가"
+                                  className="flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 opacity-45 transition-opacity hover:opacity-90"
+                                >
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-[hsl(var(--hairline))] text-[12px] text-muted-foreground">+</span>
+                                  <span className="text-[9px] leading-none text-muted-foreground">추가</span>
+                                </button>
+                              ) : (
+                                <button
+                                  key={`bm-${i}`}
+                                  type="button"
+                                  onClick={() => openBookmark(slot)}
+                                  title={slot.label}
+                                  className="flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-[hsl(var(--accent))]"
+                                >
+                                  <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-muted">
+                                    {slot.kind === 'url' ? (
+                                      slot.favicon ? (
+                                        <img src={slot.favicon} alt="" className="h-[18px] w-[18px]" />
+                                      ) : (
+                                        <span className="text-[11px] font-bold text-foreground/70">{slot.label.charAt(0)}</span>
+                                      )
+                                    ) : (
+                                      <span className="text-[14px] leading-none select-none">{slot.emoji}</span>
+                                    )}
+                                  </span>
+                                  <span className="max-w-full truncate text-[9px] font-medium leading-none text-foreground/80">{slot.label}</span>
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* 오늘 사용량 — 호출·비용 + 토큰/일일 예산 게이지 + 모델 TOP3. */}
                     <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
                       <div className="mb-1.5 flex items-baseline justify-between">
