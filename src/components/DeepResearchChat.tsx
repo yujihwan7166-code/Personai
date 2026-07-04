@@ -809,6 +809,22 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
 
   const displayAnswer = polishedAnswer || finalAnswer;
 
+  // 리서치 액센트 (방안지 캔버스의 시안) — 실행·결과 화면 컬러 통일용.
+  const ACCENT = 'var(--hero-accent, #0e94b0)';
+  const ACCENT_SOFT = 'var(--hero-accent-soft, rgba(14,148,176,0.09))';
+
+  /* 문서형 섹션 헤더 — 리포트 감각의 mono 라벨 + hairline (전 카드 공통 문법). */
+  const SectionLabel = ({ icon: Icon, label, count }: { icon: LucideIcon; label: string; count?: string }) => (
+    <div className="flex items-center gap-2 mb-3">
+      <Icon className="w-3.5 h-3.5" style={{ color: ACCENT }} />
+      <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]" style={{ color: ACCENT }}>
+        {label}
+      </span>
+      {count && <span className="text-[10.5px] font-semibold text-muted-foreground tabular-nums">{count}</span>}
+      <span className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+
   // 완료 후 인용을 클릭 가능하게 — [n] → 해당 출처 링크 (새 탭).
   // 스트리밍 중에는 원문 그대로 (성능 + 깜빡임 방지).
   const linkedAnswer = useMemo(() => {
@@ -901,43 +917,31 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-4 md:gap-5 flex-wrap">
-          <div className="shrink-0 flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 via-sky-500/15 to-emerald-500/10 border border-border/60 flex items-center justify-center shadow-sm">
-              <Telescope className="w-5 h-5 text-violet-600/80" strokeWidth={1.8} />
-            </div>
-            <h1 className="font-display font-semibold text-[28px] md:text-[32px] tracking-[-0.025em] leading-none">심층 리서치</h1>
-          </div>
-
-          <div className="hidden md:block self-stretch w-px bg-border" />
-
-          <div className="min-w-[260px]">
-            <div className="text-[13px] text-foreground/80 mb-1.5 leading-snug">
-              여러 AI가 분담·검증해 인용 기반 리포트를 작성합니다
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="/logos/gpt.svg" alt="GPT" className="w-3.5 h-3.5 object-contain" />
-                <span className="text-[11.5px] font-medium text-foreground/85">GPT</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="/logos/claude.png" alt="Claude" className="w-3.5 h-3.5 object-contain" />
-                <span className="text-[11.5px] font-medium text-foreground/85">Claude</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="/logos/gemini.svg" alt="Gemini" className="w-3.5 h-3.5 object-contain" />
-                <span className="text-[11.5px] font-medium text-foreground/85">Gemini</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="/logos/perplexity.svg" alt="Perplexity" className="w-3.5 h-3.5 object-contain" />
-                <span className="text-[11.5px] font-medium text-foreground/85">Perplexity</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="/logos/grok.svg" alt="Grok" className="w-3.5 h-3.5 object-contain" />
-                <span className="text-[11.5px] font-medium text-foreground/85">Grok</span>
-              </div>
-            </div>
-          </div>
+        // 실행·결과 컴팩트 헤더 — idle 히어로와 같은 언어 (로고 스택 + mono 라벨).
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="flex items-center">
+            {['/logos/gpt.svg', '/logos/claude.png', '/logos/gemini.svg', '/logos/perplexity.svg', '/logos/grok.svg'].map((src, i) => (
+              <span
+                key={src}
+                className={cn('flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white', i > 0 && '-ml-1.5')}
+                style={{
+                  boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(0,0,0,0.08)), 0 0 0 2px var(--hero-bg, #f5f8fa)',
+                  zIndex: 5 - i,
+                }}
+              >
+                <img src={src} alt="" className="h-[13px] w-[13px] object-contain" />
+              </span>
+            ))}
+          </span>
+          <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--hero-accent, #0e94b0)' }}>
+            AI Research Lab
+          </span>
+          <h1 className="text-[19px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--hero-fg, #16303a)' }}>
+            심층 리서치
+          </h1>
+          <span className="hidden sm:inline text-[12px]" style={{ color: 'var(--hero-fg-muted, #5c7482)' }}>
+            여러 AI가 분담·검증해 인용 기반 리포트를 작성합니다
+          </span>
         </div>
       )}
 
@@ -1181,27 +1185,24 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
       {(phase === 'running' || phase === 'done') && (
         <>
           {(phase === 'running' || phase === 'done') && startedAt && (
-            <Card className="p-4 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
+            <Card className="p-4" style={{ borderColor: 'rgba(14,148,176,0.22)', background: `linear-gradient(135deg, ${ACCENT_SOFT}, transparent 55%)` }}>
               {/* 상단: 타이머 + 진행률 */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-primary" />
+                  <Clock className="w-4 h-4" style={{ color: ACCENT }} />
                   <span className="font-mono font-semibold tabular-nums">{formatElapsed(elapsedMs)}</span>
                   <span className="text-xs text-muted-foreground">/ 예상 3~4분</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-primary">{overallProgress}%</span>
+                  <span className="font-mono text-xs font-bold tabular-nums" style={{ color: ACCENT }}>{overallProgress}%</span>
                   {phase === 'done' && <CheckCircle2 className="w-4 h-4 text-green-600" />}
                 </div>
               </div>
               {/* 진행률 바 */}
               <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-4">
                 <div
-                  className={cn(
-                    'h-full transition-all duration-500 ease-out',
-                    phase === 'done' ? 'bg-green-500' : 'bg-primary',
-                  )}
-                  style={{ width: `${overallProgress}%` }}
+                  className="h-full transition-all duration-500 ease-out"
+                  style={{ width: `${overallProgress}%`, backgroundColor: phase === 'done' ? '#16a34a' : ACCENT }}
                 />
               </div>
               {/* 단계 체크리스트 */}
@@ -1210,22 +1211,19 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
                   const status = stageStatus(s.key);
                   const detail = stageDetail(s.key);
                   return (
-                    <div key={s.key} className={cn(
-                      'flex items-start gap-2 text-xs rounded px-2 py-1 transition-colors',
-                      status === 'active' && 'bg-primary/10',
-                    )}>
+                    <div key={s.key} className="flex items-start gap-2 text-xs rounded px-2 py-1 transition-colors"
+                      style={status === 'active' ? { backgroundColor: ACCENT_SOFT } : undefined}>
                       <div className="mt-0.5">
                         {status === 'done' && <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />}
-                        {status === 'active' && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />}
+                        {status === 'active' && <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: ACCENT }} />}
                         {status === 'pending' && <Circle className="w-3.5 h-3.5 text-muted-foreground/40" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className={cn(
                           'font-medium',
                           status === 'done' && 'text-muted-foreground',
-                          status === 'active' && 'text-primary',
                           status === 'pending' && 'text-muted-foreground/60',
-                        )}>
+                        )} style={status === 'active' ? { color: ACCENT } : undefined}>
                           {s.label}
                         </div>
                         {detail && (
@@ -1243,10 +1241,7 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
 
           {plan && (
             <Card className="p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Sparkles className="w-4 h-4 text-primary" />
-                리서치 계획
-              </div>
+              <SectionLabel icon={Target} label="Research Plan" count={`서브질문 ${researchers.length}`} />
               <div className="space-y-2">
                 {researchers.map((r, idx) => {
                   const meta = getModelMeta(r.modelUsed || r.modelAssigned);
@@ -1325,9 +1320,12 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
           {displayAnswer && (
             <Card className="p-4">
               <div className="flex items-center gap-2 mb-3 text-sm font-medium">
-                <FileText className="w-4 h-4 text-primary" />
-                {phase === 'done' ? '최종 리포트' : '답변 작성 중...'}
-                {phase === 'running' && <Loader2 className="w-3 h-3 animate-spin" />}
+                <FileText className="w-4 h-4" style={{ color: ACCENT }} />
+                <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em]" style={{ color: ACCENT }}>
+                  {phase === 'done' ? 'Final Report' : 'Writing'}
+                </span>
+                <span className="text-[13px] font-semibold">{phase === 'done' ? '최종 리포트' : '답변 작성 중...'}</span>
+                {phase === 'running' && <Loader2 className="w-3 h-3 animate-spin" style={{ color: ACCENT }} />}
 
                 {/* Trust 배지 + 메타 스트립 + 복사 — verifier 결과 있을 때만 */}
                 {verifier && phase === 'done' && (
@@ -1372,7 +1370,7 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
               {verifier && phase === 'done' && (verifier.flaggedCitations.length > 0 || verifier.claimVerdicts.some((v) => v.status !== 'verified')) && (
                 <details className="mt-4 pt-3 border-t border-border">
                   <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground">
-                    🔍 검증 상세 보기 ({verifier.totalCitations}개 인용 중 {verifier.flaggedCitations.length}개 범위 밖 · {verifier.claimVerdicts.length}개 주장 샘플 검증)
+                    검증 상세 보기 ({verifier.totalCitations}개 인용 중 {verifier.flaggedCitations.length}개 범위 밖 · {verifier.claimVerdicts.length}개 주장 샘플 검증)
                   </summary>
                   <div className="mt-2 space-y-2 text-xs">
                     {verifier.flaggedCitations.length > 0 && (
@@ -1425,9 +1423,11 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
           {/* 미해결 모순 섹션 */}
           {phase === 'done' && conflicts.length > 0 && (
             <Card className="p-4 border-amber-200 bg-amber-50/30">
-              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-amber-800">
-                <Scale className="w-4 h-4" />
-                미해결 모순 ({conflicts.length}건)
+              <div className="flex items-center gap-2 mb-2">
+                <Scale className="w-3.5 h-3.5 text-amber-700" />
+                <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-amber-700">Unresolved Conflicts</span>
+                <span className="text-[13px] font-semibold text-amber-900">미해결 모순 {conflicts.length}건</span>
+                <span className="h-px flex-1 bg-amber-200/60" />
               </div>
               <div className="space-y-3 text-xs">
                 {conflicts.map((c, i) => (
@@ -1449,17 +1449,18 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
 
           {phase === 'done' && globalSources.length > 0 && (
             <Card className="p-4">
-              <div className="text-sm font-medium mb-2">📚 출처 ({globalSources.length}개)</div>
-              <div className="space-y-1">
+              <SectionLabel icon={Search} label="Sources" count={`${globalSources.length}개`} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                 {globalSources.map((s) => (
                   <a
                     key={s.globalId}
                     href={s.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-xs hover:text-primary transition-colors"
+                    className="group flex items-baseline gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors min-w-0"
                   >
-                    [{s.globalId}] {s.title}
+                    <span className="shrink-0 font-mono tabular-nums" style={{ color: ACCENT }}>[{s.globalId}]</span>
+                    <span className="truncate group-hover:underline">{s.title}</span>
                   </a>
                 ))}
               </div>
@@ -1469,9 +1470,7 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
           {/* 기여 AI 요약 — 최종 답변 하단 */}
           {phase === 'done' && modelsUsed.length > 0 && (
             <Card className="p-4 bg-gradient-to-br from-slate-50/60 to-white dark:from-slate-900/40 dark:to-slate-900/20">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
-                🤝 이 리포트에 기여한 AI
-              </div>
+              <SectionLabel icon={Sparkles} label="Contributors" count="이 리포트에 기여한 AI" />
               <div className="flex flex-wrap gap-2">
                 {modelsUsed.map((m) => {
                   const meta = getModelMeta(m.id);
