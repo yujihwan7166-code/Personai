@@ -285,7 +285,7 @@ export function ModeMenu({
       role="menu"
       aria-label="모드 선택"
       className={cn(
-        'absolute top-3 left-3 z-40 w-[640px] max-w-[calc(100%-24px)]',
+        'absolute top-3 left-3 z-40 w-[680px] max-w-[calc(100%-24px)]',
         'rounded-2xl overflow-hidden',
         'bg-white dark:bg-slate-900',
         'border border-slate-200 dark:border-slate-700',
@@ -296,7 +296,7 @@ export function ModeMenu({
       <div className="max-h-[min(560px,calc(100vh-140px))] overflow-y-auto overscroll-contain p-3 scrollbar-thin">
         {allSections.map((section) => (
           <section key={section.id} className="mb-4 last:mb-0">
-            {/* 섹션 헤더 — 라벨 + hairline. */}
+            {/* 섹션 헤더 — 라벨 + 카운트 + hairline. */}
             <div className="mb-1.5 flex items-center gap-2 px-1">
               {section.id === 'favorites' && (
                 <Star size={11} className="shrink-0 fill-amber-400 text-amber-400" />
@@ -304,11 +304,14 @@ export function ModeMenu({
               <span className="shrink-0 text-[10.5px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
                 {section.label}
               </span>
+              <span className="shrink-0 text-[9.5px] font-semibold tabular-nums text-slate-300 dark:text-slate-600">
+                {section.items.length}
+              </span>
               <span className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
             </div>
 
-            {/* 항목 그리드 — 경계 확실한 카드 2열. */}
-            <div className="grid grid-cols-2 gap-1.5">
+            {/* 항목 그리드 — 3열 컴팩트 카드. */}
+            <div className="grid grid-cols-3 gap-1.5">
               {section.items.map((item) => {
                 const isActive =
                   item.target.kind === 'mode' && item.target.mode === currentMode;
@@ -318,10 +321,10 @@ export function ModeMenu({
                     key={`${section.id}-${item.id}`}
                     className={cn(
                       'group relative rounded-lg ring-1 transition-all duration-100',
-                      'ring-slate-200 dark:ring-slate-700',
-                      'hover:bg-slate-50 dark:hover:bg-slate-800/70 hover:ring-2',
+                      'bg-slate-50/70 dark:bg-slate-800/40',
+                      'ring-slate-200/80 dark:ring-slate-700',
+                      'hover:bg-white dark:hover:bg-slate-800 hover:ring-2 hover:-translate-y-px hover:shadow-sm',
                     )}
-                    style={{ ['--item-tint' as string]: item.tint }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.setProperty('--tw-ring-color', item.tint); }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.removeProperty('--tw-ring-color'); }}
                   >
@@ -329,17 +332,23 @@ export function ModeMenu({
                       type="button"
                       role="menuitem"
                       onClick={() => runItem(item)}
-                      className="flex w-full items-start px-3 py-2 text-left"
+                      className="flex w-full items-start gap-2 px-2.5 py-2 text-left"
                     >
+                      {/* 틴트 도트 — 항목 고유색 리듬 (밋밋함 방지). */}
+                      <span
+                        className="mt-[5px] h-[7px] w-[7px] shrink-0 rounded-full"
+                        style={{ backgroundColor: item.tint, opacity: isActive ? 1 : 0.55 }}
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
                           <span className="truncate">{item.label}</span>
                           {isActive && (
                             <span
-                              className="h-1.5 w-1.5 shrink-0 rounded-full"
+                              className="shrink-0 rounded-full px-1.5 py-px text-[8.5px] font-bold text-white"
                               style={{ backgroundColor: item.tint }}
-                              aria-label="현재 모드"
-                            />
+                            >
+                              현재
+                            </span>
                           )}
                         </span>
                         {item.desc && (
