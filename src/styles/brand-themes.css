@@ -81,6 +81,8 @@
   /* Input: 순수 화이트 + 다크 뉴트럴 border → bg 대비 확실히 elevated. */
   --hero-input-bg: #ffffff;
   --hero-input-border: rgba(13, 17, 23, 0.14);
+  /* 배경이 플레인한 브랜드만 중앙 워터마크 은은하게 (장면형 브랜드는 꺼짐 유지). */
+  --hero-watermark-opacity: 0.05;
 }
 
 /* ────── Claude (Anthropic) — 라이트 크림 (유저 만족, 유지) ────── */
@@ -448,6 +450,8 @@
   --hero-hairline: rgba(34, 33, 63, 0.10);
   --hero-input-bg: #ffffff;
   --hero-input-border: rgba(97, 92, 237, 0.26);
+  /* 라이트 플레인 배경 — 중앙 워터마크로 정체성 보강. */
+  --hero-watermark-opacity: 0.05;
 }
 
 /* ────── Llama (Meta) — 선명한 Meta 블루 필드 (유기적 blob · 반복 X) ────── */
@@ -476,6 +480,8 @@
   --hero-hairline: rgba(255, 255, 255, 0.11);
   --hero-input-bg: rgba(14, 24, 48, 0.52);
   --hero-input-border: rgba(107, 154, 255, 0.34);
+  /* 플레인 그라디언트 필드 — 중앙 워터마크로 정체성 보강. */
+  --hero-watermark-opacity: 0.07;
 }
 
 /* ────── Nemotron (NVIDIA) — GPU 파워 · 사선 라이트 빔 (반복 X) ────── */
@@ -491,10 +497,12 @@
       transparent 75%),
     radial-gradient(55% 38% at 50% 0%, rgba(118, 185, 0, 0.26), transparent 60%),
     linear-gradient(180deg, transparent 82%, rgba(118, 185, 0, 0.08) 100%);
-  /* 서킷 그리드 — GPU 다이 감성의 미세 그린 격자. */
+  /* 반도체 감성 — 미세 그린 격자 + PCB 회로 트레이스 (직각 배선 · via 도트) 코너 2곳. */
   --hero-pattern:
     linear-gradient(rgba(118, 185, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(118, 185, 0, 0.04) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(118, 185, 0, 0.04) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg stroke='rgba(118,185,0,0.20)' stroke-width='2' fill='none'%3E%3Cpath d='M12 24 H88 V72 H150'/%3E%3Cpath d='M12 60 H56 V120 H110 V168'/%3E%3Cpath d='M40 12 V44'/%3E%3Cpath d='M150 30 H184'/%3E%3C/g%3E%3Cg fill='rgba(118,185,0,0.28)'%3E%3Ccircle cx='12' cy='24' r='4'/%3E%3Ccircle cx='150' cy='72' r='4'/%3E%3Ccircle cx='12' cy='60' r='4'/%3E%3Ccircle cx='110' cy='168' r='4'/%3E%3Ccircle cx='40' cy='12' r='4'/%3E%3Ccircle cx='184' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg stroke='rgba(118,185,0,0.16)' stroke-width='2' fill='none'%3E%3Cpath d='M188 176 H112 V128 H50'/%3E%3Cpath d='M188 140 H144 V80 H90 V32'/%3E%3Cpath d='M160 188 V156'/%3E%3C/g%3E%3Cg fill='rgba(118,185,0,0.24)'%3E%3Ccircle cx='188' cy='176' r='4'/%3E%3Ccircle cx='50' cy='128' r='4'/%3E%3Ccircle cx='90' cy='32' r='4'/%3E%3Ccircle cx='160' cy='188' r='4'/%3E%3C/g%3E%3C/svg%3E");
   --hero-fg: #f0f7e8;
   --hero-fg-muted: #a8bd93;
   --hero-accent: #76b900;
@@ -537,6 +545,8 @@
   --hero-hairline: rgba(255, 255, 255, 0.10);
   --hero-input-bg: rgba(14, 24, 20, 0.42);
   --hero-input-border: rgba(110, 196, 166, 0.32);
+  /* 절제된 glow 뿐인 배경 — 중앙 워터마크로 정체성 보강. */
+  --hero-watermark-opacity: 0.06;
 }
 
 /* ────── Mistral — 연한 주황 라이트 (Claude 처럼 warm 크림·복숭아) ────── */
@@ -589,9 +599,10 @@
 }
 
 .hero-brand-canvas[data-brand='nemotron'] {
-  /* mesh 3 (빔 + spotlight + 언더글로우) non-repeat + pattern (서킷 격자 2) repeat. */
-  background-size: auto, auto, auto, 44px 44px, 44px 44px;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
+  /* mesh 3 non-repeat + 격자 2 repeat + 회로 트레이스 2 (좌상 · 우하 코너 고정). */
+  background-size: auto, auto, auto, 44px 44px, 44px 44px, 210px 210px, 230px 230px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat, no-repeat;
+  background-position: center, center, center, 0 0, 0 0, left 4% top 15%, right 4% bottom 10%;
 }
 
 .hero-brand-canvas[data-brand='command'] {
