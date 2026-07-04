@@ -124,7 +124,7 @@ export const ROUND_LABELS: Record<DiscussionRound, string> = {
 export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_main' | 'premium_main' | 'debate' | 'assistant' | 'player' | 'research_main' | 'translate_main' | 'convert_main' | 'study_main' | 'voice_main' | 'media_main';
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
-    general: { label: '단일 AI', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
+    general: { label: '일반 채팅', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
     multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
     stakeholder_main: { label: 'AI 리허설', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
