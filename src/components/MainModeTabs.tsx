@@ -1103,15 +1103,12 @@ export function MainModeTabs({
         <AnimatePresence>
         {open && (
           <>
-            {/* 배경 dim + 블러 — 클릭 시 닫힘 */}
+            {/* 바깥 클릭 캐치 — dim·블러 없이 투명 (2026-07-05: 뒤가 흐려지지
+             * 않는 평범한 드롭다운 느낌). */}
             <motion.div
               key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 z-[115] bg-black/15 backdrop-blur-[2px]"
+              className="fixed inset-0 z-[115]"
               aria-hidden
             />
 
@@ -1138,9 +1135,11 @@ export function MainModeTabs({
               }}
               className={cn(
                 'z-[120]',
-                'w-[960px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
-                'bg-[hsl(var(--card))] border border-[hsl(var(--hairline))]',
-                'shadow-[0_18px_60px_hsl(220_20%_5%_/_0.25)]',
+                // dim 이 없어진 만큼 패널 스스로 경계가 서야 함 — 보더 강화 + 사이즈 업.
+                'w-[1040px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'bg-[hsl(var(--card))] border border-slate-300/80 dark:border-slate-600/80',
+                'ring-1 ring-black/[0.04] dark:ring-white/[0.06]',
+                'shadow-[0_24px_70px_-18px_hsl(220_20%_5%_/_0.35),0_4px_18px_-8px_hsl(220_20%_5%_/_0.18)]',
               )}
             >
             {/* 4 컬럼 그리드 (재구성):
