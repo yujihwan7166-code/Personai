@@ -6,9 +6,9 @@
  * hover 시 아이콘 → 화살표 crossfade + 우상단 × 제거 버튼.
  * ★ 토글·+ 버튼 없음 — 등록/해제는 모드 메뉴 카드의 별에서만.
  */
-import { X, ArrowRight, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { useFavoriteModes, type ItemTarget } from '@/hooks/useFavoriteModes';
 import { MODE_ICON, ASSISTANT_TILES, PREMIUM_AI_TOOLS, DEBATE_SUBS } from '@/components/MainModeTabs';
@@ -44,7 +44,9 @@ export function FavoriteChips({
   onSelectTool,
 }: Props) {
   const navigate = useNavigate();
-  const { favs, removeFav } = useFavoriteModes();
+  const { favs } = useFavoriteModes();
+  // hover 확장 상태 — Tailwind arbitrary variant JIT 이슈를 피해 인라인 트랜지션.
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const runTarget = (target: ItemTarget, label: string) => {
     switch (target.kind) {
@@ -78,72 +80,51 @@ export function FavoriteChips({
       <div className="flex items-center gap-0.5">
       {favs.map((f) => {
         const isActive = f.target.kind === 'mode' && f.target.mode === currentMode;
+        const hovered = hoveredId === f.id;
+        const Icon = resolveFavIcon(f.id);
         return (
-          <span
+          <button
             key={f.id}
-            className="group/chip relative inline-flex h-7 shrink-0 items-center rounded-full transition-colors duration-150"
+            type="button"
+            onClick={() => runTarget(f.target, f.label)}
+            title={f.desc ? `${f.label} — ${f.desc}` : f.label}
+            aria-label={f.label}
+            className="flex h-7 shrink-0 items-center rounded-full px-[7px]"
             style={{
-              backgroundColor: isActive
-                ? `color-mix(in oklab, ${f.tint} 12%, transparent)`
-                : undefined,
+              backgroundColor:
+                isActive || hovered
+                  ? `color-mix(in oklab, ${f.tint} ${isActive ? 12 : 8}%, transparent)`
+                  : undefined,
+              transition: 'background-color 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              if (!isActive) e.currentTarget.style.backgroundColor = `color-mix(in oklab, ${f.tint} 8%, transparent)`;
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) e.currentTarget.style.backgroundColor = '';
-            }}
+            onMouseEnter={() => setHoveredId(f.id)}
+            onMouseLeave={() => setHoveredId((cur) => (cur === f.id ? null : cur))}
           >
-            <button
-              type="button"
-              onClick={() => runTarget(f.target, f.label)}
-              title={f.desc ? `${f.label} — ${f.desc}` : f.label}
-              aria-label={f.label}
-              className="flex h-7 w-7 items-center justify-center rounded-full"
-            >
-              {/* 아이콘 전용 칩 (이름 X) — hover 시 아이콘이 화살표로 crossfade
-               * ("누르면 이동" 어포던스 유지). 아이콘 없는 도구는 첫 글자. */}
-              <span className="relative h-3.5 w-3.5">
-                {(() => {
-                  const Icon = resolveFavIcon(f.id);
-                  return Icon ? (
-                    <Icon
-                      size={14}
-                      strokeWidth={2.2}
-                      className="absolute inset-0 m-auto transition-all duration-150 group-hover/chip:scale-75 group-hover/chip:opacity-0"
-                      style={{ color: f.tint }}
-                    />
-                  ) : (
-                    <span
-                      className="absolute inset-0 m-auto flex items-center justify-center text-[11px] font-bold leading-none transition-all duration-150 group-hover/chip:scale-75 group-hover/chip:opacity-0"
-                      style={{ color: f.tint }}
-                    >
-                      {f.label.charAt(0)}
-                    </span>
-                  );
-                })()}
-                <ArrowRight
-                  size={13}
-                  strokeWidth={2.6}
-                  className="absolute inset-0 m-auto -translate-x-0.5 opacity-0 transition-all duration-150 group-hover/chip:translate-x-0 group-hover/chip:opacity-100"
-                  style={{ color: f.tint }}
-                />
+            {Icon ? (
+              <Icon size={14} strokeWidth={2.2} className="shrink-0" style={{ color: f.tint }} />
+            ) : (
+              <span
+                className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[11px] font-bold leading-none"
+                style={{ color: f.tint }}
+              >
+                {f.label.charAt(0)}
               </span>
-            </button>
-            {/* hover 시만 나타나는 제거 × — 칩 우상단 부유. */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); removeFav(f.id); }}
-              aria-label={`${f.label} 즐겨찾기 해제`}
-              className={cn(
-                'absolute -right-0.5 -top-0.5 hidden group-hover/chip:flex',
-                'h-3.5 w-3.5 items-center justify-center rounded-full',
-                'bg-slate-400 text-white shadow-sm hover:bg-slate-600 transition-colors',
-              )}
+            )}
+            {/* hover 시 옆으로 밀리며 이름 슬라이드 인 — max-width 트랜지션이라
+             * 이웃 칩이 자연스럽게 밀림 (2026-07-05 피드백, × 부유 버튼 대체). */}
+            <span
+              className="overflow-hidden whitespace-nowrap text-[12px] font-medium tracking-tight"
+              style={{
+                color: 'var(--hero-fg)',
+                maxWidth: hovered ? 120 : 0,
+                opacity: hovered ? 1 : 0,
+                marginLeft: hovered ? 5 : 0,
+                transition: 'max-width 240ms cubic-bezier(0.22,1,0.36,1), opacity 180ms ease, margin-left 240ms ease',
+              }}
             >
-              <X size={8} strokeWidth={3} />
-            </button>
-          </span>
+              {f.label}
+            </span>
+          </button>
         );
       })}
       </div>
