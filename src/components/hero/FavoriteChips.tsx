@@ -59,58 +59,66 @@ export function FavoriteChips({
 
   return (
     <>
+      {/* 세로 헤어라인 — pill 존과 칩 존 구분. */}
+      {favs.length > 0 && (
+        <span aria-hidden className="mx-1 h-4 w-px shrink-0" style={{ backgroundColor: 'var(--hero-hairline)' }} />
+      )}
       {favs.map((f) => {
         const isActive = f.target.kind === 'mode' && f.target.mode === currentMode;
         return (
           <span
             key={f.id}
-            className={cn(
-              'group/chip relative inline-flex items-center h-8 rounded-full',
-              'border transition-all duration-150 hover:-translate-y-px',
-            )}
+            className="group/chip relative inline-flex h-7 shrink-0 items-center rounded-full transition-colors duration-150"
             style={{
-              backgroundColor: `color-mix(in oklab, ${f.tint} 10%, transparent)`,
-              borderColor: isActive ? f.tint : `color-mix(in oklab, ${f.tint} 36%, transparent)`,
-              boxShadow: isActive ? `inset 0 0 0 1px ${f.tint}` : undefined,
+              backgroundColor: isActive
+                ? `color-mix(in oklab, ${f.tint} 12%, transparent)`
+                : undefined,
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) e.currentTarget.style.backgroundColor = `color-mix(in oklab, ${f.tint} 8%, transparent)`;
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) e.currentTarget.style.backgroundColor = '';
             }}
           >
             <button
               type="button"
               onClick={() => runTarget(f.target, f.label)}
               title={f.desc ? `${f.label} — ${f.desc}` : f.label}
-              className="h-full max-w-[132px] truncate pl-3 pr-2 text-[12.5px] font-semibold tracking-tight"
+              className="flex h-full max-w-[140px] items-center gap-1.5 pl-2.5 pr-2.5 text-[12px] font-medium tracking-tight"
               style={{ color: 'var(--hero-fg)' }}
             >
-              {f.label}
+              {/* 틴트 점 — 색 면 대신 점 하나로 아이덴티티만 살짝. */}
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: f.tint }} />
+              <span className="truncate">{f.label}</span>
             </button>
-            {/* hover 시만 나타나는 제거 × — 클릭 영역 겹침 방지 위해 칩 우상단 부유. */}
+            {/* hover 시만 나타나는 제거 × — 칩 우상단 부유. */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); removeFav(f.id); }}
               aria-label={`${f.label} 즐겨찾기 해제`}
               className={cn(
-                'absolute -right-1 -top-1 hidden group-hover/chip:flex',
-                'h-4 w-4 items-center justify-center rounded-full',
-                'bg-slate-500 text-white shadow-sm hover:bg-slate-700 transition-colors',
+                'absolute -right-0.5 -top-0.5 hidden group-hover/chip:flex',
+                'h-3.5 w-3.5 items-center justify-center rounded-full',
+                'bg-slate-400 text-white shadow-sm hover:bg-slate-600 transition-colors',
               )}
             >
-              <X size={9} strokeWidth={3} />
+              <X size={8} strokeWidth={3} />
             </button>
           </span>
         );
       })}
-      {/* + 칩 — 모드 메뉴 오픈. 즐겨찾기 없을 땐 이것만 조용히. */}
+      {/* + — 모드 메뉴 오픈. 즐겨찾기 없을 땐 이것만 조용히. */}
       <button
         type="button"
         onClick={onOpenMenu}
         aria-label="즐겨찾기 칩 추가 — 모드 메뉴 열기"
         title="메뉴에서 ★ 를 켜면 여기에 칩으로 추가돼요"
         className={cn(
-          'inline-flex h-8 w-8 items-center justify-center rounded-full',
-          'border border-dashed transition-all duration-150',
-          'opacity-60 hover:opacity-100 hover:-translate-y-px',
+          'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+          'opacity-50 transition-all duration-150 hover:opacity-100 hover:bg-black/[0.05]',
         )}
-        style={{ borderColor: 'var(--hero-hairline)', color: 'var(--hero-fg-muted, var(--hero-fg))' }}
+        style={{ color: 'var(--hero-fg)' }}
       >
         <Plus size={14} strokeWidth={2.2} />
       </button>

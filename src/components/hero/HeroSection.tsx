@@ -379,8 +379,18 @@ export function HeroSection({
         {topSlot ??
           (modeLabel && onOpenModeDropdown ? (
             <>
-              {/* pill + 즐겨찾기 칩 한 줄 — 칩은 우측으로 이어지고 좁으면 줄바꿈. */}
-              <div className="flex flex-wrap items-center gap-1.5 max-w-[calc(100vw-160px)]">
+              {/* 글래스 캡슐 바 — pill + 즐겨찾기 칩이 한 용기 안 세그먼트로.
+               * 개별 틴트 pill 나열은 색 블롭처럼 보여서 폐기 (2026-07-04 피드백). */}
+              <div
+                className="flex w-max max-w-[calc(100vw-160px)] items-center gap-0.5 rounded-full border p-1"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 78%, transparent)',
+                  borderColor: 'var(--hero-hairline)',
+                  backdropFilter: 'blur(16px) saturate(160%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+                  boxShadow: '0 4px 16px -10px rgba(0,0,0,0.18)',
+                }}
+              >
               <button
                 type="button"
                 onClick={openModeMenu}
@@ -395,22 +405,17 @@ export function HeroSection({
                 }}
                 aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
                 className={cn(
-                  'group flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full',
-                  'text-[13px] font-semibold tracking-tight',
-                  'border transition-all duration-200 hover:-translate-y-px',
+                  'group flex items-center gap-1.5 h-7 pl-2.5 pr-1.5 rounded-full shrink-0',
+                  'text-[12.5px] font-semibold tracking-tight',
+                  'transition-colors duration-150',
                 )}
                 style={{
                   color: 'var(--hero-fg)',
                   backgroundColor: modeId
                     ? `color-mix(in oklab, ${MODE_TINT[modeId]} 10%, transparent)`
                     : 'var(--hero-accent-soft)',
-                  borderColor: showModeHint
-                    ? 'var(--hero-ring)'
-                    : modeId
-                      ? `color-mix(in oklab, ${MODE_TINT[modeId]} 36%, transparent)`
-                      : 'var(--hero-hairline)',
                   boxShadow: showModeHint
-                    ? '0 0 0 3px var(--hero-accent-soft), 0 4px 14px -6px var(--hero-accent-soft)'
+                    ? '0 0 0 2px var(--hero-ring), 0 4px 14px -6px var(--hero-accent-soft)'
                     : undefined,
                 }}
               >
