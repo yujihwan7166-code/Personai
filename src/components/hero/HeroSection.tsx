@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Briefcase, CalendarDays, FileText, Globe,
+  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star,
   MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
   Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
   type LucideIcon,
@@ -53,7 +53,7 @@ import { useCustomPortals } from '@/hooks/useCustomPortals';
 import { customAiToBrand, isCustomBrandId, type CustomAi } from '@/lib/customAi';
 import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
-import { HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
+import { HERO_SEARCH_CHIPS, HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
 import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
 import { toast } from 'sonner';
@@ -220,60 +220,65 @@ export function HeroSection({
     if (armed) disarm();
   };
 
-  /* 선택모드 패널 — eyebrow 드롭다운 안 AI·브라우저 그리드.
-   * 클릭 시 화면 전환 (패널은 onClickCapture 로 닫힘, ModelPickerButton 쪽). */
+  /* 선택 패널 — eyebrow 드롭다운. 순서: 브라우저 → AI → (모델 리스트는
+   * ModelPickerButton 쪽). 아이콘 클릭 = 화면 전환 (패널 닫힘),
+   * 우상단 별 = 입력창 위 칩 스트립에 표시할지 토글 (data-keep-open, 안 닫힘). */
+  const selectCell = (opts: {
+    key: string;
+    name: string;
+    active: boolean;
+    starred?: boolean;
+    onPick: () => void;
+    onStar?: () => void;
+    circle: React.ReactNode;
+  }) => (
+    <div key={opts.key} className="group/cell relative">
+      <button
+        type="button"
+        title={opts.name}
+        onClick={opts.onPick}
+        className={cn(
+          'flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
+          opts.active && 'bg-black/[0.05]',
+        )}
+      >
+        {opts.circle}
+        <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{opts.name}</span>
+      </button>
+      {opts.onStar && (
+        <button
+          type="button"
+          data-keep-open
+          onClick={(e) => { e.stopPropagation(); opts.onStar!(); }}
+          aria-pressed={opts.starred}
+          aria-label={opts.starred ? `${opts.name} 칩에서 제거` : `${opts.name} 칩에 추가`}
+          title={opts.starred ? '칩에서 제거' : '칩에 추가'}
+          className={cn(
+            'absolute right-0 top-0 rounded p-0.5 transition-all duration-100',
+            opts.starred
+              ? 'opacity-100 text-amber-400'
+              : 'opacity-0 group-hover/cell:opacity-100 text-slate-300 hover:text-amber-400',
+          )}
+        >
+          <Star size={10} className={opts.starred ? 'fill-amber-400' : undefined} />
+        </button>
+      )}
+    </div>
+  );
+
   const selectSection = (
     <div className="px-1 pb-0.5">
-      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
+      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">브라우저</div>
       <div className="grid grid-cols-5 gap-0.5">
-        {[...BRANDS, ...customBrands].map((b) => {
-          const active = !armed && !secretaryMode && brand === b.id;
-          return (
-            <button
-              key={b.id}
-              type="button"
-              title={b.name}
-              onClick={() => handleSelectBrand(b.id)}
-              className={cn(
-                'flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
-                active && 'bg-black/[0.05]',
-              )}
-            >
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-full"
-                style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
-              >
-                <BrandLogo
-                  imgUrl={b.icon.imgUrl}
-                  path={b.icon.path}
-                  text={b.icon.text}
-                  fill={pickContrastingText(`#${b.icon.hex}`)}
-                  forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
-                  size={Math.round(15 * (b.icon.logoScale ?? 1))}
-                />
-              </span>
-              <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{b.name}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-1.5 px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">브라우저</div>
-      <div className="grid grid-cols-5 gap-0.5">
-        {portalsHook.visibleIds.map((id) => {
-          const c = HERO_SEARCH_CHIP_BY_ID[id];
-          if (!c) return null;
-          const active = armed === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              title={c.name}
-              onClick={() => handleToggleSearch(id)}
-              className={cn(
-                'flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
-                active && 'bg-black/[0.05]',
-              )}
-            >
+        {HERO_SEARCH_CHIPS.map((c) =>
+          selectCell({
+            key: c.id,
+            name: c.name,
+            active: armed === c.id,
+            starred: portalsHook.visibleIds.includes(c.id),
+            onPick: () => handleToggleSearch(c.id),
+            onStar: () => portalsHook.togglePortal(c.id),
+            circle: (
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-full"
                 style={{ backgroundColor: c.circleBg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
@@ -288,13 +293,51 @@ export function HeroSection({
                   </span>
                 )}
               </span>
-              <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{c.name}</span>
-            </button>
-          );
-        })}
+            ),
+          }),
+        )}
       </div>
-      {/* 스트립이 숨는 동안 잃는 진입로 보전 — 비서 · AI/포탈 관리. */}
+      <div className="mt-1.5 px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
+      <div className="grid grid-cols-5 gap-0.5">
+        {[...BRANDS, ...customBrands].map((b) =>
+          selectCell({
+            key: b.id,
+            name: b.name,
+            active: !armed && !secretaryMode && brand === b.id,
+            // 커스텀 AI 는 스트립 상시 노출이라 별 없음.
+            starred: isCustomBrandId(b.id) ? undefined : visibleIds.includes(b.id),
+            onPick: () => handleSelectBrand(b.id),
+            onStar: isCustomBrandId(b.id) ? undefined : () => toggleBrand(b.id),
+            circle: (
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full"
+                style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
+              >
+                <BrandLogo
+                  imgUrl={b.icon.imgUrl}
+                  path={b.icon.path}
+                  text={b.icon.text}
+                  fill={pickContrastingText(`#${b.icon.hex}`)}
+                  forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
+                  size={Math.round(15 * (b.icon.logoScale ?? 1))}
+                />
+              </span>
+            ),
+          }),
+        )}
+      </div>
+      {/* 하단 진입로 — 커스텀 AI 생성 · 비서 · AI/포탈 관리. */}
       <div className="mt-1.5 flex items-center gap-1 px-1">
+        <button
+          type="button"
+          onClick={() => {
+            setEditingCustom(undefined);
+            setCreatorOpen(true);
+          }}
+          className="rounded-full border border-black/[0.08] px-2.5 py-1 text-[10.5px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.04]"
+        >
+          + 커스텀 AI
+        </button>
         <button
           type="button"
           onClick={handleToggleSecretary}
@@ -612,33 +655,21 @@ export function HeroSection({
               })}
             </div>
           ) : isSearchArmed ? (
-            pickerMode === 'select' ? (
-              // 선택모드 armed — 라벨도 픽커 트리거 (칩 스트립이 없어 유일한 전환 경로).
-              <div key={`${identityKey}-name`} className="flex justify-center hero-name-in">
-                <ModelPickerButton
-                  variant="eyebrow"
-                  brand={activeBrand}
-                  selectedModel={model}
-                  onSelect={setModel}
-                  pickerMode={pickerMode}
-                  onPickerModeChange={changePickerMode}
-                  selectSection={selectSection}
-                  displayOverride={{ label: displayName }}
-                />
-              </div>
-            ) : (
-              // 칩모드 armed — 단순 라벨 (전환은 칩 스트립에서).
-              <p
-                key={`${identityKey}-name`}
-                className="text-[12px] font-semibold tracking-[0.14em] uppercase hero-name-in"
-                style={{ color: eyebrowColor }}
-              >
-                {displayName}
-              </p>
-            )
+            // armed — 라벨도 항상 픽커 트리거 (패널 = 전환 허브, 2026-07-05 재정의).
+            <div key={`${identityKey}-name`} className="flex justify-center hero-name-in">
+              <ModelPickerButton
+                variant="eyebrow"
+                brand={activeBrand}
+                selectedModel={model}
+                onSelect={setModel}
+                pickerMode={pickerMode}
+                onPickerModeChange={changePickerMode}
+                selectSection={selectSection}
+                displayOverride={{ label: displayName }}
+              />
+            </div>
           ) : (
-            // AI 모드 eyebrow — 모델 셀렉트 트리거 겸용.
-            // "GPT · GPT-5.4 ▾" 클릭 → 모델 드롭다운 (+ 선택모드 AI·브라우저 그리드).
+            // AI 모드 eyebrow — 클릭하면 항상 선택 패널 (브라우저 → AI → 모델).
             <div
               key={`${identityKey}-name`}
               className="flex justify-center hero-name-in"
@@ -650,7 +681,7 @@ export function HeroSection({
                 onSelect={setModel}
                 pickerMode={pickerMode}
                 onPickerModeChange={changePickerMode}
-                selectSection={pickerMode === 'select' ? selectSection : undefined}
+                selectSection={selectSection}
               />
             </div>
           )}

@@ -87,8 +87,8 @@ export function ModelPickerButton({
 
   const hasChoice = brand.models.length > 1;
   const isEyebrow = variant === 'eyebrow';
-  // 선택모드는 브랜드 그리드가 있으니 단일 모델 브랜드여도 열 수 있어야 함.
-  const openable = hasChoice || (pickerMode === 'select' && !!selectSection);
+  // 선택 패널(AI·브라우저 그리드)이 있으면 항상 열 수 있음 — 패널이 곧 전환 허브.
+  const openable = hasChoice || !!selectSection;
   // 흰색 패널 내부 액센트 — --hero-accent 는 grok/x 에서 흰색이라 못 씀.
   const panelAccent = BRAND_ACCENT[brand.id] ?? '#10a37f';
 
@@ -100,7 +100,7 @@ export function ModelPickerButton({
         disabled={!openable}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={openable ? (pickerMode === 'select' ? 'AI·브라우저 선택' : '모델 변경') : '이 브랜드는 단일 모델'}
+        title={openable ? (selectSection ? 'AI·브라우저 선택' : '모델 변경') : '이 브랜드는 단일 모델'}
         className={cn(
           isEyebrow
             ? [
@@ -191,7 +191,7 @@ export function ModelPickerButton({
             // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
             // 등장 모션은 fade 만 (슬라이드·줌 X).
             'fixed z-[300]',
-            pickerMode === 'select' && selectSection ? 'w-[340px]' : 'w-[300px]',
+            selectSection ? 'w-[340px]' : 'w-[300px]',
             'rounded-xl border border-black/[0.08] bg-white p-1.5',
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
@@ -199,7 +199,7 @@ export function ModelPickerButton({
           // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
           // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
           style={(() => {
-            const w = pickerMode === 'select' && selectSection ? 340 : 300;
+            const w = selectSection ? 340 : 300;
             return isEyebrow
               ? {
                   top: anchor.bottom + 8,
@@ -220,32 +220,53 @@ export function ModelPickerButton({
                 : `${brand.name} · 모델 ${brand.models.length}개`}
             </span>
             {pickerMode && onPickerModeChange && (
-              <span className="ml-auto flex items-center gap-0.5 rounded-full bg-black/[0.05] p-0.5">
-                {(['chips', 'select'] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => onPickerModeChange(m)}
-                    aria-pressed={pickerMode === m}
+              // 칩 표시 토글 — 패널은 항상 이 화면, 이 스위치는 입력창 위
+              // 칩 스트립 노출 여부만 결정 (2026-07-05 재정의).
+              <button
+                type="button"
+                onClick={() => onPickerModeChange(pickerMode === 'chips' ? 'select' : 'chips')}
+                aria-pressed={pickerMode === 'chips'}
+                title="입력창 위 칩 스트립 표시/숨김"
+                className="ml-auto flex items-center gap-1.5 rounded-full bg-black/[0.05] py-0.5 pl-2 pr-1 text-[10px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.08]"
+              >
+                칩 표시
+                <span
+                  className={cn(
+                    'relative h-3.5 w-6 rounded-full transition-colors duration-150',
+                    pickerMode === 'chips' ? 'bg-emerald-500' : 'bg-slate-300',
+                  )}
+                >
+                  <span
                     className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
-                      pickerMode === m
-                        ? 'bg-white text-[#1f2023] shadow-sm'
-                        : 'text-[#9aa0a8] hover:text-[#4b4f56]',
+                      'absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-all duration-150',
+                      pickerMode === 'chips' ? 'left-3' : 'left-0.5',
                     )}
-                  >
-                    {m === 'chips' ? '칩모드' : '선택모드'}
-                  </button>
-                ))}
-              </span>
+                  />
+                </span>
+              </button>
             )}
           </div>
-          {/* 선택모드 — AI·브라우저 그리드 (클릭 시 화면 전환, 패널 닫힘). */}
-          {pickerMode === 'select' && selectSection && (
-            <div onClickCapture={() => setOpen(false)}>{selectSection}</div>
+          {/* 선택 그리드 — 브라우저 → AI (클릭 시 화면 전환, 패널 닫힘).
+           * 별 토글(칩 구성)은 닫힘 예외 — data-keep-open 으로 구분. */}
+          {selectSection && (
+            <div
+              onClickCapture={(e) => {
+                const el = e.target as HTMLElement;
+                if (el.closest('[data-keep-open]')) return;
+                setOpen(false);
+              }}
+            >
+              {selectSection}
+            </div>
           )}
           {/* 모델 리스트 — 한 줄 컴팩트. armed(displayOverride) 땐 모델 개념이 없어 숨김. */}
           {!displayOverride && (
+          <>
+          {selectSection && (
+            <div className="px-2.5 pb-1 pt-0.5 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">
+              {brand.name} 모델
+            </div>
+          )}
           <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
             {brand.models.map((m) => {
               const active = m.id === selectedModel.id;
@@ -296,6 +317,7 @@ export function ModelPickerButton({
               );
             })}
           </div>
+          </>
           )}
         </div>,
         document.body,
