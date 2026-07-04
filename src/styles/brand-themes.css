@@ -773,6 +773,31 @@
   --hero-input-border: rgba(106, 90, 232, 0.24);
 }
 
+/* ────── Research (심층 리서치) — 연구 노트 방안지 (쿨 그레이블루 + 시안) ────── */
+.hero-brand-canvas[data-brand='research'] {
+  --hero-bg: #f5f8fa;
+  --hero-mesh:
+    radial-gradient(62% 44% at 50% -8%, rgba(14, 148, 176, 0.10), transparent 60%),
+    radial-gradient(42% 36% at 90% 92%, rgba(14, 148, 176, 0.05), transparent 60%);
+  /* 방안지 — 잔눈금 (8px) + 굵은 눈금 (40px), 연구 노트 감성. */
+  --hero-pattern:
+    linear-gradient(rgba(22, 48, 58, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 48, 58, 0.028) 1px, transparent 1px),
+    linear-gradient(rgba(22, 48, 58, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 48, 58, 0.045) 1px, transparent 1px);
+  --hero-fg: #16303a;
+  --hero-fg-muted: #5c7482;
+  --hero-accent: #0e94b0;
+  --hero-accent-soft: rgba(14, 148, 176, 0.09);
+  --hero-ring: #0e94b0;
+  --hero-radius-input: 12px;
+  --hero-font-heading: 'IBM Plex Sans KR', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(22, 48, 58, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(14, 148, 176, 0.28);
+}
+
 /* ────── 히어로 캔버스 공통 스타일 ────── */
 
 /* 배경 = base color + mesh (accent) + pattern (signature).
@@ -936,6 +961,13 @@
   background-size: auto, auto, 300px 300px;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-position: center, center, center bottom -110px;
+}
+
+.hero-brand-canvas[data-brand='research'] {
+  /* mesh 2 non-repeat + 방안지 잔눈금 8px ×2 + 굵은 눈금 40px ×2. */
+  background-size: auto, auto, 8px 8px, 8px 8px, 40px 40px, 40px 40px;
+  background-repeat: no-repeat, no-repeat, repeat, repeat, repeat, repeat;
+  background-position: center, center, 0 0, 0 0, 0 0, 0 0;
 }
 
 .hero-brand-canvas[data-brand='github'] {
@@ -1356,6 +1388,15 @@
   animation: fx-orbit 30s ease-in-out infinite reverse;
 }
 
+/* ── Research — 시안 오브 숨쉬기 (연구 노트 위 조용한 모션) ── */
+.hero-brand-canvas[data-brand='research'] .hero-fx::before {
+  top: 10%; right: 10%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 148, 176, 0.09), transparent 70%);
+  filter: blur(48px);
+  animation: fx-breathe 16s ease-in-out infinite;
+}
+
 /* ── Multi — 스펙트럼 오브 2개 교차 유영 (그린 ↔ 퍼플) ── */
 .hero-brand-canvas[data-brand='multi'] .hero-fx::before {
   top: 10%; left: 8%;
@@ -1761,6 +1802,7 @@
 [data-brand='mistral']      { --sb-accent: #ea5810; }
 [data-brand='minimax']      { --sb-accent: #2b4bdb; }
 [data-brand='multi']        { --sb-accent: #6a5ae8; }
+[data-brand='research']     { --sb-accent: #0e94b0; }
 
 /* 다크 모드 보정 — 어두운 사이드바 위에서 안 보이는 다크 액센트만 반전 */
 .dark [data-brand='grok']   { --sb-accent: #e7e9ee; --sb-accent-fg: #17181c; }

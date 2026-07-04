@@ -328,6 +328,8 @@ interface DeepResearchChatProps {
 export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }: DeepResearchChatProps = {}) {
   const [question, setQuestion] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
+  // 진행 흐름 상세 다이어그램 — 기본 접힘, 3스텝 인디케이터 클릭으로 펼침.
+  const [showPipeline, setShowPipeline] = useState(false);
   const [prepareResult, setPrepareResult] = useState<PrepareResponse | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<ProgressState | null>(null);
@@ -806,73 +808,69 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
     <div className="flex flex-col gap-6 max-w-4xl mx-auto p-4 md:p-6 min-h-full">
       {/* ───────── 헤더 ───────── */}
       {phase === 'idle' ? (
-        <div className="flex flex-col gap-7 pt-3">
-          {/* 에디토리얼 톤 라벨 — 리포트 문서 상단 캡션처럼 */}
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[hsl(var(--mode-research))] opacity-80">
-            <span className="inline-block h-px w-6 bg-[hsl(var(--mode-research))]/60" />
-            AI Research Lab
-          </div>
-          {/* Hero 좌측 정렬: [아이콘+타이틀] [설명+AI 로고] 붙여서 */}
-          <div className="flex items-center gap-4 md:gap-5 flex-wrap">
-            {/* Left: 아이콘 + 제목 */}
-            <div className="shrink-0 flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 via-sky-500/15 to-emerald-500/10 border border-border/60 flex items-center justify-center shadow-sm">
-                <Telescope className="w-5 h-5 text-violet-600/80" strokeWidth={1.8} />
-              </div>
-              <h1 className="font-display font-semibold text-[28px] md:text-[32px] tracking-[-0.025em] leading-none">심층 리서치</h1>
-            </div>
-
-            {/* Divider */}
-            <div className="hidden md:block self-stretch w-px bg-border" />
-
-            {/* Right: 설명 + AI 로고 */}
-            <div className="min-w-[260px]">
-              <div className="text-[13px] text-foreground/80 mb-1.5 leading-snug">
-                여러 AI가 분담·검증해 인용 기반 리포트를 작성합니다
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-1 shrink-0">
-                  <img src="/logos/gpt.svg" alt="GPT" title="GPT" className="w-3.5 h-3.5 object-contain" />
-                  <span className="text-[11.5px] font-medium text-foreground/85">GPT</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <img src="/logos/claude.png" alt="Claude" title="Claude" className="w-3.5 h-3.5 object-contain" />
-                  <span className="text-[11.5px] font-medium text-foreground/85">Claude</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <img src="/logos/gemini.svg" alt="Gemini" title="Gemini" className="w-3.5 h-3.5 object-contain" />
-                  <span className="text-[11.5px] font-medium text-foreground/85">Gemini</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <img src="/logos/perplexity.svg" alt="Perplexity" title="Perplexity" className="w-3.5 h-3.5 object-contain" />
-                  <span className="text-[11.5px] font-medium text-foreground/85">Perplexity</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <img src="/logos/grok.svg" alt="Grok" title="Grok" className="w-3.5 h-3.5 object-contain" />
-                  <span className="text-[11.5px] font-medium text-foreground/85">Grok</span>
-                </div>
-              </div>
-            </div>
-
+        // 히어로 문법 (2026-07-04 재설계) — 중앙 정렬: 로고 스택 eyebrow → 헤드라인
+        // → 서브 → 클릭형 3스텝 인디케이터. 배경은 research 방안지 캔버스가 담당.
+        <div className="flex flex-col items-center pt-10 text-center">
+          {/* eyebrow — 참여 AI 로고 스택 + 라벨 (MultiHero 문법). */}
+          <div className="mb-3 flex items-center justify-center gap-2.5 hero-name-in">
+            <span className="flex items-center">
+              {['/logos/gpt.svg', '/logos/claude.png', '/logos/gemini.svg', '/logos/perplexity.svg', '/logos/grok.svg'].map((src, i) => (
+                <span
+                  key={src}
+                  className={cn('flex h-[26px] w-[26px] items-center justify-center rounded-full bg-white', i > 0 && '-ml-2')}
+                  style={{
+                    boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(0,0,0,0.08)), 0 0 0 2px var(--hero-bg, #f5f8fa)',
+                    zIndex: 5 - i,
+                  }}
+                >
+                  <img src={src} alt="" className="h-[15px] w-[15px] object-contain" />
+                </span>
+              ))}
+            </span>
+            <span className="font-mono text-[12px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--hero-accent, #0e94b0)' }}>
+              AI Research Lab
+            </span>
           </div>
 
-          {/* 3단계 워크플로 안내 — 수집 → 검증 → 리포트 */}
-          <div className="flex items-center gap-2 text-[11px] text-foreground/65">
+          <h1
+            className="hero-heading text-[36px] sm:text-[44px] leading-[1.15] font-medium tracking-[-0.02em] animate-in fade-in slide-in-from-bottom-1 duration-300"
+            style={{ color: 'var(--hero-fg, #16303a)' }}
+          >
+            무엇을 깊이 파볼까요?
+          </h1>
+          <p className="mt-3 text-[14.5px] tracking-[-0.005em] animate-in fade-in duration-300" style={{ color: 'var(--hero-fg-muted, #5c7482)' }}>
+            여러 AI가 분담·교차 검증해 인용 기반 리포트를 작성해요
+          </p>
+
+          {/* 3스텝 인디케이터 — 클릭하면 상세 파이프라인 펼침 (아코디언). */}
+          <button
+            type="button"
+            onClick={() => setShowPipeline((v) => !v)}
+            aria-expanded={showPipeline}
+            className="group mt-6 flex flex-wrap items-center justify-center gap-2 text-[11px]"
+            style={{ color: 'var(--hero-fg-muted, #5c7482)' }}
+            title="진행 흐름 자세히 보기"
+          >
             {[
-              { n: '01', label: '분담 수집', desc: '모델별 역할 배분' },
-              { n: '02', label: '교차 검증', desc: '중복·충돌 해소' },
-              { n: '03', label: '인용 리포트', desc: 'Citations 포함' },
+              { n: '01', label: '분담 수집' },
+              { n: '02', label: '교차 검증' },
+              { n: '03', label: '인용 리포트' },
             ].map((s, i) => (
-              <div key={s.n} className="flex items-center gap-2">
-                {i > 0 && <span className="text-foreground/25">→</span>}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[hsl(var(--surface-2))]/60 border border-[hsl(var(--hairline))]">
-                  <span className="font-mono text-[9.5px] text-[hsl(var(--mode-research))] opacity-80">{s.n}</span>
-                  <span className="font-medium">{s.label}</span>
-                  <span className="text-foreground/50 hidden md:inline">· {s.desc}</span>
-                </div>
-              </div>
+              <span key={s.n} className="flex items-center gap-2">
+                {i > 0 && <span className="opacity-40">→</span>}
+                <span
+                  className="flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 transition-colors group-hover:bg-white"
+                  style={{ borderColor: 'var(--hero-hairline, rgba(22,48,58,0.10))' }}
+                >
+                  <span className="font-mono text-[9.5px]" style={{ color: 'var(--hero-accent, #0e94b0)' }}>{s.n}</span>
+                  <span className="font-medium" style={{ color: 'var(--hero-fg, #16303a)' }}>{s.label}</span>
+                </span>
+              </span>
             ))}
-          </div>
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 opacity-60 transition-transform group-hover:opacity-100', showPipeline && 'rotate-180')}
+            />
+          </button>
         </div>
       ) : (
         <div className="flex items-center gap-4 md:gap-5 flex-wrap">
@@ -918,8 +916,9 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
       {/* ───────── idle: Process → Examples → Floating Input ───────── */}
       {phase === 'idle' && (
         <>
-          {/* Process preview — Phase 그룹 (균일 높이 + step divider) */}
-          <div>
+          {/* Process preview — 기본 접힘, 스텝 인디케이터 클릭 시 펼침 (2026-07-04). */}
+          {showPipeline && (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-300">
             <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/60 font-medium mb-2">
               진행 흐름 예시
             </div>
@@ -1028,6 +1027,7 @@ export function DeepResearchChat({ initialQuestion, onInitialQuestionConsumed }:
               })}
             </div>
           </div>
+          )}
 
           {/* Example cards — 2×2 (Phase와 차별화된 배경) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
