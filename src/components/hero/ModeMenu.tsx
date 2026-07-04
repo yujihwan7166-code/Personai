@@ -21,7 +21,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Star, ChevronDown, MessagesSquare, Layers, FlaskConical,
+  Star, ChevronDown, MessagesSquare, Layers, FlaskConical, ArrowRight, X,
+  CalendarDays, Globe, Cloud, StickyNote, Shapes, NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ import { useFavoriteModes, MAX_FAVS, type ItemTarget } from '@/hooks/useFavorite
 import {
   MODE_TINT,
   MODE_DESCRIPTION,
+  MODE_ICON,
   DEBATE_SUBS,
   PREMIUM_AI_TOOLS,
   LIFE_TOOLS,
@@ -39,6 +41,17 @@ import {
   ASSISTANT_TILES,
   type LifeSubgroupId,
 } from '@/components/MainModeTabs';
+
+/* 노트 도구 아이콘 — HUB_TOOLS 는 emoji 기반이라 (메뉴 이모지 X 피드백)
+ * lucide 라인 아이콘으로 매핑. */
+const HUB_ICONS: Record<string, LucideIcon> = {
+  planner: CalendarDays,
+  wiki: Globe,
+  cloud: Cloud,
+  memo: StickyNote,
+  whiteboard: Shapes,
+  journal: NotebookPen,
+};
 
 /* ── 즐겨찾기 — useFavoriteModes 공유 스토어 (히어로 칩 줄과 실시간 동기화) ── */
 
@@ -50,6 +63,8 @@ interface MenuItem {
   desc?: string;
   tint: string;
   target: ItemTarget;
+  /** 카드 좌측 아이콘 — 없으면 텍스트만 (라이프 도구 등). */
+  icon?: LucideIcon;
 }
 
 interface LifeGroup {
@@ -101,8 +116,11 @@ export function ModeMenu({
 }: Props) {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { favs, isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
+  const { favs, isFav, toggleFav: toggleFavRaw, removeFav } = useFavoriteModes();
   const [openLifeGroup, setOpenLifeGroup] = useState<LifeSubgroupId | null>(null);
+  // 즐겨찾기 편집 모드 (× 노출) · 하단 섹션 펼침 (토론·라이프).
+  const [editFavs, setEditFavs] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   // 프라이머리 슬라이딩 인디케이터 — 클릭 시 먼저 활성 pill 이 미끄러진 뒤 닫힘.
   // (즉시 닫으면 슬라이드가 안 보여서 280ms 시퀀스.)
   const [pendingPrimary, setPendingPrimary] = useState<MainMode | null>(null);
@@ -112,6 +130,8 @@ export function ModeMenu({
     if (open) {
       setOpenLifeGroup(null);
       setPendingPrimary(null);
+      setEditFavs(false);
+      setShowAll(false);
     }
   }, [open]);
 
@@ -139,13 +159,14 @@ export function ModeMenu({
 
   /* ── 데이터 ── */
 
-  const { primaryItems, zones, lifeGroups } = useMemo(() => {
+  const { primaryItems, zones, lifeGroups, itemById } = useMemo(() => {
     const modeItem = (m: MainMode): MenuItem => ({
       id: `mode-${m}`,
       label: labels[m] ?? m,
       desc: MODE_DESCRIPTION[m],
       tint: MODE_TINT[m],
       target: { kind: 'mode', mode: m },
+      icon: MODE_ICON[m],
     });
 
     const primary: MenuItem[] = [modeItem('general'), modeItem('multi'), modeItem('research_main')];
@@ -169,11 +190,12 @@ export function ModeMenu({
     const zoneList: Zone[] = [
       {
         id: 'hub',
-        label: '노트',
+        label: '노트 & 정리',
         color: ZONE_COLORS.hub,
         items: HUB_TOOLS.filter((h) => h.id !== 'briefing').map((h): MenuItem => ({
           id: `hub-${h.id}`, label: h.label, desc: h.desc, tint: h.tint,
           target: { kind: 'hub', hubId: h.id },
+          icon: HUB_ICONS[h.id],
         })),
       },
       {
@@ -193,6 +215,7 @@ export function ModeMenu({
                 t.cardId === 'file-convert' ? 'PDF·문서 형식 변환' : '다국어 번역',
               tint: t.tint,
               target: { kind: 'assistant', cardId: t.cardId },
+              icon: t.icon,
             }),
           ),
         ],
@@ -204,6 +227,7 @@ export function ModeMenu({
         items: PREMIUM_AI_TOOLS.map((p): MenuItem => ({
           id: `premium-${p.key}`, label: p.label, desc: p.desc, tint: p.tint,
           target: { kind: 'premium', domainId: p.key },
+          icon: p.icon,
         })),
       },
       {
@@ -214,14 +238,22 @@ export function ModeMenu({
           ...DEBATE_SUBS.map((s): MenuItem => ({
             id: `debate-${s.key}`, label: s.label, desc: s.desc, tint: s.tint,
             target: { kind: 'debate', sub: s.key },
+            icon: s.icon,
           })),
           modeItem('stakeholder_main'),
         ],
       },
     ];
 
-    return { primaryItems: primary, zones: zoneList, lifeGroups: groups };
-     
+    // 즐겨찾기 카드가 아이콘·최신 라벨을 다시 얻을 수 있게 id 역매핑.
+    const byId = new Map<string, MenuItem>(
+      [...primary, ...zoneList.flatMap((z) => z.items), ...groups.flatMap((g) => g.items)].map(
+        (it) => [it.id, it],
+      ),
+    );
+
+    return { primaryItems: primary, zones: zoneList, lifeGroups: groups, itemById: byId };
+
   }, [labels]);
 
   /* ── 즐겨찾기 — 별 = 히어로 상단 칩. 5개 제한 (상단 공간). ── */
@@ -271,12 +303,14 @@ export function ModeMenu({
 
   const PRIMARY_ICONS: LucideIcon[] = [MessagesSquare, Layers, FlaskConical];
 
-  /* ── 컴팩트 아이템 카드 (존 내부 공통) ── */
-  const ItemCard = ({ item }: { item: MenuItem }) => {
+  /* ── 아이콘 카드 (섹션 공통) — 틴트 사각 아이콘 + 라벨 + 설명 한 줄.
+   * showRemove: 즐겨찾기 편집 모드에서 × 노출 (별 대신). ── */
+  const ItemCard = ({ item, showRemove }: { item: MenuItem; showRemove?: boolean }) => {
     const isActive = item.target.kind === 'mode' && item.target.mode === currentMode;
     const faved = isFav(item.id);
+    const Icon = item.icon;
     return (
-      <div className="group relative rounded-lg bg-white dark:bg-slate-900 ring-1 ring-black/[0.06] dark:ring-white/10 hover:ring-2 hover:-translate-y-px hover:shadow-sm transition-all duration-100"
+      <div className="group relative rounded-xl bg-white dark:bg-slate-900 ring-1 ring-black/[0.06] dark:ring-white/10 hover:ring-2 hover:-translate-y-px hover:shadow-sm transition-all duration-100"
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.setProperty('--tw-ring-color', item.tint); }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.removeProperty('--tw-ring-color'); }}
       >
@@ -284,42 +318,60 @@ export function ModeMenu({
           type="button"
           role="menuitem"
           onClick={() => runItem(item)}
-          className="w-full px-2.5 py-1.5 text-left"
+          className="flex w-full items-center gap-2 px-2 py-1.5 text-left"
         >
-          <span className="flex items-center gap-1.5 text-[12px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
-            <span className="truncate">{item.label}</span>
-            {isActive && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: item.tint }} aria-label="현재 모드" />
+          {Icon && (
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+              style={{ backgroundColor: `${item.tint}16` }}
+            >
+              <Icon size={13} strokeWidth={2.2} style={{ color: item.tint }} />
+            </span>
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
+              <span className="truncate">{item.label}</span>
+              {isActive && (
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: item.tint }} aria-label="현재 모드" />
+              )}
+            </span>
+            {item.desc && (
+              <span className="mt-px block truncate text-[10px] text-slate-400 dark:text-slate-500">{item.desc}</span>
             )}
           </span>
-          {item.desc && (
-            <span className="mt-px block truncate text-[10px] text-slate-400 dark:text-slate-500">{item.desc}</span>
-          )}
         </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
-          aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-          className={cn(
-            'absolute right-1 top-1 rounded p-0.5 transition-all duration-100',
-            faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
-          )}
-        >
-          <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
-        </button>
+        {showRemove ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); removeFav(item.id); }}
+            aria-label={`${item.label} 즐겨찾기 삭제`}
+            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-400 text-white shadow-sm hover:bg-rose-500 transition-colors"
+          >
+            <X size={9} strokeWidth={3} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
+            aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+            className={cn(
+              'absolute right-1 top-1 rounded p-0.5 transition-all duration-100',
+              faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
+            )}
+          >
+            <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
+          </button>
+        )}
       </div>
     );
   };
 
-  /* ── 존 래퍼 — 옅은 틴트 배경 패널 ── */
-  const ZonePanel = ({ label, color, count, children }: { label: string; color: string; count: number; children: React.ReactNode }) => (
-    <section
-      className="rounded-xl px-2.5 pt-2 pb-2.5"
-      style={{ backgroundColor: `${color}0c`, boxShadow: `inset 0 0 0 1px ${color}1f` }}
-    >
-      <div className="mb-1.5 flex items-center gap-1.5 px-0.5">
-        <span className="text-[11.5px] font-bold" style={{ color }}>{label}</span>
-        <span className="text-[9.5px] font-semibold tabular-nums opacity-60" style={{ color }}>{count}</span>
+  /* ── 섹션 — 틴트 면 대신 컬러 라벨 + 헤어라인 구분 (2026-07-05 목업 반영). ── */
+  const Section = ({ label, color, action, children }: { label: string; color: string; action?: React.ReactNode; children: React.ReactNode }) => (
+    <section className="border-t border-slate-100 pt-2.5 first:border-0 first:pt-0 dark:border-slate-800">
+      <div className="mb-1.5 flex items-center justify-between px-1">
+        <span className="text-[11px] font-bold tracking-tight" style={{ color }}>{label}</span>
+        {action}
       </div>
       {children}
     </section>
@@ -339,20 +391,45 @@ export function ModeMenu({
         'animate-in fade-in zoom-in-[0.98] slide-in-from-top-1 duration-200',
       )}
     >
-      <div className="max-h-[min(600px,calc(100vh-140px))] space-y-2 overflow-y-auto overscroll-contain p-2.5 scrollbar-thin">
-        {/* 즐겨찾기 — 있을 때만 최상단. */}
+      <div className="max-h-[min(640px,calc(100vh-140px))] space-y-2.5 overflow-y-auto overscroll-contain p-3 scrollbar-thin">
+        {/* 즐겨찾기 — 있을 때만 최상단. 편집 토글로 × 노출. */}
         {favs.length > 0 && (
-          <ZonePanel label="★ 즐겨찾기" color={ZONE_COLORS.favorites} count={favs.length}>
+          <Section
+            label="★ 즐겨찾기"
+            color={ZONE_COLORS.favorites}
+            action={
+              <button
+                type="button"
+                onClick={() => setEditFavs((v) => !v)}
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                  editFavs
+                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                    : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800',
+                )}
+              >
+                {editFavs ? '완료' : '편집'}
+              </button>
+            }
+          >
             <div className="grid grid-cols-3 gap-1.5">
-              {favs.map((f) => (
-                <ItemCard key={`fav-${f.id}`} item={{ id: f.id, label: f.label, desc: f.desc, tint: f.tint, target: f.target }} />
-              ))}
+              {favs.map((f) => {
+                const fresh = itemById.get(f.id);
+                return (
+                  <ItemCard
+                    key={`fav-${f.id}`}
+                    showRemove={editFavs}
+                    item={fresh ?? { id: f.id, label: f.label, desc: f.desc, tint: f.tint, target: f.target }}
+                  />
+                );
+              })}
             </div>
-          </ZonePanel>
+          </Section>
         )}
 
         {/* 프라이머리 — AI 대화 3종 큰 타일 + 슬라이딩 인디케이터.
          * 활성 링이 고정 표시 대신 세그먼트처럼 미끄러져 이동 (uiverse 세그먼트 각색). */}
+        <Section label="AI 기능" color="#2563eb">
         {(() => {
           const activePrimaryMode = pendingPrimary ?? currentMode;
           const activeIdx = primaryItems.findIndex(
@@ -407,55 +484,87 @@ export function ModeMenu({
             </div>
           );
         })()}
+        </Section>
 
-        {/* 존들 — 노트 → 스튜디오 → 전문 → 토론. */}
-        {zones.map((zone) => (
-          <ZonePanel key={zone.id} label={zone.label} color={zone.color} count={zone.items.length}>
+        {/* 기본 노출 섹션 — 노트 & 정리 → 스튜디오 → 프리미엄. */}
+        {zones.filter((z) => z.id !== 'debate').map((zone) => (
+          <Section key={zone.id} label={zone.label} color={zone.color}>
             <div className="grid grid-cols-3 gap-1.5">
               {zone.items.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}
             </div>
-          </ZonePanel>
+          </Section>
         ))}
 
-        {/* 라이프 존 — 그룹 카드 축약, 클릭 시 제자리 펼침. */}
-        <ZonePanel label="라이프" color={ZONE_COLORS.life} count={lifeGroups.reduce((n, g) => n + g.items.length, 0)}>
-          <div className="grid grid-cols-3 gap-1.5">
-            {lifeGroups.map((g) => {
-              const opened = openLifeGroup === g.gid;
-              return (
-                <button
-                  key={g.gid}
-                  type="button"
-                  onClick={() => setOpenLifeGroup(opened ? null : g.gid)}
-                  aria-expanded={opened}
-                  className={cn(
-                    'flex items-center justify-between gap-1 rounded-lg bg-white dark:bg-slate-900 px-2.5 py-2 text-left',
-                    'ring-1 ring-black/[0.06] dark:ring-white/10 transition-all duration-100 hover:-translate-y-px hover:shadow-sm',
-                    opened && 'ring-2',
-                  )}
-                  style={opened ? { ['--tw-ring-color' as string]: ZONE_COLORS.life } : undefined}
-                >
-                  <span className="min-w-0 truncate text-[12px] font-semibold text-slate-800 dark:text-slate-100">{g.label}</span>
-                  <span className="flex shrink-0 items-center gap-1">
-                    <span className="rounded-full px-1.5 py-px text-[9px] font-bold text-white" style={{ backgroundColor: ZONE_COLORS.life }}>
-                      {g.items.length}
-                    </span>
-                    <ChevronDown size={11} className={cn('text-slate-400 transition-transform', opened && 'rotate-180')} />
-                  </span>
-                </button>
-              );
-            })}
+        {/* 접힌 섹션 — 토론·시뮬 + 라이프는 "모든 기능 보기" 뒤에. */}
+        {showAll && (
+          <div className="space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            {zones.filter((z) => z.id === 'debate').map((zone) => (
+              <Section key={zone.id} label={zone.label} color={zone.color}>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {zone.items.map((item) => (
+                    <ItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </Section>
+            ))}
+
+            {/* 라이프 — 그룹 카드 축약, 클릭 시 제자리 펼침. */}
+            <Section label="라이프" color={ZONE_COLORS.life}>
+              <div className="grid grid-cols-3 gap-1.5">
+                {lifeGroups.map((g) => {
+                  const opened = openLifeGroup === g.gid;
+                  return (
+                    <button
+                      key={g.gid}
+                      type="button"
+                      onClick={() => setOpenLifeGroup(opened ? null : g.gid)}
+                      aria-expanded={opened}
+                      className={cn(
+                        'flex items-center justify-between gap-1 rounded-xl bg-white dark:bg-slate-900 px-2.5 py-2 text-left',
+                        'ring-1 ring-black/[0.06] dark:ring-white/10 transition-all duration-100 hover:-translate-y-px hover:shadow-sm',
+                        opened && 'ring-2',
+                      )}
+                      style={opened ? { ['--tw-ring-color' as string]: ZONE_COLORS.life } : undefined}
+                    >
+                      <span className="min-w-0 truncate text-[12px] font-semibold text-slate-800 dark:text-slate-100">{g.label}</span>
+                      <span className="flex shrink-0 items-center gap-1">
+                        <span className="rounded-full px-1.5 py-px text-[9px] font-bold text-white" style={{ backgroundColor: ZONE_COLORS.life }}>
+                          {g.items.length}
+                        </span>
+                        <ChevronDown size={11} className={cn('text-slate-400 transition-transform', opened && 'rotate-180')} />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {openLifeGroup && (
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {lifeGroups.find((g) => g.gid === openLifeGroup)?.items.map((item) => (
+                    <ItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </Section>
           </div>
-          {openLifeGroup && (
-            <div className="mt-1.5 grid grid-cols-3 gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-              {lifeGroups.find((g) => g.gid === openLifeGroup)?.items.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
+        )}
+
+        {/* 하단 토글 — 토론·라이프 펼치기/접기. */}
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className={cn(
+            'flex w-full items-center justify-center gap-1.5 rounded-xl border py-2',
+            'text-[12px] font-semibold transition-colors',
+            'border-slate-200 text-slate-600 hover:bg-slate-50',
+            'dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
           )}
-        </ZonePanel>
+        >
+          {showAll ? '간단히 보기' : '모든 기능 보기'}
+          <ArrowRight size={13} strokeWidth={2.4} className={cn('transition-transform duration-200', showAll && '-rotate-90')} />
+        </button>
       </div>
     </div>
   );
