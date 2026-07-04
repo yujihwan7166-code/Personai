@@ -7,7 +7,7 @@
  *
  * 시각 언어는 모드 pill 과 동일 — 틴트 10% 배경 + 36% 보더 라운드 필.
  */
-import { X, Plus } from 'lucide-react';
+import { X, Plus, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
@@ -88,9 +88,21 @@ export function FavoriteChips({
               className="flex h-full max-w-[140px] items-center gap-1.5 pl-2.5 pr-2.5 text-[12px] font-medium tracking-tight"
               style={{ color: 'var(--hero-fg)' }}
             >
-              {/* 틴트 점 — 색 면 대신 점 하나로 아이덴티티만 살짝. */}
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: f.tint }} />
-              <span className="truncate">{f.label}</span>
+              {/* 틴트 점 → hover 시 화살표 morph — 고정 슬롯이라 레이아웃 점프 없음.
+               * "누르면 이동" 어포던스를 색 점 하나로 전달 (CTA 화살표 각색). */}
+              <span className="relative h-2.5 w-2.5 shrink-0">
+                <span
+                  className="absolute inset-0 m-auto h-1.5 w-1.5 rounded-full transition-all duration-150 group-hover/chip:scale-50 group-hover/chip:opacity-0"
+                  style={{ backgroundColor: f.tint }}
+                />
+                <ArrowRight
+                  size={10}
+                  strokeWidth={3}
+                  className="absolute inset-0 m-auto -translate-x-0.5 opacity-0 transition-all duration-150 group-hover/chip:translate-x-0 group-hover/chip:opacity-100"
+                  style={{ color: f.tint }}
+                />
+              </span>
+              <span className="truncate transition-transform duration-150 group-hover/chip:translate-x-px">{f.label}</span>
             </button>
             {/* hover 시만 나타나는 제거 × — 칩 우상단 부유. */}
             <button
