@@ -209,7 +209,7 @@ export function MultiHero({
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
         <div className="text-center mb-10">
           {/* eyebrow — 선택 AI 별 모델 픽커 칩 (클릭 → 모델 드롭다운). */}
-          <div className="mb-3 flex flex-wrap items-center justify-center gap-2 hero-name-in">
+          <div className="relative z-30 mb-3 flex flex-wrap items-center justify-center gap-2 hero-name-in">
             {selectedBrands.map((b, idx) => {
               const model = resolveModel(b, modelByBrand[b.id]);
               const bg = `#${b.icon.hex}`;

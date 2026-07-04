@@ -1,29 +1,25 @@
 /**
- * 모드 메뉴 — pill 아래에 뜨는 2-패널 팝오버.
+ * 모드 메뉴 — pill 아래에 뜨는 메가 메뉴 (전 항목 한눈에).
  *
- *  ┌──────────┬─────────────────────────────────┐
- *  │ ★ 즐겨찾기 │  단일 AI      AI 를 골라 1:1     │
- *  │ 대화    ◀│  다중 AI      여러 AI 비교    ☆  │
- *  │ 토론·시뮬 │  심층 리서치   교차 검증          │
- *  │ 스튜디오  │  프리미엄 AI              ›     │
- *  │ 라이프    │                                 │
- *  │ 노트      │                                 │
- *  └──────────┴─────────────────────────────────┘
+ *  ┌────────────────────────────────────────────┐
+ *  │ 대화 ────────────────────────────────────── │
+ *  │ [단일 AI      ] [다중 AI       ]            │
+ *  │ [심층 리서치   ]                            │
+ *  │ 전문 상담 ────────────────────────────────  │
+ *  │ [법률] [의약] [세무] [금융] [부동산] [노무]   │
+ *  │ 토론·시뮬 ────────────────────────────────  │
+ *  │ …                                          │
+ *  └────────────────────────────────────────────┘
  *
- * - 좌측 레일 hover 만으로 우측 패널 즉시 전환 (macOS 메뉴 감각).
- * - 전문 상담·라이프 서브그룹은 우측 패널 안에서 in-place 전환 (← 헤더).
- * - 항목 hover 시 ☆ — 클릭하면 즐겨찾기 등록/해제 (localStorage).
- * - ESC: 서브뷰 → 닫기. 바깥 클릭: 닫기. 화면 전환·오버레이 없음.
- * - 패널은 불투명 화이트 고정 (2026-07-04: 반투명 글래스가 배경에 묻혀
- *   선택창으로 안 읽힌다는 피드백) — 브랜드 테마와 무관하게 항상 또렷.
+ * 2026-07-04 재설계: 레일·드릴 네비게이션 폐기 — 수십 개 항목이 섹션별로
+ * 한 번에 다 보이는 스크롤 메가 메뉴. 항목은 경계가 확실한 카드 (ring),
+ * 호버 시 액센트 테두리로 명확하게. 서브그룹도 전부 펼쳐서 노출.
+ * - 항목 hover 시 ☆ — 즐겨찾기 등록/해제 (localStorage), 맨 위 섹션으로.
+ * - ESC · 바깥 클릭: 닫기. 패널은 불투명 화이트 고정.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft, ChevronRight, Star,
-  MessagesSquare, Swords, SlidersHorizontal, Sprout, NotebookPen,
-  type LucideIcon,
-} from 'lucide-react';
+import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import {
@@ -85,25 +81,15 @@ interface MenuItem {
   id: string;
   label: string;
   desc?: string;
-  emoji: string;
   tint: string;
-  target?: ItemTarget;
-  /** 우측 패널 in-place 서브뷰 진입. */
-  drill?: SubView;
+  target: ItemTarget;
 }
 
-type CategoryId = 'favorites' | 'chat' | 'debate' | 'studio' | 'life' | 'hub';
-type SubView = 'premium' | LifeSubgroupId;
-
-/* 레일 아이콘 — 모노크롬 lucide (커맨드 팔레트 감성). */
-const CATEGORIES: { id: CategoryId; label: string; icon: LucideIcon }[] = [
-  { id: 'favorites', label: '즐겨찾기',   icon: Star },
-  { id: 'chat',      label: '대화',       icon: MessagesSquare },
-  { id: 'debate',    label: '토론·시뮬',  icon: Swords },
-  { id: 'studio',    label: '스튜디오',   icon: SlidersHorizontal },
-  { id: 'life',      label: '라이프',     icon: Sprout },
-  { id: 'hub',       label: '노트',       icon: NotebookPen },
-];
+interface MenuSection {
+  id: string;
+  label: string;
+  items: MenuItem[];
+}
 
 interface Props {
   open: boolean;
@@ -130,28 +116,17 @@ export function ModeMenu({
 }: Props) {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [category, setCategory] = useState<CategoryId>('chat');
-  const [subView, setSubView] = useState<SubView | null>(null);
   const [favs, setFavs] = useState<FavEntry[]>([]);
 
-  // 열릴 때 초기화 — 즐겨찾기가 있으면 즐겨찾기 탭, 없으면 대화 탭.
   useEffect(() => {
-    if (open) {
-      const f = readFavs();
-      setFavs(f);
-      setCategory(f.length > 0 ? 'favorites' : 'chat');
-      setSubView(null);
-    }
+    if (open) setFavs(readFavs());
   }, [open]);
 
-  // ESC — 서브뷰 → 닫기. 바깥 클릭 — 닫기.
+  // ESC · 바깥 클릭 — 닫기.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (subView) setSubView(null);
-        else onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     const onClick = (e: MouseEvent) => {
       if (rootRef.current?.contains(e.target as Node)) return;
@@ -163,124 +138,97 @@ export function ModeMenu({
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mousedown', onClick);
     };
-  }, [open, subView, onClose]);
+  }, [open, onClose]);
 
-  /* ── 데이터 (MainModeTabs 상수 재사용) ── */
+  /* ── 섹션 데이터 — 서브그룹까지 전부 펼쳐서 (메가 메뉴). ── */
 
-  const modeItem = (m: MainMode, emoji: string): MenuItem => ({
-    id: `mode-${m}`,
-    label: labels[m] ?? m,
-    desc: MODE_DESCRIPTION[m],
-    emoji,
-    tint: MODE_TINT[m],
-    target: { kind: 'mode', mode: m },
-  });
+  const sections = useMemo<MenuSection[]>(() => {
+    const modeItem = (m: MainMode): MenuItem => ({
+      id: `mode-${m}`,
+      label: labels[m] ?? m,
+      desc: MODE_DESCRIPTION[m],
+      tint: MODE_TINT[m],
+      target: { kind: 'mode', mode: m },
+    });
 
-  const categoryItems = useMemo<Record<Exclude<CategoryId, 'favorites'>, MenuItem[]>>(() => ({
-    chat: [
-      modeItem('general', '💬'),
-      modeItem('multi', '🔀'),
-      modeItem('research_main', '🔬'),
+    const life: MenuSection[] = (Object.keys(LIFE_SUBGROUPS) as LifeSubgroupId[]).map((gid) => {
+      const g = LIFE_SUBGROUPS[gid];
+      const tools =
+        gid === 'aiplay'
+          ? PLAYER_TOOLS.map((t): MenuItem => ({
+              id: `player-${t.id}`, label: t.label, desc: t.desc, tint: t.tint,
+              target: { kind: 'player', toolId: t.id },
+            }))
+          : LIFE_TOOLS.filter((t) => t.group === gid).map((t): MenuItem => ({
+              id: `life-${t.id}`, label: t.label, desc: t.desc, tint: t.tint,
+              target: { kind: 'life', toolId: t.id },
+            }));
+      return { id: `life-${gid}`, label: g.label, items: tools };
+    }).filter((s) => s.items.length > 0);
+
+    return [
       {
-        id: 'drill-premium',
-        label: labels.premium_main ?? '전문 상담',
-        desc: MODE_DESCRIPTION.premium_main,
-        emoji: '🛡️',
-        tint: MODE_TINT.premium_main,
-        drill: 'premium',
+        id: 'chat',
+        label: '대화',
+        items: [modeItem('general'), modeItem('multi'), modeItem('research_main')],
       },
-    ],
-    debate: [
-      ...DEBATE_SUBS.map((s): MenuItem => ({
-        id: `debate-${s.key}`,
-        label: s.label,
-        desc: s.desc,
-        emoji: '⚔️',
-        tint: s.tint,
-        target: { kind: 'debate', sub: s.key },
-      })),
-      modeItem('stakeholder_main', '👥'),
-    ],
-    studio: [
-      modeItem('study_main', '📚'),
-      modeItem('voice_main', '🎙️'),
-      ...ASSISTANT_TILES.filter((t) => !t.placeholder && t.cardId !== 'voice-analysis').map(
-        (t): MenuItem => ({
-          id: `assistant-${t.cardId}`,
-          label: t.label,
-          desc:
-            t.cardId === 'image-gen' ? '프롬프트로 이미지·영상 생성' :
-            t.cardId === 'ppt' ? '프레젠테이션 자동 생성' :
-            t.cardId === 'file-convert' ? 'PDF·문서 형식 변환' : '다국어 번역',
-          emoji: '🛠️',
-          tint: t.tint,
-          target: { kind: 'assistant', cardId: t.cardId },
-        }),
-      ),
-    ],
-    life: [
-      ...(Object.keys(LIFE_SUBGROUPS) as LifeSubgroupId[]).map((gid): MenuItem => {
-        const g = LIFE_SUBGROUPS[gid];
-        return { id: `lifegroup-${gid}`, label: g.label, desc: g.description, emoji: g.emoji, tint: g.tint, drill: gid };
-      }),
-      ...LIFE_TOOLS.filter((t) => t.featured).map((t): MenuItem => ({
-        id: `life-${t.id}`,
-        label: t.label,
-        desc: t.desc,
-        emoji: t.emoji,
-        tint: t.tint,
-        target: { kind: 'life', toolId: t.id },
-      })),
-    ],
-    hub: HUB_TOOLS.filter((h) => h.id !== 'briefing').map((h): MenuItem => ({
-      id: `hub-${h.id}`,
-      label: h.label,
-      desc: h.desc,
-      emoji: h.emoji,
-      tint: h.tint,
-      target: { kind: 'hub', hubId: h.id },
-    })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [labels]);
-
-  const subViewItems = useMemo<MenuItem[]>(() => {
-    if (!subView) return [];
-    if (subView === 'premium') {
-      return PREMIUM_AI_TOOLS.map((p): MenuItem => ({
-        id: `premium-${p.key}`,
-        label: p.label,
-        desc: p.desc,
-        emoji: '🛡️',
-        tint: p.tint,
-        target: { kind: 'premium', domainId: p.key },
-      }));
-    }
-    if (subView === 'aiplay') {
-      return PLAYER_TOOLS.map((t): MenuItem => ({
-        id: `player-${t.id}`,
-        label: t.label,
-        desc: t.desc,
-        emoji: t.emoji,
-        tint: t.tint,
-        target: { kind: 'player', toolId: t.id },
-      }));
-    }
-    return LIFE_TOOLS.filter((t) => t.group === subView).map((t): MenuItem => ({
-      id: `life-${t.id}`,
-      label: t.label,
-      desc: t.desc,
-      emoji: t.emoji,
-      tint: t.tint,
-      target: { kind: 'life', toolId: t.id },
-    }));
-  }, [subView]);
+      {
+        id: 'premium',
+        label: labels.premium_main ?? '전문 상담',
+        items: PREMIUM_AI_TOOLS.map((p): MenuItem => ({
+          id: `premium-${p.key}`, label: p.label, desc: p.desc, tint: p.tint,
+          target: { kind: 'premium', domainId: p.key },
+        })),
+      },
+      {
+        id: 'debate',
+        label: '토론·시뮬',
+        items: [
+          ...DEBATE_SUBS.map((s): MenuItem => ({
+            id: `debate-${s.key}`, label: s.label, desc: s.desc, tint: s.tint,
+            target: { kind: 'debate', sub: s.key },
+          })),
+          modeItem('stakeholder_main'),
+        ],
+      },
+      {
+        id: 'studio',
+        label: '스튜디오',
+        items: [
+          modeItem('study_main'),
+          modeItem('voice_main'),
+          ...ASSISTANT_TILES.filter((t) => !t.placeholder && t.cardId !== 'voice-analysis').map(
+            (t): MenuItem => ({
+              id: `assistant-${t.cardId}`,
+              label: t.label,
+              desc:
+                t.cardId === 'image-gen' ? '프롬프트로 이미지·영상 생성' :
+                t.cardId === 'ppt' ? '프레젠테이션 자동 생성' :
+                t.cardId === 'file-convert' ? 'PDF·문서 형식 변환' : '다국어 번역',
+              tint: t.tint,
+              target: { kind: 'assistant', cardId: t.cardId },
+            }),
+          ),
+        ],
+      },
+      ...life,
+      {
+        id: 'hub',
+        label: '노트',
+        items: HUB_TOOLS.filter((h) => h.id !== 'briefing').map((h): MenuItem => ({
+          id: `hub-${h.id}`, label: h.label, desc: h.desc, tint: h.tint,
+          target: { kind: 'hub', hubId: h.id },
+        })),
+      },
+    ];
+     
+  }, [labels]);
 
   /* ── 즐겨찾기 토글 ── */
 
   const isFav = (id: string) => favs.some((f) => f.id === id);
 
   const toggleFav = (item: MenuItem) => {
-    if (!item.target) return;
     const next = isFav(item.id)
       ? favs.filter((f) => f.id !== item.id)
       : [...favs, { id: item.id, label: item.label, desc: item.desc, tint: item.tint, target: item.target }];
@@ -291,12 +239,7 @@ export function ModeMenu({
   /* ── 실행 ── */
 
   const runItem = (item: MenuItem) => {
-    if (item.drill) {
-      setSubView(item.drill);
-      return;
-    }
     const target = item.target;
-    if (!target) return;
     onClose();
     window.setTimeout(() => {
       switch (target.kind) {
@@ -323,18 +266,18 @@ export function ModeMenu({
 
   if (!open) return null;
 
-  /* ── 우측 패널에 그릴 항목 결정 ── */
+  const favSection: MenuSection | null =
+    favs.length > 0
+      ? {
+          id: 'favorites',
+          label: '즐겨찾기',
+          items: favs.map((f): MenuItem => ({
+            id: f.id, label: f.label, desc: f.desc, tint: f.tint, target: f.target,
+          })),
+        }
+      : null;
 
-  const paneItems: MenuItem[] = subView
-    ? subViewItems
-    : category === 'favorites'
-      ? favs.map((f): MenuItem => ({
-          id: f.id, label: f.label, desc: f.desc, emoji: '', tint: f.tint, target: f.target,
-        }))
-      : categoryItems[category];
-
-  const subViewTitle =
-    subView === 'premium' ? '전문 상담' : subView ? LIFE_SUBGROUPS[subView]?.label : '';
+  const allSections = favSection ? [favSection, ...sections] : sections;
 
   return (
     <div
@@ -342,133 +285,90 @@ export function ModeMenu({
       role="menu"
       aria-label="모드 선택"
       className={cn(
-        'absolute top-3 left-3 z-40 w-[520px] max-w-[calc(100%-24px)]',
+        'absolute top-3 left-3 z-40 w-[640px] max-w-[calc(100%-24px)]',
         'rounded-2xl overflow-hidden',
-        // 불투명 화이트 패널 — 배경 테마와 분리된 또렷한 선택창.
         'bg-white dark:bg-slate-900',
         'border border-slate-200 dark:border-slate-700',
         'shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35),0_4px_16px_-8px_rgba(15,23,42,0.15)]',
         'animate-in fade-in zoom-in-[0.98] slide-in-from-top-1 duration-200',
       )}
     >
-      <div className="flex" style={{ height: 340 }}>
-        {/* 좌측 카테고리 레일 — hover 만으로 전환. */}
-        <nav className="w-[132px] shrink-0 p-1.5 space-y-0.5 border-r border-slate-100 dark:border-slate-800">
-          {CATEGORIES.filter((c) => c.id !== 'favorites' || favs.length > 0).map((c) => {
-            const active = category === c.id && !subView;
-            const dimActive = category === c.id && !!subView;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onMouseEnter={() => { setCategory(c.id); setSubView(null); }}
-                onClick={() => { setCategory(c.id); setSubView(null); }}
-                className={cn(
-                  'flex w-full items-center gap-2 px-2.5 py-2 rounded-lg text-left',
-                  'text-[12.5px] font-medium transition-colors duration-100',
-                  active || dimActive
-                    ? 'text-slate-900 dark:text-white'
-                    : 'text-slate-500 dark:text-slate-400',
-                  active && 'bg-slate-100 dark:bg-slate-800',
-                )}
-              >
-                <c.icon
-                  size={14}
-                  strokeWidth={1.9}
-                  className={cn('shrink-0', c.id === 'favorites' ? 'text-amber-400 fill-amber-400/70' : 'opacity-75')}
-                />
-                <span className="truncate">{c.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+      <div className="max-h-[min(560px,calc(100vh-140px))] overflow-y-auto overscroll-contain p-3 scrollbar-thin">
+        {allSections.map((section) => (
+          <section key={section.id} className="mb-4 last:mb-0">
+            {/* 섹션 헤더 — 라벨 + hairline. */}
+            <div className="mb-1.5 flex items-center gap-2 px-1">
+              {section.id === 'favorites' && (
+                <Star size={11} className="shrink-0 fill-amber-400 text-amber-400" />
+              )}
+              <span className="shrink-0 text-[10.5px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+                {section.label}
+              </span>
+              <span className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+            </div>
 
-        {/* 우측 패널 — 항목 리스트. */}
-        <div className="flex-1 min-w-0 overflow-y-auto overscroll-contain p-1.5">
-          {/* 서브뷰 헤더 (← 전문상담 / 운세 등). */}
-          {subView && (
-            <button
-              type="button"
-              onClick={() => setSubView(null)}
-              className="mb-1 flex items-center gap-1.5 h-7 px-2 rounded-lg text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <ArrowLeft size={12} />
-              {subViewTitle}
-            </button>
-          )}
-
-          {paneItems.length === 0 ? (
-            <p className="py-12 text-center text-[12.5px] text-slate-400 dark:text-slate-500">
-              {category === 'favorites' ? '항목 위의 ☆ 를 눌러 즐겨찾기에 담아보세요' : '항목이 없어요'}
-            </p>
-          ) : (
-            paneItems.map((item, i) => {
-              const isActive =
-                item.target?.kind === 'mode' && item.target.mode === currentMode;
-              const faved = isFav(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    'group relative rounded-lg',
-                    'animate-in fade-in fill-mode-both',
-                    'hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors duration-100',
-                  )}
-                  style={{ animationDelay: `${Math.min(i * 14, 140)}ms`, animationDuration: '150ms' }}
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => runItem(item)}
-                    className="flex w-full items-center gap-2.5 px-3 py-[8px] text-left"
+            {/* 항목 그리드 — 경계 확실한 카드 2열. */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {section.items.map((item) => {
+                const isActive =
+                  item.target.kind === 'mode' && item.target.mode === currentMode;
+                const faved = isFav(item.id);
+                return (
+                  <div
+                    key={`${section.id}-${item.id}`}
+                    className={cn(
+                      'group relative rounded-lg ring-1 transition-all duration-100',
+                      'ring-slate-200 dark:ring-slate-700',
+                      'hover:bg-slate-50 dark:hover:bg-slate-800/70 hover:ring-2',
+                    )}
+                    style={{ ['--item-tint' as string]: item.tint }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.setProperty('--tw-ring-color', item.tint); }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.removeProperty('--tw-ring-color'); }}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[13px] font-medium leading-tight text-slate-800 dark:text-slate-100">
-                        <span className="truncate">{item.label}</span>
-                        {isActive && (
-                          <span
-                            className="shrink-0 h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: item.tint }}
-                            aria-label="현재 모드"
-                          />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runItem(item)}
+                      className="flex w-full items-start px-3 py-2 text-left"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-[12.5px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
+                          <span className="truncate">{item.label}</span>
+                          {isActive && (
+                            <span
+                              className="h-1.5 w-1.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: item.tint }}
+                              aria-label="현재 모드"
+                            />
+                          )}
+                        </span>
+                        {item.desc && (
+                          <span className="mt-0.5 block truncate text-[10.5px] text-slate-400 dark:text-slate-500">
+                            {item.desc}
+                          </span>
                         )}
                       </span>
-                      {item.desc && (
-                        <span className="block text-[11px] mt-[3px] truncate text-slate-400 dark:text-slate-500">
-                          {item.desc}
-                        </span>
-                      )}
-                    </span>
-                    {item.drill && (
-                      <ChevronRight
-                        size={13}
-                        className="shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all"
-                      />
-                    )}
-                  </button>
-                  {/* 즐겨찾기 토글 — hover 시 노출, 등록된 항목은 항상 표시. */}
-                  {item.target && (
+                    </button>
+                    {/* 즐겨찾기 토글 — hover 시 노출, 등록 항목은 항상. */}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
                       aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-                      title={faved ? '즐겨찾기 해제' : '즐겨찾기'}
                       className={cn(
-                        'absolute top-1/2 -translate-y-1/2 p-1 rounded-md transition-all duration-100',
-                        item.drill ? 'right-7' : 'right-2',
+                        'absolute right-1.5 top-1.5 rounded-md p-1 transition-all duration-100',
                         faved
                           ? 'opacity-100 text-amber-400'
                           : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400 dark:text-slate-600',
                       )}
                     >
-                      <Star size={13} className={faved ? 'fill-amber-400' : undefined} />
+                      <Star size={12} className={faved ? 'fill-amber-400' : undefined} />
                     </button>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
