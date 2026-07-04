@@ -17,11 +17,11 @@
  * 우선순위 순서 (유저 지정): 대화 → 노트 → 스튜디오 → 전문 → 토론 → 라이프.
  * 즐겨찾기 (☆ hover 토글) 는 있으면 프라이머리 위에 표시.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Star, MessagesSquare, Layers, FlaskConical,
+  Star,
   CalendarDays, Globe, Cloud, StickyNote, Shapes, NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
@@ -117,19 +117,6 @@ export function ModeMenu({
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
-  // 프라이머리 슬라이딩 인디케이터 — 클릭 시 먼저 활성 pill 이 미끄러진 뒤 닫힘.
-  // (즉시 닫으면 슬라이드가 안 보여서 280ms 시퀀스.)
-  const [pendingPrimary, setPendingPrimary] = useState<MainMode | null>(null);
-  const pendingTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (open) setPendingPrimary(null);
-  }, [open]);
-
-  useEffect(() => () => {
-    if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
-  }, []);
-
   // ESC · 바깥 클릭 — 닫기.
   useEffect(() => {
     if (!open) return;
@@ -285,39 +272,39 @@ export function ModeMenu({
 
   if (!open) return null;
 
-  const PRIMARY_ICONS: LucideIcon[] = [MessagesSquare, Layers, FlaskConical];
-
-  /* ── 아이콘 카드 (섹션 공통) — 아이콘 + 라벨 한 줄 컴팩트 (설명 제거, 2026-07-05).
-   * 설명은 title 툴팁으로만. */
-  const ItemCard = ({ item }: { item: MenuItem }) => {
+  /* ── 원형 아이콘 셀 — 선택모드 패널과 동일 문법 (2026-07-05, 유저 레퍼런스).
+   * 틴트 원 + 아래 라벨, hover 옅은 배경, 활성은 배경 유지. 설명은 툴팁. ── */
+  const CircleItem = ({ item }: { item: MenuItem }) => {
     const isActive = item.target.kind === 'mode' && item.target.mode === currentMode;
     const faved = isFav(item.id);
     const Icon = item.icon;
     return (
-      <div className="group relative rounded-lg bg-white dark:bg-slate-900 ring-1 ring-black/[0.06] dark:ring-white/10 hover:ring-2 hover:-translate-y-px hover:shadow-sm transition-all duration-100"
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.setProperty('--tw-ring-color', item.tint); }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.removeProperty('--tw-ring-color'); }}
-      >
+      <div className="group relative">
         <button
           type="button"
           role="menuitem"
           onClick={() => runItem(item)}
           title={item.desc}
-          className="flex w-full items-center gap-1.5 px-2 py-[6px] text-left"
-        >
-          {Icon && (
-            <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
-              style={{ backgroundColor: `${item.tint}16` }}
-            >
-              <Icon size={11} strokeWidth={2.2} style={{ color: item.tint }} />
-            </span>
+          className={cn(
+            'flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors duration-100 hover:bg-black/[0.04] dark:hover:bg-white/5',
+            isActive && 'bg-black/[0.05] dark:bg-white/10',
           )}
-          <span className="min-w-0 flex items-center gap-1.5 text-[12px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
-            <span className="truncate">{item.label}</span>
-            {isActive && (
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: item.tint }} aria-label="현재 모드" />
+        >
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-full"
+            // hsl(var(--...)) 틴트도 있어 헥사 알파 접미 대신 color-mix.
+            style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 10%, transparent)` }}
+          >
+            {Icon ? (
+              <Icon size={16} strokeWidth={2} style={{ color: item.tint }} />
+            ) : (
+              <span className="text-[13px] font-bold leading-none" style={{ color: item.tint }}>
+                {item.label.charAt(0)}
+              </span>
             )}
+          </span>
+          <span className="max-w-full truncate text-[10px] font-medium leading-none text-slate-600 dark:text-slate-300">
+            {item.label}
           </span>
         </button>
         <button
@@ -325,7 +312,7 @@ export function ModeMenu({
           onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
           aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
           className={cn(
-            'absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 transition-all duration-100',
+            'absolute right-0.5 top-0.5 rounded p-0.5 transition-all duration-100',
             faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
           )}
         >
@@ -335,13 +322,10 @@ export function ModeMenu({
     );
   };
 
-  /* ── 섹션 — 틴트 면 대신 컬러 라벨 + 헤어라인 구분 (2026-07-05 목업 반영). ── */
-  const Section = ({ label, color, action, children }: { label: string; color: string; action?: React.ReactNode; children: React.ReactNode }) => (
-    <section className="border-t border-slate-100 pt-2.5 first:border-0 first:pt-0 dark:border-slate-800">
-      <div className="mb-1.5 flex items-center justify-between px-1">
-        <span className="text-[11px] font-bold tracking-tight" style={{ color }}>{label}</span>
-        {action}
-      </div>
+  /* ── 섹션 — 차분한 회색 라벨 + 여백 구분 (선택모드 패널 문법). ── */
+  const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <section>
+      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">{label}</div>
       {children}
     </section>
   );
@@ -352,7 +336,7 @@ export function ModeMenu({
       role="menu"
       aria-label="모드 선택"
       className={cn(
-        'absolute top-3 left-3 z-40 w-[720px] max-w-[calc(100%-24px)]',
+        'absolute top-3 left-3 z-40 w-[560px] max-w-[calc(100%-24px)]',
         'rounded-2xl overflow-hidden',
         'bg-white dark:bg-slate-900',
         'border border-slate-200 dark:border-slate-700',
@@ -360,92 +344,41 @@ export function ModeMenu({
         'animate-in fade-in zoom-in-[0.98] slide-in-from-top-1 duration-200',
       )}
     >
-      <div className="max-h-[min(640px,calc(100vh-140px))] space-y-2.5 overflow-y-auto overscroll-contain p-3 scrollbar-thin">
+      <div className="max-h-[min(640px,calc(100vh-140px))] space-y-2 overflow-y-auto overscroll-contain p-2.5 scrollbar-thin">
         {/* 즐겨찾기는 메뉴 안에 중복 노출하지 않음 — 히어로 상단 칩이 유일한
-         * 표면 (2026-07-05 피드백). 별 토글은 카드에서 그대로. */}
+         * 표면 (2026-07-05 피드백). 별 토글은 셀에서 그대로. */}
 
-        {/* 프라이머리 — AI 대화 3종 큰 타일 + 슬라이딩 인디케이터.
-         * 활성 링이 고정 표시 대신 세그먼트처럼 미끄러져 이동 (uiverse 세그먼트 각색). */}
-        <Section label="AI 기능" color="#2563eb">
-        {(() => {
-          const activePrimaryMode = pendingPrimary ?? currentMode;
-          const activeIdx = primaryItems.findIndex(
-            (it) => it.target.kind === 'mode' && it.target.mode === activePrimaryMode,
-          );
-          const activeTint = activeIdx >= 0 ? primaryItems[activeIdx].tint : undefined;
-          return (
-            <div className="relative grid grid-cols-3 gap-2">
-              {/* 인디케이터 — 3등분 폭, left 가 활성 인덱스로 슬라이드. 색도 함께 morph. */}
-              {activeIdx >= 0 && activeTint && (
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 rounded-xl"
-                  style={{
-                    width: 'calc((100% - 16px) / 3)',
-                    left: `calc(${activeIdx} * ((100% - 16px) / 3 + 8px))`,
-                    boxShadow: `inset 0 0 0 2px ${activeTint}, 0 6px 18px -10px ${activeTint}`,
-                    // Tailwind arbitrary duration 이 JIT 에 안 잡혀서 인라인으로.
-                    transition: 'left 280ms cubic-bezier(0.22,1,0.36,1), box-shadow 280ms ease',
-                  }}
-                />
-              )}
-              {primaryItems.map((item, i) => {
-                const Icon = PRIMARY_ICONS[i] ?? MessagesSquare;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      // 모드 타일 — 인디케이터가 먼저 미끄러진 뒤 닫고 전환.
-                      if (item.target.kind === 'mode' && item.target.mode !== activePrimaryMode) {
-                        setPendingPrimary(item.target.mode);
-                        if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
-                        pendingTimerRef.current = window.setTimeout(() => runItem(item), 280);
-                        return;
-                      }
-                      runItem(item);
-                    }}
-                    title={item.desc}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-all duration-100 hover:-translate-y-px hover:shadow-md"
-                    style={{
-                      backgroundColor: `${item.tint}12`,
-                      boxShadow: `inset 0 0 0 1px ${item.tint}30`,
-                    }}
-                  >
-                    <Icon size={15} strokeWidth={2} className="shrink-0" style={{ color: item.tint }} />
-                    <span className="truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })()}
+        {/* AI 기능 — 프라이머리 3종도 동일 원형 셀 (문법 통일). */}
+        <Section label="AI 기능">
+          <div className="grid grid-cols-7 gap-0.5">
+            {primaryItems.map((item) => (
+              <CircleItem key={item.id} item={item} />
+            ))}
+          </div>
         </Section>
 
-        {/* 전 섹션 상시 노출 — 숨김 계층 없음 (2026-07-05 피드백: 펼침 UI 를
-         * 바깥으로). 노트 & 정리 → 스튜디오 → 프리미엄 → 토론·시뮬. */}
+        {/* 전 섹션 상시 노출 — 노트 & 정리 → 스튜디오 → 프리미엄 → 토론·시뮬. */}
         {zones.map((zone) => (
-          <Section key={zone.id} label={zone.label} color={zone.color}>
-            <div className="grid grid-cols-4 gap-1.5">
+          <Section key={zone.id} label={zone.label}>
+            <div className="grid grid-cols-7 gap-0.5">
               {zone.items.map((item) => (
-                <ItemCard key={item.id} item={item} />
+                <CircleItem key={item.id} item={item} />
               ))}
             </div>
           </Section>
         ))}
 
-        {/* 라이프 — 아코디언 폐기, 서브그룹 라벨 + 플랫 그리드로 전부 노출. */}
-        <Section label="라이프" color={ZONE_COLORS.life}>
-          <div className="space-y-1.5">
+        {/* 라이프 — 서브그룹 라벨 + 플랫 그리드 전부 노출. */}
+        <Section label="라이프">
+          <div className="space-y-1">
             {lifeGroups.map((g) => (
-              <div key={g.gid} className="flex items-start gap-2">
-                <span className="w-[72px] shrink-0 pt-[7px] text-right text-[10px] font-semibold leading-tight text-slate-400 dark:text-slate-500">
+              <div key={g.gid} className="flex items-start gap-1.5">
+                <span className="w-[72px] shrink-0 pt-[13px] text-right text-[10px] font-semibold leading-tight text-slate-400 dark:text-slate-500">
                   {g.label}
                 </span>
-                <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5">
+                <div className="grid min-w-0 flex-1 grid-cols-6 gap-0.5">
                   {g.items.map((item) => (
-                    <ItemCard key={item.id} item={item} />
+                    <CircleItem key={item.id} item={item} />
                   ))}
                 </div>
               </div>
