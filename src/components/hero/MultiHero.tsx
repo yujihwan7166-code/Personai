@@ -220,7 +220,7 @@ export function MultiHero({
                 <div key={b.id} className="flex items-center gap-2">
                   {/* 매치업 프레이밍 — 칩 사이 vs. */}
                   {idx > 0 && (
-                    <span className="select-none text-[10px] font-black uppercase tracking-wide text-slate-400/80">
+                    <span className="select-none text-[11px] font-black uppercase tracking-wide text-slate-500">
                       vs
                     </span>
                   )}
@@ -233,16 +233,19 @@ export function MultiHero({
                     aria-expanded={open}
                     title={hasChoice ? `${b.name} 모델 변경` : b.name}
                     className={cn(
-                      'inline-flex items-center gap-1.5 h-8 pl-1.5 pr-2 rounded-full border',
-                      'bg-white/90 text-[12.5px] font-semibold text-slate-800',
+                      'inline-flex items-center gap-2 h-10 pl-2 pr-2.5 rounded-full border-[1.5px]',
+                      'bg-white text-[13.5px] font-bold text-slate-800',
                       'transition-all duration-150',
-                      hasChoice && 'hover:-translate-y-px hover:shadow-sm',
+                      hasChoice && 'hover:-translate-y-px hover:shadow-md',
                       !hasChoice && 'cursor-default',
                     )}
-                    style={{ borderColor: 'rgba(30, 34, 53, 0.12)' }}
+                    style={{
+                      borderColor: `${BRAND_ACCENT[b.id] ?? '#6a5ae8'}55`,
+                      boxShadow: `0 3px 12px -5px ${BRAND_ACCENT[b.id] ?? '#6a5ae8'}66, 0 1px 3px rgba(15,23,42,0.06)`,
+                    }}
                   >
                     <span
-                      className="flex h-[22px] w-[22px] items-center justify-center rounded-full shrink-0"
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
                       style={{ backgroundColor: bg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
                     >
                       <BrandLogo
@@ -251,13 +254,13 @@ export function MultiHero({
                         text={b.icon.text}
                         fill={logoTone}
                         forceWhite={logoTone === '#ffffff'}
-                        size={Math.round(12 * (b.icon.logoScale ?? 1))}
+                        size={Math.round(14 * (b.icon.logoScale ?? 1))}
                       />
                     </span>
-                    <span className="max-w-[140px] truncate">{model.name}</span>
+                    <span className="max-w-[160px] truncate">{model.name}</span>
                     {hasChoice && (
                       <ChevronDown
-                        size={13}
+                        size={14}
                         className={cn('opacity-50 transition-transform', open && 'rotate-180')}
                       />
                     )}
