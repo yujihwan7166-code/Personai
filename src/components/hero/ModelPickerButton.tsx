@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Brand, BrandModel } from '@/lib/aiBrands';
+import { BRAND_ACCENT, type Brand, type BrandModel } from '@/lib/aiBrands';
 import { BrandLogo } from './BrandLogo';
 import { pickContrastingText } from '@/lib/colorUtils';
 
@@ -74,6 +74,8 @@ export function ModelPickerButton({
 
   const hasChoice = brand.models.length > 1;
   const isEyebrow = variant === 'eyebrow';
+  // 흰색 패널 내부 액센트 — --hero-accent 는 grok/x 에서 흰색이라 못 씀.
+  const panelAccent = BRAND_ACCENT[brand.id] ?? '#10a37f';
 
   return (
     <div ref={rootRef} className={cn('relative', isEyebrow && 'inline-flex')}>
@@ -166,40 +168,31 @@ export function ModelPickerButton({
           ref={panelRef}
           role="menu"
           className={cn(
-            // 넉넉한 폭 · 정제된 padding — portal + fixed 라 무엇에도 안 가림.
-            'fixed z-[300] min-w-[280px] max-w-[320px]',
-            'rounded-2xl border p-2',
-            'shadow-[0_20px_50px_-14px_rgba(0,0,0,0.40)]',
-            'animate-in fade-in zoom-in-95 duration-150',
-            isEyebrow ? 'slide-in-from-top-1' : 'slide-in-from-bottom-1',
+            // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
+            // 등장 모션은 fade 만 (슬라이드·줌 X).
+            'fixed z-[300] w-[300px]',
+            'rounded-xl border border-black/[0.08] bg-white p-1.5',
+            'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
+            'animate-in fade-in duration-100',
           )}
-          style={{
-            ...(isEyebrow
-              ? { top: anchor.bottom + 10, left: anchor.centerX, transform: 'translateX(-50%)' }
-              : { bottom: window.innerHeight - anchor.top + 10, left: Math.min(anchor.right - 280, window.innerWidth - 300) }),
-            backgroundColor: 'var(--hero-input-bg, #1a1a1a)',
-            borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          }}
+          style={
+            isEyebrow
+              ? { top: anchor.bottom + 8, left: anchor.centerX, transform: 'translateX(-50%)' }
+              : { bottom: window.innerHeight - anchor.top + 8, left: Math.min(anchor.right - 300, window.innerWidth - 316) }
+          }
         >
-          {/* 헤더 — 브랜드 이름만, delicate. */}
-          <div
-            className="px-2.5 pt-1.5 pb-2 flex items-center gap-1.5"
-          >
+          {/* 헤더 — 브랜드 · 개수, 최소한으로. */}
+          <div className="px-2.5 pt-1 pb-1.5 flex items-center gap-1.5">
             <span
               className="h-1.5 w-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
+              style={{ backgroundColor: panelAccent }}
             />
-            <span
-              className="text-[11px] font-medium tracking-tight"
-              style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
-            >
+            <span className="text-[10.5px] font-medium tracking-tight text-[#9aa0a8]">
               {brand.name} · 모델 {brand.models.length}개
             </span>
           </div>
-          {/* 모델 리스트 — 많아지면 스크롤 (max 5.5개 높이). */}
-          <div className="max-h-[300px] overflow-y-auto overscroll-contain pr-0.5 scrollbar-thin">
+          {/* 모델 리스트 — 한 줄 컴팩트 (이름 + 설명 인라인), 최대한 많이 보이게. */}
+          <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
             {brand.models.map((m) => {
               const active = m.id === selectedModel.id;
               return (
@@ -212,56 +205,39 @@ export function ModelPickerButton({
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex w-full items-start gap-2.5 px-2.5 py-2 rounded-xl text-left',
+                    'flex w-full items-center gap-2 px-2.5 py-[7px] rounded-lg text-left',
                     'transition-colors duration-100',
+                    active ? 'bg-black/[0.05]' : 'hover:bg-black/[0.035]',
                   )}
-                  style={{
-                    backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.backgroundColor = 'var(--hero-accent-soft)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
                 >
-                  {/* active dot — Check 아이콘 대신 브랜드 색 점으로 정제. */}
                   <span
                     className={cn(
-                      'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-opacity',
+                      'h-1.5 w-1.5 rounded-full shrink-0',
                       active ? 'opacity-100' : 'opacity-0',
                     )}
-                    style={{ backgroundColor: 'var(--hero-accent, #10a37f)' }}
+                    style={{ backgroundColor: panelAccent }}
                   />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className="block text-[13.5px] font-medium leading-tight truncate"
-                        style={{ color: 'var(--hero-fg, #ececec)' }}
-                      >
-                        {m.name}
-                      </span>
-                      {m.isDefault && (
-                        <span
-                          className="shrink-0 px-1.5 py-px rounded-full text-[9px] font-semibold tracking-tight"
-                          style={{
-                            color: 'var(--hero-accent, #10a37f)',
-                            backgroundColor: 'var(--hero-accent-soft)',
-                          }}
-                        >
-                          추천
-                        </span>
-                      )}
+                  <span className="min-w-0 flex-1 flex items-baseline gap-1.5">
+                    <span className="shrink-0 text-[13px] font-medium leading-tight text-[#1f2023]">
+                      {m.name}
                     </span>
                     {m.description && (
-                      <span
-                        className="block text-[11px] mt-1 leading-snug"
-                        style={{ color: 'var(--hero-fg-muted, #8e8ea0)' }}
-                      >
+                      <span className="min-w-0 truncate text-[11px] leading-tight text-[#9aa0a8]">
                         {m.description}
                       </span>
                     )}
                   </span>
+                  {m.isDefault && (
+                    <span
+                      className="shrink-0 px-1.5 py-px rounded-full text-[9px] font-semibold tracking-tight"
+                      style={{
+                        color: panelAccent,
+                        backgroundColor: `${panelAccent}1a`,
+                      }}
+                    >
+                      추천
+                    </span>
+                  )}
                 </button>
               );
             })}
