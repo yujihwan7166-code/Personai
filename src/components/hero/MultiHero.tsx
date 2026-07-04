@@ -149,14 +149,37 @@ export function MultiHero({
 
   return (
     <div className="relative flex min-h-full w-full items-center justify-center overflow-hidden">
-      {/* 분할 배경 — 선택된 브랜드 수만큼 세로 칼럼, 각각 실제 브랜드 캔버스. */}
+      {/* 분할 배경 — 선택된 브랜드 수만큼 세로 칼럼, 각각 실제 브랜드 캔버스.
+       * 라이트 브랜드끼리도 분할이 보이도록: 하단 액센트 필드 + 대형 로고 워터마크. */}
       <div className="absolute inset-0 z-0 flex" aria-hidden>
         {selectedBrands.map((b) => (
           <div
             key={b.id}
             data-brand={b.id}
-            className="hero-brand-canvas relative min-w-0 flex-1 transition-all duration-500"
+            className="hero-brand-canvas relative min-w-0 flex-1 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2"
           >
+            {/* 하단 액센트 컬러 필드 — 칼럼 경계가 즉시 보이게. */}
+            <div
+              className="absolute inset-x-0 bottom-0 h-[44%]"
+              style={{
+                background:
+                  'linear-gradient(180deg, transparent, color-mix(in srgb, var(--hero-accent) 26%, transparent))',
+              }}
+            />
+            {/* 이 구역의 주인 — 대형 로고 워터마크 (fg 기반이라 라이트·다크 칼럼 모두 대응). */}
+            <div
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-[0.10]"
+              style={{ color: 'var(--hero-fg)' }}
+            >
+              <BrandLogo
+                imgUrl={b.icon.imgUrl}
+                path={b.icon.path}
+                text={b.icon.text}
+                fill="currentColor"
+                forceWhite={false}
+                size={110}
+              />
+            </div>
             {/* 칼럼 경계 hairline. */}
             <span className="absolute right-0 top-0 bottom-0 w-px bg-white/25 last:hidden" />
           </div>
@@ -199,14 +222,21 @@ export function MultiHero({
         <div className="text-center mb-10">
           {/* eyebrow — 선택 AI 별 모델 픽커 칩 (클릭 → 모델 드롭다운). */}
           <div className="mb-3 flex flex-wrap items-center justify-center gap-2 hero-name-in">
-            {selectedBrands.map((b) => {
+            {selectedBrands.map((b, idx) => {
               const model = resolveModel(b, modelByBrand[b.id]);
               const bg = `#${b.icon.hex}`;
               const logoTone = pickContrastingText(bg);
               const hasChoice = b.models.length > 1;
               const open = openPicker === b.id;
               return (
-                <div key={b.id} className="relative" data-multi-model-picker>
+                <div key={b.id} className="flex items-center gap-2">
+                  {/* 매치업 프레이밍 — 칩 사이 vs. */}
+                  {idx > 0 && (
+                    <span className="select-none text-[10px] font-black uppercase tracking-wide text-slate-400/80">
+                      vs
+                    </span>
+                  )}
+                <div className="relative" data-multi-model-picker>
                   <button
                     type="button"
                     onClick={() => hasChoice && setOpenPicker(open ? null : b.id)}
@@ -294,6 +324,7 @@ export function MultiHero({
                     </div>
                   )}
                 </div>
+                </div>
               );
             })}
           </div>
@@ -338,6 +369,47 @@ export function MultiHero({
             </div>
           }
         />
+
+        {/* 답변 자리 예고 스켈레톤 — 여기에 나란히 도착한다는 기대감 장치. */}
+        <div
+          aria-hidden
+          className="mt-6 grid gap-3 animate-in fade-in duration-500"
+          style={{ gridTemplateColumns: `repeat(${Math.max(selectedBrands.length, 1)}, minmax(0, 1fr))` }}
+        >
+          {selectedBrands.map((b) => {
+            const model = resolveModel(b, modelByBrand[b.id]);
+            const bg = `#${b.icon.hex}`;
+            const logoTone = pickContrastingText(bg);
+            return (
+              <div
+                key={b.id}
+                className="rounded-xl border border-slate-900/10 bg-white/55 px-3.5 py-3 backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="flex h-[18px] w-[18px] items-center justify-center rounded-full shrink-0"
+                    style={{ backgroundColor: bg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
+                  >
+                    <BrandLogo
+                      imgUrl={b.icon.imgUrl}
+                      path={b.icon.path}
+                      text={b.icon.text}
+                      fill={logoTone}
+                      forceWhite={logoTone === '#ffffff'}
+                      size={Math.round(10 * (b.icon.logoScale ?? 1))}
+                    />
+                  </span>
+                  <span className="truncate text-[11px] font-semibold text-slate-500">{model.name}</span>
+                </div>
+                <div className="mt-2.5 space-y-1.5 animate-pulse [animation-duration:2.6s]">
+                  <div className="h-2 w-full rounded bg-slate-900/[0.06]" />
+                  <div className="h-2 w-5/6 rounded bg-slate-900/[0.06]" />
+                  <div className="h-2 w-2/3 rounded bg-slate-900/[0.06]" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
