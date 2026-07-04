@@ -158,7 +158,8 @@ export const BRANDS: readonly Brand[] = [
     name: 'Gemini',
     provider: 'Google',
     initials: 'Ge',
-    icon: { path: siGooglegemini.path, hex: siGooglegemini.hex, imgUrl: '/logos/gemini.svg' },
+    // 스파크 마크는 다이아몬드형이라 점유 면적이 작음 — 광학 보정.
+    icon: { path: siGooglegemini.path, hex: siGooglegemini.hex, imgUrl: '/logos/gemini.svg', logoScale: 1.2 },
     isDark: true,
     expertId: 'gemini',
     models: [
@@ -178,7 +179,8 @@ export const BRANDS: readonly Brand[] = [
     name: 'Perplexity',
     provider: 'Perplexity AI',
     initials: 'Px',
-    icon: { path: siPerplexity.path, hex: siPerplexity.hex, imgUrl: '/logos/perplexity.svg' },
+    // 가는 선 위주의 복잡한 마크 — 작은 사이즈에서 밀도가 낮아 광학 보정.
+    icon: { path: siPerplexity.path, hex: siPerplexity.hex, imgUrl: '/logos/perplexity.svg', logoScale: 1.2 },
     isDark: true,
     expertId: 'perplexity',
     models: [
@@ -214,7 +216,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'DS',
     // deepseek PNG 는 filter: brightness(0) invert(1) 적용 시 edge anti-alias 뿌옇게 나옴.
     // simple-icons SVG path 만 사용 (칩·워터마크 모두 vector 로 clean).
-    icon: { path: siDeepseek.path, hex: siDeepseek.hex },
+    icon: { path: siDeepseek.path, hex: siDeepseek.hex, logoScale: 1.15 },
     isDark: true,
     expertId: 'deepseek',
     models: [
@@ -335,7 +337,7 @@ export const BRANDS: readonly Brand[] = [
     initials: 'MM',
     /* minimax.png 는 코발트 불투명 사각 배경이라 칩에 부적합 → 아치 게이트 마크 path.
      * (로고의 흰 아치 형상 단순화 · viewBox 0 0 24 24) */
-    icon: { path: MINIMAX_ARCH_PATH, hex: '2B4BDB' },
+    icon: { path: MINIMAX_ARCH_PATH, hex: '2B4BDB', logoScale: 1.15 },
     isDark: false,
     expertId: 'minimax',
     models: [
