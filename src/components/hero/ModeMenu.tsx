@@ -103,10 +103,21 @@ export function ModeMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const { favs, isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
   const [openLifeGroup, setOpenLifeGroup] = useState<LifeSubgroupId | null>(null);
+  // 프라이머리 슬라이딩 인디케이터 — 클릭 시 먼저 활성 pill 이 미끄러진 뒤 닫힘.
+  // (즉시 닫으면 슬라이드가 안 보여서 280ms 시퀀스.)
+  const [pendingPrimary, setPendingPrimary] = useState<MainMode | null>(null);
+  const pendingTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (open) setOpenLifeGroup(null);
+    if (open) {
+      setOpenLifeGroup(null);
+      setPendingPrimary(null);
+    }
   }, [open]);
+
+  useEffect(() => () => {
+    if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
+  }, []);
 
   // ESC · 바깥 클릭 — 닫기.
   useEffect(() => {
@@ -340,32 +351,62 @@ export function ModeMenu({
           </ZonePanel>
         )}
 
-        {/* 프라이머리 — AI 대화 3종 큰 타일. */}
-        <div className="grid grid-cols-3 gap-2">
-          {primaryItems.map((item, i) => {
-            const Icon = PRIMARY_ICONS[i] ?? MessagesSquare;
-            const isActive = item.target.kind === 'mode' && item.target.mode === currentMode;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                onClick={() => runItem(item)}
-                className={cn(
-                  'rounded-xl p-3 text-left transition-all duration-100 hover:-translate-y-px hover:shadow-md',
-                )}
-                style={{
-                  backgroundColor: `${item.tint}12`,
-                  boxShadow: isActive ? `inset 0 0 0 2px ${item.tint}` : `inset 0 0 0 1px ${item.tint}30`,
-                }}
-              >
-                <Icon size={17} strokeWidth={2} style={{ color: item.tint }} />
-                <div className="mt-1.5 text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.label}</div>
-                <div className="mt-0.5 truncate text-[10.5px] text-slate-500 dark:text-slate-400">{item.desc}</div>
-              </button>
-            );
-          })}
-        </div>
+        {/* 프라이머리 — AI 대화 3종 큰 타일 + 슬라이딩 인디케이터.
+         * 활성 링이 고정 표시 대신 세그먼트처럼 미끄러져 이동 (uiverse 세그먼트 각색). */}
+        {(() => {
+          const activePrimaryMode = pendingPrimary ?? currentMode;
+          const activeIdx = primaryItems.findIndex(
+            (it) => it.target.kind === 'mode' && it.target.mode === activePrimaryMode,
+          );
+          const activeTint = activeIdx >= 0 ? primaryItems[activeIdx].tint : undefined;
+          return (
+            <div className="relative grid grid-cols-3 gap-2">
+              {/* 인디케이터 — 3등분 폭, left 가 활성 인덱스로 슬라이드. 색도 함께 morph. */}
+              {activeIdx >= 0 && activeTint && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 rounded-xl"
+                  style={{
+                    width: 'calc((100% - 16px) / 3)',
+                    left: `calc(${activeIdx} * ((100% - 16px) / 3 + 8px))`,
+                    boxShadow: `inset 0 0 0 2px ${activeTint}, 0 6px 18px -10px ${activeTint}`,
+                    // Tailwind arbitrary duration 이 JIT 에 안 잡혀서 인라인으로.
+                    transition: 'left 280ms cubic-bezier(0.22,1,0.36,1), box-shadow 280ms ease',
+                  }}
+                />
+              )}
+              {primaryItems.map((item, i) => {
+                const Icon = PRIMARY_ICONS[i] ?? MessagesSquare;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      // 모드 타일 — 인디케이터가 먼저 미끄러진 뒤 닫고 전환.
+                      if (item.target.kind === 'mode' && item.target.mode !== activePrimaryMode) {
+                        setPendingPrimary(item.target.mode);
+                        if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
+                        pendingTimerRef.current = window.setTimeout(() => runItem(item), 280);
+                        return;
+                      }
+                      runItem(item);
+                    }}
+                    className="rounded-xl p-3 text-left transition-all duration-100 hover:-translate-y-px hover:shadow-md"
+                    style={{
+                      backgroundColor: `${item.tint}12`,
+                      boxShadow: `inset 0 0 0 1px ${item.tint}30`,
+                    }}
+                  >
+                    <Icon size={17} strokeWidth={2} style={{ color: item.tint }} />
+                    <div className="mt-1.5 text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.label}</div>
+                    <div className="mt-0.5 truncate text-[10.5px] text-slate-500 dark:text-slate-400">{item.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* 존들 — 노트 → 스튜디오 → 전문 → 토론. */}
         {zones.map((zone) => (
