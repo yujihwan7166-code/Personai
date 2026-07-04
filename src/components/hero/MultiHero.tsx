@@ -18,29 +18,12 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BRANDS, BRAND_BY_ID, type Brand, type BrandId, type BrandModel } from '@/lib/aiBrands';
+import { BRANDS, BRAND_BY_ID, BRAND_ACCENT, type Brand, type BrandId, type BrandModel } from '@/lib/aiBrands';
 import { AiBrandChip } from './AiBrandChip';
 import { BrandLogo } from './BrandLogo';
 import { HeroInput } from './HeroInput';
 import { MODE_TINT } from '@/components/MainModeTabs';
 import { pickContrastingText } from '@/lib/colorUtils';
-
-/* 브랜드 액센트 (brand-themes.css 의 --sb-accent 와 동일 값) — 선택 반응 글로우용. */
-const BRAND_ACCENT: Partial<Record<BrandId, string>> = {
-  gpt: '#0d1117',
-  claude: '#d97757',
-  gemini: '#6a52e0',
-  perplexity: '#20808d',
-  grok: '#17181c',
-  deepseek: '#4d6bfe',
-  kimi: '#8b6ef5',
-  qwen: '#615ced',
-  llama: '#3d7bff',
-  nemotron: '#76b900',
-  command: '#39594d',
-  mistral: '#ea5810',
-  minimax: '#2b4bdb',
-};
 
 const SELECTED_KEY = 'personai.multi.selected_brands';
 const MODELS_KEY = 'personai.multi.selected_models';

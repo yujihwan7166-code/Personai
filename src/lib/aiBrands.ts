@@ -355,6 +355,39 @@ export const BRAND_BY_ID: Record<BrandId, Brand> = Object.fromEntries(
 
 export const DEFAULT_BRAND: BrandId = 'gpt';
 
+/**
+ * 브랜드 액센트 (brand-themes.css 의 --sb-accent 와 동일 값).
+ * 칩·카드 헤더 등 JS 에서 브랜드 색이 필요한 곳에서 공용 사용.
+ */
+export const BRAND_ACCENT: Record<BrandId, string> = {
+  gpt: '#0d1117',
+  claude: '#d97757',
+  gemini: '#6a52e0',
+  perplexity: '#20808d',
+  grok: '#17181c',
+  deepseek: '#4d6bfe',
+  kimi: '#8b6ef5',
+  qwen: '#615ced',
+  llama: '#3d7bff',
+  nemotron: '#76b900',
+  command: '#39594d',
+  mistral: '#ea5810',
+  minimax: '#2b4bdb',
+};
+
+/**
+ * expert/model id → 소속 브랜드 역매핑.
+ * (multi 채팅 카드 헤더 등에서 모델 id 로 브랜드 색을 찾을 때.)
+ */
+export const BRAND_BY_EXPERT_ID: Record<string, Brand> = (() => {
+  const map: Record<string, Brand> = {};
+  for (const b of BRANDS) {
+    map[b.expertId] = b;
+    for (const m of b.models) map[m.id] = b;
+  }
+  return map;
+})();
+
 /** localStorage 키 — 선택된 대표 AI 브랜드. */
 export const SELECTED_BRAND_KEY = 'personai.hero.selected_brand';
 

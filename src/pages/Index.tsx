@@ -7,6 +7,7 @@ import { HeroSection } from '@/components/hero/HeroSection';
 import { MultiHero } from '@/components/hero/MultiHero';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
+import { BRAND_ACCENT, BRAND_BY_EXPERT_ID } from '@/lib/aiBrands';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -5922,27 +5923,25 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       {/* ── Layer 1: Overview — 각 AI별 모든 응답 카드 쌓기 ── */}
                       {multiView === 'overview' && (
                         <div className={cn('grid gap-2 items-start', sortedExperts.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
-                          {sortedExperts.map((expert, ei) => {
+                          {sortedExperts.map((expert) => {
                             const allMsgs = getExpertAllMsgs(expert.id);
                             if (!allMsgs.length) return null;
-                            const gradients = [
-                              'from-blue-100 to-blue-200', 'from-emerald-100 to-emerald-200',
-                              'from-violet-100 to-violet-200', 'from-amber-100 to-amber-200',
-                              'from-rose-100 to-rose-200', 'from-cyan-100 to-cyan-200'
-                            ];
-                            const gradient = gradients[ei % gradients.length];
+                            // 브랜드 액센트 문법 — 히어로 픽커 칩과 동일 언어 (임의 파스텔 폐기).
+                            const cardBrand = BRAND_BY_EXPERT_ID[expert.id];
+                            const cardAccent = cardBrand ? BRAND_ACCENT[cardBrand.id] : '#6a5ae8';
                             return (
                               <div key={expert.id} className="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                                {/* 헤더 */}
+                                {/* 헤더 — 화이트 + 좌측 브랜드 액센트 바. */}
                                 <button type="button"
                                   onClick={() => { setMultiActiveTab(expert.id); if (!isDiscussing) setMultiView('detail'); }}
-                                  className={cn('w-full flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r hover:brightness-95 transition-all', gradient)}>
+                                  className="relative w-full flex items-center gap-2.5 pl-4 pr-4 py-2.5 bg-white hover:bg-slate-50 border-b border-slate-100 transition-colors">
+                                  <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: cardAccent }} aria-hidden />
                                   <ExpertAvatar expert={expert} size="xs" active={allMsgs.some(m => m.isStreaming)} />
                                   <div className="flex-1 min-w-0 text-left">
                                     <span className="text-[12px] font-bold text-slate-800">{expert.nameKo}</span>
                                     {allMsgs.length > 1 && <span className="text-[9px] text-slate-500 ml-1.5">{allMsgs.length}개 답변</span>}
                                   </div>
-                                  {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="typing-dot w-1.5 h-1.5 rounded-full bg-slate-400" /></span>}
+                                  {allMsgs.some(m => m.isStreaming) && <span className="flex gap-0.5"><span className="typing-dot w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cardAccent }} /><span className="typing-dot w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cardAccent }} /><span className="typing-dot w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cardAccent }} /></span>}
                                 </button>
                                 {/* 응답 카드들 — 질문+답변 쌓임 */}
                                 <div className="divide-y divide-slate-100">
@@ -5985,7 +5984,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   <button type="button"
                                     onClick={() => { setMultiActiveTab(expert.id); setMultiView('detail'); }}
                                     className="w-full px-4 py-2 text-left border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                                    <span className="text-[10px] font-semibold text-indigo-500">자세히 보기 →</span>
+                                    <span className="text-[10px] font-semibold" style={{ color: cardAccent }}>자세히 보기 →</span>
                                   </button>
                                 )}
                               </div>
@@ -6008,46 +6007,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                           }
                           return null;
                         };
-                        // Overview 카드와 동일한 컬러 매핑
-                        const detailGradients = [
-                          'from-blue-100 to-blue-200', 'from-emerald-100 to-emerald-200',
-                          'from-violet-100 to-violet-200', 'from-amber-100 to-amber-200',
-                          'from-rose-100 to-rose-200', 'from-cyan-100 to-cyan-200'
-                        ];
-                        const detailTabSkins = [
-                          {
-                            active: 'border-blue-200 bg-white text-blue-700 shadow-[0_-8px_18px_rgba(37,99,235,0.12)]',
-                            idle: 'border-blue-200 bg-blue-100 text-blue-700 hover:bg-blue-100/80'
-                          },
-                          {
-                            active: 'border-emerald-200 bg-white text-emerald-700 shadow-[0_-8px_18px_rgba(5,150,105,0.12)]',
-                            idle: 'border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-100/80'
-                          },
-                          {
-                            active: 'border-violet-200 bg-white text-violet-700 shadow-[0_-8px_18px_rgba(124,58,237,0.12)]',
-                            idle: 'border-violet-200 bg-violet-100 text-violet-700 hover:bg-violet-100/80'
-                          },
-                          {
-                            active: 'border-amber-200 bg-white text-amber-700 shadow-[0_-8px_18px_rgba(217,119,6,0.12)]',
-                            idle: 'border-amber-200 bg-amber-100 text-amber-800 hover:bg-amber-100/80'
-                          },
-                          {
-                            active: 'border-rose-200 bg-white text-rose-700 shadow-[0_-8px_18px_rgba(225,29,72,0.12)]',
-                            idle: 'border-rose-200 bg-rose-100 text-rose-700 hover:bg-rose-100/80'
-                          },
-                          {
-                            active: 'border-cyan-200 bg-white text-cyan-700 shadow-[0_-8px_18px_rgba(8,145,178,0.12)]',
-                            idle: 'border-cyan-200 bg-cyan-100 text-cyan-800 hover:bg-cyan-100/80'
-                          }
-                        ];
-                          const detailNavBgs = [
-                            'bg-blue-50 hover:bg-blue-100',
-                            'bg-emerald-50 hover:bg-emerald-100',
-                            'bg-violet-50 hover:bg-violet-100',
-                            'bg-amber-50 hover:bg-amber-100',
-                            'bg-rose-50 hover:bg-rose-100',
-                            'bg-cyan-50 hover:bg-cyan-100'
-                          ];
+                        // 브랜드 액센트 문법 (인덱스 파스텔 매핑 폐기 · 2026-07-04).
+                        const accentOf = (expertId: string) => {
+                          const eb = BRAND_BY_EXPERT_ID[expertId];
+                          return eb ? BRAND_ACCENT[eb.id] : '#6366f1';
+                        };
                           const activeIdx = sortedExperts.findIndex(e => e.id === activeTab);
                           const detailOrderedExperts = sortedExperts;
                           const detailExpertIndexMap = new Map(
@@ -6065,20 +6029,28 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               >
                                 {detailOrderedExperts.map((expert) => {
                                   const isActive = activeTab === expert.id;
-                                  const sourceIndex = detailExpertIndexMap.get(expert.id) ?? 0;
-                                  const tabSkin = detailTabSkins[sourceIndex % detailTabSkins.length];
                                   const answerCount = getExpertAllMsgs(expert.id).length;
+                                  // 브랜드 액센트 문법 — 인덱스 파스텔 스킨 폐기 (히어로와 동일 언어).
+                                  const tabBrand = BRAND_BY_EXPERT_ID[expert.id];
+                                  const tabAccent = tabBrand ? BRAND_ACCENT[tabBrand.id] : '#6366f1';
                                   return (
                                     <button
                                       key={expert.id}
                                       type="button"
                                       onClick={() => setMultiActiveTab(expert.id)}
-                                      style={{ marginRight: '-8px', zIndex: isActive ? 30 : (sortedExperts.length - (detailExpertIndexMap.get(expert.id) ?? 0)) }}
+                                      style={{
+                                        marginRight: '-8px',
+                                        zIndex: isActive ? 30 : (sortedExperts.length - (detailExpertIndexMap.get(expert.id) ?? 0)),
+                                        borderColor: `${tabAccent}40`,
+                                        color: tabAccent,
+                                        backgroundColor: isActive ? '#ffffff' : `${tabAccent}14`,
+                                        boxShadow: isActive ? `0 -8px 18px ${tabAccent}1f` : undefined,
+                                      }}
                                       className={cn(
                                         'relative flex shrink-0 items-center gap-1.5 rounded-t-[18px] border border-b-0 px-3.5 pb-2 pt-1.5 text-[11px] transition-colors duration-200',
                                         isActive
-                                          ? cn('font-bold', tabSkin.active)
-                                          : cn('font-semibold opacity-80 hover:opacity-100', tabSkin.idle)
+                                          ? 'font-bold'
+                                          : 'font-semibold opacity-80 hover:opacity-100'
                                       )}
                                     >
                                       <ExpertAvatar expert={expert} size="xs" />
@@ -6156,21 +6128,15 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                               <div className="flex h-7 items-center justify-between px-4 bg-white">
                                 {prevExpert ? (
                                   <button onClick={() => setMultiActiveTab(prevExpert.id)}
-                                    className={cn(
-                                      'flex items-center gap-1 text-[10px] font-medium text-slate-500 transition-colors hover:text-slate-700',
-                                      detailNavBgs[((activeIdx - 1 + sortedExperts.length) % sortedExperts.length) % detailNavBgs.length],
-                                      'px-1.5 py-0 rounded-md'
-                                    )}>
+                                    className="flex items-center gap-1 text-[10px] font-medium transition-opacity hover:opacity-80 px-1.5 py-0 rounded-md"
+                                    style={{ color: accentOf(prevExpert.id), backgroundColor: `${accentOf(prevExpert.id)}14` }}>
                                     ← {prevExpert.nameKo}
                                   </button>
                                 ) : <span />}
                                 {nextExpert ? (
                                   <button onClick={() => setMultiActiveTab(nextExpert.id)}
-                                    className={cn(
-                                      'flex items-center gap-1 text-[10px] font-medium text-slate-600 transition-colors hover:text-slate-800',
-                                      detailNavBgs[((activeIdx + 1) % sortedExperts.length) % detailNavBgs.length],
-                                      'px-1.5 py-0 rounded-md'
-                                    )}>
+                                    className="flex items-center gap-1 text-[10px] font-medium transition-opacity hover:opacity-80 px-1.5 py-0 rounded-md"
+                                    style={{ color: accentOf(nextExpert.id), backgroundColor: `${accentOf(nextExpert.id)}14` }}>
                                     {nextExpert.nameKo} →
                                   </button>
                                 ) : <span />}
@@ -7912,6 +7878,9 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                             <div className="flex items-center gap-1.5 min-w-max pr-1">
                               {activeExperts.map((expert) => {
                                 const isSelected = multiFollowUpTargetIds.includes(expert.id);
+                                // 브랜드 액센트 문법 — 히어로 픽커 칩과 동일 언어 (인디고 고정 폐기).
+                                const chipBrand = BRAND_BY_EXPERT_ID[expert.id];
+                                const chipAccent = chipBrand ? BRAND_ACCENT[chipBrand.id] : '#6366f1';
                                 return (
                                   <button
                                   key={expert.id}
@@ -7919,10 +7888,13 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                                   onClick={() => toggleMultiFollowUpTarget(expert.id)}
                                   className={cn(
                                       'h-[28px] inline-flex items-center gap-1.5 px-3 rounded-full text-[11px] font-semibold transition-all border shrink-0',
-                                      isSelected
-                                        ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                                      isSelected ? 'text-white shadow-sm' : 'bg-white text-slate-600',
                                     )}
+                                  style={
+                                    isSelected
+                                      ? { backgroundColor: chipAccent, borderColor: chipAccent }
+                                      : { borderColor: `${chipAccent}55` }
+                                  }
                                   >
                                     <ExpertAvatar expert={expert} size="xs" />
                                     {expert.nameKo}
