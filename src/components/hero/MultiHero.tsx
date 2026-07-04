@@ -25,6 +25,23 @@ import { HeroInput } from './HeroInput';
 import { MODE_TINT } from '@/components/MainModeTabs';
 import { pickContrastingText } from '@/lib/colorUtils';
 
+/* 브랜드 액센트 (brand-themes.css 의 --sb-accent 와 동일 값) — 선택 반응 글로우용. */
+const BRAND_ACCENT: Partial<Record<BrandId, string>> = {
+  gpt: '#0d1117',
+  claude: '#d97757',
+  gemini: '#6a52e0',
+  perplexity: '#20808d',
+  grok: '#17181c',
+  deepseek: '#4d6bfe',
+  kimi: '#8b6ef5',
+  qwen: '#615ced',
+  llama: '#3d7bff',
+  nemotron: '#76b900',
+  command: '#39594d',
+  mistral: '#ea5810',
+  minimax: '#2b4bdb',
+};
+
 const SELECTED_KEY = 'personai.multi.selected_brands';
 const MODELS_KEY = 'personai.multi.selected_models';
 const MAX_PICK = 3;
@@ -149,35 +166,20 @@ export function MultiHero({
 
   return (
     <div className="relative flex min-h-full w-full items-center justify-center overflow-hidden">
-      {/* 분할 배경 — 선택된 브랜드 수만큼 세로 칼럼, 각각 실제 브랜드 캔버스.
-       * 라이트 브랜드끼리도 분할이 보이도록: 하단 액센트 필드 + 대형 로고 워터마크. */}
-      <div className="absolute inset-0 z-0 flex" aria-hidden>
-        {selectedBrands.map((b) => (
-          <div
-            key={b.id}
-            data-brand={b.id}
-            className="hero-brand-canvas relative min-w-0 flex-1 transition-all duration-500 animate-in fade-in"
-          >
-            {/* 하단 액센트 필드 — 칼럼 구분은 이 하나로만 (절제). */}
-            <div
-              className="absolute inset-x-0 bottom-0 h-[38%]"
-              style={{
-                background:
-                  'linear-gradient(180deg, transparent, color-mix(in srgb, var(--hero-accent) 16%, transparent))',
-              }}
-            />
-            {/* 칼럼 경계 hairline. */}
-            <span className="absolute right-0 top-0 bottom-0 w-px bg-white/25 last:hidden" />
-          </div>
-        ))}
-      </div>
-      {/* 중앙 라이트 베일 — 다크 브랜드 칼럼 위에서도 텍스트 가독성 확보. */}
+      {/* 선택 반응 글로우 — 분할 대신, 통합 스펙트럼 캔버스 위에 선택된 브랜드
+       * 액센트색 글로우 3개가 각자 자리에서 은은하게 (좌상·우상·하단 중앙).
+       * 배경은 한 장면으로 차분하고, 선택 변화는 색으로만 반응. */}
       <div
-        className="pointer-events-none absolute inset-0 z-[1]"
+        key={selected.join('.')}
         aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 animate-in fade-in duration-700"
         style={{
-          background:
-            'radial-gradient(64% 62% at 50% 46%, rgba(247, 248, 252, 0.92) 0%, rgba(247, 248, 252, 0.62) 62%, rgba(247, 248, 252, 0.14) 100%)',
+          background: selectedBrands
+            .map((b, i) => {
+              const pos = ['16% 22%', '84% 22%', '50% 88%'][i] ?? '50% 50%';
+              return `radial-gradient(42% 36% at ${pos}, ${BRAND_ACCENT[b.id] ?? '#6a5ae8'}1e, transparent 70%)`;
+            })
+            .join(', '),
         }}
       />
 
