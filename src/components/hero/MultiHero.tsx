@@ -156,30 +156,16 @@ export function MultiHero({
           <div
             key={b.id}
             data-brand={b.id}
-            className="hero-brand-canvas relative min-w-0 flex-1 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2"
+            className="hero-brand-canvas relative min-w-0 flex-1 transition-all duration-500 animate-in fade-in"
           >
-            {/* 하단 액센트 컬러 필드 — 칼럼 경계가 즉시 보이게. */}
+            {/* 하단 액센트 필드 — 칼럼 구분은 이 하나로만 (절제). */}
             <div
-              className="absolute inset-x-0 bottom-0 h-[44%]"
+              className="absolute inset-x-0 bottom-0 h-[38%]"
               style={{
                 background:
-                  'linear-gradient(180deg, transparent, color-mix(in srgb, var(--hero-accent) 26%, transparent))',
+                  'linear-gradient(180deg, transparent, color-mix(in srgb, var(--hero-accent) 16%, transparent))',
               }}
             />
-            {/* 이 구역의 주인 — 대형 로고 워터마크 (fg 기반이라 라이트·다크 칼럼 모두 대응). */}
-            <div
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-[0.10]"
-              style={{ color: 'var(--hero-fg)' }}
-            >
-              <BrandLogo
-                imgUrl={b.icon.imgUrl}
-                path={b.icon.path}
-                text={b.icon.text}
-                fill="currentColor"
-                forceWhite={false}
-                size={110}
-              />
-            </div>
             {/* 칼럼 경계 hairline. */}
             <span className="absolute right-0 top-0 bottom-0 w-px bg-white/25 last:hidden" />
           </div>
@@ -369,47 +355,6 @@ export function MultiHero({
             </div>
           }
         />
-
-        {/* 답변 자리 예고 스켈레톤 — 여기에 나란히 도착한다는 기대감 장치. */}
-        <div
-          aria-hidden
-          className="mt-6 grid gap-3 animate-in fade-in duration-500"
-          style={{ gridTemplateColumns: `repeat(${Math.max(selectedBrands.length, 1)}, minmax(0, 1fr))` }}
-        >
-          {selectedBrands.map((b) => {
-            const model = resolveModel(b, modelByBrand[b.id]);
-            const bg = `#${b.icon.hex}`;
-            const logoTone = pickContrastingText(bg);
-            return (
-              <div
-                key={b.id}
-                className="rounded-xl border border-slate-900/10 bg-white/55 px-3.5 py-3 backdrop-blur-sm"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="flex h-[18px] w-[18px] items-center justify-center rounded-full shrink-0"
-                    style={{ backgroundColor: bg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
-                  >
-                    <BrandLogo
-                      imgUrl={b.icon.imgUrl}
-                      path={b.icon.path}
-                      text={b.icon.text}
-                      fill={logoTone}
-                      forceWhite={logoTone === '#ffffff'}
-                      size={Math.round(10 * (b.icon.logoScale ?? 1))}
-                    />
-                  </span>
-                  <span className="truncate text-[11px] font-semibold text-slate-500">{model.name}</span>
-                </div>
-                <div className="mt-2.5 space-y-1.5 animate-pulse [animation-duration:2.6s]">
-                  <div className="h-2 w-full rounded bg-slate-900/[0.06]" />
-                  <div className="h-2 w-5/6 rounded bg-slate-900/[0.06]" />
-                  <div className="h-2 w-2/3 rounded bg-slate-900/[0.06]" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
