@@ -8,7 +8,7 @@
  *   → AI 칩과 검색 칩은 동시에 highlight 되지 않음.
  */
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Briefcase, CalendarDays, FileText, Globe, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
@@ -335,12 +335,15 @@ export function HeroSection({
         <div className="text-center mb-10">
           {secretaryMode ? (
             // 비서 모드 eyebrow — 어떤 데이터를 읽을지 소스 선택 (전체/플래너/메모/위키).
+            // 이모지 대신 lucide 아이콘 — 컨시어지 무드에 맞게 절제 (2026-07-04 피드백).
             <div
               key={`${identityKey}-name`}
               className="mb-2 flex justify-center gap-1 animate-in fade-in duration-300"
             >
               {SECRETARY_SCOPES.map((s) => {
                 const active = s.id === secretaryScope;
+                const ScopeIcon: LucideIcon =
+                  s.id === 'planner' ? CalendarDays : s.id === 'memo' ? FileText : s.id === 'wiki' ? Globe : Briefcase;
                 return (
                   <button
                     key={s.id}
@@ -365,7 +368,7 @@ export function HeroSection({
                           }
                     }
                   >
-                    <span>{s.emoji}</span>
+                    <ScopeIcon size={14} strokeWidth={1.9} className="shrink-0 opacity-85" />
                     <span>{s.label}</span>
                   </button>
                 );
