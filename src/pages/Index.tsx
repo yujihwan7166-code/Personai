@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { ModeMenu } from '@/components/hero/ModeMenu';
 import { FavoriteChips } from '@/components/hero/FavoriteChips';
+import { FeatureRail } from '@/components/hero/FeatureRail';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { MultiHero } from '@/components/hero/MultiHero';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
@@ -4941,6 +4942,32 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   // 즐겨찾기 칩 — 실행 로직은 ModeMenu 콜백과 동일 계약.
                   <FavoriteChips
                     currentMode={getMainMode(discussionMode)}
+                    onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+                    onSelectDebateSub={(sub) => handleModeChange(sub)}
+                    onSelectPremiumDomain={(domainId) => {
+                      handleModeChange('expert');
+                      handleSelectPremiumDomain(domainId);
+                    }}
+                    onSelectAssistantCard={(cardId) => {
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+                      setSelectedAssistantCard(cardId);
+                    }}
+                    onSelectTool={(_kind, _toolId, label) => {
+                      if (getMainMode(discussionMode) !== 'general') {
+                        handleModeChange(mainToDiscussion('general'));
+                      }
+                      setHeroInputValue(`${label} `);
+                    }}
+                  />
+                }
+                featureRail={
+                  // 기능 레일 — 입력창 아래 발견성 장치, 실행 계약은 위와 동일.
+                  <FeatureRail
+                    onOpenMenu={() => setModeLauncherOpen(true)}
                     onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
                     onSelectDebateSub={(sub) => handleModeChange(sub)}
                     onSelectPremiumDomain={(domainId) => {

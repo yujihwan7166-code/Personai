@@ -68,6 +68,8 @@ interface Props {
   onOpenModeDropdown?: () => void;
   /** 즐겨찾기 칩 줄 — pill 오른쪽에 렌더 (FavoriteChips). */
   favoriteChips?: React.ReactNode;
+  /** 기능 레일 — 입력창 아래 카테고리 아이콘 줄 (FeatureRail). AI 기본 모드에서만. */
+  featureRail?: React.ReactNode;
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
@@ -88,6 +90,7 @@ export function HeroSection({
   modeId,
   onOpenModeDropdown,
   favoriteChips,
+  featureRail,
   value,
   onChange,
   onSubmitToAi,
@@ -566,6 +569,9 @@ export function HeroSection({
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
+
+        {/* 기능 레일 — AI 기본 모드에서만 (검색 armed·비서 모드는 집중 경험이라 제외). */}
+        {!isSearchArmed && !secretaryMode && featureRail}
 
       </div>
 
