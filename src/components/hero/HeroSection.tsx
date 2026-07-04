@@ -202,7 +202,7 @@ export function HeroSection({
       ? (armedChip!.greeting ?? `${armedChip!.name}에서 검색해요`)
       : activeBrand.greeting;
   const subheading = secretaryMode
-    ? `${secretaryScopeObj.emoji} ${scopeLabel}를 읽고 내 상황에 맞게 답해요`
+    ? `${scopeLabel}를 읽고 내 상황에 맞게 답해요 · Gemini 2.5 Flash Lite`
     : isSearchArmed
       ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요')
       : activeBrand.subtitle;

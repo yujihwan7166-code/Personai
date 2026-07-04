@@ -248,30 +248,31 @@
   --hero-input-border: rgba(77, 107, 254, 0.26);
 }
 
-/* ────── Secretary — 프리미엄 컨시어지 (딥 네이비 + 샴페인 골드 · 핀스트라이프) ──────
- * 바이올렛 그라디언트가 비서답지 않다는 피드백 → 정장 핀스트라이프 +
- * 데스크램프 골드 조명의 이그제큐티브 어시스턴트 무드. */
+/* ────── Secretary — 아침 브리핑 (웜 아이보리 + 골드 햇살 · 체크리스트 카드) ──────
+ * 비서 = AI·브라우저와 배타적인 세 번째 선택지 (Gemini 2.5 Flash Lite 연결).
+ * 다크 네이비가 무거워서 재구성: 아침 데스크의 밝고 정돈된 무드 —
+ * 핀스트라이프 (정장) + 우측에 걸친 일정 체크리스트 카드. */
 .hero-brand-canvas[data-brand='secretary'] {
-  --hero-bg: #1b2233;
+  --hero-bg: #faf7f0;
   --hero-mesh:
-    radial-gradient(55% 40% at 50% -5%, rgba(201, 162, 78, 0.16), transparent 60%),
-    linear-gradient(135deg, rgba(201, 162, 78, 0.06) 0%, transparent 40%),
-    radial-gradient(45% 40% at 88% 96%, rgba(120, 140, 200, 0.10), transparent 60%);
-  /* 정장 핀스트라이프 — 7px 간격 미세 수직 라인. */
+    radial-gradient(62% 46% at 50% -8%, rgba(196, 154, 66, 0.14), transparent 60%),
+    radial-gradient(44% 38% at 8% 92%, rgba(120, 140, 180, 0.08), transparent 60%);
+  /* 핀스트라이프 (웜 잉크) + 체크리스트 카드 (우측 가장자리 크롭). */
   --hero-pattern:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  --hero-fg: #f2ede2;
-  --hero-fg-muted: #a9a595;
-  --hero-accent: #c9a24e;
-  --hero-accent-soft: rgba(201, 162, 78, 0.14);
-  --hero-ring: #c9a24e;
+    linear-gradient(90deg, rgba(63, 55, 40, 0.03) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 180'%3E%3Crect x='6' y='6' width='138' height='168' rx='16' fill='none' stroke='rgba(154,123,45,0.20)' stroke-width='5'/%3E%3Cg fill='none' stroke-linecap='round'%3E%3Ccircle cx='34' cy='48' r='9' stroke='rgba(154,123,45,0.30)' stroke-width='4'/%3E%3Cpath d='M30 48 L33 51 L39 43' stroke='rgba(154,123,45,0.38)' stroke-width='3.5'/%3E%3Cline x1='54' y1='48' x2='118' y2='48' stroke='rgba(154,123,45,0.22)' stroke-width='5'/%3E%3Ccircle cx='34' cy='90' r='9' stroke='rgba(154,123,45,0.30)' stroke-width='4'/%3E%3Cpath d='M30 90 L33 93 L39 85' stroke='rgba(154,123,45,0.38)' stroke-width='3.5'/%3E%3Cline x1='54' y1='90' x2='106' y2='90' stroke='rgba(154,123,45,0.22)' stroke-width='5'/%3E%3Ccircle cx='34' cy='132' r='9' stroke='rgba(154,123,45,0.24)' stroke-width='4'/%3E%3Cline x1='54' y1='132' x2='112' y2='132' stroke='rgba(154,123,45,0.16)' stroke-width='5'/%3E%3C/g%3E%3C/svg%3E");
+  --hero-fg: #322c1e;
+  --hero-fg-muted: #837a63;
+  --hero-accent: #9a7b2d;
+  --hero-accent-soft: rgba(154, 123, 45, 0.10);
+  --hero-ring: #9a7b2d;
   --hero-radius-input: 12px;
   /* Gowun Batang — 따뜻한 한글 명조, 비서의 다정한 톤. */
   --hero-font-heading: 'Gowun Batang', 'Newsreader', ui-serif, serif;
   --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --hero-hairline: rgba(255, 255, 255, 0.10);
-  --hero-input-bg: rgba(22, 28, 44, 0.55);
-  --hero-input-border: rgba(201, 162, 78, 0.32);
+  --hero-hairline: rgba(50, 44, 30, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(154, 123, 45, 0.28);
 }
 
 /* ────── Kimi (Moonshot AI) — 달빛 밤하늘 (보름달 glow + 고정 별 · 반복 X) ────── */
@@ -432,9 +433,9 @@
   --hero-mesh:
     radial-gradient(60% 42% at 50% -5%, rgba(255, 255, 255, 0.09), transparent 60%),
     linear-gradient(115deg, transparent 44%, rgba(255, 255, 255, 0.05) 50%, transparent 56%);
-  /* 대형 X 모노그램 — 중앙 뒤 워터마크 (저채도 화이트). */
+  /* 실제 X 로고 — 중앙 뒤 대형 워터마크 (저채도 화이트). */
   --hero-pattern:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg fill='rgba(255,255,255,0.045)'%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(36 60 60)'/%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(-36 60 60)'/%3E%3C/g%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E");
   --hero-fg: #ffffff;
   --hero-fg-muted: #9a9aa4;
   --hero-accent: #ffffff;
@@ -738,9 +739,10 @@
 
 /* 브랜드별 background 스택 조정. */
 .hero-brand-canvas[data-brand='secretary'] {
-  /* mesh 3 non-repeat + 핀스트라이프 7px repeat. */
-  background-size: auto, auto, auto, 7px 7px;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  /* mesh 2 non-repeat + 핀스트라이프 7px repeat + 체크리스트 카드 (우측 크롭). */
+  background-size: auto, auto, 7px 7px, 190px 228px;
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-position: center, center, 0 0, right -34px top 40%;
 }
 
 .hero-brand-canvas[data-brand='claude'] {
@@ -1021,7 +1023,7 @@
  *   Mistral    바람 줄기 2겹 패럴랙스 (mistral = 프랑스 북서풍)
  *   Nemotron   GPU 빔 스윕 + 서킷 그리드 (pattern)
  *   Command    코랄 glow 숨쉬기 (Cohere 페블 에코)
- *   비서        데스크램프 골드 glow + 우하 블루 (컨시어지)
+ *   비서        아침 햇살 골드 glow + 좌하 블루 (라이트 브리핑)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 .hero-fx,
@@ -1351,18 +1353,18 @@
   animation: fx-breathe 16s ease-in-out infinite;
 }
 
-/* ── 비서 — 데스크램프 골드 glow + 우하 소프트 블루 (컨시어지) ── */
+/* ── 비서 — 아침 햇살 골드 glow + 좌하 소프트 블루 (라이트) ── */
 .hero-brand-canvas[data-brand='secretary'] .hero-fx::before {
-  top: 2%; left: 28%;
+  top: -4%; left: 28%;
   width: 44%; height: 34%; border-radius: 50%;
-  background: radial-gradient(circle, rgba(201, 162, 78, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(196, 154, 66, 0.13), transparent 70%);
   filter: blur(52px);
   animation: fx-breathe 13s ease-in-out infinite;
 }
 .hero-brand-canvas[data-brand='secretary'] .hero-fx::after {
-  bottom: 6%; right: 8%;
+  bottom: 6%; left: 8%;
   width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(120, 140, 200, 0.09), transparent 70%);
+  background: radial-gradient(circle, rgba(120, 140, 180, 0.08), transparent 70%);
   filter: blur(44px);
   animation: fx-breathe 16s ease-in-out infinite;
   animation-delay: 4s;
@@ -1606,13 +1608,13 @@
   animation-delay: 2s;
 }
 
-/* ── 비서 — 골드 스파클 점 반짝임 ── */
+/* ── 비서 — 골드 스파클 점 반짝임 (라이트용 딥 골드) ── */
 .hero-brand-canvas[data-brand='secretary'] .hero-fx2::before {
   inset: 0;
   background:
-    radial-gradient(circle 1.5px at 30% 22%, rgba(232, 205, 140, 0.42), transparent 3px),
-    radial-gradient(circle 1px   at 68% 14%, rgba(232, 205, 140, 0.36), transparent 2px),
-    radial-gradient(circle 1px   at 82% 44%, rgba(232, 205, 140, 0.30), transparent 2px);
+    radial-gradient(circle 1.5px at 30% 22%, rgba(154, 123, 45, 0.35), transparent 3px),
+    radial-gradient(circle 1px   at 68% 14%, rgba(154, 123, 45, 0.30), transparent 2px),
+    radial-gradient(circle 1px   at 82% 44%, rgba(154, 123, 45, 0.24), transparent 2px);
   animation: fx-twinkle 6s ease-in-out infinite;
   animation-delay: 1s;
 }
@@ -1657,7 +1659,7 @@
 [data-brand='perplexity']   { --sb-accent: #20808d; }
 [data-brand='grok']         { --sb-accent: #17181c; } /* 히어로 accent(흰색)는 라이트 사이드바에서 안 보임 */
 [data-brand='deepseek']     { --sb-accent: #4d6bfe; }
-[data-brand='secretary']    { --sb-accent: #c9a24e; }
+[data-brand='secretary']    { --sb-accent: #9a7b2d; }
 [data-brand='kimi']         { --sb-accent: #8b6ef5; }
 [data-brand='naver']        { --sb-accent: #03c75a; }
 [data-brand='google']       { --sb-accent: #4285f4; }
