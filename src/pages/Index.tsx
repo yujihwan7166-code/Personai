@@ -4941,7 +4941,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   // 즐겨찾기 칩 — 실행 로직은 ModeMenu 콜백과 동일 계약.
                   <FavoriteChips
                     currentMode={getMainMode(discussionMode)}
-                    onOpenMenu={() => setModeLauncherOpen(true)}
                     onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
                     onSelectDebateSub={(sub) => handleModeChange(sub)}
                     onSelectPremiumDomain={(domainId) => {
