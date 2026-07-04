@@ -725,6 +725,28 @@
   --hero-input-border: rgba(234, 88, 16, 0.20);
 }
 
+/* ────── MiniMax — 코발트 라이트 (공식 블루 · 아치 게이트) ────── */
+.hero-brand-canvas[data-brand='minimax'] {
+  --hero-bg: #f3f5fd;
+  --hero-mesh:
+    radial-gradient(62% 46% at 50% -8%, rgba(43, 75, 219, 0.13), transparent 60%),
+    radial-gradient(44% 38% at 90% 90%, rgba(43, 75, 219, 0.07), transparent 60%);
+  /* 아치 게이트 — 하단 중앙에서 솟아오르는 구도 (로고 형상, 크롭). */
+  --hero-pattern:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 21 V11 Q4 4 12 4 Q20 4 20 11 V21 H15.5 V11.5 Q15.5 9 12 9 Q8.5 9 8.5 11.5 V21 Z' fill='rgba(43,75,219,0.07)'/%3E%3C/svg%3E");
+  --hero-fg: #1c2447;
+  --hero-fg-muted: #5f6787;
+  --hero-accent: #2b4bdb;
+  --hero-accent-soft: rgba(43, 75, 219, 0.09);
+  --hero-ring: #2b4bdb;
+  --hero-radius-input: 14px;
+  --hero-font-heading: 'Gothic A1', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --hero-hairline: rgba(28, 36, 71, 0.10);
+  --hero-input-bg: #ffffff;
+  --hero-input-border: rgba(43, 75, 219, 0.24);
+}
+
 /* ────── 히어로 캔버스 공통 스타일 ────── */
 
 /* 배경 = base color + mesh (accent) + pattern (signature).
@@ -883,6 +905,13 @@
   background-position: center, center, center, center, right -70px top 30%, left 9% top 20%;
 }
 
+.hero-brand-canvas[data-brand='minimax'] {
+  /* mesh 2 + 아치 게이트 — 하단 중앙에서 솟음 (크롭). */
+  background-size: auto, auto, 300px 300px;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, center bottom -110px;
+}
+
 .hero-brand-canvas[data-brand='github'] {
   /* mesh 1 + 커밋 잔디 — 하단 중앙-좌측 가로 스트립. */
   background-size: auto, 260px 156px;
@@ -1020,6 +1049,7 @@
  *   Kimi       보름달 halo 맥동 + 별
  *   Qwen       인디고 오브 숨쉬기 (라이트)
  *   Llama      파란 오브 2개 교차 유영
+ *   MiniMax    코발트 오브 유영
  *   Mistral    바람 줄기 2겹 패럴랙스 (mistral = 프랑스 북서풍)
  *   Nemotron   GPU 빔 스윕 + 서킷 그리드 (pattern)
  *   Command    코랄 glow 숨쉬기 (Cohere 페블 에코)
@@ -1298,6 +1328,15 @@
   background: radial-gradient(circle, rgba(140, 185, 255, 0.13), transparent 70%);
   filter: blur(46px);
   animation: fx-orbit 30s ease-in-out infinite reverse;
+}
+
+/* ── MiniMax — 코발트 오브 유영 ── */
+.hero-brand-canvas[data-brand='minimax'] .hero-fx::before {
+  top: 12%; right: 10%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(43, 75, 219, 0.10), transparent 70%);
+  filter: blur(48px);
+  animation: fx-orbit 26s ease-in-out infinite;
 }
 
 /* ── Mistral — 바람 줄기 2겹 (패럴랙스 · mistral = 북서풍) ── */
@@ -1678,6 +1717,7 @@
 [data-brand='nemotron']     { --sb-accent: #76b900; }
 [data-brand='command']      { --sb-accent: #39594d; }
 [data-brand='mistral']      { --sb-accent: #ea5810; }
+[data-brand='minimax']      { --sb-accent: #2b4bdb; }
 
 /* 다크 모드 보정 — 어두운 사이드바 위에서 안 보이는 다크 액센트만 반전 */
 .dark [data-brand='grok']   { --sb-accent: #e7e9ee; --sb-accent-fg: #17181c; }

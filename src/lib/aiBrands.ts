@@ -27,7 +27,8 @@ export type BrandId =
   | 'qwen'
   | 'llama'
   | 'nemotron'
-  | 'command';
+  | 'command'
+  | 'minimax';
 
 export interface BrandIcon {
   /** SVG viewBox 은 항상 "0 0 24 24" (simple-icons 규격). */
@@ -104,6 +105,13 @@ const CLAUDE_ASTERISK_PATH =
  */
 const GROK_BOLT_PATH =
   'M14.17 3.89 A8.4 8.4 0 0 0 3.89 14.17 L6.11 13.58 A6.1 6.1 0 0 1 13.58 6.11 Z M9.83 20.11 A8.4 8.4 0 0 0 20.11 9.83 L17.89 10.42 A6.1 6.1 0 0 1 10.42 17.89 Z M1.6 22.4 Q13.45 13.45 22.4 1.6 Q10.55 10.55 1.6 22.4 Z';
+
+/**
+ * MiniMax 아치 게이트 마크 — 공식 로고의 흰 아치(터널) 형상 단순화.
+ * viewBox 0 0 24 24 · 바깥 아치 + 안쪽 아치 컷.
+ */
+const MINIMAX_ARCH_PATH =
+  'M4 21 V11 Q4 4 12 4 Q20 4 20 11 V21 H15.5 V11.5 Q15.5 9 12 9 Q8.5 9 8.5 11.5 V21 Z';
 
 export const BRANDS: readonly Brand[] = [
   {
@@ -319,6 +327,25 @@ export const BRANDS: readonly Brand[] = [
     greeting: '빠르게, 정확하게.',
     subtitle: 'Mistral · 유럽의 경량·강한 모델',
     placeholder: '짧고 명확한 답을 원하시면…',
+  },
+  {
+    id: 'minimax',
+    name: 'MiniMax',
+    provider: 'MiniMax',
+    initials: 'MM',
+    /* minimax.png 는 코발트 불투명 사각 배경이라 칩에 부적합 → 아치 게이트 마크 path.
+     * (로고의 흰 아치 형상 단순화 · viewBox 0 0 24 24) */
+    icon: { path: MINIMAX_ARCH_PATH, hex: '2B4BDB' },
+    isDark: false,
+    expertId: 'minimax',
+    models: [
+      { id: 'minimax',                  name: 'MiniMax M2.7', description: '멀티모달 플래그십', isDefault: true },
+      { id: 'or-minimax-minimax-m3',    name: 'MiniMax M3',   description: '최신 · 대량 처리' },
+      { id: 'or-minimax-minimax-m2-5',  name: 'MiniMax M2.5', description: '초장문 실무 초안' },
+    ],
+    greeting: '통째로 맡겨보세요.',
+    subtitle: 'MiniMax · 초장문 컨텍스트 · 멀티모달',
+    placeholder: '긴 문서든 코드든 그대로 붙여넣으세요…',
   },
 ];
 
