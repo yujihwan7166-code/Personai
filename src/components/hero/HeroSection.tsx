@@ -7,8 +7,33 @@
  *   → AI 칩 클릭 시 검색 armed 는 자동으로 해제.
  *   → AI 칩과 검색 칩은 동시에 highlight 되지 않음.
  */
-import { useEffect, useState } from 'react';
-import { ChevronDown, Briefcase, CalendarDays, FileText, Globe, type LucideIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ChevronDown, Briefcase, CalendarDays, FileText, Globe,
+  MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
+  Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
+  type LucideIcon,
+} from 'lucide-react';
+import { MODE_TINT } from '@/components/MainModeTabs';
+import type { MainMode } from '@/types/expert';
+
+/* 모드 pill 아이콘 — 현재 모드가 바뀌면 아이콘도 바뀌어 "선택기" 임을 알림. */
+const MODE_PILL_ICONS: Partial<Record<MainMode, LucideIcon>> = {
+  general: MessagesSquare,
+  multi: Layers,
+  debate: Swords,
+  research_main: FlaskConical,
+  premium_main: ShieldCheck,
+  stakeholder_main: Users,
+  assistant: Wrench,
+  player: Gamepad2,
+  study_main: BookOpen,
+  voice_main: Mic,
+  translate_main: Languages,
+  convert_main: FileOutput,
+  media_main: Clapperboard,
+  brainstorm_main: Lightbulb,
+};
 import { cn } from '@/lib/utils';
 import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
 import { BrandChipStrip } from './BrandChipStrip';
@@ -37,6 +62,8 @@ interface Props {
   topSlot?: React.ReactNode;
   /** 모드 pill 라벨 (예: "일반"). */
   modeLabel?: string;
+  /** 현재 메인 모드 id — pill 아이콘·틴트용. */
+  modeId?: MainMode;
   /** 모드 pill 클릭 시 모드 드롭다운 오픈 콜백. */
   onOpenModeDropdown?: () => void;
   /** 입력 텍스트 · 컨트롤드 상태. */
@@ -56,6 +83,7 @@ interface Props {
 export function HeroSection({
   topSlot,
   modeLabel,
+  modeId,
   onOpenModeDropdown,
   value,
   onChange,
@@ -117,6 +145,12 @@ export function HeroSection({
     } catch {
       /* noop */
     }
+  };
+  // 호버 프리뷰 — pill 에 260ms 머물면 메뉴가 미리 열림 (Arc 감성, 실수 오픈 방지 딜레이).
+  const pillHoverTimerRef = useRef<number | null>(null);
+  const openModeMenu = () => {
+    dismissModeHint();
+    onOpenModeDropdown?.();
   };
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
@@ -344,25 +378,41 @@ export function HeroSection({
             <>
               <button
                 type="button"
-                onClick={() => {
-                  dismissModeHint();
-                  onOpenModeDropdown();
+                onClick={openModeMenu}
+                onMouseEnter={() => {
+                  pillHoverTimerRef.current = window.setTimeout(openModeMenu, 260);
+                }}
+                onMouseLeave={() => {
+                  if (pillHoverTimerRef.current) {
+                    window.clearTimeout(pillHoverTimerRef.current);
+                    pillHoverTimerRef.current = null;
+                  }
                 }}
                 aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
                 className={cn(
-                  'group flex items-center gap-1.5 h-8 pl-3.5 pr-2 rounded-full',
+                  'group flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full',
                   'text-[13px] font-semibold tracking-tight',
                   'border transition-all duration-200 hover:-translate-y-px',
                 )}
                 style={{
                   color: 'var(--hero-fg)',
-                  backgroundColor: 'var(--hero-accent-soft)',
-                  borderColor: showModeHint ? 'var(--hero-ring)' : 'var(--hero-hairline)',
+                  backgroundColor: modeId
+                    ? `color-mix(in oklab, ${MODE_TINT[modeId]} 10%, transparent)`
+                    : 'var(--hero-accent-soft)',
+                  borderColor: showModeHint
+                    ? 'var(--hero-ring)'
+                    : modeId
+                      ? `color-mix(in oklab, ${MODE_TINT[modeId]} 36%, transparent)`
+                      : 'var(--hero-hairline)',
                   boxShadow: showModeHint
                     ? '0 0 0 3px var(--hero-accent-soft), 0 4px 14px -6px var(--hero-accent-soft)'
                     : undefined,
                 }}
               >
+                {modeId && MODE_PILL_ICONS[modeId] && (() => {
+                  const PillIcon = MODE_PILL_ICONS[modeId]!;
+                  return <PillIcon size={14} strokeWidth={2} style={{ color: MODE_TINT[modeId] }} />;
+                })()}
                 <span>{modeLabel}</span>
                 <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
               </button>
@@ -484,6 +534,7 @@ export function HeroSection({
           onToggleWebSearch={() => setWebSearchOn((v) => !v)}
           deepThinkOn={deepThinkOn}
           onToggleDeepThink={() => setDeepThinkOn((v) => !v)}
+          onOpenModeMenu={onOpenModeDropdown ? openModeMenu : undefined}
           chipStrip={
             <BrandChipStrip
               // 검색 armed 시 AI 칩 highlight 없음 (null 로 전달).

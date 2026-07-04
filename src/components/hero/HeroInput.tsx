@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
   Lightbulb,
   Mic,
+  LayoutGrid,
   MoreHorizontal,
   Paperclip,
   Settings2,
@@ -66,6 +67,8 @@ interface Props {
   /** 심층 사고 토글. */
   deepThinkOn?: boolean;
   onToggleDeepThink?: () => void;
+  /** 모드 메뉴 열기 — 툴바 제2 진입점 (발견성). */
+  onOpenModeMenu?: () => void;
   autoFocus?: boolean;
 }
 
@@ -84,6 +87,7 @@ export function HeroInput({
   onToggleWebSearch,
   deepThinkOn = false,
   onToggleDeepThink,
+  onOpenModeMenu,
   autoFocus,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -175,6 +179,11 @@ export function HeroInput({
         {/* 하단 툴바 — 첨부 · 이미지 · 음성 · 웹 · 심층 · 더보기 */}
         <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
           <div className="flex items-center gap-0">
+            {onOpenModeMenu && (
+              <ToolbarButton onClick={onOpenModeMenu} label="모드 전환 — 토론·리서치·스튜디오·라이프">
+                <LayoutGrid size={17} />
+              </ToolbarButton>
+            )}
             <ToolbarButton onClick={onAttach} label="파일 첨부">
               <Paperclip size={17} />
             </ToolbarButton>

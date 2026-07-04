@@ -38,7 +38,8 @@ import {
   stripDataUrlPrefix,
   type GeneralImageIntent,
 } from '@/lib/generalImage';
-import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, X } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronDown, ChevronRight, ArrowDown, ArrowRight, X, FlaskConical, Layers } from 'lucide-react';
+import { toast } from 'sonner';
 import type { ChatVariant } from '@/components/DiscussionMessage';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -171,6 +172,11 @@ const Index = () => {
   // 검색엔진 armed — 공유 스토어. 외부 캔버스(data-brand)도 검색엔진 테마로 morph
   // (이전엔 HeroSection 내부만 알아서 배경이 AI 것으로 남던 버그).
   const { armed: armedSearchEngine } = useSearchEngineArm();
+  // 멀티 AI 넛지 — 짧은 시간에 브랜드를 여러 번 갈아타며 질문하면 1회성으로 제안.
+  const brandSwitchTimesRef = useRef<number[]>([]);
+  useEffect(() => {
+    brandSwitchTimesRef.current = [...brandSwitchTimesRef.current, Date.now()].slice(-8);
+  }, [selectedHeroBrand]);
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4886,6 +4892,20 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 onChange={setHeroInputValue}
                 onSubmitToAi={(_brandId, expertId, text) => {
                   setHeroInputValue('');
+                  // 멀티 AI 넛지 — 4분 내 브랜드 3회 이상 전환 후 질문하면 1회성 제안.
+                  try {
+                    if (window.localStorage.getItem('personai.multi_nudge_done') !== '1') {
+                      const now = Date.now();
+                      const recent = brandSwitchTimesRef.current.filter((t) => now - t < 4 * 60 * 1000);
+                      if (recent.length >= 3) {
+                        window.localStorage.setItem('personai.multi_nudge_done', '1');
+                        toast('여러 AI 의 답이 궁금하신가요?', {
+                          description: '다중 AI 모드로 한 번에 비교할 수 있어요.',
+                          action: { label: '다중 AI', onClick: () => handleModeChange('multi') },
+                        });
+                      }
+                    }
+                  } catch { /* noop */ }
                   // 선택된 모델(expertId) 로 직접 라우팅. useSelectedModel 에서 이미
                   // 브랜드 안의 유효한 model.id 로 resolve 되어 넘어옴.
                   if (expertId) {
@@ -4896,6 +4916,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   }
                 }}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
+                modeId={getMainMode(discussionMode)}
                 onOpenModeDropdown={() => setModeLauncherOpen(true)}
               />
             </div>
@@ -7687,6 +7708,55 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   );
                 })
               )}
+
+              {/* general 답변 후 — 다음 행동 칩. 모드의 가치를 사용 흐름 안에서 발견시킴. */}
+              {isDone && getMainMode(discussionMode) === 'general' && (() => {
+                const lastUserQ = (
+                  currentQuestion ||
+                  [...messages].reverse().find((m) => m.expertId === '__user__')?.content ||
+                  ''
+                ).trim();
+                if (!lastUserQ) return null;
+                return (
+                  <div className="mt-5 flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                    <span className="text-[11px]" style={{ color: 'var(--hero-fg-muted, #94a3b8)' }}>
+                      이 주제 더 파보기
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResearchInitialQuestion(lastUserQ);
+                        setDiscussionMode('research');
+                      }}
+                      className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-[11.5px] font-medium transition-all duration-150 hover:-translate-y-px"
+                      style={{
+                        color: 'var(--hero-fg, #334155)',
+                        borderColor: 'var(--hero-hairline, rgba(100,116,139,0.25))',
+                        backgroundColor: 'var(--hero-accent-soft, rgba(100,116,139,0.06))',
+                      }}
+                    >
+                      <FlaskConical size={12} /> 심층 리서치로 검증
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ids = Array.from(new Set([...selectedExpertIds, 'gpt', 'claude', 'gemini'])).slice(0, 4);
+                        handleNewDiscussion();
+                        setDiscussionMode('multi');
+                        window.setTimeout(() => { void runDiscussionWithUsage(lastUserQ, ids, 'multi'); }, 120);
+                      }}
+                      className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-[11.5px] font-medium transition-all duration-150 hover:-translate-y-px"
+                      style={{
+                        color: 'var(--hero-fg, #334155)',
+                        borderColor: 'var(--hero-hairline, rgba(100,116,139,0.25))',
+                        backgroundColor: 'var(--hero-accent-soft, rgba(100,116,139,0.06))',
+                      }}
+                    >
+                      <Layers size={12} /> 다중 AI 로 비교
+                    </button>
+                  </div>
+                );
+              })()}
 
             </div>
           </div>

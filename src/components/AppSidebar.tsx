@@ -21,6 +21,7 @@ import {
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
   CalendarDays, Sparkles, FileText, Network,
   Star, Bookmark, Palette, Cloud, Inbox,
+  MessagesSquare, Swords, FlaskConical,
 } from 'lucide-react';
 
 interface Props {
@@ -1506,20 +1507,39 @@ export function AppSidebar({
                   <Sparkles className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                   <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">아직 대화가 없어요</p>
                   <p className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
-                    위 모드를 골라서<br/>첫 질문을 해보세요
+                    이렇게 시작해보세요
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleGoHome}
-                    className={cn(
-                      "mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-semibold hover:opacity-90 transition-all duration-300",
-                      !activeBrand && "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
-                    )}
-                    style={activeBrand ? { backgroundColor: 'var(--sb-accent)', color: 'var(--sb-accent-fg)' } : undefined}
-                  >
-                    <Plus className="w-3 h-3" />
-                    새 채팅
-                  </button>
+                  {/* 죽은 카피 대신 클릭되는 모드 미니 카드 — 모드 발견성 (2026-07-04). */}
+                  <div className="mt-3 space-y-1.5 text-left">
+                    <button
+                      type="button"
+                      onClick={handleGoHome}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-semibold hover:opacity-90 transition-all duration-300",
+                        !activeBrand && "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
+                      )}
+                      style={activeBrand ? { backgroundColor: 'var(--sb-accent)', color: 'var(--sb-accent-fg)' } : undefined}
+                    >
+                      <MessagesSquare className="w-3.5 h-3.5 shrink-0" />
+                      새 채팅 — AI 골라 1:1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onModeChange('standard')}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Swords className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                      AI 라운드테이블 토론
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onModeChange('research')}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <FlaskConical className="w-3.5 h-3.5 shrink-0 text-cyan-500" />
+                      심층 리서치 리포트
+                    </button>
+                  </div>
                 </>
               )}
             </div>
