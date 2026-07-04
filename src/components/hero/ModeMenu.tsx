@@ -19,12 +19,14 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   Star, ChevronDown, MessagesSquare, Layers, FlaskConical,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
+import { useFavoriteModes, MAX_FAVS, type ItemTarget } from '@/hooks/useFavoriteModes';
 import {
   MODE_TINT,
   MODE_DESCRIPTION,
@@ -38,45 +40,7 @@ import {
   type LifeSubgroupId,
 } from '@/components/MainModeTabs';
 
-/* ── 즐겨찾기 (localStorage) ── */
-
-const FAV_KEY = 'personai.favorite_modes';
-
-type ItemTarget =
-  | { kind: 'mode'; mode: MainMode }
-  | { kind: 'debate'; sub: DebateSubMode }
-  | { kind: 'premium'; domainId: PremiumDomainId }
-  | { kind: 'assistant'; cardId: string }
-  | { kind: 'life'; toolId: string }
-  | { kind: 'player'; toolId: string }
-  | { kind: 'hub'; hubId: string };
-
-interface FavEntry {
-  id: string;
-  label: string;
-  desc?: string;
-  tint: string;
-  target: ItemTarget;
-}
-
-function readFavs(): FavEntry[] {
-  try {
-    const raw = window.localStorage.getItem(FAV_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as FavEntry[];
-    return Array.isArray(parsed) ? parsed.filter((r) => r?.target?.kind) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeFavs(next: FavEntry[]): void {
-  try {
-    window.localStorage.setItem(FAV_KEY, JSON.stringify(next));
-  } catch {
-    /* noop */
-  }
-}
+/* ── 즐겨찾기 — useFavoriteModes 공유 스토어 (히어로 칩 줄과 실시간 동기화) ── */
 
 /* ── 모델 ── */
 
@@ -137,14 +101,11 @@ export function ModeMenu({
 }: Props) {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [favs, setFavs] = useState<FavEntry[]>([]);
+  const { favs, isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
   const [openLifeGroup, setOpenLifeGroup] = useState<LifeSubgroupId | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setFavs(readFavs());
-      setOpenLifeGroup(null);
-    }
+    if (open) setOpenLifeGroup(null);
   }, [open]);
 
   // ESC · 바깥 클릭 — 닫기.
@@ -252,16 +213,19 @@ export function ModeMenu({
      
   }, [labels]);
 
-  /* ── 즐겨찾기 ── */
-
-  const isFav = (id: string) => favs.some((f) => f.id === id);
+  /* ── 즐겨찾기 — 별 = 히어로 상단 칩. 5개 제한 (상단 공간). ── */
 
   const toggleFav = (item: MenuItem) => {
-    const next = isFav(item.id)
-      ? favs.filter((f) => f.id !== item.id)
-      : [...favs, { id: item.id, label: item.label, desc: item.desc, tint: item.tint, target: item.target }];
-    setFavs(next);
-    writeFavs(next);
+    const result = toggleFavRaw({
+      id: item.id, label: item.label, desc: item.desc, tint: item.tint, target: item.target,
+    });
+    if (result === 'full') {
+      toast(`즐겨찾기 칩은 ${MAX_FAVS}개까지예요`, {
+        description: '기존 칩을 하나 해제하고 다시 시도해주세요.',
+      });
+    } else if (result === 'added') {
+      toast(`'${item.label}' 칩이 상단에 추가됐어요`);
+    }
   };
 
   /* ── 실행 ── */

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { ModeMenu } from '@/components/hero/ModeMenu';
+import { FavoriteChips } from '@/components/hero/FavoriteChips';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { MultiHero } from '@/components/hero/MultiHero';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
@@ -4936,6 +4937,33 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
                 modeId={getMainMode(discussionMode)}
                 onOpenModeDropdown={() => setModeLauncherOpen(true)}
+                favoriteChips={
+                  // 즐겨찾기 칩 — 실행 로직은 ModeMenu 콜백과 동일 계약.
+                  <FavoriteChips
+                    currentMode={getMainMode(discussionMode)}
+                    onOpenMenu={() => setModeLauncherOpen(true)}
+                    onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+                    onSelectDebateSub={(sub) => handleModeChange(sub)}
+                    onSelectPremiumDomain={(domainId) => {
+                      handleModeChange('expert');
+                      handleSelectPremiumDomain(domainId);
+                    }}
+                    onSelectAssistantCard={(cardId) => {
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+                      setSelectedAssistantCard(cardId);
+                    }}
+                    onSelectTool={(_kind, _toolId, label) => {
+                      if (getMainMode(discussionMode) !== 'general') {
+                        handleModeChange(mainToDiscussion('general'));
+                      }
+                      setHeroInputValue(`${label} `);
+                    }}
+                  />
+                }
               />
             </div>
           ) : (getMainMode(discussionMode) === 'multi' && selectable) ? (

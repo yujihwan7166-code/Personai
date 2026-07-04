@@ -66,6 +66,8 @@ interface Props {
   modeId?: MainMode;
   /** 모드 pill 클릭 시 모드 드롭다운 오픈 콜백. */
   onOpenModeDropdown?: () => void;
+  /** 즐겨찾기 칩 줄 — pill 오른쪽에 렌더 (FavoriteChips). */
+  favoriteChips?: React.ReactNode;
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
@@ -85,6 +87,7 @@ export function HeroSection({
   modeLabel,
   modeId,
   onOpenModeDropdown,
+  favoriteChips,
   value,
   onChange,
   onSubmitToAi,
@@ -376,6 +379,8 @@ export function HeroSection({
         {topSlot ??
           (modeLabel && onOpenModeDropdown ? (
             <>
+              {/* pill + 즐겨찾기 칩 한 줄 — 칩은 우측으로 이어지고 좁으면 줄바꿈. */}
+              <div className="flex flex-wrap items-center gap-1.5 max-w-[calc(100vw-160px)]">
               <button
                 type="button"
                 onClick={openModeMenu}
@@ -416,6 +421,8 @@ export function HeroSection({
                 <span>{modeLabel}</span>
                 <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
               </button>
+              {favoriteChips}
+              </div>
               {showModeHint && (
                 <div
                   className="mt-2 w-max max-w-[240px] rounded-xl border px-3 py-2 text-[11.5px] leading-snug animate-in fade-in slide-in-from-top-1 duration-300"
