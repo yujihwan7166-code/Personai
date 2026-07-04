@@ -269,7 +269,7 @@ export function HeroSection({
   const selectSection = (
     <div className="px-1 pb-0.5">
       <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">브라우저</div>
-      <div className="grid grid-cols-5 gap-0.5">
+      <div className="grid grid-cols-12 gap-0.5">
         {HERO_SEARCH_CHIPS.map((c) =>
           selectCell({
             key: c.id,
@@ -298,7 +298,7 @@ export function HeroSection({
         )}
       </div>
       <div className="mt-1.5 px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
-      <div className="grid grid-cols-5 gap-0.5">
+      <div className="grid grid-cols-12 gap-0.5">
         {[...BRANDS, ...customBrands].map((b) =>
           selectCell({
             key: b.id,
