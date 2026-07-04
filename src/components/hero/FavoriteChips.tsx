@@ -1,17 +1,22 @@
 /**
- * 즐겨찾기 칩 — 모드 pill 오른쪽 원클릭 바로가기 줄.
+ * 즐겨찾기 칩 — 모드 pill 오른쪽 접이식 바로가기 줄.
  *
  * ModeMenu 에서 별(★)을 켠 항목이 여기 칩으로 나타나고, 클릭하면 그 모드로
- * 즉시 이동. hover 시 × 로 메뉴 안 열고도 제거 가능. 마지막 + 칩은 모드
+ * 즉시 이동. hover 시 × 로 메뉴 안 열고도 제거 가능. 마지막 + 는 모드
  * 메뉴 오픈 (여기에 추가한다는 학습 장치). 즐겨찾기 0개면 + 만 조용히 표시.
  *
- * 시각 언어는 모드 pill 과 동일 — 틴트 10% 배경 + 36% 보더 라운드 필.
+ * 접이식 (2026-07-05): ★n 토글 버튼으로 칩 줄이 옆으로 펼쳐지고 접힘
+ * (max-width 슬라이드 + 칩별 스태거). 상태는 localStorage 기억 —
+ * 항상 펴놓고 쓰는 사람의 원클릭 접근성 보존. 기본값은 펼침.
  */
-import { X, Plus, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { X, Plus, ArrowRight, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { useFavoriteModes, type ItemTarget } from '@/hooks/useFavoriteModes';
+
+const OPEN_KEY = 'personai.fav_chips_open';
 
 interface Props {
   currentMode: MainMode;
@@ -34,6 +39,24 @@ export function FavoriteChips({
 }: Props) {
   const navigate = useNavigate();
   const { favs, removeFav } = useFavoriteModes();
+  const [open, setOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem(OPEN_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleOpen = () => {
+    setOpen((prev) => {
+      try {
+        window.localStorage.setItem(OPEN_KEY, prev ? '0' : '1');
+      } catch {
+        /* noop */
+      }
+      return !prev;
+    });
+  };
 
   const runTarget = (target: ItemTarget, label: string) => {
     switch (target.kind) {
@@ -63,16 +86,52 @@ export function FavoriteChips({
       {favs.length > 0 && (
         <span aria-hidden className="mx-1 h-4 w-px shrink-0" style={{ backgroundColor: 'var(--hero-hairline)' }} />
       )}
-      {favs.map((f) => {
+      {/* ★n 토글 — 칩 줄 접기/펴기. */}
+      {favs.length > 0 && (
+        <button
+          type="button"
+          onClick={toggleOpen}
+          aria-expanded={open}
+          aria-label={open ? '즐겨찾기 칩 접기' : `즐겨찾기 칩 ${favs.length}개 펼치기`}
+          title={open ? '접기' : '즐겨찾기 펼치기'}
+          className={cn(
+            'inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2',
+            'transition-colors duration-150 hover:bg-black/[0.05]',
+          )}
+          style={{ color: open ? '#d97706' : 'var(--hero-fg)' }}
+        >
+          <Star size={12} strokeWidth={2.2} className={open ? 'fill-amber-500 text-amber-500' : 'opacity-60'} />
+          <span className="text-[11px] font-semibold tabular-nums opacity-70">{favs.length}</span>
+        </button>
+      )}
+      {/* 접이식 컨테이너 — max-width 슬라이드로 옆으로 쭉 펼쳐짐. */}
+      <div
+        className="flex items-center gap-0.5 overflow-hidden"
+        style={{
+          maxWidth: open ? 640 : 0,
+          opacity: open ? 1 : 0,
+          transition: 'max-width 320ms cubic-bezier(0.22,1,0.36,1), opacity 200ms ease',
+        }}
+        aria-hidden={!open}
+      >
+      {favs.map((f, chipIdx) => {
         const isActive = f.target.kind === 'mode' && f.target.mode === currentMode;
         return (
           <span
             key={f.id}
-            className="group/chip relative inline-flex h-7 shrink-0 items-center rounded-full transition-colors duration-150"
+            className="group/chip relative inline-flex h-7 shrink-0 items-center rounded-full"
             style={{
               backgroundColor: isActive
                 ? `color-mix(in oklab, ${f.tint} 12%, transparent)`
                 : undefined,
+              // 펼침 스태거 — 칩이 순서대로 왼쪽에서 미끄러져 들어옴.
+              opacity: open ? 1 : 0,
+              transform: open ? 'translateX(0)' : 'translateX(-10px)',
+              transition: [
+                `opacity 180ms ease ${open ? chipIdx * 30 : 0}ms`,
+                `transform 240ms cubic-bezier(0.22,1,0.36,1) ${open ? chipIdx * 30 : 0}ms`,
+                'background-color 150ms ease',
+              ].join(', '),
             }}
             onMouseEnter={(e) => {
               if (!isActive) e.currentTarget.style.backgroundColor = `color-mix(in oklab, ${f.tint} 8%, transparent)`;
@@ -84,6 +143,7 @@ export function FavoriteChips({
             <button
               type="button"
               onClick={() => runTarget(f.target, f.label)}
+              tabIndex={open ? 0 : -1}
               title={f.desc ? `${f.label} — ${f.desc}` : f.label}
               className="flex h-full max-w-[140px] items-center gap-1.5 pl-2.5 pr-2.5 text-[12px] font-medium tracking-tight"
               style={{ color: 'var(--hero-fg)' }}
@@ -108,6 +168,7 @@ export function FavoriteChips({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); removeFav(f.id); }}
+              tabIndex={open ? 0 : -1}
               aria-label={`${f.label} 즐겨찾기 해제`}
               className={cn(
                 'absolute -right-0.5 -top-0.5 hidden group-hover/chip:flex',
@@ -120,6 +181,7 @@ export function FavoriteChips({
           </span>
         );
       })}
+      </div>
       {/* + — 모드 메뉴 오픈. 즐겨찾기 없을 땐 이것만 조용히. */}
       <button
         type="button"
