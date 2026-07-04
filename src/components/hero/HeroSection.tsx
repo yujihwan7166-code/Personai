@@ -7,7 +7,7 @@
  *   → AI 칩 클릭 시 검색 armed 는 자동으로 해제.
  *   → AI 칩과 검색 칩은 동시에 highlight 되지 않음.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, Briefcase, CalendarDays, FileText, Globe, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAND_BY_ID, type BrandId } from '@/lib/aiBrands';
@@ -86,6 +86,38 @@ export function HeroSection({
   const [webSearchOn, setWebSearchOn] = useState(false);
   const [deepThinkOn, setDeepThinkOn] = useState(false);
   const { prefs: chatPrefs } = useChatPrefs();
+
+  // 모드 pill 발견성 힌트 — 첫 3회 방문 한정 코치마크. 8초 후 자동 숨김,
+  // pill 을 한 번이라도 열면 영구 종료 (localStorage).
+  const [showModeHint, setShowModeHint] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      if (window.localStorage.getItem('personai.mode_hint_done') === '1') return false;
+      const shows = Number(window.localStorage.getItem('personai.mode_hint_shows') || '0');
+      if (shows >= 3) return false;
+      // 세션당 1회만 카운트 — StrictMode 이중 마운트·리마운트가 예산을 소진하지 않게.
+      if (!window.sessionStorage.getItem('personai.mode_hint_counted')) {
+        window.localStorage.setItem('personai.mode_hint_shows', String(shows + 1));
+        window.sessionStorage.setItem('personai.mode_hint_counted', '1');
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (!showModeHint) return undefined;
+    const t = window.setTimeout(() => setShowModeHint(false), 8000);
+    return () => window.clearTimeout(t);
+  }, [showModeHint]);
+  const dismissModeHint = () => {
+    setShowModeHint(false);
+    try {
+      window.localStorage.setItem('personai.mode_hint_done', '1');
+    } catch {
+      /* noop */
+    }
+  };
 
   // 커스텀 AI 배열을 Brand 형태로 변환.
   const customBrands = customAisHook.customAis.map(customAiToBrand);
@@ -304,28 +336,52 @@ export function HeroSection({
         ) : null}
       </div>
 
-      {/* 상단 모드 pill — top-left 코너, 절제된 크기. */}
+      {/* 상단 모드 pill — top-left 코너, 절제된 크기.
+       * 발견성: 첫 3회 방문 한정 코치마크 + 액센트 링 (열어보면 영구 종료). */}
       <div className="absolute top-4 left-4 z-20">
         {topSlot ??
           (modeLabel && onOpenModeDropdown ? (
-            <button
-              type="button"
-              onClick={onOpenModeDropdown}
-              aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
-              className={cn(
-                'group flex items-center gap-1.5 h-8 pl-3.5 pr-2 rounded-full',
-                'text-[13px] font-semibold tracking-tight',
-                'border transition-all duration-200 hover:-translate-y-px',
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  dismissModeHint();
+                  onOpenModeDropdown();
+                }}
+                aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
+                className={cn(
+                  'group flex items-center gap-1.5 h-8 pl-3.5 pr-2 rounded-full',
+                  'text-[13px] font-semibold tracking-tight',
+                  'border transition-all duration-200 hover:-translate-y-px',
+                )}
+                style={{
+                  color: 'var(--hero-fg)',
+                  backgroundColor: 'var(--hero-accent-soft)',
+                  borderColor: showModeHint ? 'var(--hero-ring)' : 'var(--hero-hairline)',
+                  boxShadow: showModeHint
+                    ? '0 0 0 3px var(--hero-accent-soft), 0 4px 14px -6px var(--hero-accent-soft)'
+                    : undefined,
+                }}
+              >
+                <span>{modeLabel}</span>
+                <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+              </button>
+              {showModeHint && (
+                <div
+                  className="mt-2 w-max max-w-[240px] rounded-xl border px-3 py-2 text-[11.5px] leading-snug animate-in fade-in slide-in-from-top-1 duration-300"
+                  style={{
+                    color: 'var(--hero-fg)',
+                    backgroundColor: 'var(--hero-input-bg, #ffffff)',
+                    borderColor: 'var(--hero-hairline)',
+                    boxShadow: '0 8px 24px -12px rgba(0,0,0,0.25)',
+                  }}
+                  role="status"
+                >
+                  <span className="font-semibold" style={{ color: 'var(--hero-accent)' }}>모드 전환</span>
+                  {' — 토론·리서치·스튜디오·라이프도 여기 있어요'}
+                </div>
               )}
-              style={{
-                color: 'var(--hero-fg)',
-                backgroundColor: 'var(--hero-accent-soft)',
-                borderColor: 'var(--hero-hairline)',
-              }}
-            >
-              <span>{modeLabel}</span>
-              <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-            </button>
+            </>
           ) : null)}
       </div>
 
