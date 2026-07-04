@@ -2199,12 +2199,14 @@ export function MainModeTabs({
                 </button>
               </div>
               <div className="grid grid-cols-6 gap-2">
+                {/* 어시스턴트 밴드 — 별 없이 원형 디자인 유지 (2026-07-05 피드백,
+                 * 즐겨찾기 등록은 다른 아이템들에서). */}
                 {ASSISTANT_TILES.slice(0, 6).map((tile) => {
                   const Icon = tile.icon;
                   const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
-                  return withFavStar(
-                    { id: `assistant-${tile.cardId}`, label: tile.label, tint: tile.tint, target: { kind: 'assistant', cardId: tile.cardId } },
+                  return (
                     <button
+                      key={`hero-${tile.cardId}`}
                       type="button"
                       onClick={() => handleSelectAssistantTool(tile.cardId)}
                       role="menuitem"
@@ -2224,7 +2226,7 @@ export function MainModeTabs({
                       <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
                         {tile.label}
                       </span>
-                    </button>,
+                    </button>
                   );
                 })}
               </div>
