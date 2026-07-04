@@ -5,6 +5,7 @@ import { MainModeTabs } from '@/components/MainModeTabs';
 import { ModeMenu } from '@/components/hero/ModeMenu';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
+import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
 import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
@@ -167,6 +168,9 @@ const Index = () => {
   // Genspark-스타일 히어로 — 일반 모드 대화 시작 전 화면.
   const [heroInputValue, setHeroInputValue] = useState('');
   const { brand: selectedHeroBrand } = useSelectedBrand();
+  // 검색엔진 armed — 공유 스토어. 외부 캔버스(data-brand)도 검색엔진 테마로 morph
+  // (이전엔 HeroSection 내부만 알아서 배경이 AI 것으로 남던 버그).
+  const { armed: armedSearchEngine } = useSearchEngineArm();
   // #9 isDiscussing 전환 추적 — true→false 로 바뀔 때만 알림.
   const wasDiscussingRef = useRef(false);
   useEffect(() => {
@@ -4769,8 +4773,11 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
             // Genspark-스타일 브랜드 morph — 일반 모드에서만 배경/변수 오버라이드.
             // 대화 시작 후에도 유지 (Q1: 예).
             getMainMode(discussionMode) === 'general' && 'hero-brand-canvas',
+            // 대화 중 — 장식 감쇠 + 다크 브랜드 배경 밝힘 (채팅 가독성, brand-themes.css).
+            getMainMode(discussionMode) === 'general' && messages.length > 0 && 'hero-in-chat',
           )}
-          data-brand={getMainMode(discussionMode) === 'general' ? selectedHeroBrand : undefined}
+          // 검색엔진 armed 시 외부 캔버스도 검색엔진 테마 — AI 와 브라우저는 완전 개별.
+          data-brand={getMainMode(discussionMode) === 'general' ? (armedSearchEngine ?? selectedHeroBrand) : undefined}
         >
           {/* 모드 메뉴 — pill 아래 2-패널 커맨드 팝오버 (hover 전환 · 검색 · 페이지 전환 없음). */}
           <ModeMenu

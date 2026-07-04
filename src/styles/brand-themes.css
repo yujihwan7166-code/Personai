@@ -1394,6 +1394,27 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   대화 중 가독성 (hero-in-chat · 2026-07-04)
+
+   대화가 시작되면 배경은 무드가 아니라 "종이" — 텍스트가 주인공.
+   1) 장식 레이어 (FX·글로우) 를 30% 로 감쇠해 시각 소음 제거.
+   2) 다크 브랜드는 배경을 한 단계 밝혀 본문 대비 확보.
+   ═══════════════════════════════════════════════════════════════ */
+
+.hero-brand-canvas.hero-in-chat .hero-fx,
+.hero-brand-canvas.hero-in-chat .hero-fx2,
+.hero-brand-canvas.hero-in-chat .hero-living-glow {
+  opacity: 0.3;
+  transition: opacity 320ms ease;
+}
+
+.hero-in-chat[data-brand='grok']      { --hero-bg: #2b2b30; }
+.hero-in-chat[data-brand='kimi']      { --hero-bg: #2b2254; }
+.hero-in-chat[data-brand='llama']     { --hero-bg: #1d305f; }
+.hero-in-chat[data-brand='nemotron']  { --hero-bg: #131a13; }
+.hero-in-chat[data-brand='secretary'] { --hero-bg: #232c42; }
+
+/* ═══════════════════════════════════════════════════════════════
    사이드바 브랜드 틴트 (A안, 2026-07-03)
 
    AppSidebar <aside class="app-sidebar" data-brand="..."> 에서만 소비.
