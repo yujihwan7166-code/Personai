@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Star, ChevronDown, MessagesSquare, Layers, FlaskConical, ArrowRight,
+  Star, MessagesSquare, Layers, FlaskConical,
   CalendarDays, Globe, Cloud, StickyNote, Shapes, NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
@@ -117,20 +117,13 @@ export function ModeMenu({
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
-  const [openLifeGroup, setOpenLifeGroup] = useState<LifeSubgroupId | null>(null);
-  // 하단 섹션 펼침 (토론·라이프).
-  const [showAll, setShowAll] = useState(false);
   // 프라이머리 슬라이딩 인디케이터 — 클릭 시 먼저 활성 pill 이 미끄러진 뒤 닫힘.
   // (즉시 닫으면 슬라이드가 안 보여서 280ms 시퀀스.)
   const [pendingPrimary, setPendingPrimary] = useState<MainMode | null>(null);
   const pendingTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setOpenLifeGroup(null);
-      setPendingPrimary(null);
-      setShowAll(false);
-    }
+    if (open) setPendingPrimary(null);
   }, [open]);
 
   useEffect(() => () => {
@@ -294,13 +287,14 @@ export function ModeMenu({
 
   const PRIMARY_ICONS: LucideIcon[] = [MessagesSquare, Layers, FlaskConical];
 
-  /* ── 아이콘 카드 (섹션 공통) — 틴트 사각 아이콘 + 라벨 + 설명 한 줄. ── */
+  /* ── 아이콘 카드 (섹션 공통) — 아이콘 + 라벨 한 줄 컴팩트 (설명 제거, 2026-07-05).
+   * 설명은 title 툴팁으로만. */
   const ItemCard = ({ item }: { item: MenuItem }) => {
     const isActive = item.target.kind === 'mode' && item.target.mode === currentMode;
     const faved = isFav(item.id);
     const Icon = item.icon;
     return (
-      <div className="group relative rounded-xl bg-white dark:bg-slate-900 ring-1 ring-black/[0.06] dark:ring-white/10 hover:ring-2 hover:-translate-y-px hover:shadow-sm transition-all duration-100"
+      <div className="group relative rounded-lg bg-white dark:bg-slate-900 ring-1 ring-black/[0.06] dark:ring-white/10 hover:ring-2 hover:-translate-y-px hover:shadow-sm transition-all duration-100"
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.setProperty('--tw-ring-color', item.tint); }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.removeProperty('--tw-ring-color'); }}
       >
@@ -308,25 +302,21 @@ export function ModeMenu({
           type="button"
           role="menuitem"
           onClick={() => runItem(item)}
-          className="flex w-full items-center gap-2 px-2 py-1.5 text-left"
+          title={item.desc}
+          className="flex w-full items-center gap-1.5 px-2 py-[6px] text-left"
         >
           {Icon && (
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
               style={{ backgroundColor: `${item.tint}16` }}
             >
-              <Icon size={13} strokeWidth={2.2} style={{ color: item.tint }} />
+              <Icon size={11} strokeWidth={2.2} style={{ color: item.tint }} />
             </span>
           )}
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
-              <span className="truncate">{item.label}</span>
-              {isActive && (
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: item.tint }} aria-label="현재 모드" />
-              )}
-            </span>
-            {item.desc && (
-              <span className="mt-px block truncate text-[10px] text-slate-400 dark:text-slate-500">{item.desc}</span>
+          <span className="min-w-0 flex items-center gap-1.5 text-[12px] font-semibold leading-tight text-slate-800 dark:text-slate-100">
+            <span className="truncate">{item.label}</span>
+            {isActive && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: item.tint }} aria-label="현재 모드" />
             )}
           </span>
         </button>
@@ -335,11 +325,11 @@ export function ModeMenu({
           onClick={(e) => { e.stopPropagation(); toggleFav(item); }}
           aria-label={faved ? '즐겨찾기 해제' : '즐겨찾기 등록'}
           className={cn(
-            'absolute right-1 top-1 rounded p-0.5 transition-all duration-100',
+            'absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 transition-all duration-100',
             faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400',
           )}
         >
-          <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
+          <Star size={10} className={faved ? 'fill-amber-400' : undefined} />
         </button>
       </div>
     );
@@ -362,7 +352,7 @@ export function ModeMenu({
       role="menu"
       aria-label="모드 선택"
       className={cn(
-        'absolute top-3 left-3 z-40 w-[560px] max-w-[calc(100%-24px)]',
+        'absolute top-3 left-3 z-40 w-[720px] max-w-[calc(100%-24px)]',
         'rounded-2xl overflow-hidden',
         'bg-white dark:bg-slate-900',
         'border border-slate-200 dark:border-slate-700',
@@ -416,15 +406,15 @@ export function ModeMenu({
                       }
                       runItem(item);
                     }}
-                    className="rounded-xl p-3 text-left transition-all duration-100 hover:-translate-y-px hover:shadow-md"
+                    title={item.desc}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-all duration-100 hover:-translate-y-px hover:shadow-md"
                     style={{
                       backgroundColor: `${item.tint}12`,
                       boxShadow: `inset 0 0 0 1px ${item.tint}30`,
                     }}
                   >
-                    <Icon size={17} strokeWidth={2} style={{ color: item.tint }} />
-                    <div className="mt-1.5 text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.label}</div>
-                    <div className="mt-0.5 truncate text-[10.5px] text-slate-500 dark:text-slate-400">{item.desc}</div>
+                    <Icon size={15} strokeWidth={2} className="shrink-0" style={{ color: item.tint }} />
+                    <span className="truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.label}</span>
                   </button>
                 );
               })}
@@ -433,10 +423,11 @@ export function ModeMenu({
         })()}
         </Section>
 
-        {/* 기본 노출 섹션 — 노트 & 정리 → 스튜디오 → 프리미엄. */}
-        {zones.filter((z) => z.id !== 'debate').map((zone) => (
+        {/* 전 섹션 상시 노출 — 숨김 계층 없음 (2026-07-05 피드백: 펼침 UI 를
+         * 바깥으로). 노트 & 정리 → 스튜디오 → 프리미엄 → 토론·시뮬. */}
+        {zones.map((zone) => (
           <Section key={zone.id} label={zone.label} color={zone.color}>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {zone.items.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}
@@ -444,74 +435,23 @@ export function ModeMenu({
           </Section>
         ))}
 
-        {/* 접힌 섹션 — 토론·시뮬 + 라이프는 "모든 기능 보기" 뒤에. */}
-        {showAll && (
-          <div className="space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            {zones.filter((z) => z.id === 'debate').map((zone) => (
-              <Section key={zone.id} label={zone.label} color={zone.color}>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {zone.items.map((item) => (
+        {/* 라이프 — 아코디언 폐기, 서브그룹 라벨 + 플랫 그리드로 전부 노출. */}
+        <Section label="라이프" color={ZONE_COLORS.life}>
+          <div className="space-y-1.5">
+            {lifeGroups.map((g) => (
+              <div key={g.gid} className="flex items-start gap-2">
+                <span className="w-[72px] shrink-0 pt-[7px] text-right text-[10px] font-semibold leading-tight text-slate-400 dark:text-slate-500">
+                  {g.label}
+                </span>
+                <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5">
+                  {g.items.map((item) => (
                     <ItemCard key={item.id} item={item} />
                   ))}
                 </div>
-              </Section>
-            ))}
-
-            {/* 라이프 — 그룹 카드 축약, 클릭 시 제자리 펼침. */}
-            <Section label="라이프" color={ZONE_COLORS.life}>
-              <div className="grid grid-cols-3 gap-1.5">
-                {lifeGroups.map((g) => {
-                  const opened = openLifeGroup === g.gid;
-                  return (
-                    <button
-                      key={g.gid}
-                      type="button"
-                      onClick={() => setOpenLifeGroup(opened ? null : g.gid)}
-                      aria-expanded={opened}
-                      className={cn(
-                        'flex items-center justify-between gap-1 rounded-xl bg-white dark:bg-slate-900 px-2.5 py-2 text-left',
-                        'ring-1 ring-black/[0.06] dark:ring-white/10 transition-all duration-100 hover:-translate-y-px hover:shadow-sm',
-                        opened && 'ring-2',
-                      )}
-                      style={opened ? { ['--tw-ring-color' as string]: ZONE_COLORS.life } : undefined}
-                    >
-                      <span className="min-w-0 truncate text-[12px] font-semibold text-slate-800 dark:text-slate-100">{g.label}</span>
-                      <span className="flex shrink-0 items-center gap-1">
-                        <span className="rounded-full px-1.5 py-px text-[9px] font-bold text-white" style={{ backgroundColor: ZONE_COLORS.life }}>
-                          {g.items.length}
-                        </span>
-                        <ChevronDown size={11} className={cn('text-slate-400 transition-transform', opened && 'rotate-180')} />
-                      </span>
-                    </button>
-                  );
-                })}
               </div>
-              {openLifeGroup && (
-                <div className="mt-1.5 grid grid-cols-3 gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {lifeGroups.find((g) => g.gid === openLifeGroup)?.items.map((item) => (
-                    <ItemCard key={item.id} item={item} />
-                  ))}
-                </div>
-              )}
-            </Section>
+            ))}
           </div>
-        )}
-
-        {/* 하단 토글 — 토론·라이프 펼치기/접기. */}
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          aria-expanded={showAll}
-          className={cn(
-            'flex w-full items-center justify-center gap-1.5 rounded-xl border py-2',
-            'text-[12px] font-semibold transition-colors',
-            'border-slate-200 text-slate-600 hover:bg-slate-50',
-            'dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800',
-          )}
-        >
-          {showAll ? '간단히 보기' : '모든 기능 보기'}
-          <ArrowRight size={13} strokeWidth={2.4} className={cn('transition-transform duration-200', showAll && '-rotate-90')} />
-        </button>
+        </Section>
       </div>
     </div>
   );
