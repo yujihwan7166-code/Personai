@@ -562,6 +562,18 @@ export function MainModeTabs({
   const { model: currentModel } = useSelectedModel(currentBrandId);
   /** 즐겨찾기 — 별 토글 → 히어로 좌측 상단 칩 (FavoriteChips 연동). */
   const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
+  /** 패널 왼쪽 변 — 여는 트리거(모드 pill)의 왼쪽과 세로 정렬 (2026-07-05).
+   * 자체 트리거가 화면에 보이면 그것, 아니면 [data-mode-anchor] (히어로 pill). */
+  const [anchorLeft, setAnchorLeft] = useState(16);
+  useEffect(() => {
+    if (!open) return;
+    const own = rootRef.current?.getBoundingClientRect();
+    const ownVisible = own && own.width > 0 && own.left > -100;
+    const anchorEl = ownVisible ? null : document.querySelector('[data-mode-anchor]');
+    const left = ownVisible ? own.left : anchorEl?.getBoundingClientRect().left ?? 16;
+    // 패널(최대 1040px)이 화면 밖으로 안 나가게 클램프.
+    setAnchorLeft(Math.max(8, Math.min(Math.round(left), window.innerWidth - Math.min(1040, window.innerWidth - 32) - 8)));
+  }, [open]);
   /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
   const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
   /** 읽은 알림 id 세트 — localStorage 유지. */
@@ -1163,10 +1175,10 @@ export function MainModeTabs({
               role="menu"
               aria-label="모드 전환"
               style={{
-                // 좌상단 고정 — 중앙 플로팅 대신 pill 아래 앵커 (2026-07-05).
+                // 좌상단 고정 — 여는 pill 의 왼쪽 변과 세로 정렬 (2026-07-05).
                 position: 'fixed',
                 top: 56,
-                left: 8,
+                left: anchorLeft,
                 transformOrigin: 'top left',
                 maxHeight: 'calc(100vh - 72px)',
                 // 히어로 글래스 문법 — 반투명 + blur (칩 캡슐·입력창과 동일 재질).
@@ -1873,7 +1885,7 @@ export function MainModeTabs({
                     const isAssistant = false;
                     const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
                     return (
-                      <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
+                      <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
                         {/* 헤더 */}
                         <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                           <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -2049,7 +2061,7 @@ export function MainModeTabs({
                   })}
               {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
                   단일 헤더가 두 컬럼 위에 spans. */}
-              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3">
+              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3 border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                 <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                   <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -2117,7 +2129,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className="col-start-4 row-span-2 min-w-0 flex flex-col">
+              <div className="col-start-4 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
                   <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">

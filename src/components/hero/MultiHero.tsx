@@ -170,6 +170,7 @@ export function MultiHero({
       <div className="absolute top-4 left-4 z-20">
         <button
           type="button"
+          data-mode-anchor
           onClick={onOpenModeDropdown}
           aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
           className={cn(

@@ -562,6 +562,7 @@ export function HeroSection({
               >
               <button
                 type="button"
+                data-mode-anchor
                 onClick={openModeMenu}
                 onMouseEnter={() => {
                   pillHoverTimerRef.current = window.setTimeout(openModeMenu, 260);
