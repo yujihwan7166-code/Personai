@@ -378,9 +378,9 @@
   --hero-mesh:
     radial-gradient(60% 40% at 50% -6%, rgba(255, 0, 0, 0.10), transparent 60%),
     radial-gradient(40% 32% at 90% 92%, rgba(255, 0, 0, 0.05), transparent 60%);
-  /* 플레이 버튼 — 유튜브 상징 (우하단). */
+  /* 플레이 버튼 — 중앙 뒤 워터마크 (재생 직전의 영상 메타포). */
   --hero-pattern:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 100'%3E%3Crect width='144' height='100' rx='24' fill='rgba(255,0,0,0.12)'/%3E%3Cpath d='M58 30 L98 50 L58 70 Z' fill='rgba(255,0,0,0.30)'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 100'%3E%3Crect width='144' height='100' rx='24' fill='rgba(255,0,0,0.06)'/%3E%3Cpath d='M58 30 L98 50 L58 70 Z' fill='rgba(255,0,0,0.14)'/%3E%3C/svg%3E");
   --hero-fg: #0f0f0f;
   --hero-fg-muted: #606060;
   --hero-accent: #ff0000;
@@ -432,9 +432,9 @@
   --hero-mesh:
     radial-gradient(60% 42% at 50% -5%, rgba(255, 255, 255, 0.09), transparent 60%),
     linear-gradient(115deg, transparent 44%, rgba(255, 255, 255, 0.05) 50%, transparent 56%);
-  /* 대형 X 모노그램 — 좌하단 (저채도 화이트). */
+  /* 대형 X 모노그램 — 중앙 뒤 워터마크 (저채도 화이트). */
   --hero-pattern:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg fill='rgba(255,255,255,0.06)'%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(36 60 60)'/%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(-36 60 60)'/%3E%3C/g%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg fill='rgba(255,255,255,0.045)'%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(36 60 60)'/%3E%3Crect x='52' y='-10' width='16' height='140' transform='rotate(-36 60 60)'/%3E%3C/g%3E%3C/svg%3E");
   --hero-fg: #ffffff;
   --hero-fg-muted: #9a9aa4;
   --hero-accent: #ffffff;
@@ -842,53 +842,57 @@
   background-repeat: no-repeat, no-repeat, repeat;
 }
 
+/* 구도 다양화 (2026-07-04 피드백: 코너 반복 탈피) —
+ * 중앙 워터마크형 (X·YouTube) / 가장자리 대형 크롭 (TikTok·Instagram) /
+ * 하단에서 자라나는 구도 (나무위키) / 스트립 (GitHub). */
+
 .hero-brand-canvas[data-brand='youtube'] {
-  /* mesh 2 + 플레이 버튼 (우하단 고정). */
-  background-size: auto, auto, 150px 104px;
+  /* mesh 2 + 플레이 버튼 — 중앙 뒤 크게. */
+  background-size: auto, auto, 300px 208px;
   background-repeat: no-repeat, no-repeat, no-repeat;
-  background-position: center, center, right 7% bottom 15%;
+  background-position: center, center, center 42%;
 }
 
 .hero-brand-canvas[data-brand='twitter'] {
-  /* mesh 2 + X 모노그램 (좌하단 고정). */
-  background-size: auto, auto, 190px 190px;
+  /* mesh 2 + X 모노그램 — 중앙 뒤 대형 워터마크. */
+  background-size: auto, auto, 380px 380px;
   background-repeat: no-repeat, no-repeat, no-repeat;
-  background-position: center, center, left 6% bottom 8%;
+  background-position: center, center, center 45%;
 }
 
 .hero-brand-canvas[data-brand='reddit'] {
-  /* mesh 2 + 업/다운보트 페어 (우측 중단 고정). */
+  /* mesh 2 + 업/다운보트 페어 (우측 중단 — 피드 옆 보트 컬럼 위치). */
   background-size: auto, auto, 96px 192px;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-position: center, center, right 7% center;
 }
 
 .hero-brand-canvas[data-brand='tiktok'] {
-  /* mesh 4 + 글리치 음표 (우하단 고정). */
-  background-size: auto, auto, auto, auto, 130px 150px;
+  /* mesh 4 + 글리치 음표 — 우측 가장자리에 크게 걸쳐 크롭. */
+  background-size: auto, auto, auto, auto, 200px 231px;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: center, center, center, center, right 8% bottom 16%;
+  background-position: center, center, center, center, right -36px top 44%;
 }
 
 .hero-brand-canvas[data-brand='instagram'] {
-  /* mesh 4 + 카메라 (우상) + 하트 (좌하). */
-  background-size: auto, auto, auto, auto, 132px 132px, 88px 79px;
+  /* mesh 4 + 카메라 (우측 가장자리 대형 크롭) + 하트 (좌상 플로팅). */
+  background-size: auto, auto, auto, auto, 250px 250px, 74px 66px;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: center, center, center, center, right 6% top 14%, left 6% bottom 13%;
+  background-position: center, center, center, center, right -70px top 30%, left 9% top 20%;
 }
 
 .hero-brand-canvas[data-brand='github'] {
-  /* mesh 1 + 커밋 잔디 (좌하단 고정). */
-  background-size: auto, 195px 117px;
+  /* mesh 1 + 커밋 잔디 — 하단 중앙-좌측 가로 스트립. */
+  background-size: auto, 260px 156px;
   background-repeat: no-repeat, no-repeat;
-  background-position: center, left 5% bottom 12%;
+  background-position: center, left 12% bottom -34px;
 }
 
 .hero-brand-canvas[data-brand='namuwiki'] {
-  /* mesh 2 + 문서 수평선 (26px 반복) + 지식 트리 (우하단 고정). */
-  background-size: auto, auto, 100% 26px, 126px 147px;
+  /* mesh 2 + 문서 수평선 + 지식 트리 — 하단 가장자리에서 자라남 (크롭). */
+  background-size: auto, auto, 100% 26px, 168px 196px;
   background-repeat: no-repeat, no-repeat, repeat, no-repeat;
-  background-position: center, center, 0 0, right 6% bottom 12%;
+  background-position: center, center, 0 0, left 16% bottom -30px;
 }
 
 .hero-brand-canvas[data-brand='stackoverflow'] {
