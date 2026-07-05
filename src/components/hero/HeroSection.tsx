@@ -57,7 +57,6 @@ import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIPS, HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
-import type { DiscussionRecord } from '@/lib/discussionHistoryStore';
 import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
 import { toast } from 'sonner';
 
@@ -74,8 +73,6 @@ interface Props {
   favoriteChips?: React.ReactNode;
   /** 기능 레일 — 입력창 아래 카테고리 아이콘 줄 (FeatureRail). AI 기본 모드에서만. */
   featureRail?: React.ReactNode;
-  /** 마지막 대화 이어가기 — TodayStrip 에 전달 (Index loadHistory). */
-  onResumeLast?: (record: DiscussionRecord) => void;
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
@@ -97,7 +94,6 @@ export function HeroSection({
   onOpenModeDropdown,
   favoriteChips,
   featureRail,
-  onResumeLast,
   value,
   onChange,
   onSubmitToAi,
@@ -841,7 +837,7 @@ export function HeroSection({
         {!secretaryMode && featureRail}
 
         {/* 오늘 스트립 — 내 상태 한 줄 (일정·할일·브리핑·이어가기). */}
-        {!secretaryMode && <TodayStrip onResume={onResumeLast} />}
+        {!secretaryMode && <TodayStrip />}
 
       </div>
 

@@ -4944,7 +4944,6 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 modeLabel={mainModeLabelMap[getMainMode(discussionMode)]}
                 modeId={getMainMode(discussionMode)}
                 onOpenModeDropdown={() => mainModeTabsApiRef.current?.open()}
-                onResumeLast={(rec) => loadHistory(rec)}
                 favoriteChips={
                   // 즐겨찾기 칩 — 실행 로직은 ModeMenu 콜백과 동일 계약.
                   <FavoriteChips
