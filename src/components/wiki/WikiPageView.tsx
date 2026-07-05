@@ -176,7 +176,7 @@ export function WikiPageView({
   return (
     <div className="px-5 py-7 lg:px-8 lg:py-9">
       {/* 카테고리/유형 brebrumb — 위키 페이지 상단 */}
-      <div className="max-w-6xl mx-auto mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <div className="max-w-[1360px] mx-auto mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         <span aria-hidden>{typeMeta.icon}</span>
         <span style={{ color: typeMeta.tint }}>{typeMeta.label}</span>
         {page.category && (
@@ -188,12 +188,7 @@ export function WikiPageView({
       </div>
 
       <div className="wiki-document-shell wiki-document-grid">
-        {/* 좌: TOC */}
-        <div className="wiki-side-rail hidden lg:block">
-          {!editing && page.body && <WikiToc body={page.body} />}
-        </div>
-
-        {/* 중앙: 본문 */}
+        {/* 본문 — 좌측 TOC 레일 제거로 폭 확대 (2026-07-06). */}
         <article className="wiki-document-main">
           {/* 제목 + 액션 */}
           <header className="wiki-page-header">
@@ -409,8 +404,9 @@ export function WikiPageView({
           )}
         </article>
 
-        {/* 우: 인포박스 + 로컬 그래프 */}
+        {/* 우: 목차 → 문서정보(인포박스) → 로컬 그래프 (2026-07-06: TOC 를 좌측에서 우상단으로). */}
         <div className="wiki-side-rail wiki-reference-panel hidden flex-col gap-3 lg:flex">
+          {!editing && page.body && <WikiToc body={page.body} />}
           {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
           {!editing && (
             <WikiLocalGraph page={page} allPages={allPages} onSelect={onOpenLink} onOpenInGlobal={onOpenInGlobalGraph} />

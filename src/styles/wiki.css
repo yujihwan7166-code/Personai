@@ -171,15 +171,16 @@
 
 @media (min-width: 1024px) {
   .wiki-document-grid {
-    grid-template-columns: 160px minmax(0, 1fr) 280px;
+    /* 좌측 TOC 레일 제거 → 본문(넓게) + 우측 참조 패널(TOC·문서정보) 2열. */
+    grid-template-columns: minmax(0, 1fr) 300px;
     align-items: start;
   }
 }
 
 @media (min-width: 1280px) {
   .wiki-document-grid {
-    grid-template-columns: 180px minmax(0, 760px) 320px;
-    gap: 1.75rem;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 2rem;
   }
 }
 
