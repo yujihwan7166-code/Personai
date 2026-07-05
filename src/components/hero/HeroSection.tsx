@@ -212,6 +212,29 @@ export function HeroSection({
     if (secretaryMode) setSecretaryMode(false);
   };
 
+  // 키보드 AI 전환 — Alt + ← / → 로 이전·다음 AI 순환 (스트립 순서).
+  // Alt 화살표는 히어로에서만 가로채고 preventDefault (브라우저 뒤로가기 억제),
+  // 다른 페이지 네비게이션은 그대로. 비서 모드에선 비활성.
+  useEffect(() => {
+    if (secretaryMode) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.isComposing) return;
+      const order = [...visibleIds, ...customBrands.map((b) => b.id as BrandId)];
+      if (order.length < 2) return;
+      e.preventDefault();
+      // armed(검색) 상태면 현재 AI 브랜드 기준으로 순환 (선택 시 disarm).
+      const cur = order.indexOf(brand);
+      const from = cur === -1 ? 0 : cur;
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      handleSelectBrand(order[(from + dir + order.length) % order.length]);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleIds, customAisHook.customAis, brand, secretaryMode, armed]);
+
   // 칩모드/선택모드 — 칩모드는 입력창 위 스트립, 선택모드는 eyebrow 드롭다운에서
   // AI·브라우저 전체 선택 (스트립 숨김). 드롭다운 우측 상단 토글로 전환.
   const [pickerMode, setPickerMode] = useState<HeroPickerMode>(() => {
