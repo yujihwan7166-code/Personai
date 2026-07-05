@@ -767,24 +767,27 @@ export function HeroSection({
           >
             {heading}
           </h1>
-          <p
-            key={`${identityKey}-sub`}
-            className="mt-3 text-[14.5px] tracking-[-0.005em] animate-in fade-in duration-300"
-            style={{ color: 'var(--hero-fg-muted)' }}
-          >
-            {subheading}
-            {/* armed — 서브카피 끝 도메인 링크 (검색 없이 바로 이동). */}
-            {isSearchArmed && armedHomeUrl && (
-              <button
-                type="button"
-                onClick={openArmedHome}
-                className="ml-2 font-medium underline-offset-2 hover:underline"
-                style={{ color: 'var(--hero-accent)' }}
-              >
-                {new URL(armedHomeUrl).host.replace(/^www\./, '')} ↗
-              </button>
-            )}
-          </p>
+          {/* 서브카피 — AI 모드에선 숨김 (2026-07-05). 검색(armed)·비서 모드는
+           * 각각 검색엔진·비서 설명이라 유지, armed 는 도메인 바로가기 링크 포함. */}
+          {(secretaryMode || isSearchArmed) && (
+            <p
+              key={`${identityKey}-sub`}
+              className="mt-3 text-[14.5px] tracking-[-0.005em] animate-in fade-in duration-300"
+              style={{ color: 'var(--hero-fg-muted)' }}
+            >
+              {subheading}
+              {isSearchArmed && armedHomeUrl && (
+                <button
+                  type="button"
+                  onClick={openArmedHome}
+                  className="ml-2 font-medium underline-offset-2 hover:underline"
+                  style={{ color: 'var(--hero-accent)' }}
+                >
+                  {new URL(armedHomeUrl).host.replace(/^www\./, '')} ↗
+                </button>
+              )}
+            </p>
+          )}
         </div>
 
         {/* 입력창 + 관통 칩 스트립 + 모델 셀렉트 (검색 armed 시 hide). */}
