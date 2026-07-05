@@ -64,19 +64,23 @@ function HoverPreview({ trigger, children }: { trigger: ReactNode; children: Rea
     <div className="relative" onMouseEnter={openSoon} onMouseLeave={closeSoon}>
       {trigger}
       {open && (
-        <div
-          role="tooltip"
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-xl border p-2 animate-in fade-in slide-in-from-bottom-1 duration-150"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 94%, transparent)',
-            borderColor: 'var(--hero-hairline, rgba(0,0,0,0.08))',
-            backdropFilter: 'blur(18px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-            boxShadow: '0 16px 40px -14px rgba(0,0,0,0.28)',
-            color: 'var(--hero-fg)',
-          }}
-        >
-          {children}
+        // 바깥 div — 중앙정렬(transform)만 담당. 애니메이션은 안쪽이라
+        // animate-in 키프레임이 translateX(-50%) 를 덮어쓰지 않음 (제자리 fade).
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2">
+          <div
+            role="tooltip"
+            className="w-64 rounded-xl border p-2 animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 94%, transparent)',
+              borderColor: 'var(--hero-hairline, rgba(0,0,0,0.08))',
+              backdropFilter: 'blur(18px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+              boxShadow: '0 16px 40px -14px rgba(0,0,0,0.28)',
+              color: 'var(--hero-fg)',
+            }}
+          >
+            {children}
+          </div>
         </div>
       )}
     </div>
