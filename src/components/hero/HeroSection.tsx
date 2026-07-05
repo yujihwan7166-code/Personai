@@ -43,6 +43,8 @@ import { AiPickerSheet } from './AiPickerSheet';
 import { CustomAiCreatorSheet } from './CustomAiCreatorSheet';
 import { BrandLogo } from './BrandLogo';
 import { ModelPickerButton, type HeroPickerMode } from './ModelPickerButton';
+import { TodayCluster } from './TodayCluster';
+import { TodayStrip } from './TodayStrip';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
 import { useSelectedModel } from '@/hooks/useSelectedModel';
 import { useSearchEngineArm } from '@/hooks/useSearchEngineArm';
@@ -640,6 +642,11 @@ export function HeroSection({
           ) : null)}
       </div>
 
+      {/* 우상단 오늘 클러스터 — 좌상단 캡슐과 대칭, 제로클릭 정보층 (시계·날씨·미세먼지). */}
+      <div className="absolute top-4 right-4 z-20 hidden md:block">
+        <TodayCluster />
+      </div>
+
       {/* 중앙 컨텐츠 — 전체 사이즈 up (유저 요청). */}
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
         {/* eyebrow → heading → subtitle — armed 상태에 따라 완전 스왑.
@@ -797,6 +804,9 @@ export function HeroSection({
         {/* 기능 레일 — AI·브라우저 공통 (비서 모드만 집중 경험이라 제외).
          * 브라우저에도 노출 + 두 상태 간 높이 동일 → 전환 시 화면 안 밀림. */}
         {!secretaryMode && featureRail}
+
+        {/* 오늘 스트립 — 내 상태 한 줄 (일정·할일·브리핑). 레일보다 한 단계 조용하게. */}
+        {!secretaryMode && <TodayStrip />}
 
       </div>
 
