@@ -53,7 +53,7 @@ export function customPortalToChip(p: CustomPortal): HeroSearchChip {
     external: true,
     urlTemplate: p.urlTemplate,
     greeting: `${p.name}에서 검색해요`,
-    subtitle: `${p.name} · 새 탭에서 열림`,
+    subtitle: `${p.name} · 맞춤 검색`,
     placeholder: '검색어를 입력하고 Enter…',
   };
 }

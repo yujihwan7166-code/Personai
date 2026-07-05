@@ -465,7 +465,7 @@ export function HeroSection({
   const subheading = secretaryMode
     ? `${scopeLabel}를 읽고 내 상황에 맞게 답해요 · Gemini 2.5 Flash Lite`
     : isSearchArmed
-      ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter 를 누르면 새 탭에서 열려요')
+      ? (armedChip!.subtitle ?? '검색어를 입력하고 Enter')
       : activeBrand.subtitle;
   const placeholder = secretaryMode
     ? (secretaryBusy ? '내 데이터를 읽는 중…' : '내 일정·메모·위키에 대해 물어보세요…')

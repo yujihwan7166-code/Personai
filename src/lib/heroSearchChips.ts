@@ -79,7 +79,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     iconFill: '#FFFFFF',
     external: true,
     greeting: '네이버에서 검색해요',
-    subtitle: 'NAVER · 한국어 종합 검색 · 새 탭에서 열림',
+    subtitle: 'NAVER · 한국어 종합 검색',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -91,7 +91,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     iconFill: `#${siGoogle.hex}`,
     external: true,
     greeting: '구글에서 검색해요',
-    subtitle: 'Google · 글로벌 검색 · 새 탭에서 열림',
+    subtitle: 'Google · 글로벌 검색',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -104,7 +104,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     iconFill: '#000000',
     external: true,
     greeting: '다음에서 검색해요',
-    subtitle: 'Daum · 한국어 포털 검색 · 새 탭에서 열림',
+    subtitle: 'Daum · 한국어 포털 검색',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -116,7 +116,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     iconFill: '#FFFFFF',
     external: true,
     greeting: 'YouTube 에서 검색',
-    subtitle: 'YouTube · 동영상 · 새 탭에서 열림',
+    subtitle: 'YouTube · 동영상',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -129,7 +129,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://x.com/search?q={Q}',
     greeting: 'X (트위터) 에서 검색',
-    subtitle: 'X · 실시간 · 새 탭에서 열림',
+    subtitle: 'X · 실시간',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -142,7 +142,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://github.com/search?q={Q}',
     greeting: 'GitHub 에서 검색',
-    subtitle: 'GitHub · 코드·저장소 · 새 탭에서 열림',
+    subtitle: 'GitHub · 코드·저장소',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -155,7 +155,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://www.reddit.com/search/?q={Q}',
     greeting: 'Reddit 에서 검색',
-    subtitle: 'Reddit · 커뮤니티 토론 · 새 탭에서 열림',
+    subtitle: 'Reddit · 커뮤니티 토론',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -167,7 +167,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     iconFill: '#000000',
     external: true,
     greeting: 'Wikipedia 에서 검색',
-    subtitle: 'Wikipedia · 백과 · 새 탭에서 열림',
+    subtitle: 'Wikipedia · 백과',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -180,7 +180,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://namu.wiki/Search?q={Q}',
     greeting: '나무위키에서 검색해요',
-    subtitle: '나무위키 · 한국어 종합 백과 · 새 탭',
+    subtitle: '나무위키 · 한국어 종합 백과',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -193,7 +193,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://stackoverflow.com/search?q={Q}',
     greeting: 'Stack Overflow 에서 검색',
-    subtitle: 'Stack Overflow · 개발 Q&A · 새 탭',
+    subtitle: 'Stack Overflow · 개발 Q&A',
     placeholder: '에러·API·라이브러리 물어보기…',
   },
   {
@@ -206,7 +206,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://www.tiktok.com/search?q={Q}',
     greeting: 'TikTok 에서 검색',
-    subtitle: 'TikTok · 숏폼 영상 · 새 탭',
+    subtitle: 'TikTok · 숏폼 영상',
     placeholder: '검색어를 입력하고 Enter…',
   },
   {
@@ -219,7 +219,7 @@ export const HERO_SEARCH_CHIPS: readonly HeroSearchChip[] = [
     external: true,
     urlTemplate: 'https://www.instagram.com/explore/tags/{Q}/',
     greeting: 'Instagram 에서 검색',
-    subtitle: 'Instagram · 태그 검색 · 새 탭',
+    subtitle: 'Instagram · 태그 검색',
     placeholder: '해시태그 (# 없이) 입력…',
   },
 ];
