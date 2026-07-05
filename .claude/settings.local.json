@@ -21,9 +21,7 @@
       "WebFetch(domain:blog.journey.cloud)",
       "WebFetch(domain:goodiary.interrobangsoft.com)",
       "WebFetch(domain:github.com)",
-      "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(npx tsc *)",
-      "Bash(awk 'NR>=7660 && NR<=7760' src/pages/Index.tsx)"
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }
