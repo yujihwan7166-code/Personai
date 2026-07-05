@@ -10,14 +10,12 @@
  */
 import { useEffect, useState } from 'react';
 import {
-  CalendarDays, CheckCircle2, Coffee, NotebookPen,
+  CalendarDays, CheckCircle2, Coffee,
   Umbrella, Wind, Snowflake, Thermometer, type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
-import { journalStore } from '@/services/journalStore';
-import { JOURNAL_CHANGED } from '@/types/journal';
 import { fetchWeatherNow, type WeatherNow } from '@/services/weatherService';
 
 function minutesUntil(iso: string): string | null {
@@ -45,15 +43,6 @@ export function TodayStrip() {
   const nextEvent = useUpcomingEvent();
   const todayTasks = useTodayTasks();
 
-  // 오늘 일기 작성 여부 — JOURNAL_CHANGED 구독.
-  const [wroteToday, setWroteToday] = useState(false);
-  useEffect(() => {
-    const refresh = () => setWroteToday(!!journalStore.getLatestToday());
-    refresh();
-    window.addEventListener(JOURNAL_CHANGED, refresh);
-    return () => window.removeEventListener(JOURNAL_CHANGED, refresh);
-  }, []);
-
   // 날씨 — 행동 팁만 (weatherService 30분 캐시 재사용).
   const [tip, setTip] = useState<{ label: string; icon: LucideIcon } | null>(null);
   useEffect(() => {
@@ -70,7 +59,7 @@ export function TodayStrip() {
   const countdown = nextEvent ? minutesUntil(nextEvent.startAt) : null;
 
   const itemCls =
-    'group flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-150 hover:bg-black/[0.045]';
+    'group flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 hover:bg-black/[0.045]';
   const divider = <span aria-hidden className="h-3 w-px shrink-0" style={{ backgroundColor: 'var(--hero-hairline)' }} />;
 
   return (
@@ -82,7 +71,7 @@ export function TodayStrip() {
     >
       {/* 다음 일정 */}
       <button type="button" onClick={() => navigate('/planner')} className={itemCls} title="플래너 열기">
-        <CalendarDays size={12.5} strokeWidth={2} className="opacity-70" />
+        <CalendarDays size={13} strokeWidth={2} className="opacity-70" />
         {nextEvent ? (
           <span className="max-w-[220px] truncate">
             <span className="tabular-nums" style={{ color: 'var(--hero-fg)' }}>{eventTime}</span>
@@ -98,7 +87,7 @@ export function TodayStrip() {
 
       {/* 오늘 할일 */}
       <button type="button" onClick={() => navigate('/planner')} className={itemCls} title="할일 보기">
-        <CheckCircle2 size={12.5} strokeWidth={2} className="opacity-70" />
+        <CheckCircle2 size={13} strokeWidth={2} className="opacity-70" />
         <span>
           할일{' '}
           <span className="tabular-nums font-semibold" style={{ color: 'var(--hero-fg)' }}>
@@ -107,27 +96,23 @@ export function TodayStrip() {
         </span>
       </button>
 
-      {divider}
-
-      {/* 오늘 일기 — 썼으면 성취 표시, 안 썼으면 쓰기 유도. */}
-      <button type="button" onClick={() => navigate('/journal')} className={itemCls} title="일기">
-        <NotebookPen size={12.5} strokeWidth={2} className="opacity-70" />
-        {wroteToday ? (
-          <span>
-            오늘 일기{' '}
-            <span className="font-semibold" style={{ color: 'var(--hero-accent)' }}>✓</span>
+      {/* 날씨 행동 팁 — 특별한 날에만 (정보 표시, 비클릭). */}
+      {tip && (
+        <>
+          {divider}
+          <span
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium"
+            style={{ color: 'var(--hero-fg)' }}
+          >
+            <tip.icon size={13} strokeWidth={2} style={{ color: 'var(--hero-accent)' }} className="opacity-80" />
+            {tip.label}
           </span>
-        ) : (
-          <span>
-            일기 쓰기
-            <span aria-hidden className="ml-1 opacity-60 transition-transform duration-150 group-hover:translate-x-0.5">→</span>
-          </span>
-        )}
-      </button>
+        </>
+      )}
 
       {divider}
 
-      {/* 데일리 브리핑 */}
+      {/* 데일리 브리핑 — 맨 오른쪽 (2026-07-05 순서 조정). */}
       <button
         type="button"
         onClick={() => {
@@ -138,24 +123,10 @@ export function TodayStrip() {
         className={itemCls}
         title="AI 가 요약해주는 오늘"
       >
-        <Coffee size={12.5} strokeWidth={2} className="opacity-70" />
+        <Coffee size={13} strokeWidth={2} className="opacity-70" />
         <span>브리핑</span>
         <span aria-hidden className="opacity-60 transition-transform duration-150 group-hover:translate-x-0.5">→</span>
       </button>
-
-      {/* 날씨 행동 팁 — 특별한 날에만 (정보 표시, 비클릭). */}
-      {tip && (
-        <>
-          {divider}
-          <span
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
-            style={{ color: 'var(--hero-fg)' }}
-          >
-            <tip.icon size={12.5} strokeWidth={2} style={{ color: 'var(--hero-accent)' }} className="opacity-80" />
-            {tip.label}
-          </span>
-        </>
-      )}
     </div>
   );
 }

@@ -211,15 +211,16 @@ export function ModelPickerButton({
             // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
             // 등장 모션은 fade 만 (슬라이드·줌 X).
             'fixed z-[300]',
-            selectSection ? 'w-[900px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
-            'rounded-xl border border-black/[0.08] bg-white p-1.5',
+            selectSection ? 'w-[980px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
+            'rounded-xl border border-black/[0.08] bg-white',
+            selectSection ? 'p-2.5' : 'p-1.5',
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
           )}
           // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
           // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
           style={(() => {
-            const w = selectSection ? Math.min(900, window.innerWidth - 16) : 300;
+            const w = selectSection ? Math.min(980, window.innerWidth - 16) : 300;
             return isEyebrow
               ? {
                   top: anchor.bottom + 8,
@@ -230,8 +231,8 @@ export function ModelPickerButton({
         >
           {/* 헤더 — 좌: 첫 섹션 라벨(브라우저) · 우: 칩 표시 토글.
            * 선택 모델 요약은 제거 (eyebrow 가 이미 보여줌, 2026-07-05). */}
-          <div className="px-2.5 pt-1 pb-1.5 flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold tracking-wide text-[#9aa0a8]">
+          <div className="px-1.5 pt-1 pb-1.5 flex items-center gap-1.5">
+            <span className="text-[11.5px] font-semibold tracking-wide text-[#9aa0a8]">
               {selectSection
                 ? '브라우저'
                 : displayOverride
@@ -246,7 +247,7 @@ export function ModelPickerButton({
                 onClick={() => onPickerModeChange(pickerMode === 'chips' ? 'select' : 'chips')}
                 aria-pressed={pickerMode === 'chips'}
                 title="입력창 위 칩 스트립 표시/숨김"
-                className="ml-auto flex items-center gap-1.5 rounded-full bg-black/[0.05] py-0.5 pl-2 pr-1 text-[10px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.08]"
+                className="ml-auto flex items-center gap-1.5 rounded-full bg-black/[0.05] py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-[#4b4f56] transition-colors hover:bg-black/[0.08]"
               >
                 칩 표시
                 <span
@@ -282,7 +283,7 @@ export function ModelPickerButton({
           {!displayOverride && (
           <>
           {selectSection && (
-            <div className="px-2.5 pb-1 pt-0.5 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">
+            <div className="px-1.5 pb-1.5 pt-1.5 text-[11.5px] font-semibold tracking-wide text-[#9aa0a8]">
               {brand.name} 모델
             </div>
           )}
@@ -290,7 +291,7 @@ export function ModelPickerButton({
             className={cn(
               'max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin',
               // 와이드 패널에선 4열 그리드 — 모델 8개+ 여도 세로 낭비 없음.
-              selectSection && 'grid grid-cols-4 gap-0.5',
+              selectSection && 'grid grid-cols-4 gap-1',
             )}
           >
             {brand.models.map((m) => {
@@ -306,7 +307,7 @@ export function ModelPickerButton({
                   }}
                   className={cn(
                     'flex w-full items-center gap-1.5 rounded-lg text-left transition-colors duration-100',
-                    selectSection ? 'px-2 py-[6px]' : 'gap-2 px-2.5 py-[7px]',
+                    selectSection ? 'px-2.5 py-2' : 'gap-2 px-2.5 py-[7px]',
                     active ? 'bg-black/[0.05]' : 'hover:bg-black/[0.035]',
                   )}
                   onMouseEnter={(e) => {
@@ -326,7 +327,7 @@ export function ModelPickerButton({
                     style={{ backgroundColor: panelAccent }}
                   />
                   <span className="min-w-0 flex-1 flex items-baseline gap-1.5">
-                    <span className={cn('text-[12.5px] font-medium leading-tight text-[#1f2023]', selectSection ? 'truncate' : 'shrink-0 text-[13px]')}>
+                    <span className={cn('font-medium leading-tight text-[#1f2023]', selectSection ? 'truncate text-[13.5px]' : 'shrink-0 text-[13px]')}>
                       {m.name}
                     </span>
                     {/* 그리드 모드에선 설명은 툴팁으로만 (칸 절약). */}
@@ -338,7 +339,7 @@ export function ModelPickerButton({
                   </span>
                   {m.isDefault && (
                     <span
-                      className="shrink-0 px-1.5 py-px rounded-full text-[9px] font-semibold tracking-tight"
+                      className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tracking-tight"
                       style={{
                         color: panelAccent,
                         backgroundColor: `${panelAccent}1a`,

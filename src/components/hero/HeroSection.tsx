@@ -286,12 +286,12 @@ export function HeroSection({
         onClick={opts.onPick}
         {...(opts.keepOpen ? { 'data-keep-open': true } : {})}
         className={cn(
-          'flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]',
+          'flex w-full flex-col items-center gap-1.5 rounded-xl px-0.5 py-2.5 transition-colors hover:bg-black/[0.04]',
           opts.active && 'bg-black/[0.05]',
         )}
       >
         {opts.circle}
-        <span className="max-w-full truncate text-[10.5px] font-medium leading-none text-[#4b4f56]">{opts.name}</span>
+        <span className="max-w-full truncate text-[11.5px] font-medium leading-none text-[#4b4f56]">{opts.name}</span>
       </button>
       {opts.onStar && (
         <button
@@ -317,7 +317,7 @@ export function HeroSection({
   const selectSection = (
     <div className="px-1 pb-0.5">
       {/* '브라우저' 라벨은 패널 헤더가 담당 (ModelPickerButton, 2026-07-05). */}
-      <div className="grid grid-cols-12 gap-0.5">
+      <div className="grid grid-cols-12 gap-1">
         {HERO_SEARCH_CHIPS.map((c) =>
           selectCell({
             key: c.id,
@@ -330,15 +330,15 @@ export function HeroSection({
             onStar: () => portalsHook.togglePortal(c.id),
             circle: (
               <span
-                className="flex h-11 w-11 items-center justify-center rounded-full"
+                className="flex h-12 w-12 items-center justify-center rounded-full"
                 style={{ backgroundColor: c.circleBg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 {c.icon.kind === 'svg' && c.icon.path ? (
-                  <svg viewBox="0 0 24 24" width={21} height={21} fill={c.iconFill} aria-hidden>
+                  <svg viewBox="0 0 24 24" width={23} height={23} fill={c.iconFill} aria-hidden>
                     <path d={c.icon.path} />
                   </svg>
                 ) : (
-                  <span className="text-[14px] font-bold leading-none" style={{ color: c.iconFill }}>
+                  <span className="text-[15px] font-bold leading-none" style={{ color: c.iconFill }}>
                     {c.icon.text ?? c.name.charAt(0)}
                   </span>
                 )}
@@ -349,8 +349,8 @@ export function HeroSection({
       </div>
       {/* 구분선 — 브라우저 ↕ (AI + 모델) 위계. 더 또렷하게 (2026-07-05). */}
       <div className="my-2.5 h-px bg-black/[0.12]" />
-      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
-      <div className="grid grid-cols-12 gap-0.5">
+      <div className="px-1.5 pb-1.5 text-[11.5px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
+      <div className="grid grid-cols-12 gap-1">
         {[...BRANDS, ...customBrands].map((b) =>
           selectCell({
             key: b.id,
@@ -364,7 +364,7 @@ export function HeroSection({
             onStar: isCustomBrandId(b.id) ? undefined : () => toggleBrand(b.id),
             circle: (
               <span
-                className="flex h-11 w-11 items-center justify-center rounded-full"
+                className="flex h-12 w-12 items-center justify-center rounded-full"
                 style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 <BrandLogo
@@ -373,7 +373,7 @@ export function HeroSection({
                   text={b.icon.text}
                   fill={pickContrastingText(`#${b.icon.hex}`)}
                   forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
-                  size={Math.round(21 * (b.icon.logoScale ?? 1))}
+                  size={Math.round(23 * (b.icon.logoScale ?? 1))}
                 />
               </span>
             ),
@@ -387,10 +387,10 @@ export function HeroSection({
           onPick: handleToggleSecretary,
           circle: (
             <span
-              className="flex h-11 w-11 items-center justify-center rounded-full"
+              className="flex h-12 w-12 items-center justify-center rounded-full"
               style={{ backgroundColor: '#475569', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
             >
-              <Briefcase size={18} strokeWidth={2} color="#ffffff" />
+              <Briefcase size={20} strokeWidth={2} color="#ffffff" />
             </span>
           ),
         })}
@@ -403,12 +403,12 @@ export function HeroSection({
             setEditingCustom(undefined);
             setCreatorOpen(true);
           }}
-          className="flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]"
+          className="flex w-full flex-col items-center gap-1.5 rounded-xl px-0.5 py-2.5 transition-colors hover:bg-black/[0.04]"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
-            <Plus size={18} strokeWidth={2.2} />
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
+            <Plus size={20} strokeWidth={2.2} />
           </span>
-          <span className="max-w-full truncate text-[10.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
+          <span className="max-w-full truncate text-[11.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
       </div>
       {/* AI 와 모델 리스트 사이엔 선 없음 — 한 묶음 (2026-07-05 위계 피드백). */}
