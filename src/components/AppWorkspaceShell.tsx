@@ -123,7 +123,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       <nav
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-foreground/10 bg-white py-2.5 shadow-[1px_0_0_hsl(var(--foreground)/0.02)] dark:bg-[hsl(var(--sidebar-background))] sm:flex"
+        className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
         {/* 홈 — 이 레일은 5개 워크스페이스에서만 뜨므로 홈은 항상 비활성(이동 전용). */}
         <RailLink item={WORKSPACE_DESTINATIONS[0]} active={false} />
