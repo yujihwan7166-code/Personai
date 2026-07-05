@@ -10,15 +10,31 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  CalendarDays, CheckCircle2, Coffee, ArrowRight,
+  CalendarDays, CheckCircle2, Coffee, ArrowRight, Flag, Tag,
   Umbrella, Wind, Snowflake, Thermometer, type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
 import { eventStore } from '@/services/planner/eventStore';
-import { PLANNER_EVENT_CHANGED, type PlannerEvent } from '@/types/planner';
+import { ddayStore } from '@/services/planner/ddayStore';
+import { PLANNER_EVENT_CHANGED, PLANNER_DDAY_CHANGED, type PlannerEvent, type PlannerDday } from '@/types/planner';
 import { fetchWeatherNow, type WeatherNow } from '@/services/weatherService';
+import { todayDeal } from '@/lib/dealsFeed';
+
+/** 가장 가까운 미래 D-day (오늘 포함, 30일 안). 없으면 null. */
+function nearestDday(list: PlannerDday[]): { label: string; daysLeft: number } | null {
+  const todayMid = new Date();
+  todayMid.setHours(0, 0, 0, 0);
+  const cand = list
+    .map((d) => ({
+      label: d.label,
+      daysLeft: Math.round((new Date(`${d.dateIso}T00:00:00`).getTime() - todayMid.getTime()) / 86_400_000),
+    }))
+    .filter((d) => d.daysLeft >= 0 && d.daysLeft <= 30)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+  return cand[0] ?? null;
+}
 
 function minutesUntil(iso: string): string | null {
   const diff = new Date(iso).getTime() - Date.now();
@@ -108,6 +124,17 @@ export function TodayStrip() {
     void fetchWeatherNow().then((w) => { if (alive && w) setTip(weatherTip(w)); });
     return () => { alive = false; };
   }, []);
+
+  // 가장 가까운 D-day (PLANNER_DDAY_CHANGED 구독).
+  const [dday, setDday] = useState<{ label: string; daysLeft: number } | null>(null);
+  useEffect(() => {
+    const refresh = () => setDday(nearestDday(ddayStore.list()));
+    refresh();
+    window.addEventListener(PLANNER_DDAY_CHANGED, refresh);
+    return () => window.removeEventListener(PLANNER_DDAY_CHANGED, refresh);
+  }, []);
+
+  const deal = todayDeal();
 
   const eventTime = nextEvent
     ? new Date(nextEvent.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -207,6 +234,22 @@ export function TodayStrip() {
         {plannerFooter}
       </HoverPreview>
 
+      {/* D-day — 가장 가까운 기념일 (있을 때만, 클릭 시 플래너). */}
+      {dday && (
+        <>
+          {divider}
+          <button type="button" onClick={() => navigate('/planner')} className={itemCls} title="D-day 보기">
+            <Flag size={12.5} strokeWidth={2} className="opacity-70" />
+            <span className="max-w-[150px] truncate">
+              <span style={{ color: 'var(--hero-fg)' }}>{dday.label}</span>
+              <span className="ml-1 font-semibold" style={{ color: 'var(--hero-accent)' }}>
+                {dday.daysLeft === 0 ? 'D-day' : `D-${dday.daysLeft}`}
+              </span>
+            </span>
+          </button>
+        </>
+      )}
+
       {/* 날씨 행동 팁 — 특별한 날에만 (정보 표시, 비클릭). */}
       {tip && (
         <>
@@ -232,11 +275,25 @@ export function TodayStrip() {
           });
         }}
         className={itemCls}
-        title="AI 가 요약해주는 오늘"
+        title="오늘을 편지처럼 정리해줘요"
       >
         <Coffee size={13} strokeWidth={2} className="opacity-70" />
         <span>브리핑</span>
         <span aria-hidden className="opacity-60 transition-transform duration-150 group-hover:translate-x-0.5">→</span>
+      </button>
+
+      {divider}
+
+      {/* 오늘의 딜 — 스폰서 한 줄 (자연스럽게, 새 탭). */}
+      <button
+        type="button"
+        onClick={() => window.open(deal.url, '_blank', 'noopener,noreferrer')}
+        className={itemCls}
+        title="오늘의 딜"
+      >
+        <Tag size={12.5} strokeWidth={2} className="opacity-70" />
+        <span className="max-w-[190px] truncate" style={{ color: 'var(--hero-fg)' }}>{deal.label}</span>
+        <span aria-hidden className="text-[9px] font-semibold uppercase tracking-wide opacity-45">AD</span>
       </button>
     </div>
   );
