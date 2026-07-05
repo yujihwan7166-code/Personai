@@ -405,7 +405,7 @@ export function WikiPageView({
         </article>
 
         {/* 우: 목차 → 문서정보(인포박스) → 로컬 그래프 (2026-07-06: TOC 를 좌측에서 우상단으로). */}
-        <div className="wiki-side-rail wiki-reference-panel hidden flex-col gap-3 lg:flex">
+        <div className="wiki-side-rail wiki-reference-panel hidden flex-col gap-5 lg:flex">
           {!editing && page.body && <WikiToc body={page.body} />}
           {!editing && <WikiInfobox page={page} onTagClick={onTagClick} />}
           {!editing && (

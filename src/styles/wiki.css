@@ -171,16 +171,18 @@
 
 @media (min-width: 1024px) {
   .wiki-document-grid {
-    /* 좌측 TOC 레일 제거 → 본문(넓게) + 우측 참조 패널(TOC·문서정보) 2열. */
-    grid-template-columns: minmax(0, 1fr) 300px;
+    /* 좌측 TOC 레일 제거 → 본문 + 우측 참조 패널(TOC·문서정보) 2열.
+     * 우측 레일을 살짝 넓혀 본문을 아주 조금 좁히고, 우측 스택 여유 확보(2026-07-06). */
+    grid-template-columns: minmax(0, 1fr) 320px;
     align-items: start;
+    gap: 2rem;
   }
 }
 
 @media (min-width: 1280px) {
   .wiki-document-grid {
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) 348px;
+    gap: 2.25rem;
   }
 }
 
