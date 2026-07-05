@@ -122,7 +122,7 @@ export function ModelPickerButton({
                 // eyebrow 스타일 — 브랜드 로고 + 모델명. 타이틀보다 한 단계 낮은
                 // 위계로 웰컴 메시지가 먼저 눈에 들어오게 (2026-07-05).
                 'inline-flex items-center gap-1.5 py-1.5 px-3.5 -mx-3.5 rounded-xl',
-                'text-[17.5px] font-medium tracking-[-0.01em]',
+                'text-[18.5px] font-medium tracking-[-0.01em]',
                 'transition-all duration-200',
                 openable && 'hover:bg-[color:var(--hero-accent-soft)] hover:-translate-y-px active:translate-y-0',
               ]

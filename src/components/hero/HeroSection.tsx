@@ -704,7 +704,7 @@ export function HeroSection({
          * eyebrow 는 고정 높이 래퍼 — AI(픽커 버튼 42px)/브라우저(텍스트 18px) 간
          * 높이 차로 화면 전체가 위아래로 밀리던 문제 방지 (2026-07-05). */}
         <div className="text-center mb-10">
-          <div className="relative z-30 mb-4 flex h-[44px] items-center justify-center">
+          <div className="relative z-30 mt-1.5 mb-4 flex h-[44px] items-center justify-center">
           {secretaryMode ? (
             // 비서 모드 eyebrow — 어떤 데이터를 읽을지 소스 선택 (전체/플래너/메모/위키).
             // 이모지 대신 lucide 아이콘 — 컨시어지 무드에 맞게 절제 (2026-07-04 피드백).
