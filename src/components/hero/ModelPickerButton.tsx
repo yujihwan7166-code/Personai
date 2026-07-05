@@ -119,9 +119,10 @@ export function ModelPickerButton({
         className={cn(
           isEyebrow
             ? [
-                // eyebrow 스타일 — 브랜드 로고 + 모델명. AI 정체성이 한눈에.
-                'inline-flex items-center gap-2 py-2 px-4 -mx-4 rounded-xl',
-                'text-[19px] font-semibold tracking-[-0.01em]',
+                // eyebrow 스타일 — 브랜드 로고 + 모델명. 타이틀보다 한 단계 낮은
+                // 위계로 웰컴 메시지가 먼저 눈에 들어오게 (2026-07-05).
+                'inline-flex items-center gap-1.5 py-1.5 px-3.5 -mx-3.5 rounded-xl',
+                'text-[16.5px] font-medium tracking-[-0.01em]',
                 'transition-all duration-200',
                 openable && 'hover:bg-[color:var(--hero-accent-soft)] hover:-translate-y-px active:translate-y-0',
               ]
@@ -150,13 +151,13 @@ export function ModelPickerButton({
              * 재등장 (예전 감각 복원). 컴포넌트 자체는 유지 → 패널 안 닫힘. */}
             <span
               key={displayOverride ? `ov-${displayOverride.label}` : brand.id}
-              className="inline-flex items-center gap-2 hero-name-in"
+              className="inline-flex items-center gap-1.5 hero-name-in"
             >
               {/* 브랜드 로고 마크 — 브랜드 컬러 원. 로고 색은 휘도 기준 자동.
                * displayOverride(armed 검색엔진)는 로고 원 없이 라벨만. */}
               {!displayOverride && (
                 <span
-                  className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
+                  className="inline-flex h-[23px] w-[23px] items-center justify-center rounded-full shrink-0"
                   style={{
                     backgroundColor: `#${brand.icon.hex}`,
                     boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
@@ -168,7 +169,7 @@ export function ModelPickerButton({
                     text={brand.icon.text}
                     fill={pickContrastingText(`#${brand.icon.hex}`)}
                     forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
-                    size={Math.round(14 * (brand.icon.logoScale ?? 1))}
+                    size={Math.round(13 * (brand.icon.logoScale ?? 1))}
                   />
                 </span>
               )}
@@ -183,9 +184,9 @@ export function ModelPickerButton({
             </span>
             {openable && (
               <ChevronDown
-                size={18}
+                size={16}
                 strokeWidth={2.4}
-                className={cn('opacity-60 transition-transform duration-200', open && 'rotate-180')}
+                className={cn('opacity-55 transition-transform duration-200', open && 'rotate-180')}
               />
             )}
           </>

@@ -127,7 +127,7 @@ export function FeatureRail({
 
   return (
     <div
-      className="mt-9 hidden items-start justify-center md:flex animate-in fade-in slide-in-from-bottom-2 duration-500"
+      className="mt-7 hidden items-start justify-center md:flex animate-in fade-in slide-in-from-bottom-2 duration-500"
       role="navigation"
       aria-label="주요 기능 바로가기"
     >
@@ -136,10 +136,10 @@ export function FeatureRail({
           {gi > 0 && (
             <span aria-hidden className="mx-4 mt-2 h-12 w-px" style={{ backgroundColor: 'var(--hero-hairline)' }} />
           )}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2.5">
             <span
-              className="text-[10px] font-medium tracking-wide"
-              style={{ color: 'var(--hero-fg-muted)', opacity: 0.75 }}
+              className="text-[10.5px] font-bold tracking-[0.02em]"
+              style={{ color: 'var(--hero-fg)', opacity: 0.62 }}
             >
               {group.label}
             </span>
