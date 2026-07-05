@@ -146,40 +146,55 @@
    * 다른 페이지에는 영향 X. 검증 후 글로벌 확장 가능.
    * ────────────────────────────────────────────────────────────────── */
   .journal-warm-theme {
-    /* Cream 종이 톤 — Notion (#f7f6f3) · Bear (#f8f6f0) 톤 */
-    --background: 40 25% 97%;
-    --foreground: 30 8% 13%;       /* 따뜻한 진한 갈색-검정 */
+    /* ── "황혼(Dusk) 잉크" 아이덴티티 (2026-07-06 완전 리모델링) ──
+     * 크림+세리프+퍼플의 제네릭 톤을 폐기. 블러시 아이보리 종이 + 깊은 자두 잉크 +
+     * 골든아워(마리골드→로즈→플럼) 시그니처. 큰 날짜는 헤비 산세리프, 본문은 세리프. */
+    --background: 26 42% 96%;        /* 블러시 아이보리 종이 */
+    --foreground: 288 26% 15%;       /* 깊은 자두-잉크 */
 
-    --card: 40 30% 99%;             /* 배경보다 살짝 밝음 — 입체감 */
-    --card-foreground: 30 8% 13%;
+    --card: 30 55% 98%;              /* 종이보다 밝은 카드 */
+    --card-foreground: 288 26% 15%;
 
-    --popover: 40 30% 99%;
-    --popover-foreground: 30 8% 13%;
+    --popover: 30 55% 98%;
+    --popover-foreground: 288 26% 15%;
 
-    --muted: 40 18% 93%;
-    --muted-foreground: 30 6% 38%;  /* 따뜻한 muted */
+    --muted: 26 26% 92%;
+    --muted-foreground: 288 8% 40%;  /* 자두빛 muted */
 
-    --accent: 40 18% 93%;            /* hover bg */
-    --accent-foreground: 30 8% 13%;
+    --accent: 24 40% 91%;            /* hover bg — 따뜻한 살구 */
+    --accent-foreground: 288 26% 15%;
 
-    --border: 30 10% 86%;            /* 따뜻한 베이지 hairline */
-    --input: 30 10% 86%;
+    --border: 26 24% 87%;            /* 따뜻한 hairline */
+    --input: 26 24% 87%;
 
-    --hairline: 30 10% 86%;
-    --surface-1: 40 30% 99%;
-    --surface-2: 40 25% 97%;
-    --surface-3: 40 22% 95%;
+    --hairline: 26 24% 87%;
+    --surface-1: 30 55% 98%;
+    --surface-2: 26 42% 96%;
+    --surface-3: 26 34% 93%;
 
-    /* Primary 보라 살짝 desaturated — 프린트 톤 */
-    --primary: 265 48% 50%;
-    --primary-foreground: 40 30% 99%;
+    /* Primary — 깊은 로즈 (자두↔마리골드 사이의 따뜻한 감성 액센트) */
+    --primary: 342 66% 52%;
+    --primary-foreground: 30 55% 98%;
 
-    --ring: 265 48% 50%;
-    --focus-ring: 265 55% 55%;
-    --focus-offset: 40 25% 97%;
+    --ring: 342 66% 52%;
+    --focus-ring: 342 70% 58%;
+    --focus-offset: 26 42% 96%;
 
+    /* 골든아워 시그니처 — 마스트헤드 리본 등 딱 한 곳에만. */
+    --journal-marigold: 38 92% 58%;
+    --journal-rose: 342 74% 58%;
+    --journal-plum: 288 48% 46%;
+    --journal-signature: linear-gradient(
+      100deg,
+      hsl(var(--journal-marigold)) 0%,
+      hsl(var(--journal-rose)) 52%,
+      hsl(var(--journal-plum)) 100%
+    );
+
+    /* 큰 날짜/nameplate — 헤비 산세리프 (본문 세리프와 대비). */
+    --journal-display-font: 'Pretendard Variable', 'Inter', system-ui, sans-serif;
     /* 다이어리 본문 serif — Day One/Bear 패턴 */
-    --journal-prose-font: 'Newsreader', 'Pretendard Variable', serif;
+    --journal-prose-font: 'Newsreader', 'Noto Serif KR', 'Pretendard Variable', serif;
   }
 
   .dark .journal-warm-theme {
@@ -207,11 +222,11 @@
     --surface-2: 30 10% 11%;
     --surface-3: 30 8% 17%;
 
-    --primary: 265 65% 68%;
+    --primary: 342 72% 64%;
     --primary-foreground: 30 10% 11%;
 
-    --ring: 265 65% 68%;
-    --focus-ring: 265 70% 70%;
+    --ring: 342 72% 64%;
+    --focus-ring: 342 76% 68%;
     --focus-offset: 30 10% 11%;
   }
 

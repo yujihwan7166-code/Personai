@@ -274,34 +274,49 @@ const Journal = () => {
         {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
         <header className="mb-2 sm:mb-3 flex items-start justify-between gap-6 flex-wrap">
           {/* 좌측: 타이틀 영역 — 카드 그룹과 좁힘 (아래로 이동) */}
-          <div className="min-w-0 pt-5 sm:pt-7">
-            <div className="text-[12.5px] font-semibold tracking-[0.2em] uppercase text-primary/70 mb-1.5">
-              TODAY
-            </div>
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <h1 className="font-display text-[34px] sm:text-[42px] font-bold tracking-tight text-foreground leading-none">
-                오늘의 일기
-              </h1>
-              <span className="text-[15.5px] font-medium tabular-nums text-muted-foreground/80">
-                {(() => {
-                  const d = new Date();
-                  const wd = '일월화수목금토'[d.getDay()];
-                  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${wd}요일`;
-                })()}
-              </span>
+          <div className="min-w-0 pt-4 sm:pt-6">
+            {/* 골든아워 시그니처 리본 — 이 페이지를 기억하게 하는 단 하나의 요소. */}
+            <div
+              className="mb-3 h-[5px] w-16 rounded-full"
+              style={{ backgroundImage: 'var(--journal-signature)' }}
+              aria-hidden
+            />
+            {/* eyebrow — 정체성 + 연속·편수 */}
+            <div className="mb-2 flex items-center gap-2.5 flex-wrap text-[12.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+              <span>오늘의 일기</span>
               {streak > 0 && (
                 <span
-                  className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-medium tabular-nums text-primary/85"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] normal-case tracking-normal tabular-nums text-primary"
                   title={`${streak}일 연속 기록`}
                 >
                   <span aria-hidden>🔥</span>
-                  {streak}일
+                  {streak}일 연속
                 </span>
               )}
-              <span className="text-[13.5px] font-medium tabular-nums text-muted-foreground/60 hidden md:inline">
-                {allEntries.length > 0 ? `· ${allEntries.length}편` : '아직 기록 없음'}
-              </span>
+              {allEntries.length > 0 && (
+                <span className="normal-case tracking-normal tabular-nums text-muted-foreground/55">
+                  기록 {allEntries.length}편
+                </span>
+              )}
             </div>
+            {/* nameplate — 큰 날짜 (헤비 산세리프). 일기의 주인공은 '오늘'. */}
+            {(() => {
+              const d = new Date();
+              const wd = '일월화수목금토'[d.getDay()];
+              return (
+                <h1
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-0 leading-[0.92] text-foreground"
+                  style={{ fontFamily: 'var(--journal-display-font)' }}
+                >
+                  <span className="text-[46px] sm:text-[60px] font-extrabold tracking-[-0.035em]">
+                    {d.getMonth() + 1}월 {d.getDate()}일
+                  </span>
+                  <span className="text-[20px] sm:text-[24px] font-semibold tracking-[-0.01em] text-muted-foreground/70">
+                    {wd}요일
+                  </span>
+                </h1>
+              );
+            })()}
           </div>
 
           {/* 우측: 2 행 vertical stack — PageSwitcher 위치 고정, 도구만 더 아래로 (gap ↑↑) */}
