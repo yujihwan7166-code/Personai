@@ -291,7 +291,7 @@ export function HeroSection({
         )}
       >
         {opts.circle}
-        <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#4b4f56]">{opts.name}</span>
+        <span className="max-w-full truncate text-[10.5px] font-medium leading-none text-[#4b4f56]">{opts.name}</span>
       </button>
       {opts.onStar && (
         <button
@@ -330,15 +330,15 @@ export function HeroSection({
             onStar: () => portalsHook.togglePortal(c.id),
             circle: (
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-full"
+                className="flex h-11 w-11 items-center justify-center rounded-full"
                 style={{ backgroundColor: c.circleBg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 {c.icon.kind === 'svg' && c.icon.path ? (
-                  <svg viewBox="0 0 24 24" width={17} height={17} fill={c.iconFill} aria-hidden>
+                  <svg viewBox="0 0 24 24" width={21} height={21} fill={c.iconFill} aria-hidden>
                     <path d={c.icon.path} />
                   </svg>
                 ) : (
-                  <span className="text-[12px] font-bold leading-none" style={{ color: c.iconFill }}>
+                  <span className="text-[14px] font-bold leading-none" style={{ color: c.iconFill }}>
                     {c.icon.text ?? c.name.charAt(0)}
                   </span>
                 )}
@@ -364,7 +364,7 @@ export function HeroSection({
             onStar: isCustomBrandId(b.id) ? undefined : () => toggleBrand(b.id),
             circle: (
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-full"
+                className="flex h-11 w-11 items-center justify-center rounded-full"
                 style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 <BrandLogo
@@ -373,7 +373,7 @@ export function HeroSection({
                   text={b.icon.text}
                   fill={pickContrastingText(`#${b.icon.hex}`)}
                   forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
-                  size={Math.round(17 * (b.icon.logoScale ?? 1))}
+                  size={Math.round(21 * (b.icon.logoScale ?? 1))}
                 />
               </span>
             ),
@@ -387,10 +387,10 @@ export function HeroSection({
           onPick: handleToggleSecretary,
           circle: (
             <span
-              className="flex h-9 w-9 items-center justify-center rounded-full"
+              className="flex h-11 w-11 items-center justify-center rounded-full"
               style={{ backgroundColor: '#475569', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
             >
-              <Briefcase size={15} strokeWidth={2} color="#ffffff" />
+              <Briefcase size={18} strokeWidth={2} color="#ffffff" />
             </span>
           ),
         })}
@@ -405,10 +405,10 @@ export function HeroSection({
           }}
           className="flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
-            <Plus size={15} strokeWidth={2.2} />
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
+            <Plus size={18} strokeWidth={2.2} />
           </span>
-          <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
+          <span className="max-w-full truncate text-[10.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
       </div>
       {/* AI 와 모델 리스트 사이엔 선 없음 — 한 묶음 (2026-07-05 위계 피드백). */}

@@ -211,7 +211,7 @@ export function ModelPickerButton({
             // 흰색 고정 패널 — 브랜드 배경이 어두워도 리스트는 항상 밝고 또렷하게.
             // 등장 모션은 fade 만 (슬라이드·줌 X).
             'fixed z-[300]',
-            selectSection ? 'w-[840px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
+            selectSection ? 'w-[900px] max-w-[calc(100vw-16px)]' : 'w-[300px]',
             'rounded-xl border border-black/[0.08] bg-white p-1.5',
             'shadow-[0_16px_40px_-12px_rgba(0,0,0,0.22)]',
             'animate-in fade-in duration-100',
@@ -219,7 +219,7 @@ export function ModelPickerButton({
           // 센터링은 transform 대신 좌표 계산 — animate-in 키프레임이 transform 을
           // 덮어써서 옆에서 날아오는 것처럼 보이는 문제 방지.
           style={(() => {
-            const w = selectSection ? Math.min(840, window.innerWidth - 16) : 300;
+            const w = selectSection ? Math.min(900, window.innerWidth - 16) : 300;
             return isEyebrow
               ? {
                   top: anchor.bottom + 8,
