@@ -175,18 +175,18 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
   const USER_COLLAPSE_LEN = 150;
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#0f1117] overflow-hidden h-full">
-      {/* Header — minimal top bar */}
-      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-slate-100 dark:border-slate-800">
+    <div className="flex flex-col bg-background text-foreground overflow-hidden h-full">
+      {/* Header — 앱 톤. 도메인 정체성(아이콘·이름) + API 출처 + 신뢰 배지. */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-[hsl(var(--hairline))]">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+          <button onClick={onBack} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="뒤로">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2">
             <span className="text-[16px]">{domain.icon}</span>
-            <h3 className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">{domain.name}</h3>
-            <span className="text-[9px] text-slate-400">·</span>
-            <span className="text-[9px] text-slate-400">{domain.apiSource.name}</span>
+            <h3 className="text-[13px] font-semibold text-foreground">{domain.name}</h3>
+            <span className="text-[9px] text-muted-foreground/60">·</span>
+            <span className="text-[9px] text-muted-foreground">{domain.apiSource.name}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -194,7 +194,8 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
           {hasCitations && (
             <button
               onClick={() => setShowSourcePanel(!showSourcePanel)}
-              className={cn('p-1.5 rounded-lg transition-colors', showSourcePanel ? 'text-slate-700 bg-slate-100' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100')}
+              className={cn('p-1.5 rounded-lg transition-colors', showSourcePanel ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent')}
+              aria-label="참조 데이터 패널"
             >
               <FileText className="w-3.5 h-3.5" />
             </button>
@@ -210,10 +211,10 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[700px] mx-auto px-6 py-6 space-y-6">
 
-              {/* Empty state */}
+              {/* Empty state — 말로 증명하지 않는다. 헤드라인 + 실시간 연동 칩(근거) + 샘플. */}
               {messages.length === 0 && steps.length === 0 && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-                  <h3 className="text-[22px] font-semibold text-slate-800 dark:text-slate-200 tracking-[-0.03em]">
+                  <h3 className="text-[22px] font-semibold text-foreground tracking-[-0.03em]">
                     {({
                       law: '법률 질문은 무엇이든 물어보세요.',
                       drug: '증상·복용약·건강 고민을 물어보세요.',
@@ -223,20 +224,14 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       labor: '노동·근로 문제를 물어보세요.',
                     } as Record<string, string>)[domainId] || `${domain.name}에게 물어보세요.`}
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-1.5 flex-wrap">
+                  {/* 전문성은 문장이 아니라 실시간 연동 배지로 — 근거가 말한다. */}
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                     <span className="relative flex h-1.5 w-1.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                     </span>
-                    {({
-                      law: '실시간 법령 연동 · 판례 기반 근거 추론 · 법률의견서 자동 생성',
-                      drug: '복용약 점검 · 위험 신호 확인 · 생활 관리 제안',
-                      finance: '경제지표 실시간 반영 · 리스크 팩터 분석 · 포트폴리오 시뮬레이션',
-                      realestate: '실거래가 분석 · 권리관계 리스크 진단 · 투자 수익률 산출',
-                      tax: '세법 기반 과세 분석 · 공제항목 자동 점검 · 절세 시나리오 설계',
-                      labor: '근로기준법 기반 권리 분석 · 임금·퇴직금 정밀 산출 · 구제절차 안내',
-                    } as Record<string, string>)[domainId] || `${domain.apiSource.name} 실시간 연동 · 멀티스텝 근거 추론 · 구조화 분석`}
-                  </p>
+                    실시간 {domain.apiSource.name} 연동
+                  </div>
                   <div className="grid grid-cols-3 gap-2 w-full max-w-[700px] mt-5">
                     {(domain.sampleCases || domain.sampleQuestions.map(q => ({ title: q, desc: '', query: q }))).map((c, i) => {
                       const item = typeof c === 'string' ? { title: c, desc: '', query: c } : c;
@@ -244,11 +239,11 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                         <button
                           key={i}
                           onClick={() => handleSampleClick(item.query)}
-                          className="text-left px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all group"
+                          className="text-left px-3.5 py-3 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:border-primary/30 hover:bg-accent/50 hover:shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.12)] transition-all group"
                         >
-                          <p className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{item.title}</p>
+                          <p className="text-[11px] font-semibold text-foreground group-hover:text-primary">{item.title}</p>
                           {item.desc && (
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-[1.6] line-clamp-3">{item.desc}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-[1.6] line-clamp-3">{item.desc}</p>
                           )}
                         </button>
                       );
@@ -262,7 +257,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                 <div>
                   <button
                     onClick={() => setStepsExpanded(!stepsExpanded)}
-                    className="flex items-center gap-2 text-[11px] font-medium text-slate-500 hover:text-slate-700 transition-colors mb-2"
+                    className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors mb-2"
                   >
                     <Search className="w-3.5 h-3.5" />
                     <span>검색 내용</span>
@@ -275,9 +270,9 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                           {s.done ? (
                             <CheckCircle2 className={cn('w-3.5 h-3.5 shrink-0', accent.text)} />
                           ) : (
-                            <Circle className="w-3.5 h-3.5 shrink-0 text-slate-300 animate-pulse" />
+                            <Circle className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40 animate-pulse" />
                           )}
-                          <span className={cn('text-[11px]', s.done ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400')}>
+                          <span className={cn('text-[11px]', s.done ? 'text-foreground/80' : 'text-muted-foreground')}>
                             {s.label}
                           </span>
                         </div>
@@ -297,14 +292,14 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   const isExpanded = expandedUserMsgs.has(msg.id);
                   const displayText = isLong && !isExpanded ? msg.content.slice(0, USER_COLLAPSE_LEN) + '...' : msg.content;
                   return (
-                    <div key={msg.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-5 py-4 relative">
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{displayText}</p>
+                    <div key={msg.id} className="bg-muted/50 rounded-xl px-5 py-4 relative">
+                      <p className="text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap">{displayText}</p>
                       {msg.attachedFiles && msg.attachedFiles.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {msg.attachedFiles.map((file, index) => (
                             <span
                               key={`${msg.id}-${file.name}-${index}`}
-                              className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-card px-2.5 py-1 text-[11px] text-muted-foreground"
                             >
                               {file.preview ? (
                                 <img src={file.preview} alt="" className="h-7 w-7 rounded object-cover shrink-0" />
@@ -319,7 +314,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       {isLong && (
                         <button
                           onClick={() => toggleUserMsg(msg.id)}
-                          className="absolute bottom-2 right-3 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute bottom-2 right-3 text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <ChevronDown className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-180')} />
                         </button>
@@ -332,12 +327,12 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                 return (
                   <div key={msg.id} className="space-y-3">
                     {/* AI response body — clean, no border */}
-                    <div className="text-[13.5px] text-slate-700 dark:text-slate-300 leading-[1.8] prose prose-sm max-w-none prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-headings:text-[14px] prose-headings:font-bold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+                    <div className="text-[13.5px] text-foreground/90 leading-[1.8] prose prose-sm max-w-none prose-headings:text-foreground prose-headings:text-[14px] prose-headings:font-bold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-strong:text-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
                       {clean ? (
                         <LazyMarkdown content={clean} fallback={<span className="whitespace-pre-wrap">{clean}</span>} />
                       ) : (
                         msg.isStreaming && (
-                          <span className="text-slate-400 animate-pulse">답변을 작성중입니다.</span>
+                          <span className="text-muted-foreground animate-pulse">답변을 작성중입니다.</span>
                         )
                       )}
                     </div>
@@ -345,9 +340,9 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     {/* Streaming dots */}
                     {msg.isStreaming && msg.content && (
                       <div className="flex gap-1">
-                        <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     )}
 
@@ -355,10 +350,10 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     {!msg.isStreaming && msg.content && (
                       <div className="flex items-center justify-between pt-2">
                         <div className="flex items-center gap-1">
-                          <button className="p-1.5 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-colors">
+                          <button className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors" aria-label="도움됨">
                             <ThumbsUp className="w-3.5 h-3.5" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-colors">
+                          <button className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors" aria-label="아쉬움">
                             <ThumbsDown className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -366,7 +361,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                           {msg.citations && msg.citations.length > 0 && (
                             <button
                               onClick={() => setShowSourcePanel(true)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-[10px] font-medium text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-all"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[hsl(var(--hairline))] text-[10px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
                             >
                               <FileText className="w-3 h-3" />
                               출처 {msg.citations.length}
@@ -380,7 +375,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     {msg.citations && msg.citations.length > 0 && !msg.isStreaming && (
                       <div className="flex flex-wrap gap-1">
                         {msg.citations.map((c, i) => (
-                          <span key={c.id} className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium border', accent.bg, `border-slate-200 ${accent.text}`)}>
+                          <span key={c.id} className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium border border-[hsl(var(--hairline))]', accent.bg, accent.text)}>
                             [{i + 1}] {c.label}
                           </span>
                         ))}
@@ -392,14 +387,14 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
 
               {/* Follow-up suggestions — card style */}
               {lastFollowUps.length > 0 && !isStreaming && (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-4">
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">연관 질문하기</span>
+                <div className="rounded-xl border border-[hsl(var(--hairline))] px-5 py-4">
+                  <span className="text-[11px] font-semibold text-foreground/90">연관 질문하기</span>
                   <div className="mt-2.5 space-y-2">
                     {lastFollowUps.map((q, i) => (
                       <button
                         key={i}
                         onClick={() => handleSampleClick(q)}
-                        className="block w-full text-left text-[12px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors leading-relaxed"
+                        className="block w-full text-left text-[12px] text-primary hover:text-primary/80 transition-colors leading-relaxed"
                       >
                         {q}
                       </button>
@@ -413,14 +408,14 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
           </div>
 
           {/* Input — bottom fixed, general chat style */}
-          <div className="shrink-0 bg-white dark:bg-[#0f1117]">
+          <div className="shrink-0 bg-background">
             <div className="max-w-[700px] mx-auto px-6 py-3">
               <div
                 className={cn(
-                  'rounded-2xl border-2 bg-white dark:bg-slate-800 shadow-sm overflow-hidden transition-all',
+                  'rounded-2xl border bg-card shadow-sm overflow-hidden transition-all',
                   isDragOver
-                    ? 'border-indigo-500 bg-indigo-50/40 dark:border-indigo-400'
-                    : 'border-indigo-400 dark:border-indigo-600'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-[hsl(var(--hairline))] focus-within:border-primary/45 focus-within:ring-1 focus-within:ring-primary/15'
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -442,7 +437,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                     {attachedFiles.map((file) => (
                       <div
                         key={file.id}
-                        className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+                        className="inline-flex max-w-[240px] items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] bg-muted/50 px-2.5 py-1 text-[11px] text-muted-foreground"
                       >
                         {file.preview ? (
                           <img src={file.preview} alt="" className="h-7 w-7 rounded object-cover shrink-0" />
@@ -450,11 +445,11 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                           <span className="text-[13px]">{getFileIcon(file.mimeType)}</span>
                         )}
                         <span className="truncate">{file.name}</span>
-                        <span className="shrink-0 text-[10px] text-slate-400">{formatFileSize(file.size)}</span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground/70">{formatFileSize(file.size)}</span>
                         <button
                           type="button"
                           onClick={() => removeAttachedFile(file.id)}
-                          className="rounded p-0.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           aria-label={`${file.name} 제거`}
                         >
                           <X className="h-3 w-3" />
@@ -464,7 +459,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   </div>
                 )}
                 {fileError && (
-                  <div className="px-4 pt-3 text-[11px] text-red-500">{fileError}</div>
+                  <div className="px-4 pt-3 text-[11px] text-destructive">{fileError}</div>
                 )}
                 <textarea
                   ref={inputRef}
@@ -474,7 +469,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   onPaste={handlePaste}
                   placeholder={`${domain.name}에게 질문하세요`}
                   rows={1}
-                  className="w-full px-4 pt-3.5 pb-2 bg-transparent text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 resize-none outline-none"
+                  className="w-full px-4 pt-3.5 pb-2 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground resize-none outline-none"
                   style={{ minHeight: '44px', maxHeight: '200px' }}
                   disabled={isStreaming}
                 />
@@ -484,7 +479,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isStreaming}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all disabled:opacity-40"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-[hsl(var(--hairline))] bg-card text-muted-foreground shadow-sm hover:border-primary/30 hover:bg-accent hover:text-foreground transition-all disabled:opacity-40"
                       aria-label="파일 첨부"
                     >
                       <Paperclip className="h-4 w-4" strokeWidth={2.1} />
@@ -492,7 +487,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                   </div>
                   <div className="flex items-center gap-1.5">
                     {!isStreaming && (
-                      <span className="text-[9px] text-slate-300">Enter 전송 · Shift+Enter 줄바꿈</span>
+                      <span className="text-[9px] text-muted-foreground/60">Enter 전송 · Shift+Enter 줄바꿈</span>
                     )}
                     <button
                       onClick={handleSubmit}
@@ -500,35 +495,36 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
                       className={cn(
                         'p-1.5 rounded-xl transition-all',
                         (input.trim() || attachedFiles.length > 0) && !isStreaming
-                          ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-800 hover:bg-slate-700'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'bg-muted text-muted-foreground/50 cursor-not-allowed'
                       )}
+                      aria-label="전송"
                     >
                       {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
               </div>
-              <p className="text-[9px] text-slate-400 text-center mt-2">
+              <p className="text-[9px] text-muted-foreground text-center mt-2">
                 정확한 {domain.name.replace('자문관', '').replace('·건강', '')} 자문은 반드시 전문가와 상담하세요.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Source Panel (desktop) */}
+        {/* Source Panel (desktop) — 근거 데이터가 전문성을 말한다. */}
         {hasCitations && showSourcePanel && (
-          <div className="hidden md:flex w-[35%] flex-col border-l border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="hidden md:flex w-[35%] flex-col border-l border-[hsl(var(--hairline))] bg-muted/30">
+            <div className="px-3 py-2.5 border-b border-[hsl(var(--hairline))]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <FileText className={cn('w-3 h-3', accent.text)} />
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">참조 데이터</span>
-                  <span className={cn('text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800', accent.text)}>
+                  <span className="text-[11px] font-bold text-foreground">참조 데이터</span>
+                  <span className={cn('text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-accent', accent.text)}>
                     {citations.length}
                   </span>
                 </div>
-                <button onClick={() => setShowSourcePanel(false)} className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors">
+                <button onClick={() => setShowSourcePanel(false)} className="p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors" aria-label="패널 닫기">
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
@@ -548,40 +544,40 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
 function SourceCard({ citation, index, accent }: { citation: ApiSourceCitation; index: number; accent: { text: string; bg: string } }) {
   const [expanded, setExpanded] = useState(false);
   const typeIcons: Record<string, string> = {
-    law_article: '\uD83D\uDCDC', precedent: '\u2696\uFE0F', drug_info: '\uD83D\uDC8A',
-    drug_interaction: '\uD83D\uDC8A', economic_indicator: '\uD83D\uDCCA', financial_product: '\uD83C\uDFE6',
-    real_estate_data: '\uD83C\uDFE0', tax_reference: '\uD83E\uDDFE', labor_reference: '\uD83D\uDC77', public_guideline: '\uD83D\uDCCB',
+    law_article: '📜', precedent: '⚖️', drug_info: '💊',
+    drug_interaction: '💊', economic_indicator: '📊', financial_product: '🏦',
+    real_estate_data: '🏠', tax_reference: '🧾', labor_reference: '👷', public_guideline: '📋',
   };
   const metaLine = [citation.articleNumber, citation.caseNumber, citation.decisionDate, citation.effectiveDate]
     .filter((item): item is string => Boolean(item))
     .join(' · ');
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+    <div className="rounded-lg border border-[hsl(var(--hairline))] bg-card overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors"
       >
         <span className={cn('text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0', accent.bg, accent.text)}>
           {index}
         </span>
-        <span className="text-[11px]">{typeIcons[citation.type] || '\uD83D\uDCCE'}</span>
+        <span className="text-[11px]">{typeIcons[citation.type] || '📎'}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{citation.label}</p>
-          {metaLine && <p className="text-[8px] text-slate-500 truncate">{metaLine}</p>}
-          <p className="text-[8px] text-slate-400">{citation.source}</p>
+          <p className="text-[10px] font-semibold text-foreground/90 truncate">{citation.label}</p>
+          {metaLine && <p className="text-[8px] text-muted-foreground truncate">{metaLine}</p>}
+          <p className="text-[8px] text-muted-foreground/70">{citation.source}</p>
         </div>
-        <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform shrink-0', expanded && 'rotate-180')} />
+        <ChevronDown className={cn('w-3 h-3 text-muted-foreground transition-transform shrink-0', expanded && 'rotate-180')} />
       </button>
       {expanded && citation.rawData && (
-        <div className="px-3 pb-2.5 pt-0 border-t border-slate-100 dark:border-slate-700">
+        <div className="px-3 pb-2.5 pt-0 border-t border-[hsl(var(--hairline))]">
           {(citation.lawName || citation.ministry) && (
             <div className="mt-2 space-y-0.5">
-              {citation.lawName && <p className="text-[8px] text-slate-500">법령명: {citation.lawName}</p>}
-              {citation.ministry && <p className="text-[8px] text-slate-500">소관부처: {citation.ministry}</p>}
+              {citation.lawName && <p className="text-[8px] text-muted-foreground">법령명: {citation.lawName}</p>}
+              {citation.ministry && <p className="text-[8px] text-muted-foreground">소관부처: {citation.ministry}</p>}
             </div>
           )}
-          <p className="text-[9px] leading-relaxed text-slate-500 whitespace-pre-wrap mt-2">{citation.rawData}</p>
+          <p className="text-[9px] leading-relaxed text-muted-foreground whitespace-pre-wrap mt-2">{citation.rawData}</p>
           {citation.url && (
             <a href={citation.url} target="_blank" rel="noopener noreferrer" className={cn('mt-1.5 inline-block text-[9px] hover:underline', accent.text)}>
               원문 보기 →
