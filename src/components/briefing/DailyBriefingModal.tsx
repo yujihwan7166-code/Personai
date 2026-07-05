@@ -1,46 +1,32 @@
 /**
- * 데일리 브리핑 v4 — AI 내러티브 카드 (2026-07-05 재설계).
+ * 데일리 브리핑 v5 — AI 한마디 + 조화로운 섹션 + 설정 (2026-07-05 재설계).
  *
- * 위젯 그리드 대시보드를 폐기하고 "AI 가 오늘을 한 편의 글로 브리핑" 하는
- * 컴팩트 카드로 교체. 시간대 인사 + AI 문단(로딩 shimmer) + 근거 칩(클릭 이동)
- * + 다시 생성·매일 자동 표시 토글. 사이트 글래스 톤.
- *
- * 데이터: dailyBriefingNarrative (buildBriefingData + 날씨 → /api/daily-briefing,
- * 하루 캐시, 실패 시 템플릿 폴백). autoShow 는 기존 dailyBriefingStore 재활용.
+ * 위젯 드래그 그리드를 폐기하고: 상단 AI 문단 + 아래 오늘 구성 섹션(일정·할일·
+ * 날씨·D-day·습관)을 고정 순서로 스택. 헤더 ⚙ 에서 어떤 섹션을 볼지 토글.
+ * 데이터·설정 없는 섹션은 자동 생략. 사이트 글래스 톤.
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
-import {
-  X, Sunrise, Sun, Sunset, Moon,
-  CalendarDays, CheckCircle2, AlertCircle, CloudSun, Flag,
-  type LucideIcon,
-} from 'lucide-react';
+import { X, Settings2, Sparkles, Sunrise, Sun, Sunset, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStore';
-import { getDailyBriefing, type BriefingNarrative, type BriefingChip } from '@/lib/dailyBriefingNarrative';
+import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
+import { briefingPrefs, useBriefingPrefs, BRIEFING_SECTIONS } from '@/lib/briefingPrefs';
+import { ScheduleSection, TasksSection, WeatherSection, DdaySection, HabitsSection } from './BriefingSections';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-const CHIP_ICON: Record<BriefingChip['kind'], LucideIcon> = {
-  event: CalendarDays,
-  task: CheckCircle2,
-  overdue: AlertCircle,
-  weather: CloudSun,
-  dday: Flag,
-  habit: CheckCircle2,
-};
-
 export const DailyBriefingModal = ({ open, onClose }: Props) => {
-  const navigate = useNavigate();
   const settings = useBriefingSettings();
+  const prefs = useBriefingPrefs();
   const [visible, setVisible] = useState(open);
   const [closing, setClosing] = useState(false);
   const [narrative, setNarrative] = useState<BriefingNarrative | null>(null);
   const [loading, setLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // 열림/닫힘 — 종료 애니메이션 위해 잠시 mount 유지.
   useEffect(() => {
@@ -66,19 +52,17 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
   useEffect(() => {
     if (!visible) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { if (settingsOpen) setSettingsOpen(false); else onClose(); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [visible, onClose]);
-
-  const runChip = (chip: BriefingChip) => {
-    onClose();
-    // 모두 플래너 자산으로 — 날씨만 예외(정보성, 이동 없음).
-    if (chip.kind === 'weather') return;
-    setTimeout(() => navigate('/planner'), 60);
-  };
+  }, [visible, onClose, settingsOpen]);
 
   if (!visible || typeof document === 'undefined') return null;
+
+  const d = narrative?.data;
+  const w = narrative?.weather ?? null;
 
   return createPortal(
     <div
@@ -115,6 +99,18 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           </div>
           <button
             type="button"
+            onClick={() => setSettingsOpen((v) => !v)}
+            aria-label="브리핑 설정"
+            title="브리핑 설정"
+            className={cn(
+              'shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+              settingsOpen ? 'text-[color:var(--hero-accent)]' : 'text-[color:var(--hero-fg-muted)] hover:bg-black/[0.05] hover:text-[color:var(--hero-fg)]',
+            )}
+          >
+            <Settings2 size={16} className={cn('transition-transform', settingsOpen && 'rotate-90')} />
+          </button>
+          <button
+            type="button"
             onClick={onClose}
             aria-label="닫기"
             className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.05] hover:text-rose-500"
@@ -123,61 +119,74 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           </button>
         </div>
 
-        {/* 본문 — AI 브리핑 문단. */}
-        <div className="px-6 pb-2">
-          {loading || !narrative ? (
-            <BriefingShimmer />
-          ) : (
-            <p className="text-[15.5px] leading-[1.7] tracking-[-0.005em]" style={{ color: 'var(--hero-fg)' }}>
-              {narrative.text}
-            </p>
-          )}
-        </div>
+        {settingsOpen ? (
+          /* 설정 — 섹션 토글 + 매일 자동 표시. */
+          <div className="px-6 pb-5">
+            <div className="mb-2 text-[11px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>브리핑에 표시할 항목</div>
+            <div className="space-y-0.5">
+              {BRIEFING_SECTIONS.map((s) => (
+                <label key={s.key} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-[13.5px] transition-colors hover:bg-black/[0.03]" style={{ color: 'var(--hero-fg)' }}>
+                  <input
+                    type="checkbox"
+                    checked={prefs[s.key]}
+                    onChange={() => briefingPrefs.toggle(s.key)}
+                    className="h-4 w-4 cursor-pointer rounded"
+                    style={{ accentColor: 'var(--hero-accent)' }}
+                  />
+                  {s.label}
+                </label>
+              ))}
+            </div>
+            <label className="mt-2 flex cursor-pointer items-center gap-2.5 border-t px-2 py-2.5 text-[13px]" style={{ color: 'var(--hero-fg-muted)', borderColor: 'var(--hero-hairline)' }}>
+              <input
+                type="checkbox"
+                checked={settings.autoShow}
+                onChange={(e) => dailyBriefingStore.setAutoShow(e.target.checked)}
+                className="h-4 w-4 cursor-pointer rounded"
+                style={{ accentColor: 'var(--hero-accent)' }}
+              />
+              매일 아침 자동으로 열기
+            </label>
+          </div>
+        ) : (
+          /* 브리핑 본문 — AI 한마디 + 섹션 스택. */
+          <div className="max-h-[min(64vh,560px)] overflow-y-auto px-6 pb-5 scrollbar-thin">
+            {/* AI 한마디. */}
+            {prefs.ai && (
+              loading || !narrative ? (
+                <BriefingShimmer />
+              ) : (
+                <div className="flex gap-2.5 rounded-2xl px-3.5 py-3" style={{ backgroundColor: 'color-mix(in oklab, var(--hero-accent) 6%, transparent)' }}>
+                  <Sparkles size={15} strokeWidth={2} className="mt-1 shrink-0" style={{ color: 'var(--hero-accent)' }} />
+                  <p className="text-[15px] leading-[1.65] tracking-[-0.005em]" style={{ color: 'var(--hero-fg)' }}>{narrative.text}</p>
+                </div>
+              )
+            )}
 
-        {/* 근거 칩. */}
-        {narrative && narrative.chips.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-6 pt-3">
-            {narrative.chips.map((chip, i) => {
-              const Icon = CHIP_ICON[chip.kind];
-              const clickable = chip.kind !== 'weather';
-              return (
-                <button
-                  key={`${chip.kind}-${i}`}
-                  type="button"
-                  onClick={() => clickable && runChip(chip)}
-                  disabled={!clickable}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150',
-                    clickable && 'hover:-translate-y-px',
-                  )}
-                  style={{
-                    color: 'var(--hero-fg)',
-                    borderColor: 'var(--hero-hairline)',
-                    backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 55%, transparent)',
-                    cursor: clickable ? 'pointer' : 'default',
-                  }}
-                >
-                  <Icon size={13} strokeWidth={2} style={{ color: 'var(--hero-accent)' }} className="opacity-80" />
-                  {chip.label}
-                </button>
-              );
-            })}
+            {/* 섹션 스택 — 데이터 로드 후. */}
+            {d && (
+              <div className={cn('space-y-2.5', prefs.ai && 'mt-3')}>
+                {prefs.schedule && <ScheduleSection data={d} />}
+                {prefs.tasks && <TasksSection data={d} />}
+                {prefs.weather && w && <WeatherSection weather={w} />}
+                {prefs.dday && <DdaySection data={d} />}
+                {prefs.habits && <HabitsSection data={d} />}
+              </div>
+            )}
+
+            {/* 아무 섹션도 없을 때 — 빈 안내. */}
+            {d && !prefs.ai &&
+              !(prefs.schedule && d.timed.length) &&
+              !(prefs.tasks && (d.inbox.length + d.overdue.length)) &&
+              !(prefs.weather && w) &&
+              !(prefs.dday && d.upcomingDday.length) &&
+              !(prefs.habits && d.habits.length) && (
+                <p className="py-6 text-center text-[13px]" style={{ color: 'var(--hero-fg-muted)' }}>
+                  오늘 표시할 내용이 없어요. 설정에서 항목을 켜보세요.
+                </p>
+              )}
           </div>
         )}
-
-        {/* 푸터 — 매일 자동 표시 토글만 (AI 배지·다시 생성 제거, 2026-07-05). */}
-        <div className="mt-4 flex items-center border-t px-6 py-3" style={{ borderColor: 'var(--hero-hairline)' }}>
-          <label className="ml-auto inline-flex cursor-pointer select-none items-center gap-2 text-[11.5px]" style={{ color: 'var(--hero-fg-muted)' }}>
-            <input
-              type="checkbox"
-              checked={settings.autoShow}
-              onChange={(e) => dailyBriefingStore.setAutoShow(e.target.checked)}
-              className="h-3.5 w-3.5 cursor-pointer rounded"
-              style={{ accentColor: 'var(--hero-accent)' }}
-            />
-            매일 자동 표시
-          </label>
-        </div>
       </div>
     </div>,
     document.body,

@@ -19,6 +19,9 @@ export interface BriefingNarrative {
   chips: BriefingChip[];
   /** true = AI 생성, false = 템플릿 폴백. */
   ai: boolean;
+  /** 섹션 렌더용 원본 데이터 (v5). */
+  data: BriefingData;
+  weather: WeatherNow | null;
 }
 
 const CACHE_KEY = 'personai.daily-briefing.narrative';
@@ -106,7 +109,7 @@ export async function getDailyBriefing(force = false): Promise<BriefingNarrative
       if (raw) {
         const cached = JSON.parse(raw) as CachedNarrative;
         if (cached.day === todayKey() && cached.text) {
-          return { greeting: data.greeting, date: data.date, text: cached.text, chips, ai: cached.ai };
+          return { greeting: data.greeting, date: data.date, text: cached.text, chips, ai: cached.ai, data, weather };
         }
       }
     } catch {
@@ -146,5 +149,5 @@ export async function getDailyBriefing(force = false): Promise<BriefingNarrative
     }
   }
 
-  return { greeting: data.greeting, date: data.date, text, chips, ai };
+  return { greeting: data.greeting, date: data.date, text, chips, ai, data, weather };
 }
