@@ -131,37 +131,40 @@ export function ModelPickerButton({
       >
         {isEyebrow ? (
           <>
-            {/* 브랜드 로고 마크 — 브랜드 컬러 원 (스트립·사이드바 칩과 동일 언어).
-             * 로고 색은 원 배경 휘도 기준 자동 (Grok 흰 원 → 검정 로고).
-             * displayOverride(armed 검색엔진)는 로고 원 없이 라벨만. */}
-            {!displayOverride && (
-              <span
-                className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
-                style={{
-                  backgroundColor: `#${brand.icon.hex}`,
-                  boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
-                }}
-              >
-                <BrandLogo
-                  imgUrl={brand.icon.imgUrl}
-                  path={brand.icon.path}
-                  text={brand.icon.text}
-                  fill={pickContrastingText(`#${brand.icon.hex}`)}
-                  forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
-                  size={Math.round(14 * (brand.icon.logoScale ?? 1))}
-                />
+            {/* 로고 원 + 이름을 한 단위로 key — 브랜드 전환 시 함께 부드럽게
+             * 재등장 (예전 감각 복원). 컴포넌트 자체는 유지 → 패널 안 닫힘. */}
+            <span
+              key={displayOverride ? `ov-${displayOverride.label}` : brand.id}
+              className="inline-flex items-center gap-2 hero-name-in"
+            >
+              {/* 브랜드 로고 마크 — 브랜드 컬러 원. 로고 색은 휘도 기준 자동.
+               * displayOverride(armed 검색엔진)는 로고 원 없이 라벨만. */}
+              {!displayOverride && (
+                <span
+                  className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full shrink-0"
+                  style={{
+                    backgroundColor: `#${brand.icon.hex}`,
+                    boxShadow: 'inset 0 0 0 1px var(--hero-hairline, rgba(255,255,255,0.10))',
+                  }}
+                >
+                  <BrandLogo
+                    imgUrl={brand.icon.imgUrl}
+                    path={brand.icon.path}
+                    text={brand.icon.text}
+                    fill={pickContrastingText(`#${brand.icon.hex}`)}
+                    forceWhite={pickContrastingText(`#${brand.icon.hex}`) === '#ffffff'}
+                    size={Math.round(14 * (brand.icon.logoScale ?? 1))}
+                  />
+                </span>
+              )}
+              {/* 모델명에 브랜드가 이미 들어있으면 그대로, 없으면 브랜드명 접두. */}
+              <span>
+                {displayOverride
+                  ? displayOverride.label
+                  : selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
+                    ? selectedModel.name
+                    : `${brand.name} ${selectedModel.name}`}
               </span>
-            )}
-            {/* 모델명에 브랜드가 이미 들어있으면 그대로 (GPT-5.4 · Claude Opus 4.6),
-             * 없으면 브랜드명을 앞에 붙임 (Sonar Pro → Perplexity Sonar Pro). */}
-            {/* key=brand.id — 브랜드 전환 시 이름만 재등장 애니메이션 (컴포넌트
-             * 자체는 유지 → 패널 열린 채 브랜드 바꿔도 안 닫힘). */}
-            <span key={displayOverride ? `ov-${displayOverride.label}` : brand.id} className="hero-name-in">
-              {displayOverride
-                ? displayOverride.label
-                : selectedModel.name.toLowerCase().includes(brand.name.toLowerCase())
-                  ? selectedModel.name
-                  : `${brand.name} ${selectedModel.name}`}
             </span>
             {openable && (
               <ChevronDown
