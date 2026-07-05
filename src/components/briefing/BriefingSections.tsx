@@ -9,7 +9,9 @@ import { Sun, CloudSun, Cloud, CloudFog, CloudRain, Snowflake, CloudLightning, t
 import type { BriefingData } from '@/lib/buildBriefingData';
 import type { WeatherNow } from '@/services/weatherService';
 import { fetchMarketIndices, type IndexQuote, type MarketGroup } from '@/services/marketService';
-import { fetchNews, type NewsItem } from '@/services/newsService';
+import { fetchNews, type NewsItem, type NewsTopic } from '@/services/newsService';
+import { getDailyRecos, type Reco } from '@/lib/dailyRecos';
+import { buildTomorrowPreview, type TomorrowPreview } from '@/lib/tomorrowPreview';
 
 function hm(iso: string): string {
   const d = new Date(iso);
@@ -200,16 +202,17 @@ export function StocksSection({ watch = [] }: { watch?: string[] }) {
   );
 }
 
-export function NewsSection() {
+export function NewsSection({ topic = 'headline', topicLabel }: { topic?: NewsTopic; topicLabel?: string }) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   useEffect(() => {
     let alive = true;
-    void fetchNews().then((r) => { if (alive) setItems(r); });
+    setItems(null);
+    void fetchNews(topic).then((r) => { if (alive) setItems(r); });
     return () => { alive = false; };
-  }, []);
+  }, [topic]);
   if (!items || items.length === 0) return null;
   return (
-    <LetterSection label="오늘의 소식">
+    <LetterSection label={topicLabel ? `오늘의 소식 · ${topicLabel}` : '오늘의 소식'}>
       <ul className="space-y-2">
         {items.slice(0, 5).map((n) => (
           <li key={n.url}>
@@ -229,6 +232,72 @@ export function NewsSection() {
           </li>
         ))}
       </ul>
+    </LetterSection>
+  );
+}
+
+export function RecosSection() {
+  const [items, setItems] = useState<Reco[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void getDailyRecos().then((r) => { if (alive) setItems(r); });
+    return () => { alive = false; };
+  }, []);
+  if (!items || items.length === 0) return null;
+  return (
+    <LetterSection label="오늘의 추천">
+      <ul className="space-y-2.5">
+        {items.map((r, i) => (
+          <li key={`${r.category}-${i}`} className="flex items-baseline gap-2.5">
+            <span className="mt-[1px] shrink-0 rounded-full px-2 py-0.5 text-[11px]" style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--hero-fg-muted)' }}>{r.category}</span>
+            <span className="min-w-0 flex-1">
+              <span className="text-[14.5px]" style={{ color: 'var(--hero-fg)' }}>{r.title}</span>
+              {r.reason && <span className="ml-1.5 text-[12px] italic" style={{ color: 'var(--hero-fg-muted)' }}>{r.reason}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </LetterSection>
+  );
+}
+
+export function TomorrowSection() {
+  const [preview, setPreview] = useState<TomorrowPreview | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void buildTomorrowPreview().then((r) => { if (alive) setPreview(r); });
+    return () => { alive = false; };
+  }, []);
+  if (!preview) return null;
+  const { dateLabel, events, weather } = preview;
+  // 내일 일정도 예보도 없으면 생략.
+  if (events.length === 0 && !weather) return null;
+  return (
+    <LetterSection label={`내일 미리보기 · ${dateLabel}`}>
+      {weather && (
+        <div className="mb-2 flex items-baseline gap-2 text-[13.5px]" style={{ color: 'var(--hero-fg)' }}>
+          <span>{weather.label}</span>
+          <span className="tabular-nums" style={{ fontFamily: 'var(--briefing-serif)' }}>
+            <span style={{ color: 'hsl(0 60% 50%)' }}>{weather.tempMax}°</span>
+            {' / '}
+            <span style={{ color: 'hsl(215 65% 52%)' }}>{weather.tempMin}°</span>
+          </span>
+        </div>
+      )}
+      {events.length > 0 ? (
+        <ul className="space-y-1.5">
+          {events.map((e, i) => (
+            <li key={`${e.startAt}-${i}`} className="flex items-baseline gap-3">
+              <span className="w-[46px] shrink-0 text-[13.5px] tabular-nums" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+                {e.allDay ? '종일' : hm(e.startAt)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: 'var(--hero-fg)' }}>{e.title}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[13px] italic" style={{ color: 'var(--hero-fg-muted)' }}>잡힌 일정은 없어요.</p>
+      )}
     </LetterSection>
   );
 }

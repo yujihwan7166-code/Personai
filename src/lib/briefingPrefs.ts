@@ -6,7 +6,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
-export type BriefingSectionKey = 'ai' | 'schedule' | 'tasks' | 'weather' | 'stocks' | 'news' | 'dday' | 'habits';
+export type BriefingSectionKey = 'ai' | 'schedule' | 'tasks' | 'weather' | 'stocks' | 'news' | 'recos' | 'tomorrow' | 'dday' | 'habits';
 
 export interface BriefingSectionMeta {
   key: BriefingSectionKey;
@@ -21,6 +21,8 @@ export const BRIEFING_SECTIONS: BriefingSectionMeta[] = [
   { key: 'weather', label: '날씨' },
   { key: 'stocks', label: '시장 지수' },
   { key: 'news', label: '오늘의 소식' },
+  { key: 'recos', label: 'AI 추천' },
+  { key: 'tomorrow', label: '내일 미리보기' },
   { key: 'dday', label: '다가오는 날' },
   { key: 'habits', label: '습관' },
 ];
@@ -34,6 +36,8 @@ const DEFAULT_PREFS: BriefingPrefs = {
   weather: true,
   stocks: true,
   news: true,
+  recos: true,
+  tomorrow: true,
   dday: true,
   habits: false, // 습관은 쓰는 사람만 — 기본 off
 };

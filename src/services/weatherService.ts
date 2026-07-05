@@ -59,6 +59,52 @@ function readCache(): WeatherNow | null {
   }
 }
 
+export interface WeatherTomorrow {
+  tempMax: number;
+  tempMin: number;
+  label: string;
+  icon: WeatherNow['icon'];
+}
+
+const TOMORROW_CACHE_KEY = 'personai.weather.tomorrow';
+const TOMORROW_TTL = 3 * 60 * 60 * 1000; // 3시간
+
+/** 내일 예보 — 브리핑 '내일 미리보기'용. 최고/최저 + 요약. */
+export async function fetchWeatherTomorrow(): Promise<WeatherTomorrow | null> {
+  try {
+    const raw = window.localStorage.getItem(TOMORROW_CACHE_KEY);
+    if (raw) {
+      const c = JSON.parse(raw) as WeatherTomorrow & { at: number };
+      if (Date.now() - c.at < TOMORROW_TTL) return { tempMax: c.tempMax, tempMin: c.tempMin, label: c.label, icon: c.icon };
+    }
+  } catch {
+    /* noop */
+  }
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia%2FSeoul&forecast_days=2`,
+    );
+    if (!res.ok) return null;
+    const j = await res.json();
+    const daily = j?.daily;
+    const i = 1; // index 0 = 오늘, 1 = 내일
+    const tempMax = Math.round(Number(daily?.temperature_2m_max?.[i]));
+    const tempMin = Math.round(Number(daily?.temperature_2m_min?.[i]));
+    const code = Number(daily?.weather_code?.[i] ?? 3);
+    if (!Number.isFinite(tempMax) || !Number.isFinite(tempMin)) return null;
+    const { label, icon } = classify(code);
+    const result: WeatherTomorrow = { tempMax, tempMin, label, icon };
+    try {
+      window.localStorage.setItem(TOMORROW_CACHE_KEY, JSON.stringify({ ...result, at: Date.now() }));
+    } catch {
+      /* noop */
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchWeatherNow(): Promise<WeatherNow | null> {
   const cached = readCache();
   if (cached) return cached;

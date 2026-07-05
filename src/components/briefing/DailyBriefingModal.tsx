@@ -14,6 +14,8 @@ import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStor
 import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
 import { briefingPrefs, useBriefingPrefs, BRIEFING_SECTIONS } from '@/lib/briefingPrefs';
 import { watchlistStore, useWatchlist } from '@/lib/watchlistStore';
+import { newsTopicStore, useNewsTopic, NEWS_TOPICS } from '@/lib/newsTopicStore';
+import { isEvening } from '@/lib/tomorrowPreview';
 import {
   BriefingCard,
   ScheduleSection,
@@ -21,6 +23,8 @@ import {
   WeatherHero,
   StocksSection,
   NewsSection,
+  RecosSection,
+  TomorrowSection,
   DdaySection,
   HabitsSection,
 } from './BriefingSections';
@@ -34,6 +38,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const settings = useBriefingSettings();
   const prefs = useBriefingPrefs();
   const watchlist = useWatchlist();
+  const newsTopic = useNewsTopic();
   const [tickerInput, setTickerInput] = useState('');
   const navigate = useNavigate();
 
@@ -196,7 +201,9 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 {prefs.tasks && <TasksSection data={d} onOpen={() => jumpTo('day')} />}
                 {prefs.dday && <DdaySection data={d} onOpen={() => jumpTo('month')} />}
                 {prefs.stocks && <StocksSection watch={watchlist} />}
-                {prefs.news && <NewsSection />}
+                {prefs.news && <NewsSection topic={newsTopic} topicLabel={NEWS_TOPICS.find((t) => t.key === newsTopic)?.label} />}
+                {prefs.recos && <RecosSection />}
+                {prefs.tomorrow && isEvening() && <TomorrowSection />}
                 {prefs.habits && <HabitsSection data={d} onOpen={() => jumpTo('habits')} />}
               </div>
             )}
@@ -205,7 +212,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             {d && !prefs.ai && !(prefs.weather && w) &&
               !(prefs.schedule && d.timed.length) &&
               !(prefs.tasks && (d.inbox.length + d.overdue.length)) &&
-              !prefs.stocks && !prefs.news &&
+              !prefs.stocks && !prefs.news && !prefs.recos &&
+              !(prefs.tomorrow && isEvening()) &&
               !(prefs.dday && d.upcomingDday.length) &&
               !(prefs.habits && d.habits.length) && (
                 <p className="py-16 text-center text-[14px]" style={{ color: 'var(--hero-fg-muted)' }}>
@@ -234,6 +242,7 @@ function SettingsPanel({
   tickerInput: string;
   setTickerInput: (v: string) => void;
 }) {
+  const newsTopic = useNewsTopic();
   return (
     <div className="mx-auto w-full max-w-[520px]">
       <div className="mb-2 text-[12px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>브리핑에 표시할 항목</div>
@@ -288,6 +297,31 @@ function SettingsPanel({
               추가
             </button>
           </form>
+        </div>
+      )}
+
+      {prefs.news && (
+        <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--hero-hairline)' }}>
+          <div className="mb-1.5 text-[12px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>뉴스 주제</div>
+          <div className="flex flex-wrap gap-1.5">
+            {NEWS_TOPICS.map((t) => {
+              const active = newsTopic === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => newsTopicStore.set(t.key)}
+                  className="rounded-full px-3 py-1 text-[13px] transition-colors"
+                  style={{
+                    background: active ? 'var(--hero-fg)' : 'rgba(0,0,0,0.05)',
+                    color: active ? 'var(--briefing-card-bg)' : 'var(--hero-fg)',
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
