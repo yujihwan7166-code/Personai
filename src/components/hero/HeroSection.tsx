@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus,
+  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus, ArrowUpRight,
   MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
   Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
   type LucideIcon,
@@ -182,6 +182,26 @@ export function HeroSection({
     : null;
   // 외부 검색 armed 여부 (북마크는 armed 로 취급 X — 즉시 모달).
   const isSearchArmed = !!armedChip?.external;
+
+  // armed 사이트 홈 URL — 검색 URL 의 origin 추출 (2026-07-05: 검색 없이
+  // 그 사이트로 바로 이동하는 진입로 3종에서 공용).
+  const armedHomeUrl = (() => {
+    if (!armedChip?.external) return null;
+    try {
+      const sample = armedChip.urlTemplate
+        ? armedChip.urlTemplate.replace('{Q}', 'a')
+        : buildHeroSearchUrl(armedChip.id, 'a');
+      if (!sample) return null;
+      const u = new URL(sample);
+      // 검색 전용 서브도메인은 실제 홈으로 (search.naver.com → www.naver.com).
+      return `${u.protocol}//${u.hostname.replace(/^search\./, 'www.')}`;
+    } catch {
+      return null;
+    }
+  })();
+  const openArmedHome = () => {
+    if (armedHomeUrl) window.open(armedHomeUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // AI 클릭 → armed 검색·비서 모드 해제 (상호 배타).
   const handleSelectBrand = (b: BrandId) => {
@@ -671,7 +691,7 @@ export function HeroSection({
           ) : isSearchArmed ? (
             // armed — 라벨도 항상 픽커 트리거 (패널 = 전환 허브, 2026-07-05 재정의).
             // key 없음 — armed↔AI 전환 시 픽커가 리마운트되지 않게 (패널 유지).
-            <div className="flex justify-center">
+            <div className="flex items-center justify-center gap-1">
               <ModelPickerButton
                 variant="eyebrow"
                 brand={activeBrand}
@@ -682,6 +702,23 @@ export function HeroSection({
                 selectSection={selectSection}
                 displayOverride={{ label: displayName }}
               />
+              {/* ↗ 바로가기 — 검색 없이 그 사이트 홈으로 (새 탭). */}
+              {armedHomeUrl && (
+                <button
+                  type="button"
+                  onClick={openArmedHome}
+                  title={`${displayName} 바로가기`}
+                  aria-label={`${displayName} 사이트로 바로 이동`}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-150 hover:-translate-y-px"
+                  style={{
+                    color: 'var(--hero-accent)',
+                    borderColor: 'var(--hero-hairline)',
+                    backgroundColor: 'var(--hero-accent-soft, rgba(0,0,0,0.04))',
+                  }}
+                >
+                  <ArrowUpRight size={15} strokeWidth={2.2} />
+                </button>
+              )}
             </div>
           ) : (
             // AI 모드 eyebrow — 클릭하면 항상 선택 패널 (브라우저 → AI → 모델).
@@ -713,6 +750,17 @@ export function HeroSection({
             style={{ color: 'var(--hero-fg-muted)' }}
           >
             {subheading}
+            {/* armed — 서브카피 끝 도메인 링크 (검색 없이 바로 이동). */}
+            {isSearchArmed && armedHomeUrl && (
+              <button
+                type="button"
+                onClick={openArmedHome}
+                className="ml-2 font-medium underline-offset-2 hover:underline"
+                style={{ color: 'var(--hero-accent)' }}
+              >
+                {new URL(armedHomeUrl).host.replace(/^www\./, '')} ↗
+              </button>
+            )}
           </p>
         </div>
 
@@ -740,7 +788,15 @@ export function HeroSection({
               selectedBrand={isSearchArmed ? null : brand}
               onSelectBrand={handleSelectBrand}
               armedSearch={armed}
-              onToggleSearch={handleToggleSearch}
+              // armed 칩 재클릭 = 그 사이트 홈으로 이동 (2026-07-05, 해제는
+              // 패널 셀 재클릭 또는 AI 선택으로). 나머지는 기존 토글.
+              onToggleSearch={(id) => {
+                if (armed === id && armedHomeUrl) {
+                  openArmedHome();
+                  return;
+                }
+                handleToggleSearch(id);
+              }}
               // + 칩 제거 — 칩 구성은 eyebrow 패널 별 토글로 (2026-07-05).
               onOpenSecretary={handleToggleSecretary}
               secretaryOpen={secretaryMode}
