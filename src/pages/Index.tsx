@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MainModeTabs } from '@/components/MainModeTabs';
 import { FavoriteChips } from '@/components/hero/FavoriteChips';
 import { FeatureRail } from '@/components/hero/FeatureRail';
+import { ModeCapsule } from '@/components/hero/ModeCapsule';
 import { HeroSection } from '@/components/hero/HeroSection';
 import { MultiHero } from '@/components/hero/MultiHero';
 import { useSelectedBrand } from '@/hooks/useSelectedBrand';
@@ -4808,7 +4809,40 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
 
           {/* Deep Research full-screen takeover */}
           {getMainMode(discussionMode) === 'research_main' ? (
-            <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+            <div className="relative h-full">
+              {/* 모드 캡슐 — general/multi 와 동일 위치 (2026-07-05 전 모드 통일). */}
+              <div className="absolute top-4 left-4 z-30">
+                <ModeCapsule
+                  modeLabel={mainModeLabelMap.research_main}
+                  modeId="research_main"
+                  onOpenMenu={() => mainModeTabsApiRef.current?.open()}
+                >
+                  <FavoriteChips
+                    currentMode={getMainMode(discussionMode)}
+                    onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+                    onSelectDebateSub={(sub) => handleModeChange(sub)}
+                    onSelectPremiumDomain={(domainId) => {
+                      handleModeChange('expert');
+                      handleSelectPremiumDomain(domainId);
+                    }}
+                    onSelectAssistantCard={(cardId) => {
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+                      setSelectedAssistantCard(cardId);
+                    }}
+                    onSelectTool={(_kind, _toolId, label) => {
+                      if (getMainMode(discussionMode) !== 'general') {
+                        handleModeChange(mainToDiscussion('general'));
+                      }
+                      setHeroInputValue(`${label} `);
+                    }}
+                  />
+                </ModeCapsule>
+              </div>
+              <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
               <ModeErrorBoundary modeLabel="심층 리서치" resetKey={discussionMode} onReset={() => setDiscussionMode('assistant')}>
                 <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">로딩 중...</div>}>
                   <LazyDeepResearchChat
@@ -4817,6 +4851,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                   />
                 </Suspense>
               </ModeErrorBoundary>
+              </div>
             </div>
           ) : getMainMode(discussionMode) === 'translate_main' ? (
             <div className="h-full overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
@@ -4973,6 +5008,31 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                 value={heroInputValue}
                 onChange={setHeroInputValue}
                 disabled={isDiscussing}
+                favoriteChips={
+                  <FavoriteChips
+                    currentMode={getMainMode(discussionMode)}
+                    onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+                    onSelectDebateSub={(sub) => handleModeChange(sub)}
+                    onSelectPremiumDomain={(domainId) => {
+                      handleModeChange('expert');
+                      handleSelectPremiumDomain(domainId);
+                    }}
+                    onSelectAssistantCard={(cardId) => {
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+                      setSelectedAssistantCard(cardId);
+                    }}
+                    onSelectTool={(_kind, _toolId, label) => {
+                      if (getMainMode(discussionMode) !== 'general') {
+                        handleModeChange(mainToDiscussion('general'));
+                      }
+                      setHeroInputValue(`${label} `);
+                    }}
+                  />
+                }
                 onSubmit={(expertIds, text) => {
                   setHeroInputValue('');
                   setSelectedExpertIds(expertIds);

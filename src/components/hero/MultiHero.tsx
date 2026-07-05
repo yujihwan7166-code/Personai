@@ -16,13 +16,13 @@
  * - 전송 시 기존 multi 파이프라인 실행 — 채팅 화면은 불변.
  */
 import { useEffect, useState } from 'react';
-import { ChevronDown, Layers } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import { ModeCapsule } from './ModeCapsule';
 import { cn } from '@/lib/utils';
 import { BRANDS, BRAND_BY_ID, BRAND_ACCENT, type Brand, type BrandId, type BrandModel } from '@/lib/aiBrands';
 import { AiBrandChip } from './AiBrandChip';
 import { BrandLogo } from './BrandLogo';
 import { HeroInput } from './HeroInput';
-import { MODE_TINT } from '@/components/MainModeTabs';
 import { pickContrastingText } from '@/lib/colorUtils';
 
 const SELECTED_KEY = 'personai.multi.selected_brands';
@@ -71,6 +71,8 @@ interface Props {
   onSubmit: (expertIds: string[], text: string) => void;
   onAttach?: () => void;
   disabled?: boolean;
+  /** 즐겨찾기 칩 줄 — 캡슐 pill 오른쪽 (general 히어로와 동일 위치). */
+  favoriteChips?: React.ReactNode;
 }
 
 export function MultiHero({
@@ -81,6 +83,7 @@ export function MultiHero({
   onSubmit,
   onAttach,
   disabled,
+  favoriteChips,
 }: Props) {
   const [selected, setSelected] = useState<BrandId[]>(readSelected);
   const [modelByBrand, setModelByBrand] = useState<Partial<Record<BrandId, string>>>(readModels);
@@ -145,7 +148,6 @@ export function MultiHero({
         ? '2개 선택됨 — 하나 더 고르면 비교가 더 풍성해져요'
         : '아래 스트립에서 최대 3개까지 골라보세요';
 
-  const tint = MODE_TINT.multi;
 
   return (
     <div className="relative flex min-h-full w-full items-center justify-center overflow-hidden">
@@ -166,28 +168,11 @@ export function MultiHero({
         }}
       />
 
-      {/* 상단 모드 pill — general 히어로와 동일 문법 (아이콘 + 틴트). */}
+      {/* 상단 모드 캡슐 — general 히어로와 동일 (pill + 즐겨찾기 칩, 2026-07-05). */}
       <div className="absolute top-4 left-4 z-20">
-        <button
-          type="button"
-          data-mode-anchor
-          onClick={onOpenModeDropdown}
-          aria-label={`현재 모드: ${modeLabel}. 클릭하면 모드 목록`}
-          className={cn(
-            'group flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full',
-            'text-[13px] font-semibold tracking-tight',
-            'border transition-all duration-200 hover:-translate-y-px',
-          )}
-          style={{
-            color: '#1e2235',
-            backgroundColor: `color-mix(in oklab, ${tint} 10%, #ffffff)`,
-            borderColor: `color-mix(in oklab, ${tint} 36%, transparent)`,
-          }}
-        >
-          <Layers size={14} strokeWidth={2} style={{ color: tint }} />
-          <span>{modeLabel}</span>
-          <ChevronDown size={14} strokeWidth={2.2} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-        </button>
+        <ModeCapsule modeLabel={modeLabel} modeId="multi" onOpenMenu={onOpenModeDropdown}>
+          {favoriteChips}
+        </ModeCapsule>
       </div>
 
       <div className="relative z-10 w-full max-w-[760px] px-6 py-16">
