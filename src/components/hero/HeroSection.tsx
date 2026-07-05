@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus, ArrowUpRight,
+  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus,
   MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
   Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
   type LucideIcon,
@@ -691,6 +691,7 @@ export function HeroSection({
           ) : isSearchArmed ? (
             // armed — 라벨도 항상 픽커 트리거 (패널 = 전환 허브, 2026-07-05 재정의).
             // key 없음 — armed↔AI 전환 시 픽커가 리마운트되지 않게 (패널 유지).
+            // ↗ eyebrow 버튼은 제거 (2026-07-05) — 이동은 서브카피 링크·칩 재클릭으로.
             <div className="flex items-center justify-center gap-1">
               <ModelPickerButton
                 variant="eyebrow"
@@ -702,23 +703,6 @@ export function HeroSection({
                 selectSection={selectSection}
                 displayOverride={{ label: displayName }}
               />
-              {/* ↗ 바로가기 — 검색 없이 그 사이트 홈으로 (새 탭). */}
-              {armedHomeUrl && (
-                <button
-                  type="button"
-                  onClick={openArmedHome}
-                  title={`${displayName} 바로가기`}
-                  aria-label={`${displayName} 사이트로 바로 이동`}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-150 hover:-translate-y-px"
-                  style={{
-                    color: 'var(--hero-accent)',
-                    borderColor: 'var(--hero-hairline)',
-                    backgroundColor: 'var(--hero-accent-soft, rgba(0,0,0,0.04))',
-                  }}
-                >
-                  <ArrowUpRight size={15} strokeWidth={2.2} />
-                </button>
-              )}
             </div>
           ) : (
             // AI 모드 eyebrow — 클릭하면 항상 선택 패널 (브라우저 → AI → 모델).
