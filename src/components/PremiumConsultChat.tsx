@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { buildAttachmentPrompt, formatFileSize, getFileIcon, processFile, validateFile, type AttachedFile } from '@/lib/fileProcessor';
-import { TrustIndicator } from './TrustIndicator';
 import { LazyMarkdown } from './LazyMarkdown';
 import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Paperclip, X } from 'lucide-react';
 
@@ -45,7 +44,7 @@ function parseFollowUps(content: string): { clean: string; followUps: string[] }
   };
 }
 
-export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, isStreaming, citations, trustHeader, error, steps = [] }: Props) {
+export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, isStreaming, citations, steps = [] }: Props) {
   const domain = PREMIUM_DOMAIN_TEMPLATES.find(d => d.id === domainId) || PREMIUM_DOMAIN_TEMPLATES[0];
   const accent = ACCENT_MAP[domainId] || ACCENT_MAP.law;
   const [input, setInput] = useState('');
@@ -176,31 +175,22 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
 
   return (
     <div className="flex flex-col bg-background text-foreground overflow-hidden h-full">
-      {/* Header — 앱 톤. 도메인 정체성(아이콘·이름) + API 출처 + 신뢰 배지. */}
-      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-[hsl(var(--hairline))]">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" aria-label="뒤로">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[16px]">{domain.icon}</span>
-            <h3 className="text-[13px] font-semibold text-foreground">{domain.name}</h3>
-            <span className="text-[9px] text-muted-foreground/60">·</span>
-            <span className="text-[9px] text-muted-foreground">{domain.apiSource.name}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <TrustIndicator domain={domainId} citations={citations} error={error} trustHeader={trustHeader} />
-          {hasCitations && (
-            <button
-              onClick={() => setShowSourcePanel(!showSourcePanel)}
-              className={cn('p-1.5 rounded-lg transition-colors', showSourcePanel ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent')}
-              aria-label="참조 데이터 패널"
-            >
-              <FileText className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+      {/* 상단 — 메인 화면 좌상단과 같은 글래스 캡슐. 누르면 메인으로 돌아간다.
+       * (기존 '뒤로·도메인명·API출처·배지' 헤더 줄은 제거 — 정체성은 빈 화면·인용이 담당) */}
+      <div className="shrink-0 px-4 pt-3 pb-1.5">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="메인 화면으로"
+          title="메인 화면으로"
+          className="group inline-flex h-8 items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] bg-card pl-1.5 pr-3 text-[12.5px] font-semibold text-foreground shadow-[0_4px_16px_-10px_hsl(var(--foreground)/0.25)] transition-colors hover:bg-accent"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/70 transition-colors group-hover:bg-background">
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </span>
+          <span className="text-[14px] leading-none">{domain.icon}</span>
+          <span>{domain.name}</span>
+        </button>
       </div>
 
       {/* Body */}
