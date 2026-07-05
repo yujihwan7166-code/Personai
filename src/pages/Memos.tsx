@@ -10,7 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, ChevronDown, Mic,
-  PanelLeftClose, PanelLeftOpen, BookOpenText,
+  BookOpenText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
@@ -82,7 +82,6 @@ const Memos = () => {
   const [editingFolder, setEditingFolder] = useState<MemoFolder | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // 정렬 키 — localStorage 영속.
   const [sortKey, setSortKey] = useState<MemoSortKey>(() => {
     if (typeof window === 'undefined') return 'updated';
@@ -280,22 +279,10 @@ const Memos = () => {
       {/* 좌 사이드 */}
       <aside className={cn(
         'shrink-0 border-r border-foreground/25 bg-background flex flex-col',
-        isMobile ? 'w-full' : sidebarCollapsed ? 'w-10 items-end py-2 pr-1 gap-1 border-foreground/20' : 'w-[292px]',
+        isMobile ? 'w-full' : 'w-[292px]',
         !showSidebar && 'hidden',
       )}>
-        {!isMobile && sidebarCollapsed ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              title="사이드바 열기"
-              aria-label="사이드바 열기"
-            >
-              <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
-            </button>
-          </>
-        ) : (
+        {(
           <>
             <div className="shrink-0 px-3 pt-3 pb-2.5 max-sm:pr-12">
               <div className="flex items-center gap-2">
@@ -304,19 +291,6 @@ const Memos = () => {
                     메모
                   </h1>
                 </div>
-                {!isMobile && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSidebarCollapsed(true)}
-                      className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      title="사이드바 접기"
-                      aria-label="사이드바 접기"
-                    >
-                      <PanelLeftClose className="w-4 h-4" strokeWidth={1.85} />
-                    </button>
-                  </div>
-                )}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
                 <button

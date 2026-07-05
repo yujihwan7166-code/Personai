@@ -66,12 +66,24 @@ const MODE_LAUNCHER_MODES: MainMode[] = [
   'assistant',
 ];
 
+/** 페이지 전용 레일 항목 — 스위처 아래 구분선 다음에 아이콘으로 렌더 (플래너 등). */
+export interface RailExtraItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  /** 아직 미구현(placeholder) — 흐리게 표시. */
+  soon?: boolean;
+}
+
 interface AppWorkspaceShellProps {
   current: WorkspaceKey;
   children: ReactNode;
+  /** 이 워크스페이스만의 레일 항목 — 공통 네비 아래 구분선 다음에 추가. */
+  railExtra?: RailExtraItem[];
 }
 
-export function AppWorkspaceShell({ current, children }: AppWorkspaceShellProps) {
+export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspaceShellProps) {
   const navigate = useNavigate();
   const moreActive = MOBILE_MORE.some((item) => item.key === current);
   const currentItem = WORKSPACE_DESTINATIONS.find((item) => item.key === current);
@@ -139,6 +151,32 @@ export function AppWorkspaceShell({ current, children }: AppWorkspaceShellProps)
         {RAIL_WORKSPACES.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
         ))}
+
+        {/* 페이지 전용 기능 — 스위처 아래 구분선 다음에 (예: 플래너 매트릭스·보관함…). */}
+        {railExtra && railExtra.length > 0 && (
+          <>
+            <span aria-hidden className="my-1 h-px w-6 bg-[hsl(var(--hairline))]" />
+            {railExtra.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={item.onClick}
+                  aria-label={item.label}
+                  title={item.label}
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+                    'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    item.soon && 'opacity-45',
+                  )}
+                >
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+                </button>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* 레일 밖(히든 마운트)에 메가메뉴 실체 — apiRef 로 열림 제어. */}

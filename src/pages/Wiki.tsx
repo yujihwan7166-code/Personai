@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, BookOpen, LayoutGrid, Shuffle, Plus } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, BookOpen, Shuffle, Plus } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -61,8 +61,8 @@ const Wiki = () => {
   );
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
-    if (window.innerWidth < 768) return false;
-    return window.localStorage.getItem(SIDEBAR_KEY) !== '0';
+    // 데스크톱은 항상 열림 고정(공통 레일 도입 후). 모바일만 기본 닫힘(오버레이).
+    return window.innerWidth >= 768;
   });
   const [aiOpen, setAiOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -335,7 +335,8 @@ const Wiki = () => {
         openTemplatePicker();
       } else if (meta && e.key.toLowerCase() === 'b') {
         e.preventDefault();
-        setSidebarOpen((v) => !v);
+        // 데스크톱은 항상 열림 — 모바일 오버레이에서만 토글.
+        if (window.innerWidth < 768) setSidebarOpen((v) => !v);
       } else if (meta && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         setAiOpen((v) => !v);
@@ -397,24 +398,17 @@ const Wiki = () => {
             >
               🌐 마이위키
             </span>
-            <button
-              type="button"
-              onClick={() => modeApiRef.current?.open()}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="모드 전환: 현재 마이위키"
-              aria-label="모드 전환: 현재 마이위키"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(false)}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="사이드바 접기 (Ctrl/Cmd+B)"
-              aria-label="사이드바 접기"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
+                title="사이드바 닫기"
+                aria-label="사이드바 닫기"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 무작위) */}
@@ -515,15 +509,6 @@ const Wiki = () => {
             aria-label="사이드바 펴기"
           >
             <PanelLeftOpen className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => modeApiRef.current?.open()}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="모드 전환: 현재 마이위키"
-            aria-label="모드 전환: 현재 마이위키"
-          >
-            <LayoutGrid className="h-4 w-4" />
           </button>
           <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
 

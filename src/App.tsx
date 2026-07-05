@@ -7,6 +7,7 @@ import { GlobalMemoHotkey } from "@/components/GlobalMemoHotkey";
 import { DailyBriefingMount } from "@/components/DailyBriefingMount";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppWorkspaceShell } from "@/components/AppWorkspaceShell";
+import { PLANNER_RAIL_ITEMS } from "@/components/planner/plannerRailItems";
 
 const queryClient = new QueryClient();
 const Index = lazy(() => import("./pages/Index"));
@@ -47,7 +48,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/wiki" element={<AppWorkspaceShell current="wiki"><Wiki /></AppWorkspaceShell>} />
-              <Route path="/planner" element={<AppWorkspaceShell current="planner"><Planner /></AppWorkspaceShell>} />
+              <Route path="/planner" element={<AppWorkspaceShell current="planner" railExtra={PLANNER_RAIL_ITEMS}><Planner /></AppWorkspaceShell>} />
               <Route path="/memos" element={<AppWorkspaceShell current="memos"><Memos /></AppWorkspaceShell>} />
               <Route path="/whiteboard" element={<AppWorkspaceShell current="whiteboard"><Whiteboard /></AppWorkspaceShell>} />
               <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />

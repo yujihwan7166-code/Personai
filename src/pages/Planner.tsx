@@ -46,7 +46,6 @@ import {
   type DragMoveEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
-import { PlannerLeftRail } from '@/components/planner/PlannerLeftRail';
 import { RAIL_EVENT } from '@/components/planner/plannerRailEvents';
 import { PlannerAIPanel } from '@/components/planner/ai/PlannerAIPanel';
 import { PlannerTrashDialog } from '@/components/planner/PlannerTrashDialog';
@@ -1701,9 +1700,6 @@ const Planner = () => {
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
     >
     <div className="planner-theme min-h-screen bg-background flex">
-      <aside className="hidden h-screen w-12 shrink-0 border-r border-foreground/10 bg-card/35 sm:block">
-        <PlannerLeftRail aiOpen={aiPanelOpen} />
-      </aside>
       <main className="flex h-screen flex-1 min-w-0 flex-col overflow-hidden">
         <header className="relative z-40 shrink-0 border-b border-foreground/10 bg-background/95 px-3 py-1.5 shadow-[0_1px_0_hsl(var(--foreground)/0.03)] backdrop-blur sm:px-4">
           <div

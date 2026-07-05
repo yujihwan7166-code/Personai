@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import '@/styles/wiki.css';   // wiki-warm-theme ?좏겙 (硫붾え? ?숈씪)
 import {
-  PanelLeftClose,
   PanelLeftOpen,
   MousePointer2,
   Hand,
@@ -258,7 +257,6 @@ export default function Whiteboard() {
     persistKey: activeBoardId ?? 'all',
     openStorage: 'local',
   });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [switchingBoardId, setSwitchingBoardId] = useState<string | null>(null);
 
   // ??蹂대뱶媛 ?섎굹???놁쑝硫?泥?吏꾩엯 ???덈궡留? ?먮룞 ?앹꽦 X (硫붾え ?⑦꽩)
@@ -291,8 +289,6 @@ export default function Whiteboard() {
         boards={boards}
         folders={folders}
         activeBoardId={activeBoardId}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
       <main className="relative min-h-[62vh] flex-1 min-w-0 overflow-hidden bg-background sm:min-h-0">
         {activeBoard ? (
@@ -349,14 +345,10 @@ function Sidebar({
   boards,
   folders,
   activeBoardId,
-  collapsed,
-  onToggleCollapsed,
 }: {
   boards: WBBoard[];
   folders: ReturnType<typeof useFolders>;
   activeBoardId: string | null;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
 }) {
   const trashed = useTrashedBoards();
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -392,22 +384,6 @@ function Sidebar({
     if (folderId) setExpanded((prev) => new Set(prev).add(folderId));
   };
 
-  if (collapsed) {
-    return (
-      <aside className="flex h-11 shrink-0 items-center justify-end gap-1 border-b border-foreground/20 bg-background px-2 sm:h-screen sm:w-10 sm:flex-col sm:items-center sm:justify-start sm:border-b-0 sm:border-r sm:px-0 sm:py-3">
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="사이드바 열기"
-          aria-label="사이드바 열기"
-        >
-          <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
-        </button>
-      </aside>
-    );
-  }
-
   return (
     <aside className="flex max-h-[28vh] w-full shrink-0 flex-col border-b border-foreground/25 bg-background pb-12 sm:max-h-none sm:w-[292px] sm:border-b-0 sm:border-r sm:pb-0">
       <div className="shrink-0 px-3 pt-3 pb-2.5">
@@ -417,15 +393,6 @@ function Sidebar({
               화이트보드
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            title="사이드바 접기"
-            aria-label="사이드바 접기"
-          >
-            <PanelLeftClose className="w-4 h-4" strokeWidth={1.85} />
-          </button>
         </div>
         <div className="mt-3 flex gap-1.5">
           <button
