@@ -10,13 +10,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pin, Search, Trash2, X, ArrowRight, Archive, ArchiveRestore, RotateCcw,
   ExternalLink, Tag, Folder, FolderPlus, Check as CheckIcon, MoreHorizontal, ChevronRight, ChevronDown, Mic,
-  Home, PanelLeftClose, PanelLeftOpen, BookOpenText,
+  PanelLeftClose, PanelLeftOpen, BookOpenText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { PageStarterEmpty } from '@/components/PageStarterEmpty';
 import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
-import { WorkspaceSidebarSwitchButton } from '@/components/WorkspaceSidebarSwitchButton';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
@@ -295,16 +294,6 @@ const Memos = () => {
             >
               <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              title="홈으로"
-              aria-label="홈으로"
-            >
-              <Home className="w-4 h-4" strokeWidth={1.85} />
-            </button>
-            <WorkspaceSidebarSwitchButton current="memos" className="w-8 h-9" contentAlign="start" />
           </>
         ) : (
           <>
@@ -317,16 +306,6 @@ const Memos = () => {
                 </div>
                 {!isMobile && (
                   <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/')}
-                      className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      title="홈으로"
-                      aria-label="홈으로"
-                    >
-                      <Home className="w-4 h-4" strokeWidth={1.85} />
-                    </button>
-                    <WorkspaceSidebarSwitchButton current="memos" />
                     <button
                       type="button"
                       onClick={() => setSidebarCollapsed(true)}

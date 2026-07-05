@@ -1,18 +1,21 @@
-import { type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
-  Check,
-  ChevronDown,
-  FileText,
   Home,
   LayoutDashboard,
+  LayoutGrid,
   MoreHorizontal,
   Network,
   NotebookPen,
+  FileText,
+  Check,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
+import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
+import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +43,9 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
 ];
 
+/* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/화이트보드/일기. */
+const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
+
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'memos', 'whiteboard'].includes(item.key),
 );
@@ -47,62 +53,122 @@ const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
   ['home', 'journal'].includes(item.key),
 );
 
+/* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
+const MODE_LAUNCHER_MODES: MainMode[] = [
+  'general',
+  'research_main',
+  'study_main',
+  'voice_main',
+  'multi',
+  'debate',
+  'stakeholder_main',
+  'premium_main',
+  'assistant',
+];
+
 interface AppWorkspaceShellProps {
   current: WorkspaceKey;
   children: ReactNode;
 }
 
 export function AppWorkspaceShell({ current, children }: AppWorkspaceShellProps) {
+  const navigate = useNavigate();
   const moreActive = MOBILE_MORE.some((item) => item.key === current);
   const currentItem = WORKSPACE_DESTINATIONS.find((item) => item.key === current);
-  const CurrentIcon = currentItem?.icon ?? CalendarDays;
+
+  // 모드 메가메뉴 — 레일 '메뉴(⊞)' 버튼이 홈 히어로와 같은 패널을 연다.
+  const modeApiRef = useRef<MainModeTabsApi | null>(null);
+  const modeMenuId = useId();
+  const [modeOpen, setModeOpen] = useState(false);
+  const modeLabels = useMemo(() => {
+    const out: Partial<Record<MainMode, string>> = {};
+    for (const [key, value] of Object.entries(MAIN_MODE_LABELS)) {
+      out[key as MainMode] = value.label;
+    }
+    return out as Record<MainMode, string>;
+  }, []);
+  const goToHomeWith = useCallback(
+    (state: Record<string, unknown>) => navigate('/', { state }),
+    [navigate],
+  );
+  const openModePanel = useCallback(() => {
+    const tryOpen = (attempt = 0) => {
+      if (modeApiRef.current) {
+        modeApiRef.current.open();
+        return;
+      }
+      if (attempt >= 4) return;
+      window.requestAnimationFrame(() => tryOpen(attempt + 1));
+    };
+    tryOpen();
+  }, []);
 
   return (
     <div className="app-workspace-shell min-h-dvh bg-background text-foreground">
-      <div
-        data-app-workspace-switcher
-        className={cn(
-          'fixed right-[calc(0.5rem+env(safe-area-inset-right))] z-[45] hidden sm:block',
-          'sm:right-[calc(0.75rem+env(safe-area-inset-right))]',
-          current === 'planner'
-            ? 'top-[calc(0.8125rem+env(safe-area-inset-top))]'
-            : 'top-[calc(0.5rem+env(safe-area-inset-top))]',
-        )}
+      {/* ────── 데스크톱 좌측 세로 아이콘 레일 (모든 워크스페이스 공통·고정) ──────
+       * 홈 · 메뉴(모드 메가메뉴) · 구분선 · 캘린더/위키/노트/화이트보드/일기.
+       * 페이지가 바뀌어도 자리·디자인 불변 → "같은 앱 안에서 방만 바뀐다" 감. */}
+      <nav
+        aria-label="워크스페이스 레일"
+        data-app-workspace-rail
+        className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label="앱 전환"
-              className="inline-flex h-8 w-[128px] items-center gap-1.5 rounded-lg border border-foreground/30 bg-card/95 px-2.5 text-[12px] font-semibold text-foreground shadow-[0_6px_18px_-16px_hsl(var(--foreground)/0.42)] backdrop-blur transition-colors hover:border-foreground/40 hover:bg-card"
-            >
-              <CurrentIcon className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.1} />
-              <span className="min-w-0 flex-1 truncate text-left">{currentItem?.label}</span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2.1} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={5} className="w-[128px] rounded-lg p-1 shadow-[0_12px_32px_-20px_hsl(var(--foreground)/0.5)]">
-            {WORKSPACE_DESTINATIONS.map((item) => {
-              const Icon = item.icon;
-              const active = item.key === current;
-              return (
-                <DropdownMenuItem key={item.key} asChild>
-                  <NavLink
-                    to={item.to}
-                    className={cn('flex h-8 items-center gap-2 rounded-md px-2 text-[12.5px]', active && 'text-primary')}
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2.1} />
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {active && <Check className="h-3.5 w-3.5" strokeWidth={2.2} />}
-                  </NavLink>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+        {/* 홈 — 이 레일은 5개 워크스페이스에서만 뜨므로 홈은 항상 비활성(이동 전용). */}
+        <RailLink item={WORKSPACE_DESTINATIONS[0]} active={false} />
 
-      <main className="min-w-0 pb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:pb-0">
+        <button
+          type="button"
+          onClick={openModePanel}
+          aria-label="모드 메뉴 열기"
+          aria-haspopup="menu"
+          aria-expanded={modeOpen}
+          aria-controls={modeMenuId}
+          title="모드 — 대화·토론·리서치·스튜디오"
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+            modeOpen
+              ? 'bg-primary/12 text-primary'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          )}
+        >
+          <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={2} />
+        </button>
+
+        <span aria-hidden className="my-1 h-px w-6 bg-[hsl(var(--hairline))]" />
+
+        {RAIL_WORKSPACES.map((item) => (
+          <RailLink key={item.key} item={item} active={item.key === current} />
+        ))}
+      </nav>
+
+      {/* 레일 밖(히든 마운트)에 메가메뉴 실체 — apiRef 로 열림 제어. */}
+      <HiddenInteractiveMount>
+        <MainModeTabs
+          modes={MODE_LAUNCHER_MODES}
+          labels={modeLabels}
+          currentMode="general"
+          pendingMode={null}
+          isDiscussing={false}
+          transitionPhase={0}
+          showPlayerBg={false}
+          onChange={(mode) => goToHomeWith({ selectMainMode: mode })}
+          onSelectDebateSub={(sub) => goToHomeWith({ selectMainMode: 'debate', selectDebateSub: sub })}
+          onSelectPremiumDomain={(domainId) => goToHomeWith({ selectMainMode: 'premium_main', selectPremiumDomain: domainId })}
+          onSelectAssistantCard={(cardId) => goToHomeWith({
+            selectMainMode: cardId === 'voice-analysis' ? 'voice_main' : 'assistant',
+            selectAssistantCard: cardId,
+          })}
+          onSelectLifeTool={(toolId) => goToHomeWith({ selectMainMode: 'general', selectLifeTool: toolId })}
+          onOpenMentalTests={() => goToHomeWith({ openMentalTests: true })}
+          onOpenBookmarks={() => goToHomeWith({ openBookmarks: true })}
+          onSelectPlayerTool={(toolId) => goToHomeWith({ selectMainMode: 'player', selectPlayerTool: toolId })}
+          apiRef={modeApiRef}
+          menuId={modeMenuId}
+          onOpenChange={setModeOpen}
+        />
+      </HiddenInteractiveMount>
+
+      <main className="min-w-0 pb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-14">
         {children}
       </main>
 
@@ -162,6 +228,27 @@ export function AppWorkspaceShell({ current, children }: AppWorkspaceShellProps)
 interface WorkspaceLinkProps {
   item: WorkspaceDestination;
   active: boolean;
+}
+
+/* 좌측 레일 아이콘 링크 — 아이콘만(마크형), 현재 페이지는 primary 하이라이트. */
+function RailLink({ item, active }: WorkspaceLinkProps) {
+  const Icon = item.icon;
+  return (
+    <NavLink
+      to={item.to}
+      aria-label={item.label}
+      aria-current={active ? 'page' : undefined}
+      title={item.label}
+      className={cn(
+        'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+        active
+          ? 'bg-primary/12 text-primary'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+      )}
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+    </NavLink>
+  );
 }
 
 function WorkspaceBottomLink({ item, active }: WorkspaceLinkProps) {

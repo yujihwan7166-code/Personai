@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, Home, BookOpen, LayoutGrid, Shuffle, Plus } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Network, Menu, BookOpen, LayoutGrid, Shuffle, Plus } from 'lucide-react';
 import '@/styles/wiki.css';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
@@ -399,15 +399,6 @@ const Wiki = () => {
             </span>
             <button
               type="button"
-              onClick={() => navigate('/')}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="홈화면"
-              aria-label="홈화면"
-            >
-              <Home className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
               onClick={() => modeApiRef.current?.open()}
               className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
               title="모드 전환: 현재 마이위키"
@@ -524,15 +515,6 @@ const Wiki = () => {
             aria-label="사이드바 펴기"
           >
             <PanelLeftOpen className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="홈화면"
-            aria-label="홈화면"
-          >
-            <Home className="h-4 w-4" />
           </button>
           <button
             type="button"

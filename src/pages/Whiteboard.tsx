@@ -5,10 +5,8 @@
  * Step 3 ?덉젙: ?붿냼 ?뚮뜑 + ?꾧뎄 ?숈옉.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '@/styles/wiki.css';   // wiki-warm-theme ?좏겙 (硫붾え? ?숈씪)
 import {
-  Home,
   PanelLeftClose,
   PanelLeftOpen,
   MousePointer2,
@@ -56,7 +54,6 @@ import { cn } from '@/lib/utils';
 import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
 import { PageStarterEmpty } from '@/components/PageStarterEmpty';
 import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
-import { WorkspaceSidebarSwitchButton } from '@/components/WorkspaceSidebarSwitchButton';
 import { AiSidebar } from '@/components/cloud/AiSidebar';
 import { useAiSidebar } from '@/components/cloud/useAiSidebar';
 import { notify } from '@/lib/notify';
@@ -234,7 +231,6 @@ function hideInlineEditableText(el: WBElement): WBElement {
 
 // ??????????????????????????????????????????
 export default function Whiteboard() {
-  const navigate = useNavigate();
   const boards = useBoards();
   const folders = useFolders();
   const settings = useSettings();
@@ -296,7 +292,6 @@ export default function Whiteboard() {
         folders={folders}
         activeBoardId={activeBoardId}
         collapsed={sidebarCollapsed}
-        onGoHome={() => navigate('/')}
         onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
       <main className="relative min-h-[62vh] flex-1 min-w-0 overflow-hidden bg-background sm:min-h-0">
@@ -355,14 +350,12 @@ function Sidebar({
   folders,
   activeBoardId,
   collapsed,
-  onGoHome,
   onToggleCollapsed,
 }: {
   boards: WBBoard[];
   folders: ReturnType<typeof useFolders>;
   activeBoardId: string | null;
   collapsed: boolean;
-  onGoHome: () => void;
   onToggleCollapsed: () => void;
 }) {
   const trashed = useTrashedBoards();
@@ -411,16 +404,6 @@ function Sidebar({
         >
           <PanelLeftOpen className="w-4 h-4" strokeWidth={1.85} />
         </button>
-        <button
-          type="button"
-          onClick={onGoHome}
-          className="w-8 h-9 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="홈으로"
-          aria-label="홈으로"
-        >
-          <Home className="w-4 h-4" strokeWidth={1.85} />
-        </button>
-        <WorkspaceSidebarSwitchButton current="whiteboard" className="w-8 h-9" contentAlign="start" />
       </aside>
     );
   }
@@ -434,16 +417,6 @@ function Sidebar({
               화이트보드
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={onGoHome}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            title="홈으로"
-            aria-label="홈으로"
-          >
-            <Home className="w-4 h-4" strokeWidth={1.85} />
-          </button>
-          <WorkspaceSidebarSwitchButton current="whiteboard" />
           <button
             type="button"
             onClick={onToggleCollapsed}
