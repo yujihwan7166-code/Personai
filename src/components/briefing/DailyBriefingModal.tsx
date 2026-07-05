@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings2, Sparkles, Sunrise, Sun, Sunset, Moon } from 'lucide-react';
+import { X, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStore';
 import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
@@ -78,24 +78,30 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     >
       <div
         className={cn(
-          'relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border',
+          'relative flex w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border',
           closing ? 'animate-out fade-out zoom-out-95 duration-150' : 'animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200',
         )}
         style={{
-          borderColor: 'var(--hero-hairline, rgba(0,0,0,0.08))',
-          backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 96%, transparent)',
-          backdropFilter: 'blur(24px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-          boxShadow: '0 28px 80px -24px rgba(0,0,0,0.4), 0 6px 20px -8px rgba(0,0,0,0.18)',
-          color: 'var(--hero-fg, #1e2235)',
+          // 모닝 레터 — 종이 톤(따뜻한 오프화이트) + 세리프. 글래스·accent 카드 제거.
+          ['--briefing-serif' as string]: "'Nanum Myeongjo', 'Noto Serif KR', 'Apple SD Gothic Neo', Georgia, serif",
+          ['--hero-fg' as string]: 'hsl(28 18% 20%)',
+          ['--hero-fg-muted' as string]: 'hsl(28 12% 48%)',
+          ['--hero-hairline' as string]: 'hsl(30 20% 60% / 0.28)',
+          borderColor: 'hsl(30 24% 78% / 0.55)',
+          background: 'linear-gradient(180deg, hsl(38 42% 98%) 0%, hsl(36 32% 95%) 100%)',
+          boxShadow: '0 24px 70px -22px hsl(28 40% 12% / 0.3), 0 4px 16px -8px hsl(28 40% 12% / 0.14)',
+          color: 'hsl(28 18% 20%)',
         }}
       >
-        {/* 헤더 — 시간대 인사 + 날짜. */}
-        <div className="flex items-start gap-3 px-6 pt-6 pb-4">
-          <TimeOfDayIcon />
+        {/* 헤더 — 편지 상단: 날짜(작게) → 인사(세리프). 아이콘 원 제거. */}
+        <div className="flex items-start gap-3 px-7 pt-7 pb-1">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[22px] font-bold leading-tight tracking-tight">{narrative?.greeting ?? '오늘의 브리핑'}</h2>
-            <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--hero-fg-muted)' }}>{narrative?.date ?? ''}</p>
+            <p className="text-[12px] tracking-[0.04em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+              {narrative?.date ?? ''}
+            </p>
+            <h2 className="mt-1.5 text-[26px] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
+              {narrative?.greeting ?? '오늘의 편지'}
+            </h2>
           </div>
           <button
             type="button"
@@ -104,18 +110,18 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             title="브리핑 설정"
             className={cn(
               'shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors',
-              settingsOpen ? 'text-[color:var(--hero-accent)]' : 'text-[color:var(--hero-fg-muted)] hover:bg-black/[0.05] hover:text-[color:var(--hero-fg)]',
+              settingsOpen ? 'text-[color:var(--hero-fg)] bg-black/[0.05]' : 'text-[color:var(--hero-fg-muted)] hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)]',
             )}
           >
-            <Settings2 size={16} className={cn('transition-transform', settingsOpen && 'rotate-90')} />
+            <Settings2 size={15} className={cn('transition-transform', settingsOpen && 'rotate-90')} />
           </button>
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.05] hover:text-rose-500"
+            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)]"
           >
-            <X size={17} />
+            <X size={16} />
           </button>
         </div>
 
@@ -149,23 +155,22 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             </label>
           </div>
         ) : (
-          /* 브리핑 본문 — AI 한마디 + 섹션 스택. */
-          <div className="max-h-[min(64vh,560px)] overflow-y-auto px-6 pb-5 scrollbar-thin">
-            {/* AI 한마디. */}
+          /* 편지 본문 — 인사 아래 본문 문단 + 얇은 구분선 섹션들. */
+          <div className="max-h-[min(64vh,560px)] overflow-y-auto px-7 pb-7 pt-3 scrollbar-thin">
+            {/* 편지 본문 — 세리프, accent 카드·아이콘 없이. */}
             {prefs.ai && (
               loading || !narrative ? (
                 <BriefingShimmer />
               ) : (
-                <div className="flex gap-2.5 rounded-2xl px-3.5 py-3" style={{ backgroundColor: 'color-mix(in oklab, var(--hero-accent) 6%, transparent)' }}>
-                  <Sparkles size={15} strokeWidth={2} className="mt-1 shrink-0" style={{ color: 'var(--hero-accent)' }} />
-                  <p className="text-[15px] leading-[1.65] tracking-[-0.005em]" style={{ color: 'var(--hero-fg)' }}>{narrative.text}</p>
-                </div>
+                <p className="text-[16px] leading-[1.85]" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>
+                  {narrative.text}
+                </p>
               )
             )}
 
-            {/* 섹션 스택 — 데이터 로드 후. */}
+            {/* 섹션 스택 — 편지 속 항목처럼. */}
             {d && (
-              <div className={cn('space-y-2.5', prefs.ai && 'mt-3')}>
+              <div>
                 {prefs.schedule && <ScheduleSection data={d} />}
                 {prefs.tasks && <TasksSection data={d} />}
                 {prefs.weather && w && <WeatherSection weather={w} />}
@@ -210,26 +215,5 @@ function BriefingShimmer() {
       ))}
       <style>{`@keyframes wb-shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
     </div>
-  );
-}
-
-/** 시간대 아이콘 — 인사 옆. Sunrise(5-9)·Sun(9-17)·Sunset(17-20)·Moon(20-5). */
-function TimeOfDayIcon() {
-  const [h] = useState(() => new Date().getHours());
-  const cfg = (() => {
-    if (h >= 5 && h < 9) return { Icon: Sunrise, color: 'hsl(28 90% 55%)' };
-    if (h >= 9 && h < 17) return { Icon: Sun, color: 'hsl(42 92% 52%)' };
-    if (h >= 17 && h < 20) return { Icon: Sunset, color: 'hsl(18 82% 55%)' };
-    return { Icon: Moon, color: 'hsl(225 60% 60%)' };
-  })();
-  const { Icon, color } = cfg;
-  return (
-    <span
-      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-      style={{ background: color.replace(')', ' / 0.14)') }}
-      aria-hidden
-    >
-      <Icon className="h-[19px] w-[19px]" style={{ color }} strokeWidth={2.2} />
-    </span>
   );
 }
