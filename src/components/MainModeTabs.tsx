@@ -769,19 +769,19 @@ export function MainModeTabs({
         onClick={() => handleSelect(m)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
           }}
         >
-          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -804,13 +804,13 @@ export function MainModeTabs({
       type="button"
       onClick={() => handleSelectPlayerTool(tool.id)}
       role="menuitem"
-      className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+      className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
     >
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
       >
-        <span className="text-[15px] leading-none select-none">{tool.emoji}</span>
+        <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">{tool.label}</span>
@@ -828,15 +828,15 @@ export function MainModeTabs({
       onClick={() => handleSelectLifeTool(tool.id)}
       role="menuitem"
       className={cn(
-        'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+        'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
         'hover:bg-[hsl(var(--accent))]',
       )}
     >
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+        className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
       >
-        <span className="text-[15px] leading-none select-none">{tool.emoji}</span>
+        <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -914,16 +914,16 @@ export function MainModeTabs({
           aria-haspopup="menu"
           aria-expanded={isOpen}
           className={cn(
-            'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
             'hover:bg-[hsl(var(--accent))]',
             isOpen && 'bg-[hsl(var(--accent))]',
           )}
         >
           <span
-            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
             style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
           >
-            <span className="text-[15px] leading-none select-none">{group.emoji}</span>
+            <span className="text-[16px] leading-none select-none">{group.emoji}</span>
           </span>
           <span className="min-w-0 flex-1">
             <span className={cn('block text-[12.5px] leading-tight truncate', isOpen ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -951,13 +951,13 @@ export function MainModeTabs({
                     type="button"
                     onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
                     role="menuitem"
-                    className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                    className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                   >
                     <span
-                      className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                      className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                       style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
                     >
-                      <span className="text-[15px] leading-none select-none">✨</span>
+                      <span className="text-[16px] leading-none select-none">✨</span>
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -1020,19 +1020,19 @@ export function MainModeTabs({
         onClick={() => handleSelectAssistantTool(tool.cardId)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
           }}
         >
-          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1058,19 +1058,19 @@ export function MainModeTabs({
         onClick={() => handleSelectSub(sub.key)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
           }}
         >
-          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1094,19 +1094,19 @@ export function MainModeTabs({
         onClick={() => handleSelectPremium(tool.key)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
           }}
         >
-          <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1200,7 +1200,7 @@ export function MainModeTabs({
                   Col 2: 대화        →  Col 3: 전문
                        └ 노트 계획   └ 노트 기록  (col-span-2 row-2 로 합침)
                   Col 4: 라이프 (row-span-2) */}
-            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-4 pt-4">
+            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-5 pt-5 pb-1">
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
               {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
@@ -1484,10 +1484,10 @@ export function MainModeTabs({
                                 }
                               }, 40);
                             }}
-                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                            className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                           >
                             <span
-                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                              className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                               style={{ backgroundColor: `color-mix(in oklab, ${m.tint} 12%, transparent)` }}
                             >
                               <span className="text-[14px] leading-none select-none">{m.emoji}</span>
@@ -1975,7 +1975,7 @@ export function MainModeTabs({
                     return (
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
                         {/* 헤더 */}
-                        <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                        <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
                           <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                             {group.label}
                           </span>
@@ -2011,13 +2011,13 @@ export function MainModeTabs({
                                         aria-haspopup="menu"
                                         aria-expanded={premiumOpen}
                                         className={cn(
-                                          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+                                          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[hsl(var(--accent))]',
                                           (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
                                         <span
-                                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.premium_main} 12%, transparent)`,
                                             color: MODE_TINT.premium_main,
@@ -2078,13 +2078,13 @@ export function MainModeTabs({
                                         aria-haspopup="menu"
                                         aria-expanded={debateOpen}
                                         className={cn(
-                                          'flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors',
+                                          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[hsl(var(--accent))]',
                                           (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
                                         <span
-                                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                                          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
                                             color: MODE_TINT.debate,
@@ -2126,9 +2126,9 @@ export function MainModeTabs({
                               type="button"
                               onClick={() => handleSelect('assistant')}
                               role="menuitem"
-                              className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                              className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
                             >
-                              <span className="flex h-7 w-7 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
                                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                               </span>
                               <span className="min-w-0 flex-1 flex items-center gap-1.5">
@@ -2151,7 +2151,7 @@ export function MainModeTabs({
                   단일 헤더가 두 컬럼 위에 spans. */}
               <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3 border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
-                <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
                   <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                     노트
                   </span>
@@ -2194,13 +2194,13 @@ export function MainModeTabs({
                             }
                           }}
                           role="menuitem"
-                          className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                          className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                         >
                           <span
-                            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                             style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
                           >
-                            <span className="text-[15px] leading-none select-none">{item.emoji}</span>
+                            <span className="text-[16px] leading-none select-none">{item.emoji}</span>
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -2219,7 +2219,7 @@ export function MainModeTabs({
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
               <div className="col-start-4 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
-                  <div className="mb-1.5 flex items-baseline gap-2 px-1 min-h-[16px]">
+                  <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                       {LIFE_GROUP.label}
                     </span>
@@ -2252,13 +2252,13 @@ export function MainModeTabs({
                             type="button"
                             onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
                             role="menuitem"
-                            className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                            className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                           >
                             <span
-                              className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                              className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
                               style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
                             >
-                              <span className="text-[15px] leading-none select-none">✨</span>
+                              <span className="text-[16px] leading-none select-none">✨</span>
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -2281,7 +2281,7 @@ export function MainModeTabs({
 
             {/* ── 바텀 Hero 밴드 — AI 어시스턴트 6카드 (실무 도구 일렬) ── */}
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-            <div className="px-4 py-3">
+            <div className="px-5 py-4">
               <div className="mb-1.5 flex items-baseline gap-2 px-1">
                 <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
                   AI 어시스턴트
@@ -2311,7 +2311,7 @@ export function MainModeTabs({
                       onClick={() => handleSelectAssistantTool(tile.cardId)}
                       role="menuitem"
                       className={cn(
-                        'group flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
+                        'group flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
                         tile.placeholder && 'opacity-85',
                         isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
                       )}
