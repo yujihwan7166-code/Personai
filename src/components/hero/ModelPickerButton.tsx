@@ -210,16 +210,15 @@ export function ModelPickerButton({
               : { bottom: window.innerHeight - anchor.top + 8, left: Math.min(anchor.right - w, window.innerWidth - w - 16) };
           })()}
         >
-          {/* 헤더 — 좌: 컨텍스트 라벨 · 우: 칩모드/선택모드 토글. */}
+          {/* 헤더 — 좌: 첫 섹션 라벨(브라우저) · 우: 칩 표시 토글.
+           * 선택 모델 요약은 제거 (eyebrow 가 이미 보여줌, 2026-07-05). */}
           <div className="px-2.5 pt-1 pb-1.5 flex items-center gap-1.5">
-            <span
-              className="h-1.5 w-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: panelAccent }}
-            />
-            <span className="text-[10.5px] font-medium tracking-tight text-[#9aa0a8]">
-              {displayOverride
-                ? `${displayOverride.label} 검색 중`
-                : `${brand.name} · 모델 ${brand.models.length}개`}
+            <span className="text-[10px] font-semibold tracking-wide text-[#9aa0a8]">
+              {selectSection
+                ? '브라우저'
+                : displayOverride
+                  ? `${displayOverride.label} 검색 중`
+                  : `${brand.name} · 모델 ${brand.models.length}개`}
             </span>
             {pickerMode && onPickerModeChange && (
               // 칩 표시 토글 — 패널은 항상 이 화면, 이 스위치는 입력창 위

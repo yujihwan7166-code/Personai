@@ -271,7 +271,7 @@ export function HeroSection({
 
   const selectSection = (
     <div className="px-1 pb-0.5">
-      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">브라우저</div>
+      {/* '브라우저' 라벨은 패널 헤더가 담당 (ModelPickerButton, 2026-07-05). */}
       <div className="grid grid-cols-12 gap-0.5">
         {HERO_SEARCH_CHIPS.map((c) =>
           selectCell({
@@ -300,7 +300,9 @@ export function HeroSection({
           }),
         )}
       </div>
-      <div className="mt-1.5 px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
+      {/* 구분선 — 브라우저 ↕ (AI + 모델) 위계: AI 와 모델은 한 묶음. */}
+      <div className="my-1.5 h-px bg-black/[0.06]" />
+      <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
       <div className="grid grid-cols-12 gap-0.5">
         {[...BRANDS, ...customBrands].map((b) =>
           selectCell({
@@ -362,8 +364,7 @@ export function HeroSection({
           <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
       </div>
-      {/* 비서는 AI 그리드로 편입, AI·포탈 관리는 제거 (2026-07-05). */}
-      <div className="my-1.5 h-px bg-black/[0.06]" />
+      {/* AI 와 모델 리스트 사이엔 선 없음 — 한 묶음 (2026-07-05 위계 피드백). */}
     </div>
   );
 
