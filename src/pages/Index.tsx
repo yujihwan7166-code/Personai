@@ -14,7 +14,7 @@ import { notifyDone } from '@/lib/notifications';
 import { notify } from '@/lib/notify';
 import { confirmDialog } from '@/lib/confirmDialog';
 import { useAivsBattleState } from '@/hooks/useAivsBattleState';
-import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
+import { SUMMARIZER_EXPERT, CONCLUSION_EXPERT, DiscussionMessage, DiscussionRound, DiscussionMode, Expert, ROUND_LABELS, getMainMode, DebateSettings, DEFAULT_DEBATE_SETTINGS, ThinkingFramework, DiscussionIssue, THINKING_FRAMEWORKS, SIMULATION_SCENARIOS, SCENARIO_CATEGORIES, StakeholderSettings, DEFAULT_STAKEHOLDER_SETTINGS, AivsBattleDraft, AIVS_USER_TOPIC_PRESETS, BATTLE_AI_CHARACTERS, ASSISTANT_EXPERTS, findAssistantCardById, MAIN_MODE_LABELS, PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { ExpertAvatar } from '@/components/ExpertAvatar';
 import { DiscussionMessageCard } from '@/components/DiscussionMessage';
 import { LazyMarkdown } from '@/components/LazyMarkdown';
@@ -4892,7 +4892,39 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
               </ModeErrorBoundary>
             </div>
           ) : selectedPremiumDomain && getMainMode(discussionMode) === 'premium_main' ? (
-            <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+            <div className="relative h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
+              {/* 모드 캡슐 — 다른 모드와 동일한 좌상단 캡슐. 라벨만 현재 도메인(예: 법률). */}
+              <div className="absolute top-4 left-4 z-30">
+                <ModeCapsule
+                  modeLabel={PREMIUM_DOMAIN_TEMPLATES.find((d) => d.id === selectedPremiumDomain)?.name ?? mainModeLabelMap.premium_main}
+                  modeId="premium_main"
+                  onOpenMenu={() => mainModeTabsApiRef.current?.open()}
+                >
+                  <FavoriteChips
+                    currentMode={getMainMode(discussionMode)}
+                    onSelectMode={(m) => handleModeChange(mainToDiscussion(m))}
+                    onSelectDebateSub={(sub) => handleModeChange(sub)}
+                    onSelectPremiumDomain={(domainId) => {
+                      handleModeChange('expert');
+                      handleSelectPremiumDomain(domainId);
+                    }}
+                    onSelectAssistantCard={(cardId) => {
+                      if (cardId === 'voice-analysis') {
+                        setDiscussionMode('voice');
+                        return;
+                      }
+                      if (getMainMode(discussionMode) !== 'assistant') handleModeChange('assistant');
+                      setSelectedAssistantCard(cardId);
+                    }}
+                    onSelectTool={(_kind, _toolId, label) => {
+                      if (getMainMode(discussionMode) !== 'general') {
+                        handleModeChange(mainToDiscussion('general'));
+                      }
+                      setHeroInputValue(`${label} `);
+                    }}
+                  />
+                </ModeCapsule>
+              </div>
             <ModeErrorBoundary modeLabel="전문 상담" resetKey={`${discussionMode}:${selectedPremiumDomain}`} onReset={handlePremiumBack}>
             <Suspense fallback={null}>
               <LazyPremiumConsultChat

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { PREMIUM_DOMAIN_TEMPLATES, type PremiumDomainId, type ApiSourceCitation } from '@/types/expert';
 import { buildAttachmentPrompt, formatFileSize, getFileIcon, processFile, validateFile, type AttachedFile } from '@/lib/fileProcessor';
 import { LazyMarkdown } from './LazyMarkdown';
-import { ArrowLeft, Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Paperclip, X } from 'lucide-react';
+import { Send, FileText, ChevronDown, ChevronRight, Loader2, CheckCircle2, Circle, ThumbsUp, ThumbsDown, Search, Paperclip, X } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -44,7 +44,7 @@ function parseFollowUps(content: string): { clean: string; followUps: string[] }
   };
 }
 
-export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, isStreaming, citations, steps = [] }: Props) {
+export function PremiumConsultChat({ domainId, onSendMessage, messages, isStreaming, citations, steps = [] }: Props) {
   const domain = PREMIUM_DOMAIN_TEMPLATES.find(d => d.id === domainId) || PREMIUM_DOMAIN_TEMPLATES[0];
   const accent = ACCENT_MAP[domainId] || ACCENT_MAP.law;
   const [input, setInput] = useState('');
@@ -175,23 +175,8 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
 
   return (
     <div className="flex flex-col bg-background text-foreground overflow-hidden h-full">
-      {/* 상단 — 메인 화면 좌상단과 같은 글래스 캡슐. 누르면 메인으로 돌아간다.
-       * (기존 '뒤로·도메인명·API출처·배지' 헤더 줄은 제거 — 정체성은 빈 화면·인용이 담당) */}
-      <div className="shrink-0 px-4 pt-3 pb-1.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="메인 화면으로"
-          title="메인 화면으로"
-          className="group inline-flex h-8 items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] bg-card pl-1.5 pr-3 text-[12.5px] font-semibold text-foreground shadow-[0_4px_16px_-10px_hsl(var(--foreground)/0.25)] transition-colors hover:bg-accent"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/70 transition-colors group-hover:bg-background">
-            <ArrowLeft className="h-3.5 w-3.5" />
-          </span>
-          <span className="text-[14px] leading-none">{domain.icon}</span>
-          <span>{domain.name}</span>
-        </button>
-      </div>
+      {/* 상단 좌측 모드 캡슐은 Index(프리미엄 브랜치)에서 다른 모드와 동일하게 오버레이로 렌더.
+       * (본문 상단 여백으로 캡슐과 겹치지 않게 함) */}
 
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
@@ -199,7 +184,7 @@ export function PremiumConsultChat({ domainId, onBack, onSendMessage, messages, 
         <div className={cn('flex-1 flex flex-col min-w-0', hasCitations && showSourcePanel ? 'md:w-[65%]' : 'w-full')}>
           {/* Messages — scrollable */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[700px] mx-auto px-6 py-6 space-y-6">
+            <div className="max-w-[700px] mx-auto px-6 pt-14 pb-6 space-y-6">
 
               {/* Empty state — 말로 증명하지 않는다. 헤드라인 + 실시간 연동 칩(근거) + 샘플. */}
               {messages.length === 0 && steps.length === 0 && (
