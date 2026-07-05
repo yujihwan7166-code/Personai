@@ -57,6 +57,7 @@ import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIPS, HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
+import { DEFAULT_EXPERTS } from '@/types/expert';
 import type { DiscussionRecord } from '@/lib/discussionHistoryStore';
 import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
 import { toast } from 'sonner';
@@ -835,6 +836,36 @@ export function HeroSection({
           }
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
+
+        {/* 제안 프롬프트 칩 — 현재 모델의 sampleQuestions 3개 (Claude 프리셋 각색).
+         * 입력 시작하면 사라져 소음 최소화. AI 기본 모드에서만. */}
+        {!isSearchArmed && !secretaryMode && !value.trim() && (() => {
+          const expert = DEFAULT_EXPERTS.find((e) => e.id === (model?.id ?? activeBrand.expertId));
+          const suggestions = (expert?.sampleQuestions ?? []).slice(0, 3);
+          if (suggestions.length === 0) return null;
+          return (
+            <div
+              key={`sug-${activeBrand.id}-${model?.id ?? ''}`}
+              className="mt-4 flex flex-wrap items-center justify-center gap-1.5 animate-in fade-in duration-300"
+            >
+              {suggestions.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => onChange(q)}
+                  className="max-w-[260px] truncate rounded-full border px-3 py-1.5 text-[12px] font-medium tracking-tight transition-all duration-150 hover:-translate-y-px"
+                  style={{
+                    color: 'var(--hero-fg-muted)',
+                    borderColor: 'var(--hero-hairline)',
+                    backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 55%, transparent)',
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* 기능 레일 — AI·브라우저 공통 (비서 모드만 집중 경험이라 제외).
          * 브라우저에도 노출 + 두 상태 간 높이 동일 → 전환 시 화면 안 밀림. */}
