@@ -9,11 +9,11 @@
  * 진입점을 겸함. 실행은 FavoriteChips 와 동일한 콜백 계약.
  * 일반 AI 히어로 · 대화 시작 전에만 렌더 (HeroSection 이 armed/비서 제외).
  */
-import { LayoutGrid, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Sparkles, Moon, type LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import type { ItemTarget } from '@/hooks/useFavoriteModes';
-import { MODE_ICON, MODE_TINT, ASSISTANT_TILES, PREMIUM_AI_TOOLS, HUB_TOOLS } from '@/components/MainModeTabs';
+import { MODE_ICON, MODE_TINT, ASSISTANT_TILES, PREMIUM_AI_TOOLS, HUB_TOOLS, LIFE_TOOLS } from '@/components/MainModeTabs';
 import { HUB_ICONS } from './ModeMenu';
 
 interface RailItem {
@@ -38,12 +38,13 @@ interface Props {
   onSelectTool: (kind: 'life' | 'player', toolId: string, label: string) => void;
 }
 
-/* 그룹 데이터 — 렌더마다 재계산할 필요 없는 정적 카탈로그. */
+/* 그룹 데이터 — 렌더마다 재계산할 필요 없는 정적 카탈로그. (2026-07-05: 5그룹) */
 function buildGroups(): RailGroup[] {
   const hubTint = (id: string) => HUB_TOOLS.find((h) => h.id === id)?.tint ?? 'hsl(220 70% 55%)';
   const tileTint = (id: string) => ASSISTANT_TILES.find((t) => t.cardId === id)?.tint ?? 'hsl(280 60% 55%)';
   const tileIcon = (id: string) => ASSISTANT_TILES.find((t) => t.cardId === id)?.icon ?? LayoutGrid;
   const premium = (key: string) => PREMIUM_AI_TOOLS.find((p) => p.key === key);
+  const lifeTint = (id: string) => LIFE_TOOLS.find((t) => t.id === id)?.tint ?? 'hsl(262 70% 55%)';
 
   return [
     {
@@ -62,7 +63,7 @@ function buildGroups(): RailGroup[] {
       ],
     },
     {
-      label: '스튜디오',
+      label: '어시스턴트',
       items: [
         { id: 'study', label: '스터디룸', icon: MODE_ICON.study_main, tint: MODE_TINT.study_main, target: { kind: 'mode', mode: 'study_main' } },
         { id: 'image-gen', label: '이미지·영상', icon: tileIcon('image-gen'), tint: tileTint('image-gen'), target: { kind: 'assistant', cardId: 'image-gen' } },
@@ -70,17 +71,18 @@ function buildGroups(): RailGroup[] {
       ],
     },
     {
-      label: '전문·라이프',
+      label: '전문',
+      items: (['law', 'drug', 'tax'] as const).map((key): RailItem => {
+        const p = premium(key)!;
+        const label = key === 'law' ? 'AI 법률' : key === 'drug' ? '건강 도우미' : 'AI 세무';
+        return { id: `premium-${key}`, label, icon: p.icon, tint: p.tint, target: { kind: 'premium', domainId: p.key } };
+      }),
+    },
+    {
+      label: '라이프',
       items: [
-        ...(['law', 'drug'] as const).map((key): RailItem => {
-          const p = premium(key)!;
-          return {
-            id: `premium-${key}`,
-            label: key === 'law' ? 'AI 법률' : '건강 도우미',
-            icon: p.icon, tint: p.tint,
-            target: { kind: 'premium', domainId: p.key },
-          };
-        }),
+        { id: 'saju', label: 'AI 사주', icon: Sparkles, tint: lifeTint('saju'), target: { kind: 'life', toolId: 'saju' } },
+        { id: 'dream', label: '꿈 해몽', icon: Moon, tint: lifeTint('dream'), target: { kind: 'life', toolId: 'dream' } },
         { id: 'all', label: '모든 기능', icon: LayoutGrid, tint: 'currentColor', target: 'menu' },
       ],
     },
