@@ -153,28 +153,33 @@ export function FeatureRail({
                     type="button"
                     onClick={() => run(item)}
                     title={item.label}
-                    className="group/rail flex w-[64px] flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-all duration-150 hover:-translate-y-0.5"
+                    className="group/rail flex w-[68px] flex-col items-center gap-1.5 rounded-xl px-1 py-1.5 transition-all duration-150 hover:-translate-y-0.5"
                   >
                     <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150"
+                      className="flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150"
                       style={{
-                        backgroundColor: 'transparent',
+                        // 평소에도 옅은 틴트 배경으로 가시성 ↑ (2026-07-05).
+                        backgroundColor: isMenu
+                          ? 'var(--hero-accent-soft)'
+                          : `color-mix(in oklab, ${item.tint} 8%, transparent)`,
                         color: isMenu ? 'var(--hero-fg)' : item.tint,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = isMenu
                           ? 'var(--hero-accent-soft)'
-                          : `color-mix(in oklab, ${item.tint} 10%, transparent)`;
+                          : `color-mix(in oklab, ${item.tint} 16%, transparent)`;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.backgroundColor = isMenu
+                          ? 'var(--hero-accent-soft)'
+                          : `color-mix(in oklab, ${item.tint} 8%, transparent)`;
                       }}
                     >
-                      <Icon size={19} strokeWidth={1.9} />
+                      <Icon size={21} strokeWidth={2} />
                     </span>
                     <span
-                      className="max-w-full truncate text-[11px] font-medium leading-none tracking-tight"
-                      style={{ color: 'var(--hero-fg)', opacity: 0.85 }}
+                      className="max-w-full truncate text-[11.5px] font-medium leading-none tracking-tight"
+                      style={{ color: 'var(--hero-fg)', opacity: 0.92 }}
                     >
                       {item.label}
                     </span>
