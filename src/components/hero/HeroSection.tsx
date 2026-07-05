@@ -278,20 +278,22 @@ export function HeroSection({
             key: c.id,
             name: c.name,
             active: armed === c.id,
+            // 브라우저도 패널 유지 — 클릭 즉시 뒤 배경이 그 브라우저로 morph.
+            keepOpen: true,
             starred: portalsHook.visibleIds.includes(c.id),
             onPick: () => handleToggleSearch(c.id),
             onStar: () => portalsHook.togglePortal(c.id),
             circle: (
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full"
+                className="flex h-9 w-9 items-center justify-center rounded-full"
                 style={{ backgroundColor: c.circleBg, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 {c.icon.kind === 'svg' && c.icon.path ? (
-                  <svg viewBox="0 0 24 24" width={15} height={15} fill={c.iconFill} aria-hidden>
+                  <svg viewBox="0 0 24 24" width={17} height={17} fill={c.iconFill} aria-hidden>
                     <path d={c.icon.path} />
                   </svg>
                 ) : (
-                  <span className="text-[11px] font-bold leading-none" style={{ color: c.iconFill }}>
+                  <span className="text-[12px] font-bold leading-none" style={{ color: c.iconFill }}>
                     {c.icon.text ?? c.name.charAt(0)}
                   </span>
                 )}
@@ -300,8 +302,8 @@ export function HeroSection({
           }),
         )}
       </div>
-      {/* 구분선 — 브라우저 ↕ (AI + 모델) 위계: AI 와 모델은 한 묶음. */}
-      <div className="my-1.5 h-px bg-black/[0.06]" />
+      {/* 구분선 — 브라우저 ↕ (AI + 모델) 위계. 더 또렷하게 (2026-07-05). */}
+      <div className="my-2.5 h-px bg-black/[0.12]" />
       <div className="px-1.5 pb-1 text-[10px] font-semibold tracking-wide text-[#9aa0a8]">AI</div>
       <div className="grid grid-cols-12 gap-0.5">
         {[...BRANDS, ...customBrands].map((b) =>
@@ -317,7 +319,7 @@ export function HeroSection({
             onStar: isCustomBrandId(b.id) ? undefined : () => toggleBrand(b.id),
             circle: (
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full"
+                className="flex h-9 w-9 items-center justify-center rounded-full"
                 style={{ backgroundColor: `#${b.icon.hex}`, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
               >
                 <BrandLogo
@@ -326,7 +328,7 @@ export function HeroSection({
                   text={b.icon.text}
                   fill={pickContrastingText(`#${b.icon.hex}`)}
                   forceWhite={pickContrastingText(`#${b.icon.hex}`) === '#ffffff'}
-                  size={Math.round(15 * (b.icon.logoScale ?? 1))}
+                  size={Math.round(17 * (b.icon.logoScale ?? 1))}
                 />
               </span>
             ),
@@ -340,10 +342,10 @@ export function HeroSection({
           onPick: handleToggleSecretary,
           circle: (
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full"
+              className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{ backgroundColor: '#475569', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}
             >
-              <Briefcase size={14} strokeWidth={2} color="#ffffff" />
+              <Briefcase size={15} strokeWidth={2} color="#ffffff" />
             </span>
           ),
         })}
@@ -358,8 +360,8 @@ export function HeroSection({
           }}
           className="flex w-full flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-black/[0.04]"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
-            <Plus size={14} strokeWidth={2.2} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-black/20 text-[#9aa0a8]">
+            <Plus size={15} strokeWidth={2.2} />
           </span>
           <span className="max-w-full truncate text-[9.5px] font-medium leading-none text-[#9aa0a8]">추가</span>
         </button>
