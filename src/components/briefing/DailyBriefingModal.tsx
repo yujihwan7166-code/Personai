@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  X, RefreshCw, Sparkles, Sunrise, Sun, Sunset, Moon,
+  X, Sunrise, Sun, Sunset, Moon,
   CalendarDays, CheckCircle2, AlertCircle, CloudSun, Flag,
   type LucideIcon,
 } from 'lucide-react';
@@ -63,11 +63,6 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     void getDailyBriefing().then((n) => { if (alive) { setNarrative(n); setLoading(false); } });
     return () => { alive = false; };
   }, [open]);
-
-  const regenerate = () => {
-    setLoading(true);
-    void getDailyBriefing(true).then((n) => { setNarrative(n); setLoading(false); });
-  };
 
   useEffect(() => {
     if (!visible) return;
@@ -170,21 +165,8 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
           </div>
         )}
 
-        {/* 푸터 — AI 배지 · 다시 생성 · 매일 자동 표시. */}
-        <div className="mt-4 flex items-center gap-3 border-t px-6 py-3" style={{ borderColor: 'var(--hero-hairline)' }}>
-          <span className="inline-flex items-center gap-1 text-[10.5px] font-medium" style={{ color: 'var(--hero-fg-muted)' }}>
-            <Sparkles size={11} strokeWidth={2} style={{ color: 'var(--hero-accent)' }} />
-            {narrative?.ai ? 'AI 브리핑' : '오늘 요약'}
-          </span>
-          <button
-            type="button"
-            onClick={regenerate}
-            disabled={loading}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)] disabled:opacity-50"
-          >
-            <RefreshCw size={11} strokeWidth={2.2} className={loading ? 'animate-spin' : undefined} />
-            다시 생성
-          </button>
+        {/* 푸터 — 매일 자동 표시 토글만 (AI 배지·다시 생성 제거, 2026-07-05). */}
+        <div className="mt-4 flex items-center border-t px-6 py-3" style={{ borderColor: 'var(--hero-hairline)' }}>
           <label className="ml-auto inline-flex cursor-pointer select-none items-center gap-2 text-[11.5px]" style={{ color: 'var(--hero-fg-muted)' }}>
             <input
               type="checkbox"

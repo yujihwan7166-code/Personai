@@ -70,21 +70,20 @@ function buildContext(data: BriefingData, weather: WeatherNow | null): string {
   return lines.join('\n');
 }
 
-/** 템플릿 폴백 — AI 실패 시 규칙 기반 문장. */
+/** 템플릿 폴백 — AI 실패 시 규칙 기반 문장 (억지 응원·클리셰 없이 담백하게). */
 function fallbackText(data: BriefingData, weather: WeatherNow | null): string {
   const parts: string[] = [];
   const firstEvent = data.timed.find((t) => t.kind === 'event' && new Date(t.startAt).getTime() >= Date.now());
-  if (firstEvent) parts.push(`오늘 첫 일정은 ${hm(firstEvent.startAt)} ${firstEvent.title}이에요.`);
-  else if (data.timed.length === 0) parts.push('오늘은 잡힌 일정이 없어요.');
-  const taskCount = data.inbox.length + data.overdue.length;
-  if (data.overdue.length > 0) parts.push(`어제 못 끝낸 할일 ${data.overdue.length}개가 남아있어요.`);
-  else if (data.inbox.length > 0) parts.push(`할일이 ${data.inbox.length}개 있어요.`);
+  if (firstEvent) parts.push(`${hm(firstEvent.startAt)}에 ${firstEvent.title} 있어요.`);
+  else if (data.timed.length === 0) parts.push('오늘은 잡힌 일정이 없네요.');
+  if (data.overdue.length > 0) parts.push(`어제 미뤄둔 일이 ${data.overdue.length}개 남아있어요.`);
+  else if (data.inbox.length > 0) parts.push(`할일은 ${data.inbox.length}개 있고요.`);
   if (weather) {
-    if (weather.icon === 'rain' || weather.icon === 'storm') parts.push('비 소식이 있으니 우산 챙기세요.');
-    else if (weather.dust && weather.dust.label.includes('나쁨')) parts.push('미세먼지가 나쁘니 마스크를 챙기세요.');
-    else parts.push(`날씨는 ${weather.temp}도, ${weather.label}이에요.`);
+    if (weather.icon === 'rain' || weather.icon === 'storm') parts.push('비가 온다니까 나갈 일 있으면 우산 챙겨요.');
+    else if (weather.dust && weather.dust.label.includes('나쁨')) parts.push('미세먼지가 안 좋으니 마스크 하나 챙기면 좋겠어요.');
+    else if (weather.temp <= 5) parts.push('좀 쌀쌀하니까 따뜻하게 입어요.');
   }
-  parts.push(taskCount > 0 || firstEvent ? '오늘도 좋은 하루 되세요.' : '원하는 하루를 만들어보세요.');
+  if (parts.length === 0) parts.push('오늘은 특별히 챙길 게 없네요. 편하게 시작해요.');
   return parts.join(' ');
 }
 
