@@ -5,6 +5,7 @@
  * 소제목 + 담백한 리스트로. 색은 잉크(--hero-fg) 위주, 강조는 최소.
  */
 import { useEffect, useState, type ReactNode } from 'react';
+import { Sun, CloudSun, Cloud, CloudFog, CloudRain, Snowflake, CloudLightning, type LucideIcon } from 'lucide-react';
 import type { BriefingData } from '@/lib/buildBriefingData';
 import type { WeatherNow } from '@/services/weatherService';
 import { fetchMarketIndices, type IndexQuote, type MarketGroup } from '@/services/marketService';
@@ -15,27 +16,33 @@ function hm(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 레터 섹션 — 위 얇은 구분선 + 손글씨풍 소제목 + 내용. onOpen 시 소제목이 점프 버튼. */
-function LetterSection({ label, children, onOpen }: { label: string; children: ReactNode; onOpen?: () => void }) {
+/**
+ * 브리핑 카드 — 풀스크린 리치 그리드의 기본 셸 (2026-07-06 v7).
+ * 따뜻한 크림 서피스 + 얇은 테두리 + 세리프 소제목. onOpen 시 제목이 점프 버튼.
+ * 무지개 대시보드 톤을 피하고 편집(editorial) 느낌 유지.
+ */
+export function BriefingCard({ label, children, onOpen, className }: { label: string; children: ReactNode; onOpen?: () => void; className?: string }) {
   return (
-    <section className="pt-4">
-      <div
-        aria-hidden
-        className="mb-2.5 h-px w-full"
-        style={{ background: 'linear-gradient(90deg, transparent, var(--hero-hairline, rgba(0,0,0,0.14)), transparent)' }}
-      />
+    <section
+      className={`rounded-2xl border p-4 ${className ?? ''}`}
+      style={{
+        borderColor: 'var(--briefing-card-border, hsl(30 24% 82% / 0.6))',
+        background: 'var(--briefing-card-bg, hsl(40 44% 99%))',
+        boxShadow: '0 1px 2px hsl(28 40% 12% / 0.04)',
+      }}
+    >
       {onOpen ? (
         <button
           type="button"
           onClick={onOpen}
-          className="group mb-2 flex items-center gap-1.5 text-[12px] tracking-[0.02em] transition-colors hover:text-[color:var(--hero-fg)]"
+          className="group mb-2.5 flex w-full items-center gap-1.5 text-[12px] tracking-[0.02em] transition-colors hover:text-[color:var(--hero-fg)]"
           style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}
         >
           {label}
           <span aria-hidden className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
         </button>
       ) : (
-        <div className="mb-2 text-[12px] tracking-[0.02em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+        <div className="mb-2.5 text-[12px] tracking-[0.02em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
           {label}
         </div>
       )}
@@ -43,6 +50,9 @@ function LetterSection({ label, children, onOpen }: { label: string; children: R
     </section>
   );
 }
+
+/** 하위 섹션들이 쓰는 별칭 — 카드 셸과 동일. */
+const LetterSection = BriefingCard;
 
 export function ScheduleSection({ data, onOpen }: { data: BriefingData; onOpen?: () => void }) {
   if (data.timed.length === 0) return null;
@@ -91,18 +101,54 @@ export function TasksSection({ data, onOpen }: { data: BriefingData; onOpen?: ()
   );
 }
 
-export function WeatherSection({ weather }: { weather: WeatherNow }) {
+/** 날씨 아이콘 + 날씨별 은은한 그라데이션 (무지개 지양, 톤온톤). */
+const WEATHER_ICON: Record<WeatherNow['icon'], LucideIcon> = {
+  sun: Sun,
+  'cloud-sun': CloudSun,
+  cloud: Cloud,
+  fog: CloudFog,
+  rain: CloudRain,
+  snow: Snowflake,
+  storm: CloudLightning,
+};
+
+const WEATHER_GRADIENT: Record<WeatherNow['icon'], string> = {
+  sun: 'linear-gradient(135deg, hsl(38 70% 92%), hsl(30 60% 88%))',
+  'cloud-sun': 'linear-gradient(135deg, hsl(40 45% 93%), hsl(210 30% 90%))',
+  cloud: 'linear-gradient(135deg, hsl(215 24% 92%), hsl(30 18% 91%))',
+  fog: 'linear-gradient(135deg, hsl(210 14% 92%), hsl(210 10% 88%))',
+  rain: 'linear-gradient(135deg, hsl(212 40% 90%), hsl(220 32% 86%))',
+  snow: 'linear-gradient(135deg, hsl(205 45% 95%), hsl(210 30% 91%))',
+  storm: 'linear-gradient(135deg, hsl(250 22% 90%), hsl(220 24% 86%))',
+};
+
+/** 날씨 히어로 — 풀스크린 상단의 넓은 그라데이션 카드. */
+export function WeatherHero({ weather, date }: { weather: WeatherNow; date?: string }) {
+  const Icon = WEATHER_ICON[weather.icon];
   return (
-    <LetterSection label="날씨">
-      <div className="flex items-baseline gap-2.5">
-        <span className="text-[24px] tabular-nums" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>{weather.temp}°</span>
-        <span className="text-[14.5px]" style={{ color: 'var(--hero-fg)' }}>{weather.label}</span>
-        {weather.dust && (
-          <span className="text-[12.5px]" style={{ color: weather.dust.color }}>· {weather.dust.label}</span>
-        )}
-        <span className="ml-auto text-[11.5px] italic" style={{ color: 'var(--hero-fg-muted)' }}>서울</span>
+    <section
+      className="flex items-center gap-5 rounded-2xl border px-6 py-5"
+      style={{
+        borderColor: 'var(--briefing-card-border, hsl(30 24% 82% / 0.7))',
+        background: WEATHER_GRADIENT[weather.icon],
+        boxShadow: '0 1px 2px hsl(28 40% 12% / 0.05)',
+      }}
+    >
+      <Icon size={52} strokeWidth={1.4} style={{ color: 'hsl(28 30% 32%)' }} className="shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-[44px] leading-none tabular-nums" style={{ color: 'hsl(28 30% 24%)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>{weather.temp}°</span>
+          <span className="text-[16px]" style={{ color: 'hsl(28 22% 34%)' }}>{weather.label}</span>
+        </div>
+        <div className="mt-1.5 flex items-center gap-2 text-[12.5px]">
+          {weather.dust && (
+            <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: 'hsl(0 0% 100% / 0.5)', color: weather.dust.color }}>{weather.dust.label}</span>
+          )}
+          {date && <span style={{ color: 'hsl(28 18% 42%)' }}>{date}</span>}
+        </div>
       </div>
-    </LetterSection>
+      <span className="shrink-0 self-start text-[12px]" style={{ color: 'hsl(28 18% 42%)' }}>서울</span>
+    </section>
   );
 }
 

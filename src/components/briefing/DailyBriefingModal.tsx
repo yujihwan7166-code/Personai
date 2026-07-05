@@ -1,9 +1,9 @@
 /**
- * 데일리 브리핑 v5 — AI 한마디 + 조화로운 섹션 + 설정 (2026-07-05 재설계).
+ * 데일리 브리핑 v7 — 풀스크린 리치 카드 그리드 (2026-07-06 재설계).
  *
- * 위젯 드래그 그리드를 폐기하고: 상단 AI 문단 + 아래 오늘 구성 섹션(일정·할일·
- * 날씨·D-day·습관)을 고정 순서로 스택. 헤더 ⚙ 에서 어떤 섹션을 볼지 토글.
- * 데이터·설정 없는 섹션은 자동 생략. 사이트 글래스 톤.
+ * 520px 모달 → 전체 화면 브리핑. 상단 날짜·인사·요약 → 날씨 히어로 + AI 한마디 →
+ * 2열 masonry 카드(일정·할일·다가오는날·시장·뉴스·습관). 따뜻한 편집(editorial)
+ * 톤 유지 (무지개 대시보드 지양). 헤더 ⚙ 로 표시 항목·관심종목 설정.
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -14,7 +14,16 @@ import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStor
 import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
 import { briefingPrefs, useBriefingPrefs, BRIEFING_SECTIONS } from '@/lib/briefingPrefs';
 import { watchlistStore, useWatchlist } from '@/lib/watchlistStore';
-import { ScheduleSection, TasksSection, WeatherSection, StocksSection, NewsSection, DdaySection, HabitsSection } from './BriefingSections';
+import {
+  BriefingCard,
+  ScheduleSection,
+  TasksSection,
+  WeatherHero,
+  StocksSection,
+  NewsSection,
+  DdaySection,
+  HabitsSection,
+} from './BriefingSections';
 
 interface Props {
   open: boolean;
@@ -28,7 +37,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const [tickerInput, setTickerInput] = useState('');
   const navigate = useNavigate();
 
-  // 섹션 헤더 클릭 → 해당 플래너 뷰로 점프하고 모달 닫기.
+  // 섹션 헤더 클릭 → 해당 플래너 뷰로 점프하고 브리핑 닫기.
   const jumpTo = (view: 'day' | 'week' | 'month' | 'year' | 'habits') => {
     onClose();
     navigate(`/planner?view=${view}`);
@@ -75,7 +84,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const d = narrative?.data;
   const w = narrative?.weather ?? null;
 
-  // 인사 아래 한 줄 요약 — 오늘 구성 숫자만 담백하게 (A 하이브리드).
+  // 인사 아래 한 줄 요약 — 오늘 구성 숫자만 담백하게.
   const statBits: string[] = [];
   if (d) {
     if (prefs.schedule && d.timed.length) statBits.push(`일정 ${d.timed.length}`);
@@ -90,40 +99,38 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
       aria-modal="true"
       aria-label="데일리 브리핑"
       className={cn(
-        'fixed inset-0 z-[200] flex items-center justify-center p-4',
+        'fixed inset-0 z-[200] overflow-y-auto scrollbar-thin',
         closing ? 'animate-out fade-out duration-150' : 'animate-in fade-in duration-200',
       )}
-      style={{ background: 'hsl(220 20% 8% / 0.32)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        // 풀스크린 캔버스 — 따뜻한 종이 톤. 카드가 살짝 떠 보이게 캔버스를 조금 더 진하게.
+        ['--briefing-serif' as string]: "'Nanum Myeongjo', 'Noto Serif KR', 'Apple SD Gothic Neo', Georgia, serif",
+        ['--hero-fg' as string]: 'hsl(28 18% 20%)',
+        ['--hero-fg-muted' as string]: 'hsl(28 12% 48%)',
+        ['--hero-hairline' as string]: 'hsl(30 20% 60% / 0.28)',
+        ['--briefing-card-bg' as string]: 'hsl(42 50% 99.5%)',
+        ['--briefing-card-border' as string]: 'hsl(30 24% 82% / 0.7)',
+        background: 'linear-gradient(180deg, hsl(37 34% 96.5%) 0%, hsl(33 26% 94%) 100%)',
+        color: 'hsl(28 18% 20%)',
+      }}
     >
       <div
         className={cn(
-          'relative flex w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border',
-          closing ? 'animate-out fade-out zoom-out-95 duration-150' : 'animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200',
+          'mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-5 py-8 sm:px-8',
+          closing ? 'animate-out fade-out slide-out-to-bottom-2 duration-150' : 'animate-in fade-in slide-in-from-bottom-3 duration-300',
         )}
-        style={{
-          // 모닝 레터 — 종이 톤(따뜻한 오프화이트) + 세리프. 글래스·accent 카드 제거.
-          ['--briefing-serif' as string]: "'Nanum Myeongjo', 'Noto Serif KR', 'Apple SD Gothic Neo', Georgia, serif",
-          ['--hero-fg' as string]: 'hsl(28 18% 20%)',
-          ['--hero-fg-muted' as string]: 'hsl(28 12% 48%)',
-          ['--hero-hairline' as string]: 'hsl(30 20% 60% / 0.28)',
-          borderColor: 'hsl(30 24% 78% / 0.55)',
-          background: 'linear-gradient(180deg, hsl(38 42% 98%) 0%, hsl(36 32% 95%) 100%)',
-          boxShadow: '0 24px 70px -22px hsl(28 40% 12% / 0.3), 0 4px 16px -8px hsl(28 40% 12% / 0.14)',
-          color: 'hsl(28 18% 20%)',
-        }}
       >
-        {/* 헤더 — 편지 상단: 날짜(작게) → 인사(세리프). 아이콘 원 제거. */}
-        <div className="flex items-start gap-3 px-7 pt-7 pb-1">
+        {/* 헤더 — 날짜(작게) → 인사(큰 세리프) + 요약. 우측 설정·닫기. */}
+        <div className="mb-6 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] tracking-[0.04em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+            <p className="text-[13px] tracking-[0.04em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
               {narrative?.date ?? ''}
             </p>
-            <h2 className="mt-1.5 text-[26px] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
-              {narrative?.greeting ?? '오늘의 편지'}
+            <h2 className="mt-1.5 text-[clamp(28px,4vw,36px)] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
+              {narrative?.greeting ?? '오늘의 브리핑'}
             </h2>
             {!settingsOpen && statBits.length > 0 && (
-              <p className="mt-1.5 text-[12.5px] tracking-[0.01em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+              <p className="mt-2 text-[13.5px] tracking-[0.01em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
                 {statBits.join('  ·  ')}
               </p>
             )}
@@ -134,129 +141,68 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             aria-label="브리핑 설정"
             title="브리핑 설정"
             className={cn(
-              'shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+              'shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-colors',
               settingsOpen ? 'text-[color:var(--hero-fg)] bg-black/[0.05]' : 'text-[color:var(--hero-fg-muted)] hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)]',
             )}
           >
-            <Settings2 size={15} className={cn('transition-transform', settingsOpen && 'rotate-90')} />
+            <Settings2 size={16} className={cn('transition-transform', settingsOpen && 'rotate-90')} />
           </button>
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)]"
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--hero-fg-muted)] transition-colors hover:bg-black/[0.04] hover:text-[color:var(--hero-fg)]"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
         {settingsOpen ? (
-          /* 설정 — 섹션 토글 + 매일 자동 표시. */
-          <div className="px-6 pb-5">
-            <div className="mb-2 text-[11px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>브리핑에 표시할 항목</div>
-            <div className="space-y-0.5">
-              {BRIEFING_SECTIONS.map((s) => (
-                <label key={s.key} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-[13.5px] transition-colors hover:bg-black/[0.03]" style={{ color: 'var(--hero-fg)' }}>
-                  <input
-                    type="checkbox"
-                    checked={prefs[s.key]}
-                    onChange={() => briefingPrefs.toggle(s.key)}
-                    className="h-4 w-4 cursor-pointer rounded"
-                    style={{ accentColor: 'var(--hero-accent)' }}
-                  />
-                  {s.label}
-                </label>
-              ))}
-            </div>
-
-            {/* 관심 종목 — 시장 섹션에 붙는 사용자 티커. */}
-            {prefs.stocks && (
-              <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--hero-hairline)' }}>
-                <div className="mb-1.5 text-[11px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>관심 종목</div>
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {watchlist.length === 0 && (
-                    <span className="text-[12px] italic" style={{ color: 'var(--hero-fg-muted)' }}>예: AAPL · TSLA · 005930.KS</span>
-                  )}
-                  {watchlist.map((t) => (
-                    <span key={t} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px]" style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--hero-fg)' }}>
-                      {t}
-                      <button type="button" onClick={() => watchlistStore.remove(t)} aria-label={`${t} 제거`} className="opacity-50 hover:opacity-100">
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <form
-                  onSubmit={(e) => { e.preventDefault(); watchlistStore.add(tickerInput); setTickerInput(''); }}
-                  className="flex gap-1.5"
-                >
-                  <input
-                    value={tickerInput}
-                    onChange={(e) => setTickerInput(e.target.value)}
-                    placeholder="티커 입력 (예: NVDA)"
-                    className="min-w-0 flex-1 rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
-                    style={{ borderColor: 'var(--hero-hairline)', background: 'transparent', color: 'var(--hero-fg)' }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!tickerInput.trim() || watchlist.length >= watchlistStore.MAX}
-                    className="shrink-0 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-40"
-                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--hero-fg)' }}
-                  >
-                    추가
-                  </button>
-                </form>
-              </div>
-            )}
-
-            <label className="mt-2 flex cursor-pointer items-center gap-2.5 border-t px-2 py-2.5 text-[13px]" style={{ color: 'var(--hero-fg-muted)', borderColor: 'var(--hero-hairline)' }}>
-              <input
-                type="checkbox"
-                checked={settings.autoShow}
-                onChange={(e) => dailyBriefingStore.setAutoShow(e.target.checked)}
-                className="h-4 w-4 cursor-pointer rounded"
-                style={{ accentColor: 'var(--hero-accent)' }}
-              />
-              매일 아침 자동으로 열기
-            </label>
-          </div>
+          <SettingsPanel
+            prefs={prefs}
+            settings={settings}
+            watchlist={watchlist}
+            tickerInput={tickerInput}
+            setTickerInput={setTickerInput}
+          />
         ) : (
-          /* 편지 본문 — 인사 아래 본문 문단 + 얇은 구분선 섹션들. */
-          <div className="max-h-[min(64vh,560px)] overflow-y-auto px-7 pb-7 pt-3 scrollbar-thin">
-            {/* 편지 본문 — 세리프, accent 카드·아이콘 없이. */}
+          <div className="space-y-4">
+            {/* 날씨 히어로 — 넓은 그라데이션 카드. */}
+            {prefs.weather && w && <WeatherHero weather={w} date={narrative?.date ?? ''} />}
+
+            {/* AI 한마디 — 리드 카드(세리프 문단). */}
             {prefs.ai && (
-              loading || !narrative ? (
-                <BriefingShimmer />
-              ) : (
-                <p className="text-[16px] leading-[1.85]" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>
-                  {narrative.text}
-                </p>
-              )
+              <BriefingCard label="AI 한마디">
+                {loading || !narrative ? (
+                  <BriefingShimmer />
+                ) : (
+                  <p className="text-[16px] leading-[1.85]" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>
+                    {narrative.text}
+                  </p>
+                )}
+              </BriefingCard>
             )}
 
-            {/* 섹션 스택 — 편지 속 항목처럼. */}
+            {/* 2열 masonry — 데이터·설정 없는 카드는 자동 생략. */}
             {d && (
-              <div>
+              <div className="columns-1 gap-4 md:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
                 {prefs.schedule && <ScheduleSection data={d} onOpen={() => jumpTo('day')} />}
                 {prefs.tasks && <TasksSection data={d} onOpen={() => jumpTo('day')} />}
-                {prefs.weather && w && <WeatherSection weather={w} />}
+                {prefs.dday && <DdaySection data={d} onOpen={() => jumpTo('month')} />}
                 {prefs.stocks && <StocksSection watch={watchlist} />}
                 {prefs.news && <NewsSection />}
-                {prefs.dday && <DdaySection data={d} onOpen={() => jumpTo('month')} />}
                 {prefs.habits && <HabitsSection data={d} onOpen={() => jumpTo('habits')} />}
               </div>
             )}
 
-            {/* 아무 섹션도 없을 때 — 빈 안내. */}
-            {d && !prefs.ai &&
+            {/* 아무 것도 없을 때. */}
+            {d && !prefs.ai && !(prefs.weather && w) &&
               !(prefs.schedule && d.timed.length) &&
               !(prefs.tasks && (d.inbox.length + d.overdue.length)) &&
-              !(prefs.weather && w) &&
-              !prefs.stocks &&
-              !prefs.news &&
+              !prefs.stocks && !prefs.news &&
               !(prefs.dday && d.upcomingDday.length) &&
               !(prefs.habits && d.habits.length) && (
-                <p className="py-6 text-center text-[13px]" style={{ color: 'var(--hero-fg-muted)' }}>
+                <p className="py-16 text-center text-[14px]" style={{ color: 'var(--hero-fg-muted)' }}>
                   오늘 표시할 내용이 없어요. 설정에서 항목을 켜보세요.
                 </p>
               )}
@@ -267,6 +213,91 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     document.body,
   );
 };
+
+/** 설정 — 표시 항목 토글 + 관심종목 + 자동 표시. */
+function SettingsPanel({
+  prefs,
+  settings,
+  watchlist,
+  tickerInput,
+  setTickerInput,
+}: {
+  prefs: ReturnType<typeof useBriefingPrefs>;
+  settings: ReturnType<typeof useBriefingSettings>;
+  watchlist: string[];
+  tickerInput: string;
+  setTickerInput: (v: string) => void;
+}) {
+  return (
+    <div className="mx-auto w-full max-w-[520px]">
+      <div className="mb-2 text-[12px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>브리핑에 표시할 항목</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {BRIEFING_SECTIONS.map((s) => (
+          <label key={s.key} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-[13.5px] transition-colors hover:bg-black/[0.03]" style={{ color: 'var(--hero-fg)' }}>
+            <input
+              type="checkbox"
+              checked={prefs[s.key]}
+              onChange={() => briefingPrefs.toggle(s.key)}
+              className="h-4 w-4 cursor-pointer rounded"
+              style={{ accentColor: 'var(--hero-accent)' }}
+            />
+            {s.label}
+          </label>
+        ))}
+      </div>
+
+      {prefs.stocks && (
+        <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--hero-hairline)' }}>
+          <div className="mb-1.5 text-[12px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>관심 종목</div>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {watchlist.length === 0 && (
+              <span className="text-[12px] italic" style={{ color: 'var(--hero-fg-muted)' }}>예: AAPL · TSLA · 005930.KS</span>
+            )}
+            {watchlist.map((t) => (
+              <span key={t} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px]" style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--hero-fg)' }}>
+                {t}
+                <button type="button" onClick={() => watchlistStore.remove(t)} aria-label={`${t} 제거`} className="opacity-50 hover:opacity-100">
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <form
+            onSubmit={(e) => { e.preventDefault(); watchlistStore.add(tickerInput); setTickerInput(''); }}
+            className="flex gap-1.5"
+          >
+            <input
+              value={tickerInput}
+              onChange={(e) => setTickerInput(e.target.value)}
+              placeholder="티커 입력 (예: NVDA)"
+              className="min-w-0 flex-1 rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
+              style={{ borderColor: 'var(--hero-hairline)', background: 'transparent', color: 'var(--hero-fg)' }}
+            />
+            <button
+              type="submit"
+              disabled={!tickerInput.trim() || watchlist.length >= watchlistStore.MAX}
+              className="shrink-0 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-40"
+              style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--hero-fg)' }}
+            >
+              추가
+            </button>
+          </form>
+        </div>
+      )}
+
+      <label className="mt-3 flex cursor-pointer items-center gap-2.5 border-t px-2 py-3 text-[13px]" style={{ color: 'var(--hero-fg-muted)', borderColor: 'var(--hero-hairline)' }}>
+        <input
+          type="checkbox"
+          checked={settings.autoShow}
+          onChange={(e) => dailyBriefingStore.setAutoShow(e.target.checked)}
+          className="h-4 w-4 cursor-pointer rounded"
+          style={{ accentColor: 'var(--hero-accent)' }}
+        />
+        매일 아침 자동으로 열기
+      </label>
+    </div>
+  );
+}
 
 function BriefingShimmer() {
   return (
