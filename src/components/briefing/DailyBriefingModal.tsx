@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStore';
 import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
 import { briefingPrefs, useBriefingPrefs, BRIEFING_SECTIONS } from '@/lib/briefingPrefs';
-import { ScheduleSection, TasksSection, WeatherSection, DdaySection, HabitsSection } from './BriefingSections';
+import { ScheduleSection, TasksSection, WeatherSection, StocksSection, DdaySection, HabitsSection } from './BriefingSections';
 
 interface Props {
   open: boolean;
@@ -64,6 +64,15 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const d = narrative?.data;
   const w = narrative?.weather ?? null;
 
+  // 인사 아래 한 줄 요약 — 오늘 구성 숫자만 담백하게 (A 하이브리드).
+  const statBits: string[] = [];
+  if (d) {
+    if (prefs.schedule && d.timed.length) statBits.push(`일정 ${d.timed.length}`);
+    if (prefs.tasks && d.inbox.length + d.overdue.length) statBits.push(`할일 ${d.inbox.length + d.overdue.length}`);
+    if (prefs.dday && d.upcomingDday.length) statBits.push(`다가오는 날 ${d.upcomingDday.length}`);
+    if (prefs.habits && d.habits.length) statBits.push(`습관 ${d.habits.filter((h) => h.done).length}/${d.habits.length}`);
+  }
+
   return createPortal(
     <div
       role="dialog"
@@ -102,6 +111,11 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             <h2 className="mt-1.5 text-[26px] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
               {narrative?.greeting ?? '오늘의 편지'}
             </h2>
+            {!settingsOpen && statBits.length > 0 && (
+              <p className="mt-1.5 text-[12.5px] tracking-[0.01em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
+                {statBits.join('  ·  ')}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -174,6 +188,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 {prefs.schedule && <ScheduleSection data={d} />}
                 {prefs.tasks && <TasksSection data={d} />}
                 {prefs.weather && w && <WeatherSection weather={w} />}
+                {prefs.stocks && <StocksSection />}
                 {prefs.dday && <DdaySection data={d} />}
                 {prefs.habits && <HabitsSection data={d} />}
               </div>
@@ -184,6 +199,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
               !(prefs.schedule && d.timed.length) &&
               !(prefs.tasks && (d.inbox.length + d.overdue.length)) &&
               !(prefs.weather && w) &&
+              !prefs.stocks &&
               !(prefs.dday && d.upcomingDday.length) &&
               !(prefs.habits && d.habits.length) && (
                 <p className="py-6 text-center text-[13px]" style={{ color: 'var(--hero-fg-muted)' }}>

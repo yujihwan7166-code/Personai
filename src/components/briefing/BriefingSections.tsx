@@ -4,9 +4,10 @@
  * 카드·글래스·accent 배경·아이콘을 걷어내고, 편지 속 항목처럼 얇은 구분선 +
  * 소제목 + 담백한 리스트로. 색은 잉크(--hero-fg) 위주, 강조는 최소.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { BriefingData } from '@/lib/buildBriefingData';
 import type { WeatherNow } from '@/services/weatherService';
+import { fetchMarketIndices, type IndexQuote } from '@/services/marketService';
 
 function hm(iso: string): string {
   const d = new Date(iso);
@@ -88,6 +89,36 @@ export function WeatherSection({ weather }: { weather: WeatherNow }) {
         )}
         <span className="ml-auto text-[11.5px] italic" style={{ color: 'var(--hero-fg-muted)' }}>서울</span>
       </div>
+    </LetterSection>
+  );
+}
+
+export function StocksSection() {
+  const [indices, setIndices] = useState<IndexQuote[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void fetchMarketIndices().then((r) => { if (alive) setIndices(r); });
+    return () => { alive = false; };
+  }, []);
+  // 로딩 전(null) 이나 데이터 없음([]) 이면 섹션 자체 생략.
+  if (!indices || indices.length === 0) return null;
+  // 한국 관례 — 상승 빨강, 하락 파랑, 보합 잉크.
+  const colorOf = (pct: number) => (pct > 0 ? 'hsl(0 65% 50%)' : pct < 0 ? 'hsl(215 70% 50%)' : 'var(--hero-fg-muted)');
+  return (
+    <LetterSection label="시장 지수">
+      <ul className="space-y-1.5">
+        {indices.map((q) => (
+          <li key={q.name} className="flex items-baseline gap-2.5 text-[14.5px]" style={{ color: 'var(--hero-fg)' }}>
+            <span className="min-w-0 flex-1 truncate">{q.name}</span>
+            <span className="shrink-0 tabular-nums" style={{ fontFamily: 'var(--briefing-serif)' }}>
+              {q.price.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
+            </span>
+            <span className="w-[64px] shrink-0 text-right text-[12.5px] tabular-nums" style={{ color: colorOf(q.changePct) }}>
+              {q.changePct > 0 ? '▲' : q.changePct < 0 ? '▼' : '·'} {Math.abs(q.changePct).toFixed(2)}%
+            </span>
+          </li>
+        ))}
+      </ul>
     </LetterSection>
   );
 }
