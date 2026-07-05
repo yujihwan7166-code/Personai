@@ -1705,7 +1705,8 @@ const Planner = () => {
           <div
             className={cn(
               'flex min-h-10 items-center gap-2',
-              !aiPanelOpen && 'sm:pr-[calc(8rem+env(safe-area-inset-right))]',
+              // 우상단 워크스페이스 스위처가 공통 좌측 레일로 이전되며 제거됨(2026-07-06)
+              // → 예약 여백도 제거해 헤더 도구를 오른쪽 끝까지 정렬.
             )}
           >
             <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-2 sm:pr-0">
@@ -1839,7 +1840,7 @@ const Planner = () => {
               </div>
               {headerSearchOpen && (
                 <div
-                  className="absolute left-0 top-[38px] z-50 hidden w-[392px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/18 bg-card shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.4)] sm:block"
+                  className="absolute right-0 top-[38px] z-50 hidden w-[392px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-foreground/18 bg-card shadow-[0_18px_48px_-24px_hsl(var(--foreground)/0.4)] sm:block"
                   role="listbox"
                   id={headerSearchListboxId}
                   aria-label={trimmedHeaderSearchQuery ? '검색 결과' : '검색 추천'}
