@@ -7,12 +7,14 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { X, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dailyBriefingStore, useBriefingSettings } from '@/lib/dailyBriefingStore';
 import { getDailyBriefing, type BriefingNarrative } from '@/lib/dailyBriefingNarrative';
 import { briefingPrefs, useBriefingPrefs, BRIEFING_SECTIONS } from '@/lib/briefingPrefs';
-import { ScheduleSection, TasksSection, WeatherSection, StocksSection, DdaySection, HabitsSection } from './BriefingSections';
+import { watchlistStore, useWatchlist } from '@/lib/watchlistStore';
+import { ScheduleSection, TasksSection, WeatherSection, StocksSection, NewsSection, DdaySection, HabitsSection } from './BriefingSections';
 
 interface Props {
   open: boolean;
@@ -22,6 +24,15 @@ interface Props {
 export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const settings = useBriefingSettings();
   const prefs = useBriefingPrefs();
+  const watchlist = useWatchlist();
+  const [tickerInput, setTickerInput] = useState('');
+  const navigate = useNavigate();
+
+  // 섹션 헤더 클릭 → 해당 플래너 뷰로 점프하고 모달 닫기.
+  const jumpTo = (view: 'day' | 'week' | 'month' | 'year' | 'habits') => {
+    onClose();
+    navigate(`/planner?view=${view}`);
+  };
   const [visible, setVisible] = useState(open);
   const [closing, setClosing] = useState(false);
   const [narrative, setNarrative] = useState<BriefingNarrative | null>(null);
@@ -157,6 +168,47 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 </label>
               ))}
             </div>
+
+            {/* 관심 종목 — 시장 섹션에 붙는 사용자 티커. */}
+            {prefs.stocks && (
+              <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--hero-hairline)' }}>
+                <div className="mb-1.5 text-[11px] font-bold tracking-wide" style={{ color: 'var(--hero-fg-muted)' }}>관심 종목</div>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {watchlist.length === 0 && (
+                    <span className="text-[12px] italic" style={{ color: 'var(--hero-fg-muted)' }}>예: AAPL · TSLA · 005930.KS</span>
+                  )}
+                  {watchlist.map((t) => (
+                    <span key={t} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px]" style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--hero-fg)' }}>
+                      {t}
+                      <button type="button" onClick={() => watchlistStore.remove(t)} aria-label={`${t} 제거`} className="opacity-50 hover:opacity-100">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <form
+                  onSubmit={(e) => { e.preventDefault(); watchlistStore.add(tickerInput); setTickerInput(''); }}
+                  className="flex gap-1.5"
+                >
+                  <input
+                    value={tickerInput}
+                    onChange={(e) => setTickerInput(e.target.value)}
+                    placeholder="티커 입력 (예: NVDA)"
+                    className="min-w-0 flex-1 rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
+                    style={{ borderColor: 'var(--hero-hairline)', background: 'transparent', color: 'var(--hero-fg)' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!tickerInput.trim() || watchlist.length >= watchlistStore.MAX}
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-40"
+                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--hero-fg)' }}
+                  >
+                    추가
+                  </button>
+                </form>
+              </div>
+            )}
+
             <label className="mt-2 flex cursor-pointer items-center gap-2.5 border-t px-2 py-2.5 text-[13px]" style={{ color: 'var(--hero-fg-muted)', borderColor: 'var(--hero-hairline)' }}>
               <input
                 type="checkbox"
@@ -185,12 +237,13 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             {/* 섹션 스택 — 편지 속 항목처럼. */}
             {d && (
               <div>
-                {prefs.schedule && <ScheduleSection data={d} />}
-                {prefs.tasks && <TasksSection data={d} />}
+                {prefs.schedule && <ScheduleSection data={d} onOpen={() => jumpTo('day')} />}
+                {prefs.tasks && <TasksSection data={d} onOpen={() => jumpTo('day')} />}
                 {prefs.weather && w && <WeatherSection weather={w} />}
-                {prefs.stocks && <StocksSection />}
-                {prefs.dday && <DdaySection data={d} />}
-                {prefs.habits && <HabitsSection data={d} />}
+                {prefs.stocks && <StocksSection watch={watchlist} />}
+                {prefs.news && <NewsSection />}
+                {prefs.dday && <DdaySection data={d} onOpen={() => jumpTo('month')} />}
+                {prefs.habits && <HabitsSection data={d} onOpen={() => jumpTo('habits')} />}
               </div>
             )}
 
@@ -200,6 +253,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
               !(prefs.tasks && (d.inbox.length + d.overdue.length)) &&
               !(prefs.weather && w) &&
               !prefs.stocks &&
+              !prefs.news &&
               !(prefs.dday && d.upcomingDday.length) &&
               !(prefs.habits && d.habits.length) && (
                 <p className="py-6 text-center text-[13px]" style={{ color: 'var(--hero-fg-muted)' }}>
