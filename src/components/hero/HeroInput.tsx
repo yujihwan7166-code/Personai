@@ -176,40 +176,39 @@ export function HeroInput({
           />
         </div>
 
-        {/* 하단 툴바 — 첨부 · 이미지 · 음성 · 웹 · 심층 · 더보기 */}
+        {/* 하단 툴바 — [+ 첨부] [검색·사고 라벨 pill] [⋯] [모드] · 우측 [마이크] [전송]
+         * (2026-07-05: 경쟁사 공통 문법 — 첨부 맨 앞·마이크 우측, 토글은 상태가
+         * 읽히는 라벨 pill. DeepSeek 각색) */}
         <div className="flex items-center justify-between gap-2 px-2 pb-1.5 pt-0.5">
-          <div className="flex items-center gap-0">
-            {onOpenModeMenu && (
-              <ToolbarButton onClick={onOpenModeMenu} label="모드 전환 — 토론·리서치·스튜디오·라이프">
-                <LayoutGrid size={17} />
-              </ToolbarButton>
-            )}
+          <div className="flex items-center gap-1">
             <ToolbarButton onClick={onAttach} label="파일 첨부">
               <Paperclip size={17} />
             </ToolbarButton>
             <ToolbarButton onClick={onImage} label="이미지">
               <ImageIcon size={17} />
             </ToolbarButton>
-            <ToolbarButton onClick={onVoice} label="음성">
-              <Mic size={17} />
-            </ToolbarButton>
             {onToggleWebSearch && (
-              <ToolbarToggle
+              <ToolbarPill
                 active={webSearchOn}
                 onClick={onToggleWebSearch}
-                label={webSearchOn ? '웹 검색 켜짐 — 답변에 최신 정보·출처 요청' : '웹 검색 — 최신 정보·출처 요청'}
-              >
-                <Globe size={17} />
-              </ToolbarToggle>
+                label="검색"
+                title={webSearchOn ? '웹 검색 켜짐 — 답변에 최신 정보·출처 요청' : '웹 검색 — 최신 정보·출처 요청'}
+                icon={<Globe size={13.5} strokeWidth={2.1} />}
+              />
             )}
             {onToggleDeepThink && (
-              <ToolbarToggle
+              <ToolbarPill
                 active={deepThinkOn}
                 onClick={onToggleDeepThink}
-                label={deepThinkOn ? '심층 사고 켜짐 — 단계별 추론 요청' : '심층 사고 — 단계별 추론 요청'}
-              >
-                <Brain size={17} />
-              </ToolbarToggle>
+                label="사고"
+                title={deepThinkOn ? '심층 사고 켜짐 — 단계별 추론 요청' : '심층 사고 — 단계별 추론 요청'}
+                icon={<Brain size={13.5} strokeWidth={2.1} />}
+              />
+            )}
+            {onOpenModeMenu && (
+              <ToolbarButton onClick={onOpenModeMenu} label="모드 전환 — 토론·리서치·스튜디오·라이프">
+                <LayoutGrid size={17} />
+              </ToolbarButton>
             )}
             <div className="relative">
               <ToolbarButton onClick={() => setMoreOpen((v) => !v)} label="더보기 — 템플릿·대화 설정">
@@ -237,8 +236,11 @@ export function HeroInput({
             </div>
           </div>
 
-          {/* 우측: (옵션 슬롯) + Send */}
+          {/* 우측: 마이크 + (옵션 슬롯) + Send */}
           <div className="flex items-center gap-1.5">
+            <ToolbarButton onClick={onVoice} label="음성 입력">
+              <Mic size={17} />
+            </ToolbarButton>
             {toolbarRight}
             <button
               type="button"
@@ -299,39 +301,46 @@ function ToolbarButton({
   );
 }
 
-/** 활성/비활성 상태를 시각적으로 보여주는 토글 버튼. */
-function ToolbarToggle({
+/** 라벨 pill 토글 — 켜짐이 액센트로 채워져 상태가 즉시 읽힘 (DeepSeek 각색). */
+function ToolbarPill({
   active,
   onClick,
   label,
-  children,
+  title,
+  icon,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
-  children: ReactNode;
+  title: string;
+  icon: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={label}
       aria-pressed={active}
-      title={label}
+      title={title}
       className={cn(
-        'flex h-9 w-9 items-center justify-center rounded-md',
-        'transition-all duration-150',
-        !active && 'hover:bg-[color:var(--hero-accent-soft,rgba(255,255,255,0.06))]',
+        'flex h-8 items-center gap-1 rounded-full border px-2.5',
+        'text-[12px] font-medium tracking-tight transition-all duration-150',
       )}
-      style={{
-        color: active ? 'var(--hero-accent)' : 'var(--hero-fg-muted, #8e8ea0)',
-        backgroundColor: active ? 'var(--hero-accent-soft)' : 'transparent',
-        boxShadow: active
-          ? 'inset 0 0 0 1px var(--hero-ring, var(--hero-accent))'
-          : 'none',
-      }}
+      style={
+        active
+          ? {
+              color: 'var(--hero-accent)',
+              backgroundColor: 'var(--hero-accent-soft)',
+              borderColor: 'var(--hero-ring, var(--hero-accent))',
+            }
+          : {
+              color: 'var(--hero-fg-muted, #8e8ea0)',
+              backgroundColor: 'transparent',
+              borderColor: 'var(--hero-hairline, rgba(255,255,255,0.10))',
+            }
+      }
     >
-      {children}
+      {icon}
+      {label}
     </button>
   );
 }

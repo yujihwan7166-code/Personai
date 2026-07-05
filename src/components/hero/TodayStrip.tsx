@@ -6,10 +6,12 @@
  * 브리핑으로. 일정·할일이 모두 없으면 "오늘 일정 없음"으로 비어있음도
  * 정직하게 (홈은 신뢰로 이긴다).
  */
-import { CalendarDays, CheckCircle2, Coffee } from 'lucide-react';
+import { useMemo } from 'react';
+import { CalendarDays, CheckCircle2, Coffee, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUpcomingEvent } from '@/hooks/planner/useUpcomingEvent';
 import { useTodayTasks } from '@/hooks/planner/useTodayTasks';
+import { getDiscussionHistory, type DiscussionRecord } from '@/lib/discussionHistoryStore';
 
 function minutesUntil(iso: string): string | null {
   const diff = new Date(iso).getTime() - Date.now();
@@ -21,10 +23,21 @@ function minutesUntil(iso: string): string | null {
   return null; // 내일 이후 일정은 카운트다운 생략
 }
 
-export function TodayStrip() {
+interface Props {
+  /** 마지막 대화 이어가기 (Index loadHistory). 미지정 시 항목 숨김. */
+  onResume?: (record: DiscussionRecord) => void;
+}
+
+export function TodayStrip({ onResume }: Props) {
   const navigate = useNavigate();
   const nextEvent = useUpcomingEvent();
   const todayTasks = useTodayTasks();
+  // 마지막 대화 — 마운트 시 1회 (히어로 복귀마다 리마운트되므로 충분).
+  const lastChat = useMemo(() => {
+    const all = getDiscussionHistory();
+    if (all.length === 0) return null;
+    return [...all].sort((a, b) => b.timestamp - a.timestamp)[0];
+  }, []);
 
   const eventTime = nextEvent
     ? new Date(nextEvent.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -41,6 +54,26 @@ export function TodayStrip() {
       aria-label="오늘 요약"
       style={{ color: 'var(--hero-fg-muted)' }}
     >
+      {/* 이어가기 — 마지막 대화 복원 (재방문 UX, Claude 최근항목 각색). */}
+      {onResume && lastChat && (
+        <>
+          <button
+            type="button"
+            onClick={() => onResume(lastChat)}
+            className={itemCls}
+            title="마지막 대화 이어가기"
+          >
+            <Undo2 size={12.5} strokeWidth={2} className="opacity-70" />
+            <span className="max-w-[200px] truncate">
+              이어서{' '}
+              <span className="font-medium" style={{ color: 'var(--hero-fg)' }}>
+                {lastChat.question || '지난 대화'}
+              </span>
+            </span>
+          </button>
+          <span aria-hidden className="h-3 w-px" style={{ backgroundColor: 'var(--hero-hairline)' }} />
+        </>
+      )}
       {/* 다음 일정 */}
       <button type="button" onClick={() => navigate('/planner')} className={itemCls} title="플래너 열기">
         <CalendarDays size={12.5} strokeWidth={2} className="opacity-70" />

@@ -57,6 +57,8 @@ import { customPortalToChip, type CustomPortal } from '@/lib/customPortal';
 import { CustomPortalCreatorSheet } from './CustomPortalCreatorSheet';
 import { HERO_SEARCH_CHIPS, HERO_SEARCH_CHIP_BY_ID, buildHeroSearchUrl, type HeroChipId } from '@/lib/heroSearchChips';
 import { SECRETARY_SCOPES, buildSecretaryPrompt, type SecretaryScope } from '@/lib/secretaryContext';
+import { DEFAULT_EXPERTS } from '@/types/expert';
+import type { DiscussionRecord } from '@/lib/discussionHistoryStore';
 import { useChatPrefs, buildDirectives } from '@/lib/chatPrefs';
 import { toast } from 'sonner';
 
@@ -73,6 +75,8 @@ interface Props {
   favoriteChips?: React.ReactNode;
   /** 기능 레일 — 입력창 아래 카테고리 아이콘 줄 (FeatureRail). AI 기본 모드에서만. */
   featureRail?: React.ReactNode;
+  /** 마지막 대화 이어가기 — TodayStrip 에 전달 (Index loadHistory). */
+  onResumeLast?: (record: DiscussionRecord) => void;
   /** 입력 텍스트 · 컨트롤드 상태. */
   value: string;
   onChange: (v: string) => void;
@@ -94,6 +98,7 @@ export function HeroSection({
   onOpenModeDropdown,
   favoriteChips,
   featureRail,
+  onResumeLast,
   value,
   onChange,
   onSubmitToAi,
@@ -391,6 +396,34 @@ export function HeroSection({
       {/* AI 와 모델 리스트 사이엔 선 없음 — 한 묶음 (2026-07-05 위계 피드백). */}
     </div>
   );
+
+  /* 음성 입력 (dictation) — Web Speech API, 결과를 입력창에 이어붙임.
+   * 라이브 음성 대화(P1-9)와 별개의 가벼운 받아쓰기. */
+  const handleVoiceInput = () => {
+    type SRCtor = new () => {
+      lang: string;
+      interimResults: boolean;
+      onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+      onerror: (() => void) | null;
+      start: () => void;
+    };
+    const w = window as unknown as { webkitSpeechRecognition?: SRCtor; SpeechRecognition?: SRCtor };
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!SR) {
+      toast('이 브라우저는 음성 입력을 지원하지 않아요');
+      return;
+    }
+    const rec = new SR();
+    rec.lang = 'ko-KR';
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const t = e.results[0]?.[0]?.transcript ?? '';
+      if (t) onChange(value ? `${value} ${t}` : t);
+    };
+    rec.onerror = () => toast('음성 인식에 실패했어요 — 다시 시도해주세요');
+    rec.start();
+    toast('듣고 있어요 — 말씀하세요');
+  };
 
   const handleSubmit = async () => {
     const trimmed = value.trim();
@@ -762,7 +795,7 @@ export function HeroSection({
           onSubmit={() => { void handleSubmit(); }}
           onAttach={onAttach}
           onImage={onImage}
-          onVoice={onVoice}
+          onVoice={onVoice ?? handleVoiceInput}
           placeholder={placeholder}
           disabled={disabled || secretaryBusy}
           webSearchOn={webSearchOn}
@@ -801,12 +834,42 @@ export function HeroSection({
           // 모델 셀렉트는 eyebrow 로 이동됨. toolbarRight 는 미사용.
         />
 
+        {/* 제안 프롬프트 칩 — 현재 모델의 sampleQuestions 3개 (Claude 프리셋 각색).
+         * 입력 시작하면 사라져 소음 최소화. AI 기본 모드에서만. */}
+        {!isSearchArmed && !secretaryMode && !value.trim() && (() => {
+          const expert = DEFAULT_EXPERTS.find((e) => e.id === (model?.id ?? activeBrand.expertId));
+          const suggestions = (expert?.sampleQuestions ?? []).slice(0, 3);
+          if (suggestions.length === 0) return null;
+          return (
+            <div
+              key={`sug-${activeBrand.id}-${model?.id ?? ''}`}
+              className="mt-4 flex flex-wrap items-center justify-center gap-1.5 animate-in fade-in duration-300"
+            >
+              {suggestions.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => onChange(q)}
+                  className="max-w-[260px] truncate rounded-full border px-3 py-1.5 text-[12px] font-medium tracking-tight transition-all duration-150 hover:-translate-y-px"
+                  style={{
+                    color: 'var(--hero-fg-muted)',
+                    borderColor: 'var(--hero-hairline)',
+                    backgroundColor: 'color-mix(in srgb, var(--hero-input-bg, #ffffff) 55%, transparent)',
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* 기능 레일 — AI·브라우저 공통 (비서 모드만 집중 경험이라 제외).
          * 브라우저에도 노출 + 두 상태 간 높이 동일 → 전환 시 화면 안 밀림. */}
         {!secretaryMode && featureRail}
 
-        {/* 오늘 스트립 — 내 상태 한 줄 (일정·할일·브리핑). 레일보다 한 단계 조용하게. */}
-        {!secretaryMode && <TodayStrip />}
+        {/* 오늘 스트립 — 내 상태 한 줄 (일정·할일·브리핑·이어가기). */}
+        {!secretaryMode && <TodayStrip onResume={onResumeLast} />}
 
       </div>
 

@@ -15,6 +15,19 @@ import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BRAND_ACCENT, type Brand, type BrandModel } from '@/lib/aiBrands';
+import { DEFAULT_EXPERTS } from '@/types/expert';
+
+/* 모델 정보 호버 카드 헬퍼 (AI Studio 모델 카드 각색). */
+const MODALITY_KO: Record<string, string> = {
+  text: '텍스트', image: '이미지', video: '영상', audio: '오디오', file: '파일',
+};
+const PRICE_KO: Record<string, string> = {
+  free: '무료', budget: '저가', standard: '표준', premium: '프리미엄',
+};
+function fmtCtx(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  return `${Math.round(n / 1_000)}K`;
+}
 import { BrandLogo } from './BrandLogo';
 import { pickContrastingText } from '@/lib/colorUtils';
 
@@ -50,6 +63,8 @@ export function ModelPickerButton({
   // 드롭다운은 portal(body) 렌더 — 칩 스트립 등 어떤 stacking context 도
   // 위를 덮지 못하게 (2026-07-04 z-fighting fix). 버튼 rect 기준 fixed 배치.
   const [anchor, setAnchor] = useState<{ top: number; bottom: number; centerX: number; right: number } | null>(null);
+  // 모델 정보 호버 카드 — hover 중인 모델 id + 카드 좌표.
+  const [hoverCard, setHoverCard] = useState<{ modelId: string; top: number; left: number } | null>(null);
 
   const toggleOpen = () => {
     if (open) {
@@ -289,12 +304,19 @@ export function ModelPickerButton({
                     onSelect(m.id);
                     setOpen(false);
                   }}
-                  title={m.description}
                   className={cn(
                     'flex w-full items-center gap-1.5 rounded-lg text-left transition-colors duration-100',
                     selectSection ? 'px-2 py-[6px]' : 'gap-2 px-2.5 py-[7px]',
                     active ? 'bg-black/[0.05]' : 'hover:bg-black/[0.035]',
                   )}
+                  onMouseEnter={(e) => {
+                    // 정보 카드 위치 — 행 오른쪽, 화면 밖이면 왼쪽으로.
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const W = 264;
+                    const left = r.right + 8 + W > window.innerWidth ? r.left - W - 8 : r.right + 8;
+                    setHoverCard({ modelId: m.id, top: Math.min(r.top, window.innerHeight - 170), left: Math.max(8, left) });
+                  }}
+                  onMouseLeave={() => setHoverCard(null)}
                 >
                   <span
                     className={cn(
@@ -329,6 +351,53 @@ export function ModelPickerButton({
               );
             })}
           </div>
+          {/* 모델 정보 호버 카드 — 이름·설명 + 컨텍스트·입력·가격 (AI Studio 각색). */}
+          {hoverCard && (() => {
+            const m = brand.models.find((x) => x.id === hoverCard.modelId);
+            if (!m) return null;
+            const info = DEFAULT_EXPERTS.find((e) => e.id === hoverCard.modelId)?.modelInfo;
+            return (
+              <div
+                className="pointer-events-none fixed z-[310] w-[264px] rounded-xl border border-black/[0.08] bg-white p-3 shadow-[0_12px_32px_-10px_rgba(0,0,0,0.25)] animate-in fade-in duration-100"
+                style={{ top: hoverCard.top, left: hoverCard.left }}
+              >
+                <div className="text-[13px] font-semibold text-[#1f2023]">{m.name}</div>
+                {m.description && (
+                  <div className="mt-0.5 text-[11px] leading-snug text-[#8a8f98]">{m.description}</div>
+                )}
+                {info && (
+                  <div className="mt-2 space-y-1 border-t border-black/[0.06] pt-2">
+                    {info.provider && (
+                      <div className="flex justify-between text-[10.5px]">
+                        <span className="text-[#9aa0a8]">제공</span>
+                        <span className="font-medium text-[#4b4f56]">{info.provider}</span>
+                      </div>
+                    )}
+                    {info.contextLength > 0 && (
+                      <div className="flex justify-between text-[10.5px]">
+                        <span className="text-[#9aa0a8]">컨텍스트</span>
+                        <span className="font-medium tabular-nums text-[#4b4f56]">{fmtCtx(info.contextLength)} 토큰</span>
+                      </div>
+                    )}
+                    {info.inputModalities?.length > 0 && (
+                      <div className="flex justify-between text-[10.5px]">
+                        <span className="text-[#9aa0a8]">입력</span>
+                        <span className="font-medium text-[#4b4f56]">
+                          {info.inputModalities.map((x) => MODALITY_KO[x] ?? x).join('·')}
+                        </span>
+                      </div>
+                    )}
+                    {info.priceTier && (
+                      <div className="flex justify-between text-[10.5px]">
+                        <span className="text-[#9aa0a8]">가격대</span>
+                        <span className="font-medium text-[#4b4f56]">{PRICE_KO[info.priceTier] ?? info.priceTier}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           </>
           )}
         </div>,
