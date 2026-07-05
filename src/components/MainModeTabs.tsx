@@ -572,7 +572,7 @@ export function MainModeTabs({
     const anchorEl = ownVisible ? null : document.querySelector('[data-mode-anchor]');
     const left = ownVisible ? own.left : anchorEl?.getBoundingClientRect().left ?? 16;
     // 패널(최대 1040px)이 화면 밖으로 안 나가게 클램프.
-    setAnchorLeft(Math.max(8, Math.min(Math.round(left), window.innerWidth - Math.min(1040, window.innerWidth - 32) - 8)));
+    setAnchorLeft(Math.max(8, Math.min(Math.round(left), window.innerWidth - Math.min(1120, window.innerWidth - 32) - 8)));
   }, [open]);
   /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
   const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
@@ -1189,7 +1189,7 @@ export function MainModeTabs({
               className={cn(
                 'z-[120]',
                 // dim 이 없어진 만큼 패널 스스로 경계가 서야 함 — 보더 강화 + 사이즈 업.
-                'w-[1040px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'w-[1120px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
                 'border border-slate-300/80 dark:border-slate-600/80',
                 'ring-1 ring-black/[0.04] dark:ring-white/[0.06]',
                 'shadow-[0_24px_70px_-18px_hsl(220_20%_5%_/_0.35),0_4px_18px_-8px_hsl(220_20%_5%_/_0.18)]',
