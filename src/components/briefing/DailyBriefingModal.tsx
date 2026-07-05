@@ -84,13 +84,13 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
   const d = narrative?.data;
   const w = narrative?.weather ?? null;
 
-  // 인사 아래 한 줄 요약 — 오늘 구성 숫자만 담백하게.
-  const statBits: string[] = [];
+  // 오늘 요약 stat — 날씨 스트립 우측에 칩으로. (정보 밀도 ↑, 헤더 중복 제거)
+  const stats: { label: string; value: string }[] = [];
   if (d) {
-    if (prefs.schedule && d.timed.length) statBits.push(`일정 ${d.timed.length}`);
-    if (prefs.tasks && d.inbox.length + d.overdue.length) statBits.push(`할일 ${d.inbox.length + d.overdue.length}`);
-    if (prefs.dday && d.upcomingDday.length) statBits.push(`다가오는 날 ${d.upcomingDday.length}`);
-    if (prefs.habits && d.habits.length) statBits.push(`습관 ${d.habits.filter((h) => h.done).length}/${d.habits.length}`);
+    if (prefs.schedule && d.timed.length) stats.push({ label: '일정', value: String(d.timed.length) });
+    if (prefs.tasks && d.inbox.length + d.overdue.length) stats.push({ label: '할일', value: String(d.inbox.length + d.overdue.length) });
+    if (prefs.dday && d.upcomingDday.length) stats.push({ label: '다가오는 날', value: String(d.upcomingDday.length) });
+    if (prefs.habits && d.habits.length) stats.push({ label: '습관', value: `${d.habits.filter((h) => h.done).length}/${d.habits.length}` });
   }
 
   return createPortal(
@@ -116,24 +116,19 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
     >
       <div
         className={cn(
-          'mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-5 py-8 sm:px-8',
+          'mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-5 py-6 sm:px-8',
           closing ? 'animate-out fade-out slide-out-to-bottom-2 duration-150' : 'animate-in fade-in slide-in-from-bottom-3 duration-300',
         )}
       >
-        {/* 헤더 — 날짜(작게) → 인사(큰 세리프) + 요약. 우측 설정·닫기. */}
-        <div className="mb-6 flex items-start gap-3">
+        {/* 헤더 — 날짜(작게) → 인사(큰 세리프). 요약은 날씨 스트립으로 이동. */}
+        <div className="mb-4 flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[13px] tracking-[0.04em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
               {narrative?.date ?? ''}
             </p>
-            <h2 className="mt-1.5 text-[clamp(28px,4vw,36px)] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
+            <h2 className="mt-1 text-[clamp(26px,3.4vw,32px)] leading-tight" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>
               {narrative?.greeting ?? '오늘의 브리핑'}
             </h2>
-            {!settingsOpen && statBits.length > 0 && (
-              <p className="mt-2 text-[13.5px] tracking-[0.01em]" style={{ color: 'var(--hero-fg-muted)', fontFamily: 'var(--briefing-serif)' }}>
-                {statBits.join('  ·  ')}
-              </p>
-            )}
           </div>
           <button
             type="button"
@@ -166,9 +161,20 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
             setTickerInput={setTickerInput}
           />
         ) : (
-          <div className="space-y-4">
-            {/* 날씨 히어로 — 넓은 그라데이션 카드. */}
-            {prefs.weather && w && <WeatherHero weather={w} date={narrative?.date ?? ''} />}
+          <div className="space-y-3">
+            {/* 날씨 스트립 — 우측에 오늘 요약. 날씨 off 면 요약만 얇게. */}
+            {prefs.weather && w ? (
+              <WeatherHero weather={w} stats={stats} />
+            ) : stats.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border px-5 py-2.5" style={{ borderColor: 'var(--briefing-card-border)', background: 'var(--briefing-card-bg)' }}>
+                {stats.map((s) => (
+                  <span key={s.label} className="flex items-baseline gap-1.5 text-[13px]" style={{ color: 'var(--hero-fg)' }}>
+                    <span style={{ color: 'var(--hero-fg-muted)' }}>{s.label}</span>
+                    <span className="tabular-nums" style={{ fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>{s.value}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
             {/* AI 한마디 — 리드 카드(세리프 문단). */}
             {prefs.ai && (
@@ -176,7 +182,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
                 {loading || !narrative ? (
                   <BriefingShimmer />
                 ) : (
-                  <p className="text-[16px] leading-[1.85]" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>
+                  <p className="text-[15.5px] leading-[1.8]" style={{ color: 'var(--hero-fg)', fontFamily: 'var(--briefing-serif)' }}>
                     {narrative.text}
                   </p>
                 )}
@@ -185,7 +191,7 @@ export const DailyBriefingModal = ({ open, onClose }: Props) => {
 
             {/* 2열 masonry — 데이터·설정 없는 카드는 자동 생략. */}
             {d && (
-              <div className="columns-1 gap-4 md:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
+              <div className="columns-1 gap-3 md:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
                 {prefs.schedule && <ScheduleSection data={d} onOpen={() => jumpTo('day')} />}
                 {prefs.tasks && <TasksSection data={d} onOpen={() => jumpTo('day')} />}
                 {prefs.dday && <DdaySection data={d} onOpen={() => jumpTo('month')} />}

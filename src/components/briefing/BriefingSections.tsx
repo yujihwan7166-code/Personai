@@ -122,32 +122,37 @@ const WEATHER_GRADIENT: Record<WeatherNow['icon'], string> = {
   storm: 'linear-gradient(135deg, hsl(250 22% 90%), hsl(220 24% 86%))',
 };
 
-/** 날씨 히어로 — 풀스크린 상단의 넓은 그라데이션 카드. */
-export function WeatherHero({ weather, date }: { weather: WeatherNow; date?: string }) {
+/** 날씨 스트립 — 상단의 납작한 정보 밀도 높은 스트립. 우측에 오늘 요약 칩. */
+export function WeatherHero({ weather, stats }: { weather: WeatherNow; stats?: { label: string; value: string }[] }) {
   const Icon = WEATHER_ICON[weather.icon];
   return (
     <section
-      className="flex items-center gap-5 rounded-2xl border px-6 py-5"
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border px-5 py-3"
       style={{
         borderColor: 'var(--briefing-card-border, hsl(30 24% 82% / 0.7))',
         background: WEATHER_GRADIENT[weather.icon],
         boxShadow: '0 1px 2px hsl(28 40% 12% / 0.05)',
       }}
     >
-      <Icon size={52} strokeWidth={1.4} style={{ color: 'hsl(28 30% 32%)' }} className="shrink-0" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2.5">
-          <span className="text-[44px] leading-none tabular-nums" style={{ color: 'hsl(28 30% 24%)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>{weather.temp}°</span>
-          <span className="text-[16px]" style={{ color: 'hsl(28 22% 34%)' }}>{weather.label}</span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-2 text-[12.5px]">
-          {weather.dust && (
-            <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: 'hsl(0 0% 100% / 0.5)', color: weather.dust.color }}>{weather.dust.label}</span>
-          )}
-          {date && <span style={{ color: 'hsl(28 18% 42%)' }}>{date}</span>}
-        </div>
+      <div className="flex items-center gap-2.5">
+        <Icon size={30} strokeWidth={1.5} style={{ color: 'hsl(28 30% 32%)' }} className="shrink-0" />
+        <span className="text-[30px] leading-none tabular-nums" style={{ color: 'hsl(28 30% 24%)', fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>{weather.temp}°</span>
+        <span className="text-[14px]" style={{ color: 'hsl(28 22% 34%)' }}>{weather.label}</span>
+        {weather.dust && (
+          <span className="rounded-full px-2 py-0.5 text-[12px]" style={{ backgroundColor: 'hsl(0 0% 100% / 0.55)', color: weather.dust.color }}>{weather.dust.label}</span>
+        )}
+        <span className="text-[12px]" style={{ color: 'hsl(28 18% 44%)' }}>서울</span>
       </div>
-      <span className="shrink-0 self-start text-[12px]" style={{ color: 'hsl(28 18% 42%)' }}>서울</span>
+      {stats && stats.length > 0 && (
+        <div className="ml-auto flex items-center gap-x-4 gap-y-1">
+          {stats.map((s) => (
+            <span key={s.label} className="flex items-baseline gap-1.5 text-[13px]" style={{ color: 'hsl(28 22% 34%)' }}>
+              <span style={{ color: 'hsl(28 16% 48%)' }}>{s.label}</span>
+              <span className="tabular-nums" style={{ fontFamily: 'var(--briefing-serif)', fontWeight: 700 }}>{s.value}</span>
+            </span>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
