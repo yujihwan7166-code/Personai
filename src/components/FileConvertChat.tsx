@@ -4,7 +4,6 @@ import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, 
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { notify } from '@/lib/notify';
-import { addMemo } from '@/lib/memoStore';
 import { upsertPage } from '@/lib/wikiStore';
 import { newWikiId, type WikiPage } from '@/types/wiki';
 
@@ -90,8 +89,7 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [headerFooterText, setHeaderFooterText] = useState<{ header: string; footer: string }>({ header: '', footer: '{page} / {total}' });
   const [headerFooterPos, setHeaderFooterPos] = useState<'left' | 'center' | 'right'>('center');
   // 암호
-  // 결과 → 메모/위키 export 상태
-  const [memoExported, setMemoExported] = useState(false);
+  // 결과 → 위키 export 상태
   const [wikiExported, setWikiExported] = useState(false);
   // 변환 이력
   const [history, setHistory] = useState<ConvertHistoryItem[]>(() => listHistory());
@@ -173,7 +171,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     setResult(null);
     setErrorMessage('');
     setProgress(null);
-    setMemoExported(false);
     setWikiExported(false);
   }, [result]);
 
@@ -573,7 +570,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         originalSize: origSize,
         newSize: converted.blob.size,
       });
-      setMemoExported(false);
       setWikiExported(false);
       setEditingFileName(false);
       setStage('done');
@@ -2038,32 +2034,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     <button type="button" onClick={handleDownload} className="flex-1 min-w-[140px] h-10 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5">
                       <Download className="w-4 h-4" /> 다운로드
                     </button>
-                    {/* 메모로 — 텍스트류 결과만 */}
-                    {result.previewText && ['txt', 'md', 'csv', 'json', 'html'].includes(result.outputFormat) && (
-                      memoExported ? (
-                        <span
-                          className="h-10 px-4 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200 dark:border-violet-500/30"
-                        >
-                          <Check className="w-4 h-4" />
-                          메모로 보냄
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const fullText = await result.blob.text();
-                            addMemo({
-                              body: `${result.fileName}\n\n${fullText}\n\n---\n출처: 파일 변환 (${selectedTask?.label ?? ''})`,
-                            });
-                            setMemoExported(true);
-                            notify.success('메모로 보냈어요', { duration: 3000 });
-                          }}
-                          className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
-                        >
-                          <Pencil className="w-4 h-4" /> 메모로
-                        </button>
-                      )
-                    )}
                     {/* 위키로 — 긴 텍스트 결과만 (300자+) */}
                     {result.previewText && result.previewText.length > 100 && ['md', 'html', 'txt'].includes(result.outputFormat) && (
                       wikiExported ? (
@@ -2146,7 +2116,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                                 setSelectedTask(next);
                                 setFiles([f]);
                                 setResult(null);
-                                setMemoExported(false);
                                 setWikiExported(false);
                                 setStage('upload');
                               }}

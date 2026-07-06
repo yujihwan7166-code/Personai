@@ -35,7 +35,7 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
-import { AuxiliaryMemoTool, AuxiliaryPlannerTool } from '@/components/AuxiliaryToolPanels';
+import { AuxiliaryPlannerTool } from '@/components/AuxiliaryToolPanels';
 import { streamExpert } from '@/pages/indexRuntime';
 import { buildWikiAiContext, deriveWikiPageTitleFromAnswer } from '@/lib/wikiAiContext';
 
@@ -477,9 +477,7 @@ export function WikiAiPanel({
         ) : undefined}
       />
 
-      {activeTool === 'memos' ? (
-        <AuxiliaryMemoTool />
-      ) : activeTool === 'planner' ? (
+      {activeTool === 'planner' ? (
         <AuxiliaryPlannerTool />
       ) : (
       <>

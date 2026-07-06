@@ -7,9 +7,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
-import { ArrowRight, ArrowUp, BookOpen, CalendarDays, FileText, Sparkles, Square } from 'lucide-react';
+import { ArrowRight, ArrowUp, BookOpen, CalendarDays, Sparkles, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { memoPreview, memoTimeLabel, memoTitle, useMemos } from '@/lib/memoStore';
 import { loadAllPages } from '@/lib/wikiStore';
 import { WIKI_TYPE_META, type WikiPage } from '@/types/wiki';
 import { PAGE_AI_PANEL_SCROLL_CLASS } from '@/components/PageAiTokens';
@@ -22,8 +21,8 @@ import {
   type PlannerTask,
 } from '@/types/planner';
 
-export type AuxiliaryToolTab = 'ai' | 'planner' | 'memos' | 'wiki';
-export type AuxiliaryToolSurface = 'planner' | 'memos' | 'wiki' | 'journal' | 'default';
+export type AuxiliaryToolTab = 'ai' | 'planner' | 'wiki';
+export type AuxiliaryToolSurface = 'planner' | 'wiki' | 'journal' | 'default';
 
 interface AuxiliaryToolItem {
   id: AuxiliaryToolTab;
@@ -40,10 +39,6 @@ const AUXILIARY_TOOL_META: Record<AuxiliaryToolTab, Omit<AuxiliaryToolItem, 'id'
     label: '플래너',
     icon: <CalendarDays className="h-3.5 w-3.5" strokeWidth={2.1} />,
   },
-  memos: {
-    label: '메모',
-    icon: <FileText className="h-3.5 w-3.5" strokeWidth={2.1} />,
-  },
   wiki: {
     label: '위키',
     icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={2.1} />,
@@ -51,11 +46,10 @@ const AUXILIARY_TOOL_META: Record<AuxiliaryToolTab, Omit<AuxiliaryToolItem, 'id'
 };
 
 const AUXILIARY_TOOLS_BY_SURFACE: Record<AuxiliaryToolSurface, AuxiliaryToolTab[]> = {
-  planner: ['ai', 'memos', 'wiki'],
-  memos: ['ai', 'planner', 'wiki'],
-  wiki: ['ai', 'memos', 'planner'],
-  journal: ['ai', 'planner', 'memos', 'wiki'],
-  default: ['ai', 'memos', 'wiki'],
+  planner: ['ai', 'wiki'],
+  wiki: ['ai', 'planner'],
+  journal: ['ai', 'planner', 'wiki'],
+  default: ['ai', 'wiki'],
 };
 
 export function getAuxiliaryToolsForSurface(surface: AuxiliaryToolSurface = 'default'): AuxiliaryToolItem[] {
@@ -229,54 +223,6 @@ export function AuxiliaryPlannerTool() {
           ))
         )}
       </section>
-    </div>
-  );
-}
-
-export function AuxiliaryMemoTool() {
-  const memos = useMemos();
-  const activeMemos = memos
-    .filter((memo) => !memo.deletedAt && !memo.archivedAt)
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt)
-    .slice(0, 24);
-
-  return (
-    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
-      <div className="pb-1">
-        <div className="text-[13px] font-semibold text-foreground">최근 메모</div>
-        <div className="text-[11.5px] text-muted-foreground">페이지를 떠나지 않고 메모를 훑어봅니다.</div>
-      </div>
-      {activeMemos.length === 0 ? (
-        <InlineToolEmpty
-          icon={<FileText className="h-4 w-4" />}
-          title="보여줄 메모가 없어요"
-          description="메모 화면에서 새 메모를 만들면 여기에 바로 나타납니다."
-        />
-      ) : (
-        activeMemos.map((memo) => (
-          <article
-            key={memo.id}
-            className="rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5"
-          >
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-semibold text-foreground">
-                  {memo.pinned && <span className="mr-1 text-primary">고정</span>}
-                  {memoTitle(memo)}
-                </div>
-                {memoPreview(memo) && (
-                  <p className="mt-1 line-clamp-2 text-[11.5px] leading-5 text-muted-foreground">
-                    {memoPreview(memo)}
-                  </p>
-                )}
-              </div>
-              <time className="shrink-0 text-[10.5px] text-muted-foreground">
-                {memoTimeLabel(memo.updatedAt)}
-              </time>
-            </div>
-          </article>
-        ))
-      )}
     </div>
   );
 }

@@ -49,7 +49,7 @@ describe('AiSidebar', () => {
     expect(screen.getByLabelText('AI 입력').closest('.shrink-0')).toHaveClass('pb-[calc(0.625rem+env(safe-area-inset-bottom))]');
     expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toHaveAttribute('aria-valuenow', '340');
     expect(screen.getByRole('navigation', { name: '보조 도구 탭' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '플래너' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '위키' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '메모' })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: '참조 범위' })).toHaveValue('current');
     expect(screen.getByText('요약').closest(`.${PAGE_AI_PANEL_SCROLL_CLASS.split(' ').join('.')}`)).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe('AiSidebar', () => {
     );
 
     expect(screen.getByRole('complementary', { name: '일기 AI' })).toHaveStyle({ '--ai-sidebar-w': '420px' });
-    expect(screen.getByRole('button', { name: '메모' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '플래너' })).toBeInTheDocument();
     expect(screen.getByRole('separator', { name: '보조 도구 패널 너비 조정' })).toHaveAttribute('aria-valuenow', '420');
   });
 

@@ -1,18 +1,17 @@
 /**
- * 비서 컨텍스트 빌더 — 플래너·메모·위키 데이터를 AI 프롬프트용 텍스트로 조립.
+ * 비서 컨텍스트 빌더 — 플래너·위키 데이터를 AI 프롬프트용 텍스트로 조립.
  *
  * 비서 모드에서 사용자가 질문하면, 선택된 소스의 개인 데이터를 읽어
  * 시스템 프롬프트에 주입한다. AI 는 이 컨텍스트를 근거로 "내 상황" 에 맞게 답변.
  *
  * 크기 가드: 각 섹션 별 항목 수·글자 수 제한 (프롬프트 폭주 방지).
  */
-import { getMemos, memoTitle, memoPreview } from '@/lib/memoStore';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
 import { loadAllPages } from '@/lib/wikiStore';
 import { getActiveWikiPages, searchWikiPages, stripMarkdown } from '@/lib/wikiQuery';
 
-export type SecretaryScope = 'all' | 'planner' | 'memo' | 'wiki';
+export type SecretaryScope = 'all' | 'planner' | 'wiki';
 
 export const SECRETARY_SCOPES: {
   id: SecretaryScope;
@@ -21,16 +20,13 @@ export const SECRETARY_SCOPES: {
 }[] = [
   { id: 'all',     label: '전체',   emoji: '💼' },
   { id: 'planner', label: '플래너', emoji: '📅' },
-  { id: 'memo',    label: '메모',   emoji: '📝' },
   { id: 'wiki',    label: '위키',   emoji: '🌐' },
 ];
 
 const MAX_TASKS = 20;
 const MAX_EVENTS = 20;
-const MAX_MEMOS = 15;
 const MAX_WIKI_PAGES = 5;
 const MAX_WIKI_CHARS = 900;   // 페이지당
-const MAX_MEMO_CHARS = 200;   // 메모당
 
 function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -75,28 +71,6 @@ function buildPlannerSection(): string {
   }
 
   return lines.length > 0 ? lines.join('\n') : '### 플래너\n(등록된 할일·일정 없음)';
-}
-
-/** 메모 섹션 — 핀 우선 + 최신순. */
-function buildMemoSection(): string {
-  const memos = getMemos()
-    .filter((m) => !m.deletedAt && !m.archivedAt)
-    .sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.updatedAt - a.updatedAt;
-    })
-    .slice(0, MAX_MEMOS);
-
-  if (memos.length === 0) return '### 메모\n(메모 없음)';
-
-  const lines = ['### 메모'];
-  for (const m of memos) {
-    const title = memoTitle(m);
-    const preview = memoPreview(m).slice(0, MAX_MEMO_CHARS);
-    const pin = m.pinned ? '📌 ' : '';
-    lines.push(`- ${pin}${title}: ${preview}`);
-  }
-  return lines.join('\n');
 }
 
 /** 위키 섹션 — 질문 연관 페이지 우선, 없으면 제목 목록. */
@@ -147,7 +121,6 @@ export async function buildSecretaryPrompt(
 
   const sections: string[] = [];
   if (scope === 'all' || scope === 'planner') sections.push(buildPlannerSection());
-  if (scope === 'all' || scope === 'memo') sections.push(buildMemoSection());
   if (scope === 'all' || scope === 'wiki') sections.push(await buildWikiSection(question));
 
   return [

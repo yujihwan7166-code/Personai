@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Trash2, Loader2, Play, Pause, Pencil, Sparkles, Copy, Check, ChevronDown, ChevronUp,
-  SkipBack, SkipForward, Search, X, FileText, ListTodo,
+  SkipBack, SkipForward, Search, X, ListTodo,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -21,7 +21,6 @@ import { getAudioObjectURL } from '@/lib/voiceRecordingStore';
 import { notify } from '@/lib/notify';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { GeneratorPanel } from './GeneratorPanel';
-import { addMemo, findMemoFromChapter } from '@/lib/memoStore';
 import { taskStore } from '@/services/planner/taskStore';
 
 interface Props {
@@ -53,7 +52,6 @@ export function RecordingDetail({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(recording.title);
   // 승격된 자식 추적 (중복 클릭 방지 + UI 토글)
-  const [promotedChapters, setPromotedChapters] = useState<Set<number>>(() => new Set());
   const [promotedActions, setPromotedActions] = useState<Set<number>>(() => new Set());
   const [transcriptOpen, setTranscriptOpen] = useState(true);
   const [generatorOpen, setGeneratorOpen] = useState(false);
@@ -72,53 +70,14 @@ export function RecordingDetail({
   const activeSegmentRef = useRef<HTMLLIElement>(null);
   const matchRefs = useRef<Map<number, HTMLLIElement>>(new Map());
 
-  // 녹음 바뀔 때마다 승격 상태 재계산 (메모/할일 store 에서 로드)
+  // 녹음 바뀔 때마다 승격 상태 재계산 (할일 store 에서 로드)
   useEffect(() => {
-    const ch = new Set<number>();
-    recording.chapters.forEach((_, i) => {
-      if (findMemoFromChapter(recording.id, i)) ch.add(i);
-    });
-    setPromotedChapters(ch);
-
     const ac = new Set<number>();
     recording.actionItems.forEach((_, i) => {
       if (taskStore.findFromRecordingAction(recording.id, i)) ac.add(i);
     });
     setPromotedActions(ac);
   }, [recording.id, recording.chapters, recording.actionItems]);
-
-  // 챕터 → 메모 승격
-  const handlePromoteChapter = useCallback((idx: number) => {
-    if (promotedChapters.has(idx)) {
-      // 이미 만든 메모 → 메모 페이지로 이동
-      const existing = findMemoFromChapter(recording.id, idx);
-      if (existing) {
-        navigate(`/memos?id=${existing.id}`);
-      }
-      return;
-    }
-    const ch = recording.chapters[idx];
-    if (!ch) return;
-    // 챕터 구간의 트랜스크립트 텍스트 묶기
-    const body = recording.transcript
-      .filter((s) => s.start >= ch.start && s.end <= ch.end)
-      .map((s) => s.text)
-      .join('\n');
-    const tStart = formatDuration(ch.start);
-    const tEnd = formatDuration(ch.end);
-    const memo = addMemo({
-      body: `${ch.title}\n\n${body}\n\n---\n출처: ${recording.title} (${tStart}–${tEnd})`,
-      pinned: false,
-      sourceRecordingId: recording.id,
-      sourceRecordingTitle: recording.title,
-      sourceChapterIndex: idx,
-    });
-    setPromotedChapters((prev) => new Set(prev).add(idx));
-    notify.success('메모로 만들었어요', {
-      duration: 4000,
-      action: { label: '메모 열기', onClick: () => navigate(`/memos?id=${memo.id}`) },
-    });
-  }, [promotedChapters, recording, navigate]);
 
   // 액션 아이템 → 할일 승격
   const handlePromoteAction = useCallback((idx: number) => {
@@ -535,14 +494,13 @@ export function RecordingDetail({
                 <ol className="space-y-0.5">
                   {recording.chapters.map((c, i) => {
                     const active = i === activeChapterIdx;
-                    const promoted = promotedChapters.has(i);
                     return (
                       <li key={i} className="group relative">
                         <button
                           type="button"
                           onClick={() => seekTo(c.start)}
                           className={cn(
-                            'w-full text-left flex items-start gap-3 rounded-lg px-3 py-2 pr-20 transition-colors',
+                            'w-full text-left flex items-start gap-3 rounded-lg px-3 py-2 transition-colors',
                             active
                               ? 'bg-indigo-50 dark:bg-indigo-500/10 border-l-2 border-indigo-500'
                               : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 border-l-2 border-transparent',
@@ -557,20 +515,6 @@ export function RecordingDetail({
                           <span className="text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed">
                             {c.title}
                           </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handlePromoteChapter(i); }}
-                          className={cn(
-                            'absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium transition-all',
-                            promoted
-                              ? 'text-violet-600 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20'
-                              : 'text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200',
-                          )}
-                          title={promoted ? '이미 메모로 만듦 — 메모 열기' : '메모로 만들기'}
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          {promoted ? '메모' : '메모로'}
                         </button>
                       </li>
                     );

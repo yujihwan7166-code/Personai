@@ -45,7 +45,7 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
-import { AuxiliaryMemoTool, AuxiliaryPlannerTool, AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
+import { AuxiliaryPlannerTool, AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
 import type { AiContext, AiKind, ChatMessage } from '@/lib/cloudAi/types';
 
@@ -113,9 +113,7 @@ function saveAiWidth(kind: AiKind, width: number): void {
 }
 
 function aiKindToSurface(kind: AiKind): AuxiliaryToolSurface {
-  if (kind === 'memo') return 'memos';
   if (kind === 'journal') return 'journal';
-  if (kind === 'whiteboard') return 'whiteboard';
   return 'default';
 }
 
@@ -300,9 +298,7 @@ export function AiSidebar({
           )}
         />
 
-        {activeTool === 'memos' ? (
-          <AuxiliaryMemoTool />
-        ) : activeTool === 'planner' ? (
+        {activeTool === 'planner' ? (
           <AuxiliaryPlannerTool />
         ) : activeTool === 'wiki' ? (
           <AuxiliaryWikiTool />

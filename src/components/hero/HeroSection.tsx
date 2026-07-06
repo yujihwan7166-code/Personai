@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Briefcase, CalendarDays, FileText, Globe, Star, Plus,
+  ChevronDown, Briefcase, CalendarDays, Globe, Star, Plus,
   MessagesSquare, Layers, Swords, FlaskConical, ShieldCheck, Users,
   Wrench, Gamepad2, BookOpen, Mic, Languages, FileOutput, Clapperboard, Lightbulb,
   type LucideIcon,
@@ -715,7 +715,7 @@ export function HeroSection({
               {SECRETARY_SCOPES.map((s) => {
                 const active = s.id === secretaryScope;
                 const ScopeIcon: LucideIcon =
-                  s.id === 'planner' ? CalendarDays : s.id === 'memo' ? FileText : s.id === 'wiki' ? Globe : Briefcase;
+                  s.id === 'planner' ? CalendarDays : s.id === 'wiki' ? Globe : Briefcase;
                 return (
                   <button
                     key={s.id}
