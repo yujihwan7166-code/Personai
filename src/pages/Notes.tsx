@@ -164,7 +164,6 @@ const Notes = () => {
               key={active.id}
               initialValue={active.memo}
               onChange={onMemoChange}
-              className="min-h-[60vh]"
             />
           </div>
         ) : (

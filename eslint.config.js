@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".next", ".claude/worktrees", "api/sim-orchestrator.ts"] },
+  { ignores: ["dist", ".next", ".claude/worktrees", "api/sim-orchestrator.ts", "src/components/plate/**", "src/lib/suggestion.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

@@ -1,40 +1,52 @@
 /**
- * 노트 글 편집기 — Plate 기반 (재설계 1단계).
+ * 노트 글 편집기 — Plate 공식 컴포넌트 이식 기반 (재설계 A).
  *
- * 지금은 코어 세트(마크·헤딩·인용·구분선)로 "동작하는 기반"을 확보.
- * 슬래시 메뉴·표·수식·목록/코드블록은 다음 스텝에서 검증된 방식으로 얹는다.
- * 스타일은 전부 우리 디자인 토큰(.note-prose, index.css) — 앱과 한 몸.
+ * 표·수식·슬래시메뉴·목록·코드블록을 Plate 공식 kit(격리 폴더 @/components/plate)에서
+ * 그대로 가져와 조립. 노드 컴포넌트가 hsl(var(--*)) 토큰 기반이라 우리 앱 색을 자동 상속.
+ * 슬래시(/)로 요소 삽입 — 노션 손맛.
  */
-import { Plate, PlateContent, usePlateEditor } from 'platejs/react';
+import 'katex/dist/katex.min.css';
+import { Plate, usePlateEditor } from 'platejs/react';
 import type { Value } from 'platejs';
-import { BasicBlocksPlugin, BasicMarksPlugin } from '@platejs/basic-nodes/react';
-import { cn } from '@/lib/utils';
-import { NoteToolbar } from './NoteToolbar';
+import { Editor, EditorContainer } from '@/components/plate/ui/editor';
+import { BasicNodesKit } from '@/components/plate/editor/plugins/basic-nodes-kit';
+import { IndentKit } from '@/components/plate/editor/plugins/indent-kit';
+import { ListKit } from '@/components/plate/editor/plugins/list-kit';
+import { CodeBlockKit } from '@/components/plate/editor/plugins/code-block-kit';
+import { TableKit } from '@/components/plate/editor/plugins/table-kit';
+import { MathKit } from '@/components/plate/editor/plugins/math-kit';
+import { SlashKit } from '@/components/plate/editor/plugins/slash-kit';
 
 interface Props {
   /** 초기 글 본문. 노트 전환 시 상위에서 key 로 리마운트한다. */
   initialValue: Value;
   onChange: (value: Value) => void;
   placeholder?: string;
-  className?: string;
 }
 
-export function NoteEditor({ initialValue, onChange, placeholder, className }: Props) {
+export function NoteEditor({ initialValue, onChange, placeholder }: Props) {
   const editor = usePlateEditor({
-    plugins: [BasicBlocksPlugin, BasicMarksPlugin],
+    plugins: [
+      ...IndentKit,
+      ...BasicNodesKit,
+      ...ListKit,
+      ...CodeBlockKit,
+      ...TableKit,
+      ...MathKit,
+      ...SlashKit,
+    ],
     value: initialValue,
   });
 
   return (
     <Plate editor={editor} onChange={({ value }) => onChange(value as Value)}>
-      <NoteToolbar />
-      <PlateContent
-        placeholder={placeholder ?? '무엇이든 적어보세요…  ( "# " 제목 · "> " 인용 · **굵게** )'}
-        className={cn(
-          'note-prose w-full max-w-none outline-none focus:outline-none',
-          className,
-        )}
-      />
+      <EditorContainer>
+        <Editor
+          variant="none"
+          placeholder={placeholder ?? '무엇이든 적어보세요…  ( "/" 눌러 표·수식·목록 삽입 )'}
+          className="min-h-[60vh] px-0"
+        />
+      </EditorContainer>
     </Plate>
   );
 }
