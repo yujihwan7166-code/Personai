@@ -4,25 +4,22 @@ import * as React from 'react';
 
 import type { PlateEditor, PlateElementProps } from 'platejs/react';
 
-import { AIChatPlugin } from '@platejs/ai/react';
 import {
-  CalendarIcon,
   ChevronRightIcon,
   Code2,
   Columns3Icon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  Image as ImageIcon,
   LightbulbIcon,
+  Link as LinkIcon,
   ListIcon,
   ListOrdered,
-  PenToolIcon,
   PilcrowIcon,
   Quote,
   RadicalIcon,
-  SparklesIcon,
   Square,
-  SuperscriptIcon,
   Table,
   TableOfContentsIcon,
 } from 'lucide-react';
@@ -59,92 +56,67 @@ type Group = {
 
 const groups: Group[] = [
   {
-    group: 'AI',
-    items: [
-      {
-        focusEditor: false,
-        icon: <SparklesIcon />,
-        value: 'AI',
-        onSelect: (editor) => {
-          editor.getApi(AIChatPlugin).aiChat.show();
-        },
-      },
-    ],
-  },
-  {
-    group: 'Basic blocks',
+    group: '기본',
     items: [
       {
         icon: <PilcrowIcon />,
-        keywords: ['paragraph'],
-        label: 'Text',
+        keywords: ['paragraph', 'text', '본문', '글'],
+        label: '텍스트',
         value: KEYS.p,
       },
       {
         icon: <Heading1Icon />,
-        keywords: ['title', 'h1'],
-        label: 'Heading 1',
+        keywords: ['title', 'h1', '대제목'],
+        label: '제목 1',
         value: KEYS.h1,
       },
       {
         icon: <Heading2Icon />,
-        keywords: ['subtitle', 'h2'],
-        label: 'Heading 2',
+        keywords: ['h2', '중제목'],
+        label: '제목 2',
         value: KEYS.h2,
       },
       {
         icon: <Heading3Icon />,
-        keywords: ['subtitle', 'h3'],
-        label: 'Heading 3',
+        keywords: ['h3', '소제목'],
+        label: '제목 3',
         value: KEYS.h3,
       },
       {
         icon: <ListIcon />,
-        keywords: ['unordered', 'ul', '-'],
-        label: 'Bulleted list',
+        keywords: ['bullet', 'ul', '불릿', '글머리', '-'],
+        label: '글머리 목록',
         value: KEYS.ul,
       },
       {
         icon: <ListOrdered />,
-        keywords: ['ordered', 'ol', '1'],
-        label: 'Numbered list',
+        keywords: ['numbered', 'ol', '번호', '순서', '1'],
+        label: '번호 목록',
         value: KEYS.ol,
       },
       {
         icon: <Square />,
-        keywords: ['checklist', 'task', 'checkbox', '[]'],
-        label: 'To-do list',
+        keywords: ['todo', 'checkbox', 'task', '체크', '할일', '[]'],
+        label: '체크리스트',
         value: KEYS.listTodo,
       },
       {
         icon: <ChevronRightIcon />,
-        keywords: ['collapsible', 'expandable'],
-        label: 'Toggle',
+        keywords: ['toggle', 'collapsible', '접기', '펼치기'],
+        label: '토글',
         value: KEYS.toggle,
       },
       {
-        icon: <Code2 />,
-        keywords: ['```'],
-        label: 'Code Block',
-        value: KEYS.codeBlock,
-      },
-      {
-        icon: <Table />,
-        label: 'Table',
-        value: KEYS.table,
-      },
-      {
         icon: <Quote />,
-        keywords: ['citation', 'blockquote', 'quote', '>'],
-        label: 'Blockquote',
+        keywords: ['quote', 'blockquote', '인용', '>'],
+        label: '인용',
         value: KEYS.blockquote,
       },
       {
-        description: 'Insert a highlighted block.',
-        icon: <LightbulbIcon />,
-        keywords: ['note'],
-        label: 'Callout',
-        value: KEYS.callout,
+        icon: <Code2 />,
+        keywords: ['code', '코드', '```'],
+        label: '코드 블록',
+        value: KEYS.codeBlock,
       },
     ].map((item) => ({
       ...item,
@@ -154,23 +126,43 @@ const groups: Group[] = [
     })),
   },
   {
-    group: 'Advanced blocks',
+    group: '삽입',
     items: [
       {
-        icon: <TableOfContentsIcon />,
-        keywords: ['toc'],
-        label: 'Table of contents',
-        value: KEYS.toc,
+        icon: <Table />,
+        keywords: ['table', '표', '테이블'],
+        label: '표',
+        value: KEYS.table,
+      },
+      {
+        icon: <ImageIcon />,
+        keywords: ['image', 'img', '이미지', '사진', '그림'],
+        label: '이미지',
+        value: KEYS.img,
+      },
+      {
+        icon: <LightbulbIcon />,
+        keywords: ['callout', 'note', '콜아웃', '강조'],
+        label: '콜아웃',
+        value: KEYS.callout,
       },
       {
         icon: <Columns3Icon />,
-        label: '3 columns',
+        keywords: ['columns', '다단', '단', '열'],
+        label: '다단 (3열)',
         value: 'action_three_columns',
+      },
+      {
+        icon: <TableOfContentsIcon />,
+        keywords: ['toc', '목차'],
+        label: '목차',
+        value: KEYS.toc,
       },
       {
         focusEditor: false,
         icon: <RadicalIcon />,
-        label: 'Equation',
+        keywords: ['equation', 'math', '수식'],
+        label: '수식',
         value: KEYS.equation,
       },
     ].map((item) => ({
@@ -181,13 +173,21 @@ const groups: Group[] = [
     })),
   },
   {
-    group: 'Inline',
+    group: '인라인',
     items: [
       {
         focusEditor: false,
         icon: <RadicalIcon />,
-        label: 'Inline Equation',
+        keywords: ['inline equation', '수식'],
+        label: '인라인 수식',
         value: KEYS.inlineEquation,
+      },
+      {
+        focusEditor: true,
+        icon: <LinkIcon />,
+        keywords: ['link', 'url', '링크'],
+        label: '링크',
+        value: KEYS.link,
       },
     ].map((item) => ({
       ...item,
