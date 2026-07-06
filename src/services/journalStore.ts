@@ -152,6 +152,7 @@ export const journalStore = {
 
   add(input: {
     body: string;
+    title?: string;
     mood?: Mood;
     date?: string;
     tags?: string[];
@@ -166,6 +167,7 @@ export const journalStore = {
     const entry: JournalEntry = {
       id: newId(),
       date: input.date ?? now.slice(0, 10),
+      title: input.title,
       body: input.body,
       mood: input.mood,
       tags: input.tags,

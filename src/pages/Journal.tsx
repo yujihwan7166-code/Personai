@@ -1,643 +1,345 @@
 /**
- * 일기 — /journal 라우트.
+ * 일기 — /journal (따뜻한 크림 다이어리 리디자인).
  *
- * 기능 (v1 + v1.5 UX):
- * - Today 카드 (페이지 상단 빠른 진입)
- * - 검색 (헤더 input — 본문 텍스트로 필터)
- * - 연속 작성일 streak 배지 (Things3/Twos 패턴)
- * - 키보드 단축키 'n' (모달 빠른 진입)
- * - 시간순 카드 + 월 그룹핑
- * - 모달 편집기
- *
- * 단축키:
- * - n: 새 일기 모달
- * - Ctrl+Enter: 모달 저장
- * - Esc: 모달 닫기
+ * 좌: 헤더 + streak 카드 + 미니캘린더(무드 dot) + 최근 기록.
+ * 우: 날짜 헤더 + 에디터 카드(오늘의 기분 · 날씨 · 제목 · 본문 · 태그 · 저장).
+ * 데이터는 기존 journalStore(JournalEntry). 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search, X, Hash, SlidersHorizontal, BarChart3 } from 'lucide-react';
-import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
-import { PAGE_AI_PANEL_SLOT_CLASS } from '@/components/PageAiTokens';
-import { AiSidebar } from '@/components/cloud/AiSidebar';
-import { useAiSidebar } from '@/components/cloud/useAiSidebar';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { ChevronLeft, ChevronRight, NotebookPen } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
-import { notify } from '@/lib/notify';
-import { JournalCard } from '@/components/journal/JournalCard';
-import { JournalEditor } from '@/components/journal/JournalEditor';
-import { JournalEmpty } from '@/components/journal/JournalEmpty';
-import { OnThisDayCard } from '@/components/journal/OnThisDayCard';
-import { JournalRandomCard } from '@/components/journal/JournalRandomCard';
-import { JournalCalendarMini } from '@/components/journal/JournalCalendarMini';
-import { JournalSummaryPanel } from '@/components/journal/JournalSummaryPanel';
-import { JournalTodayHero } from '@/components/journal/JournalTodayHero';
-import { JournalActivityInsights } from '@/components/journal/JournalActivityInsights';
-import { JournalStatsDialog } from '@/components/journal/JournalStatsDialog';
-import { getTopTags } from '@/lib/journalTags';
-import { cn } from '@/lib/utils';
-import type { JournalEntry, Mood } from '@/types/journal';
-import { ACTIVITY_META } from '@/types/journal';
-import type { AiContext } from '@/lib/cloudAi/types';
+import { WEATHER_META, type Mood, type Weather } from '@/types/journal';
 
-import type { JournalImage, Weather } from '@/types/journal';
+const CREAM: CSSProperties = {
+  '--cream-bg': '40 30% 89%',
+  '--cream-panel': '40 34% 92%',
+  '--cream-card': '44 44% 97%',
+  '--cream-ink': '25 20% 25%',
+  '--cream-muted': '30 11% 47%',
+  '--cream-line': '36 24% 84%',
+  '--cream-accent': '16 48% 47%',
+} as CSSProperties;
 
-type EditorMode =
-  | { kind: 'create'; date?: string; initialBody?: string }
-  | {
-      kind: 'edit';
-      id: string;
-      initialBody: string;
-      initialMood?: Mood;
-      initialTags?: string[];
-      initialFormat?: 'plain' | 'markdown';
-      initialImages?: JournalImage[];
-      initialActivities?: string[];
-      initialWeather?: Weather;
-      initialSleepHours?: number;
-      initialEnergy?: 1 | 2 | 3 | 4 | 5;
-    };
+/** 목업 무드 5종 — mood 값(1-5) + 라벨 + 컬러. */
+const MOODS: { value: Mood; label: string; color: string }[] = [
+  { value: 5, label: '셀렘',    color: 'hsl(45 80% 55%)' },
+  { value: 4, label: '평온',    color: 'hsl(150 45% 47%)' },
+  { value: 3, label: '그저그럼', color: 'hsl(30 8% 62%)' },
+  { value: 2, label: '지침',    color: 'hsl(20 45% 45%)' },
+  { value: 1, label: '울적',    color: 'hsl(215 55% 56%)' },
+];
+const MOOD_COLOR: Record<number, string> = Object.fromEntries(MOODS.map((m) => [m.value, m.color]));
 
-const monthLabel = (date: Date): string =>
-  date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
+const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
-const monthKey = (iso: string): string => iso.slice(0, 7);
+const dateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const localDateKey = (): string => {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-};
-
-const Journal = () => {
+export default function Journal() {
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
-  const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
-  const [query, setQuery] = useState('');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [activeActivity, setActiveActivity] = useState<string | null>(null);
-  const [activeDate, setActiveDate] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
 
-  const hasActiveFilter = !!(activeTag || activeActivity || activeDate);
+  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
+  const [calAnchor, setCalAnchor] = useState(() => new Date());
 
-  // 자주 쓴 태그 5개.
-  const topTags = useMemo(() => getTopTags(allEntries, 5), [allEntries]);
+  // 에디터 로컬 상태
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
 
-  // 자주 쓴 활동 5개 (사용된 것만).
-  const topActivities = useMemo(() => {
-    const counts = new Map<string, number>();
-    allEntries.forEach((e) => {
-      (e.activities ?? []).forEach((a) => {
-        counts.set(a, (counts.get(a) ?? 0) + 1);
-      });
-    });
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([key, count]) => ({ key, count }));
+  // 선택 날짜 바뀌면 그 날 엔트리 로드.
+  useEffect(() => {
+    const e = journalStore.listByDate(selectedDate)[0];
+    setTitle(e?.title ?? '');
+    setBody(e?.body ?? '');
+    setMood(e?.mood ?? null);
+    setWeather(e?.weather ?? null);
+    setTags(e?.tags ?? []);
+  }, [selectedDate]);
+
+  // 자동 저장(디바운스) — 내용 있으면 create, 있으면 update.
+  const saveTimer = useRef<number | null>(null);
+  const persist = () => {
+    const existing = journalStore.listByDate(selectedDate)[0];
+    const patch = {
+      title: title.trim() || undefined,
+      mood: mood ?? undefined,
+      weather: weather ?? undefined,
+      tags,
+      bodyFormat: 'plain' as const,
+    };
+    if (existing) {
+      journalStore.update(existing.id, { ...patch, body });
+    } else if (body.trim() || title.trim() || mood || weather || tags.length > 0) {
+      journalStore.add({ date: selectedDate, body, ...patch });
+    }
+  };
+  useEffect(() => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(persist, 500);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, body, mood, weather, tags]);
+
+  const handleSave = () => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    persist();
+    notify.success('저장됐어요', { duration: 1600 });
+  };
+
+  const toggleTag = (t: string) =>
+    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+
+  // 최근 기록 (날짜 desc)
+  const recent = useMemo(
+    () => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8),
+    [allEntries],
+  );
+  // 날짜별 mood (캘린더 dot)
+  const moodByDate = useMemo(() => {
+    const map = new Map<string, Mood>();
+    for (const e of allEntries) if (e.mood && !map.has(e.date)) map.set(e.date, e.mood);
+    return map;
   }, [allEntries]);
 
-  // 검색 + 태그 + 활동 + 날짜 필터 동시 적용.
-  const filteredEntries = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return allEntries.filter((e) => {
-      if (q.length > 0 && !e.body.toLowerCase().includes(q)) return false;
-      if (activeTag && !(e.tags ?? []).includes(activeTag)) return false;
-      if (activeActivity && !(e.activities ?? []).includes(activeActivity)) return false;
-      if (activeDate && e.date !== activeDate) return false;
-      return true;
-    });
-  }, [allEntries, query, activeTag, activeActivity, activeDate]);
+  const sel = new Date(`${selectedDate}T00:00:00`);
+  const todayKey = dateKey(new Date());
 
-  // 월 그룹핑 (필터 후).
-  const grouped = useMemo(() => {
-    const map = new Map<string, JournalEntry[]>();
-    filteredEntries.forEach((e) => {
-      const key = monthKey(e.createdAt);
-      const arr = map.get(key) ?? [];
-      arr.push(e);
-      map.set(key, arr);
-    });
-    return Array.from(map.entries()).map(([key, items]) => ({
-      key,
-      label: monthLabel(new Date(`${key}-01T00:00:00`)),
-      items,
-    }));
-  }, [filteredEntries]);
-
-  const todayKey = localDateKey();
-  const todayEntries = useMemo(
-    () => allEntries.filter((e) => e.date === todayKey),
-    [allEntries, todayKey],
-  );
-  const todayLimitReached = todayEntries.length >= 2;
-
-  const openCreateToday = useCallback((starter?: string) => {
-    if (todayLimitReached) {
-      notify.info('오늘 일기는 하루에 최대 2번까지 쓸 수 있어요', {
-        description: '내일 다시 새 기록을 남길 수 있어요.',
-        duration: 2200,
-      });
-      return;
-    }
-    setEditorMode({ kind: 'create', initialBody: starter });
-  }, [todayLimitReached]);
-
-  // Streak 마일스톤 축하 — 7 / 30 / 100 / 365 도달 시 하루 1회 토스트.
-  useEffect(() => {
-    const MILESTONES = [7, 30, 100, 365] as const;
-    if (streak <= 0) return;
-    const milestone = MILESTONES.find((m) => streak === m);
-    if (!milestone) return;
-    if (typeof window === 'undefined') return;
-    const key = `journal.streak.celebrated.${milestone}`;
-    if (window.localStorage.getItem(key)) return; // 이미 축하함
-    window.localStorage.setItem(key, String(Date.now()));
-    const labels: Record<number, { title: string; desc: string }> = {
-      7:   { title: '✨ 7일 연속!',   desc: '한 주 동안 매일 기록했어요. 좋은 습관이 자라고 있어요.' },
-      30:  { title: '🔥 30일 연속!',  desc: '한 달이 쌓였어요. 자기를 돌보는 진짜 습관이에요.' },
-      100: { title: '💯 100일 연속!', desc: '백 일의 기록 — 이건 정말 대단한 성취예요.' },
-      365: { title: '🏆 1년 연속!',   desc: '1년 동안 매일. 당신의 한 해가 통째로 기록됐어요.' },
-    };
-    const label = labels[milestone];
-    notify.success(label.title, { description: label.desc, duration: 6000 });
-  }, [streak]);
-
-  // 키보드 단축키.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const isTyping =
-        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (isTyping) return;
-      if (editorMode) return;
-
-      if (e.key === 'n' || e.key === 'N') {
-        e.preventDefault();
-        openCreateToday();
-      } else if (e.key === '/') {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [editorMode, openCreateToday]);
-
-  const handleDelete = (entry: JournalEntry) => {
-    // 삭제 복원 정합성 — 모든 필드 보존 (Inbox 패턴).
-    const snapshot: Pick<JournalEntry, 'date' | 'body' | 'mood' | 'tags'> = {
-      date: entry.date,
-      body: entry.body,
-      mood: entry.mood,
-      tags: entry.tags,
-    };
-    journalStore.remove(entry.id);
-    notify.success('삭제됐어요', {
-      duration: 5000,
-      action: {
-        label: '되돌리기',
-        onClick: () => journalStore.add(snapshot),
-      },
-    });
-  };
-
-  const isEmpty = allEntries.length === 0;
-  const hasResults = filteredEntries.length > 0;
-
-  const getJournalAiContext = useCallback((): AiContext => {
-    const source = hasActiveFilter || query.trim().length > 0 ? filteredEntries : allEntries;
-    const rows = source.slice(0, 60).map((entry) => {
-      const parts = [
-        `## ${entry.date}`,
-        entry.mood ? `기분: ${entry.mood}/5` : '기분: 없음',
-        entry.energy ? `에너지: ${entry.energy}/5` : undefined,
-        entry.sleepHours !== undefined ? `수면: ${entry.sleepHours}시간` : undefined,
-        entry.tags?.length ? `태그: ${entry.tags.map((tag) => `#${tag}`).join(' ')}` : undefined,
-        entry.activities?.length ? `활동: ${entry.activities.map((key) => ACTIVITY_META[key]?.label ?? key).join(', ')}` : undefined,
-        '',
-        entry.body || '(본문 없음)',
-      ].filter(Boolean);
-      return parts.join('\n');
-    }).join('\n\n');
-
-    const summary = activeDate
-      ? `${activeDate} 일기`
-      : hasActiveFilter || query.trim().length > 0
-        ? `필터된 일기 ${source.length}편`
-        : `전체 일기 ${allEntries.length}편`;
-
-    return {
-      kind: 'journal',
-      summary,
-      fullText: rows || '아직 일기가 없습니다.',
-    };
-  }, [activeDate, allEntries, filteredEntries, hasActiveFilter, query]);
-
-  const journalAi = useAiSidebar('journal', getJournalAiContext, {
-    persistKey: activeDate ?? (hasActiveFilter || query.trim().length > 0 ? 'filtered' : 'all'),
-    openStorage: 'local',
-  });
-
-  const openEdit = (entry: JournalEntry) => {
-    setEditorMode({
-      kind: 'edit',
-      id: entry.id,
-      initialBody: entry.body,
-      initialMood: entry.mood,
-      initialTags: entry.tags,
-      initialFormat: entry.bodyFormat,
-      initialImages: entry.images,
-      initialActivities: entry.activities,
-      initialWeather: entry.weather,
-      initialSleepHours: entry.sleepHours,
-      initialEnergy: entry.energy,
-    });
-  };
+  // 캘린더 셀
+  const y = calAnchor.getFullYear();
+  const m = calAnchor.getMonth();
+  const lead = new Date(y, m, 1).getDay();
+  const daysIn = new Date(y, m + 1, 0).getDate();
+  const cells: (string | null)[] = [
+    ...Array(lead).fill(null),
+    ...Array.from({ length: daysIn }, (_, i) => dateKey(new Date(y, m, i + 1))),
+  ];
+  const monthCount = allEntries.filter((e) => e.date.startsWith(`${y}-${String(m + 1).padStart(2, '0')}`)).length;
 
   return (
-    <div className="journal-warm-theme min-h-screen bg-background text-foreground flex flex-col">
-      <PageWorkspaceChrome
-        current="journal"
-        ai={{
-          label: '보조 도구',
-          title: '보조 도구 열기',
-          open: journalAi.open,
-          onOpen: () => journalAi.setOpen(true),
-        }}
-      />
-      <div className="flex min-h-0 flex-1">
-      <main className="flex-1 px-4 sm:px-8 pt-6 pb-20 sm:py-9 max-w-5xl w-full mx-auto">
-        {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
-        <header className="mb-2 sm:mb-3 flex items-start justify-between gap-6 flex-wrap">
-          {/* 좌측: 클린 타이틀 — 앱 이름 톤 + streak pill (Journiv 패턴) */}
-          <div className="min-w-0 pt-1">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-[22px] font-bold tracking-tight text-foreground">일기</h1>
-              {streak > 0 && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[12px] font-semibold tabular-nums text-amber-600"
-                  title={`${streak}일 연속 기록`}
-                >
-                  <span aria-hidden>🔥</span>
-                  {streak}일 연속
-                </span>
-              )}
-            </div>
-            {(() => {
-              const d = new Date();
-              const wd = '일월화수목금토'[d.getDay()];
-              return (
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  {d.getMonth() + 1}월 {d.getDate()}일 {wd}요일
-                  {allEntries.length > 0 && <span className="text-muted-foreground/50"> · 기록 {allEntries.length}편</span>}
-                </p>
-              );
-            })()}
+    <div style={CREAM} className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]">
+      {/* ── 사이드바 ── */}
+      <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
+        <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--cream-accent))] text-white">
+            <NotebookPen className="h-[18px] w-[18px]" strokeWidth={2} />
+          </span>
+          <div>
+            <div className="text-[15px] font-bold leading-tight">오늘의 일기</div>
+            <div className="text-[10.5px] uppercase tracking-wide text-[hsl(var(--cream-muted))]">daily journal</div>
           </div>
+        </div>
 
-          {/* 우측: 2 행 vertical stack — PageSwitcher 위치 고정, 도구만 더 아래로 (gap ↑↑) */}
-          <div className="flex w-full flex-col items-stretch shrink-0 pt-3 sm:w-auto sm:items-end sm:pt-0">
-            {/* 도구 그룹 — 검색·필터·통계·CTA */}
-            <div className="flex w-full items-center gap-2 sm:w-auto" data-journal-action-bar>
-              {/* 검색 — ring-inset 으로 옆 버튼 영역 침범 방지 */}
-              <div
-                className={cn(
-                  'relative inline-flex min-w-0 flex-1 items-center gap-2 h-9 px-3 rounded-lg border sm:w-56 sm:flex-none sm:shrink-0',
-                  'border-[hsl(var(--hairline))] bg-card/60 focus-within:border-primary/35 focus-within:ring-1 focus-within:ring-inset focus-within:ring-primary/25 transition-shadow',
-                )}
-              >
-                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="검색…"
-                  aria-label="일기 검색"
-                  className="flex-1 min-w-0 bg-transparent text-[12.5px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
-                  style={{ outline: 'none', boxShadow: 'none' }}
-                />
-                {query.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery('')}
-                    aria-label="검색 지우기"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-              {/* 필터 — 라벨 텍스트 추가해서 정체성 명확 */}
-              {(topActivities.length > 0 || topTags.length > 0) && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setFilterOpen((v) => !v)}
-                  aria-expanded={filterOpen}
-                  aria-label="필터"
-                  title={hasActiveFilter ? '필터 활성' : '필터'}
-                  className={cn(
-                    'relative inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg border text-[12px] font-medium transition-colors outline-none focus:outline-none focus-visible:outline-none shrink-0',
-                    filterOpen || hasActiveFilter
-                      ? 'border-primary/35 bg-primary/10 text-primary'
-                      : 'border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card',
-                  )}
-                  style={{ outline: 'none', boxShadow: 'none' }}
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  <span>필터</span>
-                  {hasActiveFilter && (
-                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold tabular-nums">
-                      {(activeActivity ? 1 : 0) + (activeTag ? 1 : 0)}
-                    </span>
-                  )}
-                </button>
-              )}
-              {/* 통계 — 전체 일기 통계 모달 */}
-              {allEntries.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setStatsOpen(true)}
-                  title="전체 통계"
-                  aria-label="전체 통계"
-                  className="inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg border text-[12px] font-medium transition-colors border-[hsl(var(--hairline))] bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-card shrink-0"
-                >
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  <span>통계</span>
-                </button>
-              )}
-              {todayLimitReached ? (
-                <div
-                  title="오늘은 최대 2번까지 쓸 수 있어요"
-                  className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[hsl(var(--hairline))] bg-card/70 px-3 text-[12.5px] font-semibold text-muted-foreground"
-                >
-                  오늘 2/2 완료
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => openCreateToday()}
-                  title="새 일기 (N)"
-                  className="inline-flex items-center gap-1.5 px-3.5 h-9 text-[12.5px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_2px_8px_-2px_hsl(265_50%_30%/0.25)] shrink-0"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span className="sm:hidden">쓰기</span>
-                  <span className="hidden sm:inline">오늘의 일기</span>
-                </button>
-              )}
+        {/* streak 카드 */}
+        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
+          <div className="text-center leading-none">
+            <div className="text-[26px] font-extrabold text-[hsl(var(--cream-accent))]">{streak}</div>
+            <div className="mt-1 text-[10px] text-[hsl(var(--cream-muted))]">일 연속</div>
+          </div>
+          <p className="text-[11.5px] leading-snug text-[hsl(var(--cream-muted))]">
+            꾸준히 이어가고 있어요.<br />
+            지금까지 <b className="text-[hsl(var(--cream-ink))]">{allEntries.length}편</b> 기록.
+          </p>
+        </div>
+
+        {/* 미니 캘린더 */}
+        <div className="px-4 pb-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[12.5px] font-semibold">{y}년 {m + 1}월</span>
+            <div className="flex items-center gap-0.5">
+              <button type="button" onClick={() => setCalAnchor(new Date(y, m - 1, 1))} className="rounded p-1 text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="이전 달"><ChevronLeft className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => setCalAnchor(new Date(y, m + 1, 1))} className="rounded p-1 text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="다음 달"><ChevronRight className="h-3.5 w-3.5" /></button>
             </div>
           </div>
-
-          {/* 필터 카드 — 컴팩트: 슬림 헤더 + 슬림 행 */}
-          {filterOpen && query.trim().length === 0 && (topActivities.length > 0 || topTags.length > 0) && (
-            <div className="mt-3 rounded-xl border border-[hsl(var(--hairline))] bg-card/70 shadow-[0_1px_2px_hsl(30_30%_8%/0.03)] overflow-hidden">
-              {/* 카드 헤더 — h-7 슬림 */}
-              <div className="px-3 h-7 flex items-center justify-between border-b border-[hsl(var(--hairline))] bg-primary/[0.04]">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.005em] text-foreground/85">
-                  <SlidersHorizontal className="h-3 w-3 text-primary/80" />
-                  필터
-                  {hasActiveFilter && (
-                    <span className="inline-flex items-center justify-center min-w-[15px] h-3.5 px-1 rounded-full bg-primary/12 text-primary text-[9.5px] font-bold tabular-nums">
-                      {(activeActivity ? 1 : 0) + (activeTag ? 1 : 0)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-0.5">
-                  {hasActiveFilter && (
-                    <button
-                      type="button"
-                      onClick={() => { setActiveActivity(null); setActiveTag(null); }}
-                      className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                      모두 초기화
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setFilterOpen(false)}
-                    aria-label="필터 닫기"
-                    title="닫기"
-                    className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 카드 본문 — 슬림 row, 칩 h-6 */}
-              <div className="px-3 py-1.5 flex flex-col">
-                {topActivities.length > 0 && (
-                  <div className="flex items-center gap-2.5 py-1">
-                    <span className="shrink-0 w-10 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
-                      활동
-                    </span>
-                    <div className="flex flex-wrap gap-1 flex-1">
-                      {topActivities.map((a) => {
-                        const meta = ACTIVITY_META[a.key];
-                        const active = activeActivity === a.key;
-                        return (
-                          <button
-                            key={a.key}
-                            type="button"
-                            onClick={() => setActiveActivity(active ? null : a.key)}
-                            className={cn(
-                              'inline-flex items-center gap-1 px-2 h-6 rounded-full text-[11px] font-medium border transition-colors',
-                              active
-                                ? 'bg-primary/12 text-primary border-primary/35'
-                                : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
-                            )}
-                          >
-                            <span aria-hidden>{meta?.emoji ?? '·'}</span>
-                            {meta?.label ?? a.key}
-                            <span className="opacity-55 tabular-nums ml-0.5">{a.count}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {topActivities.length > 0 && topTags.length > 0 && (
-                  <div className="border-t border-[hsl(var(--hairline))] -mx-3" aria-hidden />
-                )}
-                {topTags.length > 0 && (
-                  <div className="flex items-center gap-2.5 py-1">
-                    <span className="shrink-0 w-10 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
-                      태그
-                    </span>
-                    <div className="flex flex-wrap gap-1 flex-1">
-                      {topTags.map((t) => (
-                        <button
-                          key={t.tag}
-                          type="button"
-                          onClick={() => setActiveTag(activeTag === t.tag ? null : t.tag)}
-                          className={cn(
-                            'inline-flex items-center gap-0.5 px-2 h-6 rounded-full text-[11px] font-medium border transition-colors',
-                            activeTag === t.tag
-                              ? 'bg-primary/12 text-primary border-primary/35'
-                              : 'bg-background text-foreground/75 border-[hsl(var(--hairline))] hover:text-foreground hover:bg-accent hover:border-foreground/15',
-                          )}
-                        >
-                          <Hash className="h-2.5 w-2.5 opacity-70" />
-                          {t.tag}
-                          <span className="opacity-55 tabular-nums ml-0.5">{t.count}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </header>
-
-        {isEmpty ? (
-          <JournalEmpty onAdd={openCreateToday} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-7">
-          <div className="flex flex-col gap-5 min-w-0">
-
-            {/* 검색 결과 없을 때 안내 */}
-            {!hasResults && query.trim().length > 0 && (
-              <div className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-card/40 py-10 px-4 text-center">
-                <p className="text-[13px] text-muted-foreground">
-                  '<span className="text-foreground font-medium">{query}</span>' 으로 일치하는 일기가 없어요
-                </p>
-              </div>
-            )}
-
-            {/* ── 오늘 Hero — 검색·필터 없을 때만 ── */}
-            {!hasActiveFilter && query.trim().length === 0 && (
-              <JournalTodayHero
-                todayEntries={todayEntries}
-                onCreate={openCreateToday}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-              />
-            )}
-
-            {/* ── On This Day — 메인 컬럼 (검색·필터 없을 때만) ── */}
-            {!hasActiveFilter && query.trim().length === 0 && (
-              <OnThisDayCard allEntries={allEntries} onClickEntry={openEdit} />
-            )}
-
-            {/* Recent Entries 라벨 */}
-            {grouped.length > 0 && (
-              <p className="-mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">최근 기록</p>
-            )}
-
-            {/* ── 시간순 feed (월 그룹 헤더 없이 단순 list — 요청에 따라 챕터 헤더 제거) ── */}
-            {grouped.map((group) => {
-              // 오늘 hero 가 별도로 보여주는 entry 는 feed 에서 제외 (중복 방지)
-              const showTodayHero = !hasActiveFilter && query.trim().length === 0;
-              const items = showTodayHero
-                ? group.items.filter((e) => e.date !== todayKey)
-                : group.items;
-              if (items.length === 0) return null;
+          <div className="mb-1 grid grid-cols-7 text-center text-[9.5px] text-[hsl(var(--cream-muted))]/70">
+            {WEEKDAY.map((w) => <span key={w}>{w}</span>)}
+          </div>
+          <div className="grid grid-cols-7 gap-y-0.5">
+            {cells.map((d, i) => {
+              if (!d) return <span key={i} />;
+              const dayNum = Number(d.slice(8));
+              const isSel = d === selectedDate;
+              const isToday = d === todayKey;
+              const dotColor = moodByDate.has(d) ? MOOD_COLOR[moodByDate.get(d)!] : null;
               return (
-                <section
-                  key={group.key}
-                  id={`journal-month-${group.key}`}
-                  className="flex flex-col gap-4 scroll-mt-24"
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setSelectedDate(d)}
+                  className="flex flex-col items-center py-0.5"
                 >
-                  {items.map((entry) => (
-                    <JournalCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={() => openEdit(entry)}
-                      onDelete={() => handleDelete(entry)}
-                    />
-                  ))}
-                </section>
+                  <span className={cn(
+                    'flex h-7 w-7 items-center justify-center rounded-full text-[12px] tabular-nums transition-colors',
+                    isSel ? 'bg-[hsl(var(--cream-accent))] font-bold text-white'
+                          : isToday ? 'font-bold text-[hsl(var(--cream-accent))]'
+                          : 'text-[hsl(var(--cream-ink))]/80 hover:bg-[hsl(var(--cream-line))]/40',
+                  )}>
+                    {dayNum}
+                  </span>
+                  <span className="mt-0.5 h-1 w-1 rounded-full" style={{ backgroundColor: dotColor && !isSel ? dotColor : 'transparent' }} />
+                </button>
               );
             })}
           </div>
-          {/* 우측 사이드 — lg 이상에서만 노출. 정보 위계: 시각 앵커 → 회상 → 통계 */}
-          <aside className="hidden lg:flex flex-col gap-5">
-            <JournalCalendarMini
-              entries={allEntries}
-              selectedDate={activeDate}
-              currentWeekAnchor={null}
-              onDayClick={(d) => setActiveDate(activeDate === d ? null : d)}
-            />
-            {activeDate && (
-              <button
-                type="button"
-                onClick={() => setActiveDate(null)}
-                className="-mt-3 inline-flex items-center justify-center gap-1 px-2 h-7 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <X className="h-3 w-3" />
-                날짜 필터 해제
+          <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[hsl(var(--cream-muted))]">
+            <span>이번 달</span>
+            <span className="tabular-nums">{monthCount} / {daysIn}</span>
+          </div>
+        </div>
+
+        {/* 최근 기록 */}
+        <div className="border-t border-[hsl(var(--cream-line))] px-4 py-3">
+          <div className="mb-2 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">최근 기록</div>
+          <div className="flex flex-col gap-2.5">
+            {recent.length === 0 && <p className="text-[12px] text-[hsl(var(--cream-muted))]/70">아직 기록이 없어요.</p>}
+            {recent.map((e) => {
+              const dd = new Date(`${e.date}T00:00:00`);
+              const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
+              const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+              return (
+                <button key={e.id} type="button" onClick={() => setSelectedDate(e.date)} className="text-left">
+                  <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: e.mood ? MOOD_COLOR[e.mood] : 'hsl(var(--cream-line))' }} />
+                    {dd.getMonth() + 1}월 {dd.getDate()}일 · {WEEKDAY[dd.getDay()]}
+                  </div>
+                  <div className="mt-0.5 truncate text-[13px] font-semibold text-[hsl(var(--cream-ink))]">{t}</div>
+                  {ex && <div className="truncate text-[11.5px] text-[hsl(var(--cream-muted))]">{ex}</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </aside>
+
+      {/* ── 메인 에디터 ── */}
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-[860px] px-8 py-8">
+          <div className="mb-5 flex items-start justify-between">
+            <div>
+              <div className="text-[13px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
+              <h1 className="text-[30px] font-bold tracking-tight">{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
+            </div>
+            {selectedDate !== todayKey && (
+              <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] font-medium text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">
+                오늘로
               </button>
             )}
-            {query.trim().length === 0 && (
-              <>
-                <JournalRandomCard
-                  allEntries={allEntries}
-                  onClickEntry={(entry) => setEditorMode({
-                    kind: 'edit',
-                    id: entry.id,
-                    initialBody: entry.body,
-                    initialMood: entry.mood,
-                    initialTags: entry.tags,
-                    initialFormat: entry.bodyFormat,
-                    initialActivities: entry.activities,
-                    initialWeather: entry.weather,
-                    initialSleepHours: entry.sleepHours,
-                    initialEnergy: entry.energy,
-                    initialImages: entry.images,
-                  })}
-                />
-                <JournalActivityInsights entries={allEntries} />
-              </>
-            )}
-            <JournalSummaryPanel entries={allEntries} />
-          </aside>
           </div>
-        )}
+
+          {/* 에디터 카드 */}
+          <div className="rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.15)]">
+            {/* 오늘의 기분 */}
+            <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
+            <div className="flex flex-wrap gap-2">
+              {MOODS.map((mo) => {
+                const on = mood === mo.value;
+                return (
+                  <button
+                    key={mo.value}
+                    type="button"
+                    onClick={() => setMood(on ? null : mo.value)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors',
+                      on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold text-[hsl(var(--cream-ink))]'
+                         : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30',
+                    )}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: mo.color }} />
+                    {mo.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 날씨 */}
+            <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">날씨</div>
+            <div className="flex flex-wrap gap-2">
+              {WEATHERS.map((w) => {
+                const on = weather === w;
+                return (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => setWeather(on ? null : w)}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors',
+                      on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold text-[hsl(var(--cream-ink))]'
+                         : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30',
+                    )}
+                  >
+                    <span aria-hidden>{WEATHER_META[w].emoji}</span>
+                    {WEATHER_META[w].label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <hr className="my-5 border-[hsl(var(--cream-line))]" />
+
+            {/* 제목 */}
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력하세요"
+              className="w-full bg-transparent text-[22px] font-bold text-[hsl(var(--cream-ink))] outline-none placeholder:text-[hsl(var(--cream-muted))]/55"
+            />
+            {/* 본문 */}
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="오늘 하루는 어땠나요? 마음에 남은 순간을 적어보세요."
+              className="mt-3 min-h-[260px] w-full resize-y bg-transparent text-[14px] leading-[2] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)',
+                lineHeight: '32px',
+              }}
+            />
+
+            {/* 태그 */}
+            <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
+            <div className="flex flex-wrap gap-2">
+              {TAGS.map((t) => {
+                const on = tags.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTag(t)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-[12px] transition-colors',
+                      on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold text-[hsl(var(--cream-ink))]'
+                         : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/70 hover:border-[hsl(var(--cream-accent))]/30',
+                    )}
+                  >
+                    #{t}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* footer */}
+            <div className="mt-5 flex items-center justify-between border-t border-[hsl(var(--cream-line))] pt-4">
+              <span className="text-[12px] text-[hsl(var(--cream-muted))]">{body.length}자 작성 중</span>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!body.trim() && !title.trim() && !mood && !weather && tags.length === 0}
+                className="rounded-lg bg-[hsl(var(--cream-accent))] px-5 py-2 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                저장하기
+              </button>
+            </div>
+          </div>
+        </div>
       </main>
-      <div
-        className={cn(
-          PAGE_AI_PANEL_SLOT_CLASS,
-          !journalAi.open && 'pointer-events-none',
-        )}
-      >
-        <AiSidebar
-          open={journalAi.open}
-          onClose={() => journalAi.setOpen(false)}
-          title="보조 도구"
-          subtitle="AI, 메모, 위키를 함께 엽니다"
-          emptyTitle="오늘을 어떻게 돌아볼까요?"
-          emptyDescription="오늘의 기록과 최근 흐름을 참고해 질문과 패턴을 조심스럽게 정리합니다."
-          inputPlaceholder="오늘의 감정, 질문, 패턴을 물어보세요..."
-          context={getJournalAiContext()}
-          messages={journalAi.messages}
-          sending={journalAi.sending}
-          onSend={journalAi.send}
-          onRetry={journalAi.retryLast}
-          onClear={journalAi.clear}
-          surface="journal"
-        />
-      </div>
-      </div>
-      <JournalEditor
-        open={editorMode !== null}
-        mode={editorMode}
-        onClose={() => setEditorMode(null)}
-      />
-      <JournalStatsDialog
-        open={statsOpen}
-        onClose={() => setStatsOpen(false)}
-        entries={allEntries}
-        streak={streak}
-      />
     </div>
   );
-};
-
-export default Journal;
+}

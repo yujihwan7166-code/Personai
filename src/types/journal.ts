@@ -68,8 +68,8 @@ export const ACTIVITY_META: Record<string, { label: string; emoji: string }> = O
 /** 본문 형식 — v2 에서 도입. */
 export type BodyFormat = 'plain' | 'markdown';
 
-/** 날씨 — v4 emoji 6종. */
-export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy';
+/** 날씨 — v4 emoji. */
+export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy' | 'windy';
 
 export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   sunny:    { label: '맑음',   emoji: '☀️' },
@@ -78,6 +78,7 @@ export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   rainy:    { label: '비',     emoji: '🌧' },
   stormy:   { label: '폭풍',   emoji: '⛈' },
   snowy:    { label: '눈',     emoji: '❄️' },
+  windy:    { label: '바람',   emoji: '🌬' },
 };
 
 /** 일기 한 항목. */
@@ -85,6 +86,8 @@ export interface JournalEntry {
   id: string;
   /** 'YYYY-MM-DD' — 그 날의 일기. 같은 date 여러 개 가능. */
   date: string;
+  /** 제목(선택). v5. */
+  title?: string;
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
   /** 본문 형식. 미지정 = 'plain' (기본·호환성). */
