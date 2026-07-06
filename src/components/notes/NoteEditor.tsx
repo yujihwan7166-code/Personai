@@ -9,6 +9,7 @@ import { Plate, PlateContent, usePlateEditor } from 'platejs/react';
 import type { Value } from 'platejs';
 import { BasicBlocksPlugin, BasicMarksPlugin } from '@platejs/basic-nodes/react';
 import { cn } from '@/lib/utils';
+import { NoteToolbar } from './NoteToolbar';
 
 interface Props {
   /** 초기 글 본문. 노트 전환 시 상위에서 key 로 리마운트한다. */
@@ -26,6 +27,7 @@ export function NoteEditor({ initialValue, onChange, placeholder, className }: P
 
   return (
     <Plate editor={editor} onChange={({ value }) => onChange(value as Value)}>
+      <NoteToolbar />
       <PlateContent
         placeholder={placeholder ?? '무엇이든 적어보세요…  ( "# " 제목 · "> " 인용 · **굵게** )'}
         className={cn(
