@@ -23,18 +23,6 @@ import {
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
 
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}일 전`;
-  return new Date(ts).toLocaleDateString('ko-KR');
-}
-
 const TAB_ICON: Record<TabType, typeof FileText> = {
   memo: FileText,
   board: LayoutDashboard,
@@ -153,42 +141,37 @@ const Notes = () => {
 
   const renderNote = (note: Note) => {
     const activeRow = note.id === activeId;
-    const preview = notePlainText(note);
     return (
       <li key={note.id} className="relative">
         <button
           type="button"
           onClick={() => setActiveId(note.id)}
           className={cn(
-            'group flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+            'group flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left transition-colors',
             activeRow ? 'bg-primary/10' : 'hover:bg-accent',
           )}
         >
-          <span className="flex items-center gap-1.5">
-            {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-            <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
-              {noteDisplayTitle(note)}
-            </span>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); } }}
-              className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
-              title="더보기"
-              aria-label="노트 메뉴"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </span>
+          {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+          <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
+            {noteDisplayTitle(note)}
           </span>
-          {preview && <span className="truncate text-[11.5px] text-muted-foreground">{preview}</span>}
-          <span className="text-[10.5px] tabular-nums text-muted-foreground/70">{relativeTime(note.updatedAt)}</span>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); } }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+            title="더보기"
+            aria-label="노트 메뉴"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </span>
         </button>
 
         {menuFor === note.id && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
-            <div className="absolute right-2 top-9 z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
+            <div className="absolute right-2 top-8 z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
               <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
                 <Star className={cn('h-3.5 w-3.5', note.favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground')} />
                 {note.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
@@ -228,11 +211,6 @@ const Notes = () => {
               <NotebookPen className="h-3.5 w-3.5" strokeWidth={2} />
             </span>
             <h1 className="text-[19px] font-bold tracking-tight text-foreground">노트</h1>
-            {notes.length > 0 && (
-              <span className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-                {notes.length}
-              </span>
-            )}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
