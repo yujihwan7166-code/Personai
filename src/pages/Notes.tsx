@@ -5,6 +5,7 @@
  * 메모=Plate, 보드=tldraw, 시트=Fortune-sheet. 디자인은 앱 토큰으로 통일.
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
@@ -35,7 +36,9 @@ const Notes = () => {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [tabMenuFor, setTabMenuFor] = useState<string | null>(null);
+  const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null);
   const folders = useFolders();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
@@ -356,16 +359,15 @@ const Notes = () => {
                 className="w-full bg-transparent text-[22px] font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
               />
               <div className="mt-2 flex items-center gap-1">
-                {active.items.map((tab, i) => {
+                {active.items.map((tab) => {
                   const Icon = TAB_ICON[tab.type];
                   const on = tab.id === activeTab.id;
-                  const otherNotes = notes.filter((n) => n.id !== active.id);
                   const menuOpen = tabMenuFor === tab.id;
                   return (
                     <div
                       key={tab.id}
                       className={cn(
-                        'group relative flex items-center gap-1 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
+                        'group flex items-center gap-1 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
                         on ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
                       )}
                     >
@@ -375,7 +377,12 @@ const Notes = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTabMenuFor(menuOpen ? null : tab.id)}
+                        onClick={(e) => {
+                          if (menuOpen) { setTabMenuFor(null); return; }
+                          const r = e.currentTarget.getBoundingClientRect();
+                          setTabMenuPos({ left: Math.min(r.left, window.innerWidth - 208), top: r.bottom + 4 });
+                          setTabMenuFor(tab.id);
+                        }}
                         className={cn(
                           'rounded p-0.5 text-muted-foreground/60 transition-opacity hover:bg-accent hover:text-foreground',
                           on || menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
@@ -385,99 +392,26 @@ const Notes = () => {
                       >
                         <MoreHorizontal className="h-3.5 w-3.5" />
                       </button>
-                      {menuOpen && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setTabMenuFor(null)} aria-hidden />
-                          <div className="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
-                            <button
-                              type="button"
-                              disabled={i === 0}
-                              onClick={() => handleMoveTab(tab.id, -1)}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
-                            >
-                              <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" /> 왼쪽으로 이동
-                            </button>
-                            <button
-                              type="button"
-                              disabled={i === active.items.length - 1}
-                              onClick={() => handleMoveTab(tab.id, 1)}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
-                            >
-                              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /> 오른쪽으로 이동
-                            </button>
-                            {active.items.length > 1 && otherNotes.length > 0 && (
-                              <>
-                                <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
-                                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">다른 노트로 이동</p>
-                                <div className="max-h-40 overflow-y-auto">
-                                  {otherNotes.map((n) => (
-                                    <button
-                                      key={n.id}
-                                      type="button"
-                                      onClick={() => handleMoveTabToNote(tab.id, n.id)}
-                                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
-                                    >
-                                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                      <span className="min-w-0 flex-1 truncate">{noteDisplayTitle(n)}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                            {active.items.length > 1 && (
-                              <>
-                                <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTab(tab.id)}
-                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" /> 탭 삭제
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
                     </div>
                   );
                 })}
 
                 {/* 탭 추가 */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setAddOpen((v) => !v)}
-                    className="flex items-center gap-0.5 rounded-md px-1.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    title="탭 추가"
-                    aria-label="탭 추가"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={2.2} />
-                    <ChevronDown className="h-3 w-3 opacity-60" />
-                  </button>
-                  {addOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setAddOpen(false)} aria-hidden />
-                      <div className="absolute left-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
-                        {(['memo', 'board', 'sheet'] as TabType[]).map((t) => {
-                          const Icon = TAB_ICON[t];
-                          const label = t === 'memo' ? '노트' : t === 'board' ? '화이트보드' : '시트';
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => handleAddTab(t)}
-                              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
-                            >
-                              <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.9} />
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    if (addOpen) { setAddOpen(false); return; }
+                    const r = e.currentTarget.getBoundingClientRect();
+                    setAddMenuPos({ left: Math.min(r.left, window.innerWidth - 144), top: r.bottom + 4 });
+                    setAddOpen(true);
+                  }}
+                  className="flex items-center gap-0.5 rounded-md px-1.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="탭 추가"
+                  aria-label="탭 추가"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.2} />
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
               </div>
             </div>
 
@@ -517,6 +451,100 @@ const Notes = () => {
           </div>
         )}
       </main>
+
+      {/* 탭 추가 메뉴 — body 포털 */}
+      {active && addOpen && addMenuPos && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setAddOpen(false)} aria-hidden />
+          <div
+            className="fixed z-[9999] w-32 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-xl"
+            style={{ left: addMenuPos.left, top: addMenuPos.top }}
+          >
+            {(['memo', 'board', 'sheet'] as TabType[]).map((t) => {
+              const Icon = TAB_ICON[t];
+              const label = t === 'memo' ? '노트' : t === 'board' ? '화이트보드' : '시트';
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => handleAddTab(t)}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
+                >
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.9} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </>,
+        document.body,
+      )}
+
+      {/* 탭 옵션 메뉴 — body 포털(보드/시트 캔버스 위로 확실히 올림) */}
+      {active && tabMenuFor && tabMenuPos && (() => {
+        const tab = active.items.find((t) => t.id === tabMenuFor);
+        if (!tab) return null;
+        const i = active.items.findIndex((t) => t.id === tabMenuFor);
+        const otherNotes = notes.filter((n) => n.id !== active.id);
+        return createPortal(
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setTabMenuFor(null)} aria-hidden />
+            <div
+              className="fixed z-[9999] w-52 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-xl"
+              style={{ left: tabMenuPos.left, top: tabMenuPos.top }}
+            >
+              <button
+                type="button"
+                disabled={i === 0}
+                onClick={() => handleMoveTab(tab.id, -1)}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" /> 왼쪽으로 이동
+              </button>
+              <button
+                type="button"
+                disabled={i === active.items.length - 1}
+                onClick={() => handleMoveTab(tab.id, 1)}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+              >
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /> 오른쪽으로 이동
+              </button>
+              {active.items.length > 1 && otherNotes.length > 0 && (
+                <>
+                  <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+                  <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">다른 노트로 이동</p>
+                  <div className="max-h-44 overflow-y-auto">
+                    {otherNotes.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => handleMoveTabToNote(tab.id, n.id)}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
+                      >
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">{noteDisplayTitle(n)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {active.items.length > 1 && (
+                <>
+                  <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTab(tab.id)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> 탭 삭제
+                  </button>
+                </>
+              )}
+            </div>
+          </>,
+          document.body,
+        );
+      })()}
     </div>
   );
 };
