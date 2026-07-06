@@ -348,7 +348,7 @@ const Notes = () => {
         {active && activeTab ? (
           <>
             {/* 제목 + 탭 바 */}
-            <div className="shrink-0 border-b border-foreground/10 px-6 pt-4 sm:px-8">
+            <div className="relative z-30 shrink-0 border-b border-foreground/10 bg-background px-6 pt-4 sm:px-8">
               <input
                 value={titleDraft}
                 onChange={(e) => onTitleChange(e.target.value)}
