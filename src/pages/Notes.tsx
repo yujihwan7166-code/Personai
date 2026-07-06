@@ -210,7 +210,7 @@ const Notes = () => {
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
               <NotebookPen className="h-3.5 w-3.5" strokeWidth={2} />
             </span>
-            <h1 className="min-w-0 flex-1 truncate text-[15.5px] font-bold tracking-tight text-foreground">노트 화이트보드 시트</h1>
+            <h1 className="text-[19px] font-bold tracking-tight text-foreground">올인원 노트</h1>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
