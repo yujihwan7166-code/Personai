@@ -53,7 +53,7 @@ const App = () => (
               <Route path="/memos" element={<AppWorkspaceShell current="memos"><Memos /></AppWorkspaceShell>} />
               <Route path="/whiteboard" element={<AppWorkspaceShell current="whiteboard"><Whiteboard /></AppWorkspaceShell>} />
               <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />
-              <Route path="/notes" element={<Notes />} />
+              <Route path="/notes" element={<AppWorkspaceShell current="notes"><Notes /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

@@ -5,8 +5,7 @@
  * 보드(판) 토글·위키 승격·링크·그래프는 후속 단계. 디자인은 앱 토큰으로 통일.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, NotebookPen, Home } from 'lucide-react';
+import { Plus, Trash2, NotebookPen, Search, X } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
 import { NoteEditor } from '@/components/notes/NoteEditor';
@@ -28,9 +27,13 @@ function relativeTime(ts: number): string {
 }
 
 const Notes = () => {
-  const navigate = useNavigate();
   const notes = useNotes();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? notes.filter((n) => `${noteDisplayTitle(n)} ${notePlainText(n.memo)}`.toLowerCase().includes(q))
+    : notes;
 
   // 첫 진입 시 최신 노트 자동 선택.
   useEffect(() => {
@@ -78,37 +81,49 @@ const Notes = () => {
   return (
     <div className="flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
-      <aside className="flex w-72 shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))]">
-        <div className="flex items-center gap-1 px-3 pt-3 pb-2">
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            title="홈으로"
-            aria-label="홈으로"
-          >
-            <Home className="h-4 w-4" strokeWidth={1.9} />
-          </button>
-          <h1 className="flex-1 truncate text-[16px] font-semibold tracking-tight">노트</h1>
-          <button
-            type="button"
-            onClick={handleNew}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary/10 px-2.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/15"
-            title="새 노트"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.2} />
-            새 노트
-          </button>
+      <aside className="flex w-full shrink-0 flex-col border-r border-foreground/25 bg-background sm:w-[292px]">
+        <div className="shrink-0 px-3 pt-3 pb-2.5">
+          <h1 className="truncate whitespace-nowrap text-[18px] leading-6 font-semibold tracking-tight text-foreground">
+            노트
+          </h1>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleNew}
+              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary/10 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/15"
+              title="새 노트 만들기"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              새 노트
+            </button>
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-          {notes.length === 0 ? (
+        <div className="shrink-0 border-b border-foreground/10 px-3 pb-2.5">
+          <label className="flex h-[30px] items-center gap-1.5 rounded-md border border-transparent bg-accent/40 px-2 transition-colors focus-within:border-primary/35">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="노트 검색"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground" aria-label="검색어 지우기">
+                <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            )}
+          </label>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+          {filtered.length === 0 ? (
             <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">
-              아직 노트가 없어요.<br />“새 노트”로 시작하세요.
+              {query ? '검색 결과가 없어요.' : '아직 노트가 없어요. “새 노트”로 시작하세요.'}
             </p>
           ) : (
             <ul className="space-y-0.5">
-              {notes.map((note) => {
+              {filtered.map((note) => {
                 const activeRow = note.id === activeId;
                 const preview = notePlainText(note.memo);
                 return (

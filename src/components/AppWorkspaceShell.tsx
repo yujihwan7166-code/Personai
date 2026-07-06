@@ -79,7 +79,7 @@ export interface RailExtraItem {
 }
 
 interface AppWorkspaceShellProps {
-  current: WorkspaceKey;
+  current: WorkspaceKey | 'notes';
   children: ReactNode;
   /** 이 워크스페이스만의 레일 항목 — 공통 네비 아래 구분선 다음에 추가. */
   railExtra?: RailExtraItem[];
