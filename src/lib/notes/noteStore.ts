@@ -187,6 +187,38 @@ export function removeTab(noteId: string, tabId: string): void {
   });
 }
 
+/** 탭 순서 이동 — tabId 를 toIndex 위치로. 범위 밖이면 무시. */
+export function reorderTab(noteId: string, tabId: string, toIndex: number): void {
+  patchNote(noteId, (n) => {
+    const from = n.items.findIndex((it) => it.id === tabId);
+    if (from === -1 || toIndex < 0 || toIndex >= n.items.length || toIndex === from) return n;
+    const items = [...n.items];
+    const [moved] = items.splice(from, 1);
+    items.splice(toIndex, 0, moved);
+    return { ...n, items };
+  });
+}
+
+/**
+ * 탭을 다른 노트로 이동 — 원본에서 빼고 대상 노트 끝에 붙인다.
+ * 원본은 최소 1개 유지(마지막 탭은 이동 불가). board 탭은 id 보존이라 tldraw 콘텐츠도 따라감.
+ */
+export function moveTabToNote(fromNoteId: string, tabId: string, toNoteId: string): void {
+  if (fromNoteId === toNoteId) return;
+  const notes = readAll();
+  const from = notes.find((n) => n.id === fromNoteId);
+  const to = notes.find((n) => n.id === toNoteId);
+  if (!from || !to || from.items.length <= 1) return;
+  const tab = from.items.find((it) => it.id === tabId);
+  if (!tab) return;
+  const now = Date.now();
+  from.items = from.items.filter((it) => it.id !== tabId);
+  from.updatedAt = now;
+  to.items = [...to.items, tab];
+  to.updatedAt = now;
+  writeAll(notes);
+}
+
 export function deleteNote(id: string): void {
   writeAll(readAll().filter((n) => n.id !== id));
 }

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
-  Star, FolderPlus, Folder, MoreHorizontal, Check, Pencil,
+  Star, FolderPlus, Folder, MoreHorizontal, Check, Pencil, ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ import { NoteEditor } from '@/components/notes/NoteEditor';
 import { BoardEditor } from '@/components/notes/BoardEditor';
 import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
-  useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, deleteNote,
+  useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
   toggleFavorite, setNoteFolder,
   useFolders, createFolder, renameFolder, deleteFolder,
@@ -35,6 +35,7 @@ const Notes = () => {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [tabMenuFor, setTabMenuFor] = useState<string | null>(null);
   const folders = useFolders();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
@@ -112,11 +113,34 @@ const Notes = () => {
 
   const handleRemoveTab = (tabId: string) => {
     if (!active || active.items.length <= 1) return;
+    const tab = active.items.find((t) => t.id === tabId);
+    const label = tab?.type === 'board' ? '화이트보드' : tab?.type === 'sheet' ? '시트' : '노트';
+    if (!window.confirm(`'${tab?.name ?? label}' 탭을 삭제할까요? 내용도 함께 사라집니다.`)) return;
     if (tabId === activeTabId) {
       const rest = active.items.filter((t) => t.id !== tabId);
       setActiveTabId(rest[0]?.id ?? null);
     }
     removeTab(active.id, tabId);
+    setTabMenuFor(null);
+  };
+
+  // 탭 순서 이동(±1)
+  const handleMoveTab = (tabId: string, dir: -1 | 1) => {
+    if (!active) return;
+    const idx = active.items.findIndex((t) => t.id === tabId);
+    if (idx === -1) return;
+    reorderTab(active.id, tabId, idx + dir);
+  };
+
+  // 탭을 다른 노트로 이동
+  const handleMoveTabToNote = (tabId: string, toNoteId: string) => {
+    if (!active || active.items.length <= 1) return;
+    if (tabId === activeTabId) {
+      const rest = active.items.filter((t) => t.id !== tabId);
+      setActiveTabId(rest[0]?.id ?? null);
+    }
+    moveTabToNote(active.id, tabId, toNoteId);
+    setTabMenuFor(null);
   };
 
   const toggleFolder = (id: string) =>
@@ -332,14 +356,16 @@ const Notes = () => {
                 className="w-full bg-transparent text-[22px] font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
               />
               <div className="mt-2 flex items-center gap-1">
-                {active.items.map((tab) => {
+                {active.items.map((tab, i) => {
                   const Icon = TAB_ICON[tab.type];
                   const on = tab.id === activeTab.id;
+                  const otherNotes = notes.filter((n) => n.id !== active.id);
+                  const menuOpen = tabMenuFor === tab.id;
                   return (
                     <div
                       key={tab.id}
                       className={cn(
-                        'group flex items-center gap-1.5 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
+                        'group relative flex items-center gap-1 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
                         on ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
                       )}
                     >
@@ -347,16 +373,71 @@ const Notes = () => {
                         <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
                         {tab.name}
                       </button>
-                      {active.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTab(tab.id)}
-                          className="rounded p-0.5 text-muted-foreground/60 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                          title="탭 제거"
-                          aria-label="탭 제거"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => setTabMenuFor(menuOpen ? null : tab.id)}
+                        className={cn(
+                          'rounded p-0.5 text-muted-foreground/60 transition-opacity hover:bg-accent hover:text-foreground',
+                          on || menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                        )}
+                        title="탭 옵션"
+                        aria-label="탭 옵션"
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </button>
+                      {menuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setTabMenuFor(null)} aria-hidden />
+                          <div className="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
+                            <button
+                              type="button"
+                              disabled={i === 0}
+                              onClick={() => handleMoveTab(tab.id, -1)}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+                            >
+                              <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" /> 왼쪽으로 이동
+                            </button>
+                            <button
+                              type="button"
+                              disabled={i === active.items.length - 1}
+                              onClick={() => handleMoveTab(tab.id, 1)}
+                              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+                            >
+                              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" /> 오른쪽으로 이동
+                            </button>
+                            {active.items.length > 1 && otherNotes.length > 0 && (
+                              <>
+                                <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+                                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">다른 노트로 이동</p>
+                                <div className="max-h-40 overflow-y-auto">
+                                  {otherNotes.map((n) => (
+                                    <button
+                                      key={n.id}
+                                      type="button"
+                                      onClick={() => handleMoveTabToNote(tab.id, n.id)}
+                                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
+                                    >
+                                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                      <span className="min-w-0 flex-1 truncate">{noteDisplayTitle(n)}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                            {active.items.length > 1 && (
+                              <>
+                                <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTab(tab.id)}
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> 탭 삭제
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </>
                       )}
                     </div>
                   );
