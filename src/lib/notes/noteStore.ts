@@ -58,7 +58,7 @@ export function emptyMemoValue(): Value {
 function defaultItems(): TabItem[] {
   return [
     { id: uid(), type: 'memo', name: '메모 1', memo: emptyMemoValue() },
-    { id: uid(), type: 'board', name: '보드 1' },
+    { id: uid(), type: 'board', name: '화이트보드 1' },
     { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
   ];
 }
@@ -70,7 +70,7 @@ function migrate(raw: unknown): Note {
     ? n.items
     : [
         { id: uid(), type: 'memo', name: '메모 1', memo: n.memo ?? emptyMemoValue() },
-        { id: uid(), type: 'board', name: '보드 1' },
+        { id: uid(), type: 'board', name: '화이트보드 1' },
         { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
       ];
   return {
@@ -167,7 +167,7 @@ export function addTab(noteId: string, type: TabType): string {
   const newId = uid();
   patchNote(noteId, (n) => {
     const count = n.items.filter((it) => it.type === type).length + 1;
-    const label = type === 'memo' ? '메모' : type === 'board' ? '보드' : '시트';
+    const label = type === 'memo' ? '메모' : type === 'board' ? '화이트보드' : '시트';
     const item: TabItem =
       type === 'memo'
         ? { id: newId, type, name: `${label} ${count}`, memo: emptyMemoValue() }

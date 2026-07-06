@@ -388,7 +388,7 @@ const Notes = () => {
                       <div className="absolute left-0 top-full z-20 mt-1 w-32 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
                         {(['memo', 'board', 'sheet'] as TabType[]).map((t) => {
                           const Icon = TAB_ICON[t];
-                          const label = t === 'memo' ? '메모' : t === 'board' ? '보드' : '시트';
+                          const label = t === 'memo' ? '메모' : t === 'board' ? '화이트보드' : '시트';
                           return (
                             <button
                               key={t}
