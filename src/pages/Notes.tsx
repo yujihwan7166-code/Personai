@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Trash2, NotebookPen, Search, X,
-  FileText, LayoutDashboard, Table as TableIcon, ChevronDown, ChevronRight,
+  FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
   Star, FolderPlus, Folder, MoreHorizontal, Check, Pencil,
 } from 'lucide-react';
 import type { Value } from 'platejs';
@@ -152,7 +152,7 @@ const Notes = () => {
           )}
         >
           {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
+          <span className={cn('min-w-0 flex-1 truncate text-[14px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
             {noteDisplayTitle(note)}
           </span>
           <span
@@ -206,28 +206,28 @@ const Notes = () => {
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-foreground/25 bg-background sm:w-[292px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
-          <div className="mb-3">
+          <div className="flex items-center justify-between gap-2">
             <h1 className="text-[24px] font-bold tracking-tight text-foreground">올인원 노트</h1>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              type="button"
-              onClick={handleNew}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary/10 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
-              title="새 노트 만들기"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2} />
-              새 노트
-            </button>
-            <button
-              type="button"
-              onClick={handleNewFolder}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-accent/60 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              title="새 폴더 만들기"
-            >
-              <FolderPlus className="h-4 w-4" strokeWidth={1.9} />
-              새 폴더
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleNew}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/15"
+                title="새 노트"
+                aria-label="새 노트"
+              >
+                <Plus className="h-[18px] w-[18px]" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNewFolder}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/60 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title="새 폴더"
+                aria-label="새 폴더"
+              >
+                <FolderPlus className="h-[18px] w-[18px]" strokeWidth={1.9} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -275,10 +275,9 @@ const Notes = () => {
                 const folderNotes = notes.filter((n) => n.folderId === f.id);
                 return (
                   <div key={f.id}>
-                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2 hover:bg-accent/60">
+                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2.5 hover:bg-accent/60">
                       <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                        <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
-                        <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Folder className={cn('h-[18px] w-[18px] shrink-0 transition-colors', open ? 'text-primary' : 'text-muted-foreground')} />
                         {renamingFolder === f.id ? (
                           <input
                             autoFocus
@@ -287,12 +286,11 @@ const Notes = () => {
                             onBlur={commitRename}
                             onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolder(null); }}
                             onClick={(e) => e.stopPropagation()}
-                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[14px] outline-none"
+                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[15px] outline-none"
                           />
                         ) : (
-                          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-foreground">{f.name}</span>
+                          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-foreground">{f.name}</span>
                         )}
-                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/60">{folderNotes.length}</span>
                       </button>
                       <button type="button" onClick={() => { setRenamingFolder(f.id); setFolderNameDraft(f.name); }} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:text-foreground group-hover:opacity-100" title="이름 변경" aria-label="폴더 이름 변경">
                         <Pencil className="h-3 w-3" />
@@ -314,9 +312,6 @@ const Notes = () => {
 
               {/* 미분류 */}
               <div>
-                {folders.length > 0 && unfiled.length > 0 && (
-                  <p className="px-2 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/70">미분류</p>
-                )}
                 <ul className="space-y-0.5">{unfiled.map(renderNote)}</ul>
               </div>
             </div>
