@@ -8,8 +8,8 @@ import { eventStore } from '@/services/planner/eventStore';
 import { habitStore } from '@/services/planner/habitStore';
 import { habitCheckinStore } from '@/services/planner/habitCheckinStore';
 import { ddayStore } from '@/services/planner/ddayStore';
-import { journalStore } from '@/services/journalStore';
-import type { JournalEntry } from '@/types/journal';
+import { listByDate } from '@/lib/diary/diaryStore';
+import type { DiaryEntry } from '@/types/diary';
 
 export interface BriefingData {
   greeting: string;
@@ -27,7 +27,7 @@ export interface BriefingData {
   /** "가장 먼저" 추천 1개. */
   pickFirst?: { kind: 'event' | 'task' | 'habit'; title: string; reason: string };
   /** 최근 일기 (오늘 또는 어제 가장 최근 1건). */
-  recentJournal?: JournalEntry;
+  recentJournal?: DiaryEntry;
   /** 이번 달 일정·할일 있는 날 (달력 위젯 점 표시용). */
   monthMarks: Record<string, { events: number; tasks: number }>;
 }
@@ -132,8 +132,8 @@ export function buildBriefingData(): BriefingData {
   }
 
   // ── 최근 일기 (오늘 → 어제 순서로 가장 최근 1건) ──
-  const todayJournals = journalStore.listByDate(todayKey);
-  const yesterdayJournals = todayJournals.length === 0 ? journalStore.listByDate(yesterdayKey) : [];
+  const todayJournals = listByDate(todayKey);
+  const yesterdayJournals = todayJournals.length === 0 ? listByDate(yesterdayKey) : [];
   const recentJournal = todayJournals[0] ?? yesterdayJournals[0] ?? undefined;
 
   // ── 이번 달 일정·할일 있는 날 (달력 위젯 점) ──
