@@ -206,11 +206,8 @@ const Notes = () => {
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-foreground/25 bg-background sm:w-[292px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <NotebookPen className="h-3.5 w-3.5" strokeWidth={2} />
-            </span>
-            <h1 className="text-[19px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+          <div className="mb-3">
+            <h1 className="text-[24px] font-bold tracking-tight text-foreground">올인원 노트</h1>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -278,10 +275,10 @@ const Notes = () => {
                 const folderNotes = notes.filter((n) => n.folderId === f.id);
                 return (
                   <div key={f.id}>
-                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-accent/60">
-                      <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                        <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
-                        <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2 hover:bg-accent/60">
+                      <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                        <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
+                        <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
                         {renamingFolder === f.id ? (
                           <input
                             autoFocus
@@ -290,12 +287,12 @@ const Notes = () => {
                             onBlur={commitRename}
                             onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolder(null); }}
                             onClick={(e) => e.stopPropagation()}
-                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[12.5px] outline-none"
+                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[14px] outline-none"
                           />
                         ) : (
-                          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-foreground">{f.name}</span>
+                          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-foreground">{f.name}</span>
                         )}
-                        <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground/60">{folderNotes.length}</span>
+                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/60">{folderNotes.length}</span>
                       </button>
                       <button type="button" onClick={() => { setRenamingFolder(f.id); setFolderNameDraft(f.name); }} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:text-foreground group-hover:opacity-100" title="이름 변경" aria-label="폴더 이름 변경">
                         <Pencil className="h-3 w-3" />
@@ -332,14 +329,14 @@ const Notes = () => {
         {active && activeTab ? (
           <>
             {/* 제목 + 탭 바 */}
-            <div className="shrink-0 border-b border-foreground/10 px-6 pt-6 sm:px-8">
+            <div className="shrink-0 border-b border-foreground/10 px-6 pt-4 sm:px-8">
               <input
                 value={titleDraft}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="제목 없음"
-                className="w-full bg-transparent text-[26px] font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
+                className="w-full bg-transparent text-[22px] font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
               />
-              <div className="mt-3 flex items-center gap-1">
+              <div className="mt-2 flex items-center gap-1">
                 {active.items.map((tab) => {
                   const Icon = TAB_ICON[tab.type];
                   const on = tab.id === activeTab.id;
