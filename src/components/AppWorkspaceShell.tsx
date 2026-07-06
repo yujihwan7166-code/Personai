@@ -9,6 +9,7 @@ import {
   Network,
   NotebookPen,
   FileText,
+  StickyNote,
   Check,
   type LucideIcon,
 } from 'lucide-react';
@@ -25,7 +26,7 @@ import {
 
 export type WorkspaceKey = 'planner' | 'wiki' | 'memos' | 'whiteboard' | 'journal';
 
-type WorkspaceDestinationKey = WorkspaceKey | 'home';
+type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
 interface WorkspaceDestination {
   key: WorkspaceDestinationKey;
@@ -39,6 +40,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
   { key: 'memos', label: '메모', to: '/memos', icon: FileText },
+  { key: 'notes', label: '노트', to: '/notes', icon: StickyNote },
   { key: 'whiteboard', label: '화이트보드', to: '/whiteboard', icon: LayoutDashboard },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
 ];
@@ -50,7 +52,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'memos', 'whiteboard'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'journal'].includes(item.key),
+  ['home', 'notes', 'journal'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
