@@ -273,54 +273,34 @@ const Journal = () => {
       <main className="flex-1 px-4 sm:px-8 pt-6 pb-20 sm:py-9 max-w-5xl w-full mx-auto">
         {/* 마스트헤드 — 좌(타이틀) | 우(PageSwitcher 위 + 도구 아래) horizontal split */}
         <header className="mb-2 sm:mb-3 flex items-start justify-between gap-6 flex-wrap">
-          {/* 좌측: 타이틀 영역 — 카드 그룹과 좁힘 (아래로 이동) */}
-          <div className="min-w-0 pt-4 sm:pt-6">
-            {/* 골든아워 시그니처 리본 — 이 페이지를 기억하게 하는 단 하나의 요소. */}
-            <div
-              className="mb-3 h-[5px] w-16 rounded-full"
-              style={{ backgroundImage: 'var(--journal-signature)' }}
-              aria-hidden
-            />
-            {/* eyebrow — 정체성 + 연속·편수 */}
-            <div className="mb-2 flex items-center gap-2.5 flex-wrap text-[12.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-              <span>오늘의 일기</span>
+          {/* 좌측: 클린 타이틀 — 앱 이름 톤 + streak pill (Journiv 패턴) */}
+          <div className="min-w-0 pt-1">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-[22px] font-bold tracking-tight text-foreground">일기</h1>
               {streak > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] normal-case tracking-normal tabular-nums text-primary"
+                  className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[12px] font-semibold tabular-nums text-amber-600"
                   title={`${streak}일 연속 기록`}
                 >
                   <span aria-hidden>🔥</span>
                   {streak}일 연속
                 </span>
               )}
-              {allEntries.length > 0 && (
-                <span className="normal-case tracking-normal tabular-nums text-muted-foreground/55">
-                  기록 {allEntries.length}편
-                </span>
-              )}
             </div>
-            {/* nameplate — 큰 날짜 (헤비 산세리프). 일기의 주인공은 '오늘'. */}
             {(() => {
               const d = new Date();
               const wd = '일월화수목금토'[d.getDay()];
               return (
-                <h1
-                  className="flex flex-wrap items-baseline gap-x-3 gap-y-0 leading-[0.92] text-foreground"
-                  style={{ fontFamily: 'var(--journal-display-font)' }}
-                >
-                  <span className="text-[46px] sm:text-[60px] font-extrabold tracking-[-0.035em]">
-                    {d.getMonth() + 1}월 {d.getDate()}일
-                  </span>
-                  <span className="text-[20px] sm:text-[24px] font-semibold tracking-[-0.01em] text-muted-foreground/70">
-                    {wd}요일
-                  </span>
-                </h1>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  {d.getMonth() + 1}월 {d.getDate()}일 {wd}요일
+                  {allEntries.length > 0 && <span className="text-muted-foreground/50"> · 기록 {allEntries.length}편</span>}
+                </p>
               );
             })()}
           </div>
 
           {/* 우측: 2 행 vertical stack — PageSwitcher 위치 고정, 도구만 더 아래로 (gap ↑↑) */}
-          <div className="flex w-full flex-col items-stretch shrink-0 pt-5 sm:w-auto sm:items-end sm:pt-[5.5rem]">
+          <div className="flex w-full flex-col items-stretch shrink-0 pt-3 sm:w-auto sm:items-end sm:pt-0">
             {/* 도구 그룹 — 검색·필터·통계·CTA */}
             <div className="flex w-full items-center gap-2 sm:w-auto" data-journal-action-bar>
               {/* 검색 — ring-inset 으로 옆 버튼 영역 침범 방지 */}
@@ -541,6 +521,16 @@ const Journal = () => {
               />
             )}
 
+            {/* ── On This Day — 메인 컬럼 (검색·필터 없을 때만) ── */}
+            {!hasActiveFilter && query.trim().length === 0 && (
+              <OnThisDayCard allEntries={allEntries} onClickEntry={openEdit} />
+            )}
+
+            {/* Recent Entries 라벨 */}
+            {grouped.length > 0 && (
+              <p className="-mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/60">최근 기록</p>
+            )}
+
             {/* ── 시간순 feed (월 그룹 헤더 없이 단순 list — 요청에 따라 챕터 헤더 제거) ── */}
             {grouped.map((group) => {
               // 오늘 hero 가 별도로 보여주는 entry 는 feed 에서 제외 (중복 방지)
@@ -587,21 +577,6 @@ const Journal = () => {
             )}
             {query.trim().length === 0 && (
               <>
-                <OnThisDayCard
-                  allEntries={allEntries}
-                  onClickEntry={(entry) => setEditorMode({
-                    kind: 'edit',
-                    id: entry.id,
-                    initialBody: entry.body,
-                    initialMood: entry.mood,
-                    initialTags: entry.tags,
-                    initialFormat: entry.bodyFormat,
-                    initialActivities: entry.activities,
-                    initialWeather: entry.weather,
-                    initialSleepHours: entry.sleepHours,
-                    initialEnergy: entry.energy,
-                  })}
-                />
                 <JournalRandomCard
                   allEntries={allEntries}
                   onClickEntry={(entry) => setEditorMode({
