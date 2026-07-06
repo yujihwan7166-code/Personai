@@ -153,6 +153,8 @@ export const journalStore = {
   add(input: {
     body: string;
     title?: string;
+    moodKey?: string;
+    starred?: boolean;
     mood?: Mood;
     date?: string;
     tags?: string[];
@@ -168,6 +170,8 @@ export const journalStore = {
       id: newId(),
       date: input.date ?? now.slice(0, 10),
       title: input.title,
+      moodKey: input.moodKey,
+      starred: input.starred,
       body: input.body,
       mood: input.mood,
       tags: input.tags,

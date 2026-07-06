@@ -88,6 +88,10 @@ export interface JournalEntry {
   date: string;
   /** 제목(선택). v5. */
   title?: string;
+  /** 감정 키 — v5 named 감정(행복/설렘/평온/우울/지침/화남 등). 미지정 시 legacy mood 사용. */
+  moodKey?: string;
+  /** 즐겨찾기 — v5. */
+  starred?: boolean;
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
   /** 본문 형식. 미지정 = 'plain' (기본·호환성). */
