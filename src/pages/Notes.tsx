@@ -7,7 +7,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Trash2, NotebookPen, Search, X,
-  FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
+  FileText, LayoutDashboard, Table as TableIcon, ChevronDown, ChevronRight,
+  Star, FolderPlus, Folder, MoreHorizontal, Check, Pencil,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,8 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
+  toggleFavorite, setNoteFolder,
+  useFolders, createFolder, renameFolder, deleteFolder,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
 
@@ -44,6 +47,11 @@ const Notes = () => {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const folders = useFolders();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+  const [folderNameDraft, setFolderNameDraft] = useState('');
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const q = query.trim().toLowerCase();
   const filtered = q
     ? notes.filter((n) => `${noteDisplayTitle(n)} ${notePlainText(n)}`.toLowerCase().includes(q))
@@ -123,6 +131,93 @@ const Notes = () => {
     removeTab(active.id, tabId);
   };
 
+  const toggleFolder = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const handleNewFolder = () => {
+    const f = createFolder('새 폴더');
+    setExpanded((prev) => new Set(prev).add(f.id));
+    setRenamingFolder(f.id);
+    setFolderNameDraft('새 폴더');
+  };
+  const commitRename = () => {
+    if (renamingFolder) renameFolder(renamingFolder, folderNameDraft);
+    setRenamingFolder(null);
+  };
+
+  const favorites = notes.filter((n) => n.favorite);
+  const unfiled = notes.filter((n) => !n.folderId);
+
+  const renderNote = (note: Note) => {
+    const activeRow = note.id === activeId;
+    const preview = notePlainText(note);
+    return (
+      <li key={note.id} className="relative">
+        <button
+          type="button"
+          onClick={() => setActiveId(note.id)}
+          className={cn(
+            'group flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+            activeRow ? 'bg-primary/10' : 'hover:bg-accent',
+          )}
+        >
+          <span className="flex items-center gap-1.5">
+            {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+            <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
+              {noteDisplayTitle(note)}
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); } }}
+              className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+              title="더보기"
+              aria-label="노트 메뉴"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </span>
+          </span>
+          {preview && <span className="truncate text-[11.5px] text-muted-foreground">{preview}</span>}
+          <span className="text-[10.5px] tabular-nums text-muted-foreground/70">{relativeTime(note.updatedAt)}</span>
+        </button>
+
+        {menuFor === note.id && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
+            <div className="absolute right-2 top-9 z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
+              <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
+                <Star className={cn('h-3.5 w-3.5', note.favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground')} />
+                {note.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+              </button>
+              <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+              <p className="px-3 pb-0.5 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">폴더 이동</p>
+              <button type="button" onClick={() => { setNoteFolder(note.id, null); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-foreground hover:bg-accent">
+                <span className="flex-1 truncate">미분류</span>
+                {!note.folderId && <Check className="h-3.5 w-3.5 text-primary" />}
+              </button>
+              {folders.map((f) => (
+                <button key={f.id} type="button" onClick={() => { setNoteFolder(note.id, f.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-foreground hover:bg-accent">
+                  <Folder className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="flex-1 truncate">{f.name}</span>
+                  {note.folderId === f.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                </button>
+              ))}
+              <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+              <button type="button" onClick={() => { handleDeleteNote(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제
+              </button>
+            </div>
+          </>
+        )}
+      </li>
+    );
+  };
+
   return (
     <div className="flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
@@ -139,15 +234,24 @@ const Notes = () => {
               </span>
             )}
           </div>
-          <div>
+          <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
               onClick={handleNew}
-              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary/10 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
               title="새 노트 만들기"
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
               새 노트
+            </button>
+            <button
+              type="button"
+              onClick={handleNewFolder}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-accent/60 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="새 폴더 만들기"
+            >
+              <FolderPlus className="h-4 w-4" strokeWidth={1.9} />
+              새 폴더
             </button>
           </div>
         </div>
@@ -170,50 +274,77 @@ const Notes = () => {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-          {filtered.length === 0 ? (
-            <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">
-              {query ? '검색 결과가 없어요.' : '아직 노트가 없어요. “새 노트”로 시작하세요.'}
-            </p>
+          {q ? (
+            filtered.length === 0 ? (
+              <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">검색 결과가 없어요.</p>
+            ) : (
+              <ul className="space-y-0.5">{filtered.map(renderNote)}</ul>
+            )
+          ) : notes.length === 0 ? (
+            <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">아직 노트가 없어요. “새 노트”로 시작하세요.</p>
           ) : (
-            <ul className="space-y-0.5">
-              {filtered.map((note) => {
-                const activeRow = note.id === activeId;
-                const preview = notePlainText(note);
+            <div className="space-y-2">
+              {/* 즐겨찾기 */}
+              {favorites.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1 px-2 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> 즐겨찾기
+                  </p>
+                  <ul className="space-y-0.5">{favorites.map(renderNote)}</ul>
+                </div>
+              )}
+
+              {/* 폴더들 */}
+              {folders.map((f) => {
+                const open = expanded.has(f.id);
+                const folderNotes = notes.filter((n) => n.folderId === f.id);
                 return (
-                  <li key={note.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveId(note.id)}
-                      className={cn(
-                        'group flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-                        activeRow ? 'bg-primary/10' : 'hover:bg-accent',
-                      )}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
-                          {noteDisplayTitle(note)}
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleDeleteNote(note.id); } }}
-                          className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                          title="삭제"
-                          aria-label="노트 삭제"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </span>
-                      </span>
-                      {preview && (
-                        <span className="truncate text-[11.5px] text-muted-foreground">{preview}</span>
-                      )}
-                      <span className="text-[10.5px] tabular-nums text-muted-foreground/70">{relativeTime(note.updatedAt)}</span>
-                    </button>
-                  </li>
+                  <div key={f.id}>
+                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-accent/60">
+                      <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                        <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
+                        <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        {renamingFolder === f.id ? (
+                          <input
+                            autoFocus
+                            value={folderNameDraft}
+                            onChange={(e) => setFolderNameDraft(e.target.value)}
+                            onBlur={commitRename}
+                            onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolder(null); }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[12.5px] outline-none"
+                          />
+                        ) : (
+                          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-foreground">{f.name}</span>
+                        )}
+                        <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground/60">{folderNotes.length}</span>
+                      </button>
+                      <button type="button" onClick={() => { setRenamingFolder(f.id); setFolderNameDraft(f.name); }} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:text-foreground group-hover:opacity-100" title="이름 변경" aria-label="폴더 이름 변경">
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button type="button" onClick={() => deleteFolder(f.id)} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" title="폴더 삭제" aria-label="폴더 삭제">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {open && (
+                      <ul className="ml-2 space-y-0.5 border-l border-foreground/10 pl-1.5">
+                        {folderNotes.length > 0
+                          ? folderNotes.map(renderNote)
+                          : <li className="px-2 py-1.5 text-[11px] text-muted-foreground/60">비어 있음</li>}
+                      </ul>
+                    )}
+                  </div>
                 );
               })}
-            </ul>
+
+              {/* 미분류 */}
+              <div>
+                {folders.length > 0 && unfiled.length > 0 && (
+                  <p className="px-2 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/70">미분류</p>
+                )}
+                <ul className="space-y-0.5">{unfiled.map(renderNote)}</ul>
+              </div>
+            </div>
           )}
         </div>
       </aside>

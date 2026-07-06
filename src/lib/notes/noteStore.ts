@@ -27,13 +27,25 @@ export interface Note {
   id: string;
   title: string;
   items: TabItem[];
+  /** 소속 폴더 id — 없으면 null(미분류). */
+  folderId: string | null;
+  /** 즐겨찾기. */
+  favorite: boolean;
   createdAt: number;
   updatedAt: number;
   meta: { surface: 'memo'; tags: string[] };
 }
 
+export interface NoteFolder {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
 const STORAGE_KEY = 'personai.notes.v1';
 const CHANGED_EVENT = 'personai:notes-changed';
+const FOLDER_KEY = 'personai.note-folders.v1';
+const FOLDER_CHANGED = 'personai:note-folders-changed';
 
 const uid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 
@@ -51,16 +63,22 @@ function defaultItems(): TabItem[] {
   ];
 }
 
-/** 구버전({memo}) → 탭 모델 마이그레이션. */
+/** 구버전({memo}) → 탭 모델 + 폴더/즐겨찾기 필드 마이그레이션. */
 function migrate(raw: unknown): Note {
   const n = raw as Note & { memo?: Value };
-  if (Array.isArray(n.items) && n.items.length > 0) return n as Note;
-  const items: TabItem[] = [
-    { id: uid(), type: 'memo', name: '메모 1', memo: n.memo ?? emptyMemoValue() },
-    { id: uid(), type: 'board', name: '보드 1' },
-    { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
-  ];
-  return { ...n, items } as Note;
+  const items: TabItem[] = (Array.isArray(n.items) && n.items.length > 0)
+    ? n.items
+    : [
+        { id: uid(), type: 'memo', name: '메모 1', memo: n.memo ?? emptyMemoValue() },
+        { id: uid(), type: 'board', name: '보드 1' },
+        { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
+      ];
+  return {
+    ...n,
+    items,
+    folderId: n.folderId ?? null,
+    favorite: n.favorite ?? false,
+  } as Note;
 }
 
 function readAll(): Note[] {
@@ -97,12 +115,31 @@ export function createNote(): Note {
     id: uid(),
     title: '',
     items: defaultItems(),
+    folderId: null,
+    favorite: false,
     createdAt: now,
     updatedAt: now,
     meta: { surface: 'memo', tags: [] },
   };
   writeAll([note, ...readAll()]);
   return note;
+}
+
+/** 새 노트를 특정 폴더에 생성. */
+export function createNoteInFolder(folderId: string | null): Note {
+  const note = createNote();
+  if (folderId) patchNote(note.id, (n) => ({ ...n, folderId }));
+  return getNote(note.id) ?? note;
+}
+
+/** 즐겨찾기 토글. */
+export function toggleFavorite(id: string): void {
+  patchNote(id, (n) => ({ ...n, favorite: !n.favorite }));
+}
+
+/** 노트를 폴더로 이동(null=미분류). */
+export function setNoteFolder(id: string, folderId: string | null): void {
+  patchNote(id, (n) => ({ ...n, folderId }));
 }
 
 function patchNote(id: string, fn: (note: Note) => Note): void {
@@ -202,4 +239,77 @@ function getSnapshot(): Note[] {
 
 export function useNotes(): Note[] {
   return useSyncExternalStore(subscribe, getSnapshot, () => cachedSnapshot);
+}
+
+/* ── 폴더 ── */
+function readFolders(): NoteFolder[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const r = JSON.parse(window.localStorage.getItem(FOLDER_KEY) || '[]');
+    return Array.isArray(r) ? r : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFolders(folders: NoteFolder[]): void {
+  try {
+    window.localStorage.setItem(FOLDER_KEY, JSON.stringify(folders));
+  } catch {
+    /* noop */
+  }
+  window.dispatchEvent(new CustomEvent(FOLDER_CHANGED));
+}
+
+export function listFolders(): NoteFolder[] {
+  return readFolders().sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export function createFolder(name: string): NoteFolder {
+  const f: NoteFolder = { id: uid(), name: name.trim() || '새 폴더', createdAt: Date.now() };
+  writeFolders([...readFolders(), f]);
+  return f;
+}
+
+export function renameFolder(id: string, name: string): void {
+  writeFolders(readFolders().map((f) => (f.id === id ? { ...f, name: name.trim() || f.name } : f)));
+}
+
+export function deleteFolder(id: string): void {
+  writeFolders(readFolders().filter((f) => f.id !== id));
+  // 소속 노트는 미분류로.
+  const notes = readAll();
+  let changed = false;
+  const next = notes.map((n) => {
+    if (n.folderId === id) { changed = true; return { ...n, folderId: null }; }
+    return n;
+  });
+  if (changed) writeAll(next);
+}
+
+let cachedFolders: NoteFolder[] = [];
+let cachedFolderKey = '';
+function folderSnapshot(): NoteFolder[] {
+  const fs = listFolders();
+  const key = fs.map((f) => `${f.id}:${f.name}`).join('|');
+  if (key !== cachedFolderKey) {
+    cachedFolderKey = key;
+    cachedFolders = fs;
+  }
+  return cachedFolders;
+}
+
+export function useFolders(): NoteFolder[] {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener(FOLDER_CHANGED, cb);
+      window.addEventListener('storage', cb);
+      return () => {
+        window.removeEventListener(FOLDER_CHANGED, cb);
+        window.removeEventListener('storage', cb);
+      };
+    },
+    folderSnapshot,
+    () => cachedFolders,
+  );
 }
