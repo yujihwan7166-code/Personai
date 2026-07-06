@@ -12,8 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { BriefingData } from '@/lib/buildBriefingData';
 import { WIDGET_META, type PlacedWidget } from '@/lib/dailyBriefingStore';
-import { getFeeling } from '@/lib/diary/feelings';
-import { plainFromValue } from '@/lib/diary/bodyText';
+import { stripMarkdown } from '@/lib/journalMarkdown';
 
 const fmtTime = (iso: string): string => {
   const d = new Date(iso);
@@ -467,13 +466,16 @@ export function OverdueWidget({ widget, data, onClose }: WidgetProps) {
 }
 
 // ──────────────────────────────────────────
-// 최근 일기 (M) — 대표감정 + 날짜 pill + 이미지 thumb
+// 최근 일기 (M) — mood + 날짜 pill + 이미지 thumb
+const MOOD_EMOJI: Record<string, string> = {
+  great: '😄', good: '🙂', okay: '😐', bad: '😕', awful: '😢',
+};
+
 export function RecentJournalWidget({ data, onClose }: WidgetProps) {
   const navigate = useNavigate();
   const entry = data.recentJournal;
-  const moodEmoji = getFeeling(entry?.primaryFeeling)?.emoji ?? null;
-  const firstImg = entry?.photos?.[0];
-  const bodyText = entry ? plainFromValue(entry.body) : '';
+  const moodEmoji = entry?.mood ? MOOD_EMOJI[entry.mood] : null;
+  const firstImg = entry?.images?.[0];
   return (
     <button
       type="button"
@@ -499,7 +501,7 @@ export function RecentJournalWidget({ data, onClose }: WidgetProps) {
               </span>
             </div>
             <p className="mt-1 text-[11.5px] text-foreground/85 leading-relaxed line-clamp-3 flex-1">
-              {bodyText || '(내용 없음)'}
+              {entry.bodyFormat === 'markdown' ? stripMarkdown(entry.body) : entry.body}
             </p>
           </div>
         </div>
