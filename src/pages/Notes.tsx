@@ -295,7 +295,7 @@ const Notes = () => {
             <div className="min-h-0 flex-1">
               {activeTab.type === 'memo' && (
                 <div className="h-full overflow-y-auto">
-                  <div className="mx-auto w-full max-w-[760px] px-6 py-8 sm:px-10">
+                  <div className="w-full max-w-[760px] px-6 py-8 sm:px-8">
                     <NoteEditor
                       key={activeTab.id}
                       initialValue={activeTab.memo ?? emptyMemoValue()}
