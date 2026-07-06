@@ -1,9 +1,11 @@
 /**
  * 노트 글 편집기 — Plate 공식 컴포넌트 이식 기반 (재설계 A).
  *
- * 표·수식·슬래시메뉴·목록·코드블록을 Plate 공식 kit(격리 폴더 @/components/plate)에서
- * 그대로 가져와 조립. 노드 컴포넌트가 hsl(var(--*)) 토큰 기반이라 우리 앱 색을 자동 상속.
- * 슬래시(/)로 요소 삽입 — 노션 손맛.
+ * Plate 공식 kit(격리 폴더 @/components/plate)을 그대로 조립. 노드 컴포넌트가
+ * hsl(var(--*)) 토큰 기반이라 우리 앱 색을 자동 상속. 슬래시(/)로 요소 삽입.
+ *
+ * 기능: 표·수식·목록(불릿/번호/체크)·토글·코드블록·인용·콜아웃·다단·목차·
+ *       이미지/미디어·링크·날짜·멘션·이모지.
  */
 import 'katex/dist/katex.min.css';
 import { Plate, usePlateEditor } from 'platejs/react';
@@ -12,9 +14,17 @@ import { Editor, EditorContainer } from '@/components/plate/ui/editor';
 import { BasicNodesKit } from '@/components/plate/editor/plugins/basic-nodes-kit';
 import { IndentKit } from '@/components/plate/editor/plugins/indent-kit';
 import { ListKit } from '@/components/plate/editor/plugins/list-kit';
+import { ToggleKit } from '@/components/plate/editor/plugins/toggle-kit';
 import { CodeBlockKit } from '@/components/plate/editor/plugins/code-block-kit';
 import { TableKit } from '@/components/plate/editor/plugins/table-kit';
 import { MathKit } from '@/components/plate/editor/plugins/math-kit';
+import { CalloutKit } from '@/components/plate/editor/plugins/callout-kit';
+import { ColumnKit } from '@/components/plate/editor/plugins/column-kit';
+import { TocKit } from '@/components/plate/editor/plugins/toc-kit';
+import { MediaKit } from '@/components/plate/editor/plugins/media-kit';
+import { LinkKit } from '@/components/plate/editor/plugins/link-kit';
+import { MentionKit } from '@/components/plate/editor/plugins/mention-kit';
+import { EmojiKit } from '@/components/plate/editor/plugins/emoji-kit';
 import { SlashKit } from '@/components/plate/editor/plugins/slash-kit';
 
 interface Props {
@@ -30,9 +40,17 @@ export function NoteEditor({ initialValue, onChange, placeholder }: Props) {
       ...IndentKit,
       ...BasicNodesKit,
       ...ListKit,
+      ...ToggleKit,
       ...CodeBlockKit,
       ...TableKit,
       ...MathKit,
+      ...CalloutKit,
+      ...ColumnKit,
+      ...TocKit,
+      ...MediaKit,
+      ...LinkKit,
+      ...MentionKit,
+      ...EmojiKit,
       ...SlashKit,
     ],
     value: initialValue,
@@ -43,7 +61,7 @@ export function NoteEditor({ initialValue, onChange, placeholder }: Props) {
       <EditorContainer>
         <Editor
           variant="none"
-          placeholder={placeholder ?? '무엇이든 적어보세요…  ( "/" 눌러 표·수식·목록 삽입 )'}
+          placeholder={placeholder ?? '무엇이든 적어보세요…  ( "/" 눌러 표·수식·콜아웃·이미지 삽입 )'}
           className="min-h-[60vh] px-0"
         />
       </EditorContainer>

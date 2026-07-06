@@ -173,25 +173,6 @@ const groups: Group[] = [
         label: 'Equation',
         value: KEYS.equation,
       },
-      {
-        icon: <PenToolIcon />,
-        keywords: ['excalidraw'],
-        label: 'Excalidraw',
-        value: KEYS.excalidraw,
-      },
-      {
-        icon: <Code2 />,
-        keywords: [
-          'code-drawing',
-          'diagram',
-          'plantuml',
-          'graphviz',
-          'flowchart',
-          'mermaid',
-        ],
-        label: 'Code Drawing',
-        value: KEYS.codeDrawing,
-      },
     ].map((item) => ({
       ...item,
       onSelect: (editor, value) => {
@@ -202,20 +183,6 @@ const groups: Group[] = [
   {
     group: 'Inline',
     items: [
-      {
-        focusEditor: true,
-        icon: <CalendarIcon />,
-        keywords: ['time'],
-        label: 'Date',
-        value: KEYS.date,
-      },
-      {
-        focusEditor: true,
-        icon: <SuperscriptIcon />,
-        keywords: ['citation', 'fn', 'footnote', '[^]'],
-        label: 'Footnote',
-        value: 'action_footnote',
-      },
       {
         focusEditor: false,
         icon: <RadicalIcon />,
