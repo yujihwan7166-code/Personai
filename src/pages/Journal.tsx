@@ -60,6 +60,7 @@ export default function Journal() {
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
   const [calAnchor, setCalAnchor] = useState(() => new Date());
   const [editing, setEditing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
   const [query, setQuery] = useState('');
 
   // 에디터 로컬 상태
@@ -82,7 +83,6 @@ export default function Journal() {
     setWeather(e?.weather ?? null);
     setTags(e?.tags ?? []);
     setStarred(e?.starred ?? false);
-    setEditing(!e);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -125,8 +125,12 @@ export default function Journal() {
     if (!e || !window.confirm('이 일기를 삭제할까요?')) return;
     journalStore.remove(e.id);
     setSelectedDate(todayKey);
+    setDetailOpen(false);
   };
-  const goWriteToday = () => { setSelectedDate(todayKey); setCalAnchor(new Date()); setEditing(true); setTab('write'); };
+  const goWriteToday = () => { setSelectedDate(todayKey); setCalAnchor(new Date()); setEditing(true); setDetailOpen(true); setTab('write'); };
+  const openEntry = (date: string) => { setSelectedDate(date); setEditing(false); setDetailOpen(true); setTab('write'); };
+  const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
+  const backToList = () => { setDetailOpen(false); setEditing(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
 
   // 파생
@@ -136,6 +140,12 @@ export default function Journal() {
       .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 12);
+  }, [allEntries, query]);
+  const feed = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...allEntries]
+      .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [allEntries, query]);
   const moodByDate = useMemo(() => {
     const map = new Map<string, string>();
@@ -202,7 +212,7 @@ export default function Journal() {
               const isToday = d === todayKey;
               const dot = moodByDate.get(d);
               return (
-                <button key={d} type="button" onClick={() => { setSelectedDate(d); setTab('write'); }} className="flex flex-col items-center py-0.5">
+                <button key={d} type="button" onClick={() => openDate(d)} className="flex flex-col items-center py-0.5">
                   <span className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-full text-[12px] tabular-nums transition-colors',
                     isSel ? 'bg-[hsl(var(--cream-accent))] font-bold text-white'
@@ -248,7 +258,7 @@ export default function Journal() {
               const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
               const on = e.date === selectedDate;
               return (
-                <button key={e.id} type="button" onClick={() => { setSelectedDate(e.date); setTab('write'); }} className={cn('rounded-lg px-2 py-1.5 text-left transition-colors', on ? 'bg-[hsl(var(--cream-accent))]/10' : 'hover:bg-[hsl(var(--cream-line))]/30')}>
+                <button key={e.id} type="button" onClick={() => openEntry(e.date)} className={cn('rounded-lg px-2 py-1.5 text-left transition-colors', on ? 'bg-[hsl(var(--cream-accent))]/10' : 'hover:bg-[hsl(var(--cream-line))]/30')}>
                   <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
                     <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: moodColor(entryMoodKey(e)) }} />
                     {dd.getMonth() + 1}월 {dd.getDate()}일 · {WEEKDAY[dd.getDay()]}
@@ -278,17 +288,56 @@ export default function Journal() {
             </button>
           </div>
 
-          {/* ── 기록 탭 ── */}
-          {tab === 'write' && (
-            <>
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <div className="text-[13px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
-                  <h1 className="text-[28px] font-bold tracking-tight">{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
+          {/* ── 기록 탭: 목록 ── */}
+          {tab === 'write' && !detailOpen && (
+            <div className="flex flex-col gap-2.5">
+              {feed.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
+                  <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
+                  <button type="button" onClick={goWriteToday} className="mt-3 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white">오늘 일기 쓰기</button>
                 </div>
+              )}
+              {feed.map((e) => {
+                const dd = new Date(`${e.date}T00:00:00`);
+                const mk = entryMoodKey(e);
+                const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
+                const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+                return (
+                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex gap-4 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35">
+                    <div className="flex h-[54px] w-[54px] shrink-0 flex-col items-center justify-center rounded-xl bg-[hsl(var(--cream-bg))]/50">
+                      <span className="text-[9.5px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
+                      <span className="text-[19px] font-bold leading-none tabular-nums">{dd.getDate()}</span>
+                      <span className="mt-0.5 text-[9px] text-[hsl(var(--cream-muted))]/70">{WEEKDAY[dd.getDay()]}</span>
+                    </div>
+                    <div className="min-w-0 flex-1 py-0.5">
+                      <div className="flex items-center gap-1.5">
+                        {mk && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: moodColor(mk) }} />}
+                        <h3 className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{t}</h3>
+                        {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
+                      </div>
+                      {ex && <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>}
+                      {(e.tags?.length ?? 0) > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">{e.tags!.slice(0, 4).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-1.5 py-0.5 text-[10px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}</div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── 기록 탭: 상세(보기/편집) ── */}
+          {tab === 'write' && detailOpen && (
+            <>
+              <div className="mb-4 flex items-center justify-between">
+                <button type="button" onClick={backToList} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[13px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]"><ChevronLeft className="h-4 w-4" /> 목록</button>
                 {selectedDate !== todayKey && (
                   <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
                 )}
+              </div>
+              <div className="mb-4">
+                <div className="text-[13px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
+                <h1 className="text-[28px] font-bold tracking-tight">{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
               </div>
 
               {!editing && current ? (
@@ -370,7 +419,7 @@ export default function Journal() {
                   const isToday = d === todayKey;
                   const dot = moodByDate.get(d);
                   return (
-                    <button key={d} type="button" onClick={() => { setSelectedDate(d); setTab('write'); }} className={cn('flex aspect-square flex-col rounded-xl border p-2 text-left transition-colors', isToday ? 'border-[hsl(var(--cream-accent))] bg-[hsl(var(--cream-accent))]/8' : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/40 hover:border-[hsl(var(--cream-accent))]/40')}>
+                    <button key={d} type="button" onClick={() => openDate(d)} className={cn('flex aspect-square flex-col rounded-xl border p-2 text-left transition-colors', isToday ? 'border-[hsl(var(--cream-accent))] bg-[hsl(var(--cream-accent))]/8' : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/40 hover:border-[hsl(var(--cream-accent))]/40')}>
                       <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/70')}>{i + 1}</span>
                       {dot && <span className="mx-auto mt-auto mb-1 h-2 w-2 rounded-full" style={{ backgroundColor: moodColor(dot) }} />}
                     </button>
