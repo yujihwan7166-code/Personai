@@ -60,8 +60,7 @@ export function FavoriteChips({
         const route =
           target.hubId === 'planner' ? '/planner' :
           target.hubId === 'wiki' ? '/wiki' :
-          target.hubId === 'memo' ? '/memos' :
-          target.hubId === 'whiteboard' ? '/whiteboard' :
+          target.hubId === 'notes' ? '/notes' :
           target.hubId === 'journal' ? '/journal' :
           target.hubId === 'cloud' ? '/cloud' : null;
         if (route) navigate(route);

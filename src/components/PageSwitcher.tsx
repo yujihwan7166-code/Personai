@@ -1,5 +1,5 @@
 /**
- * 페이지 스위처 — 통합플래너, 마이위키, 메모, 화이트보드, 일기 간 빠른 이동.
+ * 페이지 스위처 — 통합플래너, 마이위키, 일기 간 빠른 이동.
  *
  * 사용: <PageSwitcher current="planner" />
  */
@@ -16,8 +16,6 @@ import {
   Home,
   CalendarDays,
   Network,
-  FileText,
-  LayoutDashboard,
   NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
@@ -32,8 +30,6 @@ export type PageSwitcherCurrent =
   | 'home'
   | 'planner'
   | 'wiki'
-  | 'memos'
-  | 'whiteboard'
   | 'journal';
 
 interface PageSwitcherProps {
@@ -75,8 +71,6 @@ export const PageSwitcher = ({
     { key: 'home', label: '홈', icon: Home, to: '/' },
     { key: 'planner', label: '통합플래너', icon: CalendarDays, to: '/planner' },
     { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
-    { key: 'memos', label: '메모', icon: FileText, to: '/memos' },
-    { key: 'whiteboard', label: '화이트보드', icon: LayoutDashboard, to: '/whiteboard' },
     { key: 'journal', label: '일기', icon: NotebookPen, to: '/journal' },
   ];
   const activeChip = chips.find((p) => p.key === current) ?? chips[0];

@@ -28,8 +28,6 @@ interface WorkspaceSidebarSwitchButtonProps {
 const WORKSPACE_LABELS: Record<WorkspaceKey, string> = {
   planner: '통합 플래너',
   wiki: '마이위키',
-  memos: '메모',
-  whiteboard: '화이트보드',
   journal: '일기',
 };
 

@@ -23,7 +23,7 @@ import {
 } from '@/types/planner';
 
 export type AuxiliaryToolTab = 'ai' | 'planner' | 'memos' | 'wiki';
-export type AuxiliaryToolSurface = 'planner' | 'memos' | 'wiki' | 'whiteboard' | 'journal' | 'default';
+export type AuxiliaryToolSurface = 'planner' | 'memos' | 'wiki' | 'journal' | 'default';
 
 interface AuxiliaryToolItem {
   id: AuxiliaryToolTab;
@@ -54,7 +54,6 @@ const AUXILIARY_TOOLS_BY_SURFACE: Record<AuxiliaryToolSurface, AuxiliaryToolTab[
   planner: ['ai', 'memos', 'wiki'],
   memos: ['ai', 'planner', 'wiki'],
   wiki: ['ai', 'memos', 'planner'],
-  whiteboard: ['ai', 'memos', 'wiki', 'planner'],
   journal: ['ai', 'planner', 'memos', 'wiki'],
   default: ['ai', 'memos', 'wiki'],
 };

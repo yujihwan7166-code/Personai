@@ -19,8 +19,6 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Wiki = lazy(() => import("./pages/Wiki"));
 const Planner = lazy(() => import("./pages/Planner"));
-const Memos = lazy(() => import("./pages/Memos"));
-const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Cloud = lazy(() => import("./pages/Cloud"));
@@ -50,8 +48,6 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/wiki" element={<AppWorkspaceShell current="wiki"><Wiki /></AppWorkspaceShell>} />
               <Route path="/planner" element={<AppWorkspaceShell current="planner" railExtra={PLANNER_RAIL_ITEMS}><Planner /></AppWorkspaceShell>} />
-              <Route path="/memos" element={<AppWorkspaceShell current="memos"><Memos /></AppWorkspaceShell>} />
-              <Route path="/whiteboard" element={<AppWorkspaceShell current="whiteboard"><Whiteboard /></AppWorkspaceShell>} />
               <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />
               <Route path="/notes" element={<AppWorkspaceShell current="notes"><Notes /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />

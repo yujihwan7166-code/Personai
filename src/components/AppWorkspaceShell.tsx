@@ -3,12 +3,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Home,
-  LayoutDashboard,
   LayoutGrid,
   MoreHorizontal,
   Network,
   NotebookPen,
-  FileText,
   StickyNote,
   Check,
   type LucideIcon,
@@ -24,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'planner' | 'wiki' | 'memos' | 'whiteboard' | 'journal';
+export type WorkspaceKey = 'planner' | 'wiki' | 'journal';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -39,20 +37,18 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'home', label: '홈', to: '/', icon: Home },
   { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
-  { key: 'memos', label: '메모', to: '/memos', icon: FileText },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
-  { key: 'whiteboard', label: '화이트보드', to: '/whiteboard', icon: LayoutDashboard },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
 ];
 
-/* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/화이트보드/일기. */
+/* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
 
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['planner', 'wiki', 'memos', 'whiteboard'].includes(item.key),
+  ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'notes', 'journal'].includes(item.key),
+  ['home'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */

@@ -11,9 +11,8 @@
  * - 공유 함수: memoStore 의 memoTitle / memoPreview / memoTimeLabel 사용 (중복 제거)
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, ExternalLink, Folder, FolderInput, Pin, PinOff,
+  ChevronLeft, Folder, FolderInput, Pin, PinOff,
   Plus, Search, Trash2, X, Archive, ArchiveRestore, RotateCcw,
   ArrowDownAZ, Clock, Sparkles, Paperclip,
 } from 'lucide-react';
@@ -66,7 +65,6 @@ const Highlight = ({ text, query }: { text: string; query: string }) => {
 };
 
 export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
-  const navigate = useNavigate();
   const memos = useMemos();
   const folders = useFolders();
   const [view, setView] = useState<DrawerView>('list');
@@ -313,15 +311,6 @@ export const MemoDrawer = ({ open, onOpenChange }: MemoDrawerProps) => {
                   <span className="text-[10.5px] tabular-nums">{totalTrash}</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => { onOpenChange(false); navigate('/memos'); }}
-                aria-label="메모 페이지로"
-                title="메모 페이지로 (전체 보기)"
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground/55 hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </button>
             </>
           )}
 

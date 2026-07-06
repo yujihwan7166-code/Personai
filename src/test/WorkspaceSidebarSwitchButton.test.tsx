@@ -7,27 +7,27 @@ describe('WorkspaceSidebarSwitchButton', () => {
   it('uses readable Korean labels for the mode launcher', () => {
     render(
       <MemoryRouter>
-        <WorkspaceSidebarSwitchButton current="memos" contentAlign="start" />
+        <WorkspaceSidebarSwitchButton current="wiki" contentAlign="start" />
       </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 메모' });
-    expect(trigger).toHaveAttribute('title', '모드 전환: 현재 메모');
+    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 마이위키' });
+    expect(trigger).toHaveAttribute('title', '모드 전환: 현재 마이위키');
     expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveAttribute('aria-controls');
-    expect(trigger).toHaveAttribute('data-workspace-switch-current', 'memos');
+    expect(trigger).toHaveAttribute('data-workspace-switch-current', 'wiki');
     expect(trigger).toHaveClass('justify-start');
   });
 
   it('opens the floating mode launcher from workspace pages', async () => {
     render(
       <MemoryRouter>
-        <WorkspaceSidebarSwitchButton current="whiteboard" />
+        <WorkspaceSidebarSwitchButton current="planner" />
       </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 화이트보드' });
+    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 통합 플래너' });
     fireEvent.click(trigger);
 
     await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'));

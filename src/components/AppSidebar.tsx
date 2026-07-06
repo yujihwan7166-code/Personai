@@ -19,7 +19,7 @@ import {
   Sun, Moon, HelpCircle, MessageSquare, MoreHorizontal, Share2,
   FolderOpen, ChevronRight, Plus, X,
   LogOut, Shield, User, ExternalLink, Command as CommandIcon, LayoutGrid,
-  CalendarDays, Sparkles, FileText, Network,
+  CalendarDays, Sparkles, StickyNote, Network,
   Star, Bookmark, Palette, Cloud, Inbox,
   MessagesSquare, Swords, FlaskConical,
 } from 'lucide-react';
@@ -1088,7 +1088,7 @@ export function AppSidebar({
               { icon: Bot,              label: 'AI 봇',    onClick: () => { setBotBrowserCat('전체'); setShowBotBrowser(true); } },
               { icon: CalendarDays,     label: '캘린더',   onClick: () => navigate('/planner') },
               { icon: Network,          label: '위키',     onClick: () => navigate('/wiki') },
-              { icon: FileText,         label: '메모',     onClick: () => navigate('/memos') },
+              { icon: StickyNote,       label: '노트',     onClick: () => navigate('/notes') },
               {
                 icon: customSlotMeta.icon,
                 label: customSlotMeta.label,

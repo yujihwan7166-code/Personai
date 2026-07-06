@@ -2041,28 +2041,22 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     {/* 메모로 — 텍스트류 결과만 */}
                     {result.previewText && ['txt', 'md', 'csv', 'json', 'html'].includes(result.outputFormat) && (
                       memoExported ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/memos')}
-                          className="h-10 px-4 rounded-lg bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200 dark:border-violet-500/30"
+                        <span
+                          className="h-10 px-4 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-violet-200 dark:border-violet-500/30"
                         >
-                          <Pencil className="w-4 h-4" />
-                          메모 열기
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                          <Check className="w-4 h-4" />
+                          메모로 보냄
+                        </span>
                       ) : (
                         <button
                           type="button"
                           onClick={async () => {
                             const fullText = await result.blob.text();
-                            const memo = addMemo({
+                            addMemo({
                               body: `${result.fileName}\n\n${fullText}\n\n---\n출처: 파일 변환 (${selectedTask?.label ?? ''})`,
                             });
                             setMemoExported(true);
-                            notify.success('메모로 보냈어요', {
-                              duration: 3000,
-                              action: { label: '메모 열기', onClick: () => navigate(`/memos?id=${memo.id}`) },
-                            });
+                            notify.success('메모로 보냈어요', { duration: 3000 });
                           }}
                           className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
                         >

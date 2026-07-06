@@ -226,8 +226,6 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'cloud',       label: '클라우드',     desc: '문서·시트·슬라이드 편집',             emoji: '☁️', tint: 'hsl(200 75% 55%)', axis: '정리' },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',    desc: '노트·화이트보드·시트 한 곳에',        emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
-  { id: 'memo',       label: '메모',          desc: '짧은 생각 즉시',                     emoji: '✏️', tint: 'hsl(45 80% 55%)',  axis: '기록' },
-  { id: 'whiteboard', label: '화이트보드',    desc: '자유롭게 그리고 정리',                emoji: '🧩', tint: 'hsl(200 60% 55%)', axis: '기록' },
   { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
 ];
 
@@ -2168,7 +2166,7 @@ export function MainModeTabs({
                         <button
                           type="button"
                           onClick={() => {
-                            // v1 라우팅 = notes / wiki / planner / memo / journal / cloud / whiteboard. 다른 도구는 아직 no-op.
+                            // v1 라우팅 = notes / wiki / planner / journal / cloud. 다른 도구는 아직 no-op.
                             if (item.id === 'notes') {
                               setOpen(false);
                               navigate('/notes');
@@ -2178,9 +2176,6 @@ export function MainModeTabs({
                             } else if (item.id === 'planner') {
                               setOpen(false);
                               navigate('/planner');
-                            } else if (item.id === 'memo') {
-                              setOpen(false);
-                              navigate('/memos');
                             } else if (item.id === 'journal') {
                               setOpen(false);
                               navigate('/journal');
@@ -2192,9 +2187,6 @@ export function MainModeTabs({
                               import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
                                 triggerDailyBriefing();
                               });
-                            } else if (item.id === 'whiteboard') {
-                              setOpen(false);
-                              navigate('/whiteboard');
                             }
                           }}
                           role="menuitem"

@@ -22,10 +22,10 @@ function renderChrome(
 
 describe('PageWorkspaceChrome', () => {
   it('keeps workspace metadata without rendering a second page switcher', () => {
-    renderChrome({ current: 'whiteboard' });
+    renderChrome({ current: 'planner' });
 
     const chrome = document.querySelector('[data-page-workspace-chrome="true"]');
-    expect(chrome).toHaveAttribute('data-page-workspace-current', 'whiteboard');
+    expect(chrome).toHaveAttribute('data-page-workspace-current', 'planner');
     expect(chrome).toHaveAttribute('data-page-workspace-ai', 'none');
     expect(document.querySelector('[data-page-workspace-actions="true"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-page-switcher-root="mobile"]')).not.toBeInTheDocument();
@@ -35,7 +35,7 @@ describe('PageWorkspaceChrome', () => {
   it('shows one positioned AI launcher while the panel is closed', () => {
     const onOpen = vi.fn();
     renderChrome({
-      current: 'memos',
+      current: 'planner',
       ai: {
         label: 'Assistant tools',
         open: false,

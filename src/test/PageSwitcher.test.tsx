@@ -84,7 +84,7 @@ describe('PageSwitcher', () => {
     });
 
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    expect(within(menu).getByRole('button', { name: '메모' })).toHaveFocus();
+    expect(within(menu).getByRole('button', { name: '일기' })).toHaveFocus();
 
     fireEvent.keyDown(menu, { key: 'ArrowUp' });
     expect(within(menu).getByRole('button', { name: '마이위키' })).toHaveFocus();
@@ -99,21 +99,21 @@ describe('PageSwitcher', () => {
   it('closes the mobile menu when focus leaves the switcher', async () => {
     render(
       <MemoryRouter>
-        <PageSwitcher current="memos" />
+        <PageSwitcher current="planner" />
         <button type="button">외부 버튼</button>
       </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole('button', { name: /현재 메모/ });
+    const trigger = screen.getByRole('button', { name: /현재 통합플래너/ });
     fireEvent.click(trigger);
     const menu = screen.getByRole('navigation', { name: '페이지 이동 메뉴' });
 
     await waitFor(() => {
-      expect(within(menu).getByRole('button', { name: '메모' })).toHaveFocus();
+      expect(within(menu).getByRole('button', { name: '통합플래너' })).toHaveFocus();
     });
 
     const outside = screen.getByRole('button', { name: '외부 버튼' });
-    fireEvent.blur(within(menu).getByRole('button', { name: '메모' }), { relatedTarget: outside });
+    fireEvent.blur(within(menu).getByRole('button', { name: '통합플래너' }), { relatedTarget: outside });
     outside.focus();
 
     expect(screen.queryByRole('navigation', { name: '페이지 이동 메뉴' })).not.toBeInTheDocument();
