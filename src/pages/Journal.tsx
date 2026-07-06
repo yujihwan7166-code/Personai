@@ -45,6 +45,15 @@ const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY
 
 const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
+const PROMPTS = [
+  '오늘 가장 감사했던 순간은 무엇이었나요?',
+  '오늘 나를 웃게 한 건 무엇이었나요?',
+  '지금 이 순간의 기분을 색으로 표현하면?',
+  '오늘 가장 오래 남은 장면은?',
+  '내일의 나에게 한마디 남긴다면?',
+  '오늘 배운 작은 것 하나는?',
+  '지금 가장 마음이 쓰이는 것은?',
+];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
 const dateKey = (d: Date) =>
@@ -62,6 +71,7 @@ export default function Journal() {
   const [editing, setEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
   const [query, setQuery] = useState('');
+  const [promptIdx, setPromptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length));
 
   // 에디터 로컬 상태
   const [title, setTitle] = useState('');
@@ -132,6 +142,7 @@ export default function Journal() {
   const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
   const backToList = () => { setDetailOpen(false); setEditing(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
+  const applyPrompt = () => { const q = `Q. ${PROMPTS[promptIdx]}\n\n`; setBody((b) => (b.trimStart().startsWith('Q.') ? b : q + b)); };
 
   // 파생
   const recent = useMemo(() => {
@@ -168,22 +179,22 @@ export default function Journal() {
   const monthCount = allEntries.filter((e) => e.date.startsWith(monthPrefix)).length;
 
   return (
-    <div style={CREAM} className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]">
+    <div style={{ ...CREAM, fontFamily: "'Gowun Dodum', 'Pretendard', sans-serif" }} className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]">
       {/* ── 사이드바 ── */}
       <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--cream-accent))] text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[hsl(var(--cream-accent))] text-white">
             <NotebookPen className="h-[18px] w-[18px]" strokeWidth={2} />
           </span>
           <div>
-            <div className="text-[15px] font-bold leading-tight">오늘의 일기</div>
+            <div className="text-[16px] leading-tight" style={{ fontFamily: "'Jua', sans-serif" }}>오늘의 일기</div>
             <div className="text-[10.5px] uppercase tracking-wide text-[hsl(var(--cream-muted))]">daily journal</div>
           </div>
         </div>
 
-        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
+        <div className="mx-4 mb-3 flex items-center gap-3 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
           <div className="text-center leading-none">
-            <div className="text-[26px] font-extrabold text-[hsl(var(--cream-accent))]">{streak}</div>
+            <div className="text-[28px] text-[hsl(var(--cream-accent))]" style={{ fontFamily: "'Jua', sans-serif" }}>{streak}</div>
             <div className="mt-1 text-[10px] text-[hsl(var(--cream-muted))]">일 연속</div>
           </div>
           <p className="text-[11.5px] leading-snug text-[hsl(var(--cream-muted))]">
@@ -292,7 +303,7 @@ export default function Journal() {
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-2.5">
               {feed.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
+                <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
                   <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
                   <button type="button" onClick={goWriteToday} className="mt-3 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white">오늘 일기 쓰기</button>
                 </div>
@@ -303,8 +314,8 @@ export default function Journal() {
                 const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
                 const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
                 return (
-                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex gap-4 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35">
-                    <div className="flex h-[54px] w-[54px] shrink-0 flex-col items-center justify-center rounded-xl bg-[hsl(var(--cream-bg))]/50">
+                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex gap-4 rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35">
+                    <div className="flex h-[54px] w-[54px] shrink-0 flex-col items-center justify-center rounded-2xl bg-[hsl(var(--cream-bg))]/50">
                       <span className="text-[9.5px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
                       <span className="text-[19px] font-bold leading-none tabular-nums">{dd.getDate()}</span>
                       <span className="mt-0.5 text-[9px] text-[hsl(var(--cream-muted))]/70">{WEEKDAY[dd.getDay()]}</span>
@@ -337,12 +348,12 @@ export default function Journal() {
               </div>
               <div className="mb-4">
                 <div className="text-[13px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
-                <h1 className="text-[28px] font-bold tracking-tight">{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
+                <h1 className="text-[29px] tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
               </div>
 
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: MOOD_BY_KEY[moodKey].color }} />{MOOD_BY_KEY[moodKey].label}</span>
@@ -366,7 +377,18 @@ export default function Journal() {
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)]">
+                  {/* 오늘의 글감 */}
+                  <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[hsl(var(--cream-bg))]/55 px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-[hsl(var(--cream-muted))]">오늘의 글감</div>
+                      <div className="mt-0.5 text-[13.5px] font-medium text-[hsl(var(--cream-ink))]">{PROMPTS[promptIdx]}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button type="button" onClick={applyPrompt} className="rounded-full bg-[hsl(var(--cream-accent))] px-3.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90">이 질문으로</button>
+                      <button type="button" onClick={() => setPromptIdx((i) => (i + 1) % PROMPTS.length)} className="rounded-full border border-[hsl(var(--cream-line))] px-3.5 py-1.5 text-[12px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]">다른 질문</button>
+                    </div>
+                  </div>
                   <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
                   <div className="flex flex-wrap gap-2">
                     {MOODS.map((mo) => { const on = moodKey === mo.key; return (
@@ -403,7 +425,7 @@ export default function Journal() {
 
           {/* ── 달력 탭 ── */}
           {tab === 'calendar' && (
-            <div className="rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6">
+            <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6">
               <div className="mb-4 flex items-center justify-center gap-4">
                 <button type="button" onClick={() => setCalAnchor(new Date(y, m - 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="이전 달"><ChevronLeft className="h-4 w-4" /></button>
                 <span className="text-[17px] font-bold">{y}년 {m + 1}월</span>
@@ -419,7 +441,7 @@ export default function Journal() {
                   const isToday = d === todayKey;
                   const dot = moodByDate.get(d);
                   return (
-                    <button key={d} type="button" onClick={() => openDate(d)} className={cn('flex aspect-square flex-col rounded-xl border p-2 text-left transition-colors', isToday ? 'border-[hsl(var(--cream-accent))] bg-[hsl(var(--cream-accent))]/8' : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/40 hover:border-[hsl(var(--cream-accent))]/40')}>
+                    <button key={d} type="button" onClick={() => openDate(d)} className={cn('flex aspect-square flex-col rounded-2xl border p-2 text-left transition-colors', isToday ? 'border-[hsl(var(--cream-accent))] bg-[hsl(var(--cream-accent))]/8' : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/40 hover:border-[hsl(var(--cream-accent))]/40')}>
                       <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/70')}>{i + 1}</span>
                       {dot && <span className="mx-auto mt-auto mb-1 h-2 w-2 rounded-full" style={{ backgroundColor: moodColor(dot) }} />}
                     </button>
@@ -462,7 +484,7 @@ function StatsView({ entries, streak, monthCount }: { entries: JournalEntry[]; s
   for (const e of entries) for (const t of e.tags ?? []) tagFreq.set(t, (tagFreq.get(t) ?? 0) + 1);
   const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
 
-  const card = 'rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-5';
+  const card = 'rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-5';
   return (
     <div className="flex flex-col gap-4">
       {/* 4 지표 */}
