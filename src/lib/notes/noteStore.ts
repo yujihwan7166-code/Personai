@@ -1,45 +1,74 @@
 /**
- * 노트 저장소 — 재설계된 "메모+보드/위키"의 공통 substrate (1단계).
+ * 노트 저장소 — "탭 컨테이너" 모델 (재설계 A).
  *
- * 한 노트가 글(memo)과 판(board)을 모두 품는다. 이번 단계에선 글(Plate value)만 사용하고
- * board 는 자리만 만들어 둔다(2단계 tldraw). 승격·유형 등은 meta 로 확장.
+ * 한 노트가 여러 탭(item)을 품는다: 메모(Plate) · 보드(tldraw) · 시트(Fortune-sheet).
+ * 새 노트 생성 시 [메모 1 · 보드 1 · 시트 1] 자동 생성. 이후 탭 추가/제거.
  *
- * 저장 백엔드는 지금은 localStorage(간단·무의존). 나중에 IndexedDB/Yjs 로 교체하기 쉽게
- * "노트 배열 read/write" 만 이 파일 안에 가둔다.
+ * 보드 콘텐츠는 tldraw 가 persistenceKey(=tab id)로 자체 저장, 메모·시트는 여기 저장.
+ * 저장 백엔드는 localStorage(추후 IndexedDB/Yjs 교체 쉽게 격리).
  */
 import { useSyncExternalStore } from 'react';
 import type { Value } from 'platejs';
 
+export type TabType = 'memo' | 'board' | 'sheet';
+
+export interface TabItem {
+  id: string;
+  type: TabType;
+  name: string;
+  /** 메모 탭 본문 (Plate value). */
+  memo?: Value;
+  /** 시트 탭 데이터 (Fortune-sheet sheets). */
+  sheet?: unknown;
+  // 보드 탭: tldraw 가 persistenceKey=id 로 자체 저장하므로 여기 콘텐츠 없음.
+}
+
 export interface Note {
   id: string;
   title: string;
-  /** 글(메모) 본문 — Plate value. */
-  memo: Value;
-  /** 판(보드) — 2단계 tldraw 자리. 지금은 항상 null. */
-  board: null;
+  items: TabItem[];
   createdAt: number;
   updatedAt: number;
-  meta: {
-    surface: 'memo';
-    tags: string[];
-  };
+  meta: { surface: 'memo'; tags: string[] };
 }
 
 const STORAGE_KEY = 'personai.notes.v1';
 const CHANGED_EVENT = 'personai:notes-changed';
+
+const uid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 
 /** 빈 글 본문 — Plate 최소 문서(문단 1개). */
 export function emptyMemoValue(): Value {
   return [{ type: 'p', children: [{ text: '' }] }];
 }
 
+/** 새 노트의 기본 탭 3종. */
+function defaultItems(): TabItem[] {
+  return [
+    { id: uid(), type: 'memo', name: '메모 1', memo: emptyMemoValue() },
+    { id: uid(), type: 'board', name: '보드 1' },
+    { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
+  ];
+}
+
+/** 구버전({memo}) → 탭 모델 마이그레이션. */
+function migrate(raw: unknown): Note {
+  const n = raw as Note & { memo?: Value };
+  if (Array.isArray(n.items) && n.items.length > 0) return n as Note;
+  const items: TabItem[] = [
+    { id: uid(), type: 'memo', name: '메모 1', memo: n.memo ?? emptyMemoValue() },
+    { id: uid(), type: 'board', name: '보드 1' },
+    { id: uid(), type: 'sheet', name: '시트 1', sheet: null },
+  ];
+  return { ...n, items } as Note;
+}
+
 function readAll(): Note[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Note[];
-    return Array.isArray(parsed) ? parsed : [];
+    const rawList = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+    if (!Array.isArray(rawList)) return [];
+    return rawList.map(migrate);
   } catch {
     return [];
   }
@@ -49,7 +78,7 @@ function writeAll(notes: Note[]): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   } catch {
-    /* 용량 초과 등 — 조용히 무시(추후 IndexedDB 로 해결). */
+    /* 용량 초과 등 — 조용히 무시(추후 IndexedDB). */
   }
   window.dispatchEvent(new CustomEvent(CHANGED_EVENT));
 }
@@ -65,10 +94,9 @@ export function getNote(id: string): Note | undefined {
 export function createNote(): Note {
   const now = Date.now();
   const note: Note = {
-    id: (crypto.randomUUID?.() ?? String(now + Math.random())),
+    id: uid(),
     title: '',
-    memo: emptyMemoValue(),
-    board: null,
+    items: defaultItems(),
     createdAt: now,
     updatedAt: now,
     meta: { surface: 'memo', tags: [] },
@@ -77,37 +105,76 @@ export function createNote(): Note {
   return note;
 }
 
-export function updateNote(id: string, patch: Partial<Pick<Note, 'title' | 'memo'>>): void {
+function patchNote(id: string, fn: (note: Note) => Note): void {
   const notes = readAll();
   const idx = notes.findIndex((n) => n.id === id);
   if (idx === -1) return;
-  notes[idx] = { ...notes[idx], ...patch, updatedAt: Date.now() };
+  notes[idx] = { ...fn(notes[idx]), updatedAt: Date.now() };
   writeAll(notes);
+}
+
+export function updateNoteTitle(id: string, title: string): void {
+  patchNote(id, (n) => ({ ...n, title }));
+}
+
+/** 특정 탭의 콘텐츠·이름 갱신. */
+export function updateTab(noteId: string, tabId: string, patch: Partial<Pick<TabItem, 'memo' | 'sheet' | 'name'>>): void {
+  patchNote(noteId, (n) => ({
+    ...n,
+    items: n.items.map((it) => (it.id === tabId ? { ...it, ...patch } : it)),
+  }));
+}
+
+/** 탭 추가 — 같은 타입 개수+1 로 이름 자동. 새 탭 id 반환. */
+export function addTab(noteId: string, type: TabType): string {
+  const newId = uid();
+  patchNote(noteId, (n) => {
+    const count = n.items.filter((it) => it.type === type).length + 1;
+    const label = type === 'memo' ? '메모' : type === 'board' ? '보드' : '시트';
+    const item: TabItem =
+      type === 'memo'
+        ? { id: newId, type, name: `${label} ${count}`, memo: emptyMemoValue() }
+        : type === 'sheet'
+          ? { id: newId, type, name: `${label} ${count}`, sheet: null }
+          : { id: newId, type, name: `${label} ${count}` };
+    return { ...n, items: [...n.items, item] };
+  });
+  return newId;
+}
+
+/** 탭 제거 — 최소 1개는 유지. */
+export function removeTab(noteId: string, tabId: string): void {
+  patchNote(noteId, (n) => {
+    if (n.items.length <= 1) return n;
+    return { ...n, items: n.items.filter((it) => it.id !== tabId) };
+  });
 }
 
 export function deleteNote(id: string): void {
   writeAll(readAll().filter((n) => n.id !== id));
 }
 
-/** 글 본문에서 첫 텍스트를 뽑아 목록 미리보기·제목 폴백에 사용. */
-export function notePlainText(memo: Value): string {
+/** 노트 목록 미리보기·제목 폴백용 — 첫 메모 탭 텍스트. */
+export function notePlainText(note: Note): string {
+  const memoTab = note.items.find((it) => it.type === 'memo');
+  if (!memoTab?.memo) return '';
   const out: string[] = [];
   const walk = (nodes: unknown[]) => {
     for (const node of nodes) {
       if (node && typeof node === 'object') {
-        const n = node as { text?: string; children?: unknown[] };
-        if (typeof n.text === 'string') out.push(n.text);
-        if (Array.isArray(n.children)) walk(n.children);
+        const nd = node as { text?: string; children?: unknown[] };
+        if (typeof nd.text === 'string') out.push(nd.text);
+        if (Array.isArray(nd.children)) walk(nd.children);
       }
     }
   };
-  walk(memo as unknown[]);
+  walk(memoTab.memo as unknown[]);
   return out.join(' ').replace(/\s+/g, ' ').trim();
 }
 
 export function noteDisplayTitle(note: Note): string {
   if (note.title.trim()) return note.title.trim();
-  const text = notePlainText(note.memo);
+  const text = notePlainText(note);
   return text ? text.slice(0, 40) : '제목 없음';
 }
 
