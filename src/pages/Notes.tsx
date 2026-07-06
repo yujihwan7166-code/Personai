@@ -127,15 +127,23 @@ const Notes = () => {
     <div className="flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-foreground/25 bg-background sm:w-[292px]">
-        <div className="shrink-0 px-3 pt-3 pb-2.5">
-          <h1 className="truncate whitespace-nowrap text-[18px] leading-6 font-semibold tracking-tight text-foreground">
-            노트
-          </h1>
-          <div className="mt-3">
+        <div className="shrink-0 px-3 pt-4 pb-3">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <NotebookPen className="h-3.5 w-3.5" strokeWidth={2} />
+            </span>
+            <h1 className="text-[19px] font-bold tracking-tight text-foreground">노트</h1>
+            {notes.length > 0 && (
+              <span className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                {notes.length}
+              </span>
+            )}
+          </div>
+          <div>
             <button
               type="button"
               onClick={handleNew}
-              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary/10 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/15"
+              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
               title="새 노트 만들기"
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
