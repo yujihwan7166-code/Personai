@@ -9,6 +9,8 @@ import {
   NotebookPen,
   StickyNote,
   Check,
+  Sun,
+  Moon,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -123,8 +125,15 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         data-app-workspace-rail
         className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
-        {/* 홈 — 이 레일은 5개 워크스페이스에서만 뜨므로 홈은 항상 비활성(이동 전용). */}
-        <RailLink item={WORKSPACE_DESTINATIONS[0]} active={false} />
+        {/* 브랜드 P — 홈으로. 레일 상단 아이덴티티. */}
+        <NavLink
+          to="/"
+          aria-label="홈"
+          title="Personai 홈"
+          className="mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-[16px] font-bold text-primary-foreground shadow-sm transition-transform hover:scale-105"
+        >
+          P
+        </NavLink>
 
         <button
           type="button"
@@ -175,6 +184,12 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
             })}
           </>
         )}
+
+        {/* 테마 토글 — 레일 하단 고정. */}
+        <div className="mt-auto flex flex-col items-center gap-1">
+          <span aria-hidden className="mb-0.5 h-px w-6 bg-[hsl(var(--hairline))]" />
+          <RailThemeToggle />
+        </div>
       </nav>
 
       {/* 레일 밖(히든 마운트)에 메가메뉴 실체 — apiRef 로 열림 제어. */}
@@ -258,6 +273,32 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         </div>
       </nav>
     </div>
+  );
+}
+
+/** 레일 하단 다크/라이트 토글 — document.documentElement 의 .dark 클래스 + localStorage 동기화. */
+function RailThemeToggle() {
+  const [dark, setDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  );
+  const toggle = () => {
+    const root = document.documentElement;
+    const next = !dark;
+    root.classList.toggle('dark', next);
+    try { localStorage.setItem('theme', next ? 'dark' : 'light'); } catch { /* noop */ }
+    setDark(next);
+  };
+  const Icon = dark ? Sun : Moon;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={dark ? '라이트 모드로' : '다크 모드로'}
+      title={dark ? '라이트 모드' : '다크 모드'}
+      className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+    </button>
   );
 }
 
