@@ -157,6 +157,7 @@ export const journalStore = {
     starred?: boolean;
     color?: string;
     bgm?: string;
+    stickers?: JournalEntry['stickers'];
     mood?: Mood;
     date?: string;
     tags?: string[];
@@ -176,6 +177,7 @@ export const journalStore = {
       starred: input.starred,
       color: input.color,
       bgm: input.bgm,
+      stickers: input.stickers,
       body: input.body,
       mood: input.mood,
       tags: input.tags,

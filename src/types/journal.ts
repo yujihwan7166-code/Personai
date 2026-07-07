@@ -84,6 +84,15 @@ export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   night:    { label: '밤',     emoji: '🌙' },
 };
 
+/** 붙이는 스티커 — 위치는 스티커 레이어 대비 %(0~100). */
+export interface DiarySticker {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+  rot?: number;
+}
+
 /** 일기 한 항목. */
 export interface JournalEntry {
   id: string;
@@ -99,6 +108,8 @@ export interface JournalEntry {
   color?: string;
   /** 오늘의 BGM — v5 (자유 입력, 노래/무드). */
   bgm?: string;
+  /** 붙인 스티커 — v5 (다꾸). */
+  stickers?: DiarySticker[];
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
   /** 본문 형식. 미지정 = 'plain' (기본·호환성). */

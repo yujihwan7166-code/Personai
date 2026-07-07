@@ -8,14 +8,14 @@
  *   - 통계: 4 지표 + 감정 분포 + 최근 6개월 + 자주 쓴 태그.
  * 데이터는 기존 journalStore. 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, NotebookPen, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
-import { WEATHER_META, type JournalEntry, type Weather } from '@/types/journal';
+import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
 
 const CREAM: CSSProperties = {
   '--cream-bg': '37 30% 84%',
@@ -89,6 +89,8 @@ const QUESTIONS = [
 ];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
+const STICKERS = ['🌷', '✨', '🎀', '🌙', '💌', '🍰', '🐰', '⭐', '🌿', '🍓', '☕', '🫧', '💗', '🌈', '🔖', '🌼', '🦋', '🍋'];
+const sid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -116,13 +118,37 @@ export default function Journal() {
   const [color, setColor] = useState<string | null>(null);
   const [bgm, setBgm] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
+  const [stickers, setStickers] = useState<DiarySticker[]>([]);
+  const [activeSticker, setActiveSticker] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef<string | null>(null);
   const onPickPhoto = (file?: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setPhoto(reader.result as string);
     reader.readAsDataURL(file);
+  };
+  const addSticker = (emoji: string) =>
+    setStickers((p) => [...p, { id: sid(), emoji, x: 50, y: 40, rot: Math.round((Math.random() - 0.5) * 24) }]);
+  const removeSticker = (id: string) => { setStickers((p) => p.filter((s) => s.id !== id)); setActiveSticker(null); };
+  const stickerDown = (e: ReactPointerEvent, id: string) => {
+    e.stopPropagation();
+    draggingRef.current = id;
+    setActiveSticker(id);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const stickerMove = (e: ReactPointerEvent) => {
+    if (!draggingRef.current || !layerRef.current) return;
+    const r = layerRef.current.getBoundingClientRect();
+    const x = Math.max(2, Math.min(98, ((e.clientX - r.left) / r.width) * 100));
+    const y = Math.max(2, Math.min(98, ((e.clientY - r.top) / r.height) * 100));
+    setStickers((p) => p.map((s) => (s.id === draggingRef.current ? { ...s, x, y } : s)));
+  };
+  const stickerUp = (e: ReactPointerEvent) => {
+    draggingRef.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
   };
 
   const todayKey = dateKey(new Date());
@@ -140,6 +166,8 @@ export default function Journal() {
     setColor(e?.color ?? null);
     setBgm(e?.bgm ?? '');
     setPhoto(e?.images?.[0]?.src ?? null);
+    setStickers(e?.stickers ?? []);
+    setActiveSticker(null);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -153,12 +181,13 @@ export default function Journal() {
       color: color ?? undefined,
       bgm: bgm.trim() || undefined,
       images: photo ? [{ id: 'cover', src: photo }] : undefined,
+      stickers: stickers.length ? stickers : undefined,
       tags,
       starred,
       bodyFormat: 'plain' as const,
     };
     if (existing) journalStore.update(existing.id, { ...data, body });
-    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || photo || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
+    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || photo || stickers.length > 0 || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
   };
   useEffect(() => {
     if (!editing) return;
@@ -166,7 +195,7 @@ export default function Journal() {
     saveTimer.current = window.setTimeout(persist, 500);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body, moodKey, weather, color, bgm, photo, tags, editing]);
+  }, [title, body, moodKey, weather, color, bgm, photo, stickers, tags, editing]);
 
   const handleSave = () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -433,7 +462,7 @@ export default function Journal() {
 
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
+                <div className="relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -465,10 +494,17 @@ export default function Journal() {
                       <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] font-medium hover:border-[hsl(var(--cream-accent))]/40"><Pencil className="h-3.5 w-3.5" /> 편집하기</button>
                     </div>
                   </div>
+                  {stickers.length > 0 && (
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[26px]">
+                      {stickers.map((s) => (
+                        <div key={s.id} className="absolute leading-none drop-shadow-sm" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '32px' }}>{s.emoji}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
+                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined} onClick={() => setActiveSticker(null)}>
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
@@ -563,6 +599,32 @@ export default function Journal() {
                     />
                     {TAGS.filter((t) => !tags.includes(t)).map((t) => (
                       <button key={t} type="button" onClick={() => toggleTag(t)} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-1 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
+                    ))}
+                  </div>
+                  {/* 스티커 픽커 — 탭해서 붙이고, 카드 위에서 드래그로 이동 */}
+                  <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <span className="mr-1 shrink-0 text-[12px] text-[hsl(var(--cream-muted))]">스티커</span>
+                    {STICKERS.map((s) => (
+                      <button key={s} type="button" onClick={(e) => { e.stopPropagation(); addSticker(s); }} className="shrink-0 rounded-lg px-0.5 text-[20px] leading-none transition-transform hover:scale-125" title="탭해서 붙이기 (카드 위에서 드래그로 이동)">{s}</button>
+                    ))}
+                  </div>
+                  {/* 스티커 레이어 (드래그) */}
+                  <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[26px]">
+                    {stickers.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => stickerDown(e, s.id)}
+                        onPointerMove={stickerMove}
+                        onPointerUp={stickerUp}
+                        className="pointer-events-auto absolute cursor-grab select-none leading-none drop-shadow-sm active:cursor-grabbing"
+                        style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '34px', touchAction: 'none' }}
+                      >
+                        {s.emoji}
+                        {activeSticker === s.id && (
+                          <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeSticker(s.id); }} className="pointer-events-auto absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--cream-dark))] text-[11px] text-white shadow" aria-label="스티커 제거">×</button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
