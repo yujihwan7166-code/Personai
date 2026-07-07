@@ -380,9 +380,9 @@ const Wiki = () => {
       <aside
         ref={sidebarRef}
         className={cn(
-          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col',
+          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col bg-[hsl(var(--sidebar-background))]',
           isMobile
-            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] bg-background border-[hsl(var(--hairline))]'
+            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] border-[hsl(var(--hairline))]'
             : (sidebarOpen
                 ? 'w-[260px] border-[hsl(var(--hairline))]'
                 : 'w-0 border-r-0'),
@@ -497,7 +497,7 @@ const Wiki = () => {
       )}
       {!sidebarOpen && !isMobile && (
         <nav
-          className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-background flex flex-col items-center py-2 gap-1"
+          className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] flex flex-col items-center py-2 gap-1"
           aria-label="마이위키 빠른 액션"
         >
           {/* 최상단: 사이드바 펴기 → 홈화면 → 모드 전환 */}
