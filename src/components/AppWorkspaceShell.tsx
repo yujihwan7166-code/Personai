@@ -125,14 +125,18 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         data-app-workspace-rail
         className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
-        {/* 브랜드 P — 홈으로. 레일 상단 아이덴티티. */}
+        {/* 브랜드 P — 홈으로. hover 시 P → 홈 아이콘으로 크로스페이드. */}
         <NavLink
           to="/"
           aria-label="홈"
-          title="Personai 홈"
-          className="mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-[16px] font-bold text-primary-foreground shadow-sm transition-transform hover:scale-105"
+          title="홈으로"
+          className="group relative mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform duration-200 hover:scale-105"
         >
-          P
+          <span className="text-[16px] font-bold transition-all duration-200 group-hover:scale-50 group-hover:opacity-0">P</span>
+          <Home
+            className="absolute h-[18px] w-[18px] scale-50 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100"
+            strokeWidth={2.2}
+          />
         </NavLink>
 
         <button

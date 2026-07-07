@@ -231,7 +231,7 @@ const Notes = () => {
   return (
     <div className="flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
-      <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[276px]">
+      <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-[16px] font-bold tracking-tight text-foreground">올인원 노트</h1>
