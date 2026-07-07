@@ -402,7 +402,7 @@ export const NewHabitDialog = ({ open, mode, onClose }: NewHabitDialogProps) => 
           {/* 스타터 팩 — create 모드 + 제목 비어있을 때만 */}
           {mode.kind === 'create' && !title.trim() && (
             <div className="pt-1">
-              <div className="text-[11px] font-mono uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
+              <div className="text-[11px] uppercase tracking-wide text-foreground/55 font-semibold mb-1.5">
                 또는 한 번에 시작
               </div>
               <div className="flex flex-wrap gap-1.5">

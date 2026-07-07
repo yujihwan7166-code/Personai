@@ -221,7 +221,7 @@ export const PlannerCommandPalette = ({ open, onOpenChange, onAction }: Props) =
           )}
         </Command.List>
 
-        <div className="border-t border-foreground/20 px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+        <div className="border-t border-foreground/20 px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground">
           <span>↑↓ 이동  ·  ↵ 선택  ·  esc 닫기</span>
           <span>⌘K</span>
         </div>

@@ -84,7 +84,7 @@ export const ShortcutHelpDialog = ({ open, onClose }: ShortcutHelpDialogProps) =
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-2 max-h-[60vh] overflow-y-auto pr-1">
           {GROUPS.map((group) => (
             <section key={group.label} className="flex flex-col gap-1.5">
-              <h3 className="text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground font-semibold">
+              <h3 className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">
                 {group.label}
               </h3>
               <ul className="space-y-1.5">
