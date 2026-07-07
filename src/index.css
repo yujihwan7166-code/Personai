@@ -457,6 +457,13 @@
   .font-display { font-family: 'Newsreader', 'Pretendard Variable', serif; letter-spacing: -0.02em; }
   .font-mono    { font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 
+  /* 플래너는 서체를 Pretendard 로 단일화 — monospace(JetBrains Mono)·serif display(Newsreader)가
+     라벨·숫자·시각·일부 제목에서 튀어 "글씨체가 섞인" 문제를 해결. tabular-nums·자간·대문자 등
+     레이아웃 속성은 그대로 유지(font-family 만 교체). 되돌리려면 이 한 규칙만 제거. */
+  .planner-theme :is(.font-mono, .font-display) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
   /* Readable measure (본문 최대폭 — 약 68-72자) */
   .measure-prose { max-width: 68ch; }
   .measure-narrow { max-width: 54ch; }
