@@ -336,17 +336,19 @@ export default function Journal() {
       {/* ── 메인 ── */}
       <main className="min-w-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[880px] px-8 py-7">
-          {/* 탭 + 오늘 쓰기 */}
-          <div className="mb-5 flex items-center justify-between">
-            <div className="inline-flex rounded-full bg-[hsl(var(--cream-card))] p-1">
-              {([['write', '기록'], ['calendar', '달력'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
-                <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
-              ))}
+          {/* 탭 + 오늘 쓰기 — 작성/보기 상세 화면에선 숨겨 집중 */}
+          {!(tab === 'write' && detailOpen) && (
+            <div className="mb-5 flex items-center justify-between">
+              <div className="inline-flex rounded-full bg-[hsl(var(--cream-card))] p-1">
+                {([['write', '기록'], ['calendar', '달력'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
+                  <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
+                ))}
+              </div>
+              <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
+                <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
+              </button>
             </div>
-            <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
-              <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
-            </button>
-          </div>
+          )}
 
           {/* ── 기록 탭: 목록 ── */}
           {tab === 'write' && !detailOpen && (
@@ -389,15 +391,17 @@ export default function Journal() {
           {/* ── 기록 탭: 상세(보기/편집) ── */}
           {tab === 'write' && detailOpen && (
             <>
-              <div className="mb-4 flex items-center justify-between">
-                <button type="button" onClick={backToList} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[13px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]"><ChevronLeft className="h-4 w-4" /> 목록</button>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <button type="button" onClick={backToList} aria-label="목록으로" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"><ChevronLeft className="h-4 w-4" /></button>
+                  <div className="min-w-0">
+                    <div className="text-[12.5px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
+                    <h1 className="truncate text-[27px] leading-tight tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
+                  </div>
+                </div>
                 {selectedDate !== todayKey && (
-                  <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
+                  <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
                 )}
-              </div>
-              <div className="mb-4">
-                <div className="text-[13px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
-                <h1 className="text-[29px] tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
               </div>
 
               {!editing && current ? (
