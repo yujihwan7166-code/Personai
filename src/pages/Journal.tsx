@@ -44,6 +44,8 @@ const entryMoodKey = (e: JournalEntry): string | null => e.moodKey ?? (e.mood ? 
 const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY[key].color : 'hsl(var(--cream-line))');
 
 const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+const COMPANY = ['혼자', '가족', '친구', '연인'];
+const PLACE = ['집', '밖', '회사', '여행'];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const PROMPTS = [
   '오늘 가장 감사했던 순간은 무엇이었나요?',
@@ -80,6 +82,8 @@ export default function Journal() {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [starred, setStarred] = useState(false);
+  const [company, setCompany] = useState<string | null>(null);
+  const [place, setPlace] = useState<string | null>(null);
 
   const todayKey = dateKey(new Date());
   const current = journalStore.listByDate(selectedDate)[0] as JournalEntry | undefined;
@@ -93,6 +97,8 @@ export default function Journal() {
     setWeather(e?.weather ?? null);
     setTags(e?.tags ?? []);
     setStarred(e?.starred ?? false);
+    setCompany(e?.company ?? null);
+    setPlace(e?.place ?? null);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -103,12 +109,14 @@ export default function Journal() {
       title: title.trim() || undefined,
       moodKey: moodKey ?? undefined,
       weather: weather ?? undefined,
+      company: company ?? undefined,
+      place: place ?? undefined,
       tags,
       starred,
       bodyFormat: 'plain' as const,
     };
     if (existing) journalStore.update(existing.id, { ...data, body });
-    else if (body.trim() || title.trim() || moodKey || weather || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
+    else if (body.trim() || title.trim() || moodKey || weather || company || place || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
   };
   useEffect(() => {
     if (!editing) return;
@@ -116,7 +124,7 @@ export default function Journal() {
     saveTimer.current = window.setTimeout(persist, 500);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body, moodKey, weather, tags, editing]);
+  }, [title, body, moodKey, weather, company, place, tags, editing]);
 
   const handleSave = () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -359,6 +367,8 @@ export default function Journal() {
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: MOOD_BY_KEY[moodKey].color }} />{MOOD_BY_KEY[moodKey].label}</span>
                     )}
                     {weather && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">{WEATHER_META[weather].emoji} {WEATHER_META[weather].label}</span>}
+                    {company && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">🧑‍🤝‍🧑 {company}</span>}
+                    {place && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">📍 {place}</span>}
                   </div>
                   {title && <h2 className="mt-4 text-[22px] font-bold">{title}</h2>}
                   <p className="mt-3 whitespace-pre-wrap text-[14px] leading-[1.9] text-[hsl(var(--cream-ink))]/90">{body || '(내용 없음)'}</p>
@@ -389,21 +399,47 @@ export default function Journal() {
                       <button type="button" onClick={() => setPromptIdx((i) => (i + 1) % PROMPTS.length)} className="rounded-full border border-[hsl(var(--cream-line))] px-3.5 py-1.5 text-[12px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]">다른 질문</button>
                     </div>
                   </div>
-                  <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
-                  <div className="flex flex-wrap gap-2">
-                    {MOODS.map((mo) => { const on = moodKey === mo.key; return (
-                      <button key={mo.key} type="button" onClick={() => setMoodKey(on ? null : mo.key)} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}
-                      </button>
-                    ); })}
-                  </div>
-                  <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">날씨</div>
-                  <div className="flex flex-wrap gap-2">
-                    {WEATHERS.map((w) => { const on = weather === w; return (
-                      <button key={w} type="button" onClick={() => setWeather(on ? null : w)} className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
-                        <span aria-hidden>{WEATHER_META[w].emoji}</span>{WEATHER_META[w].label}
-                      </button>
-                    ); })}
+                  <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
+                    {/* 오늘의 기분 */}
+                    <div>
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
+                      <div className="flex flex-wrap gap-2">
+                        {MOODS.map((mo) => { const on = moodKey === mo.key; return (
+                          <button key={mo.key} type="button" onClick={() => setMoodKey(on ? null : mo.key)} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}
+                          </button>
+                        ); })}
+                      </div>
+                    </div>
+                    {/* 누구와 */}
+                    <div>
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">누구와</div>
+                      <div className="flex flex-wrap gap-2">
+                        {COMPANY.map((c) => { const on = company === c; return (
+                          <button key={c} type="button" onClick={() => setCompany(on ? null : c)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>{c}</button>
+                        ); })}
+                      </div>
+                    </div>
+                    {/* 날씨 */}
+                    <div>
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">날씨</div>
+                      <div className="flex flex-wrap gap-2">
+                        {WEATHERS.map((w) => { const on = weather === w; return (
+                          <button key={w} type="button" onClick={() => setWeather(on ? null : w)} className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
+                            <span aria-hidden>{WEATHER_META[w].emoji}</span>{WEATHER_META[w].label}
+                          </button>
+                        ); })}
+                      </div>
+                    </div>
+                    {/* 어디서 */}
+                    <div>
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">어디서</div>
+                      <div className="flex flex-wrap gap-2">
+                        {PLACE.map((pl) => { const on = place === pl; return (
+                          <button key={pl} type="button" onClick={() => setPlace(on ? null : pl)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>{pl}</button>
+                        ); })}
+                      </div>
+                    </div>
                   </div>
                   <hr className="my-5 border-[hsl(var(--cream-line))]" />
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />

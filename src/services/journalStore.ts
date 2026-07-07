@@ -155,6 +155,8 @@ export const journalStore = {
     title?: string;
     moodKey?: string;
     starred?: boolean;
+    company?: string;
+    place?: string;
     mood?: Mood;
     date?: string;
     tags?: string[];
@@ -172,6 +174,8 @@ export const journalStore = {
       title: input.title,
       moodKey: input.moodKey,
       starred: input.starred,
+      company: input.company,
+      place: input.place,
       body: input.body,
       mood: input.mood,
       tags: input.tags,
