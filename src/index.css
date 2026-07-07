@@ -300,6 +300,15 @@
    * 철학: Things3 따뜻함 유지하되 정보 밀도와 공존하도록
    *   채도 한 단계 낮추고, violet 액센트로 선택 상태를 명확하게 강조.
    * ────────────────────────────────────────────────────────────────── */
+
+  /* 플래너 UI 제목은 산세리프(Pretendard)로 — 전역 h1~h3 세리프(Newsreader) 규칙 무효화.
+     Newsreader엔 한글 글리프가 없어 "7월 6일"의 숫자만 세리프로 튀는 혼합을 방지.
+     세리프는 히어로·일기·브리핑 등 의도된 곳에만 남긴다. */
+  .planner-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
   .planner-theme {
     /* Page background — 따뜻한 sage-cream, 현재보다 살짝 차분 */
     --background: 42 28% 96%;
