@@ -375,23 +375,33 @@ export default function Journal() {
                 const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
                 const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
                 return (
-                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex gap-4 rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35">
-                    <div className="flex h-[54px] w-[54px] shrink-0 flex-col items-center justify-center rounded-2xl bg-[hsl(var(--cream-bg))]/50">
+                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex items-stretch gap-4 rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 7%, #f2ecdf)` } : undefined}>
+                    <div className="flex h-[58px] w-[54px] shrink-0 flex-col items-center justify-center rounded-2xl bg-[hsl(var(--cream-bg))]/55">
                       <span className="text-[9.5px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
-                      <span className="text-[19px] font-bold leading-none tabular-nums">{dd.getDate()}</span>
+                      <span className="text-[20px] font-bold leading-none tabular-nums" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
                       <span className="mt-0.5 text-[9px] text-[hsl(var(--cream-muted))]/70">{WEEKDAY[dd.getDay()]}</span>
                     </div>
                     <div className="min-w-0 flex-1 py-0.5">
                       <div className="flex items-center gap-1.5">
-                        {mk && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: moodColor(mk) }} />}
+                        {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[16px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
                         <h3 className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{t}</h3>
+                        {e.weather && <span className="shrink-0 text-[13px] opacity-70">{WEATHER_META[e.weather].emoji}</span>}
                         {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
                       </div>
-                      {ex && <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>}
+                      {ex ? (
+                        <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>
+                      ) : (
+                        <p className="mt-1 text-[12.5px] italic text-[hsl(var(--cream-muted))]/60">기록만 남긴 하루</p>
+                      )}
                       {(e.tags?.length ?? 0) > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">{e.tags!.slice(0, 4).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-1.5 py-0.5 text-[10px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}</div>
                       )}
                     </div>
+                    {e.images?.[0] && (
+                      <div className="hidden h-[62px] w-[62px] shrink-0 self-center overflow-hidden rounded-2xl border border-white/70 shadow-sm sm:block">
+                        <img src={e.images[0].src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -423,7 +433,7 @@ export default function Journal() {
 
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 12%, #f2ecdf)` } : undefined}>
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -458,7 +468,7 @@ export default function Journal() {
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 12%, #f2ecdf)` } : undefined}>
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
