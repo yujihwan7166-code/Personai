@@ -155,7 +155,7 @@ export const journalStore = {
     title?: string;
     moodKey?: string;
     starred?: boolean;
-    battery?: string;
+    color?: string;
     bgm?: string;
     mood?: Mood;
     date?: string;
@@ -174,7 +174,7 @@ export const journalStore = {
       title: input.title,
       moodKey: input.moodKey,
       starred: input.starred,
-      battery: input.battery,
+      color: input.color,
       bgm: input.bgm,
       body: input.body,
       mood: input.mood,

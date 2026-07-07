@@ -44,7 +44,7 @@ const entryMoodKey = (e: JournalEntry): string | null => e.moodKey ?? (e.mood ? 
 const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY[key].color : 'hsl(var(--cream-line))');
 
 const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
-const ENERGY = ['방전', '보통', '충전', '풀충전'];
+const COLORS = ['#e0876b', '#e3b45c', '#8faf83', '#7fa9bd', '#a98bb0', '#b98f74'];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const PROMPTS = [
   '오늘 가장 감사했던 순간은 무엇이었나요?',
@@ -81,7 +81,7 @@ export default function Journal() {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [starred, setStarred] = useState(false);
-  const [battery, setBattery] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
   const [bgm, setBgm] = useState('');
   const [tagDraft, setTagDraft] = useState('');
 
@@ -97,7 +97,7 @@ export default function Journal() {
     setWeather(e?.weather ?? null);
     setTags(e?.tags ?? []);
     setStarred(e?.starred ?? false);
-    setBattery(e?.battery ?? null);
+    setColor(e?.color ?? null);
     setBgm(e?.bgm ?? '');
   }, [selectedDate, allEntries.length]);
 
@@ -109,14 +109,14 @@ export default function Journal() {
       title: title.trim() || undefined,
       moodKey: moodKey ?? undefined,
       weather: weather ?? undefined,
-      battery: battery ?? undefined,
+      color: color ?? undefined,
       bgm: bgm.trim() || undefined,
       tags,
       starred,
       bodyFormat: 'plain' as const,
     };
     if (existing) journalStore.update(existing.id, { ...data, body });
-    else if (body.trim() || title.trim() || moodKey || weather || battery || bgm.trim() || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
+    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
   };
   useEffect(() => {
     if (!editing) return;
@@ -124,7 +124,7 @@ export default function Journal() {
     saveTimer.current = window.setTimeout(persist, 500);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body, moodKey, weather, battery, bgm, tags, editing]);
+  }, [title, body, moodKey, weather, color, bgm, tags, editing]);
 
   const handleSave = () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -375,7 +375,7 @@ export default function Journal() {
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: MOOD_BY_KEY[moodKey].color }} />{MOOD_BY_KEY[moodKey].label}</span>
                     )}
                     {weather && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">{WEATHER_META[weather].emoji} {WEATHER_META[weather].label}</span>}
-                    {battery && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">🔋 {battery}</span>}
+                    {color && <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />오늘의 컬러</span>}
                     {bgm && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">🎧 {bgm}</span>}
                   </div>
                   {title && <h2 className="mt-4 text-[22px] font-bold">{title}</h2>}
@@ -425,12 +425,12 @@ export default function Journal() {
                         ); })}
                       </div>
                     </div>
-                    {/* 오늘의 에너지 */}
+                    {/* 오늘의 컬러 */}
                     <div>
-                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 에너지</div>
-                      <div className="flex flex-wrap gap-2">
-                        {ENERGY.map((c) => { const on = battery === c; return (
-                          <button key={c} type="button" onClick={() => setBattery(on ? null : c)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>{c}</button>
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 컬러</div>
+                      <div className="flex flex-wrap items-center gap-2.5 py-1">
+                        {COLORS.map((c) => { const on = color === c; return (
+                          <button key={c} type="button" onClick={() => setColor(on ? null : c)} aria-label={`컬러 ${c}`} className={cn('h-7 w-7 rounded-full transition-transform', on ? 'scale-110 ring-2 ring-[hsl(var(--cream-ink))]/35 ring-offset-2 ring-offset-[hsl(var(--cream-card))]' : 'hover:scale-105')} style={{ backgroundColor: c }} />
                         ); })}
                       </div>
                     </div>

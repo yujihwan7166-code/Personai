@@ -92,8 +92,8 @@ export interface JournalEntry {
   moodKey?: string;
   /** 즐겨찾기 — v5. */
   starred?: boolean;
-  /** 오늘의 에너지 — v5 (방전/보통/충전/풀충전, 단일). */
-  battery?: string;
+  /** 오늘의 컬러 — v5 (감성 스와치 hex, 단일). */
+  color?: string;
   /** 오늘의 BGM — v5 (자유 입력, 노래/무드). */
   bgm?: string;
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
