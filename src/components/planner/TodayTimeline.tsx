@@ -1174,15 +1174,15 @@ export const TodayTimeline = ({
               title={isTaskPanelOpen === false ? '타임라인 제목을 눌러 목록 펼치기' : '타임라인 제목을 눌러 목록 접기'}
               className="group -ml-1 inline-flex h-6 min-w-0 items-center gap-2 rounded-md px-1.5 text-foreground/90 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              <CalendarDays className="h-3.5 w-3.5" strokeWidth={2.2} />
-              <span className="truncate text-[13px] font-bold uppercase leading-none tracking-normal">
+              <CalendarDays className="h-4 w-4 text-foreground/70" strokeWidth={2} />
+              <span className="truncate text-[13.5px] font-semibold leading-none tracking-tight">
                 타임라인
               </span>
             </button>
           ) : (
             <>
-              <CalendarDays className="h-4 w-4 text-foreground/85" strokeWidth={2.2} />
-              <span className="truncate text-[13px] font-bold uppercase leading-none tracking-normal text-foreground/90">
+              <CalendarDays className="h-4 w-4 text-foreground/70" strokeWidth={2} />
+              <span className="truncate text-[13.5px] font-semibold leading-none tracking-tight text-foreground">
                 타임라인
               </span>
             </>

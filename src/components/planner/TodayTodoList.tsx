@@ -228,12 +228,12 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
       )}
     >
       <div className="shrink-0 flex items-center gap-2 px-0.5 pb-1.5 mb-1.5 border-b border-foreground/[0.14]">
-        <ListTodo className="h-4 w-4 text-foreground/85" strokeWidth={2.2} />
-        <span className="text-[13px] font-bold tracking-[0.03em] uppercase text-foreground/90 leading-none">
+        <ListTodo className="h-4 w-4 text-foreground/70" strokeWidth={2} />
+        <span className="text-[13.5px] font-semibold tracking-tight text-foreground leading-none">
           할 일
         </span>
         {planned.length > 0 && (
-          <span className="text-[12.5px] tabular-nums text-foreground/75 font-semibold">{planned.length}</span>
+          <span className="text-[12px] tabular-nums text-muted-foreground font-semibold">{planned.length}</span>
         )}
         <button
           type="button"

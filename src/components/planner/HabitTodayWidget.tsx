@@ -58,11 +58,11 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
       <button
         type="button"
         onClick={onOpenAll}
-        className="w-full px-1.5 mb-1 flex items-center gap-1.5 text-[12px] font-semibold tracking-tight text-foreground/85 hover:text-primary transition-colors"
+        className="w-full px-1.5 mb-1 flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground hover:text-primary transition-colors"
       >
-        <Repeat className="h-3 w-3" strokeWidth={2} />
+        <Repeat className="h-3.5 w-3.5 text-foreground/70" strokeWidth={2} />
         오늘의 습관
-        <span className="ml-auto text-[11px] font-mono tabular-nums text-foreground/55 font-semibold">
+        <span className="ml-auto text-[12px] tabular-nums text-muted-foreground font-semibold">
           {completed}/{todayHabits.length}
         </span>
       </button>
@@ -98,7 +98,7 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
                     {h.title}
                   </span>
                   {tpd > 1 && (
-                    <span className="text-[11px] font-mono tabular-nums text-foreground/65 font-semibold shrink-0">
+                    <span className="text-[11px] tabular-nums text-muted-foreground font-semibold shrink-0">
                       {ci?.count ?? 0}/{tpd}
                     </span>
                   )}

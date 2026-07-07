@@ -98,12 +98,12 @@ export const PlannerDday = () => {
   return (
     <section ref={sectionRef} className="px-1">
       <div className="flex items-center gap-1.5 px-1.5 mb-1">
-        <Flag className="h-3 w-3 text-foreground/55" />
-        <span className="text-[12.5px] font-semibold text-foreground/85 tracking-tight">
+        <Flag className="h-3.5 w-3.5 text-foreground/70" />
+        <span className="text-[13px] font-semibold text-foreground tracking-tight">
           디데이
         </span>
         {items.length > 0 && (
-          <span className="text-[10.5px] tabular-nums text-foreground/55">{items.length}</span>
+          <span className="text-[12px] tabular-nums text-muted-foreground font-semibold">{items.length}</span>
         )}
         <button
           type="button"
