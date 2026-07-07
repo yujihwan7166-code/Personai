@@ -46,15 +46,6 @@ const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY
 const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
 const COLORS = ['#e0876b', '#e3b45c', '#8faf83', '#7fa9bd', '#a98bb0', '#b98f74'];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
-const PROMPTS = [
-  '오늘 가장 감사했던 순간은 무엇이었나요?',
-  '오늘 나를 웃게 한 건 무엇이었나요?',
-  '지금 이 순간의 기분을 색으로 표현하면?',
-  '오늘 가장 오래 남은 장면은?',
-  '내일의 나에게 한마디 남긴다면?',
-  '오늘 배운 작은 것 하나는?',
-  '지금 가장 마음이 쓰이는 것은?',
-];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
 const dateKey = (d: Date) =>
@@ -72,7 +63,6 @@ export default function Journal() {
   const [editing, setEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
   const [query, setQuery] = useState('');
-  const [promptIdx, setPromptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length));
 
   // 에디터 로컬 상태
   const [title, setTitle] = useState('');
@@ -151,7 +141,6 @@ export default function Journal() {
   const backToList = () => { setDetailOpen(false); setEditing(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
   const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
-  const applyPrompt = () => { const q = `Q. ${PROMPTS[promptIdx]}\n\n`; setBody((b) => (b.trimStart().startsWith('Q.') ? b : q + b)); };
 
   // 파생
   const recent = useMemo(() => {
@@ -396,17 +385,6 @@ export default function Journal() {
               ) : (
                 /* 에디터 */
                 <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)]">
-                  {/* 오늘의 글감 */}
-                  <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[hsl(var(--cream-bg))]/55 px-4 py-3">
-                    <div className="min-w-0">
-                      <div className="text-[11px] text-[hsl(var(--cream-muted))]">오늘의 글감</div>
-                      <div className="mt-0.5 text-[13.5px] font-medium text-[hsl(var(--cream-ink))]">{PROMPTS[promptIdx]}</div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button type="button" onClick={applyPrompt} className="rounded-full bg-[hsl(var(--cream-accent))] px-3.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90">이 질문으로</button>
-                      <button type="button" onClick={() => setPromptIdx((i) => (i + 1) % PROMPTS.length)} className="rounded-full border border-[hsl(var(--cream-line))] px-3.5 py-1.5 text-[12px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]">다른 질문</button>
-                    </div>
-                  </div>
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
