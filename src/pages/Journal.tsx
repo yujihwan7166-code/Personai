@@ -397,7 +397,7 @@ export default function Journal() {
                   <div className="min-w-0">
                     <h1 className="flex items-baseline gap-2 truncate text-[27px] leading-tight tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>
                       {sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일
-                      <span className="text-[15px] font-normal text-[hsl(var(--cream-muted))]" style={{ fontFamily: "'Gowun Dodum', sans-serif" }}>{WEEKDAY[sel.getDay()]}요일</span>
+                      <span className="text-[24px] text-[hsl(var(--cream-ink))]/55">{WEEKDAY[sel.getDay()]}요일</span>
                     </h1>
                   </div>
                 </div>
