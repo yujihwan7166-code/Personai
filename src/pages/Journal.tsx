@@ -120,6 +120,9 @@ export default function Journal() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [stickers, setStickers] = useState<DiarySticker[]>([]);
   const [activeSticker, setActiveSticker] = useState<string | null>(null);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panelDragRef = useRef<{ dx: number; dy: number } | null>(null);
   const [tagDraft, setTagDraft] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
@@ -150,6 +153,27 @@ export default function Journal() {
     draggingRef.current = null;
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
   };
+  const openStickerPanel = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (stickerOpen) { setStickerOpen(false); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const w = 236, h = 200;
+    setPanelPos({ x: Math.max(12, r.right - w), y: Math.max(12, r.top - h - 8) });
+    setStickerOpen(true);
+  };
+  const panelDown = (e: ReactPointerEvent) => {
+    e.stopPropagation();
+    panelDragRef.current = { dx: e.clientX - panelPos.x, dy: e.clientY - panelPos.y };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const panelMove = (e: ReactPointerEvent) => {
+    if (!panelDragRef.current) return;
+    setPanelPos({ x: e.clientX - panelDragRef.current.dx, y: e.clientY - panelDragRef.current.dy });
+  };
+  const panelUp = (e: ReactPointerEvent) => {
+    panelDragRef.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+  };
 
   const todayKey = dateKey(new Date());
   const current = journalStore.listByDate(selectedDate)[0] as JournalEntry | undefined;
@@ -168,6 +192,7 @@ export default function Journal() {
     setPhoto(e?.images?.[0]?.src ?? null);
     setStickers(e?.stickers ?? []);
     setActiveSticker(null);
+    setStickerOpen(false);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -219,7 +244,7 @@ export default function Journal() {
   const goWriteToday = () => { setSelectedDate(todayKey); setCalAnchor(new Date()); setEditing(true); setDetailOpen(true); setTab('write'); };
   const openEntry = (date: string) => { setSelectedDate(date); setEditing(false); setDetailOpen(true); setTab('write'); };
   const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
-  const backToList = () => { setDetailOpen(false); setEditing(false); };
+  const backToList = () => { setDetailOpen(false); setEditing(false); setStickerOpen(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
   const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
 
@@ -601,13 +626,8 @@ export default function Journal() {
                       <button key={t} type="button" onClick={() => toggleTag(t)} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-1 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
                     ))}
                   </div>
-                  {/* 스티커 픽커 — 탭해서 붙이고, 카드 위에서 드래그로 이동 */}
-                  <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <span className="mr-1 shrink-0 text-[12px] text-[hsl(var(--cream-muted))]">스티커</span>
-                    {STICKERS.map((s) => (
-                      <button key={s} type="button" onClick={(e) => { e.stopPropagation(); addSticker(s); }} className="shrink-0 rounded-lg px-0.5 text-[20px] leading-none transition-transform hover:scale-125" title="탭해서 붙이기 (카드 위에서 드래그로 이동)">{s}</button>
-                    ))}
-                  </div>
+                  {/* 스티커 트리거 — 구석 플로팅 버튼 */}
+                  <button type="button" onPointerDown={openStickerPanel} className={cn('absolute bottom-4 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full text-[19px] shadow-lg transition-transform hover:scale-105', stickerOpen ? 'bg-[hsl(var(--cream-accent))] text-white' : 'bg-[hsl(var(--cream-dark))] text-white')} title="스티커" aria-label="스티커 붙이기">🎀</button>
                   {/* 스티커 레이어 (드래그) */}
                   <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[26px]">
                     {stickers.map((s) => (
@@ -627,6 +647,20 @@ export default function Journal() {
                       </div>
                     ))}
                   </div>
+                  {/* 플로팅 스티커 패널 — 헤더 드래그로 이동 */}
+                  {stickerOpen && (
+                    <div className="fixed z-40 w-[236px] overflow-hidden rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] shadow-2xl" style={{ left: panelPos.x, top: panelPos.y }}>
+                      <div onPointerDown={panelDown} onPointerMove={panelMove} onPointerUp={panelUp} className="flex cursor-grab items-center justify-between border-b border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/60 px-3 py-2 active:cursor-grabbing" style={{ touchAction: 'none' }}>
+                        <span className="select-none text-[11.5px] font-semibold text-[hsl(var(--cream-muted))]">🎀 스티커 · 드래그로 이동</span>
+                        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => setStickerOpen(false)} className="text-[15px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]" aria-label="닫기">×</button>
+                      </div>
+                      <div className="grid grid-cols-6 gap-1 p-2.5">
+                        {STICKERS.map((s) => (
+                          <button key={s} type="button" onClick={() => addSticker(s)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[20px] leading-none transition-transform hover:scale-110 hover:bg-[hsl(var(--cream-line))]/30" title="붙이기">{s}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
