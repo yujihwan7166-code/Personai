@@ -276,6 +276,11 @@ export default function Journal() {
     for (const e of allEntries) { const k = entryMoodKey(e); if (k && !map.has(e.date)) map.set(e.date, k); }
     return map;
   }, [allEntries]);
+  const dayMeta = useMemo(() => {
+    const map = new Map<string, { moodKey: string | null; color?: string; weather?: Weather }>();
+    for (const e of allEntries) { if (map.has(e.date)) continue; map.set(e.date, { moodKey: entryMoodKey(e), color: e.color, weather: e.weather }); }
+    return map;
+  }, [allEntries]);
   const monthDist = useMemo(() => {
     const p = `${todayKey.slice(0, 7)}`;
     const dist = new Map<string, number>();
@@ -726,17 +731,28 @@ export default function Journal() {
                 {Array.from({ length: daysIn }, (_, i) => {
                   const d = dateKey(new Date(y, m, i + 1));
                   const isToday = d === todayKey;
-                  const dot = moodByDate.get(d);
+                  const meta = dayMeta.get(d);
+                  const mood = meta?.moodKey ? MOOD_BY_KEY[meta.moodKey] : undefined;
                   return (
-                    <button key={d} type="button" onClick={() => openDate(d)} className={cn('flex aspect-square flex-col rounded-2xl border p-2 text-left transition-colors', isToday ? 'border-[hsl(var(--cream-accent))] bg-[hsl(var(--cream-accent))]/8' : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/40 hover:border-[hsl(var(--cream-accent))]/40')}>
-                      <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/70')}>{i + 1}</span>
-                      {dot && <span className="mx-auto mt-auto mb-1 h-2 w-2 rounded-full" style={{ backgroundColor: moodColor(dot) }} />}
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => openDate(d)}
+                      className={cn('relative flex aspect-square flex-col rounded-2xl border p-2 text-left transition-all hover:border-[hsl(var(--cream-accent))]/45', isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]')}
+                      style={{ backgroundColor: meta?.color ? `color-mix(in srgb, ${meta.color} 22%, #f8f3ea)` : 'hsl(var(--cream-bg) / 0.4)' }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65')}>{i + 1}</span>
+                        {meta?.weather && <span className="text-[12px] leading-none opacity-80">{WEATHER_META[meta.weather].emoji}</span>}
+                      </div>
+                      {mood && <span className="mx-auto mb-0.5 mt-auto text-[22px] leading-none">{mood.emoji}</span>}
                     </button>
                   );
                 })}
               </div>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] pt-4 text-[11px] text-[hsl(var(--cream-muted))]">
-                {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}</span>)}
+                {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[4px] bg-[color-mix(in_srgb,#e0876b_35%,#f8f3ea)]" />칸 배경 = 오늘의 컬러</span>
               </div>
             </div>
           )}
