@@ -30,12 +30,12 @@ const CREAM: CSSProperties = {
 
 /** 감정 6종 — named key + 라벨 + 컬러. */
 const MOODS = [
-  { key: 'happy',   label: '행복', color: 'hsl(35 85% 55%)' },
-  { key: 'flutter', label: '설렘', color: 'hsl(340 55% 68%)' },
-  { key: 'calm',    label: '평온', color: 'hsl(145 40% 50%)' },
-  { key: 'blue',    label: '우울', color: 'hsl(215 50% 60%)' },
-  { key: 'tired',   label: '지침', color: 'hsl(30 8% 58%)' },
-  { key: 'angry',   label: '화남', color: 'hsl(5 60% 56%)' },
+  { key: 'happy',   label: '행복', emoji: '😄', color: 'hsl(35 85% 55%)' },
+  { key: 'flutter', label: '설렘', emoji: '🥰', color: 'hsl(340 55% 68%)' },
+  { key: 'calm',    label: '평온', emoji: '😌', color: 'hsl(145 40% 50%)' },
+  { key: 'blue',    label: '우울', emoji: '😔', color: 'hsl(215 50% 60%)' },
+  { key: 'tired',   label: '지침', emoji: '😩', color: 'hsl(30 8% 58%)' },
+  { key: 'angry',   label: '화남', emoji: '😤', color: 'hsl(5 60% 56%)' },
 ] as const;
 const MOOD_BY_KEY = Object.fromEntries(MOODS.map((m) => [m.key, m]));
 /** legacy mood(1-5) → 감정 키. */
@@ -361,7 +361,7 @@ export default function Journal() {
                 <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: MOOD_BY_KEY[moodKey].color }} />{MOOD_BY_KEY[moodKey].label}</span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
                     )}
                     {weather && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">{WEATHER_META[weather].emoji} {WEATHER_META[weather].label}</span>}
                     {color && <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />오늘의 컬러</span>}
@@ -388,17 +388,22 @@ export default function Journal() {
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
-                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">
+                        오늘의 기분
+                        {moodKey && MOOD_BY_KEY[moodKey] && <span className="ml-1 font-semibold text-[hsl(var(--cream-ink))]">· {MOOD_BY_KEY[moodKey].label}</span>}
+                      </div>
+                      <div className="flex gap-2">
                         {MOODS.map((mo) => { const on = moodKey === mo.key; return (
                           <button
                             key={mo.key}
                             type="button"
+                            title={mo.label}
+                            aria-label={mo.label}
                             onClick={() => setMoodKey(on ? null : mo.key)}
-                            className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-all', on ? 'font-semibold shadow-sm' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}
-                            style={on ? { backgroundColor: `color-mix(in srgb, ${mo.color} 20%, transparent)`, borderColor: `color-mix(in srgb, ${mo.color} 55%, transparent)` } : undefined}
+                            className={cn('flex h-11 w-11 items-center justify-center rounded-full border text-[22px] leading-none transition-all', on ? 'scale-110 shadow-sm' : 'opacity-70 grayscale-[0.25] hover:scale-105 hover:opacity-100')}
+                            style={on ? { backgroundColor: `color-mix(in srgb, ${mo.color} 22%, transparent)`, borderColor: `color-mix(in srgb, ${mo.color} 55%, transparent)` } : { borderColor: 'hsl(var(--cream-line))' }}
                           >
-                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}
+                            {mo.emoji}
                           </button>
                         ); })}
                       </div>
