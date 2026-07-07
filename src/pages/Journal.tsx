@@ -43,8 +43,50 @@ const LEGACY_MOOD: Record<number, string> = { 5: 'happy', 4: 'calm', 3: 'tired',
 const entryMoodKey = (e: JournalEntry): string | null => e.moodKey ?? (e.mood ? LEGACY_MOOD[e.mood] : null);
 const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY[key].color : 'hsl(var(--cream-line))');
 
-const WEATHERS: Weather[] = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
+const WEATHERS: Weather[] = ['sunny', 'cloudy', 'overcast', 'rainy', 'stormy', 'snowy', 'windy', 'foggy', 'rainbow', 'night'];
 const COLORS = ['#e0876b', '#e3b45c', '#8faf83', '#7fa9bd', '#a98bb0', '#b98f74'];
+const QUESTIONS = [
+  '오늘 가장 감사했던 순간은?',
+  '오늘 나를 웃게 한 건 무엇이었나요?',
+  '지금 이 순간의 기분을 색으로 표현하면?',
+  '오늘 가장 오래 남은 장면은?',
+  '내일의 나에게 한마디 남긴다면?',
+  '오늘 배운 작은 것 하나는?',
+  '지금 가장 마음이 쓰이는 것은?',
+  '오늘 누군가에게 고마웠던 일이 있나요?',
+  '오늘의 나에게 점수를 준다면 몇 점?',
+  '오늘 가장 맛있게 먹은 것은?',
+  '오늘 들은 말 중 기억에 남는 한마디는?',
+  '요즘 자주 떠오르는 생각은?',
+  '오늘 하루를 한 단어로 표현하면?',
+  '최근 가장 크게 웃었던 순간은?',
+  '오늘 나를 힘들게 한 건 무엇이었나요?',
+  '지금 가장 하고 싶은 것은?',
+  '오늘 발견한 작은 행복은?',
+  '요즘 나를 설레게 하는 것은?',
+  '오늘 스스로를 칭찬한다면?',
+  '지금 곁에 있는 사람에게 하고 싶은 말은?',
+  '오늘 놓치고 싶지 않은 장면은?',
+  '최근에 새로 알게 된 것은?',
+  '오늘 가장 편안했던 순간은?',
+  '지금 내 마음의 날씨는?',
+  '오늘 하루 중 다시 돌아가고 싶은 시간은?',
+  '요즘 가장 자주 듣는 노래는?',
+  '오늘 나에게 필요한 위로 한마디는?',
+  '최근 도전해보고 싶어진 것은?',
+  '오늘 내가 잘한 선택 하나는?',
+  '지금 이 계절에서 좋아하는 것은?',
+  '오늘 문득 떠오른 사람은?',
+  '요즘 내가 미루고 있는 것은?',
+  '오늘 하루 에너지를 채워준 것은?',
+  '내가 요즘 가장 아끼는 시간은?',
+  '오늘 남기고 싶은 사진 같은 순간은?',
+  '지금의 나에게 가장 중요한 것은?',
+  '오늘 조금 아쉬웠던 점은?',
+  '요즘 내 마음을 편하게 해주는 것은?',
+  '오늘 처음 해본 것이 있나요?',
+  '내일이 기대되는 이유 하나는?',
+];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -169,6 +211,8 @@ export default function Journal() {
   }, [allEntries, todayKey]);
 
   const sel = new Date(`${selectedDate}T00:00:00`);
+  const dayNum = Math.floor(sel.getTime() / 86_400_000);
+  const dailyQuestion = QUESTIONS[((dayNum % QUESTIONS.length) + QUESTIONS.length) % QUESTIONS.length];
   const y = calAnchor.getFullYear();
   const m = calAnchor.getMonth();
   const lead = new Date(y, m, 1).getDay();
@@ -419,11 +463,14 @@ export default function Journal() {
                     </div>
                     {/* 날씨 */}
                     <div>
-                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">날씨</div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">
+                        날씨
+                        {weather && <span className="ml-1 font-semibold text-[hsl(var(--cream-ink))]">· {WEATHER_META[weather].label}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
                         {WEATHERS.map((w) => { const on = weather === w; return (
-                          <button key={w} type="button" onClick={() => setWeather(on ? null : w)} className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
-                            <span aria-hidden>{WEATHER_META[w].emoji}</span>{WEATHER_META[w].label}
+                          <button key={w} type="button" title={WEATHER_META[w].label} aria-label={WEATHER_META[w].label} onClick={() => setWeather(on ? null : w)} className={cn('flex h-9 w-9 items-center justify-center rounded-full border text-[17px] leading-none transition-all', on ? 'scale-110 border-[hsl(var(--cream-accent))]/50 bg-[hsl(var(--cream-accent))]/12 shadow-sm' : 'border-[hsl(var(--cream-line))] opacity-70 grayscale-[0.25] hover:scale-105 hover:opacity-100')}>
+                            {WEATHER_META[w].emoji}
                           </button>
                         ); })}
                       </div>
@@ -439,6 +486,10 @@ export default function Journal() {
                   </div>
                   <hr className="my-5 border-[hsl(var(--cream-line))]" />
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />
+                  <div className="mb-2 mt-2.5 flex items-start gap-1.5 text-[12.5px] text-[hsl(var(--cream-muted))]">
+                    <span aria-hidden>💬</span>
+                    <span>오늘의 질문 · <span className="text-[hsl(var(--cream-ink))]/80">{dailyQuestion}</span></span>
+                  </div>
                   <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="오늘 하루는 어땠나요? 마음에 남은 순간을 적어보세요." className="mt-3 min-h-[240px] w-full resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
                   <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
                   <div className="flex flex-wrap items-center gap-2">

@@ -69,7 +69,7 @@ export const ACTIVITY_META: Record<string, { label: string; emoji: string }> = O
 export type BodyFormat = 'plain' | 'markdown';
 
 /** 날씨 — v4 emoji. */
-export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy' | 'windy';
+export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy' | 'windy' | 'foggy' | 'rainbow' | 'night';
 
 export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   sunny:    { label: '맑음',   emoji: '☀️' },
@@ -79,6 +79,9 @@ export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   stormy:   { label: '폭풍',   emoji: '⛈' },
   snowy:    { label: '눈',     emoji: '❄️' },
   windy:    { label: '바람',   emoji: '🌬' },
+  foggy:    { label: '안개',   emoji: '🌫' },
+  rainbow:  { label: '무지개', emoji: '🌈' },
+  night:    { label: '밤',     emoji: '🌙' },
 };
 
 /** 일기 한 항목. */
