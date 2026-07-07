@@ -267,6 +267,10 @@ export default function Journal() {
     for (const e of feed) { const k = e.date.slice(0, 7); const arr = map.get(k); if (arr) arr.push(e); else map.set(k, [e]); }
     return [...map.entries()];
   }, [feed]);
+  const memory = useMemo(() => {
+    const past = allEntries.filter((e) => e.date !== todayKey && (e.body.trim() || e.title?.trim()));
+    return past.length ? past[Math.floor(Math.random() * past.length)] : null;
+  }, [allEntries, todayKey]);
   const moodByDate = useMemo(() => {
     const map = new Map<string, string>();
     for (const e of allEntries) { const k = entryMoodKey(e); if (k && !map.has(e.date)) map.set(e.date, k); }
@@ -368,13 +372,26 @@ export default function Journal() {
           </div>
         )}
 
-        {/* 검색 */}
-        <div className="px-4 pb-2">
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-2.5">
-            <Search className="h-3.5 w-3.5 text-[hsl(var(--cream-muted))]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="일기 검색…" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[hsl(var(--cream-muted))]" />
-          </label>
-        </div>
+        {/* 오늘의 추억 — 무작위 과거 일기 */}
+        {memory && (() => {
+          const md = new Date(`${memory.date}T00:00:00`);
+          const mmk = entryMoodKey(memory);
+          const mt = memory.title?.trim() || memory.body.split('\n')[0]?.trim() || '무제';
+          const msn = (memory.title ? memory.body : memory.body.split('\n').slice(1).join(' ')).trim();
+          return (
+            <div className="px-4 pb-3">
+              <div className="mb-1.5 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">🕰️ 오늘의 추억</div>
+              <button type="button" onClick={() => openEntry(memory.date)} className="w-full rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-3 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/40" style={memory.color ? { backgroundColor: `color-mix(in srgb, ${memory.color} 8%, #f2ecdf)` } : undefined}>
+                <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
+                  {mmk && MOOD_BY_KEY[mmk] && <span className="text-[13px] leading-none">{MOOD_BY_KEY[mmk].emoji}</span>}
+                  {md.getFullYear()}. {md.getMonth() + 1}. {md.getDate()} · {WEEKDAY[md.getDay()]}
+                </div>
+                <div className="mt-0.5 truncate text-[13px] font-semibold text-[hsl(var(--cream-ink))]">{mt}</div>
+                {msn && <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5] text-[hsl(var(--cream-muted))]">{msn}</p>}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* 최근 기록 */}
         <div className="border-t border-[hsl(var(--cream-line))] px-4 py-3">
@@ -413,9 +430,17 @@ export default function Journal() {
                   <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
                 ))}
               </div>
-              <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
-                <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
-              </button>
+              <div className="flex items-center gap-2">
+                {tab === 'write' && (
+                  <label className="flex h-9 items-center gap-1.5 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/45">
+                    <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]" />
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="w-24 bg-transparent text-[12.5px] outline-none transition-[width] placeholder:text-[hsl(var(--cream-muted))] focus:w-40" />
+                  </label>
+                )}
+                <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
+                  <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
+                </button>
+              </div>
             </div>
           )}
 
@@ -442,31 +467,34 @@ export default function Journal() {
                       const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
                       const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
                       return (
-                        <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group relative flex items-center gap-4 overflow-hidden rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] py-3.5 pl-5 pr-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_12px_28px_-16px_hsl(25_30%_20%/0.35)]" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 8%, #f2ecdf)` } : undefined}>
+                        <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group relative flex items-start gap-5 overflow-hidden rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] py-5 pl-6 pr-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(25_30%_20%/0.38)]" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 8%, #f2ecdf)` } : undefined}>
                           <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: mk ? moodColor(mk) : (e.color ?? 'hsl(var(--cream-line))') }} />
-                          <div className="flex w-[46px] shrink-0 flex-col items-center">
-                            <span className="text-[24px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
-                            <span className="mt-0.5 text-[10px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[dd.getDay()]}요일</span>
+                          <div className="flex w-[52px] shrink-0 flex-col items-center pt-0.5">
+                            <span className="text-[10px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
+                            <span className="text-[30px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
+                            <span className="mt-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[dd.getDay()]}요일</span>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[17px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
-                              <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold">{t}</h3>
-                              {e.weather && <span className="shrink-0 text-[13px] opacity-70">{WEATHER_META[e.weather].emoji}</span>}
-                              {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
+                            <div className="flex items-center gap-2">
+                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[19px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
+                              <h3 className="min-w-0 flex-1 truncate text-[16.5px] font-bold text-[hsl(var(--cream-ink))]">{t}</h3>
+                              {e.starred && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
                             </div>
                             {ex ? (
-                              <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>
+                              <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[13px] leading-[1.75] text-[hsl(var(--cream-ink))]/75">{ex}</p>
                             ) : (
-                              <p className="mt-1 text-[12.5px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
+                              <p className="mt-1.5 text-[13px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
                             )}
-                            {(e.tags?.length ?? 0) > 0 && (
-                              <div className="mt-1.5 flex flex-wrap gap-1">{e.tags!.slice(0, 4).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-1.5 py-0.5 text-[10px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}</div>
-                            )}
+                            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                              {mk && MOOD_BY_KEY[mk] && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-line))]/35 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/70">{MOOD_BY_KEY[mk].emoji} {MOOD_BY_KEY[mk].label}</span>}
+                              {e.weather && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-line))]/35 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/70">{WEATHER_META[e.weather].emoji} {WEATHER_META[e.weather].label}</span>}
+                              {e.bgm && <span className="inline-flex max-w-[140px] items-center gap-1 truncate rounded-full bg-[hsl(var(--cream-line))]/35 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/70">🎧 {e.bgm}</span>}
+                              {e.tags?.slice(0, 5).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}
+                            </div>
                           </div>
                           {e.images?.[0] && (
-                            <div className="hidden shrink-0 self-center rotate-[2deg] rounded-md bg-white p-1.5 pb-3 shadow-[0_6px_16px_-8px_rgba(60,40,20,0.4)] transition-transform group-hover:rotate-0 sm:block">
-                              <img src={e.images[0].src} alt="" loading="lazy" className="h-[52px] w-[52px] rounded-[2px] object-cover" />
+                            <div className="hidden shrink-0 self-start rotate-[2deg] rounded-md bg-white p-2 pb-4 shadow-[0_8px_18px_-8px_rgba(60,40,20,0.42)] transition-transform group-hover:rotate-0 sm:block">
+                              <img src={e.images[0].src} alt="" loading="lazy" className="h-[76px] w-[76px] rounded-[2px] object-cover" />
                             </div>
                           )}
                         </button>
