@@ -178,8 +178,8 @@ const Notes = () => {
             activeRow ? 'bg-primary/10' : 'hover:bg-accent',
           )}
         >
-          {note.favorite && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
-          <span className={cn('min-w-0 flex-1 truncate text-[14px] font-medium', activeRow ? 'text-primary' : 'text-foreground')}>
+          <FileText className={cn('h-3.5 w-3.5 shrink-0', activeRow ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.8} />
+          <span className={cn('min-w-0 flex-1 truncate text-[14px]', activeRow ? 'font-medium text-primary' : 'text-foreground')}>
             {noteDisplayTitle(note)}
           </span>
           <span
@@ -234,7 +234,10 @@ const Notes = () => {
       <aside className="flex w-full shrink-0 flex-col border-r border-foreground/25 bg-background sm:w-[292px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-[24px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+            <h1 className="flex items-center gap-1.5 text-[16px] font-bold tracking-tight text-foreground">
+              <FileText className="h-[18px] w-[18px] text-primary" strokeWidth={1.9} />
+              올인원 노트
+            </h1>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -302,9 +305,9 @@ const Notes = () => {
                 const folderNotes = notes.filter((n) => n.folderId === f.id);
                 return (
                   <div key={f.id}>
-                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2.5 hover:bg-accent/60">
+                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2 hover:bg-accent/60">
                       <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                        <Folder className={cn('h-[18px] w-[18px] shrink-0 transition-colors', open ? 'text-primary' : 'text-muted-foreground')} />
+                        <Folder className={cn('h-4 w-4 shrink-0 transition-colors', open ? 'text-primary' : 'text-muted-foreground')} />
                         {renamingFolder === f.id ? (
                           <input
                             autoFocus
@@ -313,10 +316,10 @@ const Notes = () => {
                             onBlur={commitRename}
                             onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolder(null); }}
                             onClick={(e) => e.stopPropagation()}
-                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[15px] outline-none"
+                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[14px] outline-none"
                           />
                         ) : (
-                          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-foreground">{f.name}</span>
+                          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-foreground">{f.name}</span>
                         )}
                       </button>
                       <button type="button" onClick={() => { setRenamingFolder(f.id); setFolderNameDraft(f.name); }} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:text-foreground group-hover:opacity-100" title="이름 변경" aria-label="폴더 이름 변경">
