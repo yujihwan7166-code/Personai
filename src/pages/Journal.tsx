@@ -262,6 +262,11 @@ export default function Journal() {
       .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [allEntries, query]);
+  const feedGroups = useMemo(() => {
+    const map = new Map<string, JournalEntry[]>();
+    for (const e of feed) { const k = e.date.slice(0, 7); const arr = map.get(k); if (arr) arr.push(e); else map.set(k, [e]); }
+    return [...map.entries()];
+  }, [feed]);
   const moodByDate = useMemo(() => {
     const map = new Map<string, string>();
     for (const e of allEntries) { const k = entryMoodKey(e); if (k && !map.has(e.date)) map.set(e.date, k); }
@@ -416,49 +421,60 @@ export default function Journal() {
 
           {/* ── 기록 탭: 목록 ── */}
           {tab === 'write' && !detailOpen && (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-5">
               {feed.length === 0 && (
                 <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
                   <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
                   <button type="button" onClick={goWriteToday} className="mt-3 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white">오늘 일기 쓰기</button>
                 </div>
               )}
-              {feed.map((e) => {
-                const dd = new Date(`${e.date}T00:00:00`);
-                const mk = entryMoodKey(e);
-                const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
-                const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
-                return (
-                  <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group flex items-stretch gap-4 rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-4 py-3.5 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/35" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 7%, #f2ecdf)` } : undefined}>
-                    <div className="flex h-[58px] w-[54px] shrink-0 flex-col items-center justify-center rounded-2xl bg-[hsl(var(--cream-bg))]/55">
-                      <span className="text-[9.5px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
-                      <span className="text-[20px] font-bold leading-none tabular-nums" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
-                      <span className="mt-0.5 text-[9px] text-[hsl(var(--cream-muted))]/70">{WEEKDAY[dd.getDay()]}</span>
-                    </div>
-                    <div className="min-w-0 flex-1 py-0.5">
-                      <div className="flex items-center gap-1.5">
-                        {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[16px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
-                        <h3 className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{t}</h3>
-                        {e.weather && <span className="shrink-0 text-[13px] opacity-70">{WEATHER_META[e.weather].emoji}</span>}
-                        {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
-                      </div>
-                      {ex ? (
-                        <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>
-                      ) : (
-                        <p className="mt-1 text-[12.5px] italic text-[hsl(var(--cream-muted))]/60">기록만 남긴 하루</p>
-                      )}
-                      {(e.tags?.length ?? 0) > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">{e.tags!.slice(0, 4).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-1.5 py-0.5 text-[10px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}</div>
-                      )}
-                    </div>
-                    {e.images?.[0] && (
-                      <div className="hidden h-[62px] w-[62px] shrink-0 self-center overflow-hidden rounded-2xl border border-white/70 shadow-sm sm:block">
-                        <img src={e.images[0].src} alt="" loading="lazy" className="h-full w-full object-cover" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+              {feedGroups.map(([month, items]) => (
+                <section key={month}>
+                  <div className="mb-2.5 flex items-center gap-2 px-1">
+                    <h2 className="text-[15px] text-[hsl(var(--cream-ink))]/80" style={{ fontFamily: "'Jua', sans-serif" }}>{month.slice(0, 4)}년 {Number(month.slice(5))}월</h2>
+                    <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{items.length}편</span>
+                    <span className="h-px flex-1 bg-[hsl(var(--cream-line))]/70" />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {items.map((e) => {
+                      const dd = new Date(`${e.date}T00:00:00`);
+                      const mk = entryMoodKey(e);
+                      const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
+                      const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+                      return (
+                        <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group relative flex items-center gap-4 overflow-hidden rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] py-3.5 pl-5 pr-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_12px_28px_-16px_hsl(25_30%_20%/0.35)]" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 8%, #f2ecdf)` } : undefined}>
+                          <span className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: mk ? moodColor(mk) : (e.color ?? 'hsl(var(--cream-line))') }} />
+                          <div className="flex w-[46px] shrink-0 flex-col items-center">
+                            <span className="text-[24px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
+                            <span className="mt-0.5 text-[10px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[dd.getDay()]}요일</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[17px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
+                              <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold">{t}</h3>
+                              {e.weather && <span className="shrink-0 text-[13px] opacity-70">{WEATHER_META[e.weather].emoji}</span>}
+                              {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
+                            </div>
+                            {ex ? (
+                              <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.6] text-[hsl(var(--cream-muted))]">{ex}</p>
+                            ) : (
+                              <p className="mt-1 text-[12.5px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
+                            )}
+                            {(e.tags?.length ?? 0) > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">{e.tags!.slice(0, 4).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-1.5 py-0.5 text-[10px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}</div>
+                            )}
+                          </div>
+                          {e.images?.[0] && (
+                            <div className="hidden shrink-0 self-center rotate-[2deg] rounded-md bg-white p-1.5 pb-3 shadow-[0_6px_16px_-8px_rgba(60,40,20,0.4)] transition-transform group-hover:rotate-0 sm:block">
+                              <img src={e.images[0].src} alt="" loading="lazy" className="h-[52px] w-[52px] rounded-[2px] object-cover" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
             </div>
           )}
 
@@ -487,7 +503,7 @@ export default function Journal() {
 
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
+                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f2ecdf)` } : undefined}>
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -520,9 +536,9 @@ export default function Journal() {
                     </div>
                   </div>
                   {stickers.length > 0 && (
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[26px]">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]">
                       {stickers.map((s) => (
-                        <div key={s.id} className="absolute leading-none drop-shadow-sm" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '32px' }}>{s.emoji}</div>
+                        <div key={s.id} className="absolute leading-none drop-shadow-sm" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '34px' }}>{s.emoji}</div>
                       ))}
                     </div>
                   )}
@@ -628,8 +644,8 @@ export default function Journal() {
                   </div>
                   {/* 스티커 트리거 — 구석 플로팅 버튼 */}
                   <button type="button" onPointerDown={openStickerPanel} className={cn('absolute bottom-4 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full text-[19px] shadow-lg transition-transform hover:scale-105', stickerOpen ? 'bg-[hsl(var(--cream-accent))] text-white' : 'bg-[hsl(var(--cream-dark))] text-white')} title="스티커" aria-label="스티커 붙이기">🎀</button>
-                  {/* 스티커 레이어 (드래그) */}
-                  <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[26px]">
+                  {/* 스티커 레이어 (드래그) — 고정비율 캔버스(폭 기준)라 보기 모드와 위치 일치 */}
+                  <div ref={layerRef} className="pointer-events-none absolute inset-x-0 top-0 z-20 aspect-[4/3]">
                     {stickers.map((s) => (
                       <div
                         key={s.id}
