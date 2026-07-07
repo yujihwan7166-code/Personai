@@ -9,7 +9,7 @@
  * 데이터는 기존 journalStore. 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight, NotebookPen, Search, Star, Pencil, Trash2, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, NotebookPen, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
@@ -115,7 +115,15 @@ export default function Journal() {
   const [starred, setStarred] = useState(false);
   const [color, setColor] = useState<string | null>(null);
   const [bgm, setBgm] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const onPickPhoto = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const todayKey = dateKey(new Date());
   const current = journalStore.listByDate(selectedDate)[0] as JournalEntry | undefined;
@@ -131,6 +139,7 @@ export default function Journal() {
     setStarred(e?.starred ?? false);
     setColor(e?.color ?? null);
     setBgm(e?.bgm ?? '');
+    setPhoto(e?.images?.[0]?.src ?? null);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -143,12 +152,13 @@ export default function Journal() {
       weather: weather ?? undefined,
       color: color ?? undefined,
       bgm: bgm.trim() || undefined,
+      images: photo ? [{ id: 'cover', src: photo }] : undefined,
       tags,
       starred,
       bodyFormat: 'plain' as const,
     };
     if (existing) journalStore.update(existing.id, { ...data, body });
-    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
+    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || photo || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
   };
   useEffect(() => {
     if (!editing) return;
@@ -156,7 +166,7 @@ export default function Journal() {
     saveTimer.current = window.setTimeout(persist, 500);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body, moodKey, weather, color, bgm, tags, editing]);
+  }, [title, body, moodKey, weather, color, bgm, photo, tags, editing]);
 
   const handleSave = () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -401,9 +411,14 @@ export default function Journal() {
                     </h1>
                   </div>
                 </div>
-                {selectedDate !== todayKey && (
-                  <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  {selectedDate !== todayKey && (
+                    <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
+                  )}
+                  {editing && (
+                    <button type="button" onClick={handleSave} disabled={!body.trim() && !title.trim() && !moodKey && !weather && !photo && tags.length === 0} className="rounded-full bg-[hsl(var(--cream-accent))] px-4 py-1.5 text-[12.5px] font-bold text-white hover:opacity-90 disabled:opacity-40">저장하기</button>
+                  )}
+                </div>
               </div>
 
               {!editing && current ? (
@@ -418,7 +433,16 @@ export default function Journal() {
                     {bgm && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-3 py-1 text-[12.5px]">🎧 {bgm}</span>}
                   </div>
                   {title && <h2 className="mt-4 text-[22px] font-bold">{title}</h2>}
-                  <p className="mt-3 whitespace-pre-wrap text-[14px] leading-[1.9] text-[hsl(var(--cream-ink))]/90">{body || '(내용 없음)'}</p>
+                  <div className="mt-3 flex flex-col gap-5 sm:flex-row">
+                    <p className="min-w-0 flex-1 whitespace-pre-wrap text-[14px] leading-[1.9] text-[hsl(var(--cream-ink))]/90">{body || '(내용 없음)'}</p>
+                    {photo && (
+                      <div className="shrink-0 sm:w-[200px]">
+                        <div className="rotate-[-1.6deg] rounded-md bg-white p-2.5 pb-7 shadow-[0_10px_24px_-10px_rgba(60,40,20,0.4)]">
+                          <img src={photo} alt="오늘의 사진" className="aspect-[3/4] w-full rounded-[3px] object-cover" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {tags.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5">{tags.map((t) => <span key={t} className="rounded-full bg-[hsl(var(--cream-line))]/40 px-2.5 py-1 text-[11.5px] text-[hsl(var(--cream-muted))]">#{t}</span>)}</div>
                   )}
@@ -492,7 +516,25 @@ export default function Journal() {
                   </div>
                   <hr className="my-5 border-[hsl(var(--cream-line))]" />
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={dailyQuestion} className="mt-3 min-h-[240px] w-full resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
+                  <div className="mt-3 flex flex-col gap-5 sm:flex-row">
+                    {/* 본문 */}
+                    <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={dailyQuestion} className="min-h-[288px] flex-1 resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
+                    {/* 오늘의 사진 — 폴라로이드 */}
+                    <div className="shrink-0 sm:w-[208px]">
+                      {photo ? (
+                        <div className="relative rotate-[-1.6deg] rounded-md bg-white p-2.5 pb-7 shadow-[0_10px_24px_-10px_rgba(60,40,20,0.4)]">
+                          <img src={photo} alt="오늘의 사진" className="aspect-[3/4] w-full rounded-[3px] object-cover" />
+                          <button type="button" onClick={() => setPhoto(null)} className="absolute -right-2.5 -top-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-[hsl(var(--cream-dark))] text-[13px] text-white shadow-md" aria-label="사진 삭제">×</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => fileRef.current?.click()} className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/30 text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/45 hover:text-[hsl(var(--cream-ink))]">
+                          <ImagePlus className="h-6 w-6" strokeWidth={1.7} />
+                          <span className="text-[12px]">＋ 오늘의 사진</span>
+                        </button>
+                      )}
+                      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickPhoto(e.target.files?.[0])} />
+                    </div>
+                  </div>
                   <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
                   <div className="flex flex-wrap items-center gap-2">
                     {tags.map((t) => (
@@ -517,10 +559,6 @@ export default function Journal() {
                       ))}
                     </div>
                   )}
-                  <div className="mt-5 flex items-center justify-between border-t border-[hsl(var(--cream-line))] pt-4">
-                    <span className="text-[12px] text-[hsl(var(--cream-muted))]">{body.length}자 작성 중</span>
-                    <button type="button" onClick={handleSave} disabled={!body.trim() && !title.trim() && !moodKey && !weather && tags.length === 0} className="rounded-lg bg-[hsl(var(--cream-accent))] px-5 py-2 text-[13px] font-bold text-white hover:opacity-90 disabled:opacity-40">저장하기</button>
-                  </div>
                 </div>
               )}
             </>
