@@ -395,8 +395,10 @@ export default function Journal() {
                 <div className="flex min-w-0 items-center gap-3">
                   <button type="button" onClick={backToList} aria-label="목록으로" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"><ChevronLeft className="h-4 w-4" /></button>
                   <div className="min-w-0">
-                    <div className="text-[12.5px] text-[hsl(var(--cream-muted))]">{WEEKDAY[sel.getDay()]}요일</div>
-                    <h1 className="truncate text-[27px] leading-tight tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>{sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일</h1>
+                    <h1 className="flex items-baseline gap-2 truncate text-[27px] leading-tight tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>
+                      {sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일
+                      <span className="text-[15px] font-normal text-[hsl(var(--cream-muted))]" style={{ fontFamily: "'Gowun Dodum', sans-serif" }}>{WEEKDAY[sel.getDay()]}요일</span>
+                    </h1>
                   </div>
                 </div>
                 {selectedDate !== todayKey && (
@@ -490,11 +492,7 @@ export default function Journal() {
                   </div>
                   <hr className="my-5 border-[hsl(var(--cream-line))]" />
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />
-                  <div className="mb-2 mt-2.5 flex items-start gap-1.5 text-[12.5px] text-[hsl(var(--cream-muted))]">
-                    <span aria-hidden>💬</span>
-                    <span>오늘의 질문 · <span className="text-[hsl(var(--cream-ink))]/80">{dailyQuestion}</span></span>
-                  </div>
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="오늘 하루는 어땠나요? 마음에 남은 순간을 적어보세요." className="mt-3 min-h-[240px] w-full resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={dailyQuestion} className="mt-3 min-h-[240px] w-full resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
                   <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
                   <div className="flex flex-wrap items-center gap-2">
                     {tags.map((t) => (
