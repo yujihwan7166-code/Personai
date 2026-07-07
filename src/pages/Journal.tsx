@@ -421,7 +421,7 @@ export default function Journal() {
 
       {/* ── 메인 ── */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[880px] px-8 pb-7 pt-11">
+        <div className="mx-auto w-full max-w-[880px] px-8 pb-7 pt-14">
           {/* 탭 + 오늘 쓰기 — 작성/보기 상세 화면에선 숨겨 집중 */}
           {!(tab === 'write' && detailOpen) && (
             <div className="mb-5 flex items-center justify-between">
