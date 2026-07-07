@@ -354,7 +354,7 @@ const Notes = () => {
         {active && activeTab ? (
           <>
             {/* 제목 + 탭 바 */}
-            <div className="relative z-30 shrink-0 border-b border-foreground/10 bg-background px-6 pt-4 sm:px-8">
+            <div className="relative z-30 shrink-0 border-b border-[hsl(var(--hairline))] bg-background px-6 pt-4 sm:px-8">
               <input
                 value={titleDraft}
                 onChange={(e) => onTitleChange(e.target.value)}
@@ -370,7 +370,7 @@ const Notes = () => {
                     <div
                       key={tab.id}
                       className={cn(
-                        'group flex items-center gap-1 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
+                        'group -mb-px flex items-center gap-1 rounded-t-md border-b-2 px-2.5 py-1.5 text-[12.5px] font-medium transition-colors',
                         on ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
                       )}
                     >
@@ -422,7 +422,7 @@ const Notes = () => {
             <div className="min-h-0 flex-1">
               {activeTab.type === 'memo' && (
                 <div className="h-full overflow-y-auto">
-                  <div className="w-full max-w-[760px] px-6 py-8 sm:px-8">
+                  <div className="w-full max-w-[760px] px-6 py-6 sm:px-8">
                     <NoteEditor
                       key={activeTab.id}
                       initialValue={activeTab.memo ?? emptyMemoValue()}
