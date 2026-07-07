@@ -84,6 +84,7 @@ export default function Journal() {
   const [starred, setStarred] = useState(false);
   const [company, setCompany] = useState<string | null>(null);
   const [place, setPlace] = useState<string | null>(null);
+  const [tagDraft, setTagDraft] = useState('');
 
   const todayKey = dateKey(new Date());
   const current = journalStore.listByDate(selectedDate)[0] as JournalEntry | undefined;
@@ -150,6 +151,7 @@ export default function Journal() {
   const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
   const backToList = () => { setDetailOpen(false); setEditing(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
+  const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
   const applyPrompt = () => { const q = `Q. ${PROMPTS[promptIdx]}\n\n`; setBody((b) => (b.trimStart().startsWith('Q.') ? b : q + b)); };
 
   // 파생
@@ -187,7 +189,14 @@ export default function Journal() {
   const monthCount = allEntries.filter((e) => e.date.startsWith(monthPrefix)).length;
 
   return (
-    <div style={{ ...CREAM, fontFamily: "'Gowun Dodum', 'Pretendard', sans-serif" }} className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]">
+    <div
+      style={{
+        ...CREAM,
+        fontFamily: "'Gowun Dodum', 'Pretendard', sans-serif",
+        backgroundImage: 'radial-gradient(1100px 480px at 88% -8%, hsl(28 60% 88% / 0.55), transparent 70%), radial-gradient(900px 460px at 0% 108%, hsl(150 25% 84% / 0.35), transparent 70%), linear-gradient(180deg, hsl(38 32% 87%), hsl(36 26% 82%))',
+      }}
+      className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
+    >
       {/* ── 사이드바 ── */}
       <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
@@ -405,8 +414,14 @@ export default function Journal() {
                       <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">오늘의 기분</div>
                       <div className="flex flex-wrap gap-2">
                         {MOODS.map((mo) => { const on = moodKey === mo.key; return (
-                          <button key={mo.key} type="button" onClick={() => setMoodKey(on ? null : mo.key)} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}>
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}
+                          <button
+                            key={mo.key}
+                            type="button"
+                            onClick={() => setMoodKey(on ? null : mo.key)}
+                            className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-all', on ? 'font-semibold shadow-sm' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/30')}
+                            style={on ? { backgroundColor: `color-mix(in srgb, ${mo.color} 20%, transparent)`, borderColor: `color-mix(in srgb, ${mo.color} 55%, transparent)` } : undefined}
+                          >
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label}
                           </button>
                         ); })}
                       </div>
@@ -445,11 +460,29 @@ export default function Journal() {
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />
                   <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="오늘 하루는 어땠나요? 마음에 남은 순간을 적어보세요." className="mt-3 min-h-[240px] w-full resize-y bg-transparent text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
                   <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
-                  <div className="flex flex-wrap gap-2">
-                    {TAGS.map((t) => { const on = tags.includes(t); return (
-                      <button key={t} type="button" onClick={() => toggleTag(t)} className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors', on ? 'border-transparent bg-[hsl(var(--cream-accent))]/12 font-semibold' : 'border-[hsl(var(--cream-line))] text-[hsl(var(--cream-ink))]/70 hover:border-[hsl(var(--cream-accent))]/30')}>#{t}</button>
-                    ); })}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {tags.map((t) => (
+                      <span key={t} className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12px] font-semibold text-[hsl(var(--cream-ink))]">
+                        #{t}
+                        <button type="button" onClick={() => toggleTag(t)} className="text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]" aria-label={`${t} 제거`}>×</button>
+                      </span>
+                    ))}
+                    <input
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                      onBlur={addTag}
+                      placeholder="+ 직접 추가"
+                      className="min-w-[96px] rounded-full border border-dashed border-[hsl(var(--cream-line))] bg-transparent px-3 py-1 text-[12px] outline-none placeholder:text-[hsl(var(--cream-muted))]/70 focus:border-[hsl(var(--cream-accent))]/50"
+                    />
                   </div>
+                  {TAGS.filter((t) => !tags.includes(t)).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {TAGS.filter((t) => !tags.includes(t)).map((t) => (
+                        <button key={t} type="button" onClick={() => toggleTag(t)} className="rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-0.5 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-5 flex items-center justify-between border-t border-[hsl(var(--cream-line))] pt-4">
                     <span className="text-[12px] text-[hsl(var(--cream-muted))]">{body.length}자 작성 중</span>
                     <button type="button" onClick={handleSave} disabled={!body.trim() && !title.trim() && !moodKey && !weather && tags.length === 0} className="rounded-lg bg-[hsl(var(--cream-accent))] px-5 py-2 text-[13px] font-bold text-white hover:opacity-90 disabled:opacity-40">저장하기</button>
