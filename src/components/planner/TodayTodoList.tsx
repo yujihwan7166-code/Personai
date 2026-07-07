@@ -278,7 +278,7 @@ export const TodayTodoList = ({ anchorIso, onTaskClick, onAdd, embedded }: Today
                   <span className="block text-[13.5px] font-semibold text-foreground">
                     오늘 할 일이 비어있어요.
                   </span>
-                <span className="mt-0.5 block text-[12.5px] text-foreground/65">
+                <span className="mt-0.5 block text-[12.5px] text-muted-foreground">
                   바로 할 일을 하나 추가
                 </span>
               </span>

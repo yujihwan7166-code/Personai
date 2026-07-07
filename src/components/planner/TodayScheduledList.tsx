@@ -234,7 +234,7 @@ export const TodayScheduledList = ({ anchorIso, onTaskClick, onAdd, emptyHint, e
                   <span className="block text-[13.5px] font-semibold text-foreground">
                     시간 잡힌 일정이 없어요.
                   </span>
-                  <span className="mt-0.5 block text-[12.5px] text-foreground/65">
+                  <span className="mt-0.5 block text-[12.5px] text-muted-foreground">
                     {emptyHint ?? '타임라인을 클릭하거나 +로 추가'}
                   </span>
                 </span>

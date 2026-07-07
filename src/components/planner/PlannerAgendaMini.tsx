@@ -115,7 +115,7 @@ export const PlannerAgendaMini = ({ onItemClick, large = false }: PlannerAgendaM
     return (
       <div>
         {groups.length === 0 ? (
-          <p role="status" className="py-8 text-center text-[14px] text-foreground/45">예정된 일정 없음</p>
+          <p role="status" className="py-8 text-center text-[14px] text-muted-foreground">예정된 일정이 없어요</p>
         ) : (
           <ol className="flex flex-col gap-7" aria-label="다가오는 일정 목록">
             {groups.map(({ dayKey, date, items }) => {

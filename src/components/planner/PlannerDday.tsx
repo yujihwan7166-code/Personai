@@ -309,7 +309,7 @@ const DdayManagerPopover = ({
               {items.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
                   <span className="text-2xl mb-1.5 select-none opacity-50">⏳</span>
-                  <p className="text-[12px] font-bold text-muted-foreground/85">저장된 디데이가 없습니다.</p>
+                  <p className="text-[12px] font-medium text-muted-foreground">저장된 디데이가 없어요.</p>
                 </div>
               ) : (
                 items.map(({ it, dd }) => (

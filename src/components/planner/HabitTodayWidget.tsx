@@ -67,7 +67,7 @@ export const HabitTodayWidget = ({ onOpenAll }: HabitTodayWidgetProps) => {
         </span>
       </button>
       {todayHabits.length === 0 ? (
-        <p className="px-1.5 py-1 text-[12px] text-foreground/55">오늘 예정 없음</p>
+        <p className="px-1.5 py-1 text-[12px] text-muted-foreground">오늘 예정된 습관이 없어요</p>
       ) : (
         <ul className="flex flex-col gap-0.5">
           {visibleHabits.map((h) => {
