@@ -423,7 +423,7 @@ export default function Journal() {
 
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 12%, #f2ecdf)` } : undefined}>
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -434,7 +434,7 @@ export default function Journal() {
                   </div>
                   {title && <h2 className="mt-4 text-[22px] font-bold">{title}</h2>}
                   <div className="mt-3 flex flex-col gap-5 sm:flex-row">
-                    <p className="min-w-0 flex-1 whitespace-pre-wrap rounded-xl text-[14px] leading-[1.9] text-[hsl(var(--cream-ink))]/90" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 14%, #f2ecdf)`, padding: '14px 16px' } : undefined}>{body || '(내용 없음)'}</p>
+                    <p className="min-w-0 flex-1 whitespace-pre-wrap text-[14px] leading-[1.9] text-[hsl(var(--cream-ink))]/90">{body || '(내용 없음)'}</p>
                     {photo && (
                       <div className="shrink-0 sm:w-[200px]">
                         <div className="rotate-[-1.6deg] rounded-md bg-white p-2.5 pb-7 shadow-[0_10px_24px_-10px_rgba(60,40,20,0.4)]">
@@ -458,7 +458,7 @@ export default function Journal() {
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)]">
+                <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 12%, #f2ecdf)` } : undefined}>
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
@@ -518,7 +518,7 @@ export default function Journal() {
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-transparent text-[22px] font-bold outline-none placeholder:text-[hsl(var(--cream-muted))]/55" />
                   <div className="mt-3 flex flex-col gap-5 sm:flex-row">
                     {/* 본문 */}
-                    <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={dailyQuestion} className="min-h-[288px] flex-1 resize-y rounded-xl px-3.5 text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none transition-colors placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundColor: color ? `color-mix(in srgb, ${color} 14%, #f2ecdf)` : 'transparent', backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
+                    <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={dailyQuestion} className="min-h-[288px] flex-1 resize-y rounded-xl px-3.5 text-[14px] text-[hsl(var(--cream-ink))]/90 outline-none transition-colors placeholder:text-[hsl(var(--cream-muted))]/55" style={{ backgroundColor: 'transparent', backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(var(--cream-line)) 31px, hsl(var(--cream-line)) 32px)', lineHeight: '32px' }} />
                     {/* 오늘의 사진 — 폴라로이드 */}
                     <div className="shrink-0 sm:w-[208px]">
                       {photo ? (
