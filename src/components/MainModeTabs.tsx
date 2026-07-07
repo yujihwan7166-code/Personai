@@ -222,8 +222,6 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) ─────────────────
   { id: 'planner',     label: '통합 플래너',  desc: '캘린더·할일·습관·목표 한 화면에',     emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'wiki',        label: '마이위키',     desc: '나만의 지식 베이스',                 emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
-  { id: 'briefing',    label: '데일리 브리핑', desc: 'AI 가 요약해주는 오늘',              emoji: '☕', tint: 'hsl(25 85% 55%)',  axis: '정리' },
-  { id: 'cloud',       label: '클라우드',     desc: '문서·시트·슬라이드 편집',             emoji: '☁️', tint: 'hsl(200 75% 55%)', axis: '정리' },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',    desc: '노트·화이트보드·시트 한 곳에',        emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
@@ -2179,14 +2177,6 @@ export function MainModeTabs({
                             } else if (item.id === 'journal') {
                               setOpen(false);
                               navigate('/journal');
-                            } else if (item.id === 'cloud') {
-                              setOpen(false);
-                              navigate('/cloud');
-                            } else if (item.id === 'briefing') {
-                              setOpen(false);
-                              import('@/components/DailyBriefingMount').then(({ triggerDailyBriefing }) => {
-                                triggerDailyBriefing();
-                              });
                             }
                           }}
                           role="menuitem"
