@@ -545,10 +545,10 @@ export default function Journal() {
                       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickPhoto(e.target.files?.[0])} />
                     </div>
                   </div>
-                  <div className="mb-2 mt-4 text-[12px] text-[hsl(var(--cream-muted))]">태그</div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <span className="shrink-0 text-[12px] text-[hsl(var(--cream-muted))]">태그</span>
                     {tags.map((t) => (
-                      <span key={t} className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12px] font-semibold text-[hsl(var(--cream-ink))]">
+                      <span key={t} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12px] font-semibold text-[hsl(var(--cream-ink))]">
                         #{t}
                         <button type="button" onClick={() => toggleTag(t)} className="text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]" aria-label={`${t} 제거`}>×</button>
                       </span>
@@ -558,17 +558,13 @@ export default function Journal() {
                       onChange={(e) => setTagDraft(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                       onBlur={addTag}
-                      placeholder="+ 직접 추가"
-                      className="min-w-[96px] rounded-full border border-dashed border-[hsl(var(--cream-line))] bg-transparent px-3 py-1 text-[12px] outline-none placeholder:text-[hsl(var(--cream-muted))]/70 focus:border-[hsl(var(--cream-accent))]/50"
+                      placeholder="+ 직접"
+                      className="w-[64px] shrink-0 rounded-full border border-dashed border-[hsl(var(--cream-line))] bg-transparent px-3 py-1 text-[12px] outline-none placeholder:text-[hsl(var(--cream-muted))]/70 focus:w-[100px] focus:border-[hsl(var(--cream-accent))]/50"
                     />
+                    {TAGS.filter((t) => !tags.includes(t)).map((t) => (
+                      <button key={t} type="button" onClick={() => toggleTag(t)} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-1 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
+                    ))}
                   </div>
-                  {TAGS.filter((t) => !tags.includes(t)).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {TAGS.filter((t) => !tags.includes(t)).map((t) => (
-                        <button key={t} type="button" onClick={() => toggleTag(t)} className="rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-0.5 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
             </>
