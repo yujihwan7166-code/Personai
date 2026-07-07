@@ -92,10 +92,10 @@ export interface JournalEntry {
   moodKey?: string;
   /** 즐겨찾기 — v5. */
   starred?: boolean;
-  /** 누구와 — v5 (혼자/가족/친구/연인 등, 단일). */
-  company?: string;
-  /** 어디서 — v5 (집/밖/회사/여행 등, 단일). */
-  place?: string;
+  /** 오늘의 에너지 — v5 (방전/보통/충전/풀충전, 단일). */
+  battery?: string;
+  /** 오늘의 BGM — v5 (자유 입력, 노래/무드). */
+  bgm?: string;
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
   /** 본문 형식. 미지정 = 'plain' (기본·호환성). */
