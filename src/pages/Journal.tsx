@@ -15,6 +15,7 @@ import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
+import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
 
 const CREAM: CSSProperties = {
@@ -222,11 +223,27 @@ export default function Journal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, body, moodKey, weather, color, bgm, photo, stickers, tags, editing]);
 
+  const generateSummary = async (id: string, text: string) => {
+    try {
+      const out = await quickAi(
+        '너는 일기 한 편을 아주 짧게 요약하는 도우미야. 그 날의 핵심·분위기를 12자 내외 한 줄로 담백하게. 따옴표·마침표 없이, 명사형으로.',
+        text.slice(0, 1500),
+        { maxTokens: 40, temperature: 0.5 },
+      );
+      const s = out.trim().replace(/^["'`\s]+|["'`.\s]+$/g, '').split('\n')[0].slice(0, 24);
+      if (s) journalStore.update(id, { summary: s });
+    } catch { /* 요약 실패는 조용히 무시 */ }
+  };
   const handleSave = () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     persist();
     setEditing(false);
     notify.success('저장됐어요', { duration: 1500 });
+    const text = body.trim();
+    if (text.length >= 15) {
+      const id = journalStore.listByDate(selectedDate)[0]?.id;
+      if (id) void generateSummary(id, text);
+    }
   };
   const toggleStar = () => {
     const e = journalStore.listByDate(selectedDate)[0];
@@ -277,8 +294,12 @@ export default function Journal() {
     return map;
   }, [allEntries]);
   const dayMeta = useMemo(() => {
-    const map = new Map<string, { moodKey: string | null; color?: string; weather?: Weather }>();
-    for (const e of allEntries) { if (map.has(e.date)) continue; map.set(e.date, { moodKey: entryMoodKey(e), color: e.color, weather: e.weather }); }
+    const map = new Map<string, { moodKey: string | null; color?: string; weather?: Weather; label: string }>();
+    for (const e of allEntries) {
+      if (map.has(e.date)) continue;
+      const label = e.summary?.trim() || e.title?.trim() || e.body.split('\n').map((l) => l.trim()).find(Boolean) || '';
+      map.set(e.date, { moodKey: entryMoodKey(e), color: e.color, weather: e.weather, label });
+    }
     return map;
   }, [allEntries]);
   const monthDist = useMemo(() => {
@@ -738,14 +759,17 @@ export default function Journal() {
                       key={d}
                       type="button"
                       onClick={() => openDate(d)}
-                      className={cn('relative flex aspect-square flex-col rounded-2xl border p-2 text-left transition-all hover:border-[hsl(var(--cream-accent))]/45', isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]')}
+                      className={cn('relative flex aspect-square flex-col overflow-hidden rounded-2xl border p-2 text-left transition-all hover:border-[hsl(var(--cream-accent))]/45', isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]')}
                       style={{ backgroundColor: meta?.color ? `color-mix(in srgb, ${meta.color} 22%, #f8f3ea)` : 'hsl(var(--cream-bg) / 0.4)' }}
                     >
-                      <div className="flex items-start justify-between">
-                        <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65')}>{i + 1}</span>
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="flex items-center gap-1">
+                          <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65')}>{i + 1}</span>
+                          {mood && <span className="text-[14px] leading-none">{mood.emoji}</span>}
+                        </span>
                         {meta?.weather && <span className="text-[12px] leading-none opacity-80">{WEATHER_META[meta.weather].emoji}</span>}
                       </div>
-                      {mood && <span className="mx-auto mb-0.5 mt-auto text-[22px] leading-none">{mood.emoji}</span>}
+                      {meta?.label && <p className="mt-1 line-clamp-3 text-left text-[9.5px] leading-[1.35] text-[hsl(var(--cream-ink))]/60">{meta.label}</p>}
                     </button>
                   );
                 })}

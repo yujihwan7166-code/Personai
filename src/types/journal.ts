@@ -110,6 +110,8 @@ export interface JournalEntry {
   bgm?: string;
   /** 붙인 스티커 — v5 (다꾸). */
   stickers?: DiarySticker[];
+  /** AI 한 줄 요약 — v5 (저장 시 생성, 달력 미리보기용). */
+  summary?: string;
   /** 본문. plain = whitespace-pre-wrap, markdown = TipTap 호환 마크다운. */
   body: string;
   /** 본문 형식. 미지정 = 'plain' (기본·호환성). */
