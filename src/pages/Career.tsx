@@ -60,7 +60,13 @@ const SECTION_PREVIEW = 5;
 type CapturePhase =
   | { step: 'idle' }
   | { step: 'thinking'; raw: string }
-  | { step: 'reveal'; raw: string; refined: string; category: string };
+  /** 직접 작성 — 잠깐 보여주고 자동으로 원고에 꽂힌다. */
+  | { step: 'reveal'; raw: string; refined: string; category: string }
+  /** AI 작성 — 초안을 세워두고 사용자의 결정(넣기/다시/취소)을 기다린다. */
+  | { step: 'draft'; raw: string; refined: string; category: string };
+
+type WriteMode = 'ai' | 'direct';
+const WRITE_MODE_KEY = 'career.writeMode.v1';
 
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
 
@@ -215,6 +221,13 @@ function BoardLedger() {
   const [editingName, setEditingName] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [writeMode, setWriteMode] = useState<WriteMode>(() => {
+    try {
+      return window.localStorage.getItem(WRITE_MODE_KEY) === 'direct' ? 'direct' : 'ai';
+    } catch {
+      return 'ai';
+    }
+  });
   // 작성 폼 — 칸('auto' = AI 분류) · 기간 · 기관 · 링크 · 세부. 전부 선택 사항.
   const [advCategory, setAdvCategory] = useState<string>('auto');
   const [advDate, setAdvDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -223,7 +236,7 @@ function BoardLedger() {
   const [advOrg, setAdvOrg] = useState('');
   const [advLink, setAdvLink] = useState('');
   const [advDetail, setAdvDetail] = useState('');
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const recentTimer = useRef<number | null>(null);
 
   const sections = useMemo(
@@ -247,7 +260,8 @@ function BoardLedger() {
     });
   };
 
-  const submit = async (rawInput?: string) => {
+  /** 직접 작성 — 구조화된 폼을 채워 바로 원고에 꽂는다 (잠깐 reveal 후 자동 커밋). */
+  const submitDirect = async (rawInput?: string) => {
     const raw = (rawInput ?? draft).trim();
     if (!raw || busy) return;
     // 폼 값은 제출 시점에 스냅샷 — 칸 지정 시 AI 분류를 덮어쓴다.
@@ -295,7 +309,7 @@ function BoardLedger() {
           if (seen < 3) {
             window.localStorage.setItem(COACH_KEY, String(seen + 1));
             notify.success('원고에 꽂았어요', {
-              description: '방금 줄을 누르면, 교정 질문이 빠진 세부를 채워줘요.',
+              description: '방금 줄을 누르면, 빠진 세부를 채울 수 있어요.',
             });
           }
         } catch { /* noop */ }
@@ -304,10 +318,50 @@ function BoardLedger() {
     }, 800);
   };
 
-  const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  /** AI 작성 — 초안을 세워두고 사용자 결정을 기다린다 (자동 커밋 안 함). */
+  const requestDraft = async (rawInput?: string) => {
+    const raw = (rawInput ?? draft).trim();
+    if (!raw || phase.step === 'thinking') return; // 'draft'(다시 다듬기)는 허용
+    if (rawInput) setDraft(rawInput);
+    setPhase({ step: 'thinking', raw });
+    const result = await aiClassifySpec(raw, categories.map((c) => c.name));
+    setPhase({ step: 'draft', raw, refined: result.refined, category: result.category });
+  };
+
+  /** 초안을 원고에 넣는다(서랍에 넣기) — 새 줄 하이라이트로 꽂힘. */
+  const commitDraft = () => {
+    if (phase.step !== 'draft') return;
+    const { raw, refined, category } = phase;
+    if (recentTimer.current) window.clearTimeout(recentTimer.current);
+    const item = careerStore.addItem({ raw, refined, categoryName: category });
+    setDraft('');
+    setPhase({ step: 'idle' });
+    setRecentId(item.id);
+    recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const cancelDraft = () => setPhase({ step: 'idle' });
+
+  const changeWriteMode = (mode: WriteMode) => {
+    setWriteMode(mode);
+    setPhase({ step: 'idle' });
+    try { window.localStorage.setItem(WRITE_MODE_KEY, mode); } catch { /* noop */ }
+  };
+
+  /** 입력 엔터 — 모드에 따라 초안 요청(AI) 또는 직접 커밋. */
+  const onInputKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    if (writeMode === 'ai' && event.shiftKey) return; // AI textarea 줄바꿈 허용
     event.preventDefault();
-    void submit();
+    if (writeMode === 'ai') void requestDraft();
+    else void submitDirect();
+  };
+
+  /** 해보기 칩 — 모드에 맞게 초안 요청 또는 직접 제출. */
+  const onTryExample = (example: string) => {
+    if (writeMode === 'ai') void requestDraft(example);
+    else void submitDirect(example);
   };
 
   const removeItem = (item: SpecItem) => {
@@ -444,16 +498,137 @@ function BoardLedger() {
             </div>
 
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
-              {/* 작성대 표제 — 섹션 헤더와 같은 문법 (빨간 마크 + 명조 + 괘선) */}
+              {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
                 <h2 className="career-serif text-[16px] font-bold tracking-tight">커리어 추가</h2>
+                <div className="ml-auto flex items-center gap-2.5">
+                  {([['ai', 'AI 작성'], ['direct', '직접 작성']] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => changeWriteMode(mode)}
+                      aria-pressed={writeMode === mode}
+                      className={cn(
+                        'pb-0.5 text-[11.5px] transition-colors',
+                        writeMode === mode
+                          ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
+                          : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
-                한 줄로 적으면, 다듬어서 원고에 정리해 드려요
+                {writeMode === 'ai'
+                  ? '막 적으면 AI가 이력서 문장으로 다듬어요. 확인하고 넣으세요.'
+                  : '칸·기간·세부까지 직접 채워 넣어요.'}
               </p>
 
-              {/* 캡처 박스 — 이 작성대의 주인공. 막 적어도 AI가 정리한다. */}
+              {writeMode === 'ai' ? (
+                /* ── AI 작성 — 막 적기 → 초안 검토 → 서랍에 넣기 ── */
+                <div className="mt-2.5">
+                  {phase.step === 'idle' ? (
+                    <>
+                      <div
+                        className={cn(
+                          'flex items-stretch border bg-[hsl(var(--surface-2))] transition-all',
+                          'border-[hsl(var(--foreground)/0.5)]',
+                          'focus-within:border-[hsl(var(--career-red))] focus-within:shadow-[0_0_0_3px_hsl(var(--career-red)/0.12)]',
+                        )}
+                      >
+                        <span aria-hidden className="my-2 ml-3 w-[3px] shrink-0 bg-[hsl(var(--career-red))]" />
+                        <textarea
+                          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onKeyDown={onInputKeyDown}
+                          rows={2}
+                          placeholder="뭐든 이룬 것, 막 적어도 돼요"
+                          aria-label="스펙 입력"
+                          className="career-serif min-h-[64px] min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 text-[14.5px] leading-relaxed outline-none placeholder:text-muted-foreground/50"
+                        />
+                      </div>
+
+                      {items.length < 3 && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          <span className="text-[11px] text-muted-foreground/60">해보기</span>
+                          {TRY_EXAMPLES[persona].map((example) => (
+                            <button
+                              key={example}
+                              type="button"
+                              onClick={() => onTryExample(example)}
+                              className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                            >
+                              {example}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => void requestDraft()}
+                        disabled={!draft.trim()}
+                        className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        AI로 다듬기
+                      </button>
+                    </>
+                  ) : phase.step === 'thinking' ? (
+                    <div className="flex items-center gap-2 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px]">
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
+                      <span className="text-muted-foreground">AI가 이력서 문장으로 다듬는 중…</span>
+                    </div>
+                  ) : (
+                    /* 초안 검토 카드 */
+                    <div className="border-l-2 border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
+                      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">
+                        <Sparkles className="h-3 w-3" /> AI 초안
+                      </p>
+                      <p className="text-[12px] text-muted-foreground/80">✎ {phase.raw}</p>
+                      <p aria-hidden className="my-1 text-[12px] text-[hsl(var(--career-red))]">↓</p>
+                      <div className="flex items-start gap-2">
+                        <span className="career-serif min-w-0 flex-1 text-[13.5px] font-medium leading-relaxed">
+                          <MetricText text={phase.refined} />
+                        </span>
+                        <span className="career-mono mt-0.5 shrink-0 border border-[hsl(var(--career-red)/0.5)] px-1.5 py-0.5 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
+                          {phase.category}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={commitDraft}
+                          className="h-8 flex-1 bg-primary text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                        >
+                          서랍에 넣기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void requestDraft(phase.raw)}
+                          className="h-8 border border-[hsl(var(--foreground)/0.35)] px-3 text-[12px] font-medium transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
+                        >
+                          다시 다듬기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelDraft}
+                          className="h-8 px-2 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+              <>
+              {/* ── 직접 작성 — 구조화된 폼 ── */}
+              {/* 캡처 박스 */}
               <div
                 className={cn(
                   'mt-2.5 flex items-center border bg-[hsl(var(--surface-2))] transition-all',
@@ -463,11 +638,11 @@ function BoardLedger() {
               >
                 <span aria-hidden className="my-2 ml-3 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
                 <input
-                  ref={inputRef}
+                  ref={inputRef as React.RefObject<HTMLInputElement>}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onInputKeyDown}
-                  placeholder="뭐든 이룬 것, 막 적어도 돼요"
+                  placeholder="뭐든 이룬 것"
                   aria-label="스펙 입력"
                   className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3 text-[14.5px] outline-none placeholder:text-muted-foreground/50"
                 />
@@ -482,7 +657,7 @@ function BoardLedger() {
                     <button
                       key={example}
                       type="button"
-                      onClick={() => void submit(example)}
+                      onClick={() => onTryExample(example)}
                       className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
                     >
                       {example}
@@ -590,7 +765,7 @@ function BoardLedger() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void submit()}
+                  onClick={() => void submitDirect()}
                   disabled={!draft.trim() || busy}
                   className="h-9 w-full bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
                 >
@@ -598,9 +773,9 @@ function BoardLedger() {
                 </button>
               </div>
 
-              {/* 변신 줄 — 여기서 다듬어져 오른쪽 원고로 날아간다 */}
+              {/* 변신 줄 (직접 작성) — 잠깐 다듬어져 오른쪽 원고로 날아간다 */}
               <AnimatePresence>
-                {phase.step !== 'idle' && (
+                {(phase.step === 'thinking' || phase.step === 'reveal') && (
                   <motion.div
                     layoutId={INCOMING}
                     initial={{ opacity: 0, y: -6 }}
@@ -621,15 +796,17 @@ function BoardLedger() {
                         transition={{ duration: 0.34, ease: 'easeOut' }}
                         className="flex min-w-0 flex-1 items-center gap-2 px-3 text-[13.5px]"
                       >
-                        <span className="career-serif min-w-0 flex-1 font-medium">{phase.refined}</span>
+                        <span className="career-serif min-w-0 flex-1 font-medium">{phase.step === 'reveal' ? phase.refined : ''}</span>
                         <span className="career-mono shrink-0 border border-[hsl(var(--career-red)/0.5)] px-1.5 py-0.5 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
-                          {phase.category}
+                          {phase.step === 'reveal' ? phase.category : ''}
                         </span>
                       </motion.div>
                     )}
                   </motion.div>
                 )}
               </AnimatePresence>
+              </>
+              )}
             </div>
 
           </aside>
