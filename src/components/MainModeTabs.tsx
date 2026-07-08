@@ -225,6 +225,7 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',    desc: '노트·화이트보드·시트 한 곳에',        emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
+  { id: 'career',     label: '스펙 보드',      desc: '이룬 것을 이력서로 정리',            emoji: '📄', tint: 'hsl(6 70% 51%)',  axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -2164,7 +2165,7 @@ export function MainModeTabs({
                         <button
                           type="button"
                           onClick={() => {
-                            // v1 라우팅 = notes / wiki / planner / journal / cloud. 다른 도구는 아직 no-op.
+                            // v1 라우팅 = notes / wiki / planner / journal / career / cloud. 다른 도구는 아직 no-op.
                             if (item.id === 'notes') {
                               setOpen(false);
                               navigate('/notes');
@@ -2177,6 +2178,9 @@ export function MainModeTabs({
                             } else if (item.id === 'journal') {
                               setOpen(false);
                               navigate('/journal');
+                            } else if (item.id === 'career') {
+                              setOpen(false);
+                              navigate('/career');
                             }
                           }}
                           role="menuitem"
