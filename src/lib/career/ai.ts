@@ -66,6 +66,27 @@ export async function aiClassifySpec(raw: string, existingCategories: string[]):
   }
 }
 
+/**
+ * 교정 질문 — 이 스펙에서 빠진 정보(수치·규모·역할·결과)를 묻는 짧은 질문들.
+ * 세부사항 다이얼로그에서 답하면 detail 로 쌓인다. 실패 시 빈 배열.
+ */
+export async function aiProbeQuestions(input: { refined: string; raw: string; detail?: string }): Promise<string[]> {
+  try {
+    const text = await quickAi(
+      '당신은 이력서를 교정하는 컨설턴트입니다. 사용자의 성과 한 줄을 더 강한 이력서 문장으로 만들기 위해, 빠져 있는 정보를 묻는 짧은 질문을 2~4개 만드세요. 수치·규모·기간·본인 역할·결과 중 비어 있는 것만 묻고, 이미 주어진 정보는 다시 묻지 않습니다. 질문은 해요체로 한 문장씩. 각 줄에 질문 하나, 번호·기호 없이 질문만 출력합니다.',
+      `[성과] ${input.refined}\n[원문] ${input.raw}${input.detail ? `\n[이미 적힌 세부사항]\n${input.detail}` : ''}`,
+      { model: QUICK_MODEL, temperature: 0.4, maxTokens: 512 },
+    );
+    return text
+      .split('\n')
+      .map((line) => line.replace(/^[-*\d.)\s]+/, '').trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
 /** 신분 + 현재 보드 → 다음에 쌓으면 좋을 스펙 추천 (markdown 목록). */
 export async function aiRecommendSpecs(
   personaLabel: string,

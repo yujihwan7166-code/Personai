@@ -14,14 +14,14 @@
  * 변신 카드가 framer layoutId 공유로 원고의 해당 행까지 날아가 꽂힌다.
  * 수치는 색이 아니라 잉크 굵기(볼드)로 강조 — 빨강 규율 유지.
  */
-import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { Copy, Download, Loader2, Sparkles, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
-import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
+import { aiClassifySpec, aiComposeCareerDoc, aiProbeQuestions, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
 import { PERSONA_LABEL, type CareerPersona, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -747,10 +747,13 @@ function SectionHeader({
 
 /* ═══════════════ 세부사항 다이얼로그 ═══════════════ */
 
+/** 교정 질문 캐시 — 같은 카드를 다시 열 때 재호출하지 않는다 (세션 한정). */
+const probeCache = new Map<string, string[]>();
+
 function DetailDialog({ item, onClose }: { item: SpecItem | null; onClose: () => void }) {
   return (
     <Dialog open={item !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="career-theme max-w-md">
+      <DialogContent className="career-theme max-w-lg">
         {item && <DetailForm key={item.id} item={item} onClose={onClose} />}
       </DialogContent>
     </Dialog>
@@ -761,6 +764,32 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
   const [refined, setRefined] = useState(item.refined);
   const [date, setDate] = useState(item.date);
   const [detail, setDetail] = useState(item.detail ?? '');
+  /** null = 불러오는 중, [] = 질문 없음/실패. */
+  const [questions, setQuestions] = useState<string[] | null>(() => probeCache.get(item.id) ?? null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answered, setAnswered] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (probeCache.has(item.id)) return;
+    let alive = true;
+    void aiProbeQuestions({ refined: item.refined, raw: item.raw, detail: item.detail }).then((result) => {
+      probeCache.set(item.id, result);
+      if (alive) setQuestions(result);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [item]);
+
+  /** 답을 세부사항에 반영하고 질문을 마감 처리. */
+  const applyAnswer = (index: number) => {
+    if (!questions) return;
+    const answer = (answers[index] ?? '').trim();
+    if (!answer) return;
+    const line = `- ${questions[index]} → ${answer}`;
+    setDetail((prev) => (prev ? `${prev}\n${line}` : line));
+    setAnswered((prev) => new Set(prev).add(index));
+  };
 
   const save = () => {
     careerStore.updateItem(item.id, {
@@ -807,6 +836,53 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             className="career-mono h-10 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
+
+        {/* ── 교정 질문 — 빨간펜 교정자가 여백에 다는 질문. 답하면 세부사항에 쌓인다. ── */}
+        {(questions === null || questions.length > 0) && (
+          <div className="border-l-2 border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
+            <p className="mb-2.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">
+              교정 질문 — 답하면 세부사항에 반영돼요
+            </p>
+            {questions === null ? (
+              <p className="flex items-center gap-2 py-1 text-[12px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--career-red))]" />
+                이 성과에서 빠진 정보를 찾는 중…
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {questions.map((question, index) =>
+                  answered.has(index) ? (
+                    <p key={question} className="flex items-start gap-1.5 text-[12px] text-muted-foreground/70">
+                      <span className="shrink-0 text-[hsl(var(--career-red))]">✓</span>
+                      <span className="min-w-0">{question}</span>
+                    </p>
+                  ) : (
+                    <div key={question}>
+                      <p className="career-serif text-[13px] leading-snug">
+                        <span className="career-mono mr-1.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">Q.</span>
+                        {question}
+                      </p>
+                      <input
+                        value={answers[index] ?? ''}
+                        onChange={(e) => setAnswers((prev) => ({ ...prev, [index]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                            e.preventDefault();
+                            applyAnswer(index);
+                          }
+                        }}
+                        placeholder="짧게 적어도 돼요 — 엔터로 반영"
+                        aria-label={question}
+                        className="mt-1 w-full border-b border-[hsl(var(--hairline))] bg-transparent py-1 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                      />
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <label htmlFor="career-detail-memo" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
             세부사항
