@@ -245,10 +245,6 @@ function BoardLedger() {
     [categories, items],
   );
 
-  const thisYearCount = useMemo(() => {
-    const year = String(new Date().getFullYear());
-    return items.filter((item) => item.date.startsWith(year)).length;
-  }, [items]);
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
 
@@ -462,6 +458,27 @@ function BoardLedger() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
+            {/* 보기 전환 — 원고를 카드/문서 중 어떻게 볼지 (컨트롤은 도구 열에) */}
+            <div className="flex items-center justify-end gap-3 px-1">
+              <span className="text-[11px] text-muted-foreground/60">보기</span>
+              {([['card', '카드'], ['doc', '문서']] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => changeView(mode)}
+                  aria-pressed={viewMode === mode}
+                  className={cn(
+                    'pb-0.5 text-[12px] transition-colors',
+                    viewMode === mode
+                      ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
+                      : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {/* AI 도구 — 원고에 적용하는 도구들 (작성대 위) */}
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
               <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
@@ -784,29 +801,6 @@ function BoardLedger() {
               </div>
               <TitleRule />
 
-              {/* ────── 기록 — 캡션 + 카드/문서 토글 ────── */}
-              <div className="mt-6 flex items-end justify-between">
-                <span className="text-[11.5px] font-medium tracking-wide text-muted-foreground/70">기록</span>
-                <div className="flex items-center gap-3">
-                  {([['card', '카드'], ['doc', '문서']] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => changeView(mode)}
-                      aria-pressed={viewMode === mode}
-                      className={cn(
-                        'pb-0.5 text-[12px] transition-colors',
-                        viewMode === mode
-                          ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
-                          : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* ────── 기록 — 2열 장부 or 문서 줄글(3열) ────── */}
               {viewMode === 'card' ? (
                 <div className="mt-4 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
@@ -937,16 +931,6 @@ function BoardLedger() {
                 </div>
               )}
 
-              {/* ── 하단 메타 라인 ── */}
-              <div className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-[hsl(var(--foreground)/0.3)] pt-3">
-                <span className="career-mono text-[10px] tracking-[0.18em] text-muted-foreground/70">
-                  {PERSONA_LABEL[persona]} · 칸 {categories.length} · 기록 {items.length}
-                  {thisYearCount > 0 && ` · 올해 ${thisYearCount}`}
-                </span>
-                <span className="text-[11.5px] text-muted-foreground/60">
-                  줄을 누르면 세부사항을 적을 수 있어요
-                </span>
-              </div>
             </LedgerFrame>
           </div>
         </div>
