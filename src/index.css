@@ -310,8 +310,10 @@
   }
 
   .planner-theme {
-    /* Page background — 워크스페이스 공통 종이 톤 (40 28% 96%) */
-    --background: 40 28% 96%;
+    /* Page background — [실험] 레일과 동일한 쿨 화이트 (220 22% 98%).
+     * 비교 후 결정: 웜 페이퍼 캐논(40 28% 96%)으로 되돌리려면 이 블록의
+     * --background/--surface-2/--focus-offset 세 값만 복원. */
+    --background: 220 22% 98%;
     --foreground: 30 12% 16%;          /* 따뜻한 진한 차콜 */
 
     --card: 40 35% 99%;                 /* 카드 — 배경보다 살짝 밝음 */
@@ -338,18 +340,18 @@
 
     --ring: 262 62% 58%;
     --focus-ring: 262 66% 60%;
-    --focus-offset: 40 28% 96%;
+    --focus-offset: 220 22% 98%;
 
     /* Surface — 카드/리스트/패널 3계층 */
     --hairline:  35 14% 86%;
     --surface-1: 40 35% 99%;            /* card top */
-    --surface-2: 40 28% 96%;            /* page */
+    --surface-2: 220 22% 98%;           /* page */
     --surface-3: 40 22% 93%;            /* sunken */
   }
 
   .dark .planner-theme {
-    /* 다크 — 워크스페이스 공통 웜 차콜 (30 9% 10%) */
-    --background: 30 9% 10%;
+    /* 다크 — [실험] 레일과 동일한 쿨 차콜 (222 24% 7%). 복원 시 30 9% 10%. */
+    --background: 222 24% 7%;
     --foreground: 40 16% 90%;
 
     --card: 35 8% 13%;
@@ -375,11 +377,11 @@
 
     --ring: 262 65% 68%;
     --focus-ring: 262 70% 70%;
-    --focus-offset: 30 9% 10%;
+    --focus-offset: 222 24% 7%;
 
     --hairline:  35 7% 22%;
     --surface-1: 35 8% 13%;
-    --surface-2: 30 9% 10%;
+    --surface-2: 222 24% 7%;
     --surface-3: 35 7% 17%;
   }
 
