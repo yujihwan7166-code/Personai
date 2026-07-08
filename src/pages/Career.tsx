@@ -99,12 +99,7 @@ export default function Career() {
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-4xl px-3 pb-20 pt-8 sm:px-6 sm:pt-11">
-        {/* 장부 프레임 — 이중 괘선 액자, 안쪽은 책상보다 밝은 원고지 톤 */}
-        <div className="border border-[hsl(var(--foreground)/0.45)] bg-[hsl(var(--surface-1))] p-[3px]">
-          <div className="border border-[hsl(var(--foreground)/0.16)] px-4 py-7 sm:px-9 sm:py-9">
-            {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
-          </div>
-        </div>
+        {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
       </div>
     </div>
   );
@@ -113,6 +108,17 @@ export default function Career() {
 /** 표제 아래 굵은 괘선 — 원고의 시작. */
 function TitleRule() {
   return <div aria-hidden className="mt-4 border-b-2 border-[hsl(var(--foreground)/0.75)]" />;
+}
+
+/** 장부 프레임 — 이중 괘선 액자, 안쪽은 책상보다 밝은 원고지 톤. */
+function LedgerFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="border border-[hsl(var(--foreground)/0.45)] bg-[hsl(var(--surface-1))] p-[3px]">
+      <div className="border border-[hsl(var(--foreground)/0.16)] px-4 py-7 sm:px-9 sm:py-9">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 /* ═══════════════ 첫 설정 — 신분 선택 → 칸 준비 ═══════════════ */
@@ -124,7 +130,7 @@ function SetupLedger() {
   };
 
   return (
-    <>
+    <LedgerFrame>
       <header className="min-w-0">
         <h1 className="career-serif text-[26px] font-bold leading-tight tracking-tight">나의 커리어</h1>
         <p className="mt-1 text-[12.5px] text-muted-foreground">
@@ -165,7 +171,7 @@ function SetupLedger() {
           </button>
         ))}
       </div>
-    </>
+    </LedgerFrame>
   );
 }
 
@@ -322,7 +328,8 @@ function BoardLedger() {
 
   return (
     <>
-      {/* ── 표제 — "ㅇㅇ님의 커리어" (클릭해서 이름 수정) + 우측 신분·뽑아쓰기 ── */}
+      <LedgerFrame>
+      {/* ── 표제 — "ㅇㅇ님의 커리어" (클릭해서 이름 수정) ── */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           {editingName ? (
@@ -442,36 +449,6 @@ function BoardLedger() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-
-        {/* ────── AI 도구 칸 — 쌓인 원고로 문서를 만들거나 다음 스펙을 추천받는다 ────── */}
-        <div className="mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-2 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-4 py-3">
-          <span className="mr-1 text-[11.5px] font-medium text-muted-foreground/70">AI 도구</span>
-          {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-            <button
-              key={purpose}
-              type="button"
-              onClick={() => setComposePurpose(purpose)}
-              disabled={items.length === 0}
-              title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
-              className={cn(
-                'border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
-                items.length === 0
-                  ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/45'
-                  : 'border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setRecommendOpen(true)}
-            title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-            className="border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
-          >
-            추천 스펙
-          </button>
         </div>
 
         {/* ────── 기록 — 캡션 + 카드/문서 토글 ────── */}
@@ -637,6 +614,37 @@ function BoardLedger() {
         <span className="text-[11.5px] text-muted-foreground/60">
           줄을 누르면 세부사항을 적을 수 있어요
         </span>
+      </div>
+      </LedgerFrame>
+
+      {/* ────── AI 도구 — 원고 밖 책상 위, 원고에 적용하는 도구들 ────── */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2 px-1">
+        <span className="mr-1 text-[11.5px] font-medium text-muted-foreground/70">AI 도구</span>
+        {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+          <button
+            key={purpose}
+            type="button"
+            onClick={() => setComposePurpose(purpose)}
+            disabled={items.length === 0}
+            title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
+            className={cn(
+              'border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
+              items.length === 0
+                ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground/45'
+                : 'border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setRecommendOpen(true)}
+          title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+          className="border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
+        >
+          추천 스펙
+        </button>
       </div>
 
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
