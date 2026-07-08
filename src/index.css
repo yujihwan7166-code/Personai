@@ -531,13 +531,14 @@
     --sidebar-background: 222 24% 7%;
   }
 
-  /* 원고 서체 — 문장은 명조, 장부 숫자는 모노 */
+  /* 원고 서체 — 플래너(캘린더)와 동일한 Pretendard 로 통일.
+   * class 이름(career-serif/mono)은 유지하되 글꼴만 산세리프로. 숫자는 tabular 유지. */
   .career-theme .career-serif {
-    font-family: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-family: inherit;
   }
 
   .career-theme .career-mono {
-    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, monospace;
+    font-family: inherit;
     font-variant-numeric: tabular-nums;
   }
 

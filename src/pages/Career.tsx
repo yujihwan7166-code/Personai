@@ -11,14 +11,14 @@
  * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
  * 문서 뷰는 이력서 지면처럼 3열(문장|날짜|세부), 섹션당 5개 프리뷰.
  */
-import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { Copy, Download, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
-import { aiClassifySpec, aiComposeCareerDoc, aiProbeQuestions, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
+import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
 import { PERSONA_LABEL, type CareerPersona, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -61,9 +61,6 @@ type CapturePhase =
   | { step: 'idle' }
   | { step: 'thinking'; raw: string }
   | { step: 'reveal'; raw: string; refined: string; category: string };
-
-type ViewMode = 'card' | 'doc';
-const VIEW_KEY = 'career.view.v1';
 
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
 
@@ -226,13 +223,6 @@ function BoardLedger() {
   const [advOrg, setAdvOrg] = useState('');
   const [advLink, setAdvLink] = useState('');
   const [advDetail, setAdvDetail] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    try {
-      return window.localStorage.getItem(VIEW_KEY) === 'doc' ? 'doc' : 'card';
-    } catch {
-      return 'card';
-    }
-  });
   const inputRef = useRef<HTMLInputElement | null>(null);
   const recentTimer = useRef<number | null>(null);
 
@@ -247,11 +237,6 @@ function BoardLedger() {
 
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
-
-  const changeView = (mode: ViewMode) => {
-    setViewMode(mode);
-    try { window.localStorage.setItem(VIEW_KEY, mode); } catch { /* noop */ }
-  };
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => {
@@ -419,66 +404,12 @@ function BoardLedger() {
   );
 
   /* 원고 행 — 문서 뷰용 (이력서 지면 3열: 문장 | 날짜 | 세부). */
-  const renderDocRow = (item: SpecItem) => (
-    <button
-      type="button"
-      onClick={() => setDetailItem(item)}
-      className={cn(
-        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-0.5 px-2 py-2.5 text-left transition-[background-color,box-shadow] sm:grid-cols-[minmax(0,5fr)_86px_minmax(0,4fr)]',
-        'hover:bg-[hsl(var(--foreground)/0.04)] hover:shadow-[inset_3px_0_0_hsl(var(--career-red)/0.85)]',
-        item.id === recentId && 'career-new-line',
-      )}
-    >
-      <span className="career-serif min-w-0 text-[14px] leading-relaxed">
-        <MetricText text={item.refined} />
-        {item.link && (
-          <a
-            href={item.link}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="증빙 링크 열기"
-            title={item.link}
-            className="ml-1.5 inline-flex align-middle text-muted-foreground/60 transition-colors hover:text-[hsl(var(--career-red))]"
-          >
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </span>
-      <span className="career-mono shrink-0 text-[11px] text-muted-foreground">{formatPeriod(item)}</span>
-      <span className="col-span-2 line-clamp-2 min-w-0 text-[12px] leading-relaxed text-muted-foreground/85 sm:col-span-1">
-        {[item.org, item.detail].filter(Boolean).join(' · ')}
-      </span>
-    </button>
-  );
-
   return (
     <>
       <LayoutGroup>
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
-            {/* 보기 전환 — 원고를 카드/문서 중 어떻게 볼지 (컨트롤은 도구 열에) */}
-            <div className="flex items-center justify-end gap-3 px-1">
-              <span className="text-[11px] text-muted-foreground/60">보기</span>
-              {([['card', '카드'], ['doc', '문서']] as const).map(([mode, label]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => changeView(mode)}
-                  aria-pressed={viewMode === mode}
-                  className={cn(
-                    'pb-0.5 text-[12px] transition-colors',
-                    viewMode === mode
-                      ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
-                      : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
             {/* AI 도구 — 원고에 적용하는 도구들 (작성대 위) */}
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
               <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
@@ -801,9 +732,8 @@ function BoardLedger() {
               </div>
               <TitleRule />
 
-              {/* ────── 기록 — 2열 장부 or 문서 줄글(3열) ────── */}
-              {viewMode === 'card' ? (
-                <div className="mt-4 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
+              {/* ────── 기록 — 2열 장부 ────── */}
+              <div className="mt-4 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -895,41 +825,7 @@ function BoardLedger() {
                       + 칸 추가
                     </button>
                   )}
-                </div>
-              ) : (
-                /* ── 문서 뷰 — 이력서 지면 3열, 행 클릭도 세부사항 ── */
-                <div className="mt-4 space-y-8">
-                  {sections.filter((s) => s.items.length > 0).length === 0 ? (
-                    <p className="py-6 text-center text-[12.5px] text-muted-foreground/60">
-                      아직 기록이 없어요 — 왼쪽 작성대에 한 줄 적으면 원고가 시작돼요.
-                    </p>
-                  ) : (
-                    sections
-                      .filter((s) => s.items.length > 0)
-                      .map(({ category, items: sectionItems }, sectionIndex) => (
-                        <section key={category.id}>
-                          <SectionHeader index={sectionIndex} name={category.name} count={sectionItems.length} />
-                          <ul className="divide-y divide-[hsl(var(--hairline))]">
-                            {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
-                              <li key={item.id}>{renderDocRow(item)}</li>
-                            ))}
-                          </ul>
-                          {sectionItems.length > SECTION_PREVIEW && (
-                            <button
-                              type="button"
-                              onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 px-2 text-[11.5px] text-muted-foreground/70 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
-                            >
-                              {expandedSections.has(category.id)
-                                ? '접기'
-                                : `${sectionItems.length - SECTION_PREVIEW}개 더 보기`}
-                            </button>
-                          )}
-                        </section>
-                      ))
-                  )}
-                </div>
-              )}
+              </div>
 
             </LedgerFrame>
           </div>
@@ -962,29 +858,22 @@ function SectionHeader({
       </span>
       <h2 className="career-serif text-[15px] font-bold tracking-tight">{name}</h2>
       <span className="ml-auto" />
-      {count > 0 ? (
-        <span className="career-mono text-[10.5px] text-muted-foreground">{count}개</span>
-      ) : (
-        onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label={`${name} 칸 삭제`}
-            title="빈 칸 삭제"
-            className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/70"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )
+      {count === 0 && onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`${name} 칸 삭제`}
+          title="빈 칸 삭제"
+          className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/70"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       )}
     </div>
   );
 }
 
 /* ═══════════════ 세부사항 다이얼로그 ═══════════════ */
-
-/** 교정 질문 캐시 — 같은 카드를 다시 열 때 재호출하지 않는다 (세션 한정). */
-const probeCache = new Map<string, string[]>();
 
 function DetailDialog({ item, onClose }: { item: SpecItem | null; onClose: () => void }) {
   return (
@@ -1004,32 +893,6 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
   const [org, setOrg] = useState(item.org ?? '');
   const [link, setLink] = useState(item.link ?? '');
   const [detail, setDetail] = useState(item.detail ?? '');
-  /** null = 불러오는 중, [] = 질문 없음/실패. */
-  const [questions, setQuestions] = useState<string[] | null>(() => probeCache.get(item.id) ?? null);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [answered, setAnswered] = useState<Set<number>>(new Set());
-
-  useEffect(() => {
-    if (probeCache.has(item.id)) return;
-    let alive = true;
-    void aiProbeQuestions({ refined: item.refined, raw: item.raw, detail: item.detail }).then((result) => {
-      probeCache.set(item.id, result);
-      if (alive) setQuestions(result);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [item]);
-
-  /** 답을 세부사항에 반영하고 질문을 마감 처리. */
-  const applyAnswer = (index: number) => {
-    if (!questions) return;
-    const answer = (answers[index] ?? '').trim();
-    if (!answer) return;
-    const line = `- ${questions[index]} → ${answer}`;
-    setDetail((prev) => (prev ? `${prev}\n${line}` : line));
-    setAnswered((prev) => new Set(prev).add(index));
-  };
 
   const save = () => {
     careerStore.updateItem(item.id, {
@@ -1133,52 +996,6 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
           </div>
         </div>
 
-        {/* ── 교정 질문 — 빨간펜 교정자가 여백에 다는 질문. 답하면 세부사항에 쌓인다. ── */}
-        {(questions === null || questions.length > 0) && (
-          <div className="border-l-2 border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
-            <p className="mb-2.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">
-              교정 질문 — 답하면 세부사항에 반영돼요
-            </p>
-            {questions === null ? (
-              <p className="flex items-center gap-2 py-1 text-[12px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--career-red))]" />
-                이 성과에서 빠진 정보를 찾는 중…
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {questions.map((question, index) =>
-                  answered.has(index) ? (
-                    <p key={question} className="flex items-start gap-1.5 text-[12px] text-muted-foreground/70">
-                      <span className="shrink-0 text-[hsl(var(--career-red))]">✓</span>
-                      <span className="min-w-0">{question}</span>
-                    </p>
-                  ) : (
-                    <div key={question}>
-                      <p className="career-serif text-[13px] leading-snug">
-                        <span className="career-mono mr-1.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">Q.</span>
-                        {question}
-                      </p>
-                      <input
-                        value={answers[index] ?? ''}
-                        onChange={(e) => setAnswers((prev) => ({ ...prev, [index]: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                            e.preventDefault();
-                            applyAnswer(index);
-                          }
-                        }}
-                        placeholder="짧게 적어도 돼요 — 엔터로 반영"
-                        aria-label={question}
-                        className="mt-1 w-full border-b border-[hsl(var(--hairline))] bg-transparent py-1 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
-                      />
-                    </div>
-                  ),
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
         <div>
           <label htmlFor="career-detail-memo" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
             세부사항
@@ -1191,9 +1008,6 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             className="h-32 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
-        <p className="truncate text-[11.5px] text-muted-foreground/70" title={item.raw}>
-          원문 — “{item.raw}”
-        </p>
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"
