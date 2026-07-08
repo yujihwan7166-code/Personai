@@ -1,28 +1,22 @@
 /**
- * 스펙 보드 — /career (아직 완성되지 않은, 당신 이력서의 원본).
+ * 스펙 보드 — /career ("교정 중인 원고" 컨셉).
  *
- * 구성 (유저 확정):
- *   [페이지 헤더] 워드마크(좌) + EXTRACT 필 3종(우) — 시트 밖 상단
- *   [시트] 인적 사항 → 골드 캡처 바 → 기록 뷰 (카드 2열 ↔ 문서 줄글 토글)
- *   [카드 클릭] 세부사항 다이얼로그 — 문장·날짜·상세 메모 편집
+ * 종이 위 잉크: 카드·그림자·그라데이션 없이 괘선과 서체로만 위계를 세운다.
+ *   문장 = 명조(career-serif), 장부 숫자·캡션 = 모노(career-mono),
+ *   강조색 = 교정 잉크 빨강(--career-red) 하나 — 커서·활성·새 줄·추출 화살표에만.
  *
- * 상세 메모(detail)는 EXTRACT 때 AI 재료로 함께 들어간다.
- * 변신 카드가 framer layoutId 공유로 섹션까지 날아가 골드로 꽂힌다.
+ * 구성:
+ *   [헤더] 스펙 보드 + SPEC LEDGER 캡션 (좌) · 신분 전환 탭 (우) · 굵은 괘선
+ *   [인적] 이름·한 줄 소개 (좌) · EXTRACT → 화살표 링크 (우)
+ *   [입력] 빨간 바 캡처 박스 + TRY 밑줄 링크
+ *   [기록] RECORDS · 카드(2열 장부) ↔ 문서(줄글) 토글, 행 클릭 → 세부사항
+ *
+ * 변신 카드가 framer layoutId 공유로 원고의 해당 행까지 날아가 꽂힌다.
+ * 수치는 색이 아니라 잉크 굵기(볼드)로 강조 — 빨강 규율 유지.
  */
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import {
-  Copy,
-  CornerDownLeft,
-  Download,
-  LayoutGrid,
-  Loader2,
-  Plus,
-  ScrollText,
-  Sparkles,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Copy, Download, Loader2, Sparkles, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -36,9 +30,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-/** 섹션명 → 영문 보조 라벨 (문서의 소제목 캡션). */
+/** 섹션명 → 영문 보조 라벨 (장부의 인덱스 캡션). */
 const SECTION_EN: Record<string, string> = {
-  자격증: 'CERTIFICATIONS',
+  자격증: 'CERTIFICATION',
   수상: 'AWARDS',
   어학: 'LANGUAGES',
   경력: 'CAREER',
@@ -90,13 +84,13 @@ const VIEW_KEY = 'career.view.v1';
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
 const formatFull = (iso: string) => iso.slice(0, 10).replaceAll('-', '.');
 
-/** 입력줄 → 섹션 카드 공유 레이아웃 id. */
+/** 입력줄 → 원고 행 공유 레이아웃 id. */
 const INCOMING = 'career-incoming-card';
 
 /** 수치·변화 토큰 (split 캡처 그룹 — 홀수 index 가 매치). */
 const METRIC_RE = /(\d[\d,.]*\s?(?:%|점|초|분|배|건|명|회|억|만|원|위|기|개월|년)?|→)/g;
 
-/** 성과 문장 속 숫자를 골드로 — "3.2초 → 0.9초" 가 눈에 박히게. */
+/** 성과 문장 속 숫자 — 색이 아니라 잉크 굵기로 강조 (빨강은 교정 마크 전용). */
 function MetricText({ text }: { text: string }): ReactNode {
   const parts = text.split(METRIC_RE);
   if (parts.length === 1) return text;
@@ -104,7 +98,7 @@ function MetricText({ text }: { text: string }): ReactNode {
     <>
       {parts.map((part, index) =>
         index % 2 === 1 ? (
-          <span key={index} className="font-semibold text-[hsl(var(--career-gold))]">{part}</span>
+          <span key={index} className="career-mono text-[0.92em] font-semibold">{part}</span>
         ) : (
           part
         ),
@@ -118,31 +112,35 @@ export default function Career() {
 
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
-        {profile.persona === '' ? <SetupSheet /> : <BoardSheet />}
+      <div className="mx-auto w-full max-w-4xl px-5 pb-24 pt-9 sm:px-8 sm:pt-12">
+        {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
       </div>
     </div>
   );
 }
 
-/** 페이지 워드마크 — 골드 세리프 캡션 + 큰 한글 타이틀. */
-function Wordmark() {
+/** 원고 헤더 — 명조 타이틀 + 모노 캡션 (우측 슬롯 옵션). */
+function LedgerHeader({ right }: { right?: ReactNode }) {
   return (
-    <div className="min-w-0">
-      <p className="font-serif text-[10px] font-semibold tracking-[0.32em] text-[hsl(var(--career-gold))]">
-        SPEC BOARD
-      </p>
-      <h1 className="mt-0.5 text-[24px] font-extrabold leading-tight tracking-tight">스펙 보드</h1>
-      <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-        아직 완성되지 않은, 당신 이력서의 원본
-      </p>
-    </div>
+    <>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="career-serif text-[26px] font-bold leading-tight tracking-tight">스펙 보드</h1>
+          <p className="career-mono mt-1 text-[10px] tracking-[0.28em] text-muted-foreground">
+            SPEC LEDGER / 개인 이력 원본
+          </p>
+        </div>
+        {right}
+      </header>
+      {/* 표제 아래 굵은 괘선 — 원고의 시작 */}
+      <div aria-hidden className="mt-4 border-b-2 border-[hsl(var(--foreground)/0.75)]" />
+    </>
   );
 }
 
 /* ═══════════════ 첫 설정 — 신분 선택 → 칸 준비 ═══════════════ */
 
-function SetupSheet() {
+function SetupLedger() {
   const seed = (persona: CareerPersona) => {
     SEED_CATEGORIES[persona].forEach((name) => careerStore.ensureCategory(name));
     careerStore.setProfile({ persona });
@@ -150,17 +148,14 @@ function SetupSheet() {
 
   return (
     <>
-    <header className="mb-6 px-1">
-      <Wordmark />
-    </header>
-    <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-6 py-10 shadow-[0_10px_36px_-26px_hsl(var(--foreground)/0.4)] sm:px-12 sm:py-14">
-      <p className="text-center font-serif text-[10.5px] tracking-[0.2em] text-muted-foreground">
-        SETUP — 문서의 뼈대를 준비해요
+      <LedgerHeader />
+      <p className="career-mono mt-10 text-center text-[10px] tracking-[0.24em] text-muted-foreground">
+        SETUP — 원고의 뼈대를 준비해요
       </p>
-      <h2 className="mt-2 text-center text-[20px] font-bold tracking-tight">
+      <h2 className="career-serif mt-2.5 text-center text-[21px] font-bold tracking-tight">
         지금 어디쯤에 있나요?
       </h2>
-      <p className="mt-1.5 text-center text-[13px] text-muted-foreground">
+      <p className="mt-2 text-center text-[13px] text-muted-foreground">
         고르면 그에 맞는 칸이 준비돼요. 칸은 나중에 자유롭게 추가하거나 지울 수 있어요.
       </p>
 
@@ -170,38 +165,30 @@ function SetupSheet() {
             key={persona}
             type="button"
             onClick={() => seed(persona)}
-            className="group rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--foreground)/0.4)] hover:shadow-[0_8px_20px_-14px_hsl(var(--foreground)/0.4)]"
+            className="group border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-1))] px-5 py-4 text-left transition-colors hover:border-[hsl(var(--career-red))]"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[15px] font-bold">{PERSONA_LABEL[persona]}</p>
+                <p className="career-serif text-[16px] font-bold">{PERSONA_LABEL[persona]}</p>
                 <p className="mt-0.5 text-[12.5px] text-muted-foreground">{PERSONA_DESC[persona]}</p>
               </div>
-              <span className="text-[13px] text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground">
+              <span className="text-[14px] text-[hsl(var(--career-red))] opacity-0 transition-opacity group-hover:opacity-100">
                 →
               </span>
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {SEED_CATEGORIES[persona].map((name) => (
-                <span
-                  key={name}
-                  className="rounded-md bg-[hsl(var(--surface-3)/0.7)] px-2 py-0.5 text-[11px] font-medium text-secondary-foreground"
-                >
-                  {name}
-                </span>
-              ))}
-            </div>
+            <p className="career-mono mt-2.5 text-[10.5px] tracking-wide text-muted-foreground">
+              {SEED_CATEGORIES[persona].join(' · ')}
+            </p>
           </button>
         ))}
       </div>
-    </div>
     </>
   );
 }
 
-/* ═══════════════ 보드 시트 ═══════════════ */
+/* ═══════════════ 원고 본체 ═══════════════ */
 
-function BoardSheet() {
+function BoardLedger() {
   const { items, categories, profile } = useCareerBoard();
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
   const [draft, setDraft] = useState('');
@@ -243,6 +230,12 @@ function BoardSheet() {
     try { window.localStorage.setItem(VIEW_KEY, mode); } catch { /* noop */ }
   };
 
+  const switchPersona = (next: CareerPersona) => {
+    if (next === persona) return;
+    SEED_CATEGORIES[next].forEach((name) => careerStore.ensureCategory(name));
+    careerStore.setProfile({ persona: next });
+  };
+
   const submit = async (rawInput?: string) => {
     const raw = (rawInput ?? draft).trim();
     if (!raw || busy) return;
@@ -252,7 +245,7 @@ function BoardSheet() {
     setPhase({ step: 'thinking', raw });
     const result = await aiClassifySpec(raw, categories.map((c) => c.name));
     setPhase({ step: 'reveal', raw, refined: result.refined, category: result.category });
-    // 변신을 잠깐 보여준 뒤 — 같은 카드가 layoutId 로 섹션 자리까지 날아간다.
+    // 변신을 잠깐 보여준 뒤 — 같은 줄이 layoutId 로 원고의 행까지 날아간다.
     window.setTimeout(() => {
       const item = careerStore.addItem({ raw, refined: result.refined, categoryName: result.category });
       setRecentId(item.id);
@@ -270,7 +263,7 @@ function BoardSheet() {
 
   const removeItem = (item: SpecItem) => {
     careerStore.removeItem(item.id);
-    notify.success('원본에서 뺐어요');
+    notify.success('원고에서 뺐어요');
   };
 
   const onDropToCategory = (event: DragEvent, categoryId: string) => {
@@ -289,16 +282,109 @@ function BoardSheet() {
     careerStore.ensureCategory(name);
   };
 
+  /* 원고 행 — 카드/문서 뷰 공용. */
+  const renderRow = (item: SpecItem, draggable: boolean) => (
+    <div
+      draggable={draggable}
+      onDragStart={draggable ? (e: DragEvent) => e.dataTransfer.setData('text/plain', item.id) : undefined}
+      onClick={() => setDetailItem(item)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setDetailItem(item);
+        }
+      }}
+      className={cn(
+        'group relative cursor-pointer px-2 py-2.5 transition-[background-color,box-shadow]',
+        'hover:bg-[hsl(var(--foreground)/0.04)] hover:shadow-[inset_3px_0_0_hsl(var(--career-red)/0.85)]',
+        item.id === recentId && 'career-new-line',
+      )}
+    >
+      <div className="flex items-baseline gap-3">
+        <span className="career-serif min-w-0 flex-1 text-[14.5px] leading-relaxed">
+          <MetricText text={item.refined} />
+        </span>
+        <span className="career-mono shrink-0 text-[11px] text-muted-foreground transition-opacity group-hover:opacity-0">
+          {formatMonth(item.date)}
+        </span>
+        <span className="absolute right-1.5 top-2 flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeItem(item);
+            }}
+            aria-label="삭제"
+            title="삭제"
+            className="p-1 text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </span>
+      </div>
+      {item.detail && (
+        <p className={cn('mt-0.5 text-[12px] leading-relaxed text-muted-foreground/85', viewMode === 'card' && 'line-clamp-1')}>
+          {item.detail}
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <>
-      {/* ────── 페이지 헤더 — 워드마크(좌) + EXTRACT(우), 시트 밖 위 ────── */}
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4 px-1">
-        <Wordmark />
-        <div className="text-right">
-          <p className="mb-1.5 font-serif text-[10.5px] tracking-[0.16em] text-muted-foreground">
+      <LedgerHeader
+        right={
+          <div className="flex items-center gap-3 pb-1">
+            <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/70">LEDGER</span>
+            {(Object.keys(PERSONA_LABEL) as CareerPersona[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => switchPersona(key)}
+                aria-pressed={persona === key}
+                className={cn(
+                  'pb-0.5 text-[12.5px] transition-colors',
+                  persona === key
+                    ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
+                    : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {PERSONA_LABEL[key]}
+              </button>
+            ))}
+          </div>
+        }
+      />
+
+      {/* ── 인적 사항 + EXTRACT ── */}
+      <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          {/* IME 조합 안정성 — 비제어 + blur 시 저장. */}
+          <input
+            defaultValue={profile.name}
+            onBlur={(e) => careerStore.setProfile({ name: e.target.value.trim() })}
+            placeholder="이름"
+            aria-label="이름"
+            className="career-serif w-full max-w-[300px] bg-transparent text-[22px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
+          />
+          <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[12.5px] text-muted-foreground">
+            <input
+              defaultValue={profile.tagline}
+              onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
+              placeholder={`한 줄 소개 — 예: ${persona === 'worker' ? '3년차 프론트엔드 개발자' : '컴퓨터공학 3학년'}`}
+              aria-label="한 줄 소개"
+              className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
+            />
+            {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
+          </div>
+        </div>
+        <div className="pb-1 text-right">
+          <p className="career-mono mb-1 text-[9.5px] tracking-[0.2em] text-muted-foreground/70">
             EXTRACT — 목적별로 뽑아쓰기
           </p>
-          <div className="flex flex-wrap justify-end gap-1.5">
+          <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
             {COMPOSE_PURPOSES.map(({ purpose, label }) => (
               <button
                 key={purpose}
@@ -306,10 +392,114 @@ function BoardSheet() {
                 onClick={() => setComposePurpose(purpose)}
                 disabled={items.length === 0}
                 className={cn(
-                  'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold shadow-sm transition-all',
+                  'group text-[13px] font-medium transition-colors',
                   items.length === 0
-                    ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground/50'
-                    : 'border-[hsl(var(--primary)/0.5)] bg-[hsl(var(--surface-1))] text-primary hover:-translate-y-px hover:bg-primary hover:text-primary-foreground',
+                    ? 'cursor-not-allowed text-muted-foreground/45'
+                    : 'text-foreground hover:text-[hsl(var(--career-red))]',
+                )}
+              >
+                <span className={cn('mr-0.5', items.length > 0 && 'text-[hsl(var(--career-red))]')}>→</span>
+                <span className={cn(items.length > 0 && 'underline-offset-4 group-hover:underline')}>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div aria-hidden className="mt-5 border-b border-[hsl(var(--foreground)/0.3)]" />
+
+      <LayoutGroup>
+        {/* ────── 캡처 박스 — 빨간 교정 바가 꽂힌 원고의 다음 줄 ────── */}
+        <div className="pt-6">
+          <div
+            className={cn(
+              'flex items-center border bg-[hsl(var(--surface-1))] transition-colors',
+              'border-[hsl(var(--foreground)/0.45)] focus-within:border-[hsl(var(--career-red))]',
+            )}
+          >
+            <span aria-hidden className="my-2.5 ml-3.5 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={onInputKeyDown}
+              placeholder="여기에 한 줄로 이어 적으세요 — 뭐든 이룬 것"
+              aria-label="스펙 입력"
+              className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3.5 text-[15px] outline-none placeholder:text-muted-foreground/50"
+            />
+            <span className="career-mono hidden shrink-0 pr-4 text-[10px] tracking-[0.18em] text-muted-foreground/60 sm:block">
+              RETURN ⏎
+            </span>
+          </div>
+
+          {/* TRY — 기록이 적을 때만, 밑줄 링크. */}
+          {items.length < 3 && phase.step === 'idle' && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/60">TRY</span>
+              {TRY_EXAMPLES[persona].map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => void submit(example)}
+                  className="text-[12.5px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 변신 줄 — 원문이 이력서 문장으로 바뀌고, 그대로 원고 행까지 날아간다. */}
+          <AnimatePresence>
+            {phase.step !== 'idle' && (
+              <motion.div
+                layoutId={INCOMING}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 flex items-center border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] py-2.5"
+              >
+                <span aria-hidden className="ml-3.5 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
+                {phase.step === 'thinking' ? (
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 text-[13.5px]">
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
+                    <span className="career-serif min-w-0 flex-1 truncate text-muted-foreground">{phase.raw}</span>
+                    <span className="career-mono shrink-0 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
+                      교정 중…
+                    </span>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ rotateX: -80, opacity: 0 }}
+                    animate={{ rotateX: 0, opacity: 1 }}
+                    transition={{ duration: 0.34, ease: 'easeOut' }}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 text-[14px]"
+                  >
+                    <span className="career-serif min-w-0 flex-1 font-medium">{phase.refined}</span>
+                    <span className="career-mono shrink-0 border border-[hsl(var(--career-red)/0.5)] px-1.5 py-0.5 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
+                      {phase.category}
+                    </span>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ────── RECORDS — 캡션 + 카드/문서 토글 ────── */}
+        <div className="mt-9 flex items-end justify-between">
+          <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/70">RECORDS</span>
+          <div className="flex items-center gap-3">
+            {([['card', '카드'], ['doc', '문서']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => changeView(mode)}
+                aria-pressed={viewMode === mode}
+                className={cn(
+                  'pb-0.5 text-[12px] transition-colors',
+                  viewMode === mode
+                    ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
+                    : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
                 {label}
@@ -317,335 +507,123 @@ function BoardSheet() {
             ))}
           </div>
         </div>
-      </header>
 
-      {/* ────── 이력서 원본 시트 ────── */}
-      <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-5 py-7 shadow-[0_14px_44px_-28px_hsl(var(--foreground)/0.45)] sm:px-10 sm:py-9">
-        {/* ── 인적 사항 ── */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            {/* IME 조합 안정성 — 비제어 + blur 시 저장. */}
-            <input
-              defaultValue={profile.name}
-              onBlur={(e) => careerStore.setProfile({ name: e.target.value.trim() })}
-              placeholder="이름"
-              aria-label="이름"
-              className="w-full max-w-[300px] bg-transparent text-[24px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
-            />
-            <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
-              <input
-                defaultValue={profile.tagline}
-                onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-                placeholder={`한 줄 소개 — 예: ${persona === 'worker' ? '3년차 프론트엔드 개발자' : '컴퓨터공학 3학년'}`}
-                aria-label="한 줄 소개"
-                className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
-              />
-            </div>
-          </div>
-          <div className="pb-0.5 text-right text-[11.5px] leading-relaxed text-muted-foreground">
-            <p className="font-serif tracking-[0.16em]">{PERSONA_LABEL[persona]}</p>
-            {lastRecordedAt && <p>마지막 기록 {formatFull(lastRecordedAt)}</p>}
-          </div>
-        </div>
-
-        {/* 인적 사항 아래 괘선 */}
-        <div aria-hidden className="mt-5 border-b border-[hsl(var(--hairline))]" />
-
-        <LayoutGroup>
-          {/* ────── 캡처 바 — 이 문서의 유일한 입구, 특별하게 ────── */}
-          <div className="pt-6">
-            <div
-              className={cn(
-                'flex items-center gap-3 rounded-xl border bg-card px-4 py-2.5 shadow-sm transition-all',
-                'border-[hsl(var(--hairline))]',
-                'focus-within:border-[hsl(var(--career-gold)/0.6)] focus-within:shadow-[0_0_0_3px_hsl(var(--career-gold)/0.13),0_6px_16px_-10px_hsl(var(--foreground)/0.3)]',
-              )}
-            >
-              <span
-                aria-hidden
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--career-gold)/0.13)] text-[15px] font-bold text-[hsl(var(--career-gold))]"
+        {/* ────── 기록 — 2열 장부 or 문서 줄글 ────── */}
+        {viewMode === 'card' ? (
+          <div className="mt-4 grid items-start gap-x-10 gap-y-8 md:grid-cols-2">
+            {sections.map(({ category, items: sectionItems }, sectionIndex) => (
+              <section
+                key={category.id}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverCategory(category.id);
+                }}
+                onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
+                onDrop={(e) => onDropToCategory(e, category.id)}
+                className={cn(
+                  'group/section transition-shadow',
+                  dragOverCategory === category.id && 'shadow-[inset_0_0_0_1px_hsl(var(--career-red)/0.6)]',
+                )}
               >
-                +
-              </span>
-              <input
-                ref={inputRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={onInputKeyDown}
-                placeholder="여기에 한 줄로 이어 적어 보세요 — 뭐든 이룬 것"
-                aria-label="스펙 입력"
-                className="h-9 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/55"
-              />
-              <span className="hidden shrink-0 items-center gap-1 rounded-md border border-[hsl(var(--hairline))] px-1.5 py-0.5 font-serif text-[10.5px] tracking-wide text-muted-foreground/70 sm:flex">
-                Enter <CornerDownLeft className="h-3 w-3" />
-              </span>
-            </div>
+                <SectionHeader
+                  index={sectionIndex}
+                  name={category.name}
+                  count={sectionItems.length}
+                  onRemove={() => careerStore.removeCategory(category.id)}
+                />
+                {sectionItems.length === 0 ? (
+                  <p className="px-2 py-3 text-[12.5px] text-muted-foreground/55">
+                    아직 비어 있어요 — 이룬 것을 적으면 여기에 쌓여요.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-[hsl(var(--hairline))]">
+                    <AnimatePresence initial={false}>
+                      {sectionItems.map((item) => (
+                        <motion.li
+                          key={item.id}
+                          layout
+                          layoutId={item.id === recentId ? INCOMING : undefined}
+                          initial={item.id === recentId ? false : { opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                        >
+                          {renderRow(item, true)}
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                )}
+              </section>
+            ))}
 
-            {/* 해보기 — 기록이 적을 때만, 신분에 맞는 예시. */}
-            {items.length < 3 && phase.step === 'idle' && (
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground/70">해보기</span>
-                {TRY_EXAMPLES[persona].map((example) => (
-                  <button
-                    key={example}
-                    type="button"
-                    onClick={() => void submit(example)}
-                    className="rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-3)/0.55)] px-3 py-1 text-[11.5px] text-secondary-foreground transition-colors hover:bg-accent"
-                  >
-                    “{example}”
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* 변신 카드 — 원문이 이력서 문장으로 바뀌고, 그대로 섹션까지 날아간다. */}
-            <AnimatePresence>
-              {phase.step !== 'idle' && (
-                <motion.div
-                  layoutId={INCOMING}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-3.5 rounded-[10px] border border-[hsl(var(--career-gold)/0.45)] bg-card px-4 py-3 shadow-sm"
-                >
-                  {phase.step === 'thinking' ? (
-                    <div className="flex items-center gap-2.5 text-[13.5px]">
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-gold))]" />
-                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{phase.raw}</span>
-                      <span className="shrink-0 text-[11.5px] text-[hsl(var(--career-gold))]">
-                        이력서 문장으로 다듬는 중…
-                      </span>
-                    </div>
-                  ) : (
-                    <motion.div
-                      initial={{ rotateX: -80, opacity: 0 }}
-                      animate={{ rotateX: 0, opacity: 1 }}
-                      transition={{ duration: 0.34, ease: 'easeOut' }}
-                      className="flex items-center gap-2.5 text-[14px]"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--career-gold))]" />
-                      <span className="min-w-0 flex-1 font-medium">{phase.refined}</span>
-                      <span className="shrink-0 rounded-md bg-[hsl(var(--career-gold)/0.14)] px-1.5 py-0.5 text-[11px] font-semibold text-[hsl(var(--career-gold))]">
-                        {phase.category}
-                      </span>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ────── 기록 헤더 — RECORDS 캡션 + 뷰 토글 ────── */}
-          <div className="mt-8 flex items-center justify-between">
-            <span className="font-serif text-[10px] tracking-[0.2em] text-muted-foreground/70">RECORDS</span>
-            <div className="flex rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2)/0.6)] p-0.5">
-              {([['card', '카드', LayoutGrid], ['doc', '문서', ScrollText]] as const).map(([mode, label, Icon]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => changeView(mode)}
-                  aria-pressed={viewMode === mode}
-                  className={cn(
-                    'flex items-center gap-1 rounded-md px-2.5 py-1 text-[11.5px] font-semibold transition-colors',
-                    viewMode === mode
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  <Icon className="h-3 w-3" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ────── 기록 — 카드 2열 or 문서 줄글 ────── */}
-          {viewMode === 'card' ? (
-            <div className="mt-3 grid items-start gap-5 md:grid-cols-2">
-              {sections.map(({ category, items: sectionItems }, sectionIndex) => (
-                <section
-                  key={category.id}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragOverCategory(category.id);
+            {/* 칸 추가 — 원고에 새 인덱스를 긋는다 */}
+            {addingCategory ? (
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+                <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
+                  {String(sections.length + 1).padStart(2, '0')}
+                </span>
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
+                    if (e.key === 'Escape') {
+                      setAddingCategory(false);
+                      setNewCategoryName('');
+                    }
                   }}
-                  onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
-                  onDrop={(e) => onDropToCategory(e, category.id)}
-                  className={cn(
-                    'group/section rounded-xl bg-[hsl(var(--surface-2)/0.6)] p-4 transition-shadow',
-                    dragOverCategory === category.id && 'ring-2 ring-[hsl(var(--career-gold)/0.5)]',
-                  )}
-                >
-                  <SectionHeader
-                    index={sectionIndex}
-                    name={category.name}
-                    count={sectionItems.length}
-                    onRemove={() => careerStore.removeCategory(category.id)}
-                  />
-
-                  {sectionItems.length === 0 ? (
-                    <div className="rounded-[10px] border border-dashed border-[hsl(var(--hairline))] px-3.5 py-3 text-[12.5px] text-muted-foreground/55">
-                      아직 비어 있어요 — 이룬 것을 적으면 여기에 쌓여요.
-                    </div>
-                  ) : (
-                    <ul className="space-y-2.5">
-                      <AnimatePresence initial={false}>
-                        {sectionItems.map((item) => (
-                          <motion.li
-                            key={item.id}
-                            layout
-                            layoutId={item.id === recentId ? INCOMING : undefined}
-                            initial={item.id === recentId ? false : { opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                          >
-                            {/* HTML5 드래그는 motion 의 onDragStart 와 충돌해서 내부 div 가 담당. */}
-                            <div
-                              draggable
-                              onDragStart={(e: DragEvent) => e.dataTransfer.setData('text/plain', item.id)}
-                              onClick={() => setDetailItem(item)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  setDetailItem(item);
-                                }
-                              }}
-                              className={cn(
-                                'group relative cursor-pointer rounded-[10px] border border-[hsl(var(--hairline))] bg-card px-3.5 py-2.5 transition-all',
-                                'hover:-translate-y-px hover:border-[hsl(var(--foreground)/0.22)] hover:shadow-[0_4px_12px_-8px_hsl(var(--foreground)/0.35)]',
-                                item.id === recentId && 'career-new-line',
-                              )}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <span className="min-w-0 flex-1 text-[13.5px] leading-relaxed">
-                                  <MetricText text={item.refined} />
-                                </span>
-                                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/80 transition-opacity group-hover:opacity-0">
-                                  {formatMonth(item.date)}
-                                </span>
-                                <span className="absolute right-2 top-2.5 flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeItem(item);
-                                    }}
-                                    aria-label="삭제"
-                                    title="삭제"
-                                    className="rounded-md bg-card p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </span>
-                              </div>
-                              {item.detail && (
-                                <p className="mt-1 line-clamp-1 text-[12px] text-muted-foreground/75">
-                                  {item.detail}
-                                </p>
-                              )}
-                            </div>
-                          </motion.li>
-                        ))}
-                      </AnimatePresence>
+                  onBlur={commitNewCategory}
+                  autoFocus
+                  placeholder="칸 이름 — 예: 봉사, 출판, 특허"
+                  aria-label="새 칸 이름"
+                  className="career-serif h-6 min-w-0 flex-1 bg-transparent text-[15px] font-bold outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAddingCategory(true)}
+                className="self-start text-[12.5px] text-muted-foreground/60 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+              >
+                + 칸 추가
+              </button>
+            )}
+          </div>
+        ) : (
+          /* ── 문서 뷰 — 이력서 줄글, 행 클릭도 세부사항 ── */
+          <div className="mt-4 space-y-8">
+            {sections.filter((s) => s.items.length > 0).length === 0 ? (
+              <p className="py-6 text-center text-[12.5px] text-muted-foreground/60">
+                아직 기록이 없어요 — 위에 한 줄 적으면 원고가 시작돼요.
+              </p>
+            ) : (
+              sections
+                .filter((s) => s.items.length > 0)
+                .map(({ category, items: sectionItems }, sectionIndex) => (
+                  <section key={category.id}>
+                    <SectionHeader index={sectionIndex} name={category.name} count={sectionItems.length} />
+                    <ul className="divide-y divide-[hsl(var(--hairline))]">
+                      {sectionItems.map((item) => (
+                        <li key={item.id}>{renderRow(item, false)}</li>
+                      ))}
                     </ul>
-                  )}
-                </section>
-              ))}
+                  </section>
+                ))
+            )}
+          </div>
+        )}
+      </LayoutGroup>
 
-              {/* 칸 추가 — 점선 타일로 그리드 리듬 유지 */}
-              {addingCategory ? (
-                <div className="rounded-xl border border-dashed border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2)/0.4)] p-4">
-                  <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
-                    <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">
-                      {String(sections.length + 1).padStart(2, '0')}
-                    </span>
-                    <input
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
-                        if (e.key === 'Escape') {
-                          setAddingCategory(false);
-                          setNewCategoryName('');
-                        }
-                      }}
-                      onBlur={commitNewCategory}
-                      autoFocus
-                      placeholder="칸 이름 — 예: 봉사, 출판, 특허"
-                      aria-label="새 칸 이름"
-                      className="h-6 min-w-0 flex-1 bg-transparent text-[14.5px] font-bold tracking-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setAddingCategory(true)}
-                  className="flex min-h-[92px] items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[12.5px] font-medium text-muted-foreground/60 transition-colors hover:border-[hsl(var(--foreground)/0.35)] hover:bg-[hsl(var(--surface-2)/0.4)] hover:text-foreground"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  칸 추가
-                </button>
-              )}
-            </div>
-          ) : (
-            /* ── 문서 뷰 — 이력서 줄글, 클릭하면 세부사항 ── */
-            <div className="mt-3 space-y-7">
-              {sections.filter((s) => s.items.length > 0).length === 0 ? (
-                <p className="py-6 text-center text-[12.5px] text-muted-foreground/60">
-                  아직 기록이 없어요 — 위에 한 줄 적으면 문서가 시작돼요.
-                </p>
-              ) : (
-                sections
-                  .filter((s) => s.items.length > 0)
-                  .map(({ category, items: sectionItems }, sectionIndex) => (
-                    <section key={category.id}>
-                      <SectionHeader index={sectionIndex} name={category.name} count={sectionItems.length} strong />
-                      <ul className="divide-y divide-[hsl(var(--hairline))]">
-                        {sectionItems.map((item) => (
-                          <li key={item.id}>
-                            <button
-                              type="button"
-                              onClick={() => setDetailItem(item)}
-                              className={cn(
-                                'flex w-full flex-col gap-0.5 rounded-sm px-1.5 py-2.5 text-left transition-colors hover:bg-[hsl(var(--surface-3)/0.4)]',
-                                item.id === recentId && 'career-new-line',
-                              )}
-                            >
-                              <span className="flex w-full items-baseline gap-3">
-                                <span className="min-w-0 flex-1 text-[14px] leading-relaxed">
-                                  <MetricText text={item.refined} />
-                                </span>
-                                <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground/80">
-                                  {formatMonth(item.date)}
-                                </span>
-                              </span>
-                              {item.detail && (
-                                <span className="w-full whitespace-pre-line text-[12.5px] leading-relaxed text-muted-foreground/80">
-                                  {item.detail}
-                                </span>
-                              )}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  ))
-              )}
-            </div>
-          )}
-        </LayoutGroup>
-
-        {/* ── 하단 메타 라인 ── */}
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t border-[hsl(var(--hairline))] pt-3.5 text-[11.5px] text-muted-foreground/80">
-          <span className="font-serif tracking-[0.14em]">
-            {PERSONA_LABEL[persona]} · 칸 {categories.length} · 기록 {items.length}
-            {thisYearCount > 0 && ` · 올해 ${thisYearCount}`}
-          </span>
-          <span>{viewMode === 'card' ? '카드를 누르면 세부사항을 적을 수 있어요' : '줄을 누르면 세부사항을 적을 수 있어요'}</span>
-        </div>
+      {/* ── 하단 메타 라인 ── */}
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-[hsl(var(--foreground)/0.3)] pt-3">
+        <span className="career-mono text-[10px] tracking-[0.18em] text-muted-foreground/70">
+          {PERSONA_LABEL[persona]} · 칸 {categories.length} · 기록 {items.length}
+          {thisYearCount > 0 && ` · 올해 ${thisYearCount}`}
+        </span>
+        <span className="text-[11.5px] text-muted-foreground/60">
+          줄을 누르면 세부사항을 적을 수 있어요
+        </span>
       </div>
 
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
@@ -654,36 +632,29 @@ function BoardSheet() {
   );
 }
 
-/** 섹션 헤더 — 골드 번호 + 이름 + 영문 캡션 + 개수 (+빈 칸 삭제). */
+/** 섹션 헤더 — 빨간 인덱스 번호 + 명조 제목 + 모노 캡션, 진한 괘선. */
 function SectionHeader({
   index,
   name,
   count,
-  strong = false,
   onRemove,
 }: {
   index: number;
   name: string;
   count: number;
-  strong?: boolean;
   onRemove?: () => void;
 }) {
   return (
-    <div
-      className={cn(
-        'mb-3 flex items-baseline gap-2 pb-2.5',
-        strong ? 'border-b border-[hsl(var(--foreground)/0.3)]' : 'border-b border-[hsl(var(--hairline))]',
-      )}
-    >
-      <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">
+    <div className="mb-1 flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+      <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
         {String(index + 1).padStart(2, '0')}
       </span>
-      <h2 className="text-[14.5px] font-bold tracking-tight">{name}</h2>
-      <span className="ml-auto font-serif text-[10px] tracking-[0.16em] text-muted-foreground/70">
+      <h2 className="career-serif text-[15px] font-bold tracking-tight">{name}</h2>
+      <span className="career-mono ml-auto text-[9px] tracking-[0.2em] text-muted-foreground/60">
         {SECTION_EN[name] ?? ''}
       </span>
       {count > 0 ? (
-        <span className="text-[11px] tabular-nums text-muted-foreground">{count}개</span>
+        <span className="career-mono text-[10.5px] text-muted-foreground">{count}개</span>
       ) : (
         onRemove && (
           <button
@@ -691,7 +662,7 @@ function SectionHeader({
             onClick={onRemove}
             aria-label={`${name} 칸 삭제`}
             title="빈 칸 삭제"
-            className="rounded p-0.5 text-transparent transition-colors hover:bg-accent hover:!text-foreground group-hover/section:text-muted-foreground/70"
+            className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/70"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -731,28 +702,28 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
   const remove = () => {
     careerStore.removeItem(item.id);
     onClose();
-    notify.success('원본에서 뺐어요');
+    notify.success('원고에서 뺐어요');
   };
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-[15px]">세부사항</DialogTitle>
+        <DialogTitle className="career-serif text-[16px]">세부사항</DialogTitle>
       </DialogHeader>
       <div className="space-y-3.5">
         <div>
-          <label htmlFor="career-detail-refined" className="mb-1 block text-[11.5px] font-semibold text-muted-foreground">
+          <label htmlFor="career-detail-refined" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
             이력서 문장
           </label>
           <input
             id="career-detail-refined"
             value={refined}
             onChange={(e) => setRefined(e.target.value)}
-            className="h-9 w-full rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-gold)/0.6)]"
+            className="career-serif h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div>
-          <label htmlFor="career-detail-date" className="mb-1 block text-[11.5px] font-semibold text-muted-foreground">
+          <label htmlFor="career-detail-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
             날짜
           </label>
           <input
@@ -760,11 +731,11 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="h-9 rounded-lg border border-[hsl(var(--hairline))] bg-card px-3 text-[13px] outline-none focus:border-[hsl(var(--career-gold)/0.6)]"
+            className="career-mono h-10 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div>
-          <label htmlFor="career-detail-memo" className="mb-1 block text-[11.5px] font-semibold text-muted-foreground">
+          <label htmlFor="career-detail-memo" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
             세부사항
           </label>
           <textarea
@@ -772,7 +743,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={'상황 · 내가 한 일 · 결과를 편하게 적어두세요.\n이력서·자소서로 뽑을 때 AI가 이 내용을 활용해요.'}
-            className="h-32 w-full resize-none rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-gold)/0.6)]"
+            className="h-32 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <p className="truncate text-[11.5px] text-muted-foreground/70" title={item.raw}>
@@ -782,7 +753,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
           <button
             type="button"
             onClick={remove}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
           >
             <Trash2 className="h-3 w-3" />
             삭제
@@ -790,7 +761,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
           <button
             type="button"
             onClick={save}
-            className="inline-flex h-8 items-center rounded-lg bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="inline-flex h-8 items-center bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             저장
           </button>
@@ -849,13 +820,13 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
     <Dialog open={purpose !== null} onOpenChange={(open) => { if (!open) { setResult(''); onClose(); } }}>
       <DialogContent className="career-theme max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[15px]">원본으로 {purpose} 만들기</DialogTitle>
+          <DialogTitle className="career-serif text-[16px]">원고로 {purpose} 만들기</DialogTitle>
         </DialogHeader>
         <button
           type="button"
           onClick={() => purpose && void generate(purpose)}
           disabled={generating}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
+          className="inline-flex h-9 items-center justify-center gap-1.5 bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
         >
           {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           {generating ? '뽑는 중…' : `${purpose} 만들기`}
@@ -866,13 +837,13 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
               readOnly
               value={result}
               aria-label="생성된 문서"
-              className="h-56 w-full resize-none rounded-lg border border-[hsl(var(--hairline))] bg-card p-3 text-[12.5px] leading-relaxed outline-none"
+              className="h-56 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] p-3 text-[12.5px] leading-relaxed outline-none"
             />
             <div className="flex justify-end gap-1.5">
               <button
                 type="button"
                 onClick={() => void copyResult()}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] px-2.5 text-[12px] font-medium hover:bg-accent"
+                className="inline-flex h-8 items-center gap-1.5 border border-[hsl(var(--foreground)/0.35)] px-2.5 text-[12px] font-medium transition-colors hover:bg-accent"
               >
                 <Copy className="h-3 w-3" />
                 복사
@@ -880,7 +851,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
               <button
                 type="button"
                 onClick={downloadResult}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[hsl(var(--hairline))] px-2.5 text-[12px] font-medium hover:bg-accent"
+                className="inline-flex h-8 items-center gap-1.5 border border-[hsl(var(--foreground)/0.35)] px-2.5 text-[12px] font-medium transition-colors hover:bg-accent"
               >
                 <Download className="h-3 w-3" />
                 .md 다운로드

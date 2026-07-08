@@ -384,92 +384,102 @@
   }
 
   .career-theme {
-    /* 스펙 보드 — 크림 페이퍼 위 흰 시트 + 잉크 네이비, 골드는 획득 순간에만 */
-    --background: 42 30% 93%;
-    --foreground: 228 16% 18%;
+    /* 스펙 보드 — "교정 중인 원고(장부)": 종이 위 잉크 + 교정 빨강 하나 */
+    --background: 40 32% 94%;
+    --foreground: 28 18% 14%;
 
-    --card: 42 45% 99%;
-    --card-foreground: 228 16% 18%;
+    --card: 42 38% 97%;
+    --card-foreground: 28 18% 14%;
 
-    --popover: 42 45% 99%;
-    --popover-foreground: 228 16% 18%;
+    --popover: 42 38% 97%;
+    --popover-foreground: 28 18% 14%;
 
-    --muted: 42 22% 89%;
-    --muted-foreground: 32 9% 45%;
+    --muted: 40 20% 88%;
+    --muted-foreground: 30 8% 44%;
 
-    --accent: 42 24% 90%;
-    --accent-foreground: 228 16% 18%;
+    --accent: 40 22% 89%;
+    --accent-foreground: 28 18% 14%;
 
-    --secondary: 42 22% 89%;
-    --secondary-foreground: 228 12% 34%;
+    --secondary: 40 20% 88%;
+    --secondary-foreground: 28 12% 32%;
 
-    --border: 38 18% 83%;
-    --input: 38 18% 83%;
+    --border: 35 14% 78%;
+    --input: 35 14% 78%;
 
-    /* 잉크 네이비 — 필 버튼·활성 상태 */
-    --primary: 228 24% 24%;
-    --primary-foreground: 42 40% 98%;
+    /* 잉크 — 몇 안 되는 솔리드 버튼용 */
+    --primary: 28 18% 16%;
+    --primary-foreground: 42 38% 97%;
 
-    --ring: 228 24% 32%;
-    --focus-ring: 228 30% 36%;
-    --focus-offset: 42 30% 93%;
+    --ring: 4 62% 44%;
+    --focus-ring: 4 62% 46%;
+    --focus-offset: 40 32% 94%;
 
-    --hairline:  38 18% 85%;
-    --surface-1: 42 45% 99%;
-    --surface-2: 42 30% 93%;
-    --surface-3: 42 24% 90%;
+    --hairline:  35 14% 82%;
+    --surface-1: 42 38% 97%;
+    --surface-2: 40 32% 94%;
+    --surface-3: 40 22% 89%;
 
-    /* 골드 — "획득했다"의 색. 새 줄 하이라이트·번호·스파클에만 아껴 쓴다. */
-    --career-gold: 36 58% 44%;
+    /* 교정 잉크 빨강 — 유일한 강조색. 커서·활성·새 줄·추출 화살표에만. */
+    --career-red: 4 62% 42%;
   }
 
   .dark .career-theme {
-    /* 다크 — 잉크 차콜 페이퍼, 골드 유지 */
-    --background: 228 12% 10%;
-    --foreground: 42 22% 88%;
+    /* 다크 — 밤의 원고: 잉크 차콜 종이, 빨강은 살짝 밝게 */
+    --background: 28 10% 9%;
+    --foreground: 40 22% 86%;
 
-    --card: 228 11% 14%;
-    --card-foreground: 42 22% 88%;
+    --card: 28 9% 12%;
+    --card-foreground: 40 22% 86%;
 
-    --popover: 228 11% 15%;
-    --popover-foreground: 42 22% 88%;
+    --popover: 28 9% 13%;
+    --popover-foreground: 40 22% 86%;
 
-    --muted: 228 10% 18%;
-    --muted-foreground: 40 10% 62%;
+    --muted: 28 8% 16%;
+    --muted-foreground: 35 10% 60%;
 
-    --accent: 228 10% 20%;
-    --accent-foreground: 42 22% 88%;
+    --accent: 28 8% 18%;
+    --accent-foreground: 40 22% 86%;
 
-    --secondary: 228 10% 18%;
-    --secondary-foreground: 42 14% 74%;
+    --secondary: 28 8% 16%;
+    --secondary-foreground: 40 14% 72%;
 
-    --border: 228 9% 23%;
-    --input: 228 9% 23%;
+    --border: 28 8% 25%;
+    --input: 28 8% 25%;
 
-    --primary: 42 30% 84%;
-    --primary-foreground: 228 12% 12%;
+    --primary: 40 22% 86%;
+    --primary-foreground: 28 10% 10%;
 
-    --ring: 42 30% 70%;
-    --focus-ring: 42 36% 72%;
-    --focus-offset: 228 12% 10%;
+    --ring: 4 68% 58%;
+    --focus-ring: 4 68% 60%;
+    --focus-offset: 28 10% 9%;
 
-    --hairline:  228 9% 23%;
-    --surface-1: 228 11% 14%;
-    --surface-2: 228 12% 10%;
-    --surface-3: 228 10% 18%;
+    --hairline:  28 8% 22%;
+    --surface-1: 28 9% 12%;
+    --surface-2: 28 10% 9%;
+    --surface-3: 28 8% 16%;
 
-    --career-gold: 38 55% 58%;
+    --career-red: 4 68% 58%;
   }
 
-  /* 방금 보드에 꽂힌 카드 — 골드 하이라이트가 머물다 사라진다. */
+  /* 원고 서체 — 문장은 명조, 장부 숫자는 모노 */
+  .career-theme .career-serif {
+    font-family: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+  }
+
+  .career-theme .career-mono {
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 방금 원고에 꽂힌 줄 — 빨간 교정 마크가 머물다 잉크로 마른다. */
   .career-theme .career-new-line {
     animation: career-line-in 2.4s ease-out both;
   }
 
   @keyframes career-line-in {
-    0%   { background-color: hsl(var(--career-gold) / 0.22); box-shadow: 0 0 0 1px hsl(var(--career-gold) / 0.45); }
-    60%  { background-color: hsl(var(--career-gold) / 0.10); box-shadow: 0 0 0 1px hsl(var(--career-gold) / 0.18); }
-    100% { background-color: hsl(var(--card)); box-shadow: none; }
+    0%   { background-color: hsl(var(--career-red) / 0.10); box-shadow: inset 3px 0 0 hsl(var(--career-red)); }
+    60%  { background-color: hsl(var(--career-red) / 0.05); box-shadow: inset 3px 0 0 hsl(var(--career-red) / 0.6); }
+    100% { background-color: transparent; box-shadow: none; }
   }
 
   .planner-theme .planner-overview-metrics {
