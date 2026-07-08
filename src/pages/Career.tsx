@@ -62,8 +62,9 @@ type CapturePhase =
   | { step: 'thinking'; raw: string }
   /** 직접 작성 — 잠깐 보여주고 자동으로 원고에 꽂힌다. */
   | { step: 'reveal'; raw: string; refined: string; category: string }
-  /** AI 작성 — 초안을 세워두고 사용자의 결정(넣기/다시/취소)을 기다린다. */
-  | { step: 'draft'; raw: string; refined: string; category: string };
+  /** AI 작성 — 초안을 세워두고 사용자의 결정(넣기/다시/취소)을 기다린다.
+   * dateFound=false 면 날짜를 못 뽑은 것 → 초안에서 한 번 되묻는다. */
+  | { step: 'draft'; raw: string; refined: string; category: string; dateFound: boolean };
 
 type WriteMode = 'ai' | 'direct';
 const WRITE_MODE_KEY = 'career.writeMode.v1';
@@ -150,10 +151,8 @@ function TitleRule() {
 /** 장부 프레임 — 이중 괘선 액자, 안쪽은 책상보다 밝은 원고지 톤. */
 function LedgerFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="border-2 border-[hsl(var(--foreground)/0.8)] bg-[hsl(var(--surface-1))] p-1">
-      <div className="overflow-hidden border border-[hsl(var(--foreground)/0.18)] px-4 py-7 sm:px-10 sm:py-9">
-        {children}
-      </div>
+    <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 py-7 sm:px-9 sm:py-8">
+      {children}
     </div>
   );
 }
@@ -339,8 +338,8 @@ function BoardLedger() {
     if (rawInput) setDraft(rawInput);
     setPhase({ step: 'thinking', raw });
     const result = await aiClassifySpec(raw, categories.map((c) => c.name));
-    // 추출된 정보로 폼 반영 — 사용자가 초안에서 확인·수정 가능.
-    if (result.date) setAdvDate(result.date);
+    // 추출된 정보로 폼 반영 — 날짜를 뽑았으면 채우고, 못 뽑았으면 비워 되묻는다.
+    setAdvDate(result.date ?? '');
     if (result.ongoing) {
       setAdvOngoing(true);
       setAdvEndDate('');
@@ -349,7 +348,7 @@ function BoardLedger() {
       setAdvEndDate(result.endDate);
     }
     if (result.org !== undefined) setAdvOrg(result.org);
-    setPhase({ step: 'draft', raw, refined: result.refined, category: result.category });
+    setPhase({ step: 'draft', raw, refined: result.refined, category: result.category, dateFound: !!result.date });
   };
 
   /** 초안을 원고에 넣는다(서랍에 넣기) — 기간(선택)까지 함께, 새 줄 하이라이트로 꽂힘. */
@@ -495,7 +494,7 @@ function BoardLedger() {
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
             {/* AI 도구 — 원고에 적용하는 도구들 (작성대 위) */}
-            <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
+            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
               <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
               <div className="mt-2.5 space-y-1.5">
                 {COMPOSE_PURPOSES.map(({ purpose, label }) => (
@@ -528,7 +527,7 @@ function BoardLedger() {
               </div>
             </div>
 
-            <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
+            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
@@ -594,46 +593,6 @@ function BoardLedger() {
                         </div>
                       )}
 
-                      {/* 필요한 것 — AI가 못 맞추는 기간만 미리 (선택) */}
-                      <div className="mt-3 grid grid-cols-2 gap-2.5">
-                        <div>
-                          <label htmlFor="career-ai-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
-                            시작
-                          </label>
-                          <input
-                            id="career-ai-date"
-                            type="date"
-                            value={advDate}
-                            onChange={(e) => setAdvDate(e.target.value)}
-                            className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
-                          />
-                        </div>
-                        <div>
-                          <div className="mb-1 flex items-baseline justify-between">
-                            <label htmlFor="career-ai-end" className="career-mono block text-[10px] tracking-[0.14em] text-muted-foreground">
-                              종료
-                            </label>
-                            <label className="flex cursor-pointer items-center gap-1 text-[10.5px] text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                checked={advOngoing}
-                                onChange={(e) => setAdvOngoing(e.target.checked)}
-                                className="h-3 w-3 accent-[hsl(var(--career-red))]"
-                              />
-                              진행 중
-                            </label>
-                          </div>
-                          <input
-                            id="career-ai-end"
-                            type="date"
-                            value={advOngoing ? '' : advEndDate}
-                            onChange={(e) => setAdvEndDate(e.target.value)}
-                            disabled={advOngoing}
-                            className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
-                          />
-                        </div>
-                      </div>
-
                       <button
                         type="button"
                         onClick={() => void requestDraft()}
@@ -645,7 +604,7 @@ function BoardLedger() {
                       </button>
                     </>
                   ) : phase.step === 'thinking' ? (
-                    <div className="flex items-center gap-2 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px]">
+                    <div className="flex items-center gap-2 border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px]">
                       <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
                       <span className="text-muted-foreground">AI가 이력서 문장으로 다듬는 중…</span>
                     </div>
@@ -669,6 +628,23 @@ function BoardLedger() {
                         <p className="career-mono mt-1.5 text-[11px] text-muted-foreground">
                           {[draftPeriod, advOrg.trim()].filter(Boolean).join(' · ')}
                         </p>
+                      )}
+                      {/* 되묻기 — 날짜를 못 뽑았으면 한 번 물어본다. */}
+                      {!phase.dateFound && (
+                        <div className="mt-2.5 border-t border-dashed border-[hsl(var(--hairline))] pt-2.5">
+                          <p className="mb-1.5 text-[12px] text-foreground">
+                            <span className="career-mono mr-1 text-[11px] font-semibold text-[hsl(var(--career-red))]">Q.</span>
+                            언제쯤이었어요?
+                          </p>
+                          <input
+                            type="month"
+                            value={advDate ? advDate.slice(0, 7) : ''}
+                            onChange={(e) => setAdvDate(e.target.value ? `${e.target.value}-01` : '')}
+                            aria-label="언제쯤이었어요?"
+                            className="career-mono h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                          />
+                          <p className="mt-1 text-[10.5px] text-muted-foreground/70">안 적으면 오늘 날짜로 들어가요.</p>
+                        </div>
                       )}
                       <div className="mt-3 flex items-center gap-2">
                         <button
@@ -748,7 +724,7 @@ function BoardLedger() {
                       id="career-adv-category"
                       value={advCategory}
                       onChange={(e) => setAdvCategory(e.target.value)}
-                      className="h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                     >
                       <option value="auto">자동 분류 (추천)</option>
                       {categories.map((category) => (
@@ -767,7 +743,7 @@ function BoardLedger() {
                       value={advOrg}
                       onChange={(e) => setAdvOrg(e.target.value)}
                       placeholder="발급처·주최 (선택)"
-                      className="h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                      className="h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                 </div>
@@ -781,7 +757,7 @@ function BoardLedger() {
                       type="date"
                       value={advDate}
                       onChange={(e) => setAdvDate(e.target.value)}
-                      className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="career-mono h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                   <div>
@@ -805,7 +781,7 @@ function BoardLedger() {
                       value={advOngoing ? '' : advEndDate}
                       onChange={(e) => setAdvEndDate(e.target.value)}
                       disabled={advOngoing}
-                      className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+                      className="career-mono h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
                     />
                   </div>
                 </div>
@@ -818,7 +794,7 @@ function BoardLedger() {
                     value={advLink}
                     onChange={(e) => setAdvLink(e.target.value)}
                     placeholder="https:// — 포트폴리오·수상 페이지 (선택)"
-                    className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    className="career-mono h-9 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <div>
@@ -831,7 +807,7 @@ function BoardLedger() {
                     onChange={(e) => setAdvDetail(e.target.value)}
                     rows={2}
                     placeholder="상황 · 내가 한 일 · 결과 (선택)"
-                    className="w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    className="w-full resize-none border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <button
@@ -851,7 +827,7 @@ function BoardLedger() {
                     layoutId={INCOMING}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 flex items-center overflow-hidden border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] py-2.5"
+                    className="mt-3 flex items-center overflow-hidden border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] py-2.5"
                   >
                     <span aria-hidden className="ml-3 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
                     {phase.step === 'thinking' ? (
@@ -1005,9 +981,7 @@ function BoardLedger() {
                         onRemove={() => careerStore.removeCategory(category.id)}
                       />
                       {sectionItems.length === 0 ? (
-                        <div className="border border-dashed border-[hsl(var(--foreground)/0.22)] px-3.5 py-4 text-[12.5px] text-muted-foreground/55">
-                          아직 비어 있어요 — 이룬 것을 적으면 여기에 쌓여요.
-                        </div>
+                        <p className="career-mono py-2 pl-1 text-[11px] text-muted-foreground/40">비어 있음</p>
                       ) : (
                         <>
                           <ul className="divide-y divide-[hsl(var(--hairline))]">
@@ -1178,7 +1152,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             id="career-detail-refined"
             value={refined}
             onChange={(e) => setRefined(e.target.value)}
-            className="career-serif h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
+            className="career-serif h-10 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -1191,7 +1165,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="career-mono h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+              className="career-mono h-10 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1215,7 +1189,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={ongoing ? '' : endDate}
               onChange={(e) => setEndDate(e.target.value)}
               disabled={ongoing}
-              className="career-mono h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+              className="career-mono h-10 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
             />
           </div>
         </div>
@@ -1229,7 +1203,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={org}
               onChange={(e) => setOrg(e.target.value)}
               placeholder="발급처·주최 (선택)"
-              className="h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+              className="h-10 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1241,7 +1215,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="https:// (선택)"
-              className="career-mono h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+              className="career-mono h-10 w-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
         </div>
@@ -1255,7 +1229,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={'상황 · 내가 한 일 · 결과를 편하게 적어두세요.\n이력서·자소서로 뽑을 때 AI가 이 내용을 활용해요.'}
-            className="h-32 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
+            className="h-32 w-full resize-none border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="flex items-center justify-between pt-1">
@@ -1346,7 +1320,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
               readOnly
               value={result}
               aria-label="생성된 문서"
-              className="h-56 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3 text-[12.5px] leading-relaxed outline-none"
+              className="h-56 w-full resize-none border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 text-[12.5px] leading-relaxed outline-none"
             />
             <div className="flex justify-end gap-1.5">
               <button
@@ -1417,7 +1391,7 @@ function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; perso
           {generating ? '고르는 중…' : '추천 받기'}
         </button>
         {result && (
-          <div className="max-h-64 overflow-y-auto whitespace-pre-line border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3.5 text-[13px] leading-relaxed">
+          <div className="max-h-64 overflow-y-auto whitespace-pre-line border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3.5 text-[13px] leading-relaxed">
             {result}
           </div>
         )}
