@@ -30,6 +30,18 @@ describe('careerStore', () => {
     expect(item.refined).toBe('동아리 회장 됨');
   });
 
+  it('addItem() — 날짜·세부사항 지정 시 그대로 저장', () => {
+    const item = careerStore.addItem({
+      raw: 'SQLD 땄음',
+      categoryName: '자격증',
+      date: '2025-11-20',
+      detail: '2회차 응시, 최종 82점',
+    });
+    expect(item.date).toBe('2025-11-20');
+    expect(item.detail).toBe('2회차 응시, 최종 82점');
+    expect(careerStore.listItems()[0].detail).toBe('2회차 응시, 최종 82점');
+  });
+
   it('ensureCategory() — 같은 이름은 재사용, 새 이름은 뒤 순서로 생성', () => {
     const a = careerStore.ensureCategory('경력');
     const b = careerStore.ensureCategory('경력');

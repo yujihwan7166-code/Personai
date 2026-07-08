@@ -134,7 +134,7 @@ export const careerStore = {
   },
 
   /** 항목 추가 — categoryName 은 ensureCategory 로 섹션에 연결. */
-  addItem(input: { raw: string; refined?: string; categoryName: string; date?: string }): SpecItem {
+  addItem(input: { raw: string; refined?: string; categoryName: string; date?: string; detail?: string }): SpecItem {
     const category = this.ensureCategory(input.categoryName);
     const now = new Date().toISOString();
     const raw = input.raw.trim();
@@ -144,6 +144,7 @@ export const careerStore = {
       raw,
       refined: input.refined?.trim() || raw,
       date: input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : now.slice(0, 10),
+      detail: input.detail?.trim() || undefined,
       createdAt: now,
       updatedAt: now,
     };

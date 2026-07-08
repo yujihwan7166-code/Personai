@@ -214,6 +214,11 @@ function BoardLedger() {
   const [editingName, setEditingName] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  // 자세히 적기 — 칸 직접 선택('auto' = AI 분류) · 날짜 지정 · 세부 미리 작성
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advCategory, setAdvCategory] = useState<string>('auto');
+  const [advDate, setAdvDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [advDetail, setAdvDetail] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       return window.localStorage.getItem(VIEW_KEY) === 'doc' ? 'doc' : 'card';
@@ -257,15 +262,27 @@ function BoardLedger() {
   const submit = async (rawInput?: string) => {
     const raw = (rawInput ?? draft).trim();
     if (!raw || busy) return;
+    // 자세히 적기 값은 제출 시점에 스냅샷 — 칸 지정 시 AI 분류를 덮어쓴다.
+    const forcedCategory = advancedOpen && advCategory !== 'auto' ? advCategory : null;
+    const dateOverride = advancedOpen && /^\d{4}-\d{2}-\d{2}$/.test(advDate) ? advDate : undefined;
+    const detailPre = advancedOpen ? advDetail.trim() : '';
     setDraft('');
     if (recentTimer.current) window.clearTimeout(recentTimer.current);
     setRecentId(null);
     setPhase({ step: 'thinking', raw });
     const result = await aiClassifySpec(raw, categories.map((c) => c.name));
-    setPhase({ step: 'reveal', raw, refined: result.refined, category: result.category });
+    const categoryName = forcedCategory ?? result.category;
+    setPhase({ step: 'reveal', raw, refined: result.refined, category: categoryName });
     // 변신을 잠깐 보여준 뒤 — 같은 줄이 layoutId 로 오른쪽 원고의 행까지 날아간다.
     window.setTimeout(() => {
-      const item = careerStore.addItem({ raw, refined: result.refined, categoryName: result.category });
+      const item = careerStore.addItem({
+        raw,
+        refined: result.refined,
+        categoryName,
+        date: dateOverride,
+        detail: detailPre || undefined,
+      });
+      setAdvDetail('');
       setRecentId(item.id);
       setPhase({ step: 'idle' });
       recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
@@ -387,15 +404,19 @@ function BoardLedger() {
           {/* ══════ 좌 — 커리어 추가 작성대 ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5">
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
-              <h2 className="career-serif text-[16px] font-bold tracking-tight">커리어 추가</h2>
-              <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+              {/* 작성대 표제 — 섹션 헤더와 같은 문법 (빨간 마크 + 명조 + 괘선) */}
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+                <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
+                <h2 className="career-serif text-[16px] font-bold tracking-tight">커리어 추가</h2>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
                 한 줄로 적으면, 다듬어서 원고에 정리해 드려요
               </p>
 
               {/* 캡처 박스 — 빨간 교정 바 */}
               <div
                 className={cn(
-                  'mt-3 flex items-center border bg-[hsl(var(--surface-2))] transition-colors',
+                  'mt-2.5 flex items-center border bg-[hsl(var(--surface-2))] transition-colors',
                   'border-[hsl(var(--foreground)/0.45)] focus-within:border-[hsl(var(--career-red))]',
                 )}
               >
@@ -426,6 +447,75 @@ function BoardLedger() {
                       {example}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* 자세히 적기 — 칸·날짜·세부까지 정해서 넣기 */}
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((v) => !v)}
+                aria-expanded={advancedOpen}
+                className="mt-3 flex w-full items-center justify-between text-[11.5px] text-muted-foreground/70 transition-colors hover:text-[hsl(var(--career-red))]"
+              >
+                <span>자세히 적기 — 칸·날짜·세부까지</span>
+                <span aria-hidden className="text-[10px]">{advancedOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {advancedOpen && (
+                <div className="mt-2.5 space-y-3 border-t border-dashed border-[hsl(var(--hairline))] pt-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label htmlFor="career-adv-category" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                        칸
+                      </label>
+                      <select
+                        id="career-adv-category"
+                        value={advCategory}
+                        onChange={(e) => setAdvCategory(e.target.value)}
+                        className="h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+                      >
+                        <option value="auto">자동 분류 (추천)</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.name}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="career-adv-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                        날짜
+                      </label>
+                      <input
+                        id="career-adv-date"
+                        type="date"
+                        value={advDate}
+                        onChange={(e) => setAdvDate(e.target.value)}
+                        className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="career-adv-detail" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                      세부사항 (선택)
+                    </label>
+                    <textarea
+                      id="career-adv-detail"
+                      value={advDetail}
+                      onChange={(e) => setAdvDetail(e.target.value)}
+                      rows={3}
+                      placeholder={'상황 · 내가 한 일 · 결과 — 미리 적어두면\n카드에 그대로 붙어요'}
+                      className="w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void submit()}
+                    disabled={!draft.trim() || busy}
+                    className="h-9 w-full bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
+                  >
+                    원고에 추가
+                  </button>
                 </div>
               )}
 
