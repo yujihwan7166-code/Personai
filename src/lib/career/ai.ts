@@ -75,7 +75,10 @@ export async function aiComposeCareerDoc(
 ): Promise<string> {
   const source = sections
     .filter((s) => s.items.length > 0)
-    .map((s) => `## ${s.name}\n${s.items.map((i) => `- ${i.refined} (${i.date})`).join('\n')}`)
+    .map((s) =>
+      `## ${s.name}\n${s.items
+        .map((i) => `- ${i.refined} (${i.date})${i.detail ? `\n  세부: ${i.detail.replaceAll('\n', ' ')}` : ''}`)
+        .join('\n')}`)
     .join('\n\n');
   const guide =
     purpose === '이력서'

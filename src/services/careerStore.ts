@@ -35,12 +35,14 @@ const normalizeItem = (value: unknown, index: number): SpecItem | null => {
   const refined = typeof value.refined === 'string' && value.refined.trim() ? value.refined.trim() : raw;
   if (!raw && !refined) return null;
   const createdAt = normalizeIso(value.createdAt, new Date().toISOString());
+  const detail = typeof value.detail === 'string' && value.detail.trim() ? value.detail : undefined;
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `sp_recovered_${index}`,
     categoryId: typeof value.categoryId === 'string' ? value.categoryId : '',
     raw: raw || refined,
     refined,
     date: normalizeDate(value.date, createdAt),
+    detail,
     createdAt,
     updatedAt: normalizeIso(value.updatedAt, createdAt),
   };

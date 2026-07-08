@@ -26,6 +26,8 @@ export interface SpecItem {
   refined: string;
   /** 항목 날짜 (YYYY-MM-DD) — 기본은 입력한 날. */
   date: string;
+  /** 세부사항 — 상황·역할·결과 메모. EXTRACT 때 AI 재료로 쓰인다. */
+  detail?: string;
   createdAt: string;
   updatedAt: string;
 }
