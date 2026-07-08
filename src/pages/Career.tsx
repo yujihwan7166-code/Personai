@@ -328,13 +328,22 @@ function BoardLedger() {
     setPhase({ step: 'draft', raw, refined: result.refined, category: result.category });
   };
 
-  /** 초안을 원고에 넣는다(서랍에 넣기) — 새 줄 하이라이트로 꽂힘. */
+  /** 초안을 원고에 넣는다(서랍에 넣기) — 기간(선택)까지 함께, 새 줄 하이라이트로 꽂힘. */
   const commitDraft = () => {
     if (phase.step !== 'draft') return;
     const { raw, refined, category } = phase;
     if (recentTimer.current) window.clearTimeout(recentTimer.current);
-    const item = careerStore.addItem({ raw, refined, categoryName: category });
+    const item = careerStore.addItem({
+      raw,
+      refined,
+      categoryName: category,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(advDate) ? advDate : undefined,
+      endDate: !advOngoing && /^\d{4}-\d{2}-\d{2}$/.test(advEndDate) ? advEndDate : undefined,
+      ongoing: advOngoing || undefined,
+    });
     setDraft('');
+    setAdvEndDate('');
+    setAdvOngoing(false);
     setPhase({ step: 'idle' });
     setRecentId(item.id);
     recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
@@ -523,34 +532,29 @@ function BoardLedger() {
               </div>
               <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
                 {writeMode === 'ai'
-                  ? '막 적으면 AI가 이력서 문장으로 다듬어요. 확인하고 넣으세요.'
+                  ? '생각나는 대로 적으면 AI가 이력서 문장으로 다듬어드려요.'
                   : '칸·기간·세부까지 직접 채워 넣어요.'}
               </p>
 
               {writeMode === 'ai' ? (
-                /* ── AI 작성 — 막 적기 → 초안 검토 → 서랍에 넣기 ── */
+                /* ── AI 작성 — 생각나는 대로 적기 → 초안 검토 → 서랍에 넣기 ── */
                 <div className="mt-2.5">
                   {phase.step === 'idle' ? (
                     <>
-                      <div
+                      <textarea
+                        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={onInputKeyDown}
+                        rows={2}
+                        placeholder="생각나는 대로 적어보세요 — 예: 새 가입 플로우 정리함"
+                        aria-label="스펙 입력"
                         className={cn(
-                          'flex items-stretch border bg-[hsl(var(--surface-2))] transition-all',
+                          'career-serif min-h-[68px] w-full resize-none border bg-[hsl(var(--surface-2))] px-3 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
                           'border-[hsl(var(--foreground)/0.5)]',
-                          'focus-within:border-[hsl(var(--career-red))] focus-within:shadow-[0_0_0_3px_hsl(var(--career-red)/0.12)]',
+                          'focus:border-[hsl(var(--career-red))] focus:shadow-[0_0_0_3px_hsl(var(--career-red)/0.12)]',
                         )}
-                      >
-                        <span aria-hidden className="my-2 ml-3 w-[3px] shrink-0 bg-[hsl(var(--career-red))]" />
-                        <textarea
-                          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onKeyDown={onInputKeyDown}
-                          rows={2}
-                          placeholder="뭐든 이룬 것, 막 적어도 돼요"
-                          aria-label="스펙 입력"
-                          className="career-serif min-h-[64px] min-w-0 flex-1 resize-none bg-transparent px-3 py-2.5 text-[14.5px] leading-relaxed outline-none placeholder:text-muted-foreground/50"
-                        />
-                      </div>
+                      />
 
                       {items.length < 3 && (
                         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -567,6 +571,46 @@ function BoardLedger() {
                           ))}
                         </div>
                       )}
+
+                      {/* 필요한 것 — AI가 못 맞추는 기간만 미리 (선택) */}
+                      <div className="mt-3 grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label htmlFor="career-ai-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                            시작
+                          </label>
+                          <input
+                            id="career-ai-date"
+                            type="date"
+                            value={advDate}
+                            onChange={(e) => setAdvDate(e.target.value)}
+                            className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                          />
+                        </div>
+                        <div>
+                          <div className="mb-1 flex items-baseline justify-between">
+                            <label htmlFor="career-ai-end" className="career-mono block text-[10px] tracking-[0.14em] text-muted-foreground">
+                              종료
+                            </label>
+                            <label className="flex cursor-pointer items-center gap-1 text-[10.5px] text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                checked={advOngoing}
+                                onChange={(e) => setAdvOngoing(e.target.checked)}
+                                className="h-3 w-3 accent-[hsl(var(--career-red))]"
+                              />
+                              진행 중
+                            </label>
+                          </div>
+                          <input
+                            id="career-ai-end"
+                            type="date"
+                            value={advOngoing ? '' : advEndDate}
+                            onChange={(e) => setAdvEndDate(e.target.value)}
+                            disabled={advOngoing}
+                            className="career-mono h-9 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+                          />
+                        </div>
+                      </div>
 
                       <button
                         type="button"
