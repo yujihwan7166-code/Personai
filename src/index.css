@@ -384,87 +384,92 @@
   }
 
   .career-theme {
-    /* 스펙 보드 — 쿨 슬레이트 종이 + 뮤트 앰버 포인트 (플래너 sage와 구분) */
-    --background: 220 20% 97%;
-    --foreground: 222 22% 15%;
+    /* 스펙 보드 — 크림 페이퍼 위 흰 시트 + 잉크 네이비, 골드는 획득 순간에만 */
+    --background: 42 30% 93%;
+    --foreground: 228 16% 18%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 22% 15%;
+    --card: 42 45% 99%;
+    --card-foreground: 228 16% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 15%;
+    --popover: 42 45% 99%;
+    --popover-foreground: 228 16% 18%;
 
-    --muted: 220 16% 92%;
-    --muted-foreground: 222 10% 44%;
+    --muted: 42 22% 89%;
+    --muted-foreground: 32 9% 45%;
 
-    --accent: 220 16% 93%;
-    --accent-foreground: 222 22% 15%;
+    --accent: 42 24% 90%;
+    --accent-foreground: 228 16% 18%;
 
-    --secondary: 220 16% 92%;
-    --secondary-foreground: 222 12% 36%;
+    --secondary: 42 22% 89%;
+    --secondary-foreground: 228 12% 34%;
 
-    --border: 220 13% 86%;
-    --input: 220 13% 86%;
+    --border: 38 18% 83%;
+    --input: 38 18% 83%;
 
-    /* 뮤트 앰버 — 획득·강조를 보드 전반에서 일관되게 표시 */
-    --primary: 36 62% 44%;
-    --primary-foreground: 40 40% 99%;
+    /* 잉크 네이비 — 필 버튼·활성 상태 */
+    --primary: 228 24% 24%;
+    --primary-foreground: 42 40% 98%;
 
-    --ring: 36 62% 46%;
-    --focus-ring: 36 66% 48%;
-    --focus-offset: 220 20% 97%;
+    --ring: 228 24% 32%;
+    --focus-ring: 228 30% 36%;
+    --focus-offset: 42 30% 93%;
 
-    --hairline:  220 13% 88%;
-    --surface-1: 0 0% 100%;
-    --surface-2: 220 20% 97%;
-    --surface-3: 220 16% 93%;
+    --hairline:  38 18% 85%;
+    --surface-1: 42 45% 99%;
+    --surface-2: 42 30% 93%;
+    --surface-3: 42 24% 90%;
+
+    /* 골드 — "획득했다"의 색. 새 줄 하이라이트·번호·스파클에만 아껴 쓴다. */
+    --career-gold: 36 58% 44%;
   }
 
   .dark .career-theme {
-    /* 다크 — slate-charcoal + 앰버 유지 */
-    --background: 222 14% 10%;
-    --foreground: 220 16% 90%;
+    /* 다크 — 잉크 차콜 페이퍼, 골드 유지 */
+    --background: 228 12% 10%;
+    --foreground: 42 22% 88%;
 
-    --card: 222 13% 13%;
-    --card-foreground: 220 16% 90%;
+    --card: 228 11% 14%;
+    --card-foreground: 42 22% 88%;
 
-    --popover: 222 13% 14%;
-    --popover-foreground: 220 16% 90%;
+    --popover: 228 11% 15%;
+    --popover-foreground: 42 22% 88%;
 
-    --muted: 222 12% 17%;
-    --muted-foreground: 220 10% 62%;
+    --muted: 228 10% 18%;
+    --muted-foreground: 40 10% 62%;
 
-    --accent: 222 12% 19%;
-    --accent-foreground: 220 16% 90%;
+    --accent: 228 10% 20%;
+    --accent-foreground: 42 22% 88%;
 
-    --secondary: 222 12% 17%;
-    --secondary-foreground: 220 12% 75%;
+    --secondary: 228 10% 18%;
+    --secondary-foreground: 42 14% 74%;
 
-    --border: 222 11% 22%;
-    --input: 222 11% 22%;
+    --border: 228 9% 23%;
+    --input: 228 9% 23%;
 
-    --primary: 38 62% 58%;
-    --primary-foreground: 222 14% 10%;
+    --primary: 42 30% 84%;
+    --primary-foreground: 228 12% 12%;
 
-    --ring: 38 62% 58%;
-    --focus-ring: 38 66% 60%;
-    --focus-offset: 222 14% 10%;
+    --ring: 42 30% 70%;
+    --focus-ring: 42 36% 72%;
+    --focus-offset: 228 12% 10%;
 
-    --hairline:  222 11% 22%;
-    --surface-1: 222 13% 13%;
-    --surface-2: 222 14% 10%;
-    --surface-3: 222 12% 17%;
+    --hairline:  228 9% 23%;
+    --surface-1: 228 11% 14%;
+    --surface-2: 228 12% 10%;
+    --surface-3: 228 10% 18%;
+
+    --career-gold: 38 55% 58%;
   }
 
-  /* 방금 보드에 꽂힌 줄 — 앰버 하이라이트가 머물다 사라진다. */
+  /* 방금 보드에 꽂힌 카드 — 골드 하이라이트가 머물다 사라진다. */
   .career-theme .career-new-line {
     animation: career-line-in 2.4s ease-out both;
   }
 
   @keyframes career-line-in {
-    0%   { background-color: hsl(var(--primary) / 0.18); }
-    60%  { background-color: hsl(var(--primary) / 0.10); }
-    100% { background-color: transparent; }
+    0%   { background-color: hsl(var(--career-gold) / 0.22); box-shadow: 0 0 0 1px hsl(var(--career-gold) / 0.45); }
+    60%  { background-color: hsl(var(--career-gold) / 0.10); box-shadow: 0 0 0 1px hsl(var(--career-gold) / 0.18); }
+    100% { background-color: hsl(var(--card)); box-shadow: none; }
   }
 
   .planner-theme .planner-overview-metrics {

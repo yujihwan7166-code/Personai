@@ -72,6 +72,15 @@ describe('careerStore', () => {
     expect(careerStore.listItems()[0].id).toBe(kept.id);
   });
 
+  it('getProfile()/setProfile() — 기본값과 부분 갱신', () => {
+    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '' });
+    careerStore.setProfile({ name: '김도현' });
+    careerStore.setProfile({ tagline: '컴퓨터공학 3학년' });
+    expect(careerStore.getProfile()).toEqual({ name: '김도현', tagline: '컴퓨터공학 3학년' });
+    careerStore.clear();
+    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '' });
+  });
+
   it('깨진 저장 데이터는 무시하고 복구한다', () => {
     window.localStorage.setItem('career.items.v1', JSON.stringify([
       null,

@@ -8,11 +8,12 @@
  * 카테고리는 고정 목록이 아니라 기록에서 자라난다 — ensureCategory 로
  * 이름 기준 재사용, 없으면 생성.
  */
-import { CAREER_CHANGED, FALLBACK_CATEGORY, type SpecCategory, type SpecItem } from '@/types/career';
+import { CAREER_CHANGED, FALLBACK_CATEGORY, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import { notify } from '@/lib/notify';
 
 const ITEMS_KEY = 'career.items.v1';
 const CATEGORIES_KEY = 'career.categories.v1';
+const PROFILE_KEY = 'career.profile.v1';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -184,8 +185,37 @@ export const careerStore = {
     safeWrite(null, categories);
   },
 
+  getProfile(): CareerProfile {
+    if (typeof window === 'undefined') return { name: '', tagline: '' };
+    try {
+      const raw = window.localStorage.getItem(PROFILE_KEY);
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      if (!isRecord(parsed)) return { name: '', tagline: '' };
+      return {
+        name: typeof parsed.name === 'string' ? parsed.name : '',
+        tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
+      };
+    } catch {
+      return { name: '', tagline: '' };
+    }
+  },
+
+  setProfile(patch: Partial<CareerProfile>): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const next = { ...this.getProfile(), ...patch };
+      window.localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+    } catch (err) {
+      console.error('프로필 저장 실패', err);
+    }
+  },
+
   /** 전체 삭제 (테스트·리셋용). */
   clear(): void {
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(PROFILE_KEY); } catch { /* noop */ }
+    }
     safeWrite([], []);
   },
 };

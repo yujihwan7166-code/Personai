@@ -32,3 +32,10 @@ export interface SpecItem {
 
 /** AI 분류가 실패했을 때 담기는 기본 섹션명. */
 export const FALLBACK_CATEGORY = '기타';
+
+/** 보드 상단 프로필 — 이력서 원본의 인적 사항 한 줄. */
+export interface CareerProfile {
+  name: string;
+  /** 한 줄 소개 (예: "컴퓨터공학 3학년"). */
+  tagline: string;
+}

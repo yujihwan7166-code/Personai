@@ -3,15 +3,21 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { careerStore } from '@/services/careerStore';
-import { CAREER_CHANGED, type SpecCategory, type SpecItem } from '@/types/career';
+import { CAREER_CHANGED, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 
-export const useCareerBoard = (): { items: SpecItem[]; categories: SpecCategory[] } => {
+export const useCareerBoard = (): {
+  items: SpecItem[];
+  categories: SpecCategory[];
+  profile: CareerProfile;
+} => {
   const [items, setItems] = useState<SpecItem[]>(() => careerStore.listItems());
   const [categories, setCategories] = useState<SpecCategory[]>(() => careerStore.listCategories());
+  const [profile, setProfile] = useState<CareerProfile>(() => careerStore.getProfile());
 
   const refresh = useCallback(() => {
     setItems(careerStore.listItems());
     setCategories(careerStore.listCategories());
+    setProfile(careerStore.getProfile());
   }, []);
 
   useEffect(() => {
@@ -21,5 +27,5 @@ export const useCareerBoard = (): { items: SpecItem[]; categories: SpecCategory[
     return () => window.removeEventListener(CAREER_CHANGED, refresh);
   }, [refresh]);
 
-  return { items, categories };
+  return { items, categories, profile };
 };
