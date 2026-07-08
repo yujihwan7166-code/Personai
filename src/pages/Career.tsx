@@ -286,6 +286,19 @@ function BoardLedger() {
       setRecentId(item.id);
       setPhase({ step: 'idle' });
       recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
+      // 사후 상세화 코치 — "얕게 넣고, 나중에 교정 질문으로 채운다"를 처음 3번만 안내.
+      if (!detailPre) {
+        try {
+          const COACH_KEY = 'career.coach.detail.v1';
+          const seen = Number(window.localStorage.getItem(COACH_KEY) ?? '0');
+          if (seen < 3) {
+            window.localStorage.setItem(COACH_KEY, String(seen + 1));
+            notify.success('원고에 꽂았어요', {
+              description: '방금 줄을 누르면, 교정 질문이 빠진 세부를 채워줘요.',
+            });
+          }
+        } catch { /* noop */ }
+      }
       window.requestAnimationFrame(() => inputRef.current?.focus());
     }, 800);
   };
@@ -400,9 +413,9 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,330px)_minmax(0,1fr)]">
-          {/* ══════ 좌 — 커리어 추가 작성대 ══════ */}
-          <aside className="space-y-4 lg:sticky lg:top-5">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
+          {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
+          <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
               {/* 작성대 표제 — 섹션 헤더와 같은 문법 (빨간 마크 + 명조 + 괘선) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
@@ -413,11 +426,12 @@ function BoardLedger() {
                 한 줄로 적으면, 다듬어서 원고에 정리해 드려요
               </p>
 
-              {/* 캡처 박스 — 빨간 교정 바 */}
+              {/* 캡처 박스 — 이 작성대의 주인공. 막 적어도 AI가 정리한다. */}
               <div
                 className={cn(
-                  'mt-2.5 flex items-center border bg-[hsl(var(--surface-2))] transition-colors',
-                  'border-[hsl(var(--foreground)/0.45)] focus-within:border-[hsl(var(--career-red))]',
+                  'mt-2.5 flex items-center border bg-[hsl(var(--surface-2))] transition-all',
+                  'border-[hsl(var(--foreground)/0.5)]',
+                  'focus-within:border-[hsl(var(--career-red))] focus-within:shadow-[0_0_0_3px_hsl(var(--career-red)/0.12)]',
                 )}
               >
                 <span aria-hidden className="my-2 ml-3 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
@@ -426,9 +440,9 @@ function BoardLedger() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onInputKeyDown}
-                  placeholder="뭐든 이룬 것 — 예: 정처기 땄음"
+                  placeholder="뭐든 이룬 것, 막 적어도 돼요"
                   aria-label="스펙 입력"
-                  className="career-serif h-11 min-w-0 flex-1 bg-transparent px-3 text-[14px] outline-none placeholder:text-muted-foreground/50"
+                  className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3 text-[14.5px] outline-none placeholder:text-muted-foreground/50"
                 />
                 <span className="hidden shrink-0 pr-3 text-[10.5px] text-muted-foreground/60 sm:block">⏎</span>
               </div>
@@ -455,10 +469,10 @@ function BoardLedger() {
                 type="button"
                 onClick={() => setAdvancedOpen((v) => !v)}
                 aria-expanded={advancedOpen}
-                className="mt-3 flex w-full items-center justify-between text-[11.5px] text-muted-foreground/70 transition-colors hover:text-[hsl(var(--career-red))]"
+                className="mt-3 flex w-full items-center justify-between text-[11px] text-muted-foreground/55 transition-colors hover:text-[hsl(var(--career-red))]"
               >
-                <span>자세히 적기 — 칸·날짜·세부까지</span>
-                <span aria-hidden className="text-[10px]">{advancedOpen ? '▲' : '▼'}</span>
+                <span>자세히 적기 — 칸·날짜·세부까지 정할 때만</span>
+                <span aria-hidden className="text-[9px]">{advancedOpen ? '▲' : '▼'}</span>
               </button>
 
               {advancedOpen && (
@@ -588,8 +602,8 @@ function BoardLedger() {
             </div>
           </aside>
 
-          {/* ══════ 우 — 원고 ══════ */}
-          <div className="min-w-0">
+          {/* ══════ 좌 — 원고 ══════ */}
+          <div className="min-w-0 lg:order-1">
             <LedgerFrame>
               {/* ── 헤더 밴드 — 사진·이름·소개, 우상단 인장 ── */}
               <div className="relative -mx-4 -mt-7 bg-[hsl(var(--surface-2))] px-4 pb-5 pt-6 sm:-mx-9 sm:-mt-8 sm:px-9 sm:pt-7">
