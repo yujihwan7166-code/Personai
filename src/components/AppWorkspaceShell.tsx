@@ -1,6 +1,7 @@
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  Award,
   CalendarDays,
   Home,
   LayoutGrid,
@@ -24,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'planner' | 'wiki' | 'journal';
+export type WorkspaceKey = 'planner' | 'wiki' | 'journal' | 'career';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -41,6 +42,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
+  { key: 'career', label: '스펙 보드', to: '/career', icon: Award },
 ];
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
@@ -50,7 +52,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home'].includes(item.key),
+  ['home', 'career'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */

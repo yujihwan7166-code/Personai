@@ -383,6 +383,90 @@
     --surface-3: 35 7% 17%;
   }
 
+  .career-theme {
+    /* 스펙 보드 — 쿨 슬레이트 종이 + 뮤트 앰버 포인트 (플래너 sage와 구분) */
+    --background: 220 20% 97%;
+    --foreground: 222 22% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 22% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 22% 15%;
+
+    --muted: 220 16% 92%;
+    --muted-foreground: 222 10% 44%;
+
+    --accent: 220 16% 93%;
+    --accent-foreground: 222 22% 15%;
+
+    --secondary: 220 16% 92%;
+    --secondary-foreground: 222 12% 36%;
+
+    --border: 220 13% 86%;
+    --input: 220 13% 86%;
+
+    /* 뮤트 앰버 — 획득·강조를 보드 전반에서 일관되게 표시 */
+    --primary: 36 62% 44%;
+    --primary-foreground: 40 40% 99%;
+
+    --ring: 36 62% 46%;
+    --focus-ring: 36 66% 48%;
+    --focus-offset: 220 20% 97%;
+
+    --hairline:  220 13% 88%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 220 20% 97%;
+    --surface-3: 220 16% 93%;
+  }
+
+  .dark .career-theme {
+    /* 다크 — slate-charcoal + 앰버 유지 */
+    --background: 222 14% 10%;
+    --foreground: 220 16% 90%;
+
+    --card: 222 13% 13%;
+    --card-foreground: 220 16% 90%;
+
+    --popover: 222 13% 14%;
+    --popover-foreground: 220 16% 90%;
+
+    --muted: 222 12% 17%;
+    --muted-foreground: 220 10% 62%;
+
+    --accent: 222 12% 19%;
+    --accent-foreground: 220 16% 90%;
+
+    --secondary: 222 12% 17%;
+    --secondary-foreground: 220 12% 75%;
+
+    --border: 222 11% 22%;
+    --input: 222 11% 22%;
+
+    --primary: 38 62% 58%;
+    --primary-foreground: 222 14% 10%;
+
+    --ring: 38 62% 58%;
+    --focus-ring: 38 66% 60%;
+    --focus-offset: 222 14% 10%;
+
+    --hairline:  222 11% 22%;
+    --surface-1: 222 13% 13%;
+    --surface-2: 222 14% 10%;
+    --surface-3: 222 12% 17%;
+  }
+
+  /* 방금 보드에 꽂힌 줄 — 앰버 하이라이트가 머물다 사라진다. */
+  .career-theme .career-new-line {
+    animation: career-line-in 2.4s ease-out both;
+  }
+
+  @keyframes career-line-in {
+    0%   { background-color: hsl(var(--primary) / 0.18); }
+    60%  { background-color: hsl(var(--primary) / 0.10); }
+    100% { background-color: transparent; }
+  }
+
   .planner-theme .planner-overview-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }

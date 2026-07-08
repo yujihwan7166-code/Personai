@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import {
   Home,
+  Award,
   CalendarDays,
   Network,
   NotebookPen,
@@ -30,7 +31,8 @@ export type PageSwitcherCurrent =
   | 'home'
   | 'planner'
   | 'wiki'
-  | 'journal';
+  | 'journal'
+  | 'career';
 
 interface PageSwitcherProps {
   current: PageSwitcherCurrent;
@@ -72,6 +74,7 @@ export const PageSwitcher = ({
     { key: 'planner', label: '통합플래너', icon: CalendarDays, to: '/planner' },
     { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
     { key: 'journal', label: '일기', icon: NotebookPen, to: '/journal' },
+    { key: 'career', label: '스펙 보드', icon: Award, to: '/career' },
   ];
   const activeChip = chips.find((p) => p.key === current) ?? chips[0];
   const ActiveIcon = activeChip.icon;
