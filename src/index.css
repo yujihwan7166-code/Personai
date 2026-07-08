@@ -470,33 +470,33 @@
   }
 
   .paper-room {
-    /* 워크스페이스 공통 종이 톤 — 자체 테마가 없는 방(노트 등)의 기본 스킨.
-     * 배경 40 28% 96% 은 플래너·위키·일기·커리어와 동일 (통일 규칙). */
-    --background: 40 28% 96%;
+    /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
+     * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */
+    --background: 0 0% 100%;
     --foreground: 30 12% 16%;
 
-    --card: 40 35% 99%;
+    --card: 0 0% 100%;
     --card-foreground: 30 12% 16%;
 
-    --popover: 40 35% 99%;
+    --popover: 0 0% 100%;
     --popover-foreground: 30 12% 16%;
 
-    --muted: 40 18% 92%;
+    --muted: 220 16% 95%;
     --muted-foreground: 30 8% 42%;
 
-    --accent: 40 22% 91%;
+    --accent: 220 16% 95%;
     --accent-foreground: 30 12% 16%;
 
-    --secondary: 40 22% 91%;
+    --secondary: 220 16% 95%;
     --secondary-foreground: 30 8% 36%;
 
-    --border: 35 14% 84%;
-    --input: 35 14% 84%;
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
 
-    --hairline:  35 14% 86%;
-    --surface-1: 40 35% 99%;
-    --surface-2: 40 28% 96%;
-    --surface-3: 40 22% 93%;
+    --hairline:  220 14% 91%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 220 20% 98%;
+    --surface-3: 220 16% 95%;
     /* 사이드바(목록 패널)는 레일과 같은 색 — 레일→목록→본문이 한 흐름으로 이어진다. */
     --sidebar-background: 220 22% 98%;
   }
