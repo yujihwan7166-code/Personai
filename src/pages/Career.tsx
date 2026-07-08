@@ -6,10 +6,10 @@
  *   강조색 = 교정 잉크 빨강(--career-red) 하나 — 커서·활성·새 줄·추출 화살표에만.
  *
  * 구성:
- *   [헤더] 스펙 보드 + SPEC LEDGER 캡션 (좌) · 신분 전환 탭 (우) · 굵은 괘선
- *   [인적] 이름·한 줄 소개 (좌) · EXTRACT → 화살표 링크 (우)
- *   [입력] 빨간 바 캡처 박스 + TRY 밑줄 링크
- *   [기록] RECORDS · 카드(2열 장부) ↔ 문서(줄글) 토글, 행 클릭 → 세부사항
+ *   [표제] "ㅇㅇ님의 커리어" (클릭해 이름 수정) + 한 줄 소개 · 우측 신분 탭 + → 뽑아쓰기 링크
+ *   [입력] 빨간 바 캡처 박스 + 해보기 밑줄 링크
+ *   [기록] 카드(2열 장부) ↔ 문서(줄글) 토글, 행 클릭 → 세부사항
+ *   보조 문구는 한국어만 (영문 캡션 금지 — 유저 지시)
  *
  * 변신 카드가 framer layoutId 공유로 원고의 해당 행까지 날아가 꽂힌다.
  * 수치는 색이 아니라 잉크 굵기(볼드)로 강조 — 빨강 규율 유지.
@@ -29,22 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-/** 섹션명 → 영문 보조 라벨 (장부의 인덱스 캡션). */
-const SECTION_EN: Record<string, string> = {
-  자격증: 'CERTIFICATION',
-  수상: 'AWARDS',
-  어학: 'LANGUAGES',
-  경력: 'CAREER',
-  프로젝트: 'PROJECTS',
-  교육: 'EDUCATION',
-  '동아리·활동': 'ACTIVITIES',
-  대외활동: 'ACTIVITIES',
-  봉사: 'VOLUNTEER',
-  공모전: 'COMPETITIONS',
-  인턴: 'INTERNSHIP',
-  기타: 'ETC',
-};
 
 /** 신분별 시작 칸 — 설정 시 빈 섹션으로 깔린다 (나중에 추가·삭제 자유). */
 const SEED_CATEGORIES: Record<CareerPersona, string[]> = {
@@ -124,23 +108,9 @@ export default function Career() {
   );
 }
 
-/** 원고 헤더 — 명조 타이틀 + 모노 캡션 (우측 슬롯 옵션). */
-function LedgerHeader({ right }: { right?: ReactNode }) {
-  return (
-    <>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="career-serif text-[26px] font-bold leading-tight tracking-tight">스펙 보드</h1>
-          <p className="career-mono mt-1 text-[10px] tracking-[0.28em] text-muted-foreground">
-            SPEC LEDGER / 개인 이력 원본
-          </p>
-        </div>
-        {right}
-      </header>
-      {/* 표제 아래 굵은 괘선 — 원고의 시작 */}
-      <div aria-hidden className="mt-4 border-b-2 border-[hsl(var(--foreground)/0.75)]" />
-    </>
-  );
+/** 표제 아래 굵은 괘선 — 원고의 시작. */
+function TitleRule() {
+  return <div aria-hidden className="mt-4 border-b-2 border-[hsl(var(--foreground)/0.75)]" />;
 }
 
 /* ═══════════════ 첫 설정 — 신분 선택 → 칸 준비 ═══════════════ */
@@ -153,11 +123,17 @@ function SetupLedger() {
 
   return (
     <>
-      <LedgerHeader />
-      <p className="career-mono mt-10 text-center text-[10px] tracking-[0.24em] text-muted-foreground">
-        SETUP — 원고의 뼈대를 준비해요
+      <header className="min-w-0">
+        <h1 className="career-serif text-[26px] font-bold leading-tight tracking-tight">나의 커리어</h1>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">
+          이룬 것을 한 줄씩 쌓아두는, 아직 완성되지 않은 이력서의 원본
+        </p>
+      </header>
+      <TitleRule />
+      <p className="mt-10 text-center text-[11.5px] tracking-wide text-muted-foreground">
+        원고의 뼈대를 준비해요
       </p>
-      <h2 className="career-serif mt-2.5 text-center text-[21px] font-bold tracking-tight">
+      <h2 className="career-serif mt-2 text-center text-[21px] font-bold tracking-tight">
         지금 어디쯤에 있나요?
       </h2>
       <p className="mt-2 text-center text-[13px] text-muted-foreground">
@@ -203,6 +179,7 @@ function BoardLedger() {
   const [detailItem, setDetailItem] = useState<SpecItem | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingName, setEditingName] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       return window.localStorage.getItem(VIEW_KEY) === 'doc' ? 'doc' : 'card';
@@ -339,10 +316,50 @@ function BoardLedger() {
 
   return (
     <>
-      <LedgerHeader
-        right={
-          <div className="flex items-center gap-3 pb-1">
-            <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/70">LEDGER</span>
+      {/* ── 표제 — "ㅇㅇ님의 커리어" (클릭해서 이름 수정) + 우측 신분·뽑아쓰기 ── */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          {editingName ? (
+            <input
+              autoFocus
+              defaultValue={profile.name}
+              onBlur={(e) => {
+                careerStore.setProfile({ name: e.target.value.trim() });
+                setEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') setEditingName(false);
+              }}
+              placeholder="이름"
+              aria-label="이름"
+              className="career-serif w-[220px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[26px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingName(true)}
+              title="이름 수정"
+              className="text-left"
+            >
+              <h1 className="career-serif text-[26px] font-bold leading-tight tracking-tight decoration-[hsl(var(--foreground)/0.3)] decoration-dotted underline-offset-[6px] hover:underline">
+                {profile.name ? `${profile.name}님의 커리어` : '나의 커리어'}
+              </h1>
+            </button>
+          )}
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-[12.5px] text-muted-foreground">
+            <input
+              defaultValue={profile.tagline}
+              onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
+              placeholder={`한 줄 소개 — 예: ${persona === 'worker' ? '3년차 프론트엔드 개발자' : '컴퓨터공학 3학년'}`}
+              aria-label="한 줄 소개"
+              className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
+            />
+            {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2 pb-0.5">
+          <div className="flex items-center gap-3">
             {(Object.keys(PERSONA_LABEL) as CareerPersona[]).map((key) => (
               <button
                 key={key}
@@ -360,35 +377,6 @@ function BoardLedger() {
               </button>
             ))}
           </div>
-        }
-      />
-
-      {/* ── 인적 사항 + EXTRACT ── */}
-      <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          {/* IME 조합 안정성 — 비제어 + blur 시 저장. */}
-          <input
-            defaultValue={profile.name}
-            onBlur={(e) => careerStore.setProfile({ name: e.target.value.trim() })}
-            placeholder="이름"
-            aria-label="이름"
-            className="career-serif w-full max-w-[300px] bg-transparent text-[22px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
-          />
-          <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[12.5px] text-muted-foreground">
-            <input
-              defaultValue={profile.tagline}
-              onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-              placeholder={`한 줄 소개 — 예: ${persona === 'worker' ? '3년차 프론트엔드 개발자' : '컴퓨터공학 3학년'}`}
-              aria-label="한 줄 소개"
-              className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
-            />
-            {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
-          </div>
-        </div>
-        <div className="pb-1 text-right">
-          <p className="career-mono mb-1 text-[9.5px] tracking-[0.2em] text-muted-foreground/70">
-            EXTRACT — 목적별로 뽑아쓰기
-          </p>
           <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
             {COMPOSE_PURPOSES.map(({ purpose, label }) => (
               <button
@@ -396,6 +384,7 @@ function BoardLedger() {
                 type="button"
                 onClick={() => setComposePurpose(purpose)}
                 disabled={items.length === 0}
+                title="쌓인 기록으로 문서를 만들어요"
                 className={cn(
                   'group text-[13px] font-medium transition-colors',
                   items.length === 0
@@ -409,9 +398,9 @@ function BoardLedger() {
             ))}
           </div>
         </div>
-      </div>
+      </header>
 
-      <div aria-hidden className="mt-5 border-b border-[hsl(var(--foreground)/0.3)]" />
+      <TitleRule />
 
       <LayoutGroup>
         {/* ────── 캡처 박스 — 빨간 교정 바가 꽂힌 원고의 다음 줄 ────── */}
@@ -432,15 +421,15 @@ function BoardLedger() {
               aria-label="스펙 입력"
               className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3.5 text-[15px] outline-none placeholder:text-muted-foreground/50"
             />
-            <span className="career-mono hidden shrink-0 pr-4 text-[10px] tracking-[0.18em] text-muted-foreground/60 sm:block">
-              RETURN ⏎
+            <span className="hidden shrink-0 pr-4 text-[11px] text-muted-foreground/60 sm:block">
+              엔터 ⏎
             </span>
           </div>
 
           {/* TRY — 기록이 적을 때만, 밑줄 링크. */}
           {items.length < 3 && phase.step === 'idle' && (
             <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/60">TRY</span>
+              <span className="text-[11px] text-muted-foreground/60">해보기</span>
               {TRY_EXAMPLES[persona].map((example) => (
                 <button
                   key={example}
@@ -492,7 +481,7 @@ function BoardLedger() {
 
         {/* ────── RECORDS — 캡션 + 카드/문서 토글 ────── */}
         <div className="mt-9 flex items-end justify-between">
-          <span className="career-mono text-[9.5px] tracking-[0.24em] text-muted-foreground/70">RECORDS</span>
+          <span className="text-[11.5px] font-medium tracking-wide text-muted-foreground/70">기록</span>
           <div className="flex items-center gap-3">
             {([['card', '카드'], ['doc', '문서']] as const).map(([mode, label]) => (
               <button
@@ -655,9 +644,7 @@ function SectionHeader({
         {String(index + 1).padStart(2, '0')}
       </span>
       <h2 className="career-serif text-[15px] font-bold tracking-tight">{name}</h2>
-      <span className="career-mono ml-auto text-[9px] tracking-[0.2em] text-muted-foreground/60">
-        {SECTION_EN[name] ?? ''}
-      </span>
+      <span className="ml-auto" />
       {count > 0 ? (
         <span className="career-mono text-[10.5px] text-muted-foreground">{count}개</span>
       ) : (
