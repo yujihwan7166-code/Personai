@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
-import { aiClassifySpec, aiComposeCareerDoc, type ComposePurpose } from '@/lib/career/ai';
+import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
 import { PERSONA_LABEL, type CareerPersona, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -51,10 +51,13 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 };
 
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string }> = [
-  { purpose: '이력서', label: '이력서로' },
-  { purpose: '자기소개서 초안', label: '자소서로' },
-  { purpose: '포트폴리오 요약', label: '포트폴리오로' },
+  { purpose: '이력서', label: 'AI 이력서 생성' },
+  { purpose: '자기소개서 초안', label: 'AI 자소서 생성' },
+  { purpose: '포트폴리오 요약', label: 'AI 포트폴리오 생성' },
 ];
+
+/** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
+const SECTION_PREVIEW = 5;
 
 /** 입력 → AI 변신 단계. idle = 입력 대기. */
 type CapturePhase =
@@ -66,7 +69,6 @@ type ViewMode = 'card' | 'doc';
 const VIEW_KEY = 'career.view.v1';
 
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
-const formatFull = (iso: string) => iso.slice(0, 10).replaceAll('-', '.');
 
 /** 입력줄 → 원고 행 공유 레이아웃 id. */
 const INCOMING = 'career-incoming-card';
@@ -180,6 +182,8 @@ function BoardLedger() {
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingName, setEditingName] = useState(false);
+  const [recommendOpen, setRecommendOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       return window.localStorage.getItem(VIEW_KEY) === 'doc' ? 'doc' : 'card';
@@ -199,7 +203,6 @@ function BoardLedger() {
     [categories, items],
   );
 
-  const lastRecordedAt = items.length > 0 ? items[0].createdAt.slice(0, 10) : null;
   const thisYearCount = useMemo(() => {
     const year = String(new Date().getFullYear());
     return items.filter((item) => item.date.startsWith(year)).length;
@@ -212,10 +215,13 @@ function BoardLedger() {
     try { window.localStorage.setItem(VIEW_KEY, mode); } catch { /* noop */ }
   };
 
-  const switchPersona = (next: CareerPersona) => {
-    if (next === persona) return;
-    SEED_CATEGORIES[next].forEach((name) => careerStore.ensureCategory(name));
-    careerStore.setProfile({ persona: next });
+  const toggleSection = (id: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const submit = async (rawInput?: string) => {
@@ -355,47 +361,6 @@ function BoardLedger() {
               aria-label="한 줄 소개"
               className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
             />
-            {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-2 pb-0.5">
-          <div className="flex items-center gap-3">
-            {(Object.keys(PERSONA_LABEL) as CareerPersona[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => switchPersona(key)}
-                aria-pressed={persona === key}
-                className={cn(
-                  'pb-0.5 text-[12.5px] transition-colors',
-                  persona === key
-                    ? 'border-b-2 border-[hsl(var(--career-red))] font-bold text-foreground'
-                    : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {PERSONA_LABEL[key]}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
-            {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-              <button
-                key={purpose}
-                type="button"
-                onClick={() => setComposePurpose(purpose)}
-                disabled={items.length === 0}
-                title="쌓인 기록으로 문서를 만들어요"
-                className={cn(
-                  'group text-[13px] font-medium transition-colors',
-                  items.length === 0
-                    ? 'cursor-not-allowed text-muted-foreground/45'
-                    : 'text-foreground hover:text-[hsl(var(--career-red))]',
-                )}
-              >
-                <span className={cn('mr-0.5', items.length > 0 && 'text-[hsl(var(--career-red))]')}>→</span>
-                <span className={cn(items.length > 0 && 'underline-offset-4 group-hover:underline')}>{label}</span>
-              </button>
-            ))}
           </div>
         </div>
       </header>
@@ -479,7 +444,37 @@ function BoardLedger() {
           </AnimatePresence>
         </div>
 
-        {/* ────── RECORDS — 캡션 + 카드/문서 토글 ────── */}
+        {/* ────── AI 도구 칸 — 쌓인 원고로 문서를 만들거나 다음 스펙을 추천받는다 ────── */}
+        <div className="mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-2 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-4 py-3">
+          <span className="mr-1 text-[11.5px] font-medium text-muted-foreground/70">AI 도구</span>
+          {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+            <button
+              key={purpose}
+              type="button"
+              onClick={() => setComposePurpose(purpose)}
+              disabled={items.length === 0}
+              title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
+              className={cn(
+                'border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
+                items.length === 0
+                  ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/45'
+                  : 'border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setRecommendOpen(true)}
+            title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+            className="border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
+          >
+            추천 스펙
+          </button>
+        </div>
+
+        {/* ────── 기록 — 캡션 + 카드/문서 토글 ────── */}
         <div className="mt-9 flex items-end justify-between">
           <span className="text-[11.5px] font-medium tracking-wide text-muted-foreground/70">기록</span>
           <div className="flex items-center gap-3">
@@ -530,23 +525,36 @@ function BoardLedger() {
                     아직 비어 있어요 — 이룬 것을 적으면 여기에 쌓여요.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-[hsl(var(--hairline))]">
-                    <AnimatePresence initial={false}>
-                      {sectionItems.map((item) => (
-                        <motion.li
-                          key={item.id}
-                          layout
-                          layoutId={item.id === recentId ? INCOMING : undefined}
-                          initial={item.id === recentId ? false : { opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                        >
-                          {renderRow(item, true)}
-                        </motion.li>
-                      ))}
-                    </AnimatePresence>
-                  </ul>
+                  <>
+                    <ul className="divide-y divide-[hsl(var(--hairline))]">
+                      <AnimatePresence initial={false}>
+                        {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
+                          <motion.li
+                            key={item.id}
+                            layout
+                            layoutId={item.id === recentId ? INCOMING : undefined}
+                            initial={item.id === recentId ? false : { opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                          >
+                            {renderRow(item, true)}
+                          </motion.li>
+                        ))}
+                      </AnimatePresence>
+                    </ul>
+                    {sectionItems.length > SECTION_PREVIEW && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(category.id)}
+                        className="mt-1.5 px-2 text-[11.5px] text-muted-foreground/70 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                      >
+                        {expandedSections.has(category.id)
+                          ? '접기'
+                          : `${sectionItems.length - SECTION_PREVIEW}개 더 보기`}
+                      </button>
+                    )}
+                  </>
                 )}
               </section>
             ))}
@@ -598,10 +606,21 @@ function BoardLedger() {
                   <section key={category.id}>
                     <SectionHeader index={sectionIndex} name={category.name} count={sectionItems.length} />
                     <ul className="divide-y divide-[hsl(var(--hairline))]">
-                      {sectionItems.map((item) => (
+                      {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
                         <li key={item.id}>{renderRow(item, false)}</li>
                       ))}
                     </ul>
+                    {sectionItems.length > SECTION_PREVIEW && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(category.id)}
+                        className="mt-1.5 px-2 text-[11.5px] text-muted-foreground/70 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                      >
+                        {expandedSections.has(category.id)
+                          ? '접기'
+                          : `${sectionItems.length - SECTION_PREVIEW}개 더 보기`}
+                      </button>
+                    )}
                   </section>
                 ))
             )}
@@ -622,7 +641,61 @@ function BoardLedger() {
 
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
+      <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
     </>
+  );
+}
+
+/* ═══════════════ 추천 스펙 다이얼로그 ═══════════════ */
+
+function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; personaLabel: string; onClose: () => void }) {
+  const { items, categories } = useCareerBoard();
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState('');
+
+  const generate = async () => {
+    setGenerating(true);
+    setResult('');
+    try {
+      const sections = categories.map((category) => ({
+        name: category.name,
+        items: items.filter((item) => item.categoryId === category.id),
+      }));
+      setResult(await aiRecommendSpecs(personaLabel, sections));
+    } catch (err) {
+      notify.error('추천을 불러오지 못했어요', {
+        description: err instanceof Error ? err.message : '잠시 뒤 다시 시도해 주세요.',
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) { setResult(''); onClose(); } }}>
+      <DialogContent className="career-theme max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="career-serif text-[16px]">추천 스펙</DialogTitle>
+        </DialogHeader>
+        <p className="text-[12.5px] text-muted-foreground">
+          지금 원고를 보고, 다음에 쌓으면 좋을 스펙을 골라드려요.
+        </p>
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={generating}
+          className="inline-flex h-9 items-center justify-center gap-1.5 bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
+        >
+          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {generating ? '고르는 중…' : '추천 받기'}
+        </button>
+        {result && (
+          <div className="max-h-64 overflow-y-auto whitespace-pre-line border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3.5 text-[13px] leading-relaxed">
+            {result}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

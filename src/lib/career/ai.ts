@@ -66,6 +66,22 @@ export async function aiClassifySpec(raw: string, existingCategories: string[]):
   }
 }
 
+/** 신분 + 현재 보드 → 다음에 쌓으면 좋을 스펙 추천 (markdown 목록). */
+export async function aiRecommendSpecs(
+  personaLabel: string,
+  sections: Array<{ name: string; items: SpecItem[] }>,
+): Promise<string> {
+  const source = sections
+    .filter((s) => s.items.length > 0)
+    .map((s) => `## ${s.name}\n${s.items.map((i) => `- ${i.refined} (${i.date})`).join('\n')}`)
+    .join('\n\n') || '(아직 기록 없음)';
+  return quickAi(
+    '당신은 커리어 컨설턴트입니다. 사용자의 신분과 현재 스펙 목록을 보고, 다음에 쌓으면 좋을 스펙 4~6개를 추천합니다. 각 줄은 "- 추천 항목 — 이유 한 문장" 형식. 이미 가진 것과 겹치지 않게, 자격증명·활동명은 실제로 존재하는 구체적인 것으로. 머리말·설명 없이 목록만 출력합니다.',
+    `[신분] ${personaLabel}\n\n[현재 스펙]\n${source}`,
+    { model: QUALITY_MODEL, temperature: 0.6, maxTokens: 2048 },
+  );
+}
+
 export type ComposePurpose = '이력서' | '자기소개서 초안' | '포트폴리오 요약';
 
 /** 보드에 쌓인 자산 → 목적별 문서 (markdown). */
