@@ -182,7 +182,7 @@ export default function Career() {
         });
       }
       window.requestAnimationFrame(() => inputRef.current?.focus());
-    }, 950);
+    }, 800);
   };
 
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -231,7 +231,7 @@ export default function Career() {
           </span>
           <div>
             <h1 className="text-[17px] font-bold leading-tight">스펙 보드</h1>
-            <p className="font-serif text-[12.5px] italic text-muted-foreground">
+            <p className="text-[12.5px] tracking-wide text-muted-foreground">
               아직 완성되지 않은, 당신 이력서의 원본
             </p>
           </div>
@@ -303,10 +303,9 @@ export default function Career() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onInputKeyDown}
-                  disabled={busy}
                   placeholder="여기에 한 줄로 이어 적어 보세요 — 예: 정처기 땄음"
                   aria-label="스펙 입력"
-                  className="h-9 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+                  className="h-9 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/60"
                 />
                 <span className="hidden shrink-0 items-center gap-1 font-serif text-[11px] tracking-wide text-muted-foreground/70 sm:flex">
                   Enter <CornerDownLeft className="h-3 w-3" />
@@ -337,7 +336,7 @@ export default function Career() {
                     layoutId={INCOMING}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3.5 rounded-xl border border-[hsl(var(--career-gold))/0.45] bg-card px-4 py-3 shadow-sm"
+                    className="mt-3.5 rounded-xl border border-[hsl(var(--career-gold)/0.45)] bg-card px-4 py-3 shadow-sm"
                   >
                     {phase.step === 'thinking' ? (
                       <div className="flex items-center gap-2.5 text-[13.5px]">
@@ -356,7 +355,7 @@ export default function Career() {
                       >
                         <Sparkles className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--career-gold))]" />
                         <span className="min-w-0 flex-1 font-medium">{phase.refined}</span>
-                        <span className="shrink-0 rounded-md bg-[hsl(var(--career-gold))/0.14] px-1.5 py-0.5 text-[11px] font-semibold text-[hsl(var(--career-gold))]">
+                        <span className="shrink-0 rounded-md bg-[hsl(var(--career-gold)/0.14)] px-1.5 py-0.5 text-[11px] font-semibold text-[hsl(var(--career-gold))]">
                           {phase.category}
                         </span>
                       </motion.div>
@@ -381,8 +380,8 @@ export default function Career() {
                     onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                     onDrop={(e) => onDropToCategory(e, category.id)}
                     className={cn(
-                      'rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))/0.55] p-3.5 transition-shadow',
-                      dragOverCategory === category.id && 'ring-2 ring-[hsl(var(--career-gold))/0.5]',
+                      'rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2)/0.55)] p-3.5 transition-shadow',
+                      dragOverCategory === category.id && 'ring-2 ring-[hsl(var(--career-gold)/0.5)]',
                     )}
                   >
                     <div className="mb-2.5 flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2">
@@ -531,7 +530,7 @@ function EmptyBoard() {
         {board.map((section, index) => (
           <div
             key={section.section}
-            className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))/0.5] p-3.5"
+            className="rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2)/0.5)] p-3.5"
           >
             <div className="mb-2.5 flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2">
               <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">

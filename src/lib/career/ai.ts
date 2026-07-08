@@ -22,9 +22,29 @@ const CLASSIFY_SYSTEM = `당신은 이력서 컨설턴트입니다. 사용자가
 응답은 반드시 아래 JSON 한 개만 출력합니다. 설명·코드펜스 금지.
 {"refined": "...", "category": "..."}`;
 
-/** 한 줄 입력 → 다듬은 문장 + 섹션 분류. 실패 시 원문/기타 폴백. */
+/** AI 없이도 그럴듯하게 — 키워드 기반 섹션 추정 (오프라인/실패 폴백). */
+const HEURISTICS: Array<[RegExp, string]> = [
+  [/토익|토플|오픽|텝스|아이엘츠|jlpt|hsk|toeic|toefl|opic|ielts/i, '어학'],
+  [/기사\b|기능사|산업기사|기술사|자격증?|정처기|sqld|adsp|sqlp|cpa|한국사능력/i, '자격증'],
+  [/수상|대상|최우수|우수상|장려상|입상|금상|은상|동상/, '수상'],
+  [/공모전|해커톤|경진대회|콘테스트/, '공모전'],
+  [/인턴/, '인턴'],
+  [/동아리|학회|봉사|회장|부회장|스터디|멘토링|서포터즈/, '동아리·활동'],
+  [/수료|부트캠프|교육|강의|세미나|워크숍|과정/, '교육'],
+  [/입사|승진|이직|팀장|리드|담당/, '경력'],
+  [/프로젝트|출시|런칭|배포|개발|구축|개선|리뉴얼/, '프로젝트'],
+];
+
+export const heuristicCategory = (raw: string): string => {
+  for (const [pattern, category] of HEURISTICS) {
+    if (pattern.test(raw)) return category;
+  }
+  return FALLBACK_CATEGORY;
+};
+
+/** 한 줄 입력 → 다듬은 문장 + 섹션 분류. 실패 시 휴리스틱 분류 폴백. */
 export async function aiClassifySpec(raw: string, existingCategories: string[]): Promise<ClassifiedSpec> {
-  const fallback: ClassifiedSpec = { refined: raw.trim(), category: FALLBACK_CATEGORY };
+  const fallback: ClassifiedSpec = { refined: raw.trim(), category: heuristicCategory(raw) };
   try {
     const text = await quickAi(
       CLASSIFY_SYSTEM,
