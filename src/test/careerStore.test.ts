@@ -30,16 +30,30 @@ describe('careerStore', () => {
     expect(item.refined).toBe('동아리 회장 됨');
   });
 
-  it('addItem() — 날짜·세부사항 지정 시 그대로 저장', () => {
+  it('addItem() — 날짜·기간·기관·링크·세부사항 지정 시 그대로 저장', () => {
     const item = careerStore.addItem({
-      raw: 'SQLD 땄음',
-      categoryName: '자격증',
-      date: '2025-11-20',
-      detail: '2회차 응시, 최종 82점',
+      raw: '동아리 회장 함',
+      categoryName: '동아리·활동',
+      date: '2025-03-01',
+      ongoing: true,
+      org: 'IT 연합동아리',
+      link: 'https://example.com/club',
+      detail: '부원 32명, 세미나 12회 운영',
     });
-    expect(item.date).toBe('2025-11-20');
-    expect(item.detail).toBe('2회차 응시, 최종 82점');
-    expect(careerStore.listItems()[0].detail).toBe('2회차 응시, 최종 82점');
+    expect(item.date).toBe('2025-03-01');
+    expect(item.ongoing).toBe(true);
+    expect(item.org).toBe('IT 연합동아리');
+    expect(item.link).toBe('https://example.com/club');
+
+    const saved = careerStore.listItems()[0];
+    expect(saved.detail).toBe('부원 32명, 세미나 12회 운영');
+    expect(saved.ongoing).toBe(true);
+
+    // 종료일은 형식이 맞을 때만
+    const ranged = careerStore.addItem({ raw: '인턴 함', categoryName: '인턴', date: '2025-01-02', endDate: '2025-06-30' });
+    expect(ranged.endDate).toBe('2025-06-30');
+    const bad = careerStore.addItem({ raw: 'x', categoryName: '기타', endDate: '2025/06/30' });
+    expect(bad.endDate).toBeUndefined();
   });
 
   it('ensureCategory() — 같은 이름은 재사용, 새 이름은 뒤 순서로 생성', () => {

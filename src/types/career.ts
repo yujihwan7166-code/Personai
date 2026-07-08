@@ -24,9 +24,17 @@ export interface SpecItem {
   raw: string;
   /** AI가 다듬은 이력서 문장. AI 실패 시 raw 와 동일. */
   refined: string;
-  /** 항목 날짜 (YYYY-MM-DD) — 기본은 입력한 날. */
+  /** 시작(또는 단일) 날짜 (YYYY-MM-DD) — 기본은 입력한 날. */
   date: string;
-  /** 세부사항 — 상황·역할·결과 메모. EXTRACT 때 AI 재료로 쓰인다. */
+  /** 종료 날짜 (YYYY-MM-DD, 선택) — 기간형 항목(경력·활동)용. */
+  endDate?: string;
+  /** 진행 중 여부 — true 면 "~현재"로 표기. */
+  ongoing?: boolean;
+  /** 기관·주최·발급처 (선택). */
+  org?: string;
+  /** 증빙 링크 (선택) — 포트폴리오·수상 페이지 등. */
+  link?: string;
+  /** 세부사항 — 상황·역할·결과 메모. 생성 AI 재료로 쓰인다. */
   detail?: string;
   createdAt: string;
   updatedAt: string;

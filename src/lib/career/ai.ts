@@ -110,11 +110,13 @@ export async function aiComposeCareerDoc(
   purpose: ComposePurpose,
   sections: Array<{ name: string; items: SpecItem[] }>,
 ): Promise<string> {
+  const period = (i: SpecItem) => `${i.date}${i.ongoing ? '~현재' : i.endDate ? `~${i.endDate}` : ''}`;
   const source = sections
     .filter((s) => s.items.length > 0)
     .map((s) =>
       `## ${s.name}\n${s.items
-        .map((i) => `- ${i.refined} (${i.date})${i.detail ? `\n  세부: ${i.detail.replaceAll('\n', ' ')}` : ''}`)
+        .map((i) =>
+          `- ${i.refined} (${period(i)})${i.org ? ` · ${i.org}` : ''}${i.link ? ` · ${i.link}` : ''}${i.detail ? `\n  세부: ${i.detail.replaceAll('\n', ' ')}` : ''}`)
         .join('\n')}`)
     .join('\n\n');
   const guide =

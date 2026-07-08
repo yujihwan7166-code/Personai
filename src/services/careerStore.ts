@@ -35,14 +35,21 @@ const normalizeItem = (value: unknown, index: number): SpecItem | null => {
   const refined = typeof value.refined === 'string' && value.refined.trim() ? value.refined.trim() : raw;
   if (!raw && !refined) return null;
   const createdAt = normalizeIso(value.createdAt, new Date().toISOString());
-  const detail = typeof value.detail === 'string' && value.detail.trim() ? value.detail : undefined;
+  const optionalText = (v: unknown): string | undefined =>
+    typeof v === 'string' && v.trim() ? v : undefined;
+  const optionalDate = (v: unknown): string | undefined =>
+    typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined;
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `sp_recovered_${index}`,
     categoryId: typeof value.categoryId === 'string' ? value.categoryId : '',
     raw: raw || refined,
     refined,
     date: normalizeDate(value.date, createdAt),
-    detail,
+    endDate: optionalDate(value.endDate),
+    ongoing: value.ongoing === true ? true : undefined,
+    org: optionalText(value.org),
+    link: optionalText(value.link),
+    detail: optionalText(value.detail),
     createdAt,
     updatedAt: normalizeIso(value.updatedAt, createdAt),
   };
@@ -134,7 +141,17 @@ export const careerStore = {
   },
 
   /** 항목 추가 — categoryName 은 ensureCategory 로 섹션에 연결. */
-  addItem(input: { raw: string; refined?: string; categoryName: string; date?: string; detail?: string }): SpecItem {
+  addItem(input: {
+    raw: string;
+    refined?: string;
+    categoryName: string;
+    date?: string;
+    endDate?: string;
+    ongoing?: boolean;
+    org?: string;
+    link?: string;
+    detail?: string;
+  }): SpecItem {
     const category = this.ensureCategory(input.categoryName);
     const now = new Date().toISOString();
     const raw = input.raw.trim();
@@ -144,6 +161,10 @@ export const careerStore = {
       raw,
       refined: input.refined?.trim() || raw,
       date: input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : now.slice(0, 10),
+      endDate: input.endDate && /^\d{4}-\d{2}-\d{2}$/.test(input.endDate) ? input.endDate : undefined,
+      ongoing: input.ongoing === true ? true : undefined,
+      org: input.org?.trim() || undefined,
+      link: input.link?.trim() || undefined,
       detail: input.detail?.trim() || undefined,
       createdAt: now,
       updatedAt: now,
