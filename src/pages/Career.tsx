@@ -9,7 +9,7 @@
  *
  * 종이 위 잉크: 문장 명조(career-serif) · 숫자 모노(career-mono) ·
  * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
- * 문서 뷰는 이력서 지면처럼 3열(문장|날짜|세부), 섹션당 5개 프리뷰.
+ * 기록은 2열 카드 뷰 고정, 섹션당 5개 프리뷰(+더 보기). 서체는 플래너와 동일(Pretendard).
  */
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
@@ -340,7 +340,7 @@ function BoardLedger() {
     }
   };
 
-  /* 원고 행 — 카드 뷰용 (문장 + 날짜, 세부 미리보기 아래 1줄). */
+  /* 원고 행 — 카드(문장 + 날짜, 세부 미리보기 아래 1줄), 클릭하면 세부사항. */
   const renderCardRow = (item: SpecItem) => (
     <div
       draggable
@@ -403,7 +403,6 @@ function BoardLedger() {
     </div>
   );
 
-  /* 원고 행 — 문서 뷰용 (이력서 지면 3열: 문장 | 날짜 | 세부). */
   return (
     <>
       <LayoutGroup>
