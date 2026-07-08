@@ -112,8 +112,13 @@ export default function Career() {
 
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-4xl px-5 pb-24 pt-9 sm:px-8 sm:pt-12">
-        {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
+      <div className="mx-auto w-full max-w-4xl px-3 pb-20 pt-8 sm:px-6 sm:pt-11">
+        {/* 장부 프레임 — 이중 괘선 액자 (굵은 외곽 + 가는 안쪽) */}
+        <div className="border border-[hsl(var(--foreground)/0.45)] p-[3px]">
+          <div className="border border-[hsl(var(--foreground)/0.16)] px-4 py-7 sm:px-9 sm:py-9">
+            {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
+          </div>
+        </div>
       </div>
     </div>
   );
