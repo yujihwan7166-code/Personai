@@ -229,7 +229,7 @@ const Notes = () => {
   };
 
   return (
-    <div className="flex h-dvh bg-background text-foreground">
+    <div className="paper-room flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
         <div className="shrink-0 px-3 pt-4 pb-3">

@@ -19,9 +19,10 @@ import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
 
 const CREAM: CSSProperties = {
-  '--cream-bg': '39 34% 90%',
-  '--cream-panel': '40 36% 92%',
-  '--cream-card': '44 50% 98%',
+  // 배경은 워크스페이스 공통 종이 톤 (플래너·위키·커리어·노트와 동일)
+  '--cream-bg': '40 28% 96%',
+  '--cream-panel': '40 34% 97.5%',
+  '--cream-card': '44 52% 99%',
   '--cream-ink': '26 22% 22%',
   '--cream-muted': '28 12% 47%',
   '--cream-line': '38 26% 87%',

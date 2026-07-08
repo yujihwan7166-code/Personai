@@ -60,7 +60,7 @@
  * ────────────────────────────────────────────────────────────────── */
 .wiki-warm-theme {
   /* shadcn 글로벌 토큰 — page bg / card / 액센트 cream 톤 */
-  --background: 40 25% 97%;            /* cream 종이 */
+  --background: 40 28% 96%;            /* cream 종이 */
   --foreground: 30 8% 13%;              /* 따뜻한 진한 갈색-검정 */
 
   --card: 40 30% 99%;                   /* 카드 — 살짝 밝음 */
@@ -87,19 +87,19 @@
 
   --ring: 210 60% 42%;
   --focus-ring: 210 65% 50%;
-  --focus-offset: 40 25% 97%;
+  --focus-offset: 40 28% 96%;
 
   /* 위키 자체 토큰 — hairline 따뜻한 베이지로 */
   --wiki-hairline:        30 10% 86%;
   --wiki-hairline-strong: 30 10% 78%;
   --hairline:             30 10% 86%;
   --surface-1:            40 30% 99%;
-  --surface-2:            40 25% 97%;
+  --surface-2:            40 28% 96%;
   --surface-3:            40 22% 95%;
 }
 
 .dark .wiki-warm-theme {
-  --background: 30 10% 11%;
+  --background: 30 9% 10%;
   --foreground: 40 18% 92%;
   --card: 30 9% 14%;
   --card-foreground: 40 18% 92%;
@@ -114,15 +114,15 @@
   --border: 30 8% 22%;
   --input: 30 8% 22%;
   --primary: 210 70% 65%;
-  --primary-foreground: 30 10% 11%;
+  --primary-foreground: 30 9% 10%;
   --ring: 210 70% 65%;
   --focus-ring: 210 70% 70%;
-  --focus-offset: 30 10% 11%;
+  --focus-offset: 30 9% 10%;
   --wiki-hairline:        30 8% 22%;
   --wiki-hairline-strong: 30 8% 32%;
   --hairline:             30 8% 22%;
   --surface-1: 30 9% 14%;
-  --surface-2: 30 10% 11%;
+  --surface-2: 30 9% 10%;
   --surface-3: 30 8% 17%;
 }
 

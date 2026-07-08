@@ -149,7 +149,7 @@
     /* ── "황혼(Dusk) 잉크" 아이덴티티 (2026-07-06 완전 리모델링) ──
      * 크림+세리프+퍼플의 제네릭 톤을 폐기. 블러시 아이보리 종이 + 깊은 자두 잉크 +
      * 골든아워(마리골드→로즈→플럼) 시그니처. 큰 날짜는 헤비 산세리프, 본문은 세리프. */
-    --background: 26 42% 96%;        /* 블러시 아이보리 종이 */
+    --background: 40 28% 96%;        /* 워크스페이스 공통 종이 톤 */
     --foreground: 288 26% 15%;       /* 깊은 자두-잉크 */
 
     --card: 30 55% 98%;              /* 종이보다 밝은 카드 */
@@ -169,7 +169,7 @@
 
     --hairline: 26 24% 87%;
     --surface-1: 30 55% 98%;
-    --surface-2: 26 42% 96%;
+    --surface-2: 40 28% 96%;
     --surface-3: 26 34% 93%;
 
     /* Primary — 깊은 로즈 (자두↔마리골드 사이의 따뜻한 감성 액센트) */
@@ -178,7 +178,7 @@
 
     --ring: 342 66% 52%;
     --focus-ring: 342 70% 58%;
-    --focus-offset: 26 42% 96%;
+    --focus-offset: 40 28% 96%;
 
     /* 골든아워 시그니처 — 마스트헤드 리본 등 딱 한 곳에만. */
     --journal-marigold: 38 92% 58%;
@@ -199,7 +199,7 @@
 
   .dark .journal-warm-theme {
     /* 다크 — 따뜻한 dark, 순흑 X. NYT/Bear 다크 톤. */
-    --background: 30 10% 11%;
+    --background: 30 9% 10%;
     --foreground: 40 18% 92%;
 
     --card: 30 9% 14%;
@@ -219,7 +219,7 @@
 
     --hairline: 30 8% 22%;
     --surface-1: 30 9% 14%;
-    --surface-2: 30 10% 11%;
+    --surface-2: 30 9% 10%;
     --surface-3: 30 8% 17%;
 
     --primary: 342 72% 64%;
@@ -227,7 +227,7 @@
 
     --ring: 342 72% 64%;
     --focus-ring: 342 76% 68%;
-    --focus-offset: 30 10% 11%;
+    --focus-offset: 30 9% 10%;
   }
 
   /* journal 본문 에디터 — 문단 간 간격 컴팩트 (사용자 피드백: 너무 김) */
@@ -310,8 +310,8 @@
   }
 
   .planner-theme {
-    /* Page background — 따뜻한 sage-cream, 현재보다 살짝 차분 */
-    --background: 42 28% 96%;
+    /* Page background — 워크스페이스 공통 종이 톤 (40 28% 96%) */
+    --background: 40 28% 96%;
     --foreground: 30 12% 16%;          /* 따뜻한 진한 차콜 */
 
     --card: 40 35% 99%;                 /* 카드 — 배경보다 살짝 밝음 */
@@ -338,18 +338,18 @@
 
     --ring: 262 62% 58%;
     --focus-ring: 262 66% 60%;
-    --focus-offset: 42 28% 96%;
+    --focus-offset: 40 28% 96%;
 
     /* Surface — 카드/리스트/패널 3계층 */
     --hairline:  35 14% 86%;
     --surface-1: 40 35% 99%;            /* card top */
-    --surface-2: 42 28% 96%;            /* page */
+    --surface-2: 40 28% 96%;            /* page */
     --surface-3: 40 22% 93%;            /* sunken */
   }
 
   .dark .planner-theme {
-    /* 다크 — sage-charcoal, 따뜻함 유지 */
-    --background: 35 8% 10%;
+    /* 다크 — 워크스페이스 공통 웜 차콜 (30 9% 10%) */
+    --background: 30 9% 10%;
     --foreground: 40 16% 90%;
 
     --card: 35 8% 13%;
@@ -375,23 +375,24 @@
 
     --ring: 262 65% 68%;
     --focus-ring: 262 70% 70%;
-    --focus-offset: 35 8% 10%;
+    --focus-offset: 30 9% 10%;
 
     --hairline:  35 7% 22%;
     --surface-1: 35 8% 13%;
-    --surface-2: 35 8% 10%;
+    --surface-2: 30 9% 10%;
     --surface-3: 35 7% 17%;
   }
 
   .career-theme {
-    /* 스펙 보드 — "교정 중인 원고(장부)": 책상(배경) 위 원고지(프레임 안) + 교정 빨강 */
-    --background: 40 24% 90%;
+    /* 스펙 보드 — "교정 중인 원고(장부)": 책상(배경) 위 원고지(프레임 안) + 교정 빨강
+     * 배경은 워크스페이스 공통 종이 톤 (플래너·위키·일기·노트와 동일: 40 28% 96%) */
+    --background: 40 28% 96%;
     --foreground: 28 18% 14%;
 
-    --card: 42 40% 97%;
+    --card: 42 48% 98.5%;
     --card-foreground: 28 18% 14%;
 
-    --popover: 42 38% 97%;
+    --popover: 42 48% 98.5%;
     --popover-foreground: 28 18% 14%;
 
     --muted: 40 20% 88%;
@@ -412,20 +413,20 @@
 
     --ring: 4 62% 44%;
     --focus-ring: 4 62% 46%;
-    --focus-offset: 40 32% 94%;
+    --focus-offset: 40 28% 96%;
 
     --hairline:  35 14% 82%;
-    --surface-1: 42 40% 96%;   /* 원고지 — 프레임 안 */
-    --surface-2: 40 28% 93%;   /* 살짝 가라앉은 슬롯 (캡처 박스 등) */
-    --surface-3: 40 22% 88%;
+    --surface-1: 42 48% 98.5%; /* 원고지 — 프레임 안 (공통 배경보다 밝게) */
+    --surface-2: 40 26% 93%;   /* 살짝 가라앉은 슬롯 (캡처 박스 등) */
+    --surface-3: 40 22% 89%;
 
     /* 교정 잉크 빨강 — 유일한 강조색. 커서·활성·새 줄·추출 화살표에만. */
     --career-red: 4 62% 42%;
   }
 
   .dark .career-theme {
-    /* 다크 — 밤의 책상 위 원고: 프레임 안이 살짝 떠 보이게 */
-    --background: 28 10% 8%;
+    /* 다크 — 밤의 책상 위 원고 (워크스페이스 공통 다크: 30 9% 10%) */
+    --background: 30 9% 10%;
     --foreground: 40 22% 86%;
 
     --card: 28 9% 12%;
@@ -451,12 +452,12 @@
 
     --ring: 4 68% 58%;
     --focus-ring: 4 68% 60%;
-    --focus-offset: 28 10% 9%;
+    --focus-offset: 30 9% 10%;
 
     --hairline:  28 8% 22%;
-    --surface-1: 28 9% 11.5%;  /* 원고지 — 프레임 안 */
-    --surface-2: 28 9% 14%;    /* 슬롯 */
-    --surface-3: 28 8% 17%;
+    --surface-1: 30 9% 13%;    /* 원고지 — 프레임 안 */
+    --surface-2: 30 9% 15.5%;  /* 슬롯 */
+    --surface-3: 30 8% 18%;
 
     --career-red: 4 68% 58%;
   }
@@ -464,6 +465,66 @@
   /* 텍스트 선택도 교정 잉크로 */
   .career-theme ::selection {
     background-color: hsl(var(--career-red) / 0.18);
+  }
+
+  .paper-room {
+    /* 워크스페이스 공통 종이 톤 — 자체 테마가 없는 방(노트 등)의 기본 스킨.
+     * 배경 40 28% 96% 은 플래너·위키·일기·커리어와 동일 (통일 규칙). */
+    --background: 40 28% 96%;
+    --foreground: 30 12% 16%;
+
+    --card: 40 35% 99%;
+    --card-foreground: 30 12% 16%;
+
+    --popover: 40 35% 99%;
+    --popover-foreground: 30 12% 16%;
+
+    --muted: 40 18% 92%;
+    --muted-foreground: 30 8% 42%;
+
+    --accent: 40 22% 91%;
+    --accent-foreground: 30 12% 16%;
+
+    --secondary: 40 22% 91%;
+    --secondary-foreground: 30 8% 36%;
+
+    --border: 35 14% 84%;
+    --input: 35 14% 84%;
+
+    --hairline:  35 14% 86%;
+    --surface-1: 40 35% 99%;
+    --surface-2: 40 28% 96%;
+    --surface-3: 40 22% 93%;
+    --sidebar-background: 40 24% 93.5%;
+  }
+
+  .dark .paper-room {
+    --background: 30 9% 10%;
+    --foreground: 40 16% 90%;
+
+    --card: 30 9% 13%;
+    --card-foreground: 40 16% 90%;
+
+    --popover: 30 9% 14%;
+    --popover-foreground: 40 16% 90%;
+
+    --muted: 30 8% 17%;
+    --muted-foreground: 35 8% 62%;
+
+    --accent: 30 8% 19%;
+    --accent-foreground: 40 16% 90%;
+
+    --secondary: 30 8% 17%;
+    --secondary-foreground: 35 10% 75%;
+
+    --border: 30 8% 22%;
+    --input: 30 8% 22%;
+
+    --hairline:  30 8% 22%;
+    --surface-1: 30 9% 13%;
+    --surface-2: 30 9% 10%;
+    --surface-3: 30 8% 17%;
+    --sidebar-background: 30 9% 12%;
   }
 
   /* 원고 서체 — 문장은 명조, 장부 숫자는 모노 */
