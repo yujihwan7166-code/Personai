@@ -118,24 +118,23 @@ export default function Career() {
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
-        {/* ────── 페이지 헤더 (시트 밖, 종이 위) ────── */}
-        <header className="mb-6 flex items-center gap-3 px-1">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[hsl(var(--foreground)/0.25)] font-serif text-[16px] font-semibold"
-          >
-            S
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-[18px] font-bold leading-tight">스펙 보드</h1>
-            <p className="text-[12.5px] tracking-wide text-muted-foreground">
-              아직 완성되지 않은, 당신 이력서의 원본
-            </p>
-          </div>
-        </header>
-
         {profile.persona === '' ? <SetupSheet /> : <BoardSheet />}
       </div>
+    </div>
+  );
+}
+
+/** 페이지 워드마크 — 골드 세리프 캡션 + 큰 한글 타이틀. */
+function Wordmark() {
+  return (
+    <div className="min-w-0">
+      <p className="font-serif text-[10px] font-semibold tracking-[0.32em] text-[hsl(var(--career-gold))]">
+        SPEC BOARD
+      </p>
+      <h1 className="mt-0.5 text-[24px] font-extrabold leading-tight tracking-tight">스펙 보드</h1>
+      <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+        아직 완성되지 않은, 당신 이력서의 원본
+      </p>
     </div>
   );
 }
@@ -149,6 +148,10 @@ function SetupSheet() {
   };
 
   return (
+    <>
+    <header className="mb-6 px-1">
+      <Wordmark />
+    </header>
     <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-6 py-10 shadow-[0_10px_36px_-26px_hsl(var(--foreground)/0.4)] sm:px-12 sm:py-14">
       <p className="text-center font-serif text-[10.5px] tracking-[0.2em] text-muted-foreground">
         SETUP — 문서의 뼈대를 준비해요
@@ -191,6 +194,7 @@ function SetupSheet() {
         ))}
       </div>
     </div>
+    </>
   );
 }
 
@@ -287,10 +291,38 @@ function BoardSheet() {
 
   return (
     <>
+      {/* ────── 페이지 헤더 — 워드마크(좌) + EXTRACT(우), 시트 밖 위 ────── */}
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4 px-1">
+        <Wordmark />
+        <div className="text-right">
+          <p className="mb-1.5 font-serif text-[10.5px] tracking-[0.16em] text-muted-foreground">
+            EXTRACT — 목적별로 뽑아쓰기
+          </p>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+              <button
+                key={purpose}
+                type="button"
+                onClick={() => setComposePurpose(purpose)}
+                disabled={items.length === 0}
+                className={cn(
+                  'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold shadow-sm transition-all',
+                  items.length === 0
+                    ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground/50'
+                    : 'border-[hsl(var(--primary)/0.5)] bg-[hsl(var(--surface-1))] text-primary hover:-translate-y-px hover:bg-primary hover:text-primary-foreground',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
       {/* ────── 이력서 원본 시트 ────── */}
       <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-5 py-7 shadow-[0_14px_44px_-28px_hsl(var(--foreground)/0.45)] sm:px-10 sm:py-9">
-        {/* ── 맨 위: 인적 사항 + EXTRACT ── */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        {/* ── 인적 사항 ── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             {/* IME 조합 안정성 — 비제어 + blur 시 저장. */}
             <input
@@ -308,31 +340,11 @@ function BoardSheet() {
                 aria-label="한 줄 소개"
                 className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
               />
-              {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
             </div>
           </div>
-          <div className="text-right">
-            <p className="mb-1.5 font-serif text-[10.5px] tracking-[0.16em] text-muted-foreground">
-              EXTRACT — 목적별로 뽑아쓰기
-            </p>
-            <div className="flex flex-wrap justify-end gap-1.5">
-              {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-                <button
-                  key={purpose}
-                  type="button"
-                  onClick={() => setComposePurpose(purpose)}
-                  disabled={items.length === 0}
-                  className={cn(
-                    'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-all',
-                    items.length === 0
-                      ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/50'
-                      : 'border-[hsl(var(--primary)/0.5)] text-primary hover:-translate-y-px hover:bg-primary hover:text-primary-foreground hover:shadow-sm',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="pb-0.5 text-right text-[11.5px] leading-relaxed text-muted-foreground">
+            <p className="font-serif tracking-[0.16em]">{PERSONA_LABEL[persona]}</p>
+            {lastRecordedAt && <p>마지막 기록 {formatFull(lastRecordedAt)}</p>}
           </div>
         </div>
 
@@ -340,10 +352,21 @@ function BoardSheet() {
         <div aria-hidden className="mt-5 border-b border-[hsl(var(--hairline))]" />
 
         <LayoutGroup>
-          {/* ────── 만능 입력줄 — 문서의 다음 빈 줄 ────── */}
+          {/* ────── 캡처 바 — 이 문서의 유일한 입구, 특별하게 ────── */}
           <div className="pt-6">
-            <div className="flex items-center gap-2.5 border-b border-[hsl(var(--foreground)/0.35)] pb-2.5 transition-colors focus-within:border-[hsl(var(--foreground)/0.7)]">
-              <span aria-hidden className="select-none text-[16px] font-semibold text-[hsl(var(--career-gold))]">+</span>
+            <div
+              className={cn(
+                'flex items-center gap-3 rounded-xl border bg-card px-4 py-2.5 shadow-sm transition-all',
+                'border-[hsl(var(--hairline))]',
+                'focus-within:border-[hsl(var(--career-gold)/0.6)] focus-within:shadow-[0_0_0_3px_hsl(var(--career-gold)/0.13),0_6px_16px_-10px_hsl(var(--foreground)/0.3)]',
+              )}
+            >
+              <span
+                aria-hidden
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--career-gold)/0.13)] text-[15px] font-bold text-[hsl(var(--career-gold))]"
+              >
+                +
+              </span>
               <input
                 ref={inputRef}
                 value={draft}
@@ -353,7 +376,7 @@ function BoardSheet() {
                 aria-label="스펙 입력"
                 className="h-9 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/55"
               />
-              <span className="hidden shrink-0 items-center gap-1 font-serif text-[11px] tracking-wide text-muted-foreground/70 sm:flex">
+              <span className="hidden shrink-0 items-center gap-1 rounded-md border border-[hsl(var(--hairline))] px-1.5 py-0.5 font-serif text-[10.5px] tracking-wide text-muted-foreground/70 sm:flex">
                 Enter <CornerDownLeft className="h-3 w-3" />
               </span>
             </div>
