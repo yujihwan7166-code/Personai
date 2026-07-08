@@ -70,9 +70,19 @@ const WRITE_MODE_KEY = 'career.writeMode.v1';
 
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
 
-/** 기간 표기 — 2025.03–현재 / 2025.03–2026.01 / 2026.07. */
+/** 기간 표기 — 시작·종료가 같은 달이면 한 번만 (2025.03), 다르면 범위(2025.03–2026.01). */
+const periodLabel = (date: string, opts?: { endDate?: string; ongoing?: boolean }): string => {
+  const start = formatMonth(date);
+  if (opts?.ongoing) return `${start}–현재`;
+  if (opts?.endDate) {
+    const end = formatMonth(opts.endDate);
+    return end === start ? start : `${start}–${end}`;
+  }
+  return start;
+};
+
 const formatPeriod = (item: SpecItem) =>
-  `${formatMonth(item.date)}${item.ongoing ? '–현재' : item.endDate ? `–${formatMonth(item.endDate)}` : ''}`;
+  periodLabel(item.date, { endDate: item.endDate, ongoing: item.ongoing });
 
 /** 작성대 → 원고 행 공유 레이아웃 id. */
 const INCOMING = 'career-incoming-card';
@@ -252,9 +262,7 @@ function BoardLedger() {
   const persona = (profile.persona || 'student') as CareerPersona;
 
   /** AI가 분리한 기간 표기 (초안 카드용). */
-  const draftPeriod = advDate
-    ? `${formatMonth(advDate)}${advOngoing ? '–현재' : advEndDate ? `–${formatMonth(advEndDate)}` : ''}`
-    : '';
+  const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => {
