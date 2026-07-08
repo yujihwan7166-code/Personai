@@ -175,6 +175,12 @@ export const careerStore = {
     if (kept.length !== categories.length) safeWrite(null, kept);
   },
 
+  /** 빈 섹션만 삭제 허용 — 항목이 있으면 무시 (실수 방지). */
+  removeCategory(id: string): void {
+    if (readItems().some((item) => item.categoryId === id)) return;
+    safeWrite(null, readCategories().filter((c) => c.id !== id));
+  },
+
   renameCategory(id: string, name: string): void {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -186,17 +192,20 @@ export const careerStore = {
   },
 
   getProfile(): CareerProfile {
-    if (typeof window === 'undefined') return { name: '', tagline: '' };
+    const empty: CareerProfile = { name: '', tagline: '', persona: '' };
+    if (typeof window === 'undefined') return empty;
     try {
       const raw = window.localStorage.getItem(PROFILE_KEY);
       const parsed: unknown = raw ? JSON.parse(raw) : null;
-      if (!isRecord(parsed)) return { name: '', tagline: '' };
+      if (!isRecord(parsed)) return empty;
+      const persona = parsed.persona;
       return {
         name: typeof parsed.name === 'string' ? parsed.name : '',
         tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
+        persona: persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
       };
     } catch {
-      return { name: '', tagline: '' };
+      return empty;
     }
   },
 

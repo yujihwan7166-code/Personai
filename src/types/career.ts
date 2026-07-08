@@ -33,9 +33,20 @@ export interface SpecItem {
 /** AI 분류가 실패했을 때 담기는 기본 섹션명. */
 export const FALLBACK_CATEGORY = '기타';
 
+/** 신분 — 첫 설정에서 고르면 그에 맞는 칸이 준비된다. */
+export type CareerPersona = 'student' | 'jobseeker' | 'worker';
+
+export const PERSONA_LABEL: Record<CareerPersona, string> = {
+  student: '대학생',
+  jobseeker: '취준생',
+  worker: '직장인',
+};
+
 /** 보드 상단 프로필 — 이력서 원본의 인적 사항 한 줄. */
 export interface CareerProfile {
   name: string;
   /** 한 줄 소개 (예: "컴퓨터공학 3학년"). */
   tagline: string;
+  /** 첫 설정에서 고른 신분. 비어 있으면 아직 설정 전. */
+  persona: CareerPersona | '';
 }

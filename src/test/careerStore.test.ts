@@ -72,13 +72,28 @@ describe('careerStore', () => {
     expect(careerStore.listItems()[0].id).toBe(kept.id);
   });
 
-  it('getProfile()/setProfile() — 기본값과 부분 갱신', () => {
-    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '' });
+  it('getProfile()/setProfile() — 기본값과 부분 갱신, persona 검증', () => {
+    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '', persona: '' });
     careerStore.setProfile({ name: '김도현' });
-    careerStore.setProfile({ tagline: '컴퓨터공학 3학년' });
-    expect(careerStore.getProfile()).toEqual({ name: '김도현', tagline: '컴퓨터공학 3학년' });
+    careerStore.setProfile({ tagline: '컴퓨터공학 3학년', persona: 'student' });
+    expect(careerStore.getProfile()).toEqual({ name: '김도현', tagline: '컴퓨터공학 3학년', persona: 'student' });
+
+    // 저장소에 깨진 persona 가 있어도 빈 값으로 복구
+    window.localStorage.setItem('career.profile.v1', JSON.stringify({ name: 'a', persona: 'alien' }));
+    expect(careerStore.getProfile().persona).toBe('');
+
     careerStore.clear();
-    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '' });
+    expect(careerStore.getProfile()).toEqual({ name: '', tagline: '', persona: '' });
+  });
+
+  it('removeCategory() — 빈 칸만 삭제, 항목 있으면 무시', () => {
+    const empty = careerStore.ensureCategory('봉사');
+    const used = careerStore.ensureCategory('경력');
+    careerStore.addItem({ raw: 'x', categoryName: '경력' });
+
+    careerStore.removeCategory(empty.id);
+    careerStore.removeCategory(used.id);
+    expect(careerStore.listCategories().map((c) => c.name)).toEqual(['경력']);
   });
 
   it('깨진 저장 데이터는 무시하고 복구한다', () => {
