@@ -113,8 +113,8 @@ export default function Career() {
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-4xl px-3 pb-20 pt-8 sm:px-6 sm:pt-11">
-        {/* 장부 프레임 — 이중 괘선 액자 (굵은 외곽 + 가는 안쪽) */}
-        <div className="border border-[hsl(var(--foreground)/0.45)] p-[3px]">
+        {/* 장부 프레임 — 이중 괘선 액자, 안쪽은 책상보다 밝은 원고지 톤 */}
+        <div className="border border-[hsl(var(--foreground)/0.45)] bg-[hsl(var(--surface-1))] p-[3px]">
           <div className="border border-[hsl(var(--foreground)/0.16)] px-4 py-7 sm:px-9 sm:py-9">
             {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
           </div>
@@ -170,7 +170,7 @@ function SetupLedger() {
             key={persona}
             type="button"
             onClick={() => seed(persona)}
-            className="group border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-1))] px-5 py-4 text-left transition-colors hover:border-[hsl(var(--career-red))]"
+            className="group border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] px-5 py-4 text-left transition-colors hover:border-[hsl(var(--career-red))]"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -418,7 +418,7 @@ function BoardLedger() {
         <div className="pt-6">
           <div
             className={cn(
-              'flex items-center border bg-[hsl(var(--surface-1))] transition-colors',
+              'flex items-center border bg-[hsl(var(--surface-2))] transition-colors',
               'border-[hsl(var(--foreground)/0.45)] focus-within:border-[hsl(var(--career-red))]',
             )}
           >
@@ -461,7 +461,7 @@ function BoardLedger() {
                 layoutId={INCOMING}
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 flex items-center border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] py-2.5"
+                className="mt-3 flex items-center border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] py-2.5"
               >
                 <span aria-hidden className="ml-3.5 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
                 {phase.step === 'thinking' ? (
@@ -724,7 +724,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             id="career-detail-refined"
             value={refined}
             onChange={(e) => setRefined(e.target.value)}
-            className="career-serif h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
+            className="career-serif h-10 w-full border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div>
@@ -736,7 +736,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="career-mono h-10 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+            className="career-mono h-10 border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div>
@@ -748,7 +748,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={'상황 · 내가 한 일 · 결과를 편하게 적어두세요.\n이력서·자소서로 뽑을 때 AI가 이 내용을 활용해요.'}
-            className="h-32 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
+            className="h-32 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <p className="truncate text-[11.5px] text-muted-foreground/70" title={item.raw}>
@@ -842,7 +842,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
               readOnly
               value={result}
               aria-label="생성된 문서"
-              className="h-56 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] p-3 text-[12.5px] leading-relaxed outline-none"
+              className="h-56 w-full resize-none border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-2))] p-3 text-[12.5px] leading-relaxed outline-none"
             />
             <div className="flex justify-end gap-1.5">
               <button
