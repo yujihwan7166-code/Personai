@@ -386,44 +386,44 @@
   }
 
   .career-theme {
-    /* 스펙 보드 — "교정 중인 원고(장부)": 책상(배경) 위 원고지(프레임 안) + 교정 빨강
-     * 배경은 워크스페이스 공통 종이 톤 (플래너·위키·일기·노트와 동일: 40 28% 96%) */
-    --background: 40 28% 96%;
-    --foreground: 28 18% 14%;
+    /* 스펙 보드 — "교정쇄(galley proof)": 본 페이퍼 + 따뜻한 잉크 + 버밀리온 교정 빨강.
+     * 크림+테라코타(AI 기본값) 회피: 페이퍼는 뉴트럴 본 톤, 강조는 밝은 주홍 하나. */
+    --background: 44 16% 95%;          /* 본 페이퍼 */
+    --foreground: 36 8% 11%;           /* 따뜻한 잉크(near-black) */
 
-    --card: 42 48% 98.5%;
-    --card-foreground: 28 18% 14%;
+    --card: 44 22% 98%;                /* 조판면 — 페이퍼보다 밝게 */
+    --card-foreground: 36 8% 11%;
 
-    --popover: 42 48% 98.5%;
-    --popover-foreground: 28 18% 14%;
+    --popover: 44 22% 98%;
+    --popover-foreground: 36 8% 11%;
 
-    --muted: 40 20% 88%;
-    --muted-foreground: 30 8% 44%;
+    --muted: 42 12% 90%;
+    --muted-foreground: 38 6% 42%;     /* 연필 그레이 */
 
-    --accent: 40 22% 89%;
-    --accent-foreground: 28 18% 14%;
+    --accent: 42 14% 91%;
+    --accent-foreground: 36 8% 11%;
 
-    --secondary: 40 20% 88%;
-    --secondary-foreground: 28 12% 32%;
+    --secondary: 42 12% 90%;
+    --secondary-foreground: 36 8% 30%;
 
-    --border: 35 14% 78%;
-    --input: 35 14% 78%;
+    --border: 40 10% 82%;
+    --input: 40 10% 82%;
 
     /* 잉크 — 몇 안 되는 솔리드 버튼용 */
-    --primary: 28 18% 16%;
-    --primary-foreground: 42 38% 97%;
+    --primary: 36 9% 13%;
+    --primary-foreground: 44 22% 98%;
 
-    --ring: 4 62% 44%;
-    --focus-ring: 4 62% 46%;
-    --focus-offset: 40 28% 96%;
+    --ring: 6 70% 51%;
+    --focus-ring: 6 72% 53%;
+    --focus-offset: 44 16% 95%;
 
-    --hairline:  35 14% 82%;
-    --surface-1: 42 48% 98.5%; /* 원고지 — 프레임 안 (공통 배경보다 밝게) */
-    --surface-2: 40 26% 93%;   /* 살짝 가라앉은 슬롯 (캡처 박스 등) */
-    --surface-3: 40 22% 89%;
+    --hairline:  40 10% 84%;
+    --surface-1: 44 22% 98%;           /* 조판면 — 프레임 안 */
+    --surface-2: 42 12% 92%;           /* 가라앉은 슬롯(입력) */
+    --surface-3: 42 10% 88%;
 
-    /* 교정 잉크 빨강 — 유일한 강조색. 커서·활성·새 줄·추출 화살표에만. */
-    --career-red: 4 62% 42%;
+    /* 교정 잉크 버밀리온 — 유일한 강조색. 교정 마크·활성·주요 액션에만. */
+    --career-red: 6 70% 51%;
   }
 
   .dark .career-theme {
@@ -461,7 +461,7 @@
     --surface-2: 30 9% 15.5%;  /* 슬롯 */
     --surface-3: 30 8% 18%;
 
-    --career-red: 4 68% 58%;
+    --career-red: 8 78% 62%;
   }
 
   /* 텍스트 선택도 교정 잉크로 */
@@ -531,14 +531,14 @@
     --sidebar-background: 222 24% 7%;
   }
 
-  /* 원고 서체 — 플래너(캘린더)와 동일한 Pretendard 로 통일.
-   * class 이름(career-serif/mono)은 유지하되 글꼴만 산세리프로. 숫자는 tabular 유지. */
+  /* 교정쇄 타입 시스템 — 세리프=조판된 문장(이력서), 모노(타자기)=날짜·데이터.
+   * UI 컨트롤은 클래스 없이 Pretendard 유지. */
   .career-theme .career-serif {
-    font-family: inherit;
+    font-family: 'Newsreader', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
   }
 
   .career-theme .career-mono {
-    font-family: inherit;
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, monospace;
     font-variant-numeric: tabular-nums;
   }
 
