@@ -462,6 +462,40 @@ function BoardLedger() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
+            {/* AI 도구 — 원고에 적용하는 도구들 (작성대 위) */}
+            <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
+              <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
+              <div className="mt-2.5 space-y-1.5">
+                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                  <button
+                    key={purpose}
+                    type="button"
+                    onClick={() => setComposePurpose(purpose)}
+                    disabled={items.length === 0}
+                    title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
+                    className={cn(
+                      'group flex w-full items-center justify-between border px-3 py-2 text-[12.5px] font-medium transition-colors',
+                      items.length === 0
+                        ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] text-muted-foreground/45'
+                        : 'border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
+                    )}
+                  >
+                    {label}
+                    <span className={cn('text-[12px]', items.length > 0 && 'text-[hsl(var(--career-red))]')}>→</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setRecommendOpen(true)}
+                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+                  className="group flex w-full items-center justify-between border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] px-3 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
+                >
+                  추천 스펙
+                  <span className="text-[12px] text-[hsl(var(--career-red))]">→</span>
+                </button>
+              </div>
+            </div>
+
             <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
               {/* 작성대 표제 — 섹션 헤더와 같은 문법 (빨간 마크 + 명조 + 괘선) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
@@ -651,39 +685,6 @@ function BoardLedger() {
               </AnimatePresence>
             </div>
 
-            {/* AI 도구 — 원고에 적용하는 도구들 */}
-            <div className="border border-[hsl(var(--foreground)/0.4)] bg-[hsl(var(--surface-1))] p-4">
-              <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
-              <div className="mt-2.5 space-y-1.5">
-                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-                  <button
-                    key={purpose}
-                    type="button"
-                    onClick={() => setComposePurpose(purpose)}
-                    disabled={items.length === 0}
-                    title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
-                    className={cn(
-                      'group flex w-full items-center justify-between border px-3 py-2 text-[12.5px] font-medium transition-colors',
-                      items.length === 0
-                        ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] text-muted-foreground/45'
-                        : 'border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
-                    )}
-                  >
-                    {label}
-                    <span className={cn('text-[12px]', items.length > 0 && 'text-[hsl(var(--career-red))]')}>→</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setRecommendOpen(true)}
-                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="group flex w-full items-center justify-between border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] px-3 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
-                >
-                  추천 스펙
-                  <span className="text-[12px] text-[hsl(var(--career-red))]">→</span>
-                </button>
-              </div>
-            </div>
           </aside>
 
           {/* ══════ 좌 — 원고 ══════ */}
