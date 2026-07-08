@@ -497,7 +497,8 @@
     --surface-1: 40 35% 99%;
     --surface-2: 40 28% 96%;
     --surface-3: 40 22% 93%;
-    --sidebar-background: 40 24% 93.5%;
+    /* 사이드바(목록 패널)는 레일과 같은 색 — 레일→목록→본문이 한 흐름으로 이어진다. */
+    --sidebar-background: 220 22% 98%;
   }
 
   .dark .paper-room {
@@ -526,7 +527,8 @@
     --surface-1: 30 9% 13%;
     --surface-2: 30 9% 10%;
     --surface-3: 30 8% 17%;
-    --sidebar-background: 30 9% 12%;
+    /* 다크에서도 레일과 동일 */
+    --sidebar-background: 222 24% 7%;
   }
 
   /* 원고 서체 — 문장은 명조, 장부 숫자는 모노 */
