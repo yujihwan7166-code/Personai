@@ -328,6 +328,36 @@ function BoardLedger() {
 
   return (
     <>
+      {/* ────── AI 도구 — 원고 위 책상 레벨, 원고에 적용하는 도구들 ────── */}
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-x-2.5 gap-y-2 px-1">
+        <span className="mr-1 text-[11.5px] font-medium text-muted-foreground/70">AI 도구</span>
+        {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+          <button
+            key={purpose}
+            type="button"
+            onClick={() => setComposePurpose(purpose)}
+            disabled={items.length === 0}
+            title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
+            className={cn(
+              'border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
+              items.length === 0
+                ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground/45'
+                : 'border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setRecommendOpen(true)}
+          title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+          className="border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
+        >
+          추천 스펙
+        </button>
+      </div>
+
       <LedgerFrame>
       {/* ── 표제 — "ㅇㅇ님의 커리어" (클릭해서 이름 수정) ── */}
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -616,36 +646,6 @@ function BoardLedger() {
         </span>
       </div>
       </LedgerFrame>
-
-      {/* ────── AI 도구 — 원고 밖 책상 위, 원고에 적용하는 도구들 ────── */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2 px-1">
-        <span className="mr-1 text-[11.5px] font-medium text-muted-foreground/70">AI 도구</span>
-        {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-          <button
-            key={purpose}
-            type="button"
-            onClick={() => setComposePurpose(purpose)}
-            disabled={items.length === 0}
-            title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
-            className={cn(
-              'border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
-              items.length === 0
-                ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground/45'
-                : 'border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => setRecommendOpen(true)}
-          title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-          className="border border-[hsl(var(--foreground)/0.35)] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
-        >
-          추천 스펙
-        </button>
-      </div>
 
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
