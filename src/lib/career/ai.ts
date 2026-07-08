@@ -10,17 +10,39 @@ import { FALLBACK_CATEGORY, type SpecItem } from '@/types/career';
 export interface ClassifiedSpec {
   refined: string;
   category: string;
+  /** 자연어에서 추출한 시작/취득 날짜 (YYYY-MM-DD). 없으면 undefined. */
+  date?: string;
+  /** 추출한 종료 날짜 (YYYY-MM-DD). */
+  endDate?: string;
+  /** "현재·재직 중" 등이면 true. */
+  ongoing?: boolean;
+  /** 추출한 발급처·주최·회사명. */
+  org?: string;
 }
 
 /** 흔한 이력서 섹션 — AI가 새 카테고리를 남발하지 않도록 가이드로 제공. */
 const COMMON_SECTIONS = ['경력', '프로젝트', '자격증', '수상', '어학', '교육', '동아리·활동', '봉사', '기타'];
 
-const CLASSIFY_SYSTEM = `당신은 이력서 컨설턴트입니다. 사용자가 자신이 이룬 일을 한 줄로 던지면:
-1. refined: 이력서에 그대로 넣을 수 있는 단정한 한 문장으로 다듬습니다. 사실만 유지하고 과장·추측 금지. 수치·기간이 있으면 살립니다. 해요체가 아닌 개조식(명사형 종결)으로 씁니다. 예: "정처기 땄음" → "정보처리기사 취득".
-2. category: 이 항목이 들어갈 이력서 섹션명. 반드시 [기존 섹션] 중 어울리는 것을 재사용하고, 정말 어울리는 게 없을 때만 2~6자의 새 섹션명을 만듭니다. 참고로 흔한 섹션: ${COMMON_SECTIONS.join(', ')}.
+const CLASSIFY_SYSTEM = `당신은 이력서 컨설턴트입니다. 사용자가 자신이 이룬 일을 자유롭게 적으면, 그 문장을 요약하지 말고 "이해해서 정보를 분리"합니다. 날짜·기간·기관은 문장에서 빼내 아래 필드로 옮기고, 문장에는 핵심 성취만 남깁니다.
 
-응답은 반드시 아래 JSON 한 개만 출력합니다. 설명·코드펜스 금지.
-{"refined": "...", "category": "..."}`;
+1. refined: 이력서 섹션에 들어갈 핵심 성취만 개조식(명사형 종결) 한 문장으로. **날짜·기간·발급처는 문장에서 제거**합니다. 수치·성과는 살립니다. 예: "정보처리기사 2024년 3월에 취득" → "정보처리기사 취득", "결제팀에서 로딩 3.2초→0.9초 줄임" → "결제 페이지 로딩 3.2초→0.9초 개선".
+2. category: 이력서 섹션명. [기존 섹션] 중 어울리는 것을 우선 재사용, 없을 때만 2~6자 새 섹션명. 흔한 섹션: ${COMMON_SECTIONS.join(', ')}.
+3. date: 시작/취득 날짜를 YYYY-MM-DD 로. 자연어("2024년 3월", "작년 여름", "22년 하반기")도 해석. 일(day)이 없으면 해당 월 01일. 없으면 null.
+4. endDate: 기간형이면 종료 날짜 YYYY-MM-DD, 없으면 null.
+5. ongoing: "현재·재직 중·진행 중" 이면 true, 아니면 false.
+6. org: 발급처·주최·회사·학교명. 없으면 null.
+
+응답은 반드시 아래 JSON 한 개만. 설명·코드펜스 금지.
+{"refined":"...","category":"...","date":"YYYY-MM-DD|null","endDate":"YYYY-MM-DD|null","ongoing":false,"org":"...|null"}`;
+
+/** "2024-03" → "2024-03-01", "2024-03-15" → 그대로. 형식 안 맞으면 undefined. */
+const normalizeExtractedDate = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const v = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  if (/^\d{4}-\d{2}$/.test(v)) return `${v}-01`;
+  return undefined;
+};
 
 /** AI 없이도 그럴듯하게 — 키워드 기반 섹션 추정 (오프라인/실패 폴백). */
 const HEURISTICS: Array<[RegExp, string]> = [
@@ -55,11 +77,17 @@ export async function aiClassifySpec(raw: string, existingCategories: string[]):
     if (!match) return fallback;
     const parsed: unknown = JSON.parse(match[0]);
     if (typeof parsed !== 'object' || parsed === null) return fallback;
-    const refined = (parsed as Record<string, unknown>).refined;
-    const category = (parsed as Record<string, unknown>).category;
+    const p = parsed as Record<string, unknown>;
+    const refined = p.refined;
+    const category = p.category;
+    const org = typeof p.org === 'string' && p.org.trim() && p.org.trim() !== 'null' ? p.org.trim() : undefined;
     return {
       refined: typeof refined === 'string' && refined.trim() ? refined.trim() : fallback.refined,
       category: typeof category === 'string' && category.trim() ? category.trim() : fallback.category,
+      date: normalizeExtractedDate(p.date),
+      endDate: normalizeExtractedDate(p.endDate),
+      ongoing: p.ongoing === true,
+      org,
     };
   } catch {
     return fallback;

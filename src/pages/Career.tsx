@@ -251,6 +251,11 @@ function BoardLedger() {
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
 
+  /** AI가 분리한 기간 표기 (초안 카드용). */
+  const draftPeriod = advDate
+    ? `${formatMonth(advDate)}${advOngoing ? '–현재' : advEndDate ? `–${formatMonth(advEndDate)}` : ''}`
+    : '';
+
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
@@ -318,13 +323,24 @@ function BoardLedger() {
     }, 800);
   };
 
-  /** AI 작성 — 초안을 세워두고 사용자 결정을 기다린다 (자동 커밋 안 함). */
+  /** AI 작성 — 초안을 세워두고 사용자 결정을 기다린다 (자동 커밋 안 함).
+   * AI가 문장을 이해해 날짜·기간·기관을 분리하면, 그 값으로 폼을 채운다. */
   const requestDraft = async (rawInput?: string) => {
     const raw = (rawInput ?? draft).trim();
     if (!raw || phase.step === 'thinking') return; // 'draft'(다시 다듬기)는 허용
     if (rawInput) setDraft(rawInput);
     setPhase({ step: 'thinking', raw });
     const result = await aiClassifySpec(raw, categories.map((c) => c.name));
+    // 추출된 정보로 폼 반영 — 사용자가 초안에서 확인·수정 가능.
+    if (result.date) setAdvDate(result.date);
+    if (result.ongoing) {
+      setAdvOngoing(true);
+      setAdvEndDate('');
+    } else if (result.endDate) {
+      setAdvOngoing(false);
+      setAdvEndDate(result.endDate);
+    }
+    if (result.org !== undefined) setAdvOrg(result.org);
     setPhase({ step: 'draft', raw, refined: result.refined, category: result.category });
   };
 
@@ -340,10 +356,13 @@ function BoardLedger() {
       date: /^\d{4}-\d{2}-\d{2}$/.test(advDate) ? advDate : undefined,
       endDate: !advOngoing && /^\d{4}-\d{2}-\d{2}$/.test(advEndDate) ? advEndDate : undefined,
       ongoing: advOngoing || undefined,
+      org: advOrg.trim() || undefined,
     });
     setDraft('');
+    setAdvDate(new Date().toISOString().slice(0, 10));
     setAdvEndDate('');
     setAdvOngoing(false);
+    setAdvOrg('');
     setPhase({ step: 'idle' });
     setRecentId(item.id);
     recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
@@ -643,6 +662,11 @@ function BoardLedger() {
                           {phase.category}
                         </span>
                       </div>
+                      {(draftPeriod || advOrg.trim()) && (
+                        <p className="career-mono mt-1.5 text-[11px] text-muted-foreground">
+                          {[draftPeriod, advOrg.trim()].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
                       <div className="mt-3 flex items-center gap-2">
                         <button
                           type="button"
