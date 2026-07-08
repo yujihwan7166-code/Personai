@@ -44,11 +44,13 @@ export const PERSONA_LABEL: Record<CareerPersona, string> = {
   worker: '직장인',
 };
 
-/** 보드 상단 프로필 — 이력서 원본의 인적 사항 한 줄. */
+/** 보드 상단 프로필 — 이력서 원본의 인적 사항. */
 export interface CareerProfile {
   name: string;
-  /** 한 줄 소개 (예: "컴퓨터공학 3학년"). */
+  /** 짧은 소개 (2~3줄 허용 — 줄바꿈 포함 가능). */
   tagline: string;
   /** 첫 설정에서 고른 신분. 비어 있으면 아직 설정 전. */
   persona: CareerPersona | '';
+  /** 증명사진 (dataURL, 선택). */
+  photo?: string;
 }

@@ -205,6 +205,7 @@ export const careerStore = {
         name: typeof parsed.name === 'string' ? parsed.name : '',
         tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
         persona: persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
+        photo: typeof parsed.photo === 'string' && parsed.photo.startsWith('data:image/') ? parsed.photo : undefined,
       };
     } catch {
       return empty;
