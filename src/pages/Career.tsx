@@ -485,11 +485,6 @@ function BoardLedger() {
           </button>
         </span>
       </div>
-      {(item.org || item.detail) && (
-        <p className="mt-0.5 line-clamp-1 text-[12px] leading-relaxed text-muted-foreground/85">
-          {[item.org, item.detail].filter(Boolean).join(' · ')}
-        </p>
-      )}
     </div>
   );
 
