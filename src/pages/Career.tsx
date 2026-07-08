@@ -1,18 +1,17 @@
 /**
  * 스펙 보드 — /career (아직 완성되지 않은, 당신 이력서의 원본).
  *
- * 세련된 문서 한 장:
+ * 레퍼런스 구성 (유저 확정):
  *   [첫 진입] 신분 설정(대학생/취준생/직장인) → 그에 맞는 칸이 준비됨
- *   [본문] 인적 사항 + 이중 괘선 → 만능 입력줄 → 단일 컬럼 이력서 섹션들
- *   [시트 밖] EXTRACT 스트립 — 이력서/자소서/포트폴리오로 뽑아쓰기
+ *   [시트 상단] 인적 사항 + EXTRACT(이력서/자소서/포트폴리오) — 맨 위 우측
+ *   [입력줄] 만능 한 줄 + 해보기 칩
+ *   [보드] 번호 매긴 이력서 섹션 2열 — 크림 패널 안에 흰 카드
+ *   [하단] 기록 요약 메타 라인
  *
- * 칸(카테고리)은 신분 프리셋 + AI 분류 + 직접 추가로 자라나고,
- * 빈 칸은 목표처럼 자리를 지킨다 (빈 칸만 삭제 가능).
- *
- * 시그니처 모션: 원문이 AI 문장으로 변신(플립) → 같은 카드가
- * framer-motion layoutId 공유로 섹션 줄 위치까지 날아가 골드로 꽂힌다.
+ * 디테일: 수치는 골드로 하이라이트, 카드 호버 리프트, 칸 추가는 점선 타일,
+ * 빈 칸은 자리를 지키고(hover 삭제), 변신 카드가 layoutId 로 날아가 꽂힌다.
  */
-import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import {
   Check,
@@ -90,16 +89,36 @@ type CapturePhase =
 const formatMonth = (iso: string) => iso.slice(0, 7).replace('-', '.');
 const formatFull = (iso: string) => iso.slice(0, 10).replaceAll('-', '.');
 
-/** 입력줄 → 섹션 줄 공유 레이아웃 id. */
+/** 입력줄 → 섹션 카드 공유 레이아웃 id. */
 const INCOMING = 'career-incoming-card';
+
+/** 수치·변화 토큰 (split 캡처 그룹 — 홀수 index 가 매치). */
+const METRIC_RE = /(\d[\d,.]*\s?(?:%|점|초|분|배|건|명|회|억|만|원|위|기|개월|년)?|→)/g;
+
+/** 성과 문장 속 숫자를 골드로 — "3.2초 → 0.9초" 가 눈에 박히게. */
+function MetricText({ text }: { text: string }): ReactNode {
+  const parts = text.split(METRIC_RE);
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((part, index) =>
+        index % 2 === 1 ? (
+          <span key={index} className="font-semibold text-[hsl(var(--career-gold))]">{part}</span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
 
 export default function Career() {
   const { profile } = useCareerBoard();
 
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-8 sm:pt-12">
-        {/* ────── 페이지 헤더 (문서 밖 여백) ────── */}
+      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
+        {/* ────── 페이지 헤더 (시트 밖, 종이 위) ────── */}
         <header className="mb-6 flex items-center gap-3 px-1">
           <span
             aria-hidden
@@ -115,7 +134,7 @@ export default function Career() {
           </div>
         </header>
 
-        {profile.persona === '' ? <SetupSheet /> : <DocumentSheet />}
+        {profile.persona === '' ? <SetupSheet /> : <BoardSheet />}
       </div>
     </div>
   );
@@ -130,7 +149,7 @@ function SetupSheet() {
   };
 
   return (
-    <div className="rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-10 shadow-[0_10px_36px_-26px_hsl(var(--foreground)/0.4)] sm:px-12 sm:py-14">
+    <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-6 py-10 shadow-[0_10px_36px_-26px_hsl(var(--foreground)/0.4)] sm:px-12 sm:py-14">
       <p className="text-center font-serif text-[10.5px] tracking-[0.2em] text-muted-foreground">
         SETUP — 문서의 뼈대를 준비해요
       </p>
@@ -147,7 +166,7 @@ function SetupSheet() {
             key={persona}
             type="button"
             onClick={() => seed(persona)}
-            className="group rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 py-4 text-left transition-colors hover:border-[hsl(var(--foreground)/0.4)]"
+            className="group rounded-xl border border-[hsl(var(--hairline))] bg-card px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--foreground)/0.4)] hover:shadow-[0_8px_20px_-14px_hsl(var(--foreground)/0.4)]"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -175,9 +194,9 @@ function SetupSheet() {
   );
 }
 
-/* ═══════════════ 문서 본체 ═══════════════ */
+/* ═══════════════ 보드 시트 ═══════════════ */
 
-function DocumentSheet() {
+function BoardSheet() {
   const { items, categories, profile } = useCareerBoard();
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
   const [draft, setDraft] = useState('');
@@ -201,6 +220,10 @@ function DocumentSheet() {
   );
 
   const lastRecordedAt = items.length > 0 ? items[0].createdAt.slice(0, 10) : null;
+  const thisYearCount = useMemo(() => {
+    const year = String(new Date().getFullYear());
+    return items.filter((item) => item.date.startsWith(year)).length;
+  }, [items]);
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
 
@@ -213,7 +236,7 @@ function DocumentSheet() {
     setPhase({ step: 'thinking', raw });
     const result = await aiClassifySpec(raw, categories.map((c) => c.name));
     setPhase({ step: 'reveal', raw, refined: result.refined, category: result.category });
-    // 변신을 잠깐 보여준 뒤 — 같은 카드가 layoutId 로 섹션 줄까지 날아간다.
+    // 변신을 잠깐 보여준 뒤 — 같은 카드가 layoutId 로 섹션 카드 자리까지 날아간다.
     window.setTimeout(() => {
       const item = careerStore.addItem({ raw, refined: result.refined, categoryName: result.category });
       setRecentId(item.id);
@@ -265,9 +288,9 @@ function DocumentSheet() {
   return (
     <>
       {/* ────── 이력서 원본 시트 ────── */}
-      <div className="rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-8 shadow-[0_10px_36px_-26px_hsl(var(--foreground)/0.4)] sm:px-12 sm:py-10">
-        {/* 인적 사항 */}
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="rounded-2xl bg-[hsl(var(--surface-1))] px-5 py-7 shadow-[0_14px_44px_-28px_hsl(var(--foreground)/0.45)] sm:px-10 sm:py-9">
+        {/* ── 맨 위: 인적 사항 + EXTRACT ── */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             {/* IME 조합 안정성 — 비제어 + blur 시 저장. */}
             <input
@@ -275,32 +298,51 @@ function DocumentSheet() {
               onBlur={(e) => careerStore.setProfile({ name: e.target.value.trim() })}
               placeholder="이름"
               aria-label="이름"
-              className="w-full max-w-[300px] bg-transparent text-[26px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
+              className="w-full max-w-[300px] bg-transparent text-[24px] font-bold tracking-tight outline-none placeholder:text-muted-foreground/40"
             />
-            <div className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
+            <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
               <input
                 defaultValue={profile.tagline}
                 onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-                placeholder="한 줄 소개 — 예: 컴퓨터공학 3학년"
+                placeholder={`한 줄 소개 — 예: ${persona === 'worker' ? '3년차 프론트엔드 개발자' : '컴퓨터공학 3학년'}`}
                 aria-label="한 줄 소개"
-                className="w-[230px] bg-transparent outline-none placeholder:text-muted-foreground/45"
+                className="w-[240px] bg-transparent outline-none placeholder:text-muted-foreground/45"
               />
+              {lastRecordedAt && <span className="shrink-0">· 마지막 기록 {formatFull(lastRecordedAt)}</span>}
             </div>
           </div>
-          <div className="pb-1 text-right text-[11.5px] leading-relaxed text-muted-foreground">
-            <p className="font-serif tracking-[0.16em]">{PERSONA_LABEL[persona]}</p>
-            {lastRecordedAt && <p>마지막 기록 {formatFull(lastRecordedAt)}</p>}
+          <div className="text-right">
+            <p className="mb-1.5 font-serif text-[10.5px] tracking-[0.16em] text-muted-foreground">
+              EXTRACT — 목적별로 뽑아쓰기
+            </p>
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                <button
+                  key={purpose}
+                  type="button"
+                  onClick={() => setComposePurpose(purpose)}
+                  disabled={items.length === 0}
+                  className={cn(
+                    'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-all',
+                    items.length === 0
+                      ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/50'
+                      : 'border-[hsl(var(--primary)/0.5)] text-primary hover:-translate-y-px hover:bg-primary hover:text-primary-foreground hover:shadow-sm',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* 이중 괘선 — 문서의 서명선 */}
-        <div aria-hidden className="mt-4 border-b-2 border-[hsl(var(--foreground)/0.65)]" />
-        <div aria-hidden className="mt-[3px] border-b border-[hsl(var(--foreground)/0.25)]" />
+        {/* 인적 사항 아래 괘선 */}
+        <div aria-hidden className="mt-5 border-b border-[hsl(var(--hairline))]" />
 
         <LayoutGroup>
           {/* ────── 만능 입력줄 — 문서의 다음 빈 줄 ────── */}
           <div className="pt-6">
-            <div className="flex items-center gap-2.5 border-b border-[hsl(var(--hairline))] pb-2.5 transition-colors focus-within:border-[hsl(var(--foreground)/0.45)]">
+            <div className="flex items-center gap-2.5 border-b border-[hsl(var(--foreground)/0.35)] pb-2.5 transition-colors focus-within:border-[hsl(var(--foreground)/0.7)]">
               <span aria-hidden className="select-none text-[16px] font-semibold text-[hsl(var(--career-gold))]">+</span>
               <input
                 ref={inputRef}
@@ -340,7 +382,7 @@ function DocumentSheet() {
                   layoutId={INCOMING}
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-3.5 rounded-lg border border-[hsl(var(--career-gold)/0.45)] bg-card px-4 py-3 shadow-sm"
+                  className="mt-3.5 rounded-[10px] border border-[hsl(var(--career-gold)/0.45)] bg-card px-4 py-3 shadow-sm"
                 >
                   {phase.step === 'thinking' ? (
                     <div className="flex items-center gap-2.5 text-[13.5px]">
@@ -369,8 +411,8 @@ function DocumentSheet() {
             </AnimatePresence>
           </div>
 
-          {/* ────── 이력서 섹션 — 단일 컬럼 문서 ────── */}
-          <div className="mt-8 space-y-8">
+          {/* ────── 보드 — 번호 매긴 이력서 섹션 2열 ────── */}
+          <div className="mt-8 grid items-start gap-5 md:grid-cols-2">
             {sections.map(({ category, items: sectionItems }, sectionIndex) => (
               <section
                 key={category.id}
@@ -381,28 +423,27 @@ function DocumentSheet() {
                 onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                 onDrop={(e) => onDropToCategory(e, category.id)}
                 className={cn(
-                  'group/section rounded-md transition-shadow',
-                  dragOverCategory === category.id && 'ring-2 ring-[hsl(var(--career-gold)/0.5)] ring-offset-2 ring-offset-[hsl(var(--surface-1))]',
+                  'group/section rounded-xl bg-[hsl(var(--surface-2)/0.6)] p-4 transition-shadow',
+                  dragOverCategory === category.id && 'ring-2 ring-[hsl(var(--career-gold)/0.5)]',
                 )}
               >
-                <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.3)] pb-1.5">
+                <div className="mb-3 flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
                   <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">
                     {String(sectionIndex + 1).padStart(2, '0')}
                   </span>
-                  <h2 className="text-[15px] font-bold tracking-tight">{category.name}</h2>
-                  <span className="ml-auto font-serif text-[10px] tracking-[0.18em] text-muted-foreground/70">
+                  <h2 className="text-[14.5px] font-bold tracking-tight">{category.name}</h2>
+                  <span className="ml-auto font-serif text-[10px] tracking-[0.16em] text-muted-foreground/70">
                     {SECTION_EN[category.name] ?? ''}
                   </span>
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {sectionItems.length > 0 ? `${sectionItems.length}개` : ''}
-                  </span>
-                  {sectionItems.length === 0 && (
+                  {sectionItems.length > 0 ? (
+                    <span className="text-[11px] tabular-nums text-muted-foreground">{sectionItems.length}개</span>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => careerStore.removeCategory(category.id)}
                       aria-label={`${category.name} 칸 삭제`}
                       title="빈 칸 삭제"
-                      className="rounded p-0.5 text-muted-foreground/0 transition-colors hover:bg-accent hover:!text-foreground group-hover/section:text-muted-foreground/70"
+                      className="rounded p-0.5 text-transparent transition-colors hover:bg-accent hover:!text-foreground group-hover/section:text-muted-foreground/70"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -410,11 +451,11 @@ function DocumentSheet() {
                 </div>
 
                 {sectionItems.length === 0 ? (
-                  <p className="py-3 pl-1 text-[12.5px] text-muted-foreground/55">
+                  <div className="rounded-[10px] border border-dashed border-[hsl(var(--hairline))] px-3.5 py-3 text-[12.5px] text-muted-foreground/55">
                     아직 비어 있어요 — 이룬 것을 적으면 여기에 쌓여요.
-                  </p>
+                  </div>
                 ) : (
-                  <ul className="divide-y divide-[hsl(var(--hairline))]">
+                  <ul className="space-y-2.5">
                     <AnimatePresence initial={false}>
                       {sectionItems.map((item) => (
                         <motion.li
@@ -431,8 +472,9 @@ function DocumentSheet() {
                             draggable={editingId !== item.id}
                             onDragStart={(e: DragEvent) => e.dataTransfer.setData('text/plain', item.id)}
                             className={cn(
-                              'group relative flex items-center gap-3 rounded-sm px-1.5 py-2.5',
-                              editingId !== item.id && 'cursor-grab hover:bg-[hsl(var(--surface-3)/0.4)]',
+                              'group relative flex items-center gap-2.5 rounded-[10px] border border-[hsl(var(--hairline))] bg-card px-3.5 py-2.5 transition-all',
+                              editingId !== item.id &&
+                                'cursor-grab hover:-translate-y-px hover:border-[hsl(var(--foreground)/0.22)] hover:shadow-[0_4px_12px_-8px_hsl(var(--foreground)/0.35)]',
                               item.id === recentId && 'career-new-line',
                             )}
                           >
@@ -468,19 +510,19 @@ function DocumentSheet() {
                               </>
                             ) : (
                               <>
-                                <span className="min-w-0 flex-1 text-[14px] leading-relaxed" title={item.raw}>
-                                  {item.refined}
+                                <span className="min-w-0 flex-1 text-[13.5px] leading-relaxed" title={item.raw}>
+                                  <MetricText text={item.refined} />
                                 </span>
-                                <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground/80 transition-opacity group-hover:opacity-0">
+                                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/80 transition-opacity group-hover:opacity-0">
                                   {formatMonth(item.date)}
                                 </span>
-                                <span className="absolute right-1 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="absolute right-2 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                                   <button
                                     type="button"
                                     onClick={() => startEdit(item)}
                                     aria-label="문장 수정"
                                     title="문장 수정"
-                                    className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                    className="rounded-md bg-card p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
                                   </button>
@@ -489,7 +531,7 @@ function DocumentSheet() {
                                     onClick={() => removeItem(item)}
                                     aria-label="삭제"
                                     title="삭제"
-                                    className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
+                                    className="rounded-md bg-card p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -505,34 +547,36 @@ function DocumentSheet() {
               </section>
             ))}
 
-            {/* 칸 직접 추가 */}
+            {/* 칸 추가 — 점선 타일로 그리드 리듬 유지 */}
             {addingCategory ? (
-              <div className="flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.3)] pb-1.5">
-                <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">
-                  {String(sections.length + 1).padStart(2, '0')}
-                </span>
-                <input
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
-                    if (e.key === 'Escape') {
-                      setAddingCategory(false);
-                      setNewCategoryName('');
-                    }
-                  }}
-                  onBlur={commitNewCategory}
-                  autoFocus
-                  placeholder="칸 이름 — 예: 봉사, 출판, 특허"
-                  aria-label="새 칸 이름"
-                  className="h-7 min-w-0 flex-1 bg-transparent text-[15px] font-bold tracking-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
-                />
+              <div className="rounded-xl border border-dashed border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2)/0.4)] p-4">
+                <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+                  <span className="font-serif text-[12px] font-semibold tabular-nums text-[hsl(var(--career-gold))]">
+                    {String(sections.length + 1).padStart(2, '0')}
+                  </span>
+                  <input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
+                      if (e.key === 'Escape') {
+                        setAddingCategory(false);
+                        setNewCategoryName('');
+                      }
+                    }}
+                    onBlur={commitNewCategory}
+                    autoFocus
+                    placeholder="칸 이름 — 예: 봉사, 출판, 특허"
+                    aria-label="새 칸 이름"
+                    className="h-6 min-w-0 flex-1 bg-transparent text-[14.5px] font-bold tracking-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
+                  />
+                </div>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setAddingCategory(true)}
-                className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[12.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(var(--surface-3)/0.4)] hover:text-foreground"
+                className="flex min-h-[92px] items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[12.5px] font-medium text-muted-foreground/60 transition-colors hover:border-[hsl(var(--foreground)/0.35)] hover:bg-[hsl(var(--surface-2)/0.4)] hover:text-foreground"
               >
                 <Plus className="h-3.5 w-3.5" />
                 칸 추가
@@ -540,33 +584,14 @@ function DocumentSheet() {
             )}
           </div>
         </LayoutGroup>
-      </div>
 
-      {/* ────── EXTRACT 스트립 — 시트 밖, 별도 구획 ────── */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-5 py-3.5 shadow-sm">
-        <div>
-          <p className="font-serif text-[10.5px] tracking-[0.18em] text-muted-foreground">EXTRACT</p>
-          <p className="text-[12.5px] text-muted-foreground">
-            원본에서 필요한 줄만 뽑아 문서를 만들어요
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-            <button
-              key={purpose}
-              type="button"
-              onClick={() => setComposePurpose(purpose)}
-              disabled={items.length === 0}
-              className={cn(
-                'rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors',
-                items.length === 0
-                  ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/50'
-                  : 'border-[hsl(var(--primary)/0.45)] text-primary hover:bg-primary hover:text-primary-foreground',
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        {/* ── 하단 메타 라인 ── */}
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t border-[hsl(var(--hairline))] pt-3.5 text-[11.5px] text-muted-foreground/80">
+          <span className="font-serif tracking-[0.14em]">
+            {PERSONA_LABEL[persona]} · 칸 {categories.length} · 기록 {items.length}
+            {thisYearCount > 0 && ` · 올해 ${thisYearCount}`}
+          </span>
+          <span>카드는 다른 칸으로 끌어 옮길 수 있어요</span>
         </div>
       </div>
 
