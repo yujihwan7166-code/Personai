@@ -657,21 +657,25 @@ function BoardLedger() {
                       <span className="text-muted-foreground">이력서 문장으로 다듬는 중…</span>
                     </div>
                   ) : (
-                    /* 초안 검토 카드 */
+                    /* 초안 검토 카드 — 교정지: 원문에 빨간 줄을 긋고, 고친 문장을 아래에 */
                     <div className="border-l-[3px] border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
-                      <p className="career-mono mb-2 text-[11px] font-semibold tracking-[0.14em] text-[hsl(var(--career-red))]">
-                        초안
-                      </p>
-                      <p className="text-[12px] text-muted-foreground/80">✎ {phase.raw}</p>
-                      <p aria-hidden className="my-1 text-[12px] text-[hsl(var(--career-red))]">↓</p>
-                      <div className="flex items-start gap-2">
-                        <span className="career-serif min-w-0 flex-1 text-[13.5px] font-medium leading-relaxed">
-                          <MetricText text={phase.refined} />
-                        </span>
-                        <span className="career-mono mt-0.5 shrink-0 border border-[hsl(var(--career-red)/0.5)] px-1.5 py-0.5 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
+                      <div className="mb-2.5 flex items-center justify-between gap-2">
+                        <p className="career-mono text-[11px] font-semibold text-[hsl(var(--career-red))]">초안</p>
+                        <span
+                          title="이 칸에 들어가요"
+                          className="career-mono shrink-0 border border-[hsl(var(--foreground)/0.3)] px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                        >
                           {phase.category}
                         </span>
                       </div>
+                      {phase.raw.trim() !== phase.refined.trim() && (
+                        <p className="career-serif text-[12.5px] leading-relaxed text-muted-foreground/70 line-through decoration-[hsl(var(--career-red)/0.5)]">
+                          {phase.raw}
+                        </p>
+                      )}
+                      <p className="career-serif mt-1 text-[14px] font-medium leading-relaxed">
+                        <MetricText text={phase.refined} />
+                      </p>
                       {(draftPeriod || advOrg.trim()) && (
                         <p className="career-mono mt-1.5 text-[11px] text-muted-foreground">
                           {[draftPeriod, advOrg.trim()].filter(Boolean).join(' · ')}
@@ -892,7 +896,7 @@ function BoardLedger() {
                         className="flex min-w-0 flex-1 items-center gap-2 px-3 text-[13.5px]"
                       >
                         <span className="career-serif min-w-0 flex-1 font-medium">{phase.step === 'reveal' ? phase.refined : ''}</span>
-                        <span className="career-mono shrink-0 border border-[hsl(var(--career-red)/0.5)] px-1.5 py-0.5 text-[10px] tracking-wide text-[hsl(var(--career-red))]">
+                        <span className="career-mono shrink-0 border border-[hsl(var(--foreground)/0.3)] px-1.5 py-0.5 text-[10px] text-muted-foreground">
                           {phase.step === 'reveal' ? phase.category : ''}
                         </span>
                       </motion.div>
