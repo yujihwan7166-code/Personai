@@ -234,7 +234,7 @@ const Notes = () => {
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-[16px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+            <h1 className="text-[18px] font-bold tracking-tight text-foreground">올인원 노트</h1>
             <div className="flex items-center gap-1">
               <button
                 type="button"

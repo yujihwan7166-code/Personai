@@ -1710,13 +1710,16 @@ const Planner = () => {
             )}
           >
             <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-2 sm:pr-0">
+              {/* 마스트헤드 — 좌측 상단은 도구 이름이 주인공, 맥락(날짜)은 옆에 (워크스페이스 공통 패턴). */}
               <div className="flex min-w-0 items-center gap-2">
-                <h1
-                  className="truncate text-[28px] font-semibold leading-tight tracking-normal text-foreground sm:text-[36px]"
+                <h1 className="shrink-0 text-[22px] font-bold leading-tight tracking-tight text-foreground">통합 플래너</h1>
+                <span aria-hidden className="hidden shrink-0 text-muted-foreground/40 sm:inline">·</span>
+                <span
+                  className="truncate text-[15px] font-medium text-muted-foreground"
                   title={periodLabel}
                 >
                   {headerLabels.primary}
-                </h1>
+                </span>
                 {headerOverlineText && (
                   <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] text-primary sm:inline">
                     {headerOverlineText}
