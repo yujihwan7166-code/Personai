@@ -533,14 +533,15 @@
 
   /* 교정쇄 타입 시스템 — 세리프=조판된 문장(이력서), 모노(타자기)=날짜·데이터.
    * UI 컨트롤은 클래스 없이 Pretendard 유지. */
+  /* 커리어도 플래너와 동일하게 Pretendard 단일화 (2026-07-09 결정) — 서체가 섞여 보이는
+   * 문제 대신 괘선·인장·교정 빨강이 정체성을 진다. 역할 클래스(serif=문장, mono=데이터)는
+   * 유지하므로, 서체를 되살리려면 스택만 교체 (이전: Gowun Batang / JetBrains Mono). */
   .career-theme .career-serif {
-    /* 고운바탕 — 책 조판의 따뜻한 바탕체. 라틴·숫자도 같은 목소리로 통일. */
-    font-family: 'Gowun Batang', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   .career-theme .career-mono {
-    /* 숫자·라틴은 JetBrains Mono, 한글 라벨은 Pretendard 로 (시스템 고정폭 한글 방지). */
-    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, 'Pretendard Variable', monospace;
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-variant-numeric: tabular-nums;
   }
 
