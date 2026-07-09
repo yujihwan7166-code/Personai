@@ -133,10 +133,11 @@ export async function aiRecommendSpecs(
 
 export type ComposePurpose = '이력서' | '자기소개서 초안' | '포트폴리오 요약';
 
-/** 보드에 쌓인 자산 → 목적별 문서 (markdown). */
+/** 보드에 쌓인 자산 → 목적별 문서 (markdown). request 로 지원 직무·강조점을 반영. */
 export async function aiComposeCareerDoc(
   purpose: ComposePurpose,
   sections: Array<{ name: string; items: SpecItem[] }>,
+  request?: string,
 ): Promise<string> {
   const period = (i: SpecItem) => `${i.date}${i.ongoing ? '~현재' : i.endDate ? `~${i.endDate}` : ''}`;
   const source = sections
@@ -154,8 +155,8 @@ export async function aiComposeCareerDoc(
         ? '이 자산들을 근거로 자기소개서 초안(2~4문단)을 씁니다. 각 문단은 실제 항목을 근거로 하고, 근거 없는 성격 묘사는 넣지 않습니다.'
         : '이 자산들을 프로젝트·성과 중심 포트폴리오 요약(markdown)으로 재구성합니다. 각 항목의 성과·수치를 부각합니다.';
   return quickAi(
-    `당신은 커리어 문서를 작성하는 전문가입니다. 사용자의 스펙 자산 목록이 주어집니다. ${guide} 머리말·설명 없이 문서만 출력합니다.`,
-    source,
+    `당신은 커리어 문서를 작성하는 전문가입니다. 사용자의 스펙 자산 목록이 주어집니다. ${guide} [요청사항]이 있으면 지원 직무·회사·강조점에 맞춰 항목 선별과 톤을 조정합니다. 머리말·설명 없이 문서만 출력합니다.`,
+    `${source}${request?.trim() ? `\n\n[요청사항]\n${request.trim()}` : ''}`,
     { model: QUALITY_MODEL, temperature: 0.4, maxTokens: 4096 },
   );
 }

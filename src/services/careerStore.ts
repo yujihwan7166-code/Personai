@@ -8,12 +8,13 @@
  * 카테고리는 고정 목록이 아니라 기록에서 자라난다 — ensureCategory 로
  * 이름 기준 재사용, 없으면 생성.
  */
-import { CAREER_CHANGED, FALLBACK_CATEGORY, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
+import { CAREER_CHANGED, FALLBACK_CATEGORY, type CareerDoc, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import { notify } from '@/lib/notify';
 
 const ITEMS_KEY = 'career.items.v1';
 const CATEGORIES_KEY = 'career.categories.v1';
 const PROFILE_KEY = 'career.profile.v1';
+const DOCS_KEY = 'career.docs.v1';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -67,6 +68,19 @@ const normalizeCategory = (value: unknown, index: number): SpecCategory | null =
   };
 };
 
+const normalizeDoc = (value: unknown, index: number): CareerDoc | null => {
+  if (!isRecord(value)) return null;
+  const content = typeof value.content === 'string' ? value.content : '';
+  if (!content.trim()) return null;
+  return {
+    id: typeof value.id === 'string' && value.id ? value.id : `spd_recovered_${index}`,
+    purpose: typeof value.purpose === 'string' && value.purpose.trim() ? value.purpose.trim() : '문서',
+    request: typeof value.request === 'string' && value.request.trim() ? value.request : undefined,
+    content,
+    createdAt: normalizeIso(value.createdAt, new Date().toISOString()),
+  };
+};
+
 const safeRead = <T>(key: string, normalize: (value: unknown, index: number) => T | null): T[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -83,6 +97,7 @@ const safeRead = <T>(key: string, normalize: (value: unknown, index: number) => 
 
 const readItems = (): SpecItem[] => safeRead(ITEMS_KEY, normalizeItem);
 const readCategories = (): SpecCategory[] => safeRead(CATEGORIES_KEY, normalizeCategory);
+const readDocs = (): CareerDoc[] => safeRead(DOCS_KEY, normalizeDoc);
 
 let quotaNotified = false;
 
@@ -103,6 +118,26 @@ const safeWrite = (items: SpecItem[] | null, categories: SpecCategory[] | null):
       });
     } else if (!isQuota) {
       console.error('스펙 보드 저장 실패', err);
+    }
+  }
+};
+
+const writeDocs = (docs: CareerDoc[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+    window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+  } catch (err) {
+    const isQuota =
+      err instanceof DOMException &&
+      (err.name === 'QuotaExceededError' || err.code === 22);
+    if (isQuota && !quotaNotified) {
+      quotaNotified = true;
+      notify.error('저장 공간이 가득 찼어요', {
+        description: '다른 워크스페이스 데이터를 정리한 뒤 다시 시도해 주세요.',
+      });
+    } else if (!isQuota) {
+      console.error('만든 문서 저장 실패', err);
     }
   }
 };
@@ -215,6 +250,28 @@ export const careerStore = {
     safeWrite(null, categories);
   },
 
+  /** 만든 문서 보관함 (createdAt 내림차순 — 최신 먼저). */
+  listDocs(): CareerDoc[] {
+    return [...readDocs()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  /** 생성된 문서를 보관함에 저장. */
+  addDoc(input: { purpose: string; content: string; request?: string }): CareerDoc {
+    const doc: CareerDoc = {
+      id: newId('spd'),
+      purpose: input.purpose.trim() || '문서',
+      request: input.request?.trim() || undefined,
+      content: input.content,
+      createdAt: new Date().toISOString(),
+    };
+    writeDocs([doc, ...readDocs()]);
+    return doc;
+  },
+
+  removeDoc(id: string): void {
+    writeDocs(readDocs().filter((d) => d.id !== id));
+  },
+
   getProfile(): CareerProfile {
     const empty: CareerProfile = { name: '', tagline: '', persona: '' };
     if (typeof window === 'undefined') return empty;
@@ -250,6 +307,7 @@ export const careerStore = {
     if (typeof window !== 'undefined') {
       try { window.localStorage.removeItem(PROFILE_KEY); } catch { /* noop */ }
     }
+    writeDocs([]);
     safeWrite([], []);
   },
 };

@@ -2,9 +2,10 @@
  * 스펙 보드 — /career ("교정 중인 원고" 컨셉, 2단 작성대 레이아웃).
  *
  * 플래너와 같은 풀블리드 셸 (2026-07-09):
- *   [페이지 헤더] 이름(편집 가능)·기록 중 인장·기록 현황 + 아래 굵은 괘선
- *   [좌 원고 본문] 프로필 스트립(사진·소개) + 기록 2열 그리드
- *   [우 작성대 패널] border-l 분리 — "원고로 만들기"(위) + "커리어 추가"(아래)
+ *   [페이지 헤더] "마이 커리어" + 기록 중 인장, 아래 굵은 괘선
+ *   [좌 원고 본문] 프로필 스트립(사진·이름·소개) + 기록 2열 그리드
+ *   [우 작성대 패널] border-l 분리 — "원고로 만들기" 2칸 타일 + 만든 문서 보관함(위)
+ *   + "커리어 추가"(아래). 문서 생성은 요청사항 입력 → 생성 → 보관함 자동 저장.
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
@@ -20,7 +21,7 @@ import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
-import { PERSONA_LABEL, type CareerPersona, type SpecItem } from '@/types/career';
+import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type SpecItem } from '@/types/career';
 import {
   Dialog,
   DialogContent,
@@ -239,8 +240,9 @@ function SetupLedger() {
 /* ═══════════════ 원고 본체 — 좌 작성대 · 우 원고 ═══════════════ */
 
 function BoardLedger() {
-  const { items, categories, profile } = useCareerBoard();
+  const { items, categories, profile, docs } = useCareerBoard();
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
+  const [viewDoc, setViewDoc] = useState<CareerDoc | null>(null);
   const [draft, setDraft] = useState('');
   const [recentId, setRecentId] = useState<string | null>(null);
   const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
@@ -280,13 +282,6 @@ function BoardLedger() {
 
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
-
-  /** 간기(colophon)용 — 가장 최근 기입 달. */
-  const lastEntryMonth = useMemo(() => {
-    if (items.length === 0) return '';
-    const dates = items.map((item) => item.date).sort();
-    return formatMonth(dates[dates.length - 1]);
-  }, [items]);
 
   /** AI가 분리한 기간 표기 (초안 카드용). */
   const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
@@ -520,38 +515,11 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══════ 페이지 헤더 — 플래너와 같은 문법: 큰 제목 + 인장 + 우측 기록 현황, 아래 굵은 괘선 ══════ */}
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3.5 pt-5 sm:px-6">
-          {editingName ? (
-            <input
-              autoFocus
-              defaultValue={profile.name}
-              onBlur={(e) => {
-                careerStore.setProfile({ name: e.target.value.trim() });
-                setEditingName(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
-                if (e.key === 'Escape') setEditingName(false);
-              }}
-              placeholder="이름"
-              aria-label="이름"
-              className="w-[240px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[26px] font-bold leading-none outline-none placeholder:text-muted-foreground/40"
-            />
-          ) : (
-            <button type="button" onClick={() => setEditingName(true)} title="이름 수정" className="text-left">
-              <h1 className="text-[26px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-[6px] hover:underline">
-                {profile.name ? `${profile.name}님의 커리어` : '나의 커리어'}
-              </h1>
-            </button>
-          )}
+          <h1 className="text-[26px] font-bold leading-tight">마이 커리어</h1>
           <ProofStamp />
-          {items.length > 0 && (
-            <span className="career-mono ml-auto hidden text-[11px] text-muted-foreground/70 sm:block">
-              기록 {items.length}건 · 마지막 기입 {lastEntryMonth}
-            </span>
-          )}
         </header>
 
-        <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+        <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_minmax(380px,470px)]">
           {/* ══════ 우 — 작성대 패널 (모바일에선 위) ══════ */}
           <aside className="border-b border-[hsl(var(--hairline))] lg:order-2 lg:border-b-0 lg:border-l">
             <div className="lg:sticky lg:top-0">
@@ -566,7 +534,8 @@ function BoardLedger() {
                   ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
                   : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
               </p>
-              <div className="mt-1 divide-y divide-[hsl(var(--hairline))]">
+              {/* 도구 — 2칸 타일 */}
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 {COMPOSE_PURPOSES.map(({ purpose, label }) => (
                   <button
                     key={purpose}
@@ -574,37 +543,61 @@ function BoardLedger() {
                     onClick={() => setComposePurpose(purpose)}
                     disabled={items.length === 0}
                     className={cn(
-                      'group flex w-full items-baseline justify-between py-2.5 text-left transition-colors',
+                      'group rounded-lg border px-3 py-2.5 text-left transition-colors',
                       items.length === 0
-                        ? 'cursor-not-allowed text-muted-foreground/40'
-                        : 'text-foreground hover:text-[hsl(var(--career-red))]',
+                        ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
+                        : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] hover:border-[hsl(var(--career-red))]',
                     )}
                   >
-                    <span className="text-[13px] font-medium">{label}</span>
                     <span
                       className={cn(
-                        'career-mono text-[10.5px] transition-colors',
-                        items.length === 0
-                          ? 'text-muted-foreground/35'
-                          : 'text-muted-foreground/55 group-hover:text-[hsl(var(--career-red))]',
+                        'block text-[13px] font-medium transition-colors',
+                        items.length > 0 && 'group-hover:text-[hsl(var(--career-red))]',
                       )}
                     >
-                      뽑기 →
+                      {label}
                     </span>
+                    <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">뽑기 →</span>
                   </button>
                 ))}
                 <button
                   type="button"
                   onClick={() => setRecommendOpen(true)}
                   title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="group flex w-full items-baseline justify-between py-2.5 text-left text-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+                  className="group rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red))]"
                 >
-                  <span className="text-[13px] font-medium">추천 스펙</span>
-                  <span className="career-mono text-[10.5px] text-muted-foreground/55 transition-colors group-hover:text-[hsl(var(--career-red))]">
-                    받기 →
+                  <span className="block text-[13px] font-medium transition-colors group-hover:text-[hsl(var(--career-red))]">
+                    추천 스펙
                   </span>
+                  <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">받기 →</span>
                 </button>
               </div>
+
+              {/* 보관함 — 만든 문서를 다시 본다 */}
+              {docs.length > 0 && (
+                <div className="mt-4 border-t border-dashed border-[hsl(var(--hairline))] pt-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground/70">만든 문서</p>
+                  <ul className="mt-1">
+                    {docs.slice(0, 4).map((doc) => (
+                      <li key={doc.id}>
+                        <button
+                          type="button"
+                          onClick={() => setViewDoc(doc)}
+                          className="group flex w-full items-baseline justify-between gap-2 py-1.5 text-left"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-[12.5px] transition-colors group-hover:text-[hsl(var(--career-red))]">
+                            {doc.purpose}
+                            {doc.request && <span className="text-muted-foreground"> — {doc.request}</span>}
+                          </span>
+                          <span className="career-mono shrink-0 text-[10.5px] text-muted-foreground/55">
+                            {doc.createdAt.slice(0, 10).replaceAll('-', '.')}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
 
             <section className="px-4 py-4 sm:px-5">
@@ -991,6 +984,35 @@ function BoardLedger() {
                   </label>
 
                   <div className="min-w-0 flex-1">
+                    {/* 이름 — 사진 옆, 클릭해서 편집 */}
+                    {editingName ? (
+                      <input
+                        autoFocus
+                        defaultValue={profile.name}
+                        onBlur={(e) => {
+                          careerStore.setProfile({ name: e.target.value.trim() });
+                          setEditingName(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingName(false);
+                        }}
+                        placeholder="이름"
+                        aria-label="이름"
+                        className="w-[220px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[20px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
+                      />
+                    ) : (
+                      <button type="button" onClick={() => setEditingName(true)} title="이름 수정" className="text-left">
+                        <h2
+                          className={cn(
+                            'text-[20px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
+                            !profile.name && 'font-medium text-muted-foreground/50',
+                          )}
+                        >
+                          {profile.name || '이름 적기'}
+                        </h2>
+                      </button>
+                    )}
                     {/* 소개 — 2~3줄, blur 시 저장 */}
                     <textarea
                       defaultValue={profile.tagline}
@@ -1114,6 +1136,7 @@ function BoardLedger() {
       </LayoutGroup>
 
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
+      <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
     </>
@@ -1318,6 +1341,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
 
 function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; onClose: () => void }) {
   const { items, categories } = useCareerBoard();
+  const [request, setRequest] = useState('');
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState('');
 
@@ -1329,7 +1353,11 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
         name: category.name,
         items: items.filter((item) => item.categoryId === category.id),
       }));
-      setResult(await aiComposeCareerDoc(target, sections));
+      const content = await aiComposeCareerDoc(target, sections, request.trim() || undefined);
+      setResult(content);
+      // 생성 즉시 보관함에 — 닫아도 "만든 문서"에서 다시 볼 수 있다.
+      careerStore.addDoc({ purpose: target, content, request: request.trim() || undefined });
+      notify.success('만든 문서에 저장했어요');
     } catch (err) {
       notify.error('문서 생성에 실패했어요', {
         description: err instanceof Error ? err.message : '잠시 뒤 다시 시도해 주세요.',
@@ -1360,11 +1388,25 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
   };
 
   return (
-    <Dialog open={purpose !== null} onOpenChange={(open) => { if (!open) { setResult(''); onClose(); } }}>
+    <Dialog open={purpose !== null} onOpenChange={(open) => { if (!open) { setResult(''); setRequest(''); onClose(); } }}>
       <DialogContent className="career-theme max-w-lg">
         <DialogHeader>
           <DialogTitle className="career-serif text-[16px]">원고로 {purpose} 만들기</DialogTitle>
         </DialogHeader>
+        {/* 요청사항 먼저 — 어디에 낼지 적고 만든다 */}
+        <div>
+          <label htmlFor="career-compose-request" className="mb-1 block text-[11px] text-muted-foreground">
+            요청사항 (선택) — 어디에 낼 문서인지, 무엇을 강조할지
+          </label>
+          <textarea
+            id="career-compose-request"
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+            rows={2}
+            placeholder="예: 프론트엔드 신입 지원 · 협업 경험 강조"
+            className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+          />
+        </div>
         <button
           type="button"
           onClick={() => purpose && void generate(purpose)}
@@ -1402,6 +1444,88 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
             </div>
           </>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ═══════════════ 만든 문서 보기 다이얼로그 ═══════════════ */
+
+function DocViewDialog({ doc, onClose }: { doc: CareerDoc | null; onClose: () => void }) {
+  const copyDoc = async () => {
+    if (!doc) return;
+    try {
+      await navigator.clipboard.writeText(doc.content);
+      notify.success('복사했어요');
+    } catch {
+      notify.error('복사에 실패했어요');
+    }
+  };
+
+  const downloadDoc = () => {
+    if (!doc) return;
+    const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.purpose}-${doc.createdAt.slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const removeDoc = () => {
+    if (!doc) return;
+    careerStore.removeDoc(doc.id);
+    onClose();
+    notify.success('만든 문서에서 지웠어요');
+  };
+
+  return (
+    <Dialog open={doc !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="career-theme max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="career-serif text-[16px]">{doc?.purpose}</DialogTitle>
+        </DialogHeader>
+        {doc && (
+          <p className="career-mono text-[11px] text-muted-foreground">
+            {doc.createdAt.slice(0, 10).replaceAll('-', '.')}
+            {doc.request ? ` · ${doc.request}` : ''}
+          </p>
+        )}
+        <textarea
+          readOnly
+          value={doc?.content ?? ''}
+          aria-label="문서 내용"
+          className="h-64 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[12.5px] leading-relaxed outline-none"
+        />
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={removeDoc}
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+          >
+            <Trash2 className="h-3 w-3" />
+            삭제
+          </button>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => void copyDoc()}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[hsl(var(--foreground)/0.35)] px-2.5 text-[12px] font-medium transition-colors hover:bg-accent"
+            >
+              <Copy className="h-3 w-3" />
+              복사
+            </button>
+            <button
+              type="button"
+              onClick={downloadDoc}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[hsl(var(--foreground)/0.35)] px-2.5 text-[12px] font-medium transition-colors hover:bg-accent"
+            >
+              <Download className="h-3 w-3" />
+              .md 다운로드
+            </button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -52,6 +52,18 @@ export const PERSONA_LABEL: Record<CareerPersona, string> = {
   worker: '직장인',
 };
 
+/** 원고로 만든 문서 — 생성 결과를 보관함에 저장해 다시 본다. */
+export interface CareerDoc {
+  id: string;
+  /** 문서 종류 — '이력서' · '자기소개서 초안' · '포트폴리오 요약'. */
+  purpose: string;
+  /** 생성 시 함께 준 요청사항 (지원 직무·강조점, 선택). */
+  request?: string;
+  /** 생성된 본문 (markdown). */
+  content: string;
+  createdAt: string;
+}
+
 /** 보드 상단 프로필 — 이력서 원본의 인적 사항. */
 export interface CareerProfile {
   name: string;
