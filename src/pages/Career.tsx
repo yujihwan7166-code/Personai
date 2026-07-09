@@ -136,7 +136,7 @@ export default function Career() {
 
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl px-3 pb-20 pt-8 sm:px-6 sm:pt-10">
+      <div className="mx-auto w-full max-w-6xl px-3 pb-20 pt-4 sm:px-6 sm:pt-5">
         {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
       </div>
     </div>
@@ -765,7 +765,7 @@ function BoardLedger() {
               <div className="mt-3 space-y-3 border-t border-dashed border-[hsl(var(--hairline))] pt-3">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label htmlFor="career-adv-category" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                    <label htmlFor="career-adv-category" className="career-mono mb-1 block text-[11px] text-muted-foreground">
                       칸
                     </label>
                     <select
@@ -783,7 +783,7 @@ function BoardLedger() {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="career-adv-org" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                    <label htmlFor="career-adv-org" className="career-mono mb-1 block text-[11px] text-muted-foreground">
                       기관·주최
                     </label>
                     <input
@@ -797,7 +797,7 @@ function BoardLedger() {
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label htmlFor="career-adv-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                    <label htmlFor="career-adv-date" className="career-mono mb-1 block text-[11px] text-muted-foreground">
                       시작
                     </label>
                     <input
@@ -810,7 +810,7 @@ function BoardLedger() {
                   </div>
                   <div>
                     <div className="mb-1 flex items-baseline justify-between">
-                      <label htmlFor="career-adv-end" className="career-mono block text-[10px] tracking-[0.14em] text-muted-foreground">
+                      <label htmlFor="career-adv-end" className="career-mono block text-[11px] text-muted-foreground">
                         종료
                       </label>
                       <label className="flex cursor-pointer items-center gap-1 text-[10.5px] text-muted-foreground">
@@ -834,7 +834,7 @@ function BoardLedger() {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="career-adv-link" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                  <label htmlFor="career-adv-link" className="career-mono mb-1 block text-[11px] text-muted-foreground">
                     증빙 링크
                   </label>
                   <input
@@ -846,7 +846,7 @@ function BoardLedger() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="career-adv-detail" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+                  <label htmlFor="career-adv-detail" className="career-mono mb-1 block text-[11px] text-muted-foreground">
                     세부사항
                   </label>
                   <textarea
@@ -1104,7 +1104,7 @@ function BoardLedger() {
               {/* 간기 — 원고의 마지막 줄, 기록의 현재 상태 */}
               {items.length > 0 && (
                 <footer className="mt-9 border-t border-[hsl(var(--hairline))] pt-3 text-center">
-                  <p className="career-mono text-[10px] tracking-[0.2em] text-muted-foreground/55">
+                  <p className="career-mono text-[11px] text-muted-foreground/55">
                     기록 {items.length}건 · 마지막 기입 {lastEntryMonth}
                   </p>
                 </footer>
@@ -1206,7 +1206,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
       </DialogHeader>
       <div className="space-y-3.5">
         <div>
-          <label htmlFor="career-detail-refined" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+          <label htmlFor="career-detail-refined" className="career-mono mb-1 block text-[11px] text-muted-foreground">
             이력서 문장
           </label>
           <input
@@ -1218,7 +1218,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label htmlFor="career-detail-date" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+            <label htmlFor="career-detail-date" className="career-mono mb-1 block text-[11px] text-muted-foreground">
               시작
             </label>
             <input
@@ -1231,7 +1231,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
           </div>
           <div>
             <div className="mb-1 flex items-baseline justify-between">
-              <label htmlFor="career-detail-end" className="career-mono block text-[10px] tracking-[0.14em] text-muted-foreground">
+              <label htmlFor="career-detail-end" className="career-mono block text-[11px] text-muted-foreground">
                 종료
               </label>
               <label className="flex cursor-pointer items-center gap-1 text-[10.5px] text-muted-foreground">
@@ -1256,7 +1256,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label htmlFor="career-detail-org" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+            <label htmlFor="career-detail-org" className="career-mono mb-1 block text-[11px] text-muted-foreground">
               기관·주최
             </label>
             <input
@@ -1268,7 +1268,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             />
           </div>
           <div>
-            <label htmlFor="career-detail-link" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+            <label htmlFor="career-detail-link" className="career-mono mb-1 block text-[11px] text-muted-foreground">
               증빙 링크
             </label>
             <input
@@ -1282,7 +1282,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
         </div>
 
         <div>
-          <label htmlFor="career-detail-memo" className="career-mono mb-1 block text-[10px] tracking-[0.14em] text-muted-foreground">
+          <label htmlFor="career-detail-memo" className="career-mono mb-1 block text-[11px] text-muted-foreground">
             세부사항
           </label>
           <textarea
