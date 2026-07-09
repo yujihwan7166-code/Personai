@@ -1,9 +1,10 @@
 /**
  * 스펙 보드 — /career ("교정 중인 원고" 컨셉, 2단 작성대 레이아웃).
  *
- * 책상 위 두 장의 종이:
- *   [좌 원고] 종이 그림자 액자 — 머리글(사진·이름·소개·교정 인장) + 이중 괘선 + 기록 + 간기
- *   [우 작성대] "원고로 만들기" 도구(위) + "커리어 추가" 메모대(아래)
+ * 플래너와 같은 풀블리드 셸 (2026-07-09):
+ *   [페이지 헤더] 이름(편집 가능)·기록 중 인장·기록 현황 + 아래 굵은 괘선
+ *   [좌 원고 본문] 프로필 스트립(사진·소개) + 기록 2열 그리드
+ *   [우 작성대 패널] border-l 분리 — "원고로 만들기"(위) + "커리어 추가"(아래)
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
@@ -136,9 +137,15 @@ export default function Career() {
 
   return (
     <div className="career-theme min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl px-3 pb-20 pt-4 sm:px-6 sm:pt-5">
-        {profile.persona === '' ? <SetupLedger /> : <BoardLedger />}
-      </div>
+      {profile.persona === '' ? (
+        <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-6">
+          <SetupLedger />
+        </div>
+      ) : (
+        <div className="pb-16">
+          <BoardLedger />
+        </div>
+      )}
     </div>
   );
 }
@@ -157,20 +164,16 @@ function LedgerFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** 교정 인장 — 아직 완성되지 않은 원고. 찍은 달이 함께 남는다. */
+/** 교정 인장 — 아직 완성되지 않은 원고. 페이지 헤더에 찍는 인라인 칩, 찍은 달 포함. */
 function ProofStamp() {
   const month = new Date().toISOString().slice(0, 7).replace('-', '.');
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute -top-0.5 right-0 rotate-[6deg] border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-1 text-center mix-blend-multiply dark:mix-blend-normal"
+      className="pointer-events-none inline-flex rotate-[3deg] items-baseline gap-1.5 border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-0.5 mix-blend-multiply dark:mix-blend-normal"
     >
-      <span className="career-serif block pl-[0.24em] text-[11.5px] font-bold leading-tight tracking-[0.24em] text-[hsl(var(--career-red)/0.8)]">
-        기록 중
-      </span>
-      <span className="career-mono block pl-[0.18em] text-[8.5px] leading-tight tracking-[0.18em] text-[hsl(var(--career-red)/0.6)]">
-        {month}
-      </span>
+      <span className="text-[11px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.8)]">기록 중</span>
+      <span className="career-mono text-[9px] text-[hsl(var(--career-red)/0.6)]">{month}</span>
     </div>
   );
 }
@@ -515,11 +518,45 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
-          {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
-          <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
-            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 (작성대 위) */}
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
+        {/* ══════ 페이지 헤더 — 플래너와 같은 문법: 큰 제목 + 인장 + 우측 기록 현황, 아래 굵은 괘선 ══════ */}
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3.5 pt-5 sm:px-6">
+          {editingName ? (
+            <input
+              autoFocus
+              defaultValue={profile.name}
+              onBlur={(e) => {
+                careerStore.setProfile({ name: e.target.value.trim() });
+                setEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') setEditingName(false);
+              }}
+              placeholder="이름"
+              aria-label="이름"
+              className="w-[240px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[26px] font-bold leading-none outline-none placeholder:text-muted-foreground/40"
+            />
+          ) : (
+            <button type="button" onClick={() => setEditingName(true)} title="이름 수정" className="text-left">
+              <h1 className="text-[26px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-[6px] hover:underline">
+                {profile.name ? `${profile.name}님의 커리어` : '나의 커리어'}
+              </h1>
+            </button>
+          )}
+          <ProofStamp />
+          {items.length > 0 && (
+            <span className="career-mono ml-auto hidden text-[11px] text-muted-foreground/70 sm:block">
+              기록 {items.length}건 · 마지막 기입 {lastEntryMonth}
+            </span>
+          )}
+        </header>
+
+        <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+          {/* ══════ 우 — 작성대 패널 (모바일에선 위) ══════ */}
+          <aside className="border-b border-[hsl(var(--hairline))] lg:order-2 lg:border-b-0 lg:border-l">
+            <div className="lg:sticky lg:top-0">
+            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 */}
+            <section className="border-b border-[hsl(var(--hairline))] px-4 py-4 sm:px-5">
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
                 <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
@@ -568,9 +605,9 @@ function BoardLedger() {
                   </span>
                 </button>
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
+            <section className="px-4 py-4 sm:px-5">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
@@ -614,7 +651,7 @@ function BoardLedger() {
                         placeholder={`생각나는 대로 적어보세요 — 예: ${TRY_EXAMPLES[persona][0]}`}
                         aria-label="스펙 입력"
                         className={cn(
-                          'career-serif min-h-[68px] w-full resize-none break-keep rounded-lg border bg-[hsl(var(--surface-2))] px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
+                          'career-serif min-h-[68px] w-full resize-none break-keep rounded-lg border bg-[hsl(var(--card))] px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
                           'border-[hsl(var(--foreground)/0.25)]',
                           'focus:border-[hsl(var(--career-red))]',
                         )}
@@ -727,7 +764,7 @@ function BoardLedger() {
               {/* 캡처 박스 */}
               <div
                 className={cn(
-                  'mt-2.5 flex items-center overflow-hidden rounded-lg border bg-[hsl(var(--surface-2))] transition-all',
+                  'mt-2.5 flex items-center overflow-hidden rounded-lg border bg-[hsl(var(--card))] transition-all',
                   'border-[hsl(var(--foreground)/0.25)]',
                   'focus-within:border-[hsl(var(--career-red))]',
                 )}
@@ -772,7 +809,7 @@ function BoardLedger() {
                       id="career-adv-category"
                       value={advCategory}
                       onChange={(e) => setAdvCategory(e.target.value)}
-                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                     >
                       <option value="auto">자동 분류 (추천)</option>
                       {categories.map((category) => (
@@ -791,7 +828,7 @@ function BoardLedger() {
                       value={advOrg}
                       onChange={(e) => setAdvOrg(e.target.value)}
                       placeholder="발급처·주최 (선택)"
-                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                 </div>
@@ -805,7 +842,7 @@ function BoardLedger() {
                       type="date"
                       value={advDate}
                       onChange={(e) => setAdvDate(e.target.value)}
-                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                   <div>
@@ -829,7 +866,7 @@ function BoardLedger() {
                       value={advOngoing ? '' : advEndDate}
                       onChange={(e) => setAdvEndDate(e.target.value)}
                       disabled={advOngoing}
-                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
                     />
                   </div>
                 </div>
@@ -842,7 +879,7 @@ function BoardLedger() {
                     value={advLink}
                     onChange={(e) => setAdvLink(e.target.value)}
                     placeholder="https:// — 포트폴리오·수상 페이지 (선택)"
-                    className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <div>
@@ -855,7 +892,7 @@ function BoardLedger() {
                     onChange={(e) => setAdvDetail(e.target.value)}
                     rows={2}
                     placeholder="상황 · 내가 한 일 · 결과 (선택)"
-                    className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <button
@@ -901,18 +938,14 @@ function BoardLedger() {
               </AnimatePresence>
               </>
               )}
+            </section>
             </div>
-
           </aside>
 
-          {/* ══════ 좌 — 원고 ══════ */}
-          <div className="min-w-0 lg:order-1">
-            <LedgerFrame>
-              {/* ── 머리글 — 서지 정보: 사진·이름·소개, 우상단 교정 인장 ── */}
-              <div className="relative pb-6">
-                <ProofStamp />
-
-                <div className="flex items-start gap-4 sm:gap-5">
+          {/* ══════ 좌 — 원고 본문 ══════ */}
+          <main className="min-w-0 px-4 py-5 sm:px-6 lg:order-1">
+            {/* ── 프로필 스트립 — 사진·소개 ── */}
+            <div className="flex items-start gap-4 sm:gap-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
@@ -958,29 +991,6 @@ function BoardLedger() {
                   </label>
 
                   <div className="min-w-0 flex-1">
-                    {editingName ? (
-                      <input
-                        autoFocus
-                        defaultValue={profile.name}
-                        onBlur={(e) => {
-                          careerStore.setProfile({ name: e.target.value.trim() });
-                          setEditingName(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingName(false);
-                        }}
-                        placeholder="이름"
-                        aria-label="이름"
-                        className="career-serif w-[240px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[32px] font-semibold leading-none outline-none placeholder:text-muted-foreground/40"
-                      />
-                    ) : (
-                      <button type="button" onClick={() => setEditingName(true)} title="이름 수정" className="text-left">
-                        <h1 className="career-serif text-[32px] font-semibold leading-[1.05] decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-[8px] hover:underline">
-                          {profile.name ? `${profile.name}님의 커리어` : '나의 커리어'}
-                        </h1>
-                      </button>
-                    )}
                     {/* 소개 — 2~3줄, blur 시 저장 */}
                     <textarea
                       defaultValue={profile.tagline}
@@ -996,11 +1006,9 @@ function BoardLedger() {
                     />
                   </div>
                 </div>
-              </div>
-              <TitleRule />
 
               {/* ────── 기록 — 2열 장부 ────── */}
-              <div className="mt-5 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
+              <div className="mt-6 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -1101,16 +1109,7 @@ function BoardLedger() {
                   )}
               </div>
 
-              {/* 간기 — 원고의 마지막 줄, 기록의 현재 상태 */}
-              {items.length > 0 && (
-                <footer className="mt-9 border-t border-[hsl(var(--hairline))] pt-3 text-center">
-                  <p className="career-mono text-[11px] text-muted-foreground/55">
-                    기록 {items.length}건 · 마지막 기입 {lastEntryMonth}
-                  </p>
-                </footer>
-              )}
-            </LedgerFrame>
-          </div>
+          </main>
         </div>
       </LayoutGroup>
 
@@ -1213,7 +1212,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             id="career-detail-refined"
             value={refined}
             onChange={(e) => setRefined(e.target.value)}
-            className="career-serif h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
+            className="career-serif h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -1226,7 +1225,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1250,7 +1249,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={ongoing ? '' : endDate}
               onChange={(e) => setEndDate(e.target.value)}
               disabled={ongoing}
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
             />
           </div>
         </div>
@@ -1264,7 +1263,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={org}
               onChange={(e) => setOrg(e.target.value)}
               placeholder="발급처·주최 (선택)"
-              className="h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+              className="h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1276,7 +1275,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="https:// (선택)"
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
         </div>
@@ -1290,7 +1289,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={'상황 · 내가 한 일 · 결과를 편하게 적어두세요.\n이력서·자소서로 뽑을 때 AI가 이 내용을 활용해요.'}
-            className="h-32 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
+            className="h-32 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="flex items-center justify-between pt-1">
@@ -1381,7 +1380,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
               readOnly
               value={result}
               aria-label="생성된 문서"
-              className="h-56 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 text-[12.5px] leading-relaxed outline-none"
+              className="h-56 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[12.5px] leading-relaxed outline-none"
             />
             <div className="flex justify-end gap-1.5">
               <button
@@ -1452,7 +1451,7 @@ function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; perso
           {generating ? '고르는 중…' : '추천 받기'}
         </button>
         {result && (
-          <div className="max-h-64 overflow-y-auto whitespace-pre-line rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3.5 text-[13px] leading-relaxed">
+          <div className="max-h-64 overflow-y-auto whitespace-pre-line rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3.5 text-[13px] leading-relaxed">
             {result}
           </div>
         )}
