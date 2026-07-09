@@ -954,7 +954,7 @@ function BoardLedger() {
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
-                      'group relative block h-[72px] w-[56px] shrink-0 cursor-pointer overflow-hidden rounded-md bg-card transition-colors hover:border-[hsl(var(--career-red))]',
+                      'group relative block h-[96px] w-[74px] shrink-0 cursor-pointer overflow-hidden rounded-md bg-card transition-colors hover:border-[hsl(var(--career-red))]',
                       profile.photo
                         ? 'border border-[hsl(var(--foreground)/0.35)]'
                         : 'border border-dashed border-[hsl(var(--foreground)/0.3)]',
@@ -965,8 +965,8 @@ function BoardLedger() {
                       <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
                     ) : (
                       <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground/50">
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="text-[10px]">사진</span>
+                        <Plus className="h-4 w-4" />
+                        <span className="text-[10.5px]">사진</span>
                       </span>
                     )}
                     <input
@@ -1011,7 +1011,7 @@ function BoardLedger() {
                         }}
                         placeholder="이름"
                         aria-label="이름"
-                        className="w-full max-w-[280px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[22px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
+                        className="w-full max-w-[280px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[24px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
                       />
                     ) : (
                       <button
@@ -1019,7 +1019,7 @@ function BoardLedger() {
                         onClick={() => setEditingName(true)}
                         title="이름 수정"
                         className={cn(
-                          'block w-fit text-[22px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
+                          'block w-fit text-[24px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
                           !profile.name && 'font-semibold text-muted-foreground/45',
                         )}
                       >
@@ -1036,7 +1036,7 @@ function BoardLedger() {
                           : '한 줄 소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
                       }
                       aria-label="한 줄 소개"
-                      className="mt-1.5 w-full max-w-[520px] bg-transparent text-[13px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
+                      className="mt-2 w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
                 </div>
