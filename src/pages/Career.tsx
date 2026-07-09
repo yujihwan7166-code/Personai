@@ -143,14 +143,9 @@ export default function Career() {
   );
 }
 
-/** 표제 아래 이중 괘선 — 굵은 선 + 가는 선, 인쇄물 머리글의 마감. */
+/** 표제 아래 굵은 괘선 — 종이 양끝까지 가로지른다 (프레임 패딩 상쇄). */
 function TitleRule() {
-  return (
-    <div aria-hidden>
-      <div className="border-b-2 border-[hsl(var(--foreground)/0.75)]" />
-      <div className="mt-[3px] border-b border-[hsl(var(--foreground)/0.3)]" />
-    </div>
-  );
+  return <div aria-hidden className="-mx-4 border-b-2 border-[hsl(var(--foreground)/0.75)] sm:-mx-9" />;
 }
 
 /** 장부 프레임 — 책상 위에 얹힌 원고지 한 장. 테두리 대신 종이 그림자로 뜬다. */
