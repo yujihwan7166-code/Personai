@@ -1,9 +1,9 @@
 /**
  * 스펙 보드 — /career ("교정 중인 원고" 컨셉, 2단 작성대 레이아웃).
  *
- * 책상 위 두 개의 종이:
- *   [왼쪽 작성대] "커리어 추가" 메모대 — 캡처 박스·해보기·변신 카드 + AI 도구
- *   [오른쪽 원고] 이중 괘선 액자 — 헤더 밴드(사진·이름·소개·인장) + 기록 + 메타
+ * 책상 위 두 장의 종이:
+ *   [좌 원고] 종이 그림자 액자 — 머리글(사진·이름·소개·교정 인장) + 이중 괘선 + 기록 + 간기
+ *   [우 작성대] "커리어 추가" 메모대(위) + "원고로 만들기" 도구(아래)
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
@@ -48,9 +48,9 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 };
 
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string }> = [
-  { purpose: '이력서', label: 'AI 이력서 생성' },
-  { purpose: '자기소개서 초안', label: 'AI 자소서 생성' },
-  { purpose: '포트폴리오 요약', label: 'AI 포트폴리오 생성' },
+  { purpose: '이력서', label: '이력서 초안' },
+  { purpose: '자기소개서 초안', label: '자기소개서 초안' },
+  { purpose: '포트폴리오 요약', label: '포트폴리오 요약' },
 ];
 
 /** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
@@ -143,16 +143,39 @@ export default function Career() {
   );
 }
 
-/** 표제 아래 굵은 괘선 — 원고의 시작. */
+/** 표제 아래 이중 괘선 — 굵은 선 + 가는 선, 인쇄물 머리글의 마감. */
 function TitleRule() {
-  return <div aria-hidden className="border-b-2 border-[hsl(var(--foreground)/0.75)]" />;
+  return (
+    <div aria-hidden>
+      <div className="border-b-2 border-[hsl(var(--foreground)/0.75)]" />
+      <div className="mt-[3px] border-b border-[hsl(var(--foreground)/0.3)]" />
+    </div>
+  );
 }
 
-/** 장부 프레임 — 이중 괘선 액자, 안쪽은 책상보다 밝은 원고지 톤. */
+/** 장부 프레임 — 책상 위에 얹힌 원고지 한 장. 테두리 대신 종이 그림자로 뜬다. */
 function LedgerFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 py-7 sm:px-9 sm:py-8">
+    <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_16px_40px_-24px_hsl(var(--foreground)/0.25)] sm:px-9 sm:py-8">
       {children}
+    </div>
+  );
+}
+
+/** 교정 인장 — 아직 완성되지 않은 원고. 찍은 달이 함께 남는다. */
+function ProofStamp() {
+  const month = new Date().toISOString().slice(0, 7).replace('-', '.');
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute -top-0.5 right-0 rotate-[6deg] border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-1 text-center mix-blend-multiply dark:mix-blend-normal"
+    >
+      <span className="career-serif block pl-[0.24em] text-[11.5px] font-bold leading-tight tracking-[0.24em] text-[hsl(var(--career-red)/0.8)]">
+        기록 중
+      </span>
+      <span className="career-mono block pl-[0.18em] text-[8.5px] leading-tight tracking-[0.18em] text-[hsl(var(--career-red)/0.6)]">
+        {month}
+      </span>
     </div>
   );
 }
@@ -259,6 +282,13 @@ function BoardLedger() {
 
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
+
+  /** 간기(colophon)용 — 가장 최근 기입 달. */
+  const lastEntryMonth = useMemo(() => {
+    if (items.length === 0) return '';
+    const dates = items.map((item) => item.date).sort();
+    return formatMonth(dates[dates.length - 1]);
+  }, [items]);
 
   /** AI가 분리한 기간 표기 (초안 카드용). */
   const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
@@ -493,41 +523,7 @@ function BoardLedger() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
-            {/* AI 도구 — 원고에 적용하는 도구들 (작성대 위) */}
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
-              <h3 className="text-[11.5px] font-semibold text-muted-foreground/70">AI 도구</h3>
-              <div className="mt-2.5 space-y-1.5">
-                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-                  <button
-                    key={purpose}
-                    type="button"
-                    onClick={() => setComposePurpose(purpose)}
-                    disabled={items.length === 0}
-                    title={items.length === 0 ? '기록이 쌓이면 쓸 수 있어요' : '쌓인 기록으로 문서를 만들어요'}
-                    className={cn(
-                      'group flex w-full items-center justify-between border px-3 py-2 text-[12.5px] font-medium transition-colors',
-                      items.length === 0
-                        ? 'cursor-not-allowed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] text-muted-foreground/45'
-                        : 'border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] text-foreground hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]',
-                    )}
-                  >
-                    {label}
-                    <span className={cn('text-[12px]', items.length > 0 && 'text-[hsl(var(--career-red))]')}>→</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setRecommendOpen(true)}
-                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="group flex w-full items-center justify-between border border-[hsl(var(--foreground)/0.3)] bg-[hsl(var(--surface-2))] px-3 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
-                >
-                  추천 스펙
-                  <span className="text-[12px] text-[hsl(var(--career-red))]">→</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
+            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
@@ -652,7 +648,7 @@ function BoardLedger() {
                           onClick={commitDraft}
                           className="h-8 flex-1 bg-primary text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                         >
-                          서랍에 넣기
+                          원고에 넣기
                         </button>
                         <button
                           type="button"
@@ -856,27 +852,76 @@ function BoardLedger() {
               )}
             </div>
 
+            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 (작성대 아래) */}
+            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+                <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
+                <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                {items.length === 0
+                  ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
+                  : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
+              </p>
+              <div className="mt-1 divide-y divide-[hsl(var(--hairline))]">
+                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                  <button
+                    key={purpose}
+                    type="button"
+                    onClick={() => setComposePurpose(purpose)}
+                    disabled={items.length === 0}
+                    className={cn(
+                      'group flex w-full items-baseline justify-between py-2.5 text-left transition-colors',
+                      items.length === 0
+                        ? 'cursor-not-allowed text-muted-foreground/40'
+                        : 'text-foreground hover:text-[hsl(var(--career-red))]',
+                    )}
+                  >
+                    <span className="text-[13px] font-medium">{label}</span>
+                    <span
+                      className={cn(
+                        'career-mono text-[10.5px] transition-colors',
+                        items.length === 0
+                          ? 'text-muted-foreground/35'
+                          : 'text-muted-foreground/55 group-hover:text-[hsl(var(--career-red))]',
+                      )}
+                    >
+                      뽑기 →
+                    </span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setRecommendOpen(true)}
+                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+                  className="group flex w-full items-baseline justify-between py-2.5 text-left text-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+                >
+                  <span className="text-[13px] font-medium">추천 스펙</span>
+                  <span className="career-mono text-[10.5px] text-muted-foreground/55 transition-colors group-hover:text-[hsl(var(--career-red))]">
+                    받기 →
+                  </span>
+                </button>
+              </div>
+            </div>
+
           </aside>
 
           {/* ══════ 좌 — 원고 ══════ */}
           <div className="min-w-0 lg:order-1">
             <LedgerFrame>
-              {/* ── 헤더 밴드 — 사진·이름·소개, 우상단 인장 ── */}
-              <div className="relative -mx-4 -mt-7 bg-[hsl(var(--surface-2))] px-4 pb-5 pt-6 sm:-mx-9 sm:-mt-8 sm:px-9 sm:pt-7">
-                {/* 붉은 인장 — 아직 완성되지 않은 원고 */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute right-4 top-5 rotate-[7deg] border-2 border-[hsl(var(--career-red)/0.55)] px-1.5 py-0.5 sm:right-8"
-                >
-                  <span className="career-serif text-[11.5px] font-bold tracking-[0.24em] text-[hsl(var(--career-red)/0.75)]">
-                    기록 중
-                  </span>
-                </div>
+              {/* ── 머리글 — 서지 정보: 사진·이름·소개, 우상단 교정 인장 ── */}
+              <div className="relative pb-6">
+                <ProofStamp />
 
                 <div className="flex items-start gap-4 sm:gap-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
-                    className="group relative block h-[104px] w-[80px] shrink-0 cursor-pointer overflow-hidden border border-[hsl(var(--foreground)/0.35)] bg-card transition-colors hover:border-[hsl(var(--career-red))]"
+                    className={cn(
+                      'group relative block h-[104px] w-[80px] shrink-0 cursor-pointer overflow-hidden bg-card transition-colors hover:border-[hsl(var(--career-red))]',
+                      profile.photo
+                        ? 'border border-[hsl(var(--foreground)/0.35)]'
+                        : 'border border-dashed border-[hsl(var(--foreground)/0.3)]',
+                    )}
                     title={profile.photo ? '사진 바꾸기' : '사진 추가'}
                   >
                     {profile.photo ? (
@@ -959,7 +1004,7 @@ function BoardLedger() {
               <TitleRule />
 
               {/* ────── 기록 — 2열 장부 ────── */}
-              <div className="mt-4 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
+              <div className="mt-5 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -981,7 +1026,12 @@ function BoardLedger() {
                         onRemove={() => careerStore.removeCategory(category.id)}
                       />
                       {sectionItems.length === 0 ? (
-                        <p className="career-mono py-2 pl-1 text-[11px] text-muted-foreground/40">비어 있음</p>
+                        /* 빈 칸 — 다음 줄이 쓰일 자리를 점선 괘선으로 비워둔다 */
+                        <div className="flex h-11 items-end px-1 pb-1">
+                          <span className="w-full border-b border-dotted border-[hsl(var(--foreground)/0.2)] pb-1 text-[11px] text-muted-foreground/45">
+                            비어 있음
+                          </span>
+                        </div>
                       ) : (
                         <>
                           <ul className="divide-y divide-[hsl(var(--hairline))]">
@@ -1041,16 +1091,30 @@ function BoardLedger() {
                       />
                     </div>
                   ) : (
+                    /* 다음 칸이 그어질 자리 — 번호가 미리 매겨진 고스트 헤더 */
                     <button
                       type="button"
                       onClick={() => setAddingCategory(true)}
-                      className="self-start text-[12.5px] text-muted-foreground/60 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                      className="group/add flex items-baseline gap-2 self-start border-b border-dashed border-[hsl(var(--foreground)/0.25)] pb-2 pr-6 text-left transition-colors hover:border-[hsl(var(--career-red)/0.6)]"
                     >
-                      + 칸 추가
+                      <span className="career-mono text-[11px] font-medium text-muted-foreground/45 transition-colors group-hover/add:text-[hsl(var(--career-red))]">
+                        {String(sections.length + 1).padStart(2, '0')}
+                      </span>
+                      <span className="text-[13px] text-muted-foreground/60 transition-colors group-hover/add:text-[hsl(var(--career-red))]">
+                        + 칸 추가
+                      </span>
                     </button>
                   )}
               </div>
 
+              {/* 간기 — 원고의 마지막 줄, 기록의 현재 상태 */}
+              {items.length > 0 && (
+                <footer className="mt-9 border-t border-[hsl(var(--hairline))] pt-3 text-center">
+                  <p className="career-mono text-[10px] tracking-[0.2em] text-muted-foreground/55">
+                    기록 {items.length}건 · 마지막 기입 {lastEntryMonth}
+                  </p>
+                </footer>
+              )}
             </LedgerFrame>
           </div>
         </div>
@@ -1082,6 +1146,9 @@ function SectionHeader({
       </span>
       <h2 className="career-serif text-[15px] font-bold tracking-tight">{name}</h2>
       <span className="ml-auto" />
+      {count > 0 && (
+        <span className="career-mono text-[10.5px] text-muted-foreground/55">{count}건</span>
+      )}
       {count === 0 && onRemove && (
         <button
           type="button"
