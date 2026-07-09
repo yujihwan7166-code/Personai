@@ -3,7 +3,7 @@
  *
  * 책상 위 두 장의 종이:
  *   [좌 원고] 종이 그림자 액자 — 머리글(사진·이름·소개·교정 인장) + 이중 괘선 + 기록 + 간기
- *   [우 작성대] "커리어 추가" 메모대(위) + "원고로 만들기" 도구(아래)
+ *   [우 작성대] "원고로 만들기" 도구(위) + "커리어 추가" 메모대(아래)
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
@@ -13,7 +13,7 @@
  */
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -523,6 +523,58 @@ function BoardLedger() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,330px)]">
           {/* ══════ 우 — 커리어 추가 작성대 (모바일에선 위) ══════ */}
           <aside className="space-y-4 lg:sticky lg:top-5 lg:order-2">
+            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 (작성대 위) */}
+            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+                <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
+                <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                {items.length === 0
+                  ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
+                  : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
+              </p>
+              <div className="mt-1 divide-y divide-[hsl(var(--hairline))]">
+                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                  <button
+                    key={purpose}
+                    type="button"
+                    onClick={() => setComposePurpose(purpose)}
+                    disabled={items.length === 0}
+                    className={cn(
+                      'group flex w-full items-baseline justify-between py-2.5 text-left transition-colors',
+                      items.length === 0
+                        ? 'cursor-not-allowed text-muted-foreground/40'
+                        : 'text-foreground hover:text-[hsl(var(--career-red))]',
+                    )}
+                  >
+                    <span className="text-[13px] font-medium">{label}</span>
+                    <span
+                      className={cn(
+                        'career-mono text-[10.5px] transition-colors',
+                        items.length === 0
+                          ? 'text-muted-foreground/35'
+                          : 'text-muted-foreground/55 group-hover:text-[hsl(var(--career-red))]',
+                      )}
+                    >
+                      뽑기 →
+                    </span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setRecommendOpen(true)}
+                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+                  className="group flex w-full items-baseline justify-between py-2.5 text-left text-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+                >
+                  <span className="text-[13px] font-medium">추천 스펙</span>
+                  <span className="career-mono text-[10.5px] text-muted-foreground/55 transition-colors group-hover:text-[hsl(var(--career-red))]">
+                    받기 →
+                  </span>
+                </button>
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
@@ -564,11 +616,11 @@ function BoardLedger() {
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={onInputKeyDown}
                         rows={2}
-                        placeholder="생각나는 대로 적어보세요 — 예: 새 가입 플로우 정리함"
+                        placeholder={`생각나는 대로 적어보세요 — 예: ${TRY_EXAMPLES[persona][0]}`}
                         aria-label="스펙 입력"
                         className={cn(
-                          'career-serif min-h-[68px] w-full resize-none border bg-[hsl(var(--surface-2))] px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
-                          'border-[hsl(var(--foreground)/0.5)]',
+                          'career-serif min-h-[68px] w-full resize-none break-keep border bg-[hsl(var(--surface-2))] px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
+                          'border-[hsl(var(--foreground)/0.3)]',
                           'focus:border-[hsl(var(--career-red))]',
                         )}
                       />
@@ -593,22 +645,22 @@ function BoardLedger() {
                         type="button"
                         onClick={() => void requestDraft()}
                         disabled={!draft.trim()}
-                        className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
+                        className="mt-3 flex h-9 w-full items-center justify-between bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        AI로 다듬기
+                        <span>초안 만들기</span>
+                        <span className="career-mono text-[10.5px] font-normal opacity-60">⏎</span>
                       </button>
                     </>
                   ) : phase.step === 'thinking' ? (
                     <div className="flex items-center gap-2 border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px]">
                       <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
-                      <span className="text-muted-foreground">AI가 이력서 문장으로 다듬는 중…</span>
+                      <span className="text-muted-foreground">이력서 문장으로 다듬는 중…</span>
                     </div>
                   ) : (
                     /* 초안 검토 카드 */
                     <div className="border-l-[3px] border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
-                      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[hsl(var(--career-red))]">
-                        <Sparkles className="h-3 w-3" /> AI 초안
+                      <p className="career-mono mb-2 text-[11px] font-semibold tracking-[0.14em] text-[hsl(var(--career-red))]">
+                        초안
                       </p>
                       <p className="text-[12px] text-muted-foreground/80">✎ {phase.raw}</p>
                       <p aria-hidden className="my-1 text-[12px] text-[hsl(var(--career-red))]">↓</p>
@@ -675,7 +727,7 @@ function BoardLedger() {
               <div
                 className={cn(
                   'mt-2.5 flex items-center overflow-hidden border bg-[hsl(var(--surface-2))] transition-all',
-                  'border-[hsl(var(--foreground)/0.5)]',
+                  'border-[hsl(var(--foreground)/0.3)]',
                   'focus-within:border-[hsl(var(--career-red))]',
                 )}
               >
@@ -812,7 +864,7 @@ function BoardLedger() {
                   disabled={!draft.trim() || busy}
                   className="h-9 w-full bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
                 >
-                  원고에 추가
+                  원고에 넣기
                 </button>
               </div>
 
@@ -850,58 +902,6 @@ function BoardLedger() {
               </AnimatePresence>
               </>
               )}
-            </div>
-
-            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 (작성대 아래) */}
-            <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.22)]">
-              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
-                <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
-                <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
-              </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
-                {items.length === 0
-                  ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
-                  : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
-              </p>
-              <div className="mt-1 divide-y divide-[hsl(var(--hairline))]">
-                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-                  <button
-                    key={purpose}
-                    type="button"
-                    onClick={() => setComposePurpose(purpose)}
-                    disabled={items.length === 0}
-                    className={cn(
-                      'group flex w-full items-baseline justify-between py-2.5 text-left transition-colors',
-                      items.length === 0
-                        ? 'cursor-not-allowed text-muted-foreground/40'
-                        : 'text-foreground hover:text-[hsl(var(--career-red))]',
-                    )}
-                  >
-                    <span className="text-[13px] font-medium">{label}</span>
-                    <span
-                      className={cn(
-                        'career-mono text-[10.5px] transition-colors',
-                        items.length === 0
-                          ? 'text-muted-foreground/35'
-                          : 'text-muted-foreground/55 group-hover:text-[hsl(var(--career-red))]',
-                      )}
-                    >
-                      뽑기 →
-                    </span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setRecommendOpen(true)}
-                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="group flex w-full items-baseline justify-between py-2.5 text-left text-foreground transition-colors hover:text-[hsl(var(--career-red))]"
-                >
-                  <span className="text-[13px] font-medium">추천 스펙</span>
-                  <span className="career-mono text-[10.5px] text-muted-foreground/55 transition-colors group-hover:text-[hsl(var(--career-red))]">
-                    받기 →
-                  </span>
-                </button>
-              </div>
             </div>
 
           </aside>
@@ -1378,7 +1378,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
           disabled={generating}
           className="inline-flex h-9 items-center justify-center gap-1.5 bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
         >
-          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {generating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {generating ? '뽑는 중…' : `${purpose} 만들기`}
         </button>
         {result && (
@@ -1454,7 +1454,7 @@ function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; perso
           disabled={generating}
           className="inline-flex h-9 items-center justify-center gap-1.5 bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
         >
-          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {generating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {generating ? '고르는 중…' : '추천 받기'}
         </button>
         {result && (
