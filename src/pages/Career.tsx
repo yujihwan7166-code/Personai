@@ -513,9 +513,9 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        {/* ══════ 페이지 헤더 — 플래너와 같은 문법: 큰 제목 + 인장 + 우측 기록 현황, 아래 굵은 괘선 ══════ */}
-        <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3.5 pt-5 sm:px-6">
-          <h1 className="text-[26px] font-bold leading-tight">마이 커리어</h1>
+        {/* ══════ 페이지 헤더 — 플래너와 동일한 대제목 크기·위치(28/36px, 상단 정렬) + 인장, 아래 굵은 괘선 ══════ */}
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3 sm:px-6">
+          <h1 className="text-[28px] font-semibold leading-tight tracking-normal sm:text-[36px]">마이 커리어</h1>
           <ProofStamp />
         </header>
 
