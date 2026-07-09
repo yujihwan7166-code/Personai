@@ -958,9 +958,6 @@ function BoardLedger() {
                   </label>
 
                   <div className="min-w-0 flex-1">
-                    <p className="career-mono mb-1.5 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                      이력서 원고 · 편집 중
-                    </p>
                     {editingName ? (
                       <input
                         autoFocus

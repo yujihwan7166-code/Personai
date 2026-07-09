@@ -534,11 +534,13 @@
   /* 교정쇄 타입 시스템 — 세리프=조판된 문장(이력서), 모노(타자기)=날짜·데이터.
    * UI 컨트롤은 클래스 없이 Pretendard 유지. */
   .career-theme .career-serif {
-    font-family: 'Newsreader', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
+    /* 고운바탕 — 책 조판의 따뜻한 바탕체. 라틴·숫자도 같은 목소리로 통일. */
+    font-family: 'Gowun Batang', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
   }
 
   .career-theme .career-mono {
-    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, monospace;
+    /* 숫자·라틴은 JetBrains Mono, 한글 라벨은 Pretendard 로 (시스템 고정폭 한글 방지). */
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, 'Pretendard Variable', monospace;
     font-variant-numeric: tabular-nums;
   }
 
