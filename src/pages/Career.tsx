@@ -652,14 +652,16 @@ function BoardLedger() {
                       </button>
                     </>
                   ) : phase.step === 'thinking' ? (
-                    <div className="flex items-center gap-2 border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px]">
+                    /* 다듬는 중 — 상자 없이, 적은 문장이 그대로 교정에 들어간 모습 */
+                    <div className="flex items-center gap-2 py-3">
                       <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
-                      <span className="text-muted-foreground">이력서 문장으로 다듬는 중…</span>
+                      <span className="career-serif min-w-0 flex-1 truncate text-[13.5px] text-muted-foreground">{phase.raw}</span>
+                      <span className="career-mono shrink-0 text-[10.5px] text-[hsl(var(--career-red))]">교정 중…</span>
                     </div>
                   ) : (
-                    /* 초안 검토 카드 — 교정지: 원문에 빨간 줄을 긋고, 고친 문장을 아래에 */
-                    <div className="border-l-[3px] border-[hsl(var(--career-red))] bg-[hsl(var(--surface-2))] px-3.5 py-3">
-                      <div className="mb-2.5 flex items-center justify-between gap-2">
+                    /* 초안 검토 — 상자 없이 활자만: 원문에 빨간 줄, 고친 문장, 괘선 아래 되묻기 */
+                    <div className="pt-1.5">
+                      <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-1.5">
                         <p className="career-mono text-[11px] font-semibold text-[hsl(var(--career-red))]">초안</p>
                         <span
                           title="이 칸에 들어가요"
@@ -673,7 +675,7 @@ function BoardLedger() {
                           {phase.raw}
                         </p>
                       )}
-                      <p className="career-serif mt-1 text-[14px] font-medium leading-relaxed">
+                      <p className="career-serif mt-1 text-[15px] font-medium leading-relaxed">
                         <MetricText text={phase.refined} />
                       </p>
                       {(draftPeriod || advOrg.trim()) && (
@@ -735,7 +737,6 @@ function BoardLedger() {
                   'focus-within:border-[hsl(var(--career-red))]',
                 )}
               >
-                <span aria-hidden className="my-2 ml-3 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
                 <input
                   ref={inputRef as React.RefObject<HTMLInputElement>}
                   value={draft}
@@ -879,9 +880,8 @@ function BoardLedger() {
                     layoutId={INCOMING}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 flex items-center overflow-hidden border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] py-2.5"
+                    className="mt-3 flex items-center overflow-hidden py-2.5"
                   >
-                    <span aria-hidden className="ml-3 w-[3px] shrink-0 self-stretch bg-[hsl(var(--career-red))]" />
                     {phase.step === 'thinking' ? (
                       <div className="flex min-w-0 flex-1 items-center gap-2 px-3 text-[13px]">
                         <Loader2 className="h-3 w-3 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
