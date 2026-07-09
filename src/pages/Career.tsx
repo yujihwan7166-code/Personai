@@ -948,13 +948,13 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 본문 ══════ */}
-          <main className="min-w-0 px-4 py-5 sm:px-6 lg:order-1">
-            {/* ── 프로필 스트립 — 사진·소개 ── */}
-            <div className="flex items-start gap-4 sm:gap-5">
+          <main className="min-w-0 px-4 py-4 sm:px-6 lg:order-1">
+            {/* ── 프로필 스트립 — 사진·이름·소개, 납작한 한 줄 ── */}
+            <div className="flex items-center gap-4">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
-                      'group relative block h-[104px] w-[80px] shrink-0 cursor-pointer overflow-hidden rounded-md bg-card transition-colors hover:border-[hsl(var(--career-red))]',
+                      'group relative block h-[72px] w-[56px] shrink-0 cursor-pointer overflow-hidden rounded-md bg-card transition-colors hover:border-[hsl(var(--career-red))]',
                       profile.photo
                         ? 'border border-[hsl(var(--foreground)/0.35)]'
                         : 'border border-dashed border-[hsl(var(--foreground)/0.3)]',
@@ -995,7 +995,7 @@ function BoardLedger() {
                     )}
                   </label>
 
-                  <div className="flex min-w-0 flex-1 flex-col self-stretch">
+                  <div className="min-w-0 flex-1">
                     {/* 이름 — 맨 위, 클릭해서 편집 */}
                     {editingName ? (
                       <input
@@ -1027,23 +1027,22 @@ function BoardLedger() {
                       </button>
                     )}
                     {/* 소개 — 이름 아래, blur 시 저장 */}
-                    <textarea
+                    <input
                       defaultValue={profile.tagline}
                       onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-                      rows={2}
                       placeholder={
                         persona === 'worker'
                           ? '한 줄 소개 — 예: 결제·정산 도메인 3년차 프론트엔드 개발자'
                           : '한 줄 소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
                       }
                       aria-label="한 줄 소개"
-                      className="mt-2 w-full max-w-[520px] resize-none bg-transparent text-[13px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
+                      className="mt-1.5 w-full max-w-[520px] bg-transparent text-[13px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
                 </div>
 
               {/* ────── 기록 — 반응형 장부(넓으면 3열) ────── */}
-              <div className="mt-7 grid items-start gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 grid items-start gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
