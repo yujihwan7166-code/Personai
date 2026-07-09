@@ -304,7 +304,9 @@
   /* 플래너 UI 제목은 산세리프(Pretendard)로 — 전역 h1~h3 세리프(Newsreader) 규칙 무효화.
      Newsreader엔 한글 글리프가 없어 "7월 6일"의 숫자만 세리프로 튀는 혼합을 방지.
      세리프는 히어로·일기·브리핑 등 의도된 곳에만 남긴다. */
-  .planner-theme :is(h1, h2, h3) {
+  .planner-theme :is(h1, h2, h3),
+  .career-theme :is(h1, h2, h3) {
+    /* 커리어도 플래너처럼 전역 세리프 규칙 무효화 — 페이지 제목·이름까지 Pretendard 단일화. */
     font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     letter-spacing: -0.02em;
   }

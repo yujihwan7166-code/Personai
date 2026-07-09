@@ -572,31 +572,43 @@ function BoardLedger() {
                   <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">받기 →</span>
                 </button>
               </div>
+            </section>
 
-              {/* 보관함 — 만든 문서를 다시 본다 */}
-              {docs.length > 0 && (
-                <div className="mt-4 border-t border-dashed border-[hsl(var(--hairline))] pt-3">
-                  <p className="text-[11px] font-semibold text-muted-foreground/70">만든 문서</p>
-                  <ul className="mt-1">
-                    {docs.slice(0, 4).map((doc) => (
-                      <li key={doc.id}>
-                        <button
-                          type="button"
-                          onClick={() => setViewDoc(doc)}
-                          className="group flex w-full items-baseline justify-between gap-2 py-1.5 text-left"
-                        >
-                          <span className="min-w-0 flex-1 truncate text-[12.5px] transition-colors group-hover:text-[hsl(var(--career-red))]">
-                            {doc.purpose}
-                            {doc.request && <span className="text-muted-foreground"> — {doc.request}</span>}
-                          </span>
-                          <span className="career-mono shrink-0 text-[10.5px] text-muted-foreground/55">
-                            {doc.createdAt.slice(0, 10).replaceAll('-', '.')}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+            {/* 만든 문서 — 생성한 문서 보관함, 항상 보인다(발견성) */}
+            <section className="border-b border-[hsl(var(--hairline))] px-4 py-4 sm:px-5">
+              <div className="flex items-baseline justify-between gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">▤</span>
+                  <h2 className="text-[16px] font-bold tracking-tight">만든 문서</h2>
                 </div>
+                {docs.length > 0 && (
+                  <span className="career-mono text-[11px] text-muted-foreground/55">{docs.length}건</span>
+                )}
+              </div>
+              {docs.length === 0 ? (
+                <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground/70">
+                  위에서 문서를 만들면 여기에 저장돼요. 언제든 다시 열어보고 복사·다운로드할 수 있어요.
+                </p>
+              ) : (
+                <ul className="mt-1 divide-y divide-[hsl(var(--hairline))]">
+                  {docs.map((doc) => (
+                    <li key={doc.id}>
+                      <button
+                        type="button"
+                        onClick={() => setViewDoc(doc)}
+                        className="group flex w-full items-baseline justify-between gap-2 py-2 text-left"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-[13px] transition-colors group-hover:text-[hsl(var(--career-red))]">
+                          <span className="font-medium">{doc.purpose}</span>
+                          {doc.request && <span className="text-muted-foreground"> · {doc.request}</span>}
+                        </span>
+                        <span className="career-mono shrink-0 text-[10.5px] text-muted-foreground/55">
+                          {doc.createdAt.slice(0, 10).replaceAll('-', '.')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 
@@ -983,8 +995,8 @@ function BoardLedger() {
                     )}
                   </label>
 
-                  <div className="min-w-0 flex-1">
-                    {/* 이름 — 사진 옆, 클릭해서 편집 */}
+                  <div className="flex min-w-0 flex-1 flex-col self-stretch">
+                    {/* 이름 — 맨 위, 클릭해서 편집 */}
                     {editingName ? (
                       <input
                         autoFocus
@@ -999,38 +1011,39 @@ function BoardLedger() {
                         }}
                         placeholder="이름"
                         aria-label="이름"
-                        className="w-[220px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[20px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
+                        className="w-full max-w-[280px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[22px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
                       />
                     ) : (
-                      <button type="button" onClick={() => setEditingName(true)} title="이름 수정" className="text-left">
-                        <h2
-                          className={cn(
-                            'text-[20px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
-                            !profile.name && 'font-medium text-muted-foreground/50',
-                          )}
-                        >
-                          {profile.name || '이름 적기'}
-                        </h2>
+                      <button
+                        type="button"
+                        onClick={() => setEditingName(true)}
+                        title="이름 수정"
+                        className={cn(
+                          'block w-fit text-[22px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
+                          !profile.name && 'font-semibold text-muted-foreground/45',
+                        )}
+                      >
+                        {profile.name || '이름 적기'}
                       </button>
                     )}
-                    {/* 소개 — 2~3줄, blur 시 저장 */}
+                    {/* 소개 — 이름 아래, blur 시 저장 */}
                     <textarea
                       defaultValue={profile.tagline}
                       onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
                       rows={2}
                       placeholder={
                         persona === 'worker'
-                          ? '짧은 소개 — 예: 3년차 프론트엔드 개발자.\n결제·정산 도메인에서 성능 개선을 주로 해왔어요.'
-                          : '짧은 소개 — 예: 컴퓨터공학 3학년.\n웹 개발 동아리에서 프로젝트를 이끌고 있어요.'
+                          ? '한 줄 소개 — 예: 결제·정산 도메인 3년차 프론트엔드 개발자'
+                          : '한 줄 소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
                       }
-                      aria-label="짧은 소개"
-                      className="mt-1.5 w-full max-w-[440px] resize-none bg-transparent text-[12.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/45"
+                      aria-label="한 줄 소개"
+                      className="mt-2 w-full max-w-[520px] resize-none bg-transparent text-[13px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
                 </div>
 
-              {/* ────── 기록 — 2열 장부 ────── */}
-              <div className="mt-6 grid items-start gap-x-8 gap-y-7 md:grid-cols-2">
+              {/* ────── 기록 — 반응형 장부(넓으면 3열) ────── */}
+              <div className="mt-7 grid items-start gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
