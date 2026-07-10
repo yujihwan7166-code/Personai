@@ -19,15 +19,16 @@ import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
 
 const CREAM: CSSProperties = {
-  // 배경은 워크스페이스 공통 종이 톤 (플래너·위키·커리어·노트와 동일)
-  '--cream-bg': '40 28% 96%',
-  '--cream-panel': '40 34% 97.5%',
-  '--cream-card': '44 52% 99%',
-  '--cream-ink': '26 22% 22%',
-  '--cream-muted': '28 12% 47%',
-  '--cream-line': '38 26% 87%',
-  '--cream-accent': '17 55% 49%',
-  '--cream-dark': '27 18% 24%',
+  // 워크스페이스 공통 쿨 화이트 캐논 (플래너·노트·커리어와 동일 공식):
+  // 쿨 페이지 + 웜 근백색 카드 + 웜 차콜 잉크. 테라코타만 정체성 포인트로 유지.
+  '--cream-bg': '220 22% 98%',       // 페이지 — 쿨 화이트
+  '--cream-panel': '220 20% 97%',    // 사이드바 패널
+  '--cream-card': '40 35% 99%',      // 카드 — 웜 근백색
+  '--cream-ink': '30 12% 16%',       // 웜 차콜 잉크
+  '--cream-muted': '30 8% 42%',
+  '--cream-line': '35 14% 86%',      // 헤어라인
+  '--cream-accent': '17 55% 49%',    // 테라코타 — 유일한 포인트 색
+  '--cream-dark': '30 12% 20%',      // 진한 버튼용
 } as CSSProperties;
 
 /** 감정 6종 — named key + 라벨 + 컬러. */
@@ -325,7 +326,6 @@ export default function Journal() {
       style={{
         ...CREAM,
         fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, sans-serif",
-        backgroundImage: 'radial-gradient(1100px 480px at 88% -8%, hsl(30 65% 92% / 0.4), transparent 70%), radial-gradient(900px 460px at 0% 108%, hsl(150 22% 90% / 0.28), transparent 70%), linear-gradient(180deg, hsl(40 34% 92%), hsl(38 28% 88%))',
       }}
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
     >
