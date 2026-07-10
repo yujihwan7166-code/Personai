@@ -283,19 +283,6 @@ function BoardLedger() {
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
 
-  /** 요약 통계 — 이번 달 기록 수(지난달 대비) · 채움도(기록 있는 칸/전체) · 빈 칸 이름. */
-  const stats = useMemo(() => {
-    const now = new Date();
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonth = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
-    const thisCount = items.filter((i) => i.date.startsWith(thisMonth)).length;
-    const lastCount = items.filter((i) => i.date.startsWith(lastMonth)).length;
-    const filled = sections.filter((s) => s.items.length > 0).length;
-    const emptyNames = sections.filter((s) => s.items.length === 0).map((s) => s.category.name);
-    return { thisCount, delta: thisCount - lastCount, filled, total: sections.length, emptyNames };
-  }, [items, sections]);
-
   /** AI가 분리한 기간 표기 (초안 카드용). */
   const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
 
@@ -542,11 +529,12 @@ function BoardLedger() {
 
         <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_minmax(380px,470px)]">
           {/* ══════ 우 — 작성대 패널 (모바일에선 위) ══════ */}
-          <aside className="border-b border-[hsl(var(--hairline))] lg:order-2 lg:border-b-0 lg:border-l">
-            <div className="lg:sticky lg:top-0">
+          <aside className="lg:order-2">
+            {/* 도구 도크 — 눌린 바닥 톤으로 왼쪽 보드와 분리, 그 위에 흰 카드 3장 */}
+            <div className="space-y-3 bg-[hsl(var(--surface-3))] p-3 sm:p-4 lg:sticky lg:top-0">
             {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 */}
-            <section className="border-b border-[hsl(var(--hairline))] px-4 py-4 sm:px-5">
-              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
                 <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
               </div>
@@ -596,8 +584,8 @@ function BoardLedger() {
             </section>
 
             {/* 만든 문서 — 생성한 문서 보관함, 항상 보인다(발견성) */}
-            <section className="border-b border-[hsl(var(--hairline))] px-4 py-4 sm:px-5">
-              <div className="flex items-baseline justify-between gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
+              <div className="flex items-baseline justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
                 <div className="flex items-baseline gap-2">
                   <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">▤</span>
                   <h2 className="text-[16px] font-bold tracking-tight">만든 문서</h2>
@@ -633,9 +621,9 @@ function BoardLedger() {
               )}
             </section>
 
-            <section className="px-4 py-4 sm:px-5">
+            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
-              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
+              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
                 <h2 className="career-serif text-[16px] font-bold tracking-tight">커리어 추가</h2>
                 <div className="ml-auto flex items-center gap-2.5">
@@ -970,11 +958,8 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 본문 ══════ */}
           <main className="min-w-0 px-4 py-4 sm:px-6 lg:order-1">
-            {/* ── 프로필 카드 + 통계 카드 ── */}
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-              {/* 프로필 카드 — 빨간 좌측 액센트 */}
-              <div className="relative flex items-center gap-4 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 pl-5">
-                <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[hsl(var(--career-red))]" />
+            {/* ── 프로필 헤더 카드 (담백·풀폭, 소프트 섀도) ── */}
+            <div className="flex items-center gap-5 rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-5 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_16px_32px_-26px_hsl(var(--foreground)/0.22)]">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
@@ -1063,40 +1048,6 @@ function BoardLedger() {
                       className="w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
-              </div>
-
-              {/* 통계 카드 — 이번 달 기록 · 채움도 */}
-              <div className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="shrink-0">
-                    <p className="text-[11px] text-muted-foreground">이번 달 기록</p>
-                    <p className="mt-1 flex items-baseline gap-1">
-                      <span className="career-mono text-[26px] font-bold leading-none">{stats.thisCount}</span>
-                      <span className="text-[12px] text-muted-foreground">건</span>
-                    </p>
-                    {stats.delta !== 0 && (
-                      <p className={cn('mt-1.5 text-[11px] font-medium', stats.delta > 0 ? 'text-[hsl(var(--career-red))]' : 'text-muted-foreground')}>
-                        {stats.delta > 0 ? `↑ 지난달 +${stats.delta}` : `↓ 지난달 ${stats.delta}`}
-                      </p>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-muted-foreground">채움도</p>
-                    <div className="mt-2 flex gap-1">
-                      {sections.map((s, i) => (
-                        <span
-                          key={i}
-                          className={cn('h-1.5 flex-1 rounded-full', s.items.length > 0 ? 'bg-[hsl(var(--career-red))]' : 'bg-[hsl(var(--surface-3))]')}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-2 text-[11.5px] font-medium text-foreground">{stats.filled} / {stats.total} 카테고리</p>
-                    {stats.emptyNames.length > 0 && (
-                      <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground/70">{stats.emptyNames.join(' · ')} 비어 있어요</p>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* ────── 기록 — 카드형 카테고리 그리드 ────── */}
@@ -1116,13 +1067,13 @@ function BoardLedger() {
                       onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                       onDrop={(e) => onDropToCategory(e, category.id)}
                       className={cn(
-                        'group/section flex flex-col rounded-xl border bg-[hsl(var(--surface-1))] p-4 transition-colors',
+                        'group/section flex flex-col rounded-2xl border bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)] transition-all hover:shadow-[0_12px_28px_-22px_hsl(var(--foreground)/0.3)]',
                         dragOverCategory === category.id ? 'border-[hsl(var(--career-red)/0.6)]' : 'border-[hsl(var(--hairline))]',
                       )}
                     >
-                      {/* 카드 헤더 — 번호 · 이름 · 건수(빈 칸이면 삭제) */}
-                      <div className="mb-2.5 flex items-center gap-2">
-                        <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
+                      {/* 카드 헤더 — 번호 칩 · 이름 · 건수(빈 칸이면 삭제), 아래 헤어라인 */}
+                      <div className="mb-3 flex items-center gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+                        <span className="career-mono inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[5px] bg-[hsl(var(--career-red)/0.1)] px-1 text-[10px] font-bold text-[hsl(var(--career-red))]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
                         <h3 className="text-[15px] font-bold tracking-tight">{category.name}</h3>
