@@ -1709,11 +1709,11 @@ const Planner = () => {
               // → 예약 여백도 제거해 헤더 도구를 오른쪽 끝까지 정렬.
             )}
           >
-            <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-2 sm:pr-0">
+            <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-1 sm:pr-0">
               {/* 마스트헤드 — 좌측 상단은 도구 이름이 주인공, 맥락(날짜)은 옆에 (워크스페이스 공통 패턴). */}
               <div className="flex min-w-0 items-center gap-2">
                 {/* 방 색 틴트 — 레일 P 마크와 짝. */}
-                <h1 className="shrink-0 text-[25px] font-bold leading-tight tracking-tight text-primary">통합 플래너</h1>
+                <h1 className="shrink-0 text-[27px] font-bold leading-tight tracking-tight text-primary">통합 플래너</h1>
                 <span aria-hidden className="hidden shrink-0 text-muted-foreground/40 sm:inline">·</span>
                 <span
                   className="truncate text-[18px] font-semibold leading-tight tracking-tight text-foreground"
