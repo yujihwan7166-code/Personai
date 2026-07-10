@@ -15,13 +15,14 @@
  */
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileDown, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
-import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type SpecItem } from '@/types/career';
+import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import {
   Dialog,
   DialogContent,
@@ -251,6 +252,7 @@ function BoardLedger() {
   const [editingName, setEditingName] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [docTab, setDocTab] = useState<'make' | 'archive'>('make'); // 문서 만들기 ↔ 만든 문서
+  const [resumeOpen, setResumeOpen] = useState(false); // 이력서 PDF 미리보기·내보내기
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
     try {
@@ -557,13 +559,25 @@ function BoardLedger() {
 
               {docTab === 'make' ? (
                 <>
-                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                  {/* 이력서 PDF — 쌓인 기록을 서식 이력서로 바로 내보내기 (헤드라인, AI 아님) */}
+                  <button
+                    type="button"
+                    onClick={() => setResumeOpen(true)}
+                    disabled={items.length === 0}
+                    className="mt-3 flex w-full items-center justify-between gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <span className="flex items-center gap-2 text-[13px] font-semibold">
+                      <FileDown className="h-4 w-4" /> 이력서 PDF 내보내기
+                    </span>
+                    <span className="career-mono text-[10.5px] opacity-70">서식 · 인쇄</span>
+                  </button>
+                  <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
                     {items.length === 0
-                      ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
-                      : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
+                      ? '기록이 쌓이면 이력서·초안을 만들 수 있어요.'
+                      : 'AI 초안이 필요하면 아래에서 뽑아보세요.'}
                   </p>
-                  {/* 도구 — 2칸 타일 */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  {/* AI 초안 — 2칸 타일 */}
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     {COMPOSE_PURPOSES.map(({ purpose, label }) => (
                       <button
                         key={purpose}
@@ -1188,11 +1202,122 @@ function BoardLedger() {
         </div>
       </LayoutGroup>
 
+      <ResumeDialog
+        open={resumeOpen}
+        onClose={() => setResumeOpen(false)}
+        profile={profile}
+        sections={sections.filter((s) => s.items.length > 0)}
+      />
       <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} onCreated={() => setDocTab('archive')} />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
     </>
+  );
+}
+
+/* ═══════════════ 이력서 미리보기·PDF 내보내기 ═══════════════ */
+
+/** 커리어 보드 데이터 → 서식 A4 이력서. 흰 종이·검정 잉크 고정(테마 무관), html2canvas→PDF. */
+function ResumeDialog({
+  open,
+  onClose,
+  profile,
+  sections,
+}: {
+  open: boolean;
+  onClose: () => void;
+  profile: CareerProfile;
+  sections: Array<{ category: SpecCategory; items: SpecItem[] }>;
+}) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const exportPdf = async () => {
+    const el = sheetRef.current;
+    if (!el) return;
+    setExporting(true);
+    try {
+      const name = sanitizeFileName(`이력서_${profile.name || '마이커리어'}_${new Date().toISOString().slice(0, 10)}`);
+      await exportElementToPdf(el, {
+        fileName: name,
+        format: 'a4',
+        background: '#ffffff',
+        pageHeightPx: 1123, // A4 @96dpi
+        avoidBreakSelectors: '.resume-item',
+      });
+      notify.success('이력서 PDF를 저장했어요');
+    } catch (err) {
+      notify.error('PDF 저장에 실패했어요', {
+        description: err instanceof Error ? err.message : '잠시 뒤 다시 시도해 주세요.',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="career-theme max-w-[880px]">
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-3 pr-6">
+            <DialogTitle className="career-serif text-[16px]">이력서 미리보기</DialogTitle>
+            <button
+              type="button"
+              onClick={() => void exportPdf()}
+              disabled={exporting}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
+            >
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+              {exporting ? '내보내는 중…' : 'PDF 저장'}
+            </button>
+          </div>
+        </DialogHeader>
+
+        {/* 미리보기 — 회색 배경 위 흰 A4 종이 */}
+        <div className="max-h-[70vh] overflow-auto rounded-lg bg-neutral-200 p-4">
+          <div
+            ref={sheetRef}
+            style={{ width: 794, minHeight: 1123, padding: 56, fontFamily: "'Pretendard Variable', Pretendard, sans-serif", color: '#1a1a1a', background: '#ffffff' }}
+            className="mx-auto"
+          >
+            {/* 머리글 — 이름 + 한 줄 소개 */}
+            <div style={{ borderBottom: '2px solid #1a1a1a', paddingBottom: 14 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.15 }}>{profile.name || '이름'}</div>
+              {profile.tagline && <div style={{ marginTop: 7, fontSize: 13.5, color: '#4a4a4a' }}>{profile.tagline}</div>}
+            </div>
+
+            {/* 섹션 */}
+            {sections.length === 0 ? (
+              <div style={{ marginTop: 28, fontSize: 13, color: '#999' }}>아직 기록이 없어요. 커리어를 추가하면 이력서에 담깁니다.</div>
+            ) : (
+              sections.map(({ category, items }) => (
+                <section key={category.id} style={{ marginTop: 22 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.06em', color: '#b23b1e' }}>{category.name}</div>
+                  <div style={{ borderTop: '1px solid #dcdcdc', marginTop: 5 }} />
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="resume-item"
+                      style={{ display: 'flex', justifyContent: 'space-between', gap: 18, marginTop: 11 }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>{item.refined}</div>
+                        {item.org && <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{item.org}</div>}
+                        {item.detail && <div style={{ fontSize: 11.5, color: '#666', marginTop: 3, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.detail}</div>}
+                      </div>
+                      <div style={{ flexShrink: 0, fontSize: 11.5, color: '#666', fontVariantNumeric: 'tabular-nums', paddingTop: 1 }}>
+                        {formatPeriod(item)}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              ))
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
