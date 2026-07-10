@@ -515,6 +515,11 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══════ 마스트헤드 — 워크스페이스 공통: 도구 이름이 주인공(22px), 맥락(인장)은 옆에. 아래 굵은 괘선 ══════ */}
         <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-6">
+          {/* 고유 마크 — 교정 레드 타일 + 상승 막대(스펙 성장). 공용 마스트헤드 마크 세트 */}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
+            <rect x="2" y="3" width="16" height="15" rx="4.5" fill="hsl(var(--career-red))" />
+            <path d="M7 13.5v-2M10 13.5v-4M13 13.5v-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
           <h1 className="text-[22px] font-bold leading-tight tracking-tight">마이 커리어</h1>
           <ProofStamp />
         </header>

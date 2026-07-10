@@ -234,7 +234,14 @@ const Notes = () => {
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-[22px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+            <div className="flex min-w-0 items-center gap-2">
+              {/* 고유 마크 — 그래파이트 타일 + 3줄 텍스트. 공용 마스트헤드 마크 세트 */}
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
+                <rect x="2" y="3" width="16" height="15" rx="4.5" fill="hsl(222 16% 32%)" />
+                <path d="M6 8h8M6 11h8M6 14h5" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+              <h1 className="text-[22px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+            </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"

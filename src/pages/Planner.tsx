@@ -1712,6 +1712,13 @@ const Planner = () => {
             <div className="min-w-0 flex-1 translate-y-1 px-1 sm:flex-none sm:pl-2 sm:pr-0">
               {/* 마스트헤드 — 좌측 상단은 도구 이름이 주인공, 맥락(날짜)은 옆에 (워크스페이스 공통 패턴). */}
               <div className="flex min-w-0 items-center gap-2">
+                {/* 고유 마크 — 바이올렛 타일 + 캘린더(공용 마스트헤드 마크 세트) */}
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
+                  <rect x="2" y="3" width="16" height="15" rx="4.5" fill="hsl(262 64% 56%)" />
+                  <path d="M6 8.4h8" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" />
+                  <circle cx="7.3" cy="12.4" r="1.15" fill="#fff" />
+                  <circle cx="10.9" cy="12.4" r="1.15" fill="#fff" fillOpacity="0.5" />
+                </svg>
                 <h1 className="shrink-0 text-[22px] font-bold leading-tight tracking-tight text-foreground">통합 플래너</h1>
                 <span aria-hidden className="hidden shrink-0 text-muted-foreground/40 sm:inline">·</span>
                 <span
