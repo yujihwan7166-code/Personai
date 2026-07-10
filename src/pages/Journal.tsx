@@ -9,7 +9,7 @@
  * 데이터는 기존 journalStore. 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
-import { ChevronLeft, ChevronRight, NotebookPen, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
@@ -331,14 +331,9 @@ export default function Journal() {
     >
       {/* ── 사이드바 ── */}
       <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
-        <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[hsl(var(--cream-accent))] text-white">
-            <NotebookPen className="h-[18px] w-[18px]" strokeWidth={2} />
-          </span>
-          <div>
-            <div className="text-[16px] leading-tight" style={{ fontFamily: "'Jua', sans-serif" }}>오늘의 일기</div>
-            <div className="text-[10.5px] uppercase tracking-wide text-[hsl(var(--cream-muted))]">daily journal</div>
-          </div>
+        {/* 마스트헤드 — 워크스페이스 공통: 도구명이 주인공, 방 색(테라코타) 틴트. 아이콘은 레일 마크가 담당. */}
+        <div className="pl-5 pr-2 pb-3 pt-4">
+          <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">오늘의 일기</h1>
         </div>
 
         <div className="mx-4 mb-3 flex items-center gap-3 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
