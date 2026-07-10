@@ -45,6 +45,7 @@
     "@fortune-sheet/react": "^1.0.4",
     "@hookform/resolvers": "^3.10.0",
     "@lovable.dev/cloud-auth-js": "^0.0.3",
+    "@phosphor-icons/react": "^2.1.10",
     "@platejs/ai": "^53.3.0",
     "@platejs/basic-nodes": "^53.0.0",
     "@platejs/basic-styles": "^53.0.0",

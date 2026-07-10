@@ -1,19 +1,19 @@
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  Award,
   CalendarDays,
+  FileUser,
   Home,
   LayoutGrid,
   MoreHorizontal,
   Network,
   NotebookPen,
   StickyNote,
-  Check,
   Sun,
   Moon,
   type LucideIcon,
 } from 'lucide-react';
+import { CalendarDots, Graph, NotePencil, Notebook, ReadCvLogo } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
@@ -42,62 +42,20 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
-  { key: 'career', label: '스펙 보드', to: '/career', icon: Award },
+  { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
 ];
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
 
-/* 방별 브랜드 마크 — 레일 맨 위 타일이 현재 방의 색+마크로 변신 (흰 스트로크 글리프).
+/* 방별 브랜드 마크 — 레일 맨 위 타일이 현재 방의 색+마크로 변신 (Phosphor duotone).
  * 각 방 헤더 이름 색과 짝을 이룬다. 클릭·호버 동작(홈)은 그대로. */
 const RAIL_BRAND: Record<string, { bg: string; mark: React.ReactNode }> = {
-  planner: {
-    bg: 'hsl(262 64% 56%)',
-    mark: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round">
-        <rect x="5" y="6" width="14" height="13" rx="2.6" />
-        <path d="M5 10h14" />
-        <path d="M9 4.5v3M15 4.5v3" />
-        <circle cx="9.5" cy="14" r="0.9" fill="currentColor" stroke="none" />
-      </svg>
-    ),
-  },
-  wiki: {
-    bg: 'hsl(210 78% 52%)',
-    mark: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
-        <circle cx="7" cy="8" r="2" /><circle cx="16.5" cy="7" r="2" /><circle cx="12" cy="16.5" r="2" />
-        <path d="M8.7 9.4 10.8 14.7M14.7 8.4 13 15M9 8h5.5" />
-      </svg>
-    ),
-  },
-  notes: {
-    bg: 'hsl(222 16% 34%)',
-    mark: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 4.5h6L17 8.5V18a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 18V6a1.5 1.5 0 0 1 1-1.5Z" />
-        <path d="M12.8 4.5V8a1 1 0 0 0 1 1h3.1" />
-        <path d="M9 13h6M9 16h3.5" />
-      </svg>
-    ),
-  },
-  journal: {
-    bg: 'hsl(16 62% 54%)',
-    mark: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 4.5h9v15H8a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" />
-        <path d="M6 16.5h11" /><path d="M10.5 4.5v6l2-1.4 2 1.4v-6" />
-      </svg>
-    ),
-  },
-  career: {
-    bg: 'hsl(6 70% 51%)',
-    mark: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round">
-        <path d="M7.5 17.5v-3.5M12 17.5v-6.5M16.5 17.5v-9.5" />
-      </svg>
-    ),
-  },
+  planner: { bg: 'hsl(262 64% 56%)', mark: <CalendarDots size={22} weight="duotone" color="#fff" /> },
+  wiki:    { bg: 'hsl(210 78% 52%)', mark: <Graph size={22} weight="duotone" color="#fff" /> },
+  notes:   { bg: 'hsl(222 16% 34%)', mark: <NotePencil size={22} weight="duotone" color="#fff" /> },
+  journal: { bg: 'hsl(16 62% 54%)',  mark: <Notebook size={22} weight="duotone" color="#fff" /> },
+  career:  { bg: 'hsl(6 70% 51%)',   mark: <ReadCvLogo size={22} weight="duotone" color="#fff" /> },
 };
 
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
