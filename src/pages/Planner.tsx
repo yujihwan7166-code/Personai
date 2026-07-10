@@ -1716,7 +1716,7 @@ const Planner = () => {
                 <h1 className="shrink-0 text-[25px] font-bold leading-tight tracking-tight text-primary">통합 플래너</h1>
                 <span aria-hidden className="hidden shrink-0 text-muted-foreground/40 sm:inline">·</span>
                 <span
-                  className="truncate text-[15px] font-medium text-muted-foreground"
+                  className="truncate text-[18px] font-semibold leading-tight tracking-tight text-foreground"
                   title={periodLabel}
                 >
                   {headerLabels.primary}
