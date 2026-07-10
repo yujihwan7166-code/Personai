@@ -236,7 +236,7 @@ const Notes = () => {
           <div className="flex items-center justify-between gap-2">
             {/* 방 색은 레일 P 마크가 담당(그래파이트) — 이름은 기본 잉크색 유지(다크모드 안전).
                 font-sans로 전역 세리프(Newsreader) 규칙 무효화 + 자간 -0.02em로 다른 두 방과 통일. */}
-            <h1 className="font-sans text-[24px] font-bold leading-tight tracking-[-0.02em] text-foreground">올인원 노트</h1>
+            <h1 className="font-sans text-[25px] font-bold leading-tight tracking-[-0.02em] text-foreground">올인원 노트</h1>
             <div className="flex items-center gap-1">
               <button
                 type="button"

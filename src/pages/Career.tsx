@@ -516,7 +516,7 @@ function BoardLedger() {
         {/* ══════ 마스트헤드 — 워크스페이스 공통: 도구 이름이 주인공(22px), 맥락(인장)은 옆에. 아래 굵은 괘선 ══════ */}
         <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-6">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
-          <h1 className="text-[24px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
+          <h1 className="text-[25px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
           <ProofStamp />
         </header>
 
