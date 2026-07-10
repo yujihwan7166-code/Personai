@@ -324,7 +324,7 @@ export default function Journal() {
     <div
       style={{
         ...CREAM,
-        fontFamily: "'Gowun Dodum', 'Pretendard', sans-serif",
+        fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, sans-serif",
         backgroundImage: 'radial-gradient(1100px 480px at 88% -8%, hsl(30 65% 92% / 0.4), transparent 70%), radial-gradient(900px 460px at 0% 108%, hsl(150 22% 90% / 0.28), transparent 70%), linear-gradient(180deg, hsl(40 34% 92%), hsl(38 28% 88%))',
       }}
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
@@ -338,7 +338,7 @@ export default function Journal() {
 
         <div className="mx-4 mb-3 flex items-center gap-3 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
           <div className="text-center leading-none">
-            <div className="text-[28px] text-[hsl(var(--cream-accent))]" style={{ fontFamily: "'Jua', sans-serif" }}>{streak}</div>
+            <div className="text-[28px] font-bold text-[hsl(var(--cream-accent))]">{streak}</div>
             <div className="mt-1 text-[10px] text-[hsl(var(--cream-muted))]">일 연속</div>
           </div>
           <p className="text-[11.5px] leading-snug text-[hsl(var(--cream-muted))]">
@@ -478,7 +478,7 @@ export default function Journal() {
               {feedGroups.map(([month, items]) => (
                 <section key={month}>
                   <div className="mb-2.5 flex items-center gap-2 px-1">
-                    <h2 className="text-[15px] text-[hsl(var(--cream-ink))]/80" style={{ fontFamily: "'Jua', sans-serif" }}>{month.slice(0, 4)}년 {Number(month.slice(5))}월</h2>
+                    <h2 className="font-sans text-[15px] font-bold text-[hsl(var(--cream-ink))]/80">{month.slice(0, 4)}년 {Number(month.slice(5))}월</h2>
                     <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{items.length}편</span>
                     <span className="h-px flex-1 bg-[hsl(var(--cream-line))]/70" />
                   </div>
@@ -492,7 +492,7 @@ export default function Journal() {
                         <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group relative flex items-start gap-5 overflow-hidden rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] py-5 pl-6 pr-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/25 hover:shadow-[0_14px_30px_-18px_hsl(25_30%_20%/0.3)]" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 6%, #f8f3ea)` } : undefined}>
                           <div className="flex w-[52px] shrink-0 flex-col items-center pt-0.5">
                             <span className="text-[10px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
-                            <span className="text-[30px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]" style={{ fontFamily: "'Jua', sans-serif" }}>{dd.getDate()}</span>
+                            <span className="text-[30px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</span>
                             <span className="mt-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[dd.getDay()]}요일</span>
                           </div>
                           <div className="min-w-0 flex-1">
@@ -535,7 +535,7 @@ export default function Journal() {
                 <div className="flex min-w-0 items-center gap-3">
                   <button type="button" onClick={backToList} aria-label="목록으로" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"><ChevronLeft className="h-4 w-4" /></button>
                   <div className="min-w-0">
-                    <h1 className="flex items-baseline gap-2 truncate text-[27px] leading-tight tracking-tight" style={{ fontFamily: "'Jua', sans-serif" }}>
+                    <h1 className="flex items-baseline gap-2 truncate font-sans text-[27px] font-bold leading-tight tracking-tight">
                       {sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일
                       <span className="text-[24px] text-[hsl(var(--cream-ink))]/55">{WEEKDAY[sel.getDay()]}요일</span>
                     </h1>
