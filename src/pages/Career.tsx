@@ -137,15 +137,13 @@ export default function Career() {
   const { profile } = useCareerBoard();
 
   return (
-    <div className="career-theme min-h-screen bg-background text-foreground">
+    <div className="career-theme h-dvh bg-background text-foreground">
       {profile.persona === '' ? (
-        <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-6">
+        <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-4 pb-20 pt-6">
           <SetupLedger />
         </div>
       ) : (
-        <div className="pb-16">
-          <BoardLedger />
-        </div>
+        <BoardLedger />
       )}
     </div>
   );
@@ -282,19 +280,6 @@ function BoardLedger() {
 
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
-
-  /** 요약 통계 — 이번 달 기록 수(지난달 대비) · 채움도(기록 있는 칸/전체) · 빈 칸 이름. */
-  const stats = useMemo(() => {
-    const now = new Date();
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonth = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
-    const thisCount = items.filter((i) => i.date.startsWith(thisMonth)).length;
-    const lastCount = items.filter((i) => i.date.startsWith(lastMonth)).length;
-    const filled = sections.filter((s) => s.items.length > 0).length;
-    const emptyNames = sections.filter((s) => s.items.length === 0).map((s) => s.category.name);
-    return { thisCount, delta: thisCount - lastCount, filled, total: sections.length, emptyNames };
-  }, [items, sections]);
 
   /** AI가 분리한 기간 표기 (초안 카드용). */
   const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
@@ -533,18 +518,20 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        {/* ══════ 마스트헤드 — 워크스페이스 공통: 도구 이름이 주인공(22px), 맥락(인장)은 옆에. 아래 굵은 괘선 ══════ */}
-        <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-5">
+        <div className="flex h-full flex-col">
+        {/* ══════ 마스트헤드 — 도구 이름 + 인장. 아래 굵은 괘선이 전체 폭을 가로지른다 ══════ */}
+        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-5">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
           <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
           <ProofStamp />
         </header>
 
-        <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_minmax(380px,470px)]">
-          {/* ══════ 우 — 작성대 패널 (모바일에선 위) ══════ */}
-          <aside className="lg:order-2">
-            {/* 도구 도크 — 눌린 바닥 톤으로 왼쪽 보드와 분리, 그 위에 흰 카드 3장 */}
-            <div className="space-y-3 bg-[hsl(var(--surface-3))] p-3 sm:p-4 lg:sticky lg:top-0">
+        {/* 굵은 줄 아래 — 좌(보드)·우(도구 도크)가 각자 독립 스크롤 */}
+        <div className="flex min-h-0 flex-1 max-lg:flex-col">
+          {/* ══════ 우 — 작성대 도크 (독립 스크롤, 모바일에선 위) ══════ */}
+          <aside className="shrink-0 overflow-y-auto bg-[hsl(var(--surface-3))] lg:order-2 lg:w-[400px] lg:border-l lg:border-[hsl(var(--hairline))]">
+            {/* 도구 도크 — 흰 카드 3장 */}
+            <div className="space-y-3 p-3 sm:p-4">
             {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 */}
             <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
@@ -969,12 +956,10 @@ function BoardLedger() {
             </div>
           </aside>
 
-          {/* ══════ 좌 — 원고 본문 ══════ */}
-          <main className="min-w-0 px-4 py-4 sm:px-6 lg:order-1">
-            {/* ── 상단 2열 — 프로필 카드 + 통계 카드 ── */}
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-              {/* 프로필 카드 */}
-              <div className="flex items-center gap-5 rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-5 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_16px_32px_-26px_hsl(var(--foreground)/0.22)]">
+          {/* ══════ 좌 — 원고 보드 (독립 스크롤) ══════ */}
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:order-1">
+            {/* ── 프로필 헤더 — 카드 아님(보드 정체성), 아래 헤어라인으로 카드들과 분리 ── */}
+            <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
@@ -1063,40 +1048,6 @@ function BoardLedger() {
                       className="w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
-              </div>
-
-              {/* 통계 카드 — 이번 달 기록 · 채움도 */}
-              <div className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-5 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_16px_32px_-26px_hsl(var(--foreground)/0.22)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="shrink-0">
-                    <p className="text-[11px] text-muted-foreground">이번 달 기록</p>
-                    <p className="mt-1 flex items-baseline gap-1">
-                      <span className="career-mono text-[26px] font-bold leading-none">{stats.thisCount}</span>
-                      <span className="text-[12px] text-muted-foreground">건</span>
-                    </p>
-                    {stats.delta !== 0 && (
-                      <p className={cn('mt-1.5 text-[11px] font-medium', stats.delta > 0 ? 'text-[hsl(var(--career-red))]' : 'text-muted-foreground')}>
-                        {stats.delta > 0 ? `↑ 지난달 +${stats.delta}` : `↓ 지난달 ${stats.delta}`}
-                      </p>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-muted-foreground">채움도</p>
-                    <div className="mt-2 flex gap-1">
-                      {sections.map((s, i) => (
-                        <span
-                          key={i}
-                          className={cn('h-1.5 flex-1 rounded-full', s.items.length > 0 ? 'bg-[hsl(var(--career-red))]' : 'bg-[hsl(var(--surface-3))]')}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-2 text-[11.5px] font-medium text-foreground">{stats.filled} / {stats.total} 카테고리</p>
-                    {stats.emptyNames.length > 0 && (
-                      <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground/70">{stats.emptyNames.join(' · ')} 비어 있어요</p>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* ────── 기록 — 카드형 카테고리 그리드 ────── */}
@@ -1226,6 +1177,7 @@ function BoardLedger() {
               </div>
 
           </main>
+        </div>
         </div>
       </LayoutGroup>
 
