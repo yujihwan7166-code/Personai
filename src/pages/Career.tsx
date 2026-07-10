@@ -532,7 +532,7 @@ function BoardLedger() {
         {/* 굵은 줄 아래 — 좌(보드)·우(도구 도크)가 각자 독립 스크롤 */}
         <div className="flex min-h-0 flex-1 max-lg:flex-col">
           {/* ══════ 우 — 작성대 도크 (독립 스크롤, 모바일에선 위) ══════ */}
-          <aside className="shrink-0 overflow-y-auto lg:order-2 lg:w-[440px] lg:border-l lg:border-[hsl(var(--hairline))]">
+          <aside className="shrink-0 overflow-y-auto lg:order-2 lg:w-[480px] lg:border-l lg:border-[hsl(var(--hairline))]">
             {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
             <div className="space-y-4 px-4 py-5 sm:px-5">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
@@ -977,9 +977,10 @@ function BoardLedger() {
             </div>
           </aside>
 
-          {/* ══════ 좌 — 원고 보드 (독립 스크롤) ══════ */}
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:order-1">
-            {/* ── 프로필 헤더 — 카드 아님(보드 정체성), 아래 헤어라인으로 카드들과 분리 ── */}
+          {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:order-1">
+            <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_22px_48px_-32px_hsl(var(--foreground)/0.3)] sm:px-9 sm:py-8">
+            {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
             <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
@@ -1071,8 +1072,8 @@ function BoardLedger() {
                   </div>
             </div>
 
-            {/* ────── 기록 — 카드형 카테고리 그리드 ────── */}
-            <div className="mt-5 grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {/* ────── 기록 — 문서 본문: 흰 시트 위 섹션(테두리 없음), 2열 흐름 ────── */}
+            <div className="mt-6 grid items-start gap-x-9 gap-y-7 sm:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -1083,8 +1084,8 @@ function BoardLedger() {
                       onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                       onDrop={(e) => onDropToCategory(e, category.id)}
                       className={cn(
-                        'group/section flex flex-col rounded-2xl border bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)] transition-all hover:shadow-[0_12px_28px_-22px_hsl(var(--foreground)/0.3)]',
-                        dragOverCategory === category.id ? 'border-[hsl(var(--career-red)/0.6)]' : 'border-[hsl(var(--hairline))]',
+                        'group/section flex flex-col rounded-xl p-2 transition-colors',
+                        dragOverCategory === category.id && 'bg-[hsl(var(--career-red)/0.05)] ring-1 ring-[hsl(var(--career-red)/0.4)]',
                       )}
                     >
                       {/* 카드 헤더 — 번호 칩 · 이름 · 건수(빈 칸이면 삭제), 아래 헤어라인 */}
@@ -1196,7 +1197,7 @@ function BoardLedger() {
                     </button>
                   )}
               </div>
-
+            </div>
           </main>
         </div>
         </div>
