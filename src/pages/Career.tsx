@@ -515,10 +515,19 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══════ 마스트헤드 — 워크스페이스 공통: 도구 이름이 주인공(22px), 맥락(인장)은 옆에. 아래 굵은 괘선 ══════ */}
         <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-6">
-          {/* 고유 마크 — 교정 레드 타일 + 상승 막대(스펙 성장). 공용 마스트헤드 마크 세트 */}
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
-            <rect x="2" y="3" width="16" height="15" rx="4.5" fill="hsl(var(--career-red))" />
-            <path d="M7 13.5v-2M10 13.5v-4M13 13.5v-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+          {/* 고유 마크 — 교정 레드 그라데이션 타일 + 상승 막대(스펙 성장). 공용 마스트헤드 마크 세트 */}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+            <defs>
+              <linearGradient id="mk-career" x1="12" y1="2.5" x2="12" y2="21.5" gradientUnits="userSpaceOnUse">
+                <stop stopColor="hsl(12 88% 62%)" />
+                <stop offset="1" stopColor="hsl(4 74% 47%)" />
+              </linearGradient>
+            </defs>
+            <rect x="2.5" y="2.5" width="19" height="19" rx="6.5" fill="url(#mk-career)" />
+            <rect x="3" y="3" width="18" height="18" rx="6" stroke="#fff" strokeOpacity="0.2" />
+            <rect x="6.6" y="13" width="2.7" height="4" rx="1.35" fill="#fff" />
+            <rect x="10.65" y="10.3" width="2.7" height="6.7" rx="1.35" fill="#fff" />
+            <rect x="14.7" y="7.6" width="2.7" height="9.4" rx="1.35" fill="#fff" />
           </svg>
           <h1 className="text-[22px] font-bold leading-tight tracking-tight">마이 커리어</h1>
           <ProofStamp />
