@@ -1713,7 +1713,7 @@ const Planner = () => {
               {/* 마스트헤드 — 좌측 상단은 도구 이름이 주인공, 맥락(날짜)은 옆에 (워크스페이스 공통 패턴). */}
               <div className="flex min-w-0 items-center gap-2">
                 {/* 방 색 틴트 — 레일 P 마크와 짝. */}
-                <h1 className="shrink-0 text-[22px] font-bold leading-tight tracking-tight text-primary">통합 플래너</h1>
+                <h1 className="shrink-0 text-[24px] font-bold leading-tight tracking-tight text-primary">통합 플래너</h1>
                 <span aria-hidden className="hidden shrink-0 text-muted-foreground/40 sm:inline">·</span>
                 <span
                   className="truncate text-[15px] font-medium text-muted-foreground"

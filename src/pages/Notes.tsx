@@ -232,10 +232,10 @@ const Notes = () => {
     <div className="paper-room flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
-        <div className="shrink-0 px-3 pt-4 pb-3">
+        <div className="shrink-0 px-2 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             {/* 방 색은 레일 P 마크가 담당(그래파이트) — 이름은 기본 잉크색 유지(다크모드 안전) */}
-            <h1 className="text-[22px] font-bold tracking-tight text-foreground">올인원 노트</h1>
+            <h1 className="text-[24px] font-bold tracking-tight text-foreground">올인원 노트</h1>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -259,7 +259,7 @@ const Notes = () => {
           </div>
         </div>
 
-        <div className="shrink-0 border-b border-foreground/10 px-3 pb-2.5">
+        <div className="shrink-0 border-b border-foreground/10 px-2 pb-2.5">
           <label className="flex h-[30px] items-center gap-1.5 rounded-md border border-transparent bg-accent/40 px-2 transition-colors focus-within:border-primary/35">
             <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
             <input
