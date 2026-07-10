@@ -48,6 +48,58 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
 
+/* 방별 브랜드 마크 — 레일 맨 위 타일이 현재 방의 색+마크로 변신 (흰 스트로크 글리프).
+ * 각 방 헤더 이름 색과 짝을 이룬다. 클릭·호버 동작(홈)은 그대로. */
+const RAIL_BRAND: Record<string, { bg: string; mark: React.ReactNode }> = {
+  planner: {
+    bg: 'hsl(262 64% 56%)',
+    mark: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round">
+        <rect x="5" y="6" width="14" height="13" rx="2.6" />
+        <path d="M5 10h14" />
+        <path d="M9 4.5v3M15 4.5v3" />
+        <circle cx="9.5" cy="14" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  wiki: {
+    bg: 'hsl(210 78% 52%)',
+    mark: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+        <circle cx="7" cy="8" r="2" /><circle cx="16.5" cy="7" r="2" /><circle cx="12" cy="16.5" r="2" />
+        <path d="M8.7 9.4 10.8 14.7M14.7 8.4 13 15M9 8h5.5" />
+      </svg>
+    ),
+  },
+  notes: {
+    bg: 'hsl(222 16% 34%)',
+    mark: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 4.5h6L17 8.5V18a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 18V6a1.5 1.5 0 0 1 1-1.5Z" />
+        <path d="M12.8 4.5V8a1 1 0 0 0 1 1h3.1" />
+        <path d="M9 13h6M9 16h3.5" />
+      </svg>
+    ),
+  },
+  journal: {
+    bg: 'hsl(16 62% 54%)',
+    mark: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 4.5h9v15H8a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" />
+        <path d="M6 16.5h11" /><path d="M10.5 4.5v6l2-1.4 2 1.4v-6" />
+      </svg>
+    ),
+  },
+  career: {
+    bg: 'hsl(6 70% 51%)',
+    mark: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round">
+        <path d="M7.5 17.5v-3.5M12 17.5v-6.5M16.5 17.5v-9.5" />
+      </svg>
+    ),
+  },
+};
+
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
 );
@@ -127,19 +179,30 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         data-app-workspace-rail
         className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
-        {/* 브랜드 P — 홈으로. hover 시 P → 홈 아이콘으로 크로스페이드. */}
-        <NavLink
-          to="/"
-          aria-label="홈"
-          title="홈으로"
-          className="group relative mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform duration-200 hover:scale-105"
-        >
-          <span className="text-[16px] font-bold transition-all duration-200 group-hover:scale-50 group-hover:opacity-0">P</span>
-          <Home
-            className="absolute h-[18px] w-[18px] scale-50 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100"
-            strokeWidth={2.2}
-          />
-        </NavLink>
+        {/* 브랜드 타일 — 현재 방의 마크+색으로 변신(길찾기). hover 시 홈 아이콘으로 크로스페이드, 클릭=홈. */}
+        {(() => {
+          const brand = RAIL_BRAND[current];
+          return (
+            <NavLink
+              to="/"
+              aria-label="홈으로"
+              title={brand ? '홈으로' : '홈으로'}
+              className={cn(
+                'group relative mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm transition-transform duration-200 hover:scale-105',
+                brand ? 'text-white' : 'bg-primary text-primary-foreground',
+              )}
+              style={brand ? { backgroundColor: brand.bg } : undefined}
+            >
+              <span className="flex items-center justify-center transition-all duration-200 group-hover:scale-50 group-hover:opacity-0">
+                {brand ? brand.mark : <span className="text-[16px] font-bold">P</span>}
+              </span>
+              <Home
+                className="absolute h-[18px] w-[18px] scale-50 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100"
+                strokeWidth={2.2}
+              />
+            </NavLink>
+          );
+        })()}
 
         <button
           type="button"

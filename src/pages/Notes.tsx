@@ -234,23 +234,8 @@ const Notes = () => {
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
         <div className="shrink-0 px-3 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              {/* 고유 마크 — 그래파이트 그라데이션 타일 + 문서(제목줄 강조). 공용 마스트헤드 마크 세트 */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-                <defs>
-                  <linearGradient id="mk-notes" x1="12" y1="2.5" x2="12" y2="21.5" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="hsl(220 16% 44%)" />
-                    <stop offset="1" stopColor="hsl(222 22% 25%)" />
-                  </linearGradient>
-                </defs>
-                <rect x="2.5" y="2.5" width="19" height="19" rx="6.5" fill="url(#mk-notes)" />
-                <rect x="3" y="3" width="18" height="18" rx="6" stroke="#fff" strokeOpacity="0.18" />
-                <rect x="6.8" y="5.8" width="10.4" height="12.4" rx="2.4" fill="#fff" />
-                <rect x="9" y="8.4" width="6" height="1.7" rx="0.85" fill="hsl(222 18% 34%)" />
-                <path d="M9 12.4h6M9 15h4.2" stroke="hsl(220 12% 64%)" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-              <h1 className="text-[22px] font-bold tracking-tight text-foreground">올인원 노트</h1>
-            </div>
+            {/* 방 색은 레일 P 마크가 담당(그래파이트) — 이름은 기본 잉크색 유지(다크모드 안전) */}
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">올인원 노트</h1>
             <div className="flex items-center gap-1">
               <button
                 type="button"
