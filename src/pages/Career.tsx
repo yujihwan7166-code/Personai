@@ -4,8 +4,8 @@
  * 플래너와 같은 풀블리드 셸 (2026-07-09):
  *   [페이지 헤더] "마이 커리어" + 기록 중 인장, 아래 굵은 괘선
  *   [좌 원고 본문] 프로필 스트립(사진·이름·소개) + 기록 2열 그리드
- *   [우 작성대 패널] border-l 분리 — "원고로 만들기" 2칸 타일 + 만든 문서 보관함(위)
- *   + "커리어 추가"(아래). 문서 생성은 요청사항 입력 → 생성 → 보관함 자동 저장.
+ *   [우 도구 도크] 독립 스크롤로 분리 — "문서(만들기↔만든 문서 탭)" 카드 + "커리어 추가" 카드.
+ *   문서 생성은 요청사항 입력 → 생성 → 보관함 자동 저장 후 '만든 문서' 탭으로 전환.
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
@@ -250,6 +250,7 @@ function BoardLedger() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
+  const [docTab, setDocTab] = useState<'make' | 'archive'>('make'); // 문서 만들기 ↔ 만든 문서
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
     try {
@@ -529,77 +530,83 @@ function BoardLedger() {
         {/* 굵은 줄 아래 — 좌(보드)·우(도구 도크)가 각자 독립 스크롤 */}
         <div className="flex min-h-0 flex-1 max-lg:flex-col">
           {/* ══════ 우 — 작성대 도크 (독립 스크롤, 모바일에선 위) ══════ */}
-          <aside className="shrink-0 overflow-y-auto bg-[hsl(var(--surface-3))] lg:order-2 lg:w-[400px] lg:border-l lg:border-[hsl(var(--hairline))]">
+          <aside className="shrink-0 overflow-y-auto bg-[hsl(var(--surface-3))] lg:order-2 lg:w-[440px] lg:border-l lg:border-[hsl(var(--hairline))]">
             {/* 도구 도크 — 흰 카드 3장 */}
             <div className="space-y-3 p-3 sm:p-4">
-            {/* 원고로 만들기 — 쌓인 기록에서 문서를 뽑는 도구 */}
+            {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
             <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
-              <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+              <div className="flex items-center gap-3 border-b border-[hsl(var(--hairline))] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
-                <h2 className="career-serif text-[16px] font-bold tracking-tight">원고로 만들기</h2>
-              </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
-                {items.length === 0
-                  ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
-                  : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
-              </p>
-              {/* 도구 — 2칸 타일 */}
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                {([['make', '문서 만들기'], ['archive', docs.length ? `만든 문서 ${docs.length}` : '만든 문서']] as const).map(([k, label]) => (
                   <button
-                    key={purpose}
+                    key={k}
                     type="button"
-                    onClick={() => setComposePurpose(purpose)}
-                    disabled={items.length === 0}
+                    onClick={() => setDocTab(k)}
+                    aria-pressed={docTab === k}
                     className={cn(
-                      'group rounded-lg border px-3 py-2.5 text-left transition-colors',
-                      items.length === 0
-                        ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                        : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] hover:border-[hsl(var(--career-red))]',
+                      'pb-0.5 text-[14px] font-bold tracking-tight transition-colors',
+                      docTab === k
+                        ? 'border-b-2 border-[hsl(var(--career-red))] text-foreground'
+                        : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    <span
-                      className={cn(
-                        'block text-[13px] font-medium transition-colors',
-                        items.length > 0 && 'group-hover:text-[hsl(var(--career-red))]',
-                      )}
-                    >
-                      {label}
-                    </span>
-                    <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">뽑기 →</span>
+                    {label}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setRecommendOpen(true)}
-                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="group rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red))]"
-                >
-                  <span className="block text-[13px] font-medium transition-colors group-hover:text-[hsl(var(--career-red))]">
-                    추천 스펙
-                  </span>
-                  <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">받기 →</span>
-                </button>
               </div>
-            </section>
 
-            {/* 만든 문서 — 생성한 문서 보관함, 항상 보인다(발견성) */}
-            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
-              <div className="flex items-baseline justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
-                <div className="flex items-baseline gap-2">
-                  <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">▤</span>
-                  <h2 className="text-[16px] font-bold tracking-tight">만든 문서</h2>
-                </div>
-                {docs.length > 0 && (
-                  <span className="career-mono text-[11px] text-muted-foreground/55">{docs.length}건</span>
-                )}
-              </div>
-              {docs.length === 0 ? (
+              {docTab === 'make' ? (
+                <>
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                    {items.length === 0
+                      ? '기록이 쌓이면 문서 초안을 뽑을 수 있어요.'
+                      : '쌓인 기록으로 AI가 문서 초안을 뽑아드려요.'}
+                  </p>
+                  {/* 도구 — 2칸 타일 */}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                      <button
+                        key={purpose}
+                        type="button"
+                        onClick={() => setComposePurpose(purpose)}
+                        disabled={items.length === 0}
+                        className={cn(
+                          'group rounded-lg border px-3 py-2.5 text-left transition-colors',
+                          items.length === 0
+                            ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
+                            : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] hover:border-[hsl(var(--career-red))]',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'block text-[13px] font-medium transition-colors',
+                            items.length > 0 && 'group-hover:text-[hsl(var(--career-red))]',
+                          )}
+                        >
+                          {label}
+                        </span>
+                        <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">뽑기 →</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setRecommendOpen(true)}
+                      title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+                      className="group rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red))]"
+                    >
+                      <span className="block text-[13px] font-medium transition-colors group-hover:text-[hsl(var(--career-red))]">
+                        추천 스펙
+                      </span>
+                      <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">받기 →</span>
+                    </button>
+                  </div>
+                </>
+              ) : docs.length === 0 ? (
                 <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground/70">
-                  위에서 문서를 만들면 여기에 저장돼요. 언제든 다시 열어보고 복사·다운로드할 수 있어요.
+                  아직 만든 문서가 없어요. “문서 만들기”에서 생성하면 여기에 쌓여요.
                 </p>
               ) : (
-                <ul className="mt-1 divide-y divide-[hsl(var(--hairline))]">
+                <ul className="mt-2 divide-y divide-[hsl(var(--hairline))]">
                   {docs.map((doc) => (
                     <li key={doc.id}>
                       <button
@@ -1181,7 +1188,7 @@ function BoardLedger() {
         </div>
       </LayoutGroup>
 
-      <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} />
+      <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} onCreated={() => setDocTab('archive')} />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
@@ -1348,7 +1355,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
 
 /* ═══════════════ AI 생성 다이얼로그 ═══════════════ */
 
-function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; onClose: () => void }) {
+function ComposeDialog({ purpose, onClose, onCreated }: { purpose: ComposePurpose | null; onClose: () => void; onCreated?: () => void }) {
   const { items, categories } = useCareerBoard();
   const [request, setRequest] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -1366,6 +1373,7 @@ function ComposeDialog({ purpose, onClose }: { purpose: ComposePurpose | null; o
       setResult(content);
       // 생성 즉시 보관함에 — 닫아도 "만든 문서"에서 다시 볼 수 있다.
       careerStore.addDoc({ purpose: target, content, request: request.trim() || undefined });
+      onCreated?.();
       notify.success('만든 문서에 저장했어요');
     } catch (err) {
       notify.error('문서 생성에 실패했어요', {
