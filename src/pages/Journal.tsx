@@ -1,7 +1,7 @@
 /**
  * 일기 — /journal (따뜻한 크림 다이어리, v2).
  *
- * 좌: 헤더 + streak + 미니캘린더 + 이번 달 기분 + 검색 + 최근 기록.
+ * 좌: 헤더(마스트헤드) + 미니캘린더 + 이번 달 기분 + 검색 + 최근 기록.
  * 우: 탭(기록·달력·통계).
  *   - 기록: 보기 모드(즐겨찾기/삭제/편집) ↔ 에디터(기분·날씨·제목·본문·태그).
  *   - 달력: 큰 월 그리드(무드 dot) + 범례.
@@ -334,17 +334,6 @@ export default function Journal() {
         {/* 마스트헤드 — 워크스페이스 공통: 도구명이 주인공, 방 색(테라코타) 틴트. 아이콘은 레일 마크가 담당. */}
         <div className="pl-5 pr-2 pb-3 pt-4">
           <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">오늘의 일기</h1>
-        </div>
-
-        <div className="mx-4 mb-3 flex items-center gap-3 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-3">
-          <div className="text-center leading-none">
-            <div className="text-[28px] font-bold text-[hsl(var(--cream-accent))]">{streak}</div>
-            <div className="mt-1 text-[10px] text-[hsl(var(--cream-muted))]">일 연속</div>
-          </div>
-          <p className="text-[11.5px] leading-snug text-[hsl(var(--cream-muted))]">
-            꾸준히 이어가고 있어요.<br />
-            지금까지 <b className="text-[hsl(var(--cream-ink))]">{allEntries.length}편</b> 기록.
-          </p>
         </div>
 
         {/* 미니 캘린더 */}
