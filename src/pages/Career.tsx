@@ -283,6 +283,19 @@ function BoardLedger() {
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
 
+  /** 요약 통계 — 이번 달 기록 수(지난달 대비) · 채움도(기록 있는 칸/전체) · 빈 칸 이름. */
+  const stats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+    const thisCount = items.filter((i) => i.date.startsWith(thisMonth)).length;
+    const lastCount = items.filter((i) => i.date.startsWith(lastMonth)).length;
+    const filled = sections.filter((s) => s.items.length > 0).length;
+    const emptyNames = sections.filter((s) => s.items.length === 0).map((s) => s.category.name);
+    return { thisCount, delta: thisCount - lastCount, filled, total: sections.length, emptyNames };
+  }, [items, sections]);
+
   /** AI가 분리한 기간 표기 (초안 카드용). */
   const draftPeriod = advDate ? periodLabel(advDate, { endDate: advEndDate, ongoing: advOngoing }) : '';
 
@@ -450,6 +463,13 @@ function BoardLedger() {
     } catch {
       notify.error('사진을 불러오지 못했어요');
     }
+  };
+
+  /** 빈 칸의 "첫 기록 추가" — 직접 작성 모드로 그 칸을 미리 골라 입력창에 포커스. */
+  const startAddTo = (categoryName: string) => {
+    changeWriteMode('direct');
+    setAdvCategory(categoryName);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   /* 원고 행 — 카드(문장 + 날짜, 세부 미리보기 아래 1줄), 클릭하면 세부사항. */
@@ -950,8 +970,11 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 본문 ══════ */}
           <main className="min-w-0 px-4 py-4 sm:px-6 lg:order-1">
-            {/* ── 프로필 스트립 — 사진·이름·소개, 납작한 한 줄 ── */}
-            <div className="flex items-center gap-4">
+            {/* ── 프로필 카드 + 통계 카드 ── */}
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+              {/* 프로필 카드 — 빨간 좌측 액센트 */}
+              <div className="relative flex items-center gap-4 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 pl-5">
+                <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[hsl(var(--career-red))]" />
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
@@ -1037,13 +1060,52 @@ function BoardLedger() {
                           : '한 줄 소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
                       }
                       aria-label="한 줄 소개"
-                      className="mt-2 w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
+                      className="w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
-                </div>
+              </div>
 
-              {/* ────── 기록 — 반응형 장부(넓으면 3열) ────── */}
-              <div className="mt-6 grid items-start gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+              {/* 통계 카드 — 이번 달 기록 · 채움도 */}
+              <div className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="shrink-0">
+                    <p className="text-[11px] text-muted-foreground">이번 달 기록</p>
+                    <p className="mt-1 flex items-baseline gap-1">
+                      <span className="career-mono text-[26px] font-bold leading-none">{stats.thisCount}</span>
+                      <span className="text-[12px] text-muted-foreground">건</span>
+                    </p>
+                    {stats.delta !== 0 && (
+                      <p className={cn('mt-1.5 text-[11px] font-medium', stats.delta > 0 ? 'text-[hsl(var(--career-red))]' : 'text-muted-foreground')}>
+                        {stats.delta > 0 ? `↑ 지난달 +${stats.delta}` : `↓ 지난달 ${stats.delta}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-muted-foreground">채움도</p>
+                    <div className="mt-2 flex gap-1">
+                      {sections.map((s, i) => (
+                        <span
+                          key={i}
+                          className={cn('h-1.5 flex-1 rounded-full', s.items.length > 0 ? 'bg-[hsl(var(--career-red))]' : 'bg-[hsl(var(--surface-3))]')}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[11.5px] font-medium text-foreground">{stats.filled} / {stats.total} 카테고리</p>
+                    {stats.emptyNames.length > 0 && (
+                      <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground/70">{stats.emptyNames.join(' · ')} 비어 있어요</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ────── 기록 — 카드형 카테고리 그리드 ────── */}
+            <div className="mb-3 mt-6 flex items-baseline gap-2">
+              <span aria-hidden className="h-3.5 w-1 rounded-full bg-[hsl(var(--career-red))]" />
+              <h2 className="text-[15px] font-bold tracking-tight">기록</h2>
+              <span className="career-mono text-[11px] text-muted-foreground">총 {items.length}건</span>
+            </div>
+            <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -1054,24 +1116,48 @@ function BoardLedger() {
                       onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                       onDrop={(e) => onDropToCategory(e, category.id)}
                       className={cn(
-                        'group/section transition-shadow',
-                        dragOverCategory === category.id && 'shadow-[inset_0_0_0_1px_hsl(var(--career-red)/0.6)]',
+                        'group/section flex flex-col rounded-xl border bg-[hsl(var(--surface-1))] p-4 transition-colors',
+                        dragOverCategory === category.id ? 'border-[hsl(var(--career-red)/0.6)]' : 'border-[hsl(var(--hairline))]',
                       )}
                     >
-                      <SectionHeader
-                        index={sectionIndex}
-                        name={category.name}
-                        count={sectionItems.length}
-                        onRemove={() => careerStore.removeCategory(category.id)}
-                      />
+                      {/* 카드 헤더 — 번호 · 이름 · 건수(빈 칸이면 삭제) */}
+                      <div className="mb-2.5 flex items-center gap-2">
+                        <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
+                          {String(sectionIndex + 1).padStart(2, '0')}
+                        </span>
+                        <h3 className="text-[15px] font-bold tracking-tight">{category.name}</h3>
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="career-mono rounded-full bg-[hsl(var(--surface-2))] px-2 py-0.5 text-[10.5px] text-muted-foreground">
+                            {sectionItems.length}
+                          </span>
+                          {sectionItems.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => careerStore.removeCategory(category.id)}
+                              aria-label={`${category.name} 칸 삭제`}
+                              title="빈 칸 삭제"
+                              className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/55"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </span>
+                      </div>
                       {sectionItems.length === 0 ? (
-                        /* 빈 칸 — 다음 기록이 들어올 자리, 점선 슬롯 */
-                        <div className="mt-2 flex h-11 items-center rounded-lg border border-dashed border-[hsl(var(--foreground)/0.2)] px-3.5">
-                          <span className="text-[11.5px] text-muted-foreground/50">비어 있음</span>
-                        </div>
+                        /* 빈 칸 — 첫 기록 추가 유도 */
+                        <button
+                          type="button"
+                          onClick={() => startAddTo(category.name)}
+                          className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-[hsl(var(--foreground)/0.16)] py-7 text-muted-foreground/55 transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
+                        >
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--career-red)/0.08)] text-[hsl(var(--career-red))]">
+                            <Plus className="h-4 w-4" />
+                          </span>
+                          <span className="text-[11.5px]">첫 기록 추가</span>
+                        </button>
                       ) : (
                         <>
-                          <ul className="divide-y divide-[hsl(var(--hairline))]">
+                          <ul className="-mx-2 divide-y divide-[hsl(var(--hairline))]">
                             <AnimatePresence initial={false}>
                               {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
                                 <motion.li
@@ -1104,42 +1190,42 @@ function BoardLedger() {
                     </section>
                   ))}
 
-                  {/* 칸 추가 — 원고에 새 인덱스를 긋는다 */}
+                  {/* 카테고리 추가 — 그리드 안 점선 카드 */}
                   {addingCategory ? (
-                    <div className="flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
-                      <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
-                        {String(sections.length + 1).padStart(2, '0')}
-                      </span>
-                      <input
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
-                          if (e.key === 'Escape') {
-                            setAddingCategory(false);
-                            setNewCategoryName('');
-                          }
-                        }}
-                        onBlur={commitNewCategory}
-                        autoFocus
-                        placeholder="칸 이름 — 예: 봉사, 출판, 특허"
-                        aria-label="새 칸 이름"
-                        className="career-serif h-6 min-w-0 flex-1 bg-transparent text-[15px] font-bold outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
-                      />
+                    <div className="flex min-h-[132px] flex-col rounded-xl border border-[hsl(var(--career-red)/0.5)] bg-[hsl(var(--surface-1))] p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
+                          {String(sections.length + 1).padStart(2, '0')}
+                        </span>
+                        <input
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitNewCategory();
+                            if (e.key === 'Escape') {
+                              setAddingCategory(false);
+                              setNewCategoryName('');
+                            }
+                          }}
+                          onBlur={commitNewCategory}
+                          autoFocus
+                          placeholder="칸 이름 — 예: 봉사, 출판, 특허"
+                          aria-label="새 칸 이름"
+                          className="h-6 min-w-0 flex-1 bg-transparent text-[15px] font-bold outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] text-muted-foreground/60">Enter로 추가 · Esc로 취소</p>
                     </div>
                   ) : (
-                    /* 다음 칸이 그어질 자리 — 번호가 미리 매겨진 고스트 헤더 */
                     <button
                       type="button"
                       onClick={() => setAddingCategory(true)}
-                      className="group/add flex items-baseline gap-2 self-start border-b border-dashed border-[hsl(var(--foreground)/0.25)] pb-2 pr-6 text-left transition-colors hover:border-[hsl(var(--career-red)/0.6)]"
+                      className="group/add flex min-h-[132px] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--foreground)/0.2)] text-muted-foreground/55 transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
                     >
-                      <span className="career-mono text-[11px] font-medium text-muted-foreground/45 transition-colors group-hover/add:text-[hsl(var(--career-red))]">
-                        {String(sections.length + 1).padStart(2, '0')}
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--surface-2))] transition-colors group-hover/add:bg-[hsl(var(--career-red)/0.1)] group-hover/add:text-[hsl(var(--career-red))]">
+                        <Plus className="h-4 w-4" />
                       </span>
-                      <span className="text-[13px] text-muted-foreground/60 transition-colors group-hover/add:text-[hsl(var(--career-red))]">
-                        + 칸 추가
-                      </span>
+                      <span className="text-[12.5px]">카테고리 추가</span>
                     </button>
                   )}
               </div>
@@ -1153,43 +1239,6 @@ function BoardLedger() {
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
     </>
-  );
-}
-
-/** 섹션 헤더 — 빨간 인덱스 번호 + 명조 제목, 진한 괘선. */
-function SectionHeader({
-  index,
-  name,
-  count,
-  onRemove,
-}: {
-  index: number;
-  name: string;
-  count: number;
-  onRemove?: () => void;
-}) {
-  return (
-    <div className="mb-1 flex items-baseline gap-2 border-b border-[hsl(var(--foreground)/0.55)] pb-2">
-      <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      <h2 className="career-serif text-[15px] font-bold tracking-tight">{name}</h2>
-      <span className="ml-auto" />
-      {count > 0 && (
-        <span className="career-mono text-[10.5px] text-muted-foreground/55">{count}건</span>
-      )}
-      {count === 0 && onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`${name} 칸 삭제`}
-          title="빈 칸 삭제"
-          className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/70"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
   );
 }
 
