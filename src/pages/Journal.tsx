@@ -332,7 +332,7 @@ export default function Journal() {
       {/* ── 사이드바 ── */}
       <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
         {/* 마스트헤드 — 워크스페이스 공통: 도구명이 주인공, 방 색(테라코타) 틴트. 아이콘은 레일 마크가 담당. */}
-        <div className="pl-5 pr-2 pb-3 pt-4">
+        <div className="mb-3 border-b border-[hsl(var(--cream-line))] pl-5 pr-2 pb-3 pt-4">
           <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">오늘의 일기</h1>
         </div>
 
