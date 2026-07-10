@@ -290,11 +290,6 @@ export default function Journal() {
     const past = allEntries.filter((e) => e.date !== todayKey && (e.body.trim() || e.title?.trim()));
     return past.length ? past[Math.floor(Math.random() * past.length)] : null;
   }, [allEntries, todayKey]);
-  const moodByDate = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const e of allEntries) { const k = entryMoodKey(e); if (k && !map.has(e.date)) map.set(e.date, k); }
-    return map;
-  }, [allEntries]);
   const dayMeta = useMemo(() => {
     const map = new Map<string, { moodKey: string | null; color?: string; weather?: Weather; label: string }>();
     for (const e of allEntries) {
@@ -348,22 +343,38 @@ export default function Journal() {
           <div className="mb-1 grid grid-cols-7 text-center text-[9.5px] text-[hsl(var(--cream-muted))]/70">
             {WEEKDAY.map((w) => <span key={w}>{w}</span>)}
           </div>
-          <div className="grid grid-cols-7 gap-y-0.5">
+          <div className="grid grid-cols-7 gap-y-1">
             {Array(lead).fill(null).map((_, i) => <span key={`x${i}`} />)}
             {Array.from({ length: daysIn }, (_, i) => {
               const d = dateKey(new Date(y, m, i + 1));
               const isSel = d === selectedDate;
               const isToday = d === todayKey;
-              const dot = moodByDate.get(d);
+              const meta = dayMeta.get(d);              // 기록이 있는 날 (무드 없어도 포함)
+              const written = !!meta;
+              const mColor = written ? (meta.moodKey ? moodColor(meta.moodKey) : 'hsl(var(--cream-accent))') : null;
               return (
-                <button key={d} type="button" onClick={() => openDate(d)} className="flex flex-col items-center py-0.5">
-                  <span className={cn(
-                    'flex h-7 w-7 items-center justify-center rounded-full text-[12px] tabular-nums transition-colors',
-                    isSel ? 'bg-[hsl(var(--cream-accent))] font-bold text-white'
-                          : isToday ? 'font-bold text-[hsl(var(--cream-accent))]'
-                          : 'text-[hsl(var(--cream-ink))]/80 hover:bg-[hsl(var(--cream-line))]/40',
-                  )}>{i + 1}</span>
-                  <span className="mt-0.5 h-1 w-1 rounded-full" style={{ backgroundColor: dot && !isSel ? moodColor(dot) : 'transparent' }} />
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => openDate(d)}
+                  aria-label={`${i + 1}일${written ? ', 기록 있음' : ''}`}
+                  className="flex items-center justify-center"
+                >
+                  <span
+                    className={cn(
+                      'flex h-7 w-7 items-center justify-center rounded-full text-[12px] tabular-nums transition-colors',
+                      isSel ? 'font-bold text-white'
+                        : written ? 'font-semibold text-[hsl(var(--cream-ink))]'
+                        : 'text-[hsl(var(--cream-ink))]/60 hover:bg-[hsl(var(--cream-line))]/40',
+                      isToday && !isSel && 'ring-1 ring-[hsl(var(--cream-accent))] ring-offset-1 ring-offset-[hsl(var(--cream-panel))]',
+                      isToday && !isSel && !written && 'font-bold text-[hsl(var(--cream-accent))]',
+                    )}
+                    style={
+                      isSel ? { backgroundColor: 'hsl(var(--cream-accent))' }
+                        : written ? { backgroundColor: `color-mix(in srgb, ${mColor} 30%, transparent)` }
+                        : undefined
+                    }
+                  >{i + 1}</span>
                 </button>
               );
             })}
@@ -383,7 +394,7 @@ export default function Journal() {
           </div>
         )}
 
-        {/* 오늘의 추억 — 무작위 과거 일기 */}
+        {/* 다시 보는 기록 — 무작위 과거 일기 (특정 날짜 아님) */}
         {memory && (() => {
           const md = new Date(`${memory.date}T00:00:00`);
           const mmk = entryMoodKey(memory);
@@ -391,7 +402,7 @@ export default function Journal() {
           const msn = (memory.title ? memory.body : memory.body.split('\n').slice(1).join(' ')).trim();
           return (
             <div className="px-4 pb-3">
-              <div className="mb-1.5 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">🕰️ 오늘의 추억</div>
+              <div className="mb-1.5 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">🕰️ 다시 보는 기록</div>
               <button type="button" onClick={() => openEntry(memory.date)} className="w-full rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-3 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/40" style={memory.color ? { backgroundColor: `color-mix(in srgb, ${memory.color} 8%, #f8f3ea)` } : undefined}>
                 <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
                   {mmk && MOOD_BY_KEY[mmk] && <span className="text-[13px] leading-none">{MOOD_BY_KEY[mmk].emoji}</span>}
@@ -405,24 +416,38 @@ export default function Journal() {
         })()}
 
         {/* 최근 기록 */}
-        <div className="border-t border-[hsl(var(--cream-line))] px-4 py-3">
-          <div className="mb-2 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">최근 기록</div>
-          <div className="flex flex-col gap-2.5">
-            {recent.length === 0 && <p className="text-[12px] text-[hsl(var(--cream-muted))]/70">기록이 없어요.</p>}
+        <div className="mt-1 border-t border-[hsl(var(--cream-line))] px-3 py-3">
+          <div className="mb-1.5 px-1 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">최근 기록</div>
+          <div className="flex flex-col gap-0.5">
+            {recent.length === 0 && <p className="px-1 py-2 text-[12px] text-[hsl(var(--cream-muted))]/70">아직 기록이 없어요.</p>}
             {recent.map((e) => {
               const dd = new Date(`${e.date}T00:00:00`);
               const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
-              const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+              const mk = entryMoodKey(e);
+              const emoji = mk && MOOD_BY_KEY[mk] ? MOOD_BY_KEY[mk].emoji : null;
               const on = e.date === selectedDate;
               return (
-                <button key={e.id} type="button" onClick={() => openEntry(e.date)} className={cn('rounded-lg px-2 py-1.5 text-left transition-colors', on ? 'bg-[hsl(var(--cream-accent))]/10' : 'hover:bg-[hsl(var(--cream-line))]/30')}>
-                  <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: moodColor(entryMoodKey(e)) }} />
-                    {dd.getMonth() + 1}월 {dd.getDate()}일 · {WEEKDAY[dd.getDay()]}
-                    {e.starred && <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />}
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => openEntry(e.date)}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors',
+                    on ? 'bg-[hsl(var(--cream-accent))]/12' : 'hover:bg-[hsl(var(--cream-line))]/35',
+                  )}
+                >
+                  {emoji ? (
+                    <span className="shrink-0 text-[17px] leading-none">{emoji}</span>
+                  ) : (
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: moodColor(mk) }} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-semibold text-[hsl(var(--cream-ink))]">{t}</div>
+                    <div className="mt-px flex items-center gap-1 text-[10.5px] text-[hsl(var(--cream-muted))]">
+                      {dd.getMonth() + 1}월 {dd.getDate()}일 · {WEEKDAY[dd.getDay()]}
+                      {e.starred && <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />}
+                    </div>
                   </div>
-                  <div className="mt-0.5 truncate text-[13px] font-semibold text-[hsl(var(--cream-ink))]">{t}</div>
-                  {ex && <div className="truncate text-[11.5px] text-[hsl(var(--cream-muted))]">{ex}</div>}
                 </button>
               );
             })}
