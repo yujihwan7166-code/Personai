@@ -532,7 +532,7 @@ function BoardLedger() {
         {/* 굵은 줄 아래 — 좌(보드)·우(도구 도크)가 각자 독립 스크롤 */}
         <div className="flex min-h-0 flex-1 max-lg:flex-col">
           {/* ══════ 우 — 작성대 도크 (독립 스크롤, 모바일에선 위) ══════ */}
-          <aside className="shrink-0 overflow-y-auto lg:order-2 lg:w-[480px] lg:border-l lg:border-[hsl(var(--hairline))]">
+          <aside className="scrollbar-thin shrink-0 overflow-y-auto lg:order-2 lg:w-[480px] lg:border-l lg:border-[hsl(var(--hairline))]">
             {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
             <div className="space-y-4 px-4 py-5 sm:px-5">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
@@ -978,7 +978,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:order-1">
+          <main className="scrollbar-thin min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:order-1">
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_22px_48px_-32px_hsl(var(--foreground)/0.3)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
             <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
