@@ -216,16 +216,25 @@ export interface HubTool {
   emoji: string;
   tint: string;
   axis: HubAxis;
+  /** 지정하면 라우팅 대신 해당 모드로 전환 (스터디룸·회의록 이사분). */
+  mode?: MainMode;
+  /** true 면 자리만 예약 — 클릭 불가, 흐리게 표시 (이름·설계 미정 신규 방). */
+  pending?: boolean;
 }
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) ─────────────────
-  { id: 'planner',     label: '통합 플래너',  desc: '캘린더·할일·습관·목표 한 화면에',     emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
-  { id: 'wiki',        label: '마이위키',     desc: '나만의 지식 베이스',                 emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
+  { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
+  { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
+  { id: 'people',     label: '인맥노트 (이름미정)', desc: '사람 카드 · 경조사 · 선물',       emoji: '📇', tint: 'hsl(340 60% 50%)', axis: '정리', pending: true },
+  { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
+  { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
   // ── 기록 (직접 쓰기) ──────────────
-  { id: 'notes',      label: '올인원 노트',    desc: '노트·화이트보드·시트 한 곳에',        emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
-  { id: 'journal',    label: '일기',          desc: '하루 기록 · 감정',                   emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
-  { id: 'career',     label: '스펙 보드',      desc: '이룬 것을 이력서로 정리',            emoji: '📄', tint: 'hsl(6 70% 51%)',  axis: '기록' },
+  { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
+  { id: 'journal',    label: '일기',               desc: '하루 기록 · 감정',               emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
+  { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', tint: 'hsl(6 70% 51%)',  axis: '기록' },
+  { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
+  { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -285,10 +294,12 @@ function fmtUsd(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-/** 사용자 요청 목록에 맞춘 그룹핑. 'debate' 는 전문 그룹 내부에서 드릴다운으로 노출. */
+/** 사용자 요청 목록에 맞춘 그룹핑 (2026-07-12 개편).
+ * 대화 = 일반·멀티·(나만의 AI 자리)·프리미엄. 심층 리서치는 프리미엄 서브메뉴로 이동.
+ * 시뮬레이션 = 리허설·라운드테이블·(나만의 AI 컴퍼니 자리). 스터디룸·녹음은 노트 컬럼으로 이사. */
 export const MODE_GROUPS: Array<{ label: string; description: string; modes: MainMode[] }> = [
-  { label: '대화',  description: '질문하고 답받기',         modes: ['general', 'multi', 'research_main', 'premium_main'] },
-  { label: '전문',  description: '학습 · 녹음 · 시뮬레이션', modes: ['study_main', 'voice_main', 'stakeholder_main', 'debate'] },
+  { label: '대화',       description: '질문하고 답받기', modes: ['general', 'multi', 'premium_main'] },
+  { label: '시뮬레이션', description: '여럿이 굴리기',   modes: ['stakeholder_main', 'debate'] },
 ];
 
 export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
@@ -1963,10 +1974,10 @@ export function MainModeTabs({
                   </div>
                 );
               })()}
-              {/* Col 2 = 대화, Col 3 = 전문 — 각자 독립 컬럼 (row-start-1 row 1 고정) */}
+              {/* Col 2 = 대화, Col 3 = 시뮬레이션 — 각자 독립 컬럼 (row-start-1 row 1 고정) */}
               {[0, 1].map((idx) => {
                     const group = MODE_GROUPS[idx];
-                    const isExpert = group.label === '전문';
+                    const isExpert = group.label === '시뮬레이션';
                     const isConversation = group.label === '대화';
                     const isAssistant = false;
                     const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
@@ -1997,6 +2008,26 @@ export function MainModeTabs({
                                 if (m === 'premium_main') {
                                   const isPremiumActive = currentMode === 'premium_main';
                                   return [
+                                    /* 나만의 AI — 자리 예약 (봇 스튜디오, 준비 중) */
+                                    <div key="my-ai-placeholder" className="relative">
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        aria-disabled="true"
+                                        className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
+                                      >
+                                        <span
+                                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                          style={{ backgroundColor: 'color-mix(in oklab, hsl(262 70% 55%) 12%, transparent)' }}
+                                        >
+                                          <span className="select-none text-[16px] leading-none">🤖</span>
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">나만의 AI</span>
+                                          <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">내 전문가를 만들어 대화 · 준비 중</span>
+                                        </span>
+                                      </button>
+                                    </div>,
                                     <div key="premium-drill-trigger" className="relative">
                                       <button
                                         type="button"
@@ -2028,7 +2059,7 @@ export function MainModeTabs({
                                             프리미엄 AI
                                           </span>
                                           <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                            법률 · 건강 · 세무 · 투자
+                                            법률 · 세무 · 투자 · 심층 리서치
                                           </span>
                                         </span>
                                         <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-colors', premiumOpen && 'text-foreground')} aria-hidden />
@@ -2039,7 +2070,39 @@ export function MainModeTabs({
                                           side: 'right',
                                           tint: MODE_TINT.premium_main,
                                           ariaLabel: '프리미엄 AI 세부 선택',
-                                          children: PREMIUM_AI_TOOLS.map(renderPremiumToolItem),
+                                          children: [
+                                            ...PREMIUM_AI_TOOLS.map(renderPremiumToolItem),
+                                            /* 심층 리서치 — 대화 컬럼 최상위에서 프리미엄 안으로 이동 (2026-07-12) */
+                                            <div key="premium-research-sep" className="mx-2 my-1 border-t border-[hsl(var(--hairline))]" aria-hidden />,
+                                            <button
+                                              key="premium-research"
+                                              type="button"
+                                              onClick={() => handleSelect('research_main')}
+                                              role="menuitem"
+                                              className={cn(
+                                                'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]',
+                                                currentMode === 'research_main' && 'bg-[hsl(var(--accent))]',
+                                              )}
+                                            >
+                                              <span
+                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                                style={{
+                                                  backgroundColor: `color-mix(in oklab, ${MODE_TINT.research_main} 12%, transparent)`,
+                                                  color: MODE_TINT.research_main,
+                                                }}
+                                              >
+                                                <FlaskConical className="h-3.5 w-3.5" strokeWidth={currentMode === 'research_main' ? 2.2 : 1.8} />
+                                              </span>
+                                              <span className="min-w-0 flex-1">
+                                                <span className={cn('block truncate text-[12.5px] leading-tight', currentMode === 'research_main' ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+                                                  심층 리서치
+                                                </span>
+                                                <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">
+                                                  멀티 AI 교차 검증 리포트
+                                                </span>
+                                              </span>
+                                            </button>,
+                                          ],
                                         })}
                                       </AnimatePresence>
                                     </div>,
@@ -2110,6 +2173,26 @@ export function MainModeTabs({
                                         })}
                                       </AnimatePresence>
                                     </div>,
+                                    /* 나만의 AI 컴퍼니 — 자리 예약 (봇 팀 프로젝트, 준비 중) */
+                                    <div key="ai-company-placeholder" className="relative">
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        aria-disabled="true"
+                                        className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
+                                      >
+                                        <span
+                                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                          style={{ backgroundColor: 'color-mix(in oklab, hsl(215 70% 45%) 12%, transparent)' }}
+                                        >
+                                          <span className="select-none text-[16px] leading-none">🏢</span>
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">나만의 AI 컴퍼니</span>
+                                          <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">봇 팀을 꾸려 프로젝트 위임 · 준비 중</span>
+                                        </span>
+                                      </button>
+                                    </div>,
                                   ];
                                 }
                                 return [renderModeItem(m)];
@@ -2161,10 +2244,15 @@ export function MainModeTabs({
                   {(['정리', '기록'] as HubAxis[]).map((axis) => (
                     <div key={axis} className="space-y-0.5">
                       {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => withFavStar(
-                        { id: `hub-${item.id}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'hub', hubId: item.id } },
+                        item.mode
+                          ? { id: `mode-${item.mode}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'mode', mode: item.mode } }
+                          : { id: `hub-${item.id}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'hub', hubId: item.id } },
                         <button
                           type="button"
+                          aria-disabled={item.pending || undefined}
                           onClick={() => {
+                            if (item.pending) return; // 자리만 예약 — 이름·설계 미정
+                            if (item.mode) { handleSelect(item.mode); return; } // 스터디룸·회의록 — 모드 전환
                             // v1 라우팅 = notes / wiki / planner / journal / career / cloud. 다른 도구는 아직 no-op.
                             if (item.id === 'notes') {
                               setOpen(false);
@@ -2184,7 +2272,10 @@ export function MainModeTabs({
                             }
                           }}
                           role="menuitem"
-                          className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                          className={cn(
+                            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            item.pending ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
+                          )}
                         >
                           <span
                             className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"

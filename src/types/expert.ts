@@ -125,7 +125,7 @@ export type MainMode = 'general' | 'multi' | 'brainstorm_main' | 'stakeholder_ma
 
 export const MAIN_MODE_LABELS: Record<MainMode, { label: string; icon: string; description: string }> = {
     general: { label: '일반 채팅', icon: '💬', description: 'AI 하나를 골라 대화하세요' },
-    multi: { label: '다중 AI', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
+    multi: { label: '멀티 채팅', icon: '🔄', description: '여러 AI의 답변을 종합합니다' },
     brainstorm_main: { label: '브레인스토밍', icon: '💡', description: 'AI들이 협업해 아이디어를 정리합니다' },
     stakeholder_main: { label: 'AI 리허설', icon: '🎭', description: '이해관계자 역할극으로 아이디어를 검증합니다' },
     premium_main: { label: '프리미엄 AI', icon: '⚖️', description: '법률·건강·세무·투자 등 전문형 AI 자문' },
@@ -176,7 +176,7 @@ export function getMainMode(mode: DiscussionMode): MainMode {
 // Legacy compat label map
 export const DISCUSSION_MODE_LABELS: Record<string, { label: string; icon: string; description: string; detail: string }> = {
     general: { label: '일반', icon: '💬', description: 'AI 1개 선택', detail: 'AI 하나를 골라 자유롭게 대화하세요.' },
-    multi: { label: '다중 AI', icon: '🔄', description: '여러 AI 종합', detail: '여러 AI/전문가의 답변을 모은 뒤 하나의 종합 결론을 만들어 드립니다.' },
+    multi: { label: '멀티 채팅', icon: '🔄', description: '여러 AI 종합', detail: '여러 AI/전문가의 답변을 모은 뒤 하나의 종합 결론을 만들어 드립니다.' },
     standard: { label: '심층 토론', icon: '🎯', description: '3라운드 토론', detail: '초기 의견 → 반론 → 최종 입장, 3라운드 깊이 있는 토론을 진행합니다.' },
     procon: { label: '찬반 토론', icon: '⚖️', description: '찬반 대립', detail: '전문가들이 찬성·반대로 나뉘어 논쟁합니다.' },
     brainstorm: { label: '브레인스토밍', icon: '💡', description: '아이디어 확산', detail: '기존 틀을 깨는 자유로운 아이디어를 서로 발전시킵니다.' },

@@ -4958,8 +4958,8 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                       if (recent.length >= 3) {
                         window.localStorage.setItem('personai.multi_nudge_done', '1');
                         toast('여러 AI 의 답이 궁금하신가요?', {
-                          description: '다중 AI 모드로 한 번에 비교할 수 있어요.',
-                          action: { label: '다중 AI', onClick: () => handleModeChange('multi') },
+                          description: '멀티 채팅 모드로 한 번에 비교할 수 있어요.',
+                          action: { label: '멀티 채팅', onClick: () => handleModeChange('multi') },
                         });
                       }
                     }
@@ -7870,7 +7870,7 @@ ${prevPhaseSummary ? `- 이전 단계 요약: ${prevPhaseSummary}` : ''}
                         backgroundColor: 'var(--hero-accent-soft, rgba(100,116,139,0.06))',
                       }}
                     >
-                      <Layers size={12} /> 다중 AI 로 비교
+                      <Layers size={12} /> 멀티 채팅으로 비교
                     </button>
                   </div>
                 );

@@ -50,7 +50,7 @@ function buildGroups(): RailGroup[] {
     {
       label: '대화',
       items: [
-        { id: 'multi', label: '다중 AI', icon: MODE_ICON.multi, tint: MODE_TINT.multi, target: { kind: 'mode', mode: 'multi' } },
+        { id: 'multi', label: '멀티 채팅', icon: MODE_ICON.multi, tint: MODE_TINT.multi, target: { kind: 'mode', mode: 'multi' } },
         { id: 'research', label: '심층 리서치', icon: MODE_ICON.research_main, tint: MODE_TINT.research_main, target: { kind: 'mode', mode: 'research_main' } },
       ],
     },
