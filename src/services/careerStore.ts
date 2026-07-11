@@ -287,6 +287,8 @@ export const careerStore = {
         photo: typeof parsed.photo === 'string' && parsed.photo.startsWith('data:image/') ? parsed.photo : undefined,
         email: typeof parsed.email === 'string' && parsed.email.trim() ? parsed.email : undefined,
         phone: typeof parsed.phone === 'string' && parsed.phone.trim() ? parsed.phone : undefined,
+        birth: typeof parsed.birth === 'string' && parsed.birth.trim() ? parsed.birth : undefined,
+        link: typeof parsed.link === 'string' && parsed.link.trim() ? parsed.link : undefined,
       };
     } catch {
       return empty;

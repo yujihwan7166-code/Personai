@@ -76,4 +76,8 @@ export interface CareerProfile {
   /** 연락처 — 이력서 머리글용 (선택). */
   email?: string;
   phone?: string;
+  /** 생년월일 — 자유 표기, 적은 그대로 이력서에 실린다 (선택). */
+  birth?: string;
+  /** 대표 링크 — 깃허브·블로그·포트폴리오 (선택). */
+  link?: string;
 }

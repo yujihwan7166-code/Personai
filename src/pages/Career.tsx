@@ -1129,6 +1129,29 @@ function BoardLedger() {
                       aria-label="소개"
                       className="mt-0.5 block w-full max-w-[520px] resize-none overflow-hidden bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
+                    {/* 인적사항 — 서식의 빈칸처럼 인라인 편집. 채우면 이력서 머리글·연락처 줄에 그대로 실린다. */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-y-1 text-[11.5px]">
+                      {([
+                        ['birth', '생년월일', profile.birth, 'w-[96px]'],
+                        ['email', '이메일', profile.email, 'w-[170px]'],
+                        ['phone', '전화번호', profile.phone, 'w-[118px]'],
+                        ['link', '대표 링크', profile.link, 'w-[190px]'],
+                      ] as const).map(([key, ph, value, width], i) => (
+                        <span key={key} className="flex items-center">
+                          {i > 0 && <span aria-hidden className="mx-2 text-muted-foreground/30">·</span>}
+                          <input
+                            defaultValue={value ?? ''}
+                            onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
+                            placeholder={ph}
+                            aria-label={ph}
+                            className={cn(
+                              'career-mono border-b border-transparent bg-transparent pb-0.5 text-muted-foreground outline-none transition-colors placeholder:text-muted-foreground/35 focus:border-[hsl(var(--career-red)/0.6)]',
+                              width,
+                            )}
+                          />
+                        </span>
+                      ))}
+                    </div>
                   </div>
             </div>
 

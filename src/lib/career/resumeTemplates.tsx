@@ -37,7 +37,7 @@ function periodLabel(i: SpecItem): string {
   }
   return start;
 }
-const contactList = (p: CareerProfile) => [p.email, p.phone].filter((v): v is string => !!v && v.trim().length > 0);
+const contactList = (p: CareerProfile) => [p.birth, p.email, p.phone, p.link].filter((v): v is string => !!v && v.trim().length > 0);
 const taglineLines = (p: CareerProfile) => (p.tagline || '').split('\n').map((l) => l.trim()).filter(Boolean);
 
 /** 시트 루트 공통 — 흰 종이·keep-all. */
@@ -329,7 +329,13 @@ export function ResumeReport({ profile, sections }: ResumeProps) {
   const lines = taglineLines(profile);
   const quote = lines[0] || profile.name || '이름';
   const desc = lines.slice(1).join('  ');
-  const info: Array<[string, string | undefined]> = [['이름', profile.name], ['메일', profile.email], ['연락처', profile.phone]];
+  const info: Array<[string, string | undefined]> = [
+    ['이름', profile.name],
+    ['생년월일', profile.birth],
+    ['메일', profile.email],
+    ['연락처', profile.phone],
+    ['링크', profile.link],
+  ];
   return (
     <div style={sheet({ color: '#242424' })}>
       <div style={{ display: 'flex', gap: 30, alignItems: 'center', background: '#f2f1ee', padding: '42px 54px' }}>
@@ -378,7 +384,12 @@ export function ResumeReport({ profile, sections }: ResumeProps) {
 
 /* ═══════════════ 8 · 콤팩트 — 연락처 라벨 + 날짜 거터 ═══════════════ */
 export function ResumeCompact({ profile, sections }: ResumeProps) {
-  const contactRows: Array<[string, string | undefined]> = [['이메일', profile.email], ['연락처', profile.phone]];
+  const contactRows: Array<[string, string | undefined]> = [
+    ['생년월일', profile.birth],
+    ['이메일', profile.email],
+    ['연락처', profile.phone],
+    ['링크', profile.link],
+  ];
   const shown = contactRows.filter(([, v]) => !!v);
   return (
     <div style={sheet({ color: '#232326', padding: '52px 56px' })}>
