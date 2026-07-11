@@ -138,11 +138,160 @@ export function ResumeClassic({ profile, sections }: ResumeProps) {
   );
 }
 
-export type ResumeTemplateId = 'minimal' | 'modern' | 'classic';
+/* ─────────── 리포트 — 회색 헤더 밴드 + 좌측 이중언어 라벨 + 우측 표 행 (레퍼런스 1) ─────────── */
+function LabelCol({ ko, en }: { ko: string; en?: string }) {
+  return (
+    <div style={{ width: 150, flexShrink: 0, paddingRight: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 800 }}>{ko}</div>
+      {en && <div style={{ fontSize: 9.5, letterSpacing: '0.04em', color: '#aaa', marginTop: 2 }}>{en}</div>}
+    </div>
+  );
+}
+
+export function ResumeReport({ profile, sections }: ResumeProps) {
+  const lines = (profile.tagline || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const quote = lines[0] || profile.name || '이름';
+  const desc = lines.slice(1).join('  ');
+  const info: Array<[string, string | undefined]> = [['이름', profile.name], ['메일', profile.email], ['연락처', profile.phone]];
+  return (
+    <div style={{ width: SHEET_W, minHeight: SHEET_H, background: '#ffffff', color: '#232323', fontFamily: BASE_FONT }}>
+      <div style={{ display: 'flex', gap: 26, alignItems: 'center', background: '#f1f0ee', padding: '38px 48px' }}>
+        {profile.photo
+          ? <img src={profile.photo} alt="" style={{ width: 104, height: 128, objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 104, height: 128, background: '#d9d7d3', flexShrink: 0 }} />}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.35 }}>“{quote}”</div>
+          {desc && <div style={{ marginTop: 10, fontSize: 12.5, color: '#555', lineHeight: 1.7 }}>{desc}</div>}
+        </div>
+      </div>
+      <div style={{ padding: '30px 48px' }}>
+        <div style={{ display: 'flex', marginBottom: 26 }}>
+          <LabelCol ko="기본정보" en="PERSONAL INFORMATION" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {info.filter(([, v]) => !!v).map(([k, v], i) => (
+              <div key={k} style={{ display: 'flex', fontSize: 12.5, padding: '7px 0', borderTop: i === 0 ? 'none' : '1px solid #ececec' }}>
+                <div style={{ width: 96, color: '#8a8a8a' }}>{k}</div>
+                <div>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {sections.map(({ category, items }) => (
+          <div key={category.id} style={{ display: 'flex', marginBottom: 24 }}>
+            <LabelCol ko={category.name} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {items.map((item, i) => (
+                <div key={item.id} className="resume-item" style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid #ececec' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{item.refined}</div>
+                    {item.org && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{item.org}</div>}
+                    {item.detail && <div style={{ fontSize: 11, color: '#999', marginTop: 2, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.detail}</div>}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#999', flexShrink: 0, paddingTop: 1 }}>{periodLabel(item)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── 헤드라인 — 큰 이름 + 요약 불릿 + 굵은 밑줄 섹션 (레퍼런스 2) ─────────── */
+export function ResumeHeadline({ profile, sections }: ResumeProps) {
+  const bullets = (profile.tagline || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const contact = contactList(profile);
+  return (
+    <div style={{ width: SHEET_W, minHeight: SHEET_H, background: '#ffffff', color: '#1c1c1c', fontFamily: BASE_FONT, padding: '52px 56px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, paddingBottom: 22, borderBottom: '2px solid #1c1c1c' }}>
+        {profile.photo && <img src={profile.photo} alt="" style={{ width: 94, height: 118, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.1 }}>{profile.name || '이름'}</div>
+          {contact.length > 0 && <div style={{ marginTop: 9, fontSize: 12, color: '#555' }}>{contact.join('   ·   ')}</div>}
+        </div>
+      </div>
+      {bullets.length > 0 && (
+        <ul style={{ margin: '18px 0 0', padding: 0, listStyle: 'none' }}>
+          {bullets.map((b, i) => (
+            <li key={i} style={{ position: 'relative', paddingLeft: 15, marginTop: 6, fontSize: 12.5, lineHeight: 1.6, color: '#333' }}>
+              <span style={{ position: 'absolute', left: 0, fontWeight: 700 }}>·</span>{b}
+            </li>
+          ))}
+        </ul>
+      )}
+      {sections.map(({ category, items }) => (
+        <section key={category.id} style={{ marginTop: 26 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, paddingBottom: 5, borderBottom: '1.5px solid #333' }}>{category.name}</div>
+          {items.map((item) => (
+            <div key={item.id} className="resume-item" style={{ marginTop: 11 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  {item.refined}{item.org && <span style={{ fontWeight: 400, color: '#777' }}> · {item.org}</span>}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#888', flexShrink: 0, paddingTop: 1 }}>{periodLabel(item)}</div>
+              </div>
+              {item.detail && <div style={{ fontSize: 11, color: '#888', marginTop: 3, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.detail}</div>}
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+/* ─────────── 콤팩트 — 연락처 강조 + 날짜 좌측 거터 3열 (레퍼런스 3·5) ─────────── */
+export function ResumeCompact({ profile, sections }: ResumeProps) {
+  const contactRows: Array<[string, string | undefined]> = [['이메일', profile.email], ['연락처', profile.phone]];
+  const shown = contactRows.filter(([, v]) => !!v);
+  return (
+    <div style={{ width: SHEET_W, minHeight: SHEET_H, background: '#ffffff', color: '#222', fontFamily: BASE_FONT, padding: '48px 52px' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', paddingBottom: 20, borderBottom: '1px solid #e2e2e2' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{profile.name || '이름'}</div>
+          {shown.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: '5px 22px' }}>
+              {shown.map(([k, v]) => (
+                <div key={k} style={{ fontSize: 11.5 }}>
+                  <span style={{ color: '#b23b1e', fontWeight: 700, marginRight: 6 }}>{k}</span>
+                  <span style={{ color: '#555' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {profile.photo && <img src={profile.photo} alt="" style={{ width: 90, height: 112, objectFit: 'cover', flexShrink: 0 }} />}
+      </div>
+      {profile.tagline && (
+        <div style={{ marginTop: 16, fontSize: 12.5, color: '#555', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{profile.tagline}</div>
+      )}
+      {sections.map(({ category, items }) => (
+        <section key={category.id} style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#b23b1e', paddingBottom: 5, borderBottom: '1px solid #e2e2e2' }}>{category.name}</div>
+          {items.map((item) => (
+            <div key={item.id} className="resume-item" style={{ display: 'flex', gap: 16, padding: '9px 0', borderBottom: '1px solid #f2f2f2' }}>
+              <div style={{ width: 104, flexShrink: 0, fontSize: 11, color: '#999', paddingTop: 1 }}>{periodLabel(item)}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{item.refined}</div>
+                {item.org && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{item.org}</div>}
+                {item.detail && <div style={{ fontSize: 11, color: '#999', marginTop: 2, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.detail}</div>}
+              </div>
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+export type ResumeTemplateId = 'minimal' | 'modern' | 'classic' | 'report' | 'headline' | 'compact';
 
 // eslint-disable-next-line react-refresh/only-export-components -- 서식 컴포넌트 + 레지스트리를 한 파일에 둔다
 export const RESUME_TEMPLATES: Array<{ id: ResumeTemplateId; name: string; desc: string; Component: (p: ResumeProps) => JSX.Element }> = [
   { id: 'minimal', name: '미니멀', desc: '단정한 1단', Component: ResumeMinimal },
+  { id: 'report', name: '리포트', desc: '기본정보 표·2열', Component: ResumeReport },
+  { id: 'headline', name: '헤드라인', desc: '큰 이름·밑줄 섹션', Component: ResumeHeadline },
+  { id: 'compact', name: '콤팩트', desc: '연락처 강조·3열', Component: ResumeCompact },
   { id: 'modern', name: '모던', desc: '사이드바 2단', Component: ResumeModern },
   { id: 'classic', name: '클래식', desc: '격식·세리프', Component: ResumeClassic },
 ];
