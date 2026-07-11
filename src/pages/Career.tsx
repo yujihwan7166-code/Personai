@@ -1028,8 +1028,8 @@ function BoardLedger() {
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
           <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
-            {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
-            <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
+            {/* ── 프로필 헤더 — 레터헤드: 아래 굵은 잉크 괘선(섹션 헤어라인·항목 옅은 선과 3단 위계) ── */}
+            <div className="flex items-center gap-5 border-b-2 border-[hsl(var(--foreground)/0.8)] pb-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
                   <label
                     className={cn(
@@ -1150,12 +1150,17 @@ function BoardLedger() {
                     >
                       {/* 카드 헤더 — 번호 칩 · 이름 · 건수(빈 칸이면 삭제), 아래 헤어라인 */}
                       <div className="mb-3 flex items-center gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
-                        <span className="career-mono inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[5px] bg-[hsl(var(--career-red)/0.1)] px-1 text-[10px] font-bold text-[hsl(var(--career-red))]">
+                        <span className="career-mono text-[10.5px] font-bold tracking-[0.08em] text-[hsl(var(--career-red))]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
                         <h3 className="text-[15px] font-bold tracking-tight">{category.name}</h3>
                         <span className="ml-auto flex items-center gap-1.5">
-                          <span className="career-mono rounded-full bg-[hsl(var(--surface-2))] px-2 py-0.5 text-[10.5px] text-muted-foreground">
+                          <span
+                            className={cn(
+                              'career-mono text-[11px]',
+                              sectionItems.length > 0 ? 'font-semibold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/35',
+                            )}
+                          >
                             {sectionItems.length}
                           </span>
                           {sectionItems.length === 0 && (
@@ -1183,7 +1188,8 @@ function BoardLedger() {
                         </button>
                       ) : (
                         <>
-                          <ul className="-mx-2 divide-y divide-[hsl(var(--hairline))]">
+                          {/* 항목 구분선은 섹션 헤어라인보다 한 단계 옅게 — 괘선 위계 */}
+                          <ul className="-mx-2 divide-y divide-[hsl(var(--foreground)/0.06)]">
                             <AnimatePresence initial={false}>
                               {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
                                 <motion.li
