@@ -523,7 +523,7 @@ function BoardLedger() {
       <LayoutGroup>
         <div className="flex h-full flex-col">
         {/* ══════ 마스트헤드 — 도구 이름 + 인장. 아래 굵은 괘선이 전체 폭을 가로지른다 ══════ */}
-        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-[hsl(var(--foreground)/0.75)] px-4 pb-3 pt-3.5 sm:px-5">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[hsl(var(--hairline))] px-4 pb-3 pt-3.5 sm:px-5">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
           <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
           <ProofStamp />
