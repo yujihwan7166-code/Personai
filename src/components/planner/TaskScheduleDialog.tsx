@@ -1,18 +1,5 @@
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  AlignLeft,
-  Bell,
-  CalendarClock,
-  CalendarDays,
-  ChevronDown,
-  ChevronUp,
-  Clock3,
-  Flag,
-  Palette,
-  RotateCw,
-  SlidersHorizontal,
-  Trash2,
-} from 'lucide-react';
+import { Bell, ChevronDown, Flag, RotateCw, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -84,14 +71,21 @@ type RecurrencePreset = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 const DURATION_PRESETS = [30, 60, 90] as const;
 const DEFAULT_DURATION_MIN = 60;
 
-/** 세부 옵션 접힘 상태에서 보여줄 반복 요약. */
-const RECUR_SUMMARY: Record<RecurrencePreset, string> = {
+const RECUR_SHORT: Record<RecurrencePreset, string> = {
   none: '반복 안 함',
-  daily: '매일 반복',
-  weekly: '매주 반복',
-  monthly: '매달 반복',
-  yearly: '매년 반복',
+  daily: '매일',
+  weekly: '매주',
+  monthly: '매달',
+  yearly: '매년',
 };
+
+const RECUR_OPTIONS: ReadonlyArray<[RecurrencePreset, string]> = [
+  ['none', '안 함'],
+  ['daily', '매일'],
+  ['weekly', '매주'],
+  ['monthly', '매달'],
+  ['yearly', '매년'],
+];
 
 const TASK_COLOR_OPTIONS: Array<{ value: TaskListColor; label: string }> = [
   { value: 'blue', label: '파랑' },
@@ -161,26 +155,19 @@ const resolveSeries = (id: string) => {
   return null;
 };
 
-const Row = ({
-  icon,
-  label,
-  children,
-  top,
-  className,
-}: {
-  icon: ReactNode;
-  label: string;
-  children?: ReactNode;
-  /** 여러 줄로 감기는 컨트롤(색상·반복)일 때 라벨을 위쪽에 정렬. */
-  top?: boolean;
-  className?: string;
-}) => (
-  <div className={cn('grid grid-cols-[18px_58px_minmax(0,1fr)] gap-x-3 py-2', top ? 'items-start' : 'items-center', className)}>
-    <span className={cn('flex w-[18px] justify-center text-foreground/35', top && 'mt-1.5')}>{icon}</span>
-    <p className={cn('truncate text-[13px] font-medium text-foreground/55', top && 'mt-1.5')}>{label}</p>
-    <div className="min-w-0">{children}</div>
-  </div>
+/** 작은 섹션 라벨 (eyebrow). */
+const Eyebrow = ({ children }: { children: ReactNode }) => (
+  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/40">{children}</p>
 );
+
+/** 팝오버를 여는 메타 칩 (반복·알림). 값이 있으면 강조. */
+const metaChipClass = (active: boolean) =>
+  cn(
+    'inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] font-semibold transition-colors',
+    active
+      ? 'border-primary/40 bg-primary/[0.09] text-primary'
+      : 'border-foreground/14 text-foreground/60 hover:border-foreground/28 hover:bg-foreground/[0.03] hover:text-foreground/85',
+  );
 
 type PillProps = {
   active?: boolean;
@@ -199,7 +186,7 @@ const Pill = forwardRef<HTMLButtonElement, PillProps>(({ active, children, onCli
       'inline-flex h-8 items-center justify-center gap-1 rounded-full px-3.5 text-[12.5px] font-semibold transition-colors',
       active
         ? 'bg-primary/[0.12] text-primary ring-1 ring-inset ring-primary/30'
-        : 'bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08] hover:text-foreground/85',
+        : 'bg-foreground/[0.05] text-foreground/60 hover:bg-foreground/[0.09] hover:text-foreground/85',
       className,
     )}
   >
@@ -208,8 +195,8 @@ const Pill = forwardRef<HTMLButtonElement, PillProps>(({ active, children, onCli
 ));
 Pill.displayName = 'Pill';
 
-const fieldInputClass =
-  'h-8 rounded-md border-0 bg-[#f3f0ea] px-2.5 text-[13px] font-semibold text-foreground outline-none focus:bg-white focus:ring-1 focus:ring-primary/55';
+const dateInputClass =
+  'h-9 rounded-lg border border-foreground/14 bg-white px-3 text-[13px] font-semibold text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/12';
 
 export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogProps) => {
   const [title, setTitle] = useState('');
@@ -225,10 +212,10 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
   const [note, setNote] = useState('');
   const [reminderMinutes, setReminderMinutes] = useState<number[] | undefined>();
-  const [customReminderOpen, setCustomReminderOpen] = useState(false);
   const [customReminderInput, setCustomReminderInput] = useState('15');
-  // 세부 옵션(반복·알림) 펼침 — 값이 기본이 아니면 자동으로 펼쳐 보여준다.
-  const [showMore, setShowMore] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
+  const [recurOpen, setRecurOpen] = useState(false);
+  const [remindOpen, setRemindOpen] = useState(false);
 
   const lastResetKeyRef = useRef<string | null>(null);
 
@@ -270,9 +257,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
       setRecurrenceUntil(rec.until);
       setNote(mode.initialNote ?? masterTask?.note ?? '');
       setReminderMinutes(normalizedReminder);
-      setCustomReminderOpen(normalizedReminder?.[0] !== undefined && !PLANNER_REMINDER_OPTIONS.some((option) => option.minutes === normalizedReminder[0]));
       setCustomReminderInput(String(normalizedReminder?.[0] ?? 15));
-      setShowMore(rec.preset !== 'none' || (normalizedReminder?.length ?? 0) > 0);
       return;
     }
 
@@ -292,9 +277,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     setRecurrenceUntil('');
     setNote('');
     setReminderMinutes(undefined);
-    setCustomReminderOpen(false);
     setCustomReminderInput('15');
-    setShowMore(false);
   }, [mode, open]);
 
   const isEvent = entryKind === 'event';
@@ -339,13 +322,11 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
   const handleReminderSelect = async (minutes: number | null) => {
     if (minutes === null) {
       setReminderMinutes(undefined);
-      setCustomReminderOpen(false);
       return;
     }
     const allowed = await ensureReminderPermission();
     if (!allowed) return;
     setReminderMinutes([minutes]);
-    setCustomReminderOpen(false);
   };
 
   const handleCustomReminderApply = async () => {
@@ -358,7 +339,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     if (!allowed) return;
     setCustomReminderInput(String(minutes));
     setReminderMinutes([minutes]);
-    setCustomReminderOpen(false);
   };
 
   const submitWithScope = (scope: 'this' | 'future' | 'all' = 'all') => {
@@ -464,10 +444,18 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
     }
   };
 
+  const accentHex = taskColor ? TASK_LIST_COLORS[taskColor].stripe : isEvent ? '#3b82f6' : '#e11d48';
+  const reminderLabel = reminderMinutes?.length
+    ? PLANNER_REMINDER_OPTIONS.find((option) => option.minutes === reminderMinutes[0])?.label ?? `${reminderMinutes[0]}분 전`
+    : '알림 없음';
+  const recurLabel = recurrence === 'weekly' && byday.length > 0
+    ? `매주 ${byday.map((d) => WEEKDAY_LABELS[d]).join('')}`
+    : RECUR_SHORT[recurrence];
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
-        className="max-h-[84vh] max-w-[520px] overflow-hidden rounded-[14px] border border-foreground/20 bg-[#fffefa] p-0 shadow-[0_24px_70px_rgba(25,22,18,0.22)]"
+        className="max-h-[86vh] max-w-[440px] overflow-hidden rounded-2xl border border-foreground/12 bg-[#fffefb] p-0 shadow-[0_28px_80px_-24px_rgba(25,22,18,0.35)]"
         onKeyDown={handleKeyDownGlobal}
         hideClose
       >
@@ -476,145 +464,61 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
           <DialogDescription>일정 또는 할 일을 설정합니다.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex max-h-[84vh] flex-col bg-[#fffefa]">
-          <div className="shrink-0 border-b border-foreground/10 px-5 pb-2 pt-2">
-            <div className="flex h-9 items-center justify-between gap-3">
-              <div className="grid h-8 w-[176px] grid-cols-2 rounded-full border border-foreground/18 bg-white p-0.5 shadow-[inset_0_0_0_1px_rgba(20,20,20,0.03)]">
-                <button
-                  type="button"
-                  onClick={() => switchKind('event')}
-                  aria-pressed={isEvent}
-                  className={cn(
-                    'rounded-full border text-[12px] font-bold transition-colors',
-                    isEvent
-                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
-                      : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
-                  )}
-                >
-                  일정
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchKind('task')}
-                  aria-pressed={!isEvent}
-                  className={cn(
-                    'rounded-full border text-[12px] font-bold transition-colors',
-                    !isEvent
-                      ? 'border-primary/25 bg-[#fffefa] text-primary shadow-sm'
-                      : 'border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground',
-                  )}
-                >
-                  할 일
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/72 hover:bg-accent hover:text-foreground"
-                aria-label="닫기"
-              >
-                ×
-              </button>
+        <div className="flex max-h-[86vh] flex-col">
+          {/* ── 헤더: 종류 전환 + 닫기 ── */}
+          <div className="flex items-center justify-between px-5 pt-4">
+            <div className="inline-flex rounded-full bg-foreground/[0.05] p-0.5">
+              {([['event', '일정'], ['task', '할 일']] as const).map(([kind, label]) => {
+                const on = isEvent === (kind === 'event');
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => switchKind(kind)}
+                    aria-pressed={on}
+                    className={cn(
+                      'rounded-full px-4 py-1.5 text-[12.5px] font-bold transition-colors',
+                      on ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-
-            <div className="mt-2 flex items-center gap-3 pb-2">
-              <span
-                className="h-4 w-4 shrink-0 rounded-full ring-1 ring-foreground/8"
-                style={{
-                  backgroundColor: taskColor ? TASK_LIST_COLORS[taskColor].stripe : isEvent ? '#3b82f6' : '#e11d48',
-                }}
-                aria-hidden
-              />
-              <input
-                type="text"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') handleSubmit();
-                }}
-                autoFocus={mode.kind === 'create'}
-                placeholder={isEvent ? '일정을 입력하세요.' : '할 일을 입력하세요.'}
-                className="h-10 min-w-0 flex-1 border-0 bg-transparent px-0 text-[20px] font-medium leading-none text-foreground outline-none placeholder:text-muted-foreground/82"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-foreground/45 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              aria-label="닫기"
+            >
+              ×
+            </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-0.5">
-            {isEvent ? (
-              <div className="space-y-1">
-                <Row icon={<CalendarClock className="h-4 w-4" />} label="시작">
-                  <div className="grid max-w-[392px] grid-cols-[minmax(150px,220px)_136px] gap-2">
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(event) => setStartDate(event.target.value)}
-                      className={cn(fieldInputClass, 'w-full')}
-                    />
-                    <AnalogClockTimePicker
-                      value={startTime}
-                      onChange={setStartTime}
-                      triggerAriaLabel="시작 시간 선택"
-                      triggerClassName="min-w-[136px]"
-                    />
-                  </div>
-                </Row>
-
-                <Row icon={<Clock3 className="h-4 w-4" />} label="길이">
-                  <DurationPicker
-                    duration={duration}
-                    onDurationChange={setDuration}
-                  />
-                </Row>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Row icon={<CalendarDays className="h-4 w-4" />} label="할 날짜">
-                  <input
-                    type="date"
-                    value={plannedFor}
-                    onChange={(event) => setPlannedFor(event.target.value)}
-                    className={cn(fieldInputClass, 'w-full')}
-                  />
-                </Row>
-
-                <Row icon={<Flag className="h-4 w-4" />} label="우선순위">
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {([0, 1, 2, 3] as Priority[]).map((value) => (
-                      <Pill
-                        key={value}
-                        active={priority === value}
-                        onClick={() => setPriority(value)}
-                        className={cn(
-                          'px-1',
-                          priority === value && value > 0 && 'text-foreground/82',
-                        )}
-                      >
-                        {value > 0 && (
-                          <Flag
-                            className="mr-1 h-3 w-3"
-                            style={{ color: PRIORITY_COLORS[value], fill: PRIORITY_COLORS[value] }}
-                          />
-                        )}
-                        {PRIORITY_LABELS[value]}
-                      </Pill>
-                    ))}
-                  </div>
-                </Row>
-              </div>
-            )}
-
-            <div className="mt-1.5 border-t border-foreground/[0.07] pt-1.5">
-              <Row icon={<Palette className="h-4 w-4" />} label="색상" top>
-                <div className="flex flex-wrap items-center gap-2">
+          {/* ── 제목 + 색상 점 ── */}
+          <div className="flex items-center gap-2.5 px-5 pt-3.5">
+            <Popover open={colorOpen} onOpenChange={setColorOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="색상 선택"
+                  className="h-5 w-5 shrink-0 rounded-full ring-1 ring-foreground/10 ring-offset-1 ring-offset-[#fffefb] transition-transform hover:scale-110"
+                  style={{ backgroundColor: accentHex }}
+                />
+              </PopoverTrigger>
+              <PopoverContent align="start" side="bottom" sideOffset={8} className="w-auto rounded-2xl p-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/45">색상</p>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setTaskColor(undefined)}
+                    onClick={() => { setTaskColor(undefined); setColorOpen(false); }}
                     aria-label="기본 색상"
                     title="기본"
                     className="h-7 w-7 rounded-full border border-foreground/25 transition-transform hover:scale-110"
                     style={{
                       background: 'linear-gradient(135deg, #ffffff 43%, #c9c9c9 43%, #c9c9c9 57%, #ffffff 57%)',
-                      boxShadow: !taskColor ? '0 0 0 2px #fffefa, 0 0 0 4px rgba(90,90,90,0.6)' : undefined,
+                      boxShadow: !taskColor ? '0 0 0 2px #fffefb, 0 0 0 4px rgba(90,90,90,0.6)' : undefined,
                     }}
                   />
                   {TASK_COLOR_OPTIONS.map((option) => {
@@ -624,229 +528,230 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => setTaskColor(option.value)}
+                        onClick={() => { setTaskColor(option.value); setColorOpen(false); }}
                         aria-label={`${option.label} 색상`}
                         title={option.label}
                         className="h-7 w-7 rounded-full transition-transform hover:scale-110"
                         style={{
                           backgroundColor: stripe,
-                          boxShadow: selected ? `0 0 0 2px #fffefa, 0 0 0 4px ${stripe}` : undefined,
+                          boxShadow: selected ? `0 0 0 2px #fffefb, 0 0 0 4px ${stripe}` : undefined,
                         }}
                       />
                     );
                   })}
                 </div>
-              </Row>
+              </PopoverContent>
+            </Popover>
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') handleSubmit(); }}
+              autoFocus={mode.kind === 'create'}
+              placeholder={isEvent ? '일정 제목' : '할 일 제목'}
+              className="h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-[21px] font-semibold leading-none text-foreground outline-none placeholder:text-muted-foreground/55"
+            />
+          </div>
 
-              {!showMore && (
-                <button
-                  type="button"
-                  onClick={() => setShowMore(true)}
-                  className="grid w-full grid-cols-[18px_minmax(0,1fr)_16px] items-center gap-x-3 rounded-lg py-2 text-left transition-colors hover:bg-foreground/[0.03]"
-                >
-                  <span className="flex w-[18px] justify-center text-foreground/35"><SlidersHorizontal className="h-4 w-4" /></span>
-                  <span className="truncate text-[13px] text-foreground/55">
-                    {RECUR_SUMMARY[recurrence]}
-                    <span className="mx-1.5 text-foreground/25">·</span>
-                    {reminderMinutes?.length
-                      ? `알림 ${PLANNER_REMINDER_OPTIONS.find((o) => o.minutes === reminderMinutes[0])?.label ?? `${reminderMinutes[0]}분 전`}`
-                      : '알림 없음'}
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-foreground/40" />
-                </button>
+          {/* ── 본문 ── */}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-5 pt-4">
+            {/* 언제 */}
+            <div>
+              <Eyebrow>언제</Eyebrow>
+              {isEvent ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className={cn(dateInputClass, 'w-[148px]')}
+                  />
+                  <AnalogClockTimePicker
+                    value={startTime}
+                    onChange={setStartTime}
+                    triggerAriaLabel="시작 시간 선택"
+                    triggerClassName="h-9 min-w-[122px]"
+                  />
+                  <span aria-hidden className="px-0.5 text-foreground/25">·</span>
+                  <DurationPicker duration={duration} onDurationChange={setDuration} />
+                </div>
+              ) : (
+                <input
+                  type="date"
+                  value={plannedFor}
+                  onChange={(event) => setPlannedFor(event.target.value)}
+                  className={cn(dateInputClass, 'w-[168px]')}
+                />
               )}
+            </div>
 
-              {showMore && (
-              <>
-              <Row icon={<RotateCw className="h-4 w-4" />} label="반복" top>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    {(
-                      [
-                        ['none', '안 함'],
-                        ['daily', '매일'],
-                        ['weekly', '매주'],
-                        ['monthly', '매달'],
-                        ['yearly', '매년'],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <Pill key={value} active={recurrence === value} onClick={() => setRecurrence(value)}>
-                        {label}
-                      </Pill>
-                    ))}
-                  </div>
-                  {recurrence === 'weekly' && (
-                    <div className="flex gap-1">
-                      {WEEKDAY_ORDER.map((weekday) => {
-                        const active = byday.includes(weekday);
-                        return (
-                          <button
-                            key={weekday}
-                            type="button"
-                            onClick={() => {
-                              setByday((prev) => prev.includes(weekday)
+            {/* 우선순위 (할 일 전용) */}
+            {!isEvent && (
+              <div>
+                <Eyebrow>우선순위</Eyebrow>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {([0, 1, 2, 3] as Priority[]).map((value) => (
+                    <Pill
+                      key={value}
+                      active={priority === value}
+                      onClick={() => setPriority(value)}
+                      className={cn('px-1', priority === value && value > 0 && 'text-foreground/82')}
+                    >
+                      {value > 0 && (
+                        <Flag
+                          className="mr-1 h-3 w-3"
+                          style={{ color: PRIORITY_COLORS[value], fill: PRIORITY_COLORS[value] }}
+                        />
+                      )}
+                      {PRIORITY_LABELS[value]}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 옵션: 반복 · 알림 */}
+            <div>
+              <Eyebrow>옵션</Eyebrow>
+              <div className="flex flex-wrap gap-2">
+                {/* 반복 */}
+                <Popover open={recurOpen} onOpenChange={setRecurOpen}>
+                  <PopoverTrigger asChild>
+                    <button type="button" className={metaChipClass(recurrence !== 'none')}>
+                      <RotateCw className="h-3.5 w-3.5" />
+                      {recurLabel}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" side="top" sideOffset={8} className="w-72 rounded-2xl p-3">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/45">반복</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {RECUR_OPTIONS.map(([value, label]) => (
+                        <Pill key={value} active={recurrence === value} onClick={() => setRecurrence(value)}>
+                          {label}
+                        </Pill>
+                      ))}
+                    </div>
+                    {recurrence === 'weekly' && (
+                      <div className="mt-2.5 flex gap-1">
+                        {WEEKDAY_ORDER.map((weekday) => {
+                          const active = byday.includes(weekday);
+                          return (
+                            <button
+                              key={weekday}
+                              type="button"
+                              onClick={() => setByday((prev) => (prev.includes(weekday)
                                 ? prev.filter((item) => item !== weekday)
-                                : [...prev, weekday]);
-                            }}
-                            className={cn(
-                              'h-7 w-7 rounded-md border text-[11px] font-bold transition-colors',
-                              active ? 'border-primary/55 bg-primary/10 text-primary' : 'border-foreground/14 text-muted-foreground hover:text-foreground',
-                            )}
-                          >
-                            {WEEKDAY_LABELS[weekday]}
-                          </button>
+                                : [...prev, weekday]))}
+                              className={cn(
+                                'h-7 w-7 rounded-md border text-[11px] font-bold transition-colors',
+                                active ? 'border-primary/55 bg-primary/10 text-primary' : 'border-foreground/14 text-muted-foreground hover:text-foreground',
+                              )}
+                            >
+                              {WEEKDAY_LABELS[weekday]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {recurrence !== 'none' && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <span className="text-[11.5px] font-bold text-muted-foreground">종료</span>
+                        <input
+                          type="date"
+                          value={recurrenceUntil}
+                          onChange={(event) => setRecurrenceUntil(event.target.value)}
+                          className={cn(dateInputClass, 'h-8 flex-1')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setRecurrenceUntil('')}
+                          className="text-[11.5px] font-bold text-muted-foreground hover:text-foreground"
+                        >
+                          없음
+                        </button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                {/* 알림 */}
+                <Popover open={remindOpen} onOpenChange={setRemindOpen}>
+                  <PopoverTrigger asChild>
+                    <button type="button" className={metaChipClass(Boolean(reminderMinutes?.length))}>
+                      <Bell className="h-3.5 w-3.5" />
+                      {reminderLabel}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" side="top" sideOffset={8} className="w-64 rounded-2xl p-3">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/45">알림</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PLANNER_REMINDER_OPTIONS.map((option) => {
+                        const active = option.minutes === null
+                          ? !reminderMinutes?.length
+                          : reminderMinutes?.[0] === option.minutes;
+                        return (
+                          <Pill key={option.minutes ?? 'none'} active={active} onClick={() => void handleReminderSelect(option.minutes)}>
+                            {option.label}
+                          </Pill>
                         );
                       })}
                     </div>
-                  )}
-                  {recurrence !== 'none' && (
-                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-                      <span className="text-[11.5px] font-bold text-muted-foreground">종료</span>
-                      <input
-                        type="date"
-                        value={recurrenceUntil}
-                        onChange={(event) => setRecurrenceUntil(event.target.value)}
-                        className={fieldInputClass}
-                      />
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={43200}
+                          step={1}
+                          value={customReminderInput}
+                          onChange={(event) => setCustomReminderInput(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              void handleCustomReminderApply();
+                            }
+                          }}
+                          aria-label="알림 시간 직접 입력 (분 전)"
+                          className="h-9 w-full rounded-lg border border-foreground/14 bg-white pl-3 pr-11 text-[13px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/12 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-muted-foreground">
+                          분 전
+                        </span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setRecurrenceUntil('')}
-                        className="text-[11.5px] font-bold text-muted-foreground hover:text-foreground"
+                        onClick={() => void handleCustomReminderApply()}
+                        className="h-9 shrink-0 rounded-lg bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
                       >
-                        없음
+                        적용
                       </button>
                     </div>
-                  )}
-                </div>
-              </Row>
-
-              <Row icon={<Bell className="h-4 w-4" />} label="알림" top>
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap gap-1.5">
-                    {PLANNER_REMINDER_OPTIONS.map((option) => {
-                      const active = option.minutes === null
-                        ? !reminderMinutes?.length
-                        : reminderMinutes?.[0] === option.minutes;
-                      return (
-                        <button
-                          key={option.minutes ?? 'none'}
-                          type="button"
-                          onClick={() => handleReminderSelect(option.minutes)}
-                          className={cn(
-                            'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
-                            active
-                              ? 'border-primary/55 bg-primary/10 text-primary'
-                              : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                    {(() => {
-                      // 저장된 분이 4개 preset (null/0/5/10) 아니면 "직접" 이 active.
-                      const presetMinutes = PLANNER_REMINDER_OPTIONS.map((option) => option.minutes);
-                      const savedMinute = reminderMinutes?.[0];
-                      const savedIsCustom = savedMinute !== undefined && !presetMinutes.includes(savedMinute);
-                      const customActive = customReminderOpen || savedIsCustom;
-                      return (
-                        <Popover open={customReminderOpen} onOpenChange={setCustomReminderOpen}>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className={cn(
-                                'h-7 rounded-full border px-2.5 text-[12px] font-bold transition-colors',
-                                customActive
-                                  ? 'border-primary/45 bg-primary/10 text-primary'
-                                  : 'border-transparent bg-muted/55 text-foreground/70 hover:bg-muted hover:text-foreground',
-                              )}
-                            >
-                              직접
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="end"
-                            side="bottom"
-                            sideOffset={6}
-                            // z-[60] — Dialog content (z-50) 위로 띄움.
-                            className="z-[60] w-56 rounded-xl border-foreground/14 p-3"
-                          >
-                            <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-foreground/55">
-                              알림 직접 입력
-                            </p>
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative flex-1">
-                                <input
-                                  type="number"
-                                  inputMode="numeric"
-                                  min={0}
-                                  max={43200}
-                                  step={1}
-                                  value={customReminderInput}
-                                  onChange={(event) => setCustomReminderInput(event.target.value)}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault();
-                                      handleCustomReminderApply();
-                                    }
-                                  }}
-                                  autoFocus
-                                  aria-label="알림 시간 (분 전)"
-                                  className="h-9 w-full rounded-lg border border-foreground/14 bg-background pl-3 pr-12 text-[14px] font-bold tabular-nums text-foreground outline-none focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
-                                />
-                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-muted-foreground">
-                                  분 전
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleCustomReminderApply}
-                                className="h-9 shrink-0 rounded-lg bg-foreground px-3 text-[12px] font-bold text-background hover:bg-foreground/90"
-                              >
-                                적용
-                              </button>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })()}
-                  </div>
-                  {notificationPermission() === 'denied' && (
-                    <p className="text-[11px] font-medium text-rose-500">
-                      브라우저에서 알림 권한이 차단되어 있어요.
-                    </p>
-                  )}
-                </div>
-              </Row>
-
-              <div className="grid grid-cols-[18px_58px_minmax(0,1fr)] gap-x-3">
-                <span />
-                <span />
-                <button
-                  type="button"
-                  onClick={() => setShowMore(false)}
-                  className="inline-flex items-center gap-1 py-1 text-[12px] font-medium text-foreground/40 transition-colors hover:text-foreground/70"
-                >
-                  <ChevronUp className="h-3.5 w-3.5" />
-                  접기
-                </button>
+                    {notificationPermission() === 'denied' && (
+                      <p className="mt-2 text-[11px] font-medium text-rose-500">
+                        브라우저에서 알림 권한이 차단되어 있어요.
+                      </p>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
-              </>
-              )}
+            </div>
 
-              <Row icon={<AlignLeft className="h-4 w-4" />} label="설명">
-                <input
-                  type="text"
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="메모, 장소, 준비물 등을 적어두세요"
-                  className={cn(fieldInputClass, 'w-full')}
-                />
-              </Row>
+            {/* 메모 */}
+            <div>
+              <Eyebrow>메모</Eyebrow>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="메모, 장소, 준비물 등을 적어두세요"
+                rows={2}
+                className="w-full resize-none rounded-lg border border-foreground/14 bg-white px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/45 focus:ring-2 focus:ring-primary/12"
+              />
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-foreground/10 bg-[#fffefa] px-5 py-2 sm:justify-between">
+          {/* ── 푸터 ── */}
+          <DialogFooter className="shrink-0 border-t border-foreground/8 bg-[#fffefb] px-5 py-3 sm:justify-between">
             <div>
               {mode.kind === 'schedule' && (
                 isSeriesInstance ? (
@@ -902,7 +807,7 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="inline-flex h-9 min-w-[72px] items-center justify-center rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
+                className="inline-flex h-9 min-w-[80px] items-center justify-center rounded-[10px] bg-foreground px-4 text-[13px] font-bold text-background hover:bg-foreground/90"
               >
                 {mode.kind === 'schedule' ? '저장' : '추가'}
               </button>
@@ -916,10 +821,6 @@ export const TaskScheduleDialog = ({ open, mode, onClose }: TaskScheduleDialogPr
 
 /**
  * 길이 선택 — 빠른 칩 3개 + 분 단위 직접 입력 input (한 줄).
- *
- * 이전 "직접" popover 는 한 단계 더 클릭해야 해서 번거로웠다. WeekScheduleTimePrompt
- * 와 같은 패턴으로 마지막 자리에 분 input 을 인라인 배치 — 칩으로 빠르게 또는
- * input 으로 정밀하게.
  */
 const DurationPicker = ({
   duration,
@@ -950,12 +851,11 @@ const DurationPicker = ({
           key={value}
           active={duration === value}
           onClick={() => onDurationChange(value)}
-          className="flex-1 px-1"
+          className="px-2.5"
         >
           {formatDurationMinutes(value)}
         </Pill>
       ))}
-      <span className="mx-0.5 h-6 w-px bg-foreground/10" aria-hidden />
       <label className="relative inline-flex items-center">
         <span className="sr-only">길이 직접 입력 (분)</span>
         <input
@@ -968,7 +868,7 @@ const DurationPicker = ({
           onChange={(event) => handleInputChange(event.target.value)}
           placeholder="0"
           aria-label="길이 직접 입력 (분)"
-          className="h-8 w-[68px] rounded-lg border border-foreground/14 bg-background pl-2 pr-6 text-[12px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/15 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [appearance:textfield]"
+          className="h-8 w-[64px] rounded-lg border border-foreground/14 bg-white pl-2 pr-6 text-[12px] font-bold tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-primary/12 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <span className="pointer-events-none absolute right-2 text-[10.5px] font-semibold text-muted-foreground">
           분
@@ -977,4 +877,3 @@ const DurationPicker = ({
     </div>
   );
 };
-
