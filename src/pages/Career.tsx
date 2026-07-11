@@ -14,7 +14,7 @@
  */
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, FileDown, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -1327,6 +1327,7 @@ function DetailDialog({ item, onClose }: { item: SpecItem | null; onClose: () =>
 }
 
 function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) {
+  const [editing, setEditing] = useState(false); // 먼저 뷰어, 편집 누르면 폼
   const [refined, setRefined] = useState(item.refined);
   const [date, setDate] = useState(item.date);
   const [endDate, setEndDate] = useState(item.endDate ?? '');
@@ -1358,8 +1359,53 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="career-serif text-[16px]">세부사항</DialogTitle>
+        <DialogTitle className="career-serif text-[16px]">{editing ? '편집' : '세부사항'}</DialogTitle>
       </DialogHeader>
+      {!editing ? (
+        /* ── 뷰어 — 먼저 읽기 화면, 편집 눌러야 폼 ── */
+        <div className="space-y-4">
+          <div>
+            <p className="career-serif text-[16.5px] font-semibold leading-relaxed">{item.refined}</p>
+            <p className="career-mono mt-1.5 text-[12px] text-muted-foreground">
+              {formatPeriod(item)}{item.org ? ` · ${item.org}` : ''}
+            </p>
+          </div>
+          {item.link && (
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-[hsl(var(--career-red))] hover:underline"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> 증빙 링크 열기
+            </a>
+          )}
+          <div>
+            <p className="career-mono mb-1.5 text-[11px] text-muted-foreground">세부사항</p>
+            {item.detail ? (
+              <p className="whitespace-pre-wrap rounded-md bg-[hsl(var(--surface-2))] p-3 text-[13px] leading-relaxed">{item.detail}</p>
+            ) : (
+              <p className="text-[12.5px] text-muted-foreground/70">아직 없어요. 편집에서 상황·역할·결과를 채우면 이력서·자소서 생성에 활용돼요.</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={remove}
+              className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+            >
+              <Trash2 className="h-3 w-3" /> 삭제
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Pencil className="h-3.5 w-3.5" /> 편집
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="space-y-3.5">
         <div>
           <label htmlFor="career-detail-refined" className="career-mono mb-1 block text-[11px] text-muted-foreground">
@@ -1458,15 +1504,25 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             <Trash2 className="h-3 w-3" />
             삭제
           </button>
-          <button
-            type="button"
-            onClick={save}
-            className="inline-flex h-8 items-center rounded-lg bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            저장
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="inline-flex h-8 items-center rounded-lg px-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              className="inline-flex h-8 items-center rounded-lg bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              저장
+            </button>
+          </div>
         </div>
       </div>
+      )}
     </>
   );
 }
