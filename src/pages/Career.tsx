@@ -530,7 +530,7 @@ function BoardLedger() {
         </header>
 
         {/* ══════ 우 — 작성대 도크: 맨 위부터 전체 높이, 독립 스크롤 (모바일에선 마스트헤드 아래) ══════ */}
-        <aside className="scrollbar-thin overflow-y-auto lg:col-start-2 lg:row-span-2 lg:border-l lg:border-[hsl(var(--hairline))]">
+        <aside className="scrollbar-thin overflow-y-auto lg:col-start-2 lg:row-span-2">
             {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
             <div className="space-y-4 px-4 py-5 sm:px-5">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
@@ -564,25 +564,31 @@ function BoardLedger() {
                   </p>
                   {/* 문서 타일 — 연한 교정 빨강 틴트(적당히). 이력서는 초안+PDF 겸함. */}
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    {COMPOSE_PURPOSES.map(({ purpose, label }) => (
-                      <button
-                        key={purpose}
-                        type="button"
-                        onClick={() => setComposePurpose(purpose)}
-                        disabled={items.length === 0}
-                        className={cn(
-                          'rounded-xl border px-3 py-2.5 text-left transition-colors',
-                          items.length === 0
-                            ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                            : 'border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]',
-                        )}
-                      >
-                        <span className="block text-[13px] font-semibold">{label}</span>
-                        <span className={cn('career-mono mt-0.5 block text-[10.5px]', items.length > 0 ? 'text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/45')}>
-                          {purpose === '이력서' ? '초안·PDF →' : '뽑기 →'}
-                        </span>
-                      </button>
-                    ))}
+                    {COMPOSE_PURPOSES.map(({ purpose, label }) => {
+                      const primary = purpose === '이력서'; // 헤드라인 문서 — 빨강 채움 강조
+                      const disabled = items.length === 0;
+                      return (
+                        <button
+                          key={purpose}
+                          type="button"
+                          onClick={() => setComposePurpose(purpose)}
+                          disabled={disabled}
+                          className={cn(
+                            'rounded-xl border px-3 py-2.5 text-left transition-colors',
+                            disabled
+                              ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
+                              : primary
+                                ? 'border-transparent bg-[hsl(var(--career-red))] text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] hover:brightness-[1.06]'
+                                : 'border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]',
+                          )}
+                        >
+                          <span className="block text-[13px] font-semibold">{label}</span>
+                          <span className={cn('career-mono mt-0.5 block text-[10.5px]', disabled ? 'text-muted-foreground/45' : primary ? 'text-white/75' : 'text-[hsl(var(--career-red)/0.8)]')}>
+                            {primary ? '초안·PDF →' : '뽑기 →'}
+                          </span>
+                        </button>
+                      );
+                    })}
                     <button
                       type="button"
                       onClick={() => setRecommendOpen(true)}
@@ -691,7 +697,7 @@ function BoardLedger() {
                         type="button"
                         onClick={() => void requestDraft()}
                         disabled={!draft.trim()}
-                        className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
+                        className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
                       >
                         <span>초안 만들기</span>
                         <span className="career-mono text-[10.5px] font-normal opacity-60">⏎</span>
@@ -750,7 +756,7 @@ function BoardLedger() {
                         <button
                           type="button"
                           onClick={commitDraft}
-                          className="h-9 flex-1 rounded-lg bg-primary text-[12.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                          className="h-9 flex-1 rounded-lg bg-[hsl(var(--career-red))] text-[12.5px] font-semibold text-white transition-[filter] hover:brightness-[1.06]"
                         >
                           원고에 넣기
                         </button>
@@ -913,7 +919,7 @@ function BoardLedger() {
                   type="button"
                   onClick={() => void submitDirect()}
                   disabled={!draft.trim() || busy}
-                  className="h-10 w-full rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-45"
+                  className="h-10 w-full rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
                 >
                   원고에 넣기
                 </button>
