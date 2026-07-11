@@ -21,7 +21,7 @@ import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
-import { RESUME_TEMPLATES, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
+import { RESUME_TEMPLATES, ResumeThumb, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
 import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -1446,25 +1446,30 @@ function ResumeDialog({
                   </div>
                 </div>
               ) : (
-                /* 디자인(양식) 선택 */
-                <div className="space-y-2">
+                /* 디자인(양식) 선택 — 미니 썸네일 2열 카드 */
+                <div className="grid grid-cols-2 gap-2">
                   {RESUME_TEMPLATES.map((t) => (
                     <button
                       key={t.id}
                       type="button"
                       onClick={() => setTemplateId(t.id)}
                       className={cn(
-                        'flex w-full items-center justify-between gap-2 rounded-lg border px-3.5 py-3 text-left transition-colors',
+                        'overflow-hidden rounded-lg border text-left transition-all',
                         templateId === t.id
-                          ? 'border-[hsl(var(--career-red))] bg-[hsl(var(--career-red)/0.06)]'
-                          : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.4)]',
+                          ? 'border-[hsl(var(--career-red))] ring-2 ring-[hsl(var(--career-red)/0.22)]'
+                          : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.45)]',
                       )}
                     >
-                      <div>
-                        <p className="text-[13px] font-bold">{t.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{t.desc}</p>
+                      <div className="border-b border-[hsl(var(--hairline))]">
+                        <ResumeThumb id={t.id} />
                       </div>
-                      {templateId === t.id && <span className="text-[13px] text-[hsl(var(--career-red))]">●</span>}
+                      <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                        <div className="min-w-0">
+                          <p className="truncate text-[12px] font-bold leading-tight">{t.name}</p>
+                          <p className="truncate text-[10px] text-muted-foreground">{t.desc}</p>
+                        </div>
+                        {templateId === t.id && <span className="shrink-0 text-[11px] text-[hsl(var(--career-red))]">●</span>}
+                      </div>
                     </button>
                   ))}
                 </div>
