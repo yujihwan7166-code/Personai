@@ -786,25 +786,31 @@ function BoardLedger() {
                 </div>
               ) : (
               <>
-              {/* ── 직접 작성 — 구조화된 폼 ── */}
-              {/* 캡처 박스 */}
-              <div
-                className={cn(
-                  'mt-2.5 flex items-center overflow-hidden rounded-lg border bg-[hsl(var(--card))] transition-all',
-                  'border-[hsl(var(--foreground)/0.25)]',
-                  'focus-within:border-[hsl(var(--career-red))]',
-                )}
-              >
-                <input
-                  ref={inputRef as React.RefObject<HTMLInputElement>}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={onInputKeyDown}
-                  placeholder="뭐든 이룬 것"
-                  aria-label="스펙 입력"
-                  className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3 text-[14.5px] outline-none placeholder:text-muted-foreground/50"
-                />
-                <span className="hidden shrink-0 pr-3 text-[10.5px] text-muted-foreground/60 sm:block">⏎</span>
+              {/* ── 직접 작성 — 주인공 입력 + '자세히' 카드 ── */}
+              {/* 이룬 것 — 주인공 입력 */}
+              <div className="mt-3">
+                <label htmlFor="career-direct-main" className="mb-1.5 block text-[12px] font-semibold text-foreground/75">
+                  이룬 것
+                </label>
+                <div
+                  className={cn(
+                    'flex items-center overflow-hidden rounded-xl border bg-[hsl(var(--card))] transition-all',
+                    'border-[hsl(var(--foreground)/0.22)]',
+                    'focus-within:border-[hsl(var(--career-red))] focus-within:ring-2 focus-within:ring-[hsl(var(--career-red)/0.12)]',
+                  )}
+                >
+                  <input
+                    ref={inputRef as React.RefObject<HTMLInputElement>}
+                    id="career-direct-main"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={onInputKeyDown}
+                    placeholder="예: 정보처리기사 취득"
+                    aria-label="스펙 입력"
+                    className="career-serif h-12 min-w-0 flex-1 bg-transparent px-3.5 text-[15px] outline-none placeholder:text-muted-foreground/45"
+                  />
+                  <span className="hidden shrink-0 pr-3.5 text-[10.5px] text-muted-foreground/55 sm:block">⏎</span>
+                </div>
               </div>
 
               {/* 해보기 — 기록이 적을 때만 */}
@@ -824,18 +830,21 @@ function BoardLedger() {
                 </div>
               )}
 
-              {/* 작성 폼 — 전부 선택 사항. 내용만 적고 엔터 쳐도 된다. */}
-              <div className="mt-3 space-y-3 border-t border-dashed border-[hsl(var(--hairline))] pt-3">
+              {/* 자세히 — 선택 항목을 카드 하나로 묶어 위계를 낮춘다 */}
+              <div className="mt-3 space-y-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.07em] text-muted-foreground">
+                  자세히 <span className="font-medium normal-case text-muted-foreground/70">· 모두 선택 사항</span>
+                </p>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label htmlFor="career-adv-category" className="career-mono mb-1 block text-[11px] text-muted-foreground">
+                    <label htmlFor="career-adv-category" className="mb-1 block text-[11.5px] font-medium text-foreground/60">
                       칸
                     </label>
                     <select
                       id="career-adv-category"
                       value={advCategory}
                       onChange={(e) => setAdvCategory(e.target.value)}
-                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2.5 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                     >
                       <option value="auto">자동 분류 (추천)</option>
                       {categories.map((category) => (
@@ -846,21 +855,21 @@ function BoardLedger() {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="career-adv-org" className="career-mono mb-1 block text-[11px] text-muted-foreground">
+                    <label htmlFor="career-adv-org" className="mb-1 block text-[11.5px] font-medium text-foreground/60">
                       기관·주최
                     </label>
                     <input
                       id="career-adv-org"
                       value={advOrg}
                       onChange={(e) => setAdvOrg(e.target.value)}
-                      placeholder="발급처·주최 (선택)"
-                      className="h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                      placeholder="발급처·주최"
+                      className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2.5 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label htmlFor="career-adv-date" className="career-mono mb-1 block text-[11px] text-muted-foreground">
+                    <label htmlFor="career-adv-date" className="mb-1 block text-[11.5px] font-medium text-foreground/60">
                       시작
                     </label>
                     <input
@@ -868,12 +877,12 @@ function BoardLedger() {
                       type="date"
                       value={advDate}
                       onChange={(e) => setAdvDate(e.target.value)}
-                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
+                      className="career-mono h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2.5 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                   <div>
                     <div className="mb-1 flex items-baseline justify-between">
-                      <label htmlFor="career-adv-end" className="career-mono block text-[11px] text-muted-foreground">
+                      <label htmlFor="career-adv-end" className="block text-[11.5px] font-medium text-foreground/60">
                         종료
                       </label>
                       <label className="flex cursor-pointer items-center gap-1 text-[10.5px] text-muted-foreground">
@@ -892,24 +901,24 @@ function BoardLedger() {
                       value={advOngoing ? '' : advEndDate}
                       onChange={(e) => setAdvEndDate(e.target.value)}
                       disabled={advOngoing}
-                      className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+                      className="career-mono h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2.5 text-[12px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="career-adv-link" className="career-mono mb-1 block text-[11px] text-muted-foreground">
+                  <label htmlFor="career-adv-link" className="mb-1 block text-[11.5px] font-medium text-foreground/60">
                     증빙 링크
                   </label>
                   <input
                     id="career-adv-link"
                     value={advLink}
                     onChange={(e) => setAdvLink(e.target.value)}
-                    placeholder="https:// — 포트폴리오·수상 페이지 (선택)"
-                    className="career-mono h-9 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    placeholder="https:// — 포트폴리오·수상 페이지"
+                    className="career-mono h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-2.5 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <div>
-                  <label htmlFor="career-adv-detail" className="career-mono mb-1 block text-[11px] text-muted-foreground">
+                  <label htmlFor="career-adv-detail" className="mb-1 block text-[11.5px] font-medium text-foreground/60">
                     세부사항
                   </label>
                   <textarea
@@ -917,19 +926,20 @@ function BoardLedger() {
                     value={advDetail}
                     onChange={(e) => setAdvDetail(e.target.value)}
                     rows={2}
-                    placeholder="상황 · 내가 한 일 · 결과 (선택)"
-                    className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    placeholder="상황 · 내가 한 일 · 결과"
+                    className="w-full resize-none rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void submitDirect()}
-                  disabled={!draft.trim() || busy}
-                  className="h-10 w-full rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
-                >
-                  원고에 넣기
-                </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => void submitDirect()}
+                disabled={!draft.trim() || busy}
+                className="mt-3 h-11 w-full rounded-xl bg-[hsl(var(--career-red))] text-[13.5px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+              >
+                원고에 넣기
+              </button>
 
               {/* 변신 줄 (직접 작성) — 잠깐 다듬어져 오른쪽 원고로 날아간다 */}
               <AnimatePresence>
