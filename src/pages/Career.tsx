@@ -538,26 +538,23 @@ function BoardLedger() {
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
-              {/* 두 모드 스위치 — 세그먼트 토글로 "만들기 ↔ 보관함"을 확실히 구분 */}
-              <div className="mb-3 flex items-center border-b border-[hsl(var(--hairline))] pb-3">
-                <div className="inline-flex rounded-[10px] bg-[hsl(var(--foreground)/0.055)] p-1">
-                  {([['make', '문서 만들기'], ['archive', docs.length ? `만든 문서 ${docs.length}` : '만든 문서']] as const).map(([k, label]) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setDocTab(k)}
-                      aria-pressed={docTab === k}
-                      className={cn(
-                        'rounded-md px-3 py-1.5 text-[13px] font-bold tracking-tight transition-colors',
-                        docTab === k
-                          ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-[0_1px_2px_hsl(var(--foreground)/0.12)]'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              {/* 현재 뷰 제목(왼쪽) + 다른 뷰로 가는 칩(오른쪽) — 만들기(메인)와 보관함을 뷰 전환으로 구분 */}
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">{docTab === 'make' ? '+' : '▤'}</span>
+                  <h2 className="text-[16px] font-bold tracking-tight">{docTab === 'make' ? '문서 만들기' : '만든 문서'}</h2>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setDocTab(docTab === 'make' ? 'archive' : 'make')}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
+                >
+                  {docTab === 'make' ? (
+                    <>만든 문서<span className="career-mono font-semibold text-[hsl(var(--career-red))]">{docs.length}</span></>
+                  ) : (
+                    <><span aria-hidden>←</span> 문서 만들기</>
+                  )}
+                </button>
               </div>
 
               {docTab === 'make' ? (
