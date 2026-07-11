@@ -1392,7 +1392,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             <button
               type="button"
               onClick={remove}
-              className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+              className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
             >
               <Trash2 className="h-3 w-3" /> 삭제
             </button>
@@ -1499,7 +1499,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
           <button
             type="button"
             onClick={remove}
-            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
           >
             <Trash2 className="h-3 w-3" />
             삭제
@@ -1706,7 +1706,7 @@ function DocViewDialog({ doc, onClose }: { doc: CareerDoc | null; onClose: () =>
           <button
             type="button"
             onClick={removeDoc}
-            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
           >
             <Trash2 className="h-3 w-3" />
             삭제
