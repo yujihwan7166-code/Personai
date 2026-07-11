@@ -49,10 +49,13 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
   worker: ['결제 오류 잡아서 CS 문의 줄임', '신규 서비스 런칭함', '사내 세미나 발표함'],
 };
 
-const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string }> = [
-  { purpose: '이력서', label: '이력서' },
-  { purpose: '자기소개서 초안', label: '자기소개서 초안' },
-  { purpose: '포트폴리오 요약', label: '포트폴리오 요약' },
+/** 문서 타일 — 연한 색상 각각(교정 빨강 중심 웜 팔레트). tint = 배경, accent = 부제/보더 색조(HSL). */
+const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: string; hsl: string }> = [
+  { purpose: '이력서', label: '이력서', hint: '초안·PDF', hsl: '6 70% 51%' },
+  { purpose: '자기소개서 초안', label: '자기소개서', hint: '뽑기', hsl: '28 78% 50%' },
+  { purpose: '포트폴리오 요약', label: '포트폴리오 요약', hint: '뽑기', hsl: '42 80% 44%' },
+  { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
+  { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '14 70% 54%' },
 ];
 
 /** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
@@ -564,8 +567,7 @@ function BoardLedger() {
                   </p>
                   {/* 문서 타일 — 연한 교정 빨강 틴트(적당히). 이력서는 초안+PDF 겸함. */}
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    {COMPOSE_PURPOSES.map(({ purpose, label }) => {
-                      const primary = purpose === '이력서'; // 헤드라인 문서 — 빨강 채움 강조
+                    {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
                       const disabled = items.length === 0;
                       return (
                         <button
@@ -574,29 +576,33 @@ function BoardLedger() {
                           onClick={() => setComposePurpose(purpose)}
                           disabled={disabled}
                           className={cn(
-                            'rounded-xl border px-3 py-2.5 text-left transition-colors',
+                            'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
                             disabled
                               ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                              : primary
-                                ? 'border-transparent bg-[hsl(var(--career-red))] text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] hover:brightness-[1.06]'
-                                : 'border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]',
+                              : 'hover:brightness-[0.98] hover:shadow-sm',
                           )}
+                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.08)`, borderColor: `hsl(${hsl} / 0.28)` }}
                         >
                           <span className="block text-[13px] font-semibold">{label}</span>
-                          <span className={cn('career-mono mt-0.5 block text-[10.5px]', disabled ? 'text-muted-foreground/45' : primary ? 'text-white/75' : 'text-[hsl(var(--career-red)/0.8)]')}>
-                            {primary ? '초안·PDF →' : '뽑기 →'}
+                          <span
+                            className="career-mono mt-0.5 block text-[10.5px]"
+                            style={disabled ? undefined : { color: `hsl(${hsl} / 0.95)` }}
+                          >
+                            {hint} →
                           </span>
                         </button>
                       );
                     })}
+                    {/* 6번째 — 추천 스펙(연한 초록, "쌓을 것" 성격) */}
                     <button
                       type="button"
                       onClick={() => setRecommendOpen(true)}
                       title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                      className="rounded-xl border border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]"
+                      className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
+                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.08)', borderColor: 'hsl(150 38% 42% / 0.28)' }}
                     >
                       <span className="block text-[13px] font-semibold">추천 스펙</span>
-                      <span className="career-mono mt-0.5 block text-[10.5px] text-[hsl(var(--career-red)/0.8)]">받기 →</span>
+                      <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
                     </button>
                   </div>
                 </>
