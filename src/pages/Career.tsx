@@ -1298,8 +1298,11 @@ function ResumeDialog({
   const [panelTab, setPanelTab] = useState<'specs' | 'design'>('specs');
   const [templateId, setTemplateId] = useState<ResumeTemplateId>('minimal');
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [scale, setScale] = useState(1);
+  const [fitScale, setFitScale] = useState(1); // 칸 너비에 맞춘 기본 배율
+  const [zoom, setZoom] = useState(1); // 사용자 확대 배율 (1 = 맞춤)
   const [sheetH, setSheetH] = useState(1123);
+
+  const scale = fitScale * zoom;
 
   const toggleItem = (id: string) =>
     setExcluded((prev) => {
@@ -1327,7 +1330,7 @@ function ResumeDialog({
     if (!el) return;
     const update = () => {
       const avail = el.clientWidth - 56; // 좌우 데스크 여백(p-7)
-      setScale(Math.min(1, Math.max(0.35, avail / 794)));
+      setFitScale(Math.min(1, Math.max(0.35, avail / 794)));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -1484,8 +1487,34 @@ function ResumeDialog({
 
           {/* ── 우 — 라이브 A4 미리보기 (칸 너비에 맞춰 축소된 온전한 페이지) ── */}
           <div className="flex min-w-0 flex-1 flex-col bg-neutral-300">
-            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-400/40 px-4 py-2.5">
+            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-400/40 px-4 py-2">
               <span className="text-[12px] text-neutral-600">미리보기 · A4 · {template.name}</span>
+              <div className="ml-auto flex items-center gap-0.5 text-neutral-600">
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
+                  aria-label="축소"
+                  className="grid h-7 w-7 place-items-center rounded-md text-[15px] leading-none transition-colors hover:bg-neutral-400/25"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(1)}
+                  title="칸에 맞추기"
+                  className="min-w-[46px] rounded-md px-1.5 py-1 text-center text-[11.5px] font-semibold tabular-nums transition-colors hover:bg-neutral-400/25"
+                >
+                  {Math.round(scale * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))}
+                  aria-label="확대"
+                  className="grid h-7 w-7 place-items-center rounded-md text-[15px] leading-none transition-colors hover:bg-neutral-400/25"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <div ref={previewRef} className="scrollbar-thin flex-1 overflow-auto p-7">
               <div className="mx-auto" style={{ width: 794 * scale, height: sheetH * scale }}>
