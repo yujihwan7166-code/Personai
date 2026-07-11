@@ -21,6 +21,7 @@ import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
+import { RESUME_TEMPLATES, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
 import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -1224,6 +1225,29 @@ function ResumeDialog({
 }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [panelTab, setPanelTab] = useState<'specs' | 'design'>('specs');
+  const [templateId, setTemplateId] = useState<ResumeTemplateId>('minimal');
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+
+  const toggleItem = (id: string) =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // 선택된(제외 안 된) 항목만 담고, 빈 카테고리는 뺀다.
+  const filtered = useMemo(
+    () =>
+      sections
+        .map((s) => ({ category: s.category, items: s.items.filter((i) => !excluded.has(i.id)) }))
+        .filter((s) => s.items.length > 0),
+    [sections, excluded],
+  );
+
+  const template = RESUME_TEMPLATES.find((t) => t.id === templateId) ?? RESUME_TEMPLATES[0];
+  const Template = template.Component;
 
   const exportPdf = async () => {
     const el = sheetRef.current;
@@ -1250,62 +1274,133 @@ function ResumeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="career-theme max-w-[880px]">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-3 pr-6">
-            <DialogTitle className="career-serif text-[16px]">이력서 미리보기</DialogTitle>
-            <button
-              type="button"
-              onClick={() => void exportPdf()}
-              disabled={exporting}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
-            >
-              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
-              {exporting ? '내보내는 중…' : 'PDF 저장'}
-            </button>
-          </div>
-        </DialogHeader>
-
-        {/* 미리보기 — 회색 배경 위 흰 A4 종이 */}
-        <div className="max-h-[70vh] overflow-auto rounded-lg bg-neutral-200 p-4">
-          <div
-            ref={sheetRef}
-            style={{ width: 794, minHeight: 1123, padding: 56, fontFamily: "'Pretendard Variable', Pretendard, sans-serif", color: '#1a1a1a', background: '#ffffff' }}
-            className="mx-auto"
-          >
-            {/* 머리글 — 이름 + 한 줄 소개 */}
-            <div style={{ borderBottom: '2px solid #1a1a1a', paddingBottom: 14 }}>
-              <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.15 }}>{profile.name || '이름'}</div>
-              {profile.tagline && <div style={{ marginTop: 7, fontSize: 13.5, color: '#4a4a4a' }}>{profile.tagline}</div>}
+      <DialogContent className="career-theme max-w-[1080px] overflow-hidden p-0">
+        <DialogTitle className="sr-only">이력서 만들기</DialogTitle>
+        <div className="flex h-[82vh] max-h-[780px]">
+          {/* ── 좌 — 컨트롤: 스펙 고르기 / 디자인 ── */}
+          <div className="flex w-[300px] shrink-0 flex-col border-r border-[hsl(var(--hairline))]">
+            <div className="border-b border-[hsl(var(--hairline))] px-4 pb-2.5 pt-4">
+              <h2 className="text-[15px] font-bold">이력서 만들기</h2>
+              <div className="mt-2.5 inline-flex rounded-lg bg-[hsl(var(--foreground)/0.055)] p-0.5 text-[12px]">
+                {([['specs', '스펙 고르기'], ['design', '디자인']] as const).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setPanelTab(k)}
+                    className={cn(
+                      'rounded-md px-3 py-1 font-semibold transition-colors',
+                      panelTab === k ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* 섹션 */}
-            {sections.length === 0 ? (
-              <div style={{ marginTop: 28, fontSize: 13, color: '#999' }}>아직 기록이 없어요. 커리어를 추가하면 이력서에 담깁니다.</div>
-            ) : (
-              sections.map(({ category, items }) => (
-                <section key={category.id} style={{ marginTop: 22 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.06em', color: '#b23b1e' }}>{category.name}</div>
-                  <div style={{ borderTop: '1px solid #dcdcdc', marginTop: 5 }} />
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="resume-item"
-                      style={{ display: 'flex', justifyContent: 'space-between', gap: 18, marginTop: 11 }}
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-3.5">
+              {panelTab === 'specs' ? (
+                <div className="space-y-4">
+                  {/* 연락처 — 이력서 머리글용 */}
+                  <div>
+                    <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">연락처</p>
+                    <input
+                      defaultValue={profile.email ?? ''}
+                      onBlur={(e) => careerStore.setProfile({ email: e.target.value.trim() || undefined })}
+                      placeholder="이메일"
+                      className="mb-1.5 h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    />
+                    <input
+                      defaultValue={profile.phone ?? ''}
+                      onBlur={(e) => careerStore.setProfile({ phone: e.target.value.trim() || undefined })}
+                      placeholder="전화번호"
+                      className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
+                    />
+                  </div>
+
+                  {/* 넣을 스펙 고르기 */}
+                  <div>
+                    <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">넣을 스펙</p>
+                    {sections.length === 0 ? (
+                      <p className="text-[12px] text-muted-foreground/60">기록이 없어요.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {sections.map(({ category, items }) => (
+                          <div key={category.id}>
+                            <p className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold">
+                              <span className="career-mono text-[10px] text-[hsl(var(--career-red))]">{category.name}</span>
+                            </p>
+                            <div className="space-y-0.5">
+                              {items.map((item) => (
+                                <label key={item.id} className="flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 hover:bg-[hsl(var(--foreground)/0.03)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={!excluded.has(item.id)}
+                                    onChange={() => toggleItem(item.id)}
+                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[hsl(var(--career-red))]"
+                                  />
+                                  <span className={cn('text-[12px] leading-snug', excluded.has(item.id) ? 'text-muted-foreground/50 line-through' : 'text-foreground')}>
+                                    {item.refined}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* 디자인(양식) 선택 */
+                <div className="space-y-2">
+                  {RESUME_TEMPLATES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTemplateId(t.id)}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 rounded-lg border px-3.5 py-3 text-left transition-colors',
+                        templateId === t.id
+                          ? 'border-[hsl(var(--career-red))] bg-[hsl(var(--career-red)/0.06)]'
+                          : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.4)]',
+                      )}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>{item.refined}</div>
-                        {item.org && <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{item.org}</div>}
-                        {item.detail && <div style={{ fontSize: 11.5, color: '#666', marginTop: 3, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{item.detail}</div>}
+                      <div>
+                        <p className="text-[13px] font-bold">{t.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{t.desc}</p>
                       </div>
-                      <div style={{ flexShrink: 0, fontSize: 11.5, color: '#666', fontVariantNumeric: 'tabular-nums', paddingTop: 1 }}>
-                        {formatPeriod(item)}
-                      </div>
-                    </div>
+                      {templateId === t.id && <span className="text-[13px] text-[hsl(var(--career-red))]">●</span>}
+                    </button>
                   ))}
-                </section>
-              ))
-            )}
+                </div>
+              )}
+            </div>
+
+            {/* 하단 — PDF 저장 */}
+            <div className="border-t border-[hsl(var(--hairline))] p-3">
+              <button
+                type="button"
+                onClick={() => void exportPdf()}
+                disabled={exporting || filtered.length === 0}
+                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {exporting ? '내보내는 중…' : 'PDF 저장'}
+              </button>
+            </div>
+          </div>
+
+          {/* ── 우 — 라이브 A4 미리보기 ── */}
+          <div className="flex min-w-0 flex-1 flex-col bg-neutral-200">
+            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-300/70 px-4 py-2.5">
+              <span className="text-[12px] text-neutral-500">미리보기 · A4 · {template.name}</span>
+            </div>
+            <div className="scrollbar-thin flex-1 overflow-auto p-5">
+              <div ref={sheetRef} className="mx-auto w-[794px] shadow-[0_10px_40px_-12px_rgba(0,0,0,0.35)]">
+                <Template profile={profile} sections={filtered} />
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

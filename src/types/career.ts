@@ -73,4 +73,7 @@ export interface CareerProfile {
   persona: CareerPersona | '';
   /** 증명사진 (dataURL, 선택). */
   photo?: string;
+  /** 연락처 — 이력서 머리글용 (선택). */
+  email?: string;
+  phone?: string;
 }
