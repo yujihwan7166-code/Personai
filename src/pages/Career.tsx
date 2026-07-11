@@ -542,7 +542,7 @@ function BoardLedger() {
               <div className="mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
                 <div className="flex items-center gap-2">
                   <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">{docTab === 'make' ? '+' : '▤'}</span>
-                  <h2 className="text-[16px] font-bold tracking-tight">{docTab === 'make' ? '문서 만들기' : '만든 문서'}</h2>
+                  <h2 className="text-[16px] font-bold tracking-tight">{docTab === 'make' ? '문서 만들기' : '보관함'}</h2>
                 </div>
                 <button
                   type="button"
@@ -550,7 +550,7 @@ function BoardLedger() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
                 >
                   {docTab === 'make' ? (
-                    <>만든 문서<span className="career-mono font-semibold text-[hsl(var(--career-red))]">{docs.length}</span></>
+                    <>보관함<span className="career-mono font-semibold text-[hsl(var(--career-red))]">{docs.length}</span></>
                   ) : (
                     <><span aria-hidden>←</span> 문서 만들기</>
                   )}
@@ -607,7 +607,7 @@ function BoardLedger() {
                 </>
               ) : docs.length === 0 ? (
                 <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground/70">
-                  아직 만든 문서가 없어요. “문서 만들기”에서 생성하면 여기에 쌓여요.
+                  아직 보관함이 비어 있어요. “문서 만들기”에서 생성하면 여기에 쌓여요.
                 </p>
               ) : (
                 <ul className="mt-2 divide-y divide-[hsl(var(--hairline))]">
@@ -1492,7 +1492,7 @@ function ComposeDialog({ purpose, onClose, onCreated, onExportResume }: { purpos
       // 생성 즉시 보관함에 — 닫아도 "만든 문서"에서 다시 볼 수 있다.
       careerStore.addDoc({ purpose: target, content, request: request.trim() || undefined });
       onCreated?.();
-      notify.success('만든 문서에 저장했어요');
+      notify.success('보관함에 저장했어요');
     } catch (err) {
       notify.error('문서 생성에 실패했어요', {
         description: err instanceof Error ? err.message : '잠시 뒤 다시 시도해 주세요.',
@@ -1625,7 +1625,7 @@ function DocViewDialog({ doc, onClose }: { doc: CareerDoc | null; onClose: () =>
     if (!doc) return;
     careerStore.removeDoc(doc.id);
     onClose();
-    notify.success('만든 문서에서 지웠어요');
+    notify.success('보관함에서 지웠어요');
   };
 
   return (
