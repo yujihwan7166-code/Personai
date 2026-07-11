@@ -12,7 +12,7 @@
  * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
  * 기록은 2열 카드 뷰 고정, 섹션당 5개 프리뷰(+더 보기). 서체는 플래너와 동일(Pretendard).
  */
-import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -1293,10 +1293,13 @@ function ResumeDialog({
   sections: Array<{ category: SpecCategory; items: SpecItem[] }>;
 }) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [panelTab, setPanelTab] = useState<'specs' | 'design'>('specs');
   const [templateId, setTemplateId] = useState<ResumeTemplateId>('minimal');
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [scale, setScale] = useState(1);
+  const [sheetH, setSheetH] = useState(1123);
 
   const toggleItem = (id: string) =>
     setExcluded((prev) => {
@@ -1317,6 +1320,25 @@ function ResumeDialog({
 
   const template = RESUME_TEMPLATES.find((t) => t.id === templateId) ?? RESUME_TEMPLATES[0];
   const Template = template.Component;
+
+  // 미리보기 A4 시트(794px)를 프리뷰 칸 너비에 맞춰 축소 — 네 변에 여백이 도는 온전한 페이지로.
+  useLayoutEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+    const update = () => {
+      const avail = el.clientWidth - 56; // 좌우 데스크 여백(p-7)
+      setScale(Math.min(1, Math.max(0.35, avail / 794)));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+
+  // 시트 실제 높이 측정 — 축소 래퍼가 정확한 자리를 차지해 스크롤이 맞도록.
+  useLayoutEffect(() => {
+    if (sheetRef.current) setSheetH(sheetRef.current.offsetHeight);
+  }, [filtered, templateId, open]);
 
   const exportPdf = async () => {
     const el = sheetRef.current;
@@ -1460,14 +1482,18 @@ function ResumeDialog({
             </div>
           </div>
 
-          {/* ── 우 — 라이브 A4 미리보기 ── */}
-          <div className="flex min-w-0 flex-1 flex-col bg-neutral-200">
-            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-300/70 px-4 py-2.5">
-              <span className="text-[12px] text-neutral-500">미리보기 · A4 · {template.name}</span>
+          {/* ── 우 — 라이브 A4 미리보기 (칸 너비에 맞춰 축소된 온전한 페이지) ── */}
+          <div className="flex min-w-0 flex-1 flex-col bg-neutral-300">
+            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-400/40 px-4 py-2.5">
+              <span className="text-[12px] text-neutral-600">미리보기 · A4 · {template.name}</span>
             </div>
-            <div className="scrollbar-thin flex-1 overflow-auto p-5">
-              <div ref={sheetRef} className="mx-auto w-[794px] shadow-[0_10px_40px_-12px_rgba(0,0,0,0.35)]">
-                <Template profile={profile} sections={filtered} />
+            <div ref={previewRef} className="scrollbar-thin flex-1 overflow-auto p-7">
+              <div className="mx-auto" style={{ width: 794 * scale, height: sheetH * scale }}>
+                <div style={{ width: 794, transformOrigin: 'top left', transform: `scale(${scale})` }}>
+                  <div ref={sheetRef} className="shadow-[0_14px_50px_-14px_rgba(0,0,0,0.5)] ring-1 ring-black/5">
+                    <Template profile={profile} sections={filtered} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
