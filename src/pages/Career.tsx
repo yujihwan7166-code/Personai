@@ -50,7 +50,7 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 };
 
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string }> = [
-  { purpose: '이력서', label: '이력서 초안' },
+  { purpose: '이력서', label: '이력서' },
   { purpose: '자기소개서 초안', label: '자기소개서 초안' },
   { purpose: '포트폴리오 요약', label: '포트폴리오 요약' },
 ];
@@ -534,7 +534,7 @@ function BoardLedger() {
             {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
             <div className="space-y-4 px-4 py-5 sm:px-5">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
-            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
+            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               <div className="flex items-center gap-3 border-b border-[hsl(var(--hairline))] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
                 {([['make', '문서 만들기'], ['archive', docs.length ? `만든 문서 ${docs.length}` : '만든 문서']] as const).map(([k, label]) => (
@@ -557,25 +557,13 @@ function BoardLedger() {
 
               {docTab === 'make' ? (
                 <>
-                  {/* 이력서 PDF — 쌓인 기록을 서식 이력서로 바로 내보내기 (헤드라인, AI 아님) */}
-                  <button
-                    type="button"
-                    onClick={() => setResumeOpen(true)}
-                    disabled={items.length === 0}
-                    className="mt-3 flex w-full items-center justify-between gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    <span className="flex items-center gap-2 text-[13px] font-semibold">
-                      <FileDown className="h-4 w-4" /> 이력서 PDF 내보내기
-                    </span>
-                    <span className="career-mono text-[10.5px] opacity-70">서식 · 인쇄</span>
-                  </button>
-                  <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
                     {items.length === 0
-                      ? '기록이 쌓이면 이력서·초안을 만들 수 있어요.'
-                      : 'AI 초안이 필요하면 아래에서 뽑아보세요.'}
+                      ? '기록이 쌓이면 문서를 만들 수 있어요.'
+                      : '쌓인 기록으로 문서를 만들어보세요.'}
                   </p>
-                  {/* AI 초안 — 2칸 타일 */}
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  {/* 문서 타일 — 연한 교정 빨강 틴트(적당히). 이력서는 초안+PDF 겸함. */}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     {COMPOSE_PURPOSES.map(({ purpose, label }) => (
                       <button
                         key={purpose}
@@ -583,33 +571,26 @@ function BoardLedger() {
                         onClick={() => setComposePurpose(purpose)}
                         disabled={items.length === 0}
                         className={cn(
-                          'group rounded-lg border px-3 py-2.5 text-left transition-colors',
+                          'rounded-xl border px-3 py-2.5 text-left transition-colors',
                           items.length === 0
                             ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                            : 'border-[hsl(var(--hairline))] bg-[hsl(var(--card))] hover:border-[hsl(var(--career-red))]',
+                            : 'border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]',
                         )}
                       >
-                        <span
-                          className={cn(
-                            'block text-[13px] font-medium transition-colors',
-                            items.length > 0 && 'group-hover:text-[hsl(var(--career-red))]',
-                          )}
-                        >
-                          {label}
+                        <span className="block text-[13px] font-semibold">{label}</span>
+                        <span className={cn('career-mono mt-0.5 block text-[10.5px]', items.length > 0 ? 'text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/45')}>
+                          {purpose === '이력서' ? '초안·PDF →' : '뽑기 →'}
                         </span>
-                        <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">뽑기 →</span>
                       </button>
                     ))}
                     <button
                       type="button"
                       onClick={() => setRecommendOpen(true)}
                       title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                      className="group rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red))]"
+                      className="rounded-xl border border-[hsl(var(--career-red)/0.22)] bg-[hsl(var(--career-red)/0.045)] px-3 py-2.5 text-left transition-colors hover:border-[hsl(var(--career-red)/0.55)] hover:bg-[hsl(var(--career-red)/0.08)]"
                     >
-                      <span className="block text-[13px] font-medium transition-colors group-hover:text-[hsl(var(--career-red))]">
-                        추천 스펙
-                      </span>
-                      <span className="career-mono mt-0.5 block text-[10.5px] text-muted-foreground/55">받기 →</span>
+                      <span className="block text-[13px] font-semibold">추천 스펙</span>
+                      <span className="career-mono mt-0.5 block text-[10.5px] text-[hsl(var(--career-red)/0.8)]">받기 →</span>
                     </button>
                   </div>
                 </>
@@ -640,7 +621,7 @@ function BoardLedger() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4 shadow-[0_1px_2px_hsl(var(--foreground)/0.03)]">
+            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               {/* 작성대 표제 + 모드 토글 (AI 작성 / 직접 작성) */}
               <div className="flex items-baseline gap-2 border-b border-[hsl(var(--hairline))] pb-2">
                 <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">+</span>
@@ -1204,7 +1185,12 @@ function BoardLedger() {
         profile={profile}
         sections={sections.filter((s) => s.items.length > 0)}
       />
-      <ComposeDialog purpose={composePurpose} onClose={() => setComposePurpose(null)} onCreated={() => setDocTab('archive')} />
+      <ComposeDialog
+        purpose={composePurpose}
+        onClose={() => setComposePurpose(null)}
+        onCreated={() => setDocTab('archive')}
+        onExportResume={() => { setComposePurpose(null); setResumeOpen(true); }}
+      />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
@@ -1476,7 +1462,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
 
 /* ═══════════════ AI 생성 다이얼로그 ═══════════════ */
 
-function ComposeDialog({ purpose, onClose, onCreated }: { purpose: ComposePurpose | null; onClose: () => void; onCreated?: () => void }) {
+function ComposeDialog({ purpose, onClose, onCreated, onExportResume }: { purpose: ComposePurpose | null; onClose: () => void; onCreated?: () => void; onExportResume?: () => void }) {
   const { items, categories } = useCareerBoard();
   const [request, setRequest] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -1531,6 +1517,19 @@ function ComposeDialog({ purpose, onClose, onCreated }: { purpose: ComposePurpos
         <DialogHeader>
           <DialogTitle className="career-serif text-[16px]">원고로 {purpose} 만들기</DialogTitle>
         </DialogHeader>
+        {/* 이력서는 AI 초안뿐 아니라 서식 PDF도 여기서 (합침) */}
+        {purpose === '이력서' && onExportResume && (
+          <button
+            type="button"
+            onClick={onExportResume}
+            className="flex items-center justify-between gap-2 rounded-lg border border-[hsl(var(--career-red)/0.3)] bg-[hsl(var(--career-red)/0.05)] px-3.5 py-2.5 text-left transition-colors hover:bg-[hsl(var(--career-red)/0.09)]"
+          >
+            <span className="flex items-center gap-2 text-[13px] font-semibold text-[hsl(var(--career-red))]">
+              <FileDown className="h-4 w-4" /> 서식 이력서 PDF 내보내기
+            </span>
+            <span className="career-mono text-[10.5px] text-muted-foreground">쌓인 기록 그대로 · 인쇄용</span>
+          </button>
+        )}
         {/* 요청사항 먼저 — 어디에 낼지 적고 만든다 */}
         <div>
           <label htmlFor="career-compose-request" className="mb-1 block text-[11px] text-muted-foreground">
