@@ -269,6 +269,7 @@ function BoardLedger() {
   const [advDate, setAdvDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [advEndDate, setAdvEndDate] = useState('');
   const [advOngoing, setAdvOngoing] = useState(false);
+  const [advRange, setAdvRange] = useState(false); // false = 하루, true = 기간
   const [advOrg, setAdvOrg] = useState('');
   const [advLink, setAdvLink] = useState('');
   const [advDetail, setAdvDetail] = useState('');
@@ -337,6 +338,7 @@ function BoardLedger() {
       setAdvLink('');
       setAdvEndDate('');
       setAdvOngoing(false);
+      setAdvRange(false);
       setRecentId(item.id);
       setPhase({ step: 'idle' });
       recentTimer.current = window.setTimeout(() => setRecentId(null), 2400);
@@ -370,9 +372,11 @@ function BoardLedger() {
     if (result.ongoing) {
       setAdvOngoing(true);
       setAdvEndDate('');
+      setAdvRange(true);
     } else if (result.endDate) {
       setAdvOngoing(false);
       setAdvEndDate(result.endDate);
+      setAdvRange(true);
     }
     if (result.org !== undefined) setAdvOrg(result.org);
     setPhase({ step: 'draft', raw, refined: result.refined, category: result.category, dateFound: !!result.date });
@@ -396,6 +400,7 @@ function BoardLedger() {
     setAdvDate(new Date().toISOString().slice(0, 10));
     setAdvEndDate('');
     setAdvOngoing(false);
+    setAdvRange(false);
     setAdvOrg('');
     setPhase({ step: 'idle' });
     setRecentId(item.id);
@@ -657,11 +662,11 @@ function BoardLedger() {
                   ))}
                 </div>
               </div>
-              <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
-                {writeMode === 'ai'
-                  ? '생각나는 대로 적으면 AI가 이력서 문장으로 다듬어드려요.'
-                  : '칸·기간·세부까지 직접 채워 넣어요.'}
-              </p>
+              {writeMode === 'ai' && (
+                <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+                  생각나는 대로 적으면 AI가 이력서 문장으로 다듬어드려요.
+                </p>
+              )}
 
               {writeMode === 'ai' ? (
                 /* ── AI 작성 — 생각나는 대로 적기 → 초안 검토 → 서랍에 넣기 ── */
@@ -800,8 +805,8 @@ function BoardLedger() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onInputKeyDown}
-                  placeholder="뭐든 이룬 것"
-                  aria-label="스펙 입력"
+                  placeholder="한 일·성과를 적어보세요 — 예: 토익 780점 달성"
+                  aria-label="활동·성과"
                   className="career-serif h-14 min-w-0 flex-1 bg-transparent px-4 text-[15px] outline-none placeholder:text-muted-foreground/45"
                 />
                 <button
@@ -837,7 +842,7 @@ function BoardLedger() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="career-adv-category" className="mb-1.5 block text-[12.5px] font-semibold text-foreground/80">
-                      칸
+                      카테고리
                     </label>
                     <select
                       id="career-adv-category"
@@ -866,43 +871,87 @@ function BoardLedger() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="career-adv-date" className="mb-1.5 block text-[12.5px] font-semibold text-foreground/80">
-                      시작
-                    </label>
+                {/* 기간 — 하루(기본) / 기간 토글 */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[12.5px] font-semibold text-foreground/80">
+                      {advRange ? '기간' : '날짜'}
+                    </span>
+                    <div className="inline-flex rounded-lg bg-[hsl(var(--foreground)/0.05)] p-0.5">
+                      {([[false, '하루'], [true, '기간']] as const).map(([range, label]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            setAdvRange(range);
+                            if (!range) {
+                              setAdvEndDate('');
+                              setAdvOngoing(false);
+                            }
+                          }}
+                          aria-pressed={advRange === range}
+                          className={cn(
+                            'rounded-md px-3 py-1 text-[11.5px] font-semibold transition-colors',
+                            advRange === range
+                              ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {!advRange ? (
                     <input
                       id="career-adv-date"
                       type="date"
                       value={advDate}
                       onChange={(e) => setAdvDate(e.target.value)}
+                      aria-label="날짜"
                       className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                     />
-                  </div>
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="career-adv-end" className="block text-[12.5px] font-semibold text-foreground/80">
-                        종료
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground">
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="career-adv-date" className="mb-1 block text-[11px] text-muted-foreground">
+                          시작
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={advOngoing}
-                          onChange={(e) => setAdvOngoing(e.target.checked)}
-                          className="h-3.5 w-3.5 accent-[hsl(var(--career-red))]"
+                          id="career-adv-date"
+                          type="date"
+                          value={advDate}
+                          onChange={(e) => setAdvDate(e.target.value)}
+                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                         />
-                        진행 중
-                      </label>
+                      </div>
+                      <div>
+                        <div className="mb-1 flex items-center justify-between">
+                          <label htmlFor="career-adv-end" className="block text-[11px] text-muted-foreground">
+                            종료
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground">
+                            <input
+                              type="checkbox"
+                              checked={advOngoing}
+                              onChange={(e) => setAdvOngoing(e.target.checked)}
+                              className="h-3.5 w-3.5 accent-[hsl(var(--career-red))]"
+                            />
+                            진행 중
+                          </label>
+                        </div>
+                        <input
+                          id="career-adv-end"
+                          type="date"
+                          value={advOngoing ? '' : advEndDate}
+                          onChange={(e) => setAdvEndDate(e.target.value)}
+                          disabled={advOngoing}
+                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
+                        />
+                      </div>
                     </div>
-                    <input
-                      id="career-adv-end"
-                      type="date"
-                      value={advOngoing ? '' : advEndDate}
-                      onChange={(e) => setAdvEndDate(e.target.value)}
-                      disabled={advOngoing}
-                      className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
-                    />
-                  </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="career-adv-link" className="mb-1.5 block text-[12.5px] font-semibold text-foreground/80">
