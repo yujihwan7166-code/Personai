@@ -1325,17 +1325,30 @@ function ResumeDialog({
   const Template = template.Component;
 
   // 미리보기 A4 시트(794px)를 프리뷰 칸 너비에 맞춰 축소 — 네 변에 여백이 도는 온전한 페이지로.
+  // 다이얼로그 오픈 애니메이션 중엔 폭이 아직 0일 수 있어 rAF로 재측정 + ResizeObserver 로 추적.
   useLayoutEffect(() => {
-    const el = previewRef.current;
-    if (!el) return;
-    const update = () => {
+    if (!open) return;
+    setZoom(1); // 열 때마다 맞춤 배율로 시작
+    const measure = () => {
+      const el = previewRef.current;
+      if (!el) return;
       const avail = el.clientWidth - 56; // 좌우 데스크 여백(p-7)
-      setFitScale(Math.min(1, Math.max(0.35, avail / 794)));
+      if (avail > 80) setFitScale(Math.min(1, Math.max(0.35, avail / 794)));
     };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
+    measure();
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      measure();
+      raf2 = requestAnimationFrame(measure);
+    });
+    const el = previewRef.current;
+    const ro = el ? new ResizeObserver(measure) : null;
+    if (el && ro) ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      ro?.disconnect();
+    };
   }, [open]);
 
   // 시트 실제 높이 측정 — 축소 래퍼가 정확한 자리를 차지해 스크롤이 맞도록.
@@ -1494,7 +1507,8 @@ function ResumeDialog({
           <div className="flex min-w-0 flex-1 flex-col bg-neutral-300">
             <div className="flex shrink-0 items-center gap-2 border-b border-neutral-400/40 px-4 py-2">
               <span className="text-[12px] text-neutral-600">미리보기 · A4 · {template.name}</span>
-              <div className="ml-auto flex items-center gap-0.5 text-neutral-600">
+              {/* mr-8 — DialogContent 기본 닫기 X(우상단 고정)와 겹치지 않게 */}
+              <div className="ml-auto mr-8 flex items-center gap-0.5 text-neutral-600">
                 <button
                   type="button"
                   onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
