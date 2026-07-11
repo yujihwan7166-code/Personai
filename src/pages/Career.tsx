@@ -1472,7 +1472,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className={cn(!editing && 'sr-only')}>
         <DialogTitle className="career-serif text-[16px]">{editing ? '편집' : '세부사항'}</DialogTitle>
       </DialogHeader>
       {!editing ? (
