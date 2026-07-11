@@ -976,7 +976,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-thin min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
+          <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_22px_48px_-32px_hsl(var(--foreground)/0.3)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
             <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
@@ -1110,16 +1110,14 @@ function BoardLedger() {
                         </span>
                       </div>
                       {sectionItems.length === 0 ? (
-                        /* 빈 칸 — 첫 기록 추가 유도 */
+                        /* 빈 칸 — 조용한 한 줄(문서가 안 비어 보이게). 큰 박스 대신. */
                         <button
                           type="button"
                           onClick={() => startAddTo(category.name)}
-                          className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-[hsl(var(--foreground)/0.16)] py-7 text-muted-foreground/55 transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
+                          className="flex items-center gap-1.5 px-1 py-1 text-left text-[12px] text-muted-foreground/45 transition-colors hover:text-[hsl(var(--career-red))]"
                         >
-                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--career-red)/0.08)] text-[hsl(var(--career-red))]">
-                            <Plus className="h-4 w-4" />
-                          </span>
-                          <span className="text-[11.5px]">첫 기록 추가</span>
+                          <Plus className="h-3.5 w-3.5" />
+                          첫 기록 추가
                         </button>
                       ) : (
                         <>
