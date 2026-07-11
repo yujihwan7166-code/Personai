@@ -39,10 +39,10 @@ interface WorkspaceDestination {
 const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'home', label: '홈', to: '/', icon: Home },
   { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
-  { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
+  { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
