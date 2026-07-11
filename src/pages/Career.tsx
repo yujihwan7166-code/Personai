@@ -1056,17 +1056,29 @@ function BoardLedger() {
                         {profile.name || '이름 적기'}
                       </button>
                     )}
-                    {/* 소개 — 이름 아래, blur 시 저장 */}
-                    <input
+                    {/* 소개 — 이름 아래, 여러 줄 가능(자동 높이), blur 시 저장 */}
+                    <textarea
+                      ref={(el) => {
+                        if (el) {
+                          el.style.height = 'auto';
+                          el.style.height = `${el.scrollHeight}px`;
+                        }
+                      }}
                       defaultValue={profile.tagline}
                       onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
+                      onInput={(e) => {
+                        const el = e.currentTarget;
+                        el.style.height = 'auto';
+                        el.style.height = `${el.scrollHeight}px`;
+                      }}
+                      rows={1}
                       placeholder={
                         persona === 'worker'
-                          ? '한 줄 소개 — 예: 결제·정산 도메인 3년차 프론트엔드 개발자'
-                          : '한 줄 소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
+                          ? '소개 — 예: 결제·정산 도메인 3년차 프론트엔드 개발자'
+                          : '소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
                       }
-                      aria-label="한 줄 소개"
-                      className="w-full max-w-[520px] bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
+                      aria-label="소개"
+                      className="mt-0.5 block w-full max-w-[520px] resize-none overflow-hidden bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
                     />
                   </div>
             </div>
