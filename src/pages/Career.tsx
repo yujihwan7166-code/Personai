@@ -538,24 +538,26 @@ function BoardLedger() {
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
-              <div className="flex items-center gap-3 border-b border-[hsl(var(--hairline))] pb-2">
-                <span className="career-mono text-[12px] font-semibold text-[hsl(var(--career-red))]">→</span>
-                {([['make', '문서 만들기'], ['archive', docs.length ? `만든 문서 ${docs.length}` : '만든 문서']] as const).map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setDocTab(k)}
-                    aria-pressed={docTab === k}
-                    className={cn(
-                      'pb-0.5 text-[14px] font-bold tracking-tight transition-colors',
-                      docTab === k
-                        ? 'border-b-2 border-[hsl(var(--career-red))] text-foreground'
-                        : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
+              {/* 두 모드 스위치 — 세그먼트 토글로 "만들기 ↔ 보관함"을 확실히 구분 */}
+              <div className="mb-3 flex items-center border-b border-[hsl(var(--hairline))] pb-3">
+                <div className="inline-flex rounded-[10px] bg-[hsl(var(--foreground)/0.055)] p-1">
+                  {([['make', '문서 만들기'], ['archive', docs.length ? `만든 문서 ${docs.length}` : '만든 문서']] as const).map(([k, label]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setDocTab(k)}
+                      aria-pressed={docTab === k}
+                      className={cn(
+                        'rounded-md px-3 py-1.5 text-[13px] font-bold tracking-tight transition-colors',
+                        docTab === k
+                          ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-[0_1px_2px_hsl(var(--foreground)/0.12)]'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {docTab === 'make' ? (
