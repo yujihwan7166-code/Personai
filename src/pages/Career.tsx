@@ -51,7 +51,7 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 
 /** 문서 타일 — 연한 색상 각각(교정 빨강 중심 웜 팔레트). tint = 배경, accent = 부제/보더 색조(HSL). */
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: string; hsl: string }> = [
-  { purpose: '이력서', label: '이력서', hint: '초안·PDF', hsl: '6 70% 51%' },
+  { purpose: '이력서', label: '이력서', hint: '미리보기·PDF', hsl: '6 70% 51%' },
   { purpose: '자기소개서 초안', label: '자기소개서', hint: '뽑기', hsl: '28 78% 50%' },
   { purpose: '포트폴리오 요약', label: '포트폴리오', hint: '뽑기', hsl: '42 80% 44%' },
   { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
@@ -564,7 +564,7 @@ function BoardLedger() {
                       ? '기록이 쌓이면 문서를 만들 수 있어요.'
                       : '쌓인 기록으로 문서를 만들어보세요.'}
                   </p>
-                  {/* 문서 타일 — 3×2, 연한 색상 각각. 이력서는 초안+PDF 겸함. */}
+                  {/* 문서 타일 — 3×2. 이력서는 왼쪽 보드 그 자체 → 미리보기/PDF, 나머지는 AI 생성. */}
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
                       const disabled = items.length === 0;
@@ -572,7 +572,7 @@ function BoardLedger() {
                         <button
                           key={purpose}
                           type="button"
-                          onClick={() => setComposePurpose(purpose)}
+                          onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setComposePurpose(purpose))}
                           disabled={disabled}
                           className={cn(
                             'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
@@ -1200,7 +1200,6 @@ function BoardLedger() {
         purpose={composePurpose}
         onClose={() => setComposePurpose(null)}
         onCreated={() => setDocTab('archive')}
-        onExportResume={() => { setComposePurpose(null); setResumeOpen(true); }}
       />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
@@ -1529,7 +1528,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
 
 /* ═══════════════ AI 생성 다이얼로그 ═══════════════ */
 
-function ComposeDialog({ purpose, onClose, onCreated, onExportResume }: { purpose: ComposePurpose | null; onClose: () => void; onCreated?: () => void; onExportResume?: () => void }) {
+function ComposeDialog({ purpose, onClose, onCreated }: { purpose: ComposePurpose | null; onClose: () => void; onCreated?: () => void }) {
   const { items, categories } = useCareerBoard();
   const [request, setRequest] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -1584,19 +1583,6 @@ function ComposeDialog({ purpose, onClose, onCreated, onExportResume }: { purpos
         <DialogHeader>
           <DialogTitle className="career-serif text-[16px]">원고로 {purpose} 만들기</DialogTitle>
         </DialogHeader>
-        {/* 이력서는 AI 초안뿐 아니라 서식 PDF도 여기서 (합침) */}
-        {purpose === '이력서' && onExportResume && (
-          <button
-            type="button"
-            onClick={onExportResume}
-            className="flex items-center justify-between gap-2 rounded-lg border border-[hsl(var(--career-red)/0.3)] bg-[hsl(var(--career-red)/0.05)] px-3.5 py-2.5 text-left transition-colors hover:bg-[hsl(var(--career-red)/0.09)]"
-          >
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-[hsl(var(--career-red))]">
-              <FileDown className="h-4 w-4" /> 서식 이력서 PDF 내보내기
-            </span>
-            <span className="career-mono text-[10.5px] text-muted-foreground">쌓인 기록 그대로 · 인쇄용</span>
-          </button>
-        )}
         {/* 요청사항 먼저 — 어디에 낼지 적고 만든다 */}
         <div>
           <label htmlFor="career-compose-request" className="mb-1 block text-[11px] text-muted-foreground">
