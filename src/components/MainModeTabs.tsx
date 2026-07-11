@@ -13,7 +13,7 @@ import {
   MessageCircle, GitMerge, Shield, Sparkles, Swords, Wrench,
   FlaskConical, BookOpen, ChevronDown, ChevronRight, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
-  Languages, PenLine, BookText, FileSpreadsheet,
+  Languages, PenLine, BookText, FileSpreadsheet, Music, FileText,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
 } from 'lucide-react';
@@ -93,6 +93,16 @@ export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: stri
   money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
   enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·볼거리·데이트',    tint: 'hsl(25 85% 55%)' },
   aiplay:  { emoji: '🎮', label: 'AI Play',           description: '캐릭터챗·게임·롤플레이',            tint: 'hsl(280 70% 55%)' },
+};
+
+/** 라이프 2×3 콤팩트 타일용 짧은 라벨 (좁은 칸에 맞춤). */
+const LIFE_COMPACT_LABEL: Record<string, string> = {
+  shopping: '쇼핑',
+  fortune: '사주·타로',
+  aiplay: 'AI Play',
+  health: '건강',
+  money: '머니·투자',
+  enjoy: '놀거리',
 };
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -338,9 +348,10 @@ export const ASSISTANT_TILES: Array<{
   tint: string;
   placeholder?: boolean;
 }> = [
-  { cardId: 'image-gen',      label: '이미지·영상', icon: Wand2,           tint: 'hsl(340 70% 55%)' },
-  { cardId: 'voice-analysis', label: '녹음 분석',   icon: Mic,             tint: 'hsl(210 70% 55%)' },
   { cardId: 'ppt',            label: 'PPT',         icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
+  { cardId: 'image-gen',      label: '영상',        icon: Wand2,           tint: 'hsl(340 70% 55%)' },
+  { cardId: 'music-gen',      label: '노래',        icon: Music,           tint: 'hsl(265 65% 58%)', placeholder: true },
+  { cardId: 'cover-letter',   label: 'AI 자소서',   icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
   { cardId: 'file-convert',   label: '파일 변환',   icon: Files,           tint: 'hsl(280 60% 55%)' },
   { cardId: 'translate',      label: '번역',        icon: Languages,       tint: 'hsl(170 65% 45%)' },
   { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)',  placeholder: true },
@@ -925,26 +936,15 @@ export function MainModeTabs({
           aria-haspopup="menu"
           aria-expanded={isOpen}
           className={cn(
-            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-            'hover:bg-[hsl(var(--accent))]',
-            isOpen && 'bg-[hsl(var(--accent))]',
+            'group flex w-full flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 transition-all duration-200 hover:-translate-y-0.5',
+            isOpen && 'ring-1 ring-[hsl(var(--ring))]',
           )}
+          style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 10%, transparent)` }}
         >
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-            style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
-          >
-            <span className="text-[16px] leading-none select-none">{group.emoji}</span>
+          <span className="select-none text-[18px] leading-none transition-transform duration-200 group-hover:scale-110">{group.emoji}</span>
+          <span className="max-w-full truncate text-[10.5px] font-semibold leading-none text-foreground/85">
+            {LIFE_COMPACT_LABEL[groupId] ?? group.label}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className={cn('block text-[12.5px] leading-tight truncate', isOpen ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
-              {group.label}
-            </span>
-            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-              {group.description}
-            </span>
-          </span>
-          <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground/70 shrink-0 transition-transform', isOpen && 'rotate-180')} />
         </button>
 
         <AnimatePresence>
@@ -2317,45 +2317,34 @@ export function MainModeTabs({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                       transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                      className="space-y-0.5"
+                      className="grid grid-cols-3 gap-1.5"
                     >
-                      {LIFE_DROPDOWN_ENTRIES.map((entry, idx) => {
+                      {/* 2×3 콤팩트 타일 — 도구(쇼핑)는 직행, 그룹은 옆 미니 패널 */}
+                      {LIFE_DROPDOWN_ENTRIES.map((entry) => {
                         if (entry.kind === 'tool') {
                           const tool = LIFE_TOOLS.find((t) => t.id === entry.toolId);
-                          return tool ? renderLifeToolItem(tool) : null;
+                          if (!tool) return null;
+                          return (
+                            <button
+                              key={`life-c-${tool.id}`}
+                              type="button"
+                              onClick={() => handleSelectLifeTool(tool.id)}
+                              role="menuitem"
+                              className="group flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 transition-all duration-200 hover:-translate-y-0.5"
+                              style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 10%, transparent)` }}
+                            >
+                              <span className="select-none text-[18px] leading-none transition-transform duration-200 group-hover:scale-110">{tool.emoji}</span>
+                              <span className="max-w-full truncate text-[10.5px] font-semibold leading-none text-foreground/85">
+                                {LIFE_COMPACT_LABEL[tool.id] ?? tool.label}
+                              </span>
+                            </button>
+                          );
                         }
                         if (entry.kind === 'group') {
                           return renderLifeGroupChip(entry.groupId);
                         }
-                        // kind === 'mental-tests' — 심리 테스트 모음 페이지 바로가기
-                        if (!onOpenMentalTests) return null;
-                        return (
-                          <button
-                            key={`life-mental-tests-${idx}`}
-                            type="button"
-                            onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
-                            role="menuitem"
-                            className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
-                          >
-                            <span
-                              className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-                              style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
-                            >
-                              <span className="text-[16px] leading-none select-none">✨</span>
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
-                                심리 테스트 모음
-                              </span>
-                              <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
-                                테토·에겐·에니어그램·휴먼디자인…
-                              </span>
-                            </span>
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                          </button>
-                        );
+                        return null; // 'mental-tests' — 드롭다운 그리드에는 미노출
                       })}
-                          {/* 광고 슬롯 제거 — 모드창 순수화 (2026-07-05). */}
                     </motion.div>
                   </div>
                 </div>
