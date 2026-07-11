@@ -524,7 +524,7 @@ function BoardLedger() {
     <>
       <LayoutGroup>
         {/* 좌 컬럼(마스트헤드+보드) | 우 도크(맨 위부터 전체 높이). 그리드 배치라 "마이 커리어" 줄은 왼쪽에만. */}
-        <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_minmax(0,1fr)]">
+        <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_540px] lg:grid-rows-[auto_minmax(0,1fr)]">
         {/* ══════ 마스트헤드 — 좌 컬럼 상단(밑줄은 왼쪽에만) ══════ */}
         <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
