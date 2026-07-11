@@ -1,10 +1,9 @@
 /**
  * 스펙 보드 — /career ("교정 중인 원고" 컨셉, 2단 작성대 레이아웃).
  *
- * 플래너와 같은 풀블리드 셸 (2026-07-09):
- *   [페이지 헤더] "마이 커리어" + 기록 중 인장, 아래 굵은 괘선
- *   [좌 원고 본문] 프로필 스트립(사진·이름·소개) + 기록 2열 그리드
- *   [우 도구 도크] 독립 스크롤로 분리 — "문서(만들기↔만든 문서 탭)" 카드 + "커리어 추가" 카드.
+ * 레이아웃 (CSS 그리드, 2026-07-11): 좌 컬럼 | 우 도크가 각자 독립 스크롤.
+ *   [좌 컬럼] 마스트헤드("마이 커리어"+인장, 밑줄은 왼쪽에만) + 흰 문서 시트(프로필 머리글 + 카테고리 섹션 2열).
+ *   [우 도크] 화면 맨 위부터 전체 높이(마스트헤드 위로도) — "문서(만들기↔만든 문서 탭)" 카드 + "커리어 추가" 카드.
  *   문서 생성은 요청사항 입력 → 생성 → 보관함 자동 저장 후 '만든 문서' 탭으로 전환.
  * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
@@ -521,18 +520,17 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        <div className="flex h-full flex-col">
-        {/* ══════ 마스트헤드 — 도구 이름 + 인장. 아래 굵은 괘선이 전체 폭을 가로지른다 ══════ */}
-        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[hsl(var(--hairline))] px-4 pb-3 pt-3.5 sm:px-5">
+        {/* 좌 컬럼(마스트헤드+보드) | 우 도크(맨 위부터 전체 높이). 그리드 배치라 "마이 커리어" 줄은 왼쪽에만. */}
+        <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_minmax(0,1fr)]">
+        {/* ══════ 마스트헤드 — 좌 컬럼 상단(밑줄은 왼쪽에만) ══════ */}
+        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[hsl(var(--hairline))] px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
           <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
           <ProofStamp />
         </header>
 
-        {/* 굵은 줄 아래 — 좌(보드)·우(도구 도크)가 각자 독립 스크롤 */}
-        <div className="flex min-h-0 flex-1 max-lg:flex-col">
-          {/* ══════ 우 — 작성대 도크 (독립 스크롤, 모바일에선 위) ══════ */}
-          <aside className="scrollbar-thin shrink-0 overflow-y-auto lg:order-2 lg:w-[480px] lg:border-l lg:border-[hsl(var(--hairline))]">
+        {/* ══════ 우 — 작성대 도크: 맨 위부터 전체 높이, 독립 스크롤 (모바일에선 마스트헤드 아래) ══════ */}
+        <aside className="scrollbar-thin overflow-y-auto lg:col-start-2 lg:row-span-2 lg:border-l lg:border-[hsl(var(--hairline))]">
             {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
             <div className="space-y-4 px-4 py-5 sm:px-5">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
@@ -978,7 +976,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-thin min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:order-1">
+          <main className="scrollbar-thin min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_22px_48px_-32px_hsl(var(--foreground)/0.3)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
             <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
@@ -1199,7 +1197,6 @@ function BoardLedger() {
               </div>
             </div>
           </main>
-        </div>
         </div>
       </LayoutGroup>
 
