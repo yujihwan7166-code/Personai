@@ -1338,8 +1338,12 @@ function ResumeDialog({
     const measure = () => {
       const el = previewRef.current;
       if (!el) return;
-      const avail = el.clientWidth - 56; // 좌우 데스크 여백(p-7)
-      if (avail > 80) setFitScale(Math.min(1, Math.max(0.35, avail / 794)));
+      // 페이지 맞춤(PDF 뷰어 방식) — 너비·높이 둘 다 재서 A4 한 장이 통째로 데스크 위에 보이게.
+      const availW = el.clientWidth - 72;
+      const availH = el.clientHeight - 48;
+      if (availW > 80 && availH > 80) {
+        setFitScale(Math.max(0.2, Math.min(1, availW / 794, availH / 1123)));
+      }
     };
     measure();
     let raf2 = 0;
@@ -1387,7 +1391,7 @@ function ResumeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="career-theme max-w-[1080px] overflow-hidden p-0">
+      <DialogContent className="career-theme max-w-[1080px] overflow-hidden p-0" hideClose>
         <DialogTitle className="sr-only">이력서 만들기</DialogTitle>
         <div className="flex h-[82vh] max-h-[780px]">
           {/* ── 좌 — 컨트롤: 스펙 고르기 / 디자인 ── */}
@@ -1513,8 +1517,8 @@ function ResumeDialog({
           <div className="flex min-w-0 flex-1 flex-col bg-neutral-300">
             <div className="flex shrink-0 items-center gap-2 border-b border-neutral-400/40 px-4 py-2">
               <span className="text-[12px] text-neutral-600">미리보기 · A4 · {template.name}</span>
-              {/* mr-8 — DialogContent 기본 닫기 X(우상단 고정)와 겹치지 않게 */}
-              <div className="ml-auto mr-8 flex items-center gap-0.5 text-neutral-600">
+              {/* 기본 닫기 X는 hideClose 로 숨김 — 줌과 자체 닫기를 한 줄에 정렬 */}
+              <div className="ml-auto flex items-center gap-0.5 text-neutral-600">
                 <button
                   type="button"
                   onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
@@ -1526,7 +1530,7 @@ function ResumeDialog({
                 <button
                   type="button"
                   onClick={() => setZoom(1)}
-                  title="칸에 맞추기"
+                  title="페이지에 맞추기"
                   className="min-w-[46px] rounded-md px-1.5 py-1 text-center text-[11.5px] font-semibold tabular-nums transition-colors hover:bg-neutral-400/25"
                 >
                   {Math.round(scale * 100)}%
@@ -1538,6 +1542,15 @@ function ResumeDialog({
                   className="grid h-7 w-7 place-items-center rounded-md text-[15px] leading-none transition-colors hover:bg-neutral-400/25"
                 >
                   +
+                </button>
+                <span aria-hidden className="mx-1.5 h-4 w-px bg-neutral-400/50" />
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="닫기"
+                  className="grid h-7 w-7 place-items-center rounded-md text-[15px] leading-none transition-colors hover:bg-neutral-400/25"
+                >
+                  ×
                 </button>
               </div>
             </div>
