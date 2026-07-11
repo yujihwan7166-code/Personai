@@ -53,7 +53,7 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: string; hsl: string }> = [
   { purpose: '이력서', label: '이력서', hint: '초안·PDF', hsl: '6 70% 51%' },
   { purpose: '자기소개서 초안', label: '자기소개서', hint: '뽑기', hsl: '28 78% 50%' },
-  { purpose: '포트폴리오 요약', label: '포트폴리오 요약', hint: '뽑기', hsl: '42 80% 44%' },
+  { purpose: '포트폴리오 요약', label: '포트폴리오', hint: '뽑기', hsl: '42 80% 44%' },
   { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
   { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '14 70% 54%' },
 ];
@@ -526,7 +526,7 @@ function BoardLedger() {
         {/* 좌 컬럼(마스트헤드+보드) | 우 도크(맨 위부터 전체 높이). 그리드 배치라 "마이 커리어" 줄은 왼쪽에만. */}
         <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_minmax(0,1fr)]">
         {/* ══════ 마스트헤드 — 좌 컬럼 상단(밑줄은 왼쪽에만) ══════ */}
-        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-[hsl(var(--hairline))] px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
           <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
           <ProofStamp />
@@ -565,8 +565,8 @@ function BoardLedger() {
                       ? '기록이 쌓이면 문서를 만들 수 있어요.'
                       : '쌓인 기록으로 문서를 만들어보세요.'}
                   </p>
-                  {/* 문서 타일 — 연한 교정 빨강 틴트(적당히). 이력서는 초안+PDF 겸함. */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  {/* 문서 타일 — 3×2, 연한 색상 각각. 이력서는 초안+PDF 겸함. */}
+                  <div className="mt-3 grid grid-cols-3 gap-2">
                     {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
                       const disabled = items.length === 0;
                       return (
@@ -581,7 +581,7 @@ function BoardLedger() {
                               ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
                               : 'hover:brightness-[0.98] hover:shadow-sm',
                           )}
-                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.08)`, borderColor: `hsl(${hsl} / 0.28)` }}
+                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
                         >
                           <span className="block text-[13px] font-semibold">{label}</span>
                           <span
@@ -599,7 +599,7 @@ function BoardLedger() {
                       onClick={() => setRecommendOpen(true)}
                       title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
                       className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
-                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.08)', borderColor: 'hsl(150 38% 42% / 0.28)' }}
+                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
                     >
                       <span className="block text-[13px] font-semibold">추천 스펙</span>
                       <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
@@ -970,7 +970,7 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
           <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
-            <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.03),0_22px_48px_-32px_hsl(var(--foreground)/0.3)] sm:px-9 sm:py-8">
+            <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 문서 머리글, 아래 헤어라인으로 본문과 분리 ── */}
             <div className="flex items-center gap-5 border-b border-[hsl(var(--hairline))] pb-5">
                   {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
