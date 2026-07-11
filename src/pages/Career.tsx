@@ -567,7 +567,7 @@ function BoardLedger() {
                   </p>
                   {/* 문서 타일 — 3×2, 연한 색상 각각. 이력서는 초안+PDF 겸함. */}
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
+                    {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
                       const disabled = items.length === 0;
                       return (
                         <button
@@ -576,20 +576,14 @@ function BoardLedger() {
                           onClick={() => setComposePurpose(purpose)}
                           disabled={disabled}
                           className={cn(
-                            'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
+                            'flex items-center rounded-xl border px-3.5 py-4 text-[14px] font-bold transition-[filter,box-shadow]',
                             disabled
                               ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                              : 'hover:brightness-[0.98] hover:shadow-sm',
+                              : 'text-foreground hover:brightness-[0.98] hover:shadow-sm',
                           )}
-                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
+                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.5)` }}
                         >
-                          <span className="block text-[13px] font-semibold">{label}</span>
-                          <span
-                            className="career-mono mt-0.5 block text-[10.5px]"
-                            style={disabled ? undefined : { color: `hsl(${hsl} / 0.95)` }}
-                          >
-                            {hint} →
-                          </span>
+                          {label}
                         </button>
                       );
                     })}
@@ -598,11 +592,10 @@ function BoardLedger() {
                       type="button"
                       onClick={() => setRecommendOpen(true)}
                       title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                      className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
-                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
+                      className="flex items-center rounded-xl border px-3.5 py-4 text-[14px] font-bold text-foreground transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
+                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.5)' }}
                     >
-                      <span className="block text-[13px] font-semibold">추천 스펙</span>
-                      <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
+                      추천 스펙
                     </button>
                   </div>
                 </>
