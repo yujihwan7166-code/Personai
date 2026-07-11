@@ -534,8 +534,8 @@ function BoardLedger() {
 
         {/* ══════ 우 — 작성대 도크: 맨 위부터 전체 높이, 독립 스크롤 (모바일에선 마스트헤드 아래) ══════ */}
         <aside className="scrollbar-thin overflow-y-auto lg:col-start-2 lg:row-span-2">
-            {/* 도구 도크 — 페이지 톤 위 흰 카드, 좌측 보드와 세로 경계선으로 분리 */}
-            <div className="space-y-4 px-4 py-5 sm:px-5">
+            {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
+            <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               <div className="flex items-center gap-3 border-b border-[hsl(var(--hairline))] pb-2">
