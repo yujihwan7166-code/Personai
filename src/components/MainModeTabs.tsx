@@ -1920,11 +1920,8 @@ export function MainModeTabs({
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
                         {/* 헤더 */}
                         <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                          <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+                          <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
                             {group.label}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground/85 truncate">
-                            {group.description}
                           </span>
                         </div>
 
@@ -2168,11 +2165,8 @@ export function MainModeTabs({
               <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3 border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                 <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                  <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+                  <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
                     노트
-                  </span>
-                  <span className="text-[11px] text-muted-foreground/85 truncate">
-                    정리 · 기록
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-3">
@@ -2243,11 +2237,8 @@ export function MainModeTabs({
               <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
                   <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+                    <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
                       {LIFE_GROUP.label}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground/85 truncate">
-                      {LIFE_GROUP.description}
                     </span>
                   </div>
                   <div className="relative overflow-visible">
@@ -2278,8 +2269,7 @@ export function MainModeTabs({
                 <div className="mt-3">
                   <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                   <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
-                    <span className="text-[11px] text-muted-foreground/85 truncate">실무 도구</span>
+                    <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
                     <button
                       type="button"
                       onClick={() => handleSelect('assistant')}
@@ -2332,11 +2322,8 @@ export function MainModeTabs({
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
             <div className="px-5 py-3.5">
               <div className="mb-2 flex items-baseline gap-2 px-1">
-                <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+                <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
                   즐겨찾기
-                </span>
-                <span className="text-[11px] text-muted-foreground/85 truncate">
-                  ★로 꽂아둔 바로가기
                 </span>
                 {onOpenBookmarks && (
                   <button
