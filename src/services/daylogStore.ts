@@ -105,6 +105,14 @@ export const daylogStore = {
       .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
   },
 
+  /** 날짜 범위 [start, end] 안의 조각 — 여행 묶음용 (날짜·시간 오름차순). */
+  inRange(startYYYYMMDD: string, endYYYYMMDD: string): DayMoment[] {
+    const [lo, hi] = startYYYYMMDD <= endYYYYMMDD ? [startYYYYMMDD, endYYYYMMDD] : [endYYYYMMDD, startYYYYMMDD];
+    return safeRead()
+      .filter((m) => m.date >= lo && m.date <= hi)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  },
+
   add(input: {
     text: string;
     date?: string;

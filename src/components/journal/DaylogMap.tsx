@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { daylogStore } from '@/services/daylogStore';
 import { cachedLatLng, geocode, type LatLng } from '@/lib/daylog/geocode';
 import { DAYLOG_CHANGED, MOMENT_KIND_META, type DayMoment } from '@/types/daylog';
@@ -60,22 +61,36 @@ function popupHtml(g: PlaceGroup): string {
   </div>`;
 }
 
-export function DaylogMap() {
+interface DaylogMapProps {
+  /** 제어형: 지정하면 이 조각들만 그린다 (여행 상세). 없으면 전체 발자취를 스스로 구독. */
+  moments?: DayMoment[];
+  /** 방문 순서대로 핀을 잇는 경로선 표시 (여행용). */
+  route?: boolean;
+  /** 헤더(발자취 제목·개수) 표시 여부. */
+  showHeader?: boolean;
+  /** 지도 높이 Tailwind 클래스. */
+  heightClass?: string;
+}
+
+export function DaylogMap({ moments: momentsProp, route = false, showHeader = true, heightClass = 'h-[520px]' }: DaylogMapProps = {}) {
+  const controlled = momentsProp !== undefined;
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObj = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
-  const [moments, setMoments] = useState<DayMoment[]>(() => daylogStore.withPlace());
+  const [selfMoments, setSelfMoments] = useState<DayMoment[]>(() => daylogStore.withPlace());
+  const moments = momentsProp ?? selfMoments;
   const [coords, setCoords] = useState<Record<string, LatLng>>({});
   const [resolving, setResolving] = useState(0);
 
   const groups = useMemo(() => groupByPlace(moments), [moments]);
 
-  // 조각 변경 구독
+  // 조각 변경 구독 (비제어형일 때만)
   useEffect(() => {
-    const sync = () => setMoments(daylogStore.withPlace());
+    if (controlled) return;
+    const sync = () => setSelfMoments(daylogStore.withPlace());
     window.addEventListener(DAYLOG_CHANGED, sync);
     return () => window.removeEventListener(DAYLOG_CHANGED, sync);
-  }, []);
+  }, [controlled]);
 
   // 지도 1회 초기화
   useEffect(() => {
@@ -131,6 +146,22 @@ export function DaylogMap() {
     const lg = layer.current;
     if (!map || !lg) return;
     lg.clearLayers();
+
+    // 경로선: 방문(첫 조각) 시각 순으로 정렬해 해결된 좌표를 잇는다
+    if (route) {
+      const ordered = [...groups]
+        .filter((g) => coords[g.key])
+        .sort((a, b) => {
+          const ka = `${a.items[0].date} ${a.items[0].time}`;
+          const kb = `${b.items[0].date} ${b.items[0].time}`;
+          return ka.localeCompare(kb);
+        })
+        .map((g) => [coords[g.key].lat, coords[g.key].lng] as [number, number]);
+      if (ordered.length > 1) {
+        L.polyline(ordered, { color: 'hsl(17 55% 49%)', weight: 2.5, opacity: 0.6, dashArray: '2 6' }).addTo(lg);
+      }
+    }
+
     const pts: [number, number][] = [];
     for (const g of groups) {
       const ll = coords[g.key];
@@ -150,32 +181,38 @@ export function DaylogMap() {
     if (pts.length > 0) {
       map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 14, animate: false });
     }
-  }, [groups, coords]);
+  }, [groups, coords, route]);
 
   const pinnedCount = groups.filter((g) => coords[g.key]).length;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-[hsl(var(--cream-accent))]" />
-          <h2 className="text-[15px] font-bold text-[hsl(var(--cream-ink))]/85">발자취</h2>
-          <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">
-            {groups.length}곳 · 핀 {pinnedCount}
-          </span>
+      {(showHeader || resolving > 0) && (
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            {showHeader && (
+              <>
+                <MapPin className="h-4 w-4 text-[hsl(var(--cream-accent))]" />
+                <h2 className="text-[15px] font-bold text-[hsl(var(--cream-ink))]/85">발자취</h2>
+                <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">
+                  {groups.length}곳 · 핀 {pinnedCount}
+                </span>
+              </>
+            )}
+          </div>
+          {resolving > 0 && (
+            <span className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--cream-muted))]/75">
+              <Loader2 className="h-3 w-3 animate-spin" /> 위치 찾는 중 {resolving}
+            </span>
+          )}
         </div>
-        {resolving > 0 && (
-          <span className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--cream-muted))]/75">
-            <Loader2 className="h-3 w-3 animate-spin" /> 위치 찾는 중 {resolving}
-          </span>
-        )}
-      </div>
+      )}
 
       {/* 지도 컨테이너는 항상 렌더 (초기화 안정) + 빈 상태는 오버레이 */}
       <div className="relative">
         <div
           ref={mapRef}
-          className="h-[520px] w-full overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]"
+          className={cn('w-full overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]', heightClass)}
           style={{ zIndex: 0 }}
         />
         {groups.length === 0 && (
