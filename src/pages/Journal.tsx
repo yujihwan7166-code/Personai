@@ -439,20 +439,18 @@ export default function Journal() {
     >
       {/* ── 사이드바 — 방 내비 (Diary Room 문법: 섹션이 곧 메뉴). 모바일은 상단 가로 내비로 대체 ── */}
       <aside className="hidden w-[236px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 마스트헤드 — 섹션 아이브로우와 같은 문법(영문 소제 + 워드마크) + 오늘 날짜 스탬프.
-         * 커리어 방의 인장과 짝을 이루는 이 방의 시그니처 — 세이지 잉크. */}
-        <div className="relative border-b border-[hsl(var(--cream-line))] px-5 pb-4 pt-4">
-          <p className="text-[9px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/60">ONE PAGE A DAY</p>
-          <h1 className="mt-1 font-sans text-[24px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리로그</h1>
-          <p className="mt-1.5 text-[11px] text-[hsl(var(--cream-muted))]/80">나의 하루 기록실</p>
+        {/* 마스트헤드 — 워크스페이스 공통 캐논: 도구명 27px 볼드 + 방 색 틴트 (플래너·노트와 동일 공식).
+         * 부제·아이브로우 없음. 시그니처는 오늘 날짜 스탬프 하나 — 커리어 방 인장과 짝. */}
+        <div className="relative border-b border-[hsl(var(--cream-line))] px-5 pb-3.5 pt-4">
+          <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리로그</h1>
           {(() => {
             const d = new Date();
             return (
               <div
                 aria-hidden
-                className="pointer-events-none absolute right-4 top-4 rotate-[4deg] rounded-[5px] border-2 border-[hsl(var(--cream-accent))]/40 px-1.5 pb-1 pt-0.5 text-center mix-blend-multiply"
+                className="pointer-events-none absolute right-4 top-3.5 rotate-[4deg] rounded-[5px] border-2 border-[hsl(var(--cream-accent))]/40 px-1.5 pb-1 pt-0.5 text-center mix-blend-multiply"
               >
-                <span className="block text-[15px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-accent))]/85">{d.getDate()}</span>
+                <span className="block text-[14px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-accent))]/85">{d.getDate()}</span>
                 <span className="block text-[7.5px] font-bold tracking-[0.08em] text-[hsl(var(--cream-accent))]/60">{d.getMonth() + 1}월 {WEEKDAY[d.getDay()]}요일</span>
               </div>
             );
