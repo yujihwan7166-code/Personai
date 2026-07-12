@@ -1855,7 +1855,7 @@ export function MainModeTabs({
                     {/* 오늘 사용량 — 호출·비용 + 토큰/일일 예산 게이지 + 모델 TOP3. */}
                     <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
                       <div className="mb-1.5 flex items-baseline justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">오늘 사용량</span>
+                        <span className="text-[12px] font-bold tracking-[-0.01em] text-foreground/85">오늘 사용량</span>
                         <span className="text-[10px] tabular-nums text-muted-foreground">{todayUsage.entries}회 · {fmtUsd(todayUsage.costUsd)}</span>
                       </div>
                       <div className="flex items-baseline gap-1">
@@ -1892,7 +1892,7 @@ export function MainModeTabs({
 
                     {/* 지금 — 현재 모드 · 선택된 AI (모드창 맥락 확인용). */}
                     <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
-                      <div className="mb-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">지금</div>
+                      <div className="mb-1.5 text-[12px] font-bold tracking-[-0.01em] text-foreground/85">지금</div>
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-[11.5px] text-foreground/90">
                           <span className="w-[30px] shrink-0 text-[10px] text-muted-foreground">모드</span>
@@ -1920,10 +1920,10 @@ export function MainModeTabs({
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
                         {/* 헤더 */}
                         <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                          <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                          <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
                             {group.label}
                           </span>
-                          <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                          <span className="text-[11px] text-muted-foreground/85 truncate">
                             {group.description}
                           </span>
                         </div>
@@ -2168,10 +2168,10 @@ export function MainModeTabs({
               <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-3 border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                 <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                  <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                  <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
                     노트
                   </span>
-                  <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                  <span className="text-[11px] text-muted-foreground/85 truncate">
                     정리 · 기록
                   </span>
                 </div>
@@ -2243,10 +2243,10 @@ export function MainModeTabs({
               <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
                   <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
                       {LIFE_GROUP.label}
                     </span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                    <span className="text-[11px] text-muted-foreground/85 truncate">
                       {LIFE_GROUP.description}
                     </span>
                   </div>
@@ -2278,8 +2278,8 @@ export function MainModeTabs({
                 <div className="mt-3">
                   <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
                   <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
-                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">어시스턴트</span>
-                    <span className="text-[10.5px] text-muted-foreground/70 truncate">실무 도구</span>
+                    <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
+                    <span className="text-[11px] text-muted-foreground/85 truncate">실무 도구</span>
                     <button
                       type="button"
                       onClick={() => handleSelect('assistant')}
@@ -2332,10 +2332,10 @@ export function MainModeTabs({
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
             <div className="px-5 py-3.5">
               <div className="mb-2 flex items-baseline gap-2 px-1">
-                <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
                   즐겨찾기
                 </span>
-                <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                <span className="text-[11px] text-muted-foreground/85 truncate">
                   ★로 꽂아둔 바로가기
                 </span>
                 {onOpenBookmarks && (
