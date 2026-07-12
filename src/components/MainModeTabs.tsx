@@ -810,7 +810,7 @@ export function MainModeTabs({
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-          isActive && 'bg-[hsl(var(--accent))]',
+          isActive && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
         )}
       >
         <span
@@ -907,16 +907,17 @@ export function MainModeTabs({
     children: ReactNode;
   }) => (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.12, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -4, scale: 0.98 }}
+      transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
+      style={{ transformOrigin: side === 'bottom' ? 'top center' : side === 'right' ? 'top left' : 'top right' }}
       className={cn(
-        'absolute z-50 rounded-lg border border-[hsl(var(--hairline))]',
+        'absolute z-50 rounded-xl border border-[hsl(var(--hairline))]',
         'bg-[hsl(var(--card))] p-1.5 shadow-[0_18px_48px_-28px_hsl(var(--foreground)/0.42)]',
         'ring-1 ring-black/[0.03] dark:ring-white/[0.05]',
         side === 'bottom'
-          ? 'left-0 top-[calc(100%+6px)] w-full min-w-[236px]'
+          ? 'left-0 top-[calc(100%+6px)] w-full min-w-[260px]'
           : side === 'right'
             ? 'top-0 w-[272px] left-[calc(100%+8px)]'
             : 'top-0 w-[272px] right-[calc(100%+8px)]',
@@ -969,7 +970,7 @@ export function MainModeTabs({
           className={cn(
             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
             'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-            isOpen && 'bg-[hsl(var(--accent))]',
+            isOpen && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
           )}
         >
           <span
@@ -988,7 +989,7 @@ export function MainModeTabs({
               {group.description}
             </span>
           </span>
-          <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground/70 shrink-0 transition-transform', isOpen && 'rotate-180')} />
+          <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground/70 shrink-0 transition-transform duration-200', isOpen && 'rotate-90 text-foreground')} />
         </button>
 
         <AnimatePresence>
@@ -1082,7 +1083,7 @@ export function MainModeTabs({
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-          isActive && 'bg-[hsl(var(--accent))]',
+          isActive && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
         )}
       >
         <span
@@ -1121,7 +1122,7 @@ export function MainModeTabs({
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-          isActive && 'bg-[hsl(var(--accent))]',
+          isActive && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
         )}
       >
         <span
@@ -1158,7 +1159,7 @@ export function MainModeTabs({
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-          isActive && 'bg-[hsl(var(--accent))]',
+          isActive && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
         )}
       >
         <span
@@ -2010,7 +2011,7 @@ export function MainModeTabs({
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-                                          (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
+                                          (isPremiumActive || premiumOpen) && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                         )}
                                       >
                                         <span
@@ -2030,12 +2031,12 @@ export function MainModeTabs({
                                             법률 · 세무 · 투자 · 심층 리서치
                                           </span>
                                         </span>
-                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-colors', premiumOpen && 'text-foreground')} aria-hidden />
+                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200', premiumOpen && 'rotate-90 text-foreground')} aria-hidden />
                                       </button>
 
                                       <AnimatePresence>
                                         {premiumOpen && renderFloatingSubmenu({
-                                          side: 'right',
+                                          side: 'bottom',
                                           tint: MODE_TINT.premium_main,
                                           ariaLabel: '프리미엄 AI 세부 선택',
                                           children: [
@@ -2050,7 +2051,7 @@ export function MainModeTabs({
                                               style={{ '--row-tint': MODE_TINT.research_main } as CSSProperties}
                                               className={cn(
                                                 'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-                                                currentMode === 'research_main' && 'bg-[hsl(var(--accent))]',
+                                                currentMode === 'research_main' && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                               )}
                                             >
                                               <span
@@ -2111,7 +2112,7 @@ export function MainModeTabs({
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
-                                          (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
+                                          (isDebateActive || debateOpen) && 'bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                         )}
                                       >
                                         <span
@@ -2131,12 +2132,12 @@ export function MainModeTabs({
                                             찬반 · 자유 · 심층 · 브레인스토밍
                                           </span>
                                         </span>
-                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-colors', debateOpen && 'text-foreground')} aria-hidden />
+                                        <ChevronRight className={cn('h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200', debateOpen && 'rotate-90 text-foreground')} aria-hidden />
                                       </button>
 
                                       <AnimatePresence>
                                         {debateOpen && renderFloatingSubmenu({
-                                          side: 'right',
+                                          side: 'bottom',
                                           tint: MODE_TINT.debate,
                                           ariaLabel: 'AI 라운드테이블 세부 선택',
                                           children: DEBATE_SUBS.map(renderDebateSubItem),
