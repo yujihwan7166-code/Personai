@@ -399,7 +399,7 @@ const Wiki = () => {
               🌐 마이위키
               {/* 마스트헤드 문법 — 제목(주어) 옆 실데이터(서술어): 위키는 문서 수 */}
               {pages.length > 0 && (
-                <span className="ml-1 text-[11px] font-bold tabular-nums text-muted-foreground/60">{pages.length}</span>
+                <span className="ml-1 text-[11px] font-bold tabular-nums text-muted-foreground/60">{pages.length}쪽</span>
               )}
             </span>
             {isMobile && (

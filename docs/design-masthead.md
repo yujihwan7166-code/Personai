@@ -22,10 +22,12 @@
 | 방 | 조각 | 형태 |
 |---|---|---|
 | 통합 플래너 | 현재 기간 | 제목 옆 텍스트 `· 7월 13일 주` |
-| 올인원 노트 | 노트 권수 | 제목 옆 tabular 숫자 (`text-[13.5px] font-bold tabular-nums text-muted-foreground/55`) |
-| 데일리로그 | 오늘 날짜 | 우측 기울인 스탬프 (세이지 테두리, `rotate-[4deg]` + `mix-blend-multiply`) |
+| 올인원 노트 | 노트 권수 | 제목 옆 tabular `8권` (`text-[13px] font-bold tabular-nums text-muted-foreground/55`) |
+| 데일리로그 | 오늘 날짜 | 우측 **일력 한 장** — 흰 카드 + 세이지 월 밴드 + 큰 날짜 + 요일, `rotate-[3deg]` |
 | 마이커리어 | "기록 중" 인장 | 우측 기울인 스탬프 (버밀리온, `rotate-[3deg]`) |
-| 마이위키 | 문서 수 | 제목 옆 tabular 숫자 |
+| 마이위키 | 문서 수 | 제목 옆 tabular `36쪽` |
+
+숫자 조각은 **단위를 반드시 붙인다** (`8` ✗ → `8권` ✓) — 맨 숫자는 무슨 수인지 읽히지 않는다.
 
 ## 새 방 추가 시
 

@@ -240,7 +240,7 @@ const Notes = () => {
             <div className="flex min-w-0 items-baseline gap-1.5">
               <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-foreground">올인원 노트</h1>
               {notes.length > 0 && (
-                <span className="shrink-0 text-[13.5px] font-bold tabular-nums text-muted-foreground/55">{notes.length}</span>
+                <span className="shrink-0 text-[13px] font-bold tabular-nums text-muted-foreground/55">{notes.length}권</span>
               )}
             </div>
             <div className="flex items-center gap-1">

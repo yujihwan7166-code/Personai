@@ -443,15 +443,19 @@ export default function Journal() {
          * 부제·아이브로우 없음. 시그니처는 오늘 날짜 스탬프 하나 — 커리어 방 인장과 짝. */}
         <div className="relative border-b border-[hsl(var(--cream-line))] px-5 pb-3.5 pt-4">
           <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리로그</h1>
+          {/* 일력(日曆) 한 장 — "하루 한 장" 컨셉의 실물화: 세이지 월 밴드 + 큰 날짜 + 요일 */}
           {(() => {
             const d = new Date();
             return (
               <div
                 aria-hidden
-                className="pointer-events-none absolute right-4 top-3.5 rotate-[4deg] rounded-[5px] border-2 border-[hsl(var(--cream-accent))]/40 px-1.5 pb-1 pt-0.5 text-center mix-blend-multiply"
+                className="pointer-events-none absolute right-4 top-2.5 w-[44px] rotate-[3deg] overflow-hidden rounded-[9px] border border-[hsl(var(--cream-line))] bg-white shadow-[0_4px_12px_-5px_hsl(25_30%_20%/0.4)]"
               >
-                <span className="block text-[14px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-accent))]/85">{d.getDate()}</span>
-                <span className="block text-[7.5px] font-bold tracking-[0.08em] text-[hsl(var(--cream-accent))]/60">{d.getMonth() + 1}월 {WEEKDAY[d.getDay()]}요일</span>
+                <div className="bg-[hsl(var(--cream-accent))] py-[3px] text-center text-[8px] font-bold tracking-[0.12em] text-white">{d.getMonth() + 1}월</div>
+                <div className="px-1 pb-1 pt-0.5 text-center">
+                  <span className="block text-[18px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</span>
+                  <span className="block text-[8px] font-semibold text-[hsl(var(--cream-muted))]">{WEEKDAY[d.getDay()]}요일</span>
+                </div>
               </div>
             );
           })()}
