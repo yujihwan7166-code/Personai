@@ -98,6 +98,13 @@ export const daylogStore = {
     return new Set(safeRead().map((m) => m.date));
   },
 
+  /** 장소가 있는 조각 전체 — 발자취 지도용 (최신순). */
+  withPlace(): DayMoment[] {
+    return safeRead()
+      .filter((m) => !!m.place)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+  },
+
   add(input: {
     text: string;
     date?: string;
