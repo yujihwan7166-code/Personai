@@ -73,7 +73,7 @@ export const PageSwitcher = ({
     { key: 'home', label: '홈', icon: Home, to: '/' },
     { key: 'planner', label: '통합플래너', icon: CalendarDays, to: '/planner' },
     { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
-    { key: 'journal', label: '데일리로그', icon: NotebookPen, to: '/journal' },
+    { key: 'journal', label: '데일리 로그', icon: NotebookPen, to: '/journal' },
     { key: 'career', label: '스펙 보드', icon: Award, to: '/career' },
   ];
   const activeChip = chips.find((p) => p.key === current) ?? chips[0];

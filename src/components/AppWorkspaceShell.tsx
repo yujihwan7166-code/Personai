@@ -40,7 +40,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'home', label: '홈', to: '/', icon: Home },
   { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
-  { key: 'journal', label: '데일리로그', to: '/journal', icon: NotebookPen },
+  { key: 'journal', label: '데일리 로그', to: '/journal', icon: NotebookPen },
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];

@@ -237,9 +237,9 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'belongings', label: '내 물건 위치 (이름미정)', desc: '어디에 뒀는지 · 소재 대장',    emoji: '📦', icon: Package,    tint: 'hsl(28 76% 47%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
-  { id: 'journal',    label: '데일리로그',         desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
+  { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
   { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
-  { id: 'travel',     label: '트래블 로그',        desc: '데일리로그 속 여행 — 계획·지도',  emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
+  { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
   { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', icon: HeartPulse, tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
   { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
   { id: 'bucketlist', label: '버킷리스트 (이름미정)', desc: '하고 싶은 것 · 이룬 것',        emoji: '🎯', icon: Target,     tint: 'hsl(280 60% 55%)', axis: '기록', pending: true },
