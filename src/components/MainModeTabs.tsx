@@ -806,7 +806,7 @@ export function MainModeTabs({
         role="menuitem"
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--accent))]',
+          'hover:bg-[hsl(var(--foreground)/0.06)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -840,7 +840,7 @@ export function MainModeTabs({
       type="button"
       onClick={() => handleSelectPlayerTool(tool.id)}
       role="menuitem"
-      className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+      className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)]"
     >
       <span
         className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -865,7 +865,7 @@ export function MainModeTabs({
       role="menuitem"
       className={cn(
         'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-        'hover:bg-[hsl(var(--accent))]',
+        'hover:bg-[hsl(var(--foreground)/0.06)]',
       )}
     >
       <span
@@ -953,7 +953,7 @@ export function MainModeTabs({
           aria-expanded={isOpen}
           className={cn(
             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-            'hover:bg-[hsl(var(--accent))]',
+            'hover:bg-[hsl(var(--foreground)/0.06)]',
             isOpen && 'bg-[hsl(var(--accent))]',
           )}
         >
@@ -991,7 +991,7 @@ export function MainModeTabs({
                     type="button"
                     onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
                     role="menuitem"
-                    className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                    className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)]"
                   >
                     <span
                       className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -1066,7 +1066,7 @@ export function MainModeTabs({
         role="menuitem"
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--accent))]',
+          'hover:bg-[hsl(var(--foreground)/0.06)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1104,7 +1104,7 @@ export function MainModeTabs({
         role="menuitem"
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--accent))]',
+          'hover:bg-[hsl(var(--foreground)/0.06)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1140,7 +1140,7 @@ export function MainModeTabs({
         role="menuitem"
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--accent))]',
+          'hover:bg-[hsl(var(--foreground)/0.06)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1387,7 +1387,7 @@ export function MainModeTabs({
                           setOpen(false);
                           navigate('/planner');
                         }}
-                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors"
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--foreground)/0.06)]/40 transition-colors"
                       >
                         <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
                         <span className="text-[10px] font-mono font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none shrink-0">
@@ -1412,7 +1412,7 @@ export function MainModeTabs({
                           setOpen(false);
                           navigate('/planner');
                         }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[hsl(var(--accent))]/40 transition-colors text-left"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[hsl(var(--foreground)/0.06)]/40 transition-colors text-left"
                       >
                         <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
                         <span className="text-[11px] text-muted-foreground leading-tight flex-1">
@@ -1457,7 +1457,7 @@ export function MainModeTabs({
                               key={task.id}
                               type="button"
                               onClick={() => taskStore.toggleDone(task.id)}
-                              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--accent))]/40 cursor-pointer transition-colors text-left"
+                              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.06)]/40 cursor-pointer transition-colors text-left"
                               aria-label={`${task.title} 완료`}
                             >
                               <span
@@ -1531,7 +1531,7 @@ export function MainModeTabs({
                                 }
                               }, 40);
                             }}
-                            className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                            className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)]"
                           >
                             <span
                               className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -1668,7 +1668,7 @@ export function MainModeTabs({
                           }}
                           className={cn(
                             'flex w-full items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors',
-                            'hover:bg-[hsl(var(--accent))]',
+                            'hover:bg-[hsl(var(--foreground)/0.06)]',
                           )}
                         >
                           <span
@@ -1714,7 +1714,7 @@ export function MainModeTabs({
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="w-full flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-[hsl(var(--accent))] transition-colors"
+                            className="w-full flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-[hsl(var(--foreground)/0.06)] transition-colors"
                           >
                             <span
                               className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
@@ -1805,7 +1805,7 @@ export function MainModeTabs({
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-[hsl(var(--hairline))] transition-colors hover:bg-[hsl(var(--accent))]"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-[hsl(var(--hairline))] transition-colors hover:bg-[hsl(var(--foreground)/0.06)]"
                         >
                           <span
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
@@ -1991,7 +1991,7 @@ export function MainModeTabs({
                                         aria-expanded={premiumOpen}
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                                          'hover:bg-[hsl(var(--accent))]',
+                                          'hover:bg-[hsl(var(--foreground)/0.06)]',
                                           (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
@@ -2030,7 +2030,7 @@ export function MainModeTabs({
                                               onClick={() => handleSelect('research_main')}
                                               role="menuitem"
                                               className={cn(
-                                                'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]',
+                                                'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)]',
                                                 currentMode === 'research_main' && 'bg-[hsl(var(--accent))]',
                                               )}
                                             >
@@ -2090,7 +2090,7 @@ export function MainModeTabs({
                                         aria-expanded={debateOpen}
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                                          'hover:bg-[hsl(var(--accent))]',
+                                          'hover:bg-[hsl(var(--foreground)/0.06)]',
                                           (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
@@ -2157,7 +2157,7 @@ export function MainModeTabs({
                               type="button"
                               onClick={() => handleSelect('assistant')}
                               role="menuitem"
-                              className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                              className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)] text-muted-foreground hover:text-foreground"
                             >
                               <span className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110 bg-[hsl(var(--surface-2))] text-muted-foreground">
                                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -2219,7 +2219,7 @@ export function MainModeTabs({
                           role="menuitem"
                           className={cn(
                             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                            item.pending ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
+                            item.pending ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--foreground)/0.06)]',
                           )}
                         >
                           <span
@@ -2305,7 +2305,7 @@ export function MainModeTabs({
                           role="menuitem"
                           className={cn(
                             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                            tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
+                            tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--foreground)/0.06)]',
                           )}
                         >
                           <span
@@ -2335,7 +2335,7 @@ export function MainModeTabs({
                         type="button"
                         onClick={() => handleSelect('assistant')}
                         role="menuitem"
-                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.06)]"
                       >
                         <span
                           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
