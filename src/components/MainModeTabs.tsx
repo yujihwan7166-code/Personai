@@ -4,7 +4,7 @@
  * 페이지 헤더 메타로서의 모드 표시. 작은 pill + 드롭다운 패널.
  * 드롭다운은 주요 모드를 노출하고, AI 라운드테이블은 하위(찬반/자유/심층/브레인) 인라인 표시.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -784,11 +784,13 @@ export function MainModeTabs({
           onClick={(e) => { e.stopPropagation(); handleToggleFav(entry); }}
           aria-label={faved ? `${entry.label} 즐겨찾기 해제` : `${entry.label} 즐겨찾기 등록`}
           className={cn(
-            'absolute right-1.5 top-1.5 z-10 rounded p-0.5 transition-all duration-100',
-            faved ? 'opacity-100 text-amber-400' : 'opacity-0 group-hover/fav:opacity-100 text-slate-300 hover:text-amber-400',
+            'absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-100',
+            faved
+              ? 'opacity-100 text-amber-400'
+              : 'opacity-0 group-hover/fav:opacity-100 bg-[hsl(var(--card))] text-muted-foreground shadow-sm ring-1 ring-[hsl(var(--hairline))] hover:text-amber-400 hover:ring-amber-300',
           )}
         >
-          <Star size={11} className={faved ? 'fill-amber-400' : undefined} />
+          <Star size={14} className={faved ? 'fill-amber-400' : undefined} />
         </button>
       </div>
     );
@@ -804,9 +806,10 @@ export function MainModeTabs({
         type="button"
         onClick={() => handleSelect(m)}
         role="menuitem"
+        style={{ '--row-tint': tint } as CSSProperties}
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--foreground)/0.1)]',
+          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -840,7 +843,8 @@ export function MainModeTabs({
       type="button"
       onClick={() => handleSelectPlayerTool(tool.id)}
       role="menuitem"
-      className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)]"
+      style={{ '--row-tint': tool.tint } as CSSProperties}
+      className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
     >
       <span
         className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -863,9 +867,10 @@ export function MainModeTabs({
       type="button"
       onClick={() => handleSelectLifeTool(tool.id)}
       role="menuitem"
+      style={{ '--row-tint': tool.tint } as CSSProperties}
       className={cn(
         'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-        'hover:bg-[hsl(var(--foreground)/0.1)]',
+        'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
       )}
     >
       <span
@@ -958,11 +963,12 @@ export function MainModeTabs({
             setOpenLifeSubgroup((current) => current === groupId ? null : groupId);
           }}
           role="menuitem"
+          style={{ '--row-tint': group.tint } as CSSProperties}
           aria-haspopup="menu"
           aria-expanded={isOpen}
           className={cn(
             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-            'hover:bg-[hsl(var(--foreground)/0.1)]',
+            'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
             isOpen && 'bg-[hsl(var(--accent))]',
           )}
         >
@@ -1000,7 +1006,7 @@ export function MainModeTabs({
                     type="button"
                     onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
                     role="menuitem"
-                    className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)]"
+                    className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
                   >
                     <span
                       className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -1075,7 +1081,7 @@ export function MainModeTabs({
         role="menuitem"
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--foreground)/0.1)]',
+          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1111,9 +1117,10 @@ export function MainModeTabs({
         type="button"
         onClick={() => handleSelectSub(sub.key)}
         role="menuitem"
+        style={{ '--row-tint': sub.tint } as CSSProperties}
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--foreground)/0.1)]',
+          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1147,9 +1154,10 @@ export function MainModeTabs({
         type="button"
         onClick={() => handleSelectPremium(tool.key)}
         role="menuitem"
+        style={{ '--row-tint': tool.tint } as CSSProperties}
         className={cn(
           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-          'hover:bg-[hsl(var(--foreground)/0.1)]',
+          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
@@ -1396,7 +1404,7 @@ export function MainModeTabs({
                           setOpen(false);
                           navigate('/planner');
                         }}
-                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[hsl(var(--foreground)/0.1)]/40 transition-colors"
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]/40 transition-colors"
                       >
                         <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
                         <span className="text-[10px] font-mono font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none shrink-0">
@@ -1421,7 +1429,7 @@ export function MainModeTabs({
                           setOpen(false);
                           navigate('/planner');
                         }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[hsl(var(--foreground)/0.1)]/40 transition-colors text-left"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]/40 transition-colors text-left"
                       >
                         <span className="text-[10px] shrink-0" aria-hidden>🔔</span>
                         <span className="text-[11px] text-muted-foreground leading-tight flex-1">
@@ -1466,7 +1474,7 @@ export function MainModeTabs({
                               key={task.id}
                               type="button"
                               onClick={() => taskStore.toggleDone(task.id)}
-                              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[hsl(var(--foreground)/0.1)]/40 cursor-pointer transition-colors text-left"
+                              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]/40 cursor-pointer transition-colors text-left"
                               aria-label={`${task.title} 완료`}
                             >
                               <span
@@ -1540,7 +1548,7 @@ export function MainModeTabs({
                                 }
                               }, 40);
                             }}
-                            className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)]"
+                            className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
                           >
                             <span
                               className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
@@ -1677,7 +1685,7 @@ export function MainModeTabs({
                           }}
                           className={cn(
                             'flex w-full items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors',
-                            'hover:bg-[hsl(var(--foreground)/0.1)]',
+                            'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                           )}
                         >
                           <span
@@ -1723,7 +1731,7 @@ export function MainModeTabs({
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="w-full flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-[hsl(var(--foreground)/0.1)] transition-colors"
+                            className="w-full flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)] transition-colors"
                           >
                             <span
                               className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[10px] font-semibold text-white"
@@ -1814,7 +1822,7 @@ export function MainModeTabs({
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-[hsl(var(--hairline))] transition-colors hover:bg-[hsl(var(--foreground)/0.1)]"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-[hsl(var(--hairline))] transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
                         >
                           <span
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
@@ -1996,11 +2004,12 @@ export function MainModeTabs({
                                           setPremiumOpen((v) => !v);
                                         }}
                                         role="menuitem"
+                                        style={{ '--row-tint': MODE_TINT.premium_main } as CSSProperties}
                                         aria-haspopup="menu"
                                         aria-expanded={premiumOpen}
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                                          'hover:bg-[hsl(var(--foreground)/0.1)]',
+                                          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                           (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
@@ -2038,8 +2047,9 @@ export function MainModeTabs({
                                               type="button"
                                               onClick={() => handleSelect('research_main')}
                                               role="menuitem"
+                                              style={{ '--row-tint': MODE_TINT.research_main } as CSSProperties}
                                               className={cn(
-                                                'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)]',
+                                                'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                                 currentMode === 'research_main' && 'bg-[hsl(var(--accent))]',
                                               )}
                                             >
@@ -2095,11 +2105,12 @@ export function MainModeTabs({
                                           setDebateOpen((v) => !v);
                                         }}
                                         role="menuitem"
+                                        style={{ '--row-tint': MODE_TINT.debate } as CSSProperties}
                                         aria-haspopup="menu"
                                         aria-expanded={debateOpen}
                                         className={cn(
                                           'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                                          'hover:bg-[hsl(var(--foreground)/0.1)]',
+                                          'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                                           (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
@@ -2166,7 +2177,7 @@ export function MainModeTabs({
                               type="button"
                               onClick={() => handleSelect('assistant')}
                               role="menuitem"
-                              className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)] text-muted-foreground hover:text-foreground"
+                              className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)] text-muted-foreground hover:text-foreground"
                             >
                               <span className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110 bg-[hsl(var(--surface-2))] text-muted-foreground">
                                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -2204,6 +2215,7 @@ export function MainModeTabs({
                         <button
                           type="button"
                           aria-disabled={item.pending || undefined}
+                          style={{ '--row-tint': item.tint } as CSSProperties}
                           onClick={() => {
                             if (item.pending) return; // 자리만 예약 — 이름·설계 미정
                             if (item.mode) { handleSelect(item.mode); return; } // 스터디룸·회의록 — 모드 전환
@@ -2228,7 +2240,7 @@ export function MainModeTabs({
                           role="menuitem"
                           className={cn(
                             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                            item.pending ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--foreground)/0.1)]',
+                            item.pending ? 'cursor-default opacity-50' : 'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                           )}
                         >
                           <span
@@ -2312,9 +2324,10 @@ export function MainModeTabs({
                           aria-disabled={tile.placeholder || undefined}
                           onClick={() => { if (!tile.placeholder) handleSelectAssistantTool(tile.cardId); }}
                           role="menuitem"
+                          style={{ '--row-tint': tile.tint } as CSSProperties}
                           className={cn(
                             'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
-                            tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--foreground)/0.1)]',
+                            tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]',
                           )}
                         >
                           <span
@@ -2344,7 +2357,8 @@ export function MainModeTabs({
                         type="button"
                         onClick={() => handleSelect('assistant')}
                         role="menuitem"
-                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--foreground)/0.1)]"
+                        style={{ '--row-tint': 'hsl(220 10% 46%)' } as CSSProperties}
+                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
                       >
                         <span
                           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
