@@ -208,7 +208,7 @@ function TripSection({ title, trips, coverOf, today, onOpen }: { title: string; 
         <span className="text-[11px] tabular-nums text-muted-foreground/70">{trips.length}</span>
         <span className="h-px flex-1 bg-[hsl(var(--hairline))]" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {trips.map((t) => (
           <TripCard key={t.id} trip={t} cover={coverOf(t)} today={today} onOpen={() => onOpen(t.id)} />
         ))}

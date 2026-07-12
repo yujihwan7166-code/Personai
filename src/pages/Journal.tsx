@@ -23,6 +23,7 @@ import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
 import { DayItemsBlock } from '@/components/daybook/DayItemsBlock';
+import type { DayItem } from '@/types/daylog';
 import FoodRoadView from '@/components/daybook/FoodRoadView';
 import { useDaylogAll } from '@/hooks/useDaylog';
 import { useTrips } from '@/hooks/useTravel';
@@ -58,7 +59,6 @@ const MOOD_BY_KEY = Object.fromEntries(MOODS.map((m) => [m.key, m]));
 /** legacy mood(1-5) → 감정 키. */
 const LEGACY_MOOD: Record<number, string> = { 5: 'happy', 4: 'calm', 3: 'tired', 2: 'blue', 1: 'angry' };
 const entryMoodKey = (e: JournalEntry): string | null => e.moodKey ?? (e.mood ? LEGACY_MOOD[e.mood] : null);
-const moodColor = (key: string | null) => (key && MOOD_BY_KEY[key] ? MOOD_BY_KEY[key].color : 'hsl(var(--cream-line))');
 
 const WEATHERS: Weather[] = ['sunny', 'cloudy', 'overcast', 'rainy', 'stormy', 'snowy', 'windy', 'foggy', 'rainbow', 'night'];
 const COLORS = ['#e0876b', '#e3b45c', '#8faf83', '#7fa9bd', '#a98bb0', '#b98f74'];
@@ -345,11 +345,6 @@ export default function Journal() {
       .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [allEntries, query]);
-  const feedGroups = useMemo(() => {
-    const map = new Map<string, JournalEntry[]>();
-    for (const e of feed) { const k = e.date.slice(0, 7); const arr = map.get(k); if (arr) arr.push(e); else map.set(k, [e]); }
-    return [...map.entries()];
-  }, [feed]);
   const [memSeed, setMemSeed] = useState(0); // 플래시백 "다른 기록 보기" 리롤
   const memory = useMemo(() => {
     void memSeed;
@@ -378,6 +373,36 @@ export default function Journal() {
   }, [dayItems]);
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
   const itemDates = useMemo(() => new Set(dayItems.map((i) => i.date)), [dayItems]);
+  /** 날짜별 대표 사진 — 피드·캘린더의 사진 우선 렌더용 (일기 사진 → 하루 기록 사진). */
+  const photoByDate = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of allEntries) if (e.images?.[0] && !m.has(e.date)) m.set(e.date, e.images[0].src);
+    for (const i of dayItems) if (i.photo && !m.has(i.date)) m.set(i.date, i.photo);
+    return m;
+  }, [allEntries, dayItems]);
+  /** 피드 = 하루 카드 (일기 + 기록만 있는 날 포함) — 월별 그룹. */
+  const dayCardGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const byDate = new Map<string, { entry?: JournalEntry; items: typeof dayItems }>();
+    for (const e of feed) byDate.set(e.date, { entry: e, items: [] });
+    for (const i of dayItems) {
+      const cell = byDate.get(i.date);
+      if (cell) {
+        cell.items.push(i);
+      } else if (!q || i.text.toLowerCase().includes(q) || (i.place ?? '').toLowerCase().includes(q)) {
+        byDate.set(i.date, { items: [i] });
+      }
+    }
+    const sorted = [...byDate.entries()].sort(([a], [b]) => b.localeCompare(a));
+    const groups = new Map<string, Array<[string, { entry?: JournalEntry; items: typeof dayItems }]>>();
+    for (const c of sorted) {
+      const k = c[0].slice(0, 7);
+      const arr = groups.get(k);
+      if (arr) arr.push(c);
+      else groups.set(k, [c]);
+    }
+    return [...groups.entries()];
+  }, [feed, dayItems, query]);
   /** 열린 날짜가 여행 기간이면 컨텍스트 칩. */
   const trips = useTrips();
   const tripOfDay = useMemo(
@@ -487,8 +512,8 @@ export default function Journal() {
 
       {/* ── 메인 ── */}
       <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
-        {/* 지도가 있는 섹션(트래블 로그·나의 지도)은 더 넓게 */}
-        <div className={cn('mx-auto w-full px-4 pb-7 pt-6 sm:px-8 sm:pt-10', tab === 'trips' || tab === 'map' ? 'max-w-[1200px]' : 'max-w-[880px]')}>
+        {/* 화면을 넓게 — 전 섹션 공통 1280 (마소너리·2단 작성·지도 전부 이 폭 기준) */}
+        <div className="mx-auto w-full max-w-[1280px] px-4 pb-7 pt-6 sm:px-8 sm:pt-10">
           {/* 모바일 — 사이드바 대신 가로 스크롤 내비 */}
           <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 sm:hidden">
             <button
@@ -543,60 +568,67 @@ export default function Journal() {
                   <button type="button" onClick={goWriteToday} className="mt-3 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white">오늘 일기 쓰기</button>
                 </div>
               )}
-              {feedGroups.map(([month, items]) => (
+              {/* 사진 위주 마소너리 — 하루 한 장 카드 (기록만 있는 날 포함) */}
+              {dayCardGroups.map(([month, cards]) => (
                 <section key={month}>
-                  <div className="mb-2.5 flex items-center gap-2 px-1">
+                  <div className="mb-3 flex items-center gap-2 px-1">
                     <h2 className="font-sans text-[15px] font-bold text-[hsl(var(--cream-ink))]/80">{month.slice(0, 4)}년 {Number(month.slice(5))}월</h2>
-                    <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{items.length}편</span>
+                    <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{cards.length}일</span>
                     <span className="h-px flex-1 bg-[hsl(var(--cream-line))]/70" />
                   </div>
-                  <div className="flex flex-col gap-3">
-                    {items.map((e) => {
-                      const dd = new Date(`${e.date}T00:00:00`);
-                      const mk = entryMoodKey(e);
-                      const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
-                      const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+                  <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+                    {cards.map(([date, { entry: e, items }]) => {
+                      const dd = new Date(`${date}T00:00:00`);
+                      const photo = photoByDate.get(date);
+                      const mk = e ? entryMoodKey(e) : null;
+                      const t = e
+                        ? (e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제')
+                        : (items[0]?.text ?? '기록');
+                      const ex = e
+                        ? (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim()
+                        : items.slice(e ? 0 : 1, 4).map((i) => i.text).join(' · ');
+                      const c = itemCounts.get(date);
+                      const dateLabel = `${dd.getMonth() + 1}.${dd.getDate()} ${WEEKDAY[dd.getDay()]}`;
                       return (
-                        <button key={e.id} type="button" onClick={() => openEntry(e.date)} className="group relative flex items-start gap-5 overflow-hidden rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] py-5 pl-6 pr-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/25 hover:shadow-[0_14px_30px_-18px_hsl(25_30%_20%/0.3)]" style={e.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 6%, #f8f3ea)` } : undefined}>
-                          <div className="flex w-[52px] shrink-0 flex-col items-center pt-0.5">
-                            <span className="text-[10px] font-semibold uppercase text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</span>
-                            <span className="text-[30px] font-bold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</span>
-                            <span className="mt-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[dd.getDay()]}요일</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[19px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
-                              <h3 className="min-w-0 flex-1 truncate text-[16.5px] font-bold text-[hsl(var(--cream-ink))]">{t}</h3>
-                              {e.starred && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
+                        <button
+                          key={date}
+                          type="button"
+                          onClick={() => openDate(date)}
+                          className="group mb-4 block w-full break-inside-avoid overflow-hidden rounded-[22px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-left transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_18px_36px_-18px_hsl(25_30%_20%/0.35)]"
+                          style={e?.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 7%, #f8f3ea)` } : undefined}
+                        >
+                          {photo && (
+                            <div className="relative overflow-hidden">
+                              <img src={photo} alt="" loading="lazy" className="max-h-[340px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                              <span className="absolute left-2.5 top-2.5 rounded-full bg-black/45 px-2 py-0.5 text-[10.5px] font-bold tabular-nums text-white backdrop-blur-sm">{dateLabel}</span>
+                              {e?.starred && <Star className="absolute right-2.5 top-2.5 h-4 w-4 fill-amber-300 text-amber-300 drop-shadow" />}
+                            </div>
+                          )}
+                          <div className="px-4 pb-4 pt-3.5">
+                            {!photo && (
+                              <div className="mb-1.5 flex items-center justify-between">
+                                <span className="text-[11px] font-bold tabular-nums text-[hsl(var(--cream-muted))]">{dateLabel}</span>
+                                {e?.starred && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
+                              </div>
+                            )}
+                            <div className="flex items-start gap-1.5">
+                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[18px] leading-[1.3]">{MOOD_BY_KEY[mk].emoji}</span>}
+                              <h3 className="min-w-0 flex-1 break-keep text-[14.5px] font-bold leading-snug text-[hsl(var(--cream-ink))] line-clamp-2">{t}</h3>
                             </div>
                             {ex ? (
-                              <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[13px] leading-[1.75] text-[hsl(var(--cream-ink))]/75">{ex}</p>
-                            ) : (
-                              <p className="mt-1.5 text-[13px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
-                            )}
-                            {(e.weather || e.bgm || (e.tags?.length ?? 0) > 0 || itemCounts.has(e.date)) && (
+                              <p className={cn('mt-1.5 whitespace-pre-line break-keep text-[12.5px] leading-[1.7] text-[hsl(var(--cream-ink))]/70', photo ? 'line-clamp-2' : 'line-clamp-5')}>{ex}</p>
+                            ) : !e ? (
+                              <p className="mt-1.5 text-[12px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
+                            ) : null}
+                            {(c || e?.weather || (e?.tags?.length ?? 0) > 0) && (
                               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                                {(() => {
-                                  const c = itemCounts.get(e.date);
-                                  if (!c) return null;
-                                  return (
-                                    <>
-                                      {c.meal > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">🍚 {c.meal}</span>}
-                                      {c.place > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">📍 {c.place}</span>}
-                                    </>
-                                  );
-                                })()}
-                                {e.weather && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">{WEATHER_META[e.weather].emoji} {WEATHER_META[e.weather].label}</span>}
-                                {e.bgm && <span className="inline-flex max-w-[150px] items-center gap-1 truncate rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">🎧 {e.bgm}</span>}
-                                {e.tags?.slice(0, 5).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}
+                                {c && c.meal > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">🍚 {c.meal}</span>}
+                                {c && c.place > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">📍 {c.place}</span>}
+                                {e?.weather && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">{WEATHER_META[e.weather].emoji}</span>}
+                                {e?.tags?.slice(0, 3).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}
                               </div>
                             )}
                           </div>
-                          {e.images?.[0] && (
-                            <div className="hidden shrink-0 self-start rotate-[2deg] rounded-md bg-white p-2 pb-4 shadow-[0_8px_18px_-8px_rgba(60,40,20,0.42)] transition-transform group-hover:rotate-0 sm:block">
-                              <img src={e.images[0].src} alt="" loading="lazy" className="h-[76px] w-[76px] rounded-[2px] object-cover" />
-                            </div>
-                          )}
                         </button>
                       );
                     })}
@@ -639,6 +671,9 @@ export default function Journal() {
                 </div>
               </div>
 
+              {/* 2단 — 좌: 일기(넓게) / 우: 하루 기록 레일 (같은 화면, 위아래로 안 밀림) */}
+              <div className="items-start gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="min-w-0">
               {!editing && current ? (
                 /* 보기 모드 */
                 <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f8f3ea)` } : undefined}>
@@ -818,8 +853,13 @@ export default function Journal() {
                 </div>
               )}
 
-              {/* 하루 기록 — 일기와 같은 자리에서 먹은 것·간 곳·메모 (보기/편집 모두 노출) */}
-              <DayItemsBlock date={selectedDate} />
+              </div>
+
+              {/* 하루 기록 레일 — 먹은 것·간 곳·메모 (보기/편집 모두, 우측 고정) */}
+              <div className="mt-4 lg:sticky lg:top-4 lg:mt-0">
+                <DayItemsBlock date={selectedDate} />
+              </div>
+              </div>
             </>
           )}
 
@@ -841,25 +881,42 @@ export default function Journal() {
                   const isToday = d === todayKey;
                   const meta = dayMeta.get(d);
                   const mood = meta?.moodKey ? MOOD_BY_KEY[meta.moodKey] : undefined;
+                  const photo = photoByDate.get(d);
                   return (
                     <button
                       key={d}
                       type="button"
                       onClick={() => openDate(d)}
-                      className={cn('relative flex aspect-square flex-col overflow-hidden rounded-2xl border p-2 text-left transition-all hover:border-[hsl(var(--cream-accent))]/45', isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]')}
-                      style={{ backgroundColor: meta?.color ? `color-mix(in srgb, ${meta.color} 22%, #f8f3ea)` : 'hsl(var(--cream-bg) / 0.4)' }}
+                      className={cn(
+                        'group relative flex aspect-square flex-col overflow-hidden rounded-2xl border p-2 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/45 hover:shadow-[0_10px_22px_-14px_hsl(25_30%_20%/0.4)]',
+                        isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]',
+                      )}
+                      style={photo ? undefined : { backgroundColor: meta?.color ? `color-mix(in srgb, ${meta.color} 22%, #f8f3ea)` : 'hsl(var(--cream-bg) / 0.4)' }}
                     >
-                      <div className="flex items-start justify-between gap-1">
+                      {/* 그날의 사진이 셀 배경 — 한 달이 앨범이 된다 */}
+                      {photo && (
+                        <>
+                          <img src={photo} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/38 via-transparent to-black/25" />
+                        </>
+                      )}
+                      <div className="relative z-[1] flex items-start justify-between gap-1">
                         <span className="flex items-center gap-1">
-                          <span className={cn('text-[12px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65')}>{i + 1}</span>
-                          {mood && <span className="text-[14px] leading-none">{mood.emoji}</span>}
+                          <span className={cn(
+                            'text-[12px] font-semibold tabular-nums',
+                            photo ? 'text-white drop-shadow' : isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65',
+                          )}>{i + 1}</span>
+                          {mood && <span className="text-[14px] leading-none drop-shadow">{mood.emoji}</span>}
                         </span>
-                        {meta?.weather && <span className="text-[12px] leading-none opacity-80">{WEATHER_META[meta.weather].emoji}</span>}
+                        {meta?.weather && <span className="text-[12px] leading-none opacity-90 drop-shadow">{WEATHER_META[meta.weather].emoji}</span>}
                       </div>
-                      {meta?.label && <p className="mt-1 line-clamp-3 text-left text-[9.5px] leading-[1.35] text-[hsl(var(--cream-ink))]/60">{meta.label}</p>}
-                      {/* 하루 기록(먹은 것·간 곳·메모)만 있는 날도 찾을 수 있게 — 세이지 점 */}
+                      {!photo && meta?.label && <p className="mt-1 line-clamp-3 text-left text-[9.5px] leading-[1.35] text-[hsl(var(--cream-ink))]/60">{meta.label}</p>}
+                      {photo && meta?.label && (
+                        <p className="relative z-[1] mt-auto line-clamp-2 text-left text-[9.5px] font-medium leading-[1.35] text-white/90 drop-shadow">{meta.label}</p>
+                      )}
+                      {/* 하루 기록(먹은 것·간 곳·메모)이 있는 날 — 세이지 점 */}
                       {itemDates.has(d) && (
-                        <span className="absolute bottom-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" aria-hidden />
+                        <span className={cn('absolute bottom-1.5 right-1.5 z-[1] h-1.5 w-1.5 rounded-full', photo ? 'bg-white/90' : 'bg-[hsl(var(--cream-accent))]/70')} aria-hidden />
                       )}
                     </button>
                   );
@@ -977,7 +1034,7 @@ export default function Journal() {
           )}
 
           {/* ── 통계 탭 ── */}
-          {tab === 'stats' && <StatsView entries={allEntries} streak={streak} monthCount={monthCount} />}
+          {tab === 'stats' && <StatsView entries={allEntries} streak={streak} monthCount={monthCount} items={dayItems} />}
         </div>
       </main>
     </div>
@@ -1018,7 +1075,7 @@ function FlashCard({ entry, onOpen }: { entry: JournalEntry; onOpen: (date: stri
   );
 }
 
-function StatsView({ entries, streak, monthCount }: { entries: JournalEntry[]; streak: number; monthCount: number }) {
+function StatsView({ entries, streak, monthCount, items }: { entries: JournalEntry[]; streak: number; monthCount: number; items: DayItem[] }) {
   const withMood = entries.map(entryMoodKey).filter(Boolean) as string[];
   const dist = new Map<string, number>();
   for (const k of withMood) dist.set(k, (dist.get(k) ?? 0) + 1);
@@ -1039,69 +1096,109 @@ function StatsView({ entries, streak, monthCount }: { entries: JournalEntry[]; s
   for (const e of entries) for (const t of e.tags ?? []) tagFreq.set(t, (tagFreq.get(t) ?? 0) + 1);
   const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
 
+  // 하루 기록 지표
+  const monthPrefix2 = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const mealCount = items.filter((i) => i.kind === 'meal').length;
+  const placeCount = new Set(items.filter((i) => i.place).map((i) => i.place!.toLowerCase())).size;
+  const photoCount = entries.filter((e) => e.images?.[0]).length + items.filter((i) => i.photo).length;
+  const monthMeals = items.filter((i) => i.kind === 'meal' && i.date.startsWith(monthPrefix2)).length;
+  const maxTag = Math.max(1, ...topTags.map(([, c]) => c));
+
   const card = 'rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-5';
   return (
-    <div className="flex flex-col gap-4">
-      {/* 4 지표 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[['전체 기록', String(entries.length)], ['이번 달 기록', String(monthCount)], ['연속 기록일', String(streak)]].map(([label, val]) => (
+    <div className="flex flex-col gap-4 pb-8">
+      {/* 히어로 — 연속 기록이 주인공 */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="col-span-2 flex items-center gap-5 rounded-[26px] border border-[hsl(var(--cream-accent))]/25 bg-[hsl(var(--cream-accent))]/[0.07] p-6">
+          <span className="text-[40px] leading-none">🔥</span>
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[46px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-accent))]">{streak}</span>
+              <span className="text-[15px] font-bold text-[hsl(var(--cream-ink))]/75">일째 기록 중</span>
+            </div>
+            <p className="mt-1.5 text-[12px] text-[hsl(var(--cream-muted))]">
+              {streak === 0 ? '오늘부터 다시 시작해 볼까요?' : '꾸준함이 하루하루를 자산으로 만들어요.'}
+            </p>
+          </div>
+        </div>
+        {([['전체 일기', String(entries.length), '편'], ['이번 달', String(monthCount), '편']] as const).map(([label, val, unit]) => (
           <div key={label} className={card}>
-            <div className="text-[30px] font-extrabold text-[hsl(var(--cream-ink))]">{val}</div>
-            <div className="mt-1 text-[12px] text-[hsl(var(--cream-muted))]">{label}</div>
+            <div className="text-[32px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{val}<span className="ml-0.5 text-[14px] font-semibold text-[hsl(var(--cream-muted))]">{unit}</span></div>
+            <div className="mt-2 text-[12px] font-medium text-[hsl(var(--cream-muted))]">{label}</div>
           </div>
         ))}
-        <div className={card}>
-          <div className="flex items-center gap-1.5 text-[18px] font-bold">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: moodColor(topMood) }} />
-            {topMood && MOOD_BY_KEY[topMood] ? MOOD_BY_KEY[topMood].label : '—'}
+      </div>
+
+      {/* 하루 기록 지표 스트립 */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {([
+          ['🍚', '기록한 끼니', mealCount, `이번 달 ${monthMeals}끼`],
+          ['📍', '가본 곳', placeCount, '장소 기준'],
+          ['📷', '사진', photoCount, '일기 + 하루 기록'],
+          [topMood && MOOD_BY_KEY[topMood] ? MOOD_BY_KEY[topMood].emoji : '🙂', '최다 감정', topMood && MOOD_BY_KEY[topMood] ? MOOD_BY_KEY[topMood].label : '—', `${total}회 중`],
+        ] as const).map(([emoji, label, val, sub]) => (
+          <div key={label} className={cn(card, 'flex items-center gap-3.5')}>
+            <span className="text-[26px] leading-none">{emoji}</span>
+            <div className="min-w-0">
+              <div className="truncate text-[20px] font-extrabold leading-tight tabular-nums">{val}</div>
+              <div className="text-[11px] text-[hsl(var(--cream-muted))]">{label} · {sub}</div>
+            </div>
           </div>
-          <div className="mt-1 text-[12px] text-[hsl(var(--cream-muted))]">가장 자주 느낀 감정</div>
-        </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* 감정 분포 */}
+        {/* 감정 분포 — 이모지 + 두꺼운 바 */}
         <div className={card}>
-          <div className="mb-3 text-[14px] font-bold">감정 분포</div>
-          <div className="flex flex-col gap-2.5">
+          <div className="mb-4 text-[14px] font-bold">감정 분포</div>
+          <div className="flex flex-col gap-3">
             {MOODS.map((mo) => {
               const c = dist.get(mo.key) ?? 0;
               const pct = Math.round((c / total) * 100);
               return (
-                <div key={mo.key} className="flex items-center gap-2.5">
-                  <span className="w-8 shrink-0 text-[11.5px] text-[hsl(var(--cream-muted))]">{mo.label}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[hsl(var(--cream-line))]/50">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: mo.color }} />
+                <div key={mo.key} className="flex items-center gap-3">
+                  <span className="w-6 shrink-0 text-center text-[17px] leading-none">{mo.emoji}</span>
+                  <div className="h-4 flex-1 overflow-hidden rounded-full bg-[hsl(var(--cream-line))]/45">
+                    <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, backgroundColor: mo.color }} />
                   </div>
-                  <span className="w-16 shrink-0 text-right text-[10.5px] tabular-nums text-[hsl(var(--cream-muted))]">{c}회 · {pct}%</span>
+                  <span className="w-[74px] shrink-0 text-right text-[11px] tabular-nums text-[hsl(var(--cream-muted))]">{mo.label} {c}회</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* 최근 6개월 */}
+        {/* 최근 6개월 — 큰 바 차트 */}
         <div className={card}>
-          <div className="mb-3 text-[14px] font-bold">최근 6개월 기록</div>
-          <div className="flex h-[150px] items-end justify-between gap-2">
-            {months.map((mo) => (
-              <div key={mo.label} className="flex flex-1 flex-col items-center gap-1">
-                <span className="text-[10.5px] tabular-nums text-[hsl(var(--cream-muted))]">{mo.count}</span>
-                <div className="w-full rounded-t-md bg-[hsl(var(--cream-accent))]/80" style={{ height: `${(mo.count / maxM) * 110}px`, minHeight: '3px' }} />
-                <span className="text-[10.5px] text-[hsl(var(--cream-muted))]">{mo.label}</span>
+          <div className="mb-4 text-[14px] font-bold">최근 6개월 기록</div>
+          <div className="flex h-[172px] items-end justify-between gap-3">
+            {months.map((mo, i) => (
+              <div key={mo.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                <span className="text-[11px] font-bold tabular-nums text-[hsl(var(--cream-ink))]/70">{mo.count > 0 ? mo.count : ''}</span>
+                <div
+                  className={cn('w-full max-w-[52px] rounded-t-xl transition-all', i === months.length - 1 ? 'bg-[hsl(var(--cream-accent))]' : 'bg-[hsl(var(--cream-accent))]/45')}
+                  style={{ height: `${Math.max(4, (mo.count / maxM) * 120)}px` }}
+                />
+                <span className={cn('text-[11px]', i === months.length - 1 ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]')}>{mo.label}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 자주 쓴 태그 */}
+      {/* 자주 쓴 태그 — 많이 쓸수록 크게 */}
       {topTags.length > 0 && (
         <div className={card}>
-          <div className="mb-3 text-[14px] font-bold">자주 쓴 태그</div>
-          <div className="flex flex-wrap gap-2">
+          <div className="mb-3.5 text-[14px] font-bold">자주 쓴 태그</div>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
             {topTags.map(([t, c]) => (
-              <span key={t} className="inline-flex items-center gap-1.5 rounded-lg bg-[hsl(var(--cream-line))]/35 px-2.5 py-1 text-[12px] text-[hsl(var(--cream-ink))]/80"># {t} <b className="text-[hsl(var(--cream-accent))]">{c}</b></span>
+              <span
+                key={t}
+                className="text-[hsl(var(--cream-ink))]/80"
+                style={{ fontSize: `${12 + Math.min(10, ((c / maxTag) * 10))}px`, fontWeight: c === maxTag ? 700 : 500 }}
+              >
+                #{t} <b className="text-[0.8em] font-bold text-[hsl(var(--cream-accent))]">{c}</b>
+              </span>
             ))}
           </div>
         </div>
