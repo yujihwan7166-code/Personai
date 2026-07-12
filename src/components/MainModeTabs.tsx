@@ -15,7 +15,7 @@ import {
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet, Music, FileText,
   BarChart3, StickyNote, BookMarked, Package, Ticket, Target, ShoppingBag,
-  Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot,
+  Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot, LayoutGrid,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
 } from 'lucide-react';
@@ -363,9 +363,9 @@ export const ASSISTANT_TILES: Array<{
   { cardId: 'ppt',            label: 'PPT',         desc: '주제 → 슬라이드 자동',      icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
   { cardId: 'image-gen',      label: '영상',        desc: '프롬프트로 이미지·영상',     icon: Wand2,           tint: 'hsl(340 70% 55%)' },
   { cardId: 'music-gen',      label: '노래',        desc: '가사·분위기로 작곡',        icon: Music,           tint: 'hsl(265 65% 58%)', placeholder: true },
-  { cardId: 'cover-letter',   label: 'AI 자소서',   desc: '경험 → 자기소개서 초안',    icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
   { cardId: 'file-convert',   label: '파일 변환',   desc: 'PDF·이미지·문서 변환',      icon: Files,           tint: 'hsl(280 60% 55%)' },
   { cardId: 'translate',      label: '번역',        desc: '맥락 살린 다국어 번역',     icon: Languages,       tint: 'hsl(170 65% 45%)' },
+  { cardId: 'cover-letter',   label: 'AI 자소서',   desc: '경험 → 자기소개서 초안',    icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
   { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)',  placeholder: true },
   { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)', placeholder: true },
   { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },
@@ -2291,17 +2291,9 @@ export function MainModeTabs({
                   <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(330 65% 52%)' }} />
                     <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
-                    <button
-                      type="button"
-                      onClick={() => handleSelect('assistant')}
-                      className="ml-auto inline-flex items-center gap-0.5 text-[10.5px] text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      도구 더 보기
-                      <ArrowRight className="h-3 w-3" />
-                    </button>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3">
-                    {ASSISTANT_TILES.slice(0, 6).map((tile) => {
+                    {ASSISTANT_TILES.slice(0, 5).map((tile) => {
                       const Icon = tile.icon;
                       const inner = (
                         <button
@@ -2334,6 +2326,28 @@ export function MainModeTabs({
                         inner,
                       );
                     })}
+                    {/* 6번째 칸 — 모든 도구 (어시스턴트 브라우즈 진입, 구 "도구 더 보기") */}
+                    {withFavStar(
+                      { id: 'mode-assistant', label: '모든 도구', desc: '요약·글쓰기·엑셀 등 전부', tint: 'hsl(220 10% 46%)', target: { kind: 'mode', mode: 'assistant' } },
+                      <button
+                        type="button"
+                        onClick={() => handleSelect('assistant')}
+                        role="menuitem"
+                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                      >
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
+                          style={{ backgroundColor: 'color-mix(in oklab, hsl(220 10% 46%) 12%, transparent)', color: 'hsl(220 10% 46%)' }}
+                        >
+                          <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">모든 도구</span>
+                          <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">요약·글쓰기·엑셀 등 전부</span>
+                        </span>
+                        <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/70" aria-hidden />
+                      </button>,
+                    )}
                   </div>
               </div>
             </div>
