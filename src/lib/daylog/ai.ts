@@ -11,16 +11,19 @@ export interface ClassifiedMoment {
   mealSlot?: MealSlot;
   /** AI가 문장에서 시간을 읽었으면 HH:mm ("아까 점심에" → 12:30). 없으면 undefined. */
   time?: string;
+  /** 문장에서 뽑은 장소 이름 ("홍대 카페 갔다" → "홍대"). 지도 핀 라벨의 씨앗. */
+  place?: string;
 }
 
 const SYSTEM = `너는 하루 기록 분류기다. 사용자가 적은 한 줄을 보고 JSON 하나만 출력한다.
-형식: {"kind":"meal|activity|place|media|note","mealSlot":"breakfast|lunch|dinner|snack"|null,"time":"HH:mm"|null}
+형식: {"kind":"meal|activity|place|media|note","mealSlot":"breakfast|lunch|dinner|snack"|null,"time":"HH:mm"|null,"place":"장소이름"|null}
 - meal: 먹거나 마신 것 (mealSlot 필수 추정 — 아침/점심/저녁/간식·야식은 snack)
 - activity: 한 일·공부·운동·작업
 - place: 간 곳·방문
 - media: 본 것·읽은 것 (영화·드라마·유튜브·웹툰·책)
 - note: 그 외 생각·메모
 - time: 문장에 시간 단서가 있을 때만 (점심→12:30, 아침→08:00, 저녁→19:00, "3시에"→15:00). 없으면 null.
+- place: 장소·가게·지역 이름이 문장에 있으면 그 이름만 ("홍대 카페 갔다"→"홍대 카페", "스타벅스에서 커피"→"스타벅스"). 없으면 null.
 JSON 외 다른 텍스트 금지.`;
 
 const isKind = (v: unknown): v is MomentKind =>
@@ -63,7 +66,8 @@ export async function aiClassifyMoment(raw: string): Promise<ClassifiedMoment> {
       ? (isMealSlot(p.mealSlot) ? p.mealSlot : classifyMomentHeuristic(raw).mealSlot ?? inferSlotByNow())
       : undefined;
     const time = typeof p.time === 'string' && /^\d{2}:\d{2}$/.test(p.time) ? p.time : undefined;
-    return { kind, mealSlot, time };
+    const place = typeof p.place === 'string' && p.place.trim() ? p.place.trim().slice(0, 40) : undefined;
+    return { kind, mealSlot, time, place };
   } catch {
     return classifyMomentHeuristic(raw);
   }

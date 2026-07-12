@@ -42,6 +42,8 @@ const normalizeMoment = (value: unknown, index: number): DayMoment | null => {
     kind: isKind(value.kind) ? value.kind : 'note',
     mealSlot: isMealSlot(value.mealSlot) ? value.mealSlot : undefined,
     text,
+    photo: typeof value.photo === 'string' && value.photo ? value.photo : undefined,
+    place: typeof value.place === 'string' && value.place.trim() ? value.place.trim() : undefined,
     createdAt,
   };
 };
@@ -96,7 +98,15 @@ export const daylogStore = {
     return new Set(safeRead().map((m) => m.date));
   },
 
-  add(input: { text: string; date?: string; time?: string; kind?: MomentKind; mealSlot?: MealSlot }): DayMoment {
+  add(input: {
+    text: string;
+    date?: string;
+    time?: string;
+    kind?: MomentKind;
+    mealSlot?: MealSlot;
+    photo?: string;
+    place?: string;
+  }): DayMoment {
     const now = new Date();
     const moment: DayMoment = {
       id: newId(),
@@ -105,6 +115,8 @@ export const daylogStore = {
       kind: input.kind ?? 'note',
       mealSlot: input.kind === 'meal' ? input.mealSlot : undefined,
       text: input.text.trim(),
+      photo: input.photo || undefined,
+      place: input.place?.trim() || undefined,
       createdAt: now.toISOString(),
     };
     safeWrite([...safeRead(), moment]);

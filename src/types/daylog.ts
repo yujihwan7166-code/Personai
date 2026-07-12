@@ -22,6 +22,10 @@ export interface DayMoment {
   mealSlot?: MealSlot;
   /** 한 줄 본문. */
   text: string;
+  /** 조각 사진 (압축 Base64 data URL) — 먹은 것·순간 기록용. */
+  photo?: string;
+  /** 장소 이름 — kind === 'place' 일 때 주로. 나중에 지도 핀의 라벨이 된다. */
+  place?: string;
   createdAt: string;
 }
 
