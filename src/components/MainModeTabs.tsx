@@ -4,7 +4,7 @@
  * 페이지 헤더 메타로서의 모드 표시. 작은 pill + 드롭다운 패널.
  * 드롭다운은 주요 모드를 노출하고, AI 라운드테이블은 하위(찬반/자유/심층/브레인) 인라인 표시.
  */
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -315,6 +315,22 @@ export const MODE_DESCRIPTION: Partial<Record<MainMode, string>> = {
   assistant:        '전체 도구 브라우즈',
 };
 
+/** 하단 독 6번째 칸 — 추천 스포트라이트 후보 (NEW/HOT). 즐겨찾기에 이미 꽂힌 건 제외하고 랜덤 노출.
+ *  id 는 즐겨찾기 id 규약(mode-x, hub-x)과 동일 — 중복 판정·라우팅 재사용. */
+export const SPOTLIGHT_ITEMS: Array<{
+  id: string;
+  badge: 'NEW' | 'HOT';
+  label: string;
+  tint: string;
+  target: FavEntry['target'];
+}> = [
+  { id: 'mode-research_main', badge: 'HOT', label: '심층 리서치',  tint: 'hsl(var(--mode-research))', target: { kind: 'mode', mode: 'research_main' } },
+  { id: 'mode-multi',         badge: 'NEW', label: '멀티 채팅',    tint: 'hsl(var(--mode-multi))',    target: { kind: 'mode', mode: 'multi' } },
+  { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(6 70% 51%)',            target: { kind: 'hub', hubId: 'career' } },
+  { id: 'mode-study_main',    badge: 'HOT', label: 'AI 스터디룸',  tint: 'hsl(var(--mode-study))',    target: { kind: 'mode', mode: 'study_main' } },
+  { id: 'mode-voice_main',    badge: 'NEW', label: '회의록',       tint: 'hsl(330 65% 52%)',          target: { kind: 'mode', mode: 'voice_main' } },
+];
+
 /** 어시스턴트 드롭다운 직행 도구 3개. 파일 변환 등 나머지는 "도구 더 보기" 에서만 노출. */
 export const ASSISTANT_FEATURED_TOOLS: Array<{
   cardId: string;
@@ -574,6 +590,16 @@ export function MainModeTabs({
   const { model: currentModel } = useSelectedModel(currentBrandId);
   /** 즐겨찾기 — 별 토글 → 하단 독 + 히어로 칩 (FavoriteChips 연동). */
   const { favs, isFav, toggleFav: toggleFavRaw, removeFav } = useFavoriteModes();
+  /** 스포트라이트 시드 — 메뉴 열 때마다 다른 추천이 뜨게. */
+  const [spotSeed, setSpotSeed] = useState(0.37);
+  useEffect(() => {
+    if (open) setSpotSeed(Math.random());
+  }, [open]);
+  const spotlightPick = useMemo(() => {
+    const pool = SPOTLIGHT_ITEMS.filter((s) => !favs.some((f) => f.id === s.id));
+    if (pool.length === 0) return null;
+    return pool[Math.floor(spotSeed * pool.length) % pool.length];
+  }, [favs, spotSeed]);
   /** 패널 왼쪽 변 — 여는 트리거(모드 pill)의 왼쪽과 세로 정렬 (2026-07-05).
    * 자체 트리거가 화면에 보이면 그것, 아니면 [data-mode-anchor] (히어로 pill). */
   const [anchorLeft, setAnchorLeft] = useState(16);
@@ -2322,13 +2348,13 @@ export function MainModeTabs({
                   </button>
                 )}
               </div>
-              {favs.length === 0 ? (
-                <div className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[11.5px] text-muted-foreground/60">
-                  <Star size={12} />
-                  메뉴 항목 위의 별을 누르면 여기에 꽂혀요
-                </div>
-              ) : (
-                <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 gap-2">
+                  {favs.length === 0 && (
+                    <div className="col-span-5 flex h-11 items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[11.5px] text-muted-foreground/60">
+                      <Star size={12} />
+                      메뉴 항목 위의 별을 누르면 여기에 꽂혀요 (최대 {MAX_FAVS}개)
+                    </div>
+                  )}
                   {favs.map((f) => (
                     <div key={f.id} className="group/dock relative">
                       <button
@@ -2354,7 +2380,7 @@ export function MainModeTabs({
                       </button>
                     </div>
                   ))}
-                  {Array.from({ length: Math.max(0, MAX_FAVS - favs.length) }).map((_, i) => (
+                  {favs.length > 0 && Array.from({ length: Math.max(0, MAX_FAVS - favs.length) }).map((_, i) => (
                     <div
                       key={`dock-ghost-${i}`}
                       className="flex h-11 items-center justify-center rounded-xl border border-dashed border-[hsl(var(--hairline))] text-muted-foreground/35"
@@ -2363,8 +2389,40 @@ export function MainModeTabs({
                       <Star size={12} />
                     </div>
                   ))}
+                  {/* 6번째 칸 — 추천 스포트라이트 (NEW/HOT). 즐겨찾기와 같은 칩 문법 + 배지. */}
+                  {spotlightPick ? (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => openFav({ id: spotlightPick.id, label: spotlightPick.label, tint: spotlightPick.tint, target: spotlightPick.target })}
+                        role="menuitem"
+                        title={`추천 — ${spotlightPick.label}`}
+                        className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left transition-all duration-150 hover:-translate-y-0.5"
+                        style={{ backgroundColor: `color-mix(in oklab, ${spotlightPick.tint} 10%, transparent)` }}
+                      >
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center" style={{ color: spotlightPick.tint }}>
+                          {favVisual({ id: spotlightPick.id, label: spotlightPick.label, tint: spotlightPick.tint, target: spotlightPick.target })}
+                        </span>
+                        <span className="min-w-0 truncate text-[11.5px] font-semibold text-foreground/85">{spotlightPick.label}</span>
+                      </button>
+                      <span
+                        className={cn(
+                          'pointer-events-none absolute -top-1.5 right-2 rounded-full px-1.5 py-px text-[8px] font-bold tracking-wide text-white',
+                          spotlightPick.badge === 'HOT' ? 'bg-[hsl(8_85%_55%)]' : 'bg-[hsl(217_91%_55%)]',
+                        )}
+                      >
+                        {spotlightPick.badge}
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-11 items-center justify-center rounded-xl border border-dashed border-[hsl(var(--hairline))] text-muted-foreground/35"
+                      aria-hidden
+                    >
+                      <Star size={12} />
+                    </div>
+                  )}
                 </div>
-              )}
             </div>
           </motion.div>
           </>
