@@ -1245,7 +1245,7 @@ export function MainModeTabs({
                   Col 2: 대화        →  Col 3: 시뮬레이션
                        └ 노트 (col2-3 col-span-2 row-2)
                   Col 4-5: 라이프 (col-span-2 row-span-2, 각 칸 3개씩 풀 카드) */}
-            <div className="grid grid-cols-5 grid-rows-[auto_1fr] gap-x-3 px-5 pt-5 pb-1">
+            <div className="grid grid-cols-5 grid-rows-[auto_1fr] gap-x-7 px-5 pt-5 pb-1">
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
               {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
@@ -1932,7 +1932,7 @@ export function MainModeTabs({
                     const isAssistant = false;
                     const colClass = idx === 0 ? 'col-start-2' : 'col-start-3';
                     return (
-                      <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
+                      <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col')}>
                         {/* 헤더 — 색 바 + 15px 제목 + 밑괘선 (커리어 보드 섹션 문법) */}
                         <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                           <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: group.tint }} />
@@ -2178,7 +2178,7 @@ export function MainModeTabs({
                   })}
               {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
                   단일 헤더가 두 컬럼 위에 spans. */}
-              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-6 border-l border-[hsl(var(--hairline))]/70 pl-3">
+              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-6">
                 <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                   <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(150 55% 42%)' }} />
                   <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
@@ -2252,7 +2252,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
+              <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col">
                 <div>
                   <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(25 85% 55%)' }} />
