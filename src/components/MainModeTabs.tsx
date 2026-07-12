@@ -30,7 +30,6 @@ import {
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
 import { cn } from '@/lib/utils';
 import { QuickSearchBar } from './QuickSearchBar';
-import { loadBookmarks, BOOKMARKS_CHANGED_EVENT, type BookmarkSlot } from '@/lib/bookmarkStore';
 import { getTodayUsage, summarizeUsage, USAGE_CHANGED_EVENT, type UsageSummary } from '@/services/usageTracker';
 import { useFavoriteModes, MAX_FAVS, type FavEntry } from '@/hooks/useFavoriteModes';
 import { toast } from 'sonner';
@@ -223,12 +222,12 @@ export interface HubTool {
 }
 
 export const HUB_TOOLS: HubTool[] = [
-  // ── 정리 (도구·자동) ─────────────────
+  // ── 정리 (도구·자동) — 준비중(pending)은 맨 아래로 모음 ─────────────────
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
-  { id: 'people',     label: '인맥노트 (이름미정)', desc: '사람 카드 · 경조사 · 선물',       emoji: '📇', tint: 'hsl(340 60% 50%)', axis: '정리', pending: true },
   { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
   { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
+  { id: 'people',     label: '인맥노트 (이름미정)', desc: '사람 카드 · 경조사 · 선물',       emoji: '📇', tint: 'hsl(340 60% 50%)', axis: '정리', pending: true },
   { id: 'belongings', label: '내 물건 위치 (이름미정)', desc: '어디에 뒀는지 · 소재 대장',    emoji: '📦', tint: 'hsl(28 76% 47%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
@@ -334,16 +333,17 @@ export const ASSISTANT_FEATURED_TOOLS: Array<{
 export const ASSISTANT_TILES: Array<{
   cardId: string;
   label: string;
+  desc?: string;
   icon: LucideIcon;
   tint: string;
   placeholder?: boolean;
 }> = [
-  { cardId: 'ppt',            label: 'PPT',         icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
-  { cardId: 'image-gen',      label: '영상',        icon: Wand2,           tint: 'hsl(340 70% 55%)' },
-  { cardId: 'music-gen',      label: '노래',        icon: Music,           tint: 'hsl(265 65% 58%)', placeholder: true },
-  { cardId: 'cover-letter',   label: 'AI 자소서',   icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
-  { cardId: 'file-convert',   label: '파일 변환',   icon: Files,           tint: 'hsl(280 60% 55%)' },
-  { cardId: 'translate',      label: '번역',        icon: Languages,       tint: 'hsl(170 65% 45%)' },
+  { cardId: 'ppt',            label: 'PPT',         desc: '주제 → 슬라이드 자동',      icon: Presentation,    tint: 'hsl(28 80% 55%)'  },
+  { cardId: 'image-gen',      label: '영상',        desc: '프롬프트로 이미지·영상',     icon: Wand2,           tint: 'hsl(340 70% 55%)' },
+  { cardId: 'music-gen',      label: '노래',        desc: '가사·분위기로 작곡',        icon: Music,           tint: 'hsl(265 65% 58%)', placeholder: true },
+  { cardId: 'cover-letter',   label: 'AI 자소서',   desc: '경험 → 자기소개서 초안',    icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
+  { cardId: 'file-convert',   label: '파일 변환',   desc: 'PDF·이미지·문서 변환',      icon: Files,           tint: 'hsl(280 60% 55%)' },
+  { cardId: 'translate',      label: '번역',        desc: '맥락 살린 다국어 번역',     icon: Languages,       tint: 'hsl(170 65% 45%)' },
   { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)',  placeholder: true },
   { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)', placeholder: true },
   { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },
@@ -572,8 +572,8 @@ export function MainModeTabs({
   /** 현재 선택된 AI 브랜드·모델 — "지금" 카드. */
   const { brand: currentBrandId } = useSelectedBrand();
   const { model: currentModel } = useSelectedModel(currentBrandId);
-  /** 즐겨찾기 — 별 토글 → 히어로 좌측 상단 칩 (FavoriteChips 연동). */
-  const { isFav, toggleFav: toggleFavRaw } = useFavoriteModes();
+  /** 즐겨찾기 — 별 토글 → 하단 독 + 히어로 칩 (FavoriteChips 연동). */
+  const { favs, isFav, toggleFav: toggleFavRaw, removeFav } = useFavoriteModes();
   /** 패널 왼쪽 변 — 여는 트리거(모드 pill)의 왼쪽과 세로 정렬 (2026-07-05).
    * 자체 트리거가 화면에 보이면 그것, 아니면 [data-mode-anchor] (히어로 pill). */
   const [anchorLeft, setAnchorLeft] = useState(16);
@@ -616,16 +616,6 @@ export function MainModeTabs({
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, [open]);
-  /** 좌측 컬럼 즐겨찾기 — 북마크 스토어와 동일 데이터 (6 slots). 드롭다운 열 때 + 북마크 변경 이벤트 시 재로드. */
-  const [favoriteBookmarks, setFavoriteBookmarks] = useState<BookmarkSlot[]>([]);
-  useEffect(() => {
-    if (open) setFavoriteBookmarks(loadBookmarks());
-  }, [open]);
-  useEffect(() => {
-    const handler = () => setFavoriteBookmarks(loadBookmarks());
-    window.addEventListener(BOOKMARKS_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(BOOKMARKS_CHANGED_EVENT, handler);
-  }, []);
   /** 통합 플래너 데이터 — 다음 일정 + 오늘 미완료 할일. */
   const upcomingEvent = useUpcomingEvent();
   const todayTasks = useTodayTasks();
@@ -746,7 +736,9 @@ export function MainModeTabs({
         description: '기존 칩을 하나 해제하고 다시 시도해주세요.',
       });
     } else if (result === 'added') {
-      toast(`'${entry.label}' 칩이 메인 좌측 상단에 추가됐어요`);
+      toast(`'${entry.label}' — 아래 즐겨찾기 독에 꽂았어요`, {
+        description: '메인 화면 좌측 상단 칩에도 함께 떠요.',
+      });
     }
   };
 
@@ -990,37 +982,37 @@ export function MainModeTabs({
     );
   };
 
-  /** 스카이워크 타일 — 2x2 그리드, 컴팩트(세로 ~56px). 컬러 배경, 아이콘+라벨. */
-  const renderAssistantTile = (tile: typeof ASSISTANT_TILES[number]) => {
-    const Icon = tile.icon;
-    const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
-    return (
-      <button
-        key={`tile-${tile.cardId}`}
-        type="button"
-        onClick={() => handleSelectAssistantTool(tile.cardId)}
-        role="menuitem"
-        className={cn(
-          'group relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl',
-          'transition-all duration-200 hover:-translate-y-0.5',
-          'border border-transparent',
-          tile.placeholder && 'opacity-85',
-          isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
-        )}
-        style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 10%, transparent)` }}
-      >
-        <span
-          className="flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-110"
-          style={{ color: tile.tint }}
-        >
-          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-        </span>
-        <span className="text-[10.5px] font-semibold leading-none truncate max-w-full text-foreground/85">
-          {tile.label}
-        </span>
-      </button>
-    );
+  /** 독 칩 아이콘 — FavEntry.target 에서 원본 아이템의 아이콘/이모지를 복원. */
+  const favVisual = (entry: FavEntry): ReactNode => {
+    const t = entry.target;
+    if (t.kind === 'mode') { const Icon = MODE_ICON[t.mode] as LucideIcon | undefined; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
+    if (t.kind === 'debate') { const d = DEBATE_SUBS.find((s) => s.key === t.sub); const Icon = d?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
+    if (t.kind === 'premium') { const p = PREMIUM_AI_TOOLS.find((x) => x.key === t.domainId); const Icon = p?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
+    if (t.kind === 'assistant') { const a = ASSISTANT_TILES.find((x) => x.cardId === t.cardId); const Icon = a?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
+    if (t.kind === 'life') { const l = LIFE_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[15px] leading-none">{l?.emoji ?? '✨'}</span>; }
+    if (t.kind === 'player') { const p = PLAYER_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[15px] leading-none">{p?.emoji ?? '🎮'}</span>; }
+    const h = HUB_TOOLS.find((x) => x.id === t.hubId);
+    return <span className="select-none text-[15px] leading-none">{h?.emoji ?? '📄'}</span>;
   };
+
+  /** 독 칩 클릭 — 원본 아이템과 같은 동작으로 라우팅. */
+  const openFav = (entry: FavEntry) => {
+    const t = entry.target;
+    if (t.kind === 'mode') { handleSelect(t.mode); return; }
+    if (t.kind === 'debate') { handleSelectSub(t.sub); return; }
+    if (t.kind === 'premium') { handleSelectPremium(t.domainId); return; }
+    if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
+    if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
+    if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
+    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', cloud: '/cloud' };
+    const r = route[t.hubId];
+    if (r) { setOpen(false); navigate(r); return; }
+    // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
+    removeFav(entry.id);
+    toast('연결이 없어진 즐겨찾기를 정리했어요');
+  };
+
+  /* renderAssistantTile 제거 (2026-07-12) — 하단 밴드가 즐겨찾기 독으로 바뀌며 미사용. */
 
   const renderAssistantToolItem = (tool: typeof ASSISTANT_FEATURED_TOOLS[number]) => {
     const Icon = tool.icon;
@@ -1832,93 +1824,7 @@ export function MainModeTabs({
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* 북마크 — 메인에서 2클릭 (pill → 슬롯) 바로가기 (2026-07-05).
-                     * url 은 새 탭, 내부 기능은 기존 셀렉트 핸들러로 라우팅. */}
-                    {(() => {
-                      const openBookmark = (slot: BookmarkSlot) => {
-                        if (slot.kind === 'url') {
-                          window.open(slot.url, '_blank', 'noopener,noreferrer');
-                          setOpen(false);
-                          return;
-                        }
-                        if (slot.kind !== 'internal') return;
-                        const t = slot.target;
-                        if (t.type === 'mode') {
-                          const map: Record<string, MainMode> = {
-                            'general': 'general',
-                            'multi-chat': 'multi',
-                            'deep-research': 'research_main',
-                            'debate': 'debate',
-                            'study': 'study_main',
-                            'assistant': 'assistant',
-                          };
-                          handleSelect(map[t.mode] ?? 'general');
-                        } else if (t.type === 'life') {
-                          handleSelectLifeTool(t.toolId);
-                        } else if (t.type === 'player') {
-                          handleSelectPlayerTool(t.toolId);
-                        } else if (t.type === 'assistant') {
-                          handleSelectAssistantTool(t.cardId);
-                        }
-                      };
-                      const openEditor = () => {
-                        setOpen(false);
-                        if (onOpenBookmarks) setTimeout(() => onOpenBookmarks(), 40);
-                      };
-                      return (
-                        <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
-                          <div className="mb-1.5 flex items-center justify-between">
-                            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">북마크</span>
-                            {onOpenBookmarks && (
-                              <button
-                                type="button"
-                                onClick={openEditor}
-                                className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-                              >
-                                편집
-                              </button>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-3 gap-1">
-                            {favoriteBookmarks.map((slot, i) =>
-                              slot.kind === 'empty' ? (
-                                <button
-                                  key={`bm-${i}`}
-                                  type="button"
-                                  onClick={openEditor}
-                                  title="북마크 추가"
-                                  className="flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 opacity-45 transition-opacity hover:opacity-90"
-                                >
-                                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-[hsl(var(--hairline))] text-[12px] text-muted-foreground">+</span>
-                                  <span className="text-[9px] leading-none text-muted-foreground">추가</span>
-                                </button>
-                              ) : (
-                                <button
-                                  key={`bm-${i}`}
-                                  type="button"
-                                  onClick={() => openBookmark(slot)}
-                                  title={slot.label}
-                                  className="flex flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 transition-colors hover:bg-[hsl(var(--accent))]"
-                                >
-                                  <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-muted">
-                                    {slot.kind === 'url' ? (
-                                      slot.favicon ? (
-                                        <img src={slot.favicon} alt="" className="h-[18px] w-[18px]" />
-                                      ) : (
-                                        <span className="text-[11px] font-bold text-foreground/70">{slot.label.charAt(0)}</span>
-                                      )
-                                    ) : (
-                                      <span className="text-[14px] leading-none select-none">{slot.emoji}</span>
-                                    )}
-                                  </span>
-                                  <span className="max-w-full truncate text-[9px] font-medium leading-none text-foreground/80">{slot.label}</span>
-                                </button>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {/* 북마크 위젯 제거 (2026-07-12) — 하단 ★ 즐겨찾기 독으로 통합. */}
 
                     {/* 오늘 사용량 — 호출·비용 + 토큰/일일 예산 게이지 + 모델 TOP3. */}
                     <div className="rounded-xl px-2.5 py-2.5 ring-1 ring-[hsl(var(--hairline))]">
@@ -2246,10 +2152,8 @@ export function MainModeTabs({
                 <div className="grid grid-cols-2 gap-x-3">
                   {(['정리', '기록'] as HubAxis[]).map((axis) => (
                     <div key={axis} className="space-y-0.5">
-                      {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => withFavStar(
-                        item.mode
-                          ? { id: `mode-${item.mode}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'mode', mode: item.mode } }
-                          : { id: `hub-${item.id}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'hub', hubId: item.id } },
+                      {HUB_TOOLS.filter((t) => t.axis === axis).map((item) => {
+                        const node = (
                         <button
                           type="button"
                           aria-disabled={item.pending || undefined}
@@ -2294,8 +2198,17 @@ export function MainModeTabs({
                               {item.desc}
                             </span>
                           </span>
-                        </button>,
-                      ))}
+                        </button>
+                        );
+                        // 준비중(pending) 자리는 ★ 없이 — 즐겨찾기에 못 꽂게
+                        if (item.pending) return <div key={`hub-${item.id}`}>{node}</div>;
+                        return withFavStar(
+                          item.mode
+                            ? { id: `mode-${item.mode}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'mode', mode: item.mode } }
+                            : { id: `hub-${item.id}`, label: item.label, desc: item.desc, tint: item.tint, target: { kind: 'hub', hubId: item.id } },
+                          node,
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -2334,60 +2247,124 @@ export function MainModeTabs({
                     </motion.div>
                   </div>
                 </div>
+
+                {/* ── 어시스턴트 — 실무 도구 (라이프 아래, 같은 카드 문법. 2026-07-12 하단 밴드에서 이사) ── */}
+                <div className="mt-3">
+                  <div className="-mt-1 mb-2 mx-1 border-t border-[hsl(var(--hairline))]" aria-hidden />
+                  <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
+                    <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">어시스턴트</span>
+                    <span className="text-[10.5px] text-muted-foreground/70 truncate">실무 도구</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect('assistant')}
+                      className="ml-auto inline-flex items-center gap-0.5 text-[10.5px] text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      도구 더 보기
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3">
+                    {ASSISTANT_TILES.slice(0, 6).map((tile) => {
+                      const Icon = tile.icon;
+                      const inner = (
+                        <button
+                          type="button"
+                          aria-disabled={tile.placeholder || undefined}
+                          onClick={() => { if (!tile.placeholder) handleSelectAssistantTool(tile.cardId); }}
+                          role="menuitem"
+                          className={cn(
+                            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
+                          )}
+                        >
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                            style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 12%, transparent)`, color: tile.tint }}
+                          >
+                            <Icon className="h-4 w-4" strokeWidth={1.9} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">{tile.label}</span>
+                            <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">
+                              {tile.placeholder ? `${tile.desc} · 준비 중` : tile.desc}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                      if (tile.placeholder) return <div key={`ac-${tile.cardId}`}>{inner}</div>;
+                      return withFavStar(
+                        { id: `assistant-${tile.cardId}`, label: tile.label, desc: tile.desc, tint: tile.tint, target: { kind: 'assistant', cardId: tile.cardId } },
+                        inner,
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* ── 바텀 Hero 밴드 — AI 어시스턴트 6카드 (실무 도구 일렬) ── */}
+            {/* ── 바텀 독 — ★ 즐겨찾기 (개인 바로가기. 북마크 위젯 통합, 2026-07-12) ── */}
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
-            <div className="px-5 py-4">
-              <div className="mb-1.5 flex items-baseline gap-2 px-1">
+            <div className="px-5 py-3.5">
+              <div className="mb-2 flex items-baseline gap-2 px-1">
                 <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                  AI 어시스턴트
+                  즐겨찾기
                 </span>
-                <span className="text-[10.5px] text-muted-foreground/70 truncate flex-1">
-                  실무 도구
+                <span className="text-[10.5px] text-muted-foreground/70 truncate">
+                  ★로 꽂아둔 바로가기
                 </span>
-                <button
-                  type="button"
-                  onClick={() => handleSelect('assistant')}
-                  className="text-[10.5px] text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 transition-colors"
-                >
-                  도구 더 보기
-                  <ArrowRight className="h-3 w-3" />
-                </button>
+                {onOpenBookmarks && (
+                  <button
+                    type="button"
+                    onClick={() => { setOpen(false); setTimeout(() => onOpenBookmarks(), 40); }}
+                    className="ml-auto text-[10.5px] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    북마크 관리
+                  </button>
+                )}
               </div>
-              <div className="grid grid-cols-6 gap-2">
-                {/* 어시스턴트 밴드 — 별 없이 원형 디자인 유지 (2026-07-05 피드백,
-                 * 즐겨찾기 등록은 다른 아이템들에서). */}
-                {ASSISTANT_TILES.slice(0, 6).map((tile) => {
-                  const Icon = tile.icon;
-                  const isActive = currentMode === 'assistant' && currentAssistantCard === tile.cardId;
-                  return (
-                    <button
-                      key={`hero-${tile.cardId}`}
-                      type="button"
-                      onClick={() => handleSelectAssistantTool(tile.cardId)}
-                      role="menuitem"
-                      className={cn(
-                        'group flex flex-col items-center justify-center gap-1.5 py-4 px-2 rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5',
-                        tile.placeholder && 'opacity-85',
-                        isActive && 'ring-2 ring-offset-1 ring-[hsl(var(--ring))]',
-                      )}
-                      style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 10%, transparent)` }}
-                    >
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110"
-                        style={{ color: tile.tint }}
+              {favs.length === 0 ? (
+                <div className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] text-[11.5px] text-muted-foreground/60">
+                  <Star size={12} />
+                  메뉴 항목 위의 별을 누르면 여기에 꽂혀요
+                </div>
+              ) : (
+                <div className="grid grid-cols-5 gap-2">
+                  {favs.map((f) => (
+                    <div key={f.id} className="group/dock relative">
+                      <button
+                        type="button"
+                        onClick={() => openFav(f)}
+                        role="menuitem"
+                        title={f.desc ?? f.label}
+                        className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left transition-all duration-150 hover:-translate-y-0.5"
+                        style={{ backgroundColor: `color-mix(in oklab, ${f.tint} 10%, transparent)` }}
                       >
-                        <Icon className="h-4 w-4" strokeWidth={2} />
-                      </span>
-                      <span className="text-[11px] font-semibold leading-none truncate max-w-full text-foreground/85">
-                        {tile.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center" style={{ color: f.tint }}>
+                          {favVisual(f)}
+                        </span>
+                        <span className="min-w-0 truncate text-[11.5px] font-semibold text-foreground/85">{f.label}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFav(f.id); }}
+                        aria-label={`${f.label} 즐겨찾기 해제`}
+                        className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--card))] text-[9px] leading-none text-muted-foreground opacity-0 ring-1 ring-[hsl(var(--hairline))] transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/dock:opacity-100"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {Array.from({ length: Math.max(0, MAX_FAVS - favs.length) }).map((_, i) => (
+                    <div
+                      key={`dock-ghost-${i}`}
+                      className="flex h-11 items-center justify-center rounded-xl border border-dashed border-[hsl(var(--hairline))] text-muted-foreground/35"
+                      aria-hidden
+                    >
+                      <Star size={12} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
           </>
