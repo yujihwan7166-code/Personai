@@ -8,7 +8,8 @@
  *   - 통계: 4 지표 + 감정 분포 + 최근 6개월 + 자주 쓴 태그.
  * 데이터는 기존 journalStore. 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -17,6 +18,9 @@ import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
+
+/** 여행 탭 본체 — leaflet 이 무거워 탭을 열 때만 로드. */
+const TravelHome = lazy(() => import('@/components/travel/TravelHome'));
 
 const CREAM: CSSProperties = {
   // 워크스페이스 공통 쿨 화이트 캐논 (플래너·노트·커리어와 동일 공식):
@@ -98,13 +102,18 @@ const sid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-type Tab = 'write' | 'calendar' | 'stats';
+type Tab = 'write' | 'calendar' | 'trips' | 'stats';
 
 export default function Journal() {
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
 
   const [tab, setTab] = useState<Tab>('write');
+  const location = useLocation();
+  // 메뉴·즐겨찾기에서 /journal?tab=trips 로 들어오면 여행 탭으로 (같은 라우트 재진입도 key 로 감지)
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('tab') === 'trips') setTab('trips');
+  }, [location.key, location.search]);
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
   const [calAnchor, setCalAnchor] = useState(() => new Date());
   const [editing, setEditing] = useState(false);
@@ -457,12 +466,13 @@ export default function Journal() {
 
       {/* ── 메인 ── */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[880px] px-8 pb-7 pt-14">
+        {/* 여행 탭은 지도+타임라인 2단이라 더 넓게 */}
+        <div className={cn('mx-auto w-full px-8 pb-7 pt-14', tab === 'trips' ? 'max-w-[1200px]' : 'max-w-[880px]')}>
           {/* 탭 + 오늘 쓰기 — 작성/보기 상세 화면에선 숨겨 집중 */}
           {!(tab === 'write' && detailOpen) && (
             <div className="mb-5 flex items-center justify-between">
               <div className="inline-flex rounded-full bg-[hsl(var(--cream-card))] p-1">
-                {([['write', '기록'], ['calendar', '달력'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
+                {([['write', '기록'], ['calendar', '달력'], ['trips', '여행'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
                   <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
                 ))}
               </div>
@@ -473,9 +483,12 @@ export default function Journal() {
                     <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="w-24 bg-transparent text-[12.5px] outline-none transition-[width] placeholder:text-[hsl(var(--cream-muted))] focus:w-40" />
                   </label>
                 )}
-                <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
-                  <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
-                </button>
+                {/* 여행 탭에선 자체 "새 여행" CTA 가 있어 일기 CTA 는 숨긴다 */}
+                {tab !== 'trips' && (
+                  <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
+                    <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -788,6 +801,15 @@ export default function Journal() {
                 {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[4px] bg-[color-mix(in_srgb,#e0876b_35%,#f8f3ea)]" />칸 배경 = 오늘의 컬러</span>
               </div>
+            </div>
+          )}
+
+          {/* ── 여행 탭 — 여행 관리·발자취 지도·가고 싶은 곳 (travel-theme 토큰 스코프) ── */}
+          {tab === 'trips' && (
+            <div className="travel-theme">
+              <Suspense fallback={<p className="py-16 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">여행 도구를 여는 중…</p>}>
+                <TravelHome />
+              </Suspense>
             </div>
           )}
 

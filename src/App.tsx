@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DailyBriefingMount } from "@/components/DailyBriefingMount";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppWorkspaceShell } from "@/components/AppWorkspaceShell";
@@ -21,7 +21,6 @@ const Planner = lazy(() => import("./pages/Planner"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Career = lazy(() => import("./pages/Career"));
-const Travel = lazy(() => import("./pages/Travel"));
 const Cloud = lazy(() => import("./pages/Cloud"));
 const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
 const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
@@ -51,7 +50,8 @@ const App = () => (
               <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />
               <Route path="/notes" element={<AppWorkspaceShell current="notes"><Notes /></AppWorkspaceShell>} />
               <Route path="/career" element={<AppWorkspaceShell current="career"><Career /></AppWorkspaceShell>} />
-              <Route path="/travel" element={<AppWorkspaceShell current="travel"><Travel /></AppWorkspaceShell>} />
+              {/* 여행기록은 일기 방의 "여행" 탭으로 흡수 — 옛 주소는 리다이렉트 */}
+              <Route path="/travel" element={<Navigate to="/journal?tab=trips" replace />} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

@@ -8,13 +8,12 @@ import {
   MoreHorizontal,
   Network,
   NotebookPen,
-  Plane,
   StickyNote,
   Sun,
   Moon,
   type LucideIcon,
 } from 'lucide-react';
-import { CalendarDots, Graph, NotePencil, Notebook, ReadCvLogo, MapTrifold } from '@phosphor-icons/react';
+import { CalendarDots, Graph, NotePencil, Notebook, ReadCvLogo } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
@@ -26,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'planner' | 'wiki' | 'journal' | 'career' | 'travel';
+export type WorkspaceKey = 'planner' | 'wiki' | 'journal' | 'career';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -43,7 +42,6 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
   { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
-  { key: 'travel', label: '여행기록', to: '/travel', icon: Plane },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];
 
@@ -58,14 +56,13 @@ const RAIL_BRAND: Record<string, { bg: string; mark: React.ReactNode }> = {
   notes:   { bg: 'hsl(222 16% 34%)', mark: <NotePencil size={22} weight="duotone" color="#fff" /> },
   journal: { bg: 'hsl(16 62% 54%)',  mark: <Notebook size={22} weight="duotone" color="#fff" /> },
   career:  { bg: 'hsl(6 70% 51%)',   mark: <ReadCvLogo size={22} weight="duotone" color="#fff" /> },
-  travel:  { bg: 'hsl(183 58% 32%)', mark: <MapTrifold size={22} weight="duotone" color="#fff" /> },
 };
 
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'career', 'travel'].includes(item.key),
+  ['home', 'career'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */

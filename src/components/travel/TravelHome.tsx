@@ -1,14 +1,14 @@
 /**
- * 여행기록 — /travel ("나의 여행 인생" 한 방).
+ * 여행 홈 — 일기 방의 "여행" 탭에 심어지는 본체 (구 /travel 페이지에서 껍데기만 벗김).
  *
- * 구조 (트리플·Polarsteps·Notion Travel Log 문법, 2026-07-12):
- *   목록 = 상태 변신 히어로(여행 중 → DAY n / 다가옴 → D-day / 없음 → 초대)
+ * 구조 (트리플·Polarsteps·Notion Travel Log 문법):
+ *   여행 = 상태 변신 히어로(여행 중 → DAY n / 다가옴 → D-day / 없음 → 초대)
  *        + 시제 3분류 섹션(여행 중 · 다가오는 여행 · 다녀온 여행).
- *   과거는 "N개월 전 다녀옴"(상대시간), 미래는 "D-N"(카운트다운) — 비대칭 표기.
- *   상세 = TripDetail (DAY 타임라인 + 번호 핀 지도, 번호가 리스트·지도를 잇는 키).
- *   발자취 = 모든 여행의 장소를 한 지도에 + 누적 스코어보드.
- *   가고 싶은 곳 = 버킷리스트 (다음 여행의 씨앗).
- * 일기와 완전 무관 — 일상 입력층 없음, 기록은 여행 안에서만.
+ *   과거 "N개월 전 다녀옴" / 미래 "D-N" — 비대칭 표기.
+ *   상세 = TripDetail (DAY 타임라인 + 번호 핀 지도). 발자취 = 전체 지도 + 스코어보드.
+ *   가고 싶은 곳 = 버킷리스트.
+ * 스크롤은 호스트(일기 main)가 소유 — 자체 overflow 없음. 테마 토큰(.travel-theme)은
+ * 호스트가 래퍼로 씌운다. 일기 데이터와 완전 무관.
  */
 import { useMemo, useState } from 'react';
 import { ChevronRight, MapPin, Plus, Trash2 } from 'lucide-react';
@@ -29,7 +29,7 @@ import {
 
 type View = 'trips' | 'footprints' | 'bucket';
 
-export default function Travel() {
+export default function TravelHome() {
   const trips = useTrips();
   const [view, setView] = useState<View>('trips');
   const [openId, setOpenId] = useState<string | null>(null);
@@ -38,42 +38,39 @@ export default function Travel() {
   const openTrip = openId ? trips.find((t) => t.id === openId) ?? null : null;
 
   return (
-    <div className="travel-theme flex h-dvh flex-col bg-background text-foreground">
-      {/* ══ 마스트헤드 — 도구명이 주인공, 방 색(제이드) 틴트. 아이콘은 레일 마크가 담당. ══ */}
-      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3 pt-3.5 sm:px-6">
-        <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--travel-teal))]">여행기록</h1>
-        {!openTrip && (
-          <>
-            <nav className="flex items-center gap-1 rounded-full bg-[hsl(var(--surface-3))]/70 p-1">
-              {([['trips', '여행'], ['footprints', '발자취'], ['bucket', '가고 싶은 곳']] as [View, string][]).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setView(id)}
-                  className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors',
-                    view === id
-                      ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--travel-teal))] shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--travel-teal-ink))] shadow-[0_6px_16px_-8px_hsl(var(--travel-teal)/0.8)] transition-[filter] hover:brightness-[1.06]"
-            >
-              <Plus className="h-3.5 w-3.5" /> 새 여행
-            </button>
-          </>
-        )}
-      </header>
+    <div>
+      {/* 내부 세그먼트 — 여행 | 발자취 | 가고 싶은 곳 + 새 여행 */}
+      {!openTrip && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <nav className="flex items-center gap-1 rounded-full bg-[hsl(var(--surface-3))]/70 p-1">
+            {([['trips', '여행'], ['footprints', '발자취'], ['bucket', '가고 싶은 곳']] as [View, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                className={cn(
+                  'rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors',
+                  view === id
+                    ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--travel-teal))] shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--travel-teal-ink))] shadow-[0_6px_16px_-8px_hsl(var(--travel-teal)/0.8)] transition-[filter] hover:brightness-[1.06]"
+          >
+            <Plus className="h-3.5 w-3.5" /> 새 여행
+          </button>
+        </div>
+      )}
 
-      {/* key 로 화면 전환 시 remount — 공유 스크롤 컨테이너의 scrollTop 잔존 방지 */}
-      <div key={openTrip ? `trip-${openTrip.id}` : view} className="min-h-0 flex-1 overflow-y-auto">
+      {/* key 로 화면 전환 시 remount — 이전 화면 상태 잔존 방지 */}
+      <div key={openTrip ? `trip-${openTrip.id}` : view}>
         {openTrip ? (
           <TripDetail trip={openTrip} onBack={() => setOpenId(null)} />
         ) : view === 'trips' ? (
@@ -119,29 +116,27 @@ function TripsList({ trips, onOpen, onCreate }: { trips: Trip[]; onOpen: (id: st
 
   if (trips.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6">
-        <div className="mt-6 overflow-hidden rounded-3xl border border-dashed border-[hsl(var(--hairline))]">
-          <CoverFallback className="h-40" />
-          <div className="bg-[hsl(var(--surface-1))] px-6 py-8 text-center">
-            <p className="text-[15px] font-bold">첫 여행을 계획해 보세요</p>
-            <p className="mx-auto mt-1.5 max-w-[340px] text-[12.5px] leading-relaxed text-muted-foreground">
-              날짜만 정해두면 D-day가 카운트되고, 여행 중 남긴 기록이 지도·타임라인·앨범으로 쌓여요.
-            </p>
-            <button
-              type="button"
-              onClick={onCreate}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-5 py-2.5 text-[13px] font-bold text-[hsl(var(--travel-teal-ink))] transition-[filter] hover:brightness-[1.06]"
-            >
-              <Plus className="h-4 w-4" /> 새 여행 만들기
-            </button>
-          </div>
+      <div className="overflow-hidden rounded-3xl border border-dashed border-[hsl(var(--hairline))]">
+        <CoverFallback className="h-40" />
+        <div className="bg-[hsl(var(--surface-1))] px-6 py-8 text-center">
+          <p className="text-[15px] font-bold text-foreground">첫 여행을 계획해 보세요</p>
+          <p className="mx-auto mt-1.5 max-w-[340px] text-[12.5px] leading-relaxed text-muted-foreground">
+            날짜만 정해두면 D-day가 카운트되고, 여행 중 남긴 기록이 지도·타임라인·앨범으로 쌓여요.
+          </p>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-5 py-2.5 text-[13px] font-bold text-[hsl(var(--travel-teal-ink))] transition-[filter] hover:brightness-[1.06]"
+          >
+            <Plus className="h-4 w-4" /> 새 여행 만들기
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] space-y-7 px-4 pb-16 sm:px-6">
+    <div className="space-y-7 pb-8">
       {/* 상태 변신 히어로 — 여행 중이면 DAY n, 아니면 다음 여행 D-day */}
       {hero && <HeroCard trip={hero} cover={coverOf(hero)} today={today} onOpen={() => onOpen(hero.id)} />}
 
@@ -214,7 +209,7 @@ function TripSection({ title, trips, coverOf, today, onOpen }: { title: string; 
         <span className="text-[11px] tabular-nums text-muted-foreground/70">{trips.length}</span>
         <span className="h-px flex-1 bg-[hsl(var(--hairline))]" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {trips.map((t) => (
           <TripCard key={t.id} trip={t} cover={coverOf(t)} today={today} onOpen={() => onOpen(t.id)} />
         ))}
@@ -250,7 +245,7 @@ function TripCard({ trip, cover, today, onOpen }: { trip: Trip; cover?: string; 
         )}
       </div>
       <div className="px-4 pb-3.5 pt-3">
-        <h3 className="truncate text-[15px] font-bold">{trip.title}</h3>
+        <h3 className="truncate text-[15px] font-bold text-foreground">{trip.title}</h3>
         <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
           {trip.destination && <>{trip.destination} · </>}
           {trip.startDate.replaceAll('-', '.')} – {trip.endDate.replaceAll('-', '.')} · {nightsLabel(trip)}
@@ -315,7 +310,7 @@ function FootprintsView({ trips }: { trips: Trip[] }) {
   }, [records, trips]);
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 sm:px-6">
+    <div className="pb-8">
       {/* 스코어보드 — "나는 이만큼 다녀온 사람" */}
       <div className="mb-4 grid grid-cols-3 gap-3">
         {([
@@ -334,7 +329,7 @@ function FootprintsView({ trips }: { trips: Trip[] }) {
 
       <TravelMap
         pins={pins}
-        heightClass="h-[440px] sm:h-[520px]"
+        heightClass="h-[440px]"
         emptyText="여행 기록에 장소를 적으면, 다녀온 곳 전부가 이 지도에 모여요."
       />
     </div>
@@ -354,7 +349,7 @@ function BucketView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 pb-16 sm:px-6">
+    <div className="mx-auto w-full max-w-[640px] pb-8">
       <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] pl-4 pr-2 shadow-sm transition-colors focus-within:border-[hsl(var(--travel-teal))]/55">
         <MapPin className="h-4 w-4 shrink-0 text-muted-foreground/60" />
         <input
@@ -363,7 +358,7 @@ function BucketView() {
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) add(); }}
           placeholder="가고 싶은 곳 (예: 교토 단풍, 아이슬란드 오로라)"
           aria-label="가고 싶은 곳 추가"
-          className="h-11 min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground/50"
+          className="h-11 min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/50"
         />
         <button
           type="button"
@@ -400,7 +395,7 @@ function BucketView() {
               >
                 {b.done && <span className="text-[10px] font-bold leading-none">✓</span>}
               </button>
-              <span className={cn('min-w-0 flex-1 truncate text-[13.5px]', b.done && 'text-muted-foreground line-through decoration-[hsl(var(--travel-teal)/0.5)]')}>
+              <span className={cn('min-w-0 flex-1 truncate text-[13.5px] text-foreground', b.done && 'text-muted-foreground line-through decoration-[hsl(var(--travel-teal)/0.5)]')}>
                 {b.name}
               </span>
               {b.done && <span className="shrink-0 rounded-full bg-[hsl(var(--travel-teal))]/10 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--travel-teal))]">다녀옴</span>}
