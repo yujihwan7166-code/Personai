@@ -95,16 +95,6 @@ export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: stri
   aiplay:  { emoji: '🎮', label: 'AI Play',           description: '캐릭터챗·게임·롤플레이',            tint: 'hsl(280 70% 55%)' },
 };
 
-/** 라이프 2×3 콤팩트 타일용 짧은 라벨 (좁은 칸에 맞춤). */
-const LIFE_COMPACT_LABEL: Record<string, string> = {
-  shopping: '쇼핑',
-  fortune: '사주·타로',
-  aiplay: 'AI Play',
-  health: '건강',
-  money: '머니·투자',
-  enjoy: '놀거리',
-};
-
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
 export const LIFE_TOOLS: Array<{
   id: string;
@@ -936,15 +926,26 @@ export function MainModeTabs({
           aria-haspopup="menu"
           aria-expanded={isOpen}
           className={cn(
-            'group flex w-full flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 transition-all duration-200 hover:-translate-y-0.5',
-            isOpen && 'ring-1 ring-[hsl(var(--ring))]',
+            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+            'hover:bg-[hsl(var(--accent))]',
+            isOpen && 'bg-[hsl(var(--accent))]',
           )}
-          style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 10%, transparent)` }}
         >
-          <span className="select-none text-[18px] leading-none transition-transform duration-200 group-hover:scale-110">{group.emoji}</span>
-          <span className="max-w-full truncate text-[10.5px] font-semibold leading-none text-foreground/85">
-            {LIFE_COMPACT_LABEL[groupId] ?? group.label}
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+            style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
+          >
+            <span className="text-[16px] leading-none select-none">{group.emoji}</span>
           </span>
+          <span className="min-w-0 flex-1">
+            <span className={cn('block text-[12.5px] leading-tight truncate', isOpen ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+              {group.label}
+            </span>
+            <span className="block text-[10.5px] text-muted-foreground truncate mt-0.5">
+              {group.description}
+            </span>
+          </span>
+          <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground/70 shrink-0 transition-transform', isOpen && 'rotate-180')} />
         </button>
 
         <AnimatePresence>
@@ -1200,18 +1201,18 @@ export function MainModeTabs({
               className={cn(
                 'z-[120]',
                 // dim 이 없어진 만큼 패널 스스로 경계가 서야 함 — 보더 강화 + 사이즈 업.
-                'w-[1120px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'w-[1320px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
                 'border border-slate-300/80 dark:border-slate-600/80',
                 'ring-1 ring-black/[0.04] dark:ring-white/[0.06]',
                 'shadow-[0_24px_70px_-18px_hsl(220_20%_5%_/_0.35),0_4px_18px_-8px_hsl(220_20%_5%_/_0.18)]',
               )}
             >
-            {/* 4 컬럼 그리드 (재구성):
-                  Col 1: 계정·사용량 (row-span-2, 구 TODAY 위젯 대체)
-                  Col 2: 대화        →  Col 3: 전문
-                       └ 노트 계획   └ 노트 기록  (col-span-2 row-2 로 합침)
-                  Col 4: 라이프 (row-span-2) */}
-            <div className="grid grid-cols-4 grid-rows-[auto_1fr] gap-x-3 px-5 pt-5 pb-1">
+            {/* 5 컬럼 그리드 (2026-07-12 확장):
+                  Col 1: 계정·사용량 (row-span-2)
+                  Col 2: 대화        →  Col 3: 시뮬레이션
+                       └ 노트 (col2-3 col-span-2 row-2)
+                  Col 4-5: 라이프 (col-span-2 row-span-2, 각 칸 3개씩 풀 카드) */}
+            <div className="grid grid-cols-5 grid-rows-[auto_1fr] gap-x-3 px-5 pt-5 pb-1">
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
               {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
@@ -2300,7 +2301,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className="col-start-4 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
+              <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
                   <div className="mb-2 flex items-baseline gap-2 px-1 min-h-[16px]">
                     <span className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -2317,28 +2318,13 @@ export function MainModeTabs({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                       transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                      className="grid grid-cols-3 gap-1.5"
+                      className="grid grid-cols-2 gap-x-3"
                     >
-                      {/* 2×3 콤팩트 타일 — 도구(쇼핑)는 직행, 그룹은 옆 미니 패널 */}
+                      {/* 4·5번째 칸에 풀 카드 3개씩 — 도구(쇼핑)는 직행, 그룹은 옆 미니 패널 */}
                       {LIFE_DROPDOWN_ENTRIES.map((entry) => {
                         if (entry.kind === 'tool') {
                           const tool = LIFE_TOOLS.find((t) => t.id === entry.toolId);
-                          if (!tool) return null;
-                          return (
-                            <button
-                              key={`life-c-${tool.id}`}
-                              type="button"
-                              onClick={() => handleSelectLifeTool(tool.id)}
-                              role="menuitem"
-                              className="group flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 transition-all duration-200 hover:-translate-y-0.5"
-                              style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 10%, transparent)` }}
-                            >
-                              <span className="select-none text-[18px] leading-none transition-transform duration-200 group-hover:scale-110">{tool.emoji}</span>
-                              <span className="max-w-full truncate text-[10.5px] font-semibold leading-none text-foreground/85">
-                                {LIFE_COMPACT_LABEL[tool.id] ?? tool.label}
-                              </span>
-                            </button>
-                          );
+                          return tool ? renderLifeToolItem(tool) : null;
                         }
                         if (entry.kind === 'group') {
                           return renderLifeGroupChip(entry.groupId);
