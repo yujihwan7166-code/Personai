@@ -2367,11 +2367,10 @@ export function MainModeTabs({
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
             <div className="px-5 py-3.5">
               <div className="mb-2.5 flex items-center gap-2 px-1">
-                <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(42 95% 50%)' }} />
+                <Star size={15} className="shrink-0 fill-amber-400 text-amber-400" aria-hidden />
                 <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                   즐겨찾기
                 </span>
-                <Star size={14} className="fill-amber-400 text-amber-400" aria-hidden />
                 {onOpenBookmarks && (
                   <button
                     type="button"
