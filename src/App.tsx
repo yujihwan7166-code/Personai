@@ -21,6 +21,7 @@ const Planner = lazy(() => import("./pages/Planner"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Career = lazy(() => import("./pages/Career"));
+const Travel = lazy(() => import("./pages/Travel"));
 const Cloud = lazy(() => import("./pages/Cloud"));
 const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
 const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/journal" element={<AppWorkspaceShell current="journal"><Journal /></AppWorkspaceShell>} />
               <Route path="/notes" element={<AppWorkspaceShell current="notes"><Notes /></AppWorkspaceShell>} />
               <Route path="/career" element={<AppWorkspaceShell current="career"><Career /></AppWorkspaceShell>} />
+              <Route path="/travel" element={<AppWorkspaceShell current="travel"><Travel /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

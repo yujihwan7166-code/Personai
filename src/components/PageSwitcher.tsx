@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Network,
   NotebookPen,
+  Plane,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,8 @@ export type PageSwitcherCurrent =
   | 'planner'
   | 'wiki'
   | 'journal'
-  | 'career';
+  | 'career'
+  | 'travel';
 
 interface PageSwitcherProps {
   current: PageSwitcherCurrent;
@@ -75,6 +77,7 @@ export const PageSwitcher = ({
     { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
     { key: 'journal', label: '일기', icon: NotebookPen, to: '/journal' },
     { key: 'career', label: '스펙 보드', icon: Award, to: '/career' },
+    { key: 'travel', label: '여행기록', icon: Plane, to: '/travel' },
   ];
   const activeChip = chips.find((p) => p.key === current) ?? chips[0];
   const ActiveIcon = activeChip.icon;
