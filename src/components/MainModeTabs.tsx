@@ -2371,6 +2371,7 @@ export function MainModeTabs({
                 <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                   즐겨찾기
                 </span>
+                <Star size={14} className="fill-amber-400 text-amber-400" aria-hidden />
                 {onOpenBookmarks && (
                   <button
                     type="button"
