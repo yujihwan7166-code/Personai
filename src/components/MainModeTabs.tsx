@@ -2252,7 +2252,7 @@ export function MainModeTabs({
                 </div>
               </div>
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
-              <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col">
+              <div className="col-start-4 col-span-2 row-start-1 min-w-0 flex flex-col">
                 <div>
                   <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(25 85% 55%)' }} />
@@ -2284,8 +2284,10 @@ export function MainModeTabs({
                   </div>
                 </div>
 
-                {/* ── 어시스턴트 — 실무 도구 (라이프 아래, 같은 카드 문법. 2026-07-12 하단 밴드에서 이사) ── */}
-                <div className="mt-6">
+              </div>
+
+              {/* ── 어시스턴트 — 실무 도구 (col 4-5 · 2행 — 노트와 표제선 수평 정렬) ── */}
+              <div className="col-start-4 col-span-2 row-start-2 mt-6 min-w-0 flex flex-col">
                   <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(330 65% 52%)' }} />
                     <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
@@ -2333,7 +2335,6 @@ export function MainModeTabs({
                       );
                     })}
                   </div>
-                </div>
               </div>
             </div>
 
