@@ -616,7 +616,7 @@ export function MainModeTabs({
     const anchorEl = ownVisible ? null : document.querySelector('[data-mode-anchor]');
     const left = ownVisible ? own.left : anchorEl?.getBoundingClientRect().left ?? 16;
     // 패널(최대 1040px)이 화면 밖으로 안 나가게 클램프.
-    setAnchorLeft(Math.max(8, Math.min(Math.round(left), window.innerWidth - Math.min(1360, window.innerWidth - 32) - 8)));
+    setAnchorLeft(Math.max(8, Math.min(Math.round(left), window.innerWidth - Math.min(1300, window.innerWidth - 32) - 8)));
   }, [open]);
   /** 좌측 사이드바 탭 — 오늘 / 대화 / 즐겨찾기 / 알림. */
   const [leftTab, setLeftTab] = useState<'today' | 'recent' | 'pins' | 'notifications'>('today');
@@ -1234,7 +1234,7 @@ export function MainModeTabs({
               className={cn(
                 'z-[120]',
                 // dim 이 없어진 만큼 패널 스스로 경계가 서야 함 — 보더 강화 + 사이즈 업.
-                'w-[1360px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
+                'w-[1300px] max-w-[calc(100vw-32px)] rounded-2xl overflow-y-auto overflow-x-hidden',
                 'border border-slate-300/80 dark:border-slate-600/80',
                 'ring-1 ring-black/[0.04] dark:ring-white/[0.06]',
                 'shadow-[0_24px_70px_-18px_hsl(220_20%_5%_/_0.35),0_4px_18px_-8px_hsl(220_20%_5%_/_0.18)]',
@@ -1246,7 +1246,7 @@ export function MainModeTabs({
                        └ 노트 (col2-3 col-span-2 row-2)
                   Col 4-5: 라이프 (col-span-2 row-span-2, 각 칸 3개씩 풀 카드) */}
             {/* 좌측 계정 칸은 고정 290px — 균등 5분할 시 홀쭉해지는 문제 방지. 나머지 4칸 균등. */}
-            <div className="grid grid-cols-[290px_repeat(4,minmax(0,1fr))] grid-rows-[auto_1fr] gap-x-7 px-5 pt-5 pb-1">
+            <div className="grid grid-cols-[280px_repeat(4,minmax(0,1fr))] grid-rows-[auto_1fr] gap-x-6 px-5 pt-5 pb-1">
               {/* 좌측 컬럼 (TODAY): row-span-2 — 우측 노트 영역까지 풀 높이 */}
               {SHOW_TODAY_COL && (
               <div className="row-span-2 min-w-0 flex flex-col space-y-2">
