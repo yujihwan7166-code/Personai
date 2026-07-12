@@ -40,7 +40,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'home', label: '홈', to: '/', icon: Home },
   { key: 'planner', label: '통합플래너', to: '/planner', icon: CalendarDays },
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
-  { key: 'journal', label: '일기', to: '/journal', icon: NotebookPen },
+  { key: 'journal', label: '데일리로그', to: '/journal', icon: NotebookPen },
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];
@@ -54,7 +54,7 @@ const RAIL_BRAND: Record<string, { bg: string; mark: React.ReactNode }> = {
   planner: { bg: 'hsl(262 64% 56%)', mark: <CalendarDots size={22} weight="duotone" color="#fff" /> },
   wiki:    { bg: 'hsl(210 78% 52%)', mark: <Graph size={22} weight="duotone" color="#fff" /> },
   notes:   { bg: 'hsl(222 16% 34%)', mark: <NotePencil size={22} weight="duotone" color="#fff" /> },
-  journal: { bg: 'hsl(16 62% 54%)',  mark: <Notebook size={22} weight="duotone" color="#fff" /> },
+  journal: { bg: 'hsl(146 27% 39%)', mark: <Notebook size={22} weight="duotone" color="#fff" /> },
   career:  { bg: 'hsl(6 70% 51%)',   mark: <ReadCvLogo size={22} weight="duotone" color="#fff" /> },
 };
 

@@ -1,9 +1,10 @@
 /**
  * 여행 상세 — 커버 헤더 + 좌 DAY 타임라인 / 우 고정 지도 (Wanderlog 분할, 트리플 문법).
  *
+ * 기록은 하루 기록 store(daylog)에서 기간으로 자동 수집 — 여행 전용 저장소가 없다.
+ * 여기서 추가한 기록도 같은 store 로 들어가 하루 페이지에 그대로 보인다.
  * 번호가 리스트와 지도를 잇는 키: 기록 카드의 번호 = 지도 핀의 번호 = 방문 순서.
- * 장소가 있는 기록만 번호를 받는다 (지도에 없는 것에 번호를 주지 않는다).
- * DAY 마다 색이 달라 여러 날을 지도에 겹쳐 봐도 구분된다.
+ * 장소가 있는 기록만 번호를 받고, DAY 마다 색이 달라 겹쳐 봐도 구분된다.
  */
 import { useMemo, useRef, useState } from 'react';
 import {
@@ -13,13 +14,23 @@ import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { compressImage } from '@/lib/journalImage';
 import { travelStore } from '@/services/travelStore';
-import { useTripRecords } from '@/hooks/useTravel';
+import { daylogStore } from '@/services/daylogStore';
+import { useDaylogRange } from '@/hooks/useDaylog';
 import { TravelMap, type MapPin as TravelMapPin } from '@/components/travel/TravelMap';
 import { agoLabel, escapeHtml } from '@/lib/travel/format';
 import {
-  RECORD_KIND_META, RECORD_KIND_ORDER, nightsLabel, todayKey, tripDays, tripStatus, diffDays,
-  type RecordKind, type TravelRecord, type Trip,
+  nightsLabel, todayKey, tripDays, tripStatus, diffDays, type Trip,
 } from '@/types/travel';
+import {
+  DAY_ITEM_META, MEAL_SLOT_LABEL, MEAL_SLOT_ORDER,
+  type DayItem, type DayItemKind, type MealSlot,
+} from '@/types/daylog';
+
+const KIND_ORDER: DayItemKind[] = ['meal', 'place', 'note'];
+
+/** 기록 라벨 — 끼니가 있으면 끼니로. */
+const itemLabel = (i: Pick<DayItem, 'kind' | 'mealSlot'>): string =>
+  i.kind === 'meal' && i.mealSlot ? MEAL_SLOT_LABEL[i.mealSlot] : DAY_ITEM_META[i.kind].label;
 
 /** DAY 색 순환 — 핀·경로·번호 배지가 같은 색을 공유한다. */
 const DAY_COLORS = [
@@ -55,7 +66,7 @@ async function pickPhoto(file: File | undefined): Promise<string | null> {
 }
 
 export function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
-  const records = useTripRecords(trip.id);
+  const records = useDaylogRange(trip.startDate, trip.endDate);
   const days = useMemo(() => tripDays(trip), [trip]);
   const today = todayKey();
   const status = tripStatus(trip, today);
@@ -74,7 +85,7 @@ export function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void })
       for (const r of records) {
         if (r.date !== date || !r.place) continue;
         n += 1;
-        const meta = RECORD_KIND_META[r.kind];
+        const meta = DAY_ITEM_META[r.kind];
         const thumb = r.photo
           ? `<img src="${r.photo}" alt="" style="width:100%;height:72px;object-fit:cover;border-radius:8px;margin-top:6px" />`
           : '';
@@ -117,12 +128,15 @@ export function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void })
       return;
     }
     travelStore.removeTrip(trip.id);
-    notify.success('여행을 지웠어요', { duration: 1800 });
+    notify.success('여행을 지웠어요', {
+      description: '하루 기록과 사진은 날짜에 그대로 남아 있어요.',
+      duration: 2600,
+    });
     onBack();
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 sm:px-6">
+    <div className="w-full pb-16">
       {/* ── 커버 헤더 ── */}
       <div className="relative mt-1 overflow-hidden rounded-3xl border border-[hsl(var(--hairline))]">
         {cover ? (
@@ -270,7 +284,7 @@ function DaySection({
   trip: Trip;
   date: string;
   dayIndex: number;
-  records: TravelRecord[];
+  records: DayItem[];
   isToday: boolean;
 }) {
   const color = dayColor(dayIndex);
@@ -312,8 +326,8 @@ function DaySection({
   );
 }
 
-function RecordRow({ record, number, color }: { record: TravelRecord; number?: number; color: string }) {
-  const meta = RECORD_KIND_META[record.kind];
+function RecordRow({ record, number, color }: { record: DayItem; number?: number; color: string }) {
+  const meta = DAY_ITEM_META[record.kind];
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -321,7 +335,7 @@ function RecordRow({ record, number, color }: { record: TravelRecord; number?: n
     setBusy(true);
     const src = await pickPhoto(file);
     setBusy(false);
-    if (src) travelStore.updateRecord(record.id, { photo: src });
+    if (src) daylogStore.update(record.id, { photo: src });
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -342,7 +356,7 @@ function RecordRow({ record, number, color }: { record: TravelRecord; number?: n
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span className="rounded-full px-1.5 py-px text-[10.5px] font-semibold" style={{ backgroundColor: `color-mix(in srgb, ${meta.tint} 12%, transparent)`, color: meta.tint }}>
-            {meta.emoji} {meta.label}
+            {meta.emoji} {itemLabel(record)}
           </span>
           {record.place && (
             <span className="inline-flex items-center gap-0.5 text-[11.5px] font-semibold text-foreground/75">
@@ -380,11 +394,11 @@ function RecordRow({ record, number, color }: { record: TravelRecord; number?: n
         <button
           type="button"
           onClick={() => {
-            const removed = travelStore.removeRecord(record.id);
+            const removed = daylogStore.remove(record.id);
             if (removed) {
               notify.info('기록을 지웠어요', {
                 duration: 4000,
-                action: { label: '되돌리기', onClick: () => travelStore.restoreRecord(removed) },
+                action: { label: '되돌리기', onClick: () => daylogStore.restore(removed) },
               });
             }
           }}
@@ -400,8 +414,9 @@ function RecordRow({ record, number, color }: { record: TravelRecord; number?: n
 
 /* ── 기록 컴포저 — 종류 칩 + 내용 + 장소·시간·사진 (전부 이 자리에서) ── */
 
-function RecordComposer({ trip, date, color, onClose }: { trip: Trip; date: string; color: string; onClose: () => void }) {
-  const [kind, setKind] = useState<RecordKind>('food');
+function RecordComposer({ date, color, onClose }: { trip: Trip; date: string; color: string; onClose: () => void }) {
+  const [kind, setKind] = useState<DayItemKind>('meal');
+  const [mealSlot, setMealSlot] = useState<MealSlot>('lunch');
   const [text, setText] = useState('');
   const [place, setPlace] = useState('');
   const [time, setTime] = useState('');
@@ -412,15 +427,16 @@ function RecordComposer({ trip, date, color, onClose }: { trip: Trip; date: stri
   const submit = () => {
     // 사진 압축 중 제출하면 방금 고른 사진이 기록에서 빠진다 — 끝날 때까지 대기
     if (!text.trim() || photoBusy) return;
-    travelStore.addRecord({
-      tripId: trip.id,
+    const added = daylogStore.add({
       date,
       kind,
+      mealSlot: kind === 'meal' ? mealSlot : undefined,
       text,
-      place: place.trim() || undefined,
+      place: kind === 'note' ? undefined : place.trim() || undefined,
       time: time || undefined,
       photo: photo ?? undefined,
     });
+    if (!added) return; // 저장 실패(quota) — 입력 보존
     setText('');
     setPlace('');
     setTime('');
@@ -437,10 +453,10 @@ function RecordComposer({ trip, date, color, onClose }: { trip: Trip; date: stri
 
   return (
     <div className="mt-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3">
-      {/* 종류 칩 — 고정 5종, 색 부호화 */}
-      <div className="flex flex-wrap gap-1.5">
-        {RECORD_KIND_ORDER.map((k) => {
-          const m = RECORD_KIND_META[k];
+      {/* 종류 칩 — 하루 기록과 동일 3종 (+ 끼니), 색 부호화 */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {KIND_ORDER.map((k) => {
+          const m = DAY_ITEM_META[k];
           const active = k === kind;
           return (
             <button
@@ -454,13 +470,32 @@ function RecordComposer({ trip, date, color, onClose }: { trip: Trip; date: stri
             </button>
           );
         })}
+        {kind === 'meal' && (
+          <span className="ml-1 flex items-center gap-1">
+            {MEAL_SLOT_ORDER.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setMealSlot(s)}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors',
+                  s === mealSlot
+                    ? 'bg-[hsl(var(--travel-teal))]/12 font-bold text-[hsl(var(--travel-teal))]'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {MEAL_SLOT_LABEL[s]}
+              </button>
+            ))}
+          </span>
+        )}
       </div>
 
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit(); }}
-        placeholder={kind === 'food' ? '뭘 먹었나요? (예: 쌀국수가 인생이었다)' : kind === 'stay' ? '어디서 묵었나요?' : '무엇을 했나요?'}
+        placeholder={kind === 'meal' ? '뭘 먹었나요? (예: 쌀국수가 인생이었다)' : kind === 'place' ? '어디에 갔나요?' : '남겨둘 한 줄'}
         autoFocus
         className="mt-2.5 h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-3 text-[13px] outline-none placeholder:text-muted-foreground/50 focus:border-[hsl(var(--travel-teal))]"
       />

@@ -9,8 +9,6 @@
 
 export const TRAVEL_CHANGED = 'travel:changed';
 
-export type RecordKind = 'food' | 'sight' | 'stay' | 'move' | 'note';
-
 export interface Trip {
   id: string;
   /** 여행 이름 (예: "다낭 4박 5일"). */
@@ -26,22 +24,6 @@ export interface Trip {
   createdAt: string;
 }
 
-export interface TravelRecord {
-  id: string;
-  tripId: string;
-  /** YYYY-MM-DD — 여행 기간 안의 하루. */
-  date: string;
-  /** HH:mm — 없으면 하루 안에서 입력 순서로 정렬. */
-  time?: string;
-  kind: RecordKind;
-  text: string;
-  /** 장소 이름 — 지도 핀 라벨·지오코딩 키. */
-  place?: string;
-  /** 기록 사진 (압축 Base64). */
-  photo?: string;
-  createdAt: string;
-}
-
 export interface BucketPlace {
   id: string;
   name: string;
@@ -49,16 +31,6 @@ export interface BucketPlace {
   done: boolean;
   createdAt: string;
 }
-
-export const RECORD_KIND_META: Record<RecordKind, { label: string; emoji: string; tint: string }> = {
-  food:  { label: '맛집',   emoji: '🍜', tint: 'hsl(18 80% 50%)' },
-  sight: { label: '볼거리', emoji: '🏛️', tint: 'hsl(210 70% 46%)' },
-  stay:  { label: '숙소',   emoji: '🛏️', tint: 'hsl(262 52% 54%)' },
-  move:  { label: '이동',   emoji: '🚌', tint: 'hsl(150 45% 40%)' },
-  note:  { label: '메모',   emoji: '✏️', tint: 'hsl(30 8% 46%)' },
-};
-
-export const RECORD_KIND_ORDER: RecordKind[] = ['food', 'sight', 'stay', 'move', 'note'];
 
 export type TripStatus = 'upcoming' | 'ongoing' | 'past';
 

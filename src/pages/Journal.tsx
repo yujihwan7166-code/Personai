@@ -10,7 +10,11 @@
  */
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Search, Star, Pencil, Trash2, Plus, ImagePlus } from 'lucide-react';
+import {
+  Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
+  Map as MapIcon, NotebookPen, Pencil, Plane, Search, Star, Trash2, UtensilsCrossed,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useJournal } from '@/hooks/useJournal';
@@ -18,9 +22,15 @@ import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
+import { DayItemsBlock } from '@/components/daybook/DayItemsBlock';
+import FoodRoadView from '@/components/daybook/FoodRoadView';
+import { useDaylogAll } from '@/hooks/useDaylog';
+import { useTrips } from '@/hooks/useTravel';
+import { diffDays } from '@/types/travel';
 
-/** 여행 탭 본체 — leaflet 이 무거워 탭을 열 때만 로드. */
+/** 지도가 있는 섹션 — leaflet 이 무거워 열 때만 로드. */
 const TravelHome = lazy(() => import('@/components/travel/TravelHome'));
+const MyMapView = lazy(() => import('@/components/daybook/MyMapView'));
 
 const CREAM: CSSProperties = {
   // 워크스페이스 공통 쿨 화이트 캐논 (플래너·노트·커리어와 동일 공식):
@@ -31,7 +41,7 @@ const CREAM: CSSProperties = {
   '--cream-ink': '30 12% 16%',       // 웜 차콜 잉크
   '--cream-muted': '30 8% 42%',
   '--cream-line': '35 14% 86%',      // 헤어라인
-  '--cream-accent': '17 55% 49%',    // 테라코타 — 유일한 포인트 색
+  '--cream-accent': '146 27% 39%',   // 세이지 그린 — 방의 유일한 포인트 색 (sanctuary 무드)
   '--cream-dark': '30 12% 20%',      // 진한 버튼용
 } as CSSProperties;
 
@@ -102,18 +112,68 @@ const sid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-type Tab = 'write' | 'calendar' | 'trips' | 'stats';
+type Tab = 'write' | 'calendar' | 'trips' | 'map' | 'food' | 'stats' | 'flashback' | 'storage';
+
+/** 방 사이드바 내비 — Diary Room 문법 (섹션이 곧 메뉴). */
+const NAV_MAIN: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
+  { id: 'write',    label: '데일리 로그', icon: NotebookPen },
+  { id: 'calendar', label: '캘린더',      icon: CalendarDays },
+  { id: 'trips',    label: '트래블 로그', icon: Plane },
+  { id: 'map',      label: '나의 지도',   icon: MapIcon },
+  { id: 'food',     label: '푸드 로드',   icon: UtensilsCrossed },
+  { id: 'stats',    label: '통계',        icon: BarChart3 },
+];
+const NAV_BOTTOM: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
+  { id: 'flashback', label: '플래시백', icon: History },
+  { id: 'storage',   label: '보관함',   icon: Archive },
+];
+
+/** 섹션 머리 — 영문 아이브로우 + 제목 (Diary Room 문법). */
+const SECTION_HEAD: Record<Tab, { eyebrow: string; title: string }> = {
+  write:     { eyebrow: 'DAILY ARCHIVE',      title: '데일리 로그' },
+  calendar:  { eyebrow: 'MONTH AT A GLANCE',  title: '캘린더' },
+  trips:     { eyebrow: 'WANDERLUST ARCHIVE', title: '트래블 로그' },
+  map:       { eyebrow: 'FOOTPRINTS',         title: '나의 지도' },
+  food:      { eyebrow: 'TASTE ARCHIVE',      title: '푸드 로드' },
+  stats:     { eyebrow: 'PATTERNS',           title: '통계' },
+  flashback: { eyebrow: 'MEMORY LANE',        title: '플래시백' },
+  storage:   { eyebrow: 'KEEPSAKES',          title: '보관함' },
+};
 
 export default function Journal() {
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
 
   const [tab, setTab] = useState<Tab>('write');
+  const [tripToOpen, setTripToOpen] = useState<string | null>(null);
   const location = useLocation();
-  // 메뉴·즐겨찾기에서 /journal?tab=trips 로 들어오면 여행 탭으로 (같은 라우트 재진입도 key 로 감지)
+  // 메뉴·즐겨찾기에서 /journal?view=… 로 들어오면 해당 섹션으로 (구 ?tab=trips 도 수용, 재진입은 key 로 감지)
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('tab') === 'trips') setTab('trips');
+    const p = new URLSearchParams(location.search);
+    const v = p.get('view') ?? (p.get('tab') === 'trips' ? 'travel' : null);
+    if (!v) return;
+    const mapView: Record<string, Tab> = {
+      daily: 'write', calendar: 'calendar', travel: 'trips', map: 'map', food: 'food', stats: 'stats',
+    };
+    // ?view 없이 /journal 로 재진입(레일·메뉴의 "데일리로그")하면 홈 섹션으로 리셋 — 무반응처럼 보이는 것 방지
+    const next = v ? mapView[v] : 'write';
+    if (next) {
+      setTab(next);
+      setDetailOpen(false);
+      setTripToOpen(null);
+    }
   }, [location.key, location.search]);
+
+  // 트래블 섹션을 떠나면 "이 여행 열어줘" 신호를 지운다 — 재진입 때마다 옛 여행이 강제로 열리는 것 방지
+  useEffect(() => {
+    if (tab !== 'trips' && tripToOpen) setTripToOpen(null);
+  }, [tab, tripToOpen]);
+
+  // 섹션·상세 전환 시 스크롤 최상단으로 — 공유 스크롤 컨테이너의 위치 잔존 방지
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [tab, detailOpen, selectedDate]);
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
   const [calAnchor, setCalAnchor] = useState(() => new Date());
   const [editing, setEditing] = useState(false);
@@ -270,20 +330,14 @@ export default function Journal() {
     setDetailOpen(false);
   };
   const goWriteToday = () => { setSelectedDate(todayKey); setCalAnchor(new Date()); setEditing(true); setDetailOpen(true); setTab('write'); };
-  const openEntry = (date: string) => { setSelectedDate(date); setEditing(false); setDetailOpen(true); setTab('write'); };
+  // 일기가 없는 날짜(하루 기록만 있는 날)는 에디터로 — editing=false 인 채 열면 자동저장이 안 도는 "죽은 에디터"가 된다
+  const openEntry = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
   const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
   const backToList = () => { setDetailOpen(false); setEditing(false); setStickerOpen(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
   const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
 
   // 파생
-  const recent = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return [...allEntries]
-      .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 12);
-  }, [allEntries, query]);
   const feed = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...allEntries]
@@ -295,10 +349,40 @@ export default function Journal() {
     for (const e of feed) { const k = e.date.slice(0, 7); const arr = map.get(k); if (arr) arr.push(e); else map.set(k, [e]); }
     return [...map.entries()];
   }, [feed]);
+  const [memSeed, setMemSeed] = useState(0); // 플래시백 "다른 기록 보기" 리롤
   const memory = useMemo(() => {
+    void memSeed;
     const past = allEntries.filter((e) => e.date !== todayKey && (e.body.trim() || e.title?.trim()));
     return past.length ? past[Math.floor(Math.random() * past.length)] : null;
+  }, [allEntries, todayKey, memSeed]);
+  /** 1년 전 오늘 (가장 최근 해). */
+  const yearAgo = useMemo(() => {
+    const md = todayKey.slice(5);
+    return [...allEntries]
+      .filter((e) => e.date.slice(5) === md && e.date < todayKey)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   }, [allEntries, todayKey]);
+  /** 하루 기록(먹은 것·간 곳) — 피드 요약 칩·보관함 사진용. */
+  const dayItems = useDaylogAll();
+  const itemCounts = useMemo(() => {
+    const map = new Map<string, { meal: number; place: number }>();
+    for (const i of dayItems) {
+      if (i.kind === 'note') continue; // 메모는 🍚/📍 어느 쪽도 아님 — 빈 칩 줄도 방지
+      const c = map.get(i.date) ?? { meal: 0, place: 0 };
+      if (i.kind === 'meal') c.meal += 1;
+      else c.place += 1;
+      map.set(i.date, c);
+    }
+    return map;
+  }, [dayItems]);
+  /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
+  const itemDates = useMemo(() => new Set(dayItems.map((i) => i.date)), [dayItems]);
+  /** 열린 날짜가 여행 기간이면 컨텍스트 칩. */
+  const trips = useTrips();
+  const tripOfDay = useMemo(
+    () => trips.find((t) => selectedDate >= t.startDate && selectedDate <= t.endDate) ?? null,
+    [trips, selectedDate],
+  );
   const dayMeta = useMemo(() => {
     const map = new Map<string, { moodKey: string | null; color?: string; weather?: Weather; label: string }>();
     for (const e of allEntries) {
@@ -308,12 +392,6 @@ export default function Journal() {
     }
     return map;
   }, [allEntries]);
-  const monthDist = useMemo(() => {
-    const p = `${todayKey.slice(0, 7)}`;
-    const dist = new Map<string, number>();
-    for (const e of allEntries) { if (!e.date.startsWith(p)) continue; const k = entryMoodKey(e); if (k) dist.set(k, (dist.get(k) ?? 0) + 1); }
-    return dist;
-  }, [allEntries, todayKey]);
 
   const sel = new Date(`${selectedDate}T00:00:00`);
   const dayNum = Math.floor(sel.getTime() / 86_400_000);
@@ -333,163 +411,125 @@ export default function Journal() {
       }}
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
     >
-      {/* ── 사이드바 ── */}
-      <aside className="flex w-[288px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))]">
-        {/* 마스트헤드 — 워크스페이스 공통: 도구명이 주인공, 방 색(테라코타) 틴트. 아이콘은 레일 마크가 담당. */}
-        <div className="mb-3 border-b border-[hsl(var(--cream-line))] pl-5 pr-2 pb-3 pt-4">
-          <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">오늘의 일기</h1>
+      {/* ── 사이드바 — 방 내비 (Diary Room 문법: 섹션이 곧 메뉴). 모바일은 상단 가로 내비로 대체 ── */}
+      <aside className="hidden w-[236px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
+        {/* 마스트헤드 — 방 색(세이지) 틴트. 아이콘은 레일 마크가 담당. */}
+        <div className="border-b border-[hsl(var(--cream-line))] px-5 pb-4 pt-4">
+          <h1 className="font-sans text-[24px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리로그</h1>
+          <p className="mt-1.5 text-[11px] text-[hsl(var(--cream-muted))]/80">나의 하루 기록실</p>
         </div>
 
-        {/* 미니 캘린더 */}
-        <div className="px-4 pb-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[12.5px] font-semibold">{y}년 {m + 1}월</span>
-            <div className="flex items-center gap-0.5">
-              <button type="button" onClick={() => setCalAnchor(new Date(y, m - 1, 1))} className="rounded p-1 text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="이전 달"><ChevronLeft className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => setCalAnchor(new Date(y, m + 1, 1))} className="rounded p-1 text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="다음 달"><ChevronRight className="h-3.5 w-3.5" /></button>
-            </div>
-          </div>
-          <div className="mb-1 grid grid-cols-7 text-center text-[9.5px] text-[hsl(var(--cream-muted))]/70">
-            {WEEKDAY.map((w) => <span key={w}>{w}</span>)}
-          </div>
-          <div className="grid grid-cols-7 gap-y-1">
-            {Array(lead).fill(null).map((_, i) => <span key={`x${i}`} />)}
-            {Array.from({ length: daysIn }, (_, i) => {
-              const d = dateKey(new Date(y, m, i + 1));
-              const isSel = d === selectedDate;
-              const isToday = d === todayKey;
-              const meta = dayMeta.get(d);              // 기록이 있는 날 (무드 없어도 포함)
-              const written = !!meta;
-              const mColor = written ? (meta.moodKey ? moodColor(meta.moodKey) : 'hsl(var(--cream-accent))') : null;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => openDate(d)}
-                  aria-label={`${i + 1}일${written ? ', 기록 있음' : ''}`}
-                  className="flex items-center justify-center"
-                >
-                  <span
-                    className={cn(
-                      'flex h-7 w-7 items-center justify-center rounded-full text-[12px] tabular-nums transition-colors',
-                      isSel ? 'font-bold text-white'
-                        : written ? 'font-semibold text-[hsl(var(--cream-ink))]'
-                        : 'text-[hsl(var(--cream-ink))]/60 hover:bg-[hsl(var(--cream-line))]/40',
-                      isToday && !isSel && 'ring-1 ring-[hsl(var(--cream-accent))] ring-offset-1 ring-offset-[hsl(var(--cream-panel))]',
-                      isToday && !isSel && !written && 'font-bold text-[hsl(var(--cream-accent))]',
-                    )}
-                    style={
-                      isSel ? { backgroundColor: 'hsl(var(--cream-accent))' }
-                        : written ? { backgroundColor: `color-mix(in srgb, ${mColor} 30%, transparent)` }
-                        : undefined
-                    }
-                  >{i + 1}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 이번 달 기분 */}
-        {monthDist.size > 0 && (
-          <div className="px-4 pb-3">
-            <div className="mb-1.5 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">이번 달 기분</div>
-            <div className="flex h-2 overflow-hidden rounded-full bg-[hsl(var(--cream-line))]/50">
-              {MOODS.map((mo) => { const c = monthDist.get(mo.key) ?? 0; const tot = [...monthDist.values()].reduce((a, b) => a + b, 0) || 1; return c > 0 ? <div key={mo.key} style={{ width: `${(c / tot) * 100}%`, backgroundColor: mo.color }} /> : null; })}
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[hsl(var(--cream-muted))]">
-              {MOODS.map((mo) => { const c = monthDist.get(mo.key) ?? 0; return c > 0 ? <span key={mo.key} className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: mo.color }} />{mo.label} {c}</span> : null; })}
-            </div>
-          </div>
-        )}
-
-        {/* 다시 보는 기록 — 무작위 과거 일기 (특정 날짜 아님) */}
-        {memory && (() => {
-          const md = new Date(`${memory.date}T00:00:00`);
-          const mmk = entryMoodKey(memory);
-          const mt = memory.title?.trim() || memory.body.split('\n')[0]?.trim() || '무제';
-          const msn = (memory.title ? memory.body : memory.body.split('\n').slice(1).join(' ')).trim();
-          return (
-            <div className="px-4 pb-3">
-              <div className="mb-1.5 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">🕰️ 다시 보는 기록</div>
-              <button type="button" onClick={() => openEntry(memory.date)} className="w-full rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-3 text-left transition-colors hover:border-[hsl(var(--cream-accent))]/40" style={memory.color ? { backgroundColor: `color-mix(in srgb, ${memory.color} 8%, #f8f3ea)` } : undefined}>
-                <div className="flex items-center gap-1.5 text-[10.5px] text-[hsl(var(--cream-muted))]">
-                  {mmk && MOOD_BY_KEY[mmk] && <span className="text-[13px] leading-none">{MOOD_BY_KEY[mmk].emoji}</span>}
-                  {md.getFullYear()}. {md.getMonth() + 1}. {md.getDate()} · {WEEKDAY[md.getDay()]}
-                </div>
-                <div className="mt-0.5 truncate text-[13px] font-semibold text-[hsl(var(--cream-ink))]">{mt}</div>
-                {msn && <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5] text-[hsl(var(--cream-muted))]">{msn}</p>}
+        {/* 섹션 내비 */}
+        <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="데일리로그 섹션">
+          {NAV_MAIN.map((item) => {
+            const active = tab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => { setTab(item.id); setDetailOpen(false); }}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors',
+                  active
+                    ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
+                    : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.4 : 1.9} />
+                {item.label}
               </button>
-            </div>
-          );
-        })()}
+            );
+          })}
+        </nav>
 
-        {/* 최근 기록 */}
-        <div className="mt-1 border-t border-[hsl(var(--cream-line))] px-3 py-3">
-          <div className="mb-1.5 px-1 text-[11px] font-semibold text-[hsl(var(--cream-muted))]">최근 기록</div>
-          <div className="flex flex-col gap-0.5">
-            {recent.length === 0 && <p className="px-1 py-2 text-[12px] text-[hsl(var(--cream-muted))]/70">아직 기록이 없어요.</p>}
-            {recent.map((e) => {
-              const dd = new Date(`${e.date}T00:00:00`);
-              const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
-              const mk = entryMoodKey(e);
-              const emoji = mk && MOOD_BY_KEY[mk] ? MOOD_BY_KEY[mk].emoji : null;
-              const on = e.date === selectedDate;
-              return (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => openEntry(e.date)}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors',
-                    on ? 'bg-[hsl(var(--cream-accent))]/12' : 'hover:bg-[hsl(var(--cream-line))]/35',
-                  )}
-                >
-                  {emoji ? (
-                    <span className="shrink-0 text-[17px] leading-none">{emoji}</span>
-                  ) : (
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: moodColor(mk) }} />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[12.5px] font-semibold text-[hsl(var(--cream-ink))]">{t}</div>
-                    <div className="mt-px flex items-center gap-1 text-[10.5px] text-[hsl(var(--cream-muted))]">
-                      {dd.getMonth() + 1}월 {dd.getDate()}일 · {WEEKDAY[dd.getDay()]}
-                      {e.starred && <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        {/* 글쓰기 CTA — 어느 섹션에서든 오늘 페이지로 */}
+        <div className="px-4 pt-5">
+          <button
+            type="button"
+            onClick={goWriteToday}
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(30_12%_16%/0.7)] transition-opacity hover:opacity-90"
+          >
+            <Pencil className="h-3.5 w-3.5" /> 글쓰기
+          </button>
         </div>
+
+        <div className="flex-1" />
+
+        {/* 하단 유틸 — 플래시백 · 보관함 */}
+        <nav className="border-t border-[hsl(var(--cream-line))] px-3 py-3" aria-label="데일리로그 유틸">
+          {NAV_BOTTOM.map((item) => {
+            const active = tab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => { setTab(item.id); setDetailOpen(false); }}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[12.5px] transition-colors',
+                  active
+                    ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
+                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.3 : 1.8} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
       </aside>
 
       {/* ── 메인 ── */}
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        {/* 여행 탭은 지도+타임라인 2단이라 더 넓게 */}
-        <div className={cn('mx-auto w-full px-8 pb-7 pt-14', tab === 'trips' ? 'max-w-[1200px]' : 'max-w-[880px]')}>
-          {/* 탭 + 오늘 쓰기 — 작성/보기 상세 화면에선 숨겨 집중 */}
+      <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
+        {/* 지도가 있는 섹션(트래블 로그·나의 지도)은 더 넓게 */}
+        <div className={cn('mx-auto w-full px-4 pb-7 pt-6 sm:px-8 sm:pt-10', tab === 'trips' || tab === 'map' ? 'max-w-[1200px]' : 'max-w-[880px]')}>
+          {/* 모바일 — 사이드바 대신 가로 스크롤 내비 */}
+          <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 sm:hidden">
+            <button
+              type="button"
+              onClick={goWriteToday}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-3.5 py-1.5 text-[12px] font-bold text-white"
+            >
+              <Pencil className="h-3 w-3" /> 글쓰기
+            </button>
+            {[...NAV_MAIN, ...NAV_BOTTOM].map((item) => {
+              const active = tab === item.id;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { setTab(item.id); setDetailOpen(false); }}
+                  className={cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors',
+                    active
+                      ? 'border-transparent bg-[hsl(var(--cream-accent))]/14 font-bold text-[hsl(var(--cream-accent))]'
+                      : 'border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-muted))]',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {item.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* 섹션 머리 — 아이브로우 + 제목 (상세 화면에선 숨겨 집중) */}
           {!(tab === 'write' && detailOpen) && (
-            <div className="mb-5 flex items-center justify-between">
-              <div className="inline-flex rounded-full bg-[hsl(var(--cream-card))] p-1">
-                {([['write', '기록'], ['calendar', '달력'], ['trips', '여행'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
-                  <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
-                ))}
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
+                <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
               </div>
-              <div className="flex items-center gap-2">
-                {tab === 'write' && (
-                  <label className="flex h-9 items-center gap-1.5 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/45">
-                    <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]" />
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="w-24 bg-transparent text-[12.5px] outline-none transition-[width] placeholder:text-[hsl(var(--cream-muted))] focus:w-40" />
-                  </label>
-                )}
-                {/* 여행 탭에선 자체 "새 여행" CTA 가 있어 일기 CTA 는 숨긴다 */}
-                {tab !== 'trips' && (
-                  <button type="button" onClick={goWriteToday} className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white hover:opacity-90">
-                    <Plus className="h-3.5 w-3.5" /> 오늘 쓰기
-                  </button>
-                )}
-              </div>
+              {tab === 'write' && (
+                <label className="flex h-9 items-center gap-1.5 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/45">
+                  <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="w-24 bg-transparent text-[12.5px] outline-none transition-[width] placeholder:text-[hsl(var(--cream-muted))] focus:w-40" />
+                </label>
+              )}
             </div>
           )}
 
@@ -533,8 +573,18 @@ export default function Journal() {
                             ) : (
                               <p className="mt-1.5 text-[13px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
                             )}
-                            {(e.weather || e.bgm || (e.tags?.length ?? 0) > 0) && (
+                            {(e.weather || e.bgm || (e.tags?.length ?? 0) > 0 || itemCounts.has(e.date)) && (
                               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                {(() => {
+                                  const c = itemCounts.get(e.date);
+                                  if (!c) return null;
+                                  return (
+                                    <>
+                                      {c.meal > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">🍚 {c.meal}</span>}
+                                      {c.place > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">📍 {c.place}</span>}
+                                    </>
+                                  );
+                                })()}
                                 {e.weather && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">{WEATHER_META[e.weather].emoji} {WEATHER_META[e.weather].label}</span>}
                                 {e.bgm && <span className="inline-flex max-w-[150px] items-center gap-1 truncate rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">🎧 {e.bgm}</span>}
                                 {e.tags?.slice(0, 5).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}
@@ -566,6 +616,16 @@ export default function Journal() {
                       {sel.getFullYear()}년 {sel.getMonth() + 1}월 {sel.getDate()}일
                       <span className="text-[24px] text-[hsl(var(--cream-ink))]/55">{WEEKDAY[sel.getDay()]}요일</span>
                     </h1>
+                    {/* 이 날이 여행 기간이면 — 트래블 로그로 건너가는 컨텍스트 칩 */}
+                    {tripOfDay && (
+                      <button
+                        type="button"
+                        onClick={() => { setTripToOpen(tripOfDay.id); setTab('trips'); setDetailOpen(false); }}
+                        className="mt-1 inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-accent))]/12 px-2.5 py-1 text-[11.5px] font-bold text-[hsl(var(--cream-accent))] transition-colors hover:bg-[hsl(var(--cream-accent))]/20"
+                      >
+                        ✈️ {tripOfDay.title} · DAY {diffDays(tripOfDay.startDate, selectedDate) + 1}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -756,6 +816,9 @@ export default function Journal() {
                   )}
                 </div>
               )}
+
+              {/* 하루 기록 — 일기와 같은 자리에서 먹은 것·간 곳·메모 (보기/편집 모두 노출) */}
+              <DayItemsBlock date={selectedDate} />
             </>
           )}
 
@@ -793,6 +856,10 @@ export default function Journal() {
                         {meta?.weather && <span className="text-[12px] leading-none opacity-80">{WEATHER_META[meta.weather].emoji}</span>}
                       </div>
                       {meta?.label && <p className="mt-1 line-clamp-3 text-left text-[9.5px] leading-[1.35] text-[hsl(var(--cream-ink))]/60">{meta.label}</p>}
+                      {/* 하루 기록(먹은 것·간 곳·메모)만 있는 날도 찾을 수 있게 — 세이지 점 */}
+                      {itemDates.has(d) && (
+                        <span className="absolute bottom-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" aria-hidden />
+                      )}
                     </button>
                   );
                 })}
@@ -800,16 +867,111 @@ export default function Journal() {
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] pt-4 text-[11px] text-[hsl(var(--cream-muted))]">
                 {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[4px] bg-[color-mix(in_srgb,#e0876b_35%,#f8f3ea)]" />칸 배경 = 오늘의 컬러</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />하루 기록 있음</span>
               </div>
             </div>
           )}
 
-          {/* ── 여행 탭 — 여행 관리·발자취 지도·가고 싶은 곳 (travel-theme 토큰 스코프) ── */}
+          {/* ── 트래블 로그 — 여행 관리·버킷 (travel-theme 토큰, 방이 라이트 고정이라 다크 무력화) ── */}
           {tab === 'trips' && (
-            <div className="travel-theme">
+            <div className="travel-theme journal-embed">
               <Suspense fallback={<p className="py-16 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">여행 도구를 여는 중…</p>}>
-                <TravelHome />
+                <TravelHome key={tripToOpen ?? 'home'} initialTripId={tripToOpen ?? undefined} />
               </Suspense>
+            </div>
+          )}
+
+          {/* ── 나의 지도 — 먹은 곳·간 곳 발자취 ── */}
+          {tab === 'map' && (
+            <div className="travel-theme journal-embed">
+              <Suspense fallback={<p className="py-16 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">지도를 여는 중…</p>}>
+                <MyMapView />
+              </Suspense>
+            </div>
+          )}
+
+          {/* ── 푸드 로드 — 먹은 것 렌즈 ── */}
+          {tab === 'food' && <FoodRoadView onOpenDay={openDate} />}
+
+          {/* ── 플래시백 — 1년 전 오늘 · 무작위 다시 보기 ── */}
+          {tab === 'flashback' && (
+            <div className="space-y-6 pb-8">
+              <section>
+                <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">🕰️ 1년 전 오늘</h3>
+                {yearAgo ? (
+                  <FlashCard entry={yearAgo} onOpen={openEntry} />
+                ) : (
+                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
+                    작년 오늘의 기록이 없어요. 내년의 나를 위해 오늘을 남겨두면 어때요?
+                  </p>
+                )}
+              </section>
+              <section>
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <h3 className="text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">🎲 무작위 다시 보기</h3>
+                  <button type="button" onClick={() => setMemSeed((s) => s + 1)} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 py-1 text-[11.5px] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]">
+                    다른 기록 보기
+                  </button>
+                </div>
+                {memory ? (
+                  <FlashCard entry={memory} onOpen={openEntry} />
+                ) : (
+                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
+                    아직 다시 볼 기록이 없어요.
+                  </p>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ── 보관함 — 별표한 날 · 사진 전부 ── */}
+          {tab === 'storage' && (
+            <div className="space-y-7 pb-8">
+              <section>
+                <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
+                  ⭐ 별표한 날 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{allEntries.filter((e) => e.starred).length}</span>
+                </h3>
+                {allEntries.some((e) => e.starred) ? (
+                  <div className="space-y-2">
+                    {allEntries.filter((e) => e.starred).sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
+                      <FlashCard key={e.id} entry={e} onOpen={openEntry} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
+                    소중한 날에 별표를 눌러두면 여기 모여요.
+                  </p>
+                )}
+              </section>
+              <section>
+                {(() => {
+                  const photoCards = [
+                    ...allEntries.filter((e) => e.images?.[0]).map((e) => ({ key: `j-${e.id}`, src: e.images![0].src, date: e.date, label: e.title?.trim() || '일기 사진' })),
+                    ...dayItems.filter((i) => i.photo).map((i) => ({ key: `d-${i.id}`, src: i.photo!, date: i.date, label: i.text })),
+                  ].sort((a, b) => b.date.localeCompare(a.date));
+                  return (
+                    <>
+                      <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
+                        📷 모든 사진 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{photoCards.length}</span>
+                      </h3>
+                      {photoCards.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+                          {photoCards.map((p) => (
+                            <button key={p.key} type="button" onClick={() => openEntry(p.date)} title={`${p.date} · ${p.label}`} className="group relative aspect-square overflow-hidden rounded-xl border border-[hsl(var(--cream-line))]">
+                              <img src={p.src} alt={p.label} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
+                              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/55 to-transparent px-2 pb-1 pt-4 text-left text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">{p.date}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
+                          일기와 하루 기록에 붙인 사진이 전부 여기 모여요.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
+              </section>
             </div>
           )}
 
@@ -822,6 +984,39 @@ export default function Journal() {
 }
 
 /* ── 통계 뷰 ── */
+/** 플래시백·보관함 공용 — 과거 일기 콤팩트 카드. */
+function FlashCard({ entry, onOpen }: { entry: JournalEntry; onOpen: (date: string) => void }) {
+  const d = new Date(`${entry.date}T00:00:00`);
+  const mk = entryMoodKey(entry);
+  const title = entry.title?.trim() || entry.body.split('\n')[0]?.trim() || '무제';
+  const snippet = (entry.title ? entry.body : entry.body.split('\n').slice(1).join(' ')).trim();
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(entry.date)}
+      className="flex w-full items-start gap-4 rounded-[22px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30"
+      style={entry.color ? { backgroundColor: `color-mix(in srgb, ${entry.color} 6%, #f8f3ea)` } : undefined}
+    >
+      <div className="flex w-[60px] shrink-0 flex-col items-center pt-0.5">
+        <span className="text-[10px] font-semibold text-[hsl(var(--cream-muted))]">{d.getFullYear()}</span>
+        <span className="text-[22px] font-bold leading-tight tabular-nums">{d.getMonth() + 1}.{d.getDate()}</span>
+        <span className="text-[10.5px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[d.getDay()]}요일</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          {mk && MOOD_BY_KEY[mk] && <span className="text-[16px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
+          <span className="min-w-0 truncate text-[14.5px] font-bold">{title}</span>
+          {entry.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
+        </div>
+        {snippet && <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.7] text-[hsl(var(--cream-ink))]/70">{snippet}</p>}
+      </div>
+      {entry.images?.[0] && (
+        <img src={entry.images[0].src} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-lg border border-[hsl(var(--cream-line))] object-cover" />
+      )}
+    </button>
+  );
+}
+
 function StatsView({ entries, streak, monthCount }: { entries: JournalEntry[]; streak: number; monthCount: number }) {
   const withMood = entries.map(entryMoodKey).filter(Boolean) as string[];
   const dist = new Map<string, number>();

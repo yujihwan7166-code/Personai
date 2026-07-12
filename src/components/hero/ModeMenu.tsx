@@ -263,7 +263,7 @@ export function ModeMenu({
             target.hubId === 'notes' ? '/notes' :
             target.hubId === 'journal' ? '/journal' :
             target.hubId === 'career' ? '/career' :
-            target.hubId === 'travel' ? '/journal?tab=trips' :
+            target.hubId === 'travel' ? '/journal?view=travel' :
             target.hubId === 'cloud' ? '/cloud' : null;
           if (route) navigate(route);
           break;

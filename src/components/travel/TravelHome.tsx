@@ -1,25 +1,23 @@
 /**
- * 여행 홈 — 일기 방의 "여행" 탭에 심어지는 본체 (구 /travel 페이지에서 껍데기만 벗김).
+ * 트래블 로그 — 데일리로그 방의 여행 섹션 본체.
  *
- * 구조 (트리플·Polarsteps·Notion Travel Log 문법):
- *   여행 = 상태 변신 히어로(여행 중 → DAY n / 다가옴 → D-day / 없음 → 초대)
- *        + 시제 3분류 섹션(여행 중 · 다가오는 여행 · 다녀온 여행).
- *   과거 "N개월 전 다녀옴" / 미래 "D-N" — 비대칭 표기.
- *   상세 = TripDetail (DAY 타임라인 + 번호 핀 지도). 발자취 = 전체 지도 + 스코어보드.
- *   가고 싶은 곳 = 버킷리스트.
- * 스크롤은 호스트(일기 main)가 소유 — 자체 overflow 없음. 테마 토큰(.travel-theme)은
- * 호스트가 래퍼로 씌운다. 일기 데이터와 완전 무관.
+ * 구조 (Diary Room·트리플·Polarsteps 문법):
+ *   누적 스탯 스트립 + [여행 목록(상태 변신 히어로 + 시제 3분류) | 우측 다크 버킷 카드].
+ *   여행 상세 = TripDetail (DAY 타임라인 + 번호 핀 지도).
+ * 기록은 여기서 새로 입력하지 않는다 — 하루 페이지의 기록이 기간으로 자동 수집된다
+ * (여행 상세 안에서 바로 추가하는 것도 같은 하루 기록 store 로 들어간다).
+ * 발자취 지도는 "나의 지도" 섹션이 담당. 테마 토큰(.travel-theme)은 호스트가 래퍼로 씌운다.
  */
 import { useMemo, useState } from 'react';
-import { ChevronRight, MapPin, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Heart, MapPin, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { travelStore } from '@/services/travelStore';
-import { useTrips, useAllRecords, useBucket } from '@/hooks/useTravel';
-import { TravelMap, type MapPin as TravelMapPin } from '@/components/travel/TravelMap';
+import { useTrips, useBucket } from '@/hooks/useTravel';
+import { useDaylogAll } from '@/hooks/useDaylog';
 import { TripDetail, CoverFallback } from '@/components/travel/TripDetail';
-import { agoLabel, escapeHtml } from '@/lib/travel/format';
-import { diffDays, nightsLabel, todayKey, tripStatus, type Trip, type TravelRecord } from '@/types/travel';
+import { agoLabel } from '@/lib/travel/format';
+import { diffDays, nightsLabel, todayKey, tripStatus, type Trip } from '@/types/travel';
 import {
   Dialog,
   DialogContent,
@@ -27,59 +25,65 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-type View = 'trips' | 'footprints' | 'bucket';
-
-export default function TravelHome() {
+export default function TravelHome({ initialTripId }: { initialTripId?: string }) {
   const trips = useTrips();
-  const [view, setView] = useState<View>('trips');
-  const [openId, setOpenId] = useState<string | null>(null);
+  const items = useDaylogAll();
+  const [openId, setOpenId] = useState<string | null>(initialTripId ?? null);
   const [creating, setCreating] = useState(false);
 
   const openTrip = openId ? trips.find((t) => t.id === openId) ?? null : null;
+  const today = todayKey();
+
+  /** 여행별 대표 사진 — 기간 내 첫 사진 (하루 기록에서). */
+  const coverOf = (t: Trip) =>
+    t.cover ?? items.find((i) => i.photo && i.date >= t.startDate && i.date <= t.endDate)?.photo;
+
+  const stats = useMemo(() => {
+    const counted = trips.filter((t) => tripStatus(t, today) !== 'upcoming');
+    const totalDays = counted.reduce((sum, t) => {
+      const end = t.endDate < today ? t.endDate : today;
+      return sum + diffDays(t.startDate, end) + 1;
+    }, 0);
+    const places = new Set(
+      items
+        .filter((i) => i.place && trips.some((t) => i.date >= t.startDate && i.date <= t.endDate))
+        .map((i) => i.place!.toLowerCase()),
+    );
+    return { trips: counted.length, days: totalDays, places: places.size };
+  }, [trips, items, today]);
+
+  if (openTrip) {
+    return <TripDetail trip={openTrip} onBack={() => setOpenId(null)} />;
+  }
 
   return (
-    <div>
-      {/* 내부 세그먼트 — 여행 | 발자취 | 가고 싶은 곳 + 새 여행 */}
-      {!openTrip && (
-        <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <nav className="flex items-center gap-1 rounded-full bg-[hsl(var(--surface-3))]/70 p-1">
-            {([['trips', '여행'], ['footprints', '발자취'], ['bucket', '가고 싶은 곳']] as [View, string][]).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setView(id)}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors',
-                  view === id
-                    ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--travel-teal))] shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--travel-teal-ink))] shadow-[0_6px_16px_-8px_hsl(var(--travel-teal)/0.8)] transition-[filter] hover:brightness-[1.06]"
-          >
-            <Plus className="h-3.5 w-3.5" /> 새 여행
-          </button>
+    <div className="pb-8">
+      {/* 스탯 스트립 + 새 여행 */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="flex items-center divide-x divide-[hsl(var(--hairline))] rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] px-1 py-2.5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.12)]">
+          {([
+            [stats.trips, '여행'],
+            [stats.days, '여행한 날'],
+            [stats.places, '여행지'],
+          ] as const).map(([value, label]) => (
+            <div key={label} className="px-5 text-center">
+              <p className="text-[20px] font-extrabold leading-none tabular-nums text-[hsl(var(--travel-teal))]">{value}</p>
+              <p className="mt-1 text-[10.5px] font-semibold text-muted-foreground">{label}</p>
+            </div>
+          ))}
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--travel-teal-ink))] shadow-[0_6px_16px_-8px_hsl(var(--travel-teal)/0.8)] transition-[filter] hover:brightness-[1.06]"
+        >
+          <Plus className="h-3.5 w-3.5" /> 새 여행
+        </button>
+      </div>
 
-      {/* key 로 화면 전환 시 remount — 이전 화면 상태 잔존 방지 */}
-      <div key={openTrip ? `trip-${openTrip.id}` : view}>
-        {openTrip ? (
-          <TripDetail trip={openTrip} onBack={() => setOpenId(null)} />
-        ) : view === 'trips' ? (
-          <TripsList trips={trips} onOpen={setOpenId} onCreate={() => setCreating(true)} />
-        ) : view === 'footprints' ? (
-          <FootprintsView trips={trips} />
-        ) : (
-          <BucketView />
-        )}
+      <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <TripsList trips={trips} today={today} coverOf={coverOf} onOpen={setOpenId} onCreate={() => setCreating(true)} />
+        <BucketCard className="mt-6 lg:mt-0" />
       </div>
 
       <NewTripDialog
@@ -87,7 +91,6 @@ export default function TravelHome() {
         onClose={() => setCreating(false)}
         onCreated={(t) => {
           setCreating(false);
-          setView('trips');
           setOpenId(t.id);
         }}
       />
@@ -97,31 +100,28 @@ export default function TravelHome() {
 
 /* ── 여행 목록 — 상태 변신 히어로 + 시제 3분류 ── */
 
-function TripsList({ trips, onOpen, onCreate }: { trips: Trip[]; onOpen: (id: string) => void; onCreate: () => void }) {
-  const today = todayKey();
-  const allRecords = useAllRecords();
+function TripsList({
+  trips, today, coverOf, onOpen, onCreate,
+}: {
+  trips: Trip[];
+  today: string;
+  coverOf: (t: Trip) => string | undefined;
+  onOpen: (id: string) => void;
+  onCreate: () => void;
+}) {
   const ongoing = trips.filter((t) => tripStatus(t, today) === 'ongoing');
   const upcoming = trips.filter((t) => tripStatus(t, today) === 'upcoming').sort((a, b) => a.startDate.localeCompare(b.startDate));
   const past = trips.filter((t) => tripStatus(t, today) === 'past');
   const hero = ongoing[0] ?? upcoming[0] ?? null;
 
-  /** 여행별 대표 사진 — 전체 기록 1회 순회로 계산 (카드마다 스토어 전체 파싱 금지). */
-  const coverMap = useMemo(() => {
-    const map = new Map<string, string>();
-    // listAllRecords 는 최신순 → 마지막 대입이 가장 이른 사진
-    for (const r of allRecords) if (r.photo) map.set(r.tripId, r.photo);
-    return map;
-  }, [allRecords]);
-  const coverOf = (t: Trip) => t.cover ?? coverMap.get(t.id);
-
   if (trips.length === 0) {
     return (
       <div className="overflow-hidden rounded-3xl border border-dashed border-[hsl(var(--hairline))]">
-        <CoverFallback className="h-40" />
+        <CoverFallback className="h-36" />
         <div className="bg-[hsl(var(--surface-1))] px-6 py-8 text-center">
           <p className="text-[15px] font-bold text-foreground">첫 여행을 계획해 보세요</p>
           <p className="mx-auto mt-1.5 max-w-[340px] text-[12.5px] leading-relaxed text-muted-foreground">
-            날짜만 정해두면 D-day가 카운트되고, 여행 중 남긴 기록이 지도·타임라인·앨범으로 쌓여요.
+            날짜만 정해두면 D-day가 카운트되고, 하루 페이지에 남긴 기록이 지도·타임라인·앨범으로 모여요.
           </p>
           <button
             type="button"
@@ -136,8 +136,7 @@ function TripsList({ trips, onOpen, onCreate }: { trips: Trip[]; onOpen: (id: st
   }
 
   return (
-    <div className="space-y-7 pb-8">
-      {/* 상태 변신 히어로 — 여행 중이면 DAY n, 아니면 다음 여행 D-day */}
+    <div className="space-y-7">
       {hero && <HeroCard trip={hero} cover={coverOf(hero)} today={today} onOpen={() => onOpen(hero.id)} />}
 
       {ongoing.length > 1 && (
@@ -260,85 +259,9 @@ function TripCard({ trip, cover, today, onOpen }: { trip: Trip; cover?: string; 
   );
 }
 
-/* ── 발자취 — 모든 여행의 장소를 한 지도에 + 누적 스코어보드 ── */
+/* ── 버킷 — 다크 카드 (Diary Room 의 Travel Bucket List 문법) ── */
 
-function FootprintsView({ trips }: { trips: Trip[] }) {
-  const records = useAllRecords();
-
-  const stats = useMemo(() => {
-    // 스코어보드는 "다녀온" 기록 — 다가오는 여행은 빼고, 여행 중은 오늘까지만 센다.
-    const today = todayKey();
-    const counted = trips.filter((t) => tripStatus(t, today) !== 'upcoming');
-    const totalDays = counted.reduce((sum, t) => {
-      const end = t.endDate < today ? t.endDate : today;
-      return sum + diffDays(t.startDate, end) + 1;
-    }, 0);
-    const places = new Set(records.filter((r) => r.place).map((r) => r.place!.toLowerCase()));
-    return { trips: counted.length, days: totalDays, places: places.size };
-  }, [trips, records]);
-
-  /** 장소별로 묶어 핀 하나 — 팝업에 방문 이력. */
-  const pins = useMemo<TravelMapPin[]>(() => {
-    const tripTitle = new Map(trips.map((t) => [t.id, t.title]));
-    const byPlace = new Map<string, { place: string; visits: TravelRecord[] }>();
-    for (const r of records) {
-      if (!r.place) continue;
-      const key = r.place.trim().toLowerCase();
-      const g = byPlace.get(key);
-      if (g) g.visits.push(r);
-      else byPlace.set(key, { place: r.place.trim(), visits: [r] });
-    }
-    return [...byPlace.values()].map((g) => {
-      const rows = g.visits.slice(0, 5).map((r) =>
-        `<div style="margin-top:5px">
-          <div style="font-size:10.5px;color:#8a8178">${escapeHtml(tripTitle.get(r.tripId) ?? '')} · ${escapeHtml(r.date)}</div>
-          <div style="font-size:12.5px">${escapeHtml(r.text)}</div>
-        </div>`,
-      ).join('');
-      const more = g.visits.length > 5 ? `<div style="font-size:10.5px;color:#8a8178;margin-top:5px">외 ${g.visits.length - 5}건</div>` : '';
-      return {
-        id: g.place,
-        place: g.place,
-        color: 'hsl(183 58% 36%)',
-        tooltip: g.place,
-        popup: `<div style="min-width:170px;max-width:230px">
-          <div style="font-weight:700;font-size:13.5px">${escapeHtml(g.place)}</div>
-          ${rows}${more}
-        </div>`,
-      };
-    });
-  }, [records, trips]);
-
-  return (
-    <div className="pb-8">
-      {/* 스코어보드 — "나는 이만큼 다녀온 사람" */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        {([
-          ['여행', stats.trips, '번'],
-          ['여행한 날', stats.days, '일'],
-          ['가본 곳', stats.places, '곳'],
-        ] as const).map(([label, value, unit]) => (
-          <div key={label} className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] px-4 py-3.5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14)]">
-            <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-[24px] font-extrabold leading-none tabular-nums text-[hsl(var(--travel-teal))]">
-              {value}<span className="ml-0.5 text-[13px] font-semibold text-muted-foreground">{unit}</span>
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <TravelMap
-        pins={pins}
-        heightClass="h-[440px]"
-        emptyText="여행 기록에 장소를 적으면, 다녀온 곳 전부가 이 지도에 모여요."
-      />
-    </div>
-  );
-}
-
-/* ── 가고 싶은 곳 — 다음 여행의 씨앗 ── */
-
-function BucketView() {
+function BucketCard({ className }: { className?: string }) {
   const bucket = useBucket();
   const [name, setName] = useState('');
 
@@ -349,77 +272,76 @@ function BucketView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[640px] pb-8">
-      <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] pl-4 pr-2 shadow-sm transition-colors focus-within:border-[hsl(var(--travel-teal))]/55">
-        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+    <aside className={cn('rounded-3xl bg-[hsl(228_12%_18%)] p-5 text-white shadow-[0_14px_36px_-18px_rgba(0,0,0,0.55)]', className)}>
+      <div className="flex items-center gap-2">
+        <Heart className="h-4 w-4 fill-white/90 text-white/90" />
+        <h3 className="text-[14.5px] font-bold">가고 싶은 곳</h3>
+        {bucket.length > 0 && <span className="text-[11px] tabular-nums text-white/50">{bucket.length}</span>}
+      </div>
+
+      <ul className="mt-3 space-y-1.5">
+        {bucket.length === 0 && (
+          <li className="rounded-xl bg-white/[0.06] px-3 py-4 text-center text-[11.5px] leading-relaxed text-white/55">
+            언젠가 가고 싶은 곳을 적어두세요.<br />다음 여행은 여기서 시작돼요.
+          </li>
+        )}
+        {bucket.map((b) => (
+          <li key={b.id} className="group flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 transition-colors hover:bg-white/[0.11]">
+            <button
+              type="button"
+              onClick={() => travelStore.toggleBucket(b.id)}
+              aria-label={b.done ? '가봤음 해제' : '가봤음으로 표시'}
+              className={cn(
+                'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                b.done ? 'border-[hsl(181_52%_60%)] bg-[hsl(181_52%_60%)] text-[hsl(228_12%_18%)]' : 'border-white/35 hover:border-white/70',
+              )}
+            >
+              {b.done && <span className="text-[9px] font-bold leading-none">✓</span>}
+            </button>
+            <span className={cn('min-w-0 flex-1 truncate text-[12.5px]', b.done ? 'text-white/45 line-through' : 'text-white/90')}>
+              {b.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const removed = travelStore.removeBucket(b.id);
+                if (removed) {
+                  notify.info('지웠어요', {
+                    duration: 4000,
+                    action: { label: '되돌리기', onClick: () => travelStore.restoreBucket(removed) },
+                  });
+                }
+              }}
+              aria-label="삭제"
+              className="shrink-0 p-0.5 text-white/35 opacity-0 transition-opacity hover:text-rose-400 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] pl-3 pr-1.5 transition-colors focus-within:border-white/35">
+        <MapPin className="h-3.5 w-3.5 shrink-0 text-white/40" />
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) add(); }}
-          placeholder="가고 싶은 곳 (예: 교토 단풍, 아이슬란드 오로라)"
+          placeholder="예: 교토 단풍"
           aria-label="가고 싶은 곳 추가"
-          className="h-11 min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/50"
+          className="h-9 min-w-0 flex-1 bg-transparent text-[12.5px] text-white outline-none placeholder:text-white/35"
         />
         <button
           type="button"
           onClick={add}
           disabled={!name.trim()}
           aria-label="추가"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--travel-teal))]/12 text-[hsl(var(--travel-teal))] transition-colors hover:bg-[hsl(var(--travel-teal))]/22 disabled:opacity-35"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/12 text-white/80 transition-colors hover:bg-white/20 disabled:opacity-35"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
         </button>
       </div>
-
-      {bucket.length === 0 ? (
-        <p className="mt-8 text-center text-[12.5px] text-muted-foreground/70">
-          언젠가 가고 싶은 곳을 적어두세요. 다음 여행은 여기서 시작돼요.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-1.5">
-          {bucket.map((b) => (
-            <li
-              key={b.id}
-              className="group flex items-center gap-3 rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] px-4 py-3 shadow-[0_1px_6px_-2px_hsl(var(--foreground)/0.1)]"
-            >
-              <button
-                type="button"
-                onClick={() => travelStore.toggleBucket(b.id)}
-                aria-label={b.done ? '가봤음 해제' : '가봤음으로 표시'}
-                className={cn(
-                  'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                  b.done
-                    ? 'border-[hsl(var(--travel-teal))] bg-[hsl(var(--travel-teal))] text-[hsl(var(--travel-teal-ink))]'
-                    : 'border-[hsl(var(--foreground)/0.25)] hover:border-[hsl(var(--travel-teal))]',
-                )}
-              >
-                {b.done && <span className="text-[10px] font-bold leading-none">✓</span>}
-              </button>
-              <span className={cn('min-w-0 flex-1 truncate text-[13.5px] text-foreground', b.done && 'text-muted-foreground line-through decoration-[hsl(var(--travel-teal)/0.5)]')}>
-                {b.name}
-              </span>
-              {b.done && <span className="shrink-0 rounded-full bg-[hsl(var(--travel-teal))]/10 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--travel-teal))]">다녀옴</span>}
-              <button
-                type="button"
-                onClick={() => {
-                  const removed = travelStore.removeBucket(b.id);
-                  if (removed) {
-                    notify.info('지웠어요', {
-                      duration: 4000,
-                      action: { label: '되돌리기', onClick: () => travelStore.restoreBucket(removed) },
-                    });
-                  }
-                }}
-                aria-label="삭제"
-                className="shrink-0 p-1 text-muted-foreground/50 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    </aside>
   );
 }
 

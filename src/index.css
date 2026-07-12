@@ -558,6 +558,34 @@
     background-color: hsl(var(--travel-teal) / 0.18);
   }
 
+  /* 데일리로그 방 임베드 — 방 전체가 크림 라이트 고정이라, 다크 모드에서도
+   * travel 섹션만 어두워져 반쪽 다크가 되는 것을 막는다 (라이트 값 재고정). */
+  .dark .travel-theme.journal-embed {
+    --background: 220 22% 98%;
+    --foreground: 30 12% 16%;
+    --card: 40 35% 99%;
+    --card-foreground: 30 12% 16%;
+    --popover: 40 35% 99%;
+    --popover-foreground: 30 12% 16%;
+    --muted: 40 18% 92%;
+    --muted-foreground: 30 8% 42%;
+    --accent: 40 22% 91%;
+    --accent-foreground: 30 12% 16%;
+    --secondary: 40 22% 91%;
+    --secondary-foreground: 30 8% 36%;
+    --border: 35 14% 84%;
+    --input: 35 14% 84%;
+    --primary: 30 12% 16%;
+    --primary-foreground: 40 35% 99%;
+    --ring: 183 58% 32%;
+    --hairline:  35 14% 86%;
+    --surface-1: 40 35% 99%;
+    --surface-2: 220 22% 98%;
+    --surface-3: 40 22% 93%;
+    --travel-teal: 183 58% 32%;
+    --travel-teal-ink: 0 0% 100%;
+  }
+
   .paper-room {
     /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
      * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */

@@ -9,20 +9,16 @@ import {
   TRAVEL_CHANGED,
   todayKey,
   type BucketPlace,
-  type RecordKind,
-  type TravelRecord,
   type Trip,
 } from '@/types/travel';
 import { notify } from '@/lib/notify';
 
+// 여행 "기록"은 이제 daylogStore(날짜 귀속)가 소유 — 여기는 여행 메타 + 버킷만.
 const TRIPS_KEY = 'travel.trips.v1';
-const RECORDS_KEY = 'travel.records.v1';
 const BUCKET_KEY = 'travel.bucket.v1';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
-const isKind = (v: unknown): v is RecordKind =>
-  v === 'food' || v === 'sight' || v === 'stay' || v === 'move' || v === 'note';
 
 const isoNow = () => new Date().toISOString();
 
@@ -39,27 +35,6 @@ const normalizeTrip = (value: unknown, index: number): Trip | null => {
     startDate,
     endDate,
     cover: typeof value.cover === 'string' && value.cover ? value.cover : undefined,
-    createdAt:
-      typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt))
-        ? value.createdAt
-        : isoNow(),
-  };
-};
-
-const normalizeRecord = (value: unknown, index: number): TravelRecord | null => {
-  if (!isRecord(value)) return null;
-  const text = typeof value.text === 'string' ? value.text.trim() : '';
-  const tripId = typeof value.tripId === 'string' ? value.tripId : '';
-  if (!text || !tripId || !isDate(value.date)) return null;
-  return {
-    id: typeof value.id === 'string' && value.id ? value.id : `trec_recovered_${index}`,
-    tripId,
-    date: value.date,
-    time: typeof value.time === 'string' && /^\d{2}:\d{2}$/.test(value.time) ? value.time : undefined,
-    kind: isKind(value.kind) ? value.kind : 'note',
-    text,
-    place: typeof value.place === 'string' && value.place.trim() ? value.place.trim() : undefined,
-    photo: typeof value.photo === 'string' && value.photo ? value.photo : undefined,
     createdAt:
       typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt))
         ? value.createdAt
@@ -108,7 +83,7 @@ function writeList<T>(key: string, list: T[]): void {
     if (isQuota) {
       if (Date.now() - quotaNotifiedAt > 5000) {
         quotaNotifiedAt = Date.now();
-        notify.error('저장 공간이 가득 차 기록이 저장되지 않았어요', { description: '사진을 줄이거나 오래된 여행을 정리해 주세요.' });
+        notify.error('저장 공간이 가득 차 저장되지 않았어요', { description: '오래된 기록의 사진을 정리해 주세요.' });
       }
     } else {
       console.error('여행기록 저장 실패', err);
@@ -120,7 +95,6 @@ const newId = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 const readTrips = () => readList(TRIPS_KEY, normalizeTrip);
-const readRecords = () => readList(RECORDS_KEY, normalizeRecord);
 const readBucket = () => readList(BUCKET_KEY, normalizeBucket);
 
 export const travelStore = {
@@ -167,76 +141,9 @@ export const travelStore = {
     writeList(TRIPS_KEY, all);
   },
 
-  /** 여행 삭제 — 딸린 기록도 함께 지운다 (기록은 여행 안에서만 의미). */
+  /** 여행 삭제 — 여행 메타만 지운다. 하루 기록(daylog)은 날짜에 남는다. */
   removeTrip(id: string): void {
-    writeList(RECORDS_KEY, readRecords().filter((r) => r.tripId !== id));
     writeList(TRIPS_KEY, readTrips().filter((t) => t.id !== id));
-  },
-
-  /* ── 기록 ─────────────────────────── */
-
-  /** 여행의 기록 — 날짜·시간 오름차순 (시간 없는 기록은 그날 맨 뒤, 입력 순). */
-  listRecords(tripId: string): TravelRecord[] {
-    return readRecords()
-      .filter((r) => r.tripId === tripId)
-      .sort(
-        (a, b) =>
-          a.date.localeCompare(b.date) ||
-          (a.time ?? '99:99').localeCompare(b.time ?? '99:99') ||
-          a.createdAt.localeCompare(b.createdAt),
-      );
-  },
-
-  /** 전체 기록 (발자취 지도용) — 최신 여행 먼저. */
-  listAllRecords(): TravelRecord[] {
-    return readRecords().sort((a, b) => b.date.localeCompare(a.date));
-  },
-
-  addRecord(input: {
-    tripId: string;
-    date: string;
-    time?: string;
-    kind: RecordKind;
-    text: string;
-    place?: string;
-    photo?: string;
-  }): TravelRecord {
-    const record: TravelRecord = {
-      id: newId('trec'),
-      tripId: input.tripId,
-      date: input.date,
-      time: input.time,
-      kind: input.kind,
-      text: input.text.trim(),
-      place: input.place?.trim() || undefined,
-      photo: input.photo || undefined,
-      createdAt: isoNow(),
-    };
-    writeList(RECORDS_KEY, [...readRecords(), record]);
-    return record;
-  },
-
-  updateRecord(id: string, patch: Partial<Omit<TravelRecord, 'id' | 'tripId' | 'createdAt'>>): void {
-    const all = readRecords();
-    const idx = all.findIndex((r) => r.id === id);
-    if (idx === -1) return;
-    all[idx] = { ...all[idx], ...patch };
-    writeList(RECORDS_KEY, all);
-  },
-
-  /** 지운 기록을 반환 — 호출부의 "되돌리기" 토스트용. */
-  removeRecord(id: string): TravelRecord | undefined {
-    const all = readRecords();
-    const removed = all.find((r) => r.id === id);
-    writeList(RECORDS_KEY, all.filter((r) => r.id !== id));
-    return removed;
-  },
-
-  /** 되돌리기 — 지웠던 기록을 원래 id 그대로 복원. */
-  restoreRecord(record: TravelRecord): void {
-    const all = readRecords();
-    if (all.some((r) => r.id === record.id)) return;
-    writeList(RECORDS_KEY, [...all, record]);
   },
 
   /* ── 가고 싶은 곳 ─────────────────── */
