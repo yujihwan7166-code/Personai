@@ -177,7 +177,7 @@ export const LIFE_TOOLS_FEATURED = LIFE_TOOLS.filter((t) => t.featured);
 
 /** 단일 라이프 그룹 (재미·건강·생활 통합). 드롭다운과 모달에서 header 에 사용. */
 export const LIFE_GROUP = {
-  label: '라이프',
+  label: '라이프스타일',
   description: '운세·감정·건강·생활',
 };
 
