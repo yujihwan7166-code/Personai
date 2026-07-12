@@ -14,6 +14,8 @@ import {
   FlaskConical, BookOpen, ChevronDown, ChevronRight, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet, Music, FileText,
+  BarChart3, StickyNote, BookMarked, Package, Ticket, Target, ShoppingBag,
+  Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
 } from 'lucide-react';
@@ -85,13 +87,13 @@ export interface MainModeTabsApi {
 /** 라이프 서브 그룹 — 드롭다운에서 여러 도구를 한 칩으로 묶는 단위. */
 export type LifeSubgroupId = 'fortune' | 'mental' | 'health' | 'money' | 'enjoy' | 'aiplay';
 
-export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string }> = {
-  fortune: { emoji: '🔮', label: '사주·타로·심리',     description: '사주·타로·꿈·토정·MBTI·테스트',     tint: 'hsl(262 70% 55%)' },
+export const LIFE_SUBGROUPS: Record<LifeSubgroupId, { emoji: string; label: string; description: string; tint: string; icon?: LucideIcon }> = {
+  fortune: { emoji: '🔮', label: '사주·타로·심리',     description: '사주·타로·꿈·토정·MBTI·테스트',     tint: 'hsl(262 70% 55%)', icon: Sparkles },
   mental:  { emoji: '🧠', label: '멘탈 테스트',       description: 'MBTI·자가체크·심리 테스트',         tint: 'hsl(210 60% 55%)' },
-  health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)' },
-  money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)' },
-  enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·볼거리·데이트',    tint: 'hsl(25 85% 55%)' },
-  aiplay:  { emoji: '🎮', label: 'AI Play',           description: '캐릭터챗·게임·롤플레이',            tint: 'hsl(280 70% 55%)' },
+  health:  { emoji: '🩺', label: '건강 도우미',       description: '운동·영양제·수면·식단',              tint: 'hsl(170 60% 42%)', icon: HeartPulse },
+  money:   { emoji: '💰', label: '머니·투자·재테크', description: '가계부·세금·투자·대출·부동산·노후', tint: 'hsl(130 55% 40%)', icon: PiggyBank },
+  enjoy:   { emoji: '🎉', label: '놀고·먹고·즐기고',    description: '여행·맛집·놀거리·볼거리·데이트',    tint: 'hsl(25 85% 55%)', icon: PartyPopper },
+  aiplay:  { emoji: '🎮', label: 'AI Play',           description: '캐릭터챗·게임·롤플레이',            tint: 'hsl(280 70% 55%)', icon: Gamepad2 },
 };
 
 /** 라이프 그룹 도구 정의 — 엔터테인먼트·건강·생활 통합. */
@@ -100,6 +102,8 @@ export const LIFE_TOOLS: Array<{
   label: string;
   desc?: string;
   emoji: string;
+  /** 라인 아이콘 — 드롭다운 직행 노출용 (있으면 이모지 대신). */
+  icon?: LucideIcon;
   tint: string;
   /** 드롭다운 직행 노출 여부. false 면 "라이프 더 보기" 또는 서브 그룹에서만 노출. */
   featured: boolean;
@@ -148,7 +152,7 @@ export const LIFE_TOOLS: Array<{
   // ── 기존 비공개 (그룹 미지정) ──
   { id: 'journal',    label: '감정 일기',     desc: '오늘 기분 정리·공감',       emoji: '📔', tint: 'hsl(32 80% 55%)',  featured: false                     },
   { id: 'meditation', label: '명상',          desc: '불안·집중·잠들기',          emoji: '🧘', tint: 'hsl(175 55% 45%)', featured: false                     },
-  { id: 'shopping',   label: '쇼핑 도우미',   desc: '가격 비교 · 리뷰 요약 · 추천', emoji: '🛍️', tint: 'hsl(340 75% 58%)', featured: false                    },
+  { id: 'shopping',   label: '쇼핑 도우미',   desc: '가격 비교 · 리뷰 요약 · 추천', emoji: '🛍️', icon: ShoppingBag, tint: 'hsl(340 75% 58%)', featured: false                    },
 ];
 
 /**
@@ -213,6 +217,8 @@ export interface HubTool {
   label: string;
   desc: string;
   emoji: string;
+  /** 라인 아이콘 — 있으면 이모지 대신 렌더 (메뉴 아이콘 통일, 2026-07-12). */
+  icon?: LucideIcon;
   tint: string;
   axis: HubAxis;
   /** 지정하면 라우팅 대신 해당 모드로 전환 (스터디룸·회의록 이사분). */
@@ -223,19 +229,19 @@ export interface HubTool {
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) — 준비중(pending)은 맨 아래로 모음 ─────────────────
-  { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', tint: 'hsl(220 70% 55%)', axis: '정리' },
-  { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', tint: 'hsl(262 70% 55%)', axis: '정리' },
-  { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
-  { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
-  { id: 'people',     label: '인맥노트 (이름미정)', desc: '사람 카드 · 경조사 · 선물',       emoji: '📇', tint: 'hsl(340 60% 50%)', axis: '정리', pending: true },
-  { id: 'belongings', label: '내 물건 위치 (이름미정)', desc: '어디에 뒀는지 · 소재 대장',    emoji: '📦', tint: 'hsl(28 76% 47%)',  axis: '정리', pending: true },
+  { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
+  { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', icon: Globe,      tint: 'hsl(262 70% 55%)', axis: '정리' },
+  { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
+  { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', icon: Mic,        tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
+  { id: 'people',     label: '인맥노트 (이름미정)', desc: '사람 카드 · 경조사 · 선물',       emoji: '📇', icon: Contact,    tint: 'hsl(340 60% 50%)', axis: '정리', pending: true },
+  { id: 'belongings', label: '내 물건 위치 (이름미정)', desc: '어디에 뒀는지 · 소재 대장',    emoji: '📦', icon: Package,    tint: 'hsl(28 76% 47%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
-  { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', tint: 'hsl(150 55% 45%)', axis: '기록' },
-  { id: 'journal',    label: '일기',               desc: '하루 기록 · 감정',               emoji: '📖', tint: 'hsl(280 60% 55%)', axis: '기록' },
-  { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', tint: 'hsl(6 70% 51%)',  axis: '기록' },
-  { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
-  { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
-  { id: 'bucketlist', label: '버킷리스트 (이름미정)', desc: '하고 싶은 것 · 이룬 것',        emoji: '🎯', tint: 'hsl(280 60% 55%)', axis: '기록', pending: true },
+  { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
+  { id: 'journal',    label: '일기',               desc: '하루 기록 · 감정',               emoji: '📖', icon: BookMarked, tint: 'hsl(280 60% 55%)', axis: '기록' },
+  { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
+  { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', icon: HeartPulse, tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
+  { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
+  { id: 'bucketlist', label: '버킷리스트 (이름미정)', desc: '하고 싶은 것 · 이룬 것',        emoji: '🎯', icon: Target,     tint: 'hsl(280 60% 55%)', axis: '기록', pending: true },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -243,7 +249,7 @@ export const MODE_ICON: Record<MainMode, LucideIcon> = {
   multi:            GitMerge,
   brainstorm_main:  Sparkles,
   stakeholder_main: Users,
-  premium_main:     Shield,
+  premium_main:     Gem,
   debate:           Swords,
   assistant:        Wrench,
   player:           Sparkles,
@@ -805,13 +811,13 @@ export function MainModeTabs({
         )}
       >
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
           }}
         >
-          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.1 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -837,7 +843,7 @@ export function MainModeTabs({
       className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
     >
       <span
-        className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
       >
         <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
@@ -863,10 +869,12 @@ export function MainModeTabs({
       )}
     >
       <span
-        className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
+        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+        style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`, color: tool.tint }}
       >
-        <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
+        {tool.icon
+          ? (() => { const ToolIcon = tool.icon; return <ToolIcon className="h-[18px] w-[18px]" strokeWidth={1.9} />; })()
+          : <span className="text-[16px] leading-none select-none">{tool.emoji}</span>}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -950,10 +958,12 @@ export function MainModeTabs({
           )}
         >
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-            style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)` }}
+            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+            style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)`, color: group.tint }}
           >
-            <span className="text-[16px] leading-none select-none">{group.emoji}</span>
+            {group.icon
+              ? (() => { const GroupIcon = group.icon; return <GroupIcon className="h-[18px] w-[18px]" strokeWidth={1.9} />; })()
+              : <span className="text-[16px] leading-none select-none">{group.emoji}</span>}
           </span>
           <span className="min-w-0 flex-1">
             <span className={cn('block text-[12.5px] leading-tight truncate', isOpen ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -984,7 +994,7 @@ export function MainModeTabs({
                     className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                   >
                     <span
-                      className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
                       style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
                     >
                       <span className="text-[16px] leading-none select-none">✨</span>
@@ -1015,9 +1025,14 @@ export function MainModeTabs({
     if (t.kind === 'debate') { const d = DEBATE_SUBS.find((s) => s.key === t.sub); const Icon = d?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
     if (t.kind === 'premium') { const p = PREMIUM_AI_TOOLS.find((x) => x.key === t.domainId); const Icon = p?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
     if (t.kind === 'assistant') { const a = ASSISTANT_TILES.find((x) => x.cardId === t.cardId); const Icon = a?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
-    if (t.kind === 'life') { const l = LIFE_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[17px] leading-none">{l?.emoji ?? '✨'}</span>; }
+    if (t.kind === 'life') {
+      const l = LIFE_TOOLS.find((x) => x.id === t.toolId);
+      if (l?.icon) { const LifeIcon = l.icon; return <LifeIcon className="h-[17px] w-[17px]" strokeWidth={2} />; }
+      return <span className="select-none text-[17px] leading-none">{l?.emoji ?? '✨'}</span>;
+    }
     if (t.kind === 'player') { const p = PLAYER_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[17px] leading-none">{p?.emoji ?? '🎮'}</span>; }
     const h = HUB_TOOLS.find((x) => x.id === t.hubId);
+    if (h?.icon) { const HubIcon = h.icon; return <HubIcon className="h-[17px] w-[17px]" strokeWidth={2} />; }
     return <span className="select-none text-[17px] leading-none">{h?.emoji ?? '📄'}</span>;
   };
 
@@ -1056,13 +1071,13 @@ export function MainModeTabs({
         )}
       >
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
           }}
         >
-          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.1 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1094,13 +1109,13 @@ export function MainModeTabs({
         )}
       >
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
           }}
         >
-          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.1 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1130,13 +1145,13 @@ export function MainModeTabs({
         )}
       >
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
           }}
         >
-          <Icon className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.1 : 1.8} />
         </span>
         <span className="min-w-0 flex-1">
           <span className={cn('block text-[12.5px] leading-tight truncate', isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -1517,7 +1532,7 @@ export function MainModeTabs({
                             className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                           >
                             <span
-                              className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+                              className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
                               style={{ backgroundColor: `color-mix(in oklab, ${m.tint} 12%, transparent)` }}
                             >
                               <span className="text-[14px] leading-none select-none">{m.emoji}</span>
@@ -1950,10 +1965,10 @@ export function MainModeTabs({
                                         className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
                                       >
                                         <span
-                                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                                           style={{ backgroundColor: 'color-mix(in oklab, hsl(262 70% 55%) 12%, transparent)' }}
                                         >
-                                          <span className="select-none text-[16px] leading-none">🤖</span>
+                                          <Bot className="h-[18px] w-[18px]" strokeWidth={1.9} style={{ color: 'hsl(262 70% 55%)' }} />
                                         </span>
                                         <span className="min-w-0 flex-1">
                                           <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">나만의 AI</span>
@@ -1979,13 +1994,13 @@ export function MainModeTabs({
                                         )}
                                       >
                                         <span
-                                          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.premium_main} 12%, transparent)`,
                                             color: MODE_TINT.premium_main,
                                           }}
                                         >
-                                          <Shield className="h-3.5 w-3.5" strokeWidth={isPremiumActive ? 2.2 : 1.8} />
+                                          <Gem className="h-[18px] w-[18px]" strokeWidth={isPremiumActive ? 2.1 : 1.8} />
                                         </span>
                                         <span className="min-w-0 flex-1">
                                           <span className={cn('block text-[12.5px] leading-tight truncate', isPremiumActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -2018,7 +2033,7 @@ export function MainModeTabs({
                                               )}
                                             >
                                               <span
-                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                                                 style={{
                                                   backgroundColor: `color-mix(in oklab, ${MODE_TINT.research_main} 12%, transparent)`,
                                                   color: MODE_TINT.research_main,
@@ -2078,13 +2093,13 @@ export function MainModeTabs({
                                         )}
                                       >
                                         <span
-                                          className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
                                             color: MODE_TINT.debate,
                                           }}
                                         >
-                                          <Swords className="h-3.5 w-3.5" strokeWidth={isDebateActive ? 2.2 : 1.8} />
+                                          <Swords className="h-[18px] w-[18px]" strokeWidth={isDebateActive ? 2.1 : 1.8} />
                                         </span>
                                         <span className="min-w-0 flex-1">
                                           <span className={cn('block text-[12.5px] leading-tight truncate', isDebateActive ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
@@ -2115,10 +2130,10 @@ export function MainModeTabs({
                                         className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
                                       >
                                         <span
-                                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                                           style={{ backgroundColor: 'color-mix(in oklab, hsl(215 70% 45%) 12%, transparent)' }}
                                         >
-                                          <span className="select-none text-[16px] leading-none">🏢</span>
+                                          <Building2 className="h-[18px] w-[18px]" strokeWidth={1.9} style={{ color: 'hsl(215 70% 45%)' }} />
                                         </span>
                                         <span className="min-w-0 flex-1">
                                           <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">나만의 AI 컴퍼니</span>
@@ -2142,7 +2157,7 @@ export function MainModeTabs({
                               role="menuitem"
                               className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
                             >
-                              <span className="flex h-8 w-8 items-center justify-center rounded-md shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                              <span className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
                                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                               </span>
                               <span className="min-w-0 flex-1 flex items-center gap-1.5">
@@ -2206,10 +2221,12 @@ export function MainModeTabs({
                           )}
                         >
                           <span
-                            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-                            style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)` }}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                            style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)`, color: item.tint }}
                           >
-                            <span className="text-[16px] leading-none select-none">{item.emoji}</span>
+                            {item.icon
+                              ? (() => { const ItemIcon = item.icon; return <ItemIcon className="h-[18px] w-[18px]" strokeWidth={1.9} />; })()
+                              : <span className="text-[16px] leading-none select-none">{item.emoji}</span>}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[12.5px] leading-tight truncate font-medium text-foreground/90">
@@ -2296,10 +2313,10 @@ export function MainModeTabs({
                           )}
                         >
                           <span
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                             style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 12%, transparent)`, color: tile.tint }}
                           >
-                            <Icon className="h-4 w-4" strokeWidth={1.9} />
+                            <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">{tile.label}</span>
