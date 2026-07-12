@@ -72,8 +72,17 @@ export function TodayView({
 
   return (
     <div className="pb-8">
-      <p className="mb-4 text-[12px] text-muted-foreground">
+      {/* 오늘 요약 한 줄 — 날짜 + 지금 기다리는 챙김의 양 */}
+      <p className="mb-4 text-[12.5px] text-muted-foreground">
         {td.getFullYear()}년 {td.getMonth() + 1}월 {td.getDate()}일 {WEEKDAY[td.getDay()]}요일
+        {(overdue.length > 0 || upcoming.length > 0) && (
+          <span className="ml-2 font-semibold text-foreground/75">
+            — {overdue.length > 0 && <>안부 <b className="text-[hsl(var(--people-accent))]">{overdue.length}</b></>}
+            {overdue.length > 0 && upcoming.length > 0 && ' · '}
+            {upcoming.length > 0 && <>경조사 <b className="text-[hsl(var(--people-accent))]">{upcoming.length}</b>건</>}
+            이 기다려요
+          </span>
+        )}
       </p>
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -152,7 +161,13 @@ export function TodayView({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-bold">{u.person.name}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">{u.label}</span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {u.label}
+                          {/* 선물 힌트 — 기억해둔 취향이 D-day 순간에 되살아난다 */}
+                          {u.person.likes.length > 0 && (
+                            <span className="text-[hsl(150_38%_34%)]"> · 좋아함: {u.person.likes.slice(0, 3).join(', ')}</span>
+                          )}
+                        </span>
                       </span>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${u.dday <= 3 ? 'bg-[hsl(var(--people-accent))] text-[hsl(var(--people-accent-ink))]' : 'bg-[hsl(var(--people-accent))]/10 text-[hsl(var(--people-accent))]'}`}>
                         {u.dday === 0 ? 'D-DAY' : `D-${u.dday}`}

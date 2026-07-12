@@ -9,16 +9,33 @@ export interface Overdue {
   months: number;
 }
 
-export function computeOverdue(persons: Person[], interactions: Interaction[], today: string): Overdue[] {
-  const lastByPerson = new Map<string, string>();
+/** 사람별 마지막 연락 날짜(YYYY-MM-DD) — 기록이 없으면 등록일(로컬 캘린더 날짜). */
+export function lastContactMap(persons: Person[], interactions: Interaction[]): Map<string, string> {
+  const map = new Map<string, string>();
   for (const x of interactions) {
-    const prev = lastByPerson.get(x.personId);
-    if (!prev || x.date > prev) lastByPerson.set(x.personId, x.date);
+    const prev = map.get(x.personId);
+    if (!prev || x.date > prev) map.set(x.personId, x.date);
   }
-  const out: Overdue[] = [];
   for (const p of persons) {
     // createdAt 은 UTC ISO — 로컬 캘린더 날짜로 변환 (프로젝트 로컬 YMD 규칙)
-    const last = lastByPerson.get(p.id) ?? toLocalYMD(new Date(p.createdAt));
+    if (!map.has(p.id)) map.set(p.id, toLocalYMD(new Date(p.createdAt)));
+  }
+  return map;
+}
+
+/** "N일 전 / N개월 전" 상대 라벨. */
+export function agoContactLabel(lastYYYYMMDD: string, today: string): string {
+  const days = Math.max(0, diffDays(lastYYYYMMDD, today));
+  if (days === 0) return '오늘 연락';
+  if (days < 30) return `${days}일 전 연락`;
+  return `${Math.floor(days / 30)}개월 전 연락`;
+}
+
+export function computeOverdue(persons: Person[], interactions: Interaction[], today: string): Overdue[] {
+  const lastByPerson = lastContactMap(persons, interactions);
+  const out: Overdue[] = [];
+  for (const p of persons) {
+    const last = lastByPerson.get(p.id)!;
     const months = Math.floor(diffDays(last, today) / 30);
     if (months >= CLOSENESS_META[p.closeness].pingMonths) out.push({ person: p, months });
   }

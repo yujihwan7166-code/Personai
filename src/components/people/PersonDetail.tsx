@@ -11,9 +11,11 @@ import { useInteractions } from '@/hooks/usePeople';
 import { Avatar } from '@/components/people/PersonsView';
 import { todayKey } from '@/types/travel';
 import {
-  CLOSENESS_META, INTERACTION_META, RELATION_META, isValidMonthDay,
+  CLOSENESS_META, INTERACTION_META, RELATION_META, avatarColor, isValidMonthDay,
   type Interaction, type InteractionKind, type Person,
 } from '@/types/people';
+import { agoContactLabel } from '@/lib/people/overdue';
+import { toLocalYMD } from '@/types/travel';
 
 const cardCls = 'rounded-2xl border border-[hsl(var(--foreground)/0.09)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12)]';
 
@@ -51,8 +53,11 @@ export function PersonDetail({
         <ChevronLeft className="h-3.5 w-3.5" /> 목록으로
       </button>
 
-      {/* 프로필 카드 */}
-      <div className={cn(cardCls, 'mb-4 p-5')}>
+      {/* 프로필 카드 — 아바타 색이 은은하게 스며든 개인화 배경 */}
+      <div
+        className={cn(cardCls, 'mb-4 p-5')}
+        style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${avatarColor(p.name)} 9%, transparent), transparent 58%)` }}
+      >
         <div className="flex flex-wrap items-start gap-4">
           <Avatar name={p.name} size={60} />
           <div className="min-w-0 flex-1">
@@ -68,9 +73,21 @@ export function PersonDetail({
               </div>
             )}
             <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
-              {p.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" /> {p.phone}</span>}
+              {p.phone && (
+                <button
+                  type="button"
+                  onClick={() => { void navigator.clipboard.writeText(p.phone!).then(() => notify.copied()).catch(() => notify.error('복사 실패')); }}
+                  title="클릭해서 복사"
+                  className="inline-flex items-center gap-1 rounded transition-colors hover:text-[hsl(var(--people-accent))]"
+                >
+                  <Phone className="h-3 w-3" /> {p.phone}
+                </button>
+              )}
               {p.region && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.region}</span>}
               {p.birthday && <span className="inline-flex items-center gap-1"><Cake className="h-3 w-3" /> {Number(p.birthday.slice(0, 2))}월 {Number(p.birthday.slice(3))}일</span>}
+              <span className="tabular-nums text-muted-foreground/80">
+                {agoContactLabel(interactions[0]?.date ?? toLocalYMD(new Date(p.createdAt)), toLocalYMD(new Date()))}
+              </span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

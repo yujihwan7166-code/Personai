@@ -165,7 +165,7 @@ export default function People() {
           ) : view === 'today' ? (
             <TodayView persons={persons} interactions={interactions} onOpenPerson={goPerson} />
           ) : view === 'persons' ? (
-            <PersonsView persons={persons} onOpen={goPerson} />
+            <PersonsView persons={persons} interactions={interactions} onOpen={goPerson} />
           ) : (
             <EventsCalendar persons={persons} onOpenPerson={goPerson} />
           )}
