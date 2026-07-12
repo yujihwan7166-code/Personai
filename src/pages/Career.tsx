@@ -167,16 +167,31 @@ function LedgerFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** 교정 인장 — 아직 완성되지 않은 원고. 페이지 헤더에 찍는 인라인 칩, 찍은 달 포함. */
-function ProofStamp() {
-  const month = new Date().toISOString().slice(0, 7).replace('-', '.');
+/** 검인(檢印) — 이 원고에 실린 "이룬 것"의 수를 찍는 이중 테두리 인장.
+ * 마스트헤드 양식(제목=주어, 실데이터=서술어)의 커리어 판 — 기록이 쌓일수록 숫자가 자란다.
+ * 아직 0건이면 옛 "기록 중" 문구로 원고가 준비 중임을 알린다. */
+function ProofStamp({ count }: { count: number }) {
+  if (count === 0) {
+    const month = new Date().toISOString().slice(0, 7).replace('-', '.');
+    return (
+      <div
+        aria-hidden
+        className="pointer-events-none inline-flex rotate-[3deg] items-baseline gap-1.5 border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-0.5 mix-blend-multiply dark:mix-blend-normal"
+      >
+        <span className="text-[11px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.8)]">기록 중</span>
+        <span className="career-mono text-[9px] text-[hsl(var(--career-red)/0.6)]">{month}</span>
+      </div>
+    );
+  }
   return (
     <div
       aria-hidden
-      className="pointer-events-none inline-flex rotate-[3deg] items-baseline gap-1.5 border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-0.5 mix-blend-multiply dark:mix-blend-normal"
+      className="pointer-events-none rotate-[3deg] rounded-[7px] border-2 border-[hsl(var(--career-red)/0.55)] p-[3px] mix-blend-multiply dark:mix-blend-normal"
     >
-      <span className="text-[11px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.8)]">기록 중</span>
-      <span className="career-mono text-[9px] text-[hsl(var(--career-red)/0.6)]">{month}</span>
+      <div className="rounded-[4px] border border-[hsl(var(--career-red)/0.38)] px-2.5 pb-1 pt-[3px] text-center">
+        <span className="career-mono block text-[16px] font-bold leading-none tabular-nums text-[hsl(var(--career-red)/0.85)]">{count}</span>
+        <span className="mt-[3px] block text-[8px] font-bold tracking-[0.22em] text-[hsl(var(--career-red)/0.6)]">이룬 것</span>
+      </div>
     </div>
   );
 }
@@ -535,7 +550,7 @@ function BoardLedger() {
         <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
           {/* 방 색 틴트 — 레일 P 마크와 짝. */}
           <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
-          <ProofStamp />
+          <ProofStamp count={items.length} />
         </header>
 
         {/* ══════ 우 — 작성대 도크: 맨 위부터 전체 높이, 독립 스크롤 (모바일에선 마스트헤드 아래) ══════ */}
