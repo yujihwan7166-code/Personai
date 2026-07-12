@@ -1919,7 +1919,7 @@ export function MainModeTabs({
                     return (
                       <div key={group.label} className={cn(colClass, 'row-start-1 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3')}>
                         {/* 헤더 — 색 바 + 15px 제목 + 밑괘선 (커리어 보드 섹션 문법) */}
-                        <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-2 pb-2">
+                        <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                           <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: group.tint }} />
                           <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                             {group.label}
@@ -2163,8 +2163,8 @@ export function MainModeTabs({
                   })}
               {/* 노트 (Col 2-3, Row 2): 계획 / 기록 2 sub-col 좌우 분할.
                   단일 헤더가 두 컬럼 위에 spans. */}
-              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-4 border-l border-[hsl(var(--hairline))]/70 pl-3">
-                <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-2 pb-2">
+              <div className="col-start-2 col-span-2 row-start-2 min-w-0 flex flex-col mt-6 border-l border-[hsl(var(--hairline))]/70 pl-3">
+                <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                   <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(150 55% 42%)' }} />
                   <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                     노트
@@ -2237,7 +2237,7 @@ export function MainModeTabs({
               {/* 라이프 (Col 4): row-span-2 풀 높이 — 재미·건강·생활 + featured 캐릭터/게임 */}
               <div className="col-start-4 col-span-2 row-span-2 min-w-0 flex flex-col border-l border-[hsl(var(--hairline))]/70 pl-3">
                 <div>
-                  <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-2 pb-2">
+                  <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(25 85% 55%)' }} />
                     <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                       {LIFE_GROUP.label}
@@ -2268,8 +2268,8 @@ export function MainModeTabs({
                 </div>
 
                 {/* ── 어시스턴트 — 실무 도구 (라이프 아래, 같은 카드 문법. 2026-07-12 하단 밴드에서 이사) ── */}
-                <div className="mt-4">
-                  <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-2 pb-2">
+                <div className="mt-6">
+                  <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                     <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(330 65% 52%)' }} />
                     <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">어시스턴트</span>
                     <button
@@ -2323,7 +2323,7 @@ export function MainModeTabs({
             {/* ── 바텀 독 — ★ 즐겨찾기 (개인 바로가기. 북마크 위젯 통합, 2026-07-12) ── */}
             <div className="border-t border-[hsl(var(--hairline))]" aria-hidden />
             <div className="px-5 py-3.5">
-              <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-1 pb-2">
+              <div className="mb-2.5 flex items-center gap-2 px-1">
                 <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(42 95% 50%)' }} />
                 <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
                   즐겨찾기
