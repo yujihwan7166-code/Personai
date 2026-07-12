@@ -21,6 +21,7 @@ const Planner = lazy(() => import("./pages/Planner"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Career = lazy(() => import("./pages/Career"));
+const People = lazy(() => import("./pages/People"));
 const Cloud = lazy(() => import("./pages/Cloud"));
 const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
 const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/career" element={<AppWorkspaceShell current="career"><Career /></AppWorkspaceShell>} />
               {/* 트래블 로그는 데일리로그 방의 섹션 — 옛 주소는 리다이렉트 */}
               <Route path="/travel" element={<Navigate to="/journal?view=travel" replace />} />
+              <Route path="/people" element={<AppWorkspaceShell current="people"><People /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

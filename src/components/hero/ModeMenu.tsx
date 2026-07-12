@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Star,
-  CalendarDays, Globe, Cloud, StickyNote, NotebookPen, Award, Plane,
+  CalendarDays, Globe, Cloud, StickyNote, NotebookPen, Award, Plane, Contact,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,7 @@ export const HUB_ICONS: Record<string, LucideIcon> = {
   journal: NotebookPen,
   career: Award,
   travel: Plane,
+  people: Contact,
 };
 
 /* ── 즐겨찾기 — useFavoriteModes 공유 스토어 (히어로 칩 줄과 실시간 동기화) ── */
@@ -264,6 +265,7 @@ export function ModeMenu({
             target.hubId === 'journal' ? '/journal' :
             target.hubId === 'career' ? '/career' :
             target.hubId === 'travel' ? '/journal?view=travel' :
+            target.hubId === 'people' ? '/people' :
             target.hubId === 'cloud' ? '/cloud' : null;
           if (route) navigate(route);
           break;
