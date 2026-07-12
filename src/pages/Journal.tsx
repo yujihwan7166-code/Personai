@@ -17,9 +17,6 @@ import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
-import { DaylogTimeline } from '@/components/journal/DaylogTimeline';
-import { DaylogMap } from '@/components/journal/DaylogMap';
-import { TripsView } from '@/components/journal/TripsView';
 
 const CREAM: CSSProperties = {
   // 워크스페이스 공통 쿨 화이트 캐논 (플래너·노트·커리어와 동일 공식):
@@ -101,7 +98,7 @@ const sid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-type Tab = 'write' | 'calendar' | 'map' | 'trips' | 'stats';
+type Tab = 'write' | 'calendar' | 'stats';
 
 export default function Journal() {
   const allEntries = useJournal();
@@ -465,7 +462,7 @@ export default function Journal() {
           {!(tab === 'write' && detailOpen) && (
             <div className="mb-5 flex items-center justify-between">
               <div className="inline-flex rounded-full bg-[hsl(var(--cream-card))] p-1">
-                {([['write', '기록'], ['calendar', '달력'], ['map', '지도'], ['trips', '여행'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
+                {([['write', '기록'], ['calendar', '달력'], ['stats', '통계']] as [Tab, string][]).map(([id, label]) => (
                   <button key={id} type="button" onClick={() => setTab(id)} className={cn('rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors', tab === id ? 'bg-[hsl(var(--cream-dark))] text-white' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]')}>{label}</button>
                 ))}
               </div>
@@ -486,8 +483,6 @@ export default function Journal() {
           {/* ── 기록 탭: 목록 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-5">
-              {/* 데이로그 층 — 오늘의 기록 타임라인 (일기와 별도 저장) */}
-              <DaylogTimeline date={todayKey} />
               {feed.length === 0 && (
                 <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
                   <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
@@ -569,9 +564,6 @@ export default function Journal() {
                   )}
                 </div>
               </div>
-
-              {/* 데이로그 층 — 그날의 기록 타임라인 (위=기록, 아래=회고) */}
-              <DaylogTimeline date={selectedDate} className="mb-4" />
 
               {!editing && current ? (
                 /* 보기 모드 */
@@ -798,12 +790,6 @@ export default function Journal() {
               </div>
             </div>
           )}
-
-          {/* ── 지도 탭 (발자취) ── */}
-          {tab === 'map' && <DaylogMap />}
-
-          {/* ── 여행 탭 (묶음) ── */}
-          {tab === 'trips' && <TripsView />}
 
           {/* ── 통계 탭 ── */}
           {tab === 'stats' && <StatsView entries={allEntries} streak={streak} monthCount={monthCount} />}
