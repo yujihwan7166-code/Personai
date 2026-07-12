@@ -1011,14 +1011,14 @@ export function MainModeTabs({
   /** 독 칩 아이콘 — FavEntry.target 에서 원본 아이템의 아이콘/이모지를 복원. */
   const favVisual = (entry: FavEntry): ReactNode => {
     const t = entry.target;
-    if (t.kind === 'mode') { const Icon = MODE_ICON[t.mode] as LucideIcon | undefined; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
-    if (t.kind === 'debate') { const d = DEBATE_SUBS.find((s) => s.key === t.sub); const Icon = d?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
-    if (t.kind === 'premium') { const p = PREMIUM_AI_TOOLS.find((x) => x.key === t.domainId); const Icon = p?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
-    if (t.kind === 'assistant') { const a = ASSISTANT_TILES.find((x) => x.cardId === t.cardId); const Icon = a?.icon; return Icon ? <Icon className="h-4 w-4" strokeWidth={2} /> : <Star size={14} />; }
-    if (t.kind === 'life') { const l = LIFE_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[15px] leading-none">{l?.emoji ?? '✨'}</span>; }
-    if (t.kind === 'player') { const p = PLAYER_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[15px] leading-none">{p?.emoji ?? '🎮'}</span>; }
+    if (t.kind === 'mode') { const Icon = MODE_ICON[t.mode] as LucideIcon | undefined; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
+    if (t.kind === 'debate') { const d = DEBATE_SUBS.find((s) => s.key === t.sub); const Icon = d?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
+    if (t.kind === 'premium') { const p = PREMIUM_AI_TOOLS.find((x) => x.key === t.domainId); const Icon = p?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
+    if (t.kind === 'assistant') { const a = ASSISTANT_TILES.find((x) => x.cardId === t.cardId); const Icon = a?.icon; return Icon ? <Icon className="h-[17px] w-[17px]" strokeWidth={2} /> : <Star size={16} />; }
+    if (t.kind === 'life') { const l = LIFE_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[17px] leading-none">{l?.emoji ?? '✨'}</span>; }
+    if (t.kind === 'player') { const p = PLAYER_TOOLS.find((x) => x.id === t.toolId); return <span className="select-none text-[17px] leading-none">{p?.emoji ?? '🎮'}</span>; }
     const h = HUB_TOOLS.find((x) => x.id === t.hubId);
-    return <span className="select-none text-[15px] leading-none">{h?.emoji ?? '📄'}</span>;
+    return <span className="select-none text-[17px] leading-none">{h?.emoji ?? '📄'}</span>;
   };
 
   /** 독 칩 클릭 — 원본 아이템과 같은 동작으로 라우팅. */
@@ -2365,10 +2365,10 @@ export function MainModeTabs({
                         className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left transition-all duration-150 hover:-translate-y-0.5"
                         style={{ backgroundColor: `color-mix(in oklab, ${f.tint} 10%, transparent)` }}
                       >
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center" style={{ color: f.tint }}>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center" style={{ color: f.tint }}>
                           {favVisual(f)}
                         </span>
-                        <span className="min-w-0 truncate text-[11.5px] font-semibold text-foreground/85">{f.label}</span>
+                        <span className="min-w-0 truncate text-[12.5px] font-semibold text-foreground/85">{f.label}</span>
                       </button>
                       <button
                         type="button"
@@ -2400,10 +2400,10 @@ export function MainModeTabs({
                         className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left transition-all duration-150 hover:-translate-y-0.5"
                         style={{ backgroundColor: `color-mix(in oklab, ${spotlightPick.tint} 10%, transparent)` }}
                       >
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center" style={{ color: spotlightPick.tint }}>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center" style={{ color: spotlightPick.tint }}>
                           {favVisual({ id: spotlightPick.id, label: spotlightPick.label, tint: spotlightPick.tint, target: spotlightPick.target })}
                         </span>
-                        <span className="min-w-0 truncate text-[11.5px] font-semibold text-foreground/85">{spotlightPick.label}</span>
+                        <span className="min-w-0 truncate text-[12.5px] font-semibold text-foreground/85">{spotlightPick.label}</span>
                       </button>
                       <span
                         className={cn(
