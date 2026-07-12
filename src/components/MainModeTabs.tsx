@@ -2193,7 +2193,7 @@ export function MainModeTabs({
                 <div className="mb-2.5 flex items-center gap-2 border-b border-[hsl(var(--foreground)/0.18)] px-2 pb-2">
                   <span aria-hidden className="h-[14px] w-[3px] shrink-0 rounded-full" style={{ backgroundColor: 'hsl(150 55% 42%)' }} />
                   <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
-                    노트
+                    마이스페이스
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-3">
