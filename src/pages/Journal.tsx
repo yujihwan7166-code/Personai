@@ -17,6 +17,7 @@ import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
 import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
+import { DaylogTimeline } from '@/components/journal/DaylogTimeline';
 
 const CREAM: CSSProperties = {
   // 워크스페이스 공통 쿨 화이트 캐논 (플래너·노트·커리어와 동일 공식):
@@ -483,6 +484,8 @@ export default function Journal() {
           {/* ── 기록 탭: 목록 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-5">
+              {/* 데이로그 층 — 오늘의 조각 타임라인 (일기와 별도 저장) */}
+              <DaylogTimeline date={todayKey} />
               {feed.length === 0 && (
                 <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
                   <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
@@ -564,6 +567,9 @@ export default function Journal() {
                   )}
                 </div>
               </div>
+
+              {/* 데이로그 층 — 그날의 조각 타임라인 (위=조각, 아래=회고) */}
+              <DaylogTimeline date={selectedDate} className="mb-4" />
 
               {!editing && current ? (
                 /* 보기 모드 */
