@@ -147,15 +147,21 @@ export default function Journal() {
   const [tab, setTab] = useState<Tab>('write');
   const [tripToOpen, setTripToOpen] = useState<string | null>(null);
   const location = useLocation();
-  // 메뉴·즐겨찾기에서 /journal?view=… 로 들어오면 해당 섹션으로 (구 ?tab=trips 도 수용, 재진입은 key 로 감지)
+  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
+  const [calAnchor, setCalAnchor] = useState(() => new Date());
+  const [editing, setEditing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
+  const [query, setQuery] = useState('');
+
+  // 메뉴·즐겨찾기에서 /journal?view=… 로 들어오면 해당 섹션으로 (구 ?tab=trips 도 수용, 재진입은 key 로 감지).
+  // ?view 없이 /journal 로 재진입(레일·메뉴의 "데일리로그")하면 홈 섹션으로 리셋 — 무반응처럼 보이는 것 방지.
+  // ⚠ effect 는 반드시 위 state 선언들 뒤에 — deps/콜백이 선언 전 변수를 참조하면 TDZ 크래시.
   useEffect(() => {
     const p = new URLSearchParams(location.search);
     const v = p.get('view') ?? (p.get('tab') === 'trips' ? 'travel' : null);
-    if (!v) return;
     const mapView: Record<string, Tab> = {
       daily: 'write', calendar: 'calendar', travel: 'trips', map: 'map', food: 'food', stats: 'stats',
     };
-    // ?view 없이 /journal 로 재진입(레일·메뉴의 "데일리로그")하면 홈 섹션으로 리셋 — 무반응처럼 보이는 것 방지
     const next = v ? mapView[v] : 'write';
     if (next) {
       setTab(next);
@@ -174,11 +180,6 @@ export default function Journal() {
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
   }, [tab, detailOpen, selectedDate]);
-  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
-  const [calAnchor, setCalAnchor] = useState(() => new Date());
-  const [editing, setEditing] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
-  const [query, setQuery] = useState('');
 
   // 에디터 로컬 상태
   const [title, setTitle] = useState('');
