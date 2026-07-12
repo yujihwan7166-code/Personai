@@ -805,13 +805,13 @@ export function MainModeTabs({
         onClick={() => handleSelect(m)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
@@ -840,10 +840,10 @@ export function MainModeTabs({
       type="button"
       onClick={() => handleSelectPlayerTool(tool.id)}
       role="menuitem"
-      className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+      className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
     >
       <span
-        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)` }}
       >
         <span className="text-[16px] leading-none select-none">{tool.emoji}</span>
@@ -864,12 +864,12 @@ export function MainModeTabs({
       onClick={() => handleSelectLifeTool(tool.id)}
       role="menuitem"
       className={cn(
-        'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+        'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
         'hover:bg-[hsl(var(--accent))]',
       )}
     >
       <span
-        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+        className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
         style={{ backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`, color: tool.tint }}
       >
         {tool.icon
@@ -952,13 +952,13 @@ export function MainModeTabs({
           aria-haspopup="menu"
           aria-expanded={isOpen}
           className={cn(
-            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+            'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
             'hover:bg-[hsl(var(--accent))]',
             isOpen && 'bg-[hsl(var(--accent))]',
           )}
         >
           <span
-            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
             style={{ backgroundColor: `color-mix(in oklab, ${group.tint} 12%, transparent)`, color: group.tint }}
           >
             {group.icon
@@ -991,10 +991,10 @@ export function MainModeTabs({
                     type="button"
                     onClick={() => { setOpen(false); setTimeout(() => onOpenMentalTests(), 40); }}
                     role="menuitem"
-                    className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                    className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                   >
                     <span
-                      className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
                       style={{ backgroundColor: `color-mix(in oklab, hsl(45 90% 55%) 14%, transparent)` }}
                     >
                       <span className="text-[16px] leading-none select-none">✨</span>
@@ -1065,13 +1065,13 @@ export function MainModeTabs({
         onClick={() => handleSelectAssistantTool(tool.cardId)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
@@ -1103,13 +1103,13 @@ export function MainModeTabs({
         onClick={() => handleSelectSub(sub.key)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
           style={{
             backgroundColor: `color-mix(in oklab, ${tint} 12%, transparent)`,
             color: tint,
@@ -1139,13 +1139,13 @@ export function MainModeTabs({
         onClick={() => handleSelectPremium(tool.key)}
         role="menuitem"
         className={cn(
-          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
           'hover:bg-[hsl(var(--accent))]',
           isActive && 'bg-[hsl(var(--accent))]',
         )}
       >
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
           style={{
             backgroundColor: `color-mix(in oklab, ${tool.tint} 12%, transparent)`,
             color: tool.tint,
@@ -1529,10 +1529,10 @@ export function MainModeTabs({
                                 }
                               }, 40);
                             }}
-                            className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
+                            className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]"
                           >
                             <span
-                              className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                              className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
                               style={{ backgroundColor: `color-mix(in oklab, ${m.tint} 12%, transparent)` }}
                             >
                               <span className="text-[14px] leading-none select-none">{m.emoji}</span>
@@ -1965,7 +1965,7 @@ export function MainModeTabs({
                                         className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
                                       >
                                         <span
-                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
                                           style={{ backgroundColor: 'color-mix(in oklab, hsl(262 70% 55%) 12%, transparent)' }}
                                         >
                                           <Bot className="h-[18px] w-[18px]" strokeWidth={1.9} style={{ color: 'hsl(262 70% 55%)' }} />
@@ -1988,13 +1988,13 @@ export function MainModeTabs({
                                         aria-haspopup="menu"
                                         aria-expanded={premiumOpen}
                                         className={cn(
-                                          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                                          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[hsl(var(--accent))]',
                                           (isPremiumActive || premiumOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
                                         <span
-                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.premium_main} 12%, transparent)`,
                                             color: MODE_TINT.premium_main,
@@ -2028,12 +2028,12 @@ export function MainModeTabs({
                                               onClick={() => handleSelect('research_main')}
                                               role="menuitem"
                                               className={cn(
-                                                'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]',
+                                                'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))]',
                                                 currentMode === 'research_main' && 'bg-[hsl(var(--accent))]',
                                               )}
                                             >
                                               <span
-                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
                                                 style={{
                                                   backgroundColor: `color-mix(in oklab, ${MODE_TINT.research_main} 12%, transparent)`,
                                                   color: MODE_TINT.research_main,
@@ -2087,13 +2087,13 @@ export function MainModeTabs({
                                         aria-haspopup="menu"
                                         aria-expanded={debateOpen}
                                         className={cn(
-                                          'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                                          'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                                           'hover:bg-[hsl(var(--accent))]',
                                           (isDebateActive || debateOpen) && 'bg-[hsl(var(--accent))]',
                                         )}
                                       >
                                         <span
-                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                                          className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
                                           style={{
                                             backgroundColor: `color-mix(in oklab, ${MODE_TINT.debate} 12%, transparent)`,
                                             color: MODE_TINT.debate,
@@ -2130,7 +2130,7 @@ export function MainModeTabs({
                                         className="flex w-full cursor-default items-center gap-2.5 rounded-lg px-2 py-2 text-left opacity-50"
                                       >
                                         <span
-                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
                                           style={{ backgroundColor: 'color-mix(in oklab, hsl(215 70% 45%) 12%, transparent)' }}
                                         >
                                           <Building2 className="h-[18px] w-[18px]" strokeWidth={1.9} style={{ color: 'hsl(215 70% 45%)' }} />
@@ -2155,9 +2155,9 @@ export function MainModeTabs({
                               type="button"
                               onClick={() => handleSelect('assistant')}
                               role="menuitem"
-                              className="flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
+                              className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[hsl(var(--accent))] text-muted-foreground hover:text-foreground"
                             >
-                              <span className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 bg-[hsl(var(--surface-2))] text-muted-foreground">
+                              <span className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110 bg-[hsl(var(--surface-2))] text-muted-foreground">
                                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                               </span>
                               <span className="min-w-0 flex-1 flex items-center gap-1.5">
@@ -2216,12 +2216,12 @@ export function MainModeTabs({
                           }}
                           role="menuitem"
                           className={cn(
-                            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                             item.pending ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
                           )}
                         >
                           <span
-                            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-transform duration-150 group-hover:scale-110"
                             style={{ backgroundColor: `color-mix(in oklab, ${item.tint} 12%, transparent)`, color: item.tint }}
                           >
                             {item.icon
@@ -2310,12 +2310,12 @@ export function MainModeTabs({
                           onClick={() => { if (!tile.placeholder) handleSelectAssistantTool(tile.cardId); }}
                           role="menuitem"
                           className={cn(
-                            'flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
+                            'group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors',
                             tile.placeholder ? 'cursor-default opacity-50' : 'hover:bg-[hsl(var(--accent))]',
                           )}
                         >
                           <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
                             style={{ backgroundColor: `color-mix(in oklab, ${tile.tint} 12%, transparent)`, color: tile.tint }}
                           >
                             <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
