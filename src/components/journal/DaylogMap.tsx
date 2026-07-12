@@ -1,7 +1,7 @@
 /**
- * 발자취 지도 — 장소가 붙은 조각들을 지도에 핀으로.
+ * 발자취 지도 — 장소가 붙은 기록들을 지도에 핀으로.
  *
- * 조각(DayMoment)의 place 를 Nominatim 으로 지오코딩 → Leaflet + CartoDB Positron 타일에 원형 마커.
+ * 기록(DayMoment)의 place 를 Nominatim 으로 지오코딩 → Leaflet + CartoDB Positron 타일에 원형 마커.
  * 같은 장소는 하나의 핀으로 묶고(방문 횟수), 팝업에 방문 기록·사진.
  * 타일은 전세계라 국내·해외 모두 표시. 국내 정밀도는 이후 네이버 프록시로 보강.
  */
@@ -62,7 +62,7 @@ function popupHtml(g: PlaceGroup): string {
 }
 
 interface DaylogMapProps {
-  /** 제어형: 지정하면 이 조각들만 그린다 (여행 상세). 없으면 전체 발자취를 스스로 구독. */
+  /** 제어형: 지정하면 이 기록들만 그린다 (여행 상세). 없으면 전체 발자취를 스스로 구독. */
   moments?: DayMoment[];
   /** 방문 순서대로 핀을 잇는 경로선 표시 (여행용). */
   route?: boolean;
@@ -84,7 +84,7 @@ export function DaylogMap({ moments: momentsProp, route = false, showHeader = tr
 
   const groups = useMemo(() => groupByPlace(moments), [moments]);
 
-  // 조각 변경 구독 (비제어형일 때만)
+  // 기록 변경 구독 (비제어형일 때만)
   useEffect(() => {
     if (controlled) return;
     const sync = () => setSelfMoments(daylogStore.withPlace());
@@ -147,7 +147,7 @@ export function DaylogMap({ moments: momentsProp, route = false, showHeader = tr
     if (!map || !lg) return;
     lg.clearLayers();
 
-    // 경로선: 방문(첫 조각) 시각 순으로 정렬해 해결된 좌표를 잇는다
+    // 경로선: 방문(첫 기록) 시각 순으로 정렬해 해결된 좌표를 잇는다
     if (route) {
       const ordered = [...groups]
         .filter((g) => coords[g.key])
@@ -217,7 +217,7 @@ export function DaylogMap({ moments: momentsProp, route = false, showHeader = tr
         />
         {groups.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-[26px] bg-[hsl(var(--cream-card))]/80 text-center">
-            <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 장소가 붙은 조각이 없어요.</p>
+            <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 장소가 붙은 기록이 없어요.</p>
             <p className="mt-1.5 max-w-[280px] text-[12px] text-[hsl(var(--cream-muted))]/70">
               "홍대 카페 갔다", "스타벅스에서 커피"처럼 장소를 적으면 여기 지도에 핀이 찍혀요.
             </p>

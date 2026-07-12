@@ -1,5 +1,5 @@
 /**
- * 데이로그 훅 — 특정 날짜의 조각 목록 구독.
+ * 데이로그 훅 — 특정 날짜의 기록 목록 구독.
  * daylogStore 의 DAYLOG_CHANGED 이벤트로 자동 갱신 (journal/career 훅 패턴).
  */
 import { useEffect, useState } from 'react';

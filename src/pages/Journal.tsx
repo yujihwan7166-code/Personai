@@ -486,7 +486,7 @@ export default function Journal() {
           {/* ── 기록 탭: 목록 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-5">
-              {/* 데이로그 층 — 오늘의 조각 타임라인 (일기와 별도 저장) */}
+              {/* 데이로그 층 — 오늘의 기록 타임라인 (일기와 별도 저장) */}
               <DaylogTimeline date={todayKey} />
               {feed.length === 0 && (
                 <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
@@ -570,7 +570,7 @@ export default function Journal() {
                 </div>
               </div>
 
-              {/* 데이로그 층 — 그날의 조각 타임라인 (위=조각, 아래=회고) */}
+              {/* 데이로그 층 — 그날의 기록 타임라인 (위=기록, 아래=회고) */}
               <DaylogTimeline date={selectedDate} className="mb-4" />
 
               {!editing && current ? (

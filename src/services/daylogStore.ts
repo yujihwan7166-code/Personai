@@ -86,26 +86,26 @@ const newId = (): string =>
   `dm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 export const daylogStore = {
-  /** 특정 날짜(YYYY-MM-DD)의 조각들 — 시간 오름차순 (타임라인 순). */
+  /** 특정 날짜(YYYY-MM-DD)의 기록들 — 시간 오름차순 (타임라인 순). */
   listByDate(dateYYYYMMDD: string): DayMoment[] {
     return safeRead()
       .filter((m) => m.date === dateYYYYMMDD)
       .sort((a, b) => a.time.localeCompare(b.time) || a.createdAt.localeCompare(b.createdAt));
   },
 
-  /** 조각이 있는 날짜 집합 — 달력 점 표시용. */
+  /** 기록이 있는 날짜 집합 — 달력 점 표시용. */
   datesWithMoments(): Set<string> {
     return new Set(safeRead().map((m) => m.date));
   },
 
-  /** 장소가 있는 조각 전체 — 발자취 지도용 (최신순). */
+  /** 장소가 있는 기록 전체 — 발자취 지도용 (최신순). */
   withPlace(): DayMoment[] {
     return safeRead()
       .filter((m) => !!m.place)
       .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
   },
 
-  /** 날짜 범위 [start, end] 안의 조각 — 여행 묶음용 (날짜·시간 오름차순). */
+  /** 날짜 범위 [start, end] 안의 기록 — 여행 묶음용 (날짜·시간 오름차순). */
   inRange(startYYYYMMDD: string, endYYYYMMDD: string): DayMoment[] {
     const [lo, hi] = startYYYYMMDD <= endYYYYMMDD ? [startYYYYMMDD, endYYYYMMDD] : [endYYYYMMDD, startYYYYMMDD];
     return safeRead()

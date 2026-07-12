@@ -1,6 +1,6 @@
 /**
  * 여행 영속 store — LocalStorage 기반. (daylogStore 패턴 동일)
- * 여행 메타(이름·기간·표지)만 저장. 조각은 daylogStore 가 소유.
+ * 여행 메타(이름·기간·표지)만 저장. 기록은 daylogStore 가 소유.
  */
 import { TRIP_CHANGED, type Trip } from '@/types/trip';
 import { notify } from '@/lib/notify';

@@ -1,8 +1,8 @@
 /**
- * 데이로그 타임라인 — 하루의 "조각" 층 (일기 회고 층 위에 얹힘).
+ * 데이로그 타임라인 — 하루의 "기록" 층 (일기 회고 층 위에 얹힘).
  *
  * 한 줄 입력 → AI가 종류(식사·한일·간곳·본것·메모)·끼니·시간·장소 분류 → 시간순 카드.
- * 조각마다 사진 한 장 첨부 가능 (먹은 것·순간 기록). 디로그(세로 타임라인) + 하루콩(저마찰 한 줄) 문법.
+ * 기록마다 사진 한 장 첨부 가능 (먹은 것·순간 기록). 디로그(세로 타임라인) + 하루콩(저마찰 한 줄) 문법.
  * 일기(회고) 데이터와 완전 분리된 daylogStore 사용.
  */
 import { useRef, useState } from 'react';
@@ -90,7 +90,7 @@ export function DaylogTimeline({ date, className }: { date: string; className?: 
       {/* 헤더 */}
       <div className="flex items-center gap-2">
         <h3 className="shrink-0 text-[13px] font-bold text-[hsl(var(--cream-ink))]/80">
-          {isToday ? '오늘의 조각' : '그날의 조각'}
+          {isToday ? '오늘의 기록' : '그날의 기록'}
         </h3>
         {moments.length > 0 && (
           <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{moments.length}</span>
@@ -109,7 +109,7 @@ export function DaylogTimeline({ date, className }: { date: string; className?: 
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) void submit();
               }}
               placeholder="지금 뭐 해? 뭐 먹었어? — 한 줄이면 돼요"
-              aria-label="오늘의 조각 입력"
+              aria-label="오늘의 기록 입력"
               className="h-10 min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-[hsl(var(--cream-muted))]/60"
             />
             <input
@@ -138,7 +138,7 @@ export function DaylogTimeline({ date, className }: { date: string; className?: 
                 type="button"
                 onClick={() => void submit()}
                 disabled={!draft.trim() && !pendingPhoto}
-                aria-label="조각 추가"
+                aria-label="기록 추가"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--cream-accent))]/12 text-[15px] leading-none text-[hsl(var(--cream-accent))] transition-colors hover:bg-[hsl(var(--cream-accent))]/22 disabled:opacity-35"
               >
                 ↵
@@ -159,16 +159,16 @@ export function DaylogTimeline({ date, className }: { date: string; className?: 
                   <X className="h-2.5 w-2.5" strokeWidth={2.5} />
                 </button>
               </div>
-              <span className="text-[11px] text-[hsl(var(--cream-muted))]/70">사진이 이 조각에 붙어요</span>
+              <span className="text-[11px] text-[hsl(var(--cream-muted))]/70">사진이 이 기록에 붙어요</span>
             </div>
           )}
         </div>
       )}
 
-      {/* 타임라인 — 시간대 구획 + 세로선 + 조각 카드 */}
+      {/* 타임라인 — 시간대 구획 + 세로선 + 기록 카드 */}
       {moments.length === 0 ? (
         !isToday && (
-          <p className="mt-2 text-[12px] italic text-[hsl(var(--cream-muted))]/55">이날은 남긴 조각이 없어요.</p>
+          <p className="mt-2 text-[12px] italic text-[hsl(var(--cream-muted))]/55">이날은 남긴 기록이 없어요.</p>
         )
       ) : (
         <div className="mt-3 space-y-3">
@@ -264,7 +264,7 @@ function MomentRow({ moment }: { moment: DayMoment }) {
         <button
           type="button"
           onClick={() => daylogStore.remove(moment.id)}
-          aria-label="조각 삭제"
+          aria-label="기록 삭제"
           className="p-0.5 text-[hsl(var(--cream-muted))]/60 transition-colors hover:text-rose-500"
         >
           <Trash2 className="h-3 w-3" />

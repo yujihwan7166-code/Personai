@@ -1,6 +1,6 @@
 /**
- * 여행 훅 — 여행 목록 + 특정 여행 기간의 조각 구독.
- * TRIP_CHANGED / DAYLOG_CHANGED 양쪽에 반응 (여행 중 조각이 추가돼도 갱신).
+ * 여행 훅 — 여행 목록 + 특정 여행 기간의 기록 구독.
+ * TRIP_CHANGED / DAYLOG_CHANGED 양쪽에 반응 (여행 중 기록이 추가돼도 갱신).
  */
 import { useEffect, useState } from 'react';
 import { tripStore } from '@/services/tripStore';

@@ -2,16 +2,15 @@
  * 여행 — 날짜 범위 = 여행 하나 (Polarsteps 모델).
  *
  * 목록: 여행 카드 + 새 여행 만들기.
- * 상세: 그 기간 조각을 자동 수집 → 지도(경로) + 날짜별 타임라인 + 사진 앨범 + AI 여행기 초안.
- * 조각을 다시 입력하지 않는다 — 평소 남긴 조각이 그대로 여행으로 모인다.
+ * 상세: 그 기간 기록을 자동 수집 → 지도(경로) + 날짜별 타임라인 + 사진 앨범.
+ * 기록을 다시 입력하지 않는다 — 평소 남긴 기록이 그대로 여행으로 모인다.
  */
 import { useMemo, useState } from 'react';
-import { ChevronLeft, Loader2, MapPin, Plus, Sparkles, Trash2, Copy, Check } from 'lucide-react';
+import { ChevronLeft, MapPin, Plus, Trash2 } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { tripStore } from '@/services/tripStore';
 import { daylogStore } from '@/services/daylogStore';
 import { useTrips, useTripMoments } from '@/hooks/useTrips';
-import { draftTripRecap } from '@/lib/daylog/tripRecap';
 import { DaylogMap } from '@/components/journal/DaylogMap';
 import { MEAL_SLOT_LABEL, MOMENT_KIND_META, type DayMoment } from '@/types/daylog';
 import type { Trip } from '@/types/trip';
@@ -94,7 +93,7 @@ function TripList({ trips, onOpen }: { trips: Trip[]; onOpen: (id: string) => vo
       {trips.length === 0 && !creating ? (
         <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
           <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 여행이 없어요.</p>
-          <p className="mt-1.5 text-[12px] text-[hsl(var(--cream-muted))]/70">여행 날짜를 정해두면, 그 기간 조각이 저절로 모여 지도·타임라인·앨범이 돼요.</p>
+          <p className="mt-1.5 text-[12px] text-[hsl(var(--cream-muted))]/70">여행 날짜를 정해두면, 그 기간 기록이 저절로 모여 지도·타임라인·앨범이 돼요.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -132,7 +131,7 @@ function TripCard({ trip, onOpen }: { trip: Trip; onOpen: () => void }) {
         <h3 className="truncate text-[15.5px] font-bold text-[hsl(var(--cream-ink))]">{trip.name}</h3>
         <p className="mt-0.5 text-[11.5px] text-[hsl(var(--cream-muted))]/80">{rangeLabel(trip)}</p>
         <p className="mt-1.5 text-[11.5px] text-[hsl(var(--cream-muted))]">
-          조각 {stat.count} · 장소 {stat.places}곳
+          기록 {stat.count} · 장소 {stat.places}곳
         </p>
       </div>
     </button>
@@ -141,9 +140,6 @@ function TripCard({ trip, onOpen }: { trip: Trip; onOpen: () => void }) {
 
 function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
   const moments = useTripMoments(trip.startDate, trip.endDate);
-  const [recap, setRecap] = useState<string | null>(null);
-  const [recapBusy, setRecapBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const photos = moments.filter((m) => m.photo);
   const byDate = useMemo(() => {
@@ -156,29 +152,9 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [moments]);
 
-  const genRecap = async () => {
-    setRecapBusy(true);
-    try {
-      setRecap(await draftTripRecap(trip.name, moments));
-    } finally {
-      setRecapBusy(false);
-    }
-  };
-
-  const copyRecap = async () => {
-    if (!recap) return;
-    try {
-      await navigator.clipboard.writeText(recap);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      notify.error('복사 실패', { duration: 1500 });
-    }
-  };
-
   const del = () => {
     tripStore.remove(trip.id);
-    notify.success('여행을 지웠어요 (조각·일기는 그대로예요)', { duration: 2000 });
+    notify.success('여행을 지웠어요 (기록·일기는 그대로예요)', { duration: 2000 });
     onBack();
   };
 
@@ -202,39 +178,6 @@ function TripDetail({ trip, onBack }: { trip: Trip; onBack: () => void }) {
 
       {/* 지도 (경로) */}
       <DaylogMap moments={moments} route showHeader={false} heightClass="h-[360px]" />
-
-      {/* AI 여행기 초안 */}
-      <div className="rounded-[22px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[hsl(var(--cream-accent))]" />
-            <h3 className="text-[13.5px] font-bold text-[hsl(var(--cream-ink))]/85">여행기 초안</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {recap && (
-              <button type="button" onClick={copyRecap} className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-1 text-[11.5px] text-[hsl(var(--cream-ink))]/75 hover:border-[hsl(var(--cream-accent))]/40">
-                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} {copied ? '복사됨' : '복사'}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={genRecap}
-              disabled={recapBusy || moments.length === 0}
-              className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12px] font-semibold text-[hsl(var(--cream-accent))] transition-colors hover:bg-[hsl(var(--cream-accent))]/22 disabled:opacity-40"
-            >
-              {recapBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              {recap ? '다시 쓰기' : '조각으로 초안 쓰기'}
-            </button>
-          </div>
-        </div>
-        {recap ? (
-          <p className="mt-3 whitespace-pre-wrap text-[13.5px] leading-[1.85] text-[hsl(var(--cream-ink))]/90">{recap}</p>
-        ) : (
-          <p className="mt-2 text-[12px] text-[hsl(var(--cream-muted))]/70">
-            {moments.length === 0 ? '이 기간에 남긴 조각이 없어요.' : '기간 내 조각을 모아 여행기 초안을 만들어요. 마음에 들면 복사해서 회고에 붙여넣으세요.'}
-          </p>
-        )}
-      </div>
 
       {/* 날짜별 타임라인 */}
       {byDate.length > 0 && (
