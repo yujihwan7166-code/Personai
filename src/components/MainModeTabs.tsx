@@ -2328,7 +2328,7 @@ export function MainModeTabs({
                   메뉴 항목 위의 별을 누르면 여기에 꽂혀요
                 </div>
               ) : (
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-6 gap-2">
                   {favs.map((f) => (
                     <div key={f.id} className="group/dock relative">
                       <button

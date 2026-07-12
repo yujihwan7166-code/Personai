@@ -5,7 +5,7 @@
  * useSelectedBrand 와 동일한 모듈 상태 + CustomEvent 패턴.
  * 저장소는 기존 personai.favorite_modes 그대로 재사용.
  *
- * 칩은 상단 공간 제약상 최대 5개 (MAX_FAVS) — 초과 시 toggleFav 가 'full' 반환.
+ * 최대 6개 (MAX_FAVS) — 모드 메뉴 하단 독 6칸과 1:1. 초과 시 toggleFav 가 'full' 반환.
  */
 import { useEffect, useState } from 'react';
 import type { MainMode, DebateSubMode, PremiumDomainId } from '@/types/expert';
@@ -27,7 +27,7 @@ export interface FavEntry {
   target: ItemTarget;
 }
 
-export const MAX_FAVS = 5;
+export const MAX_FAVS = 6;
 
 const FAV_KEY = 'personai.favorite_modes';
 const EVENT = 'personai:favorites-changed';
