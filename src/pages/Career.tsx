@@ -196,6 +196,42 @@ function ProofStamp({ count }: { count: number }) {
   );
 }
 
+/** 장식용 낙관(도장) — 의미 없는 순수 장식. 마스트헤드 우측 상단 여백을 채운다.
+ * 원형 로제트: 이중 링 + 방사 눈금 + 중앙 별표. 글자·날짜 없음(검인과 역할 분리). */
+function DecoSeal({ className }: { className?: string }) {
+  const cx = 20;
+  const cy = 20;
+  const ticks = Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * Math.PI * 2;
+    return {
+      x1: cx + Math.cos(a) * 13,
+      y1: cy + Math.sin(a) * 13,
+      x2: cx + Math.cos(a) * 16.5,
+      y2: cy + Math.sin(a) * 16.5,
+    };
+  });
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 40 40"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      className={cn(
+        'pointer-events-none h-7 w-7 -rotate-[9deg] text-[hsl(var(--career-red)/0.42)] mix-blend-multiply dark:mix-blend-normal',
+        className,
+      )}
+    >
+      <circle cx="20" cy="20" r="18.4" strokeWidth="1.3" />
+      <circle cx="20" cy="20" r="10.6" strokeWidth="0.7" />
+      {ticks.map((t, i) => (
+        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} strokeWidth="0.9" />
+      ))}
+      <path d="M20 15.5 L20 24.5 M15.5 20 L24.5 20 M16.8 16.8 L23.2 23.2 M23.2 16.8 L16.8 23.2" strokeWidth="0.8" />
+    </svg>
+  );
+}
+
 /* ═══════════════ 첫 설정 — 신분 선택 → 칸 준비 ═══════════════ */
 
 function SetupLedger() {
@@ -552,10 +588,12 @@ function BoardLedger() {
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
           <aside className="hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-            {/* 마스트헤드 — 도구명 + 검인 (제목=주어, 실데이터=서술어). 검인은 모든 보드 총계 */}
-            <div className="border-b border-[hsl(var(--hairline))] px-5 pb-3.5 pt-4">
+            {/* 마스트헤드 — 도구명 + 검인 (제목=주어, 실데이터=서술어). 검인은 모든 보드 총계.
+             * 우측 상단 여백은 장식 낙관으로 채운다(의미 없음). */}
+            <div className="relative border-b border-[hsl(var(--hairline))] px-5 pb-3.5 pt-4">
               <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
               <div className="mt-1.5"><ProofStamp count={Object.values(boardCounts).reduce((a, b) => a + b, 0)} /></div>
+              <DecoSeal className="absolute right-3.5 top-3.5" />
             </div>
 
             {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
