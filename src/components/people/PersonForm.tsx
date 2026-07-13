@@ -15,7 +15,7 @@ import {
   type Closeness, type PeopleCategory, type Person, type Relation,
 } from '@/types/people';
 
-/** 속성 행 — 아이콘 + 라벨 + 값 (Notion 속성 스타일). 포커스 시 은은한 바탕. */
+/** 속성 행 — 아이콘 + 라벨 + 값. 하나의 소프트 패널 안에 얇은 구분선으로 묶인다. */
 function Row({
   icon: Icon, label, value, onChange, placeholder, onEnter, tabular,
 }: {
@@ -28,9 +28,9 @@ function Row({
   tabular?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors focus-within:bg-[hsl(var(--surface-2))]/70">
-      <Icon className="h-4 w-4 shrink-0 text-muted-foreground/55" />
-      <span className="w-11 shrink-0 text-[12px] font-medium text-muted-foreground/80">{label}</span>
+    <label className="flex items-center gap-3 px-3.5 py-2.5 transition-colors focus-within:bg-[hsl(var(--surface-1))] [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[hsl(var(--hairline))]/55">
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+      <span className="w-10 shrink-0 text-[12px] font-medium text-muted-foreground/75">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -136,6 +136,15 @@ export function PersonForm({
 
   const tint = color ?? (name.trim() ? avatarColor(name.trim()) : 'hsl(var(--people-accent))');
 
+  /** 선택 알약 — 관계·친밀도·카테고리가 방 전체와 같은 문법을 쓰게. */
+  const pillCls = (on: boolean) =>
+    cn(
+      'rounded-full border px-3.5 py-1.5 text-[12px] transition-colors',
+      on
+        ? 'border-[hsl(var(--people-accent))] bg-[hsl(var(--people-accent))]/10 font-bold text-[hsl(var(--people-accent))]'
+        : 'border-[hsl(var(--hairline))] font-medium text-muted-foreground hover:border-[hsl(var(--people-accent))]/40 hover:text-foreground',
+    );
+
   return (
     <div className="mx-auto max-w-[560px] pb-8">
       <button
@@ -195,43 +204,20 @@ export function PersonForm({
           <div>
             <p className="mb-2 text-[11px] font-bold tracking-[0.04em] text-muted-foreground/70">관계</p>
             <div className="flex flex-wrap gap-1.5">
-              {RELATION_ORDER.map((r) => {
-                const on = relation === r;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRelation(r)}
-                    className={cn(
-                      'rounded-full border px-3.5 py-1.5 text-[12px] transition-colors',
-                      on
-                        ? 'border-[hsl(var(--people-accent))] bg-[hsl(var(--people-accent))]/10 font-bold text-[hsl(var(--people-accent))]'
-                        : 'border-[hsl(var(--hairline))] font-medium text-muted-foreground hover:border-[hsl(var(--people-accent))]/40 hover:text-foreground',
-                    )}
-                  >
-                    {RELATION_META[r].label}
-                  </button>
-                );
-              })}
+              {RELATION_ORDER.map((r) => (
+                <button key={r} type="button" onClick={() => setRelation(r)} className={pillCls(relation === r)}>
+                  {RELATION_META[r].label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* 친밀도 — 세그먼트 (절친→소원 순서). 선택에 따라 안부 주기 힌트 */}
+          {/* 친밀도 — 알약 (방 전체와 같은 문법). 선택에 따라 안부 주기 힌트 */}
           <div>
             <p className="mb-2 text-[11px] font-bold tracking-[0.04em] text-muted-foreground/70">친밀도</p>
-            <div className="inline-flex rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-0.5">
+            <div className="flex flex-wrap gap-1.5">
               {CLOSENESS_ORDER.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCloseness(c)}
-                  className={cn(
-                    'rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
-                    closeness === c
-                      ? 'bg-[hsl(var(--people-accent))] text-[hsl(var(--people-accent-ink))] shadow-[0_2px_6px_-2px_hsl(var(--people-accent)/0.6)]'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
+                <button key={c} type="button" onClick={() => setCloseness(c)} className={pillCls(closeness === c)}>
                   {CLOSENESS_META[c].label}
                 </button>
               ))}
@@ -255,12 +241,7 @@ export function PersonForm({
                     type="button"
                     onClick={() => toggleCategory(c.id)}
                     aria-pressed={on}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] transition-colors',
-                      on
-                        ? 'border-[hsl(var(--people-accent))] bg-[hsl(var(--people-accent))]/10 font-bold text-[hsl(var(--people-accent))]'
-                        : 'border-[hsl(var(--hairline))] font-medium text-muted-foreground hover:border-[hsl(var(--people-accent))]/40 hover:text-foreground',
-                    )}
+                    className={cn(pillCls(on), 'inline-flex items-center gap-1')}
                   >
                     {on && <span aria-hidden className="text-[10px]">✓</span>}
                     {c.name}
@@ -339,12 +320,15 @@ export function PersonForm({
             )}
           </div>
 
-          {/* 속성 — 아이콘·라벨·값 */}
-          <div className="-mx-2.5 border-t border-[hsl(var(--hairline))]/70 pt-2">
-            <Row icon={Phone} label="연락처" value={phone} onChange={setPhone} placeholder="010-0000-0000" onEnter={save} />
-            <Row icon={MapPin} label="지역" value={region} onChange={setRegion} placeholder="서울 · 부산 …" onEnter={save} />
-            <Row icon={Cake} label="생일" value={birthday} onChange={setBirthday} placeholder="07-18" onEnter={save} tabular />
-            <Row icon={Hash} label="태그" value={tags} onChange={setTags} placeholder="대학동기, 등산모임" onEnter={save} />
+          {/* 연락처·정보 — 소프트 패널 안에 얇은 구분선으로 묶인 속성 행 */}
+          <div>
+            <p className="mb-2 text-[11px] font-bold tracking-[0.04em] text-muted-foreground/70">연락처 · 정보</p>
+            <div className="overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))]/40">
+              <Row icon={Phone} label="연락처" value={phone} onChange={setPhone} placeholder="010-0000-0000" onEnter={save} />
+              <Row icon={MapPin} label="지역" value={region} onChange={setRegion} placeholder="서울 · 부산 …" onEnter={save} />
+              <Row icon={Cake} label="생일" value={birthday} onChange={setBirthday} placeholder="07-18" onEnter={save} tabular />
+              <Row icon={Hash} label="태그" value={tags} onChange={setTags} placeholder="대학동기, 등산모임" onEnter={save} />
+            </div>
           </div>
         </div>
 
