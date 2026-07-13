@@ -212,7 +212,7 @@ const normalizeProfile = (parsed: unknown): CareerProfile => {
   return {
     name: typeof parsed.name === 'string' ? parsed.name : '',
     tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
-    persona: persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
+    persona: persona === 'highschool' || persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
     photo: typeof parsed.photo === 'string' && parsed.photo.startsWith('data:image/') ? parsed.photo : undefined,
     email: typeof parsed.email === 'string' && parsed.email.trim() ? parsed.email : undefined,
     phone: typeof parsed.phone === 'string' && parsed.phone.trim() ? parsed.phone : undefined,

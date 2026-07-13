@@ -33,12 +33,14 @@ import {
 
 /** 신분별 시작 칸 — 설정 시 빈 섹션으로 깔린다 (나중에 추가·삭제 자유). */
 const SEED_CATEGORIES: Record<CareerPersona, string[]> = {
+  highschool: ['수상', '동아리·활동', '봉사', '자격증', '독서'],
   student: ['자격증', '어학', '동아리·활동', '공모전', '수상'],
   jobseeker: ['자격증', '어학', '인턴', '프로젝트', '수상'],
   worker: ['경력', '프로젝트', '자격증', '수상', '교육'],
 };
 
 const PERSONA_DESC: Record<CareerPersona, string> = {
+  highschool: '수상·동아리·봉사 중심으로 칸을 준비해요',
   student: '동아리·공모전·자격증 중심으로 칸을 준비해요',
   jobseeker: '인턴·프로젝트·어학 중심으로 칸을 준비해요',
   worker: '경력·프로젝트 성과 중심으로 칸을 준비해요',
@@ -46,6 +48,7 @@ const PERSONA_DESC: Record<CareerPersona, string> = {
 
 /** 해보기 예시 — 신분에 맞는 첫 입력을 클릭 한 번으로. */
 const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
+  highschool: ['교내 수학경시 은상 받음', '학생회 임원 함', '요양원 봉사 30시간 함'],
   student: ['정처기 땄음', '동아리 회장 됐음', '해커톤 본선 갔음'],
   jobseeker: ['토익 900 넘김', '스타트업 인턴 수료함', '포트폴리오 사이트 만들었음'],
   worker: ['결제 오류 잡아서 CS 문의 줄임', '신규 서비스 런칭함', '사내 세미나 발표함'],
@@ -1425,16 +1428,16 @@ function BoardLedger() {
       <NewBoardDialog
         open={boardDialogOpen}
         onClose={() => setBoardDialogOpen(false)}
-        onCreate={(name) => {
+        onCreate={(name, persona) => {
           // 새 보드는 이름·연락처 등 인적사항을 비운 채 시작한다 (보드는 개별).
-          // 신분(persona)만 이어받아 시드 칸을 준비하고 설정 화면 재노출을 막는다.
-          const board = careerStore.addBoard(name, profile.persona ? { persona: profile.persona } : undefined);
+          // 다이얼로그에서 고른 신분(persona)으로 시드 칸을 준비하고 설정 화면 재노출을 막는다.
+          const board = careerStore.addBoard(name, { persona });
           if (!board) {
             notify.error('보드를 만들지 못했어요', { description: '저장 공간이 가득 찼을 수 있어요.' });
             return;
           }
           // addBoard 가 새 보드를 활성화하므로, 신분 시드 칸은 새 보드 안에 심긴다.
-          if (profile.persona) SEED_CATEGORIES[profile.persona].forEach((n) => careerStore.ensureCategory(n));
+          SEED_CATEGORIES[persona].forEach((n) => careerStore.ensureCategory(n));
           setView('board');
           setBoardDialogOpen(false);
         }}
@@ -2276,20 +2279,22 @@ function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; perso
   );
 }
 
-/* ═══════════════ 새 스펙 보드 — 이름 하나로 시작 (취업용·대학원용 …) ═══════════════ */
+/* ═══════════════ 새 스펙 보드 — 이름 + 신분(칸 자동 준비) ═══════════════ */
 
-function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (name: string) => void }) {
+function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (name: string, persona: CareerPersona) => void }) {
   const [name, setName] = useState('');
+  const [persona, setPersona] = useState<CareerPersona | ''>('');
 
+  const reset = () => { setName(''); setPersona(''); };
   const submit = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    onCreate(trimmed);
-    setName('');
+    if (!trimmed || !persona) return;
+    onCreate(trimmed, persona);
+    reset();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) { setName(''); onClose(); } }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) { reset(); onClose(); } }}>
       <DialogContent className="career-theme max-w-sm">
         <DialogHeader>
           <DialogTitle className="career-serif text-[16px]">새 스펙 보드</DialogTitle>
@@ -2297,19 +2302,57 @@ function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: (
         <p className="text-[12.5px] leading-relaxed text-muted-foreground">
           보드마다 기록을 따로 쌓아요 — 취업용·대학원용처럼 갈래를 나누고, 각 보드의 기록으로 문서를 만들어요.
         </p>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
-          placeholder="예: 취업용 · 대학원용 · 이직용"
-          maxLength={30}
-          className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13.5px] outline-none transition-colors focus:border-[hsl(var(--career-red)/0.55)]"
-        />
+
+        {/* 이름 */}
+        <div className="space-y-1.5">
+          <label htmlFor="new-board-name" className="text-[11.5px] font-bold tracking-[0.02em] text-muted-foreground">보드 이름</label>
+          <input
+            id="new-board-name"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
+            placeholder="예: 취업용 · 대학원용 · 이직용"
+            maxLength={30}
+            className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13.5px] outline-none transition-colors focus:border-[hsl(var(--career-red)/0.55)]"
+          />
+        </div>
+
+        {/* 신분 — 고르면 그에 맞는 칸이 자동 생성 */}
+        <div className="space-y-1.5">
+          <label className="text-[11.5px] font-bold tracking-[0.02em] text-muted-foreground">신분 — 고르면 칸이 준비돼요</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(Object.keys(SEED_CATEGORIES) as CareerPersona[]).map((p) => {
+              const on = persona === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPersona(p)}
+                  aria-pressed={on}
+                  className={cn(
+                    'rounded-lg border px-3 py-2 text-left transition-colors',
+                    on
+                      ? 'border-[hsl(var(--career-red)/0.6)] bg-[hsl(var(--career-red)/0.1)]'
+                      : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.4)]',
+                  )}
+                >
+                  <span className={cn('block text-[13px] font-bold', on ? 'text-[hsl(var(--career-red))]' : 'text-foreground/85')}>
+                    {PERSONA_LABEL[p]}
+                  </span>
+                  <span className="career-mono mt-0.5 block truncate text-[10px] text-muted-foreground/70">
+                    {SEED_CATEGORIES[p].join(' · ')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={submit}
-          disabled={!name.trim()}
+          disabled={!name.trim() || !persona}
           className="inline-flex h-9 items-center justify-center rounded-lg bg-[hsl(var(--career-red))] px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
         >
           만들기

@@ -54,10 +54,11 @@ export interface SpecItem {
 /** AI 분류가 실패했을 때 담기는 기본 섹션명. */
 export const FALLBACK_CATEGORY = '기타';
 
-/** 신분 — 첫 설정에서 고르면 그에 맞는 칸이 준비된다. */
-export type CareerPersona = 'student' | 'jobseeker' | 'worker';
+/** 신분 — 보드를 만들 때 고르면 그에 맞는 칸이 준비된다. */
+export type CareerPersona = 'highschool' | 'student' | 'jobseeker' | 'worker';
 
 export const PERSONA_LABEL: Record<CareerPersona, string> = {
+  highschool: '고등학생',
   student: '대학생',
   jobseeker: '취준생',
   worker: '직장인',
