@@ -273,44 +273,47 @@ function PersonCard({
   signal: { ago: string; overdue: boolean; bdaySoon: number | null };
   onOpen: () => void;
 }) {
-  const closenessColor =
-    p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
+  const base = p.color ?? avatarColor(p.name);
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/35 hover:shadow-[0_12px_26px_-14px_hsl(var(--foreground)/0.3)]"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.38)]"
     >
-      {/* 친밀도 색 좌측 엣지 — 원형 대신 은은한 정체성 표시 */}
-      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ backgroundColor: closenessColor }} />
+      {/* 컬러 배너 — 그 사람 색. 아바타가 아래로 겹친다 (프로필 카드 정석 패턴). */}
+      <div
+        className="h-[42px]"
+        style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${base} 88%, white), color-mix(in srgb, ${base} 58%, white))` }}
+      />
 
-      <div className="flex items-start gap-2.5 px-3.5 pb-2.5 pt-3.5">
-        <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate text-[14px] font-bold leading-tight">{p.name}</span>
-            {s.bdaySoon !== null && (
-              <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-0.5 text-[9.5px] font-bold text-[hsl(30_60%_36%)]">
-                🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
-              </span>
-            )}
+      <div className="flex flex-1 flex-col px-3.5 pb-3">
+        <div className="-mt-6 mb-1 flex items-end justify-between">
+          <span className="inline-flex rounded-full ring-4 ring-[hsl(var(--surface-1))]">
+            <Avatar name={p.name} size={46} color={p.color} photo={p.photo} />
+          </span>
+          {s.bdaySoon !== null && (
+            <span className="mb-1 shrink-0 rounded-full bg-[hsl(38_75%_42%)]/14 px-1.5 py-0.5 text-[9.5px] font-bold text-[hsl(30_60%_36%)]">
+              🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
+            </span>
+          )}
+        </div>
+
+        <p className="truncate text-[14px] font-bold leading-tight">{p.name}</p>
+        <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
+
+        {p.tags.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {p.tags.slice(0, 2).map((t) => (
+              <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
+            ))}
           </div>
-          <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</span>
-        </div>
-      </div>
+        )}
 
-      {p.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 px-3.5">
-          {p.tags.slice(0, 2).map((t) => (
-            <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
-          ))}
+        {/* 푸터 — 친밀도 + 마지막 연락(주기 초과 테라코타). h-full+mt-auto 하단 정렬 */}
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
+          <span className="rounded-full bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
+          <span className={cn('shrink-0 text-[10.5px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/60')}>{s.ago}</span>
         </div>
-      )}
-
-      {/* 푸터 — 친밀도 라벨 + 마지막 연락(주기 초과 테라코타). h-full+mt-auto 로 카드 하단 정렬 */}
-      <div className="mt-auto flex items-center justify-between gap-2 px-3.5 pb-3 pt-2.5">
-        <span className="rounded-full bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
-        <span className={cn('shrink-0 text-[10.5px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/60')}>{s.ago}</span>
       </div>
     </button>
   );
