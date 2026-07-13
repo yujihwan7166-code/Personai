@@ -439,33 +439,32 @@ export default function Journal() {
     >
       {/* ── 사이드바 — 방 내비 (Diary Room 문법: 섹션이 곧 메뉴). 모바일은 상단 가로 내비로 대체 ── */}
       <aside className="hidden w-[236px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 캡션 헤더 — 방의 얼굴(색·마크)은 바로 옆 레일 타일이 담당하므로 여기선 조용한 라벨만
-         * (레일 마크와 큰 워드마크가 나란히 겹치는 이중 브랜딩 방지). 큰 제목은 콘텐츠 섹션 타이틀이.
-         * 일력(日曆)은 방 시그니처라 유지하되 레일 타일과 경쟁하지 않는 미니 사이즈로. */}
-        <div className="flex items-center justify-between px-5 pb-2 pt-3.5">
-          <h1 className="text-[13px] font-bold tracking-[-0.01em] text-[hsl(var(--cream-ink))]/75">데일리 로그</h1>
+        {/* 마스트헤드 — 워크스페이스 공통 캐논: 도구명 27px 볼드 + 방 색 틴트 (플래너·노트와 동일 공식).
+         * 부제·아이브로우 없음. 시그니처는 오늘 날짜 스탬프 하나 — 커리어 방 인장과 짝. */}
+        <div className="relative border-b border-[hsl(var(--cream-line))] px-5 pb-3.5 pt-4">
+          <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리 로그</h1>
+          {/* 일력(日曆) 한 장 — "하루 한 장" 컨셉의 실물화: 세이지 월 밴드 + 큰 날짜 + 요일 */}
           {(() => {
             const d = new Date();
             return (
               <div
                 aria-hidden
-                className="pointer-events-none w-[40px] rotate-[3deg] overflow-hidden rounded-[8px] border border-[hsl(var(--cream-line))] bg-white shadow-[0_4px_10px_-5px_hsl(25_30%_20%/0.4)]"
+                className="pointer-events-none absolute right-4 top-1.5 w-[52px] rotate-[3deg] overflow-hidden rounded-[10px] border border-[hsl(var(--cream-line))] bg-white shadow-[0_5px_14px_-6px_hsl(25_30%_20%/0.42)]"
               >
-                <div className="bg-[hsl(var(--cream-accent))] py-[2px] text-center text-[8px] font-bold tracking-[0.12em] text-white">{d.getMonth() + 1}월</div>
-                <div className="px-1 pb-1 pt-0.5 text-center">
-                  <span className="block text-[15px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</span>
-                  <span className="block text-[8px] font-semibold text-[hsl(var(--cream-muted))]">{WEEKDAY[d.getDay()]}요일</span>
+                <div className="bg-[hsl(var(--cream-accent))] py-1 text-center text-[9px] font-bold tracking-[0.14em] text-white">{d.getMonth() + 1}월</div>
+                <div className="px-1 pb-1.5 pt-1 text-center">
+                  <span className="block text-[21px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</span>
+                  <span className="block text-[9px] font-semibold text-[hsl(var(--cream-muted))]">{WEEKDAY[d.getDay()]}요일</span>
                 </div>
               </div>
             );
           })()}
         </div>
 
-        {/* 섹션 내비 */}
-        <nav className="flex flex-col gap-0.5 px-3 pt-1" aria-label="데일리로그 섹션">
+        {/* 섹션 내비 — 텍스트만 (바로 옆 레일이 이미 아이콘 열이라 아이콘 겹침 방지, 아이콘은 모바일 칩에서만) */}
+        <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => {
             const active = tab === item.id;
-            const Icon = item.icon;
             return (
               <button
                 key={item.id}
@@ -473,13 +472,12 @@ export default function Journal() {
                 onClick={() => { setTab(item.id); setDetailOpen(false); }}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors',
+                  'rounded-xl px-3.5 py-2.5 text-left text-[13px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
                     : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.4 : 1.9} />
                 {item.label}
               </button>
             );
@@ -499,11 +497,10 @@ export default function Journal() {
 
         <div className="flex-1" />
 
-        {/* 하단 유틸 — 플래시백 · 보관함 */}
+        {/* 하단 유틸 — 플래시백 · 보관함 (텍스트만, 아이콘은 모바일 칩에서만) */}
         <nav className="border-t border-[hsl(var(--cream-line))] px-3 py-3" aria-label="데일리로그 유틸">
           {NAV_BOTTOM.map((item) => {
             const active = tab === item.id;
-            const Icon = item.icon;
             return (
               <button
                 key={item.id}
@@ -511,13 +508,12 @@ export default function Journal() {
                 onClick={() => { setTab(item.id); setDetailOpen(false); }}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[12.5px] transition-colors',
+                  'block w-full rounded-xl px-3.5 py-2 text-left text-[12.5px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
                     : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.3 : 1.8} />
                 {item.label}
               </button>
             );

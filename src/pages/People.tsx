@@ -53,9 +53,9 @@ export default function People() {
     setView('persons');
   };
 
+  /* 사이드바 항목은 텍스트만 — 바로 옆 레일이 이미 아이콘 열이라 아이콘이 겹치면 어수선 (아이콘은 모바일 칩에서만). */
   const navBtn = (item: (typeof NAV)[number]) => {
     const active = view === item.id;
-    const Icon = item.icon;
     return (
       <button
         key={item.id}
@@ -63,13 +63,12 @@ export default function People() {
         onClick={() => { setView(item.id); setOpenId(null); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors',
+          'flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-left text-[13px] transition-colors',
           active
             ? 'bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
             : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.4 : 1.9} />
         <span className="flex-1">{item.label}</span>
         {item.id === 'today' && badge > 0 && (
           <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--people-accent))] px-1 text-[10px] font-bold tabular-nums text-[hsl(var(--people-accent-ink))]">{badge}</span>
@@ -82,16 +81,17 @@ export default function People() {
     <div className="people-theme flex h-dvh bg-background text-foreground">
       {/* ── 사이드바 — 방 내비 (클릭 시 활성 하이라이트, 데일리 로그와 동일 문법) ── */}
       <aside className="hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-        {/* 캡션 헤더 — 방의 얼굴(색·마크)은 바로 옆 레일 타일이 담당하므로
-         * 여기선 조용한 라벨만 (이중 브랜딩 방지). 큰 제목은 콘텐츠 섹션 타이틀이 가져간다. */}
-        <h1 className="flex items-baseline gap-1.5 px-5 pb-2 pt-4">
-          <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground/75">인맥노트</span>
-          {persons.length > 0 && (
-            <span className="text-[11.5px] font-bold tabular-nums text-[hsl(var(--people-accent))]">{persons.length}명</span>
-          )}
-        </h1>
+        {/* 마스트헤드 — 도구명 27px + N명 (제목=주어, 실데이터=서술어) */}
+        <div className="border-b border-[hsl(var(--hairline))] px-5 pb-3.5 pt-4">
+          <div className="flex items-baseline gap-1.5">
+            <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--people-accent))]">인맥노트</h1>
+            {persons.length > 0 && (
+              <span className="shrink-0 text-[13px] font-bold tabular-nums text-muted-foreground/55">{persons.length}명</span>
+            )}
+          </div>
+        </div>
 
-        <nav className="flex flex-col gap-0.5 px-3 pt-1" aria-label="인맥노트 섹션">
+        <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
         </nav>
 
