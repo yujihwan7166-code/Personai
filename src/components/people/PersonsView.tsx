@@ -204,7 +204,7 @@ export function PersonsView({
           {persons.length === 0 ? '아직 등록한 사람이 없어요. "새 사람"으로 시작해 보세요.' : '조건에 맞는 사람이 없어요.'}
         </p>
       ) : mode === 'card' ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {filtered.map((p) => (
             <PersonCard key={p.id} person={p} signal={signalOf(p)} onOpen={() => onOpen(p.id)} />
           ))}
@@ -313,57 +313,38 @@ function PersonCard({
   signal: { ago: string; overdue: boolean; bdaySoon: number | null };
   onOpen: () => void;
 }) {
-  const rt = RELATION_TAG[p.relation];
   const closenessColor =
     p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
-  const bdayStat = s.bdaySoon !== null ? (s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`) : '—';
-  const stats: Array<{ label: string; value: string; strong?: boolean }> = [
-    { label: '친밀도', value: CLOSENESS_META[p.closeness].label },
-    { label: '마지막', value: s.ago, strong: s.overdue },
-    { label: '생일', value: bdayStat },
-  ];
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full flex-col items-center rounded-xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] p-4 text-center shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.35)]"
+      className="group flex h-full flex-col items-center rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] px-3 pb-4 pt-5 text-center shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.35)]"
     >
       {/* 아바타 — 중앙, 친밀도 점 */}
       <span className="relative">
-        <Avatar name={p.name} size={54} color={p.color} photo={p.photo} />
+        <Avatar name={p.name} size={56} color={p.color} photo={p.photo} />
         <span
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-1))]"
+          className="absolute -bottom-0 -right-0 h-3.5 w-3.5 rounded-full border-2 border-[hsl(var(--surface-1))]"
           style={{ backgroundColor: closenessColor }}
           title={CLOSENESS_META[p.closeness].label}
         />
       </span>
 
-      <p className="mt-2.5 flex max-w-full items-center justify-center gap-1.5">
-        <span className="min-w-0 truncate text-[15px] font-semibold leading-tight">{p.name}</span>
-        {s.bdaySoon !== null && (
-          <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-semibold text-[hsl(30_60%_36%)]">🎂</span>
-        )}
+      <p className="mt-3 flex max-w-full items-center justify-center gap-1">
+        <span className="min-w-0 truncate text-[14px] font-semibold leading-tight">{p.name}</span>
+        {s.bdaySoon !== null && <span aria-hidden className="shrink-0 text-[10px]">🎂</span>}
       </p>
 
-      {/* 관계 컬러 태그 */}
-      <span className="mt-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: rt.bg, color: rt.text }}>
-        {RELATION_META[p.relation].label}
-      </span>
+      <p className="mt-0.5 line-clamp-1 max-w-full text-[11px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
 
-      {/* 소개 */}
-      <p className="mt-1.5 line-clamp-1 max-w-full text-[11.5px] text-muted-foreground">
-        {p.intro ?? (p.tags.length > 0 ? p.tags.map((t) => `#${t}`).join(' ') : ' ')}
-      </p>
-
-      {/* 통계 3칸 — 친밀도 · 마지막 · 생일 */}
-      <div className="mt-auto grid w-full grid-cols-3 divide-x divide-[hsl(var(--hairline))]/60 border-t border-[hsl(var(--hairline))]/60 pt-2.5">
-        {stats.map((st) => (
-          <div key={st.label} className="min-w-0 px-1">
-            <p className={cn('truncate text-[12px] font-semibold tabular-nums', st.strong && 'text-[hsl(var(--people-accent))]')}>{st.value}</p>
-            <p className="mt-0.5 text-[9.5px] text-muted-foreground/60">{st.label}</p>
-          </div>
-        ))}
-      </div>
+      {p.tags.length > 0 && (
+        <div className="mt-2 flex max-w-full flex-wrap justify-center gap-1">
+          {p.tags.slice(0, 2).map((t) => (
+            <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-2 py-0.5 text-[10px] text-muted-foreground">{t}</span>
+          ))}
+        </div>
+      )}
     </button>
   );
 }
