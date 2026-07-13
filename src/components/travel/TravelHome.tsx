@@ -9,11 +9,11 @@
  * 발자취 지도는 "나의 지도" 섹션이 담당. 테마 토큰(.travel-theme)은 호스트가 래퍼로 씌운다.
  */
 import { useMemo, useState } from 'react';
-import { ChevronRight, Heart, MapPin, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { travelStore } from '@/services/travelStore';
-import { useTrips, useBucket } from '@/hooks/useTravel';
+import { useTrips } from '@/hooks/useTravel';
 import { useDaylogAll } from '@/hooks/useDaylog';
 import { TripDetail, CoverFallback } from '@/components/travel/TripDetail';
 import { agoLabel } from '@/lib/travel/format';
@@ -81,10 +81,7 @@ export default function TravelHome({ initialTripId }: { initialTripId?: string }
         </button>
       </div>
 
-      <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-        <TripsList trips={trips} today={today} coverOf={coverOf} onOpen={setOpenId} onCreate={() => setCreating(true)} />
-        <BucketCard className="mt-6 lg:mt-0" />
-      </div>
+      <TripsList trips={trips} today={today} coverOf={coverOf} onOpen={setOpenId} onCreate={() => setCreating(true)} />
 
       <NewTripDialog
         open={creating}
@@ -256,92 +253,6 @@ function TripCard({ trip, cover, today, onOpen }: { trip: Trip; cover?: string; 
         )}
       </div>
     </button>
-  );
-}
-
-/* ── 버킷 — 다크 카드 (Diary Room 의 Travel Bucket List 문법) ── */
-
-function BucketCard({ className }: { className?: string }) {
-  const bucket = useBucket();
-  const [name, setName] = useState('');
-
-  const add = () => {
-    if (!name.trim()) return;
-    travelStore.addBucket({ name });
-    setName('');
-  };
-
-  return (
-    <aside className={cn('rounded-3xl bg-[hsl(228_12%_18%)] p-5 text-white shadow-[0_14px_36px_-18px_rgba(0,0,0,0.55)]', className)}>
-      <div className="flex items-center gap-2">
-        <Heart className="h-4 w-4 fill-white/90 text-white/90" />
-        <h3 className="text-[14.5px] font-bold">가고 싶은 곳</h3>
-        {bucket.length > 0 && <span className="text-[11px] tabular-nums text-white/50">{bucket.length}</span>}
-      </div>
-
-      <ul className="mt-3 space-y-1.5">
-        {bucket.length === 0 && (
-          <li className="rounded-xl bg-white/[0.06] px-3 py-4 text-center text-[11.5px] leading-relaxed text-white/55">
-            언젠가 가고 싶은 곳을 적어두세요.<br />다음 여행은 여기서 시작돼요.
-          </li>
-        )}
-        {bucket.map((b) => (
-          <li key={b.id} className="group flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 transition-colors hover:bg-white/[0.11]">
-            <button
-              type="button"
-              onClick={() => travelStore.toggleBucket(b.id)}
-              aria-label={b.done ? '가봤음 해제' : '가봤음으로 표시'}
-              className={cn(
-                'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                b.done ? 'border-[hsl(181_52%_60%)] bg-[hsl(181_52%_60%)] text-[hsl(228_12%_18%)]' : 'border-white/35 hover:border-white/70',
-              )}
-            >
-              {b.done && <span className="text-[9px] font-bold leading-none">✓</span>}
-            </button>
-            <span className={cn('min-w-0 flex-1 truncate text-[12.5px]', b.done ? 'text-white/45 line-through' : 'text-white/90')}>
-              {b.name}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                const removed = travelStore.removeBucket(b.id);
-                if (removed) {
-                  notify.info('지웠어요', {
-                    duration: 4000,
-                    action: { label: '되돌리기', onClick: () => travelStore.restoreBucket(removed) },
-                  });
-                }
-              }}
-              aria-label="삭제"
-              className="shrink-0 p-0.5 text-white/35 opacity-0 transition-opacity hover:text-rose-400 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] pl-3 pr-1.5 transition-colors focus-within:border-white/35">
-        <MapPin className="h-3.5 w-3.5 shrink-0 text-white/40" />
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) add(); }}
-          placeholder="예: 교토 단풍"
-          aria-label="가고 싶은 곳 추가"
-          className="h-9 min-w-0 flex-1 bg-transparent text-[12.5px] text-white outline-none placeholder:text-white/35"
-        />
-        <button
-          type="button"
-          onClick={add}
-          disabled={!name.trim()}
-          aria-label="추가"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/12 text-white/80 transition-colors hover:bg-white/20 disabled:opacity-35"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </aside>
   );
 }
 

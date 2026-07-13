@@ -1,10 +1,8 @@
 /**
- * 여행기록 타입 — 여행(Trip) / 여행 속 기록(TravelRecord) / 가고 싶은 곳(BucketPlace).
+ * 여행기록 타입 — 여행(Trip). 여행 속 기록은 daylogStore(날짜 귀속)가 소유.
  *
  * 모델 (트리플·Polarsteps 문법):
  * - 여행 = 날짜 범위 + 목적지. 지난/여행 중/다가옴 상태는 오늘 날짜로 파생.
- * - 기록 = 여행 "안"에서만 존재 (tripId 필수). 일기와 완전 무관 — 일상 입력층은 없다.
- * - 기록 종류는 트리플식 카테고리 5종, 사용자가 칩으로 직접 고른다 (AI 분류 없음).
  */
 
 export const TRAVEL_CHANGED = 'travel:changed';
@@ -21,14 +19,6 @@ export interface Trip {
   endDate: string;
   /** 커버 사진 (압축 Base64). 없으면 기록 속 첫 사진으로 대체. */
   cover?: string;
-  createdAt: string;
-}
-
-export interface BucketPlace {
-  id: string;
-  name: string;
-  note?: string;
-  done: boolean;
   createdAt: string;
 }
 

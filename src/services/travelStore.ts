@@ -1,21 +1,19 @@
 /**
  * 여행기록 영속 store — LocalStorage 기반 (careerStore/journalStore 패턴).
  *
- * 세 파일: 여행 메타 / 여행 속 기록 / 가고 싶은 곳.
+ * 여행 메타만 소유. 여행 속 기록은 daylogStore(날짜 귀속)가 가진다.
  * 변경 시 TRAVEL_CHANGED 커스텀 이벤트 broadcast → 훅 자동 re-render.
  * 일기(journalStore)와 완전 무관.
  */
 import {
   TRAVEL_CHANGED,
   todayKey,
-  type BucketPlace,
   type Trip,
 } from '@/types/travel';
 import { notify } from '@/lib/notify';
 
-// 여행 "기록"은 이제 daylogStore(날짜 귀속)가 소유 — 여기는 여행 메타 + 버킷만.
+// 여행 "기록"은 daylogStore(날짜 귀속)가 소유 — 여기는 여행 메타만.
 const TRIPS_KEY = 'travel.trips.v1';
-const BUCKET_KEY = 'travel.bucket.v1';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -35,22 +33,6 @@ const normalizeTrip = (value: unknown, index: number): Trip | null => {
     startDate,
     endDate,
     cover: typeof value.cover === 'string' && value.cover ? value.cover : undefined,
-    createdAt:
-      typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt))
-        ? value.createdAt
-        : isoNow(),
-  };
-};
-
-const normalizeBucket = (value: unknown, index: number): BucketPlace | null => {
-  if (!isRecord(value)) return null;
-  const name = typeof value.name === 'string' ? value.name.trim() : '';
-  if (!name) return null;
-  return {
-    id: typeof value.id === 'string' && value.id ? value.id : `bkt_recovered_${index}`,
-    name,
-    note: typeof value.note === 'string' && value.note.trim() ? value.note.trim() : undefined,
-    done: value.done === true,
     createdAt:
       typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt))
         ? value.createdAt
@@ -95,7 +77,6 @@ const newId = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 const readTrips = () => readList(TRIPS_KEY, normalizeTrip);
-const readBucket = () => readList(BUCKET_KEY, normalizeBucket);
 
 export const travelStore = {
   /* ── 여행 ─────────────────────────── */
@@ -144,48 +125,5 @@ export const travelStore = {
   /** 여행 삭제 — 여행 메타만 지운다. 하루 기록(daylog)은 날짜에 남는다. */
   removeTrip(id: string): void {
     writeList(TRIPS_KEY, readTrips().filter((t) => t.id !== id));
-  },
-
-  /* ── 가고 싶은 곳 ─────────────────── */
-
-  /** 미완 먼저, 그 안에서 최신순. */
-  listBucket(): BucketPlace[] {
-    return readBucket().sort(
-      (a, b) => Number(a.done) - Number(b.done) || b.createdAt.localeCompare(a.createdAt),
-    );
-  },
-
-  addBucket(input: { name: string; note?: string }): BucketPlace {
-    const item: BucketPlace = {
-      id: newId('bkt'),
-      name: input.name.trim(),
-      note: input.note?.trim() || undefined,
-      done: false,
-      createdAt: isoNow(),
-    };
-    writeList(BUCKET_KEY, [...readBucket(), item]);
-    return item;
-  },
-
-  toggleBucket(id: string): void {
-    const all = readBucket();
-    const idx = all.findIndex((b) => b.id === id);
-    if (idx === -1) return;
-    all[idx] = { ...all[idx], done: !all[idx].done };
-    writeList(BUCKET_KEY, all);
-  },
-
-  /** 지운 항목 반환 — "되돌리기" 토스트용. */
-  removeBucket(id: string): BucketPlace | undefined {
-    const all = readBucket();
-    const removed = all.find((b) => b.id === id);
-    writeList(BUCKET_KEY, all.filter((b) => b.id !== id));
-    return removed;
-  },
-
-  restoreBucket(item: BucketPlace): void {
-    const all = readBucket();
-    if (all.some((b) => b.id === item.id)) return;
-    writeList(BUCKET_KEY, [...all, item]);
   },
 };
