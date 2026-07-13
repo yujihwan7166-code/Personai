@@ -5,7 +5,7 @@
  * 카드마다 마지막 연락 상대시간(주기 초과면 테라코타)과 생일 임박(🎂 D-n) 시그널.
  */
 import { useMemo, useState } from 'react';
-import { ArrowDownUp, LayoutGrid, List, Search, X } from 'lucide-react';
+import { ArrowDownUp, LayoutGrid, List, MapPin, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
@@ -204,7 +204,7 @@ export function PersonsView({
           {persons.length === 0 ? '아직 등록한 사람이 없어요. "새 사람"으로 시작해 보세요.' : '조건에 맞는 사람이 없어요.'}
         </p>
       ) : mode === 'card' ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
             <PersonCard key={p.id} person={p} signal={signalOf(p)} onOpen={() => onOpen(p.id)} />
           ))}
@@ -282,48 +282,50 @@ function PersonCard({
   signal: { ago: string; overdue: boolean; bdaySoon: number | null };
   onOpen: () => void;
 }) {
-  const base = p.color ?? avatarColor(p.name);
+  const closenessColor =
+    p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.38)]"
+      className="group flex h-full flex-col rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] p-4 text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.35)]"
     >
-      {/* 컬러 배너 — 그 사람 색. 아바타가 아래로 겹친다 (프로필 카드 정석 패턴). */}
-      <div
-        className="h-[42px]"
-        style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${base} 88%, white), color-mix(in srgb, ${base} 58%, white))` }}
-      />
-
-      <div className="flex flex-1 flex-col px-3.5 pb-3">
-        <div className="-mt-6 mb-1 flex items-end justify-between">
-          <span className="inline-flex rounded-full ring-4 ring-[hsl(var(--surface-1))]">
-            <Avatar name={p.name} size={46} color={p.color} photo={p.photo} />
-          </span>
-          {s.bdaySoon !== null && (
-            <span className="mb-1 shrink-0 rounded-full bg-[hsl(38_75%_42%)]/14 px-1.5 py-0.5 text-[9.5px] font-bold text-[hsl(30_60%_36%)]">
-              🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
-            </span>
-          )}
-        </div>
-
-        <p className="truncate text-[14px] font-bold leading-tight">{p.name}</p>
-        <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
-
-        {p.tags.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {p.tags.slice(0, 2).map((t) => (
-              <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
-            ))}
-          </div>
-        )}
-
-        {/* 푸터 — 친밀도 + 마지막 연락(주기 초과 테라코타). h-full+mt-auto 하단 정렬 */}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
-          <span className="rounded-full bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
-          <span className={cn('shrink-0 text-[10.5px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/60')}>{s.ago}</span>
-        </div>
+      {/* 헤더 — 아바타(친밀도 점) 좌 · 관계 태그 우 */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="relative shrink-0">
+          <Avatar name={p.name} size={44} color={p.color} photo={p.photo} />
+          <span
+            className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-1))]"
+            style={{ backgroundColor: closenessColor }}
+            title={CLOSENESS_META[p.closeness].label}
+          />
+        </span>
+        <span className="shrink-0 rounded-full bg-[hsl(var(--surface-3))] px-2 py-0.5 text-[10px] font-bold text-foreground/60">{RELATION_META[p.relation].label}</span>
       </div>
+
+      {/* 이름 + 소개 */}
+      <p className="mt-2.5 flex items-center gap-1.5">
+        <span className="min-w-0 truncate text-[14.5px] font-bold leading-tight">{p.name}</span>
+        {s.bdaySoon !== null && (
+          <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-bold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
+        )}
+      </p>
+      {p.intro && <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{p.intro}</p>}
+
+      {/* 메타 — 지역 · 마지막 연락 */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        {p.region && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.region}</span>}
+        <span className={cn('tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/60')}>{s.ago}</span>
+      </div>
+
+      {/* 푸터 — 태그 (있을 때만) */}
+      {p.tags.length > 0 && (
+        <div className="mt-auto flex flex-wrap gap-1 border-t border-[hsl(var(--hairline))]/55 pt-2.5">
+          {p.tags.slice(0, 3).map((t) => (
+            <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
+          ))}
+        </div>
+      )}
     </button>
   );
 }
