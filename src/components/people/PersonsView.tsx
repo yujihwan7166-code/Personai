@@ -31,7 +31,7 @@ export function PersonsView({
   const [closenessFilter, setClosenessFilter] = useState<Closeness | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
   const [sort, setSort] = useState<SortMode>('name');
-  const [mode, setMode] = useState<'card' | 'list'>('card');
+  const [mode, setMode] = useState<'card' | 'list'>('list');
 
   const today = todayKey();
   const lastMap = useMemo(() => lastContactMap(persons, interactions), [persons, interactions]);
@@ -210,31 +210,40 @@ export function PersonsView({
           ))}
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]">
+        <ul className="overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_1px_2px_hsl(var(--foreground)/0.04)]">
           {filtered.map((p, i) => {
             const s = signalOf(p);
+            const closenessColor =
+              p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
             return (
               <li key={p.id}>
                 <button
                   type="button"
                   onClick={() => onOpen(p.id)}
                   className={cn(
-                    'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[hsl(var(--surface-2))]',
-                    i > 0 && 'border-t border-[hsl(var(--hairline))]/60',
+                    'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-2))]',
+                    i > 0 && 'border-t border-[hsl(var(--hairline))]/55',
                   )}
                 >
-                  <Avatar name={p.name} size={34} color={p.color} photo={p.photo} />
+                  {/* 아바타 + 친밀도 점 (인라인 알약 대신 은은하게) */}
+                  <span className="relative shrink-0">
+                    <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-1))]"
+                      style={{ backgroundColor: closenessColor }}
+                      title={CLOSENESS_META[p.closeness].label}
+                    />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5">
-                      <span className="truncate text-[13.5px] font-bold">{p.name}</span>
-                      <span className="shrink-0 rounded-full bg-[hsl(var(--people-accent))]/10 px-1.5 py-px text-[10px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
+                      <span className="truncate text-[14px] font-bold leading-tight">{p.name}</span>
                       {s.bdaySoon !== null && (
                         <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[10px] font-bold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
                       )}
                     </p>
-                    {p.intro && <p className="truncate text-[11.5px] text-muted-foreground">{p.intro}</p>}
+                    <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
                   </div>
-                  <span className={cn('hidden shrink-0 text-[11px] tabular-nums sm:block', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/70')}>{s.ago}</span>
+                  <span className={cn('shrink-0 text-[11px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/55')}>{s.ago}</span>
                 </button>
               </li>
             );
