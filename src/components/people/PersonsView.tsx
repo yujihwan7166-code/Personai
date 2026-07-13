@@ -5,7 +5,7 @@
  * 카드마다 마지막 연락 상대시간(주기 초과면 테라코타)과 생일 임박(🎂 D-n) 시그널.
  */
 import { useMemo, useState } from 'react';
-import { ArrowDownUp, LayoutGrid, List, MapPin, Search, X } from 'lucide-react';
+import { ArrowDownUp, LayoutGrid, List, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
@@ -303,35 +303,29 @@ function PersonCard({
       className="group flex h-full flex-col rounded-xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] p-3.5 text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.35)]"
     >
       {/* 헤더 — 아바타 좌 · 이름/소개 · 관계 태그 우 */}
-      <div className="flex items-start gap-3">
-        <Avatar name={p.name} size={44} color={p.color} photo={p.photo} />
+      <div className="flex items-start gap-2.5">
+        <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5">
-            <span className="min-w-0 truncate text-[14px] font-bold leading-tight">{p.name}</span>
+            <span className="min-w-0 truncate text-[14px] font-semibold leading-tight">{p.name}</span>
             {s.bdaySoon !== null && (
-              <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-bold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
+              <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-semibold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
             )}
           </p>
           {p.intro && <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{p.intro}</p>}
         </div>
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ backgroundColor: rt.bg, color: rt.text }}>
+        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: rt.bg, color: rt.text }}>
           {RELATION_META[p.relation].label}
         </span>
       </div>
 
-      {/* 푸터 — 메타(지역·마지막 연락) 좌 · 친밀도 우 */}
+      {/* 푸터 — 지역·마지막 연락 좌 · 친밀도 우 */}
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-[hsl(var(--hairline))]/55 pt-2.5">
-        <div className="flex min-w-0 items-center gap-1 text-[11px]">
-          {p.region && (
-            <>
-              <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              <span className="truncate text-muted-foreground">{p.region}</span>
-              <span aria-hidden className="text-muted-foreground/35">·</span>
-            </>
-          )}
-          <span className={cn('shrink-0 tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground')}>{s.ago}</span>
-        </div>
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ backgroundColor: closeTag.bg, color: closeTag.text }}>
+        <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+          {p.region && <>{p.region} · </>}
+          <span className={cn('tabular-nums', s.overdue && 'font-semibold text-[hsl(var(--people-accent))]')}>{s.ago}</span>
+        </span>
+        <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: closeTag.bg, color: closeTag.text }}>
           {CLOSENESS_META[p.closeness].label}
         </span>
       </div>
