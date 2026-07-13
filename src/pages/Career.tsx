@@ -601,18 +601,6 @@ function BoardLedger() {
               })}
             </nav>
 
-            <div className="flex-1" />
-
-            {/* 하단 유틸 — 추천 스펙 (다음에 쌓을 것) */}
-            <div className="border-t border-[hsl(var(--hairline))] px-3 py-3">
-              <button
-                type="button"
-                onClick={() => setRecommendOpen(true)}
-                className="block w-full rounded-xl py-2 pl-4 pr-3 text-left text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--surface-3))]/60 hover:text-[hsl(var(--career-red))]"
-              >
-                ✦ 추천 스펙 받기
-              </button>
-            </div>
           </aside>
 
           {/* ══ 메인 — 모바일은 통 스크롤, lg 부턴 컬럼별 독립 스크롤 ══ */}
@@ -636,19 +624,68 @@ function BoardLedger() {
                   {label}
                 </button>
               ))}
-              <button type="button" onClick={() => setRecommendOpen(true)} className="shrink-0 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12px] text-muted-foreground">
-                ✦ 추천
-              </button>
             </div>
 
             {view === 'board' ? (
             /* 행 높이 minmax(0,1fr) — 이게 있어야 두 컬럼이 화면을 채우고 각자 스크롤한다 */
             <div className="flex flex-col lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_540px] lg:grid-rows-[minmax(0,1fr)]">
 
-        {/* ══════ 우 — 작성대 도크: 커리어 추가 전용 (문서는 사이드바로 이사, 2026-07-13) ══════ */}
+        {/* ══════ 우 — 작성대 도크: 문서 만들기 타일 + 커리어 추가 (보관함 열람은 사이드바가 담당) ══════ */}
         <aside className="scrollbar-thin overflow-y-auto lg:col-start-2">
             {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
+            {/* 문서 만들기 — 종류 타일 6개 (만든 문서 보기는 사이드바 문서 항목으로) */}
+            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">+</span>
+                <h2 className="text-[16px] font-bold tracking-tight">문서 만들기</h2>
+              </div>
+              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                {items.length === 0
+                  ? '기록이 쌓이면 문서를 만들 수 있어요.'
+                  : '쌓인 기록으로 문서를 만들어보세요. 만든 문서는 왼쪽 사이드바에 쌓여요.'}
+              </p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
+                  const disabled = items.length === 0;
+                  return (
+                    <button
+                      key={purpose}
+                      type="button"
+                      onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setComposePurpose(purpose))}
+                      disabled={disabled}
+                      className={cn(
+                        'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
+                        disabled
+                          ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
+                          : 'hover:brightness-[0.98] hover:shadow-sm',
+                      )}
+                      style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
+                    >
+                      <span className="block text-[13px] font-semibold">{label}</span>
+                      <span
+                        className="career-mono mt-0.5 block text-[10.5px]"
+                        style={disabled ? undefined : { color: `hsl(${hsl} / 0.95)` }}
+                      >
+                        {hint} →
+                      </span>
+                    </button>
+                  );
+                })}
+                {/* 6번째 — 추천 스펙(연한 초록, "쌓을 것" 성격) */}
+                <button
+                  type="button"
+                  onClick={() => setRecommendOpen(true)}
+                  title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
+                  className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
+                  style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
+                >
+                  <span className="block text-[13px] font-semibold">추천 스펙</span>
+                  <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
+                </button>
+              </div>
+            </section>
+
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               {/* 표제 + 모드 토글 (세그먼트) */}
               <div className="flex items-center gap-2">
