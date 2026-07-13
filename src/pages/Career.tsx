@@ -708,19 +708,15 @@ function BoardLedger() {
                       type="button"
                       onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setComposePurpose(purpose))}
                       disabled={disabled}
+                      title={disabled ? '스펙 보드에 기록이 쌓이면 만들 수 있어요' : undefined}
                       className={cn(
-                        'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
-                        disabled
-                          ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                          : 'hover:brightness-[0.98] hover:shadow-sm',
+                        'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow,opacity]',
+                        disabled ? 'cursor-not-allowed opacity-55' : 'hover:brightness-[0.98] hover:shadow-sm',
                       )}
-                      style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
+                      style={{ backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
                     >
                       <span className="block text-[13px] font-semibold">{label}</span>
-                      <span
-                        className="career-mono mt-0.5 block text-[10.5px]"
-                        style={disabled ? undefined : { color: `hsl(${hsl} / 0.95)` }}
-                      >
+                      <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: `hsl(${hsl} / 0.95)` }}>
                         {hint} →
                       </span>
                     </button>
