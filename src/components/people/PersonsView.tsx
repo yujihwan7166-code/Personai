@@ -223,7 +223,7 @@ export function PersonsView({
                     i > 0 && 'border-t border-[hsl(var(--hairline))]/60',
                   )}
                 >
-                  <Avatar name={p.name} size={34} />
+                  <Avatar name={p.name} size={34} color={p.color} photo={p.photo} />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5">
                       <span className="truncate text-[13.5px] font-bold">{p.name}</span>
@@ -245,11 +245,21 @@ export function PersonsView({
   );
 }
 
-export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+export function Avatar({ name, size = 44, color, photo }: { name: string; size?: number; color?: string; photo?: string }) {
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   return (
     <span
       className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-      style={{ width: size, height: size, backgroundColor: avatarColor(name), fontSize: size * 0.42 }}
+      style={{ width: size, height: size, backgroundColor: color ?? avatarColor(name), fontSize: size * 0.42 }}
     >
       {name.slice(0, 1)}
     </span>
@@ -275,7 +285,7 @@ function PersonCard({
         </span>
       )}
       <span className="relative">
-        <Avatar name={p.name} size={52} />
+        <Avatar name={p.name} size={52} color={p.color} photo={p.photo} />
         <span
           className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-1))]"
           style={{ backgroundColor: p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)' }}

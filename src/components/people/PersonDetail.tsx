@@ -58,10 +58,10 @@ export function PersonDetail({
       {/* 프로필 카드 — 아바타 색이 은은하게 스며든 개인화 배경 */}
       <div
         className={cn(cardCls, 'mb-4 p-5')}
-        style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${avatarColor(p.name)} 9%, transparent), transparent 58%)` }}
+        style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${p.color ?? avatarColor(p.name)} 9%, transparent), transparent 58%)` }}
       >
         <div className="flex flex-wrap items-start gap-4">
-          <Avatar name={p.name} size={60} />
+          <Avatar name={p.name} size={60} color={p.color} photo={p.photo} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-[21px] font-bold leading-tight">{p.name}</h2>

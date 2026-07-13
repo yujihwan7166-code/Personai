@@ -53,6 +53,10 @@ export interface Person {
   tags: string[];
   /** 편입된 카테고리 id 목록 (여러 개 동시 가능). */
   categoryIds: string[];
+  /** 카드 색 — 직접 고른 값(hsl/hex). 없으면 이름 해시색(avatarColor). */
+  color?: string;
+  /** 첨부 사진(dataURL) — 프로필 또는 명함 등. */
+  photo?: string;
   phone?: string;
   region?: string;
   /** 생일 MM-DD (매년 반복). */
@@ -87,8 +91,8 @@ export interface Interaction {
   createdAt: string;
 }
 
-/** 아바타 색 — 이름 해시로 결정 (목업의 다색 이니셜 원). */
-const AVATAR_COLORS = [
+/** 아바타 색 — 이름 해시로 결정 (목업의 다색 이니셜 원). 색 직접 고르기 팔레트로도 재사용. */
+export const AVATAR_COLORS = [
   'hsl(16 62% 48%)',  // 테라코타
   'hsl(150 38% 40%)', // 그린
   'hsl(210 52% 46%)', // 블루

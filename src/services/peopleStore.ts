@@ -17,6 +17,9 @@ import { notify } from '@/lib/notify';
 const PERSONS_KEY = 'people.persons.v1';
 const INTERACTIONS_KEY = 'people.interactions.v1';
 const CATEGORIES_KEY = 'people.categories.v1';
+const CATEGORIES_SEEDED_KEY = 'people.catSeeded.v1';
+/** 처음 방문 시 깔아두는 예시 카테고리 — 감을 잡게. 지우면 다시 안 생긴다(플래그). */
+const SEED_CATEGORY_NAMES = ['가족', '직장', '대학동기'];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -57,6 +60,8 @@ const normalizePerson = (v: unknown, i: number): Person | null => {
     intro: typeof v.intro === 'string' && v.intro.trim() ? v.intro.trim() : undefined,
     tags: strList(v.tags),
     categoryIds: strList(v.categoryIds),
+    color: typeof v.color === 'string' && v.color.trim() ? v.color.trim() : undefined,
+    photo: typeof v.photo === 'string' && v.photo.startsWith('data:image/') ? v.photo : undefined,
     phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined,
     region: typeof v.region === 'string' && v.region.trim() ? v.region.trim() : undefined,
     birthday: isMonthDay(v.birthday) ? v.birthday : undefined,
@@ -140,6 +145,23 @@ const newId = (prefix: string): string =>
 const readPersons = () => readList(PERSONS_KEY, normalizePerson);
 const readInteractions = () => readList(INTERACTIONS_KEY, normalizeInteraction);
 const readCategories = () => readList(CATEGORIES_KEY, normalizeCategory);
+
+/** 최초 1회 예시 카테고리 seed — 이미 있거나 한번 깔았으면 skip (플래그로 재생성 방지). */
+function ensureSeededCategories(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (window.localStorage.getItem(CATEGORIES_SEEDED_KEY)) return;
+    window.localStorage.setItem(CATEGORIES_SEEDED_KEY, '1');
+    if (readCategories().length > 0) return;
+    const base = Date.now();
+    const seed: PeopleCategory[] = SEED_CATEGORY_NAMES.map((name, i) => ({
+      id: newId('pcat'),
+      name,
+      createdAt: new Date(base + i).toISOString(), // 순서 안정화
+    }));
+    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(seed));
+  } catch { /* noop */ }
+}
 
 export const peopleStore = {
   /* ── 사람 ── */
@@ -230,6 +252,7 @@ export const peopleStore = {
   /* ── 카테고리 (그룹) ── */
 
   listCategories(): PeopleCategory[] {
+    ensureSeededCategories();
     return readCategories().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   },
 

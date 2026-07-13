@@ -4,6 +4,17 @@ import { peopleStore } from '@/services/peopleStore';
 describe('peopleStore — 카테고리(그룹)', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // CRUD 테스트는 깨끗한 상태에서 — 예시 seed 비활성화(플래그 미리 설정).
+    window.localStorage.setItem('people.catSeeded.v1', '1');
+  });
+
+  it('예시 카테고리 seed — 최초 1회만, 지운 뒤엔 재생성 안 함', () => {
+    window.localStorage.removeItem('people.catSeeded.v1');
+    const seeded = peopleStore.listCategories();
+    expect(seeded.map((c) => c.name)).toEqual(['가족', '직장', '대학동기']);
+    // 전부 지워도 다시 안 깔린다
+    for (const c of seeded) peopleStore.removeCategory(c.id);
+    expect(peopleStore.listCategories()).toEqual([]);
   });
 
   it('addCategory() — 생성 + 같은 이름(대소문자 무시)은 기존 것 반환', () => {

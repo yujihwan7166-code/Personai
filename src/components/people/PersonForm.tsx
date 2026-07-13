@@ -4,13 +4,14 @@
  * 아바타는 이름 따라 실시간. 필수는 이름뿐, 나머지는 나중에 상세에서 채워도 된다.
  */
 import { useEffect, useState, type ComponentType } from 'react';
-import { Cake, ChevronLeft, Hash, MapPin, Phone, Plus, X } from 'lucide-react';
+import { Cake, Camera, ChevronLeft, Hash, MapPin, Phone, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
+import { compressImage } from '@/lib/journalImage';
 import { Avatar } from '@/components/people/PersonsView';
 import {
-  CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, avatarColor, isValidMonthDay,
+  AVATAR_COLORS, CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, avatarColor, isValidMonthDay,
   type Closeness, type PeopleCategory, type Person, type Relation,
 } from '@/types/people';
 
@@ -62,6 +63,8 @@ export function PersonForm({
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [addingCat, setAddingCat] = useState(false);
   const [catName, setCatName] = useState('');
+  const [color, setColor] = useState<string | undefined>(undefined);
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setName(editing?.name ?? '');
@@ -73,7 +76,19 @@ export function PersonForm({
     setRegion(editing?.region ?? '');
     setBirthday(editing?.birthday ?? '');
     setCategoryIds(editing?.categoryIds ?? []);
+    setColor(editing?.color);
+    setPhoto(editing?.photo);
   }, [editing]);
+
+  const onPickPhoto = async (file?: File) => {
+    if (!file) return;
+    try {
+      const { src } = await compressImage(file);
+      setPhoto(src);
+    } catch {
+      notify.error('사진을 불러오지 못했어요');
+    }
+  };
 
   const toggleCategory = (id: string) =>
     setCategoryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -106,6 +121,8 @@ export function PersonForm({
       region: region.trim() || undefined,
       birthday: bd || undefined,
       categoryIds,
+      color: color || undefined,
+      photo: photo || undefined,
     };
     if (editing) {
       peopleStore.updatePerson(editing.id, data);
@@ -117,7 +134,7 @@ export function PersonForm({
     }
   };
 
-  const tint = name.trim() ? avatarColor(name.trim()) : 'hsl(var(--people-accent))';
+  const tint = color ?? (name.trim() ? avatarColor(name.trim()) : 'hsl(var(--people-accent))');
 
   return (
     <div className="mx-auto max-w-[560px] pb-8">
@@ -136,12 +153,23 @@ export function PersonForm({
           className="flex items-center gap-4 px-6 pb-5 pt-6"
           style={{ backgroundImage: `linear-gradient(150deg, color-mix(in srgb, ${tint} 12%, transparent), transparent 62%)` }}
         >
-          <span
-            className="shrink-0 rounded-full p-[3px]"
+          {/* 아바타 = 사진 첨부 버튼 (명함 등). 클릭하면 파일 선택. */}
+          <label
+            className="relative shrink-0 cursor-pointer rounded-full p-[3px]"
             style={{ boxShadow: `0 0 0 1.5px color-mix(in srgb, ${tint} 45%, transparent)` }}
+            title={photo ? '사진 바꾸기' : '사진 첨부'}
           >
-            <Avatar name={name.trim() || '새 사람'} size={54} />
-          </span>
+            <Avatar name={name.trim() || '새 사람'} size={54} color={color} photo={photo} />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--people-accent))] text-[hsl(var(--people-accent-ink))] shadow ring-2 ring-[hsl(var(--surface-1))]">
+              <Camera className="h-3 w-3" />
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ''; }}
+            />
+          </label>
           <div className="min-w-0 flex-1">
             <input
               value={name}
@@ -266,6 +294,49 @@ export function PersonForm({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* 카드 색 / 사진 — 사진이 있으면 사진이 카드에 표시(색 대신) */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <p className="text-[11px] font-bold tracking-[0.04em] text-muted-foreground/70">카드 색</p>
+              {photo && (
+                <button type="button" onClick={() => setPhoto(undefined)} className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground transition-colors hover:text-rose-500">
+                  <X className="h-3 w-3" /> 사진 제거
+                </button>
+              )}
+            </div>
+            {photo ? (
+              <p className="text-[11.5px] text-muted-foreground/70">첨부한 사진이 카드에 표시돼요.</p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setColor(undefined)}
+                  aria-pressed={!color}
+                  className={cn(
+                    'h-6 rounded-full border px-2.5 text-[11px] font-semibold transition-colors',
+                    !color ? 'border-[hsl(var(--foreground)/0.5)] text-foreground' : 'border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  자동
+                </button>
+                {AVATAR_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    aria-label="카드 색"
+                    aria-pressed={color === c}
+                    className={cn(
+                      'h-6 w-6 rounded-full ring-2 ring-offset-2 ring-offset-[hsl(var(--surface-1))] transition-[box-shadow]',
+                      color === c ? 'ring-[hsl(var(--foreground)/0.55)]' : 'ring-transparent hover:ring-[hsl(var(--foreground)/0.2)]',
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 속성 — 아이콘·라벨·값 */}
