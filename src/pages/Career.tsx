@@ -1123,14 +1123,6 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
           <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
-            {/* 서류철 탭 — 보드가 여럿일 때만, 이 원고가 어느 보드인지 */}
-            {boards.length > 1 && (
-              <div className="mx-auto max-w-[900px]">
-                <span className="relative z-10 -mb-px ml-6 inline-block rounded-t-lg border border-b-0 border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-3.5 pb-2 pt-1.5 text-[11.5px] font-bold leading-none text-[hsl(var(--career-red))]">
-                  {boards.find((b) => b.id === activeBoardId)?.name ?? '스펙 보드'}
-                </span>
-              </div>
-            )}
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 레터헤드: 아래 굵은 잉크 괘선(섹션 헤어라인·항목 옅은 선과 3단 위계) ── */}
             <div className="flex items-center gap-5 border-b-2 border-[hsl(var(--foreground)/0.8)] pb-5">
