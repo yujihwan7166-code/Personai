@@ -47,15 +47,33 @@ export default function People() {
     () => computeOverdue(persons, interactions, today).length,
     [persons, interactions, today],
   );
+  /** 이번 달 경조사 건수 — 내비 항목 우측 실데이터. */
+  const monthEvents = useMemo(() => {
+    const mm = today.slice(5, 7);
+    let n = 0;
+    for (const p of persons) {
+      if (p.birthday?.slice(0, 2) === mm) n += 1;
+      n += p.annivs.filter((a) => a.monthDay.slice(0, 2) === mm).length;
+    }
+    return n;
+  }, [persons, today]);
+  /** 내비 우측 숫자 — "실데이터가 서술어" 문법의 내비 버전. */
+  const navCountOf = (id: View): number => {
+    if (id === 'persons') return persons.length;
+    if (id === 'calendar') return monthEvents;
+    return 0;
+  };
 
   const goPerson = (id: string) => {
     setOpenId(id);
     setView('persons');
   };
 
-  /* 사이드바 항목은 텍스트만 — 바로 옆 레일이 이미 아이콘 열이라 아이콘이 겹치면 어수선 (아이콘은 모바일 칩에서만). */
+  /* 사이드바 항목 — 아이콘 대신 활성 세로 바 + 우측 실데이터 숫자로 살아있게
+   * (레일이 이미 아이콘 열이라 아이콘 중복 금지, 아이콘은 모바일 칩에서만). */
   const navBtn = (item: (typeof NAV)[number]) => {
     const active = view === item.id;
+    const count = navCountOf(item.id);
     return (
       <button
         key={item.id}
@@ -63,16 +81,19 @@ export default function People() {
         onClick={() => { setView(item.id); setOpenId(null); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-left text-[13px] transition-colors',
+          'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
           active
             ? 'bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
             : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
         )}
       >
+        {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--people-accent))]" />}
         <span className="flex-1">{item.label}</span>
-        {item.id === 'today' && badge > 0 && (
+        {item.id === 'today' && badge > 0 ? (
           <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--people-accent))] px-1 text-[10px] font-bold tabular-nums text-[hsl(var(--people-accent-ink))]">{badge}</span>
-        )}
+        ) : count > 0 ? (
+          <span className={cn('text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--people-accent))]/80' : 'text-muted-foreground/55')}>{count}</span>
+        ) : null}
       </button>
     );
   };

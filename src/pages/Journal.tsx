@@ -429,6 +429,15 @@ export default function Journal() {
   const monthPrefix = `${y}-${String(m + 1).padStart(2, '0')}`;
   const monthCount = allEntries.filter((e) => e.date.startsWith(monthPrefix)).length;
 
+  /** 내비 우측 실데이터 숫자 — "실데이터가 서술어" 문법의 내비 버전. 0이면 표시 안 함. */
+  const navCountOf = (id: Tab): number => {
+    if (id === 'write') return allEntries.length;
+    if (id === 'trips') return trips.length;
+    if (id === 'map') return new Set(dayItems.filter((i) => i.place).map((i) => i.place!.toLowerCase())).size;
+    if (id === 'food') return dayItems.filter((i) => i.kind === 'meal').length;
+    return 0;
+  };
+
   return (
     <div
       style={{
@@ -461,10 +470,12 @@ export default function Journal() {
           })()}
         </div>
 
-        {/* 섹션 내비 — 텍스트만 (바로 옆 레일이 이미 아이콘 열이라 아이콘 겹침 방지, 아이콘은 모바일 칩에서만) */}
+        {/* 섹션 내비 — 아이콘 대신 활성 세로 바 + 우측 실데이터 숫자
+         * (바로 옆 레일이 이미 아이콘 열이라 아이콘 겹침 방지, 아이콘은 모바일 칩에서만) */}
         <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => {
             const active = tab === item.id;
+            const count = navCountOf(item.id);
             return (
               <button
                 key={item.id}
@@ -472,13 +483,17 @@ export default function Journal() {
                 onClick={() => { setTab(item.id); setDetailOpen(false); }}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'rounded-xl px-3.5 py-2.5 text-left text-[13px] transition-colors',
+                  'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
                     : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
                 )}
               >
-                {item.label}
+                {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}
+                <span className="flex-1">{item.label}</span>
+                {count > 0 && (
+                  <span className={cn('text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-accent))]/80' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
+                )}
               </button>
             );
           })}
@@ -508,12 +523,13 @@ export default function Journal() {
                 onClick={() => { setTab(item.id); setDetailOpen(false); }}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'block w-full rounded-xl px-3.5 py-2 text-left text-[12.5px] transition-colors',
+                  'relative block w-full rounded-xl py-2 pl-4 pr-3 text-left text-[12.5px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
                     : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
                 )}
               >
+                {active && <span aria-hidden className="absolute left-1 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}
                 {item.label}
               </button>
             );
