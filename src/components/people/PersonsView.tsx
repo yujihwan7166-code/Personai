@@ -273,38 +273,45 @@ function PersonCard({
   signal: { ago: string; overdue: boolean; bdaySoon: number | null };
   onOpen: () => void;
 }) {
+  const closenessColor =
+    p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative flex flex-col items-center rounded-2xl border border-[hsl(var(--foreground)/0.09)] bg-[hsl(var(--surface-1))] px-3 pb-3 pt-4 text-center shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/35 hover:shadow-[0_12px_26px_-14px_hsl(var(--foreground)/0.3)]"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/35 hover:shadow-[0_12px_26px_-14px_hsl(var(--foreground)/0.3)]"
     >
-      {s.bdaySoon !== null && (
-        <span className="absolute right-2 top-2 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-0.5 text-[10px] font-bold text-[hsl(30_60%_36%)]">
-          🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
-        </span>
-      )}
-      <span className="relative">
-        <Avatar name={p.name} size={52} color={p.color} photo={p.photo} />
-        <span
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[hsl(var(--surface-1))]"
-          style={{ backgroundColor: p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)' }}
-          title={CLOSENESS_META[p.closeness].label}
-        />
-      </span>
-      <span className="mt-2 w-full truncate text-[13.5px] font-bold">{p.name}</span>
-      <span className="mt-0.5 w-full truncate text-[11px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</span>
+      {/* 친밀도 색 좌측 엣지 — 원형 대신 은은한 정체성 표시 */}
+      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ backgroundColor: closenessColor }} />
+
+      <div className="flex items-start gap-2.5 px-3.5 pb-2.5 pt-3.5">
+        <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate text-[14px] font-bold leading-tight">{p.name}</span>
+            {s.bdaySoon !== null && (
+              <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-0.5 text-[9.5px] font-bold text-[hsl(30_60%_36%)]">
+                🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
+              </span>
+            )}
+          </div>
+          <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</span>
+        </div>
+      </div>
+
       {p.tags.length > 0 && (
-        <span className="mt-1.5 flex max-w-full flex-wrap justify-center gap-1">
+        <div className="flex flex-wrap gap-1 px-3.5">
           {p.tags.slice(0, 2).map((t) => (
             <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
           ))}
-        </span>
+        </div>
       )}
-      {/* 챙김 시그널 — 주기 초과면 테라코타로 조용히 경고 */}
-      <span className={cn('mt-2 border-t border-[hsl(var(--hairline))]/60 pt-1.5 text-[10.5px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/65')}>
-        {s.ago}
-      </span>
+
+      {/* 푸터 — 친밀도 라벨 + 마지막 연락(주기 초과 테라코타). h-full+mt-auto 로 카드 하단 정렬 */}
+      <div className="mt-auto flex items-center justify-between gap-2 px-3.5 pb-3 pt-2.5">
+        <span className="rounded-full bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
+        <span className={cn('shrink-0 text-[10.5px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/60')}>{s.ago}</span>
+      </div>
     </button>
   );
 }
