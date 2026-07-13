@@ -223,7 +223,7 @@ function TripCard({ trip, cover, today, onOpen }: { trip: Trip; cover?: string; 
       onClick={onOpen}
       className="group overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] text-left shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.3)]"
     >
-      <div className="relative h-32 overflow-hidden">
+      <div className="relative h-36 overflow-hidden">
         {cover ? (
           <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
         ) : (
