@@ -7,6 +7,7 @@ import {
   type Closeness,
   type Interaction,
   type InteractionKind,
+  type PeopleCategory,
   type Person,
   type Relation,
 } from '@/types/people';
@@ -15,6 +16,7 @@ import { notify } from '@/lib/notify';
 
 const PERSONS_KEY = 'people.persons.v1';
 const INTERACTIONS_KEY = 'people.interactions.v1';
+const CATEGORIES_KEY = 'people.categories.v1';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -54,6 +56,7 @@ const normalizePerson = (v: unknown, i: number): Person | null => {
     closeness: isCloseness(v.closeness) ? v.closeness : 'normal',
     intro: typeof v.intro === 'string' && v.intro.trim() ? v.intro.trim() : undefined,
     tags: strList(v.tags),
+    categoryIds: strList(v.categoryIds),
     phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined,
     region: typeof v.region === 'string' && v.region.trim() ? v.region.trim() : undefined,
     birthday: isMonthDay(v.birthday) ? v.birthday : undefined,
@@ -64,6 +67,18 @@ const normalizePerson = (v: unknown, i: number): Person | null => {
     dislikes: strList(v.dislikes),
     familyNote: typeof v.familyNote === 'string' && v.familyNote.trim() ? v.familyNote.trim() : undefined,
     episode: typeof v.episode === 'string' && v.episode.trim() ? v.episode.trim() : undefined,
+    createdAt:
+      typeof v.createdAt === 'string' && !Number.isNaN(Date.parse(v.createdAt)) ? v.createdAt : isoNow(),
+  };
+};
+
+const normalizeCategory = (v: unknown, i: number): PeopleCategory | null => {
+  if (!isRecord(v)) return null;
+  const name = typeof v.name === 'string' ? v.name.trim() : '';
+  if (!name) return null;
+  return {
+    id: typeof v.id === 'string' && v.id ? v.id : `pcat_recovered_${i}`,
+    name,
     createdAt:
       typeof v.createdAt === 'string' && !Number.isNaN(Date.parse(v.createdAt)) ? v.createdAt : isoNow(),
   };
@@ -124,6 +139,7 @@ const newId = (prefix: string): string =>
 
 const readPersons = () => readList(PERSONS_KEY, normalizePerson);
 const readInteractions = () => readList(INTERACTIONS_KEY, normalizeInteraction);
+const readCategories = () => readList(CATEGORIES_KEY, normalizeCategory);
 
 export const peopleStore = {
   /* ── 사람 ── */
@@ -209,5 +225,70 @@ export const peopleStore = {
     const all = readInteractions();
     if (all.some((x) => x.id === item.id)) return;
     writeList(INTERACTIONS_KEY, [...all, item]);
+  },
+
+  /* ── 카테고리 (그룹) ── */
+
+  listCategories(): PeopleCategory[] {
+    return readCategories().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  },
+
+  /** 카테고리 생성 — 같은 이름(대소문자 무시)은 새로 만들지 않고 기존 것을 반환. */
+  addCategory(name: string): PeopleCategory | null {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const all = readCategories();
+    const existing = all.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+    const cat: PeopleCategory = { id: newId('pcat'), name: trimmed, createdAt: isoNow() };
+    return writeList(CATEGORIES_KEY, [...all, cat]) ? cat : null;
+  },
+
+  renameCategory(id: string, name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const all = readCategories();
+    const idx = all.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    all[idx] = { ...all[idx], name: trimmed };
+    writeList(CATEGORIES_KEY, all);
+  },
+
+  /** 카테고리 삭제 — 모든 사람에게서 편입도 제거. 되돌리기용 번들 반환. */
+  removeCategory(id: string): { category: PeopleCategory; memberIds: string[] } | undefined {
+    const all = readCategories();
+    const category = all.find((c) => c.id === id);
+    if (!category) return undefined;
+    const persons = readPersons();
+    const memberIds = persons.filter((p) => p.categoryIds.includes(id)).map((p) => p.id);
+    if (memberIds.length > 0) {
+      writeList(
+        PERSONS_KEY,
+        persons.map((p) =>
+          p.categoryIds.includes(id) ? { ...p, categoryIds: p.categoryIds.filter((c) => c !== id) } : p,
+        ),
+      );
+    }
+    writeList(CATEGORIES_KEY, all.filter((c) => c.id !== id));
+    return { category, memberIds };
+  },
+
+  restoreCategory(bundle: { category: PeopleCategory; memberIds: string[] }): void {
+    const all = readCategories();
+    if (!all.some((c) => c.id === bundle.category.id)) {
+      writeList(CATEGORIES_KEY, [...all, bundle.category]);
+    }
+    const set = new Set(bundle.memberIds);
+    if (set.size > 0) {
+      const persons = readPersons();
+      writeList(
+        PERSONS_KEY,
+        persons.map((p) =>
+          set.has(p.id) && !p.categoryIds.includes(bundle.category.id)
+            ? { ...p, categoryIds: [...p.categoryIds, bundle.category.id] }
+            : p,
+        ),
+      );
+    }
   },
 };

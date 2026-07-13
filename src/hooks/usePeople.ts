@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 import { peopleStore } from '@/services/peopleStore';
-import { PEOPLE_CHANGED, type Interaction, type Person } from '@/types/people';
+import { PEOPLE_CHANGED, type Interaction, type PeopleCategory, type Person } from '@/types/people';
 
 export function usePersons(): Person[] {
   const [persons, setPersons] = useState<Person[]>(() => peopleStore.listPersons());
@@ -13,6 +13,16 @@ export function usePersons(): Person[] {
     return () => window.removeEventListener(PEOPLE_CHANGED, sync);
   }, []);
   return persons;
+}
+
+export function useCategories(): PeopleCategory[] {
+  const [cats, setCats] = useState<PeopleCategory[]>(() => peopleStore.listCategories());
+  useEffect(() => {
+    const sync = () => setCats(peopleStore.listCategories());
+    window.addEventListener(PEOPLE_CHANGED, sync);
+    return () => window.removeEventListener(PEOPLE_CHANGED, sync);
+  }, []);
+  return cats;
 }
 
 export function useInteractions(personId?: string): Interaction[] {

@@ -36,6 +36,13 @@ export interface Anniv {
   type: 'anniversary' | 'etc';
 }
 
+/** 사용자가 만든 그룹 — 사람을 여러 카테고리에 동시에 편입할 수 있다. */
+export interface PeopleCategory {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface Person {
   id: string;
   name: string;
@@ -44,6 +51,8 @@ export interface Person {
   /** 한 줄 소개 — "대학 동기 · 등산 모임". */
   intro?: string;
   tags: string[];
+  /** 편입된 카테고리 id 목록 (여러 개 동시 가능). */
+  categoryIds: string[];
   phone?: string;
   region?: string;
   /** 생일 MM-DD (매년 반복). */

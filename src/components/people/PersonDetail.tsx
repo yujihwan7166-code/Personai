@@ -12,7 +12,7 @@ import { Avatar } from '@/components/people/PersonsView';
 import { todayKey } from '@/types/travel';
 import {
   CLOSENESS_META, INTERACTION_META, RELATION_META, avatarColor, isValidMonthDay,
-  type Interaction, type InteractionKind, type Person,
+  type Interaction, type InteractionKind, type PeopleCategory, type Person,
 } from '@/types/people';
 import { agoContactLabel } from '@/lib/people/overdue';
 import { toLocalYMD } from '@/types/travel';
@@ -20,14 +20,16 @@ import { toLocalYMD } from '@/types/travel';
 const cardCls = 'rounded-2xl border border-[hsl(var(--foreground)/0.09)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12)]';
 
 export function PersonDetail({
-  person: p, onBack, onEdit,
+  person: p, categories, onBack, onEdit,
 }: {
   person: Person;
+  categories: PeopleCategory[];
   onBack: () => void;
   onEdit: () => void;
 }) {
   const interactions = useInteractions(p.id);
   const [armDelete, setArmDelete] = useState(false);
+  const myCategories = categories.filter((c) => p.categoryIds.includes(c.id));
 
   const gifts = interactions.filter((x) => x.kind === 'gift_given' || x.kind === 'gift_received');
 
@@ -67,8 +69,11 @@ export function PersonDetail({
               <span className="rounded-full bg-[hsl(var(--people-accent))]/12 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
             </div>
             {p.intro && <p className="mt-1 text-[12.5px] text-muted-foreground">{p.intro}</p>}
-            {p.tags.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
+            {(p.tags.length > 0 || myCategories.length > 0) && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                {myCategories.map((c) => (
+                  <span key={c.id} className="rounded-full border border-[hsl(var(--people-accent))]/35 bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{c.name}</span>
+                ))}
                 {p.tags.map((t) => <span key={t} className="rounded-full bg-[hsl(var(--people-accent))]/8 px-1.5 py-0.5 text-[10.5px] text-[hsl(var(--people-accent))]/85">#{t}</span>)}
               </div>
             )}

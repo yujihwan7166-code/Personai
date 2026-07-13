@@ -10,7 +10,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarHeart, Home, Plus, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePersons, useInteractions } from '@/hooks/usePeople';
+import { usePersons, useInteractions, useCategories } from '@/hooks/usePeople';
 import { PersonsView } from '@/components/people/PersonsView';
 import { PersonDetail } from '@/components/people/PersonDetail';
 import { PersonForm } from '@/components/people/PersonForm';
@@ -37,6 +37,7 @@ const SECTION_HEAD: Record<View, { eyebrow: string; title: string }> = {
 export default function People() {
   const persons = usePersons();
   const interactions = useInteractions();
+  const categories = useCategories();
   const [view, setView] = useState<View>('today');
   const [openId, setOpenId] = useState<string | null>(null);
   // 새 사람/수정 — 플로팅 모달이 아니라 본문에 레코드 카드 양식으로 인라인.
@@ -180,6 +181,7 @@ export default function People() {
             <PersonForm
               key={editor.editing?.id ?? 'new'}
               editing={editor.editing}
+              categories={categories}
               onCancel={() => { const back = editor.editing; setEditor({ open: false, editing: null }); if (back) setOpenId(back.id); }}
               onSaved={(id) => { setEditor({ open: false, editing: null }); goPerson(id); }}
             />
@@ -188,13 +190,14 @@ export default function People() {
             <PersonDetail
               key={openPerson.id}
               person={openPerson}
+              categories={categories}
               onBack={() => setOpenId(null)}
               onEdit={() => setEditor({ open: true, editing: openPerson })}
             />
           ) : view === 'today' ? (
             <TodayView persons={persons} interactions={interactions} onOpenPerson={goPerson} />
           ) : view === 'persons' ? (
-            <PersonsView persons={persons} interactions={interactions} onOpen={goPerson} />
+            <PersonsView persons={persons} interactions={interactions} categories={categories} onOpen={goPerson} />
           ) : (
             <EventsCalendar persons={persons} onOpenPerson={goPerson} />
           )}

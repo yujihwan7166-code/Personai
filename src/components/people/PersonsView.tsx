@@ -5,38 +5,50 @@
  * 카드마다 마지막 연락 상대시간(주기 초과면 테라코타)과 생일 임박(🎂 D-n) 시그널.
  */
 import { useMemo, useState } from 'react';
-import { ArrowDownUp, LayoutGrid, List, Search } from 'lucide-react';
+import { ArrowDownUp, LayoutGrid, List, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
+import { peopleStore } from '@/services/peopleStore';
 import { agoContactLabel, lastContactMap } from '@/lib/people/overdue';
 import { diffDays, todayKey } from '@/types/travel';
 import {
   CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, avatarColor, nextOccurrence,
-  type Closeness, type Interaction, type Person, type Relation,
+  type Closeness, type Interaction, type PeopleCategory, type Person, type Relation,
 } from '@/types/people';
 
 type SortMode = 'name' | 'stale';
 
 export function PersonsView({
-  persons, interactions, onOpen,
+  persons, interactions, categories, onOpen,
 }: {
   persons: Person[];
   interactions: Interaction[];
+  categories: PeopleCategory[];
   onOpen: (id: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [relationFilter, setRelationFilter] = useState<Relation | 'all'>('all');
   const [closenessFilter, setClosenessFilter] = useState<Closeness | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
   const [sort, setSort] = useState<SortMode>('name');
   const [mode, setMode] = useState<'card' | 'list'>('card');
 
   const today = todayKey();
   const lastMap = useMemo(() => lastContactMap(persons, interactions), [persons, interactions]);
 
+  /** 카테고리별 편입 인원 — 필터 칩 우측 숫자. */
+  const categoryCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of persons) for (const id of p.categoryIds) m.set(id, (m.get(id) ?? 0) + 1);
+    return m;
+  }, [persons]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = persons.filter((p) => {
       if (relationFilter !== 'all' && p.relation !== relationFilter) return false;
       if (closenessFilter !== 'all' && p.closeness !== closenessFilter) return false;
+      if (categoryFilter !== 'all' && !p.categoryIds.includes(categoryFilter)) return false;
       if (!q) return true;
       const hay = `${p.name} ${p.intro ?? ''} ${p.tags.join(' ')} ${p.phone ?? ''} ${p.region ?? ''} ${p.likes.join(' ')} ${p.dislikes.join(' ')} ${p.familyNote ?? ''} ${p.episode ?? ''}`.toLowerCase();
       return hay.includes(q);
@@ -45,7 +57,18 @@ export function PersonsView({
       return [...list].sort((a, b) => (lastMap.get(a.id) ?? '').localeCompare(lastMap.get(b.id) ?? ''));
     }
     return list; // persons 는 이미 이름순
-  }, [persons, query, relationFilter, closenessFilter, sort, lastMap]);
+  }, [persons, query, relationFilter, closenessFilter, categoryFilter, sort, lastMap]);
+
+  const removeCategory = (cat: PeopleCategory) => {
+    const removed = peopleStore.removeCategory(cat.id);
+    if (categoryFilter === cat.id) setCategoryFilter('all');
+    if (removed) {
+      notify.info(`'${removed.category.name}' 카테고리를 지웠어요`, {
+        duration: 5000,
+        action: { label: '되돌리기', onClick: () => peopleStore.restoreCategory(removed) },
+      });
+    }
+  };
 
   /** 사람별 시그널 — 연락 라벨(주기 초과 여부)과 생일 임박. */
   const signalOf = (p: Person) => {
@@ -128,6 +151,53 @@ export function PersonsView({
           </button>
         ))}
       </div>
+
+      {/* 카테고리 필터 — 사용자가 만든 그룹으로 좁혀 보기 (hover × 로 카테고리 삭제) */}
+      {categories.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('all')}
+            className={cn(
+              'rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
+              categoryFilter === 'all'
+                ? 'border-transparent bg-[hsl(var(--people-accent))] font-bold text-[hsl(var(--people-accent-ink))]'
+                : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
+            )}
+          >
+            전체 카테고리
+          </button>
+          {categories.map((c) => {
+            const on = categoryFilter === c.id;
+            const count = categoryCounts.get(c.id) ?? 0;
+            return (
+              <span key={c.id} className="group/cat relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter(on ? 'all' : c.id)}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border py-1 pl-2.5 pr-2.5 text-[11.5px] font-medium transition-colors group-hover/cat:pr-6',
+                    on
+                      ? 'border-[hsl(var(--people-accent))]/50 bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
+                      : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {c.name}
+                  {count > 0 && <span className={cn('tabular-nums', on ? 'text-[hsl(var(--people-accent))]/70' : 'text-muted-foreground/50')}>{count}</span>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeCategory(c)}
+                  aria-label={`${c.name} 카테고리 삭제`}
+                  className="absolute right-1 top-1/2 hidden -translate-y-1/2 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-rose-500 group-hover/cat:block"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]/60 py-14 text-center text-[12.5px] text-muted-foreground">
