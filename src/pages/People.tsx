@@ -8,7 +8,7 @@
  * 데이터: peopleStore (사람·관계 기록, LocalStorage) — docs/design-masthead.md 참조.
  */
 import { useMemo, useState } from 'react';
-import { CalendarHeart, Home, Plus, Users, type LucideIcon } from 'lucide-react';
+import { CalendarHeart, Gift, Home, Plus, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePersons, useInteractions, useCategories } from '@/hooks/usePeople';
 import { PersonsView } from '@/components/people/PersonsView';
@@ -17,21 +17,24 @@ import { PersonForm } from '@/components/people/PersonForm';
 import { TodayView } from '@/components/people/TodayView';
 import { computeOverdue } from '@/lib/people/overdue';
 import { EventsCalendar } from '@/components/people/EventsCalendar';
+import { GiftLedger } from '@/components/people/GiftLedger';
 import { todayKey } from '@/types/travel';
 import type { Person } from '@/types/people';
 
-type View = 'today' | 'persons' | 'calendar';
+type View = 'today' | 'persons' | 'calendar' | 'gifts';
 
 const NAV: Array<{ id: View; label: string; icon: LucideIcon }> = [
   { id: 'today', label: '오늘 챙길 것', icon: Home },
   { id: 'persons', label: '사람', icon: Users },
   { id: 'calendar', label: '경조사 캘린더', icon: CalendarHeart },
+  { id: 'gifts', label: '주고받은 선물', icon: Gift },
 ];
 
 const SECTION_HEAD: Record<View, { eyebrow: string; title: string }> = {
   today: { eyebrow: 'PEOPLE TO CARE', title: '오늘 챙길 것' },
   persons: { eyebrow: 'MY PEOPLE', title: '사람' },
   calendar: { eyebrow: 'OCCASIONS', title: '경조사 캘린더' },
+  gifts: { eyebrow: 'GIFTS & OCCASIONS', title: '주고받은 선물' },
 };
 
 export default function People() {
@@ -59,10 +62,16 @@ export default function People() {
     }
     return n;
   }, [persons, today]);
+  /** 주고받은 선물 총 건수 — 내비 우측 실데이터. */
+  const giftCount = useMemo(
+    () => interactions.filter((x) => x.kind === 'gift_given' || x.kind === 'gift_received').length,
+    [interactions],
+  );
   /** 내비 우측 숫자 — "실데이터가 서술어" 문법의 내비 버전. */
   const navCountOf = (id: View): number => {
     if (id === 'persons') return persons.length;
     if (id === 'calendar') return monthEvents;
+    if (id === 'gifts') return giftCount;
     return 0;
   };
 
@@ -198,8 +207,10 @@ export default function People() {
             <TodayView persons={persons} interactions={interactions} onOpenPerson={goPerson} />
           ) : view === 'persons' ? (
             <PersonsView persons={persons} interactions={interactions} categories={categories} onOpen={goPerson} />
-          ) : (
+          ) : view === 'calendar' ? (
             <EventsCalendar persons={persons} onOpenPerson={goPerson} />
+          ) : (
+            <GiftLedger persons={persons} interactions={interactions} onOpenPerson={goPerson} />
           )}
         </div>
       </main>
