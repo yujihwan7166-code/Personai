@@ -31,7 +31,7 @@ export function PersonsView({
   const [closenessFilter, setClosenessFilter] = useState<Closeness | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
   const [sort, setSort] = useState<SortMode>('name');
-  const [mode, setMode] = useState<'card' | 'list'>('card');
+  const [mode, setMode] = useState<'card' | 'list'>('list');
 
   const today = todayKey();
   const lastMap = useMemo(() => lastContactMap(persons, interactions), [persons, interactions]);
@@ -210,45 +210,62 @@ export function PersonsView({
           ))}
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_1px_2px_hsl(var(--foreground)/0.04)]">
-          {filtered.map((p, i) => {
-            const s = signalOf(p);
-            const closenessColor =
-              p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
-            return (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpen(p.id)}
-                  className={cn(
-                    'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-2))]',
-                    i > 0 && 'border-t border-[hsl(var(--hairline))]/55',
-                  )}
-                >
-                  {/* 아바타 + 친밀도 점 (인라인 알약 대신 은은하게) */}
-                  <span className="relative shrink-0">
-                    <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
-                    <span
-                      className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--surface-1))]"
-                      style={{ backgroundColor: closenessColor }}
-                      title={CLOSENESS_META[p.closeness].label}
-                    />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5">
-                      <span className="truncate text-[14px] font-bold leading-tight">{p.name}</span>
+        <div className="overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_1px_2px_hsl(var(--foreground)/0.04)]">
+          {/* 표 헤더 */}
+          <div className={cn(LIST_COLS, 'items-center gap-3 border-b border-[hsl(var(--hairline))] px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/70')}>
+            <span>이름</span>
+            <span className="hidden sm:block">관계</span>
+            <span className="hidden lg:block">태그</span>
+            <span className="justify-self-end">그룹·친밀도</span>
+          </div>
+          <ul>
+            {filtered.map((p, i) => {
+              const s = signalOf(p);
+              const rt = RELATION_TAG[p.relation];
+              const closeTag =
+                p.closeness === 'distant'
+                  ? { bg: 'hsl(var(--surface-3))', text: 'hsl(var(--foreground)/0.5)' }
+                  : { bg: 'hsl(var(--people-accent)/0.1)', text: 'hsl(var(--people-accent))' };
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(p.id)}
+                    className={cn(
+                      LIST_COLS,
+                      'w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-2))]',
+                      i > 0 && 'border-t border-[hsl(var(--hairline))]/55',
+                    )}
+                  >
+                    {/* 이름 */}
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Avatar name={p.name} size={32} color={p.color} photo={p.photo} />
+                      <span className="min-w-0 truncate text-[13.5px] font-semibold">{p.name}</span>
                       {s.bdaySoon !== null && (
-                        <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[10px] font-bold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
+                        <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-semibold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
                       )}
-                    </p>
-                    <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
-                  </div>
-                  <span className={cn('shrink-0 text-[11px] tabular-nums', s.overdue ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/55')}>{s.ago}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    </div>
+                    {/* 관계 — 한 줄 소개 */}
+                    <div className="hidden min-w-0 sm:block">
+                      <span className="block truncate text-[12.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</span>
+                    </div>
+                    {/* 태그 */}
+                    <div className="hidden min-w-0 lg:block">
+                      <span className="block truncate text-[11.5px] text-muted-foreground/55">
+                        {p.tags.length > 0 ? p.tags.map((t) => `#${t}`).join(' ') : ''}
+                      </span>
+                    </div>
+                    {/* 그룹·친밀도 */}
+                    <div className="flex shrink-0 items-center justify-end gap-1.5">
+                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: rt.bg, color: rt.text }}>{RELATION_META[p.relation].label}</span>
+                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: closeTag.bg, color: closeTag.text }}>{CLOSENESS_META[p.closeness].label}</span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </div>
   );
@@ -274,6 +291,11 @@ export function Avatar({ name, size = 44, color, photo }: { name: string; size?:
     </span>
   );
 }
+
+/** 리스트(표) 열 템플릿 — 헤더·행이 같은 격자를 쓰게. 이름 | 관계 | 태그 | 그룹·친밀도.
+ * 좁은 화면부터 열을 하나씩 감춘다(관계 sm+, 태그 lg+). */
+const LIST_COLS =
+  'grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto]';
 
 /** 관계별 태그 색 — 레퍼런스 멤버 카드의 역할 태그처럼 은은한 컬러 구분. */
 const RELATION_TAG: Record<Relation, { bg: string; text: string }> = {
