@@ -341,14 +341,19 @@ function PersonCard({
         </span>
       </div>
 
-      {/* 푸터 — 지역·마지막 연락 좌 · 친밀도 우 */}
+      {/* 태그 — 리스트 표의 태그 열과 같은 톤 */}
+      {p.tags.length > 0 && (
+        <p className="mt-2 truncate text-[11px] text-muted-foreground/55">{p.tags.map((t) => `#${t}`).join(' ')}</p>
+      )}
+
+      {/* 푸터 — 친밀도 좌 · 지역·마지막 연락 우 */}
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-[hsl(var(--hairline))]/55 pt-2.5">
-        <span className="min-w-0 truncate text-[11px] text-muted-foreground">
-          {p.region && <>{p.region} · </>}
-          <span className={cn('tabular-nums', s.overdue && 'font-semibold text-[hsl(var(--people-accent))]')}>{s.ago}</span>
-        </span>
         <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: closeTag.bg, color: closeTag.text }}>
           {CLOSENESS_META[p.closeness].label}
+        </span>
+        <span className="min-w-0 truncate text-right text-[11px] text-muted-foreground">
+          {p.region && <>{p.region} · </>}
+          <span className={cn('tabular-nums', s.overdue && 'font-semibold text-[hsl(var(--people-accent))]')}>{s.ago}</span>
         </span>
       </div>
     </button>
