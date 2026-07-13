@@ -256,21 +256,21 @@ export function CoverFallback({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn('relative w-full', className)}
-      style={{ background: 'linear-gradient(135deg, hsl(var(--travel-teal)/0.16), hsl(35 82% 60%/0.14))' }}
+      className={cn('relative w-full overflow-hidden', className)}
+      style={{ background: 'linear-gradient(180deg, hsl(38 74% 90%) 0%, hsl(28 60% 84%) 34%, hsl(183 38% 80%) 100%)' }}
     >
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 400 160" preserveAspectRatio="none">
-        <path
-          d="M 30 120 Q 200 20 370 84"
-          fill="none"
-          stroke="hsl(var(--travel-teal))"
-          strokeOpacity="0.5"
-          strokeWidth="2"
-          strokeDasharray="2 7"
-          strokeLinecap="round"
-        />
-        <circle cx="30" cy="120" r="4" fill="hsl(var(--travel-teal))" fillOpacity="0.55" />
-        <circle cx="370" cy="84" r="4" fill="hsl(var(--travel-teal))" fillOpacity="0.85" />
+      {/* 해 — 둥근 채로 유지(절대 배치) */}
+      <div
+        className="absolute right-[15%] top-[24%] h-9 w-9 rounded-full sm:h-11 sm:w-11"
+        style={{
+          background: 'radial-gradient(circle, hsl(40 92% 76%), hsl(28 84% 66%))',
+          boxShadow: '0 0 28px 9px hsl(38 90% 72% / 0.45)',
+        }}
+      />
+      {/* 먼 산·앞 산 실루엣 — 아래 절반만 채워 위쪽 하늘은 비운다(텍스트 가독) */}
+      <svg className="absolute inset-x-0 bottom-0 h-[52%] w-full" viewBox="0 0 400 100" preserveAspectRatio="none">
+        <path d="M0 100 V52 Q66 20 128 46 T252 38 T400 52 V100 Z" fill="hsl(183 36% 60%)" fillOpacity="0.5" />
+        <path d="M0 100 V70 Q90 40 168 64 T318 58 T400 72 V100 Z" fill="hsl(184 44% 40%)" fillOpacity="0.9" />
       </svg>
     </div>
   );
