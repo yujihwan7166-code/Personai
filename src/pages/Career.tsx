@@ -167,31 +167,28 @@ function LedgerFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** 검인(檢印) — 이 원고에 실린 "이룬 것"의 수를 찍는 이중 테두리 인장.
- * 마스트헤드 양식(제목=주어, 실데이터=서술어)의 커리어 판 — 기록이 쌓일수록 숫자가 자란다.
- * 아직 0건이면 옛 "기록 중" 문구로 원고가 준비 중임을 알린다. */
+/** 검인(檢印) — 원고에 실린 "이룬 것"을 찍는 한 줄 인장.
+ * 마스트헤드 양식(제목=주어, 실데이터=서술어)의 커리어 판.
+ * 제목(27px) 행 높이를 넘지 않는 슬림 가로형 — 헤더 줄이 밀리지 않는다.
+ * 0건이면 "기록 중 + 월"로 원고가 준비 중임을 알린다. */
 function ProofStamp({ count }: { count: number }) {
-  if (count === 0) {
-    const month = new Date().toISOString().slice(0, 7).replace('-', '.');
-    return (
-      <div
-        aria-hidden
-        className="pointer-events-none inline-flex rotate-[3deg] items-baseline gap-1.5 border-2 border-[hsl(var(--career-red)/0.55)] px-2 py-0.5 mix-blend-multiply dark:mix-blend-normal"
-      >
-        <span className="text-[11px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.8)]">기록 중</span>
-        <span className="career-mono text-[9px] text-[hsl(var(--career-red)/0.6)]">{month}</span>
-      </div>
-    );
-  }
+  const month = new Date().toISOString().slice(0, 7).replace('-', '.');
   return (
     <div
       aria-hidden
-      className="pointer-events-none rotate-[3deg] rounded-[7px] border-2 border-[hsl(var(--career-red)/0.55)] p-[3px] mix-blend-multiply dark:mix-blend-normal"
+      className="pointer-events-none inline-flex rotate-[2deg] items-baseline gap-1.5 self-center rounded-[4px] border-2 border-[hsl(var(--career-red)/0.5)] px-2 py-[3px] mix-blend-multiply dark:mix-blend-normal"
     >
-      <div className="rounded-[4px] border border-[hsl(var(--career-red)/0.38)] px-2.5 pb-1 pt-[3px] text-center">
-        <span className="career-mono block text-[16px] font-bold leading-none tabular-nums text-[hsl(var(--career-red)/0.85)]">{count}</span>
-        <span className="mt-[3px] block text-[8px] font-bold tracking-[0.22em] text-[hsl(var(--career-red)/0.6)]">이룬 것</span>
-      </div>
+      {count > 0 ? (
+        <>
+          <span className="text-[10.5px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.75)]">이룬 것</span>
+          <span className="career-mono text-[13px] font-bold leading-none tabular-nums text-[hsl(var(--career-red)/0.9)]">{count}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[10.5px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.75)]">기록 중</span>
+          <span className="career-mono text-[9px] text-[hsl(var(--career-red)/0.55)]">{month}</span>
+        </>
+      )}
     </div>
   );
 }
