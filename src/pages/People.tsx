@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { usePersons, useInteractions } from '@/hooks/usePeople';
 import { PersonsView } from '@/components/people/PersonsView';
 import { PersonDetail } from '@/components/people/PersonDetail';
-import { PersonDialog } from '@/components/people/PersonDialog';
+import { PersonForm } from '@/components/people/PersonForm';
 import { TodayView } from '@/components/people/TodayView';
 import { computeOverdue } from '@/lib/people/overdue';
 import { EventsCalendar } from '@/components/people/EventsCalendar';
@@ -39,7 +39,8 @@ export default function People() {
   const interactions = useInteractions();
   const [view, setView] = useState<View>('today');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<{ open: boolean; editing: Person | null }>({ open: false, editing: null });
+  // 새 사람/수정 — 플로팅 모달이 아니라 본문에 레코드 카드 양식으로 인라인.
+  const [editor, setEditor] = useState<{ open: boolean; editing: Person | null }>({ open: false, editing: null });
 
   const openPerson = openId ? persons.find((p) => p.id === openId) ?? null : null;
   const today = todayKey(); // 렌더 시점 로컬 날짜 — deps 에 포함해 자정 이후 stale 방지
@@ -119,7 +120,7 @@ export default function People() {
         <div className="px-4 pt-5">
           <button
             type="button"
-            onClick={() => setDialog({ open: true, editing: null })}
+            onClick={() => { setOpenId(null); setEditor({ open: true, editing: null }); }}
             className="flex w-full items-center justify-center gap-1.5 rounded-full bg-[hsl(var(--foreground))] py-2.5 text-[13px] font-bold text-[hsl(var(--background))] shadow-[0_8px_18px_-10px_hsl(var(--foreground)/0.7)] transition-opacity hover:opacity-90"
           >
             <Plus className="h-3.5 w-3.5" /> 새 사람
@@ -134,7 +135,7 @@ export default function People() {
           <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 sm:hidden">
             <button
               type="button"
-              onClick={() => setDialog({ open: true, editing: null })}
+              onClick={() => { setOpenId(null); setEditor({ open: true, editing: null }); }}
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-[hsl(var(--foreground))] px-3.5 py-1.5 text-[12px] font-bold text-[hsl(var(--background))]"
             >
               <Plus className="h-3 w-3" /> 새 사람
@@ -161,8 +162,8 @@ export default function People() {
             })}
           </div>
 
-          {/* 섹션 머리 (상세 화면에선 숨김) */}
-          {!openPerson && (
+          {/* 섹션 머리 (상세·편집 화면에선 숨김) */}
+          {!openPerson && !editor.open && (
             <div className="mb-5">
               <p className="text-[10.5px] font-bold tracking-[0.22em] text-muted-foreground/60">{SECTION_HEAD[view].eyebrow}</p>
               <h2 className="mt-1.5 flex items-baseline gap-2 text-[27px] font-bold leading-none tracking-[-0.01em]">
@@ -174,13 +175,21 @@ export default function People() {
             </div>
           )}
 
-          {openPerson ? (
+          {editor.open ? (
+            /* 새 사람/수정 — 저장될 레코드 카드 양식 그대로 본문에 인라인 (플로팅 아님) */
+            <PersonForm
+              key={editor.editing?.id ?? 'new'}
+              editing={editor.editing}
+              onCancel={() => { const back = editor.editing; setEditor({ open: false, editing: null }); if (back) setOpenId(back.id); }}
+              onSaved={(id) => { setEditor({ open: false, editing: null }); goPerson(id); }}
+            />
+          ) : openPerson ? (
             /* key — 사람이 바뀌면 컴포저 초안·삭제 대기 상태가 남지 않게 remount */
             <PersonDetail
               key={openPerson.id}
               person={openPerson}
               onBack={() => setOpenId(null)}
-              onEdit={() => setDialog({ open: true, editing: openPerson })}
+              onEdit={() => setEditor({ open: true, editing: openPerson })}
             />
           ) : view === 'today' ? (
             <TodayView persons={persons} interactions={interactions} onOpenPerson={goPerson} />
@@ -191,16 +200,6 @@ export default function People() {
           )}
         </div>
       </main>
-
-      <PersonDialog
-        open={dialog.open}
-        editing={dialog.editing}
-        onClose={() => setDialog({ open: false, editing: null })}
-        onSaved={(id) => {
-          setDialog({ open: false, editing: null });
-          goPerson(id);
-        }}
-      />
     </div>
   );
 }
