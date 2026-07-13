@@ -3,7 +3,7 @@
  * 기억할 것·에피소드는 그 자리에서 바로 수정(블러 저장), 흐름은 인라인 컴포저로 쌓는다.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Cake, ChevronLeft, MapPin, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
+import { ChevronLeft, MapPin, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
@@ -11,7 +11,7 @@ import { useInteractions } from '@/hooks/usePeople';
 import { Avatar } from '@/components/people/PersonsView';
 import { todayKey } from '@/types/travel';
 import {
-  CLOSENESS_META, INTERACTION_META, RELATION_META, avatarColor, isValidMonthDay,
+  CLOSENESS_META, INTERACTION_META, RELATION_META, avatarColor, isValidMonthDay, nextOccurrence,
   type Interaction, type InteractionKind, type PeopleCategory, type Person,
 } from '@/types/people';
 import { agoContactLabel } from '@/lib/people/overdue';
@@ -32,6 +32,14 @@ export function PersonDetail({
   const myCategories = categories.filter((c) => p.categoryIds.includes(c.id));
 
   const gifts = interactions.filter((x) => x.kind === 'gift_given' || x.kind === 'gift_received');
+  const base = p.color ?? avatarColor(p.name);
+  const bday = p.birthday ? nextOccurrence(p.birthday, todayKey()) : null;
+  const bdayStat = bday ? (bday.dday === 0 ? '오늘' : `D-${bday.dday}`) : '—';
+  const stats: Array<{ label: string; value: string | number }> = [
+    { label: '기록', value: interactions.length },
+    { label: '선물', value: gifts.length },
+    { label: '생일', value: bdayStat },
+  ];
 
   const deletePerson = () => {
     if (!armDelete) {
@@ -55,48 +63,15 @@ export function PersonDetail({
         <ChevronLeft className="h-3.5 w-3.5" /> 목록으로
       </button>
 
-      {/* 프로필 카드 — 아바타 색이 은은하게 스며든 개인화 배경 */}
-      <div
-        className={cn(cardCls, 'mb-4 p-5')}
-        style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${p.color ?? avatarColor(p.name)} 9%, transparent), transparent 58%)` }}
-      >
-        <div className="flex flex-wrap items-start gap-4">
-          <Avatar name={p.name} size={60} color={p.color} photo={p.photo} />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[21px] font-bold leading-tight">{p.name}</h2>
-              <span className="rounded-full bg-[hsl(var(--surface-3))] px-2 py-0.5 text-[10.5px] font-bold text-foreground/70">{RELATION_META[p.relation].label}</span>
-              <span className="rounded-full bg-[hsl(var(--people-accent))]/12 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
-            </div>
-            {p.intro && <p className="mt-1 text-[12.5px] text-muted-foreground">{p.intro}</p>}
-            {(p.tags.length > 0 || myCategories.length > 0) && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                {myCategories.map((c) => (
-                  <span key={c.id} className="rounded-full border border-[hsl(var(--people-accent))]/35 bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{c.name}</span>
-                ))}
-                {p.tags.map((t) => <span key={t} className="rounded-full bg-[hsl(var(--people-accent))]/8 px-1.5 py-0.5 text-[10.5px] text-[hsl(var(--people-accent))]/85">#{t}</span>)}
-              </div>
-            )}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
-              {p.phone && (
-                <button
-                  type="button"
-                  onClick={() => { void navigator.clipboard.writeText(p.phone!).then(() => notify.copied()).catch(() => notify.error('복사 실패')); }}
-                  title="클릭해서 복사"
-                  className="inline-flex items-center gap-1 rounded transition-colors hover:text-[hsl(var(--people-accent))]"
-                >
-                  <Phone className="h-3 w-3" /> {p.phone}
-                </button>
-              )}
-              {p.region && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.region}</span>}
-              {p.birthday && <span className="inline-flex items-center gap-1"><Cake className="h-3 w-3" /> {Number(p.birthday.slice(0, 2))}월 {Number(p.birthday.slice(3))}일</span>}
-              <span className="tabular-nums text-muted-foreground/80">
-                {agoContactLabel(interactions[0]?.date ?? toLocalYMD(new Date(p.createdAt)), toLocalYMD(new Date()))}
-              </span>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" onClick={onEdit} aria-label="수정" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[hsl(var(--hairline))] text-muted-foreground transition-colors hover:text-foreground">
+      {/* 프로필 카드 — 커버 배너 + 아바타 오버랩 + 통계 (프로필 카드 정석 패턴) */}
+      <div className="mb-4 overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_2px_16px_-8px_hsl(var(--foreground)/0.22)]">
+        {/* 배너 — 그 사람 색. 수정·삭제는 우상단. */}
+        <div
+          className="relative h-[84px]"
+          style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${base} 82%, white), color-mix(in srgb, ${base} 50%, white))` }}
+        >
+          <div className="absolute right-3 top-3 flex items-center gap-1.5">
+            <button type="button" onClick={onEdit} aria-label="수정" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[hsl(var(--surface-1))]/85 text-foreground/70 shadow-sm backdrop-blur transition-colors hover:text-foreground">
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
@@ -104,8 +79,8 @@ export function PersonDetail({
               onClick={deletePerson}
               aria-label="삭제"
               className={cn(
-                'flex h-8 items-center justify-center gap-1 rounded-lg border border-[hsl(var(--hairline))] text-[11px] transition-colors',
-                armDelete ? 'px-2 font-bold text-rose-500' : 'w-8 text-muted-foreground hover:text-rose-500',
+                'flex h-8 items-center justify-center gap-1 rounded-lg bg-[hsl(var(--surface-1))]/85 text-[11px] shadow-sm backdrop-blur transition-colors',
+                armDelete ? 'px-2 font-bold text-rose-500' : 'w-8 text-foreground/70 hover:text-rose-500',
               )}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -113,7 +88,58 @@ export function PersonDetail({
             </button>
           </div>
         </div>
-        <AnnivEditor person={p} />
+
+        <div className="px-5 pb-5">
+          {/* 아바타 — 배너 아래로 겹침 */}
+          <div className="-mt-11">
+            <span className="inline-flex rounded-full ring-4 ring-[hsl(var(--surface-1))]">
+              <Avatar name={p.name} size={76} color={p.color} photo={p.photo} />
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <h2 className="text-[21px] font-bold leading-tight">{p.name}</h2>
+            <span className="rounded-full bg-[hsl(var(--surface-3))] px-2 py-0.5 text-[10.5px] font-bold text-foreground/70">{RELATION_META[p.relation].label}</span>
+            <span className="rounded-full bg-[hsl(var(--people-accent))]/12 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{CLOSENESS_META[p.closeness].label}</span>
+          </div>
+          {p.intro && <p className="mt-1 text-[12.5px] text-muted-foreground">{p.intro}</p>}
+          {(p.tags.length > 0 || myCategories.length > 0) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              {myCategories.map((c) => (
+                <span key={c.id} className="rounded-full border border-[hsl(var(--people-accent))]/35 bg-[hsl(var(--people-accent))]/10 px-2 py-0.5 text-[10.5px] font-bold text-[hsl(var(--people-accent))]">{c.name}</span>
+              ))}
+              {p.tags.map((t) => <span key={t} className="rounded-full bg-[hsl(var(--people-accent))]/8 px-1.5 py-0.5 text-[10.5px] text-[hsl(var(--people-accent))]/85">#{t}</span>)}
+            </div>
+          )}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
+            {p.phone && (
+              <button
+                type="button"
+                onClick={() => { void navigator.clipboard.writeText(p.phone!).then(() => notify.copied()).catch(() => notify.error('복사 실패')); }}
+                title="클릭해서 복사"
+                className="inline-flex items-center gap-1 rounded transition-colors hover:text-[hsl(var(--people-accent))]"
+              >
+                <Phone className="h-3 w-3" /> {p.phone}
+              </button>
+            )}
+            {p.region && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.region}</span>}
+            <span className="inline-flex items-center gap-1 tabular-nums text-muted-foreground/80">
+              {agoContactLabel(interactions[0]?.date ?? toLocalYMD(new Date(p.createdAt)), toLocalYMD(new Date()))}
+            </span>
+          </div>
+
+          {/* 통계 — 기록 · 선물 · 생일 */}
+          <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))]/40 text-center">
+            {stats.map((st, i) => (
+              <div key={st.label} className={cn('px-2 py-2.5', i > 0 && 'border-l border-[hsl(var(--hairline))]')}>
+                <p className="text-[15px] font-bold leading-none tabular-nums">{st.value}</p>
+                <p className="mt-1 text-[10.5px] text-muted-foreground">{st.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <AnnivEditor person={p} />
+        </div>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
