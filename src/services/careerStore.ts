@@ -199,6 +199,68 @@ const readActiveBoardId = (): string => {
   return boards[0]?.id ?? '';
 };
 
+/* ── 프로필 (보드별) ─────────────────────────────
+ * 이름·연락처·사진 등 이력서 인적사항은 보드마다 따로 둔다 — 취업용·대학원용이
+ * 서로 다른 이름·소개를 가질 수 있게. PROFILE_KEY 에 { boardId: CareerProfile } 맵으로 저장.
+ * persona(신분)만은 새 보드에 이어받는다(설정 화면 재노출 방지). */
+
+const EMPTY_PROFILE: CareerProfile = { name: '', tagline: '', persona: '' };
+
+const normalizeProfile = (parsed: unknown): CareerProfile => {
+  if (!isRecord(parsed)) return { ...EMPTY_PROFILE };
+  const persona = parsed.persona;
+  return {
+    name: typeof parsed.name === 'string' ? parsed.name : '',
+    tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
+    persona: persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
+    photo: typeof parsed.photo === 'string' && parsed.photo.startsWith('data:image/') ? parsed.photo : undefined,
+    email: typeof parsed.email === 'string' && parsed.email.trim() ? parsed.email : undefined,
+    phone: typeof parsed.phone === 'string' && parsed.phone.trim() ? parsed.phone : undefined,
+    birth: typeof parsed.birth === 'string' && parsed.birth.trim() ? parsed.birth : undefined,
+    link: typeof parsed.link === 'string' && parsed.link.trim() ? parsed.link : undefined,
+  };
+};
+
+/** 보드별 프로필 맵 읽기 — 구 단일 프로필은 첫 보드로 승격(다른 보드엔 persona 만 상속). */
+const readProfiles = (): Record<string, CareerProfile> => {
+  if (typeof window === 'undefined') return {};
+  let parsed: unknown;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_KEY);
+    parsed = raw ? JSON.parse(raw) : null;
+  } catch {
+    return {};
+  }
+  if (!isRecord(parsed)) return {};
+  const values = Object.values(parsed);
+  // 레거시 단일 프로필: 값이 전부 원시값(문자열 등)이면 보드별 맵이 아님 → 승격.
+  const isLegacySingle = values.every((v) => typeof v !== 'object' || v === null);
+  if (isLegacySingle) {
+    const legacy = normalizeProfile(parsed);
+    const boards = readBoards();
+    if (boards.length === 0) return {};
+    const map: Record<string, CareerProfile> = {};
+    boards.forEach((b, i) => {
+      map[b.id] = i === 0 ? legacy : { name: '', tagline: '', persona: legacy.persona };
+    });
+    try { window.localStorage.setItem(PROFILE_KEY, JSON.stringify(map)); } catch { /* noop */ }
+    return map;
+  }
+  const map: Record<string, CareerProfile> = {};
+  for (const [k, v] of Object.entries(parsed)) map[k] = normalizeProfile(v);
+  return map;
+};
+
+const writeProfiles = (map: Record<string, CareerProfile>): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(map));
+    window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+  } catch (err) {
+    console.error('프로필 저장 실패', err);
+  }
+};
+
 export const careerStore = {
   /* ── 보드 ── */
 
@@ -218,14 +280,19 @@ export const careerStore = {
     } catch { /* noop */ }
   },
 
-  /** 새 보드 생성 + 활성화. */
-  addBoard(name: string): CareerBoard | null {
+  /** 새 보드 생성 + 활성화. seed 로 새 보드 프로필 초기값(주로 persona 상속)을 함께 심는다. */
+  addBoard(name: string, seed?: Partial<CareerProfile>): CareerBoard | null {
     const trimmed = name.trim();
     if (!trimmed || typeof window === 'undefined') return null;
     const board: CareerBoard = { id: newId('spb'), name: trimmed, createdAt: new Date().toISOString() };
     try {
       window.localStorage.setItem(BOARDS_KEY, JSON.stringify([...readBoards(), board]));
       window.localStorage.setItem(ACTIVE_BOARD_KEY, board.id);
+      if (seed) {
+        const profiles = readProfiles();
+        profiles[board.id] = { ...EMPTY_PROFILE, ...seed };
+        window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+      }
       window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
       return board;
     } catch {
@@ -246,21 +313,27 @@ export const careerStore = {
     } catch { /* noop */ }
   },
 
-  /** 보드 삭제 — 딸린 기록·카테고리까지. 되돌리기용 번들 반환. 마지막 보드는 삭제 불가. */
-  removeBoard(id: string): { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[] } | null {
+  /** 보드 삭제 — 딸린 기록·카테고리·프로필까지. 되돌리기용 번들 반환. 마지막 보드는 삭제 불가. */
+  removeBoard(id: string): { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[]; profile?: CareerProfile } | null {
     const boards = readBoards();
     if (boards.length <= 1) return null;
     const board = boards.find((b) => b.id === id);
     if (!board || typeof window === 'undefined') return null;
+    const profiles = readProfiles();
     const bundle = {
       board,
       items: readItems().filter((i) => i.boardId === id),
       categories: readCategories().filter((c) => c.boardId === id),
+      profile: profiles[id],
     };
     try {
       window.localStorage.setItem(BOARDS_KEY, JSON.stringify(boards.filter((b) => b.id !== id)));
       // ACTIVE_BOARD_KEY 는 일부러 남긴다 — readActiveBoardId 가 첫 보드로 폴백하고,
       // 되돌리기로 보드가 살아나면 다시 그 보드가 활성이 된다.
+      if (profiles[id]) {
+        delete profiles[id];
+        window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+      }
       safeWrite(
         readItems().filter((i) => i.boardId !== id),
         readCategories().filter((c) => c.boardId !== id),
@@ -271,12 +344,17 @@ export const careerStore = {
     }
   },
 
-  restoreBoard(bundle: { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[] }): void {
+  restoreBoard(bundle: { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[]; profile?: CareerProfile }): void {
     if (typeof window === 'undefined') return;
     try {
       const boards = readBoards();
       if (!boards.some((b) => b.id === bundle.board.id)) {
         window.localStorage.setItem(BOARDS_KEY, JSON.stringify([...boards, bundle.board]));
+      }
+      if (bundle.profile) {
+        const profiles = readProfiles();
+        profiles[bundle.board.id] = bundle.profile;
+        window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
       }
       const items = readItems();
       const cats = readCategories();
@@ -439,38 +517,22 @@ export const careerStore = {
     writeDocs(readDocs().filter((d) => d.id !== id));
   },
 
+  /** 활성 보드의 프로필. 프로필이 없는 보드(구버전 생성)는 persona 만 다른 보드에서
+   * 이어받아 반환 — 설정 화면이 다시 뜨지 않게. */
   getProfile(): CareerProfile {
-    const empty: CareerProfile = { name: '', tagline: '', persona: '' };
-    if (typeof window === 'undefined') return empty;
-    try {
-      const raw = window.localStorage.getItem(PROFILE_KEY);
-      const parsed: unknown = raw ? JSON.parse(raw) : null;
-      if (!isRecord(parsed)) return empty;
-      const persona = parsed.persona;
-      return {
-        name: typeof parsed.name === 'string' ? parsed.name : '',
-        tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
-        persona: persona === 'student' || persona === 'jobseeker' || persona === 'worker' ? persona : '',
-        photo: typeof parsed.photo === 'string' && parsed.photo.startsWith('data:image/') ? parsed.photo : undefined,
-        email: typeof parsed.email === 'string' && parsed.email.trim() ? parsed.email : undefined,
-        phone: typeof parsed.phone === 'string' && parsed.phone.trim() ? parsed.phone : undefined,
-        birth: typeof parsed.birth === 'string' && parsed.birth.trim() ? parsed.birth : undefined,
-        link: typeof parsed.link === 'string' && parsed.link.trim() ? parsed.link : undefined,
-      };
-    } catch {
-      return empty;
-    }
+    const profiles = readProfiles();
+    const active = readActiveBoardId();
+    if (profiles[active]) return profiles[active];
+    const inheritedPersona = Object.values(profiles).find((p) => p.persona)?.persona ?? '';
+    return { name: '', tagline: '', persona: inheritedPersona };
   },
 
   setProfile(patch: Partial<CareerProfile>): void {
     if (typeof window === 'undefined') return;
-    try {
-      const next = { ...this.getProfile(), ...patch };
-      window.localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
-      window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
-    } catch (err) {
-      console.error('프로필 저장 실패', err);
-    }
+    const active = readActiveBoardId();
+    const profiles = readProfiles();
+    profiles[active] = { ...(profiles[active] ?? EMPTY_PROFILE), ...patch };
+    writeProfiles(profiles);
   },
 
   /** 전체 삭제 (테스트·리셋용). */

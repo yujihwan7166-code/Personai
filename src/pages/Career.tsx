@@ -1426,7 +1426,9 @@ function BoardLedger() {
         open={boardDialogOpen}
         onClose={() => setBoardDialogOpen(false)}
         onCreate={(name) => {
-          const board = careerStore.addBoard(name);
+          // 새 보드는 이름·연락처 등 인적사항을 비운 채 시작한다 (보드는 개별).
+          // 신분(persona)만 이어받아 시드 칸을 준비하고 설정 화면 재노출을 막는다.
+          const board = careerStore.addBoard(name, profile.persona ? { persona: profile.persona } : undefined);
           if (!board) {
             notify.error('보드를 만들지 못했어요', { description: '저장 공간이 가득 찼을 수 있어요.' });
             return;

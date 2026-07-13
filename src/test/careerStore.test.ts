@@ -191,4 +191,31 @@ describe('careerStore', () => {
     const doc = careerStore.addDoc({ purpose: '자기소개서 초안', content: '본문' });
     expect(doc.boardId).toBe(board.id);
   });
+
+  it('프로필은 보드별로 분리 — 새 보드는 이름·연락처가 비고, persona 만 이어받는다', () => {
+    const base = careerStore.getActiveBoardId();
+    careerStore.setProfile({ name: '김도현', phone: '010-1111-2222', persona: 'student' });
+
+    // 새 보드 — 신분만 시드로 상속
+    careerStore.addBoard('대학원용', { persona: 'student' });
+    const fresh = careerStore.getProfile();
+    expect(fresh.name).toBe('');            // 이전 보드 이름이 넘어오지 않는다
+    expect(fresh.phone).toBeUndefined();    // 연락처도 비어 있다
+    expect(fresh.persona).toBe('student');  // 신분은 이어받아 설정 화면 재노출 방지
+
+    // 새 보드에서 이름을 바꿔도 원래 보드엔 영향 없음
+    careerStore.setProfile({ name: '이수민' });
+    careerStore.setActiveBoard(base);
+    expect(careerStore.getProfile().name).toBe('김도현');
+    careerStore.setActiveBoard(careerStore.listBoards().find((b) => b.name === '대학원용')!.id);
+    expect(careerStore.getProfile().name).toBe('이수민');
+  });
+
+  it('프로필 없는 보드(구버전 생성)는 다른 보드의 persona 를 이어받아 설정 화면을 안 띄운다', () => {
+    careerStore.setProfile({ name: '김도현', persona: 'worker' });
+    const legacy = careerStore.addBoard('구보드')!; // seed 없이 생성 → 프로필 없음
+    expect(careerStore.getProfile().persona).toBe('worker'); // 상속
+    expect(careerStore.getProfile().name).toBe(''); // 이름은 비어 있음
+    expect(legacy.id).toBe(careerStore.getActiveBoardId());
+  });
 });
