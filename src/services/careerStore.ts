@@ -8,13 +8,16 @@
  * 카테고리는 고정 목록이 아니라 기록에서 자라난다 — ensureCategory 로
  * 이름 기준 재사용, 없으면 생성.
  */
-import { CAREER_CHANGED, FALLBACK_CATEGORY, type CareerDoc, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
+import { CAREER_CHANGED, FALLBACK_CATEGORY, type CareerBoard, type CareerDoc, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import { notify } from '@/lib/notify';
 
 const ITEMS_KEY = 'career.items.v1';
 const CATEGORIES_KEY = 'career.categories.v1';
 const PROFILE_KEY = 'career.profile.v1';
 const DOCS_KEY = 'career.docs.v1';
+// 멀티 보드 (2026-07-13) — 보드 목록 + 활성 보드. 기존 데이터는 첫 접근 때 기본 보드로 스탬프.
+const BOARDS_KEY = 'career.boards.v1';
+const ACTIVE_BOARD_KEY = 'career.activeBoard.v1';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -43,6 +46,7 @@ const normalizeItem = (value: unknown, index: number): SpecItem | null => {
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `sp_recovered_${index}`,
     categoryId: typeof value.categoryId === 'string' ? value.categoryId : '',
+    boardId: typeof value.boardId === 'string' && value.boardId ? value.boardId : undefined,
     raw: raw || refined,
     refined,
     date: normalizeDate(value.date, createdAt),
@@ -63,6 +67,7 @@ const normalizeCategory = (value: unknown, index: number): SpecCategory | null =
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `spc_recovered_${index}`,
     name,
+    boardId: typeof value.boardId === 'string' && value.boardId ? value.boardId : undefined,
     order: typeof value.order === 'number' && Number.isFinite(value.order) ? value.order : index,
     createdAt: normalizeIso(value.createdAt, new Date().toISOString()),
   };
@@ -74,6 +79,7 @@ const normalizeDoc = (value: unknown, index: number): CareerDoc | null => {
   if (!content.trim()) return null;
   return {
     id: typeof value.id === 'string' && value.id ? value.id : `spd_recovered_${index}`,
+    boardId: typeof value.boardId === 'string' && value.boardId ? value.boardId : undefined,
     purpose: typeof value.purpose === 'string' && value.purpose.trim() ? value.purpose.trim() : '문서',
     request: typeof value.request === 'string' && value.request.trim() ? value.request : undefined,
     content,
@@ -145,30 +151,188 @@ const writeDocs = (docs: CareerDoc[]): void => {
 const newId = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+/* ── 멀티 보드 ─────────────────────────────
+ * 보드가 없으면 '기본 보드'를 만들고, 구 데이터(boardId 없는 항목·카테고리)를
+ * 첫 접근 때 1회 스탬프한다 — 기존 사용자 데이터 무손실. */
+
+const normalizeBoard = (value: unknown, index: number): CareerBoard | null => {
+  if (!isRecord(value)) return null;
+  const name = typeof value.name === 'string' ? value.name.trim() : '';
+  if (!name) return null;
+  return {
+    id: typeof value.id === 'string' && value.id ? value.id : `spb_recovered_${index}`,
+    name,
+    createdAt: normalizeIso(value.createdAt, new Date().toISOString()),
+  };
+};
+
+const readBoards = (): CareerBoard[] => {
+  let boards = safeRead(BOARDS_KEY, normalizeBoard);
+  if (typeof window === 'undefined') return boards;
+  try {
+    if (boards.length === 0) {
+      boards = [{ id: newId('spb'), name: '기본 보드', createdAt: new Date().toISOString() }];
+      window.localStorage.setItem(BOARDS_KEY, JSON.stringify(boards));
+    }
+    // boardId 없는 구 데이터를 첫 보드로 스탬프 — 스탬프 후엔 조건이 거짓이라 사실상 1회.
+    const defId = boards[0].id;
+    const items = readItems();
+    if (items.some((i) => !i.boardId)) {
+      window.localStorage.setItem(ITEMS_KEY, JSON.stringify(items.map((i) => (i.boardId ? i : { ...i, boardId: defId }))));
+    }
+    const cats = readCategories();
+    if (cats.some((c) => !c.boardId)) {
+      window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats.map((c) => (c.boardId ? c : { ...c, boardId: defId }))));
+    }
+  } catch { /* 저장 실패 시 다음 접근에서 재시도 */ }
+  return boards;
+};
+
+const readActiveBoardId = (): string => {
+  const boards = readBoards();
+  if (typeof window !== 'undefined') {
+    try {
+      const v = window.localStorage.getItem(ACTIVE_BOARD_KEY);
+      if (v && boards.some((b) => b.id === v)) return v;
+    } catch { /* noop */ }
+  }
+  return boards[0]?.id ?? '';
+};
+
 export const careerStore = {
-  /** 모든 항목 (createdAt 내림차순 — 최신 먼저). */
-  listItems(): SpecItem[] {
-    return [...readItems()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  /* ── 보드 ── */
+
+  listBoards(): CareerBoard[] {
+    return [...readBoards()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   },
 
-  /** 모든 카테고리 (order 오름차순). */
+  getActiveBoardId(): string {
+    return readActiveBoardId();
+  },
+
+  setActiveBoard(id: string): void {
+    if (typeof window === 'undefined' || !readBoards().some((b) => b.id === id)) return;
+    try {
+      window.localStorage.setItem(ACTIVE_BOARD_KEY, id);
+      window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+    } catch { /* noop */ }
+  },
+
+  /** 새 보드 생성 + 활성화. */
+  addBoard(name: string): CareerBoard | null {
+    const trimmed = name.trim();
+    if (!trimmed || typeof window === 'undefined') return null;
+    const board: CareerBoard = { id: newId('spb'), name: trimmed, createdAt: new Date().toISOString() };
+    try {
+      window.localStorage.setItem(BOARDS_KEY, JSON.stringify([...readBoards(), board]));
+      window.localStorage.setItem(ACTIVE_BOARD_KEY, board.id);
+      window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+      return board;
+    } catch {
+      return null;
+    }
+  },
+
+  renameBoard(id: string, name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed || typeof window === 'undefined') return;
+    const boards = readBoards();
+    const idx = boards.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    boards[idx] = { ...boards[idx], name: trimmed };
+    try {
+      window.localStorage.setItem(BOARDS_KEY, JSON.stringify(boards));
+      window.dispatchEvent(new CustomEvent(CAREER_CHANGED));
+    } catch { /* noop */ }
+  },
+
+  /** 보드 삭제 — 딸린 기록·카테고리까지. 되돌리기용 번들 반환. 마지막 보드는 삭제 불가. */
+  removeBoard(id: string): { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[] } | null {
+    const boards = readBoards();
+    if (boards.length <= 1) return null;
+    const board = boards.find((b) => b.id === id);
+    if (!board || typeof window === 'undefined') return null;
+    const bundle = {
+      board,
+      items: readItems().filter((i) => i.boardId === id),
+      categories: readCategories().filter((c) => c.boardId === id),
+    };
+    try {
+      window.localStorage.setItem(BOARDS_KEY, JSON.stringify(boards.filter((b) => b.id !== id)));
+      // ACTIVE_BOARD_KEY 는 일부러 남긴다 — readActiveBoardId 가 첫 보드로 폴백하고,
+      // 되돌리기로 보드가 살아나면 다시 그 보드가 활성이 된다.
+      safeWrite(
+        readItems().filter((i) => i.boardId !== id),
+        readCategories().filter((c) => c.boardId !== id),
+      );
+      return bundle;
+    } catch {
+      return null;
+    }
+  },
+
+  restoreBoard(bundle: { board: CareerBoard; items: SpecItem[]; categories: SpecCategory[] }): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const boards = readBoards();
+      if (!boards.some((b) => b.id === bundle.board.id)) {
+        window.localStorage.setItem(BOARDS_KEY, JSON.stringify([...boards, bundle.board]));
+      }
+      const items = readItems();
+      const cats = readCategories();
+      const itemIds = new Set(items.map((i) => i.id));
+      const catIds = new Set(cats.map((c) => c.id));
+      safeWrite(
+        [...items, ...bundle.items.filter((i) => !itemIds.has(i.id))],
+        [...cats, ...bundle.categories.filter((c) => !catIds.has(c.id))],
+      );
+    } catch { /* noop */ }
+  },
+
+  /** 보드별 기록 수 — 사이드바 숫자용. */
+  countItemsByBoard(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const i of readItems()) {
+      if (!i.boardId) continue;
+      out[i.boardId] = (out[i.boardId] ?? 0) + 1;
+    }
+    return out;
+  },
+
+  /* ── 기록 (활성 보드 스코프) ── */
+
+  /** 활성 보드의 항목 (createdAt 내림차순 — 최신 먼저). */
+  listItems(): SpecItem[] {
+    const active = readActiveBoardId();
+    return readItems()
+      .filter((i) => i.boardId === active)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  /** 활성 보드의 카테고리 (order 오름차순). */
   listCategories(): SpecCategory[] {
-    return [...readCategories()].sort((a, b) => a.order - b.order);
+    const active = readActiveBoardId();
+    return readCategories()
+      .filter((c) => c.boardId === active)
+      .sort((a, b) => a.order - b.order);
   },
 
   /**
-   * 이름으로 카테고리를 찾고, 없으면 만들어서 반환.
+   * 이름으로 활성 보드의 카테고리를 찾고, 없으면 만들어서 반환.
    * AI 분류 결과가 기존 섹션과 같은 이름이면 재사용된다.
    */
   ensureCategory(name: string): SpecCategory {
+    const active = readActiveBoardId();
     const trimmed = name.trim() || FALLBACK_CATEGORY;
     const categories = readCategories();
-    const existing = categories.find((c) => c.name === trimmed);
+    const mine = categories.filter((c) => c.boardId === active);
+    const existing = mine.find((c) => c.name === trimmed);
     if (existing) return existing;
     const category: SpecCategory = {
       id: newId('spc'),
       name: trimmed,
-      order: categories.length > 0 ? Math.max(...categories.map((c) => c.order)) + 1 : 0,
+      boardId: active,
+      order: mine.length > 0 ? Math.max(...mine.map((c) => c.order)) + 1 : 0,
       createdAt: new Date().toISOString(),
     };
     safeWrite(null, [...categories, category]);
@@ -193,6 +357,7 @@ export const careerStore = {
     const item: SpecItem = {
       id: newId('sp'),
       categoryId: category.id,
+      boardId: readActiveBoardId(),
       raw,
       refined: input.refined?.trim() || raw,
       date: input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : now.slice(0, 10),
@@ -226,11 +391,12 @@ export const careerStore = {
     safeWrite(readItems().filter((e) => e.id !== id), null);
   },
 
-  /** 빈 카테고리 정리 — 항목이 하나도 없는 섹션 제거. */
+  /** 빈 카테고리 정리 — 활성 보드에서 항목이 하나도 없는 섹션 제거 (다른 보드는 건드리지 않음). */
   pruneEmptyCategories(): void {
+    const active = readActiveBoardId();
     const used = new Set(readItems().map((e) => e.categoryId));
     const categories = readCategories();
-    const kept = categories.filter((c) => used.has(c.id));
+    const kept = categories.filter((c) => c.boardId !== active || used.has(c.id));
     if (kept.length !== categories.length) safeWrite(null, kept);
   },
 
@@ -255,10 +421,11 @@ export const careerStore = {
     return [...readDocs()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
-  /** 생성된 문서를 보관함에 저장. */
+  /** 생성된 문서를 보관함에 저장 — 어느 보드로 만들었는지 스탬프. */
   addDoc(input: { purpose: string; content: string; request?: string }): CareerDoc {
     const doc: CareerDoc = {
       id: newId('spd'),
+      boardId: readActiveBoardId(),
       purpose: input.purpose.trim() || '문서',
       request: input.request?.trim() || undefined,
       content: input.content,
@@ -309,7 +476,11 @@ export const careerStore = {
   /** 전체 삭제 (테스트·리셋용). */
   clear(): void {
     if (typeof window !== 'undefined') {
-      try { window.localStorage.removeItem(PROFILE_KEY); } catch { /* noop */ }
+      try {
+        window.localStorage.removeItem(PROFILE_KEY);
+        window.localStorage.removeItem(BOARDS_KEY);
+        window.localStorage.removeItem(ACTIVE_BOARD_KEY);
+      } catch { /* noop */ }
     }
     writeDocs([]);
     safeWrite([], []);

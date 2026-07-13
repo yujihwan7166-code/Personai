@@ -254,7 +254,7 @@ function SetupLedger() {
 /* ═══════════════ 원고 본체 — 좌 작성대 · 우 원고 ═══════════════ */
 
 function BoardLedger() {
-  const { items, categories, profile, docs } = useCareerBoard();
+  const { items, categories, profile, docs, boards, activeBoardId } = useCareerBoard();
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
   const [viewDoc, setViewDoc] = useState<CareerDoc | null>(null);
   const [draft, setDraft] = useState('');
@@ -268,6 +268,7 @@ function BoardLedger() {
   const [recommendOpen, setRecommendOpen] = useState(false);
   /** 방 뷰 — 스펙 보드(기록) vs 문서 종류별 보관함 (사이드바에서 전환). */
   const [view, setView] = useState<'board' | ComposePurpose>('board');
+  const [boardDialogOpen, setBoardDialogOpen] = useState(false); // 새 스펙 보드 만들기
   const [resumeOpen, setResumeOpen] = useState(false); // 이력서 PDF 미리보기·내보내기
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
@@ -297,6 +298,9 @@ function BoardLedger() {
       })),
     [categories, items],
   );
+
+  /** 보드별 기록 수 — 사이드바 우측 숫자 (items 는 활성 보드만이라 전체 집계는 store 에서). */
+  const boardCounts = useMemo(() => careerStore.countItemsByBoard(), [items, boards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const busy = phase.step !== 'idle';
   const persona = (profile.persona || 'student') as CareerPersona;
@@ -545,30 +549,64 @@ function BoardLedger() {
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
           <aside className="hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-            {/* 마스트헤드 — 도구명 + 검인 (제목=주어, 실데이터=서술어) */}
+            {/* 마스트헤드 — 도구명 + 검인 (제목=주어, 실데이터=서술어). 검인은 모든 보드 총계 */}
             <div className="border-b border-[hsl(var(--hairline))] px-5 pb-3.5 pt-4">
               <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
-              <div className="mt-1.5"><ProofStamp count={items.length} /></div>
+              <div className="mt-1.5"><ProofStamp count={Object.values(boardCounts).reduce((a, b) => a + b, 0)} /></div>
             </div>
 
-            {/* 내비 — 텍스트 + 활성 세로 바 + 우측 실데이터 (레일 아이콘 열과 중복 금지 캐논) */}
-            <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="마이 커리어 섹션">
+            {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
+            <p className="px-5 pb-1 pt-3 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
+            <nav className="flex flex-col gap-0.5 px-3" aria-label="스펙 보드 목록">
+              {boards.map((b) => {
+                const active = view === 'board' && activeBoardId === b.id;
+                const count = boardCounts[b.id] ?? 0;
+                return (
+                  <div key={b.id} className="group/bd relative">
+                    <button
+                      type="button"
+                      onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'relative flex w-full items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
+                        active
+                          ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
+                          : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
+                      )}
+                    >
+                      {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
+                      <span className="min-w-0 flex-1 truncate">{b.name}</span>
+                      {count > 0 && (
+                        <span className={cn('career-mono text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{count}</span>
+                      )}
+                    </button>
+                    {boards.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const bundle = careerStore.removeBoard(b.id);
+                          if (bundle) {
+                            notify.info(`'${bundle.board.name}' 보드를 지웠어요`, {
+                              duration: 5000,
+                              action: { label: '되돌리기', onClick: () => careerStore.restoreBoard(bundle) },
+                            });
+                          }
+                        }}
+                        aria-label={`${b.name} 보드 삭제`}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground/45 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 type="button"
-                onClick={() => setView('board')}
-                aria-current={view === 'board' ? 'page' : undefined}
-                className={cn(
-                  'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
-                  view === 'board'
-                    ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
-                    : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
-                )}
+                onClick={() => setBoardDialogOpen(true)}
+                className="mt-0.5 flex items-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] px-4 py-2 text-left text-[12px] text-muted-foreground transition-colors hover:border-[hsl(var(--career-red)/0.45)] hover:text-[hsl(var(--career-red))]"
               >
-                {view === 'board' && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
-                <span className="flex-1">스펙 보드</span>
-                {items.length > 0 && (
-                  <span className={cn('career-mono text-[11px] tabular-nums', view === 'board' ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{items.length}</span>
-                )}
+                <Plus className="h-3 w-3" /> 새 보드
               </button>
             </nav>
 
@@ -605,14 +643,25 @@ function BoardLedger() {
 
           {/* ══ 메인 — 모바일은 통 스크롤, lg 부턴 컬럼별 독립 스크롤 ══ */}
           <div className="flex min-w-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
-            {/* 모바일 — 가로 내비 (사이드바 대체) */}
+            {/* 모바일 — 가로 내비 (사이드바 대체): 보드 칩들 + 문서 종류 칩 */}
             <div className="flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-1 pt-3 sm:hidden">
+              {boards.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                >
+                  {b.name}
+                </button>
+              ))}
               <button
                 type="button"
-                onClick={() => setView('board')}
-                className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                onClick={() => setBoardDialogOpen(true)}
+                aria-label="새 스펙 보드"
+                className="shrink-0 rounded-full border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-2.5 py-1.5 text-muted-foreground"
               >
-                스펙 보드
+                <Plus className="h-3.5 w-3.5" />
               </button>
               {COMPOSE_PURPOSES.map(({ purpose, label }) => (
                 <button
@@ -1075,6 +1124,14 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
           <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:min-h-0">
+            {/* 서류철 탭 — 보드가 여럿일 때만, 이 원고가 어느 보드인지 */}
+            {boards.length > 1 && (
+              <div className="mx-auto max-w-[900px]">
+                <span className="relative z-10 -mb-px ml-6 inline-block rounded-t-lg border border-b-0 border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-3.5 pb-2 pt-1.5 text-[11.5px] font-bold leading-none text-[hsl(var(--career-red))]">
+                  {boards.find((b) => b.id === activeBoardId)?.name ?? '스펙 보드'}
+                </span>
+              </div>
+            )}
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 레터헤드: 아래 굵은 잉크 괘선(섹션 헤어라인·항목 옅은 선과 3단 위계) ── */}
             <div className="flex items-center gap-5 border-b-2 border-[hsl(var(--foreground)/0.8)] pb-5">
@@ -1342,6 +1399,7 @@ function BoardLedger() {
                 canCreate={items.length > 0}
                 onOpen={setViewDoc}
                 onCreate={() => (view === '이력서' ? setResumeOpen(true) : setComposePurpose(view))}
+                boardNameOf={boards.length > 1 ? (doc) => boards.find((b) => b.id === doc.boardId)?.name : undefined}
               />
             )}
           </div>
@@ -1362,6 +1420,21 @@ function BoardLedger() {
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
+      <NewBoardDialog
+        open={boardDialogOpen}
+        onClose={() => setBoardDialogOpen(false)}
+        onCreate={(name) => {
+          const board = careerStore.addBoard(name);
+          if (!board) {
+            notify.error('보드를 만들지 못했어요', { description: '저장 공간이 가득 찼을 수 있어요.' });
+            return;
+          }
+          // addBoard 가 새 보드를 활성화하므로, 신분 시드 칸은 새 보드 안에 심긴다.
+          if (profile.persona) SEED_CATEGORIES[profile.persona].forEach((n) => careerStore.ensureCategory(n));
+          setView('board');
+          setBoardDialogOpen(false);
+        }}
+      />
     </>
   );
 }
@@ -1369,13 +1442,15 @@ function BoardLedger() {
 /* ═══════════════ 문서 보관함 뷰 — 사이드바에서 고른 종류의 산출물 ═══════════════ */
 
 function DocsListView({
-  purpose, docs, canCreate, onOpen, onCreate,
+  purpose, docs, canCreate, onOpen, onCreate, boardNameOf,
 }: {
   purpose: ComposePurpose;
   docs: CareerDoc[];
   canCreate: boolean;
   onOpen: (doc: CareerDoc) => void;
   onCreate: () => void;
+  /** 보드가 여럿일 때만 — 문서가 어느 보드의 기록으로 만들어졌는지 칩으로 표시. */
+  boardNameOf?: (doc: CareerDoc) => string | undefined;
 }) {
   const meta = COMPOSE_PURPOSES.find((c) => c.purpose === purpose);
   const hsl = meta?.hsl ?? '6 70% 51%';
@@ -1429,7 +1504,14 @@ function DocsListView({
                   <p className="truncate text-[13.5px] font-bold transition-colors group-hover:text-[hsl(var(--career-red))]">
                     {doc.request?.trim() || meta?.label || doc.purpose}
                   </p>
-                  <p className="career-mono mt-0.5 text-[10.5px] text-muted-foreground/60">{doc.createdAt.slice(0, 10).replaceAll('-', '.')}</p>
+                  <p className="mt-0.5 flex items-center gap-1.5">
+                    <span className="career-mono text-[10.5px] text-muted-foreground/60">{doc.createdAt.slice(0, 10).replaceAll('-', '.')}</span>
+                    {boardNameOf?.(doc) && (
+                      <span className="max-w-[120px] truncate rounded-full bg-[hsl(var(--surface-3))] px-1.5 py-px text-[9.5px] font-semibold text-muted-foreground/75">
+                        {boardNameOf(doc)}
+                      </span>
+                    )}
+                  </p>
                   <p className="career-serif mt-2 line-clamp-4 whitespace-pre-line text-[12px] leading-[1.7] text-foreground/70">
                     {doc.content}
                   </p>
@@ -2185,6 +2267,49 @@ function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; perso
             {result}
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ═══════════════ 새 스펙 보드 — 이름 하나로 시작 (취업용·대학원용 …) ═══════════════ */
+
+function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (name: string) => void }) {
+  const [name, setName] = useState('');
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate(trimmed);
+    setName('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) { setName(''); onClose(); } }}>
+      <DialogContent className="career-theme max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="career-serif text-[16px]">새 스펙 보드</DialogTitle>
+        </DialogHeader>
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+          보드마다 기록을 따로 쌓아요 — 취업용·대학원용처럼 갈래를 나누고, 각 보드의 기록으로 문서를 만들어요.
+        </p>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
+          placeholder="예: 취업용 · 대학원용 · 이직용"
+          maxLength={30}
+          className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13.5px] outline-none transition-colors focus:border-[hsl(var(--career-red)/0.55)]"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!name.trim()}
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-[hsl(var(--career-red))] px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
+        >
+          만들기
+        </button>
       </DialogContent>
     </Dialog>
   );

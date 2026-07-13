@@ -134,4 +134,61 @@ describe('careerStore', () => {
     expect(items[0].id).toBe('sp_ok');
     expect(items[0].updatedAt).toBe(items[0].createdAt);
   });
+
+  /* ── 멀티 보드 (2026-07-13) ── */
+
+  it('보드가 없으면 기본 보드가 만들어지고, 구 데이터는 그 보드로 스탬프된다', () => {
+    window.localStorage.setItem('career.items.v1', JSON.stringify([
+      { id: 'sp_legacy', raw: '구 항목', refined: '구 항목', categoryId: 'c1', date: '2026-07-01', createdAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-01T00:00:00.000Z' },
+    ]));
+    const boards = careerStore.listBoards();
+    expect(boards).toHaveLength(1);
+    expect(boards[0].name).toBe('기본 보드');
+    // 마이그레이션 후 활성 보드 스코프에서 보인다
+    const items = careerStore.listItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].boardId).toBe(boards[0].id);
+  });
+
+  it('addBoard() — 새 보드 생성 + 활성화, 기록·카테고리는 보드별로 격리', () => {
+    careerStore.addItem({ raw: 'a', categoryName: '자격증' }); // 기본 보드
+    const second = careerStore.addBoard('대학원용');
+    expect(second).not.toBeNull();
+    expect(careerStore.getActiveBoardId()).toBe(second!.id);
+    expect(careerStore.listItems()).toEqual([]); // 새 보드는 비어 있다
+    expect(careerStore.listCategories()).toEqual([]);
+
+    careerStore.addItem({ raw: 'b', categoryName: '자격증' });
+    expect(careerStore.listItems()).toHaveLength(1);
+    expect(careerStore.listCategories()).toHaveLength(1); // 이름 같아도 보드별 별도 칸
+
+    const counts = careerStore.countItemsByBoard();
+    expect(Object.values(counts).sort()).toEqual([1, 1]);
+  });
+
+  it('removeBoard() — 마지막 보드는 못 지우고, 지운 보드는 번들로 복원된다', () => {
+    const first = careerStore.listBoards()[0];
+    expect(careerStore.removeBoard(first.id)).toBeNull(); // 하나뿐이면 불가
+
+    careerStore.addItem({ raw: 'a', categoryName: '자격증' });
+    const second = careerStore.addBoard('취업용')!;
+    careerStore.addItem({ raw: 'b', categoryName: '인턴' });
+
+    const bundle = careerStore.removeBoard(second.id);
+    expect(bundle).not.toBeNull();
+    expect(bundle!.items).toHaveLength(1);
+    expect(careerStore.listBoards()).toHaveLength(1);
+    expect(careerStore.getActiveBoardId()).toBe(first.id); // 첫 보드로 폴백
+
+    careerStore.restoreBoard(bundle!);
+    expect(careerStore.listBoards()).toHaveLength(2);
+    expect(careerStore.getActiveBoardId()).toBe(second.id); // 복원되면 다시 활성
+    expect(careerStore.listItems().map((i) => i.raw)).toEqual(['b']);
+  });
+
+  it('addDoc() — 만든 보드가 스탬프된다', () => {
+    const board = careerStore.addBoard('이직용')!;
+    const doc = careerStore.addDoc({ purpose: '자기소개서 초안', content: '본문' });
+    expect(doc.boardId).toBe(board.id);
+  });
 });

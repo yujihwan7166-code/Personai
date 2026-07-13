@@ -3,24 +3,30 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { careerStore } from '@/services/careerStore';
-import { CAREER_CHANGED, type CareerDoc, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
+import { CAREER_CHANGED, type CareerBoard, type CareerDoc, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 
 export const useCareerBoard = (): {
   items: SpecItem[];
   categories: SpecCategory[];
   profile: CareerProfile;
   docs: CareerDoc[];
+  boards: CareerBoard[];
+  activeBoardId: string;
 } => {
   const [items, setItems] = useState<SpecItem[]>(() => careerStore.listItems());
   const [categories, setCategories] = useState<SpecCategory[]>(() => careerStore.listCategories());
   const [profile, setProfile] = useState<CareerProfile>(() => careerStore.getProfile());
   const [docs, setDocs] = useState<CareerDoc[]>(() => careerStore.listDocs());
+  const [boards, setBoards] = useState<CareerBoard[]>(() => careerStore.listBoards());
+  const [activeBoardId, setActiveBoardId] = useState<string>(() => careerStore.getActiveBoardId());
 
   const refresh = useCallback(() => {
     setItems(careerStore.listItems());
     setCategories(careerStore.listCategories());
     setProfile(careerStore.getProfile());
     setDocs(careerStore.listDocs());
+    setBoards(careerStore.listBoards());
+    setActiveBoardId(careerStore.getActiveBoardId());
   }, []);
 
   useEffect(() => {
@@ -30,5 +36,5 @@ export const useCareerBoard = (): {
     return () => window.removeEventListener(CAREER_CHANGED, refresh);
   }, [refresh]);
 
-  return { items, categories, profile, docs };
+  return { items, categories, profile, docs, boards, activeBoardId };
 };

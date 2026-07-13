@@ -9,9 +9,18 @@
 
 export const CAREER_CHANGED = 'career:changed';
 
+/** 스펙 보드 — 여러 개를 두고(취업용·대학원용 …) 각각의 기록으로 문서를 만든다 (2026-07-13). */
+export interface CareerBoard {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface SpecCategory {
   id: string;
   name: string;
+  /** 소속 보드 (멀티 보드). 구 데이터는 마이그레이션 때 기본 보드로 스탬프. */
+  boardId?: string;
   /** 보드 표시 순서 (작을수록 위). */
   order: number;
   createdAt: string;
@@ -20,6 +29,8 @@ export interface SpecCategory {
 export interface SpecItem {
   id: string;
   categoryId: string;
+  /** 소속 보드. */
+  boardId?: string;
   /** 사용자가 입력한 원문. */
   raw: string;
   /** AI가 다듬은 이력서 문장. AI 실패 시 raw 와 동일. */
@@ -55,6 +66,8 @@ export const PERSONA_LABEL: Record<CareerPersona, string> = {
 /** 원고로 만든 문서 — 생성 결과를 보관함에 저장해 다시 본다. */
 export interface CareerDoc {
   id: string;
+  /** 어느 보드의 기록으로 만들었나 (멀티 보드). */
+  boardId?: string;
   /** 문서 종류 — '이력서' · '자기소개서 초안' · '포트폴리오 요약'. */
   purpose: string;
   /** 생성 시 함께 준 요청사항 (지원 직무·강조점, 선택). */
