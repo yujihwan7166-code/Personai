@@ -615,8 +615,8 @@ function BoardLedger() {
             </div>
           </aside>
 
-          {/* ══ 메인 ══ */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* ══ 메인 — 모바일은 통 스크롤, lg 부턴 컬럼별 독립 스크롤 ══ */}
+          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
             {/* 모바일 — 가로 내비 (사이드바 대체) */}
             <div className="flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-1 pt-3 sm:hidden">
               <button
@@ -642,7 +642,8 @@ function BoardLedger() {
             </div>
 
             {view === 'board' ? (
-            <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_540px]">
+            /* 행 높이 minmax(0,1fr) — 이게 있어야 두 컬럼이 화면을 채우고 각자 스크롤한다 */
+            <div className="flex flex-col lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_540px] lg:grid-rows-[minmax(0,1fr)]">
 
         {/* ══════ 우 — 작성대 도크: 커리어 추가 전용 (문서는 사이드바로 이사, 2026-07-13) ══════ */}
         <aside className="scrollbar-thin overflow-y-auto lg:col-start-2">
@@ -1342,7 +1343,7 @@ function DocsListView({
   const meta = COMPOSE_PURPOSES.find((c) => c.purpose === purpose);
   const hsl = meta?.hsl ?? '6 70% 51%';
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       <div className="mx-auto w-full max-w-[1080px] px-4 py-6 sm:px-8">
         {/* 섹션 머리 — 아이브로우 + 제목 + 만들기 CTA */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
