@@ -1,16 +1,17 @@
 /**
- * 스펙 보드 — /career ("교정 중인 원고" 컨셉, 2단 작성대 레이아웃).
+ * 마이 커리어 — /career ("교정 중인 원고" 컨셉).
  *
- * 레이아웃 (CSS 그리드, 2026-07-11): 좌 컬럼 | 우 도크가 각자 독립 스크롤.
- *   [좌 컬럼] 마스트헤드("마이 커리어"+인장, 밑줄은 왼쪽에만) + 흰 문서 시트(프로필 머리글 + 카테고리 섹션 2열).
- *   [우 도크] 화면 맨 위부터 전체 높이(마스트헤드 위로도) — "문서(만들기↔만든 문서 탭)" 카드 + "커리어 추가" 카드.
- *   문서 생성은 요청사항 입력 → 생성 → 보관함 자동 저장 후 '만든 문서' 탭으로 전환.
- * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 오른쪽 원고의 행으로 날아가 꽂힌다
+ * 구조 (2026-07-13 개편): 방 사이드바가 "기록"과 "산출물"을 구분한다.
+ *   [사이드바] 마스트헤드(마이 커리어 + 스펙 검인) + 내비: 스펙 보드 | 문서(이력서·자소서·
+ *   포트폴리오·경력기술서·커버레터, 종류별 색 점 + 개수) + 하단 추천 스펙.
+ *   [스펙 보드 뷰] 좌 원고 시트(프로필 머리글 + 카테고리 2열) | 우 커리어 추가 작성대 — 독립 스크롤.
+ *   [문서 뷰] 그 종류로 만든 문서 카드 그리드 + "새로 만들기" (이력서는 서식 미리보기→PDF,
+ *   나머지는 AI 생성 → 해당 뷰에 쌓임).
+ * 왼쪽에서 적은 한 줄이 AI 문장으로 변신해 원고의 행으로 날아가 꽂힌다
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
  * 종이 위 잉크: 문장 명조(career-serif) · 숫자 모노(career-mono) ·
  * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
- * 기록은 2열 카드 뷰 고정, 섹션당 5개 프리뷰(+더 보기). 서체는 플래너와 동일(Pretendard).
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
@@ -167,10 +168,9 @@ function LedgerFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** 검인(檢印) — 원고에 실린 "이룬 것"을 찍는 한 줄 인장.
+/** 검인(檢印) — 원고에 쌓인 스펙 수를 찍는 한 줄 인장 (방 이름 "스펙 보드"와 짝).
  * 마스트헤드 양식(제목=주어, 실데이터=서술어)의 커리어 판.
- * 제목(27px) 행 높이를 넘지 않는 슬림 가로형 — 헤더 줄이 밀리지 않는다.
- * 0건이면 "기록 중 + 월"로 원고가 준비 중임을 알린다. */
+ * 제목 행 높이를 넘지 않는 슬림 가로형. 0건이면 "기록 중 + 월"로 준비 중임을 알린다. */
 function ProofStamp({ count }: { count: number }) {
   const month = new Date().toISOString().slice(0, 7).replace('-', '.');
   return (
@@ -180,7 +180,7 @@ function ProofStamp({ count }: { count: number }) {
     >
       {count > 0 ? (
         <>
-          <span className="text-[10.5px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.75)]">이룬 것</span>
+          <span className="text-[10.5px] font-bold tracking-[0.18em] text-[hsl(var(--career-red)/0.75)]">스펙</span>
           <span className="career-mono text-[13px] font-bold leading-none tabular-nums text-[hsl(var(--career-red)/0.9)]">{count}</span>
         </>
       ) : (
@@ -266,7 +266,8 @@ function BoardLedger() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [recommendOpen, setRecommendOpen] = useState(false);
-  const [docTab, setDocTab] = useState<'make' | 'archive'>('make'); // 문서 만들기 ↔ 만든 문서
+  /** 방 뷰 — 스펙 보드(기록) vs 문서 종류별 보관함 (사이드바에서 전환). */
+  const [view, setView] = useState<'board' | ComposePurpose>('board');
   const [resumeOpen, setResumeOpen] = useState(false); // 이력서 PDF 미리보기·내보내기
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
@@ -541,115 +542,112 @@ function BoardLedger() {
   return (
     <>
       <LayoutGroup>
-        {/* 좌 컬럼(마스트헤드+보드) | 우 도크(맨 위부터 전체 높이). 그리드 배치라 "마이 커리어" 줄은 왼쪽에만. */}
-        <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_540px] lg:grid-rows-[auto_minmax(0,1fr)]">
-        {/* ══════ 마스트헤드 — 좌 컬럼 상단(밑줄은 왼쪽에만) ══════ */}
-        <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pb-3 pt-3.5 sm:px-5 lg:col-start-1 lg:row-start-1">
-          {/* 방 색 틴트 — 레일 P 마크와 짝. */}
-          <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
-          <ProofStamp count={items.length} />
-        </header>
+        {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
+        <div className="flex h-full">
+          <aside className="hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
+            {/* 마스트헤드 — 도구명 + 검인 (제목=주어, 실데이터=서술어) */}
+            <div className="border-b border-[hsl(var(--hairline))] px-5 pb-3.5 pt-4">
+              <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
+              <div className="mt-1.5"><ProofStamp count={items.length} /></div>
+            </div>
 
-        {/* ══════ 우 — 작성대 도크: 맨 위부터 전체 높이, 독립 스크롤 (모바일에선 마스트헤드 아래) ══════ */}
-        <aside className="scrollbar-thin overflow-y-auto lg:col-start-2 lg:row-span-2">
+            {/* 내비 — 텍스트 + 활성 세로 바 + 우측 실데이터 (레일 아이콘 열과 중복 금지 캐논) */}
+            <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="마이 커리어 섹션">
+              <button
+                type="button"
+                onClick={() => setView('board')}
+                aria-current={view === 'board' ? 'page' : undefined}
+                className={cn(
+                  'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
+                  view === 'board'
+                    ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
+                    : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
+                )}
+              >
+                {view === 'board' && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
+                <span className="flex-1">스펙 보드</span>
+                {items.length > 0 && (
+                  <span className={cn('career-mono text-[11px] tabular-nums', view === 'board' ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{items.length}</span>
+                )}
+              </button>
+            </nav>
+
+            <p className="px-5 pb-1 pt-4 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
+            <nav className="flex flex-col gap-0.5 px-3" aria-label="문서 종류">
+              {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
+                const active = view === purpose;
+                const count = docs.filter((d) => d.purpose === purpose).length;
+                return (
+                  <button
+                    key={purpose}
+                    type="button"
+                    onClick={() => setView(purpose)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
+                      active
+                        ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
+                        : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
+                    )}
+                  >
+                    {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: `hsl(${hsl})` }} />
+                    <span className="flex-1">{label}</span>
+                    {count > 0 && (
+                      <span className={cn('career-mono text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="flex-1" />
+
+            {/* 하단 유틸 — 추천 스펙 (다음에 쌓을 것) */}
+            <div className="border-t border-[hsl(var(--hairline))] px-3 py-3">
+              <button
+                type="button"
+                onClick={() => setRecommendOpen(true)}
+                className="block w-full rounded-xl py-2 pl-4 pr-3 text-left text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-[hsl(var(--surface-3))]/60 hover:text-[hsl(var(--career-red))]"
+              >
+                ✦ 추천 스펙 받기
+              </button>
+            </div>
+          </aside>
+
+          {/* ══ 메인 ══ */}
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {/* 모바일 — 가로 내비 (사이드바 대체) */}
+            <div className="flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-1 pt-3 sm:hidden">
+              <button
+                type="button"
+                onClick={() => setView('board')}
+                className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+              >
+                스펙 보드
+              </button>
+              {COMPOSE_PURPOSES.map(({ purpose, label }) => (
+                <button
+                  key={purpose}
+                  type="button"
+                  onClick={() => setView(purpose)}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                >
+                  {label}
+                </button>
+              ))}
+              <button type="button" onClick={() => setRecommendOpen(true)} className="shrink-0 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-3 py-1.5 text-[12px] text-muted-foreground">
+                ✦ 추천
+              </button>
+            </div>
+
+            {view === 'board' ? (
+            <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_540px]">
+
+        {/* ══════ 우 — 작성대 도크: 커리어 추가 전용 (문서는 사이드바로 이사, 2026-07-13) ══════ */}
+        <aside className="scrollbar-thin overflow-y-auto lg:col-start-2">
             {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
-            {/* 문서 — "문서 만들기" ↔ "만든 문서" 탭 전환 한 카드 */}
-            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
-              {/* 현재 뷰 제목(왼쪽) + 다른 뷰로 가는 칩(오른쪽) — 만들기(메인)와 보관함을 뷰 전환으로 구분 */}
-              <div className="mb-3 flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">{docTab === 'make' ? '+' : '▤'}</span>
-                  <h2 className="text-[16px] font-bold tracking-tight">{docTab === 'make' ? '문서 만들기' : '보관함'}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDocTab(docTab === 'make' ? 'archive' : 'make')}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
-                >
-                  {docTab === 'make' ? (
-                    <>보관함<span className="career-mono font-semibold text-[hsl(var(--career-red))]">{docs.length}</span></>
-                  ) : (
-                    <><span aria-hidden>←</span> 문서 만들기</>
-                  )}
-                </button>
-              </div>
-
-              {docTab === 'make' ? (
-                <>
-                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
-                    {items.length === 0
-                      ? '기록이 쌓이면 문서를 만들 수 있어요.'
-                      : '쌓인 기록으로 문서를 만들어보세요.'}
-                  </p>
-                  {/* 문서 타일 — 3×2. 이력서는 왼쪽 보드 그 자체 → 미리보기/PDF, 나머지는 AI 생성. */}
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
-                      const disabled = items.length === 0;
-                      return (
-                        <button
-                          key={purpose}
-                          type="button"
-                          onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setComposePurpose(purpose))}
-                          disabled={disabled}
-                          className={cn(
-                            'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow]',
-                            disabled
-                              ? 'cursor-not-allowed border-[hsl(var(--hairline))] text-muted-foreground/40'
-                              : 'hover:brightness-[0.98] hover:shadow-sm',
-                          )}
-                          style={disabled ? undefined : { backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
-                        >
-                          <span className="block text-[13px] font-semibold">{label}</span>
-                          <span
-                            className="career-mono mt-0.5 block text-[10.5px]"
-                            style={disabled ? undefined : { color: `hsl(${hsl} / 0.95)` }}
-                          >
-                            {hint} →
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {/* 6번째 — 추천 스펙(연한 초록, "쌓을 것" 성격) */}
-                    <button
-                      type="button"
-                      onClick={() => setRecommendOpen(true)}
-                      title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                      className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
-                      style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
-                    >
-                      <span className="block text-[13px] font-semibold">추천 스펙</span>
-                      <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
-                    </button>
-                  </div>
-                </>
-              ) : docs.length === 0 ? (
-                <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground/70">
-                  아직 보관함이 비어 있어요. “문서 만들기”에서 생성하면 여기에 쌓여요.
-                </p>
-              ) : (
-                <ul className="mt-2 divide-y divide-[hsl(var(--hairline))]">
-                  {docs.map((doc) => (
-                    <li key={doc.id}>
-                      <button
-                        type="button"
-                        onClick={() => setViewDoc(doc)}
-                        className="group flex w-full items-baseline justify-between gap-2 py-2 text-left"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-[13px] transition-colors group-hover:text-[hsl(var(--career-red))]">
-                          <span className="font-medium">{doc.purpose}</span>
-                          {doc.request && <span className="text-muted-foreground"> · {doc.request}</span>}
-                        </span>
-                        <span className="career-mono shrink-0 text-[10.5px] text-muted-foreground/55">
-                          {doc.createdAt.slice(0, 10).replaceAll('-', '.')}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               {/* 표제 + 모드 토글 (세그먼트) */}
               <div className="flex items-center gap-2">
@@ -1038,7 +1036,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-2 lg:min-h-0">
+          <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:min-h-0">
             <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
             {/* ── 프로필 헤더 — 레터헤드: 아래 굵은 잉크 괘선(섹션 헤어라인·항목 옅은 선과 3단 위계) ── */}
             <div className="flex items-center gap-5 border-b-2 border-[hsl(var(--foreground)/0.8)] pb-5">
@@ -1298,6 +1296,17 @@ function BoardLedger() {
               </div>
             </div>
           </main>
+            </div>
+            ) : (
+              <DocsListView
+                purpose={view}
+                docs={docs.filter((d) => d.purpose === view)}
+                canCreate={items.length > 0}
+                onOpen={setViewDoc}
+                onCreate={() => (view === '이력서' ? setResumeOpen(true) : setComposePurpose(view))}
+              />
+            )}
+          </div>
         </div>
       </LayoutGroup>
 
@@ -1310,12 +1319,89 @@ function BoardLedger() {
       <ComposeDialog
         purpose={composePurpose}
         onClose={() => setComposePurpose(null)}
-        onCreated={() => setDocTab('archive')}
+        onCreated={() => { if (composePurpose) setView(composePurpose); }}
       />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
       <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
     </>
+  );
+}
+
+/* ═══════════════ 문서 보관함 뷰 — 사이드바에서 고른 종류의 산출물 ═══════════════ */
+
+function DocsListView({
+  purpose, docs, canCreate, onOpen, onCreate,
+}: {
+  purpose: ComposePurpose;
+  docs: CareerDoc[];
+  canCreate: boolean;
+  onOpen: (doc: CareerDoc) => void;
+  onCreate: () => void;
+}) {
+  const meta = COMPOSE_PURPOSES.find((c) => c.purpose === purpose);
+  const hsl = meta?.hsl ?? '6 70% 51%';
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[1080px] px-4 py-6 sm:px-8">
+        {/* 섹션 머리 — 아이브로우 + 제목 + 만들기 CTA */}
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10.5px] font-bold tracking-[0.22em] text-muted-foreground/60">DOCUMENTS</p>
+            <h2 className="mt-1.5 flex items-baseline gap-2 text-[27px] font-bold leading-none tracking-tight">
+              {meta?.label ?? purpose}
+              {docs.length > 0 && <span className="career-mono text-[14px] font-bold tabular-nums text-muted-foreground/55">{docs.length}</span>}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onCreate}
+            disabled={!canCreate}
+            title={canCreate ? undefined : '스펙 보드에 기록이 쌓이면 만들 수 있어요'}
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold text-white shadow-sm transition-[filter] hover:brightness-[1.06] disabled:opacity-40"
+            style={{ backgroundColor: `hsl(${hsl})` }}
+          >
+            <Plus className="h-3.5 w-3.5" /> 새 {meta?.label ?? purpose} 만들기
+          </button>
+        </div>
+
+        {docs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]/60 py-16 text-center">
+            <p className="text-[13.5px] font-semibold text-foreground/80">
+              {purpose === '이력서' ? '이력서는 미리보기에서 서식을 골라 PDF로 저장해요.' : `아직 만든 ${meta?.label ?? purpose}가 없어요.`}
+            </p>
+            <p className="mx-auto mt-1.5 max-w-[360px] text-[12px] leading-relaxed text-muted-foreground">
+              {canCreate
+                ? '스펙 보드의 기록을 재료로 AI가 초안을 써드려요.'
+                : '먼저 스펙 보드에 이룬 것을 기록해 주세요 — 기록이 문서의 재료가 돼요.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {docs.map((doc) => (
+              <button
+                key={doc.id}
+                type="button"
+                onClick={() => onOpen(doc)}
+                className="group overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] text-left shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-14px_hsl(var(--foreground)/0.3)]"
+              >
+                {/* 종류 색 밴드 — 사이드바 점과 같은 색 부호 */}
+                <div className="h-1.5" style={{ backgroundColor: `hsl(${hsl} / 0.75)` }} />
+                <div className="px-4 pb-4 pt-3">
+                  <p className="truncate text-[13.5px] font-bold transition-colors group-hover:text-[hsl(var(--career-red))]">
+                    {doc.request?.trim() || meta?.label || doc.purpose}
+                  </p>
+                  <p className="career-mono mt-0.5 text-[10.5px] text-muted-foreground/60">{doc.createdAt.slice(0, 10).replaceAll('-', '.')}</p>
+                  <p className="career-serif mt-2 line-clamp-4 whitespace-pre-line text-[12px] leading-[1.7] text-foreground/70">
+                    {doc.content}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
