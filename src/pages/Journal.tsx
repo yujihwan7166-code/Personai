@@ -486,7 +486,7 @@ export default function Journal() {
                   'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
-                    : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
+                    : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-accent))]/10 hover:text-[hsl(var(--cream-accent))]',
                 )}
               >
                 {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}
@@ -526,7 +526,7 @@ export default function Journal() {
                   'relative block w-full rounded-xl py-2 pl-4 pr-3 text-left text-[12.5px] transition-colors',
                   active
                     ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
-                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/35 hover:text-[hsl(var(--cream-ink))]',
+                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-accent))]/10 hover:text-[hsl(var(--cream-accent))]',
                 )}
               >
                 {active && <span aria-hidden className="absolute left-1 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}

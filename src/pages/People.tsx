@@ -84,7 +84,7 @@ export default function People() {
           'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
           active
             ? 'bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
-            : 'font-medium text-foreground/75 hover:bg-[hsl(var(--surface-3))]/60 hover:text-foreground',
+            : 'font-medium text-foreground/75 hover:bg-[hsl(var(--people-accent))]/10 hover:text-[hsl(var(--people-accent))]',
         )}
       >
         {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--people-accent))]" />}
