@@ -336,16 +336,17 @@ function FlowCard({ person: p, interactions }: { person: Person; interactions: I
       </div>
 
       {composing && (
-        <div className="mb-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-2.5">
+        <div className="mb-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))]/60 p-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {FLOW_KINDS.map((k) => (
               <button
                 key={k}
                 type="button"
                 onClick={() => setKind(k)}
-                className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors', k !== kind && 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground')}
+                className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors', k !== kind && 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground')}
                 style={k === kind ? { backgroundColor: `color-mix(in srgb, ${INTERACTION_META[k].tint} 14%, transparent)`, borderColor: `color-mix(in srgb, ${INTERACTION_META[k].tint} 45%, transparent)`, color: INTERACTION_META[k].tint } : undefined}
               >
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: INTERACTION_META[k].tint }} />
                 {INTERACTION_META[k].label}
               </button>
             ))}
@@ -378,32 +379,46 @@ function FlowCard({ person: p, interactions }: { person: Person; interactions: I
       {interactions.length === 0 ? (
         <p className="py-6 text-center text-[12px] text-muted-foreground/70">대화·만남·선물을 기록하면 관계의 흐름이 쌓여요.</p>
       ) : (
-        <ul className="space-y-3">
-          {interactions.map((x) => (
-            <li key={x.id} className="group/itx relative border-l-2 pl-3" style={{ borderColor: INTERACTION_META[x.kind].tint }}>
-              <p className="flex items-center gap-1.5 text-[11px]">
-                <span className="font-bold" style={{ color: INTERACTION_META[x.kind].tint }}>{INTERACTION_META[x.kind].label}</span>
-                <span className="tabular-nums text-muted-foreground">{x.date.slice(2).replaceAll('-', '.')}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const removed = peopleStore.removeInteraction(x.id);
-                    if (removed) {
-                      notify.info('기록을 지웠어요', {
-                        duration: 4000,
-                        action: { label: '되돌리기', onClick: () => peopleStore.restoreInteraction(removed) },
-                      });
-                    }
-                  }}
-                  aria-label="기록 삭제"
-                  className="ml-auto p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/itx:opacity-100 [@media(hover:none)]:opacity-100"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </p>
-              {x.note && <p className="mt-0.5 break-keep text-[12.5px] leading-relaxed text-foreground/85">{x.note}</p>}
-            </li>
-          ))}
+        <ul className="mt-1 pl-0.5">
+          {interactions.map((x, i) => {
+            const last = i === interactions.length - 1;
+            const meta = INTERACTION_META[x.kind];
+            return (
+              <li key={x.id} className="group/itx flex gap-3">
+                {/* 타임라인 노드 — 색 점 + 아래로 잇는 연결선 */}
+                <div className="flex flex-col items-center pt-[3px]">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-[3px] ring-[hsl(var(--surface-1))]"
+                    style={{ backgroundColor: meta.tint }}
+                  />
+                  {!last && <span aria-hidden className="mt-0.5 w-px grow bg-[hsl(var(--hairline))]" />}
+                </div>
+                <div className={cn('min-w-0 flex-1', !last && 'pb-3.5')}>
+                  <p className="flex items-center gap-1.5 text-[11px]">
+                    <span className="font-bold" style={{ color: meta.tint }}>{meta.label}</span>
+                    <span className="tabular-nums text-muted-foreground">{x.date.slice(2).replaceAll('-', '.')}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const removed = peopleStore.removeInteraction(x.id);
+                        if (removed) {
+                          notify.info('기록을 지웠어요', {
+                            duration: 4000,
+                            action: { label: '되돌리기', onClick: () => peopleStore.restoreInteraction(removed) },
+                          });
+                        }
+                      }}
+                      aria-label="기록 삭제"
+                      className="ml-auto p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/itx:opacity-100 [@media(hover:none)]:opacity-100"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </p>
+                  {x.note && <p className="mt-0.5 break-keep text-[12.5px] leading-relaxed text-foreground/85">{x.note}</p>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
