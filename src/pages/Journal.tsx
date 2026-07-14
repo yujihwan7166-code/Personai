@@ -490,14 +490,14 @@ export default function Journal() {
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
             <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-3px_hsl(146_27%_39%/0.6)]"
-              style={{ background: 'linear-gradient(150deg, hsl(146 30% 46%), hsl(146 27% 35%))' }}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-white shadow-[0_5px_12px_-4px_hsl(146_26%_47%/0.5)]"
+              style={{ background: 'linear-gradient(150deg, hsl(146 27% 51%), hsl(146 26% 44%))' }}
             >
-              <NotebookPen className="h-[22px] w-[22px]" strokeWidth={2} />
+              <NotebookPen className="h-[24px] w-[24px]" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h1 className="text-[20px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
-              <p className="text-[12px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
+              <h1 className="text-[23px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
+              <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
             </div>
           </div>
         </div>
@@ -507,8 +507,8 @@ export default function Journal() {
           <button
             type="button"
             onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-8px_hsl(146_24%_40%/0.5)] transition-[filter] hover:brightness-[1.05]"
-            style={{ backgroundColor: 'hsl(146 22% 42%)' }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(146_26%_46%/0.5)] transition-[filter] hover:brightness-[1.04]"
+            style={{ backgroundColor: 'hsl(146 26% 47%)' }}
           >
             <Pencil className="h-3.5 w-3.5" /> 오늘 기록 쓰기
           </button>
