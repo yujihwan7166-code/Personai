@@ -473,12 +473,13 @@ export default function Journal() {
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
-            {/* 마크 — '새싹': 기록이 쌓여 자란다 (세이지 sanctuary 무드) */}
+            {/* 마크 — '흙 위 새싹': 큰 두 잎 + 흙선 (심고 기른다) */}
             <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label="데일리 로그">
               <rect x="0.5" y="0.5" width="47" height="47" rx="14.5" fill="hsl(146 22% 93%)" stroke="hsl(146 20% 83%)" strokeWidth="1" />
-              <path d="M24 35 C24 29 24 25 24 20" fill="none" stroke="hsl(146 28% 39%)" strokeWidth="2.4" strokeLinecap="round" />
-              <path d="M24 24 C20 24 16.5 21.5 16 17 C21 17 24 20 24 24 Z" fill="hsl(146 22% 54%)" />
-              <path d="M24 21 C28 20.5 31.5 17.5 32 13 C27.2 13.4 24.3 16.5 24 21 Z" fill="hsl(146 28% 39%)" />
+              <path d="M16 36 Q24 38.5 32 36" fill="none" stroke="hsl(40 20% 68%)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M24 35 L24 22" fill="none" stroke="hsl(146 30% 37%)" strokeWidth="2.6" strokeLinecap="round" />
+              <path d="M24 24 C18 23 13 18 12.5 10.5 C18.5 11.5 22.5 17 24 24 Z" fill="hsl(146 26% 57%)" />
+              <path d="M24 24 C30 23 35 18 35.5 10.5 C29.5 11.5 25.5 17 24 24 Z" fill="hsl(146 30% 37%)" />
             </svg>
             <div className="min-w-0">
               <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리 로그</h1>
