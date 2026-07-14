@@ -482,7 +482,7 @@ export default function Journal() {
               <path d="M24 24 C30 23 35 18 35.5 10.5 C29.5 11.5 25.5 17 24 24 Z" fill="hsl(146 30% 37%)" />
             </svg>
             <div className="min-w-0">
-              <h1 className="translate-y-[3px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(var(--cream-ink))]">데일리 로그</h1>
+              <h1 className="translate-y-[3px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(146_32%_34%)]">데일리 로그</h1>
               <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루를 담는 기록실</p>
             </div>
           </div>
