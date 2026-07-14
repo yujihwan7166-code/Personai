@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { ClipboardList, Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -539,16 +539,8 @@ function BoardLedger() {
             {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (사진 스타일) */}
             <div className="px-4 pb-3 pt-4">
               <div className="flex items-center gap-3">
-                <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-4px_hsl(32_45%_50%/0.5)]"
-                  style={{ background: 'linear-gradient(150deg, hsl(37 48% 56%), hsl(30 46% 46%))' }}
-                >
-                  <ClipboardList className="h-[22px] w-[22px]" strokeWidth={2} />
-                </span>
-                <div className="min-w-0">
-                  <h1 className="text-[20px] font-extrabold leading-tight tracking-[-0.02em] text-foreground">마이 커리어</h1>
-                  <p className="text-[12px] leading-tight text-muted-foreground">이룬 것을 쌓는 원고</p>
-                </div>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(33_48%_50%/0.13)] text-[23px] leading-none">💼</span>
+                <h1 className="min-w-0 text-[20px] font-extrabold leading-none tracking-[-0.02em] text-foreground">마이 커리어</h1>
               </div>
             </div>
 
