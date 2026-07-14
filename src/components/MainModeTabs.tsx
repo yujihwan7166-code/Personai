@@ -333,6 +333,7 @@ export const SPOTLIGHT_ITEMS: Array<{
   tint: string;
   target: FavEntry['target'];
 }> = [
+  { id: 'hub-archive',        badge: 'NEW', label: '아카이브',    tint: 'hsl(28 48% 40%)',           target: { kind: 'hub', hubId: 'archive' } },
   { id: 'mode-research_main', badge: 'HOT', label: '심층 리서치',  tint: 'hsl(var(--mode-research))', target: { kind: 'mode', mode: 'research_main' } },
   { id: 'mode-multi',         badge: 'NEW', label: '멀티 채팅',    tint: 'hsl(var(--mode-multi))',    target: { kind: 'mode', mode: 'multi' } },
   { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(6 70% 51%)',            target: { kind: 'hub', hubId: 'career' } },
