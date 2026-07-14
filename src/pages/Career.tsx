@@ -540,8 +540,8 @@ function BoardLedger() {
             <div className="px-4 pb-3 pt-4">
               <div className="flex items-center gap-3">
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-4px_hsl(6_55%_55%/0.5)]"
-                  style={{ background: 'linear-gradient(150deg, hsl(6 58% 64%), hsl(6 58% 55%))' }}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-4px_hsl(32_45%_50%/0.5)]"
+                  style={{ background: 'linear-gradient(150deg, hsl(37 48% 56%), hsl(30 46% 46%))' }}
                 >
                   <ClipboardList className="h-[22px] w-[22px]" strokeWidth={2} />
                 </span>
@@ -557,8 +557,8 @@ function BoardLedger() {
               <button
                 type="button"
                 onClick={() => setBoardDialogOpen(true)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(6_50%_55%/0.5)] transition-[filter] hover:brightness-[1.04]"
-                style={{ backgroundColor: 'hsl(6 50% 58%)' }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(30_45%_48%/0.5)] transition-[filter] hover:brightness-[1.04]"
+                style={{ backgroundColor: 'hsl(30 44% 48%)' }}
               >
                 <Plus className="h-3.5 w-3.5" /> 새 보드
               </button>
@@ -579,14 +579,14 @@ function BoardLedger() {
                       className={cn(
                         'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
                         active
-                          ? 'bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]'
-                          : 'font-medium text-foreground/72 hover:bg-[hsl(var(--career-red)/0.06)]',
+                          ? 'bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]'
+                          : 'font-medium text-foreground/72 hover:bg-[hsl(33_48%_48%/0.07)]',
                       )}
                     >
                       <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">📋</span>
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/55')}>{count}</span>
+                        <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(28_52%_42%)]' : 'text-muted-foreground/55')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -626,14 +626,14 @@ function BoardLedger() {
                     className={cn(
                       'flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
                       active
-                        ? 'bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]'
+                        ? 'bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]'
                         : 'font-medium text-foreground/72 hover:bg-[hsl(var(--career-red)/0.06)]',
                     )}
                   >
                     <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{DOC_EMOJI[purpose]}</span>
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/55')}>{count}</span>
+                      <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(28_52%_42%)]' : 'text-muted-foreground/55')}>{count}</span>
                     )}
                   </button>
                 );
@@ -651,7 +651,7 @@ function BoardLedger() {
                   key={b.id}
                   type="button"
                   onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {b.name}
                 </button>
@@ -669,7 +669,7 @@ function BoardLedger() {
                   key={purpose}
                   type="button"
                   onClick={() => setView(purpose)}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {label}
                 </button>
