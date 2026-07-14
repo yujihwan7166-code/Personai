@@ -8,7 +8,7 @@
  * 데이터: peopleStore (사람·관계 기록, LocalStorage) — docs/design-masthead.md 참조.
  */
 import { useMemo, useState } from 'react';
-import { CalendarHeart, Gift, Home, Plus, Users, type LucideIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePersons, useInteractions, useCategories } from '@/hooks/usePeople';
 import { PersonsView } from '@/components/people/PersonsView';
@@ -23,11 +23,11 @@ import type { Person } from '@/types/people';
 
 type View = 'today' | 'persons' | 'calendar' | 'gifts';
 
-const NAV: Array<{ id: View; label: string; icon: LucideIcon }> = [
-  { id: 'today', label: '오늘 챙길 것', icon: Home },
-  { id: 'persons', label: '사람', icon: Users },
-  { id: 'calendar', label: '경조사 캘린더', icon: CalendarHeart },
-  { id: 'gifts', label: '주고받은 선물', icon: Gift },
+const NAV: Array<{ id: View; label: string; emoji: string }> = [
+  { id: 'today', label: '오늘 챙길 것', emoji: '🔔' },
+  { id: 'persons', label: '사람', emoji: '👥' },
+  { id: 'calendar', label: '경조사 캘린더', emoji: '💐' },
+  { id: 'gifts', label: '주고받은 선물', emoji: '🎁' },
 ];
 
 const SECTION_HEAD: Record<View, { eyebrow: string; title: string }> = {
@@ -80,11 +80,10 @@ export default function People() {
     setView('persons');
   };
 
-  /* 사이드바 항목 — 아이콘 + 라벨 + 배지, 활성 = 테라코타 채움 알약 (사이드바 표준 디자인). */
+  /* 사이드바 항목 — 이모지 + 라벨 + 배지, 활성 = 은은한 필 (데일리 로그 기준). */
   const navBtn = (item: (typeof NAV)[number]) => {
     const active = view === item.id;
     const count = navCountOf(item.id);
-    const Icon = item.icon;
     const alert = item.id === 'today' && badge > 0;
     return (
       <button
@@ -93,18 +92,18 @@ export default function People() {
         onClick={() => { setView(item.id); setOpenId(null); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'mb-1 flex w-full items-center gap-2.5 rounded-[11px] px-3 py-2.5 text-left text-[13.5px] transition-all',
+          'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
           active
-            ? 'bg-[hsl(var(--people-accent))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(var(--people-accent)/0.55)]'
-            : 'font-medium text-foreground/70 hover:bg-[hsl(var(--people-accent))]/8',
+            ? 'bg-[hsl(var(--people-accent))]/14 font-bold text-[hsl(15_55%_42%)]'
+            : 'font-medium text-foreground/72 hover:bg-[hsl(var(--people-accent))]/6',
         )}
       >
-        <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-muted-foreground/70')} />
+        <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{item.emoji}</span>
         <span className="flex-1">{item.label}</span>
         {alert ? (
-          <span className={cn('flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--people-accent))] text-white')}>{badge}</span>
+          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--people-accent))] px-1 text-[10px] font-bold tabular-nums text-white">{badge}</span>
         ) : count > 0 ? (
-          <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
+          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(15_55%_42%)]/80' : 'text-muted-foreground/55')}>{count}</span>
         ) : null}
       </button>
     );
@@ -113,26 +112,23 @@ export default function People() {
   return (
     <div className="people-theme flex h-dvh bg-background text-foreground">
       {/* ── 사이드바 — 방 내비 (클릭 시 활성 하이라이트, 데일리 로그와 동일 문법) ── */}
-      <aside className="hidden w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-        {/* 헤더 — 아이브로우 + 도구명(검정) + 사람 수 칩 (사이드바 표준 디자인) */}
-        <div className="px-5 pb-4 pt-5">
-          <div className="flex items-start justify-between gap-2.5">
+      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
+        {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (데일리 로그 기준) */}
+        <div className="px-4 pb-3 pt-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--people-accent))]/13 text-[24px] leading-none">🤝</span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">KEEP IN TOUCH</p>
-              <h1 className="mt-1 font-sans text-[21px] font-extrabold leading-none tracking-[-0.02em] text-foreground">인맥노트</h1>
-            </div>
-            <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-center shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.14)]">
-              <div className="bg-[hsl(var(--people-accent))] py-[3px] text-[9px] font-bold tracking-[0.08em] text-white">사람</div>
-              <div className="pb-1.5 pt-1 text-[20px] font-extrabold leading-none tabular-nums text-foreground">{persons.length}</div>
+              <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(15_55%_43%)]">인맥노트</h1>
+              <p className="text-[12.5px] leading-tight text-muted-foreground">곁의 사람을 챙기는 노트</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 pt-1" aria-label="인맥노트 섹션">
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
         </nav>
 
-        <div className="px-4 pb-4 pt-2">
+        <div className="px-3 pb-4 pt-2">
           <button
             type="button"
             onClick={() => { setOpenId(null); setEditor({ open: true, editing: null }); }}
@@ -157,7 +153,6 @@ export default function People() {
             </button>
             {NAV.map((item) => {
               const active = view === item.id;
-              const Icon = item.icon;
               return (
                 <button
                   key={item.id}
@@ -170,7 +165,7 @@ export default function People() {
                       : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground',
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" /> {item.label}
+                  <span aria-hidden className="text-[13px] leading-none">{item.emoji}</span> {item.label}
                   {item.id === 'today' && badge > 0 && <span className="rounded-full bg-[hsl(var(--people-accent))] px-1 text-[9.5px] font-bold text-[hsl(var(--people-accent-ink))]">{badge}</span>}
                 </button>
               );
