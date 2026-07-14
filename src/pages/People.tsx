@@ -94,7 +94,7 @@ export default function People() {
         className={cn(
           'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
           active
-            ? 'bg-[hsl(var(--people-accent))]/14 font-bold text-[hsl(15_55%_42%)]'
+            ? 'bg-[hsl(var(--people-accent))]/15 font-bold text-[hsl(var(--people-accent))]'
             : 'font-medium text-foreground/72 hover:bg-[hsl(var(--people-accent))]/6',
         )}
       >
@@ -103,7 +103,7 @@ export default function People() {
         {alert ? (
           <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--people-accent))] px-1 text-[10px] font-bold tabular-nums text-white">{badge}</span>
         ) : count > 0 ? (
-          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(15_55%_42%)]/80' : 'text-muted-foreground/55')}>{count}</span>
+          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--people-accent))]/75' : 'text-muted-foreground/55')}>{count}</span>
         ) : null}
       </button>
     );
