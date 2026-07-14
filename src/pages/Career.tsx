@@ -547,20 +547,8 @@ function BoardLedger() {
               </div>
             </div>
 
-            {/* 새 보드 CTA — 깊은 버밀리온 (상단) */}
-            <div className="px-3 pb-2">
-              <button
-                type="button"
-                onClick={() => setBoardDialogOpen(true)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(30_45%_48%/0.5)] transition-[filter] hover:brightness-[1.04]"
-                style={{ backgroundColor: 'hsl(30 44% 48%)' }}
-              >
-                <Plus className="h-3.5 w-3.5" /> 새 보드
-              </button>
-            </div>
-
-            {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
-            <p className="px-4 pb-1 pt-1 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
+            {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다). 추가는 목록 맨 아래 칸. */}
+            <p className="px-4 pb-1 pt-2.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
             <nav className="flex flex-col px-2.5 pt-0.5" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
@@ -605,6 +593,15 @@ function BoardLedger() {
                   </div>
                 );
               })}
+              {/* 새 보드 추가 칸 — 목록 맨 아래 (상단 CTA 대체) */}
+              <button
+                type="button"
+                onClick={() => setBoardDialogOpen(true)}
+                className="mt-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(33_48%_48%/0.07)] hover:text-[hsl(28_52%_38%)]"
+              >
+                <span aria-hidden className="flex w-[20px] shrink-0 items-center justify-center"><Plus className="h-4 w-4" /></span>
+                <span className="flex-1">새 보드</span>
+              </button>
             </nav>
 
             <p className="px-4 pb-1 pt-3.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
