@@ -232,21 +232,18 @@ const Notes = () => {
     <div className="paper-room flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
       <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
-        <div className="shrink-0 pl-4 pr-2 pt-4 pb-3 sm:pl-5">
-          <div className="flex items-center justify-between gap-2">
-            {/* 방 색은 레일 P 마크가 담당(그래파이트) — 이름은 기본 잉크색 유지(다크모드 안전).
-                font-sans로 전역 세리프(Newsreader) 규칙 무효화 + 자간 -0.02em로 다른 두 방과 통일.
-                제목 = 주어, 옆의 실데이터 = 서술어 (플래너의 기간·커리어의 인장과 같은 문법) — 노트는 권수. */}
-            <div className="flex min-w-0 flex-col">
-              <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">ALL IN ONE</p>
-              <div className="mt-1 flex min-w-0 items-baseline gap-1.5">
-                <h1 className="font-sans text-[21px] font-extrabold leading-none tracking-[-0.02em] text-foreground">올인원 노트</h1>
-                {notes.length > 0 && (
-                  <span className="shrink-0 text-[12.5px] font-bold tabular-nums text-muted-foreground/55">{notes.length}권</span>
-                )}
-              </div>
+        <div className="shrink-0 pl-4 pr-3 pt-4 pb-3 sm:pl-5">
+          {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방이라 그래파이트 톤 라이트 타일.
+              부제에 권수(실데이터)를 담아 "제목=주어, 실데이터=서술어" 문법 유지. font-sans로 전역 세리프 무효화. */}
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--hairline))] bg-[hsl(var(--foreground)/0.05)]">
+              <NotebookPen className="h-6 w-6 text-foreground/80" strokeWidth={1.8} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-sans text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">올인원 노트</h1>
+              <p className="truncate text-[12.5px] leading-tight text-muted-foreground">{notes.length > 0 ? `${notes.length}권 · 생각을 담는 한 권` : '생각을 담는 한 권'}</p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 onClick={handleNew}
