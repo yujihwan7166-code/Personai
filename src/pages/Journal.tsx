@@ -542,22 +542,9 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
-                  <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
-                </div>
-                <div className="flex gap-2">
-                  {([['🔥', streak, '연속 기록'], ['📅', monthCount, '이번 달']] as const).map(([emo, val, lbl]) => (
-                    <div key={lbl} className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-2 shadow-[0_2px_8px_-4px_hsl(25_30%_20%/0.12)]">
-                      <span className="text-[16px] leading-none">{emo}</span>
-                      <div>
-                        <div className="text-[15px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{val}</div>
-                        <div className="mt-0.5 text-[10px] text-[hsl(var(--cream-muted))]">{lbl}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="mb-6">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
+                <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
               </div>
             ) : (
               <div className="mb-6">
@@ -570,6 +557,8 @@ export default function Journal() {
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-6">
+              {/* 상단 2열 — 초록 히어로(기분 입력) + 통계 카드 (히어로가 옆으로 안 늘어지게) */}
+              <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
               {/* 초록 히어로 — 오늘 기분 빠른 입력 */}
               <div
                 className="relative overflow-hidden rounded-[24px] px-6 py-5 text-white shadow-[0_16px_36px_-20px_hsl(146_40%_25%/0.55)]"
@@ -604,6 +593,22 @@ export default function Journal() {
                     ))}
                   </div>
                 </div>
+              </div>
+              {/* 통계 카드 — 오른쪽 열 (연속 기록·이번 달) */}
+              <div className="flex flex-col justify-center gap-1 rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-5 shadow-[0_2px_10px_-6px_hsl(25_30%_20%/0.12)]">
+                {([['🔥', streak, '연속 기록', '일'], ['📅', monthCount, '이번 달', '개']] as const).map(([emo, val, lbl, unit], i) => (
+                  <div key={lbl} className={cn('flex items-center gap-3 py-2.5', i > 0 && 'border-t border-[hsl(var(--cream-line))]')}>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--cream-accent))]/10 text-[18px]">{emo}</span>
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-semibold text-[hsl(var(--cream-muted))]">{lbl}</div>
+                      <div className="mt-0.5 flex items-baseline gap-0.5">
+                        <span className="text-[22px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{val}</span>
+                        <span className="text-[12px] font-semibold text-[hsl(var(--cream-muted))]">{unit}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               </div>
 
               {/* 최근 기록 + 필터 */}
