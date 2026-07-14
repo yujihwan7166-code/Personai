@@ -237,11 +237,14 @@ const Notes = () => {
             {/* 방 색은 레일 P 마크가 담당(그래파이트) — 이름은 기본 잉크색 유지(다크모드 안전).
                 font-sans로 전역 세리프(Newsreader) 규칙 무효화 + 자간 -0.02em로 다른 두 방과 통일.
                 제목 = 주어, 옆의 실데이터 = 서술어 (플래너의 기간·커리어의 인장과 같은 문법) — 노트는 권수. */}
-            <div className="flex min-w-0 items-baseline gap-1.5">
-              <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-foreground">올인원 노트</h1>
-              {notes.length > 0 && (
-                <span className="shrink-0 text-[13px] font-bold tabular-nums text-muted-foreground/55">{notes.length}권</span>
-              )}
+            <div className="flex min-w-0 flex-col">
+              <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">ALL IN ONE</p>
+              <div className="mt-1 flex min-w-0 items-baseline gap-1.5">
+                <h1 className="font-sans text-[21px] font-extrabold leading-none tracking-[-0.02em] text-foreground">올인원 노트</h1>
+                {notes.length > 0 && (
+                  <span className="shrink-0 text-[12.5px] font-bold tabular-nums text-muted-foreground/55">{notes.length}권</span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button
