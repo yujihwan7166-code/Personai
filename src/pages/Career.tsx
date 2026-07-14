@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, FileDown, FileText, FolderOpen, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -561,7 +561,7 @@ function BoardLedger() {
                           : 'font-medium text-foreground/70 hover:bg-[hsl(var(--career-red)/0.08)]',
                       )}
                     >
-                      <FolderOpen className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-muted-foreground/70')} />
+                      <ClipboardList className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-muted-foreground/70')} />
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
                         <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
