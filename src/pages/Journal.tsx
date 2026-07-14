@@ -468,12 +468,13 @@ export default function Journal() {
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
-            <span
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-white shadow-[0_5px_12px_-4px_hsl(146_26%_47%/0.5)]"
-              style={{ background: 'linear-gradient(150deg, hsl(146 27% 51%), hsl(146 26% 44%))' }}
-            >
-              <NotebookPen className="h-[24px] w-[24px]" strokeWidth={2} />
-            </span>
+            {/* 마크 — '오늘 고리': 하루가 한 바퀴 도는 활동링 + 오늘 점 (연속 기록 상징) */}
+            <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label="데일리 로그">
+              <rect x="0.5" y="0.5" width="47" height="47" rx="14.5" fill="hsl(146 22% 93%)" stroke="hsl(146 20% 83%)" strokeWidth="1" />
+              <circle cx="24" cy="24" r="10.5" fill="none" stroke="hsl(146 22% 76%)" strokeWidth="3.4" />
+              <path d="M24 13.5 a10.5 10.5 0 0 1 9 5.2" fill="none" stroke="hsl(146 28% 39%)" strokeWidth="3.4" strokeLinecap="round" />
+              <circle cx="24" cy="13.5" r="3.6" fill="hsl(146 34% 31%)" />
+            </svg>
             <div className="min-w-0">
               <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리 로그</h1>
               <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루를 담는 기록실</p>
