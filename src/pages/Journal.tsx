@@ -114,7 +114,7 @@ const dateKey = (d: Date) =>
 
 type Tab = 'write' | 'calendar' | 'trips' | 'map' | 'food' | 'stats' | 'flashback' | 'storage';
 
-/** 방 사이드바 내비 — Diary Room 문법 (섹션이 곧 메뉴). */
+/** 방 사이드바 내비 — 섹션이 곧 메뉴 (컨셉 v2 디자인 적용, 그룹 구성은 유지). */
 const NAV_MAIN: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'write',    label: '데일리 로그', icon: NotebookPen },
   { id: 'calendar', label: '캘린더',      icon: CalendarDays },
@@ -438,6 +438,33 @@ export default function Journal() {
     return 0;
   };
 
+  /** 사이드바 내비 행 — 아이콘 + 라벨 + 배지, 활성 = 세이지 틴트 + 인셋 링 (컨셉 v2). */
+  const renderNavRow = (item: { id: Tab; label: string; icon: LucideIcon }) => {
+    const active = tab === item.id;
+    const count = navCountOf(item.id);
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => { setTab(item.id); setDetailOpen(false); }}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'mb-0.5 flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left text-[13.5px] transition-colors',
+          active
+            ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-ink))] ring-1 ring-inset ring-[hsl(var(--cream-accent))]/25'
+            : 'font-medium text-[hsl(var(--cream-ink))]/70 hover:bg-[hsl(var(--cream-accent))]/8',
+        )}
+      >
+        <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/70')} />
+        <span className="flex-1">{item.label}</span>
+        {count > 0 && (
+          <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-[hsl(var(--cream-accent))]/20 text-[hsl(var(--cream-accent))]' : 'bg-[hsl(var(--cream-line))]/50 text-[hsl(var(--cream-muted))]')}>{count}</span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div
       style={{
@@ -446,76 +473,57 @@ export default function Journal() {
       }}
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
     >
-      {/* ── 사이드바 — 방 내비 (Diary Room 문법: 섹션이 곧 메뉴). 모바일은 상단 가로 내비로 대체 ── */}
-      <aside className="hidden w-[236px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 마스트헤드 — 워크스페이스 공통 캐논: 도구명 27px 볼드 + 방 색 틴트 (플래너·노트와 동일 공식).
-         * 부제·아이브로우 없음. 시그니처는 오늘 날짜 스탬프 하나 — 커리어 방 인장과 짝. */}
-        <div className="relative border-b border-[hsl(var(--cream-line))] px-5 pb-3.5 pt-4">
-          <h1 className="font-sans text-[27px] font-bold leading-none tracking-[-0.02em] text-[hsl(var(--cream-accent))]">데일리 로그</h1>
-          {/* 일력(日曆) 한 장 — "하루 한 장" 컨셉의 실물화: 세이지 월 밴드 + 큰 날짜 + 요일 */}
-          {(() => {
-            const d = new Date();
-            return (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute right-4 top-1.5 w-[52px] rotate-[3deg] overflow-hidden rounded-[10px] border border-[hsl(var(--cream-line))] bg-white shadow-[0_5px_14px_-6px_hsl(25_30%_20%/0.42)]"
-              >
-                <div className="bg-[hsl(var(--cream-accent))] py-1 text-center text-[9px] font-bold tracking-[0.14em] text-white">{d.getMonth() + 1}월</div>
-                <div className="px-1 pb-1.5 pt-1 text-center">
-                  <span className="block text-[21px] font-extrabold leading-tight tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</span>
-                  <span className="block text-[9px] font-semibold text-[hsl(var(--cream-muted))]">{WEEKDAY[d.getDay()]}요일</span>
+      {/* ── 사이드바 — 컨셉 v2 (헤더+날짜칩 · 검색 · 기록/탐색 그룹 · 쓰기 CTA · 푸터). 모바일은 상단 가로 내비 ── */}
+      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
+        {/* 헤더 — 아이브로우 + 도구명 + 부제 + 오늘 날짜 칩 */}
+        <div className="px-5 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">ONE PAGE A DAY</p>
+              <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
+              <p className="mt-1 text-[12px] text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
+            </div>
+            {(() => {
+              const d = new Date();
+              return (
+                <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--cream-line))] bg-white text-center shadow-[0_2px_6px_-2px_hsl(25_30%_20%/0.16)]">
+                  <div className="bg-[hsl(var(--cream-accent))] py-[3px] text-[9px] font-bold tracking-[0.04em] text-white">{d.getMonth() + 1}월 · {WEEKDAY[d.getDay()]}</div>
+                  <div className="pb-1.5 pt-1 text-[20px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
+          </div>
         </div>
 
-        {/* 섹션 내비 — 아이콘 대신 활성 세로 바 + 우측 실데이터 숫자
-         * (바로 옆 레일이 이미 아이콘 열이라 아이콘 겹침 방지, 아이콘은 모바일 칩에서만) */}
-        <nav className="flex flex-col gap-0.5 px-3 pt-3" aria-label="데일리로그 섹션">
-          {NAV_MAIN.map((item) => {
-            const active = tab === item.id;
-            const count = navCountOf(item.id);
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => { setTab(item.id); setDetailOpen(false); }}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
-                  active
-                    ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
-                    : 'font-medium text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-accent))]/10 hover:text-[hsl(var(--cream-accent))]',
-                )}
-              >
-                {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}
-                <span className="flex-1">{item.label}</span>
-                {count > 0 && (
-                  <span className={cn('text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-accent))]/80' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
-                )}
-              </button>
-            );
-          })}
+        {/* 검색 */}
+        <div className="px-4 pb-3">
+          <label className="flex h-[38px] items-center gap-2 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/50">
+            <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]/70" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[hsl(var(--cream-muted))]/70" />
+          </label>
+        </div>
+
+        {/* 내비 — 섹션 목록 (아이콘 + 배지, 활성 = 세이지 틴트 + 인셋 링) */}
+        <nav className="flex-1 overflow-y-auto px-3 pb-2 pt-1" aria-label="데일리로그 섹션">
+          {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
 
-        {/* 글쓰기 CTA — 어느 섹션에서든 오늘 페이지로 */}
-        <div className="px-4 pt-5">
+        {/* 쓰기 CTA — 다크 그라데이션 */}
+        <div className="px-4 pb-3">
           <button
             type="button"
             onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-[hsl(var(--cream-dark))] py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(30_12%_16%/0.7)] transition-opacity hover:opacity-90"
+            className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-[hsl(var(--cream-dark))] py-3 text-[13.5px] font-bold text-white shadow-[0_8px_18px_-8px_hsl(30_12%_16%/0.75)] transition-[filter] hover:brightness-[1.12]"
           >
-            <Pencil className="h-3.5 w-3.5" /> 글쓰기
+            <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
           </button>
         </div>
 
-        <div className="flex-1" />
-
-        {/* 하단 유틸 — 플래시백 · 보관함 (텍스트만, 아이콘은 모바일 칩에서만) */}
-        <nav className="border-t border-[hsl(var(--cream-line))] px-3 py-3" aria-label="데일리로그 유틸">
+        {/* 푸터 — 플래시백 · 보관함 */}
+        <nav className="border-t border-[hsl(var(--cream-line))] px-3 py-2.5" aria-label="데일리로그 유틸">
           {NAV_BOTTOM.map((item) => {
             const active = tab === item.id;
+            const Icon = item.icon;
             return (
               <button
                 key={item.id}
@@ -523,13 +531,13 @@ export default function Journal() {
                 onClick={() => { setTab(item.id); setDetailOpen(false); }}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative block w-full rounded-xl py-2 pl-4 pr-3 text-left text-[12.5px] transition-colors',
+                  'flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[12.5px] transition-colors',
                   active
-                    ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
-                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-accent))]/10 hover:text-[hsl(var(--cream-accent))]',
+                    ? 'font-bold text-[hsl(var(--cream-accent))]'
+                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-accent))]/8 hover:text-[hsl(var(--cream-ink))]',
                 )}
               >
-                {active && <span aria-hidden className="absolute left-1 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--cream-accent))]" />}
+                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/70')} />
                 {item.label}
               </button>
             );
