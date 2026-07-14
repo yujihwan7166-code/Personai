@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ClipboardList, Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -62,6 +62,15 @@ const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: st
   { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
   { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '14 70% 54%' },
 ];
+
+/** 문서 종류별 이모지 — 사이드바 내비 (사진 스타일). */
+const DOC_EMOJI: Record<ComposePurpose, string> = {
+  '이력서': '📄',
+  '자기소개서 초안': '✍️',
+  '포트폴리오 요약': '🎨',
+  '경력기술서': '📑',
+  '커버레터': '💌',
+};
 
 /** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
 const SECTION_PREVIEW = 5;
@@ -527,23 +536,37 @@ function BoardLedger() {
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
           <aside className="hidden w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-            {/* 헤더 — 아이브로우 + 도구명 + 부제 + 스펙 수 칩 (사이드바 표준 디자인) */}
-            <div className="px-5 pb-4 pt-5">
-              <div className="flex items-start justify-between gap-2.5">
+            {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (사진 스타일) */}
+            <div className="px-4 pb-3 pt-4">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-3px_hsl(var(--career-red)/0.55)]"
+                  style={{ background: 'linear-gradient(150deg, hsl(6 66% 55%), hsl(6 70% 45%))' }}
+                >
+                  <ClipboardList className="h-[22px] w-[22px]" strokeWidth={2} />
+                </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">CAREER DESK</p>
-                  <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-foreground">마이 커리어</h1>
-                </div>
-                <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-center shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.14)]">
-                  <div className="bg-[hsl(var(--career-red))] py-[3px] text-[9px] font-bold tracking-[0.08em] text-white">스펙</div>
-                  <div className="pb-1.5 pt-1 text-[20px] font-extrabold leading-none tabular-nums text-foreground">{Object.values(boardCounts).reduce((a, b) => a + b, 0)}</div>
+                  <h1 className="text-[20px] font-extrabold leading-tight tracking-[-0.02em] text-foreground">마이 커리어</h1>
+                  <p className="text-[12px] leading-tight text-muted-foreground">이룬 것을 쌓는 원고</p>
                 </div>
               </div>
             </div>
 
+            {/* 새 보드 CTA — 깊은 버밀리온 (상단) */}
+            <div className="px-3 pb-2">
+              <button
+                type="button"
+                onClick={() => setBoardDialogOpen(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-8px_hsl(6_58%_46%/0.5)] transition-[filter] hover:brightness-[1.05]"
+                style={{ backgroundColor: 'hsl(6 55% 50%)' }}
+              >
+                <Plus className="h-3.5 w-3.5" /> 새 보드
+              </button>
+            </div>
+
             {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
-            <p className="px-5 pb-1.5 pt-1 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
-            <nav className="flex flex-col gap-1 px-3" aria-label="스펙 보드 목록">
+            <p className="px-4 pb-1 pt-1 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
+            <nav className="flex flex-col gap-0.5 px-2.5" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
                 const count = boardCounts[b.id] ?? 0;
@@ -554,16 +577,16 @@ function BoardLedger() {
                       onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'flex w-full items-center gap-2.5 rounded-[11px] py-2.5 pl-3 pr-3 text-left text-[13.5px] transition-all',
+                        'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
                         active
-                          ? 'bg-[hsl(var(--career-red))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(var(--career-red)/0.55)]'
-                          : 'font-medium text-foreground/70 hover:bg-[hsl(var(--career-red)/0.08)]',
+                          ? 'bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]'
+                          : 'font-medium text-foreground/72 hover:bg-[hsl(var(--career-red)/0.06)]',
                       )}
                     >
-                      <ClipboardList className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-muted-foreground/70')} />
+                      <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">📋</span>
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
+                        <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/55')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -579,10 +602,7 @@ function BoardLedger() {
                           }
                         }}
                         aria-label={`${b.name} 보드 삭제`}
-                        className={cn(
-                          'absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/bd:opacity-100',
-                          active ? 'text-white/70 hover:text-white' : 'text-muted-foreground/45 hover:text-rose-500',
-                        )}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground/45 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -590,18 +610,11 @@ function BoardLedger() {
                   </div>
                 );
               })}
-              <button
-                type="button"
-                onClick={() => setBoardDialogOpen(true)}
-                className="mt-0.5 flex items-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] px-4 py-2 text-left text-[12px] text-muted-foreground transition-colors hover:border-[hsl(var(--career-red)/0.45)] hover:text-[hsl(var(--career-red))]"
-              >
-                <Plus className="h-3 w-3" /> 새 보드
-              </button>
             </nav>
 
-            <p className="px-5 pb-1.5 pt-4 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
-            <nav className="flex flex-col gap-1 px-3 pb-4" aria-label="문서 종류">
-              {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
+            <p className="px-4 pb-1 pt-3.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
+            <nav className="flex flex-col gap-0.5 px-2.5 pb-4" aria-label="문서 종류">
+              {COMPOSE_PURPOSES.map(({ purpose, label }) => {
                 const active = view === purpose;
                 const count = docs.filter((d) => d.purpose === purpose).length;
                 return (
@@ -611,16 +624,16 @@ function BoardLedger() {
                     onClick={() => setView(purpose)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-[11px] py-2.5 pl-3 pr-3 text-left text-[13.5px] transition-all',
+                      'flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
                       active
-                        ? 'bg-[hsl(var(--career-red))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(var(--career-red)/0.55)]'
-                        : 'font-medium text-foreground/70 hover:bg-[hsl(var(--career-red)/0.08)]',
+                        ? 'bg-[hsl(var(--career-red)/0.12)] font-bold text-[hsl(var(--career-red))]'
+                        : 'font-medium text-foreground/72 hover:bg-[hsl(var(--career-red)/0.06)]',
                     )}
                   >
-                    <FileText className="h-[18px] w-[18px] shrink-0" style={{ color: active ? '#fff' : `hsl(${hsl})` }} />
+                    <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{DOC_EMOJI[purpose]}</span>
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
+                      <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/55')}>{count}</span>
                     )}
                   </button>
                 );
