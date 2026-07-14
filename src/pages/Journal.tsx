@@ -464,14 +464,14 @@ export default function Journal() {
         className={cn(
           'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
           active
-            ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-ink))]'
+            ? 'bg-[hsl(var(--cream-accent))]/15 font-bold text-[hsl(var(--cream-accent))]'
             : 'font-medium text-[hsl(var(--cream-ink))]/72 hover:bg-[hsl(var(--cream-accent))]/6',
         )}
       >
         <Icon className="h-[18px] w-[18px] shrink-0" style={{ color: NAV_COLOR[item.id] }} strokeWidth={2} />
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
-          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-ink))]/65' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
+          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-accent))]/75' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
         )}
       </button>
     );
@@ -489,16 +489,16 @@ export default function Journal() {
       <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
         <div className="px-4 pb-3 pt-4">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] text-white shadow-[0_4px_10px_-3px_hsl(146_27%_39%/0.6)]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-3px_hsl(146_27%_39%/0.6)]"
               style={{ background: 'linear-gradient(150deg, hsl(146 30% 46%), hsl(146 27% 35%))' }}
             >
-              <NotebookPen className="h-[18px] w-[18px]" strokeWidth={2} />
+              <NotebookPen className="h-[22px] w-[22px]" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h1 className="text-[17px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
-              <p className="text-[11.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
+              <h1 className="text-[20px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
+              <p className="text-[12px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
             </div>
           </div>
         </div>
@@ -508,7 +508,8 @@ export default function Journal() {
           <button
             type="button"
             onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-[hsl(var(--cream-accent))] py-3 text-[13.5px] font-bold text-white shadow-[0_8px_18px_-8px_hsl(146_27%_39%/0.6)] transition-[filter] hover:brightness-[1.06]"
+            className="flex w-full items-center justify-center gap-2 rounded-[13px] py-3 text-[13.5px] font-bold text-white shadow-[0_8px_18px_-9px_hsl(146_30%_50%/0.5)] transition-[filter] hover:brightness-[1.04]"
+            style={{ backgroundColor: 'hsl(146 30% 52%)' }}
           >
             <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
           </button>
