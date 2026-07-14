@@ -450,16 +450,24 @@ export default function Journal() {
         onClick={() => { setTab(item.id); setDetailOpen(false); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'mb-0.5 flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left text-[13.5px] transition-colors',
+          'mb-1 flex w-full items-center gap-2.5 rounded-[12px] py-2 pl-2 pr-2.5 text-left text-[13.5px] transition-all',
           active
-            ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-ink))] ring-1 ring-inset ring-[hsl(var(--cream-accent))]/25'
+            ? 'bg-[hsl(var(--cream-card))] font-bold text-[hsl(var(--cream-ink))] shadow-[0_6px_16px_-7px_hsl(146_27%_39%/0.42),0_1px_2px_hsl(30_12%_16%/0.05)]'
             : 'font-medium text-[hsl(var(--cream-ink))]/70 hover:bg-[hsl(var(--cream-accent))]/8',
         )}
       >
-        <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/70')} />
+        {/* 아이콘 타일 — 활성 시 세이지 채움으로 강조 */}
+        <span
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-colors',
+            active ? 'bg-[hsl(var(--cream-accent))] text-white shadow-[0_3px_8px_-3px_hsl(146_27%_39%/0.6)]' : 'text-[hsl(var(--cream-muted))]/75',
+          )}
+        >
+          <Icon className="h-[17px] w-[17px]" />
+        </span>
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
-          <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-[hsl(var(--cream-accent))]/20 text-[hsl(var(--cream-accent))]' : 'bg-[hsl(var(--cream-line))]/50 text-[hsl(var(--cream-muted))]')}>{count}</span>
+          <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-[hsl(var(--cream-accent))]/16 text-[hsl(var(--cream-accent))]' : 'bg-[hsl(var(--cream-line))]/50 text-[hsl(var(--cream-muted))]')}>{count}</span>
         )}
       </button>
     );
