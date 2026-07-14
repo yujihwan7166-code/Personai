@@ -535,12 +535,15 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
+          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
             {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (사진 스타일) */}
             <div className="px-4 pb-3 pt-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(33_48%_50%/0.13)] text-[23px] leading-none">💼</span>
-                <h1 className="min-w-0 text-[20px] font-extrabold leading-none tracking-[-0.02em] text-foreground">마이 커리어</h1>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[hsl(33_48%_50%/0.13)] text-[24px] leading-none">💼</span>
+                <div className="min-w-0">
+                  <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">마이 커리어</h1>
+                  <p className="text-[12.5px] leading-tight text-muted-foreground">나의 커리어를 담는 작업실</p>
+                </div>
               </div>
             </div>
 
@@ -558,7 +561,7 @@ function BoardLedger() {
 
             {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
             <p className="px-4 pb-1 pt-1 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
-            <nav className="flex flex-col gap-0.5 px-2.5" aria-label="스펙 보드 목록">
+            <nav className="flex flex-col px-2.5 pt-0.5" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
                 const count = boardCounts[b.id] ?? 0;
@@ -605,7 +608,7 @@ function BoardLedger() {
             </nav>
 
             <p className="px-4 pb-1 pt-3.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
-            <nav className="flex flex-col gap-0.5 px-2.5 pb-4" aria-label="문서 종류">
+            <nav className="flex flex-col px-2.5 pb-4" aria-label="문서 종류">
               {COMPOSE_PURPOSES.map(({ purpose, label }) => {
                 const active = view === purpose;
                 const count = docs.filter((d) => d.purpose === purpose).length;
