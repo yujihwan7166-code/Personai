@@ -557,28 +557,21 @@ export default function Journal() {
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-6">
-              {/* 상단 2열 — 초록 히어로(기분 입력) + 통계 카드 (히어로가 옆으로 안 늘어지게) */}
-              <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
-              {/* 초록 히어로 — 오늘 기분 빠른 입력 */}
+              {/* 초록 히어로 — 오늘 기분 빠른 입력 (제목 좌 · 무드 우, 폭 채운 슬림 바) */}
               <div
                 className="relative overflow-hidden rounded-[24px] px-6 py-5 text-white shadow-[0_16px_36px_-20px_hsl(146_40%_25%/0.55)]"
                 style={{ background: 'linear-gradient(135deg, hsl(146 30% 46%), hsl(146 26% 37%))' }}
               >
                 <span aria-hidden className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/[0.07]" />
                 <span aria-hidden className="absolute -bottom-16 right-16 h-40 w-40 rounded-full bg-white/[0.05]" />
-                <p className="relative flex items-center gap-1.5 text-[12px] font-semibold text-white/80">
-                  {hasTodayEntry ? <><Check className="h-3.5 w-3.5" /> 오늘 기록 완료 · {streak}일째</> : '오늘은 아직 비어 있어요'}
-                </p>
-                <p className="relative mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '오늘도 한 줄 남겼네요' : '오늘 하루는 어땠나요?'}</p>
-                <div className="relative mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={goWriteToday}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-bold text-[hsl(146_28%_34%)] shadow-sm transition-[filter] hover:brightness-95"
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> {hasTodayEntry ? '이어서 쓰기' : '기록 시작하기'}
-                  </button>
-                  <div className="flex gap-1.5">
+                <div className="relative flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 text-[12px] font-semibold text-white/80">
+                      {hasTodayEntry ? <><Check className="h-3.5 w-3.5" /> 오늘 기록 완료 · {streak}일째</> : '오늘은 아직 비어 있어요'}
+                    </p>
+                    <p className="mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '오늘도 한 줄 남겼네요' : '오늘 하루는 어땠나요?'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     {MOODS.map((m) => (
                       <button
                         key={m.key}
@@ -586,29 +579,13 @@ export default function Journal() {
                         onClick={() => startWithMood(m.key)}
                         aria-label={m.label}
                         title={m.label}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-[18px] transition-colors hover:bg-white/25"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-[20px] transition-colors hover:bg-white/25"
                       >
                         {m.emoji}
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-              {/* 통계 카드 — 오른쪽 열 (연속 기록·이번 달) */}
-              <div className="flex flex-col justify-center gap-1 rounded-[24px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-5 shadow-[0_2px_10px_-6px_hsl(25_30%_20%/0.12)]">
-                {([['🔥', streak, '연속 기록', '일'], ['📅', monthCount, '이번 달', '개']] as const).map(([emo, val, lbl, unit], i) => (
-                  <div key={lbl} className={cn('flex items-center gap-3 py-2.5', i > 0 && 'border-t border-[hsl(var(--cream-line))]')}>
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--cream-accent))]/10 text-[18px]">{emo}</span>
-                    <div className="min-w-0">
-                      <div className="text-[11px] font-semibold text-[hsl(var(--cream-muted))]">{lbl}</div>
-                      <div className="mt-0.5 flex items-baseline gap-0.5">
-                        <span className="text-[22px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{val}</span>
-                        <span className="text-[12px] font-semibold text-[hsl(var(--cream-muted))]">{unit}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
               </div>
 
               {/* 최근 기록 + 필터 */}
