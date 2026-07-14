@@ -540,8 +540,8 @@ function BoardLedger() {
             <div className="px-4 pb-3 pt-4">
               <div className="flex items-center gap-3">
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-3px_hsl(var(--career-red)/0.55)]"
-                  style={{ background: 'linear-gradient(150deg, hsl(6 66% 55%), hsl(6 70% 45%))' }}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_5px_12px_-4px_hsl(6_55%_55%/0.5)]"
+                  style={{ background: 'linear-gradient(150deg, hsl(6 58% 64%), hsl(6 58% 55%))' }}
                 >
                   <ClipboardList className="h-[22px] w-[22px]" strokeWidth={2} />
                 </span>
@@ -557,8 +557,8 @@ function BoardLedger() {
               <button
                 type="button"
                 onClick={() => setBoardDialogOpen(true)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-8px_hsl(6_58%_46%/0.5)] transition-[filter] hover:brightness-[1.05]"
-                style={{ backgroundColor: 'hsl(6 55% 50%)' }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(6_50%_55%/0.5)] transition-[filter] hover:brightness-[1.04]"
+                style={{ backgroundColor: 'hsl(6 50% 58%)' }}
               >
                 <Plus className="h-3.5 w-3.5" /> 새 보드
               </button>
