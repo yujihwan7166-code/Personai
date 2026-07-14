@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileDown, FileText, FolderOpen, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -168,29 +168,6 @@ function LedgerFrame({ children }: { children: ReactNode }) {
     <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_16px_40px_-24px_hsl(var(--foreground)/0.25)] sm:px-9 sm:py-8">
       {children}
     </div>
-  );
-}
-
-/** 장식용 낙관(도장) — 의미 없는 순수 장식. 마스트헤드 제목 옆 여백을 채운다.
- * 각진 이중 프레임 + 중앙 십자·점. 단정한 새김 도장. 글자·날짜 없음. */
-function DecoSeal({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 44 44"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      className={cn(
-        'pointer-events-none h-[34px] w-[34px] -rotate-[6deg] text-[hsl(var(--career-red)/0.5)] mix-blend-multiply dark:mix-blend-normal',
-        className,
-      )}
-    >
-      <rect x="3.5" y="3.5" width="37" height="37" rx="8.5" strokeWidth="1.7" />
-      <rect x="9" y="9" width="26" height="26" rx="5" strokeWidth="0.8" />
-      <path d="M22 16.5 L22 27.5 M16.5 22 L27.5 22" strokeWidth="1.2" />
-      <circle cx="22" cy="22" r="1.4" fill="currentColor" stroke="none" />
-    </svg>
   );
 }
 
@@ -549,16 +526,25 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-            {/* 마스트헤드 — 도구명 + 장식 낙관(의미 없음, 오른쪽 여백 채움). */}
-            <div className="flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] px-5 pb-4 pt-4">
-              <h1 className="text-[27px] font-bold leading-tight tracking-tight text-[hsl(var(--career-red))]">마이 커리어</h1>
-              <DecoSeal className="shrink-0" />
+          <aside className="hidden w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
+            {/* 헤더 — 아이브로우 + 도구명 + 부제 + 스펙 수 칩 (사이드바 표준 디자인) */}
+            <div className="px-5 pb-4 pt-5">
+              <div className="flex items-start justify-between gap-2.5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">CAREER DESK</p>
+                  <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--career-red))]">마이 커리어</h1>
+                  <p className="mt-1 text-[12px] text-muted-foreground">이룬 것을 쌓는 원고</p>
+                </div>
+                <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-center shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.14)]">
+                  <div className="bg-[hsl(var(--career-red))] py-[3px] text-[9px] font-bold tracking-[0.08em] text-white">스펙</div>
+                  <div className="pb-1.5 pt-1 text-[20px] font-extrabold leading-none tabular-nums text-foreground">{Object.values(boardCounts).reduce((a, b) => a + b, 0)}</div>
+                </div>
+              </div>
             </div>
 
             {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다) */}
-            <p className="px-5 pb-1 pt-3 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
-            <nav className="flex flex-col gap-0.5 px-3" aria-label="스펙 보드 목록">
+            <p className="px-5 pb-1.5 pt-1 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
+            <nav className="flex flex-col gap-1 px-3" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
                 const count = boardCounts[b.id] ?? 0;
@@ -569,16 +555,16 @@ function BoardLedger() {
                       onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'relative flex w-full items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
+                        'flex w-full items-center gap-2.5 rounded-[11px] py-2.5 pl-3 pr-3 text-left text-[13.5px] transition-all',
                         active
-                          ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
-                          : 'font-medium text-foreground/75 hover:bg-[hsl(var(--career-red)/0.07)] hover:text-[hsl(var(--career-red))]',
+                          ? 'bg-[hsl(var(--career-red))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(var(--career-red)/0.55)]'
+                          : 'font-medium text-foreground/70 hover:bg-[hsl(var(--career-red)/0.08)]',
                       )}
                     >
-                      {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
+                      <FolderOpen className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-muted-foreground/70')} />
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('career-mono text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{count}</span>
+                        <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -594,7 +580,10 @@ function BoardLedger() {
                           }
                         }}
                         aria-label={`${b.name} 보드 삭제`}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground/45 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
+                        className={cn(
+                          'absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover/bd:opacity-100',
+                          active ? 'text-white/70 hover:text-white' : 'text-muted-foreground/45 hover:text-rose-500',
+                        )}
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -611,8 +600,8 @@ function BoardLedger() {
               </button>
             </nav>
 
-            <p className="px-5 pb-1 pt-4 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
-            <nav className="flex flex-col gap-0.5 px-3" aria-label="문서 종류">
+            <p className="px-5 pb-1.5 pt-4 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
+            <nav className="flex flex-col gap-1 px-3 pb-4" aria-label="문서 종류">
               {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
                 const active = view === purpose;
                 const count = docs.filter((d) => d.purpose === purpose).length;
@@ -623,17 +612,16 @@ function BoardLedger() {
                     onClick={() => setView(purpose)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative flex items-center gap-2 rounded-xl py-2.5 pl-4 pr-3 text-left text-[13px] transition-colors',
+                      'flex items-center gap-2.5 rounded-[11px] py-2.5 pl-3 pr-3 text-left text-[13.5px] transition-all',
                       active
-                        ? 'bg-[hsl(var(--career-red)/0.1)] font-bold text-[hsl(var(--career-red))]'
-                        : 'font-medium text-foreground/75 hover:bg-[hsl(var(--career-red)/0.07)] hover:text-[hsl(var(--career-red))]',
+                        ? 'bg-[hsl(var(--career-red))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(var(--career-red)/0.55)]'
+                        : 'font-medium text-foreground/70 hover:bg-[hsl(var(--career-red)/0.08)]',
                     )}
                   >
-                    {active && <span aria-hidden className="absolute left-1 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[hsl(var(--career-red))]" />}
-                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: `hsl(${hsl})` }} />
+                    <FileText className="h-[18px] w-[18px] shrink-0" style={{ color: active ? '#fff' : `hsl(${hsl})` }} />
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('career-mono text-[11px] tabular-nums', active ? 'font-bold text-[hsl(var(--career-red)/0.8)]' : 'text-muted-foreground/55')}>{count}</span>
+                      <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--hairline))]/60 text-muted-foreground')}>{count}</span>
                     )}
                   </button>
                 );
