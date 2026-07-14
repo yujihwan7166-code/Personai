@@ -128,16 +128,16 @@ const NAV_BOTTOM: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'storage',   label: '보관함',   icon: Archive },
 ];
 
-/** 내비 항목별 아이콘 색 — 참고 사이드바의 컬러 아이콘 (훑기 좋게). */
-const NAV_COLOR: Record<Tab, string> = {
-  write:     'hsl(146 30% 42%)', // 세이지
-  calendar:  'hsl(210 55% 52%)', // 블루
-  trips:     'hsl(340 55% 60%)', // 로즈
-  map:       'hsl(183 45% 40%)', // 틸
-  food:      'hsl(30 75% 50%)',  // 앰버
-  stats:     'hsl(262 45% 58%)', // 바이올렛
-  flashback: 'hsl(25 45% 50%)',  // 브라운
-  storage:   'hsl(30 8% 48%)',   // 그레이
+/** 내비 항목별 이모지 — 참고 사이드바의 컬러 아이콘 대신 이모티콘으로. */
+const NAV_EMOJI: Record<Tab, string> = {
+  write:     '📓',
+  calendar:  '📅',
+  trips:     '✈️',
+  map:       '🗺️',
+  food:      '🍜',
+  stats:     '📊',
+  flashback: '⏳',
+  storage:   '📦',
 };
 
 /** 섹션 머리 — 영문 아이브로우 + 제목 (Diary Room 문법). */
@@ -454,7 +454,6 @@ export default function Journal() {
   const renderNavRow = (item: { id: Tab; label: string; icon: LucideIcon }) => {
     const active = tab === item.id;
     const count = navCountOf(item.id);
-    const Icon = item.icon;
     return (
       <button
         key={item.id}
@@ -468,7 +467,7 @@ export default function Journal() {
             : 'font-medium text-[hsl(var(--cream-ink))]/72 hover:bg-[hsl(var(--cream-accent))]/6',
         )}
       >
-        <Icon className="h-[18px] w-[18px] shrink-0" style={{ color: NAV_COLOR[item.id] }} strokeWidth={2} />
+        <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{NAV_EMOJI[item.id]}</span>
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
           <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-accent))]/75' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
