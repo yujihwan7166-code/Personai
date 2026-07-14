@@ -1,0 +1,370 @@
+/**
+ * 아카이브 — 내 보관소 방 (/archive).
+ * 좌: 컬렉션(=양식) 사이드바 · 우: 마스트헤드 + 형태칩 + 통합검색 + masonry/타임라인.
+ * 저장 UX: 양식 골라 필드 채우기 (AI 채우기 선택). 검색: 키워드 + AI 시맨틱.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Archive as ArchiveIcon, Plus, Home, Star, Search, Sparkles, Loader2, X,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
+import { KIND_LABEL, type ArchiveItem, type ArchiveKind } from '@/types/archive';
+import { archiveStore } from '@/services/archiveStore';
+import { useArchive } from '@/hooks/useArchive';
+import { tokenMatchAll } from '@/lib/textSearch';
+import { aiSemanticSearch } from '@/lib/archive/ai';
+import { ArchiveCard } from '@/components/archive/ArchiveCard';
+import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
+import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
+
+type ViewKey = 'all' | 'starred' | string; // string = collectionId
+const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
+
+function searchable(it: ArchiveItem): string {
+  return [it.title, it.note, it.domain, it.fileName, it.tags.join(' '), it.fields?.map((f) => f.value).join(' ')]
+    .filter(Boolean).join(' ');
+}
+
+export default function Archive() {
+  const { items, collections } = useArchive();
+
+  const [view, setView] = useState<ViewKey>('all');
+  const [kind, setKind] = useState<ArchiveKind | null>(null);
+  const [mode, setMode] = useState<'list' | 'timeline'>('list');
+  const [query, setQuery] = useState('');
+  const [aiResults, setAiResults] = useState<ArchiveItem[] | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
+  // 삭제된 항목이 선택돼 있으면 닫기
+  useEffect(() => {
+    if (selectedId && !items.some((i) => i.id === selectedId)) setSelectedId(null);
+  }, [items, selectedId]);
+
+  // 컬렉션별 개수
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of items) m.set(it.collectionId, (m.get(it.collectionId) ?? 0) + 1);
+    return m;
+  }, [items]);
+
+  const starredCount = useMemo(() => items.filter((i) => i.starred).length, [items]);
+  const monthCount = useMemo(() => {
+    const ym = new Date().toISOString().slice(0, 7);
+    return items.filter((i) => i.createdAt.startsWith(ym)).length;
+  }, [items]);
+
+  // 컬렉션/별표 + 형태 필터
+  const scoped = useMemo(() => {
+    let list = items;
+    if (view === 'starred') list = list.filter((i) => i.starred);
+    else if (view !== 'all') list = list.filter((i) => i.collectionId === view);
+    if (kind) list = list.filter((i) => i.kind === kind);
+    return list;
+  }, [items, view, kind]);
+
+  // 검색 적용 (AI 결과 우선, 없으면 키워드)
+  const visible = useMemo(() => {
+    const q = query.trim();
+    if (!q) return scoped;
+    if (aiResults) {
+      const ids = new Set(aiResults.map((i) => i.id));
+      return scoped.filter((i) => ids.has(i.id));
+    }
+    return scoped.filter((i) => tokenMatchAll(searchable(i), q));
+  }, [scoped, query, aiResults]);
+
+  const runAiSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setAiLoading(true);
+    try {
+      const res = await aiSemanticSearch(q, scoped);
+      setAiResults(res);
+      if (res.length === 0) notify.info('AI가 관련 항목을 못 찾았어요', { description: '키워드로 다시 찾아볼게요' });
+    } catch {
+      setAiResults(null);
+      notify.error('AI 검색을 못 했어요', { description: '키워드 검색으로 대신 보여줄게요' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const onQueryChange = (v: string) => {
+    setQuery(v);
+    if (aiResults) setAiResults(null); // 질의 바뀌면 AI 결과 무효화 → 키워드로
+  };
+
+  const addCollection = () => {
+    const name = window.prompt('새 컬렉션 이름');
+    if (name?.trim()) {
+      const c = archiveStore.addCollection(name.trim());
+      setView(c.id);
+      notify.success(`"${c.name}" 컬렉션을 만들었어요`);
+    }
+  };
+
+  const openNew = () => {
+    setDialogOpen(true);
+  };
+
+  const viewTitle =
+    view === 'all' ? '전체 보기'
+    : view === 'starred' ? '별표 모음'
+    : collections.find((c) => c.id === view)?.name ?? '전체 보기';
+
+  const defaultCollectionId = view !== 'all' && view !== 'starred' ? view : undefined;
+
+  return (
+    <div className="archive-theme flex min-h-dvh bg-background text-foreground">
+      {/* ───────── 좌 사이드바 (lg+) ───────── */}
+      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 py-5 lg:flex">
+        {/* 마스트헤드 */}
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--archive-sepia))] text-white">
+            <ArchiveIcon className="h-[18px] w-[18px]" />
+          </span>
+          <span>
+            <span className="block text-[18px] font-extrabold tracking-[-0.02em] leading-none text-foreground">아카이브</span>
+            <span className="mt-1 block text-[11px] text-muted-foreground">나만의 보관소</span>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={openNew}
+          className="mb-4 flex items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] py-2.5 text-[14px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+        >
+          <Plus className="h-4 w-4" /> 새 항목 저장
+        </button>
+
+        <NavRow icon={<Home className="h-4 w-4" />} label="전체 보기" count={items.length} active={view === 'all'} onClick={() => setView('all')} />
+        <NavRow icon={<Star className="h-4 w-4" />} label="별표 모음" count={starredCount} active={view === 'starred'} onClick={() => setView('starred')} />
+
+        <div className="mt-5 mb-1 px-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">컬렉션</div>
+        <nav className="flex-1 space-y-0.5 overflow-y-auto">
+          {collections.map((c) => (
+            <NavRow
+              key={c.id}
+              emoji={c.emoji}
+              label={c.name}
+              count={counts.get(c.id) ?? 0}
+              active={view === c.id}
+              onClick={() => setView(c.id)}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={addCollection}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Plus className="h-4 w-4" /> 새 컬렉션
+          </button>
+        </nav>
+      </aside>
+
+      {/* ───────── 메인 ───────── */}
+      <main className="min-w-0 flex-1 px-5 py-6 sm:px-7">
+        {/* 마스트헤드 */}
+        <div className="mb-4 flex flex-wrap items-start gap-x-4 gap-y-3">
+          <div className="min-w-0">
+            <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-foreground">{viewTitle}</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              {items.length === 0
+                ? '아직 비어 있어요 — 무엇이든 저장해 보세요'
+                : <>저장한 항목 {items.length}개{monthCount > 0 && <> · 이번 달 +{monthCount}</>}</>}
+            </p>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2.5">
+            {/* 뷰 토글 */}
+            <div className="flex overflow-hidden rounded-lg border border-[hsl(var(--hairline))]">
+              {(['list', 'timeline'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={cn('px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                    mode === m ? 'bg-[hsl(var(--archive-sepia))] text-white' : 'text-muted-foreground hover:bg-accent')}
+                >
+                  {m === 'list' ? '목록' : '타임라인'}
+                </button>
+              ))}
+            </div>
+
+            {/* 통합 검색 */}
+            <div className="relative w-[300px] max-w-[46vw]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') runAiSearch(); }}
+                placeholder="검색하거나, AI에게 물어보세요"
+                className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-16 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))]"
+              />
+              <button
+                type="button"
+                onClick={runAiSearch}
+                disabled={aiLoading || !query.trim()}
+                title="AI 시맨틱 검색"
+                className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-[hsl(var(--archive-sepia)/0.12)] px-2 py-1 text-[11px] font-bold text-[hsl(var(--archive-sepia))] transition-opacity hover:opacity-80 disabled:opacity-40"
+              >
+                {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                AI
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 모바일 컬렉션 칩 (lg 미만) */}
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
+          <MobileChip label="전체" active={view === 'all'} onClick={() => setView('all')} />
+          <MobileChip label="⭐ 별표" active={view === 'starred'} onClick={() => setView('starred')} />
+          {collections.map((c) => (
+            <MobileChip key={c.id} label={`${c.emoji ?? ''} ${c.name}`.trim()} active={view === c.id} onClick={() => setView(c.id)} />
+          ))}
+        </div>
+
+        {/* 형태 칩 */}
+        <div className="mb-5 flex flex-wrap gap-2">
+          <KindChip label="전체" active={kind === null} onClick={() => setKind(null)} />
+          {KINDS.map((k) => (
+            <KindChip key={k} label={KIND_LABEL[k]} active={kind === k} onClick={() => setKind(kind === k ? null : k)} />
+          ))}
+        </div>
+
+        {/* AI 결과 배너 */}
+        {aiResults && query.trim() && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-[hsl(var(--archive-sepia)/0.08)] px-3 py-2 text-[12.5px] text-[hsl(var(--archive-sepia))]">
+            <Sparkles className="h-3.5 w-3.5" />
+            AI 검색 결과 {aiResults.length}개
+            <button type="button" onClick={() => setAiResults(null)} className="ml-auto flex items-center gap-1 font-semibold hover:underline">
+              <X className="h-3 w-3" /> 지우기
+            </button>
+          </div>
+        )}
+
+        {/* 본문 */}
+        {visible.length === 0 ? (
+          <EmptyState hasItems={items.length > 0} onNew={openNew} />
+        ) : mode === 'timeline' ? (
+          <Timeline items={visible} onOpen={(i) => setSelectedId(i.id)} onStar={(id) => archiveStore.toggleStar(id)} />
+        ) : (
+          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+            {visible.map((it) => (
+              <ArchiveCard key={it.id} item={it} onOpen={(i) => setSelectedId(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* 저장 다이얼로그 */}
+      <ArchiveNewItemDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        collections={collections}
+        defaultCollectionId={defaultCollectionId}
+      />
+
+      {/* 상세 패널 */}
+      {selectedItem && (
+        <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={() => setSelectedId(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ── 사이드바 행 ── */
+function NavRow({ icon, emoji, label, count, active, onClick }: {
+  icon?: React.ReactNode; emoji?: string; label: string; count: number; active: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors',
+        active ? 'bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]' : 'text-foreground hover:bg-accent')}
+    >
+      {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
+      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+      <span className={cn('text-[12px] font-semibold', active ? 'text-[hsl(var(--archive-sepia))]' : 'text-muted-foreground/70')}>{count}</span>
+    </button>
+  );
+}
+
+function KindChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+        active ? 'border-foreground bg-foreground text-background' : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent')}
+    >
+      {label}
+    </button>
+  );
+}
+
+function MobileChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
+        active ? 'bg-[hsl(var(--archive-sepia))] text-white' : 'bg-[hsl(var(--surface-2))] text-muted-foreground')}
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ── 타임라인 ── */
+function Timeline({ items, onOpen, onStar }: { items: ArchiveItem[]; onOpen: (i: ArchiveItem) => void; onStar: (id: string) => void }) {
+  const groups = useMemo(() => {
+    const m = new Map<string, ArchiveItem[]>();
+    for (const it of items) {
+      const key = it.createdAt.slice(0, 7);
+      (m.get(key) ?? m.set(key, []).get(key)!).push(it);
+    }
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [items]);
+
+  return (
+    <div className="space-y-8">
+      {groups.map(([ym, list]) => {
+        const [y, mo] = ym.split('-');
+        return (
+          <section key={ym}>
+            <h2 className="mb-3 text-[15px] font-bold text-foreground">{y}년 {Number(mo)}월 <span className="ml-1 text-[12px] font-medium text-muted-foreground">{list.length}개</span></h2>
+            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+              {list.map((it) => (
+                <ArchiveCard key={it.id} item={it} onOpen={onOpen} onToggleStar={onStar} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── 빈 상태 ── */
+function EmptyState({ hasItems, onNew }: { hasItems: boolean; onNew: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--hairline))] py-20 text-center">
+      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[hsl(var(--archive-sepia)/0.1)] text-[hsl(var(--archive-sepia))]">
+        <ArchiveIcon className="h-7 w-7" />
+      </span>
+      <p className="text-[15px] font-bold text-foreground">{hasItems ? '조건에 맞는 항목이 없어요' : '아직 저장한 게 없어요'}</p>
+      <p className="mt-1 text-[13px] text-muted-foreground">{hasItems ? '필터를 바꾸거나 검색어를 지워보세요' : '서류·링크·사진·메모 무엇이든 던져 넣어요'}</p>
+      {!hasItems && (
+        <button type="button" onClick={onNew} className="mt-4 flex items-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] px-4 py-2 text-[13px] font-bold text-white hover:opacity-90">
+          <Plus className="h-4 w-4" /> 첫 항목 저장
+        </button>
+      )}
+    </div>
+  );
+}

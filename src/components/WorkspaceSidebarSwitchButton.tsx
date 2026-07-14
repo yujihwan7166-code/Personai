@@ -29,6 +29,8 @@ const WORKSPACE_LABELS: Record<WorkspaceKey, string> = {
   planner: '통합 플래너',
   wiki: '마이위키',
   journal: '일기',
+  career: '스펙 보드',
+  archive: '아카이브',
 };
 
 export function WorkspaceSidebarSwitchButton({

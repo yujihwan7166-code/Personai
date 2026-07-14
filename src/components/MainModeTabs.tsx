@@ -18,6 +18,7 @@ import {
   Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot, LayoutGrid,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
+  Archive,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -231,6 +232,7 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) — 준비중(pending)은 맨 아래로 모음 ─────────────────
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', icon: Globe,      tint: 'hsl(262 70% 55%)', axis: '정리' },
+  { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
   { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
   { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', icon: Mic,        tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
@@ -1062,7 +1064,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', cloud: '/cloud' };
+    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2243,6 +2245,9 @@ export function MainModeTabs({
                             } else if (item.id === 'people') {
                               setOpen(false);
                               navigate('/people');
+                            } else if (item.id === 'archive') {
+                              setOpen(false);
+                              navigate('/archive');
                             }
                           }}
                           role="menuitem"

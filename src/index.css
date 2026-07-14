@@ -668,6 +668,99 @@
     --travel-teal-ink: 0 0% 100%;
   }
 
+  .archive-theme {
+    /* 아카이브 — "서고(archive)". 중립 스캐폴딩은 쿨 화이트 캐논(플래너·커리어 공통 공식),
+     * 방 정체성은 세피아 엄버 브라운 하나로. */
+    --background: 220 22% 98%;         /* 쿨 화이트 — 레일·플래너와 동일 */
+    --foreground: 30 12% 16%;          /* 따뜻한 진한 차콜 잉크 */
+
+    --card: 40 35% 99%;
+    --card-foreground: 30 12% 16%;
+
+    --popover: 40 35% 99%;
+    --popover-foreground: 30 12% 16%;
+
+    --muted: 40 18% 92%;
+    --muted-foreground: 30 8% 42%;
+
+    --accent: 40 22% 91%;
+    --accent-foreground: 30 12% 16%;
+
+    --secondary: 40 22% 91%;
+    --secondary-foreground: 30 8% 36%;
+
+    --border: 35 14% 84%;
+    --input: 35 14% 84%;
+
+    --primary: 30 12% 16%;             /* 잉크 — 솔리드 버튼용 */
+    --primary-foreground: 40 35% 99%;
+
+    --ring: 28 48% 40%;
+    --focus-ring: 28 50% 42%;
+    --focus-offset: 220 22% 98%;
+
+    --hairline:  35 14% 86%;
+    --surface-1: 40 35% 99%;           /* 사이드바·카드 */
+    --surface-2: 220 22% 98%;          /* 가라앉은 입력 슬롯 */
+    --surface-3: 40 22% 93%;
+
+    --sidebar-background: 40 30% 98%;
+
+    /* 세피아 엄버 — 유일한 강조색 (레일마크·저장버튼·활성·별표). */
+    --archive-sepia: 28 48% 40%;
+    --archive-star: 38 88% 52%;
+  }
+
+  .dark .archive-theme {
+    --background: 222 24% 7%;
+    --foreground: 40 16% 90%;
+
+    --card: 35 8% 13%;
+    --card-foreground: 40 16% 90%;
+
+    --popover: 35 8% 14%;
+    --popover-foreground: 40 16% 90%;
+
+    --muted: 35 7% 17%;
+    --muted-foreground: 35 8% 62%;
+
+    --accent: 35 7% 19%;
+    --accent-foreground: 40 16% 90%;
+
+    --secondary: 35 7% 17%;
+    --secondary-foreground: 35 10% 75%;
+
+    --border: 35 7% 22%;
+    --input: 35 7% 22%;
+
+    --primary: 40 16% 90%;
+    --primary-foreground: 35 8% 10%;
+
+    --ring: 30 45% 58%;
+    --focus-ring: 30 45% 60%;
+    --focus-offset: 222 24% 7%;
+
+    --hairline:  35 7% 22%;
+    --surface-1: 35 8% 13%;
+    --surface-2: 35 7% 16%;
+    --surface-3: 35 7% 19%;
+
+    --sidebar-background: 35 8% 12%;
+
+    --archive-sepia: 30 48% 60%;
+    --archive-star: 40 88% 60%;
+  }
+
+  .archive-theme :is(h1, h2, h3) {
+    /* 전역 세리프(Newsreader) 규칙 무효화 — 마스트헤드·제목 Pretendard 단일화. */
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .archive-theme ::selection {
+    background-color: hsl(var(--archive-sepia) / 0.18);
+  }
+
   .paper-room {
     /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
      * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */
