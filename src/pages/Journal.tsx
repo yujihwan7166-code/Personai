@@ -481,7 +481,6 @@ export default function Journal() {
             <div className="min-w-0">
               <p className="text-[10px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">ONE PAGE A DAY</p>
               <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
-              <p className="mt-1 text-[12px] text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
             </div>
             {(() => {
               const d = new Date();
