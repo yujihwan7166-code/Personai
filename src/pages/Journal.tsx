@@ -11,7 +11,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
+  Archive, BarChart3, CalendarDays, Check, ChevronLeft, ChevronRight, History, ImagePlus,
   Map as MapIcon, NotebookPen, Pencil, Plane, Star, Trash2, UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
@@ -475,8 +475,8 @@ export default function Journal() {
               <NotebookPen className="h-[24px] w-[24px]" strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h1 className="text-[23px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
-              <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
+              <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리 로그</h1>
+              <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루를 담는 기록실</p>
             </div>
           </div>
         </div>
@@ -576,8 +576,10 @@ export default function Journal() {
               >
                 <span aria-hidden className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/[0.07]" />
                 <span aria-hidden className="absolute -bottom-16 right-16 h-40 w-40 rounded-full bg-white/[0.05]" />
-                <p className="relative text-[12px] font-semibold text-white/75">{hasTodayEntry ? '오늘 기록을 남겼어요' : '오늘은 아직 기록이 없어요'}</p>
-                <p className="relative mt-1 text-[20px] font-extrabold">오늘 하루는 어땠나요?</p>
+                <p className="relative flex items-center gap-1.5 text-[12px] font-semibold text-white/80">
+                  {hasTodayEntry ? <><Check className="h-3.5 w-3.5" /> 오늘 기록 완료 · {streak}일째</> : '오늘은 아직 비어 있어요'}
+                </p>
+                <p className="relative mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '오늘도 한 줄 남겼네요' : '오늘 하루는 어땠나요?'}</p>
                 <div className="relative mt-4 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
@@ -629,7 +631,7 @@ export default function Journal() {
                     <p className="text-[13px] text-[hsl(var(--cream-muted))]">{feed.length === 0 ? '아직 기록이 없어요. 위에서 오늘 하루를 남겨보세요.' : '이 조건에 맞는 기록이 없어요.'}</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
+                  <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                     {recentEntries.map((e) => {
                       const dd = new Date(`${e.date}T00:00:00`);
                       const mk = entryMoodKey(e);
