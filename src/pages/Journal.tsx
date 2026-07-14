@@ -488,18 +488,6 @@ export default function Journal() {
           </div>
         </div>
 
-        {/* 쓰기 CTA — 세이지 채움 (상단) */}
-        <div className="px-3 pb-2">
-          <button
-            type="button"
-            onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-9px_hsl(146_26%_46%/0.5)] transition-[filter] hover:brightness-[1.04]"
-            style={{ backgroundColor: 'hsl(146 24% 53%)' }}
-          >
-            <Pencil className="h-3.5 w-3.5" /> 오늘 기록 쓰기
-          </button>
-        </div>
-
         {/* 내비 — 컬러 아이콘 + 플레인 카운트, 활성 = 은은한 필 */}
         <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
@@ -548,9 +536,19 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div className="mb-6">
-                <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
-                <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
+                  <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={goWriteToday}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(146_30%_35%/0.6)] transition-[filter] hover:brightness-[1.05]"
+                  style={{ backgroundColor: 'hsl(146 26% 45%)' }}
+                >
+                  <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
+                </button>
               </div>
             ) : (
               <div className="mb-6">
