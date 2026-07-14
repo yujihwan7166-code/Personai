@@ -541,7 +541,7 @@ function BoardLedger() {
               <div className="flex items-center gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(33_40%_83%)] bg-[hsl(33_48%_50%/0.12)] text-[24px] leading-none">💼</span>
                 <div className="min-w-0">
-                  <h1 className="translate-y-[4px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(28_50%_39%)]">마이 커리어</h1>
+                  <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(28_50%_39%)]">마이 커리어</h1>
                   <p className="text-[12.5px] leading-tight text-muted-foreground">나의 커리어를 담는 작업실</p>
                 </div>
               </div>
