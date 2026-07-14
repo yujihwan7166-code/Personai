@@ -531,9 +531,8 @@ function BoardLedger() {
             <div className="px-5 pb-4 pt-5">
               <div className="flex items-start justify-between gap-2.5">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold tracking-[0.22em] text-muted-foreground/60">CAREER DESK</p>
-                  <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--career-red))]">마이 커리어</h1>
-                  <p className="mt-1 text-[12px] text-muted-foreground">이룬 것을 쌓는 원고</p>
+                  <h1 className="text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--career-red))]">마이 커리어</h1>
+                  <p className="mt-1.5 text-[12px] text-muted-foreground">이룬 것을 쌓는 원고</p>
                 </div>
                 <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-center shadow-[0_2px_6px_-2px_hsl(var(--foreground)/0.14)]">
                   <div className="bg-[hsl(var(--career-red))] py-[3px] text-[9px] font-bold tracking-[0.08em] text-white">스펙</div>
