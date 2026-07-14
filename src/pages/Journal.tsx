@@ -447,13 +447,18 @@ export default function Journal() {
   const recentEntries = feed.filter((e) =>
     recentFilter === 'photo' ? (e.images?.length ?? 0) > 0 : recentFilter === 'week' ? e.date >= weekAgoKey : true,
   );
-  /** 히어로 기분 버튼 — 오늘 기록에 기분 찍고 바로 에디터로. */
-  const startWithMood = (mk: string) => {
-    const existing = journalStore.listByDate(todayKey)[0];
-    if (existing) journalStore.update(existing.id, { moodKey: mk });
-    else journalStore.add({ date: todayKey, body: '', moodKey: mk });
-    goWriteToday();
-  };
+  /** 히어로 — 최근 7일 리듬 스트립: 날짜별 기분·기록 여부 (오늘 강조). */
+  const weekStrip = useMemo(() => {
+    const [ty, tm, td] = todayKey.split('-').map(Number);
+    const byDate = new Map<string, JournalEntry>();
+    for (const e of allEntries) if (!byDate.has(e.date)) byDate.set(e.date, e);
+    return Array.from({ length: 7 }, (_, idx) => {
+      const d = new Date(ty, tm - 1, td - (6 - idx));
+      const key = dateKey(d);
+      const e = byDate.get(key);
+      return { key, day: d.getDate(), wd: WEEKDAY[d.getDay()], moodKey: e ? entryMoodKey(e) : null, isToday: key === todayKey, has: !!e };
+    });
+  }, [allEntries, todayKey]);
 
   return (
     <div
@@ -569,19 +574,32 @@ export default function Journal() {
                     <p className="flex items-center gap-1.5 text-[12px] font-semibold text-white/80">
                       {hasTodayEntry ? <><Check className="h-3.5 w-3.5" /> 오늘 기록 완료 · {streak}일째</> : '오늘은 아직 비어 있어요'}
                     </p>
-                    <p className="mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '오늘도 한 줄 남겼네요' : '오늘 하루는 어땠나요?'}</p>
+                    <p className="mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '이번 주도 잘 이어가고 있어요' : '오늘 하루는 어땠나요?'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {MOODS.map((m) => (
+                  {/* 최근 7일 리듬 — 날짜 클릭 시 그 날로 이동, 오늘은 흰 칸으로 강조 */}
+                  <div className="flex gap-1.5 sm:gap-2">
+                    {weekStrip.map((c) => (
                       <button
-                        key={m.key}
+                        key={c.key}
                         type="button"
-                        onClick={() => startWithMood(m.key)}
-                        aria-label={m.label}
-                        title={m.label}
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-[20px] transition-colors hover:bg-white/25"
+                        onClick={() => openDate(c.key)}
+                        aria-label={`${c.day}일${c.has ? ' · 기록 있음' : ''}`}
+                        className="text-center"
                       >
-                        {m.emoji}
+                        <div className={cn('mb-1 text-[10.5px]', c.isToday ? 'font-bold text-white' : 'text-white/60')}>{c.isToday ? '오늘' : c.wd}</div>
+                        <div className={cn(
+                          'flex h-[52px] w-10 flex-col items-center justify-center gap-1 rounded-[13px] transition-colors',
+                          c.isToday
+                            ? 'bg-white text-[hsl(146_28%_34%)] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.35)]'
+                            : c.has ? 'bg-white/[0.13] hover:bg-white/20' : 'bg-white/[0.06] hover:bg-white/15',
+                        )}>
+                          {c.moodKey && MOOD_BY_KEY[c.moodKey] ? (
+                            <span className="text-[19px] leading-none">{MOOD_BY_KEY[c.moodKey].emoji}</span>
+                          ) : (
+                            <span className={cn('h-1.5 w-1.5 rounded-full', c.isToday ? 'bg-[hsl(146_28%_42%)]' : c.has ? 'bg-white/75' : 'bg-white/25')} />
+                          )}
+                          <span className={cn('text-[10px] tabular-nums', c.isToday ? 'font-bold' : c.has ? 'text-white/75' : 'text-white/45')}>{c.day}</span>
+                        </div>
                       </button>
                     ))}
                   </div>
