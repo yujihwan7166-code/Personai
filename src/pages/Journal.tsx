@@ -507,8 +507,8 @@ export default function Journal() {
           <button
             type="button"
             onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-8px_hsl(146_30%_50%/0.5)] transition-[filter] hover:brightness-[1.04]"
-            style={{ backgroundColor: 'hsl(146 30% 52%)' }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-[11px] py-2 text-[12.5px] font-bold text-white shadow-[0_6px_14px_-8px_hsl(146_24%_40%/0.5)] transition-[filter] hover:brightness-[1.05]"
+            style={{ backgroundColor: 'hsl(146 22% 42%)' }}
           >
             <Pencil className="h-3.5 w-3.5" /> 오늘 기록 쓰기
           </button>
