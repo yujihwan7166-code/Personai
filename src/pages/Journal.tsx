@@ -473,11 +473,12 @@ export default function Journal() {
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
-            {/* 마크 — '해의 궤적': 하루가 뜨고 지는 곡선 + 정점의 해 */}
+            {/* 마크 — '새싹': 기록이 쌓여 자란다 (세이지 sanctuary 무드) */}
             <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label="데일리 로그">
               <rect x="0.5" y="0.5" width="47" height="47" rx="14.5" fill="hsl(146 22% 93%)" stroke="hsl(146 20% 83%)" strokeWidth="1" />
-              <path d="M11 33 Q24 14 37 33" fill="none" stroke="hsl(146 24% 66%)" strokeWidth="2.4" strokeLinecap="round" />
-              <circle cx="24" cy="21.7" r="3.8" fill="hsl(146 34% 31%)" />
+              <path d="M24 35 C24 29 24 25 24 20" fill="none" stroke="hsl(146 28% 39%)" strokeWidth="2.4" strokeLinecap="round" />
+              <path d="M24 24 C20 24 16.5 21.5 16 17 C21 17 24 20 24 24 Z" fill="hsl(146 22% 54%)" />
+              <path d="M24 21 C28 20.5 31.5 17.5 32 13 C27.2 13.4 24.3 16.5 24 21 Z" fill="hsl(146 28% 39%)" />
             </svg>
             <div className="min-w-0">
               <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리 로그</h1>
