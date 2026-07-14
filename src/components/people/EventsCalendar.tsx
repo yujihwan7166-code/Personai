@@ -9,7 +9,7 @@ import type { Person } from '@/types/people';
 
 type EventType = 'birthday' | 'anniversary' | 'etc';
 const TYPE_META: Record<EventType, { label: string; bg: string }> = {
-  birthday: { label: '생일', bg: 'hsl(16 62% 48%)' },
+  birthday: { label: '생일', bg: 'hsl(var(--people-accent))' },
   anniversary: { label: '기념일', bg: 'hsl(38 75% 42%)' },
   etc: { label: '기타', bg: 'hsl(150 38% 40%)' },
 };

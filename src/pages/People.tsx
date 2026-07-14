@@ -116,9 +116,9 @@ export default function People() {
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (데일리 로그 기준) */}
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(15_45%_85%)] bg-[hsl(var(--people-accent))]/13 text-[24px] leading-none">🤝</span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(30_70%_85%)] bg-[hsl(var(--people-accent))]/13 text-[24px] leading-none">🤝</span>
             <div className="min-w-0">
-              <h1 className="translate-y-[4px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(15_55%_43%)]">인맥노트</h1>
+              <h1 className="translate-y-[4px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(28_80%_45%)]">인맥노트</h1>
               <p className="text-[12.5px] leading-tight text-muted-foreground">곁의 사람을 챙기는 노트</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function People() {
           <button
             type="button"
             onClick={() => { setOpenId(null); setEditor({ open: true, editing: null }); }}
-            className="mt-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(var(--people-accent))]/6 hover:text-[hsl(15_55%_42%)]"
+            className="mt-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(var(--people-accent))]/6 hover:text-[hsl(28_80%_45%)]"
           >
             <span aria-hidden className="flex w-[20px] shrink-0 items-center justify-center"><Plus className="h-4 w-4" /></span>
             <span className="flex-1">새 사람</span>

@@ -314,7 +314,7 @@ function PersonCard({
   onOpen: () => void;
 }) {
   const closenessColor =
-    p.closeness === 'best' ? 'hsl(16 62% 48%)' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
+    p.closeness === 'best' ? 'hsl(var(--people-accent))' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
   return (
     <button
       type="button"
