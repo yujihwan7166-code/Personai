@@ -128,6 +128,18 @@ const NAV_BOTTOM: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'storage',   label: '보관함',   icon: Archive },
 ];
 
+/** 내비 항목별 아이콘 색 — 참고 사이드바의 컬러 아이콘 (훑기 좋게). */
+const NAV_COLOR: Record<Tab, string> = {
+  write:     'hsl(146 30% 42%)', // 세이지
+  calendar:  'hsl(210 55% 52%)', // 블루
+  trips:     'hsl(340 55% 60%)', // 로즈
+  map:       'hsl(183 45% 40%)', // 틸
+  food:      'hsl(30 75% 50%)',  // 앰버
+  stats:     'hsl(262 45% 58%)', // 바이올렛
+  flashback: 'hsl(25 45% 50%)',  // 브라운
+  storage:   'hsl(30 8% 48%)',   // 그레이
+};
+
 /** 섹션 머리 — 영문 아이브로우 + 제목 (Diary Room 문법). */
 const SECTION_HEAD: Record<Tab, { eyebrow: string; title: string }> = {
   write:     { eyebrow: 'DAILY ARCHIVE',      title: '데일리 로그' },
@@ -438,7 +450,7 @@ export default function Journal() {
     return 0;
   };
 
-  /** 사이드바 내비 행 — 아이콘 + 라벨 + 배지, 활성 = 세이지 틴트 + 인셋 링 (컨셉 v2). */
+  /** 사이드바 내비 행 — 컬러 아이콘 + 라벨 + 플레인 카운트, 활성 = 은은한 세이지 필 (참고 사이드바). */
   const renderNavRow = (item: { id: Tab; label: string; icon: LucideIcon }) => {
     const active = tab === item.id;
     const count = navCountOf(item.id);
@@ -450,16 +462,16 @@ export default function Journal() {
         onClick={() => { setTab(item.id); setDetailOpen(false); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'mb-1 flex w-full items-center gap-2.5 rounded-[11px] px-3 py-2.5 text-left text-[13.5px] transition-all',
+          'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
           active
-            ? 'bg-[hsl(var(--cream-accent))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(146_27%_39%/0.55)]'
-            : 'font-medium text-[hsl(var(--cream-ink))]/70 hover:bg-[hsl(var(--cream-accent))]/8',
+            ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-ink))]'
+            : 'font-medium text-[hsl(var(--cream-ink))]/72 hover:bg-[hsl(var(--cream-accent))]/6',
         )}
       >
-        <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-[hsl(var(--cream-muted))]/75')} />
+        <Icon className="h-[18px] w-[18px] shrink-0" style={{ color: NAV_COLOR[item.id] }} strokeWidth={2} />
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
-          <span className={cn('rounded-md px-1.5 py-px text-[11px] font-bold tabular-nums', active ? 'bg-white/25 text-white' : 'bg-[hsl(var(--cream-line))]/50 text-[hsl(var(--cream-muted))]')}>{count}</span>
+          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-ink))]/65' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
         )}
       </button>
     );
@@ -473,74 +485,43 @@ export default function Journal() {
       }}
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
     >
-      {/* ── 사이드바 — 컨셉 v2 (헤더+날짜칩 · 검색 · 기록/탐색 그룹 · 쓰기 CTA · 푸터). 모바일은 상단 가로 내비 ── */}
+      {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
       <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 헤더 — 아이브로우 + 도구명 + 부제 + 오늘 날짜 칩 */}
-        <div className="px-5 pb-4 pt-5">
-          <div className="flex items-start justify-between gap-2.5">
+        {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
+        <div className="px-4 pb-3 pt-4">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] text-white shadow-[0_4px_10px_-3px_hsl(146_27%_39%/0.6)]"
+              style={{ background: 'linear-gradient(150deg, hsl(146 30% 46%), hsl(146 27% 35%))' }}
+            >
+              <NotebookPen className="h-[18px] w-[18px]" strokeWidth={2} />
+            </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">ONE PAGE A DAY</p>
-              <h1 className="mt-1 text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
+              <h1 className="text-[17px] font-extrabold leading-tight tracking-[-0.02em] text-[hsl(var(--cream-ink))]">데일리로그</h1>
+              <p className="text-[11.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루 기록실</p>
             </div>
-            {(() => {
-              const d = new Date();
-              return (
-                <div className="w-[52px] shrink-0 overflow-hidden rounded-[13px] border border-[hsl(var(--cream-line))] bg-white text-center shadow-[0_2px_6px_-2px_hsl(25_30%_20%/0.16)]">
-                  <div className="bg-[hsl(var(--cream-accent))] py-[3px] text-[9px] font-bold tracking-[0.04em] text-white">{d.getMonth() + 1}월 · {WEEKDAY[d.getDay()]}</div>
-                  <div className="pb-1.5 pt-1 text-[20px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{d.getDate()}</div>
-                </div>
-              );
-            })()}
           </div>
         </div>
 
-        {/* 검색 */}
-        <div className="px-4 pb-3">
-          <label className="flex h-[38px] items-center gap-2 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/50">
-            <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]/70" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[hsl(var(--cream-muted))]/70" />
-          </label>
-        </div>
-
-        {/* 내비 — 섹션 목록 (아이콘 + 배지, 활성 = 세이지 틴트 + 인셋 링) */}
-        <nav className="flex-1 overflow-y-auto px-3 pb-2 pt-1" aria-label="데일리로그 섹션">
-          {NAV_MAIN.map((item) => renderNavRow(item))}
-        </nav>
-
-        {/* 쓰기 CTA — 다크 그라데이션 */}
-        <div className="px-4 pb-3">
+        {/* 쓰기 CTA — 세이지 채움 (상단) */}
+        <div className="px-3 pb-2">
           <button
             type="button"
             onClick={goWriteToday}
-            className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-[hsl(var(--cream-dark))] py-3 text-[13.5px] font-bold text-white shadow-[0_8px_18px_-8px_hsl(30_12%_16%/0.75)] transition-[filter] hover:brightness-[1.12]"
+            className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-[hsl(var(--cream-accent))] py-3 text-[13.5px] font-bold text-white shadow-[0_8px_18px_-8px_hsl(146_27%_39%/0.6)] transition-[filter] hover:brightness-[1.06]"
           >
             <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
           </button>
         </div>
 
-        {/* 푸터 — 플래시백 · 보관함 */}
-        <nav className="border-t border-[hsl(var(--cream-line))] px-3 py-2.5" aria-label="데일리로그 유틸">
-          {NAV_BOTTOM.map((item) => {
-            const active = tab === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => { setTab(item.id); setDetailOpen(false); }}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'mb-0.5 flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[12.5px] transition-all',
-                  active
-                    ? 'bg-[hsl(var(--cream-accent))] font-bold text-white shadow-[0_6px_16px_-7px_hsl(146_27%_39%/0.55)]'
-                    : 'font-medium text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-accent))]/8 hover:text-[hsl(var(--cream-ink))]',
-                )}
-              >
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-white' : 'text-[hsl(var(--cream-muted))]/70')} />
-                {item.label}
-              </button>
-            );
-          })}
+        {/* 내비 — 컬러 아이콘 + 플레인 카운트, 활성 = 은은한 필 */}
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="데일리로그 섹션">
+          {NAV_MAIN.map((item) => renderNavRow(item))}
+        </nav>
+
+        {/* 푸터 — 플래시백 · 보관함 (동일 컬러 아이콘 + 은은한 활성) */}
+        <nav className="border-t border-[hsl(var(--cream-line))] px-2.5 py-2" aria-label="데일리로그 유틸">
+          {NAV_BOTTOM.map((item) => renderNavRow(item))}
         </nav>
 
       </aside>
