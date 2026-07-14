@@ -12,7 +12,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSPropertie
 import { useLocation } from 'react-router-dom';
 import {
   Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
-  Map as MapIcon, NotebookPen, Pencil, Plane, Search, Star, Trash2, UtensilsCrossed,
+  Map as MapIcon, NotebookPen, Pencil, Plane, Star, Trash2, UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -163,7 +163,7 @@ export default function Journal() {
   const [calAnchor, setCalAnchor] = useState(() => new Date());
   const [editing, setEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false); // 기록 탭: false=목록, true=상세(보기/편집)
-  const [query, setQuery] = useState('');
+  const [recentFilter, setRecentFilter] = useState<'all' | 'week' | 'photo'>('all'); // 최근 기록 필터
 
   // 메뉴·즐겨찾기에서 /journal?view=… 로 들어오면 해당 섹션으로 (구 ?tab=trips 도 수용, 재진입은 key 로 감지).
   // ?view 없이 /journal 로 재진입(레일·메뉴의 "데일리로그")하면 홈 섹션으로 리셋 — 무반응처럼 보이는 것 방지.
@@ -351,12 +351,7 @@ export default function Journal() {
   const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
 
   // 파생
-  const feed = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return [...allEntries]
-      .filter((e) => !q || `${e.title ?? ''} ${e.body}`.toLowerCase().includes(q))
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [allEntries, query]);
+  const feed = useMemo(() => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)), [allEntries]);
   const [memSeed, setMemSeed] = useState(0); // 플래시백 "다른 기록 보기" 리롤
   const memory = useMemo(() => {
     void memSeed;
@@ -370,19 +365,8 @@ export default function Journal() {
       .filter((e) => e.date.slice(5) === md && e.date < todayKey)
       .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   }, [allEntries, todayKey]);
-  /** 하루 기록(먹은 것·간 곳) — 피드 요약 칩·보관함 사진용. */
+  /** 하루 기록(먹은 것·간 곳) — 캘린더 마커·보관함 사진용. */
   const dayItems = useDaylogAll();
-  const itemCounts = useMemo(() => {
-    const map = new Map<string, { meal: number; place: number }>();
-    for (const i of dayItems) {
-      if (i.kind === 'note') continue; // 메모는 🍚/📍 어느 쪽도 아님 — 빈 칩 줄도 방지
-      const c = map.get(i.date) ?? { meal: 0, place: 0 };
-      if (i.kind === 'meal') c.meal += 1;
-      else c.place += 1;
-      map.set(i.date, c);
-    }
-    return map;
-  }, [dayItems]);
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
   const itemDates = useMemo(() => new Set(dayItems.map((i) => i.date)), [dayItems]);
   /** 날짜별 대표 사진 — 피드·캘린더의 사진 우선 렌더용 (일기 사진 → 하루 기록 사진). */
@@ -392,29 +376,6 @@ export default function Journal() {
     for (const i of dayItems) if (i.photo && !m.has(i.date)) m.set(i.date, i.photo);
     return m;
   }, [allEntries, dayItems]);
-  /** 피드 = 하루 카드 (일기 + 기록만 있는 날 포함) — 월별 그룹. */
-  const dayCardGroups = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const byDate = new Map<string, { entry?: JournalEntry; items: typeof dayItems }>();
-    for (const e of feed) byDate.set(e.date, { entry: e, items: [] });
-    for (const i of dayItems) {
-      const cell = byDate.get(i.date);
-      if (cell) {
-        cell.items.push(i);
-      } else if (!q || i.text.toLowerCase().includes(q) || (i.place ?? '').toLowerCase().includes(q)) {
-        byDate.set(i.date, { items: [i] });
-      }
-    }
-    const sorted = [...byDate.entries()].sort(([a], [b]) => b.localeCompare(a));
-    const groups = new Map<string, Array<[string, { entry?: JournalEntry; items: typeof dayItems }]>>();
-    for (const c of sorted) {
-      const k = c[0].slice(0, 7);
-      const arr = groups.get(k);
-      if (arr) arr.push(c);
-      else groups.set(k, [c]);
-    }
-    return [...groups.entries()];
-  }, [feed, dayItems, query]);
   /** 열린 날짜가 여행 기간이면 컨텍스트 칩. */
   const trips = useTrips();
   const tripOfDay = useMemo(
@@ -474,6 +435,24 @@ export default function Journal() {
         )}
       </button>
     );
+  };
+
+  // ── 기록 뷰 인사말·히어로·최근 목록 파생 ──
+  const nowH = new Date().getHours();
+  const greeting = nowH < 5 ? '좋은 밤이에요' : nowH < 12 ? '좋은 아침이에요' : nowH < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
+  const nowD = new Date();
+  const todayLabelFull = `${nowD.getFullYear()}년 ${nowD.getMonth() + 1}월 ${nowD.getDate()}일 ${WEEKDAY[nowD.getDay()]}요일`;
+  const hasTodayEntry = allEntries.some((e) => e.date === todayKey);
+  const weekAgoKey = dateKey(new Date(Date.now() - 6 * 86400000));
+  const recentEntries = feed.filter((e) =>
+    recentFilter === 'photo' ? (e.images?.length ?? 0) > 0 : recentFilter === 'week' ? e.date >= weekAgoKey : true,
+  );
+  /** 히어로 기분 버튼 — 오늘 기록에 기분 찍고 바로 에디터로. */
+  const startWithMood = (mk: string) => {
+    const existing = journalStore.listByDate(todayKey)[0];
+    if (existing) journalStore.update(existing.id, { moodKey: mk });
+    else journalStore.add({ date: todayKey, body: '', moodKey: mk });
+    goWriteToday();
   };
 
   return (
@@ -559,98 +538,145 @@ export default function Journal() {
               );
             })}
           </div>
-          {/* 섹션 머리 — 아이브로우 + 제목 (상세 화면에선 숨겨 집중) */}
+          {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-              <div>
+            tab === 'write' ? (
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
+                  <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                </div>
+                <div className="flex gap-2">
+                  {([['🔥', streak, '연속 기록'], ['📅', monthCount, '이번 달']] as const).map(([emo, val, lbl]) => (
+                    <div key={lbl} className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-2 shadow-[0_2px_8px_-4px_hsl(25_30%_20%/0.12)]">
+                      <span className="text-[16px] leading-none">{emo}</span>
+                      <div>
+                        <div className="text-[15px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{val}</div>
+                        <div className="mt-0.5 text-[10px] text-[hsl(var(--cream-muted))]">{lbl}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6">
                 <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
                 <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
               </div>
-              {tab === 'write' && (
-                <label className="flex h-9 items-center gap-1.5 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/45">
-                  <Search className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="검색" className="w-24 bg-transparent text-[12.5px] outline-none transition-[width] placeholder:text-[hsl(var(--cream-muted))] focus:w-40" />
-                </label>
-              )}
-            </div>
+            )
           )}
 
-          {/* ── 기록 탭: 목록 ── */}
+          {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
           {tab === 'write' && !detailOpen && (
-            <div className="flex flex-col gap-5">
-              {feed.length === 0 && (
-                <div className="rounded-[26px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-16 text-center">
-                  <p className="text-[13.5px] text-[hsl(var(--cream-muted))]">아직 기록이 없어요.</p>
-                  <button type="button" onClick={goWriteToday} className="mt-3 rounded-full bg-[hsl(var(--cream-dark))] px-4 py-2 text-[12.5px] font-bold text-white">오늘 일기 쓰기</button>
-                </div>
-              )}
-              {/* 사진 위주 마소너리 — 하루 한 장 카드 (기록만 있는 날 포함) */}
-              {dayCardGroups.map(([month, cards]) => (
-                <section key={month}>
-                  <div className="mb-3 flex items-center gap-2 px-1">
-                    <h2 className="font-sans text-[15px] font-bold text-[hsl(var(--cream-ink))]/80">{month.slice(0, 4)}년 {Number(month.slice(5))}월</h2>
-                    <span className="text-[11px] tabular-nums text-[hsl(var(--cream-muted))]/70">{cards.length}일</span>
-                    <span className="h-px flex-1 bg-[hsl(var(--cream-line))]/70" />
+            <div className="flex flex-col gap-6">
+              {/* 초록 히어로 — 오늘 기분 빠른 입력 */}
+              <div
+                className="relative overflow-hidden rounded-[24px] px-6 py-5 text-white shadow-[0_16px_36px_-20px_hsl(146_40%_25%/0.55)]"
+                style={{ background: 'linear-gradient(135deg, hsl(146 30% 46%), hsl(146 26% 37%))' }}
+              >
+                <span aria-hidden className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/[0.07]" />
+                <span aria-hidden className="absolute -bottom-16 right-16 h-40 w-40 rounded-full bg-white/[0.05]" />
+                <p className="relative text-[12px] font-semibold text-white/75">{hasTodayEntry ? '오늘 기록을 남겼어요' : '오늘은 아직 기록이 없어요'}</p>
+                <p className="relative mt-1 text-[20px] font-extrabold">오늘 하루는 어땠나요?</p>
+                <div className="relative mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={goWriteToday}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-bold text-[hsl(146_28%_34%)] shadow-sm transition-[filter] hover:brightness-95"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> {hasTodayEntry ? '이어서 쓰기' : '기록 시작하기'}
+                  </button>
+                  <div className="flex gap-1.5">
+                    {MOODS.map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => startWithMood(m.key)}
+                        aria-label={m.label}
+                        title={m.label}
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-[18px] transition-colors hover:bg-white/25"
+                      >
+                        {m.emoji}
+                      </button>
+                    ))}
                   </div>
-                  <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
-                    {cards.map(([date, { entry: e, items }]) => {
-                      const dd = new Date(`${date}T00:00:00`);
-                      const photo = photoByDate.get(date);
-                      const mk = e ? entryMoodKey(e) : null;
-                      const t = e
-                        ? (e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제')
-                        : (items[0]?.text ?? '기록');
-                      const ex = e
-                        ? (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim()
-                        : items.slice(e ? 0 : 1, 4).map((i) => i.text).join(' · ');
-                      const c = itemCounts.get(date);
-                      const dateLabel = `${dd.getMonth() + 1}.${dd.getDate()} ${WEEKDAY[dd.getDay()]}`;
+                </div>
+              </div>
+
+              {/* 최근 기록 + 필터 */}
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-[16px] font-extrabold text-[hsl(var(--cream-ink))]">최근 기록</h3>
+                  <div className="flex gap-0.5 rounded-full bg-[hsl(var(--cream-line))]/35 p-0.5">
+                    {([['all', '전체'], ['week', '이번 주'], ['photo', '사진']] as const).map(([k, l]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setRecentFilter(k)}
+                        className={cn(
+                          'rounded-full px-3 py-1 text-[12px] font-semibold transition-colors',
+                          recentFilter === k ? 'bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))] shadow-sm' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
+                        )}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {recentEntries.length === 0 ? (
+                  <div className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-14 text-center">
+                    <p className="text-[13px] text-[hsl(var(--cream-muted))]">{feed.length === 0 ? '아직 기록이 없어요. 위에서 오늘 하루를 남겨보세요.' : '이 조건에 맞는 기록이 없어요.'}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {recentEntries.map((e) => {
+                      const dd = new Date(`${e.date}T00:00:00`);
+                      const mk = entryMoodKey(e);
+                      const t = e.title?.trim() || e.body.split('\n')[0]?.trim() || '무제';
+                      const ex = (e.title ? e.body : e.body.split('\n').slice(1).join(' ')).trim();
+                      const photos = e.images?.slice(0, 3) ?? [];
                       return (
                         <button
-                          key={date}
+                          key={e.id}
                           type="button"
-                          onClick={() => openDate(date)}
-                          className="group mb-4 block w-full break-inside-avoid overflow-hidden rounded-[22px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-left transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_18px_36px_-18px_hsl(25_30%_20%/0.35)]"
-                          style={e?.color ? { backgroundColor: `color-mix(in srgb, ${e.color} 7%, #f8f3ea)` } : undefined}
+                          onClick={() => openDate(e.date)}
+                          className="group flex w-full items-start gap-4 rounded-[20px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_14px_30px_-18px_hsl(25_30%_20%/0.3)]"
                         >
-                          {photo && (
-                            <div className="relative overflow-hidden">
-                              <img src={photo} alt="" loading="lazy" className="max-h-[340px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
-                              <span className="absolute left-2.5 top-2.5 rounded-full bg-black/45 px-2 py-0.5 text-[10.5px] font-bold tabular-nums text-white backdrop-blur-sm">{dateLabel}</span>
-                              {e?.starred && <Star className="absolute right-2.5 top-2.5 h-4 w-4 fill-amber-300 text-amber-300 drop-shadow" />}
+                          <div className="w-10 shrink-0 text-center">
+                            <div className="text-[19px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</div>
+                            <div className="mt-1 text-[10.5px] text-[hsl(var(--cream-muted))]">{dd.getMonth() + 1}월</div>
+                            <div className="text-[10px] text-[hsl(var(--cream-muted))]/70">{WEEKDAY[dd.getDay()]}</div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[16px]">{MOOD_BY_KEY[mk].emoji}</span>}
+                              {e.weather && <span className="shrink-0 text-[14px]">{WEATHER_META[e.weather].emoji}</span>}
+                              <h4 className="min-w-0 flex-1 truncate text-[14.5px] font-bold text-[hsl(var(--cream-ink))]">{t}</h4>
+                              {e.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
                             </div>
-                          )}
-                          <div className="px-4 pb-4 pt-3.5">
-                            {!photo && (
-                              <div className="mb-1.5 flex items-center justify-between">
-                                <span className="text-[11px] font-bold tabular-nums text-[hsl(var(--cream-muted))]">{dateLabel}</span>
-                                {e?.starred && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
-                              </div>
-                            )}
-                            <div className="flex items-start gap-1.5">
-                              {mk && MOOD_BY_KEY[mk] && <span className="shrink-0 text-[18px] leading-[1.3]">{MOOD_BY_KEY[mk].emoji}</span>}
-                              <h3 className="min-w-0 flex-1 break-keep text-[14.5px] font-bold leading-snug text-[hsl(var(--cream-ink))] line-clamp-2">{t}</h3>
-                            </div>
-                            {ex ? (
-                              <p className={cn('mt-1.5 whitespace-pre-line break-keep text-[12.5px] leading-[1.7] text-[hsl(var(--cream-ink))]/70', photo ? 'line-clamp-2' : 'line-clamp-5')}>{ex}</p>
-                            ) : !e ? (
-                              <p className="mt-1.5 text-[12px] italic text-[hsl(var(--cream-muted))]/55">기록만 남긴 하루</p>
-                            ) : null}
-                            {(c || e?.weather || (e?.tags?.length ?? 0) > 0) && (
-                              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                                {c && c.meal > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">🍚 {c.meal}</span>}
-                                {c && c.place > 0 && <span className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">📍 {c.place}</span>}
-                                {e?.weather && <span className="rounded-full bg-[hsl(var(--cream-line))]/40 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-ink))]/65">{WEATHER_META[e.weather].emoji}</span>}
-                                {e?.tags?.slice(0, 3).map((tg) => <span key={tg} className="rounded-full bg-[hsl(var(--cream-line))]/35 px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))]">#{tg}</span>)}
+                            {ex && <p className="mt-1 line-clamp-2 break-keep text-[12.5px] leading-[1.6] text-[hsl(var(--cream-ink))]/70">{ex}</p>}
+                            {(e.tags?.length ?? 0) > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {e.tags!.slice(0, 4).map((tg) => (
+                                  <span key={tg} className="rounded-full bg-[hsl(var(--cream-accent))]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[hsl(var(--cream-accent))]">#{tg}</span>
+                                ))}
                               </div>
                             )}
                           </div>
+                          {photos.length > 0 && (
+                            <div className="flex shrink-0 gap-1.5">
+                              {photos.map((img, i) => (
+                                <img key={i} src={img.src} alt="" loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
+                              ))}
+                            </div>
+                          )}
                         </button>
                       );
                     })}
                   </div>
-                </section>
-              ))}
+                )}
+              </div>
             </div>
           )}
 
