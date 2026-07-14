@@ -14,7 +14,6 @@ import {
   Moon,
   type LucideIcon,
 } from 'lucide-react';
-import { AddressBook, CalendarDots, Graph, NotePencil, Notebook, ReadCvLogo } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
@@ -49,17 +48,6 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
-
-/* 방별 브랜드 마크 — 레일 맨 위 타일이 현재 방의 색+마크로 변신 (Phosphor duotone).
- * 각 방 헤더 이름 색과 짝을 이룬다. 클릭·호버 동작(홈)은 그대로. */
-const RAIL_BRAND: Record<string, { bg: string; mark: React.ReactNode }> = {
-  planner: { bg: 'hsl(262 64% 56%)', mark: <CalendarDots size={22} weight="duotone" color="#fff" /> },
-  wiki:    { bg: 'hsl(210 78% 52%)', mark: <Graph size={22} weight="duotone" color="#fff" /> },
-  notes:   { bg: 'hsl(222 16% 34%)', mark: <NotePencil size={22} weight="duotone" color="#fff" /> },
-  journal: { bg: 'hsl(146 27% 39%)', mark: <Notebook size={22} weight="duotone" color="#fff" /> },
-  career:  { bg: 'hsl(6 70% 51%)',   mark: <ReadCvLogo size={22} weight="duotone" color="#fff" /> },
-  people:  { bg: 'hsl(16 62% 48%)',  mark: <AddressBook size={22} weight="duotone" color="#fff" /> },
-};
 
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
@@ -140,30 +128,15 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         data-app-workspace-rail
         className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
       >
-        {/* 브랜드 타일 — 현재 방의 마크+색으로 변신(길찾기). hover 시 홈 아이콘으로 크로스페이드, 클릭=홈. */}
-        {(() => {
-          const brand = RAIL_BRAND[current];
-          return (
-            <NavLink
-              to="/"
-              aria-label="홈으로"
-              title={brand ? '홈으로' : '홈으로'}
-              className={cn(
-                'group relative mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl shadow-sm transition-transform duration-200 hover:scale-105',
-                brand ? 'text-white' : 'bg-primary text-primary-foreground',
-              )}
-              style={brand ? { backgroundColor: brand.bg } : undefined}
-            >
-              <span className="flex items-center justify-center transition-all duration-200 group-hover:scale-50 group-hover:opacity-0">
-                {brand ? brand.mark : <span className="text-[16px] font-bold">P</span>}
-              </span>
-              <Home
-                className="absolute h-[18px] w-[18px] scale-50 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100"
-                strokeWidth={2.2}
-              />
-            </NavLink>
-          );
-        })()}
+        {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
+        <NavLink
+          to="/"
+          aria-label="홈으로"
+          title="홈으로"
+          className="mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <Home className="h-[18px] w-[18px]" strokeWidth={2.2} />
+        </NavLink>
 
         <button
           type="button"
