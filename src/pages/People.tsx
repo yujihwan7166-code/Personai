@@ -126,17 +126,16 @@ export default function People() {
 
         <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
-        </nav>
-
-        <div className="px-3 pb-4 pt-2">
+          {/* 새 사람 추가 칸 — 목록 아래 (데일리 로그/마이 커리어 기준 add-row) */}
           <button
             type="button"
             onClick={() => { setOpenId(null); setEditor({ open: true, editing: null }); }}
-            className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-[hsl(var(--foreground))] py-3 text-[13.5px] font-bold text-[hsl(var(--background))] shadow-[0_8px_18px_-8px_hsl(var(--foreground)/0.75)] transition-[filter] hover:brightness-[1.12]"
+            className="mt-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(var(--people-accent))]/6 hover:text-[hsl(15_55%_42%)]"
           >
-            <Plus className="h-4 w-4" /> 새 사람
+            <span aria-hidden className="flex w-[20px] shrink-0 items-center justify-center"><Plus className="h-4 w-4" /></span>
+            <span className="flex-1">새 사람</span>
           </button>
-        </div>
+        </nav>
       </aside>
 
       {/* ── 메인 ── */}
