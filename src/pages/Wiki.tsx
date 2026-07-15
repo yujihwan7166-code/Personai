@@ -374,35 +374,86 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* 서가 명판 */}
-            <div style={{ textAlign: 'center', marginTop: 22 }}>
-              <span style={{ display: 'inline-block', padding: '7px 20px', background: 'linear-gradient(180deg,#eadcbd,#d9c7a2)', border: '1px solid #c3ae86', borderRadius: 8, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(60,40,20,0.12)', fontSize: 12.5, letterSpacing: '0.16em', color: '#6b5a3e', fontWeight: 700 }}>
-                책 {topics.length}권 · 문서 {docs.length}편
-              </span>
-            </div>
+            {/* ── 책상 — 책장 앞에 놓인 서재 가구 ── */}
+            <div style={{ position: 'relative', margin: '44px -26px 0', animation: 'pwk-rise 0.6s 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
 
-            {/* 이어서 읽기 */}
-            {recentDocs.length > 0 && (
-              <div style={{ marginTop: 46, textAlign: 'center' }}>
-                <div style={{ fontSize: 12, letterSpacing: '0.2em', color: PW.faint, fontWeight: 700, marginBottom: 14 }}>이어서 읽기</div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  {recentDocs.map(({ doc: d, topic: t }) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => openDoc(d.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 16px', background: PW.inputBg, border: `1px solid ${PW.cardLine}`, borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(60,45,30,0.06)', transition: 'border-color 0.15s ease, transform 0.15s ease' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = PW.cardLine; e.currentTarget.style.transform = 'none'; }}
-                    >
-                      <span aria-hidden style={{ width: 8, height: 12, background: t?.tint ?? PW.accent, borderRadius: '1px 2px 2px 1px', flex: 'none', boxShadow: 'inset -2px 0 0 rgba(0,0,0,0.2)' }} />
-                      <span style={{ fontSize: 13.5, color: PW.ink, fontWeight: 600 }}>{d.title}</span>
-                      <span style={{ fontSize: 11.5, color: PW.faint }}>{t?.name} · {fmtRel(d.updatedAt)}</span>
-                    </button>
-                  ))}
+              {/* 상판 위 소품 줄 */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 60px', position: 'relative', zIndex: 1 }}>
+
+                {/* 초록 갓 스탠드 (장식) */}
+                <div aria-hidden className="hidden md:flex" style={{ flexDirection: 'column', alignItems: 'center', flex: 'none', position: 'relative' }}>
+                  <div style={{ position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)', width: 240, height: 64, background: 'radial-gradient(ellipse at 50% 100%, rgba(255,222,140,0.5), rgba(255,222,140,0) 70%)', pointerEvents: 'none' }} />
+                  <div style={{ width: 98, height: 32, background: 'linear-gradient(180deg,#3f7d54,#28583a)', borderRadius: '50px 50px 6px 6px', boxShadow: 'inset 0 -5px 0 rgba(255,240,190,0.55), inset 0 3px 4px rgba(255,255,255,0.2)' }} />
+                  <div style={{ width: 7, height: 36, background: 'linear-gradient(90deg,#caa64f,#9a7830)', borderRadius: 2 }} />
+                  <div style={{ width: 54, height: 9, background: 'linear-gradient(180deg,#caa64f,#8f6e2a)', borderRadius: '5px 5px 2px 2px' }} />
+                </div>
+
+                {/* 펼친 책 — 이어서 읽기 */}
+                <div style={{ display: 'flex', flex: 'none', filter: 'drop-shadow(0 12px 14px rgba(60,40,20,0.28))', maxWidth: '100%' }}>
+                  {/* 왼쪽 페이지 */}
+                  <div style={{ width: 264, background: 'linear-gradient(90deg,#f7f1e4,#fbf7ee 55%,#efe7d6)', borderRadius: '10px 2px 2px 3px', border: '1px solid #e0d5bf', borderRight: 'none', padding: '15px 18px 13px 22px' }}>
+                    <div style={{ fontSize: 10.5, letterSpacing: '0.22em', color: PW.faint, fontWeight: 700, marginBottom: 9 }}>이어서 읽기</div>
+                    {recentDocs.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: PW.sub, fontFamily: SERIF, lineHeight: 1.7 }}>아직 펼친 문서가 없어요.<br />책장에서 한 권 골라보세요.</div>
+                    ) : (
+                      recentDocs.map(({ doc: d, topic: t }) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => openDoc(d.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '4.5px 0', background: 'none', border: 'none', borderBottom: '1px dotted #ddd0b8', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                          onMouseEnter={(e) => { (e.currentTarget.children[1] as HTMLElement).style.color = PW.accent; }}
+                          onMouseLeave={(e) => { (e.currentTarget.children[1] as HTMLElement).style.color = PW.ink; }}
+                        >
+                          <span aria-hidden style={{ width: 7, height: 11, background: t?.tint ?? PW.accent, borderRadius: '1px 2px 2px 1px', flex: 'none', boxShadow: 'inset -2px 0 0 rgba(0,0,0,0.18)' }} />
+                          <span style={{ fontSize: 12.5, color: PW.ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s ease' }}>{d.title}</span>
+                          <span style={{ fontSize: 10.5, color: PW.faint, marginLeft: 'auto', flex: 'none' }}>{fmtRel(d.updatedAt)}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  {/* 책 골 (제본선) */}
+                  <div aria-hidden style={{ width: 12, background: 'linear-gradient(90deg,#e3d7c0,#c9b995 50%,#e3d7c0)', boxShadow: 'inset 0 0 6px rgba(90,70,40,0.35)', flex: 'none' }} />
+                  {/* 오른쪽 페이지 */}
+                  <div className="hidden sm:flex" style={{ width: 190, background: 'linear-gradient(90deg,#efe7d6,#fbf7ee 45%,#f7f1e4)', borderRadius: '2px 10px 3px 2px', border: '1px solid #e0d5bf', borderLeft: 'none', padding: '15px 20px 13px 18px', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+                    <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 700, color: PW.ink }}>{new Date().getMonth() + 1}월 {new Date().getDate()}일</div>
+                    <div style={{ fontSize: 11.5, color: PW.sub, marginTop: 6, lineHeight: 1.6, fontFamily: SERIF }}>오늘도 한 장,<br />서재가 두꺼워집니다</div>
+                  </div>
+                </div>
+
+                {/* 잉크병 · 화분 (장식) */}
+                <div aria-hidden className="hidden md:flex" style={{ alignItems: 'flex-end', gap: 20, flex: 'none' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 12, height: 8, background: '#4a3f30', borderRadius: '3px 3px 0 0' }} />
+                    <div style={{ width: 28, height: 26, background: 'linear-gradient(180deg,#514434,#332a1e)', borderRadius: '5px 5px 9px 9px', boxShadow: 'inset 3px 3px 5px rgba(255,255,255,0.14)' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
+                      <span style={{ width: 13, height: 22, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
+                      <span style={{ width: 12, height: 26, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
+                      <span style={{ width: 13, height: 20, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
+                    </div>
+                    <div style={{ width: 34, height: 24, background: 'linear-gradient(180deg,#bd6a4a,#9c4f33)', borderRadius: '3px 3px 8px 8px', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.22)' }} />
+                  </div>
                 </div>
               </div>
-            )}
+
+              {/* 상판 */}
+              <div style={{ height: 24, background: 'linear-gradient(180deg,#cfb289,#aa8d63)', borderRadius: 5, boxShadow: '0 14px 26px rgba(60,40,20,0.26), inset 0 2px 0 rgba(255,255,255,0.42), inset 0 -3px 5px rgba(60,40,20,0.2)' }} />
+
+              {/* 앞판 + 명판 */}
+              <div style={{ height: 46, margin: '0 16px', background: 'linear-gradient(180deg,#a3855c,#8a6f4c)', borderRadius: '0 0 7px 7px', boxShadow: 'inset 0 4px 7px rgba(0,0,0,0.18), inset 0 -2px 0 rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ padding: '5px 18px', background: 'linear-gradient(180deg,#e9d9a8,#cdb478)', border: '1px solid #a68d55', borderRadius: 5, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 1px 3px rgba(0,0,0,0.25)', fontSize: 11.5, letterSpacing: '0.18em', color: '#5c4a2c', fontWeight: 700 }}>
+                  책 {topics.length}권 · 문서 {docs.length}편
+                </span>
+              </div>
+
+              {/* 다리 — 아래로 페이드아웃 */}
+              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 58px' }}>
+                <div style={{ width: 30, height: 92, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
+                <div style={{ width: 30, height: 92, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
+              </div>
+            </div>
 
           </div>
         </div>
