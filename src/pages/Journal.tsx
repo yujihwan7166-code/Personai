@@ -536,15 +536,16 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="mb-6 flex flex-wrap items-start gap-x-4 gap-y-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
-                  <h2 className="mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                  <h2 className="mt-1 text-[24px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                  <p className="mt-1 text-[13px] text-[hsl(var(--cream-muted))]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</p>
                 </div>
                 <button
                   type="button"
                   onClick={goWriteToday}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(146_30%_35%/0.6)] transition-[filter] hover:brightness-[1.05]"
+                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(146_30%_35%/0.6)] transition-[filter] hover:brightness-[1.05]"
                   style={{ backgroundColor: 'hsl(146 26% 45%)' }}
                 >
                   <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
