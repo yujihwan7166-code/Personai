@@ -20,6 +20,7 @@ import {
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
   Archive,
   HeartPulse,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -231,6 +232,7 @@ export interface HubTool {
 
 export const HUB_TOOLS: HubTool[] = [
   // ── 정리 (도구·자동) — 준비중(pending)은 맨 아래로 모음 ─────────────────
+  { id: 'today',      label: '오늘의 나',          desc: '오늘 챙길 것·할 일·기록 한눈에',  emoji: '🌅', icon: LayoutDashboard, tint: 'hsl(200 65% 48%)', axis: '정리' },
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'wiki',       label: '마이위키',           desc: '나만의 지식 베이스',             emoji: '🌐', icon: Globe,      tint: 'hsl(262 70% 55%)', axis: '정리' },
   { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
@@ -1068,7 +1070,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2255,6 +2257,9 @@ export function MainModeTabs({
                             } else if (item.id === 'health') {
                               setOpen(false);
                               navigate('/health');
+                            } else if (item.id === 'today') {
+                              setOpen(false);
+                              navigate('/today');
                             }
                           }}
                           role="menuitem"
