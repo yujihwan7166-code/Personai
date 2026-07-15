@@ -127,7 +127,7 @@ export default function Archive() {
           </span>
           <div className="min-w-0">
             <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">아카이브</h1>
-            <p className="text-[12.5px] leading-tight text-muted-foreground">무엇이든 담아두는 나만의 보관소</p>
+            <p className="truncate text-[12.5px] leading-tight text-muted-foreground">무엇이든 담아두는 보관소</p>
           </div>
         </div>
 
