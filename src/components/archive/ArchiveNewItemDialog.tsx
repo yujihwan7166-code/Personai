@@ -177,70 +177,23 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           </button>
         </div>
 
-        <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
-          {/* 제목 */}
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목 (비우면 자동)"
-            className="w-full bg-transparent text-[16px] font-bold tracking-[-0.01em] text-foreground outline-none placeholder:font-semibold placeholder:text-muted-foreground/50"
-          />
-
-          {/* 내용 */}
+        <div className="max-h-[72vh] space-y-4 overflow-y-auto p-5">
+          {/* 제목 — 명확한 라벨 + 테두리 필드 */}
           <div>
-            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">내용</span>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={5}
-              placeholder="내용·메모를 적어요"
-              className={cn(inputCls, 'resize-y leading-relaxed')}
+            <label className="mb-1.5 block text-[12px] font-semibold text-foreground">제목</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력하세요 (비우면 자동으로 채워요)"
+              className="w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2.5 text-[15px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60 focus:border-[hsl(var(--archive-sepia))]"
             />
           </div>
 
-          {/* 링크 */}
+          {/* 컬렉션 — 위쪽으로 (어디에 넣을지 먼저 고름) */}
           <div>
             <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
-              링크 <span className="font-normal text-muted-foreground">— 유튜브·기사·사이트 주소 (선택)</span>
+              컬렉션 <span className="font-normal text-muted-foreground">— 어디에 넣을까요</span>
             </span>
-            <div className="relative">
-              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https:// 주소 붙여넣기"
-                className={cn(inputCls, 'pl-9')}
-              />
-            </div>
-          </div>
-
-          {/* 파일 */}
-          {attached ? (
-            <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5">
-              {attached.isImage && attached.previewUrl ? (
-                <img src={attached.previewUrl} alt="" className="h-11 w-11 rounded-md object-cover" />
-              ) : (
-                <span className="flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]"><Upload className="h-5 w-5" /></span>
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-medium text-foreground">{attached.file.name}</span>
-                <span className="text-[11px] text-muted-foreground">{Math.round(attached.file.size / 1024)} KB</span>
-              </span>
-              <button type="button" onClick={() => onFilePick(undefined)} className="rounded-md p-1 text-muted-foreground hover:bg-accent" aria-label="첨부 제거"><X className="h-4 w-4" /></button>
-            </div>
-          ) : (
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px] text-muted-foreground transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:text-foreground">
-              <Upload className="h-4 w-4" /> 파일·사진 첨부
-              <input type="file" className="hidden" onChange={(e) => onFilePick(e.target.files?.[0] ?? undefined)} />
-            </label>
-          )}
-
-          <div className="h-px bg-[hsl(var(--hairline))]" />
-
-          {/* 컬렉션 — 하나 선택 */}
-          <div>
-            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">컬렉션</span>
             <div className="flex flex-wrap gap-1.5">
               {collections.map((c) => (
                 <button
@@ -280,6 +233,65 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="h-px bg-[hsl(var(--hairline))]" />
+
+          {/* 내용 */}
+          <div>
+            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
+              내용 <span className="font-normal text-muted-foreground">(선택)</span>
+            </span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={5}
+              placeholder="내용·메모를 적어요"
+              className={cn(inputCls, 'resize-y leading-relaxed')}
+            />
+          </div>
+
+          {/* 링크 */}
+          <div>
+            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
+              링크 <span className="font-normal text-muted-foreground">— 유튜브·기사·사이트 주소 (선택)</span>
+            </span>
+            <div className="relative">
+              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https:// 주소 붙여넣기"
+                className={cn(inputCls, 'pl-9')}
+              />
+            </div>
+          </div>
+
+          {/* 파일·사진 */}
+          <div>
+            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
+              파일·사진 <span className="font-normal text-muted-foreground">(선택)</span>
+            </span>
+            {attached ? (
+              <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5">
+                {attached.isImage && attached.previewUrl ? (
+                  <img src={attached.previewUrl} alt="" className="h-11 w-11 rounded-md object-cover" />
+                ) : (
+                  <span className="flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]"><Upload className="h-5 w-5" /></span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-medium text-foreground">{attached.file.name}</span>
+                  <span className="text-[11px] text-muted-foreground">{Math.round(attached.file.size / 1024)} KB</span>
+                </span>
+                <button type="button" onClick={() => onFilePick(undefined)} className="rounded-md p-1 text-muted-foreground hover:bg-accent" aria-label="첨부 제거"><X className="h-4 w-4" /></button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px] text-muted-foreground transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:text-foreground">
+                <Upload className="h-4 w-4" /> 파일·사진 첨부
+                <input type="file" className="hidden" onChange={(e) => onFilePick(e.target.files?.[0] ?? undefined)} />
+              </label>
+            )}
           </div>
 
           {/* 태그 */}
