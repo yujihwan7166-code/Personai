@@ -12,7 +12,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WikiPage } from '@/types/wiki';
 import { extractWikiLinks } from '@/types/wiki';
 import { deletePage as idbDelete, loadAllPages, normalizeWikiPage, upsertPage as idbUpsert } from '@/lib/wikiStore';
-import { isWikiSeeded, seedWiki } from '@/lib/wikiSeed';
 import { recordRevision, deleteRevisionsForPage } from '@/lib/wikiHistory';
 import { garbageCollectImages } from '@/lib/wikiMaintenance';
 import { buildWikiRelations } from '@/lib/wikiQuery';
@@ -26,13 +25,10 @@ export function useWikiPages() {
   const pagesRef = useRef<WikiPage[]>([]);
   pagesRef.current = pages;
 
+  // 데모 시드 없음 — 위키 라이트는 빈 상태에서 시작한다 (2026-07-15 개편).
   const reload = useCallback(async () => {
     setLoading(true);
-    let all = await loadAllPages();
-    if (all.length === 0 && !isWikiSeeded()) {
-      await seedWiki();
-      all = await loadAllPages();
-    }
+    const all = await loadAllPages();
     setPages(all);
     setLoading(false);
   }, []);
@@ -40,11 +36,7 @@ export function useWikiPages() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      let all = await loadAllPages();
-      if (all.length === 0 && !isWikiSeeded()) {
-        await seedWiki();
-        all = await loadAllPages();
-      }
+      const all = await loadAllPages();
       if (!cancelled) {
         setPages(all);
         setLoading(false);

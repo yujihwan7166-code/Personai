@@ -1,819 +1,508 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PanelLeftClose, PanelLeftOpen, Network, Menu, BookOpen, Shuffle, Plus } from 'lucide-react';
+/**
+ * 마이위키 라이트 (/wiki) — 2026-07-15 전면 개편.
+ *
+ * 개념 다이어트: 타입·상태·메인문서·정리보드·템플릿·팔레트 전부 제거.
+ * 남긴 것 = 제목 · 본문 · [[링크]] · 백링크 · 태그 · ⭐.
+ *
+ * UX 3원칙:
+ *  1) 검색창 = 생성창 — 치면 검색, 없으면 Enter 로 그 제목의 문서가 바로 생긴다.
+ *  2) 편집/보기 모드 없음 — 문서를 열면 항상 편집 가능 (자동 저장).
+ *  3) [[ 가 전부 — 본문에서 [[ 치면 기존 문서 자동완성, 없는 링크는 붉게 → 클릭 시 생성.
+ *
+ * 데이터 계층(wikiStore·useWikiPages)은 기존 그대로 재사용 — 일기·플래너·AI 비서 연동과
+ * 기존 문서 데이터가 안 깨진다. upsertPage 가 refersTo 갱신·개명 링크 복구·히스토리까지 처리.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Globe, Star, Search, Plus, Trash2, X, Link2, CornerDownLeft } from 'lucide-react';
 import '@/styles/wiki.css';
+import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
+import { createEmptyWikiPage, extractWikiLinks, type WikiPage } from '@/types/wiki';
 import { useWikiPages } from '@/hooks/useWikiPages';
 import { useWikiFavorites } from '@/hooks/useWikiFavorites';
-import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
-import { createEmptyWikiPage, type WikiPage } from '@/types/wiki';
-import { MainModeTabs } from '@/components/MainModeTabs';
-import { PageWorkspaceChrome } from '@/components/PageWorkspaceChrome';
-import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
-import { WikiSidebar } from '@/components/wiki/WikiSidebar';
-import { WikiPageView } from '@/components/wiki/WikiPageView';
-import { WikiHome } from '@/components/wiki/WikiHome';
-import { WikiGraph } from '@/components/wiki/WikiGraph';
-import { WikiSettingsMenu } from '@/components/wiki/WikiSettingsMenu';
-import { WikiCommandPalette } from '@/components/wiki/WikiCommandPalette';
-import { WikiTemplatePicker } from '@/components/wiki/WikiTemplatePicker';
-import { WikiStoragePanel } from '@/components/wiki/WikiStoragePanel';
-import { WikiAiPanel } from '@/components/wiki/WikiAiPanel';
-import { WikiQuickCapture } from '@/components/wiki/WikiQuickCapture';
-import { clearAllPages } from '@/lib/wikiStore';
-import { formatWikiIdMarkdownLink } from '@/lib/wikiLinks';
-import { notify } from '@/lib/notify';
-import { cn } from '@/lib/utils';
+import { tokenMatchAll } from '@/lib/textSearch';
 
-const SIDEBAR_KEY = 'wiki_sidebar_open';
-const AI_PANEL_KEY = 'wiki_ai_panel_open';
+function fmtRelative(ts: number): string {
+  const d = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24));
+  if (d <= 0) return '오늘';
+  if (d === 1) return '어제';
+  if (d < 7) return `${d}일 전`;
+  if (d < 30) return `${Math.floor(d / 7)}주 전`;
+  return new Date(ts).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' });
+}
 
 const Wiki = () => {
-  const navigate = useNavigate();
-  const { pages, loading, upsertPage, deletePage, archivePage, restoreArchivedPage, mergePages, getBacklinks, findByTitle, findByIdOrTitle, reload, restoreRevision } = useWikiPages();
-  const { favorites, recent, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
-  // 위키링크 visited 색상용 — 최근 본 + 즐겨찾기 합집합
-  const visitedIds = new Set([...recent, ...favorites]);
+  const { pages, loading, upsertPage, deletePage, getBacklinks, findByTitle } = useWikiPages();
+  const { favorites, toggleFavorite, isFavorite, recordView, purge } = useWikiFavorites();
+
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [view, setView] = useState<'page' | 'graph'>('page');
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  const [sidebarQuery, setSidebarQuery] = useState('');
-  const [storageOpen, setStorageOpen] = useState(false);
-  // ⊞ 모드 전환 패널 — Wiki 페이지 위에 직접 띄우기 (페이지 이동 X)
-  const modeApiRef = useRef<{ open: () => void; close: () => void } | null>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
-
-  const goToMainWith = useCallback((state: Record<string, unknown>) => {
-    navigate('/', { state });
-  }, [navigate]);
-
-  const mainModeLabelMap = (() => {
-    const out: Partial<Record<MainMode, string>> = {};
-    for (const [k, v] of Object.entries(MAIN_MODE_LABELS)) {
-      out[k as MainMode] = (v as { label: string }).label;
-    }
-    return out as Record<MainMode, string>;
-  })();
-  // 모바일에선 기본 닫힘, 데스크탑은 localStorage. 768px 미만은 오버레이 모드.
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' && window.innerWidth < 768
-  );
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    // 데스크톱은 항상 열림 고정(공통 레일 도입 후). 모바일만 기본 닫힘(오버레이).
-    return window.innerWidth >= 768;
-  });
-  const [aiOpen, setAiOpen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(AI_PANEL_KEY) === '1';
-  });
-  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
-  const [graphFocusId, setGraphFocusId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const activePage = activeId ? pages.find((p) => p.id === activeId) ?? null : null;
 
-  // 활성 페이지 변경 시 최근 본 기록
+  // 활성 페이지 열람 기록
   useEffect(() => {
     if (activeId) recordView(activeId);
   }, [activeId, recordView]);
 
-  useEffect(() => {
-    const sidebar = sidebarRef.current;
-    if (!sidebar) return;
-    (sidebar as HTMLElement & { inert: boolean }).inert = !sidebarOpen;
-  }, [sidebarOpen]);
+  // 목록 — 보관 문서 제외, 검색 필터, ⭐ 우선 + 최신순
+  const list = useMemo(() => {
+    const favSet = new Set(favorites);
+    const alive = pages.filter((p) => p.status !== 'archived');
+    const q = query.trim();
+    const filtered = q ? alive.filter((p) => tokenMatchAll(`${p.title} ${p.tags.join(' ')}`, q)) : alive;
+    return [...filtered].sort((a, b) => {
+      const fa = favSet.has(a.id) ? 1 : 0;
+      const fb = favSet.has(b.id) ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      return b.updatedAt - a.updatedAt;
+    });
+  }, [pages, favorites, query]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? '1' : '0');
-  }, [sidebarOpen]);
+  /** 제목이 정확히 일치하는 문서가 목록에 있나 (Enter 생성 힌트용). */
+  const exactMatch = useMemo(() => {
+    const q = query.trim();
+    return q ? findByTitle(q) : undefined;
+  }, [query, findByTitle]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(AI_PANEL_KEY, aiOpen ? '1' : '0');
-  }, [aiOpen]);
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const openTemplatePicker = useCallback(() => setTemplatePickerOpen(true), []);
-
-  /** 무작위 페이지 — 보관 제외, 현재 페이지 제외. */
-  const openRandomPage = useCallback(() => {
-    const candidates = pages.filter((p) => p.status !== 'archived' && p.id !== activeId);
-    if (candidates.length === 0) {
-      notify.info('무작위 후보 문서가 없어요', { duration: 1800 });
-      return;
+  /** 제목으로 열기 — 없으면 그 제목으로 즉시 생성 (검색창=생성창, 링크 클릭 공용). */
+  const openOrCreate = useCallback(async (rawTitle: string) => {
+    const title = rawTitle.trim();
+    if (!title) return;
+    const found = findByTitle(title);
+    if (found) {
+      setActiveId(found.id);
+    } else {
+      const next = createEmptyWikiPage({ title, status: 'draft' });
+      await upsertPage(next);
+      setActiveId(next.id);
+      notify.success(`'${title}' 문서를 만들었어요`, { duration: 1600 });
     }
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    setActiveId(pick.id);
-    setEditing(false);
-    setView('page');
-    if (isMobile) setSidebarOpen(false);
-  }, [pages, activeId, isMobile]);
+    setQuery('');
+  }, [findByTitle, upsertPage]);
 
-  /** 인기 태그로 메인 문서 자동 생성 — 그 태그를 가진 문서들을 연결로 묶음 */
-  const makeMocFromTag = useCallback(async (tag: string) => {
-    const targets = pages.filter((p) => p.tags.includes(tag));
-    if (targets.length === 0) {
-      notify.info(`#${tag} 태그를 가진 문서가 없어요`, { duration: 2200 });
-      return;
-    }
-    const { newWikiId } = await import('@/types/wiki');
-    const now = Date.now();
-    const lines = [
-      `# ${tag}`,
-      '',
-      `\`#${tag}\` 태그를 가진 ${targets.length}개 문서를 묶어둔 메인 문서.`,
-      '',
-      '## 문서',
-      ...targets.map((p) => `- ${formatWikiIdMarkdownLink(p.id, p.title)}`),
-      '',
-      '## 같이 보기',
-      '- ',
-      '',
-    ].join('\n');
-    const next: WikiPage = {
-      id: newWikiId(),
-      title: tag,
-      aliases: [],
-      type: 'concept',
-      isMain: true,
-      status: 'active',
-      tags: [tag, 'main'],
-      body: lines,
-      refersTo: [],
-      cites: [],
-      inherits: [],
-      similarTo: [],
-      parentMocs: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await upsertPage(next);
-    setActiveId(next.id);
-    setEditing(false);
-    setView('page');
-    notify.success(`#${tag} 메인 문서를 만들었어요 — ${targets.length}개 문서`, { duration: 2200 });
+  const handleDelete = useCallback(async (page: WikiPage) => {
+    const backlinks = getBacklinks(page.id);
+    const warn = backlinks.length > 0 ? `\n\n이 문서를 가리키는 문서가 ${backlinks.length}개 있어요.` : '';
+    if (!confirm(`'${page.title}' 문서를 삭제할까요?${warn}`)) return;
+    await deletePage(page.id);
+    purge(page.id);
+    setActiveId(null);
+    notify.success('삭제했어요');
+  }, [getBacklinks, deletePage, purge]);
+
+  const commitPatch = useCallback((id: string, patch: Partial<WikiPage>) => {
+    const cur = pages.find((p) => p.id === id);
+    if (!cur) return;
+    void upsertPage({ ...cur, ...patch });
   }, [pages, upsertPage]);
 
-  /** '+ 새 메인 문서' — 템플릿 픽커 거치지 않고 바로 isMain=true 페이지 생성 + 편집 진입 */
-  const createMainDoc = useCallback(async () => {
-    const { newWikiId } = await import('@/types/wiki');
-    const now = Date.now();
-    const next: WikiPage = {
-      id: newWikiId(),
-      title: '새 메인 문서',
-      aliases: [],
-      type: 'concept',
-      isMain: true,
-      status: 'draft',
-      tags: ['main'],
-      body: '## 개요\n\n이 메인 문서가 다루는 범위.\n\n## 핵심 문서\n\n-\n\n## 하위 주제\n\n-\n',
-      refersTo: [],
-      cites: [],
-      inherits: [],
-      similarTo: [],
-      parentMocs: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await upsertPage(next);
-    setActiveId(next.id);
-    setEditing(true);
-    setView('page');
-    if (isMobile) setSidebarOpen(false);
-  }, [upsertPage, isMobile]);
+  const allTitles = useMemo(
+    () => pages.filter((p) => p.status !== 'archived').map((p) => p.title),
+    [pages],
+  );
 
-  const handleTemplatePicked = useCallback(async (page: WikiPage) => {
-    await upsertPage(page);
-    setActiveId(page.id);
-    setEditing(true);
-    setView('page');
-    setTemplatePickerOpen(false);
-    if (isMobile) setSidebarOpen(false);
-  }, [upsertPage, isMobile]);
-
-  const handleDelete = async (id: string) => {
-    const target = pages.find((p) => p.id === id);
-    const backlinks = getBacklinks(id);
-    const title = target?.title ?? '이 문서';
-    const backlinkText = backlinks.length > 0 ? `\n\n주의: 이 문서를 가리키는 문서가 ${backlinks.length}개 있습니다.` : '';
-    if (!confirm(`'${title}' 문서를 완전히 삭제할까요?${backlinkText}\n\n보관이 아니라 실제 삭제라서 백업 없이는 되돌리기 어렵습니다.`)) return;
-    await deletePage(id);
-    purge(id);  // 즐겨찾기·최근 정리
-    if (activeId === id) {
-      setActiveId(null);
-      setEditing(false);
-    }
-  };
-
-  const handleArchivePage = useCallback(async (id: string) => {
-    const target = pages.find((p) => p.id === id);
-    if (!target) return;
-    try {
-      const archived = await archivePage(id);
-      setActiveId(archived.id);
-      setEditing(false);
-      setView('page');
-      notify.success('문서를 보관했어요', { description: target.title });
-    } catch (error) {
-      notify.error('보관에 실패했어요', { description: (error as Error).message });
-    }
-  }, [pages, archivePage]);
-
-  const handleRestoreArchivedPage = useCallback(async (id: string) => {
-    const target = pages.find((p) => p.id === id);
-    if (!target) return;
-    try {
-      const restored = await restoreArchivedPage(id);
-      setActiveId(restored.id);
-      setEditing(false);
-      setView('page');
-      notify.success('문서를 복원했어요', { description: target.title });
-    } catch (error) {
-      notify.error('복원에 실패했어요', { description: (error as Error).message });
-    }
-  }, [pages, restoreArchivedPage]);
-
-  const handleMergePages = useCallback(async (primaryId: string, secondaryId: string) => {
-    const primary = pages.find((p) => p.id === primaryId);
-    const secondary = pages.find((p) => p.id === secondaryId);
-    if (!primary || !secondary) return;
-    if (!confirm(`'${secondary.title}' 문서를 '${primary.title}' 문서로 병합할까요?\n\n병합 후 '${secondary.title}' 문서는 보관 상태로 남습니다.`)) return;
-    try {
-      const merged = await mergePages(primaryId, secondaryId);
-      if (merged) {
-        setActiveId(merged.id);
-        setEditing(false);
-        setView('page');
-        notify.success('문서를 병합했어요', { description: `${secondary.title} → ${primary.title}` });
-      }
-    } catch (error) {
-      notify.error('병합에 실패했어요', { description: (error as Error).message });
-    }
-  }, [pages, mergePages]);
-
-
-  const handleOpenByTitleOrId = useCallback((titleOrId: string) => {
-    const byId = pages.find((p) => p.id === titleOrId);
-    if (byId) {
-      setActiveId(byId.id);
-      setEditing(false);
-      if (isMobile) setSidebarOpen(false);
-      return;
-    }
-    const found = findByTitle(titleOrId);
-    if (found) {
-      setActiveId(found.id);
-      setEditing(false);
-      if (isMobile) setSidebarOpen(false);
-    } else {
-      // 미존재 — 즉시 새 문서로 (제목만 채워서, 빈 본문)
-      void (async () => {
-        const { newWikiId } = await import('@/types/wiki');
-        const now = Date.now();
-        const next: WikiPage = {
-          id: newWikiId(), title: titleOrId, aliases: [], type: 'concept',
-          status: 'draft', tags: [], body: '',
-          refersTo: [], cites: [], inherits: [], similarTo: [], parentMocs: [],
-          createdAt: now, updatedAt: now,
-        };
-        await upsertPage(next);
-        setActiveId(next.id);
-        setEditing(true);
-        setView('page');
-        if (isMobile) setSidebarOpen(false);
-      })();
-    }
-  }, [pages, findByTitle, upsertPage, isMobile]);
-
-  const handleCreateFromSidebarSearch = useCallback(async (title: string) => {
-    const cleanTitle = title.trim();
-    if (!cleanTitle) return;
-    const found = findByTitle(cleanTitle);
-    if (found) {
-      setActiveId(found.id);
-      setEditing(false);
-      setView('page');
-      if (isMobile) setSidebarOpen(false);
-      return;
-    }
-
-    const next = createEmptyWikiPage({
-      title: cleanTitle,
-      status: 'draft',
-    });
-    await upsertPage(next);
-    setActiveId(next.id);
-    setEditing(true);
-    setView('page');
-    setSidebarQuery('');
-    if (isMobile) setSidebarOpen(false);
-  }, [findByTitle, upsertPage, isMobile]);
-
-  const handleClearAll = async () => {
-    if (!confirm('정말 모든 위키 문서를 삭제할까요?')) return;
-    if (!confirm('한 번 더 확인 — 모든 문서가 사라집니다.')) return;
-    await clearAllPages();
-    void reload();
-    setActiveId(null);
-  };
-
-  // 단축키 — Ctrl/Cmd+N 새 문서(템플릿 픽커), Ctrl/Cmd+B 사이드바, E 편집, Esc 편집취소
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const inEditor = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
-      const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === 'n') {
-        e.preventDefault();
-        openTemplatePicker();
-      } else if (meta && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        // 데스크톱은 항상 열림 — 모바일 오버레이에서만 토글.
-        if (window.innerWidth < 768) setSidebarOpen((v) => !v);
-      } else if (meta && e.key.toLowerCase() === 'j') {
-        e.preventDefault();
-        setAiOpen((v) => !v);
-      } else if (meta && e.shiftKey && (e.key === ';' || e.key === ':' || e.code === 'Semicolon')) {
-        e.preventDefault();
-        setQuickCaptureOpen(true);
-      } else if (!inEditor && e.key.toLowerCase() === 'e' && activePage && !editing) {
-        e.preventDefault();
-        setEditing(true);
-      } else if (!inEditor && e.key === 'Escape' && editing) {
-        e.preventDefault();
-        setEditing(false);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [openTemplatePicker, activePage, editing]);
+  const searchInput = (extra?: string) => (
+    <div className={cn('relative', extra)}>
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && query.trim()) {
+            e.preventDefault();
+            void openOrCreate(query);
+          }
+        }}
+        placeholder="검색하거나, 새 제목 입력 후 Enter"
+        className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--wiki-blue))]"
+      />
+      {query.trim() && !exactMatch && (
+        <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1 text-[11px] font-semibold text-[hsl(var(--wiki-blue))]">
+          <CornerDownLeft className="h-3 w-3" /> 새 문서
+        </span>
+      )}
+    </div>
+  );
 
   return (
-    <div className="wiki-warm-theme flex h-screen w-full bg-background overflow-hidden relative">
-      <PageWorkspaceChrome
-        current="wiki"
-        ai={{
-          label: '보조 도구',
-          title: '보조 도구 열기 (Ctrl/Cmd+J)',
-          open: aiOpen,
-          onOpen: () => setAiOpen(true),
-        }}
-      />
-      {/* 모바일: 사이드바 열렸을 때 백드롭 */}
-      {isMobile && sidebarOpen && (
-        <div
-          className="fixed inset-0 wiki-z-sidebar-overlay bg-black/40"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden
-        />
-      )}
-
-      {/* 사이드바 */}
-      {(!isMobile || sidebarOpen) && (
-      <aside
-        ref={sidebarRef}
-        className={cn(
-          'shrink-0 h-full overflow-hidden transition-[width,transform,border-right-width] duration-200 ease-out border-r flex flex-col bg-[hsl(var(--sidebar-background))]',
-          isMobile
-            ? 'fixed left-0 top-0 wiki-z-sidebar w-[280px] border-[hsl(var(--hairline))]'
-            : (sidebarOpen
-                ? 'w-[260px] border-[hsl(var(--hairline))]'
-                : 'w-0 border-r-0'),
-        )}
-        aria-hidden={!sidebarOpen}
-      >
-        <div className={cn(isMobile ? 'w-[280px]' : 'w-[260px]', 'h-full flex flex-col')}>
-          {/* 윗줄 — 정체성 / 모드 전환 / 사이드바 닫기 */}
-          <div className="px-2 h-12 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
-            <span
-              className="flex-1 text-[13px] font-bold text-foreground/90 truncate px-1"
-              style={{ fontFamily: 'var(--wiki-font-meta)' }}
-            >
-              🌐 마이위키
-              {/* 마스트헤드 문법 — 제목(주어) 옆 실데이터(서술어): 위키는 문서 수 */}
-              {pages.length > 0 && (
-                <span className="ml-1 text-[11px] font-bold tabular-nums text-muted-foreground/60">{pages.length}쪽</span>
-              )}
-            </span>
-            {isMobile && (
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(false)}
-                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-                title="사이드바 닫기"
-                aria-label="사이드바 닫기"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* 아랫줄 — 4 균등 (홈 / 그래프 / 새 / 무작위) */}
-          <div className="px-2 h-10 border-b border-[hsl(var(--hairline))] flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => { setActiveId(null); setView('page'); if (isMobile) setSidebarOpen(false); }}
-              className={cn(
-                'flex-1 h-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-                !activeId && view === 'page'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              title="대문"
-              aria-label="대문"
-            >
-              <BookOpen className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); if (isMobile) setSidebarOpen(false); }}
-              className={cn(
-                'flex-1 h-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-                view === 'graph'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              title="연결 그래프"
-              aria-label="연결 그래프"
-            >
-              <Network className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={openTemplatePicker}
-              className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/15 wiki-trans-color"
-              title="새 문서 (Ctrl/Cmd+N)"
-              aria-label="새 문서"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={openRandomPage}
-              className="flex-1 h-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-              title="무작위 문서"
-              aria-label="무작위 문서"
-            >
-              <Shuffle className="h-4 w-4" />
-            </button>
-          </div>
-          <WikiSidebar
-            pages={pages}
-            loading={loading}
-            activeId={activeId}
-            externalQuery={sidebarQuery}
-            onQueryChange={setSidebarQuery}
-            onSelect={(id) => { setActiveId(id); setEditing(false); setView('page'); if (isMobile) setSidebarOpen(false); }}
-            onCreateByTitle={(title) => { void handleCreateFromSidebarSearch(title); }}
-          />
-          {/* 사이드바 footer — 좌측: 페이지 카운트 / 우측: 설정 (같은 줄) */}
-          <div className="px-3 h-9 border-t border-[hsl(var(--hairline))] flex items-center justify-between shrink-0">
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {pages.length}개 문서
-            </span>
-            <WikiSettingsMenu
-              onMutated={() => { void reload(); setActiveId(null); }}
-              onOpenStorage={() => setStorageOpen(true)}
-            />
+    <div className="wikilite-theme flex min-h-dvh bg-background text-foreground">
+      {/* ───────── 좌 사이드바 (lg+) ───────── */}
+      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 pb-5 pt-4 lg:flex">
+        {/* 락업 */}
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--wiki-blue)/0.25)] bg-[hsl(var(--wiki-blue)/0.10)] text-[hsl(var(--wiki-blue))]">
+            <Globe className="h-6 w-6" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">마이위키</h1>
+            <p className="truncate text-[12.5px] leading-tight text-muted-foreground">
+              {pages.length > 0 ? `${pages.length}개 문서가 서로 엮여요` : '연결되는 지식 베이스'}
+            </p>
           </div>
         </div>
-      </aside>
-      )}
 
-      {/* 사이드바 닫혔을 때 — 데스크탑은 세로 아이콘 스트립(activity bar), 모바일은 햄버거 1개 */}
-      {!sidebarOpen && isMobile && (
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-          className="absolute top-3 left-3 wiki-z-toolbar p-1.5 rounded-md bg-card border border-[hsl(var(--hairline))] text-muted-foreground hover:text-foreground hover:bg-accent wiki-trans-color shadow-sm"
-          title="사이드바 펴기 (Ctrl/Cmd+B)"
-          aria-label="사이드바 펴기"
-        >
-          <Menu className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {!sidebarOpen && !isMobile && (
-        <nav
-          className="shrink-0 h-full w-11 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] flex flex-col items-center py-2 gap-1"
-          aria-label="마이위키 빠른 액션"
-        >
-          {/* 최상단: 사이드바 펴기 → 홈화면 → 모드 전환 */}
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="사이드바 펴기 (Ctrl/Cmd+B)"
-            aria-label="사이드바 펴기"
-          >
-            <PanelLeftOpen className="h-4 w-4" />
-          </button>
-          <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
+        {/* 검색 = 생성 */}
+        {searchInput('mb-3')}
 
-          {/* 진입 액션 3개 */}
-          <button
-            type="button"
-            onClick={() => { setActiveId(null); setView('page'); }}
-            className={cn(
-              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-              !activeId && view === 'page'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="대문"
-            aria-label="대문"
-          >
-            <BookOpen className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { setView(view === 'graph' ? 'page' : 'graph'); setActiveId(null); }}
-            className={cn(
-              'h-8 w-8 inline-flex items-center justify-center rounded-md wiki-trans-color',
-              view === 'graph'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )}
-            title="연결 그래프"
-            aria-label="연결 그래프"
-          >
-            <Network className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={openTemplatePicker}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="새 문서 (Ctrl/Cmd+N)"
-            aria-label="새 문서"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={openRandomPage}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground wiki-trans-color"
-            title="무작위 문서"
-            aria-label="무작위 문서"
-          >
-            <Shuffle className="h-4 w-4" />
-          </button>
-
-          {/* 하단: 설정 */}
-          <div className="flex-1" aria-hidden />
-          <div className="my-1 w-6 h-px bg-[hsl(var(--hairline))]" aria-hidden />
-          <WikiSettingsMenu
-            onMutated={() => { void reload(); setActiveId(null); }}
-            onOpenStorage={() => setStorageOpen(true)}
-          />
-        </nav>
-      )}
-
-      <main className="flex-1 min-w-0 overflow-y-auto relative">
-        {view === 'graph' ? (
-          pages.length === 0 ? (
-            <WikiHome
-              pages={pages}
-              favorites={favorites}
-              onSelect={(id) => setActiveId(id)}
-              onCreate={openTemplatePicker}
-              onCreateMissing={(title) => handleOpenByTitleOrId(title)}
-            onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
-            onCreateMainDoc={() => { void createMainDoc(); }}
-            onMergePages={(primaryId, secondaryId) => { void handleMergePages(primaryId, secondaryId); }}
-            onPickStarterPack={async (pack) => {
-                const built = pack.build();
-                for (const p of built) await upsertPage(p);
-                // 시드 후 첫 페이지로 직진 X — 홈에 머물러 메인 문서 미리보기
-                setActiveId(null);
-                setEditing(false);
-                setView('page');
-                notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 문서`, { duration: 2200 });
-              }}
-            />
+        {/* 문서 목록 */}
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+          {loading ? null : list.length === 0 ? (
+            <p className="px-2 py-6 text-center text-[12px] leading-relaxed text-muted-foreground">
+              {query.trim()
+                ? <>일치하는 문서가 없어요.<br />Enter 로 새로 만들 수 있어요.</>
+                : <>아직 문서가 없어요.<br />위에 제목을 입력하고 Enter.</>}
+            </p>
           ) : (
-            <div className="px-6 lg:px-10 py-8 max-w-6xl mx-auto">
-              <header className="mb-4">
-                <p className="text-[10.5px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-1">
-                  MY WIKI · GRAPH
-                </p>
-                <h1 className="text-2xl font-serif font-bold text-foreground"
-                  style={{ fontFamily: '"Newsreader", "Noto Serif KR", Georgia, serif' }}>
-                  연결 그래프
-                </h1>
-                <p className="text-[12px] text-muted-foreground mt-1">
-                  검색·필터·줌·팬·경로 찾기. 노드 클릭 → 문서 열기.
-                </p>
-              </header>
-              <WikiGraph
-                pages={pages}
-                onSelect={(id) => { setActiveId(id); setView('page'); setEditing(false); setGraphFocusId(null); }}
-                initialFocusId={graphFocusId}
-              />
+            list.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { setActiveId(p.id); setQuery(''); }}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors',
+                  activeId === p.id
+                    ? 'bg-[hsl(var(--wiki-blue)/0.12)] text-[hsl(var(--wiki-blue))]'
+                    : 'text-foreground hover:bg-accent',
+                )}
+              >
+                {isFavorite(p.id) && (
+                  <Star className="h-3 w-3 shrink-0 text-amber-400" fill="currentColor" />
+                )}
+                <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{p.title}</span>
+                <span className={cn('shrink-0 text-[11px]', activeId === p.id ? 'text-[hsl(var(--wiki-blue))]' : 'text-muted-foreground/70')}>
+                  {fmtRelative(p.updatedAt)}
+                </span>
+              </button>
+            ))
+          )}
+        </nav>
+      </aside>
+
+      {/* ───────── 본문 ───────── */}
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        {/* 모바일 — 검색·생성 + 최근 칩 */}
+        <div className="border-b border-[hsl(var(--hairline))] p-3 lg:hidden">
+          {searchInput()}
+          {list.length > 0 && (
+            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+              {list.slice(0, 12).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setActiveId(p.id)}
+                  className={cn('shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
+                    activeId === p.id ? 'bg-[hsl(var(--wiki-blue))] text-white' : 'bg-[hsl(var(--surface-3))] text-muted-foreground')}
+                >
+                  {p.title}
+                </button>
+              ))}
             </div>
-          )
-        ) : activePage ? (
-          <WikiPageView
+          )}
+        </div>
+
+        {activePage ? (
+          <DocView
+            key={activePage.id}
             page={activePage}
-            editing={editing}
             backlinks={getBacklinks(activePage.id)}
-            allPages={pages}
-            findByTitle={findByIdOrTitle}
-            isFavorite={isFavorite(activePage.id)}
-            onToggleFavorite={() => toggleFavorite(activePage.id)}
-            visitedIds={visitedIds}
-            onChange={(next) => { void upsertPage(next); }}
-            onRestore={(snapshot) => { void restoreRevision(snapshot); }}
-            onArchive={() => { void handleArchivePage(activePage.id); }}
-            onRestoreArchived={() => { void handleRestoreArchivedPage(activePage.id); }}
-            onDelete={() => handleDelete(activePage.id)}
-            onToggleEdit={() => setEditing((v) => !v)}
-            onOpenLink={handleOpenByTitleOrId}
-            onGoHome={() => {
-              setActiveId(null);
-              setView('page');
-              setEditing(false);
-            }}
-            onOpenInGlobalGraph={(centerId) => {
-              setGraphFocusId(centerId);
-              setView('graph');
-              setActiveId(null);
-            }}
-            onCreateAndLink={async (title, type) => {
-              const { newWikiId } = await import('@/types/wiki');
-              const now = Date.now();
-              const next: WikiPage = {
-                id: newWikiId(),
-                title,
-                aliases: [],
-                type,
-                status: 'draft',
-                tags: [],
-                body: '',
-                refersTo: [],
-                cites: [],
-                inherits: [],
-                similarTo: [],
-                parentMocs: [],
-                createdAt: now,
-                updatedAt: now,
-              };
-              await upsertPage(next);
-              notify.success(`'${title}' 문서를 만들었어요`, { duration: 1800 });
-              return next;
-            }}
-            onTagClick={(tag) => {
-              setSidebarQuery(tag);
-              setActiveId(null);
-              setView('page');
-              if (isMobile) setSidebarOpen(true);
-            }}
-            auxiliaryOpen={aiOpen}
+            allTitles={allTitles}
+            findByTitle={findByTitle}
+            isFav={isFavorite(activePage.id)}
+            onToggleFav={() => toggleFavorite(activePage.id)}
+            onCommit={(patch) => commitPatch(activePage.id, patch)}
+            onDelete={() => { void handleDelete(activePage); }}
+            onOpenTitle={(t) => { void openOrCreate(t); }}
           />
         ) : (
-          <WikiHome
-            pages={pages}
-            favorites={favorites}
-            onSelect={(id) => setActiveId(id)}
-            onCreate={openTemplatePicker}
-            onCreateMissing={(title) => handleOpenByTitleOrId(title)}
-            onMakeMocFromTag={(tag) => { void makeMocFromTag(tag); }}
-            onCreateMainDoc={() => { void createMainDoc(); }}
-            onMergePages={(primaryId, secondaryId) => { void handleMergePages(primaryId, secondaryId); }}
-            onTagClick={(tag) => {
-              setSidebarQuery(tag);
-              if (isMobile) setSidebarOpen(true);
-            }}
-            onPickStarterPack={async (pack) => {
-              const built = pack.build();
-              for (const p of built) await upsertPage(p);
-              // 시드 후 첫 페이지로 직진 X — 홈에 머물러 메인 문서 미리보기
-              setActiveId(null);
-              setEditing(false);
-              setView('page');
-              notify.success(`${pack.label} 스타터 팩 적용 — ${built.length}개 문서`, { duration: 2200 });
-            }}
+          <HomeEmpty
+            hasPages={pages.length > 0}
+            recent={list.slice(0, 8)}
+            onOpen={(id) => setActiveId(id)}
           />
         )}
       </main>
-
-      {/* 명령 팔레트 (Ctrl/Cmd+K) */}
-      <WikiCommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        pages={pages}
-        onOpen={(id) => { setActiveId(id); setView('page'); setEditing(false); }}
-        onCreate={openTemplatePicker}
-        onCreateByTitle={(title) => { void handleCreateFromSidebarSearch(title); }}
-        onGoHome={() => { setActiveId(null); setView('page'); }}
-        onGoGraph={() => { setView('graph'); setActiveId(null); }}
-        onImport={() => {
-          // 가벼운 트리거 — 실제 파일 picker 는 settings menu 안에 있음.
-          notify.info('백업 가져오기는 사이드바 ⚙ 설정 메뉴에서', { duration: 3500 });
-        }}
-        onClearAll={handleClearAll}
-        onQuickCapture={() => setQuickCaptureOpen(true)}
-        onAskAi={() => setAiOpen(true)}
-        currentPageId={activeId}
-        onGoGraphFocus={(id) => {
-          setGraphFocusId(id);
-          setView('graph');
-          setActiveId(null);
-        }}
-      />
-
-      {/* 템플릿 픽커 */}
-      <WikiTemplatePicker
-        open={templatePickerOpen}
-        onClose={() => setTemplatePickerOpen(false)}
-        onPick={handleTemplatePicked}
-      />
-
-      {/* 저장소 사용량 — 헤더 배지·설정 메뉴 둘 다에서 열 수 있게 위로 lift */}
-      <WikiStoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
-
-      {/* 빠른 캡처 — 어디서든 Ctrl/Cmd+Shift+; 로 호출, #수집함 draft 페이지 1개 생성 */}
-      <WikiQuickCapture
-        open={quickCaptureOpen}
-        onClose={() => setQuickCaptureOpen(false)}
-        onCreate={async (page) => {
-          await upsertPage(page);
-          notify.info(`수집함에 새 문서: ${page.title}`, { duration: 2200 });
-        }}
-        onOpenPage={(id) => {
-          setActiveId(id);
-          setEditing(true);
-          setView('page');
-          if (isMobile) setSidebarOpen(false);
-        }}
-      />
-
-      {/* 마이위키 AI 도우미 패널 — 활성 페이지가 있으면 그 컨텍스트, 없으면 위키 전체 메타 */}
-      <WikiAiPanel
-        open={aiOpen}
-        onClose={() => setAiOpen(false)}
-        page={activePage}
-        allPages={pages}
-        totalPages={pages.length}
-        onAppendToBody={activePage ? (snippet) => {
-          const block = [
-            '',
-            '## AI 메모',
-            '',
-            snippet.split('\n').map((line) => `> ${line}`).join('\n'),
-            '',
-          ].join('\n');
-          const next: WikiPage = { ...activePage, body: `${activePage.body}${block}`, updatedAt: Date.now() };
-          void upsertPage(next);
-          notify.success('현재 문서 본문에 추가했어요');
-        } : undefined}
-        onCreatePageFromAnswer={async (title, body) => {
-          const { newWikiId } = await import('@/types/wiki');
-          const now = Date.now();
-          const next: WikiPage = {
-            id: newWikiId(), title: title || '제목 없음', aliases: [], type: 'concept',
-            status: 'draft', tags: [], body,
-            refersTo: [], cites: [], inherits: [], similarTo: [], parentMocs: [],
-            createdAt: now, updatedAt: now,
-          };
-          await upsertPage(next);
-          setActiveId(next.id);
-          setEditing(true);
-          setView('page');
-          notify.success('새 임시 문서로 만들었어요');
-        }}
-      />
-
-      {/* 메인 모드 전환 패널 — 트리거 pill 은 시각적으로 숨기고 apiRef 만 유지.
-          panel 만 portal 로 body 에 노출되어 viewport 정중앙에 등장.
-          모드 선택 시 그 모드의 default DiscussionMode 를 state 로 넘겨 메인으로 이동. */}
-      <HiddenInteractiveMount>
-        <MainModeTabs
-          modes={['general', 'research_main', 'study_main', 'voice_main', 'multi', 'debate', 'stakeholder_main', 'premium_main', 'assistant']}
-          labels={mainModeLabelMap}
-          currentMode="general"
-          pendingMode={null}
-          isDiscussing={false}
-          transitionPhase={0}
-          showPlayerBg={false}
-          onChange={(mode) => goToMainWith({ selectMainMode: mode })}
-          onSelectDebateSub={(sub) => goToMainWith({ selectMainMode: 'debate', selectDebateSub: sub })}
-          onSelectPremiumDomain={(domainId) => goToMainWith({ selectMainMode: 'premium_main', selectPremiumDomain: domainId })}
-          onSelectAssistantCard={(cardId) => goToMainWith({ selectMainMode: cardId === 'voice-analysis' ? 'voice_main' : 'assistant', selectAssistantCard: cardId })}
-          onSelectLifeTool={(toolId) => goToMainWith({ selectMainMode: 'general', selectLifeTool: toolId })}
-          onOpenMentalTests={() => goToMainWith({ openMentalTests: true })}
-          onOpenBookmarks={() => goToMainWith({ openBookmarks: true })}
-          onSelectPlayerTool={(toolId) => goToMainWith({ selectMainMode: 'player', selectPlayerTool: toolId })}
-          apiRef={modeApiRef}
-        />
-      </HiddenInteractiveMount>
     </div>
   );
 };
+
+/* ───────────────────────── 문서 화면 — 항상 편집 가능 ───────────────────────── */
+
+function DocView({
+  page, backlinks, allTitles, findByTitle, isFav, onToggleFav, onCommit, onDelete, onOpenTitle,
+}: {
+  page: WikiPage;
+  backlinks: WikiPage[];
+  allTitles: string[];
+  findByTitle: (t: string) => WikiPage | undefined;
+  isFav: boolean;
+  onToggleFav: () => void;
+  onCommit: (patch: Partial<WikiPage>) => void;
+  onDelete: () => void;
+  onOpenTitle: (title: string) => void;
+}) {
+  const [title, setTitle] = useState(page.title);
+  const [body, setBody] = useState(page.body);
+  const [tagInput, setTagInput] = useState('');
+  // 자동완성 — [[ 뒤 입력 중인 질의 (null 이면 닫힘)
+  const [acQuery, setAcQuery] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const bodyRef = useRef(body);
+  bodyRef.current = body;
+  const savedBodyRef = useRef(page.body);
+  savedBodyRef.current = page.body;
+  const commitRef = useRef(onCommit);
+  commitRef.current = onCommit;
+
+  // 본문 자동 저장 — 700ms 디바운스
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (bodyRef.current !== savedBodyRef.current) commitRef.current({ body: bodyRef.current });
+    }, 700);
+    return () => clearTimeout(t);
+  }, [body]);
+
+  // 문서 이탈(언마운트) 시 미저장분 플러시 — key={page.id} 라 페이지 전환 = 언마운트
+  useEffect(() => () => {
+    if (bodyRef.current !== savedBodyRef.current) commitRef.current({ body: bodyRef.current });
+  }, []);
+
+  const commitTitle = () => {
+    const t = title.trim();
+    if (!t) { setTitle(page.title); return; }
+    if (t !== page.title) onCommit({ title: t });
+  };
+
+  const addTag = (raw: string) => {
+    const t = raw.trim().replace(/^#/, '');
+    if (!t || page.tags.includes(t)) { setTagInput(''); return; }
+    onCommit({ tags: [...page.tags, t] });
+    setTagInput('');
+  };
+
+  // ── [[ 자동완성 ──
+  const refreshAutocomplete = (value: string, cursor: number) => {
+    const before = value.slice(0, cursor);
+    const m = before.match(/\[\[([^\][\n]*)$/);
+    setAcQuery(m ? m[1] : null);
+  };
+
+  const acMatches = useMemo(() => {
+    if (acQuery === null) return [];
+    const q = acQuery.trim().toLowerCase();
+    return allTitles
+      .filter((t) => t.toLowerCase() !== page.title.toLowerCase())
+      .filter((t) => (q ? t.toLowerCase().includes(q) : true))
+      .slice(0, 6);
+  }, [acQuery, allTitles, page.title]);
+
+  const insertLink = (linkTitle: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const cursor = ta.selectionStart;
+    const before = body.slice(0, cursor);
+    const m = before.match(/\[\[([^\][\n]*)$/);
+    if (!m) return;
+    const start = cursor - m[1].length;
+    const after = body.slice(cursor);
+    const closed = after.startsWith(']]') ? after.slice(2) : after;
+    const next = `${body.slice(0, start)}${linkTitle}]]${closed}`;
+    setBody(next);
+    setAcQuery(null);
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + linkTitle.length + 2;
+      ta.setSelectionRange(pos, pos);
+    });
+  };
+
+  // 본문 속 링크 → 칩 (존재 = 파랑 / 미존재 = 붉은 대시)
+  const linkTitles = useMemo(() => {
+    const seen = new Set<string>();
+    return extractWikiLinks(body).filter((t) => {
+      const k = t.toLowerCase();
+      if (seen.has(k) || k === page.title.toLowerCase()) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [body, page.title]);
+
+  return (
+    <div className="mx-auto max-w-3xl px-5 pb-16 pt-6 sm:px-8">
+      {/* 메타 줄 */}
+      <div className="mb-1 flex items-center gap-2 text-[12px] text-muted-foreground">
+        <span>{fmtRelative(page.updatedAt)} 수정</span>
+        <button
+          type="button"
+          onClick={onToggleFav}
+          aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기'}
+          className="-m-1 ml-auto p-1"
+        >
+          <Star className={cn('h-[17px] w-[17px]', isFav ? 'text-amber-400' : 'text-muted-foreground/50 hover:text-muted-foreground')} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
+        <button type="button" onClick={onDelete} aria-label="문서 삭제" className="-m-1 p-1 text-muted-foreground/50 transition-colors hover:text-rose-500">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* 제목 — 항상 편집 */}
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onBlur={commitTitle}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitTitle(); textareaRef.current?.focus(); } }}
+        placeholder="제목"
+        className="w-full bg-transparent text-[28px] font-extrabold tracking-[-0.02em] text-foreground outline-none placeholder:text-muted-foreground/40"
+      />
+
+      {/* 태그 */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {page.tags.map((t) => (
+          <span key={t} className="flex items-center gap-1 rounded-md bg-[hsl(var(--foreground)/0.05)] px-2 py-0.5 text-[12px] text-muted-foreground">
+            #{t}
+            <button type="button" onClick={() => onCommit({ tags: page.tags.filter((x) => x !== t) })} aria-label={`${t} 제거`} className="hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput); } }}
+          onBlur={() => tagInput && addTag(tagInput)}
+          placeholder="+ 태그"
+          className="w-20 bg-transparent py-0.5 text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/50"
+        />
+      </div>
+
+      {/* 본문 — 항상 편집 + [[ 자동완성 */}
+      <div className="relative mt-4">
+        <textarea
+          ref={textareaRef}
+          value={body}
+          onChange={(e) => {
+            setBody(e.target.value);
+            refreshAutocomplete(e.target.value, e.target.selectionStart);
+          }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setAcQuery(null); }}
+          onClick={(e) => refreshAutocomplete(body, (e.target as HTMLTextAreaElement).selectionStart)}
+          onBlur={() => setTimeout(() => setAcQuery(null), 150)}
+          placeholder={'자유롭게 적어요.\n[[ 를 입력하면 다른 문서로 연결돼요.'}
+          rows={Math.max(14, body.split('\n').length + 2)}
+          className="w-full resize-none bg-transparent text-[15px] leading-[1.85] text-foreground outline-none placeholder:text-muted-foreground/45"
+        />
+
+        {/* 자동완성 드롭다운 */}
+        {acQuery !== null && acMatches.length > 0 && (
+          <div className="absolute left-0 top-full z-20 -mt-2 w-72 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-popover shadow-lg">
+            {acMatches.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); insertLink(t); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-foreground transition-colors hover:bg-[hsl(var(--wiki-blue)/0.08)]"
+              >
+                <Link2 className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--wiki-blue))]" />
+                <span className="truncate">{t}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 연결된 문서 */}
+      {linkTitles.length > 0 && (
+        <section className="mt-6 border-t border-[hsl(var(--hairline))] pt-4">
+          <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground/70">연결된 문서</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {linkTitles.map((t) => {
+              const exists = !!findByTitle(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => onOpenTitle(t)}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors',
+                    exists
+                      ? 'bg-[hsl(var(--wiki-blue)/0.10)] text-[hsl(var(--wiki-blue))] hover:bg-[hsl(var(--wiki-blue)/0.18)]'
+                      : 'border border-dashed border-[hsl(var(--wiki-missing)/0.5)] text-[hsl(var(--wiki-missing))] hover:bg-[hsl(var(--wiki-missing)/0.08)]',
+                  )}
+                  title={exists ? '문서 열기' : '아직 없는 문서 — 클릭해서 만들기'}
+                >
+                  {!exists && <Plus className="h-3 w-3" />}
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 이 문서를 언급한 곳 (백링크) */}
+      {backlinks.length > 0 && (
+        <section className="mt-6 border-t border-[hsl(var(--hairline))] pt-4">
+          <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground/70">이 문서를 언급한 곳</h2>
+          <div className="space-y-0.5">
+            {backlinks.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => onOpenTitle(b.title)}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">{b.title}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground/70">{fmtRelative(b.updatedAt)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── 빈 화면 ───────────────────────── */
+
+function HomeEmpty({ hasPages, recent, onOpen }: {
+  hasPages: boolean;
+  recent: WikiPage[];
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <div className="mx-auto max-w-3xl px-5 pt-14 sm:px-8">
+      <div className="flex flex-col items-center text-center">
+        <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[hsl(var(--wiki-blue)/0.10)] text-[hsl(var(--wiki-blue))]">
+          <Globe className="h-8 w-8" strokeWidth={1.6} />
+        </span>
+        <h2 className="text-[20px] font-extrabold text-foreground">
+          {hasPages ? '문서를 골라 이어서 써요' : '첫 문서를 만들어요'}
+        </h2>
+        <p className="mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-muted-foreground">
+          {hasPages
+            ? '왼쪽 목록에서 열거나, 검색창에 새 제목을 입력하고 Enter.'
+            : <>검색창에 제목을 입력하고 Enter 하면 바로 시작돼요.<br />본문에서 <b className="font-semibold text-foreground">[[</b> 를 치면 문서끼리 연결됩니다.</>}
+        </p>
+      </div>
+
+      {recent.length > 0 && (
+        <div className="mt-10 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {recent.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen(p.id)}
+              className="rounded-xl border border-[hsl(var(--hairline))] bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--wiki-blue)/0.45)] hover:shadow-[0_5px_16px_-8px_hsl(var(--foreground)/0.18)]"
+            >
+              <span className="block truncate text-[13px] font-bold text-foreground">{p.title}</span>
+              <span className="mt-1 block text-[11px] text-muted-foreground">{fmtRelative(p.updatedAt)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default Wiki;
