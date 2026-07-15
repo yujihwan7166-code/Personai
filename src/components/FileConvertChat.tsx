@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight, Globe, Search, Star } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileSymlink, RefreshCw, Upload, X, Pencil, ArrowRight, Search, Star } from 'lucide-react';
 import { ModeErrorBoundary } from '@/components/ModeErrorBoundary';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { notify } from '@/lib/notify';
-import { upsertPage } from '@/lib/wikiStore';
-import { newWikiId, type WikiPage } from '@/types/wiki';
 
 import { cn } from '@/lib/utils';
 import { convertDocxToHtml, convertDocxToMarkdown, convertDocxToText } from '@/lib/fileConvert/converters/docx';
@@ -90,7 +88,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
   const [headerFooterPos, setHeaderFooterPos] = useState<'left' | 'center' | 'right'>('center');
   // 암호
   // 결과 → 위키 export 상태
-  const [wikiExported, setWikiExported] = useState(false);
   // 변환 이력
   const [history, setHistory] = useState<ConvertHistoryItem[]>(() => listHistory());
   // 즐겨찾기
@@ -171,7 +168,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
     setResult(null);
     setErrorMessage('');
     setProgress(null);
-    setWikiExported(false);
   }, [result]);
 
   const handleFilesSelected = useCallback(async (picked: File[]) => {
@@ -570,7 +566,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
         originalSize: origSize,
         newSize: converted.blob.size,
       });
-      setWikiExported(false);
       setEditingFileName(false);
       setStage('done');
       setProgress(null);
@@ -2034,59 +2029,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                     <button type="button" onClick={handleDownload} className="flex-1 min-w-[140px] h-10 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold inline-flex items-center justify-center gap-1.5">
                       <Download className="w-4 h-4" /> 다운로드
                     </button>
-                    {/* 위키로 — 긴 텍스트 결과만 (300자+) */}
-                    {result.previewText && result.previewText.length > 100 && ['md', 'html', 'txt'].includes(result.outputFormat) && (
-                      wikiExported ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/wiki')}
-                          className="h-10 px-4 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30"
-                        >
-                          <Globe className="w-4 h-4" />
-                          위키 열기
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const fullText = await result.blob.text();
-                            // 파일명에서 확장자 제거 → 페이지 제목
-                            const title = result.fileName.replace(/\.[^.]+$/, '').slice(0, 80);
-                            const now = Date.now();
-                            const page: WikiPage = {
-                              id: newWikiId(),
-                              title,
-                              aliases: [],
-                              type: 'source',
-                              status: 'draft',
-                              tags: [],
-                              body: `${fullText}\n\n---\n출처: 파일 변환 (${selectedTask?.label ?? ''})`,
-                              refersTo: [],
-                              cites: [],
-                              inherits: [],
-                              similarTo: [],
-                              parentMocs: [],
-                              createdAt: now,
-                              updatedAt: now,
-                            };
-                            try {
-                              await upsertPage(page);
-                              setWikiExported(true);
-                              notify.success('위키 페이지로 보냈어요', {
-                                duration: 3000,
-                                action: { label: '위키 열기', onClick: () => navigate('/wiki') },
-                              });
-                            } catch (e) {
-                              notify.error('위키 페이지 생성 실패', { description: (e as Error).message });
-                            }
-                          }}
-                          className="h-10 px-4 rounded-lg bg-card hover:bg-accent border border-[hsl(var(--hairline))] text-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5"
-                        >
-                          <Globe className="w-4 h-4" /> 위키로
-                        </button>
-                      )
-                    )}
                     <button type="button" onClick={reset} className="h-10 px-4 rounded-lg bg-accent hover:bg-accent/80 text-foreground text-[13px] font-semibold">
                       다른 파일 변환
                     </button>
@@ -2116,7 +2058,6 @@ export function FileConvertChat({ onBack }: FileConvertChatProps) {
                                 setSelectedTask(next);
                                 setFiles([f]);
                                 setResult(null);
-                                setWikiExported(false);
                                 setStage('upload');
                               }}
                               className="group flex items-center gap-2 p-2.5 rounded-lg border border-[hsl(var(--hairline))] bg-card hover:bg-violet-50/40 dark:hover:bg-violet-500/10 hover:border-violet-300 transition-colors text-left"

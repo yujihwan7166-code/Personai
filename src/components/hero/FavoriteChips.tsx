@@ -59,7 +59,6 @@ export function FavoriteChips({
       case 'hub': {
         const route =
           target.hubId === 'planner' ? '/planner' :
-          target.hubId === 'wiki' ? '/wiki' :
           target.hubId === 'notes' ? '/notes' :
           target.hubId === 'journal' ? '/journal' :
           target.hubId === 'career' ? '/career' :

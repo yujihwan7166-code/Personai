@@ -45,7 +45,7 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
-import { AuxiliaryPlannerTool, AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
+import { AuxiliaryPlannerTool } from '@/components/AuxiliaryToolPanels';
 import { QUICK_ACTIONS } from '@/lib/cloudAi/prompts';
 import type { AiContext, AiKind, ChatMessage } from '@/lib/cloudAi/types';
 
@@ -300,8 +300,6 @@ export function AiSidebar({
 
         {activeTool === 'planner' ? (
           <AuxiliaryPlannerTool />
-        ) : activeTool === 'wiki' ? (
-          <AuxiliaryWikiTool />
         ) : (
           <>
             <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-3')}>

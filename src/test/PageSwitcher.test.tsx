@@ -8,7 +8,7 @@ import {
   PAGE_SWITCHER_MOBILE_POSITION_CLASS,
 } from '@/components/PageWorkspaceTokens';
 
-function renderSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] = 'wiki') {
+function renderSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] = 'journal') {
   return render(
     <MemoryRouter>
       <PageSwitcher current={current} />
@@ -16,7 +16,7 @@ function renderSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] =
   );
 }
 
-function renderCompactSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] = 'wiki') {
+function renderCompactSwitcher(current: Parameters<typeof PageSwitcher>[0]['current'] = 'journal') {
   return render(
     <MemoryRouter>
       <PageSwitcher current={current} compact showMobile={false} />
@@ -26,12 +26,12 @@ function renderCompactSwitcher(current: Parameters<typeof PageSwitcher>[0]['curr
 
 describe('PageSwitcher', () => {
   it('opens the mobile menu with focus on the current page item', async () => {
-    renderSwitcher('wiki');
+    renderSwitcher('journal');
 
-    const trigger = screen.getByRole('button', { name: /현재 마이위키/ });
+    const trigger = screen.getByRole('button', { name: /현재 데일리 로그/ });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveAttribute('data-page-switcher-trigger', 'true');
-    expect(trigger).toHaveTextContent('마이위키');
+    expect(trigger).toHaveTextContent('데일리 로그');
     expect(trigger).toHaveClass('max-w-[132px]');
     expect(trigger.parentElement).toHaveClass(...PAGE_SWITCHER_MOBILE_POSITION_CLASS.split(' '));
     expect(PAGE_SWITCHER_MOBILE_POSITION_CLASS).toContain('env(safe-area-inset-bottom)');
@@ -41,7 +41,7 @@ describe('PageSwitcher', () => {
       ...PAGE_SWITCHER_DESKTOP_CLASS.split(' '),
     );
     expect(screen.getByRole('navigation', { name: '페이지 이동' })).toHaveAttribute('data-page-switcher-root', 'desktop');
-    expect(document.querySelector('[data-page-switcher-current="true"]')).toHaveAttribute('data-page-switcher-item', 'wiki');
+    expect(document.querySelector('[data-page-switcher-current="true"]')).toHaveAttribute('data-page-switcher-item', 'journal');
 
     fireEvent.click(trigger);
 
@@ -51,18 +51,18 @@ describe('PageSwitcher', () => {
     expect(menu).toHaveClass(...PAGE_SWITCHER_MOBILE_MENU_CLASS.split(' '));
 
     await waitFor(() => {
-      expect(within(menu).getByRole('button', { name: '마이위키' })).toHaveFocus();
+      expect(within(menu).getByRole('button', { name: '데일리 로그' })).toHaveFocus();
     });
   });
 
   it('closes the mobile menu with Escape and returns focus to the trigger', async () => {
-    renderSwitcher('journal');
+    renderSwitcher('career');
 
-    const trigger = screen.getByRole('button', { name: /현재 일기/ });
+    const trigger = screen.getByRole('button', { name: /현재 스펙 보드/ });
     fireEvent.click(trigger);
     const menu = screen.getByRole('navigation', { name: '페이지 이동 메뉴' });
     await waitFor(() => {
-      expect(within(menu).getByRole('button', { name: '일기' })).toHaveFocus();
+      expect(within(menu).getByRole('button', { name: '스펙 보드' })).toHaveFocus();
     });
 
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -74,23 +74,23 @@ describe('PageSwitcher', () => {
   });
 
   it('moves through the mobile menu with arrow, Home, and End keys', async () => {
-    renderSwitcher('wiki');
+    renderSwitcher('journal');
 
-    fireEvent.click(screen.getByRole('button', { name: /현재 마이위키/ }));
+    fireEvent.click(screen.getByRole('button', { name: /현재 데일리 로그/ }));
     const menu = screen.getByRole('navigation', { name: '페이지 이동 메뉴' });
 
     await waitFor(() => {
-      expect(within(menu).getByRole('button', { name: '마이위키' })).toHaveFocus();
+      expect(within(menu).getByRole('button', { name: '데일리 로그' })).toHaveFocus();
     });
 
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    expect(within(menu).getByRole('button', { name: '일기' })).toHaveFocus();
+    expect(within(menu).getByRole('button', { name: '스펙 보드' })).toHaveFocus();
 
     fireEvent.keyDown(menu, { key: 'ArrowUp' });
-    expect(within(menu).getByRole('button', { name: '마이위키' })).toHaveFocus();
+    expect(within(menu).getByRole('button', { name: '데일리 로그' })).toHaveFocus();
 
     fireEvent.keyDown(menu, { key: 'End' });
-    expect(within(menu).getByRole('button', { name: '일기' })).toHaveFocus();
+    expect(within(menu).getByRole('button', { name: '인맥노트' })).toHaveFocus();
 
     fireEvent.keyDown(menu, { key: 'Home' });
     expect(within(menu).getByRole('button', { name: '홈' })).toHaveFocus();
@@ -124,7 +124,7 @@ describe('PageSwitcher', () => {
 
     const desktop = screen.getByRole('navigation', { name: '페이지 이동' });
     expect(within(desktop).getByRole('button', { name: '통합플래너' })).toHaveAttribute('aria-current', 'page');
-    expect(within(desktop).getByRole('button', { name: '마이위키' })).toBeInTheDocument();
+    expect(within(desktop).getByRole('button', { name: '데일리 로그' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /현재/ })).not.toBeInTheDocument();
   });
 });

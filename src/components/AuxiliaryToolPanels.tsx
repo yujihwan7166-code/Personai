@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, ExternalLink, Pencil } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { eventStore } from '@/services/planner/eventStore';
 import { taskStore } from '@/services/planner/taskStore';
-import { loadAllPages, upsertPage } from '@/lib/wikiStore';
 import { PAGE_AI_PANEL_SCROLL_CLASS } from '@/components/PageAiTokens';
 import {
   PLANNER_EVENT_CHANGED,
@@ -12,7 +11,6 @@ import {
   type PlannerEvent,
   type PlannerTask,
 } from '@/types/planner';
-import { WIKI_TYPE_META, type WikiPage } from '@/types/wiki';
 
 interface ScheduledSummary {
   id: string;
@@ -111,173 +109,6 @@ export function AuxiliaryPlannerTool() {
           ))
         )}
       </ToolSection>
-    </div>
-  );
-}
-
-export function AuxiliaryWikiTool() {
-  const [pages, setPages] = useState<WikiPage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftBody, setDraftBody] = useState('');
-
-  const refreshPages = useCallback(() => {
-    let cancelled = false;
-    setLoading(true);
-    loadAllPages()
-      .then((next) => {
-        if (!cancelled) setPages(next.filter((page) => page.status !== 'archived').slice(0, 24));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => refreshPages(), [refreshPages]);
-
-  const editingPage = editingId ? pages.find((page) => page.id === editingId) ?? null : null;
-
-  const startEditPage = (page: WikiPage) => {
-    setEditingId(page.id);
-    setDraftBody(page.body);
-  };
-
-  const savePage = async () => {
-    if (!editingPage) return;
-    const next = { ...editingPage, body: draftBody, updatedAt: Date.now() };
-    await upsertPage(next);
-    setPages((current) => current.map((page) => (page.id === next.id ? next : page)));
-    setEditingId(null);
-  };
-
-  // 메모와 동일한 편집/목록 명확 분리. 편집 모드에선 ToolIntro 헤더 숨김 + 큰 textarea 영역.
-  return (
-    <div
-      className={cn(
-        'min-h-0 flex-1 px-3 py-3',
-        editingPage
-          ? 'flex flex-col overflow-hidden'
-          : 'overflow-y-auto overscroll-contain space-y-2.5',
-      )}
-    >
-      {editingPage ? (
-        <section className="flex min-h-0 flex-1 flex-col">
-          <header className="mb-2.5 flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setEditingId(null)}
-              aria-label="목록으로 돌아가기"
-              title="목록"
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <ArrowLeft className="h-3 w-3" strokeWidth={2.4} />
-              목록
-            </button>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="text-sm" aria-hidden>
-                  {WIKI_TYPE_META[editingPage.type]?.icon ?? '📄'}
-                </span>
-                <span className="truncate text-[13px] font-bold leading-tight text-foreground">
-                  {editingPage.title}
-                </span>
-              </div>
-              <div className="mt-0.5 truncate text-[10.5px] font-medium text-muted-foreground">
-                {WIKI_TYPE_META[editingPage.type]?.label ?? '문서'}
-                {editingPage.tags.length > 0 ? ` · #${editingPage.tags.slice(0, 2).join(' #')}` : ''}
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <ToolRouteButton
-                to="/wiki"
-                className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <ExternalLink className="h-3 w-3" />
-                열기
-              </ToolRouteButton>
-              <button
-                type="button"
-                onClick={() => void savePage()}
-                className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Check className="h-3 w-3" strokeWidth={2.4} />
-                저장
-              </button>
-            </div>
-          </header>
-          <textarea
-            value={draftBody}
-            onChange={(event) => setDraftBody(event.target.value)}
-            placeholder="위키 문서를 정리해보세요..."
-            className="min-h-0 flex-1 resize-none rounded-xl border border-[hsl(var(--hairline))] bg-card/65 px-3.5 py-3 text-[12.5px] leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-primary/12"
-          />
-        </section>
-      ) : (
-        <>
-          <ToolIntro
-            title="위키 문서"
-            description="문서를 읽고 필요한 부분을 바로 정리합니다."
-            action={
-              <ToolRouteButton to="/wiki" className={TOOL_GHOST_BUTTON_CLASS}>
-                전체
-                <ExternalLink className="h-3 w-3" />
-              </ToolRouteButton>
-            }
-          />
-          {loading ? (
-            <ToolEmpty
-              icon={<BookOpen className="h-4 w-4" />}
-              title="위키를 불러오는 중"
-              description="잠시만 기다려주세요."
-            />
-          ) : pages.length === 0 ? (
-            <ToolEmpty
-              icon={<BookOpen className="h-4 w-4" />}
-              title="보여줄 위키 문서가 없어요"
-              description="마이위키에서 문서를 만들면 여기에 바로 나타납니다."
-            />
-          ) : (
-            pages.map((page) => (
-              <button
-                key={page.id}
-                type="button"
-                onClick={() => startEditPage(page)}
-                className="group w-full rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 shrink-0 text-sm" aria-hidden>
-                    {WIKI_TYPE_META[page.type]?.icon ?? '📄'}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[12.5px] font-semibold text-foreground">
-                      {page.title}
-                    </div>
-                    <p className="mt-1 line-clamp-3 text-[11.5px] leading-5 text-muted-foreground">
-                      {cleanReadableWikiText(page.body) || '본문이 아직 비어 있어요.'}
-                    </p>
-                    {page.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {page.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35 opacity-0 transition-opacity group-hover:opacity-100" />
-                </div>
-              </button>
-            ))
-          )}
-        </>
-      )}
     </div>
   );
 }
@@ -446,32 +277,4 @@ function toLocalDateKey(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function cleanReadableWikiText(value: string): string {
-  const withoutTemplateRows = value
-    .split('\n')
-    .filter((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return false;
-      if (/예시 페이지|교체하세요|YYYY|YY\/MM|항목\s*\||내용\s*\||일자\s*\||출처\s*\|/.test(trimmed)) return false;
-      if (/^[|｜\s:;.,/\\<>[\]{}()-]+$/.test(trimmed)) return false;
-      return true;
-    })
-    .join(' ');
-
-  return withoutTemplateRows
-    .replace(/\[\[([^\]|]+)\|([^\]]+)]]/g, '$2')
-    .replace(/\[\[([^\]]+)]]/g, '$1')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/[|｜]{2,}/g, ' ')
-    .replace(/<{2,}|>{2,}|<\/+>/g, ' ')
-    .replace(/[*_~>#]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 180);
 }

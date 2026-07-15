@@ -7,10 +7,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
-import { ArrowRight, ArrowUp, BookOpen, CalendarDays, Sparkles, Square } from 'lucide-react';
+import { ArrowRight, ArrowUp, CalendarDays, Sparkles, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { loadAllPages } from '@/lib/wikiStore';
-import { WIKI_TYPE_META, type WikiPage } from '@/types/wiki';
 import { PAGE_AI_PANEL_SCROLL_CLASS } from '@/components/PageAiTokens';
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
@@ -21,8 +19,8 @@ import {
   type PlannerTask,
 } from '@/types/planner';
 
-export type AuxiliaryToolTab = 'ai' | 'planner' | 'wiki';
-export type AuxiliaryToolSurface = 'planner' | 'wiki' | 'journal' | 'default';
+export type AuxiliaryToolTab = 'ai' | 'planner';
+export type AuxiliaryToolSurface = 'planner' | 'journal' | 'default';
 
 interface AuxiliaryToolItem {
   id: AuxiliaryToolTab;
@@ -39,17 +37,12 @@ const AUXILIARY_TOOL_META: Record<AuxiliaryToolTab, Omit<AuxiliaryToolItem, 'id'
     label: '플래너',
     icon: <CalendarDays className="h-3.5 w-3.5" strokeWidth={2.1} />,
   },
-  wiki: {
-    label: '위키',
-    icon: <BookOpen className="h-3.5 w-3.5" strokeWidth={2.1} />,
-  },
 };
 
 const AUXILIARY_TOOLS_BY_SURFACE: Record<AuxiliaryToolSurface, AuxiliaryToolTab[]> = {
-  planner: ['ai', 'wiki'],
-  wiki: ['ai', 'planner'],
-  journal: ['ai', 'planner', 'wiki'],
-  default: ['ai', 'wiki'],
+  planner: ['ai'],
+  journal: ['ai', 'planner'],
+  default: ['ai'],
 };
 
 export function getAuxiliaryToolsForSurface(surface: AuxiliaryToolSurface = 'default'): AuxiliaryToolItem[] {
@@ -227,81 +220,6 @@ export function AuxiliaryPlannerTool() {
   );
 }
 
-export function AuxiliaryWikiTool() {
-  const [pages, setPages] = useState<WikiPage[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    loadAllPages()
-      .then((next) => {
-        if (!cancelled) setPages(next.filter((page) => page.status !== 'archived').slice(0, 24));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <div className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>
-      <div className="pb-1">
-        <div className="text-[13px] font-semibold text-foreground">위키 문서</div>
-        <div className="text-[11.5px] text-muted-foreground">현재 화면 옆에서 지식 문서를 참고합니다.</div>
-      </div>
-      {loading ? (
-        <InlineToolEmpty
-          icon={<BookOpen className="h-4 w-4" />}
-          title="위키를 불러오는 중"
-          description="잠시만 기다려주세요."
-        />
-      ) : pages.length === 0 ? (
-        <InlineToolEmpty
-          icon={<BookOpen className="h-4 w-4" />}
-          title="보여줄 위키 문서가 없어요"
-          description="마이위키에서 문서를 만들면 여기에 바로 나타납니다."
-        />
-      ) : (
-        pages.map((page) => (
-          <article
-            key={page.id}
-            className="rounded-xl border border-[hsl(var(--hairline))] bg-card/70 px-3 py-2.5"
-          >
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 shrink-0 text-sm" aria-hidden>
-                {WIKI_TYPE_META[page.type]?.icon ?? '📄'}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-semibold text-foreground">
-                  {page.title}
-                </div>
-                <p className="mt-1 line-clamp-2 text-[11.5px] leading-5 text-muted-foreground">
-                  {stripInlineMarkdown(page.body) || '본문이 아직 비어 있어요.'}
-                </p>
-                {page.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {page.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </article>
-        ))
-      )}
-    </div>
-  );
-}
-
 function InlineToolEmpty({
   icon,
   title,
@@ -346,19 +264,6 @@ function formatPlannerTime(value?: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function stripInlineMarkdown(value: string): string {
-  return value
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/[*_~>#-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 120);
 }
 
 interface PageAiContextStripProps {

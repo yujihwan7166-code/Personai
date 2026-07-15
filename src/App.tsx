@@ -20,7 +20,6 @@ const Planner = lazy(() => import("./pages/Planner"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Career = lazy(() => import("./pages/Career"));
-const Wiki = lazy(() => import("./pages/Wiki"));
 const People = lazy(() => import("./pages/People"));
 const Archive = lazy(() => import("./pages/Archive"));
 const Health = lazy(() => import("./pages/Health"));
@@ -57,7 +56,6 @@ const App = () => (
               <Route path="/travel" element={<Navigate to="/journal?view=travel" replace />} />
               <Route path="/people" element={<AppWorkspaceShell current="people"><People /></AppWorkspaceShell>} />
               <Route path="/archive" element={<AppWorkspaceShell current="archive"><Archive /></AppWorkspaceShell>} />
-              <Route path="/wiki" element={<AppWorkspaceShell current="wiki"><Wiki /></AppWorkspaceShell>} />
               <Route path="/health" element={<AppWorkspaceShell current="health"><Health /></AppWorkspaceShell>} />
               <Route path="/today" element={<AppWorkspaceShell current="today"><Today /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />

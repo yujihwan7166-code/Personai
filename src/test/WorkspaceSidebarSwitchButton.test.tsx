@@ -7,16 +7,16 @@ describe('WorkspaceSidebarSwitchButton', () => {
   it('uses readable Korean labels for the mode launcher', () => {
     render(
       <MemoryRouter>
-        <WorkspaceSidebarSwitchButton current="wiki" contentAlign="start" />
+        <WorkspaceSidebarSwitchButton current="journal" contentAlign="start" />
       </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 마이위키' });
-    expect(trigger).toHaveAttribute('title', '모드 전환: 현재 마이위키');
+    const trigger = screen.getByRole('button', { name: '모드 전환: 현재 데일리 로그' });
+    expect(trigger).toHaveAttribute('title', '모드 전환: 현재 데일리 로그');
     expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveAttribute('aria-controls');
-    expect(trigger).toHaveAttribute('data-workspace-switch-current', 'wiki');
+    expect(trigger).toHaveAttribute('data-workspace-switch-current', 'journal');
     expect(trigger).toHaveClass('justify-start');
   });
 

@@ -1,5 +1,5 @@
 /**
- * 페이지 스위처 — 통합플래너, 마이위키, 일기 간 빠른 이동.
+ * 페이지 스위처 — 통합플래너, 데일리 로그, 스펙 보드 간 빠른 이동.
  *
  * 사용: <PageSwitcher current="planner" />
  */
@@ -17,7 +17,6 @@ import {
   Award,
   CalendarDays,
   Contact,
-  Network,
   NotebookPen,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,7 +30,6 @@ import {
 export type PageSwitcherCurrent =
   | 'home'
   | 'planner'
-  | 'wiki'
   | 'journal'
   | 'career'
   | 'people';
@@ -74,7 +72,6 @@ export const PageSwitcher = ({
   const chips: ChipDef[] = [
     { key: 'home', label: '홈', icon: Home, to: '/' },
     { key: 'planner', label: '통합플래너', icon: CalendarDays, to: '/planner' },
-    { key: 'wiki', label: '마이위키', icon: Network, to: '/wiki' },
     { key: 'journal', label: '데일리 로그', icon: NotebookPen, to: '/journal' },
     { key: 'career', label: '스펙 보드', icon: Award, to: '/career' },
     { key: 'people', label: '인맥노트', icon: Contact, to: '/people' },

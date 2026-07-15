@@ -19,7 +19,6 @@ import {
   PageAiTypingIndicator,
   getAuxiliaryToolsForSurface,
 } from '@/components/PageAiScaffold';
-import { AuxiliaryWikiTool } from '@/components/AuxiliaryToolPanels';
 import {
   PAGE_AI_PANEL_SCROLL_CLASS,
   PAGE_AI_PANEL_SURFACE_CLASS,
@@ -167,9 +166,7 @@ export const PlannerAIPanel = ({
             )}
           />
 
-          {activeTool === 'wiki' ? (
-            <AuxiliaryWikiTool />
-          ) : (
+          {(
             <>
               {/* ── 메시지 영역 ── */}
               <div ref={scrollRef} className={cn(PAGE_AI_PANEL_SCROLL_CLASS, 'space-y-2.5')}>

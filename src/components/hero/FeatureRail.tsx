@@ -58,7 +58,7 @@ function buildGroups(): RailGroup[] {
       label: '노트',
       items: [
         { id: 'planner', label: '플래너', icon: HUB_ICONS.planner, tint: hubTint('planner'), target: { kind: 'hub', hubId: 'planner' } },
-        { id: 'wiki', label: '마이위키', icon: HUB_ICONS.wiki, tint: hubTint('wiki'), target: { kind: 'hub', hubId: 'wiki' } },
+        { id: 'archive', label: '아카이브', icon: HUB_ICONS.archive, tint: hubTint('archive'), target: { kind: 'hub', hubId: 'archive' } },
         { id: 'cloud', label: '클라우드', icon: HUB_ICONS.cloud, tint: hubTint('cloud'), target: { kind: 'hub', hubId: 'cloud' } },
       ],
     },
@@ -117,7 +117,7 @@ export function FeatureRail({
       case 'hub': {
         const route =
           target.hubId === 'planner' ? '/planner' :
-          target.hubId === 'wiki' ? '/wiki' :
+          target.hubId === 'archive' ? '/archive' :
           target.hubId === 'cloud' ? '/cloud' : null;
         if (route) navigate(route);
         break;

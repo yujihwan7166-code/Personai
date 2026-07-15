@@ -25,12 +25,14 @@ interface WorkspaceSidebarSwitchButtonProps {
   contentAlign?: 'start' | 'center' | 'end';
 }
 
-const WORKSPACE_LABELS: Record<WorkspaceKey, string> = {
+const WORKSPACE_LABELS: Partial<Record<WorkspaceKey, string>> = {
+  today: '오늘의 나',
   planner: '통합 플래너',
-  wiki: '마이위키',
-  journal: '일기',
+  journal: '데일리 로그',
   career: '스펙 보드',
+  people: '인맥노트',
   archive: '아카이브',
+  health: '건강기록',
 };
 
 export function WorkspaceSidebarSwitchButton({

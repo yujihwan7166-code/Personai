@@ -1,17 +1,16 @@
 /**
- * 비서 컨텍스트 빌더 — 플래너·위키 데이터를 AI 프롬프트용 텍스트로 조립.
+ * 비서 컨텍스트 빌더 — 플래너 데이터를 AI 프롬프트용 텍스트로 조립.
  *
  * 비서 모드에서 사용자가 질문하면, 선택된 소스의 개인 데이터를 읽어
  * 시스템 프롬프트에 주입한다. AI 는 이 컨텍스트를 근거로 "내 상황" 에 맞게 답변.
+ * (위키 스코프는 2026-07-15 마이위키 철거와 함께 제거.)
  *
  * 크기 가드: 각 섹션 별 항목 수·글자 수 제한 (프롬프트 폭주 방지).
  */
 import { taskStore } from '@/services/planner/taskStore';
 import { eventStore } from '@/services/planner/eventStore';
-import { loadAllPages } from '@/lib/wikiStore';
-import { getActiveWikiPages, searchWikiPages, stripMarkdown } from '@/lib/wikiQuery';
 
-export type SecretaryScope = 'all' | 'planner' | 'wiki';
+export type SecretaryScope = 'all' | 'planner';
 
 export const SECRETARY_SCOPES: {
   id: SecretaryScope;
@@ -20,13 +19,10 @@ export const SECRETARY_SCOPES: {
 }[] = [
   { id: 'all',     label: '전체',   emoji: '💼' },
   { id: 'planner', label: '플래너', emoji: '📅' },
-  { id: 'wiki',    label: '위키',   emoji: '🌐' },
 ];
 
 const MAX_TASKS = 20;
 const MAX_EVENTS = 20;
-const MAX_WIKI_PAGES = 5;
-const MAX_WIKI_CHARS = 900;   // 페이지당
 
 function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -73,40 +69,6 @@ function buildPlannerSection(): string {
   return lines.length > 0 ? lines.join('\n') : '### 플래너\n(등록된 할일·일정 없음)';
 }
 
-/** 위키 섹션 — 질문 연관 페이지 우선, 없으면 제목 목록. */
-async function buildWikiSection(question: string): Promise<string> {
-  let pages;
-  try {
-    pages = getActiveWikiPages(await loadAllPages());
-  } catch {
-    return '### 위키\n(위키 접근 불가)';
-  }
-  if (pages.length === 0) return '### 위키\n(위키 페이지 없음)';
-
-  const lines = ['### 위키'];
-
-  // 질문과 연관된 페이지 본문 발췌 (hit 없는 항목 제외).
-  const matches = question.trim()
-    ? searchWikiPages(pages, question)
-        .filter((h) => h.hit !== 'none')
-        .slice(0, MAX_WIKI_PAGES)
-        .map((h) => h.page)
-    : [];
-
-  if (matches.length > 0) {
-    for (const page of matches) {
-      const body = stripMarkdown(page.body ?? '').slice(0, MAX_WIKI_CHARS);
-      lines.push(`#### ${page.title}\n${body}`);
-    }
-  } else {
-    // 연관 페이지 없음 → 전체 제목 목록만 (AI 가 어떤 지식이 있는지 알 수 있게).
-    lines.push(
-      '페이지 목록: ' + pages.slice(0, 40).map((p) => p.title).join(' · '),
-    );
-  }
-  return lines.join('\n');
-}
-
 /**
  * 비서 시스템 프롬프트 + 개인 데이터 컨텍스트 조립.
  * scope 에 따라 포함 섹션이 달라진다.
@@ -121,7 +83,6 @@ export async function buildSecretaryPrompt(
 
   const sections: string[] = [];
   if (scope === 'all' || scope === 'planner') sections.push(buildPlannerSection());
-  if (scope === 'all' || scope === 'wiki') sections.push(await buildWikiSection(question));
 
   return [
     '[System]',

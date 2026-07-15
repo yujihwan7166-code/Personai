@@ -715,7 +715,7 @@ export function HeroSection({
               {SECRETARY_SCOPES.map((s) => {
                 const active = s.id === secretaryScope;
                 const ScopeIcon: LucideIcon =
-                  s.id === 'planner' ? CalendarDays : s.id === 'wiki' ? Globe : Briefcase;
+                  s.id === 'planner' ? CalendarDays : Briefcase;
                 return (
                   <button
                     key={s.id}
