@@ -234,6 +234,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'today',      label: '오늘의 나',          desc: '오늘 챙길 것·할 일·기록 한눈에',  emoji: '🌅', icon: LayoutDashboard, tint: 'hsl(200 65% 48%)', axis: '정리' },
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
+  { id: 'wiki',       label: '마이위키',           desc: '문서를 [[링크]]로 엮는 지식',      emoji: '🌐', icon: Globe,      tint: 'hsl(210 78% 46%)', axis: '정리' },
   { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
   { id: 'ledger',     label: '가계부 (준비 중)',    desc: '지출·수입·월 결산',               emoji: '💰', icon: PiggyBank,  tint: 'hsl(140 55% 42%)', axis: '정리', pending: true },
@@ -1066,7 +1067,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { today: '/today', notes: '/notes', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2247,6 +2248,9 @@ export function MainModeTabs({
                             } else if (item.id === 'archive') {
                               setOpen(false);
                               navigate('/archive');
+                            } else if (item.id === 'wiki') {
+                              setOpen(false);
+                              navigate('/wiki');
                             } else if (item.id === 'health') {
                               setOpen(false);
                               navigate('/health');
