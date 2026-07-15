@@ -20,9 +20,19 @@ const PAGE_CSS = `
 .pwk-scroll::-webkit-scrollbar-thumb { background: #d8cfc0; border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
 .pwk-scroll::-webkit-scrollbar-thumb:hover { background: #c4b8a4; background-clip: content-box; }
 @keyframes pwk-pop { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes pwk-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .pwk-spine { transition: transform 0.18s ease, box-shadow 0.18s ease; }
 .pwk-spine:hover { transform: translateY(-14px); box-shadow: 0 20px 34px rgba(60,40,25,0.28) !important; }
 `;
+
+function fmtRel(iso: string): string {
+  const d = Math.floor((Date.now() - Date.parse(iso)) / (1000 * 60 * 60 * 24));
+  if (d <= 0) return '오늘';
+  if (d === 1) return '어제';
+  if (d < 7) return `${d}일 전`;
+  if (d < 30) return `${Math.floor(d / 7)}주 전`;
+  return new Date(iso).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+}
 
 /** 책등 그라데이션 어둡게. */
 function shade(hex: string, amt: number): string {
@@ -192,6 +202,15 @@ export default function Wiki() {
   for (let i = 0; i < topics.length; i += 6) shelves.push(topics.slice(i, i + 6));
   if (shelves.length === 0) shelves.push([]);
 
+  /* ── 이어서 읽기 — 최근 손댄 문서 3편 ── */
+  const recentDocs = useMemo(
+    () => [...docs]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 3)
+      .map((d) => ({ doc: d, topic: topics.find((t) => t.id === d.topicId) })),
+    [docs, topics],
+  );
+
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: PW.paper, color: PW.ink, fontFamily: SANS, overflow: 'hidden' }}>
       <style>{PAGE_CSS}</style>
@@ -261,7 +280,13 @@ export default function Wiki() {
 
       {/* ══════════ 도서관 (책장) ══════════ */}
       {screen === 'library' && (
-        <div className="pwk-scroll" style={{ flex: 1, overflow: 'auto', padding: '64px 40px 96px' }}>
+        <div
+          className="pwk-scroll"
+          style={{
+            flex: 1, overflow: 'auto', padding: '64px 40px 96px',
+            backgroundImage: `radial-gradient(920px 430px at 50% -80px, rgba(255,252,244,0.95), rgba(255,252,244,0) 70%), repeating-linear-gradient(0deg, rgba(120,100,70,0.018) 0px, rgba(120,100,70,0.018) 1px, transparent 1px, transparent 3px)`,
+          }}
+        >
           <div style={{ maxWidth: 1040, margin: '0 auto' }}>
             {/* 표지 히어로 — 헤더 없이, 책 표지처럼 큼직하게 */}
             <div style={{ textAlign: 'center', margin: '22px 0 52px' }}>
@@ -279,64 +304,105 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* 책장 */}
-            <div style={{ background: 'linear-gradient(180deg,#efe7d8,#e7ddca)', borderRadius: 16, padding: '44px 40px 0', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
-              {shelves.map((shelf, si) => (
-                <div key={si}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, minHeight: 230, paddingTop: si > 0 ? 34 : 0 }}>
-                    {shelf.map((t) => {
-                      const n = countOf(t.id);
-                      const h = Math.min(214, 158 + n * 7);
-                      return (
-                        <div
-                          key={t.id}
-                          className="pwk-spine"
-                          onClick={() => openBook(t)}
-                          title={`${t.name} — 문서 ${n}개`}
-                          style={{
-                            width: 62, height: h, flex: 'none', cursor: 'pointer',
-                            background: `linear-gradient(90deg, ${t.tint}, ${shade(t.tint, -18)})`,
-                            borderRadius: '3px 6px 6px 3px',
-                            boxShadow: 'inset -6px 0 10px rgba(0,0,0,0.28), inset 4px 0 0 rgba(255,255,255,0.14), 0 8px 16px rgba(60,40,25,0.18)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0 16px',
-                          }}
-                        >
-                          <div style={{ writingMode: 'vertical-rl', fontFamily: SERIF, fontWeight: 700, fontSize: t.name.length >= 4 ? 19 : t.name.length === 3 ? 21 : 26, color: '#fbf6ee', letterSpacing: '0.04em', textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>{t.name}</div>
-                          <div style={{ writingMode: 'vertical-rl', fontSize: 11, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.1em' }}>{n}판</div>
-                        </div>
-                      );
-                    })}
-                    {/* 빈 칸 = 새 책 (마지막 선반에만) */}
-                    {si === shelves.length - 1 && (
-                      addingBook ? (
-                        <div style={{ width: 170, height: 186, border: `2px dashed ${PW.accent}`, borderRadius: '3px 5px 5px 3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(255,253,248,0.6)', marginLeft: 6, padding: '0 14px' }}>
-                          <div style={{ fontSize: 12, color: PW.sub, fontWeight: 700 }}>새 책 이름</div>
-                          <input
-                            autoFocus
-                            value={bookName}
-                            onChange={(e) => setBookName(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') addBook(); if (e.key === 'Escape') { setAddingBook(false); setBookName(''); } }}
-                            onBlur={addBook}
-                            placeholder="예: 주식 공부"
-                            style={{ width: '100%', border: `1px solid ${PW.input}`, borderRadius: 8, padding: '8px 10px', fontSize: 13.5, outline: 'none', fontFamily: 'inherit', background: '#fff', textAlign: 'center' }}
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => setAddingBook(true)}
-                          style={{ width: 58, height: 186, border: '2px dashed #c4b49a', borderRadius: '3px 5px 5px 3px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#a8987e', marginLeft: 6, flex: 'none' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.color = PW.accent; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#c4b49a'; e.currentTarget.style.color = '#a8987e'; }}
-                        >
-                          <span style={{ writingMode: 'vertical-rl', fontSize: 13, letterSpacing: '0.12em' }}>＋ 새 책</span>
-                        </div>
-                      )
-                    )}
+            {/* 책장 — 나무 프레임 가구 */}
+            <div style={{ background: 'linear-gradient(180deg,#b79b74,#8a6f4c)', borderRadius: 22, padding: 16, boxShadow: '0 26px 50px rgba(60,40,20,0.28), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
+              <div style={{ background: 'linear-gradient(180deg,#f0e8d9,#e2d6bf)', borderRadius: 12, padding: '42px 32px 0', boxShadow: 'inset 0 10px 26px rgba(60,40,20,0.14), inset 0 -4px 10px rgba(60,40,20,0.06)' }}>
+                {shelves.map((shelf, si) => (
+                  <div key={si}>
+                    <div className="pwk-scroll" style={{ display: 'flex', alignItems: 'flex-end', gap: 14, minHeight: 232, paddingTop: si > 0 ? 36 : 0, overflowX: 'auto' }}>
+                      {shelf.map((t, bi) => {
+                        const n = countOf(t.id);
+                        const h = Math.min(216, 158 + n * 7);
+                        const w = 58 + ((t.name.length + t.tint.charCodeAt(2)) % 3) * 5; // 58·63·68 — 책마다 두께 다르게
+                        return (
+                          <div
+                            key={t.id}
+                            className="pwk-spine"
+                            onClick={() => openBook(t)}
+                            title={`${t.name} — 문서 ${n}개`}
+                            style={{
+                              width: w, height: h, flex: 'none', cursor: 'pointer',
+                              background: `linear-gradient(90deg, ${shade(t.tint, 10)}, ${t.tint} 34%, ${shade(t.tint, -22)})`,
+                              borderRadius: '3px 6px 6px 3px',
+                              boxShadow: 'inset -7px 0 12px rgba(0,0,0,0.3), inset 4px 0 0 rgba(255,255,255,0.16), 0 8px 16px rgba(60,40,25,0.2)',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0 14px',
+                              animation: `pwk-rise 0.5s ${(si * 6 + bi) * 0.05}s cubic-bezier(0.22,1,0.36,1) both`,
+                            }}
+                          >
+                            {/* 장정 밴드 (상단 이중선) */}
+                            <span aria-hidden style={{ width: Math.round(w * 0.52), height: 3, borderRadius: 2, background: 'rgba(251,246,238,0.32)', boxShadow: '0 7px 0 rgba(251,246,238,0.2)', flex: 'none', marginBottom: 12 }} />
+                            <div style={{ writingMode: 'vertical-rl', fontFamily: SERIF, fontWeight: 700, fontSize: t.name.length >= 4 ? 19 : t.name.length === 3 ? 21 : 26, color: '#fbf6ee', letterSpacing: '0.05em', textShadow: '0 1px 2px rgba(0,0,0,0.28)', flex: 1, display: 'flex', alignItems: 'center' }}>{t.name}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, flex: 'none' }}>
+                              <div style={{ writingMode: 'vertical-rl', fontSize: 10.5, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.1em' }}>{n}판</div>
+                              <span aria-hidden style={{ width: Math.round(w * 0.52), height: 3, borderRadius: 2, background: 'rgba(251,246,238,0.24)' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* 빈 칸 = 새 책 (마지막 선반에만) */}
+                      {si === shelves.length - 1 && (
+                        addingBook ? (
+                          <div style={{ width: 176, height: 188, border: `2px dashed ${PW.accent}`, borderRadius: '3px 5px 5px 3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(255,253,248,0.72)', marginLeft: 6, padding: '0 14px', flex: 'none' }}>
+                            <div style={{ fontSize: 12, color: PW.sub, fontWeight: 700 }}>새 책 이름</div>
+                            <input
+                              autoFocus
+                              value={bookName}
+                              onChange={(e) => setBookName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') addBook(); if (e.key === 'Escape') { setAddingBook(false); setBookName(''); } }}
+                              onBlur={addBook}
+                              placeholder="예: 주식 공부"
+                              style={{ width: '100%', border: `1px solid ${PW.input}`, borderRadius: 8, padding: '8px 10px', fontSize: 13.5, outline: 'none', fontFamily: 'inherit', background: '#fff', textAlign: 'center' }}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => setAddingBook(true)}
+                            style={{ width: 58, height: 188, border: '2px dashed #c0ae90', borderRadius: '3px 5px 5px 3px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#a8987e', marginLeft: 6, flex: 'none', transition: 'border-color 0.15s ease, color 0.15s ease' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.color = PW.accent; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#c0ae90'; e.currentTarget.style.color = '#a8987e'; }}
+                          >
+                            <span style={{ writingMode: 'vertical-rl', fontSize: 13, letterSpacing: '0.12em' }}>＋ 새 책</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                    {/* 선반 널빤지 */}
+                    <div style={{ height: 15, margin: '0 -32px', background: 'linear-gradient(180deg,#c3a87e,#967a55)', boxShadow: '0 6px 10px rgba(60,40,20,0.22), inset 0 1px 0 rgba(255,255,255,0.35)' }} />
                   </div>
-                  <div style={{ height: 18, margin: '0 -40px', background: 'linear-gradient(180deg,#b79b74,#8a6f4c)', borderRadius: si === shelves.length - 1 ? '0 0 16px 16px' : 0, boxShadow: '0 8px 14px rgba(60,40,20,0.22)' }} />
-                </div>
-              ))}
+                ))}
+                <div style={{ height: 10 }} />
+              </div>
             </div>
+
+            {/* 서가 명판 */}
+            <div style={{ textAlign: 'center', marginTop: 22 }}>
+              <span style={{ display: 'inline-block', padding: '7px 20px', background: 'linear-gradient(180deg,#eadcbd,#d9c7a2)', border: '1px solid #c3ae86', borderRadius: 8, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(60,40,20,0.12)', fontSize: 12.5, letterSpacing: '0.16em', color: '#6b5a3e', fontWeight: 700 }}>
+                책 {topics.length}권 · 문서 {docs.length}편
+              </span>
+            </div>
+
+            {/* 이어서 읽기 */}
+            {recentDocs.length > 0 && (
+              <div style={{ marginTop: 46, textAlign: 'center' }}>
+                <div style={{ fontSize: 12, letterSpacing: '0.2em', color: PW.faint, fontWeight: 700, marginBottom: 14 }}>이어서 읽기</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {recentDocs.map(({ doc: d, topic: t }) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => openDoc(d.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 16px', background: PW.inputBg, border: `1px solid ${PW.cardLine}`, borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(60,45,30,0.06)', transition: 'border-color 0.15s ease, transform 0.15s ease' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = PW.cardLine; e.currentTarget.style.transform = 'none'; }}
+                    >
+                      <span aria-hidden style={{ width: 8, height: 12, background: t?.tint ?? PW.accent, borderRadius: '1px 2px 2px 1px', flex: 'none', boxShadow: 'inset -2px 0 0 rgba(0,0,0,0.2)' }} />
+                      <span style={{ fontSize: 13.5, color: PW.ink, fontWeight: 600 }}>{d.title}</span>
+                      <span style={{ fontSize: 11.5, color: PW.faint }}>{t?.name} · {fmtRel(d.updatedAt)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
