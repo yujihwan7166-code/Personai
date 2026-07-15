@@ -10,7 +10,6 @@ import {
   Home,
   LayoutGrid,
   MoreHorizontal,
-  Network,
   NotebookPen,
   StickyNote,
   Sun,
@@ -28,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health';
+export type WorkspaceKey = 'today' | 'planner' | 'journal' | 'career' | 'people' | 'archive' | 'health';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -49,14 +48,13 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'people', label: '인맥노트', to: '/people', icon: Contact },
   { key: 'archive', label: '아카이브', to: '/archive', icon: Archive },
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
-  { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
 
 const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
+  ['planner', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
   ['home', 'today', 'career', 'people', 'archive', 'health'].includes(item.key),
