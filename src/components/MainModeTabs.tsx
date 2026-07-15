@@ -14,7 +14,7 @@ import {
   FlaskConical, BookOpen, ChevronDown, ChevronRight, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet, Music, FileText,
-  BarChart3, StickyNote, BookMarked, Package, Ticket, Target, ShoppingBag, Plane,
+  BarChart3, StickyNote, BookMarked, Ticket, ShoppingBag, Plane,
   Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot, LayoutGrid,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
@@ -238,7 +238,6 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
   { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', icon: Mic,        tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
-  { id: 'belongings', label: '내 물건 위치 (이름미정)', desc: '어디에 뒀는지 · 소재 대장',    emoji: '📦', icon: Package,    tint: 'hsl(28 76% 47%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
@@ -246,7 +245,6 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
   { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
-  { id: 'bucketlist', label: '버킷리스트 (이름미정)', desc: '하고 싶은 것 · 이룬 것',        emoji: '🎯', icon: Target,     tint: 'hsl(280 60% 55%)', axis: '기록', pending: true },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
