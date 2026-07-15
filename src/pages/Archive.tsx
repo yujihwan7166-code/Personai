@@ -5,11 +5,11 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Plus, Home, Star, Search, Sparkles, Loader2, X,
+  Archive as ArchiveIcon, Plus, Home, Star, Search, Sparkles, Loader2, X, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
-import { KIND_LABEL, type ArchiveItem, type ArchiveKind } from '@/types/archive';
+import { KIND_LABEL, type ArchiveCollection, type ArchiveItem, type ArchiveKind } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { useArchive } from '@/hooks/useArchive';
 import { tokenMatchAll } from '@/lib/textSearch';
@@ -17,6 +17,7 @@ import { aiSemanticSearch } from '@/lib/archive/ai';
 import { ArchiveCard } from '@/components/archive/ArchiveCard';
 import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
 import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
+import { ArchiveCollectionEditor } from '@/components/archive/ArchiveCollectionEditor';
 
 type ViewKey = 'all' | 'starred' | string; // string = collectionId
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
@@ -37,6 +38,8 @@ export default function Archive() {
   const [aiLoading, setAiLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 컬렉션 편집기 — null이면 닫힘, { collection: null } 이면 새로 만들기, { collection } 이면 편집.
+  const [editor, setEditor] = useState<{ collection: ArchiveCollection | null } | null>(null);
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
   // 삭제된 항목이 선택돼 있으면 닫기
@@ -98,14 +101,7 @@ export default function Archive() {
     if (aiResults) setAiResults(null); // 질의 바뀌면 AI 결과 무효화 → 키워드로
   };
 
-  const addCollection = () => {
-    const name = window.prompt('새 컬렉션 이름');
-    if (name?.trim()) {
-      const c = archiveStore.addCollection(name.trim());
-      setView(c.id);
-      notify.success(`"${c.name}" 컬렉션을 만들었어요`);
-    }
-  };
+  const addCollection = () => setEditor({ collection: null });
 
   const openNew = () => {
     setDialogOpen(true);
@@ -154,6 +150,7 @@ export default function Archive() {
               count={counts.get(c.id) ?? 0}
               active={view === c.id}
               onClick={() => setView(c.id)}
+              onSettings={() => setEditor({ collection: c })}
             />
           ))}
           <button
@@ -273,25 +270,50 @@ export default function Archive() {
       {selectedItem && (
         <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={() => setSelectedId(null)} />
       )}
+
+      {/* 컬렉션 만들기·편집기 */}
+      {editor && (
+        <ArchiveCollectionEditor
+          open
+          collection={editor.collection}
+          itemCount={editor.collection ? (counts.get(editor.collection.id) ?? 0) : 0}
+          onClose={() => setEditor(null)}
+        />
+      )}
     </div>
   );
 }
 
 /* ── 사이드바 행 ── */
-function NavRow({ icon, emoji, label, count, active, onClick }: {
-  icon?: React.ReactNode; emoji?: string; label: string; count: number; active: boolean; onClick: () => void;
+function NavRow({ icon, emoji, label, count, active, onClick, onSettings }: {
+  icon?: React.ReactNode; emoji?: string; label: string; count: number; active: boolean; onClick: () => void; onSettings?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors',
-        active ? 'bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]' : 'text-foreground hover:bg-accent')}
-    >
-      {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
-      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-      <span className={cn('text-[12px] font-semibold', active ? 'text-[hsl(var(--archive-sepia))]' : 'text-muted-foreground/70')}>{count}</span>
-    </button>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors',
+          onSettings && 'pr-8',
+          active ? 'bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]' : 'text-foreground hover:bg-accent')}
+      >
+        {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
+        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+        <span className={cn('text-[12px] font-semibold transition-opacity', onSettings && 'group-hover:opacity-0',
+          active ? 'text-[hsl(var(--archive-sepia))]' : 'text-muted-foreground/70')}>{count}</span>
+      </button>
+      {onSettings && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSettings(); }}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+          title="컬렉션 설정"
+          aria-label={`${label} 설정`}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
   );
 }
 

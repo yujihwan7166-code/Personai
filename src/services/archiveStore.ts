@@ -299,6 +299,20 @@ export const archiveStore = {
     safeWrite(null, cols);
   },
 
+  /** 이름·이모지 수정. */
+  updateCollection(id: string, patch: { name?: string; emoji?: string }): void {
+    const cols = readCollections();
+    const idx = cols.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    const name = patch.name?.trim();
+    cols[idx] = {
+      ...cols[idx],
+      ...(name ? { name } : {}),
+      ...(patch.emoji !== undefined ? { emoji: patch.emoji || undefined } : {}),
+    };
+    safeWrite(null, cols);
+  },
+
   /** 빈 컬렉션만 삭제 (항목 있으면 무시). */
   removeCollection(id: string): void {
     if (readItems().some((e) => e.collectionId === id)) return;
