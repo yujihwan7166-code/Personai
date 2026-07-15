@@ -7,7 +7,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sparkles, Loader2, Upload, ArrowLeft } from 'lucide-react';
+import { X, Sparkles, Loader2, Upload, ArrowLeft, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import {
@@ -26,6 +26,18 @@ import { aiClassifyArchiveItem } from '@/lib/archive/ai';
 
 const SPECIAL_KEYS = new Set(['title', 'note', 'url', 'file', 'image']);
 
+/** 커스텀 카테고리(사용자 생성 컬렉션)용 일반 필드 — 전용 양식이 없을 때. */
+const GENERIC_FIELDS: ArchiveFormField[] = [
+  { key: 'title', label: '제목', type: 'text', placeholder: '무엇을 저장하나요?', optional: false },
+  { key: 'note', label: '내용', type: 'textarea' },
+  { key: 'file', label: '파일', type: 'file' },
+];
+
+/** 커스텀 컬렉션을 저장 폼(양식)으로 감싼다. */
+function collectionForm(c: { id: string; name: string; emoji?: string }): ArchiveForm {
+  return { key: `custom:${c.id}`, name: c.name, emoji: c.emoji ?? '📁', desc: '', fields: GENERIC_FIELDS };
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -43,6 +55,8 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   const [tagInput, setTagInput] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const collectionNames = useMemo(() => collections.map((c) => c.name), [collections]);
@@ -55,6 +69,8 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
     setTagInput('');
     setAiLoading(false);
     setSaving(false);
+    setCreatingCategory(false);
+    setNewCategoryName('');
   };
 
   const close = () => {
@@ -72,13 +88,29 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
 
   if (!open) return null;
 
-  const pickForm = (f: ArchiveForm) => {
+  const pickForm = (f: ArchiveForm, explicitCollectionId?: string) => {
     setForm(f);
     setValues({});
     setTags([]);
-    // 양식에 대응하는 컬렉션(builtinKey 일치) 선택, 없으면 defaultCollection or 첫 컬렉션.
-    const matched = collections.find((c) => c.builtinKey === f.key);
-    setCollectionId(matched?.id ?? defaultCollectionId ?? collections[0]?.id ?? '');
+    // 양식에 대응하는 컬렉션(builtinKey 일치) 선택, 커스텀은 명시 id, 없으면 폴백.
+    const matched = explicitCollectionId
+      ?? collections.find((c) => c.builtinKey === f.key)?.id
+      ?? defaultCollectionId
+      ?? collections[0]?.id
+      ?? '';
+    setCollectionId(matched);
+  };
+
+  // 사용자가 직접 만든 카테고리(기본 시드가 아닌 것) — 픽커에 함께 노출.
+  const customCollections = collections.filter((c) => !c.builtinKey);
+
+  const createCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name) { setCreatingCategory(false); return; }
+    const c = archiveStore.addCollection(name);
+    setNewCategoryName('');
+    setCreatingCategory(false);
+    pickForm(collectionForm(c), c.id); // 만든 즉시 그 카테고리 입력 폼으로
   };
 
   const setValue = (key: string, v: string) => setValues((prev) => ({ ...prev, [key]: v }));
@@ -226,21 +258,54 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           </button>
         </div>
 
-        {/* 1단계 — 양식 고르기 */}
+        {/* 1단계 — 카테고리(=양식) 고르기 */}
         {!form && (
-          <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-            {DEFAULT_FORMS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => pickForm(f)}
-                className="flex flex-col items-start gap-1 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-3 text-left transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:bg-accent"
-              >
-                <span className="text-[20px]">{f.emoji}</span>
-                <span className="text-[13px] font-bold text-foreground">{f.name}</span>
-                <span className="text-[11px] leading-tight text-muted-foreground">{f.desc}</span>
-              </button>
-            ))}
+          <div className="max-h-[68vh] overflow-y-auto p-4">
+            <p className="mb-3 px-0.5 text-[12px] text-muted-foreground">저장할 카테고리를 골라주세요</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {DEFAULT_FORMS.map((f) => (
+                <CategoryTile key={f.key} emoji={f.emoji} name={f.name} desc={f.desc} onClick={() => pickForm(f)} />
+              ))}
+              {customCollections.map((c) => (
+                <CategoryTile
+                  key={c.id}
+                  emoji={c.emoji ?? '📁'}
+                  name={c.name}
+                  desc="내가 만든 카테고리"
+                  onClick={() => pickForm(collectionForm(c), c.id)}
+                />
+              ))}
+
+              {/* 새 카테고리 — 인라인 이름 입력 */}
+              {creatingCategory ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-[hsl(var(--archive-sepia)/0.55)] bg-[hsl(var(--surface-1))] p-2.5 ring-2 ring-[hsl(var(--archive-sepia)/0.15)]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--archive-sepia)/0.12)] text-[16px]">📁</span>
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); createCategory(); }
+                      else if (e.key === 'Escape') { setCreatingCategory(false); setNewCategoryName(''); }
+                    }}
+                    onBlur={() => { if (!newCategoryName.trim()) setCreatingCategory(false); }}
+                    placeholder="이름 입력 후 Enter"
+                    className="min-w-0 flex-1 bg-transparent text-[13px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCreatingCategory(true)}
+                  className="flex items-center gap-3 rounded-xl border border-dashed border-[hsl(var(--hairline))] p-2.5 text-left text-muted-foreground transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:bg-accent hover:text-foreground"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--foreground)/0.05)]">
+                    <Plus className="h-4 w-4" />
+                  </span>
+                  <span className="text-[13px] font-bold">새 카테고리</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -327,6 +392,23 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   );
 
   return createPortal(body, document.body);
+}
+
+/* ── 카테고리 타일 (1단계 픽커) ── */
+function CategoryTile({ emoji, name, desc, onClick }: { emoji: string; name: string; desc?: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5 text-left transition-all hover:-translate-y-px hover:border-[hsl(var(--archive-sepia)/0.5)] hover:shadow-[0_3px_10px_-4px_hsl(var(--foreground)/0.15)]"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--archive-sepia)/0.10)] text-[17px] transition-transform group-hover:scale-105">{emoji}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-[13px] font-bold text-foreground">{name}</span>
+        {desc && <span className="block truncate text-[11px] text-muted-foreground">{desc}</span>}
+      </span>
+    </button>
+  );
 }
 
 /* ── 필드 하나 ── */
