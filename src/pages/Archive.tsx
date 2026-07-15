@@ -134,7 +134,7 @@ export default function Archive() {
         <button
           type="button"
           onClick={openNew}
-          className="mb-4 flex items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] py-2.5 text-[14px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          className="mb-4 flex items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] py-2 text-[14px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> 새 항목 저장
         </button>
