@@ -469,7 +469,7 @@ export default function Journal() {
       className="flex h-dvh bg-[hsl(var(--cream-bg))] text-[hsl(var(--cream-ink))]"
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
-      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
+      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-panel))] sm:flex">
         {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">

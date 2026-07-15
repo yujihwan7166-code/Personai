@@ -535,7 +535,7 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
+          <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
             {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (사진 스타일) */}
             <div className="px-4 pb-3 pt-4">
               <div className="flex items-center gap-3">

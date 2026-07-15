@@ -119,7 +119,7 @@ export default function Archive() {
   return (
     <div className="archive-theme flex min-h-dvh bg-background text-foreground">
       {/* ───────── 좌 사이드바 (lg+) ───────── */}
-      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 pb-5 pt-4 lg:flex">
+      <aside className="hidden w-[256px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-4 pb-5 pt-4 lg:flex">
         {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방들과 달리 세피아 연한 틴트 타일. */}
         <div className="mb-4 flex items-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--archive-sepia)/0.25)] bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]">
