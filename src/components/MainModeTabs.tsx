@@ -235,8 +235,9 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
   { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
-  { id: 'meeting',    label: '회의록',             desc: '녹음 → 전사 · 요약 · 할 일',      emoji: '🎙️', icon: Mic,        tint: 'hsl(330 65% 52%)', axis: '정리', mode: 'voice_main' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
+  { id: 'ledger',     label: '가계부 (준비 중)',    desc: '지출·수입·월 결산',               emoji: '💰', icon: PiggyBank,  tint: 'hsl(140 55% 42%)', axis: '정리', pending: true },
+  { id: 'slot-tbd',   label: '(미정)',              desc: '다음에 채울 자리',                emoji: '➕', icon: LayoutGrid, tint: 'hsl(220 8% 55%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
@@ -338,7 +339,7 @@ export const SPOTLIGHT_ITEMS: Array<{
   { id: 'mode-multi',         badge: 'NEW', label: '멀티 채팅',    tint: 'hsl(var(--mode-multi))',    target: { kind: 'mode', mode: 'multi' } },
   { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(6 70% 51%)',            target: { kind: 'hub', hubId: 'career' } },
   { id: 'mode-study_main',    badge: 'HOT', label: 'AI 스터디룸',  tint: 'hsl(var(--mode-study))',    target: { kind: 'mode', mode: 'study_main' } },
-  { id: 'mode-voice_main',    badge: 'NEW', label: '회의록',       tint: 'hsl(330 65% 52%)',          target: { kind: 'mode', mode: 'voice_main' } },
+  { id: 'mode-voice_main',    badge: 'NEW', label: 'AI 음성 기록',  tint: 'hsl(330 65% 52%)',          target: { kind: 'mode', mode: 'voice_main' } },
 ];
 
 /** 어시스턴트 드롭다운 직행 도구 3개. 파일 변환 등 나머지는 "도구 더 보기" 에서만 노출. */
