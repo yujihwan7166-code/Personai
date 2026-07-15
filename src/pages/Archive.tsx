@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Sparkles, Loader2, X, Settings,
+  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Sparkles, Loader2, X, Settings, Tag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -19,6 +19,7 @@ import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
 import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
 import { ArchiveCollectionEditor } from '@/components/archive/ArchiveCollectionEditor';
 import { ArchiveCollectionManager } from '@/components/archive/ArchiveCollectionManager';
+import { ArchiveAllTagsDialog } from '@/components/archive/ArchiveAllTagsDialog';
 
 type ViewKey = 'all' | 'starred' | string; // string = collectionId
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
@@ -42,6 +43,8 @@ export default function Archive() {
   // 컬렉션 편집기 — null이면 닫힘, { collection: null } 이면 새로 만들기, { collection } 이면 편집.
   const [editor, setEditor] = useState<{ collection: ArchiveCollection | null } | null>(null);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [allTagsOpen, setAllTagsOpen] = useState(false);
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
   // 삭제된 항목이 선택돼 있으면 닫기
@@ -62,14 +65,24 @@ export default function Archive() {
     return items.filter((i) => i.createdAt.startsWith(ym)).length;
   }, [items]);
 
+  // 태그 빈도 (전체 항목 기준) — 상위 노출 + 전체 목록 + 저장 자동완성 소스
+  const tagEntries = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of items) for (const t of it.tags) m.set(t, (m.get(t) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [items]);
+  const topTags = tagEntries.slice(0, 10);
+  const allTagNames = useMemo(() => tagEntries.map(([t]) => t), [tagEntries]);
+
   // 컬렉션/별표 + 형태 필터
   const scoped = useMemo(() => {
     let list = items;
     if (view === 'starred') list = list.filter((i) => i.starred);
     else if (view !== 'all') list = list.filter((i) => i.collectionId === view);
     if (kind) list = list.filter((i) => i.kind === kind);
+    if (activeTag) list = list.filter((i) => i.tags.includes(activeTag));
     return list;
-  }, [items, view, kind]);
+  }, [items, view, kind, activeTag]);
 
   // 검색 적용 (AI 결과 우선, 없으면 키워드)
   const visible = useMemo(() => {
@@ -172,6 +185,41 @@ export default function Archive() {
           >
             <Plus className="h-4 w-4" /> 새 컬렉션
           </button>
+
+          {/* 태그 — 상위 10개 + 모든 태그(검색). 위 형태칩과 안 겹치게 사이드바에. */}
+          {topTags.length > 0 && (
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center gap-1.5 px-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                <Tag className="h-3 w-3" /> 태그
+              </div>
+              <div className="flex flex-wrap gap-1 px-1">
+                {topTags.map(([t, n]) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setActiveTag((cur) => (cur === t ? null : t))}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium transition-colors',
+                      activeTag === t
+                        ? 'bg-[hsl(var(--archive-sepia))] text-white'
+                        : 'bg-[hsl(var(--surface-2))] text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    #{t}<span className="text-[10px] opacity-70">{n}</span>
+                  </button>
+                ))}
+              </div>
+              {allTagNames.length > topTags.length && (
+                <button
+                  type="button"
+                  onClick={() => setAllTagsOpen(true)}
+                  className="mt-1.5 px-2.5 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  모든 태그 {allTagNames.length}개 →
+                </button>
+              )}
+            </div>
+          )}
         </nav>
       </aside>
 
@@ -237,12 +285,25 @@ export default function Archive() {
           ))}
         </div>
 
-        {/* 형태 칩 */}
-        <div className="mb-5 flex flex-wrap gap-2">
+        {/* 형태 칩 (+ 활성 태그 필터 — 구분선으로 축 분리) */}
+        <div className="mb-5 flex flex-wrap items-center gap-2">
           <KindChip label="전체" active={kind === null} onClick={() => setKind(null)} />
           {KINDS.map((k) => (
             <KindChip key={k} label={KIND_LABEL[k]} active={kind === k} onClick={() => setKind(kind === k ? null : k)} />
           ))}
+          {activeTag && (
+            <>
+              <span aria-hidden className="mx-1 h-5 w-px bg-[hsl(var(--hairline))]" />
+              <button
+                type="button"
+                onClick={() => setActiveTag(null)}
+                className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--archive-sepia))] px-3 py-1.5 text-[13px] font-semibold text-white"
+                title="태그 필터 해제"
+              >
+                #{activeTag} <X className="h-3 w-3" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* AI 결과 배너 */}
@@ -260,11 +321,11 @@ export default function Archive() {
         {visible.length === 0 ? (
           <EmptyState hasItems={items.length > 0} onNew={openNew} />
         ) : mode === 'timeline' ? (
-          <Timeline items={visible} onOpen={(i) => setSelectedId(i.id)} onStar={(id) => archiveStore.toggleStar(id)} />
+          <Timeline items={visible} onOpen={(i) => setSelectedId(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
         ) : (
           <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
             {visible.map((it) => (
-              <ArchiveCard key={it.id} item={it} onOpen={(i) => setSelectedId(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} />
+              <ArchiveCard key={it.id} item={it} onOpen={(i) => setSelectedId(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
             ))}
           </div>
         )}
@@ -276,6 +337,7 @@ export default function Archive() {
         onClose={() => setDialogOpen(false)}
         collections={collections}
         defaultCollectionId={defaultCollectionId}
+        allTags={allTagNames}
       />
 
       {/* 상세 패널 */}
@@ -299,6 +361,15 @@ export default function Archive() {
         onClose={() => setManagerOpen(false)}
         collections={collections}
         counts={counts}
+      />
+
+      {/* 모든 태그 — 검색되는 전체 목록 */}
+      <ArchiveAllTagsDialog
+        open={allTagsOpen}
+        onClose={() => setAllTagsOpen(false)}
+        tagEntries={tagEntries}
+        activeTag={activeTag}
+        onPick={(t) => { setActiveTag(t); setAllTagsOpen(false); }}
       />
     </div>
   );
@@ -364,7 +435,7 @@ function MobileChip({ label, active, onClick }: { label: string; active: boolean
 }
 
 /* ── 타임라인 ── */
-function Timeline({ items, onOpen, onStar }: { items: ArchiveItem[]; onOpen: (i: ArchiveItem) => void; onStar: (id: string) => void }) {
+function Timeline({ items, onOpen, onStar, onTagClick }: { items: ArchiveItem[]; onOpen: (i: ArchiveItem) => void; onStar: (id: string) => void; onTagClick: (tag: string) => void }) {
   const groups = useMemo(() => {
     const m = new Map<string, ArchiveItem[]>();
     for (const it of items) {
@@ -383,7 +454,7 @@ function Timeline({ items, onOpen, onStar }: { items: ArchiveItem[]; onOpen: (i:
             <h2 className="mb-3 text-[15px] font-bold text-foreground">{y}년 {Number(mo)}월 <span className="ml-1 text-[12px] font-medium text-muted-foreground">{list.length}개</span></h2>
             <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
               {list.map((it) => (
-                <ArchiveCard key={it.id} item={it} onOpen={onOpen} onToggleStar={onStar} />
+                <ArchiveCard key={it.id} item={it} onOpen={onOpen} onToggleStar={onStar} onTagClick={onTagClick} />
               ))}
             </div>
           </section>

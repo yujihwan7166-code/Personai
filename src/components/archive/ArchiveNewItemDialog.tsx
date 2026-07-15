@@ -20,9 +20,11 @@ interface Props {
   collections: ArchiveCollection[];
   /** 열 때 미리 고를 컬렉션 (사이드바에서 특정 컬렉션 보고 있을 때). */
   defaultCollectionId?: string;
+  /** 기존 태그 — 자동완성 소스 (중복·유사 태그 방지). */
+  allTags?: string[];
 }
 
-export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollectionId }: Props) {
+export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollectionId, allTags }: Props) {
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [url, setUrl] = useState('');
@@ -73,6 +75,15 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
     setTags((p) => (p.includes(t) ? p : [...p, t]));
     setTagInput('');
   };
+
+  // 기존 태그 자동완성 — 이미 고른 건 빼고, 입력 중이면 매칭, 아니면 상위 몇 개.
+  const tagSuggestions = (() => {
+    const q = tagInput.trim().replace(/^#/, '').toLowerCase();
+    const chosen = new Set(tags);
+    return (allTags ?? [])
+      .filter((t) => !chosen.has(t) && (q ? t.toLowerCase().includes(q) : true))
+      .slice(0, 8);
+  })();
 
   const addCollection = () => {
     const name = newCollectionName.trim();
@@ -316,6 +327,21 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
                 className="min-w-[100px] flex-1 bg-transparent py-0.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70"
               />
             </div>
+            {tagSuggestions.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {tagSuggestions.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => addTag(t)}
+                    className="rounded-md bg-[hsl(var(--foreground)/0.04)] px-2 py-0.5 text-[11.5px] text-muted-foreground transition-colors hover:bg-[hsl(var(--archive-sepia)/0.15)] hover:text-[hsl(var(--archive-sepia))]"
+                    title="기존 태그 추가"
+                  >
+                    #{t}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -72,9 +72,11 @@ interface Props {
   item: ArchiveItem;
   onOpen: (item: ArchiveItem) => void;
   onToggleStar: (id: string) => void;
+  /** 카드의 #태그 클릭 → 그 태그로 필터. */
+  onTagClick?: (tag: string) => void;
 }
 
-export function ArchiveCard({ item, onOpen, onToggleStar }: Props) {
+export function ArchiveCard({ item, onOpen, onToggleStar, onTagClick }: Props) {
   const ytId = item.kind === 'link' && item.url ? youtubeId(item.url) : undefined;
   const ytFailedRef = useRef(false);
   const [ytFailed, setYtFailed] = useState(false);
@@ -101,11 +103,20 @@ export function ArchiveCard({ item, onOpen, onToggleStar }: Props) {
 
   const Tags = item.tags.length > 0 && (
     <div className="mt-2.5 flex flex-wrap gap-1.5">
-      {item.tags.map((t) => (
+      {item.tags.map((t) => (onTagClick ? (
+        <button
+          key={t}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onTagClick(t); }}
+          className="rounded-md bg-[hsl(var(--foreground)/0.05)] px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-[hsl(var(--archive-sepia)/0.15)] hover:text-[hsl(var(--archive-sepia))]"
+        >
+          #{t}
+        </button>
+      ) : (
         <span key={t} className="rounded-md bg-[hsl(var(--foreground)/0.05)] px-2 py-0.5 text-[11px] text-muted-foreground">
           #{t}
         </span>
-      ))}
+      )))}
     </div>
   );
 
