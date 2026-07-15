@@ -196,24 +196,19 @@ export default function Wiki() {
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: PW.paper, color: PW.ink, fontFamily: SANS, overflow: 'hidden' }}>
       <style>{PAGE_CSS}</style>
 
-      {/* ── 헤더 — 도서관에선 로고 없이 (진입감은 화면 중앙 히어로가 담당) ── */}
+      {/* ── 헤더 — 책 안에서만. 도서관은 헤더 없이 표지처럼 ── */}
+      {screen === 'doc' && (
       <header style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 20, height: 58, padding: '0 22px', background: PW.panel, borderBottom: `1px solid ${PW.line}`, position: 'relative', zIndex: 40 }}>
-        {screen === 'doc' ? (
-          <>
-            <div onClick={() => { setScreen('library'); setActiveDocId(null); }} style={{ display: 'flex', alignItems: 'baseline', gap: 9, cursor: 'pointer', userSelect: 'none', flex: 'none' }} title="도서관으로">
-              <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)' }} />
-              <span style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>마이위키</span>
-            </div>
-            {topic && (
-              <div style={{ flex: 'none', minWidth: 0, fontSize: 13, color: PW.faint, display: 'flex', alignItems: 'center', gap: 7, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                <span style={{ opacity: 0.5 }}>›</span>
-                <span style={{ color: PW.sub }}>{topic.name}</span>
-                {activeDoc && (<><span style={{ opacity: 0.5 }}>›</span><span style={{ color: PW.sub }}>{activeDoc.title}</span></>)}
-              </div>
-            )}
-          </>
-        ) : (
-          <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)', flex: 'none' }} aria-hidden />
+        <div onClick={() => { setScreen('library'); setActiveDocId(null); }} style={{ display: 'flex', alignItems: 'baseline', gap: 9, cursor: 'pointer', userSelect: 'none', flex: 'none' }} title="도서관으로">
+          <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)' }} />
+          <span style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>마이위키</span>
+        </div>
+        {topic && (
+          <div style={{ flex: 'none', minWidth: 0, fontSize: 13, color: PW.faint, display: 'flex', alignItems: 'center', gap: 7, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <span style={{ opacity: 0.5 }}>›</span>
+            <span style={{ color: PW.sub }}>{topic.name}</span>
+            {activeDoc && (<><span style={{ opacity: 0.5 }}>›</span><span style={{ color: PW.sub }}>{activeDoc.title}</span></>)}
+          </div>
         )}
 
         <div style={{ flex: 1 }} />
@@ -262,18 +257,26 @@ export default function Wiki() {
           )}
         </div>
       </header>
+      )}
 
       {/* ══════════ 도서관 (책장) ══════════ */}
       {screen === 'library' && (
-        <div className="pwk-scroll" style={{ flex: 1, overflow: 'auto', padding: '56px 40px 80px' }}>
+        <div className="pwk-scroll" style={{ flex: 1, overflow: 'auto', padding: '64px 40px 96px' }}>
           <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-            {/* 진입 히어로 — 화면 중앙 상단, 도서관에 들어선 느낌 */}
-            <div style={{ textAlign: 'center', margin: '6px 0 44px' }}>
-              <div style={{ fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: PW.faint, fontWeight: 700 }}>나의 서재</div>
-              <h1 style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 700, margin: '10px 0 10px', letterSpacing: '-0.02em' }}>마이위키</h1>
-              <p style={{ fontSize: 16.5, color: PW.sub, margin: '0 auto', maxWidth: 560, lineHeight: 1.75 }}>
-                한 주제를 한 권의 책으로 — 깊게 파고드는 나만의 백과사전.
+            {/* 표지 히어로 — 헤더 없이, 책 표지처럼 큼직하게 */}
+            <div style={{ textAlign: 'center', margin: '22px 0 52px' }}>
+              <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(52px, 7vw, 72px)', fontWeight: 700, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.12, color: PW.ink, textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}>
+                마이위키
+              </h1>
+              <p style={{ fontFamily: SERIF, fontSize: 'clamp(17px, 2vw, 21px)', color: PW.sub, margin: '18px auto 0', maxWidth: 640, lineHeight: 1.75, fontWeight: 400 }}>
+                한 주제를 한 권의 책으로, 깊게 파고드는 나만의 백과사전
               </p>
+              {/* 속표지 장식 괘선 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '30px auto 0', maxWidth: 380 }} aria-hidden>
+                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${PW.sand})` }} />
+                <span style={{ width: 7, height: 7, background: PW.accent, transform: 'rotate(45deg)', opacity: 0.75 }} />
+                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${PW.sand}, transparent)` }} />
+              </div>
             </div>
 
             {/* 책장 */}
@@ -335,19 +338,6 @@ export default function Wiki() {
               ))}
             </div>
 
-            {/* 안내 카드 3장 */}
-            <div style={{ display: 'flex', gap: 26, marginTop: 36, flexWrap: 'wrap' }}>
-              {[
-                { t: '문법이 없습니다', d: '글자를 드래그해 버튼으로 문서를 잇습니다. 제목·표·주석도 툴바로.' },
-                { t: '엔진이 알아서', d: '백링크 수집, 목차 생성, 얇은 판 판정, 링크 관리를 자동으로.' },
-                { t: '붉은 표시는 예약', d: '아직 없는 문서는 붉게 표시되어, 다음에 팔 곳이 됩니다.' },
-              ].map((c) => (
-                <div key={c.t} style={{ flex: '1 1 240px', padding: '20px 22px', background: PW.card, border: `1px solid ${PW.cardLine}`, borderRadius: 13 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{c.t}</div>
-                  <div style={{ fontSize: 13.5, color: '#8a8073', lineHeight: 1.65 }}>{c.d}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}
