@@ -187,24 +187,32 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           />
 
           {/* 내용 */}
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={5}
-            placeholder="내용·메모를 적어요"
-            className={cn(inputCls, 'resize-y leading-relaxed')}
-          />
+          <div>
+            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">내용</span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={5}
+              placeholder="내용·메모를 적어요"
+              className={cn(inputCls, 'resize-y leading-relaxed')}
+            />
+          </div>
 
           {/* 링크 */}
-          <div className="relative">
-            <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="링크 붙여넣기 (선택)"
-              className={cn(inputCls, 'pl-9')}
-            />
+          <div>
+            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
+              링크 <span className="font-normal text-muted-foreground">— 유튜브·기사·사이트 주소 (선택)</span>
+            </span>
+            <div className="relative">
+              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https:// 주소 붙여넣기"
+                className={cn(inputCls, 'pl-9')}
+              />
+            </div>
           </div>
 
           {/* 파일 */}
