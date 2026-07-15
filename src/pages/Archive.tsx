@@ -18,6 +18,7 @@ import { ArchiveCard } from '@/components/archive/ArchiveCard';
 import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
 import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
 import { ArchiveCollectionEditor } from '@/components/archive/ArchiveCollectionEditor';
+import { ArchiveCollectionManager } from '@/components/archive/ArchiveCollectionManager';
 
 type ViewKey = 'all' | 'starred' | string; // string = collectionId
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
@@ -40,6 +41,7 @@ export default function Archive() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // 컬렉션 편집기 — null이면 닫힘, { collection: null } 이면 새로 만들기, { collection } 이면 편집.
   const [editor, setEditor] = useState<{ collection: ArchiveCollection | null } | null>(null);
+  const [managerOpen, setManagerOpen] = useState(false);
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
   // 삭제된 항목이 선택돼 있으면 닫기
@@ -140,7 +142,18 @@ export default function Archive() {
         <NavRow icon={<Home className="h-4 w-4" />} label="전체 보기" count={items.length} active={view === 'all'} onClick={() => setView('all')} />
         <NavRow icon={<Star className="h-4 w-4" />} label="별표 모음" count={starredCount} active={view === 'starred'} onClick={() => setView('starred')} />
 
-        <div className="mt-5 mb-1 px-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">컬렉션</div>
+        <div className="mt-5 mb-1 flex items-center justify-between pl-2.5 pr-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">컬렉션</span>
+          <button
+            type="button"
+            onClick={() => setManagerOpen(true)}
+            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+            title="컬렉션 관리 — 순서·편집·삭제"
+            aria-label="컬렉션 관리"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto">
           {collections.map((c) => (
             <NavRow
@@ -150,7 +163,6 @@ export default function Archive() {
               count={counts.get(c.id) ?? 0}
               active={view === c.id}
               onClick={() => setView(c.id)}
-              onSettings={() => setEditor({ collection: c })}
             />
           ))}
           <button
@@ -271,7 +283,7 @@ export default function Archive() {
         <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={() => setSelectedId(null)} />
       )}
 
-      {/* 컬렉션 만들기·편집기 */}
+      {/* 컬렉션 만들기·편집기 (사이드바 '새 컬렉션') */}
       {editor && (
         <ArchiveCollectionEditor
           open
@@ -280,6 +292,14 @@ export default function Archive() {
           onClose={() => setEditor(null)}
         />
       )}
+
+      {/* 컬렉션 관리 — 순서변경·편집·삭제 한 곳에서 */}
+      <ArchiveCollectionManager
+        open={managerOpen}
+        onClose={() => setManagerOpen(false)}
+        collections={collections}
+        counts={counts}
+      />
     </div>
   );
 }

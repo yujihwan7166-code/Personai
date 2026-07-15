@@ -319,6 +319,29 @@ export const archiveStore = {
     safeWrite(null, readCollections().filter((c) => c.id !== id));
   },
 
+  /** 순서 변경 — orderedIds 순서대로 order 재부여. */
+  reorderCollections(orderedIds: string[]): void {
+    const pos = new Map(orderedIds.map((id, i) => [id, i]));
+    const next = readCollections().map((c) => ({
+      ...c,
+      order: pos.has(c.id) ? pos.get(c.id)! : c.order,
+    }));
+    safeWrite(null, next);
+  },
+
+  /** 컬렉션 삭제 — 안의 항목은 '기타'로 옮기고 제거. ('기타' 자체는 못 지움) */
+  removeCollectionReassign(id: string): void {
+    const target = readCollections().find((c) => c.id === id);
+    if (!target || target.builtinKey === FALLBACK_COLLECTION_KEY) return;
+    const fallbackId = this.fallbackCollectionId(); // '기타' 없으면 생성
+    if (fallbackId === id) return;
+    const items = readItems().map((it) =>
+      it.collectionId === id ? { ...it, collectionId: fallbackId, updatedAt: nowIso() } : it,
+    );
+    const cols = readCollections().filter((c) => c.id !== id);
+    safeWrite(items, cols);
+  },
+
   /** 전체 삭제 (리셋용). */
   clear(): void {
     if (typeof window !== 'undefined') {
