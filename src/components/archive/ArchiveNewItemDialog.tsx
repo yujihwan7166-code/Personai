@@ -166,7 +166,7 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   const body = (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center" onMouseDown={close}>
       <div
-        className="archive-theme my-8 w-full max-w-lg rounded-2xl border border-[hsl(var(--hairline))] bg-card shadow-2xl"
+        className="archive-theme my-8 w-full max-w-2xl rounded-2xl border border-[hsl(var(--hairline))] bg-card shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
@@ -190,7 +190,7 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            rows={3}
+            rows={5}
             placeholder="내용·메모를 적어요"
             className={cn(inputCls, 'resize-y leading-relaxed')}
           />
