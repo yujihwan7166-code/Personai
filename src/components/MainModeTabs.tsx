@@ -19,6 +19,7 @@ import {
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
   Archive,
+  HeartPulse,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -241,6 +242,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
   { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
+  { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
   { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', icon: HeartPulse, tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
   { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
@@ -334,6 +336,7 @@ export const SPOTLIGHT_ITEMS: Array<{
   target: FavEntry['target'];
 }> = [
   { id: 'hub-archive',        badge: 'NEW', label: '아카이브',    tint: 'hsl(28 48% 40%)',           target: { kind: 'hub', hubId: 'archive' } },
+  { id: 'hub-health',         badge: 'NEW', label: '건강기록',    tint: 'hsl(152 58% 37%)',          target: { kind: 'hub', hubId: 'health' } },
   { id: 'mode-research_main', badge: 'HOT', label: '심층 리서치',  tint: 'hsl(var(--mode-research))', target: { kind: 'mode', mode: 'research_main' } },
   { id: 'mode-multi',         badge: 'NEW', label: '멀티 채팅',    tint: 'hsl(var(--mode-multi))',    target: { kind: 'mode', mode: 'multi' } },
   { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(6 70% 51%)',            target: { kind: 'hub', hubId: 'career' } },
@@ -1065,7 +1068,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', cloud: '/cloud' };
+    const route: Record<string, string> = { notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2249,6 +2252,9 @@ export function MainModeTabs({
                             } else if (item.id === 'archive') {
                               setOpen(false);
                               navigate('/archive');
+                            } else if (item.id === 'health') {
+                              setOpen(false);
+                              navigate('/health');
                             }
                           }}
                           role="menuitem"

@@ -761,6 +761,96 @@
     background-color: hsl(var(--archive-sepia) / 0.18);
   }
 
+  .health-theme {
+    /* 건강기록 — 쿨 화이트 캐논 + 방 정체성은 에메랄드 그린 하나로
+     * (데일리 로그의 세이지보다 채도 높게 잡아 구분). */
+    --background: 220 22% 98%;
+    --foreground: 175 14% 15%;
+
+    --card: 180 33% 99%;
+    --card-foreground: 175 14% 15%;
+
+    --popover: 180 33% 99%;
+    --popover-foreground: 175 14% 15%;
+
+    --muted: 170 16% 93%;
+    --muted-foreground: 175 8% 42%;
+
+    --accent: 170 20% 92%;
+    --accent-foreground: 175 14% 15%;
+
+    --secondary: 170 20% 92%;
+    --secondary-foreground: 175 8% 36%;
+
+    --border: 165 16% 85%;
+    --input: 165 16% 85%;
+
+    --primary: 175 14% 15%;
+    --primary-foreground: 180 33% 99%;
+
+    --ring: 152 58% 37%;
+    --focus-ring: 152 60% 39%;
+    --focus-offset: 220 22% 98%;
+
+    --hairline:  165 16% 87%;
+    --surface-1: 180 33% 99%;
+    --surface-2: 220 22% 98%;
+    --surface-3: 170 20% 94%;
+
+    --sidebar-background: 168 28% 98%;
+
+    /* 에메랄드 그린 — 유일한 강조색 (마크·CTA·활성·차트). */
+    --health-green: 152 58% 37%;
+  }
+
+  .dark .health-theme {
+    --background: 200 20% 8%;
+    --foreground: 170 14% 90%;
+
+    --card: 195 12% 13%;
+    --card-foreground: 170 14% 90%;
+
+    --popover: 195 12% 14%;
+    --popover-foreground: 170 14% 90%;
+
+    --muted: 195 10% 17%;
+    --muted-foreground: 175 8% 62%;
+
+    --accent: 195 10% 19%;
+    --accent-foreground: 170 14% 90%;
+
+    --secondary: 195 10% 17%;
+    --secondary-foreground: 170 10% 75%;
+
+    --border: 195 9% 22%;
+    --input: 195 9% 22%;
+
+    --primary: 170 14% 90%;
+    --primary-foreground: 195 12% 10%;
+
+    --ring: 152 52% 55%;
+    --focus-ring: 152 54% 57%;
+    --focus-offset: 200 20% 8%;
+
+    --hairline:  195 9% 22%;
+    --surface-1: 195 12% 13%;
+    --surface-2: 195 10% 16%;
+    --surface-3: 195 10% 19%;
+
+    --sidebar-background: 195 12% 12%;
+
+    --health-green: 152 52% 55%;
+  }
+
+  .health-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .health-theme ::selection {
+    background-color: hsl(var(--health-green) / 0.18);
+  }
+
   .paper-room {
     /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
      * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */

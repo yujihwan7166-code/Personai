@@ -2,6 +2,7 @@ import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'r
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Archive,
+  HeartPulse,
   CalendarDays,
   Contact,
   FileUser,
@@ -26,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive';
+export type WorkspaceKey = 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -45,6 +46,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
   { key: 'people', label: '인맥노트', to: '/people', icon: Contact },
   { key: 'archive', label: '아카이브', to: '/archive', icon: Archive },
+  { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Network },
 ];
 
@@ -55,7 +57,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'wiki', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'career', 'people', 'archive'].includes(item.key),
+  ['home', 'career', 'people', 'archive', 'health'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
