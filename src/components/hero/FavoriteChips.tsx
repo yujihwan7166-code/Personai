@@ -65,7 +65,6 @@ export function FavoriteChips({
           target.hubId === 'travel' ? '/journal?view=travel' :
           target.hubId === 'people' ? '/people' :
           target.hubId === 'archive' ? '/archive' :
-          target.hubId === 'wiki' ? '/wiki' :
           target.hubId === 'cloud' ? '/cloud' : null;
         if (route) navigate(route);
         break;

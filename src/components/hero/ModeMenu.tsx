@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Star,
-  CalendarDays, Cloud, StickyNote, NotebookPen, Award, Plane, Contact, Archive, BookOpen,
+  CalendarDays, Cloud, StickyNote, NotebookPen, Award, Plane, Contact, Archive,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,6 @@ import {
  * lucide 라인 아이콘으로 매핑. */
 export const HUB_ICONS: Record<string, LucideIcon> = {
   planner: CalendarDays,
-  wiki: BookOpen,
   cloud: Cloud,
   notes: StickyNote,
   journal: NotebookPen,
@@ -267,7 +266,6 @@ export function ModeMenu({
             target.hubId === 'travel' ? '/journal?view=travel' :
             target.hubId === 'people' ? '/people' :
             target.hubId === 'archive' ? '/archive' :
-            target.hubId === 'wiki' ? '/wiki' :
             target.hubId === 'cloud' ? '/cloud' : null;
           if (route) navigate(route);
           break;
