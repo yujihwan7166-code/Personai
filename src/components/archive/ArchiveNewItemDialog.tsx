@@ -258,11 +258,11 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           </button>
         </div>
 
-        {/* 1단계 — 카테고리(=양식) 고르기 */}
+        {/* 1단계 — 카테고리(=양식) 고르기 · 아카이브 전용 카드 팔레트 (리스트 아님) */}
         {!form && (
           <div className="max-h-[68vh] overflow-y-auto p-4">
             <p className="mb-3 px-0.5 text-[12px] text-muted-foreground">저장할 카테고리를 골라주세요</p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {DEFAULT_FORMS.map((f) => (
                 <CategoryTile key={f.key} emoji={f.emoji} name={f.name} desc={f.desc} onClick={() => pickForm(f)} />
               ))}
@@ -271,15 +271,15 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
                   key={c.id}
                   emoji={c.emoji ?? '📁'}
                   name={c.name}
-                  desc="내가 만든 카테고리"
+                  desc="내 카테고리"
                   onClick={() => pickForm(collectionForm(c), c.id)}
                 />
               ))}
 
-              {/* 새 카테고리 — 인라인 이름 입력 */}
+              {/* 새 카테고리 — 같은 카드 톤 (인라인 이름 입력) */}
               {creatingCategory ? (
-                <div className="flex items-center gap-2.5 rounded-xl border border-[hsl(var(--archive-sepia)/0.55)] bg-[hsl(var(--surface-1))] p-2.5 ring-2 ring-[hsl(var(--archive-sepia)/0.15)]">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--archive-sepia)/0.12)] text-[16px]">📁</span>
+                <div className="flex flex-col items-center gap-2 rounded-2xl border border-[hsl(var(--archive-sepia)/0.55)] bg-[hsl(var(--surface-1))] p-3.5 ring-2 ring-[hsl(var(--archive-sepia)/0.15)]">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--archive-sepia)/0.12)] text-[22px]">📁</span>
                   <input
                     autoFocus
                     value={newCategoryName}
@@ -289,20 +289,20 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
                       else if (e.key === 'Escape') { setCreatingCategory(false); setNewCategoryName(''); }
                     }}
                     onBlur={() => { if (!newCategoryName.trim()) setCreatingCategory(false); }}
-                    placeholder="이름 입력 후 Enter"
-                    className="min-w-0 flex-1 bg-transparent text-[13px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+                    placeholder="이름 + Enter"
+                    className="w-full min-w-0 bg-transparent text-center text-[12.5px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
                   />
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => setCreatingCategory(true)}
-                  className="flex items-center gap-3 rounded-xl border border-dashed border-[hsl(var(--hairline))] p-2.5 text-left text-muted-foreground transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:bg-accent hover:text-foreground"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[hsl(var(--hairline))] p-3.5 text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--archive-sepia)/0.5)] hover:text-foreground"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--foreground)/0.05)]">
-                    <Plus className="h-4 w-4" />
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--foreground)/0.05)] transition-transform group-hover:scale-105">
+                    <Plus className="h-5 w-5" />
                   </span>
-                  <span className="text-[13px] font-bold">새 카테고리</span>
+                  <span className="text-[12.5px] font-bold">새 카테고리</span>
                 </button>
               )}
             </div>
@@ -394,18 +394,18 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   return createPortal(body, document.body);
 }
 
-/* ── 카테고리 타일 (1단계 픽커) ── */
+/* ── 카테고리 카드 (1단계 픽커) — 세피아 이모지칩 세로 카드, 리스트 아님 ── */
 function CategoryTile({ emoji, name, desc, onClick }: { emoji: string; name: string; desc?: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5 text-left transition-all hover:-translate-y-px hover:border-[hsl(var(--archive-sepia)/0.5)] hover:shadow-[0_3px_10px_-4px_hsl(var(--foreground)/0.15)]"
+      className="group flex flex-col items-center gap-2 rounded-2xl border border-[hsl(var(--hairline))] bg-card p-3.5 text-center transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--archive-sepia)/0.5)] hover:shadow-[0_6px_18px_-8px_hsl(var(--foreground)/0.18)]"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--archive-sepia)/0.10)] text-[17px] transition-transform group-hover:scale-105">{emoji}</span>
-      <span className="min-w-0">
+      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--archive-sepia)/0.10)] text-[24px] transition-transform group-hover:scale-105">{emoji}</span>
+      <span className="w-full min-w-0">
         <span className="block truncate text-[13px] font-bold text-foreground">{name}</span>
-        {desc && <span className="block truncate text-[11px] text-muted-foreground">{desc}</span>}
+        {desc && <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">{desc}</span>}
       </span>
     </button>
   );
