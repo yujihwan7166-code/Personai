@@ -196,20 +196,24 @@ export default function Wiki() {
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: PW.paper, color: PW.ink, fontFamily: SANS, overflow: 'hidden' }}>
       <style>{PAGE_CSS}</style>
 
-      {/* ── 헤더 ── */}
+      {/* ── 헤더 — 도서관에선 로고 없이 (진입감은 화면 중앙 히어로가 담당) ── */}
       <header style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 20, height: 58, padding: '0 22px', background: PW.panel, borderBottom: `1px solid ${PW.line}`, position: 'relative', zIndex: 40 }}>
-        <div onClick={() => { setScreen('library'); setActiveDocId(null); }} style={{ display: 'flex', alignItems: 'baseline', gap: 9, cursor: 'pointer', userSelect: 'none', flex: 'none' }}>
-          <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)' }} />
-          <span style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>마이위키</span>
-        </div>
-
-        {/* 브레드크럼 (책 안일 때) */}
-        {screen === 'doc' && topic && (
-          <div style={{ flex: 'none', minWidth: 0, fontSize: 13, color: PW.faint, display: 'flex', alignItems: 'center', gap: 7, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <span style={{ opacity: 0.5 }}>›</span>
-            <span style={{ color: PW.sub }}>{topic.name}</span>
-            {activeDoc && (<><span style={{ opacity: 0.5 }}>›</span><span style={{ color: PW.sub }}>{activeDoc.title}</span></>)}
-          </div>
+        {screen === 'doc' ? (
+          <>
+            <div onClick={() => { setScreen('library'); setActiveDocId(null); }} style={{ display: 'flex', alignItems: 'baseline', gap: 9, cursor: 'pointer', userSelect: 'none', flex: 'none' }} title="도서관으로">
+              <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)' }} />
+              <span style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>마이위키</span>
+            </div>
+            {topic && (
+              <div style={{ flex: 'none', minWidth: 0, fontSize: 13, color: PW.faint, display: 'flex', alignItems: 'center', gap: 7, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <span style={{ opacity: 0.5 }}>›</span>
+                <span style={{ color: PW.sub }}>{topic.name}</span>
+                {activeDoc && (<><span style={{ opacity: 0.5 }}>›</span><span style={{ color: PW.sub }}>{activeDoc.title}</span></>)}
+              </div>
+            )}
+          </>
+        ) : (
+          <span style={{ display: 'inline-block', width: 15, height: 19, background: PW.accent, borderRadius: '2px 3px 3px 2px', boxShadow: 'inset -3px 0 0 rgba(0,0,0,0.18)', flex: 'none' }} aria-hidden />
         )}
 
         <div style={{ flex: 1 }} />
@@ -263,11 +267,14 @@ export default function Wiki() {
       {screen === 'library' && (
         <div className="pwk-scroll" style={{ flex: 1, overflow: 'auto', padding: '56px 40px 80px' }}>
           <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-            <div style={{ fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase', color: PW.faint, fontWeight: 700 }}>도서관</div>
-            <h1 style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 700, margin: '8px 0 6px', letterSpacing: '-0.02em' }}>한 주제를 깊게 파고드는 개인 백과사전</h1>
-            <p style={{ fontSize: 16, color: PW.sub, margin: '0 0 40px', maxWidth: 620, lineHeight: 1.7 }}>
-              책을 만들어 꽂고, 그 안에 문서를 트리로 써 내려가요. 판이 두꺼워질수록 하나의 지도가 됩니다.
-            </p>
+            {/* 진입 히어로 — 화면 중앙 상단, 도서관에 들어선 느낌 */}
+            <div style={{ textAlign: 'center', margin: '6px 0 44px' }}>
+              <div style={{ fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: PW.faint, fontWeight: 700 }}>나의 서재</div>
+              <h1 style={{ fontFamily: SERIF, fontSize: 46, fontWeight: 700, margin: '10px 0 10px', letterSpacing: '-0.02em' }}>마이위키</h1>
+              <p style={{ fontSize: 16.5, color: PW.sub, margin: '0 auto', maxWidth: 560, lineHeight: 1.75 }}>
+                한 주제를 한 권의 책으로 — 깊게 파고드는 나만의 백과사전.
+              </p>
+            </div>
 
             {/* 책장 */}
             <div style={{ background: 'linear-gradient(180deg,#efe7d8,#e7ddca)', borderRadius: 16, padding: '44px 40px 0', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>

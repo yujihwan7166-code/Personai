@@ -307,7 +307,8 @@ export function WikiDocView({ doc, docs, topic, crumbs, onOpenDoc, onDeleted }: 
   return (
     <div ref={scrollerRef} className="pwk-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', position: 'relative', padding: '36px 48px 120px' }}>
       <style>{BODY_CSS}</style>
-      <article style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1010, margin: '0 auto', display: 'flex', gap: 44, alignItems: 'flex-start' }}>
+      <article style={{ flex: 1, minWidth: 0, maxWidth: 760, margin: '0 auto' }}>
         {/* 브레드크럼 + 편집 토글 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: PW.faint, marginBottom: 10 }}>
           {crumbs.map((c, i) => (
@@ -380,18 +381,6 @@ export function WikiDocView({ doc, docs, topic, crumbs, onOpenDoc, onDeleted }: 
             ))}
           </div>
         </div>
-
-        {/* 목차 (보기 모드 · 헤딩 2개 이상) */}
-        {!editing && headings.length >= 2 && (
-          <nav style={{ margin: '4px 0 18px', padding: '14px 20px', background: '#f6f1e7', border: `1px solid ${PW.cardLine}`, borderRadius: 12, display: 'inline-block', minWidth: 260 }}>
-            <div style={{ fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: PW.faint, fontWeight: 700, marginBottom: 8 }}>목차</div>
-            {headings.map((h, i) => (
-              <div key={h.id} onClick={() => scrollToHeading(h.id)} style={{ fontSize: 14, color: '#5a5147', padding: '3px 0', paddingLeft: h.level === 3 ? 16 : 0, cursor: 'pointer' }}>
-                <span style={{ color: PW.sand, marginRight: 8 }}>{i + 1}</span>{h.text}
-              </div>
-            ))}
-          </nav>
-        )}
 
         {/* 편집 툴바 (편집 모드 · 스티키) */}
         {editing && (
@@ -488,6 +477,25 @@ export function WikiDocView({ doc, docs, topic, crumbs, onOpenDoc, onDeleted }: 
           </div>
         </footer>
       </article>
+
+      {/* 목차 — 본문에서 분리된 우측 고정 컬럼 (넓은 화면) */}
+      {headings.length >= 2 && (
+        <aside className="hidden xl:block" style={{ width: 186, flex: 'none', position: 'sticky', top: 6 }}>
+          <div style={{ fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: PW.faint, fontWeight: 700, marginBottom: 10, paddingLeft: 12 }}>목차</div>
+          <div style={{ borderLeft: `2px solid ${PW.cardLine}` }}>
+            {headings.map((h) => (
+              <div
+                key={h.id}
+                onClick={() => scrollToHeading(h.id)}
+                style={{ fontSize: 13, color: '#5a5147', padding: '5px 0 5px 12px', paddingLeft: h.level === 3 ? 26 : 12, cursor: 'pointer', lineHeight: 1.45, marginLeft: -2, borderLeft: '2px solid transparent' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = PW.accent; e.currentTarget.style.borderLeftColor = PW.accent; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5147'; e.currentTarget.style.borderLeftColor = 'transparent'; }}
+              >{h.text}</div>
+            ))}
+          </div>
+        </aside>
+      )}
+      </div>
 
       {/* ── 선택 팝오버 (편집 모드) ── */}
       {pop && (
