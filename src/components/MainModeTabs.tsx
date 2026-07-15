@@ -19,7 +19,6 @@ import {
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
   Archive,
-  HeartPulse,
   LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -246,7 +245,6 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
-  { id: 'health',     label: '건강기록 (이름미정)', desc: '진료 · 접종 · 복용약',            emoji: '🩺', icon: HeartPulse, tint: 'hsl(160 62% 40%)', axis: '기록', pending: true },
   { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
   { id: 'bucketlist', label: '버킷리스트 (이름미정)', desc: '하고 싶은 것 · 이룬 것',        emoji: '🎯', icon: Target,     tint: 'hsl(280 60% 55%)', axis: '기록', pending: true },
 ];
