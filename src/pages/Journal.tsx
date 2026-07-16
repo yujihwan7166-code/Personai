@@ -42,7 +42,7 @@ const CREAM: CSSProperties = {
   '--cream-ink': '30 12% 16%',       // 웜 차콜 잉크
   '--cream-muted': '30 8% 42%',
   '--cream-line': '35 14% 86%',      // 헤어라인
-  '--cream-accent': '146 27% 39%',   // 세이지 그린 — 방의 유일한 포인트 색 (sanctuary 무드)
+  '--cream-accent': '258 52% 58%',   // 퍼플 — 방의 유일한 포인트 색 (보라 컨셉)
   '--cream-dark': '30 12% 20%',      // 진한 버튼용
 } as CSSProperties;
 
@@ -466,23 +466,23 @@ export default function Journal() {
         ...CREAM,
         fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, sans-serif",
       }}
-      className="flex h-dvh bg-[#f4f7f2] text-[hsl(var(--cream-ink))] dark:bg-[hsl(var(--cream-bg))]"
+      className="flex h-dvh bg-[#f4f2fa] text-[hsl(var(--cream-ink))] dark:bg-[hsl(var(--cream-bg))]"
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
-      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#eef4eb] dark:bg-[hsl(var(--cream-panel))] sm:flex">
+      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#eeecf7] dark:bg-[hsl(var(--cream-panel))] sm:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
         <div className="px-3.5 pb-1 pt-4">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(20,50,25,0.08)]" role="img" aria-label="데일리 로그">🌱</span>
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(40,30,80,0.09)]" role="img" aria-label="데일리 로그">🌙</span>
             <div className="min-w-0">
               <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">데일리 로그</div>
-              <div className="truncate text-[12px] leading-tight text-[#6f8a6c]">나의 하루를 담는 기록실</div>
+              <div className="truncate text-[12px] leading-tight text-[#8078a3]">나의 하루를 담는 기록실</div>
             </div>
           </div>
         </div>
 
         {/* 내비 — 활성 = 흰 알약 + 그림자 (확정 크롬) */}
-        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#6f8a6c]">메뉴</div>
+        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#8078a3]">메뉴</div>
         <nav className="flex-1 overflow-y-auto px-2.5 pb-2" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
@@ -549,15 +549,15 @@ export default function Journal() {
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-6">
               {/* 히어로 — 연한 세이지 카드 (확정 크롬 보드) */}
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[12px] bg-[#e2eede] px-8 py-7 dark:bg-[hsl(146_18%_16%)]">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[12px] bg-[#e7e3f5] px-8 py-7 dark:bg-[hsl(258_18%_18%)]">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[20px] font-bold tracking-[-0.01em] text-[#23402c] dark:text-[hsl(146_35%_78%)]">{hasTodayEntry ? '이번 주도 잘 이어가고 있어요' : '오늘 하루는 어땠나요?'}</p>
-                  <p className="mt-1.5 text-[13.5px] text-[#5f7462]">{hasTodayEntry ? `오늘 기록 완료 · ${streak}일째` : '오늘은 아직 비어 있어요'}</p>
+                  <p className="text-[20px] font-bold tracking-[-0.01em] text-[#2f2960] dark:text-[hsl(258_35%_80%)]">{hasTodayEntry ? '이번 주도 잘 이어가고 있어요' : '오늘 하루는 어땠나요?'}</p>
+                  <p className="mt-1.5 text-[13.5px] text-[#6b6493]">{hasTodayEntry ? `오늘 기록 완료 · ${streak}일째` : '오늘은 아직 비어 있어요'}</p>
                   <button
                     type="button"
                     onClick={goWriteToday}
                     className="mt-[18px] inline-flex h-[42px] items-center gap-1.5 rounded-[8px] px-[18px] text-[14px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
-                    style={{ backgroundColor: '#3d7050' }}
+                    style={{ backgroundColor: '#5a4bc4' }}
                   >
                     <Pencil className="h-[15px] w-[15px]" /> 오늘 기록 쓰기
                   </button>
@@ -566,12 +566,12 @@ export default function Journal() {
                 <div className="flex gap-2">
                   {weekStrip.map((c) => (
                     <button key={c.key} type="button" onClick={() => openDate(c.key)} aria-label={`${c.day}일${c.has ? ' · 기록 있음' : ''}`} className="flex w-10 flex-col items-center gap-2">
-                      <span className={cn('text-[11.5px]', c.isToday ? 'font-semibold text-[#33523c]' : 'font-medium text-[#7d9280]')}>{c.isToday ? '오늘' : c.wd}</span>
+                      <span className={cn('text-[11.5px]', c.isToday ? 'font-semibold text-[#4a3f7d]' : 'font-medium text-[#8880ab]')}>{c.isToday ? '오늘' : c.wd}</span>
                       <span className={cn(
                         'flex h-9 w-9 items-center justify-center rounded-full text-[14px] tabular-nums transition-colors',
-                        c.isToday ? 'bg-[#3d7050] font-bold text-white'
-                          : c.has ? 'bg-[#cbe0c5] font-semibold text-[#2c4a35]'
-                          : 'text-[#5f7462] hover:bg-white/50',
+                        c.isToday ? 'bg-[#5a4bc4] font-bold text-white'
+                          : c.has ? 'bg-[#d8d1f0] font-semibold text-[#3a3170]'
+                          : 'text-[#6b6493] hover:bg-white/50',
                       )}>{c.day}</span>
                     </button>
                   ))}
@@ -582,7 +582,7 @@ export default function Journal() {
               <div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-[17px] font-bold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">최근 기록</h3>
-                  <div className="flex gap-0.5 rounded-[8px] bg-[#e5eae3] p-0.5 dark:bg-white/10">
+                  <div className="flex gap-0.5 rounded-[8px] bg-[#eae7f3] p-0.5 dark:bg-white/10">
                     {([['all', '전체'], ['week', '이번 주'], ['photo', '사진']] as const).map(([k, l]) => (
                       <button
                         key={k}
@@ -590,7 +590,7 @@ export default function Journal() {
                         onClick={() => setRecentFilter(k)}
                         className={cn(
                           'flex h-8 items-center rounded-[6px] px-3.5 text-[13.5px] transition-colors',
-                          recentFilter === k ? 'bg-white font-semibold text-[#23262b] shadow-sm dark:bg-white/15' : 'font-medium text-[#5f7462] hover:text-[#23262b]',
+                          recentFilter === k ? 'bg-white font-semibold text-[#23262b] shadow-sm dark:bg-white/15' : 'font-medium text-[#6b6493] hover:text-[#23262b]',
                         )}
                       >
                         {l}
@@ -616,7 +616,7 @@ export default function Journal() {
                           key={e.id}
                           type="button"
                           onClick={() => openDate(e.date)}
-                          className="group flex w-full items-start gap-4 rounded-[14px] border border-[#e0e6de] bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcd4b6] hover:shadow-[0_10px_24px_-16px_rgba(30,60,35,0.3)] dark:border-[hsl(var(--cream-line))] dark:bg-[hsl(var(--cream-card))]"
+                          className="group flex w-full items-start gap-4 rounded-[14px] border border-[#e4e0ee] bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cbc3ea] hover:shadow-[0_10px_24px_-16px_rgba(50,40,90,0.3)] dark:border-[hsl(var(--cream-line))] dark:bg-[hsl(var(--cream-card))]"
                         >
                           <div className="w-10 shrink-0 text-center">
                             <div className="text-[19px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</div>
