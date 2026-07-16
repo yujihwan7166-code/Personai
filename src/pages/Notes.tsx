@@ -174,12 +174,12 @@ const Notes = () => {
           type="button"
           onClick={() => setActiveId(note.id)}
           className={cn(
-            'group flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left transition-colors',
-            activeRow ? 'bg-primary/10' : 'hover:bg-accent',
+            'group flex h-[38px] w-full items-center gap-2 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
+            activeRow ? 'bg-white font-semibold text-[#2c4f93] shadow-[0_1px_2px_rgba(20,40,80,0.08)] dark:bg-white/10' : 'text-[#4d5563] hover:bg-white/45 dark:text-foreground/70 dark:hover:bg-white/5',
           )}
         >
-          <FileText className={cn('h-3.5 w-3.5 shrink-0', activeRow ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.8} />
-          <span className={cn('min-w-0 flex-1 truncate text-[14px]', activeRow ? 'font-medium text-primary' : 'text-foreground')}>
+          <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#8894a5]')} strokeWidth={1.8} />
+          <span className={cn('min-w-0 flex-1 truncate', activeRow ? 'font-semibold text-[#2c4f93]' : '')}>
             {noteDisplayTitle(note)}
           </span>
           <span
@@ -231,7 +231,7 @@ const Notes = () => {
   return (
     <div className="paper-room flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
-      <aside className="flex w-full shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#eef1f4] dark:bg-[hsl(var(--sidebar-background))] sm:w-[256px]">
+      <aside className="flex w-full shrink-0 flex-col border-r border-[#d9e3ee] bg-[#eaf0f7] dark:border-[hsl(var(--hairline))] dark:bg-[hsl(var(--sidebar-background))] sm:w-[256px]">
         <div className="shrink-0 pl-4 pr-3 pt-4 pb-3 sm:pl-5">
           {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방이라 그래파이트 톤 라이트 타일.
               부제에 권수(실데이터)를 담아 "제목=주어, 실데이터=서술어" 문법 유지. font-sans로 전역 세리프 무효화. */}
@@ -241,7 +241,7 @@ const Notes = () => {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="font-sans text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-foreground">올인원 노트</h1>
-              <p className="truncate text-[12px] leading-tight text-[#8a909a]">{notes.length > 0 ? `${notes.length}권 · 생각을 담는 한 권` : '생각을 담는 한 권'}</p>
+              <p className="truncate text-[12px] leading-tight text-[#7189ab]">{notes.length > 0 ? `${notes.length}권 · 생각을 담는 곳` : '생각을 담는 곳'}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -297,7 +297,7 @@ const Notes = () => {
               {/* 즐겨찾기 */}
               {favorites.length > 0 && (
                 <div>
-                  <p className="flex items-center gap-1 px-2 pb-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  <p className="flex items-center gap-1.5 px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">
                     <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> 즐겨찾기
                   </p>
                   <ul className="space-y-0.5">{favorites.map(renderNote)}</ul>
@@ -305,6 +305,7 @@ const Notes = () => {
               )}
 
               {/* 폴더들 */}
+              {folders.length > 0 && <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">폴더</p>}
               {folders.map((f) => {
                 const open = expanded.has(f.id);
                 const folderNotes = notes.filter((n) => n.folderId === f.id);
@@ -345,10 +346,13 @@ const Notes = () => {
                 );
               })}
 
-              {/* 미분류 */}
-              <div>
-                <ul className="space-y-0.5">{unfiled.map(renderNote)}</ul>
-              </div>
+              {/* 노트 (미분류) */}
+              {unfiled.length > 0 && (
+                <div>
+                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">노트</p>
+                  <ul className="space-y-0.5">{unfiled.map(renderNote)}</ul>
+                </div>
+              )}
             </div>
           )}
         </div>
