@@ -144,14 +144,14 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       <nav
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#2a2e34] bg-[#31353c] py-3.5 sm:flex"
+        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#13151a] bg-[#1c2026] py-3.5 sm:flex"
       >
         {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
         <NavLink
           to="/"
           aria-label="홈으로"
           title="홈으로"
-          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#99a0aa] transition-colors hover:bg-[#3d434c] hover:text-white"
+          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#99a0aa] transition-colors hover:bg-[#292e37] hover:text-white"
         >
           <Home className="h-5 w-5" strokeWidth={2} />
         </NavLink>
@@ -167,14 +167,14 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
             modeOpen
-              ? 'bg-[#454b54] text-white'
-              : 'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
+              ? 'bg-[#2e343d] text-white'
+              : 'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
           )}
         >
           <LayoutGrid className="h-5 w-5" strokeWidth={1.9} />
         </button>
 
-        <span aria-hidden className="my-1.5 h-px w-6 bg-[#454a52]" />
+        <span aria-hidden className="my-1.5 h-px w-6 bg-[#2b303a]" />
 
         {RAIL_WORKSPACES.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
@@ -183,7 +183,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         {/* 페이지 전용 기능 — 스위처 아래 구분선 다음에 (예: 플래너 매트릭스·보관함…). */}
         {railExtra && railExtra.length > 0 && (
           <>
-            <span aria-hidden className="my-1.5 h-px w-6 bg-[#454a52]" />
+            <span aria-hidden className="my-1.5 h-px w-6 bg-[#2b303a]" />
             {railExtra.map((item) => {
               const Icon = item.icon;
               return (
@@ -195,7 +195,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
                   title={item.label}
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-                    'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
+                    'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
                     item.soon && 'opacity-45',
                   )}
                 >
@@ -208,7 +208,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
 
         {/* 테마 토글 — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
-          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#454a52]" />
+          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#2b303a]" />
           <RailThemeToggle />
         </div>
       </nav>
@@ -340,7 +340,7 @@ function RailLink({ item, active }: WorkspaceLinkProps) {
       title={item.label}
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-        active ? 'bg-[#454b54]' : 'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
+        active ? 'bg-[#2e343d]' : 'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
       )}
       style={active && accent ? { color: accent } : undefined}
     >
