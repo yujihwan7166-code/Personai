@@ -175,11 +175,11 @@ export default function People() {
           {/* 섹션 머리 (상세·편집 화면에선 숨김) */}
           {!openPerson && !editor.open && (
             <div className="mb-5">
-              <p className="text-[10.5px] font-bold tracking-[0.22em] text-muted-foreground/60">{SECTION_HEAD[view].eyebrow}</p>
-              <h2 className="mt-1.5 flex items-baseline gap-2 text-[27px] font-bold leading-none tracking-[-0.01em]">
+              <p className="text-[11px] font-bold tracking-[0.14em] text-[#a08343]">{SECTION_HEAD[view].eyebrow}</p>
+              <h2 className="mt-1.5 flex items-baseline gap-2 text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-foreground">
                 {SECTION_HEAD[view].title}
                 {view === 'persons' && persons.length > 0 && (
-                  <span className="text-[14px] font-bold tabular-nums text-muted-foreground/55">{persons.length}</span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#8d949d]">{persons.length}</span>
                 )}
               </h2>
             </div>
