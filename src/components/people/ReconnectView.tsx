@@ -1,5 +1,5 @@
 /**
- * 오늘 챙길 것 (다시 챙기기) — 인맥노트 리디자인 1e 그대로.
+ * 다시 챙기기 — 인맥노트 리디자인 1e 그대로.
  *
  * 연락이 뜸해진 사람(친밀도별 안부 주기 초과)을 리치 카드로:
  * 관계·친밀도 칩 + 상태 문구(평소보다 N배 뜸) + 8주 스파크라인 + 오늘 연락하기/기록 보기/나중에.
@@ -18,7 +18,7 @@ import {
   type Interaction, type Person,
 } from '@/types/people';
 
-export function TodayView({
+export function ReconnectView({
   persons, interactions, onOpenPerson,
 }: {
   persons: Person[];
@@ -80,7 +80,7 @@ export function TodayView({
         <div>
           <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a08343]">RECONNECT</div>
           <div className="flex items-baseline gap-2.5">
-            <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">오늘 챙길 것</span>
+            <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">다시 챙기기</span>
             <span className="text-[14px] text-[#8d949d]">{overdue.length > 0 ? `연락이 뜸해진 ${overdue.length}명` : '모두와 잘 연락하고 있어요'}</span>
           </div>
         </div>
