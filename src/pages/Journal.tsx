@@ -422,16 +422,16 @@ export default function Journal() {
         onClick={() => { setTab(item.id); setDetailOpen(false); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
+          'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14px] transition-colors',
           active
-            ? 'bg-[hsl(var(--cream-accent))]/15 font-bold text-[hsl(var(--cream-accent))]'
-            : 'font-medium text-[hsl(var(--cream-ink))]/72 hover:bg-[hsl(var(--cream-accent))]/6',
+            ? 'bg-white font-semibold text-[hsl(var(--cream-accent))] shadow-[0_1px_2px_rgba(30,50,25,0.09)] dark:bg-white/10'
+            : 'font-medium text-[hsl(var(--cream-ink))]/70 hover:bg-white/45 dark:hover:bg-white/5',
         )}
       >
-        <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{NAV_EMOJI[item.id]}</span>
+        <span aria-hidden className="w-[19px] shrink-0 text-center text-[16px] leading-none">{NAV_EMOJI[item.id]}</span>
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
-          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--cream-accent))]/75' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
+          <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
         )}
       </button>
     );
@@ -470,26 +470,20 @@ export default function Journal() {
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
       <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#eef4eb] dark:bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 */}
-        <div className="px-4 pb-3 pt-4">
-          <div className="flex items-center gap-3">
-            {/* 마크 — '흙 위 새싹': 큰 두 잎 + 흙선 (심고 기른다) */}
-            <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label="데일리 로그">
-              <rect x="0.5" y="0.5" width="47" height="47" rx="14.5" fill="hsl(146 22% 93%)" stroke="hsl(146 20% 83%)" strokeWidth="1" />
-              <path d="M16 36 Q24 38.5 32 36" fill="none" stroke="hsl(40 20% 68%)" strokeWidth="2" strokeLinecap="round" />
-              <path d="M24 35 L24 22" fill="none" stroke="hsl(146 30% 37%)" strokeWidth="2.6" strokeLinecap="round" />
-              <path d="M24 24 C18 23 13 18 12.5 10.5 C18.5 11.5 22.5 17 24 24 Z" fill="hsl(146 26% 57%)" />
-              <path d="M24 24 C30 23 35 18 35.5 10.5 C29.5 11.5 25.5 17 24 24 Z" fill="hsl(146 30% 37%)" />
-            </svg>
+        {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
+        <div className="px-3.5 pb-1 pt-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(20,50,25,0.08)]" role="img" aria-label="데일리 로그">🌱</span>
             <div className="min-w-0">
-              <h1 className="translate-y-[4px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(146_32%_34%)]">데일리 로그</h1>
-              <p className="text-[12.5px] leading-tight text-[hsl(var(--cream-muted))]">나의 하루를 담는 기록실</p>
+              <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">데일리 로그</div>
+              <div className="truncate text-[12px] leading-tight text-[#6f8a6c]">나의 하루를 담는 기록실</div>
             </div>
           </div>
         </div>
 
-        {/* 내비 — 컬러 아이콘 + 플레인 카운트, 활성 = 은은한 필 */}
-        <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="데일리로그 섹션">
+        {/* 내비 — 활성 = 흰 알약 + 그림자 (확정 크롬) */}
+        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#6f8a6c]">메뉴</div>
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
 
