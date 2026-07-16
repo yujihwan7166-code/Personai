@@ -1,107 +1,181 @@
 /**
- * 경조사 캘린더 — 생일·기념일이 칩으로 찍히는 월 그리드 (목업 그대로).
+ * 경조사 캘린더 — 인맥노트 리디자인 1d 그대로.
+ *
+ * 월 네비 마스트헤드 + 7열 월간 그리드(요일 색·오늘 강조·경조사 칩) + 범례
+ * + 우패널(다가오는 경조사 D-day 리스트). 데이터: 생일·기념일(persons).
  */
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Cake, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { todayKey } from '@/types/travel';
-import type { Person } from '@/types/people';
+import { RELATION_META, nextOccurrence, type Person } from '@/types/people';
 
 type EventType = 'birthday' | 'anniversary' | 'etc';
-const TYPE_META: Record<EventType, { label: string; bg: string }> = {
-  birthday: { label: '생일', bg: 'hsl(var(--people-accent))' },
-  anniversary: { label: '기념일', bg: 'hsl(38 75% 42%)' },
-  etc: { label: '기타', bg: 'hsl(150 38% 40%)' },
-};
+const TYPE_BG: Record<EventType, string> = { birthday: '#b45309', anniversary: '#8a5a3b', etc: '#a2a8b0' };
+const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+const WD_SHORT = ['일', '월', '화', '수', '목', '금', '토'];
 
-export function EventsCalendar({ persons, onOpenPerson }: { persons: Person[]; onOpenPerson: (id: string) => void }) {
+interface Ev { personId: string; name: string; label: string; type: EventType; relation: string }
+
+export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons: Person[]; onOpenPerson: (id: string) => void; onNewPerson: () => void }) {
   const today = todayKey();
-  const [anchor, setAnchor] = useState(() => new Date());
-  const y = anchor.getFullYear();
-  const m = anchor.getMonth();
+  const [anchor, setAnchor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  const { y, m } = anchor;
   const lead = new Date(y, m, 1).getDay();
   const daysIn = new Date(y, m + 1, 0).getDate();
+  const prevDaysIn = new Date(y, m, 0).getDate();
+  const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 
   /** MM-DD → 이벤트들. */
   const byMonthDay = useMemo(() => {
-    const map = new Map<string, Array<{ personId: string; name: string; label: string; type: EventType }>>();
-    const push = (monthDay: string, ev: { personId: string; name: string; label: string; type: EventType }) => {
-      const arr = map.get(monthDay);
-      if (arr) arr.push(ev);
-      else map.set(monthDay, [ev]);
-    };
+    const map = new Map<string, Ev[]>();
+    const push = (md: string, ev: Ev) => { const a = map.get(md); if (a) a.push(ev); else map.set(md, [ev]); };
     for (const p of persons) {
-      if (p.birthday) push(p.birthday, { personId: p.id, name: p.name, label: '생일', type: 'birthday' });
-      for (const a of p.annivs) push(a.monthDay, { personId: p.id, name: p.name, label: a.label, type: a.type === 'etc' ? 'etc' : 'anniversary' });
+      const relation = RELATION_META[p.relation].label;
+      if (p.birthday) push(p.birthday, { personId: p.id, name: p.name, label: '생일', type: 'birthday', relation });
+      for (const a of p.annivs) push(a.monthDay, { personId: p.id, name: p.name, label: a.label, type: a.type === 'etc' ? 'etc' : 'anniversary', relation });
     }
     return map;
   }, [persons]);
 
-  return (
-    <div className="pb-8">
-      <div className="rounded-2xl border border-[hsl(var(--foreground)/0.09)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.12)] sm:p-5">
-        <div className="mb-4 flex items-center justify-center gap-4">
-          <button type="button" onClick={() => setAnchor(new Date(y, m - 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-[hsl(var(--surface-3))]" aria-label="이전 달"><ChevronLeft className="h-4 w-4" /></button>
-          <span className="text-[17px] font-bold tabular-nums">{y}년 {m + 1}월</span>
-          <button type="button" onClick={() => setAnchor(new Date(y, m + 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-[hsl(var(--surface-3))]" aria-label="다음 달"><ChevronRight className="h-4 w-4" /></button>
-        </div>
+  const eventsOn = (mm: number, day: number): Ev[] => {
+    const md = `${String(mm + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const base = byMonthDay.get(md) ?? [];
+    return mm === 1 && day === 28 && !isLeap ? [...base, ...(byMonthDay.get('02-29') ?? [])] : base;
+  };
 
-        <div className="mb-1.5 grid grid-cols-7 text-center text-[11px] text-muted-foreground">
-          {['일', '월', '화', '수', '목', '금', '토'].map((w, i) => (
-            <span key={w} className={cn(i === 0 && 'text-[hsl(var(--people-accent))]/80')}>{w}</span>
-          ))}
+  const monthCount = useMemo(() => {
+    let n = 0;
+    for (let d = 1; d <= daysIn; d++) n += eventsOn(m, d).length;
+    return n;
+  }, [m, daysIn, byMonthDay]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 그리드 셀 — 앞뒤 달 채움 포함(디밍). */
+  const cells = useMemo(() => {
+    const out: Array<{ day: number; other: boolean; mm: number; iso?: string }> = [];
+    for (let i = 0; i < lead; i++) out.push({ day: prevDaysIn - lead + 1 + i, other: true, mm: m - 1 });
+    for (let d = 1; d <= daysIn; d++) out.push({ day: d, other: false, mm: m, iso: `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
+    while (out.length % 7 !== 0) out.push({ day: out.length - lead - daysIn + 1, other: true, mm: m + 1 });
+    return out;
+  }, [lead, prevDaysIn, daysIn, m, y]);
+
+  /** 다가오는 경조사 — 가까운 순. */
+  const upcoming = useMemo(() => {
+    const list: Array<Ev & { dday: number; date: string }> = [];
+    for (const [md, evs] of byMonthDay) {
+      const { dday, date } = nextOccurrence(md, today);
+      for (const ev of evs) list.push({ ...ev, dday, date });
+    }
+    return list.sort((a, b) => a.dday - b.dday).slice(0, 6);
+  }, [byMonthDay, today]);
+  const ddayText = (d: number) => (d === 0 ? 'D-day' : `D-${d}`);
+  const fmtOcc = (date: string) => {
+    const dt = new Date(`${date}T00:00:00`);
+    return `${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD_SHORT[dt.getDay()]})`;
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── 마스트헤드 ── */}
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a08343]">OCCASIONS</div>
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">경조사 캘린더</span>
+            <span className="text-[14px] text-[#8d949d]">이번 달 {monthCount}건</span>
+          </div>
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
-          {Array(lead).fill(null).map((_, i) => <div key={`x${i}`} />)}
-          {Array.from({ length: daysIn }, (_, i) => {
-            const day = i + 1;
-            const monthDay = `${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const iso = `${y}-${monthDay}`;
-            const isToday = iso === today;
-            // 2/29 경조사는 평년엔 2/28 칸에 — 평년에 통째로 사라지는 것 방지
-            const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
-            const events =
-              m === 1 && day === 28 && !isLeap
-                ? [...(byMonthDay.get(monthDay) ?? []), ...(byMonthDay.get('02-29') ?? [])]
-                : byMonthDay.get(monthDay) ?? [];
-            return (
-              <div
-                key={day}
-                className={cn(
-                  'min-h-[74px] rounded-xl border p-1.5',
-                  isToday ? 'border-[hsl(var(--people-accent))] bg-[hsl(var(--people-accent))]/[0.06] ring-1 ring-[hsl(var(--people-accent))]/25' : 'border-[hsl(var(--hairline))]/70 bg-[hsl(var(--surface-2))]/50',
-                )}
-              >
-                <span className={cn('text-[11px] tabular-nums', isToday ? 'font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground')}>{day}</span>
-                <div className="mt-0.5 space-y-0.5">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-[38px] items-center overflow-hidden rounded-[8px] border border-[#e9e2d2] bg-white text-[13.5px] font-medium text-[#4b5158]">
+            <button type="button" onClick={() => setAnchor(m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })} aria-label="이전 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronLeft className="h-3.5 w-3.5" /></button>
+            <span className="px-1.5 tabular-nums">{y}년 {m + 1}월</span>
+            <button type="button" onClick={() => setAnchor(m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })} aria-label="다음 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronRight className="h-3.5 w-3.5" /></button>
+          </span>
+          <button type="button" onClick={onNewPerson} className="inline-flex h-[42px] items-center gap-[7px] rounded-[8px] bg-[#b45309] px-[18px] text-[14px] font-semibold text-white transition-colors hover:bg-[#9c4708]">
+            <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} /> 경조사 추가
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-6 lg:flex-row">
+        {/* ── 캘린더 ── */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-[#e9e2d2] bg-white">
+          <div className="grid grid-cols-7 border-b border-[#f0ebdf]">
+            {WEEKDAYS.map((w, i) => (
+              <span key={w} className={cn('border-r border-[#f5f1e7] py-2.5 text-center text-[12px] font-semibold last:border-r-0', i === 0 ? 'text-[#c08585]' : i === 6 ? 'text-[#8a9bc9]' : 'text-[#9aa1ab]')}>{w}</span>
+            ))}
+          </div>
+          <div className="grid flex-1 grid-cols-7" style={{ gridAutoRows: 'minmax(84px, 1fr)' }}>
+            {cells.map((c, idx) => {
+              const dow = idx % 7;
+              const isToday = c.iso === today;
+              const events = c.other ? [] : eventsOn(m, c.day);
+              return (
+                <div
+                  key={idx}
+                  className={cn('flex flex-col gap-1.5 overflow-hidden border-b border-r border-[#f0ebdf] px-2.5 py-2', c.other && 'bg-[#faf7f0]')}
+                  style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #b45309' } : undefined}
+                >
+                  <span
+                    className={cn('inline-flex h-[26px] w-[26px] items-center justify-center rounded-full text-[12.5px] font-semibold tabular-nums', isToday ? 'bg-[#b45309] font-bold text-white' : c.other ? 'text-[#cfc7b4]' : dow === 0 ? 'text-[#c08585]' : dow === 6 ? 'text-[#8a9bc9]' : 'text-[#3f434e]')}
+                  >
+                    {c.day}
+                  </span>
                   {events.slice(0, 2).map((ev) => (
                     <button
                       key={`${ev.personId}-${ev.label}`}
                       type="button"
                       onClick={() => onOpenPerson(ev.personId)}
-                      className="block w-full truncate rounded-[5px] px-1 py-0.5 text-left text-[9.5px] font-bold text-white transition-[filter] hover:brightness-110"
-                      style={{ backgroundColor: TYPE_META[ev.type].bg }}
                       title={`${ev.name} ${ev.label}`}
+                      className="inline-flex h-6 items-center gap-[5px] self-start overflow-hidden whitespace-nowrap rounded-[6px] px-[9px] text-[11.5px] font-semibold text-white transition-[filter] hover:brightness-110"
+                      style={{ backgroundColor: TYPE_BG[ev.type] }}
                     >
-                      {ev.name} {ev.label}
+                      <Cake className="h-[11px] w-[11px] shrink-0" /> <span className="truncate">{ev.name} {ev.label}</span>
                     </button>
                   ))}
-                  {events.length > 2 && <span className="block px-1 text-[9px] text-muted-foreground">외 {events.length - 2}</span>}
+                  {events.length > 2 && <span className="px-1 text-[10px] text-[#98917d]">외 {events.length - 2}</span>}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3.5 border-t border-[#f0ebdf] px-5 py-3 text-[12px] text-[#8d949d]">
+            {(['birthday', 'anniversary', 'etc'] as EventType[]).map((t) => (
+              <span key={t} className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: TYPE_BG[t] }} />
+                {t === 'birthday' ? '생일' : t === 'anniversary' ? '기념일' : '기타'}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* 범례 */}
-      <div className="mt-2.5 flex items-center gap-4 px-1 text-[11px] text-muted-foreground">
-        {(Object.keys(TYPE_META) as EventType[]).map((t) => (
-          <span key={t} className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-[3px]" style={{ backgroundColor: TYPE_META[t].bg }} />
-            {TYPE_META[t].label}
-          </span>
-        ))}
+        {/* ── 다가오는 경조사 ── */}
+        <div className="w-full shrink-0 rounded-[10px] border border-[#e9e2d2] bg-white px-[22px] py-5 lg:w-[380px]">
+          <div className="mb-3.5 text-[15px] font-bold text-[#191c20]">다가오는 경조사</div>
+          {upcoming.length === 0 ? (
+            <p className="rounded-[10px] border border-dashed border-[#e2d9c4] bg-[#faf7f0] px-4 py-6 text-center text-[13px] text-[#98917d]">등록된 생일·기념일이 아직 없어요.</p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {upcoming.map((ev) => (
+                <button
+                  key={`${ev.personId}-${ev.label}-${ev.date}`}
+                  type="button"
+                  onClick={() => onOpenPerson(ev.personId)}
+                  className="flex items-center gap-3 rounded-[10px] border border-[#f0ebdf] bg-[#faf7f0] p-3 text-left transition-colors hover:border-[#e2d3b6]"
+                >
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f2e5cf] text-[#a15008]"><Cake className="h-[17px] w-[17px]" strokeWidth={1.7} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-semibold text-[#23262b]">{ev.name} {ev.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] text-[#8d949d]">{fmtOcc(ev.date)} · {ev.relation}</span>
+                  </span>
+                  <span className="text-[14px] font-bold text-[#8f4207]">{ddayText(ev.dday)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-2 px-0.5 text-[13px] text-[#98917d]">
+            <Cake className="h-[14px] w-[14px]" /> 선물 아이디어를 미리 메모해두세요
+          </div>
+        </div>
       </div>
     </div>
   );

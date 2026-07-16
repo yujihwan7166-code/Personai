@@ -1,30 +1,32 @@
 /**
- * 사람 — 검색 + 관계×친밀도 직교 필터 + 정렬(이름/연락 오래된순) + 카드/리스트.
+ * 사람 — 인맥 목록/카드 (인맥노트 리디자인 1a·1b 그대로).
  *
- * 방의 핵심 가치("이 사람을 잘 챙기고 있나")가 목록에서 바로 읽히게:
- * 카드마다 마지막 연락 상대시간(주기 초과면 테라코타)과 생일 임박(🎂 D-n) 시그널.
+ * 마스트헤드(정렬·카드/리스트 토글·새 사람) + 검색 + 관계×친밀도 필터 + 카테고리 필터.
+ * 리스트: 이름·관계·태그·그룹/친밀도 표 (생일 임박 D-day 칩).
+ * 카드: 60px 아바타 그리드 (생일 임박 🎂 배지). 실데이터(usePersons/interactions/categories) 배선.
  */
-import { useMemo, useState } from 'react';
-import { ArrowDownUp, LayoutGrid, List, Search, X } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { ArrowUpDown, Cake, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { peopleStore } from '@/services/peopleStore';
 import { agoContactLabel, lastContactMap } from '@/lib/people/overdue';
 import { diffDays, todayKey } from '@/types/travel';
 import {
-  CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, avatarColor, nextOccurrence,
+  CLOSENESS_META, CLOSENESS_ORDER, RELATION_META, RELATION_ORDER, nextOccurrence,
   type Closeness, type Interaction, type PeopleCategory, type Person, type Relation,
 } from '@/types/people';
 
 type SortMode = 'name' | 'stale';
 
 export function PersonsView({
-  persons, interactions, categories, onOpen,
+  persons, interactions, categories, onOpen, onNewPerson,
 }: {
   persons: Person[];
   interactions: Interaction[];
   categories: PeopleCategory[];
   onOpen: (id: string) => void;
+  onNewPerson: () => void;
 }) {
   const [query, setQuery] = useState('');
   const [relationFilter, setRelationFilter] = useState<Relation | 'all'>('all');
@@ -42,6 +44,11 @@ export function PersonsView({
     for (const p of persons) for (const id of p.categoryIds) m.set(id, (m.get(id) ?? 0) + 1);
     return m;
   }, [persons]);
+  const categoryName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of categories) m.set(c.id, c.name);
+    return m;
+  }, [categories]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,7 +77,7 @@ export function PersonsView({
     }
   };
 
-  /** 사람별 시그널 — 연락 라벨(주기 초과 여부)과 생일 임박. */
+  /** 사람별 시그널 — 연락 라벨(주기 초과 여부)과 생일 임박(≤7일 D-day). */
   const signalOf = (p: Person) => {
     const last = lastMap.get(p.id) ?? today;
     const overdue = Math.floor(diffDays(last, today) / 30) >= CLOSENESS_META[p.closeness].pingMonths;
@@ -80,89 +87,99 @@ export function PersonsView({
     return { ago, overdue, bdaySoon };
   };
 
-  const chip = (active: boolean) =>
-    cn(
-      'rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
-      active
-        ? 'border-transparent bg-[hsl(var(--foreground))] font-bold text-[hsl(var(--background))]'
-        : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
-    );
+  /** 목록 하단 안내 — 가장 임박한 생일(≤14일). */
+  const soonestBirthday = useMemo(() => {
+    let best: { name: string; dday: number } | null = null;
+    for (const p of persons) {
+      if (!p.birthday) continue;
+      const { dday } = nextOccurrence(p.birthday, today);
+      if (dday <= 14 && (!best || dday < best.dday)) best = { name: p.name, dday };
+    }
+    return best;
+  }, [persons, today]);
+  const ddayText = (d: number) => (d === 0 ? '오늘' : d === 1 ? '내일' : `${d}일 뒤`);
 
   return (
-    <div className="pb-8">
-      {/* 검색 + 정렬 + 뷰 토글 */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <label className="flex h-9 min-w-[220px] flex-1 items-center gap-1.5 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-3 transition-colors focus-within:border-[hsl(var(--people-accent))]/50 sm:max-w-[320px]">
-          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── 마스트헤드 ── */}
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a08343]">MY PEOPLE</div>
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">사람</span>
+            <span className="text-[14px] text-[#8d949d]">{persons.length}명과 연결돼 있어요</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setSort((s) => (s === 'name' ? 'stale' : 'name'))}
+            className="inline-flex h-[38px] items-center gap-[7px] rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] font-medium text-[#4b5158] transition-colors hover:bg-[#faf7f0]"
+          >
+            <ArrowUpDown className="h-[15px] w-[15px]" /> {sort === 'name' ? '이름순' : '연락 오래된순'}
+          </button>
+          <span className="inline-flex rounded-[8px] bg-[#eae3d3] p-0.5">
+            {(['card', 'list'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={cn(
+                  'inline-flex h-[34px] items-center rounded-[6px] px-3.5 text-[13.5px] transition-colors',
+                  mode === m ? 'bg-white font-semibold text-[#23262b] shadow-[0_1px_2px_rgba(60,40,10,0.08)]' : 'font-medium text-[#8a8471]',
+                )}
+              >
+                {m === 'card' ? '카드' : '리스트'}
+              </button>
+            ))}
+          </span>
+          <button
+            type="button"
+            onClick={onNewPerson}
+            className="inline-flex h-[42px] items-center gap-[7px] rounded-[8px] bg-[#b45309] px-[18px] text-[14px] font-semibold text-white transition-colors hover:bg-[#9c4708]"
+          >
+            <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} /> 새 사람
+          </button>
+        </div>
+      </div>
+
+      {/* ── 검색 + 관계×친밀도 필터 ── */}
+      <div className="mb-3 flex flex-wrap items-center gap-[9px]">
+        <label className="inline-flex h-[36px] w-[320px] max-w-full items-center gap-2 rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] transition-colors focus-within:border-[#d6a066]">
+          <Search className="h-[15px] w-[15px] shrink-0 text-[#b3a98f]" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="이름·태그·전화·메모 검색"
-            className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground/60"
+            className="min-w-0 flex-1 bg-transparent text-[#3f434e] outline-none placeholder:text-[#8d949d]"
           />
         </label>
-        <button
-          type="button"
-          onClick={() => setSort((s) => (s === 'name' ? 'stale' : 'name'))}
-          className="ml-auto inline-flex items-center gap-1 rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-2.5 py-1.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-          title="정렬 바꾸기"
-        >
-          <ArrowDownUp className="h-3 w-3" /> {sort === 'name' ? '이름순' : '연락 오래된순'}
-        </button>
-        <div className="flex rounded-full border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-0.5">
-          {([['card', LayoutGrid, '카드'], ['list', List, '리스트']] as const).map(([id, Icon, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setMode(id)}
-              className={cn(
-                'flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors',
-                mode === id ? 'bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Icon className="h-3 w-3" /> {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 필터 — 관계 × 친밀도 (직교 축, 동시 선택) */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
-        <button type="button" onClick={() => setRelationFilter('all')} className={chip(relationFilter === 'all')}>전체</button>
+        <FilterChip active={relationFilter === 'all'} onClick={() => setRelationFilter('all')}>전체</FilterChip>
         {RELATION_ORDER.map((r) => (
-          <button key={r} type="button" onClick={() => setRelationFilter(relationFilter === r ? 'all' : r)} className={chip(relationFilter === r)}>
+          <FilterChip key={r} active={relationFilter === r} onClick={() => setRelationFilter(relationFilter === r ? 'all' : r)}>
             {RELATION_META[r].label}
-          </button>
+          </FilterChip>
         ))}
-        <span aria-hidden className="mx-1 h-4 w-px bg-[hsl(var(--hairline))]" />
+        <span aria-hidden className="mx-1 h-[18px] w-px bg-[#ddd5c2]" />
         {CLOSENESS_ORDER.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setClosenessFilter(closenessFilter === c ? 'all' : c)}
-            className={cn(
-              'rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
-              closenessFilter === c
-                ? 'border-[hsl(var(--people-accent))]/50 bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
-                : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
-            )}
-          >
+          <FilterChip key={c} active={closenessFilter === c} onClick={() => setClosenessFilter(closenessFilter === c ? 'all' : c)}>
             {CLOSENESS_META[c].label}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
-      {/* 카테고리 필터 — 사용자가 만든 그룹으로 좁혀 보기 (hover × 로 카테고리 삭제) */}
+      {/* ── 카테고리 필터 ── */}
       {categories.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2">
+        <div className="mb-[18px] flex flex-wrap items-center gap-[9px]">
+          <span className="mr-0.5 text-[12px] font-semibold text-[#a08343]">카테고리</span>
           <button
             type="button"
             onClick={() => setCategoryFilter('all')}
             className={cn(
-              'rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
+              'inline-flex h-[32px] items-center rounded-full px-3.5 text-[13.5px] transition-colors',
               categoryFilter === 'all'
-                ? 'border-transparent bg-[hsl(var(--people-accent))] font-bold text-[hsl(var(--people-accent-ink))]'
-                : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
+                ? 'bg-[#f2e5cf] font-semibold text-[#8f4207]'
+                : 'border border-[#e9e2d2] bg-white font-medium text-[#5a5648] hover:bg-[#faf7f0]',
             )}
           >
             전체 카테고리
@@ -176,20 +193,20 @@ export function PersonsView({
                   type="button"
                   onClick={() => setCategoryFilter(on ? 'all' : c.id)}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border py-1 pl-2.5 pr-2.5 text-[11.5px] font-medium transition-colors group-hover/cat:pr-6',
+                    'inline-flex h-[32px] items-center gap-1.5 rounded-full px-3.5 text-[13.5px] transition-colors group-hover/cat:pr-7',
                     on
-                      ? 'border-[hsl(var(--people-accent))]/50 bg-[hsl(var(--people-accent))]/12 font-bold text-[hsl(var(--people-accent))]'
-                      : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground hover:text-foreground',
+                      ? 'bg-[#f2e5cf] font-semibold text-[#8f4207]'
+                      : 'border border-[#e9e2d2] bg-white font-medium text-[#5a5648] hover:bg-[#faf7f0]',
                   )}
                 >
                   {c.name}
-                  {count > 0 && <span className={cn('tabular-nums', on ? 'text-[hsl(var(--people-accent))]/70' : 'text-muted-foreground/50')}>{count}</span>}
+                  {count > 0 && <span className={cn('text-[12px] tabular-nums', on ? 'text-[#a15008]/70' : 'text-[#98917d]')}>{count}</span>}
                 </button>
                 <button
                   type="button"
                   onClick={() => removeCategory(c)}
                   aria-label={`${c.name} 카테고리 삭제`}
-                  className="absolute right-1 top-1/2 hidden -translate-y-1/2 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-rose-500 group-hover/cat:block"
+                  className="absolute right-1.5 top-1/2 hidden -translate-y-1/2 rounded-full p-0.5 text-[#98917d] transition-colors hover:text-rose-500 group-hover/cat:block"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -199,152 +216,209 @@ export function PersonsView({
         </div>
       )}
 
-      {filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]/60 py-14 text-center text-[12.5px] text-muted-foreground">
-          {persons.length === 0 ? '아직 등록한 사람이 없어요. "새 사람"으로 시작해 보세요.' : '조건에 맞는 사람이 없어요.'}
-        </p>
-      ) : mode === 'card' ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {filtered.map((p) => (
-            <PersonCard key={p.id} person={p} signal={signalOf(p)} onOpen={() => onOpen(p.id)} />
-          ))}
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_1px_2px_hsl(var(--foreground)/0.04)]">
-          {/* 표 헤더 */}
-          <div className={cn(LIST_COLS, 'items-center gap-3 border-b border-[hsl(var(--hairline))] px-4 py-2.5 text-[11px] font-semibold text-muted-foreground/70')}>
-            <span>이름</span>
-            <span className="hidden sm:block">관계</span>
-            <span className="hidden lg:block">태그</span>
-            <span className="justify-self-end">그룹·친밀도</span>
-          </div>
-          <ul>
-            {filtered.map((p, i) => {
-              const s = signalOf(p);
-              const rt = RELATION_TAG[p.relation];
-              const closeTag =
-                p.closeness === 'distant'
-                  ? { bg: 'hsl(var(--surface-3))', text: 'hsl(var(--foreground)/0.5)' }
-                  : { bg: 'hsl(var(--people-accent)/0.1)', text: 'hsl(var(--people-accent))' };
-              return (
-                <li key={p.id}>
+      {/* ── 본문 ── */}
+      {persons.length === 0 ? (
+        <EmptyBody onNewPerson={onNewPerson} />
+      ) : mode === 'list' ? (
+        <>
+          <div className="overflow-hidden rounded-[10px] border border-[#e9e2d2] bg-white">
+            {/* 표 헤더 */}
+            <div className="grid grid-cols-[2.4fr_1.4fr_2fr_1.3fr] border-b border-[#f0ebdf] bg-[#faf7f0] px-[22px] py-3 text-[12.5px] font-semibold text-[#868d97]">
+              <span>이름</span>
+              <span>관계</span>
+              <span className="hidden sm:block">태그</span>
+              <span className="hidden sm:block">그룹·친밀도</span>
+            </div>
+            {filtered.length === 0 ? (
+              <p className="px-[22px] py-10 text-center text-[13px] text-[#98917d]">조건에 맞는 사람이 없어요.</p>
+            ) : (
+              filtered.map((p, i) => {
+                const s = signalOf(p);
+                return (
                   <button
+                    key={p.id}
                     type="button"
                     onClick={() => onOpen(p.id)}
                     className={cn(
-                      LIST_COLS,
-                      'w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface-2))]',
-                      i > 0 && 'border-t border-[hsl(var(--hairline))]/55',
+                      'grid w-full grid-cols-[2.4fr_1.4fr_2fr_1.3fr] items-center px-[22px] py-[13px] text-left transition-colors hover:bg-[#faf7f0]',
+                      i > 0 && 'border-t border-[#f0ebdf]',
                     )}
                   >
                     {/* 이름 */}
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <Avatar name={p.name} size={32} color={p.color} photo={p.photo} />
-                      <span className="min-w-0 truncate text-[13.5px] font-semibold">{p.name}</span>
-                      {s.bdaySoon !== null && (
-                        <span className="shrink-0 rounded-full bg-[hsl(38_75%_42%)]/12 px-1.5 py-px text-[9.5px] font-semibold text-[hsl(30_60%_36%)]">🎂 {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}</span>
-                      )}
-                    </div>
-                    {/* 관계 — 한 줄 소개 */}
-                    <div className="hidden min-w-0 sm:block">
-                      <span className="block truncate text-[12.5px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</span>
-                    </div>
-                    {/* 태그 */}
-                    <div className="hidden min-w-0 lg:block">
-                      <span className="block truncate text-[11.5px] text-muted-foreground/55">
-                        {p.tags.length > 0 ? p.tags.map((t) => `#${t}`).join(' ') : ''}
+                    <span className="flex min-w-0 items-center gap-[13px]">
+                      <Avatar name={p.name} size={40} color={p.color} photo={p.photo} />
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[14.5px] font-semibold text-[#23262b]">{p.name}</span>
+                        {s.bdaySoon !== null && (
+                          <span className="inline-flex h-[22px] shrink-0 items-center gap-[5px] rounded-full bg-[#f2e5cf] px-[9px] text-[11.5px] font-bold text-[#8f4207]">
+                            <Cake className="h-[11px] w-[11px] text-[#a15008]" /> {s.bdaySoon === 0 ? '오늘' : `D-${s.bdaySoon}`}
+                          </span>
+                        )}
                       </span>
-                    </div>
+                    </span>
+                    {/* 관계 */}
+                    <span className="text-[14px] text-[#4b5158]">{RELATION_META[p.relation].label}</span>
+                    {/* 태그 */}
+                    <span className="hidden min-w-0 gap-[7px] sm:flex">
+                      {[...p.tags.map((t) => `#${t}`), ...p.categoryIds.map((id) => categoryName.get(id)).filter(Boolean)]
+                        .slice(0, 3)
+                        .map((t, k) => (
+                          <span key={k} className="inline-flex h-[26px] shrink-0 items-center rounded-full border border-[#e9e2d2] px-[11px] text-[12.5px] text-[#7a7361]">{t}</span>
+                        ))}
+                    </span>
                     {/* 그룹·친밀도 */}
-                    <div className="flex shrink-0 items-center justify-end gap-1.5">
-                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: rt.bg, color: rt.text }}>{RELATION_META[p.relation].label}</span>
-                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ backgroundColor: closeTag.bg, color: closeTag.text }}>{CLOSENESS_META[p.closeness].label}</span>
-                    </div>
+                    <span className="hidden gap-[7px] sm:flex">
+                      <span className="inline-flex h-[26px] items-center rounded-full bg-[#efeadd] px-[11px] text-[12.5px] font-medium text-[#5a5648]">{RELATION_META[p.relation].label}</span>
+                      <span className="inline-flex h-[26px] items-center rounded-full bg-[#f2e5cf] px-[11px] text-[12.5px] font-medium text-[#8f4207]">{CLOSENESS_META[p.closeness].label}</span>
+                    </span>
                   </button>
-                </li>
-              );
-            })}
-          </ul>
+                );
+              })
+            )}
+            {/* 새 사람 추가 행 */}
+            <button
+              type="button"
+              onClick={onNewPerson}
+              className="flex w-full items-center gap-[9px] border-t border-[#f0ebdf] px-[22px] py-[13px] text-left text-[14px] text-[#868d97] transition-colors hover:bg-[#faf7f0]"
+            >
+              <Plus className="h-[15px] w-[15px]" /> 새 사람 추가
+            </button>
+          </div>
+          {soonestBirthday && (
+            <div className="mt-3.5 flex items-center gap-2 text-[12.5px] text-[#98917d]">
+              <Cake className="h-[13px] w-[13px]" /> {ddayText(soonestBirthday.dday)} {soonestBirthday.name} 님의 생일이 있어요 — 오늘 챙길 것에서 확인
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((p) => (
+            <PersonCard key={p.id} person={p} signal={signalOf(p)} onOpen={() => onOpen(p.id)} categoryName={categoryName} />
+          ))}
+          {/* 새 사람 추가 카드 */}
+          <button
+            type="button"
+            onClick={onNewPerson}
+            className="flex min-h-[170px] flex-col items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-[#d9d0ba] text-[13.5px] text-[#98917d] transition-colors hover:border-[#c6a15f] hover:text-[#8f4207]"
+          >
+            <Plus className="h-[15px] w-[15px]" strokeWidth={2} /> 새 사람 추가
+          </button>
         </div>
       )}
     </div>
   );
 }
 
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-[32px] items-center rounded-full px-3.5 text-[13.5px] transition-colors',
+        active ? 'bg-[#23262b] font-semibold text-white' : 'bg-[#efeadd] font-medium text-[#5a5648] hover:bg-[#e6dfcd]',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyBody({ onNewPerson }: { onNewPerson: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-[#d9d0ba] bg-white/50 py-16 text-center">
+      <p className="text-[14px] text-[#8d949d]">아직 등록한 사람이 없어요.</p>
+      <button
+        type="button"
+        onClick={onNewPerson}
+        className="mt-3.5 inline-flex h-[38px] items-center gap-1.5 rounded-[8px] bg-[#b45309] px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#9c4708]"
+      >
+        <Plus className="h-4 w-4" /> 새 사람
+      </button>
+    </div>
+  );
+}
+
+/** 아바타 — HTML의 뮤트 톤 이니셜 원. 사진/직접 지정 색(color)이 있으면 우선. */
+const AVATAR_TONES: Array<{ bg: string; fg: string }> = [
+  { bg: '#e7e0d3', fg: '#6b5636' }, // sepia
+  { bg: '#dde6dd', fg: '#3f5c46' }, // green
+  { bg: '#dfe3ea', fg: '#46536b' }, // blue
+  { bg: '#f0dede', fg: '#8a4a4a' }, // rose
+  { bg: '#e5e0ef', fg: '#54497a' }, // violet
+  { bg: '#efe7d3', fg: '#7a6636' }, // amber
+];
+export function avatarTone(name: string): { bg: string; fg: string } {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[h % AVATAR_TONES.length];
+}
+
 export function Avatar({ name, size = 44, color, photo }: { name: string; size?: number; color?: string; photo?: string }) {
   if (photo) {
-    return (
-      <img
-        src={photo}
-        alt={name}
-        className="shrink-0 rounded-full object-cover"
-        style={{ width: size, height: size }}
-      />
-    );
+    return <img src={photo} alt={name} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
   }
+  const tone = avatarTone(name);
+  const bg = color ?? tone.bg;
+  const fg = color ? '#fff' : tone.fg;
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-      style={{ width: size, height: size, backgroundColor: color ?? avatarColor(name), fontSize: size * 0.42 }}
+      className="flex shrink-0 items-center justify-center rounded-full font-semibold"
+      style={{ width: size, height: size, backgroundColor: bg, color: fg, fontSize: Math.round(size * 0.36) }}
     >
       {name.slice(0, 1)}
     </span>
   );
 }
 
-/** 리스트(표) 열 템플릿 — 헤더·행이 같은 격자를 쓰게. 이름 | 관계 | 태그 | 그룹·친밀도.
- * 좁은 화면부터 열을 하나씩 감춘다(관계 sm+, 태그 lg+). */
-const LIST_COLS =
-  'grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto]';
-
-/** 관계별 태그 색 — 레퍼런스 멤버 카드의 역할 태그처럼 은은한 컬러 구분. */
-const RELATION_TAG: Record<Relation, { bg: string; text: string }> = {
-  family: { bg: 'hsl(340 60% 50% / 0.12)', text: 'hsl(340 48% 42%)' },
-  friend: { bg: 'hsl(210 60% 48% / 0.12)', text: 'hsl(210 55% 40%)' },
-  work: { bg: 'hsl(262 45% 54% / 0.14)', text: 'hsl(262 40% 47%)' },
-  business: { bg: 'hsl(32 70% 46% / 0.16)', text: 'hsl(30 62% 37%)' },
-  etc: { bg: 'hsl(var(--surface-3))', text: 'hsl(var(--foreground)/0.55)' },
-};
+/** 최근 8주 접촉 스파크라인 — 상세·다시챙기기 공용. */
+export function Sparkline({ weeks, height = 20 }: { weeks: number[]; height?: number }) {
+  const max = Math.max(1, ...weeks);
+  return (
+    <span className="inline-flex items-end gap-[3px]" style={{ height }}>
+      {weeks.map((v, i) => {
+        const h = v === 0 ? 6 : Math.max(6, Math.round((v / max) * height));
+        const bg = v === 0 ? '#e8e0cd' : v >= max ? '#b45309' : '#dcb37e';
+        return <span key={i} className="rounded-[2px]" style={{ width: 7, height: h, backgroundColor: bg }} />;
+      })}
+    </span>
+  );
+}
 
 function PersonCard({
-  person: p, signal: s, onOpen,
+  person: p, signal: s, onOpen, categoryName,
 }: {
   person: Person;
   signal: { ago: string; overdue: boolean; bdaySoon: number | null };
   onOpen: () => void;
+  categoryName: Map<string, string>;
 }) {
-  const closenessColor =
-    p.closeness === 'best' ? 'hsl(var(--people-accent))' : p.closeness === 'close' ? 'hsl(38 75% 44%)' : p.closeness === 'normal' ? 'hsl(150 38% 40%)' : 'hsl(30 8% 60%)';
+  const sub = [RELATION_META[p.relation].label, ...p.categoryIds.map((id) => categoryName.get(id)).filter(Boolean)].join(' · ');
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full flex-col items-center rounded-2xl border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] px-3 pb-4 pt-5 text-center shadow-[0_1px_2px_hsl(var(--foreground)/0.05)] transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--people-accent))]/30 hover:shadow-[0_14px_30px_-16px_hsl(var(--foreground)/0.35)]"
+      className="flex flex-col items-center rounded-[10px] border border-[#e9e2d2] bg-white px-5 py-6 text-center transition-all hover:-translate-y-0.5 hover:border-[#d6a066] hover:shadow-[0_14px_30px_-18px_rgba(60,40,10,0.4)]"
     >
-      {/* 아바타 — 중앙, 친밀도 점 */}
-      <span className="relative">
-        <Avatar name={p.name} size={56} color={p.color} photo={p.photo} />
-        <span
-          className="absolute -bottom-0 -right-0 h-3.5 w-3.5 rounded-full border-2 border-[hsl(var(--surface-1))]"
-          style={{ backgroundColor: closenessColor }}
-          title={CLOSENESS_META[p.closeness].label}
-        />
+      <span className="relative inline-flex">
+        <Avatar name={p.name} size={60} color={p.color} photo={p.photo} />
+        {s.bdaySoon !== null && (
+          <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-white bg-[#f2e5cf]">
+            <Cake className="h-[11px] w-[11px] text-[#a15008]" />
+          </span>
+        )}
       </span>
-
-      <p className="mt-3 flex max-w-full items-center justify-center gap-1">
-        <span className="min-w-0 truncate text-[14px] font-semibold leading-tight">{p.name}</span>
-        {s.bdaySoon !== null && <span aria-hidden className="shrink-0 text-[10px]">🎂</span>}
-      </p>
-
-      <p className="mt-0.5 line-clamp-1 max-w-full text-[11px] text-muted-foreground">{p.intro ?? RELATION_META[p.relation].label}</p>
-
-      {p.tags.length > 0 && (
-        <div className="mt-2 flex max-w-full flex-wrap justify-center gap-1">
-          {p.tags.slice(0, 2).map((t) => (
-            <span key={t} className="max-w-full truncate rounded-full bg-[hsl(var(--surface-3))] px-2 py-0.5 text-[10px] text-muted-foreground">{t}</span>
-          ))}
-        </div>
-      )}
+      <span className="mt-3 inline-flex items-center gap-[7px]">
+        <span className="max-w-full truncate text-[15.5px] font-bold text-[#23262b]">{p.name}</span>
+        {s.bdaySoon !== null && <span className="shrink-0 text-[11.5px] font-bold text-[#8f4207]">{s.bdaySoon === 0 ? 'D-day' : `D-${s.bdaySoon}`}</span>}
+      </span>
+      <span className="mt-[3px] line-clamp-1 max-w-full text-[12.5px] text-[#8d949d]">{sub}</span>
+      <span className="mt-3 flex max-w-full flex-wrap justify-center gap-1.5">
+        {p.tags[0] && (
+          <span className="inline-flex h-[26px] items-center rounded-full bg-[#efeadd] px-[11px] text-[12.5px] font-medium text-[#5a5648]">#{p.tags[0]}</span>
+        )}
+        <span className="inline-flex h-[26px] items-center rounded-full bg-[#f2e5cf] px-[11px] text-[12.5px] font-medium text-[#8f4207]">{CLOSENESS_META[p.closeness].label}</span>
+      </span>
     </button>
   );
 }

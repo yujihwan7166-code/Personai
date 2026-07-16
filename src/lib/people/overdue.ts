@@ -31,6 +31,23 @@ export function agoContactLabel(lastYYYYMMDD: string, today: string): string {
   return `${Math.floor(days / 30)}개월 전 연락`;
 }
 
+/** 최근 N주 주간 접촉 횟수 — 상세·다시챙기기의 8주 스파크라인용 (index 0 = 가장 오래된 주). */
+export function weeklyActivity(
+  interactions: Interaction[],
+  today: string,
+  weeks = 8,
+): number[] {
+  const buckets = new Array(weeks).fill(0);
+  for (const x of interactions) {
+    const d = diffDays(x.date, today); // 오늘과의 일수 차 (미래면 음수)
+    if (d < 0) continue;
+    const w = Math.floor(d / 7); // 0 = 이번 주
+    if (w >= weeks) continue;
+    buckets[weeks - 1 - w] += 1; // 최신 주가 오른쪽
+  }
+  return buckets;
+}
+
 export function computeOverdue(persons: Person[], interactions: Interaction[], today: string): Overdue[] {
   const lastByPerson = lastContactMap(persons, interactions);
   const out: Overdue[] = [];
