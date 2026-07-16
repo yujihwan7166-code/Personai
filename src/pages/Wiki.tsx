@@ -21,8 +21,8 @@ const PAGE_CSS = `
 .pwk-scroll::-webkit-scrollbar-thumb:hover { background: #c4b8a4; background-clip: content-box; }
 @keyframes pwk-pop { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes pwk-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.pwk-spine { transition: transform 0.18s ease, box-shadow 0.18s ease; }
-.pwk-spine:hover { transform: translateY(-14px); box-shadow: 0 20px 34px rgba(60,40,25,0.28) !important; }
+.pwk-cover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.pwk-cover:hover { transform: translateY(-12px) rotate(-1.4deg); box-shadow: 0 6px 10px rgba(60,40,25,0.2), 0 28px 44px rgba(60,40,25,0.3), inset 13px 0 0 rgba(0,0,0,0.16), inset 15px 0 0 rgba(255,255,255,0.07) !important; }
 `;
 
 /** 책등 그라데이션 어둡게. */
@@ -188,10 +188,12 @@ export default function Wiki() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDoc, topic, docs]);
 
-  /* ── 책장 (6권씩 선반) ── */
-  const shelves: WikiTopic[][] = [];
-  for (let i = 0; i < topics.length; i += 6) shelves.push(topics.slice(i, i + 6));
-  if (shelves.length === 0) shelves.push([]);
+  /* ── 면진열 (표지 4권씩 + 마지막에 새 책 칸) ── */
+  const ledges: (WikiTopic | 'new')[][] = [];
+  {
+    const items: (WikiTopic | 'new')[] = [...topics, 'new'];
+    for (let i = 0; i < items.length; i += 4) ledges.push(items.slice(i, i + 4));
+  }
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: PW.paper, color: PW.ink, fontFamily: SANS, overflow: 'hidden' }}>
@@ -280,126 +282,92 @@ export default function Wiki() {
               </p>
             </div>
 
-            {/* ── 책상 위 오픈 선반(허치) — 기둥 두 개 + 얇은 선반, 뒤가 트인 구조 ── */}
+            {/* ── 면진열 서가 — 표지가 정면으로 보이는 진열대 ── */}
             <div style={{ position: 'relative', margin: '0 -10px' }}>
 
-              {/* 벽면 — 가구 뒤 은은한 패널, 책상 상판 높이에서 끝난다 */}
-              <div aria-hidden style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -36, bottom: 126, width: 'min(100%, 980px)', background: 'linear-gradient(180deg, rgba(190,168,128,0.16), rgba(190,168,128,0.05))', borderRadius: 22, border: '1px solid rgba(150,125,85,0.1)', zIndex: 0 }} />
+              {/* 벽면 패널 */}
+              <div aria-hidden style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -36, bottom: -6, width: 'min(100%, 980px)', background: 'linear-gradient(180deg, rgba(190,168,128,0.16), rgba(190,168,128,0.04))', borderRadius: 22, border: '1px solid rgba(150,125,85,0.1)', zIndex: 0 }} />
 
-              {/* 허치 */}
-              <div style={{ position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto' }}>
-                {/* 기둥 발치 접지 그림자 */}
-                <div aria-hidden style={{ position: 'absolute', left: 0, bottom: -5, width: 26, height: 9, background: 'radial-gradient(ellipse, rgba(60,40,20,0.26), transparent 70%)' }} />
-                <div aria-hidden style={{ position: 'absolute', right: 0, bottom: -5, width: 26, height: 9, background: 'radial-gradient(ellipse, rgba(60,40,20,0.26), transparent 70%)' }} />
-                {/* 좌우 기둥 — 윗선반부터 책상까지 */}
-                <div aria-hidden style={{ position: 'absolute', left: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#c0a273,#9d7e53)', borderRadius: '3px 3px 0 0', boxShadow: 'inset -3px 0 4px rgba(0,0,0,0.16)' }} />
-                <div aria-hidden style={{ position: 'absolute', right: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#c0a273,#9d7e53)', borderRadius: '3px 3px 0 0', boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.16)' }} />
-
-                {/* 윗선반 — 소품 (장식) */}
-                <div aria-hidden style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 52, height: 84, animation: 'pwk-rise 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
-                  {/* 화분 */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
-                      <span style={{ width: 13, height: 24, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
-                      <span style={{ width: 12, height: 29, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
-                      <span style={{ width: 13, height: 22, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
-                    </div>
-                    <div style={{ width: 32, height: 24, background: 'linear-gradient(180deg,#f4efe4,#ddd3bd)', borderRadius: '3px 3px 9px 9px', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(60,40,20,0.14)' }} />
-                  </div>
-                  {/* 눕혀 쌓은 책 */}
-                  <div className="hidden sm:flex" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: 54, height: 9, background: '#c9b78e', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.1)' }} />
-                    <div style={{ width: 62, height: 10, background: '#a8926b', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.12)' }} />
-                    <div style={{ width: 58, height: 10, background: '#8f7a55', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.14)' }} />
-                  </div>
-                  {/* 탁상시계 */}
-                  <div className="hidden sm:flex" style={{ flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 14, marginBottom: -4 }}>
-                      <span style={{ width: 9, height: 9, background: '#4a3f30', borderRadius: '50%', display: 'block' }} />
-                      <span style={{ width: 9, height: 9, background: '#4a3f30', borderRadius: '50%', display: 'block' }} />
-                    </div>
-                    <div style={{ position: 'relative', width: 36, height: 36, background: '#fbf7ee', border: '3px solid #4a3f30', borderRadius: '50%' }}>
-                      <span style={{ position: 'absolute', left: '50%', bottom: '50%', width: 2, height: 9, background: '#4a3f30', transformOrigin: '50% 100%', transform: 'translateX(-50%) rotate(40deg)', display: 'block' }} />
-                      <span style={{ position: 'absolute', left: '50%', bottom: '50%', width: 2, height: 12, background: '#4a3f30', transformOrigin: '50% 100%', transform: 'translateX(-50%) rotate(-60deg)', display: 'block' }} />
-                    </div>
-                  </div>
-                </div>
-                {/* 윗선반 널 */}
-                <div style={{ height: 12, background: 'linear-gradient(180deg,#e9d4ac,#ccb083)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
-
-                {/* 책 선반들 */}
-                {shelves.map((shelf, si) => (
-                  <div key={si}>
-                    <div className="pwk-scroll" style={{ display: 'flex', alignItems: 'flex-end', gap: 14, minHeight: 230, padding: '26px 34px 0', justifyContent: shelf.length >= 6 ? 'flex-start' : 'center', overflowX: 'auto' }}>
-                      {shelf.map((t, bi) => {
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 56, padding: '12px 0 34px' }}>
+                {ledges.map((chunk, si) => (
+                  <div key={si} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '100%' }}>
+                    <div className="pwk-scroll" style={{ display: 'flex', alignItems: 'flex-end', gap: 26, padding: '16px 24px 0', maxWidth: '100%', overflowX: 'auto' }}>
+                      {chunk.map((item, bi) => {
+                        if (item === 'new') {
+                          return addingBook ? (
+                            <div key="new" style={{ width: 150, height: 204, flex: 'none', border: `2px dashed ${PW.accent}`, borderRadius: 10, background: 'rgba(255,253,248,0.78)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '0 14px' }}>
+                              <div style={{ fontSize: 12, color: PW.sub, fontWeight: 700 }}>새 책 이름</div>
+                              <input
+                                autoFocus
+                                value={bookName}
+                                onChange={(e) => setBookName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') addBook(); if (e.key === 'Escape') { setAddingBook(false); setBookName(''); } }}
+                                onBlur={addBook}
+                                placeholder="예: 주식 공부"
+                                style={{ width: '100%', border: `1px solid ${PW.input}`, borderRadius: 8, padding: '8px 10px', fontSize: 13.5, outline: 'none', fontFamily: 'inherit', background: '#fff', textAlign: 'center' }}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              key="new"
+                              onClick={() => setAddingBook(true)}
+                              style={{ width: 150, height: 204, flex: 'none', border: '2px dashed #c0ae90', borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', color: '#a8987e', transition: 'border-color 0.15s ease, color 0.15s ease' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.color = PW.accent; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#c0ae90'; e.currentTarget.style.color = '#a8987e'; }}
+                            >
+                              <span style={{ fontSize: 30, lineHeight: 1 }}>＋</span>
+                              <span style={{ fontSize: 12.5, letterSpacing: '0.14em', fontWeight: 600 }}>새 책</span>
+                            </div>
+                          );
+                        }
+                        const t = item;
                         const n = countOf(t.id);
-                        const h = Math.min(216, 158 + n * 7);
-                        const w = 58 + ((t.name.length + t.tint.charCodeAt(2)) % 3) * 5; // 58·63·68 — 책마다 두께 다르게
                         return (
                           <div
                             key={t.id}
-                            className="pwk-spine"
+                            className="pwk-cover"
                             onClick={() => openBook(t)}
-                            title={`${t.name} — 문서 ${n}개`}
+                            title={`${t.name} — 문서 ${n}편`}
                             style={{
-                              width: w, height: h, flex: 'none', cursor: 'pointer',
-                              background: `linear-gradient(90deg, ${shade(t.tint, 10)}, ${t.tint} 34%, ${shade(t.tint, -22)})`,
-                              borderRadius: '3px 6px 6px 3px',
-                              boxShadow: 'inset -7px 0 12px rgba(0,0,0,0.3), inset 4px 0 0 rgba(255,255,255,0.16), 0 8px 16px rgba(60,40,25,0.2)',
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0 14px',
-                              animation: `pwk-rise 0.5s ${(si * 6 + bi) * 0.05}s cubic-bezier(0.22,1,0.36,1) both`,
+                              width: 150, height: 204, flex: 'none', cursor: 'pointer', position: 'relative',
+                              background: `linear-gradient(128deg, ${shade(t.tint, 16)}, ${t.tint} 42%, ${shade(t.tint, -18)})`,
+                              borderRadius: '5px 11px 11px 5px',
+                              boxShadow: '0 3px 5px rgba(60,40,25,0.22), 0 14px 22px rgba(60,40,25,0.2), inset 13px 0 0 rgba(0,0,0,0.16), inset 15px 0 0 rgba(255,255,255,0.07)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              animation: `pwk-rise 0.55s ${(si * 4 + bi) * 0.07}s cubic-bezier(0.22,1,0.36,1) both`,
                             }}
                           >
-                            {/* 장정 밴드 (상단 이중선) */}
-                            <span aria-hidden style={{ width: Math.round(w * 0.52), height: 3, borderRadius: 2, background: 'rgba(251,246,238,0.32)', boxShadow: '0 7px 0 rgba(251,246,238,0.2)', flex: 'none', marginBottom: 12 }} />
-                            <div style={{ writingMode: 'vertical-rl', fontFamily: SERIF, fontWeight: 700, fontSize: t.name.length >= 4 ? 19 : t.name.length === 3 ? 21 : 26, color: '#fbf6ee', letterSpacing: '0.05em', textShadow: '0 1px 2px rgba(0,0,0,0.28)', flex: 1, display: 'flex', alignItems: 'center' }}>{t.name}</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, flex: 'none' }}>
-                              <div style={{ writingMode: 'vertical-rl', fontSize: 10.5, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.1em' }}>{n}판</div>
-                              <span aria-hidden style={{ width: Math.round(w * 0.52), height: 3, borderRadius: 2, background: 'rgba(251,246,238,0.24)' }} />
-                            </div>
+                            {/* 엠보싱 프레임 */}
+                            <span aria-hidden style={{ position: 'absolute', inset: '11px 11px 11px 24px', border: '1.5px solid rgba(251,246,238,0.32)', borderRadius: 7, pointerEvents: 'none' }} />
+                            {/* 갈피끈 */}
+                            <span aria-hidden style={{ position: 'absolute', top: 0, right: 19, width: 11, height: 38, background: 'linear-gradient(180deg,#dcb75f,#c39a3f)', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)', opacity: 0.95 }} />
+                            {/* 표제 */}
+                            <div style={{ fontFamily: SERIF, fontSize: t.name.length >= 5 ? 21 : 25, fontWeight: 700, color: '#fbf6ee', textShadow: '0 1px 2px rgba(0,0,0,0.3)', textAlign: 'center', lineHeight: 1.4, padding: '0 16px 0 28px', wordBreak: 'keep-all' }}>{t.name}</div>
+                            <div style={{ position: 'absolute', bottom: 15, left: 24, right: 11, textAlign: 'center', fontSize: 10.5, color: 'rgba(251,246,238,0.78)', letterSpacing: '0.16em' }}>문서 {n}편</div>
                           </div>
                         );
                       })}
-                      {/* 빈 칸 = 새 책 (마지막 선반에만) */}
-                      {si === shelves.length - 1 && (
-                        addingBook ? (
-                          <div style={{ width: 176, height: 188, border: `2px dashed ${PW.accent}`, borderRadius: '3px 5px 5px 3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(255,253,248,0.72)', marginLeft: 6, padding: '0 14px', flex: 'none' }}>
-                            <div style={{ fontSize: 12, color: PW.sub, fontWeight: 700 }}>새 책 이름</div>
-                            <input
-                              autoFocus
-                              value={bookName}
-                              onChange={(e) => setBookName(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') addBook(); if (e.key === 'Escape') { setAddingBook(false); setBookName(''); } }}
-                              onBlur={addBook}
-                              placeholder="예: 주식 공부"
-                              style={{ width: '100%', border: `1px solid ${PW.input}`, borderRadius: 8, padding: '8px 10px', fontSize: 13.5, outline: 'none', fontFamily: 'inherit', background: '#fff', textAlign: 'center' }}
-                            />
+                      {/* 화분 — 첫 진열대 끝 장식 */}
+                      {si === 0 && (
+                        <div aria-hidden className="hidden md:flex" style={{ flexDirection: 'column', alignItems: 'center', flex: 'none', paddingLeft: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
+                            <span style={{ width: 13, height: 24, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
+                            <span style={{ width: 12, height: 29, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
+                            <span style={{ width: 13, height: 22, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
                           </div>
-                        ) : (
-                          <div
-                            onClick={() => setAddingBook(true)}
-                            style={{ width: 58, height: 188, border: '2px dashed #c0ae90', borderRadius: '3px 5px 5px 3px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#a8987e', marginLeft: 6, flex: 'none', transition: 'border-color 0.15s ease, color 0.15s ease' }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = PW.accent; e.currentTarget.style.color = PW.accent; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#c0ae90'; e.currentTarget.style.color = '#a8987e'; }}
-                          >
-                            <span style={{ writingMode: 'vertical-rl', fontSize: 13, letterSpacing: '0.12em' }}>＋ 새 책</span>
-                          </div>
-                        )
+                          <div style={{ width: 34, height: 26, background: 'linear-gradient(180deg,#f4efe4,#ddd3bd)', borderRadius: '3px 3px 10px 10px', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(60,40,20,0.14)' }} />
+                        </div>
                       )}
                     </div>
-                    {/* 선반 널 */}
-                    <div style={{ height: 12, background: 'linear-gradient(180deg,#e9d4ac,#ccb083)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
+                    {/* 진열대 널 */}
+                    <div style={{ height: 14, alignSelf: 'stretch', margin: '0 4px', background: 'linear-gradient(180deg,#e9d4ac,#c9ab7c)', borderRadius: 4, boxShadow: '0 2px 3px rgba(60,40,20,0.18), 0 10px 18px rgba(60,40,20,0.14), 0 26px 40px rgba(60,40,20,0.1), inset 0 1px 0 rgba(255,255,255,0.55)' }} />
+                    {/* 널 받침 브래킷 */}
+                    <div aria-hidden style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'space-between', padding: '0 48px' }}>
+                      <span style={{ width: 12, height: 16, background: 'linear-gradient(180deg,#c9ab7c,rgba(201,171,124,0))', display: 'block' }} />
+                      <span style={{ width: 12, height: 16, background: 'linear-gradient(180deg,#c9ab7c,rgba(201,171,124,0))', display: 'block' }} />
+                    </div>
                   </div>
                 ))}
-              </div>
-
-              {/* 책상 상판 — 허치보다 넓게, 허치를 받친다 */}
-              <div style={{ position: 'relative', zIndex: 1, height: 22, background: 'linear-gradient(180deg,#e6cda2,#c9ab7c)', borderRadius: 6, boxShadow: '0 1px 2px rgba(60,40,20,0.2), 0 10px 18px rgba(60,40,20,0.16), 0 30px 50px rgba(60,40,20,0.13), inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 4px rgba(60,40,20,0.12)' }} />
-
-              {/* 다리 — 아래로 페이드아웃 */}
-              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 46px' }}>
-                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#bfa075,#bfa075 22%,rgba(191,160,117,0))' }} />
-                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#bfa075,#bfa075 22%,rgba(191,160,117,0))' }} />
               </div>
             </div>
 
