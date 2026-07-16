@@ -339,7 +339,7 @@ export default function Wiki() {
       {/* ══════════ 사이드바 ══════════ */}
       <aside className="hidden md:flex" style={{ width: 274, minWidth: 274, height: '100%', flexDirection: 'column', background: '#F3EDE2', borderRight: '1px solid #E5DCC8' }}>
         <div onClick={goHome} style={{ padding: '20px 20px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-          <div style={{ width: 35, height: 35, borderRadius: 10, background: AC, color: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: TF, fontWeight: 700, fontSize: 17, boxShadow: '0 3px 8px rgba(120,50,15,0.22)' }}>위</div>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fff', color: AC, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: TF, fontWeight: 700, fontSize: 17, boxShadow: '0 1px 2px rgba(120,50,15,0.10)' }}>위</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <div style={{ fontFamily: TF, fontWeight: 700, fontSize: 17.5, letterSpacing: '-0.01em' }}>마이위키</div>
             <div style={{ fontSize: 11, color: '#9A8F7D', letterSpacing: '0.05em' }}>나만의 지식 서고</div>
