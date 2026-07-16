@@ -52,6 +52,18 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
 ];
 
+/* 레일(다크 슬레이트) 활성 아이콘 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
+const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
+  today: '#8fb3d9',
+  planner: '#7ea8e6',
+  notes: '#86c98a',
+  journal: '#97cfa6',
+  career: '#e08b7d',
+  people: '#f0a878',
+  archive: '#d8b48a',
+  health: '#7fd3a8',
+};
+
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
 
@@ -132,16 +144,16 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       <nav
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        className="fixed inset-y-0 left-0 z-[45] hidden w-14 flex-col items-center gap-1 border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] py-2.5 sm:flex"
+        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#2a2e34] bg-[#31353c] py-3.5 sm:flex"
       >
         {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
         <NavLink
           to="/"
           aria-label="홈으로"
           title="홈으로"
-          className="mb-0.5 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#99a0aa] transition-colors hover:bg-[#3d434c] hover:text-white"
         >
-          <Home className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          <Home className="h-5 w-5" strokeWidth={2} />
         </NavLink>
 
         <button
@@ -153,16 +165,16 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           aria-controls={modeMenuId}
           title="모드 — 대화·토론·리서치·스튜디오"
           className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+            'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
             modeOpen
-              ? 'bg-primary/12 text-primary'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              ? 'bg-[#454b54] text-white'
+              : 'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
           )}
         >
-          <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={2} />
+          <LayoutGrid className="h-5 w-5" strokeWidth={1.9} />
         </button>
 
-        <span aria-hidden className="my-1 h-px w-6 bg-[hsl(var(--hairline))]" />
+        <span aria-hidden className="my-1.5 h-px w-6 bg-[#454a52]" />
 
         {RAIL_WORKSPACES.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
@@ -171,7 +183,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         {/* 페이지 전용 기능 — 스위처 아래 구분선 다음에 (예: 플래너 매트릭스·보관함…). */}
         {railExtra && railExtra.length > 0 && (
           <>
-            <span aria-hidden className="my-1 h-px w-6 bg-[hsl(var(--hairline))]" />
+            <span aria-hidden className="my-1.5 h-px w-6 bg-[#454a52]" />
             {railExtra.map((item) => {
               const Icon = item.icon;
               return (
@@ -182,8 +194,8 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
                   aria-label={item.label}
                   title={item.label}
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
-                    'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
+                    'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
                     item.soon && 'opacity-45',
                   )}
                 >
@@ -196,7 +208,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
 
         {/* 테마 토글 — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
-          <span aria-hidden className="mb-0.5 h-px w-6 bg-[hsl(var(--hairline))]" />
+          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#454a52]" />
           <RailThemeToggle />
         </div>
       </nav>
@@ -228,7 +240,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         />
       </HiddenInteractiveMount>
 
-      <main className="min-w-0 pb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-14">
+      <main className="min-w-0 pb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-16">
         {children}
       </main>
 
@@ -319,6 +331,7 @@ interface WorkspaceLinkProps {
 /* 좌측 레일 아이콘 링크 — 아이콘만(마크형), 현재 페이지는 primary 하이라이트. */
 function RailLink({ item, active }: WorkspaceLinkProps) {
   const Icon = item.icon;
+  const accent = RAIL_ACCENT[item.key];
   return (
     <NavLink
       to={item.to}
@@ -326,13 +339,12 @@ function RailLink({ item, active }: WorkspaceLinkProps) {
       aria-current={active ? 'page' : undefined}
       title={item.label}
       className={cn(
-        'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
-        active
-          ? 'bg-primary/12 text-primary'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
+        active ? 'bg-[#454b54]' : 'text-[#99a0aa] hover:bg-[#3d434c] hover:text-white',
       )}
+      style={active && accent ? { color: accent } : undefined}
     >
-      <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+      <Icon className="h-5 w-5" strokeWidth={2} />
     </NavLink>
   );
 }
