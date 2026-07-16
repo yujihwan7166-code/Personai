@@ -304,8 +304,20 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* 책장 — 나무 프레임 가구 */}
-            <div style={{ background: 'linear-gradient(180deg,#b79b74,#8a6f4c)', borderRadius: 22, padding: 16, boxShadow: '0 26px 50px rgba(60,40,20,0.28), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
+            {/* ── 책상 위 서재 장면: [스탠드] [책장] [잉크·화분] 이 모두 상판을 딛는다 ── */}
+            <div style={{ position: 'relative', margin: '0 -26px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 30, padding: '0 34px', position: 'relative', zIndex: 1 }}>
+
+                {/* 초록 갓 스탠드 (장식) — 책장 왼편 */}
+                <div aria-hidden className="hidden md:flex" style={{ flexDirection: 'column', alignItems: 'center', flex: 'none', position: 'relative', animation: 'pwk-rise 0.6s 0.35s cubic-bezier(0.22,1,0.36,1) both' }}>
+                  <div style={{ position: 'absolute', bottom: -64, left: '50%', transform: 'translateX(-50%)', width: 270, height: 130, background: 'radial-gradient(ellipse at 50% 42%, rgba(255,222,140,0.42), rgba(255,222,140,0) 70%)', pointerEvents: 'none' }} />
+                  <div style={{ width: 98, height: 32, background: 'linear-gradient(180deg,#3f7d54,#28583a)', borderRadius: '50px 50px 6px 6px', boxShadow: 'inset 0 -5px 0 rgba(255,240,190,0.55), inset 0 3px 4px rgba(255,255,255,0.2)' }} />
+                  <div style={{ width: 7, height: 46, background: 'linear-gradient(90deg,#caa64f,#9a7830)', borderRadius: 2 }} />
+                  <div style={{ width: 56, height: 9, background: 'linear-gradient(180deg,#caa64f,#8f6e2a)', borderRadius: '5px 5px 2px 2px' }} />
+                </div>
+
+                {/* 책장 — 나무 프레임 가구 (책상 위에 올라앉음) */}
+                <div style={{ flex: '0 1 780px', minWidth: 0, background: 'linear-gradient(180deg,#b79b74,#8a6f4c)', borderRadius: '18px 18px 4px 4px', padding: 16, boxShadow: '0 16px 30px rgba(60,40,20,0.2), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
               <div style={{ background: 'linear-gradient(180deg,#f0e8d9,#e2d6bf)', borderRadius: 12, padding: '42px 32px 0', boxShadow: 'inset 0 10px 26px rgba(60,40,20,0.14), inset 0 -4px 10px rgba(60,40,20,0.06)' }}>
                 {shelves.map((shelf, si) => (
                   <div key={si}>
@@ -374,22 +386,28 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* ── 책상 — 책장 앞에 놓인 서재 가구 ── */}
-            <div style={{ position: 'relative', margin: '44px -26px 0', animation: 'pwk-rise 0.6s 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
-
-              {/* 상판 위 소품 줄 */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 60px', position: 'relative', zIndex: 1 }}>
-
-                {/* 초록 갓 스탠드 (장식) */}
-                <div aria-hidden className="hidden md:flex" style={{ flexDirection: 'column', alignItems: 'center', flex: 'none', position: 'relative' }}>
-                  <div style={{ position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)', width: 240, height: 64, background: 'radial-gradient(ellipse at 50% 100%, rgba(255,222,140,0.5), rgba(255,222,140,0) 70%)', pointerEvents: 'none' }} />
-                  <div style={{ width: 98, height: 32, background: 'linear-gradient(180deg,#3f7d54,#28583a)', borderRadius: '50px 50px 6px 6px', boxShadow: 'inset 0 -5px 0 rgba(255,240,190,0.55), inset 0 3px 4px rgba(255,255,255,0.2)' }} />
-                  <div style={{ width: 7, height: 36, background: 'linear-gradient(90deg,#caa64f,#9a7830)', borderRadius: 2 }} />
-                  <div style={{ width: 54, height: 9, background: 'linear-gradient(180deg,#caa64f,#8f6e2a)', borderRadius: '5px 5px 2px 2px' }} />
+                {/* 잉크병 · 화분 (장식) — 책장 오른편 */}
+                <div aria-hidden className="hidden md:flex" style={{ alignItems: 'flex-end', gap: 20, flex: 'none', animation: 'pwk-rise 0.6s 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 12, height: 8, background: '#4a3f30', borderRadius: '3px 3px 0 0' }} />
+                    <div style={{ width: 28, height: 26, background: 'linear-gradient(180deg,#514434,#332a1e)', borderRadius: '5px 5px 9px 9px', boxShadow: 'inset 3px 3px 5px rgba(255,255,255,0.14)' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
+                      <span style={{ width: 13, height: 22, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
+                      <span style={{ width: 12, height: 26, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
+                      <span style={{ width: 13, height: 20, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
+                    </div>
+                    <div style={{ width: 34, height: 24, background: 'linear-gradient(180deg,#bd6a4a,#9c4f33)', borderRadius: '3px 3px 8px 8px', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.22)' }} />
+                  </div>
                 </div>
+              </div>
+
+              {/* 책상 상판 표면 — 책장·소품이 딛고 선 면, 그 앞에 펼친 책 */}
+              <div style={{ position: 'relative', background: 'linear-gradient(180deg,#d6ba90,#c3a679)', borderRadius: '12px 12px 0 0', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.4), inset 0 16px 26px rgba(60,40,20,0.13)', padding: '20px 0 16px', display: 'flex', justifyContent: 'center', animation: 'pwk-rise 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
 
                 {/* 펼친 책 — 이어서 읽기 */}
-                <div style={{ display: 'flex', flex: 'none', filter: 'drop-shadow(0 12px 14px rgba(60,40,20,0.28))', maxWidth: '100%' }}>
+                <div style={{ display: 'flex', flex: 'none', filter: 'drop-shadow(0 8px 10px rgba(60,40,20,0.32))', maxWidth: '100%', transform: 'rotate(-0.6deg)' }}>
                   {/* 왼쪽 페이지 */}
                   <div style={{ width: 264, background: 'linear-gradient(90deg,#f7f1e4,#fbf7ee 55%,#efe7d6)', borderRadius: '10px 2px 2px 3px', border: '1px solid #e0d5bf', borderRight: 'none', padding: '15px 18px 13px 22px' }}>
                     <div style={{ fontSize: 10.5, letterSpacing: '0.22em', color: PW.faint, fontWeight: 700, marginBottom: 9 }}>이어서 읽기</div>
@@ -420,38 +438,22 @@ export default function Wiki() {
                     <div style={{ fontSize: 11.5, color: PW.sub, marginTop: 6, lineHeight: 1.6, fontFamily: SERIF }}>오늘도 한 장,<br />서재가 두꺼워집니다</div>
                   </div>
                 </div>
-
-                {/* 잉크병 · 화분 (장식) */}
-                <div aria-hidden className="hidden md:flex" style={{ alignItems: 'flex-end', gap: 20, flex: 'none' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: 12, height: 8, background: '#4a3f30', borderRadius: '3px 3px 0 0' }} />
-                    <div style={{ width: 28, height: 26, background: 'linear-gradient(180deg,#514434,#332a1e)', borderRadius: '5px 5px 9px 9px', boxShadow: 'inset 3px 3px 5px rgba(255,255,255,0.14)' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
-                      <span style={{ width: 13, height: 22, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
-                      <span style={{ width: 12, height: 26, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
-                      <span style={{ width: 13, height: 20, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
-                    </div>
-                    <div style={{ width: 34, height: 24, background: 'linear-gradient(180deg,#bd6a4a,#9c4f33)', borderRadius: '3px 3px 8px 8px', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.22)' }} />
-                  </div>
-                </div>
               </div>
 
-              {/* 상판 */}
-              <div style={{ height: 24, background: 'linear-gradient(180deg,#cfb289,#aa8d63)', borderRadius: 5, boxShadow: '0 14px 26px rgba(60,40,20,0.26), inset 0 2px 0 rgba(255,255,255,0.42), inset 0 -3px 5px rgba(60,40,20,0.2)' }} />
+              {/* 상판 앞테 (책상 두께) */}
+              <div style={{ height: 20, background: 'linear-gradient(180deg,#c9ac81,#a3855c)', borderRadius: '0 0 6px 6px', boxShadow: '0 10px 20px rgba(60,40,20,0.25), inset 0 2px 0 rgba(255,255,255,0.3)' }} />
 
               {/* 앞판 + 명판 */}
-              <div style={{ height: 46, margin: '0 16px', background: 'linear-gradient(180deg,#a3855c,#8a6f4c)', borderRadius: '0 0 7px 7px', boxShadow: 'inset 0 4px 7px rgba(0,0,0,0.18), inset 0 -2px 0 rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 46, margin: '0 18px', background: 'linear-gradient(180deg,#a3855c,#8a6f4c)', borderRadius: '0 0 7px 7px', boxShadow: 'inset 0 4px 7px rgba(0,0,0,0.18), inset 0 -2px 0 rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ padding: '5px 18px', background: 'linear-gradient(180deg,#e9d9a8,#cdb478)', border: '1px solid #a68d55', borderRadius: 5, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 1px 3px rgba(0,0,0,0.25)', fontSize: 11.5, letterSpacing: '0.18em', color: '#5c4a2c', fontWeight: 700 }}>
                   책 {topics.length}권 · 문서 {docs.length}편
                 </span>
               </div>
 
               {/* 다리 — 아래로 페이드아웃 */}
-              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 58px' }}>
-                <div style={{ width: 30, height: 92, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
-                <div style={{ width: 30, height: 92, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
+              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 62px' }}>
+                <div style={{ width: 32, height: 96, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
+                <div style={{ width: 32, height: 96, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
               </div>
             </div>
 
