@@ -156,16 +156,7 @@ export default function People() {
             })}
           </div>
 
-          {editor.open ? (
-            /* 새 사람/수정 — 저장될 레코드 카드 양식 그대로 본문에 인라인 */
-            <PersonForm
-              key={editor.editing?.id ?? 'new'}
-              editing={editor.editing}
-              categories={categories}
-              onCancel={() => { const back = editor.editing; setEditor({ open: false, editing: null }); if (back) setOpenId(back.id); }}
-              onSaved={(id) => { setEditor({ open: false, editing: null }); goPerson(id); }}
-            />
-          ) : openPerson ? (
+          {openPerson ? (
             <PersonDetail
               key={openPerson.id}
               person={openPerson}
@@ -183,6 +174,17 @@ export default function People() {
             <ReconnectView persons={persons} interactions={interactions} onOpenPerson={goPerson} />
           ) : (
             <GiftLedger persons={persons} interactions={interactions} onOpenPerson={goPerson} onNewPerson={newPerson} />
+          )}
+
+          {/* 새 사람/수정 — 중앙 모달 오버레이 (시안) */}
+          {editor.open && (
+            <PersonForm
+              key={editor.editing?.id ?? 'new'}
+              editing={editor.editing}
+              categories={categories}
+              onCancel={() => { const back = editor.editing; setEditor({ open: false, editing: null }); if (back) setOpenId(back.id); }}
+              onSaved={(id) => { setEditor({ open: false, editing: null }); goPerson(id); }}
+            />
           )}
         </div>
       </main>
