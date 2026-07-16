@@ -11,7 +11,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  Archive, BarChart3, CalendarDays, Check, ChevronLeft, ChevronRight, History, ImagePlus,
+  Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
   Map as MapIcon, NotebookPen, Pencil, Plane, Star, Trash2, UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
@@ -530,20 +530,12 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div className="mb-6 flex flex-wrap items-start gap-x-4 gap-y-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold tracking-[0.14em] text-[hsl(var(--cream-accent))]">{todayLabelFull}</p>
-                  <h2 className="mt-1 text-[24px] font-extrabold leading-tight tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{greeting}</h2>
-                  <p className="mt-1 text-[13px] text-[hsl(var(--cream-muted))]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</p>
+              <div className="mb-5">
+                <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
+                <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                  <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={goWriteToday}
-                  className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_18px_-10px_hsl(146_30%_35%/0.6)] transition-[filter] hover:brightness-[1.05]"
-                  style={{ backgroundColor: 'hsl(146 26% 45%)' }}
-                >
-                  <Pencil className="h-4 w-4" /> 오늘 기록 쓰기
-                </button>
               </div>
             ) : (
               <div className="mb-6">
@@ -556,63 +548,49 @@ export default function Journal() {
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
           {tab === 'write' && !detailOpen && (
             <div className="flex flex-col gap-6">
-              {/* 초록 히어로 — 오늘 기분 빠른 입력 (제목 좌 · 무드 우, 폭 채운 슬림 바) */}
-              <div
-                className="relative overflow-hidden rounded-[24px] px-6 py-5 text-white shadow-[0_16px_36px_-20px_hsl(146_40%_25%/0.55)]"
-                style={{ background: 'linear-gradient(135deg, hsl(146 30% 46%), hsl(146 26% 37%))' }}
-              >
-                <span aria-hidden className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/[0.07]" />
-                <span aria-hidden className="absolute -bottom-16 right-16 h-40 w-40 rounded-full bg-white/[0.05]" />
-                <div className="relative flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[12px] font-semibold text-white/80">
-                      {hasTodayEntry ? <><Check className="h-3.5 w-3.5" /> 오늘 기록 완료 · {streak}일째</> : '오늘은 아직 비어 있어요'}
-                    </p>
-                    <p className="mt-1.5 text-[21px] font-extrabold leading-snug">{hasTodayEntry ? '이번 주도 잘 이어가고 있어요' : '오늘 하루는 어땠나요?'}</p>
-                  </div>
-                  {/* 최근 7일 리듬 — 날짜 클릭 시 그 날로 이동, 오늘은 흰 칸으로 강조 */}
-                  <div className="flex gap-1.5 sm:gap-2">
-                    {weekStrip.map((c) => (
-                      <button
-                        key={c.key}
-                        type="button"
-                        onClick={() => openDate(c.key)}
-                        aria-label={`${c.day}일${c.has ? ' · 기록 있음' : ''}`}
-                        className="text-center"
-                      >
-                        <div className={cn('mb-1 text-[10.5px]', c.isToday ? 'font-bold text-white' : 'text-white/60')}>{c.isToday ? '오늘' : c.wd}</div>
-                        <div className={cn(
-                          'flex h-[52px] w-10 flex-col items-center justify-center gap-1 rounded-[13px] transition-colors',
-                          c.isToday
-                            ? 'bg-white text-[hsl(146_28%_34%)] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.35)]'
-                            : c.has ? 'bg-white/[0.13] hover:bg-white/20' : 'bg-white/[0.06] hover:bg-white/15',
-                        )}>
-                          {c.moodKey && MOOD_BY_KEY[c.moodKey] ? (
-                            <span className="text-[19px] leading-none">{MOOD_BY_KEY[c.moodKey].emoji}</span>
-                          ) : (
-                            <span className={cn('h-1.5 w-1.5 rounded-full', c.isToday ? 'bg-[hsl(146_28%_42%)]' : c.has ? 'bg-white/75' : 'bg-white/25')} />
-                          )}
-                          <span className={cn('text-[10px] tabular-nums', c.isToday ? 'font-bold' : c.has ? 'text-white/75' : 'text-white/45')}>{c.day}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+              {/* 히어로 — 연한 세이지 카드 (확정 크롬 보드) */}
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[12px] bg-[#e2eede] px-8 py-7 dark:bg-[hsl(146_18%_16%)]">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[20px] font-bold tracking-[-0.01em] text-[#23402c] dark:text-[hsl(146_35%_78%)]">{hasTodayEntry ? '이번 주도 잘 이어가고 있어요' : '오늘 하루는 어땠나요?'}</p>
+                  <p className="mt-1.5 text-[13.5px] text-[#5f7462]">{hasTodayEntry ? `오늘 기록 완료 · ${streak}일째` : '오늘은 아직 비어 있어요'}</p>
+                  <button
+                    type="button"
+                    onClick={goWriteToday}
+                    className="mt-[18px] inline-flex h-[42px] items-center gap-1.5 rounded-[8px] px-[18px] text-[14px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+                    style={{ backgroundColor: '#3d7050' }}
+                  >
+                    <Pencil className="h-[15px] w-[15px]" /> 오늘 기록 쓰기
+                  </button>
+                </div>
+                {/* 최근 7일 리듬 — 라이트, 날짜 클릭 시 이동 */}
+                <div className="flex gap-2">
+                  {weekStrip.map((c) => (
+                    <button key={c.key} type="button" onClick={() => openDate(c.key)} aria-label={`${c.day}일${c.has ? ' · 기록 있음' : ''}`} className="flex w-10 flex-col items-center gap-2">
+                      <span className={cn('text-[11.5px]', c.isToday ? 'font-semibold text-[#33523c]' : 'font-medium text-[#7d9280]')}>{c.isToday ? '오늘' : c.wd}</span>
+                      <span className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-full text-[14px] tabular-nums transition-colors',
+                        c.isToday ? 'bg-[#3d7050] font-bold text-white'
+                          : c.has ? 'bg-[#cbe0c5] font-semibold text-[#2c4a35]'
+                          : 'text-[#5f7462] hover:bg-white/50',
+                      )}>{c.day}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* 최근 기록 + 필터 */}
               <div>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-[16px] font-extrabold text-[hsl(var(--cream-ink))]">최근 기록</h3>
-                  <div className="flex gap-0.5 rounded-full bg-[hsl(var(--cream-line))]/35 p-0.5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-[17px] font-bold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">최근 기록</h3>
+                  <div className="flex gap-0.5 rounded-[8px] bg-[#e5eae3] p-0.5 dark:bg-white/10">
                     {([['all', '전체'], ['week', '이번 주'], ['photo', '사진']] as const).map(([k, l]) => (
                       <button
                         key={k}
                         type="button"
                         onClick={() => setRecentFilter(k)}
                         className={cn(
-                          'rounded-full px-3 py-1 text-[12px] font-semibold transition-colors',
-                          recentFilter === k ? 'bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))] shadow-sm' : 'text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
+                          'flex h-8 items-center rounded-[6px] px-3.5 text-[13.5px] transition-colors',
+                          recentFilter === k ? 'bg-white font-semibold text-[#23262b] shadow-sm dark:bg-white/15' : 'font-medium text-[#5f7462] hover:text-[#23262b]',
                         )}
                       >
                         {l}
@@ -638,7 +616,7 @@ export default function Journal() {
                           key={e.id}
                           type="button"
                           onClick={() => openDate(e.date)}
-                          className="group flex w-full items-start gap-4 rounded-[20px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30 hover:shadow-[0_14px_30px_-18px_hsl(25_30%_20%/0.3)]"
+                          className="group flex w-full items-start gap-4 rounded-[14px] border border-[#e0e6de] bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bcd4b6] hover:shadow-[0_10px_24px_-16px_rgba(30,60,35,0.3)] dark:border-[hsl(var(--cream-line))] dark:bg-[hsl(var(--cream-card))]"
                         >
                           <div className="w-10 shrink-0 text-center">
                             <div className="text-[19px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</div>
