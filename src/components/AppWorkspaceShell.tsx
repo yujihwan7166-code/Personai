@@ -59,7 +59,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   notes: '#4a8a5a',
   journal: '#6d5dd3',
   career: '#b05445',
-  people: '#c2603a',
+  people: '#a15008',
   archive: '#b45309',
   health: '#2f9e6e',
 };

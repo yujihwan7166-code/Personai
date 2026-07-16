@@ -110,21 +110,21 @@ export default function People() {
   };
 
   return (
-    <div className="people-theme flex h-dvh bg-[#f8f3f0] text-foreground dark:bg-background">
+    <div className="people-theme flex h-dvh bg-[#f8f4ec] text-foreground dark:bg-background">
       {/* ── 사이드바 — 방 내비 (클릭 시 활성 하이라이트, 데일리 로그와 동일 문법) ── */}
-      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[#f7ece7] dark:bg-[hsl(var(--surface-2))] sm:flex">
+      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[#ece2cc] bg-[#f7efe1] dark:border-[hsl(var(--hairline))] dark:bg-[hsl(var(--surface-2))] sm:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
         <div className="px-3.5 pb-1 pt-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(60,40,30,0.08)]" role="img" aria-label="인맥노트">🤝</span>
             <div className="min-w-0">
               <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-foreground">인맥노트</div>
-              <div className="truncate text-[12px] leading-tight text-[#9a7d70]">곁의 사람을 챙기는 노트</div>
+              <div className="truncate text-[12px] leading-tight text-[#a08343]">곁의 사람을 챙기는 노트</div>
             </div>
           </div>
         </div>
 
-        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#9a7d70]">메뉴</div>
+        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#a08343]">메뉴</div>
         <nav className="flex-1 overflow-y-auto px-2.5 pb-2" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
           {/* 새 사람 추가 칸 — 목록 아래 (데일리 로그/마이 커리어 기준 add-row) */}
