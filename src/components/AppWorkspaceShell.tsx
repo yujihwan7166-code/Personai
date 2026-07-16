@@ -52,16 +52,16 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
 ];
 
-/* 레일(다크 슬레이트) 활성 아이콘 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
+/* 레일(그라파이트) 활성 = 방 앰센트 채움 알약 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
 const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
-  today: '#8fb3d9',
-  planner: '#7ea8e6',
-  notes: '#86c98a',
-  journal: '#97cfa6',
-  career: '#e08b7d',
-  people: '#f0a878',
-  archive: '#d8b48a',
-  health: '#7fd3a8',
+  today: '#3a72b8',
+  planner: '#3a72b8',
+  notes: '#4a8a5a',
+  journal: '#4a7a56',
+  career: '#b05445',
+  people: '#c2603a',
+  archive: '#b45309',
+  health: '#2f9e6e',
 };
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
@@ -144,14 +144,14 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       <nav
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#13151a] bg-[#1c2026] py-3.5 sm:flex"
+        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#43474d] bg-[#52575e] py-3.5 sm:flex"
       >
         {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
         <NavLink
           to="/"
           aria-label="홈으로"
           title="홈으로"
-          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#99a0aa] transition-colors hover:bg-[#292e37] hover:text-white"
+          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#c3c8ce] transition-colors hover:bg-[#5e646c] hover:text-white"
         >
           <Home className="h-5 w-5" strokeWidth={2} />
         </NavLink>
@@ -167,14 +167,14 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
             modeOpen
-              ? 'bg-[#2e343d] text-white'
-              : 'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
+              ? 'bg-[#5e646c] text-white'
+              : 'text-[#c3c8ce] hover:bg-[#5e646c] hover:text-white',
           )}
         >
           <LayoutGrid className="h-5 w-5" strokeWidth={1.9} />
         </button>
 
-        <span aria-hidden className="my-1.5 h-px w-6 bg-[#2b303a]" />
+        <span aria-hidden className="my-1.5 h-px w-6 bg-[#676d75]" />
 
         {RAIL_WORKSPACES.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
@@ -183,7 +183,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         {/* 페이지 전용 기능 — 스위처 아래 구분선 다음에 (예: 플래너 매트릭스·보관함…). */}
         {railExtra && railExtra.length > 0 && (
           <>
-            <span aria-hidden className="my-1.5 h-px w-6 bg-[#2b303a]" />
+            <span aria-hidden className="my-1.5 h-px w-6 bg-[#676d75]" />
             {railExtra.map((item) => {
               const Icon = item.icon;
               return (
@@ -195,7 +195,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
                   title={item.label}
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-                    'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
+                    'text-[#c3c8ce] hover:bg-[#5e646c] hover:text-white',
                     item.soon && 'opacity-45',
                   )}
                 >
@@ -208,7 +208,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
 
         {/* 테마 토글 — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
-          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#2b303a]" />
+          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#676d75]" />
           <RailThemeToggle />
         </div>
       </nav>
@@ -340,9 +340,9 @@ function RailLink({ item, active }: WorkspaceLinkProps) {
       title={item.label}
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-        active ? 'bg-[#2e343d]' : 'text-[#99a0aa] hover:bg-[#292e37] hover:text-white',
+        active ? 'text-white' : 'text-[#c3c8ce] hover:bg-[#5e646c] hover:text-white',
       )}
-      style={active && accent ? { color: accent } : undefined}
+      style={active ? { backgroundColor: accent ?? '#6b7178' } : undefined}
     >
       <Icon className="h-5 w-5" strokeWidth={2} />
     </NavLink>
