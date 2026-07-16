@@ -236,7 +236,7 @@ const Notes = () => {
           {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방이라 그래파이트 톤 라이트 타일.
               부제에 권수(실데이터)를 담아 "제목=주어, 실데이터=서술어" 문법 유지. font-sans로 전역 세리프 무효화. */}
           <div className="flex items-center gap-2.5">
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-foreground/80 shadow-[0_1px_2px_rgba(30,35,45,0.09)]">
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[#4a6394] shadow-[0_1px_2px_rgba(20,40,80,0.08)]">
               <NotebookPen className="h-[18px] w-[18px]" strokeWidth={1.9} />
             </span>
             <div className="min-w-0 flex-1">
@@ -266,14 +266,14 @@ const Notes = () => {
           </div>
         </div>
 
-        <div className="shrink-0 border-b border-foreground/10 pl-4 pr-2 pb-2.5 sm:pl-5">
-          <label className="flex h-[30px] items-center gap-1.5 rounded-md border border-transparent bg-accent/40 px-2 transition-colors focus-within:border-primary/35">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+        <div className="shrink-0 px-3.5 pb-2 pt-1">
+          <label className="flex h-[36px] items-center gap-2 rounded-[8px] bg-white px-3 shadow-[0_1px_2px_rgba(20,40,80,0.06)] transition-shadow focus-within:shadow-[0_0_0_2px_rgba(44,79,147,0.25)] dark:bg-white/10">
+            <Search className="h-[15px] w-[15px] text-[#8894a5]" strokeWidth={1.9} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="노트 검색"
-              className="min-w-0 flex-1 bg-transparent text-[12px] text-foreground outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-[#8894a5]"
             />
             {query && (
               <button type="button" onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground" aria-label="검색어 지우기">
@@ -297,9 +297,7 @@ const Notes = () => {
               {/* 즐겨찾기 */}
               {favorites.length > 0 && (
                 <div>
-                  <p className="flex items-center gap-1.5 px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">
-                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> 즐겨찾기
-                  </p>
+                  <p className="px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">즐겨찾기</p>
                   <ul className="space-y-0.5">{favorites.map(renderNote)}</ul>
                 </div>
               )}
