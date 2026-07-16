@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { Copy, Download, ExternalLink, FileDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -62,15 +62,6 @@ const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: st
   { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
   { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '14 70% 54%' },
 ];
-
-/** 문서 종류별 이모지 — 사이드바 내비 (사진 스타일). */
-const DOC_EMOJI: Record<ComposePurpose, string> = {
-  '이력서': '📄',
-  '자기소개서 초안': '✍️',
-  '포트폴리오 요약': '🎨',
-  '경력기술서': '📑',
-  '커버레터': '💌',
-};
 
 /** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
 const SECTION_PREVIEW = 5;
@@ -535,21 +526,19 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] sm:flex">
-            {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (사진 스타일) */}
-            <div className="px-4 pb-3 pt-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(33_40%_83%)] bg-[hsl(33_48%_50%/0.12)] text-[24px] leading-none">💼</span>
-                <div className="min-w-0">
-                  <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(28_50%_39%)]">마이 커리어</h1>
-                  <p className="text-[12.5px] leading-tight text-muted-foreground">나의 커리어를 담는 작업실</p>
-                </div>
+          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#efdae0] bg-[#f8ecef] px-3.5 py-5 sm:flex">
+            {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (리디자인 시안) */}
+            <div className="flex items-center gap-[11px] px-1.5">
+              <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] leading-none shadow-[0_1px_2px_rgba(120,40,60,0.08)]" role="img" aria-label="마이 커리어">💼</span>
+              <div className="min-w-0">
+                <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20]">마이 커리어</div>
+                <div className="truncate text-[12px] leading-tight text-[#a97386]">나의 커리어를 담는 작업실</div>
               </div>
             </div>
 
-            {/* 내비 — 스펙 보드 여러 개 (활성 보드의 기록으로 문서를 만든다). 추가는 목록 맨 아래 칸. */}
-            <p className="px-4 pb-1 pt-2.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">스펙 보드</p>
-            <nav className="flex flex-col px-2.5 pt-0.5" aria-label="스펙 보드 목록">
+            {/* 스펙 보드 — 여러 개(활성 보드의 기록으로 문서를 만든다). 추가는 목록 맨 아래 칸. */}
+            <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a97386]">스펙 보드</div>
+            <nav className="flex flex-col gap-0.5" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
                 const count = boardCounts[b.id] ?? 0;
@@ -560,16 +549,16 @@ function BoardLedger() {
                       onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
+                        'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                         active
-                          ? 'bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]'
-                          : 'font-medium text-foreground/72 hover:bg-[hsl(33_48%_48%/0.07)]',
+                          ? 'bg-white font-semibold text-[#8a3550] shadow-[0_1px_2px_rgba(120,40,60,0.08)]'
+                          : 'font-medium text-[#585055] hover:bg-white/55',
                       )}
                     >
-                      <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">📋</span>
+                      <ClipboardList className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[#9c4160]' : 'text-[#a1888f]')} strokeWidth={1.7} />
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(28_52%_42%)]' : 'text-muted-foreground/55')}>{count}</span>
+                        <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -585,7 +574,7 @@ function BoardLedger() {
                           }
                         }}
                         aria-label={`${b.name} 보드 삭제`}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground/45 opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#c19aa6] opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -593,19 +582,20 @@ function BoardLedger() {
                   </div>
                 );
               })}
-              {/* 새 보드 추가 칸 — 목록 맨 아래 (상단 CTA 대체) */}
+              {/* 새 보드 추가 칸 — 목록 맨 아래 */}
               <button
                 type="button"
                 onClick={() => setBoardDialogOpen(true)}
-                className="mt-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium text-muted-foreground/70 transition-colors hover:bg-[hsl(33_48%_48%/0.07)] hover:text-[hsl(28_52%_38%)]"
+                className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium text-[#a1888f] transition-colors hover:bg-white/55 hover:text-[#8a3550]"
               >
-                <span aria-hidden className="flex w-[20px] shrink-0 items-center justify-center"><Plus className="h-4 w-4" /></span>
+                <Plus className="h-[15px] w-[15px] shrink-0" strokeWidth={1.7} />
                 <span className="flex-1">새 보드</span>
               </button>
             </nav>
 
-            <p className="px-4 pb-1 pt-3.5 text-[10.5px] font-bold tracking-[0.16em] text-muted-foreground/60">문서</p>
-            <nav className="flex flex-col px-2.5 pb-4" aria-label="문서 종류">
+            {/* 문서 — 스펙에서 만들어요 */}
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a97386]">문서 · 스펙에서 만들어요</div>
+            <nav className="flex flex-col gap-0.5" aria-label="문서 종류">
               {COMPOSE_PURPOSES.map(({ purpose, label }) => {
                 const active = view === purpose;
                 const count = docs.filter((d) => d.purpose === purpose).length;
@@ -616,22 +606,37 @@ function BoardLedger() {
                     onClick={() => setView(purpose)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
+                      'flex h-[38px] items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                       active
-                        ? 'bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]'
-                        : 'font-medium text-foreground/72 hover:bg-[hsl(var(--career-red)/0.06)]',
+                        ? 'bg-white font-semibold text-[#8a3550] shadow-[0_1px_2px_rgba(120,40,60,0.08)]'
+                        : 'font-medium text-[#585055] hover:bg-white/55',
                     )}
                   >
-                    <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{DOC_EMOJI[purpose]}</span>
+                    <FileText className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[#9c4160]' : 'text-[#a1888f]')} strokeWidth={1.7} />
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(28_52%_42%)]' : 'text-muted-foreground/55')}>{count}</span>
+                      <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
                     )}
                   </button>
                 );
               })}
             </nav>
 
+            {/* 다음 스펙 — 추천 스펙(온디맨드 다이얼로그) */}
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a97386]">다음 스펙</div>
+            <button
+              type="button"
+              onClick={() => setRecommendOpen(true)}
+              className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] font-medium text-[#585055] transition-colors hover:bg-white/55"
+            >
+              <Target className="h-[18px] w-[18px] shrink-0 text-[#a1888f]" strokeWidth={1.7} />
+              <span className="flex-1">추천 스펙</span>
+            </button>
+
+            {/* 푸터 통계 — 기록 · 증빙 · 목표(문서) */}
+            <div className="mt-auto border-t border-[#efdae0] px-3 pt-3 text-[12px] leading-relaxed text-[#a97386]">
+              기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}
+            </div>
           </aside>
 
           {/* ══ 메인 — 모바일은 통 스크롤, lg 부턴 컬럼별 독립 스크롤 ══ */}
