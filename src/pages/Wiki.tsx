@@ -25,15 +25,6 @@ const PAGE_CSS = `
 .pwk-spine:hover { transform: translateY(-14px); box-shadow: 0 20px 34px rgba(60,40,25,0.28) !important; }
 `;
 
-function fmtRel(iso: string): string {
-  const d = Math.floor((Date.now() - Date.parse(iso)) / (1000 * 60 * 60 * 24));
-  if (d <= 0) return '오늘';
-  if (d === 1) return '어제';
-  if (d < 7) return `${d}일 전`;
-  if (d < 30) return `${Math.floor(d / 7)}주 전`;
-  return new Date(iso).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
-}
-
 /** 책등 그라데이션 어둡게. */
 function shade(hex: string, amt: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -202,15 +193,6 @@ export default function Wiki() {
   for (let i = 0; i < topics.length; i += 6) shelves.push(topics.slice(i, i + 6));
   if (shelves.length === 0) shelves.push([]);
 
-  /* ── 이어서 읽기 — 최근 손댄 문서 3편 ── */
-  const recentDocs = useMemo(
-    () => [...docs]
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, 3)
-      .map((d) => ({ doc: d, topic: topics.find((t) => t.id === d.topicId) })),
-    [docs, topics],
-  );
-
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: PW.paper, color: PW.ink, fontFamily: SANS, overflow: 'hidden' }}>
       <style>{PAGE_CSS}</style>
@@ -304,24 +286,51 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* ── 책상 위 서재 장면: [스탠드] [책장] [잉크·화분] 이 모두 상판을 딛는다 ── */}
-            <div style={{ position: 'relative', margin: '0 -26px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 30, padding: '0 34px', position: 'relative', zIndex: 1 }}>
+            {/* ── 책상 위 오픈 선반(허치) — 기둥 두 개 + 얇은 선반, 뒤가 트인 구조 ── */}
+            <div style={{ position: 'relative', margin: '0 -10px' }}>
 
-                {/* 초록 갓 스탠드 (장식) — 책장 왼편 */}
-                <div aria-hidden className="hidden md:flex" style={{ flexDirection: 'column', alignItems: 'center', flex: 'none', position: 'relative', animation: 'pwk-rise 0.6s 0.35s cubic-bezier(0.22,1,0.36,1) both' }}>
-                  <div style={{ position: 'absolute', bottom: -64, left: '50%', transform: 'translateX(-50%)', width: 270, height: 130, background: 'radial-gradient(ellipse at 50% 42%, rgba(255,222,140,0.42), rgba(255,222,140,0) 70%)', pointerEvents: 'none' }} />
-                  <div style={{ width: 98, height: 32, background: 'linear-gradient(180deg,#3f7d54,#28583a)', borderRadius: '50px 50px 6px 6px', boxShadow: 'inset 0 -5px 0 rgba(255,240,190,0.55), inset 0 3px 4px rgba(255,255,255,0.2)' }} />
-                  <div style={{ width: 7, height: 46, background: 'linear-gradient(90deg,#caa64f,#9a7830)', borderRadius: 2 }} />
-                  <div style={{ width: 56, height: 9, background: 'linear-gradient(180deg,#caa64f,#8f6e2a)', borderRadius: '5px 5px 2px 2px' }} />
+              {/* 허치 */}
+              <div style={{ position: 'relative', maxWidth: 860, margin: '0 auto' }}>
+                {/* 좌우 기둥 — 윗선반부터 책상까지 */}
+                <div aria-hidden style={{ position: 'absolute', left: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#a5895f,#87683f)', borderRadius: '3px 3px 0 0', boxShadow: 'inset -3px 0 4px rgba(0,0,0,0.16)' }} />
+                <div aria-hidden style={{ position: 'absolute', right: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#a5895f,#87683f)', borderRadius: '3px 3px 0 0', boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.16)' }} />
+
+                {/* 윗선반 — 소품 (장식) */}
+                <div aria-hidden style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 52, height: 84, animation: 'pwk-rise 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
+                  {/* 화분 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
+                      <span style={{ width: 13, height: 24, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
+                      <span style={{ width: 12, height: 29, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
+                      <span style={{ width: 13, height: 22, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
+                    </div>
+                    <div style={{ width: 32, height: 24, background: 'linear-gradient(180deg,#f4efe4,#ddd3bd)', borderRadius: '3px 3px 9px 9px', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(60,40,20,0.14)' }} />
+                  </div>
+                  {/* 눕혀 쌓은 책 */}
+                  <div className="hidden sm:flex" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 54, height: 9, background: '#c9b78e', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.1)' }} />
+                    <div style={{ width: 62, height: 10, background: '#a8926b', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.12)' }} />
+                    <div style={{ width: 58, height: 10, background: '#8f7a55', borderRadius: 2, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.14)' }} />
+                  </div>
+                  {/* 탁상시계 */}
+                  <div className="hidden sm:flex" style={{ flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 14, marginBottom: -4 }}>
+                      <span style={{ width: 9, height: 9, background: '#4a3f30', borderRadius: '50%', display: 'block' }} />
+                      <span style={{ width: 9, height: 9, background: '#4a3f30', borderRadius: '50%', display: 'block' }} />
+                    </div>
+                    <div style={{ position: 'relative', width: 36, height: 36, background: '#fbf7ee', border: '3px solid #4a3f30', borderRadius: '50%' }}>
+                      <span style={{ position: 'absolute', left: '50%', bottom: '50%', width: 2, height: 9, background: '#4a3f30', transformOrigin: '50% 100%', transform: 'translateX(-50%) rotate(40deg)', display: 'block' }} />
+                      <span style={{ position: 'absolute', left: '50%', bottom: '50%', width: 2, height: 12, background: '#4a3f30', transformOrigin: '50% 100%', transform: 'translateX(-50%) rotate(-60deg)', display: 'block' }} />
+                    </div>
+                  </div>
                 </div>
+                {/* 윗선반 널 */}
+                <div style={{ height: 12, background: 'linear-gradient(180deg,#dcc7a2,#bfa478)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
 
-                {/* 책장 — 나무 프레임 가구 (책상 위에 올라앉음) */}
-                <div style={{ flex: '0 1 780px', minWidth: 0, background: 'linear-gradient(180deg,#b79b74,#8a6f4c)', borderRadius: '18px 18px 4px 4px', padding: 16, boxShadow: '0 16px 30px rgba(60,40,20,0.2), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
-              <div style={{ background: 'linear-gradient(180deg,#f0e8d9,#e2d6bf)', borderRadius: 12, padding: '42px 32px 0', boxShadow: 'inset 0 10px 26px rgba(60,40,20,0.14), inset 0 -4px 10px rgba(60,40,20,0.06)' }}>
+                {/* 책 선반들 */}
                 {shelves.map((shelf, si) => (
                   <div key={si}>
-                    <div className="pwk-scroll" style={{ display: 'flex', alignItems: 'flex-end', gap: 14, minHeight: 232, paddingTop: si > 0 ? 36 : 0, overflowX: 'auto' }}>
+                    <div className="pwk-scroll" style={{ display: 'flex', alignItems: 'flex-end', gap: 14, minHeight: 230, padding: '26px 34px 0', justifyContent: shelf.length >= 6 ? 'flex-start' : 'center', overflowX: 'auto' }}>
                       {shelf.map((t, bi) => {
                         const n = countOf(t.id);
                         const h = Math.min(216, 158 + n * 7);
@@ -378,82 +387,19 @@ export default function Wiki() {
                         )
                       )}
                     </div>
-                    {/* 선반 널빤지 */}
-                    <div style={{ height: 15, margin: '0 -32px', background: 'linear-gradient(180deg,#c3a87e,#967a55)', boxShadow: '0 6px 10px rgba(60,40,20,0.22), inset 0 1px 0 rgba(255,255,255,0.35)' }} />
+                    {/* 선반 널 */}
+                    <div style={{ height: 12, background: 'linear-gradient(180deg,#dcc7a2,#bfa478)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
                   </div>
                 ))}
-                <div style={{ height: 10 }} />
-              </div>
-            </div>
-
-                {/* 잉크병 · 화분 (장식) — 책장 오른편 */}
-                <div aria-hidden className="hidden md:flex" style={{ alignItems: 'flex-end', gap: 20, flex: 'none', animation: 'pwk-rise 0.6s 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: 12, height: 8, background: '#4a3f30', borderRadius: '3px 3px 0 0' }} />
-                    <div style={{ width: 28, height: 26, background: 'linear-gradient(180deg,#514434,#332a1e)', borderRadius: '5px 5px 9px 9px', boxShadow: 'inset 3px 3px 5px rgba(255,255,255,0.14)' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: -3 }}>
-                      <span style={{ width: 13, height: 22, background: '#5c8a52', borderRadius: '50% 50% 50% 0', transform: 'rotate(-24deg)', display: 'block' }} />
-                      <span style={{ width: 12, height: 26, background: '#6f9c60', borderRadius: '50% 50% 0 50%', transform: 'rotate(4deg)', display: 'block', marginLeft: -4 }} />
-                      <span style={{ width: 13, height: 20, background: '#527c49', borderRadius: '50% 50% 0 50%', transform: 'rotate(26deg)', display: 'block', marginLeft: -3 }} />
-                    </div>
-                    <div style={{ width: 34, height: 24, background: 'linear-gradient(180deg,#bd6a4a,#9c4f33)', borderRadius: '3px 3px 8px 8px', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.22)' }} />
-                  </div>
-                </div>
               </div>
 
-              {/* 책상 상판 표면 — 책장·소품이 딛고 선 면, 그 앞에 펼친 책 */}
-              <div style={{ position: 'relative', background: 'linear-gradient(180deg,#d6ba90,#c3a679)', borderRadius: '12px 12px 0 0', boxShadow: 'inset 0 3px 0 rgba(255,255,255,0.4), inset 0 16px 26px rgba(60,40,20,0.13)', padding: '20px 0 16px', display: 'flex', justifyContent: 'center', animation: 'pwk-rise 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
-
-                {/* 펼친 책 — 이어서 읽기 */}
-                <div style={{ display: 'flex', flex: 'none', filter: 'drop-shadow(0 8px 10px rgba(60,40,20,0.32))', maxWidth: '100%', transform: 'rotate(-0.6deg)' }}>
-                  {/* 왼쪽 페이지 */}
-                  <div style={{ width: 264, background: 'linear-gradient(90deg,#f7f1e4,#fbf7ee 55%,#efe7d6)', borderRadius: '10px 2px 2px 3px', border: '1px solid #e0d5bf', borderRight: 'none', padding: '15px 18px 13px 22px' }}>
-                    <div style={{ fontSize: 10.5, letterSpacing: '0.22em', color: PW.faint, fontWeight: 700, marginBottom: 9 }}>이어서 읽기</div>
-                    {recentDocs.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: PW.sub, fontFamily: SERIF, lineHeight: 1.7 }}>아직 펼친 문서가 없어요.<br />책장에서 한 권 골라보세요.</div>
-                    ) : (
-                      recentDocs.map(({ doc: d, topic: t }) => (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => openDoc(d.id)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '4.5px 0', background: 'none', border: 'none', borderBottom: '1px dotted #ddd0b8', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                          onMouseEnter={(e) => { (e.currentTarget.children[1] as HTMLElement).style.color = PW.accent; }}
-                          onMouseLeave={(e) => { (e.currentTarget.children[1] as HTMLElement).style.color = PW.ink; }}
-                        >
-                          <span aria-hidden style={{ width: 7, height: 11, background: t?.tint ?? PW.accent, borderRadius: '1px 2px 2px 1px', flex: 'none', boxShadow: 'inset -2px 0 0 rgba(0,0,0,0.18)' }} />
-                          <span style={{ fontSize: 12.5, color: PW.ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s ease' }}>{d.title}</span>
-                          <span style={{ fontSize: 10.5, color: PW.faint, marginLeft: 'auto', flex: 'none' }}>{fmtRel(d.updatedAt)}</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                  {/* 책 골 (제본선) */}
-                  <div aria-hidden style={{ width: 12, background: 'linear-gradient(90deg,#e3d7c0,#c9b995 50%,#e3d7c0)', boxShadow: 'inset 0 0 6px rgba(90,70,40,0.35)', flex: 'none' }} />
-                  {/* 오른쪽 페이지 */}
-                  <div className="hidden sm:flex" style={{ width: 190, background: 'linear-gradient(90deg,#efe7d6,#fbf7ee 45%,#f7f1e4)', borderRadius: '2px 10px 3px 2px', border: '1px solid #e0d5bf', borderLeft: 'none', padding: '15px 20px 13px 18px', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-                    <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 700, color: PW.ink }}>{new Date().getMonth() + 1}월 {new Date().getDate()}일</div>
-                    <div style={{ fontSize: 11.5, color: PW.sub, marginTop: 6, lineHeight: 1.6, fontFamily: SERIF }}>오늘도 한 장,<br />서재가 두꺼워집니다</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 상판 앞테 (책상 두께) */}
-              <div style={{ height: 20, background: 'linear-gradient(180deg,#c9ac81,#a3855c)', borderRadius: '0 0 6px 6px', boxShadow: '0 10px 20px rgba(60,40,20,0.25), inset 0 2px 0 rgba(255,255,255,0.3)' }} />
-
-              {/* 앞판 + 명판 */}
-              <div style={{ height: 46, margin: '0 18px', background: 'linear-gradient(180deg,#a3855c,#8a6f4c)', borderRadius: '0 0 7px 7px', boxShadow: 'inset 0 4px 7px rgba(0,0,0,0.18), inset 0 -2px 0 rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ padding: '5px 18px', background: 'linear-gradient(180deg,#e9d9a8,#cdb478)', border: '1px solid #a68d55', borderRadius: 5, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 1px 3px rgba(0,0,0,0.25)', fontSize: 11.5, letterSpacing: '0.18em', color: '#5c4a2c', fontWeight: 700 }}>
-                  책 {topics.length}권 · 문서 {docs.length}편
-                </span>
-              </div>
+              {/* 책상 상판 — 허치보다 넓게, 허치를 받친다 */}
+              <div style={{ height: 22, background: 'linear-gradient(180deg,#dcc39b,#c2a578)', borderRadius: 6, boxShadow: '0 16px 30px rgba(60,40,20,0.2), inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -3px 4px rgba(60,40,20,0.14)' }} />
 
               {/* 다리 — 아래로 페이드아웃 */}
-              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 62px' }}>
-                <div style={{ width: 32, height: 96, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
-                <div style={{ width: 32, height: 96, background: 'linear-gradient(180deg,#8a6f4c,#8a6f4c 30%,rgba(138,111,76,0))', borderRadius: '0 0 3px 3px' }} />
+              <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 46px' }}>
+                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#b39569,#b39569 22%,rgba(179,149,105,0))' }} />
+                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#b39569,#b39569 22%,rgba(179,149,105,0))' }} />
               </div>
             </div>
 
