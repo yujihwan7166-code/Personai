@@ -270,30 +270,30 @@ export default function Wiki() {
           }}
         >
           <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-            {/* 표지 히어로 — 헤더 없이, 책 표지처럼 큼직하게 */}
-            <div style={{ textAlign: 'center', margin: '22px 0 52px' }}>
+            {/* 표지 히어로 — 제목과 부제 한 줄, 장식 없이 */}
+            <div style={{ textAlign: 'center', margin: '16px 0 46px' }}>
               <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(52px, 7vw, 72px)', fontWeight: 700, margin: 0, letterSpacing: '-0.03em', lineHeight: 1.12, color: PW.ink, textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}>
                 마이위키
               </h1>
-              <p style={{ fontFamily: SERIF, fontSize: 'clamp(17px, 2vw, 21px)', color: PW.sub, margin: '18px auto 0', maxWidth: 640, lineHeight: 1.75, fontWeight: 400 }}>
+              <p style={{ fontFamily: SERIF, fontSize: 'clamp(17px, 2vw, 21px)', color: PW.sub, margin: '14px auto 0', maxWidth: 640, lineHeight: 1.75, fontWeight: 400 }}>
                 한 주제를 한 권의 책으로, 깊게 파고드는 나만의 백과사전
               </p>
-              {/* 속표지 장식 괘선 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '30px auto 0', maxWidth: 380 }} aria-hidden>
-                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${PW.sand})` }} />
-                <span style={{ width: 7, height: 7, background: PW.accent, transform: 'rotate(45deg)', opacity: 0.75 }} />
-                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${PW.sand}, transparent)` }} />
-              </div>
             </div>
 
             {/* ── 책상 위 오픈 선반(허치) — 기둥 두 개 + 얇은 선반, 뒤가 트인 구조 ── */}
             <div style={{ position: 'relative', margin: '0 -10px' }}>
 
+              {/* 벽면 — 가구 뒤 은은한 패널, 책상 상판 높이에서 끝난다 */}
+              <div aria-hidden style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -36, bottom: 126, width: 'min(100%, 980px)', background: 'linear-gradient(180deg, rgba(190,168,128,0.16), rgba(190,168,128,0.05))', borderRadius: 22, border: '1px solid rgba(150,125,85,0.1)', zIndex: 0 }} />
+
               {/* 허치 */}
-              <div style={{ position: 'relative', maxWidth: 860, margin: '0 auto' }}>
+              <div style={{ position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto' }}>
+                {/* 기둥 발치 접지 그림자 */}
+                <div aria-hidden style={{ position: 'absolute', left: 0, bottom: -5, width: 26, height: 9, background: 'radial-gradient(ellipse, rgba(60,40,20,0.26), transparent 70%)' }} />
+                <div aria-hidden style={{ position: 'absolute', right: 0, bottom: -5, width: 26, height: 9, background: 'radial-gradient(ellipse, rgba(60,40,20,0.26), transparent 70%)' }} />
                 {/* 좌우 기둥 — 윗선반부터 책상까지 */}
-                <div aria-hidden style={{ position: 'absolute', left: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#a5895f,#87683f)', borderRadius: '3px 3px 0 0', boxShadow: 'inset -3px 0 4px rgba(0,0,0,0.16)' }} />
-                <div aria-hidden style={{ position: 'absolute', right: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#a5895f,#87683f)', borderRadius: '3px 3px 0 0', boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.16)' }} />
+                <div aria-hidden style={{ position: 'absolute', left: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#c0a273,#9d7e53)', borderRadius: '3px 3px 0 0', boxShadow: 'inset -3px 0 4px rgba(0,0,0,0.16)' }} />
+                <div aria-hidden style={{ position: 'absolute', right: 4, top: 84, bottom: 0, width: 13, background: 'linear-gradient(90deg,#c0a273,#9d7e53)', borderRadius: '3px 3px 0 0', boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.16)' }} />
 
                 {/* 윗선반 — 소품 (장식) */}
                 <div aria-hidden style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 52, height: 84, animation: 'pwk-rise 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
@@ -325,7 +325,7 @@ export default function Wiki() {
                   </div>
                 </div>
                 {/* 윗선반 널 */}
-                <div style={{ height: 12, background: 'linear-gradient(180deg,#dcc7a2,#bfa478)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
+                <div style={{ height: 12, background: 'linear-gradient(180deg,#e9d4ac,#ccb083)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
 
                 {/* 책 선반들 */}
                 {shelves.map((shelf, si) => (
@@ -388,18 +388,18 @@ export default function Wiki() {
                       )}
                     </div>
                     {/* 선반 널 */}
-                    <div style={{ height: 12, background: 'linear-gradient(180deg,#dcc7a2,#bfa478)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
+                    <div style={{ height: 12, background: 'linear-gradient(180deg,#e9d4ac,#ccb083)', borderRadius: 3, boxShadow: '0 5px 9px rgba(60,40,20,0.16), inset 0 1px 0 rgba(255,255,255,0.5)' }} />
                   </div>
                 ))}
               </div>
 
               {/* 책상 상판 — 허치보다 넓게, 허치를 받친다 */}
-              <div style={{ height: 22, background: 'linear-gradient(180deg,#dcc39b,#c2a578)', borderRadius: 6, boxShadow: '0 16px 30px rgba(60,40,20,0.2), inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -3px 4px rgba(60,40,20,0.14)' }} />
+              <div style={{ position: 'relative', zIndex: 1, height: 22, background: 'linear-gradient(180deg,#e6cda2,#c9ab7c)', borderRadius: 6, boxShadow: '0 1px 2px rgba(60,40,20,0.2), 0 10px 18px rgba(60,40,20,0.16), 0 30px 50px rgba(60,40,20,0.13), inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 4px rgba(60,40,20,0.12)' }} />
 
               {/* 다리 — 아래로 페이드아웃 */}
               <div aria-hidden style={{ display: 'flex', justifyContent: 'space-between', padding: '0 46px' }}>
-                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#b39569,#b39569 22%,rgba(179,149,105,0))' }} />
-                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#b39569,#b39569 22%,rgba(179,149,105,0))' }} />
+                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#bfa075,#bfa075 22%,rgba(191,160,117,0))' }} />
+                <div style={{ width: 26, height: 118, background: 'linear-gradient(180deg,#bfa075,#bfa075 22%,rgba(191,160,117,0))' }} />
               </div>
             </div>
 
