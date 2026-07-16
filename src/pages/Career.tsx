@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
+import { ChevronDown, ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Link2, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -247,6 +247,7 @@ function BoardLedger() {
   /** 방 뷰 — 스펙 보드(기록) vs 문서 종류별 보관함 (사이드바에서 전환). */
   const [view, setView] = useState<'board' | ComposePurpose>('board');
   const [boardDialogOpen, setBoardDialogOpen] = useState(false); // 새 스펙 보드 만들기
+  const [personaMenuOpen, setPersonaMenuOpen] = useState(false); // 마스트헤드 신분 드롭다운
   const [resumeOpen, setResumeOpen] = useState(false); // 이력서 PDF 미리보기·내보내기
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
@@ -463,7 +464,7 @@ function BoardLedger() {
     window.requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  /* 원고 행 — 카드(문장 + 날짜, 세부 미리보기 아래 1줄), 클릭하면 세부사항. */
+  /* 원고 행 (리디자인 시안) — 제목 + 기관 + 증빙/문서 아이콘 + 날짜. 클릭하면 세부사항. */
   const renderCardRow = (item: SpecItem) => (
     <div
       draggable
@@ -478,15 +479,16 @@ function BoardLedger() {
         }
       }}
       className={cn(
-        'group relative cursor-pointer px-2.5 py-2.5 transition-[background-color,box-shadow]',
-        'hover:bg-[hsl(var(--foreground)/0.04)] hover:shadow-[inset_3px_0_0_hsl(var(--career-red)/0.85)]',
+        'group relative flex cursor-pointer items-center gap-[9px] px-0.5 py-[13px] transition-colors hover:bg-[#faf5f6]',
         item.id === recentId && 'career-new-line',
       )}
     >
-      <div className="flex items-baseline gap-3">
-        <span className="career-serif min-w-0 flex-1 text-[14.5px] leading-relaxed">
-          <MetricText text={item.refined} />
-        </span>
+      <span className="min-w-0 truncate text-[14px] font-semibold text-[#23262b]">
+        <MetricText text={item.refined} />
+      </span>
+      {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#9b9095]">{item.org}</span>}
+      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#cfb6bf]">
+        {item.detail && <FileText className="h-[13px] w-[13px]" strokeWidth={1.7} aria-label="세부 있음" />}
         {item.link && (
           <a
             href={item.link}
@@ -495,29 +497,24 @@ function BoardLedger() {
             onClick={(e) => e.stopPropagation()}
             aria-label="증빙 링크 열기"
             title={item.link}
-            className="shrink-0 self-center text-muted-foreground/60 transition-colors hover:text-[hsl(var(--career-red))]"
+            className="transition-colors hover:text-[#9c4160]"
           >
-            <ExternalLink className="h-3 w-3" />
+            <Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} />
           </a>
         )}
-        <span className="career-mono shrink-0 text-[11px] text-muted-foreground transition-opacity group-hover:opacity-0">
+        <span className="text-[12.5px] tabular-nums text-[#9b9095] transition-opacity group-hover:opacity-0">
           {formatPeriod(item)}
         </span>
-        <span className="absolute right-1.5 top-2 flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              removeItem(item);
-            }}
-            aria-label="삭제"
-            title="삭제"
-            className="p-1 text-muted-foreground transition-colors hover:text-[hsl(var(--career-red))]"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </span>
-      </div>
+      </span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); removeItem(item); }}
+        aria-label="삭제"
+        title="삭제"
+        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#c9aeb8] opacity-0 transition-opacity hover:text-[#9c4160] group-hover:opacity-100"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 
@@ -1119,137 +1116,126 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-none min-w-0 overflow-y-auto px-4 py-6 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
-            <div className="mx-auto max-w-[900px] rounded-2xl border border-[hsl(var(--foreground)/0.14)] bg-[hsl(var(--surface-1))] px-6 py-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04),0_24px_50px_-30px_hsl(var(--foreground)/0.32)] sm:px-9 sm:py-8">
-            {/* ── 프로필 헤더 — 레터헤드: 아래 굵은 잉크 괘선(섹션 헤어라인·항목 옅은 선과 3단 위계) ── */}
-            <div className="flex items-center gap-5 border-b-2 border-[hsl(var(--foreground)/0.8)] pb-5">
-                  {/* 사진 슬롯 — 선택형, 클릭해서 업로드 */}
-                  <label
-                    className={cn(
-                      'group relative block h-[96px] w-[74px] shrink-0 cursor-pointer overflow-hidden rounded-md bg-card transition-colors hover:border-[hsl(var(--career-red))]',
-                      profile.photo
-                        ? 'border border-[hsl(var(--foreground)/0.35)]'
-                        : 'border border-dashed border-[hsl(var(--foreground)/0.3)]',
-                    )}
-                    title={profile.photo ? '사진 바꾸기' : '사진 추가'}
+          <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#f6f2f3] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
+            {/* ── 마스트헤드 (리디자인 시안) ── */}
+            <div className="mx-auto mb-5 max-w-[900px]">
+              <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">스펙 보드</span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setPersonaMenuOpen((v) => !v)}
+                    className="inline-flex h-[34px] items-center gap-[7px] rounded-full border border-[#ecdfe3] bg-white pl-[14px] pr-2 text-[13.5px] font-semibold text-[#8a3550] transition-colors hover:bg-[#fdf9fa]"
                   >
-                    {profile.photo ? (
-                      <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground/50">
-                        <Plus className="h-4 w-4" />
-                        <span className="text-[10.5px]">사진</span>
-                      </span>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        void onPickPhoto(e.target.files?.[0]);
-                        e.target.value = '';
-                      }}
-                    />
-                    {profile.photo && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          careerStore.setProfile({ photo: undefined });
-                        }}
-                        aria-label="사진 삭제"
-                        title="사진 삭제"
-                        className="absolute right-0.5 top-0.5 bg-card/85 p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-[hsl(var(--career-red))] group-hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </label>
-
-                  <div className="min-w-0 flex-1">
-                    {/* 이름 — 맨 위, 클릭해서 편집 */}
-                    {editingName ? (
-                      <input
-                        autoFocus
-                        defaultValue={profile.name}
-                        onBlur={(e) => {
-                          careerStore.setProfile({ name: e.target.value.trim() });
-                          setEditingName(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingName(false);
-                        }}
-                        placeholder="이름"
-                        aria-label="이름"
-                        className="w-full max-w-[280px] border-b-2 border-[hsl(var(--career-red))] bg-transparent text-[24px] font-bold leading-tight outline-none placeholder:text-muted-foreground/40"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setEditingName(true)}
-                        title="이름 수정"
-                        className={cn(
-                          'block w-fit text-[24px] font-bold leading-tight decoration-[hsl(var(--foreground)/0.25)] decoration-dotted underline-offset-4 hover:underline',
-                          !profile.name && 'font-semibold text-muted-foreground/45',
-                        )}
-                      >
-                        {profile.name || '이름 적기'}
-                      </button>
-                    )}
-                    {/* 소개 — 이름 아래, 여러 줄 가능(자동 높이), blur 시 저장 */}
-                    <textarea
-                      ref={(el) => {
-                        if (el) {
-                          el.style.height = 'auto';
-                          el.style.height = `${el.scrollHeight}px`;
-                        }
-                      }}
-                      defaultValue={profile.tagline}
-                      onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-                      onInput={(e) => {
-                        const el = e.currentTarget;
-                        el.style.height = 'auto';
-                        el.style.height = `${el.scrollHeight}px`;
-                      }}
-                      rows={1}
-                      placeholder={
-                        persona === 'worker'
-                          ? '소개 — 예: 결제·정산 도메인 3년차 프론트엔드 개발자'
-                          : '소개 — 예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'
-                      }
-                      aria-label="소개"
-                      className="mt-0.5 block w-full max-w-[520px] resize-none overflow-hidden bg-transparent text-[13.5px] leading-relaxed text-muted-foreground outline-none placeholder:text-muted-foreground/40"
-                    />
-                    {/* 인적사항 — 서식의 빈칸처럼 인라인 편집. 채우면 이력서 머리글·연락처 줄에 그대로 실린다. */}
-                    <div className="mt-2.5 flex flex-wrap items-center gap-y-1 text-[11.5px]">
-                      {([
-                        ['birth', '생년월일', profile.birth, 'w-[96px]'],
-                        ['email', '이메일', profile.email, 'w-[170px]'],
-                        ['phone', '전화번호', profile.phone, 'w-[118px]'],
-                        ['link', '대표 링크', profile.link, 'w-[190px]'],
-                      ] as const).map(([key, ph, value, width], i) => (
-                        <span key={key} className="flex items-center">
-                          {i > 0 && <span aria-hidden className="mx-2 text-muted-foreground/30">·</span>}
-                          <input
-                            defaultValue={value ?? ''}
-                            onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
-                            placeholder={ph}
-                            aria-label={ph}
-                            className={cn(
-                              'career-mono border-b border-transparent bg-transparent pb-0.5 text-muted-foreground outline-none transition-colors placeholder:text-muted-foreground/35 focus:border-[hsl(var(--career-red)/0.6)]',
-                              width,
-                            )}
-                          />
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                    {PERSONA_LABEL[persona]} <ChevronDown className="h-[13px] w-[13px] text-[#a1888f]" />
+                  </button>
+                  {personaMenuOpen && (
+                    <>
+                      <button type="button" aria-hidden tabIndex={-1} onClick={() => setPersonaMenuOpen(false)} className="fixed inset-0 z-10 cursor-default" />
+                      <div className="absolute left-0 top-[40px] z-20 min-w-[124px] overflow-hidden rounded-[10px] border border-[#ecdfe3] bg-white py-1 shadow-[0_8px_24px_-8px_rgba(120,40,60,0.25)]">
+                        {(Object.keys(PERSONA_LABEL) as CareerPersona[]).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => { careerStore.setProfile({ persona: p }); setPersonaMenuOpen(false); }}
+                            className={cn('block w-full px-[14px] py-1.5 text-left text-[13.5px] transition-colors', p === persona ? 'bg-[#faf1f4] font-semibold text-[#8a3550]' : 'text-[#585055] hover:bg-[#faf1f4]')}
+                          >
+                            {PERSONA_LABEL[p]}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
+              </div>
             </div>
 
-            {/* ────── 기록 — 문서 본문: 흰 시트 위 섹션(테두리 없음), 2열 흐름 ────── */}
-            <div className="mt-6 grid items-start gap-x-9 gap-y-7 sm:grid-cols-2">
+            {/* ── 프로필 카드 ── */}
+            <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] border border-[#ecdfe3] bg-white px-[26px] py-[22px]">
+              {/* 아바타 — 사진 있으면 크롭, 없으면 이니셜. 클릭해서 업로드 */}
+              <label className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full" title={profile.photo ? '사진 바꾸기' : '사진 추가'}>
+                {profile.photo ? (
+                  <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-[#f2dfe5] text-[24px] font-semibold text-[#8a3550]">{(profile.name || '?').slice(0, 1)}</span>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+                {profile.photo && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); careerStore.setProfile({ photo: undefined }); }} aria-label="사진 삭제" title="사진 삭제" className="absolute right-0 top-0 bg-black/35 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </label>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  {editingName ? (
+                    <input
+                      autoFocus
+                      defaultValue={profile.name}
+                      onBlur={(e) => { careerStore.setProfile({ name: e.target.value.trim() }); setEditingName(false); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingName(false); }}
+                      placeholder="이름"
+                      aria-label="이름"
+                      className="border-b border-[#c58fa0] bg-transparent text-[19px] font-bold leading-tight text-[#191c20] outline-none placeholder:text-[#c9aeb8]"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditingName(true)}
+                      title="이름 수정"
+                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#cfb6bf] underline-offset-4 hover:underline', !profile.name && 'text-[#c9aeb8]')}
+                    >
+                      {profile.name || '이름 적기'}
+                    </button>
+                  )}
+                  <input
+                    defaultValue={profile.tagline}
+                    onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
+                    placeholder={persona === 'worker' ? '결제·정산 도메인 3년차 프론트엔드 개발자' : '웹 개발 동아리를 이끄는 컴퓨터공학 3학년'}
+                    aria-label="소개"
+                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#c9aeb8]"
+                  />
+                </div>
+                {/* 연락처 — 생년월일 · 이메일 · 전화 · 대표 링크 (인라인 편집) */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-[#8d949d]">
+                  {([
+                    ['birth', '생년월일', profile.birth, 'w-[92px]'],
+                    ['email', '이메일', profile.email, 'w-[150px]'],
+                    ['phone', '전화번호', profile.phone, 'w-[112px]'],
+                  ] as const).map(([key, ph, value, width]) => (
+                    <input
+                      key={key}
+                      defaultValue={value ?? ''}
+                      onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
+                      placeholder={ph}
+                      aria-label={ph}
+                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#c9aeb8] focus:text-[#585055]', width)}
+                    />
+                  ))}
+                  <span className="inline-flex items-center gap-1 text-[#8a3550]">
+                    <Link2 className="h-[11px] w-[11px] text-[#9c4160]" />
+                    <input
+                      defaultValue={profile.link ?? ''}
+                      onBlur={(e) => careerStore.setProfile({ link: e.target.value.trim() || undefined })}
+                      placeholder="대표 링크"
+                      aria-label="대표 링크"
+                      className="w-[150px] bg-transparent text-[#8a3550] outline-none placeholder:text-[#c9aeb8]"
+                    />
+                  </span>
+                </div>
+              </div>
+
+              <button type="button" onClick={() => setEditingName(true)} className="inline-flex h-[30px] shrink-0 items-center gap-1.5 self-start rounded-full bg-[#f1eaec] px-3 text-[12px] font-medium text-[#8a7d82] transition-colors hover:bg-[#ece1e4]">
+                <Pencil className="h-3 w-3" /> 프로필 수정
+              </button>
+            </div>
+
+            {/* ── 카테고리 그리드 카드 ── */}
+            <div className="mx-auto max-w-[900px] rounded-[12px] border border-[#ecdfe3] bg-white px-[28px] py-6">
+            <div className="grid grid-cols-1 items-start gap-x-14 gap-y-3.5 sm:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -1260,52 +1246,41 @@ function BoardLedger() {
                       onDragLeave={() => setDragOverCategory((v) => (v === category.id ? null : v))}
                       onDrop={(e) => onDropToCategory(e, category.id)}
                       className={cn(
-                        'group/section flex flex-col rounded-xl p-2 transition-colors',
-                        dragOverCategory === category.id && 'bg-[hsl(var(--career-red)/0.05)] ring-1 ring-[hsl(var(--career-red)/0.4)]',
+                        'group/section flex flex-col rounded-[10px] transition-colors',
+                        dragOverCategory === category.id && 'bg-[#faf1f4] ring-1 ring-[#e3b9c6]',
                       )}
                     >
-                      {/* 카드 헤더 — 번호 칩 · 이름 · 건수(빈 칸이면 삭제), 아래 헤어라인 */}
-                      <div className="mb-3 flex items-center gap-2 border-b border-[hsl(var(--hairline))] pb-2.5">
-                        <span className="career-mono text-[10.5px] font-bold tracking-[0.08em] text-[hsl(var(--career-red))]">
+                      {/* 카드 헤더 — 번호 + 이름, 아래 헤어라인 (빈 칸이면 삭제 X) */}
+                      <div className="flex items-baseline gap-2 border-b border-[#f0e8ea] pb-[9px]">
+                        <span className="text-[11.5px] font-bold text-[#cf9dac]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
-                        <h3 className="text-[15px] font-bold tracking-tight">{category.name}</h3>
-                        <span className="ml-auto flex items-center gap-1.5">
-                          <span
-                            className={cn(
-                              'career-mono text-[11px]',
-                              sectionItems.length > 0 ? 'font-semibold text-[hsl(var(--career-red)/0.75)]' : 'text-muted-foreground/35',
-                            )}
+                        <h3 className="text-[15px] font-bold text-[#23262b]">{category.name}</h3>
+                        {sectionItems.length === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => careerStore.removeCategory(category.id)}
+                            aria-label={`${category.name} 칸 삭제`}
+                            title="빈 칸 삭제"
+                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#9c4160] group-hover/section:text-[#cfb6bf]"
                           >
-                            {sectionItems.length}
-                          </span>
-                          {sectionItems.length === 0 && (
-                            <button
-                              type="button"
-                              onClick={() => careerStore.removeCategory(category.id)}
-                              aria-label={`${category.name} 칸 삭제`}
-                              title="빈 칸 삭제"
-                              className="p-0.5 text-transparent transition-colors hover:!text-[hsl(var(--career-red))] group-hover/section:text-muted-foreground/55"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </span>
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                       {sectionItems.length === 0 ? (
-                        /* 빈 칸 — 조용한 한 줄(문서가 안 비어 보이게). 큰 박스 대신. */
+                        /* 빈 칸 — 조용한 한 줄(문서가 안 비어 보이게). */
                         <button
                           type="button"
                           onClick={() => startAddTo(category.name)}
-                          className="flex items-center gap-1.5 px-1 py-1 text-left text-[12px] text-muted-foreground/45 transition-colors hover:text-[hsl(var(--career-red))]"
+                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#c9aeb8] transition-colors hover:text-[#9c4160]"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           첫 기록 추가
                         </button>
                       ) : (
                         <>
-                          {/* 항목 구분선은 섹션 헤어라인보다 한 단계 옅게 — 괘선 위계 */}
-                          <ul className="-mx-2 divide-y divide-[hsl(var(--foreground)/0.06)]">
+                          <ul className="divide-y divide-[#f7f1f3]">
                             <AnimatePresence initial={false}>
                               {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
                                 <motion.li
@@ -1326,7 +1301,7 @@ function BoardLedger() {
                             <button
                               type="button"
                               onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 px-2 text-[11.5px] text-muted-foreground/70 underline decoration-[hsl(var(--foreground)/0.25)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
+                              className="mt-1.5 self-start text-[11.5px] text-[#a1888f] underline decoration-[#e0cdd3] underline-offset-4 transition-colors hover:text-[#9c4160]"
                             >
                               {expandedSections.has(category.id)
                                 ? '접기'
@@ -1338,11 +1313,11 @@ function BoardLedger() {
                     </section>
                   ))}
 
-                  {/* 카테고리 추가 — 그리드 안 점선 카드 */}
-                  {addingCategory ? (
-                    <div className="flex min-h-[132px] flex-col rounded-xl border border-[hsl(var(--career-red)/0.5)] bg-[hsl(var(--surface-1))] p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="career-mono text-[11px] font-medium text-[hsl(var(--career-red)/0.85)]">
+                  {/* 카테고리 추가 중 — 새 칸(번호 + 이름 입력) */}
+                  {addingCategory && (
+                    <div className="flex flex-col">
+                      <div className="flex items-baseline gap-2 border-b border-[#f0e8ea] pb-[9px]">
+                        <span className="text-[11.5px] font-bold text-[#cf9dac]">
                           {String(sections.length + 1).padStart(2, '0')}
                         </span>
                         <input
@@ -1357,25 +1332,25 @@ function BoardLedger() {
                           }}
                           onBlur={commitNewCategory}
                           autoFocus
-                          placeholder="칸 이름 — 예: 봉사, 출판, 특허"
+                          placeholder="칸 이름 — 예: 봉사, 출판"
                           aria-label="새 칸 이름"
-                          className="h-6 min-w-0 flex-1 bg-transparent text-[15px] font-bold outline-none placeholder:font-normal placeholder:text-muted-foreground/45"
+                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#c9aeb8]"
                         />
                       </div>
-                      <p className="mt-2 text-[11px] text-muted-foreground/60">Enter로 추가 · Esc로 취소</p>
+                      <p className="py-[13px] text-[11.5px] text-[#a1888f]">Enter로 추가 · Esc로 취소</p>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setAddingCategory(true)}
-                      className="group/add flex min-h-[132px] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--foreground)/0.2)] text-muted-foreground/55 transition-colors hover:border-[hsl(var(--career-red)/0.5)] hover:text-[hsl(var(--career-red))]"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[hsl(var(--surface-2))] transition-colors group-hover/add:bg-[hsl(var(--career-red)/0.1)] group-hover/add:text-[hsl(var(--career-red))]">
-                        <Plus className="h-4 w-4" />
-                      </span>
-                      <span className="text-[12.5px]">카테고리 추가</span>
-                    </button>
                   )}
+              </div>
+
+              {/* 푸터 — 카테고리 추가 + 범례 */}
+              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#a1888f]">
+                <button type="button" onClick={() => setAddingCategory(true)} className="inline-flex items-center gap-2 transition-colors hover:text-[#9c4160]">
+                  <Plus className="h-3.5 w-3.5" strokeWidth={2} /> 카테고리 추가
+                </button>
+                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#c9aeb8]">
+                  <span className="inline-flex items-center gap-1.5"><Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} /> 증빙 있음</span>
+                  <span className="inline-flex items-center gap-1.5"><FileText className="h-[13px] w-[13px]" strokeWidth={1.7} /> 문서에 포함</span>
+                </span>
               </div>
             </div>
           </main>
