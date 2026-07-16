@@ -92,18 +92,18 @@ export default function People() {
         onClick={() => { setView(item.id); setOpenId(null); }}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
+          'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14px] transition-colors',
           active
-            ? 'bg-[hsl(var(--people-accent))]/15 font-bold text-[hsl(var(--people-accent))]'
-            : 'font-medium text-foreground/72 hover:bg-[hsl(var(--people-accent))]/6',
+            ? 'bg-white font-semibold text-[hsl(var(--people-accent))] shadow-[0_1px_2px_rgba(60,40,30,0.09)] dark:bg-white/10'
+            : 'font-medium text-foreground/70 hover:bg-white/45 dark:hover:bg-white/5',
         )}
       >
-        <span aria-hidden className="w-[20px] shrink-0 text-center text-[16px] leading-none">{item.emoji}</span>
+        <span aria-hidden className="w-[19px] shrink-0 text-center text-[16px] leading-none">{item.emoji}</span>
         <span className="flex-1">{item.label}</span>
         {alert ? (
           <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--people-accent))] px-1 text-[10px] font-bold tabular-nums text-white">{badge}</span>
         ) : count > 0 ? (
-          <span className={cn('text-[12px] tabular-nums', active ? 'font-bold text-[hsl(var(--people-accent))]/75' : 'text-muted-foreground/55')}>{count}</span>
+          <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[hsl(var(--people-accent))]' : 'text-muted-foreground/55')}>{count}</span>
         ) : null}
       </button>
     );
@@ -113,18 +113,19 @@ export default function People() {
     <div className="people-theme flex h-dvh bg-[#f8f3f0] text-foreground dark:bg-background">
       {/* ── 사이드바 — 방 내비 (클릭 시 활성 하이라이트, 데일리 로그와 동일 문법) ── */}
       <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[#f7ece7] dark:bg-[hsl(var(--surface-2))] sm:flex">
-        {/* 헤더 — 마크 + 제목 + 부제 좌상단 락업 (데일리 로그 기준) */}
-        <div className="px-4 pb-3 pt-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(30_70%_85%)] bg-[hsl(var(--people-accent))]/13 text-[24px] leading-none">🤝</span>
+        {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
+        <div className="px-3.5 pb-1 pt-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(60,40,30,0.08)]" role="img" aria-label="인맥노트">🤝</span>
             <div className="min-w-0">
-              <h1 className="translate-y-[4px] text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(28_80%_45%)]">인맥노트</h1>
-              <p className="text-[12.5px] leading-tight text-muted-foreground">곁의 사람을 챙기는 노트</p>
+              <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-foreground">인맥노트</div>
+              <div className="truncate text-[12px] leading-tight text-[#9a7d70]">곁의 사람을 챙기는 노트</div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1.5" aria-label="인맥노트 섹션">
+        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#9a7d70]">메뉴</div>
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
           {/* 새 사람 추가 칸 — 목록 아래 (데일리 로그/마이 커리어 기준 add-row) */}
           <button

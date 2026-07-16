@@ -133,14 +133,14 @@ export default function Archive() {
     <div className="archive-theme flex min-h-dvh bg-[#f8f4ec] text-foreground dark:bg-background">
       {/* ───────── 좌 사이드바 (lg+) ───────── */}
       <aside className="hidden w-[256px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#f5efe0] dark:bg-[hsl(var(--surface-1))] px-4 pb-5 pt-4 lg:flex">
-        {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방들과 달리 세피아 연한 틴트 타일. */}
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--archive-sepia)/0.25)] bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]">
-            <Library className="h-6 w-6" strokeWidth={1.8} />
+        {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
+        <div className="mb-3 flex items-center gap-2.5">
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[hsl(var(--archive-sepia))] shadow-[0_1px_2px_rgba(60,45,20,0.09)]">
+            <Library className="h-[18px] w-[18px]" strokeWidth={1.9} />
           </span>
           <div className="min-w-0">
-            <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">아카이브</h1>
-            <p className="truncate text-[12.5px] leading-tight text-muted-foreground">무엇이든 담아두는 보관소</p>
+            <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-foreground">아카이브</div>
+            <div className="truncate text-[12px] leading-tight text-[#9a8f7a]">무엇이든 담아두는 보관소</div>
           </div>
         </div>
 
@@ -384,9 +384,9 @@ function NavRow({ icon, emoji, label, count, active, onClick, onSettings }: {
       <button
         type="button"
         onClick={onClick}
-        className={cn('flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors',
+        className={cn('flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-[14px] font-medium transition-colors',
           onSettings && 'pr-8',
-          active ? 'bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]' : 'text-foreground hover:bg-accent')}
+          active ? 'bg-white font-semibold text-[hsl(var(--archive-sepia))] shadow-[0_1px_2px_rgba(60,45,20,0.09)] dark:bg-white/10' : 'text-foreground/70 hover:bg-white/45 dark:hover:bg-white/5')}
       >
         {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
         <span className="min-w-0 flex-1 truncate text-left">{label}</span>

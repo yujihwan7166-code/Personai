@@ -235,13 +235,13 @@ const Notes = () => {
         <div className="shrink-0 pl-4 pr-3 pt-4 pb-3 sm:pl-5">
           {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방이라 그래파이트 톤 라이트 타일.
               부제에 권수(실데이터)를 담아 "제목=주어, 실데이터=서술어" 문법 유지. font-sans로 전역 세리프 무효화. */}
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--hairline))] bg-[hsl(var(--foreground)/0.05)]">
-              <NotebookPen className="h-6 w-6 text-foreground/80" strokeWidth={1.8} />
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-foreground/80 shadow-[0_1px_2px_rgba(30,35,45,0.09)]">
+              <NotebookPen className="h-[18px] w-[18px]" strokeWidth={1.9} />
             </span>
             <div className="min-w-0 flex-1">
-              <h1 className="font-sans text-[24px] font-extrabold leading-tight tracking-[0.01em] text-foreground">올인원 노트</h1>
-              <p className="truncate text-[12.5px] leading-tight text-muted-foreground">{notes.length > 0 ? `${notes.length}권 · 생각을 담는 한 권` : '생각을 담는 한 권'}</p>
+              <h1 className="font-sans text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-foreground">올인원 노트</h1>
+              <p className="truncate text-[12px] leading-tight text-[#8a909a]">{notes.length > 0 ? `${notes.length}권 · 생각을 담는 한 권` : '생각을 담는 한 권'}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button
