@@ -878,71 +878,73 @@ export default function Journal() {
           )}
 
           {/* ── 달력 탭 ── */}
-          {tab === 'calendar' && (
-            <div className="rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6">
-              <div className="mb-4 flex items-center justify-center gap-4">
-                <button type="button" onClick={() => setCalAnchor(new Date(y, m - 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="이전 달"><ChevronLeft className="h-4 w-4" /></button>
-                <span className="text-[17px] font-bold">{y}년 {m + 1}월</span>
-                <button type="button" onClick={() => setCalAnchor(new Date(y, m + 1, 1))} className="flex h-7 w-7 items-center justify-center rounded-full text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="다음 달"><ChevronRight className="h-4 w-4" /></button>
-              </div>
-              <div className="mb-2 grid grid-cols-7 text-center text-[11px] text-[hsl(var(--cream-muted))]">
-                {WEEKDAY.map((w) => <span key={w}>{w}</span>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1.5">
-                {Array(lead).fill(null).map((_, i) => <div key={`x${i}`} />)}
-                {Array.from({ length: daysIn }, (_, i) => {
-                  const d = dateKey(new Date(y, m, i + 1));
-                  const isToday = d === todayKey;
-                  const meta = dayMeta.get(d);
-                  const mood = meta?.moodKey ? MOOD_BY_KEY[meta.moodKey] : undefined;
-                  const photo = photoByDate.get(d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => openDate(d)}
-                      className={cn(
-                        'group relative flex aspect-square flex-col overflow-hidden rounded-2xl border p-2 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/45 hover:shadow-[0_10px_22px_-14px_hsl(25_30%_20%/0.4)]',
-                        isToday ? 'border-[hsl(var(--cream-accent))] ring-1 ring-[hsl(var(--cream-accent))]/30' : 'border-[hsl(var(--cream-line))]',
-                      )}
-                      style={photo ? undefined : { backgroundColor: meta?.color ? `color-mix(in srgb, ${meta.color} 22%, #f8f3ea)` : 'hsl(var(--cream-bg) / 0.4)' }}
-                    >
-                      {/* 그날의 사진이 셀 배경 — 한 달이 앨범이 된다 */}
-                      {photo && (
-                        <>
-                          <img src={photo} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/38 via-transparent to-black/25" />
-                        </>
-                      )}
-                      <div className="relative z-[1] flex items-start justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <span className={cn(
-                            'text-[12px] font-semibold tabular-nums',
-                            photo ? 'text-white drop-shadow' : isToday ? 'font-bold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-ink))]/65',
-                          )}>{i + 1}</span>
-                          {mood && <span className="text-[14px] leading-none drop-shadow">{mood.emoji}</span>}
+          {tab === 'calendar' && (() => {
+            // 인맥노트 캘린더 스타일 — 앞뒤 달 채움 포함 7열 그리드.
+            const prevDaysIn = new Date(y, m, 0).getDate();
+            const cells: Array<{ day: number; other: boolean; key?: string }> = [];
+            for (let i = 0; i < lead; i++) cells.push({ day: prevDaysIn - lead + 1 + i, other: true });
+            for (let d = 1; d <= daysIn; d++) cells.push({ day: d, other: false, key: dateKey(new Date(y, m, d)) });
+            while (cells.length % 7 !== 0) cells.push({ day: cells.length - lead - daysIn + 1, other: true });
+            const SUN = '#c4859e', SAT = '#8a86c9';
+            return (
+              <div className="overflow-hidden rounded-[16px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]">
+                {/* 월 네비 */}
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <span className="text-[17px] font-bold tabular-nums text-[hsl(var(--cream-ink))]">{y}년 {m + 1}월</span>
+                  <span className="inline-flex h-[34px] items-center overflow-hidden rounded-[8px] border border-[hsl(var(--cream-line))] text-[13px] text-[hsl(var(--cream-ink))]/80">
+                    <button type="button" onClick={() => setCalAnchor(new Date(y, m - 1, 1))} className="flex h-full w-8 items-center justify-center text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="이전 달"><ChevronLeft className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setCalAnchor(new Date())} className="h-full border-x border-[hsl(var(--cream-line))] px-3 font-medium hover:bg-[hsl(var(--cream-line))]/40">오늘</button>
+                    <button type="button" onClick={() => setCalAnchor(new Date(y, m + 1, 1))} className="flex h-full w-8 items-center justify-center text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="다음 달"><ChevronRight className="h-4 w-4" /></button>
+                  </span>
+                </div>
+                {/* 요일 헤더 */}
+                <div className="grid grid-cols-7 border-y border-[hsl(var(--cream-line))]">
+                  {['일', '월', '화', '수', '목', '금', '토'].map((w, i) => (
+                    <span key={w} className="border-r border-[hsl(var(--cream-line))]/60 py-2 text-center text-[12px] font-semibold last:border-r-0" style={{ color: i === 0 ? SUN : i === 6 ? SAT : undefined }}>{w}</span>
+                  ))}
+                </div>
+                {/* 그리드 */}
+                <div className="grid grid-cols-7" style={{ gridAutoRows: 'minmax(78px, 1fr)' }}>
+                  {cells.map((c, idx) => {
+                    const dow = idx % 7;
+                    const meta = c.key ? dayMeta.get(c.key) : undefined;
+                    const mood = meta?.moodKey ? MOOD_BY_KEY[meta.moodKey] : undefined;
+                    const isToday = c.key === todayKey;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => c.key && openDate(c.key)}
+                        disabled={!c.key}
+                        className={cn(
+                          'flex flex-col gap-1 overflow-hidden border-b border-r border-[hsl(var(--cream-line))]/60 px-2 py-1.5 text-left transition-colors',
+                          c.other ? 'bg-[hsl(var(--cream-bg)/0.45)]' : 'hover:bg-[hsl(var(--cream-accent))]/[0.06]',
+                        )}
+                      >
+                        <span className="flex items-center justify-between">
+                          <span
+                            className={cn('inline-flex h-[24px] min-w-[24px] items-center justify-center rounded-full px-1 text-[12.5px] font-semibold tabular-nums', isToday && 'bg-[hsl(var(--cream-accent))] font-bold text-white')}
+                            style={!isToday ? { color: c.other ? 'hsl(var(--cream-muted) / 0.45)' : dow === 0 ? SUN : dow === 6 ? SAT : 'hsl(var(--cream-ink) / 0.7)' } : undefined}
+                          >
+                            {c.day}
+                          </span>
+                          {!c.other && meta?.weather && <span className="text-[13px] leading-none">{WEATHER_META[meta.weather].emoji}</span>}
                         </span>
-                        {meta?.weather && <span className="text-[12px] leading-none opacity-90 drop-shadow">{WEATHER_META[meta.weather].emoji}</span>}
-                      </div>
-                      {!photo && meta?.label && <p className="mt-1 line-clamp-3 text-left text-[9.5px] leading-[1.35] text-[hsl(var(--cream-ink))]/60">{meta.label}</p>}
-                      {photo && meta?.label && (
-                        <p className="relative z-[1] mt-auto line-clamp-2 text-left text-[9.5px] font-medium leading-[1.35] text-white/90 drop-shadow">{meta.label}</p>
-                      )}
-                      {/* 하루 기록(먹은 것·간 곳·메모)이 있는 날 — 세이지 점 */}
-                      {itemDates.has(d) && (
-                        <span className={cn('absolute bottom-1.5 right-1.5 z-[1] h-1.5 w-1.5 rounded-full', photo ? 'bg-white/90' : 'bg-[hsl(var(--cream-accent))]/70')} aria-hidden />
-                      )}
-                    </button>
-                  );
-                })}
+                        {mood && <span className="text-[15px] leading-none">{mood.emoji}</span>}
+                        {!c.other && meta?.label && <span className="line-clamp-1 text-[10px] leading-tight text-[hsl(var(--cream-ink))]/55">{meta.label}</span>}
+                        {c.key && itemDates.has(c.key) && <span aria-hidden className="mt-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* 범례 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] px-5 py-3 text-[11px] text-[hsl(var(--cream-muted))]">
+                  {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
+                  <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />하루 기록 있음</span>
+                </div>
               </div>
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] pt-4 text-[11px] text-[hsl(var(--cream-muted))]">
-                {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
-                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[4px] bg-[color-mix(in_srgb,#e0876b_35%,#f8f3ea)]" />칸 배경 = 오늘의 컬러</span>
-                <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />하루 기록 있음</span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── 트래블 로그 — 여행 관리·버킷 (travel-theme 토큰, 방이 라이트 고정이라 다크 무력화) ── */}
           {tab === 'trips' && (
