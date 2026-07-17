@@ -109,18 +109,18 @@ export default function People() {
           </div>
         </div>
 
-        <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a08343]">메뉴</div>
+        {/* 새 사람 — 상단 CTA (아카이브 '새 항목 저장' 위치 기준) */}
+        <button
+          type="button"
+          onClick={newPerson}
+          className="mt-5 flex h-[40px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#b45309] text-[14px] font-bold text-white shadow-[0_1px_2px_rgba(60,40,10,0.12)] transition-colors hover:bg-[#9c4708]"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.2} /> 새 사람
+        </button>
+
+        <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a08343]">메뉴</div>
         <nav className="flex flex-col gap-0.5" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
-          {/* 새 사람 추가 칸 — 목록 아래 */}
-          <button
-            type="button"
-            onClick={newPerson}
-            className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] text-[#98917d] transition-colors hover:bg-white/55 hover:text-[#8f4207]"
-          >
-            <Plus className="h-[15px] w-[15px] shrink-0" strokeWidth={1.7} />
-            <span className="flex-1">새 사람</span>
-          </button>
         </nav>
       </aside>
 
