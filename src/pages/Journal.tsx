@@ -469,29 +469,26 @@ export default function Journal() {
       className="flex h-dvh bg-[#fcfbfe] text-[hsl(var(--cream-ink))]"
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
-      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#f6f4fb] dark:bg-[hsl(var(--cream-panel))] sm:flex">
-        {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
-        <div className="px-3.5 pb-1 pt-4">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(40,30,80,0.09)]" role="img" aria-label="데일리 로그">🌙</span>
-            <div className="min-w-0">
-              <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">데일리 로그</div>
-              <div className="truncate text-[12px] leading-tight text-[#8078a3]">나의 하루를 담는 기록실</div>
-            </div>
+      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#f6f4fb] px-3.5 py-5 dark:bg-[hsl(var(--cream-panel))] sm:flex">
+        {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (커리어/인맥노트 기준) */}
+        <div className="flex items-center gap-[11px] px-1.5">
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(40,30,80,0.09)]" role="img" aria-label="데일리 로그">🌙</span>
+          <div className="min-w-0">
+            <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">데일리 로그</div>
+            <div className="truncate text-[12px] leading-tight text-[#8078a3]">나의 하루를 담는 기록실</div>
           </div>
         </div>
 
-        {/* 내비 — 활성 = 흰 알약 + 그림자 (확정 크롬) */}
-        <div className="px-3 pb-1.5 pt-5 text-[11.5px] font-semibold tracking-[0.05em] text-[#8078a3]">메뉴</div>
-        <nav className="flex-1 overflow-y-auto px-2.5 pb-2" aria-label="데일리로그 섹션">
+        {/* 내비 — 섹션라벨·아이템 px-3 로 위계 정렬 (기준 통일) */}
+        <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#8078a3]">메뉴</div>
+        <nav className="flex-1 overflow-y-auto" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
 
-        {/* 푸터 — 플래시백 · 보관함 (동일 컬러 아이콘 + 은은한 활성) */}
-        <nav className="border-t border-[hsl(var(--cream-line))] px-2.5 py-2" aria-label="데일리로그 유틸">
+        {/* 푸터 — 플래시백 · 보관함 */}
+        <nav className="-mx-3.5 mt-2 border-t border-[hsl(var(--cream-line))] px-3.5 pt-2" aria-label="데일리로그 유틸">
           {NAV_BOTTOM.map((item) => renderNavRow(item))}
         </nav>
-
       </aside>
 
       {/* ── 메인 ── */}

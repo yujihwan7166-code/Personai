@@ -249,8 +249,8 @@ const Notes = () => {
   return (
     <div className="paper-room flex h-dvh bg-background text-foreground">
       {/* 좌측 목록 */}
-      <aside className="flex w-full shrink-0 flex-col border-r border-[#e7e5e2] bg-[#f4f3f1] dark:border-[hsl(var(--hairline))] dark:bg-[hsl(var(--sidebar-background))] sm:w-[256px]">
-        <div className="shrink-0 pl-4 pr-3 pt-4 pb-3 sm:pl-5">
+      <aside className="flex w-full shrink-0 flex-col border-r border-[#e7e5e2] bg-[#f4f3f1] dark:border-[hsl(var(--hairline))] dark:bg-[hsl(var(--sidebar-background))] sm:w-[264px]">
+        <div className="shrink-0 pl-4 pr-3 pb-3 pt-5 sm:pl-5">
           {/* 헤더 — 마크 + 제목 + 부제 락업 (데일리 로그 기준). 검은 방이라 그래파이트 톤 라이트 타일.
               부제에 권수(실데이터)를 담아 "제목=주어, 실데이터=서술어" 문법 유지. font-sans로 전역 세리프 무효화. */}
           <div className="flex items-center gap-2.5">
