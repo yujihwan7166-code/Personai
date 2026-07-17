@@ -5,7 +5,7 @@
  * 각 뷰가 자체 마스트헤드를 갖는다(리디자인 1a~1f). 데이터: peopleStore(LocalStorage).
  */
 import { useMemo, useState } from 'react';
-import { Bell, CalendarDays, Gift, Plus, RefreshCw, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePersons, useInteractions, useCategories } from '@/hooks/usePeople';
 import { PersonsView } from '@/components/people/PersonsView';
@@ -20,14 +20,13 @@ import { todayKey } from '@/types/travel';
 import type { Person } from '@/types/people';
 
 type View = 'today' | 'persons' | 'calendar' | 'gifts' | 'reconnect';
-type IconType = typeof Bell;
 
-const NAV: Array<{ id: View; label: string; Icon: IconType }> = [
-  { id: 'today', label: '오늘 챙길 것', Icon: Bell },
-  { id: 'persons', label: '사람', Icon: Users },
-  { id: 'calendar', label: '경조사 캘린더', Icon: CalendarDays },
-  { id: 'gifts', label: '주고받은 선물', Icon: Gift },
-  { id: 'reconnect', label: '다시 챙기기', Icon: RefreshCw },
+const NAV: Array<{ id: View; label: string; emoji: string }> = [
+  { id: 'today', label: '오늘 챙길 것', emoji: '🔔' },
+  { id: 'persons', label: '사람', emoji: '👥' },
+  { id: 'calendar', label: '경조사 캘린더', emoji: '📅' },
+  { id: 'gifts', label: '주고받은 선물', emoji: '🎁' },
+  { id: 'reconnect', label: '다시 챙기기', emoji: '🔄' },
 ];
 
 export default function People() {
@@ -89,7 +88,7 @@ export default function People() {
             : 'font-medium text-[#5a5648] hover:bg-white/55',
         )}
       >
-        <item.Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[#a15008]' : 'text-[#98917d]')} strokeWidth={1.7} />
+        <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">{item.emoji}</span>
         <span className="flex-1">{item.label}</span>
         {count > 0 && <span className={cn('text-[12.5px] font-semibold tabular-nums', active ? 'text-[#a15008]' : 'text-[#98917d]')}>{count}</span>}
       </button>
@@ -149,7 +148,7 @@ export default function People() {
                     active ? 'border-transparent bg-[#f2e5cf] font-bold text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#5a5648]',
                   )}
                 >
-                  <item.Icon className="h-[13px] w-[13px]" strokeWidth={1.8} /> {item.label}
+                  <span className="text-[13px] leading-none">{item.emoji}</span> {item.label}
                   {count > 0 && <span className={cn('tabular-nums', active ? 'text-[#a15008]' : 'text-[#98917d]')}>{count}</span>}
                 </button>
               );

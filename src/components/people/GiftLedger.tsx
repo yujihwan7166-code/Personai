@@ -117,7 +117,7 @@ export function GiftLedger({
           <button type="button" onClick={() => setThisYearOnly((v) => !v)} className="inline-flex h-[38px] items-center gap-[7px] rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] font-medium text-[#4b5158] transition-colors hover:bg-[#faf7f0]">
             {thisYearOnly ? '올해' : '전체 기간'} <ChevronDown className="h-[13px] w-[13px]" />
           </button>
-          <button type="button" onClick={() => openComposer()} className="inline-flex h-[42px] items-center gap-[7px] rounded-[8px] bg-[#b45309] px-[18px] text-[14px] font-semibold text-white transition-colors hover:bg-[#9c4708]">
+          <button type="button" onClick={() => openComposer()} className="inline-flex h-[38px] items-center gap-[7px] rounded-[8px] bg-[#b45309] px-[18px] text-[14px] font-semibold text-white transition-colors hover:bg-[#9c4708]">
             <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} /> 선물 기록
           </button>
         </div>
