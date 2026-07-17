@@ -85,7 +85,6 @@ export function ReconnectView({
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex h-[38px] items-center rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] font-medium text-[#4b5158]">기준: 평소 연락 주기 초과</span>
           {snoozedCount > 0 && (
             <button type="button" onClick={() => setShowSnoozed((v) => !v)} className={cn('inline-flex h-[38px] items-center gap-[7px] rounded-[8px] border px-3.5 text-[13.5px] font-medium transition-colors', showSnoozed ? 'border-[#d6a066] bg-[#f2e5cf] text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#4b5158] hover:bg-[#faf7f0]')}>
               <Clock className="h-[14px] w-[14px] text-[#98917d]" /> 나중에 보기 {snoozedCount}
