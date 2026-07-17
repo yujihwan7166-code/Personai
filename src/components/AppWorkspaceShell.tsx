@@ -59,15 +59,16 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
 ];
 
 /* 레일(그라파이트) 활성 = 방 앰센트 채움 알약 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
+/* 레일 활성 알약 = 각 방의 실제 테마색과 일치시킨다 (레일 버튼 색이 방 색과 안 맞던 문제). */
 const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
-  today: '#3a72b8',
-  planner: '#3a72b8',
-  notes: '#4a8a5a',
-  journal: '#6d5dd3',
-  career: '#b05445',
-  people: '#a15008',
-  archive: '#b45309',
-  health: '#2f9e6e',
+  today: '#3a72b8',    // 오늘 — 블루
+  planner: '#3a72b8',  // 통합플래너 — 블루
+  notes: '#2c4f93',    // 올인원 노트 — 네이비 블루 (방 accent와 동일)
+  journal: '#6d5dd3',  // 데일리 로그 — 퍼플
+  career: '#8a3550',   // 스펙 보드 — 로즈/버건디 (방 accent와 동일)
+  people: '#a15008',   // 인맥노트 — 앰버
+  archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
+  health: '#2f9e6e',   // 건강기록 — 그린
 };
 
 /** 레일 색 후보 — 레일 위에서 마우스 휠 위/아래로 돌려가며 고른다 (선택은 localStorage 저장).
