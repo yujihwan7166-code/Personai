@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Archive,
@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -63,6 +64,30 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   archive: '#b45309',
   health: '#2f9e6e',
 };
+
+/** 레일 색 후보 — 레일 위에서 마우스 휠 위/아래로 돌려가며 고른다 (선택은 localStorage 저장).
+ * 원칙: 레일은 크롬이라 방 액센트(블루·그린·퍼플·브릭·앰버)와 경쟁하면 안 됨 → 채도 낮게.
+ * hoverInk 는 밝은 레일에서 호버 글자가 안 보이는 것 방지. */
+interface RailTheme {
+  name: string;
+  bg: string;
+  border: string;
+  icon: string;
+  hover: string;
+  hoverInk: string;
+  fallback: string;
+}
+const RAIL_THEMES: RailTheme[] = [
+  { name: '웜 잉크',    bg: '#2d2926', border: '#221f1c', icon: '#b0a89e', hover: '#3d3833', hoverInk: '#ffffff', fallback: '#4f4841' },
+  { name: '에스프레소', bg: '#3a352f', border: '#2e2a25', icon: '#b9b2a8', hover: '#4a443c', hoverInk: '#ffffff', fallback: '#5c554b' },
+  { name: '포레스트',   bg: '#343d36', border: '#28302a', icon: '#a8b2a8', hover: '#434e45', hoverInk: '#ffffff', fallback: '#55604f' },
+  { name: '딥 네이비',  bg: '#2b3242', border: '#212736', icon: '#a3adc0', hover: '#3a4356', hoverInk: '#ffffff', fallback: '#4b5568' },
+  { name: '아우버진',   bg: '#362f3b', border: '#2a242e', icon: '#b2a7b8', hover: '#463e4c', hoverInk: '#ffffff', fallback: '#584e5f' },
+  { name: '그라파이트', bg: '#52575e', border: '#43474d', icon: '#c3c8ce', hover: '#5e646c', hoverInk: '#ffffff', fallback: '#6b7178' },
+  { name: '웜 스톤',    bg: '#d9d3c9', border: '#c7c0b4', icon: '#6d665c', hover: '#e6e1d9', hoverInk: '#2d2926', fallback: '#8a8175' },
+  { name: '화이트',     bg: '#ffffff', border: '#e9e7e4', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
+];
+const RAIL_THEME_KEY = 'rail.theme.v1';
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
@@ -136,22 +161,66 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
     tryOpen();
   }, []);
 
+  /* 레일 색 — 레일 위에서 휠 위/아래로 후보를 돌린다. 선택은 localStorage 유지. */
+  const railRef = useRef<HTMLElement | null>(null);
+  const [railThemeIdx, setRailThemeIdx] = useState<number>(() => {
+    try {
+      const raw = Number(window.localStorage.getItem(RAIL_THEME_KEY));
+      return Number.isInteger(raw) && raw >= 0 && raw < RAIL_THEMES.length ? raw : 0;
+    } catch {
+      return 0;
+    }
+  });
+  // 리스너를 한 번만 붙이려고 현재 인덱스는 ref 로 읽는다 (매 변경마다 재등록 방지).
+  const railIdxRef = useRef(railThemeIdx);
+  railIdxRef.current = railThemeIdx;
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    let lock = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < 2) return;
+      e.preventDefault(); // 레일 위 휠이 뒤 페이지를 스크롤하지 않게
+      const now = Date.now();
+      if (now - lock < 140) return; // 휠 한 틱에 한 칸
+      lock = now;
+      const next = (railIdxRef.current + (e.deltaY > 0 ? 1 : -1) + RAIL_THEMES.length) % RAIL_THEMES.length;
+      setRailThemeIdx(next);
+      try { window.localStorage.setItem(RAIL_THEME_KEY, String(next)); } catch { /* 저장 실패는 무시 */ }
+      notify.info(`레일 ${next + 1}/${RAIL_THEMES.length} · ${RAIL_THEMES[next].name}`, { duration: 900 });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+  const railTheme = RAIL_THEMES[railThemeIdx];
+  const railVars = {
+    '--rail-bg': railTheme.bg,
+    '--rail-border': railTheme.border,
+    '--rail-icon': railTheme.icon,
+    '--rail-hover': railTheme.hover,
+    '--rail-hover-ink': railTheme.hoverInk,
+    '--rail-fallback': railTheme.fallback,
+  } as CSSProperties;
+
   return (
     <div className="app-workspace-shell min-h-dvh bg-background text-foreground">
       {/* ────── 데스크톱 좌측 세로 아이콘 레일 (모든 워크스페이스 공통·고정) ──────
        * 홈 · 메뉴(모드 메가메뉴) · 구분선 · 캘린더/위키/노트/화이트보드/일기.
        * 페이지가 바뀌어도 자리·디자인 불변 → "같은 앱 안에서 방만 바뀐다" 감. */}
       <nav
+        ref={railRef}
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[#221f1c] bg-[#2d2926] py-3.5 sm:flex"
+        title={`레일 색: ${railTheme.name} — 휠 위/아래로 바꾸기`}
+        style={railVars}
+        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 sm:flex"
       >
         {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
         <NavLink
           to="/"
           aria-label="홈으로"
           title="홈으로"
-          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[#b0a89e] transition-colors hover:bg-[#3d3833] hover:text-white"
+          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-[11px] text-[var(--rail-icon)] transition-colors hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]"
         >
           <Home className="h-5 w-5" strokeWidth={2} />
         </NavLink>
@@ -167,14 +236,14 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
             modeOpen
-              ? 'bg-[#3d3833] text-white'
-              : 'text-[#b0a89e] hover:bg-[#3d3833] hover:text-white',
+              ? 'bg-[var(--rail-hover)] text-[var(--rail-hover-ink)]'
+              : 'text-[var(--rail-icon)] hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]',
           )}
         >
           <LayoutGrid className="h-5 w-5" strokeWidth={1.9} />
         </button>
 
-        <span aria-hidden className="my-1.5 h-px w-6 bg-[#3d3833]" />
+        <span aria-hidden className="my-1.5 h-px w-6 bg-[var(--rail-hover)]" />
 
         {RAIL_WORKSPACES.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
@@ -183,7 +252,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         {/* 페이지 전용 기능 — 스위처 아래 구분선 다음에 (예: 플래너 매트릭스·보관함…). */}
         {railExtra && railExtra.length > 0 && (
           <>
-            <span aria-hidden className="my-1.5 h-px w-6 bg-[#3d3833]" />
+            <span aria-hidden className="my-1.5 h-px w-6 bg-[var(--rail-hover)]" />
             {railExtra.map((item) => {
               const Icon = item.icon;
               return (
@@ -195,7 +264,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
                   title={item.label}
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-                    'text-[#b0a89e] hover:bg-[#3d3833] hover:text-white',
+                    'text-[var(--rail-icon)] hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]',
                     item.soon && 'opacity-45',
                   )}
                 >
@@ -208,7 +277,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
 
         {/* 테마 토글 — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
-          <span aria-hidden className="mb-0.5 h-px w-6 bg-[#3d3833]" />
+          <span aria-hidden className="mb-0.5 h-px w-6 bg-[var(--rail-hover)]" />
           <RailThemeToggle />
         </div>
       </nav>
@@ -316,7 +385,7 @@ function RailThemeToggle() {
       onClick={toggle}
       aria-label={dark ? '라이트 모드로' : '다크 모드로'}
       title={dark ? '라이트 모드' : '다크 모드'}
-      className="flex h-10 w-10 items-center justify-center rounded-xl text-[#b0a89e] transition-colors hover:bg-[#3d3833] hover:text-white"
+      className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--rail-icon)] transition-colors hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]"
     >
       <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
     </button>
@@ -340,9 +409,9 @@ function RailLink({ item, active }: WorkspaceLinkProps) {
       title={item.label}
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors',
-        active ? 'text-white' : 'text-[#b0a89e] hover:bg-[#3d3833] hover:text-white',
+        active ? 'text-white' : 'text-[var(--rail-icon)] hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]',
       )}
-      style={active ? { backgroundColor: accent ?? '#4f4841' } : undefined}
+      style={active ? { backgroundColor: accent ?? 'var(--rail-fallback)' } : undefined}
     >
       <Icon className="h-5 w-5" strokeWidth={2} />
     </NavLink>
