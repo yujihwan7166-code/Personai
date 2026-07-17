@@ -26,6 +26,12 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
   const [title, setTitle] = useState(item.title);
   const [note, setNote] = useState(item.note ?? '');
   const [tagInput, setTagInput] = useState('');
+  // 진입 애니메이션 — 폭이 0→400 으로 열리며 본문 카드를 부드럽게 민다.
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
 
   // 다른 항목으로 바뀌면 로컬 편집 상태 동기화
   useEffect(() => {
@@ -68,7 +74,13 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
   };
 
   return (
-    <aside className="archive-theme sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start border-l border-[hsl(var(--hairline))] bg-card duration-300 animate-in fade-in slide-in-from-right-6 lg:w-[400px]">
+    <aside
+      className={cn(
+        'archive-theme sticky top-0 h-dvh shrink-0 self-start overflow-hidden border-l border-[hsl(var(--hairline))] bg-card transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none',
+        shown ? 'w-full opacity-100 lg:w-[400px]' : 'w-full opacity-0 lg:w-0',
+      )}
+    >
+      <div className="flex h-dvh w-full flex-col lg:w-[400px]">
         {/* 헤더 */}
         <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-4 py-3">
           <span className="rounded-md bg-[hsl(var(--foreground)/0.06)] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
@@ -206,6 +218,7 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
             삭제
           </button>
         </div>
+      </div>
     </aside>
   );
 }
