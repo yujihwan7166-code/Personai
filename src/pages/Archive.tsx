@@ -132,7 +132,7 @@ export default function Archive() {
   return (
     <div className="archive-theme flex min-h-dvh bg-[#fefcf6] text-foreground">
       {/* ───────── 좌 사이드바 (lg+) ───────── */}
-      <aside className="hidden w-[256px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#f9f3e9] px-4 pb-5 pt-4 lg:flex">
+      <aside className="hidden w-[256px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#faf6ee] px-4 pb-5 pt-4 lg:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
         <div className="mb-3 flex items-center gap-2.5">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[hsl(var(--archive-sepia))] shadow-[0_1px_2px_rgba(60,45,20,0.09)]">

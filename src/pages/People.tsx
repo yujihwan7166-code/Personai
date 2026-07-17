@@ -99,7 +99,7 @@ export default function People() {
   return (
     <div className="people-theme flex h-dvh bg-[#fefbf6] text-[#23262b]">
       {/* ── 사이드바 — 방 내비 (앰버 페이퍼, 확정 크롬) ── */}
-      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#ece2cc] bg-[#faf4ea] px-3.5 py-5 sm:flex">
+      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#ece2cc] bg-[#fbf6ee] px-3.5 py-5 sm:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 */}
         <div className="flex items-center gap-[11px] px-1.5">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(60,40,10,0.08)]" role="img" aria-label="인맥노트">🤝</span>
