@@ -15,10 +15,14 @@ import {
   StickyNote,
   Sun,
   Moon,
+  Settings2,
+  Check,
+  Eye,
+  EyeOff,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { notify } from '@/lib/notify';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -78,14 +82,17 @@ interface RailTheme {
   fallback: string;
 }
 const RAIL_THEMES: RailTheme[] = [
-  // ── 웜 다크 — 명암 차가 곧 사이드바와의 경계
+  // 웜 다크 — 명암 차가 곧 사이드바와의 경계
   { name: '웜 잉크',    bg: '#2d2926', border: '#221f1c', icon: '#b0a89e', hover: '#3d3833', hoverInk: '#ffffff', fallback: '#4f4841' },
   { name: '잉크 블랙',  bg: '#1c1a18', border: '#121110', icon: '#a49c92', hover: '#2c2926', hoverInk: '#ffffff', fallback: '#413b34' },
   { name: '에스프레소', bg: '#3a352f', border: '#2e2a25', icon: '#b9b2a8', hover: '#4a443c', hoverInk: '#ffffff', fallback: '#5c554b' },
-  // ── 라이트 — 사이드바와 뭉개지지 않게 border 를 또렷한 헤어라인으로
+  // 라이트 — 사이드바와 뭉개지지 않게 border 를 또렷한 헤어라인으로
   { name: '화이트',     bg: '#ffffff', border: '#e2ddd6', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
 ];
 const RAIL_THEME_KEY = 'rail.theme.v1';
+/** 레일에서 숨긴 방 — "보이는 목록"이 아니라 "숨긴 목록"을 저장한다.
+ * 나중에 방이 추가돼도 저장된 목록에 없어서 안 보이는 사고를 막기 위함(신규 방은 기본 노출). */
+const RAIL_HIDDEN_KEY = 'rail.icons.v1';
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
@@ -159,12 +166,49 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
     tryOpen();
   }, []);
 
-  /* 레일 휠 — 레일 위에서 위/아래로 굴리면 인접한 방으로 이동한다 (화면 전환).
-   * 레일 자체(색·순서)는 그대로. 위 = 윗칸 방, 아래 = 아랫칸 방. */
+  /* 레일 색 — 설정 패널에서 고른다. 선택은 localStorage 유지. */
+  const [railThemeIdx, setRailThemeIdx] = useState<number>(() => {
+    try {
+      const raw = Number(window.localStorage.getItem(RAIL_THEME_KEY));
+      return Number.isInteger(raw) && raw >= 0 && raw < RAIL_THEMES.length ? raw : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const pickRailTheme = useCallback((i: number) => {
+    setRailThemeIdx(i);
+    try { window.localStorage.setItem(RAIL_THEME_KEY, String(i)); } catch { /* 저장 실패는 무시 */ }
+  }, []);
+
+  /* 레일에 표시할 방 — 설정에서 숨긴 방을 뺀 목록. "숨긴 목록"만 저장(신규 방은 기본 노출). */
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(() => {
+    try {
+      const raw = window.localStorage.getItem(RAIL_HIDDEN_KEY);
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      return new Set(Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const persistHidden = useCallback((s: Set<string>) => {
+    try { window.localStorage.setItem(RAIL_HIDDEN_KEY, JSON.stringify([...s])); } catch { /* 저장 실패는 무시 */ }
+  }, []);
+  const toggleHidden = useCallback((key: string) => {
+    setHiddenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      persistHidden(next);
+      return next;
+    });
+  }, [persistHidden]);
+  const visibleRail = useMemo(() => RAIL_WORKSPACES.filter((i) => !hiddenKeys.has(i.key)), [hiddenKeys]);
+
+  /* 레일 휠 — 레일 위에서 위/아래로 굴리면 인접한 (보이는) 방으로 이동한다. */
   const railRef = useRef<HTMLElement | null>(null);
-  // 리스너를 한 번만 붙이려고 현재 방은 ref 로 읽는다 (방 바뀔 때마다 재등록 방지).
   const currentRef = useRef(current);
   currentRef.current = current;
+  const visibleRailRef = useRef(visibleRail);
+  visibleRailRef.current = visibleRail;
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
@@ -174,48 +218,19 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       e.preventDefault(); // 레일 위 휠이 뒤 페이지를 스크롤하지 않게
       const now = Date.now();
       if (now - lock < 220) return; // 한 틱에 한 방 — 연속 스크롤로 훅 지나가지 않게
-      const idx = RAIL_WORKSPACES.findIndex((i) => i.key === currentRef.current);
-      if (idx < 0) return;
+      const list = visibleRailRef.current;
+      const idx = list.findIndex((i) => i.key === currentRef.current);
+      if (idx < 0) return; // 현재 방이 숨겨졌으면 휠 무시
       const next = idx + (e.deltaY > 0 ? 1 : -1);
-      if (next < 0 || next >= RAIL_WORKSPACES.length) return; // 양 끝에서 멈춤
+      if (next < 0 || next >= list.length) return; // 양 끝에서 멈춤
       lock = now;
-      navigate(RAIL_WORKSPACES[next].to);
+      navigate(list[next].to);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [navigate]);
 
-  /* 레일 색 — 레일에 마우스를 올린 채 키보드 위/아래로 후보를 돌린다. 선택은 localStorage 유지.
-   * 화살표를 전역으로 잡으면 페이지 스크롤·입력 커서가 깨지므로 레일 호버 중일 때만 동작. */
-  const railHoverRef = useRef(false);
-  const [railThemeIdx, setRailThemeIdx] = useState<number>(() => {
-    try {
-      const raw = Number(window.localStorage.getItem(RAIL_THEME_KEY));
-      return Number.isInteger(raw) && raw >= 0 && raw < RAIL_THEMES.length ? raw : 0;
-    } catch {
-      return 0;
-    }
-  });
-  const railIdxRef = useRef(railThemeIdx);
-  railIdxRef.current = railThemeIdx;
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-      if (!railHoverRef.current) return; // 레일 위에 있을 때만
-      const t = e.target as HTMLElement | null;
-      // 입력 중이면 커서 이동을 뺏지 않는다
-      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
-      e.preventDefault();
-      const next = (railIdxRef.current + (e.key === 'ArrowDown' ? 1 : -1) + RAIL_THEMES.length) % RAIL_THEMES.length;
-      setRailThemeIdx(next);
-      try { window.localStorage.setItem(RAIL_THEME_KEY, String(next)); } catch { /* 저장 실패는 무시 */ }
-      notify.info(`레일 ${next + 1}/${RAIL_THEMES.length} · ${RAIL_THEMES[next].name}`, { duration: 900 });
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const railTheme = RAIL_THEMES[railThemeIdx];
+  const railTheme = RAIL_THEMES[railThemeIdx] ?? RAIL_THEMES[0];
   const railVars = {
     '--rail-bg': railTheme.bg,
     '--rail-border': railTheme.border,
@@ -234,9 +249,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         ref={railRef}
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        title={`휠 위/아래 — 옆 방으로 이동 · 키보드 ↑/↓ — 레일 색 (${railTheme.name})`}
-        onMouseEnter={() => { railHoverRef.current = true; }}
-        onMouseLeave={() => { railHoverRef.current = false; }}
+        title="휠 위/아래 — 옆 방으로 이동"
         style={railVars}
         className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 shadow-[2px_0_8px_rgba(0,0,0,0.06)] sm:flex"
       >
@@ -270,7 +283,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
 
         <span aria-hidden className="my-1.5 h-px w-6 bg-[var(--rail-hover)]" />
 
-        {RAIL_WORKSPACES.map((item) => (
+        {visibleRail.map((item) => (
           <RailLink key={item.key} item={item} active={item.key === current} />
         ))}
 
@@ -300,17 +313,16 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           </>
         )}
 
-        {/* 테마 토글 + 현재 레일 색 이름 — 레일 하단 고정. */}
+        {/* 테마 토글 + 레일 설정(색·아이콘) — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
           <span aria-hidden className="mb-0.5 h-px w-6 bg-[var(--rail-hover)]" />
           <RailThemeToggle />
-          {/* ↑/↓ 로 색 돌릴 때 지금 뭔지 보이게 — 레일 폭(64px)에 맞춰 아주 작게. */}
-          <span
-            className="select-none whitespace-nowrap px-0.5 text-[9px] leading-none text-[var(--rail-icon)] opacity-70"
-            title={`레일 색: ${railTheme.name} — 레일 위에서 ↑/↓`}
-          >
-            {railTheme.name}
-          </span>
+          <RailSettings
+            themeIdx={railThemeIdx}
+            onPickTheme={pickRailTheme}
+            hiddenKeys={hiddenKeys}
+            onToggleHidden={toggleHidden}
+          />
         </div>
       </nav>
 
@@ -395,6 +407,95 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         </div>
       </nav>
     </div>
+  );
+}
+
+/** 레일 하단 설정 — 팝오버로 레일 색 선택 + 표시할 방 아이콘 켜고 끄기. */
+function RailSettings({
+  themeIdx, onPickTheme, hiddenKeys, onToggleHidden,
+}: {
+  themeIdx: number;
+  onPickTheme: (i: number) => void;
+  hiddenKeys: Set<string>;
+  onToggleHidden: (key: string) => void;
+}) {
+  const visibleCount = RAIL_WORKSPACES.length - hiddenKeys.size;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="레일 설정 — 색·아이콘"
+          title="레일 설정 — 색·아이콘"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--rail-icon)] transition-colors hover:bg-[var(--rail-hover)] hover:text-[var(--rail-hover-ink)]"
+        >
+          <Settings2 className="h-[18px] w-[18px]" strokeWidth={2} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="right" align="end" sideOffset={10} className="w-64 p-0">
+        {/* ── 레일 색 ── */}
+        <div className="px-3.5 pb-2.5 pt-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">레일 색</p>
+          <div className="grid grid-cols-4 gap-2">
+            {RAIL_THEMES.map((t, i) => {
+              const on = i === themeIdx;
+              return (
+                <button
+                  key={t.name}
+                  type="button"
+                  onClick={() => onPickTheme(i)}
+                  aria-pressed={on}
+                  title={t.name}
+                  className={cn(
+                    'flex h-11 items-center justify-center rounded-lg border-2 transition-colors',
+                    on ? 'border-[hsl(var(--foreground))]' : 'border-transparent hover:border-[hsl(var(--hairline))]',
+                  )}
+                  style={{ backgroundColor: t.bg, boxShadow: t.name === '화이트' ? 'inset 0 0 0 1px hsl(var(--hairline))' : undefined }}
+                >
+                  {on && <Check className="h-4 w-4" style={{ color: t.icon }} strokeWidth={2.6} />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">{RAIL_THEMES[themeIdx]?.name}</p>
+        </div>
+
+        <div className="h-px bg-[hsl(var(--hairline))]" />
+
+        {/* ── 표시할 방 ── */}
+        <div className="px-3.5 pb-3 pt-2.5">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">표시할 방</p>
+            <span className="text-[11px] tabular-nums text-muted-foreground/60">{visibleCount}/{RAIL_WORKSPACES.length}</span>
+          </div>
+          <div className="-mx-1 max-h-[280px] space-y-0.5 overflow-y-auto pr-0.5">
+            {RAIL_WORKSPACES.map((item) => {
+              const Icon = item.icon;
+              const shown = !hiddenKeys.has(item.key);
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => onToggleHidden(item.key)}
+                  aria-pressed={shown}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-accent',
+                    shown ? 'text-foreground' : 'text-muted-foreground/55',
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {shown
+                    ? <Eye className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                    : <EyeOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground/45" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 px-1 text-[10.5px] leading-snug text-muted-foreground/60">숨긴 방도 홈·메뉴로 언제든 다시 열 수 있어요.</p>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
