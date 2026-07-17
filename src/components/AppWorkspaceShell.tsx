@@ -19,6 +19,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  GripVertical,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -93,6 +94,8 @@ const RAIL_THEME_KEY = 'rail.theme.v1';
 /** 레일에서 숨긴 방 — "보이는 목록"이 아니라 "숨긴 목록"을 저장한다.
  * 나중에 방이 추가돼도 저장된 목록에 없어서 안 보이는 사고를 막기 위함(신규 방은 기본 노출). */
 const RAIL_HIDDEN_KEY = 'rail.icons.v1';
+/** 레일 방 순서 — 설정에서 드래그로 바꾼 결과. 저장 안 된 신규 방은 뒤에 붙는다. */
+const RAIL_ORDER_KEY = 'rail.order.v1';
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
@@ -201,7 +204,40 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       return next;
     });
   }, [persistHidden]);
-  const visibleRail = useMemo(() => RAIL_WORKSPACES.filter((i) => !hiddenKeys.has(i.key)), [hiddenKeys]);
+
+  /* 레일 방 순서 — 설정에서 드래그로 바꾼다. 저장된 순서에 없는 방(신규)은 뒤에 붙는다. */
+  const [railOrder, setRailOrder] = useState<string[]>(() => {
+    try {
+      const raw = window.localStorage.getItem(RAIL_ORDER_KEY);
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  /** 전체 방을 저장된 순서대로 정렬(신규는 뒤). 표시/숨김과 무관 — 설정 목록·레일 공용. */
+  const orderedAll = useMemo(() => {
+    const byKey = new Map(RAIL_WORKSPACES.map((i) => [i.key as string, i]));
+    const out = railOrder.map((k) => byKey.get(k)).filter((i): i is WorkspaceDestination => !!i);
+    for (const item of RAIL_WORKSPACES) if (!out.includes(item)) out.push(item);
+    return out;
+  }, [railOrder]);
+  const reorderRail = useCallback((fromKey: string, toKey: string) => {
+    if (fromKey === toKey) return;
+    setRailOrder(() => {
+      const cur = orderedAll.map((i) => i.key as string);
+      const a = cur.indexOf(fromKey);
+      const b = cur.indexOf(toKey);
+      if (a < 0 || b < 0) return cur;
+      const next = [...cur];
+      next.splice(a, 1);
+      next.splice(b, 0, fromKey);
+      try { window.localStorage.setItem(RAIL_ORDER_KEY, JSON.stringify(next)); } catch { /* 저장 실패는 무시 */ }
+      return next;
+    });
+  }, [orderedAll]);
+
+  const visibleRail = useMemo(() => orderedAll.filter((i) => !hiddenKeys.has(i.key)), [orderedAll, hiddenKeys]);
 
   /* 레일 휠 — 레일 위에서 위/아래로 굴리면 인접한 (보이는) 방으로 이동한다. */
   const railRef = useRef<HTMLElement | null>(null);
@@ -320,8 +356,10 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           <RailSettings
             themeIdx={railThemeIdx}
             onPickTheme={pickRailTheme}
+            orderedAll={orderedAll}
             hiddenKeys={hiddenKeys}
             onToggleHidden={toggleHidden}
+            onReorder={reorderRail}
           />
         </div>
       </nav>
@@ -410,16 +448,21 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
   );
 }
 
-/** 레일 하단 설정 — 팝오버로 레일 색 선택 + 표시할 방 아이콘 켜고 끄기. */
+/** 레일 하단 설정 — 팝오버로 레일 색 선택 + 표시할 방 순서(드래그)·표시 토글. */
 function RailSettings({
-  themeIdx, onPickTheme, hiddenKeys, onToggleHidden,
+  themeIdx, onPickTheme, orderedAll, hiddenKeys, onToggleHidden, onReorder,
 }: {
   themeIdx: number;
   onPickTheme: (i: number) => void;
+  orderedAll: WorkspaceDestination[];
   hiddenKeys: Set<string>;
   onToggleHidden: (key: string) => void;
+  onReorder: (fromKey: string, toKey: string) => void;
 }) {
   const visibleCount = RAIL_WORKSPACES.length - hiddenKeys.size;
+  // 드래그 키는 ref(즉시 읽기) + state(흐리게 표시).
+  const dragRef = useRef<string | null>(null);
+  const [dragKey, setDragKey] = useState<string | null>(null);
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -462,37 +505,47 @@ function RailSettings({
 
         <div className="h-px bg-[hsl(var(--hairline))]" />
 
-        {/* ── 표시할 방 ── */}
+        {/* ── 표시할 방 — 드래그로 순서, 눈 아이콘으로 표시/숨김 ── */}
         <div className="px-3.5 pb-3 pt-2.5">
           <div className="mb-1.5 flex items-baseline justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">표시할 방</p>
             <span className="text-[11px] tabular-nums text-muted-foreground/60">{visibleCount}/{RAIL_WORKSPACES.length}</span>
           </div>
           <div className="-mx-1 max-h-[280px] space-y-0.5 overflow-y-auto pr-0.5">
-            {RAIL_WORKSPACES.map((item) => {
+            {orderedAll.map((item) => {
               const Icon = item.icon;
               const shown = !hiddenKeys.has(item.key);
               return (
-                <button
+                <div
                   key={item.key}
-                  type="button"
-                  onClick={() => onToggleHidden(item.key)}
-                  aria-pressed={shown}
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', item.key); dragRef.current = item.key; setDragKey(item.key); }}
+                  onDragEnter={(e) => { e.preventDefault(); if (dragRef.current) onReorder(dragRef.current, item.key); }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                  onDrop={(e) => e.preventDefault()}
+                  onDragEnd={() => { dragRef.current = null; setDragKey(null); }}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-accent',
-                    shown ? 'text-foreground' : 'text-muted-foreground/55',
+                    'group/rr flex cursor-grab items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-accent active:cursor-grabbing',
+                    dragKey === item.key && 'opacity-40',
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {shown
-                    ? <Eye className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                    : <EyeOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground/45" />}
-                </button>
+                  <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/35 group-hover/rr:text-muted-foreground/60" />
+                  <Icon className={cn('h-4 w-4 shrink-0', shown ? 'text-foreground' : 'text-muted-foreground/45')} strokeWidth={1.9} />
+                  <span className={cn('flex-1 truncate text-[13px]', shown ? 'text-foreground' : 'text-muted-foreground/50')}>{item.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => onToggleHidden(item.key)}
+                    aria-label={shown ? `${item.label} 숨기기` : `${item.label} 표시`}
+                    aria-pressed={shown}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-foreground"
+                  >
+                    {shown ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground/40" />}
+                  </button>
+                </div>
               );
             })}
           </div>
-          <p className="mt-1.5 px-1 text-[10.5px] leading-snug text-muted-foreground/60">숨긴 방도 홈·메뉴로 언제든 다시 열 수 있어요.</p>
+          <p className="mt-1.5 px-1 text-[10.5px] leading-snug text-muted-foreground/60">드래그로 순서 바꾸기 · 눈 아이콘으로 표시/숨김. 숨긴 방도 홈·메뉴로 열 수 있어요.</p>
         </div>
       </PopoverContent>
     </Popover>
