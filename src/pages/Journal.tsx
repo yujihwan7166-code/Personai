@@ -8,7 +8,7 @@
  *   - 통계: 4 지표 + 감정 분포 + 최근 6개월 + 자주 쓴 태그.
  * 데이터는 기존 journalStore. 크림 팔레트는 래퍼 CSS 변수로 격리.
  */
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
@@ -21,7 +21,7 @@ import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
-import { WEATHER_META, type JournalEntry, type Weather, type DiarySticker } from '@/types/journal';
+import { WEATHER_META, type JournalEntry, type Weather } from '@/types/journal';
 import { DayItemsBlock } from '@/components/daybook/DayItemsBlock';
 import type { DayItem } from '@/types/daylog';
 import FoodRoadView from '@/components/daybook/FoodRoadView';
@@ -106,8 +106,42 @@ const QUESTIONS = [
 ];
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
-const STICKERS = ['🌷', '✨', '🎀', '🌙', '💌', '🍰', '🐰', '⭐', '🌿', '🍓', '☕', '🫧', '💗', '🌈', '🔖', '🌼', '🦋', '🍋'];
-const sid = () => (crypto.randomUUID?.() ?? String(Date.now() + Math.random()));
+
+/** 날씨별 편지지 은은한 톤 — 상단에서 아래로 옅어진다(본문 가독성 유지). */
+const WEATHER_TINT: Record<Weather, string> = {
+  sunny:    'radial-gradient(120% 70% at 82% -12%, rgba(255,206,102,0.18), transparent 58%)',
+  cloudy:   'linear-gradient(180deg, rgba(176,188,204,0.12), transparent 42%)',
+  overcast: 'linear-gradient(180deg, rgba(150,158,170,0.16), transparent 46%)',
+  rainy:    'linear-gradient(180deg, rgba(120,150,182,0.14), transparent 44%)',
+  stormy:   'linear-gradient(180deg, rgba(88,98,120,0.18), transparent 48%)',
+  snowy:    'linear-gradient(180deg, rgba(198,214,230,0.16), transparent 46%)',
+  windy:    'linear-gradient(120deg, rgba(150,196,176,0.12), transparent 56%)',
+  foggy:    'linear-gradient(180deg, rgba(198,200,206,0.22), transparent 62%)',
+  rainbow:  'linear-gradient(120deg, rgba(255,120,120,0.07), rgba(120,180,255,0.07))',
+  night:    'linear-gradient(180deg, rgba(70,72,120,0.16), transparent 52%)',
+};
+
+/** 날씨 앰비언스 — 편지지 위 은은한 톤 + 눈/비 낙하 파티클(pointer-events 없음). */
+function WeatherFx({ weather }: { weather: Weather | null }) {
+  const parts = useMemo(() => {
+    if (weather === 'snowy') return Array.from({ length: 16 }, (_, i) => ({ left: (i * 61) % 100, delay: (i % 8) * 0.55, dur: 6 + ((i * 7) % 5), size: 8 + ((i * 3) % 6) }));
+    if (weather === 'rainy' || weather === 'stormy') return Array.from({ length: 24 }, (_, i) => ({ left: (i * 43) % 100, delay: (i % 6) * 0.22, dur: 0.85 + ((i * 3) % 4) * 0.12, size: 12 + ((i * 5) % 9) }));
+    return [];
+  }, [weather]);
+  if (!weather) return null;
+  const isSnow = weather === 'snowy';
+  return (
+    <div className="jrn-fx pointer-events-none absolute inset-0 overflow-hidden rounded-[26px]" style={{ background: WEATHER_TINT[weather] }} aria-hidden>
+      {parts.map((p, i) => (
+        isSnow ? (
+          <span key={i} className="absolute top-0 text-white/75" style={{ left: `${p.left}%`, fontSize: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }}>❄</span>
+        ) : (
+          <span key={i} className="absolute top-0 w-px rounded-full bg-gradient-to-b from-transparent to-sky-300/55" style={{ left: `${p.left}%`, height: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }} />
+        )
+      ))}
+    </div>
+  );
+}
 
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -203,61 +237,13 @@ export default function Journal() {
   const [color, setColor] = useState<string | null>(null);
   const [bgm, setBgm] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
-  const [stickers, setStickers] = useState<DiarySticker[]>([]);
-  const [activeSticker, setActiveSticker] = useState<string | null>(null);
-  const [stickerOpen, setStickerOpen] = useState(false);
-  const [panelPos, setPanelPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const panelDragRef = useRef<{ dx: number; dy: number } | null>(null);
   const [tagDraft, setTagDraft] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef<string | null>(null);
   const onPickPhoto = (file?: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setPhoto(reader.result as string);
     reader.readAsDataURL(file);
-  };
-  const addSticker = (emoji: string) =>
-    setStickers((p) => [...p, { id: sid(), emoji, x: 50, y: 40, rot: Math.round((Math.random() - 0.5) * 24) }]);
-  const removeSticker = (id: string) => { setStickers((p) => p.filter((s) => s.id !== id)); setActiveSticker(null); };
-  const stickerDown = (e: ReactPointerEvent, id: string) => {
-    e.stopPropagation();
-    draggingRef.current = id;
-    setActiveSticker(id);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const stickerMove = (e: ReactPointerEvent) => {
-    if (!draggingRef.current || !layerRef.current) return;
-    const r = layerRef.current.getBoundingClientRect();
-    const x = Math.max(2, Math.min(98, ((e.clientX - r.left) / r.width) * 100));
-    const y = Math.max(2, Math.min(98, ((e.clientY - r.top) / r.height) * 100));
-    setStickers((p) => p.map((s) => (s.id === draggingRef.current ? { ...s, x, y } : s)));
-  };
-  const stickerUp = (e: ReactPointerEvent) => {
-    draggingRef.current = null;
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
-  };
-  const openStickerPanel = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    if (stickerOpen) { setStickerOpen(false); return; }
-    const r = e.currentTarget.getBoundingClientRect();
-    const w = 236, h = 200;
-    setPanelPos({ x: Math.max(12, r.right - w), y: Math.max(12, r.top - h - 8) });
-    setStickerOpen(true);
-  };
-  const panelDown = (e: ReactPointerEvent) => {
-    e.stopPropagation();
-    panelDragRef.current = { dx: e.clientX - panelPos.x, dy: e.clientY - panelPos.y };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const panelMove = (e: ReactPointerEvent) => {
-    if (!panelDragRef.current) return;
-    setPanelPos({ x: e.clientX - panelDragRef.current.dx, y: e.clientY - panelDragRef.current.dy });
-  };
-  const panelUp = (e: ReactPointerEvent) => {
-    panelDragRef.current = null;
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
   };
 
   const todayKey = dateKey(new Date());
@@ -275,9 +261,6 @@ export default function Journal() {
     setColor(e?.color ?? null);
     setBgm(e?.bgm ?? '');
     setPhoto(e?.images?.[0]?.src ?? null);
-    setStickers(e?.stickers ?? []);
-    setActiveSticker(null);
-    setStickerOpen(false);
   }, [selectedDate, allEntries.length]);
 
   // 자동 저장(편집 중일 때만)
@@ -291,13 +274,12 @@ export default function Journal() {
       color: color ?? undefined,
       bgm: bgm.trim() || undefined,
       images: photo ? [{ id: 'cover', src: photo }] : undefined,
-      stickers: stickers.length ? stickers : undefined,
       tags,
       starred,
       bodyFormat: 'plain' as const,
     };
     if (existing) journalStore.update(existing.id, { ...data, body });
-    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || photo || stickers.length > 0 || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
+    else if (body.trim() || title.trim() || moodKey || weather || color || bgm.trim() || photo || tags.length > 0) journalStore.add({ date: selectedDate, body, ...data });
   };
   useEffect(() => {
     if (!editing) return;
@@ -305,7 +287,7 @@ export default function Journal() {
     saveTimer.current = window.setTimeout(persist, 500);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body, moodKey, weather, color, bgm, photo, stickers, tags, editing]);
+  }, [title, body, moodKey, weather, color, bgm, photo, tags, editing]);
 
   const generateSummary = async (id: string, text: string) => {
     try {
@@ -346,7 +328,7 @@ export default function Journal() {
   // 일기가 없는 날짜(하루 기록만 있는 날)는 에디터로 — editing=false 인 채 열면 자동저장이 안 도는 "죽은 에디터"가 된다
   const openEntry = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
   const openDate = (date: string) => { setSelectedDate(date); setEditing(!journalStore.listByDate(date)[0]); setDetailOpen(true); setTab('write'); };
-  const backToList = () => { setDetailOpen(false); setEditing(false); setStickerOpen(false); };
+  const backToList = () => { setDetailOpen(false); setEditing(false); };
   const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
   const addTag = () => { const t = tagDraft.trim().replace(/^#+/, '').trim(); if (t && !tags.includes(t)) setTags((p) => [...p, t]); setTagDraft(''); };
 
@@ -690,7 +672,8 @@ export default function Journal() {
               <div className="min-w-0">
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f8f3ea)` } : undefined}>
+                <div className="relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
+                  <WeatherFx weather={weather} />
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -722,18 +705,12 @@ export default function Journal() {
                       <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] font-medium hover:border-[hsl(var(--cream-accent))]/40"><Pencil className="h-3.5 w-3.5" /> 편집하기</button>
                     </div>
                   </div>
-                  {stickers.length > 0 && (
-                    <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]">
-                      {stickers.map((s) => (
-                        <div key={s.id} className="absolute leading-none drop-shadow-sm" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '34px' }}>{s.emoji}</div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors" style={color ? { backgroundColor: `color-mix(in srgb, ${color} 8%, #f8f3ea)` } : undefined} onClick={() => setActiveSticker(null)}>
-                  <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
+                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors">
+                  <WeatherFx weather={weather} />
+                  <div className="relative z-[1] grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
                       <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">
@@ -829,41 +806,6 @@ export default function Journal() {
                       <button key={t} type="button" onClick={() => toggleTag(t)} className="shrink-0 rounded-full border border-[hsl(var(--cream-line))] px-2.5 py-1 text-[11px] text-[hsl(var(--cream-muted))] transition-colors hover:border-[hsl(var(--cream-accent))]/40 hover:text-[hsl(var(--cream-ink))]">#{t}</button>
                     ))}
                   </div>
-                  {/* 스티커 트리거 — 구석 플로팅 버튼 */}
-                  <button type="button" onPointerDown={openStickerPanel} className={cn('absolute bottom-4 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full text-[19px] shadow-lg transition-transform hover:scale-105', stickerOpen ? 'bg-[hsl(var(--cream-accent))] text-white' : 'bg-[hsl(var(--cream-dark))] text-white')} title="스티커" aria-label="스티커 붙이기">🎀</button>
-                  {/* 스티커 레이어 (드래그) — 고정비율 캔버스(폭 기준)라 보기 모드와 위치 일치 */}
-                  <div ref={layerRef} className="pointer-events-none absolute inset-x-0 top-0 z-20 aspect-[4/3]">
-                    {stickers.map((s) => (
-                      <div
-                        key={s.id}
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => stickerDown(e, s.id)}
-                        onPointerMove={stickerMove}
-                        onPointerUp={stickerUp}
-                        className="pointer-events-auto absolute cursor-grab select-none leading-none drop-shadow-sm active:cursor-grabbing"
-                        style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, -50%) rotate(${s.rot ?? 0}deg)`, fontSize: '34px', touchAction: 'none' }}
-                      >
-                        {s.emoji}
-                        {activeSticker === s.id && (
-                          <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeSticker(s.id); }} className="pointer-events-auto absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--cream-dark))] text-[11px] text-white shadow" aria-label="스티커 제거">×</button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {/* 플로팅 스티커 패널 — 헤더 드래그로 이동 */}
-                  {stickerOpen && (
-                    <div className="fixed z-40 w-[236px] overflow-hidden rounded-2xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] shadow-2xl" style={{ left: panelPos.x, top: panelPos.y }}>
-                      <div onPointerDown={panelDown} onPointerMove={panelMove} onPointerUp={panelUp} className="flex cursor-grab items-center justify-between border-b border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/60 px-3 py-2 active:cursor-grabbing" style={{ touchAction: 'none' }}>
-                        <span className="select-none text-[11.5px] font-semibold text-[hsl(var(--cream-muted))]">🎀 스티커 · 드래그로 이동</span>
-                        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => setStickerOpen(false)} className="text-[15px] text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]" aria-label="닫기">×</button>
-                      </div>
-                      <div className="grid grid-cols-6 gap-1 p-2.5">
-                        {STICKERS.map((s) => (
-                          <button key={s} type="button" onClick={() => addSticker(s)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[20px] leading-none transition-transform hover:scale-110 hover:bg-[hsl(var(--cream-line))]/30" title="붙이기">{s}</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 

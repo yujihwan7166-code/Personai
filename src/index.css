@@ -2472,3 +2472,13 @@
     }
   }
 }
+
+/* 데일리 로그 — 날씨 파티클(눈·비) 낙하 */
+@keyframes jrn-fall {
+  0% { transform: translateY(-14%); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translateY(620px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jrn-fx * { animation: none !important; }
+}
