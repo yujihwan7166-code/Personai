@@ -146,7 +146,7 @@ export function DayItemsBlock({ date }: { date: string }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit(); }}
             placeholder={kind === 'meal' ? '뭘 먹었나요?' : kind === 'place' ? '어디에 갔나요?' : '남겨둘 한 줄'}
-            className="h-10 min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-[hsl(var(--cream-muted))]/55"
+            className="h-10 min-w-0 flex-1 bg-transparent text-[13px] text-[hsl(var(--cream-ink))]/65 outline-none placeholder:text-[hsl(var(--cream-muted))]/50"
           />
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
           <button
@@ -180,7 +180,7 @@ export function DayItemsBlock({ date }: { date: string }) {
               onChange={(e) => setPlace(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit(); }}
               placeholder="장소를 적으면 지도에 핀이 돼요 (선택)"
-              className="h-8 min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[hsl(var(--cream-muted))]/50"
+              className="h-8 min-w-0 flex-1 bg-transparent text-[12px] text-[hsl(var(--cream-ink))]/60 outline-none placeholder:text-[hsl(var(--cream-muted))]/45"
             />
           </div>
         )}
