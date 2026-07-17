@@ -523,7 +523,7 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#efdae0] bg-[#fcf5f7] px-3.5 py-5 sm:flex">
+          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#e6e3dd] bg-[#f2f0ec] px-3.5 py-5 sm:flex">
             {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (리디자인 시안) */}
             <div className="flex items-center gap-[11px] px-1.5">
               <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] leading-none shadow-[0_1px_2px_rgba(120,40,60,0.08)]" role="img" aria-label="마이 커리어">💼</span>
