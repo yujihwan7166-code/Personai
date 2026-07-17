@@ -107,36 +107,44 @@ const QUESTIONS = [
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** 날씨별 편지지 은은한 톤 — 상단에서 아래로 옅어진다(본문 가독성 유지). */
-const WEATHER_TINT: Record<Weather, string> = {
-  sunny:    'radial-gradient(120% 70% at 82% -12%, rgba(255,206,102,0.18), transparent 58%)',
-  cloudy:   'linear-gradient(180deg, rgba(176,188,204,0.12), transparent 42%)',
-  overcast: 'linear-gradient(180deg, rgba(150,158,170,0.16), transparent 46%)',
-  rainy:    'linear-gradient(180deg, rgba(120,150,182,0.14), transparent 44%)',
-  stormy:   'linear-gradient(180deg, rgba(88,98,120,0.18), transparent 48%)',
-  snowy:    'linear-gradient(180deg, rgba(198,214,230,0.16), transparent 46%)',
-  windy:    'linear-gradient(120deg, rgba(150,196,176,0.12), transparent 56%)',
-  foggy:    'linear-gradient(180deg, rgba(198,200,206,0.22), transparent 62%)',
-  rainbow:  'linear-gradient(120deg, rgba(255,120,120,0.07), rgba(120,180,255,0.07))',
-  night:    'linear-gradient(180deg, rgba(70,72,120,0.16), transparent 52%)',
+/** 날씨별 하늘 배경 — 편지지 뒤(프레임)를 그 날씨의 하늘로 물들인다. */
+const WEATHER_SKY: Record<Weather, string> = {
+  sunny:    'linear-gradient(180deg, #ffe6a6 0%, #fdf0d8 55%, #fbf4e6 100%)',
+  cloudy:   'linear-gradient(180deg, #d6dde6 0%, #e9edf1 60%, #eff2f5 100%)',
+  overcast: 'linear-gradient(180deg, #bcc4ce 0%, #d7dce2 60%, #e5e9ec 100%)',
+  rainy:    'linear-gradient(180deg, #9fb0c2 0%, #c1ccd7 60%, #d6dee5 100%)',
+  stormy:   'linear-gradient(180deg, #6f7a8a 0%, #97a2af 55%, #b3bcc6 100%)',
+  snowy:    'linear-gradient(180deg, #dbe7f2 0%, #eef4fa 60%, #f6faff 100%)',
+  windy:    'linear-gradient(180deg, #cfe0d8 0%, #e5eee9 60%, #eef4f0 100%)',
+  foggy:    'linear-gradient(180deg, #cfd1d3 0%, #e3e5e6 60%, #edeeef 100%)',
+  rainbow:  'linear-gradient(180deg, #ffd9df 0%, #fdeecb 40%, #d7f0dd 70%, #d5e8ff 100%)',
+  night:    'linear-gradient(180deg, #343a5e 0%, #4b5178 55%, #6a7099 100%)',
 };
 
-/** 날씨 앰비언스 — 편지지 위 은은한 톤 + 눈/비 낙하 파티클(pointer-events 없음). */
+/** 날씨 앰비언스 — 편지지 위로 눈/비가 내리고, 흐림·안개는 구름이 흐른다(pointer-events 없음). */
 function WeatherFx({ weather }: { weather: Weather | null }) {
   const parts = useMemo(() => {
-    if (weather === 'snowy') return Array.from({ length: 16 }, (_, i) => ({ left: (i * 61) % 100, delay: (i % 8) * 0.55, dur: 6 + ((i * 7) % 5), size: 8 + ((i * 3) % 6) }));
-    if (weather === 'rainy' || weather === 'stormy') return Array.from({ length: 24 }, (_, i) => ({ left: (i * 43) % 100, delay: (i % 6) * 0.22, dur: 0.85 + ((i * 3) % 4) * 0.12, size: 12 + ((i * 5) % 9) }));
+    if (weather === 'snowy') return Array.from({ length: 34 }, (_, i) => ({ left: (i * 37) % 100, delay: (i % 10) * 0.55, dur: 6 + ((i * 7) % 5), size: 8 + ((i * 3) % 7) }));
+    if (weather === 'rainy' || weather === 'stormy') return Array.from({ length: 46 }, (_, i) => ({ left: (i * 23) % 100, delay: (i % 7) * 0.18, dur: 0.7 + ((i * 3) % 4) * 0.1, size: 14 + ((i * 5) % 12) }));
+    return [];
+  }, [weather]);
+  const clouds = useMemo(() => {
+    if (weather === 'cloudy' || weather === 'overcast' || weather === 'foggy')
+      return Array.from({ length: 4 }, (_, i) => ({ top: 6 + i * 16, delay: i * 3, dur: 26 + i * 6, size: 120 + (i % 2) * 60, op: weather === 'foggy' ? 0.5 : 0.32 }));
     return [];
   }, [weather]);
   if (!weather) return null;
   const isSnow = weather === 'snowy';
   return (
-    <div className="jrn-fx pointer-events-none absolute inset-0 overflow-hidden rounded-[26px]" style={{ background: WEATHER_TINT[weather] }} aria-hidden>
+    <div className="jrn-fx pointer-events-none absolute inset-0 z-[2] overflow-hidden rounded-[inherit]" aria-hidden>
+      {clouds.map((c, i) => (
+        <span key={`c${i}`} className="absolute rounded-full bg-white blur-2xl" style={{ top: `${c.top}%`, left: '-30%', width: `${c.size}px`, height: `${c.size * 0.5}px`, opacity: c.op, animation: `jrn-drift ${c.dur}s linear ${c.delay}s infinite` }} />
+      ))}
       {parts.map((p, i) => (
         isSnow ? (
-          <span key={i} className="absolute top-0 text-white/75" style={{ left: `${p.left}%`, fontSize: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }}>❄</span>
+          <span key={i} className="absolute top-0 text-white/85" style={{ left: `${p.left}%`, fontSize: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }}>❄</span>
         ) : (
-          <span key={i} className="absolute top-0 w-px rounded-full bg-gradient-to-b from-transparent to-sky-300/55" style={{ left: `${p.left}%`, height: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }} />
+          <span key={i} className="absolute top-0 w-[1.5px] rounded-full bg-gradient-to-b from-transparent to-sky-200/70" style={{ left: `${p.left}%`, height: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }} />
         )
       ))}
     </div>
@@ -155,8 +163,8 @@ const NAV_MAIN: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'trips',     label: '트래블 로그', icon: Plane },
   { id: 'map',       label: '나의 지도',   icon: MapIcon },
   { id: 'food',      label: '푸드 로드',   icon: UtensilsCrossed },
-  { id: 'stats',     label: '통계',        icon: BarChart3 },
   { id: 'flashback', label: '플래시백',    icon: History },
+  { id: 'stats',     label: '통계',        icon: BarChart3 },
 ];
 
 /** 내비 항목별 이모지 — 참고 사이드바의 컬러 아이콘 대신 이모티콘으로. */
@@ -342,11 +350,33 @@ export default function Journal() {
       .filter((e) => e.date.slice(5) === md && e.date < todayKey)
       .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   }, [allEntries, todayKey]);
-  /** 별표한 날 — 플래시백 세 번째 섹션(최근 순). */
-  const starredEntries = useMemo(
-    () => allEntries.filter((e) => e.starred).sort((a, b) => b.date.localeCompare(a.date)),
-    [allEntries],
-  );
+  /** 플래시백 6칸 — 각기 다른 '다시 꺼내보는' 규칙으로 한 편의 기록을 고른다. */
+  const hasText = (e: JournalEntry) => !!(e.body.trim() || e.title?.trim());
+  /** 한 달 전 근처(±4일)에서 가장 가까운 기록. */
+  const monthAgo = useMemo(() => {
+    const [ty, tm, td] = todayKey.split('-').map(Number);
+    const target = dateKey(new Date(ty, tm - 2, td)); // 한 달 전 같은 날
+    const cand = allEntries.filter((e) => hasText(e) && e.date < todayKey);
+    if (!cand.length) return null;
+    return cand.reduce((best, e) =>
+      Math.abs(Date.parse(`${e.date}T00:00`) - Date.parse(`${target}T00:00`)) <
+      Math.abs(Date.parse(`${best.date}T00:00`) - Date.parse(`${target}T00:00`)) ? e : best);
+  }, [allEntries, todayKey]);
+  /** 아주 처음 기록. */
+  const firstEntry = useMemo(() => {
+    const cand = allEntries.filter(hasText);
+    return cand.length ? cand.reduce((a, b) => (a.date <= b.date ? a : b)) : null;
+  }, [allEntries]);
+  /** 사진이 있던 날 — 가장 최근. */
+  const photoMemory = useMemo(() => {
+    const cand = allEntries.filter((e) => (e.images?.length ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date));
+    return cand[0] ?? null;
+  }, [allEntries]);
+  /** 가장 길게 쓴 기록. */
+  const longestEntry = useMemo(() => {
+    const cand = allEntries.filter(hasText);
+    return cand.length ? cand.reduce((a, b) => (b.body.length > a.body.length ? b : a)) : null;
+  }, [allEntries]);
   /** 하루 기록(먹은 것·간 곳) — 캘린더 마커·보관함 사진용. */
   const dayItems = useDaylogAll();
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
@@ -407,13 +437,13 @@ export default function Journal() {
           'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14px] transition-colors',
           active
             ? 'bg-white font-semibold text-[hsl(var(--cream-accent))] shadow-[0_1px_2px_rgba(30,50,25,0.09)] dark:bg-white/10'
-            : 'font-medium text-[hsl(var(--cream-ink))]/70 hover:bg-white/45 dark:hover:bg-white/5',
+            : 'font-medium text-[hsl(var(--cream-ink))]/90 hover:bg-white/45 dark:hover:bg-white/5',
         )}
       >
         <span aria-hidden className="w-[19px] shrink-0 text-center text-[16px] leading-none">{NAV_EMOJI[item.id]}</span>
         <span className="flex-1">{item.label}</span>
         {count > 0 && (
-          <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/55')}>{count}</span>
+          <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[hsl(var(--cream-accent))]' : 'text-[hsl(var(--cream-muted))]/75')}>{count}</span>
         )}
       </button>
     );
@@ -512,7 +542,7 @@ export default function Journal() {
                 </div>
               </div>
             ) : (
-              <div key={tab} className="mb-6 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+              <div className="mb-6">
                 <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
                 <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
               </div>
@@ -662,13 +692,14 @@ export default function Journal() {
                 </div>
               </div>
 
-              {/* 2단 — 좌: 일기(넓게) / 우: 하루 기록 레일 (같은 화면, 위아래로 안 밀림) */}
-              <div className="items-start gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
+              {/* 2단 — 좌: 일기(넓게) / 우: 하루 기록 레일. 날씨를 고르면 이 프레임 뒤가 그 날씨 하늘로. */}
+              <div className={cn('relative transition-colors', weather && 'rounded-[30px] p-2.5 sm:p-4')} style={weather ? { background: WEATHER_SKY[weather] } : undefined}>
+              <WeatherFx weather={weather} />
+              <div className="relative z-[1] items-start gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
               <div className="min-w-0">
               {!editing && current ? (
                 /* 보기 모드 */
                 <div className="relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
-                  <WeatherFx weather={weather} />
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -704,8 +735,7 @@ export default function Journal() {
               ) : (
                 /* 에디터 */
                 <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors">
-                  <WeatherFx weather={weather} />
-                  <div className="relative z-[1] grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
+                  <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
                       <div className="mb-2 text-[12px] text-[hsl(var(--cream-muted))]">
@@ -811,6 +841,7 @@ export default function Journal() {
                 <DayItemsBlock date={selectedDate} />
               </div>
               </div>
+              </div>
             </>
           )}
 
@@ -906,50 +937,60 @@ export default function Journal() {
 
           {/* ── 플래시백 — 1년 전 오늘 · 무작위 다시 보기 ── */}
           {tab === 'flashback' && (
-            <div className="space-y-6 pb-8">
-              <section>
-                <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">🕰️ 1년 전 오늘</h3>
-                {yearAgo ? (
-                  <FlashCard entry={yearAgo} onOpen={openEntry} />
-                ) : (
-                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
-                    작년 오늘의 기록이 없어요. 내년의 나를 위해 오늘을 남겨두면 어때요?
-                  </p>
-                )}
-              </section>
-              <section>
-                <div className="mb-2.5 flex items-center justify-between px-1">
-                  <h3 className="text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">🎲 무작위 다시 보기</h3>
-                  <button type="button" onClick={() => setMemSeed((s) => s + 1)} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 py-1 text-[11.5px] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]">
-                    다른 기록 보기
-                  </button>
-                </div>
-                {memory ? (
-                  <FlashCard entry={memory} onOpen={openEntry} />
-                ) : (
-                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
-                    아직 다시 볼 기록이 없어요.
-                  </p>
-                )}
-              </section>
-              <section>
-                <div className="mb-2.5 flex items-center justify-between px-1">
-                  <h3 className="text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
-                    ⭐ 별표한 날 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{starredEntries.length}</span>
-                  </h3>
-                </div>
-                {starredEntries.length > 0 ? (
-                  <div className="space-y-2">
-                    {starredEntries.map((e) => (
-                      <FlashCard key={e.id} entry={e} onOpen={openEntry} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
-                    소중한 날에 별표를 눌러두면 여기 모여요.
-                  </p>
-                )}
-              </section>
+            <div className="pb-8">
+              <p className="mb-4 px-1 text-[13px] text-[hsl(var(--cream-muted))]">눌러서 그 날을 다시 펼쳐보세요 — 오, 이랬었지.</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {([
+                  { emoji: '🕰️', title: '1년 전 오늘', sub: '작년 이맘때', entry: yearAgo, empty: '작년 오늘의 기록이 없어요' },
+                  { emoji: '📅', title: '한 달 전', sub: '한 달 전 이맘때', entry: monthAgo, empty: '한 달 전 기록이 없어요' },
+                  { emoji: '🎲', title: '무작위 다시 보기', sub: '아무 날이나 툭', entry: memory, empty: '다시 볼 기록이 없어요', reroll: true },
+                  { emoji: '🌱', title: '아주 처음', sub: '첫 기록', entry: firstEntry, empty: '첫 기록이 곧 쌓여요' },
+                  { emoji: '📸', title: '사진이 있던 날', sub: '그 날의 장면', entry: photoMemory, empty: '사진 붙인 날이 아직 없어요' },
+                  { emoji: '✍️', title: '가장 길게 쓴 날', sub: '할 말이 많던 날', entry: longestEntry, empty: '아직 긴 기록이 없어요' },
+                ] as const).map((c) => {
+                  const e = c.entry;
+                  const peekDate = e ? new Date(`${e.date}T00:00:00`) : null;
+                  const peekText = e ? (e.title?.trim() || e.body.split('\n').find((l) => l.trim())?.trim() || '무제') : '';
+                  return (
+                    <button
+                      key={c.title}
+                      type="button"
+                      onClick={() => e && openEntry(e.date)}
+                      disabled={!e}
+                      className={cn(
+                        'group relative flex min-h-[150px] flex-col overflow-hidden rounded-[18px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-4 text-left transition-all',
+                        e ? 'hover:-translate-y-1 hover:border-[hsl(var(--cream-accent))]/35 hover:shadow-[0_16px_30px_-20px_rgba(60,40,90,0.35)] active:scale-[0.98]' : 'cursor-default opacity-70',
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[20px] leading-none transition-transform group-hover:-rotate-6 group-hover:scale-110" aria-hidden>{c.emoji}</span>
+                        <span className="text-[13.5px] font-bold text-[hsl(var(--cream-ink))]">{c.title}</span>
+                        {c.reroll && e && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(ev) => { ev.stopPropagation(); setMemSeed((s) => s + 1); }}
+                            onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); setMemSeed((s) => s + 1); } }}
+                            className="ml-auto rounded-full border border-[hsl(var(--cream-line))] px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"
+                          >
+                            다시 뽑기
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11.5px] text-[hsl(var(--cream-muted))]">{c.sub}</p>
+                      {e && peekDate ? (
+                        <div className="mt-auto pt-3">
+                          <div className="text-[11px] font-semibold text-[hsl(var(--cream-accent))]">{peekDate.getFullYear()}. {peekDate.getMonth() + 1}. {peekDate.getDate()} ({WEEKDAY[peekDate.getDay()]})</div>
+                          <div className="mt-0.5 line-clamp-2 break-keep text-[13.5px] font-semibold leading-snug text-[hsl(var(--cream-ink))]">{peekText}</div>
+                          <span className="mt-2 inline-block text-[11px] font-medium text-[hsl(var(--cream-muted))] opacity-0 transition-opacity group-hover:opacity-100">펼쳐보기 →</span>
+                        </div>
+                      ) : (
+                        <div className="mt-auto pt-3 text-[12px] text-[hsl(var(--cream-muted))]/70">{c.empty}</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -962,39 +1003,6 @@ export default function Journal() {
 }
 
 /* ── 통계 뷰 ── */
-/** 플래시백·보관함 공용 — 과거 일기 콤팩트 카드. */
-function FlashCard({ entry, onOpen }: { entry: JournalEntry; onOpen: (date: string) => void }) {
-  const d = new Date(`${entry.date}T00:00:00`);
-  const mk = entryMoodKey(entry);
-  const title = entry.title?.trim() || entry.body.split('\n')[0]?.trim() || '무제';
-  const snippet = (entry.title ? entry.body : entry.body.split('\n').slice(1).join(' ')).trim();
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(entry.date)}
-      className="flex w-full items-start gap-4 rounded-[22px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-5 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--cream-accent))]/30"
-      style={entry.color ? { backgroundColor: `color-mix(in srgb, ${entry.color} 6%, #f8f3ea)` } : undefined}
-    >
-      <div className="flex w-[60px] shrink-0 flex-col items-center pt-0.5">
-        <span className="text-[10px] font-semibold text-[hsl(var(--cream-muted))]">{d.getFullYear()}</span>
-        <span className="text-[22px] font-bold leading-tight tabular-nums">{d.getMonth() + 1}.{d.getDate()}</span>
-        <span className="text-[10.5px] text-[hsl(var(--cream-muted))]/80">{WEEKDAY[d.getDay()]}요일</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          {mk && MOOD_BY_KEY[mk] && <span className="text-[16px] leading-none">{MOOD_BY_KEY[mk].emoji}</span>}
-          <span className="min-w-0 truncate text-[14.5px] font-bold">{title}</span>
-          {entry.starred && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
-        </div>
-        {snippet && <p className="mt-1 line-clamp-2 text-[12.5px] leading-[1.7] text-[hsl(var(--cream-ink))]/70">{snippet}</p>}
-      </div>
-      {entry.images?.[0] && (
-        <img src={entry.images[0].src} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-lg border border-[hsl(var(--cream-line))] object-cover" />
-      )}
-    </button>
-  );
-}
-
 function StatsView({ entries, streak, monthCount, items }: { entries: JournalEntry[]; streak: number; monthCount: number; items: DayItem[] }) {
   const withMood = entries.map(entryMoodKey).filter(Boolean) as string[];
   const dist = new Map<string, number>();

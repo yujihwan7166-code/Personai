@@ -2477,7 +2477,12 @@
 @keyframes jrn-fall {
   0% { transform: translateY(-14%); opacity: 0; }
   12% { opacity: 0.9; }
-  100% { transform: translateY(620px); opacity: 0; }
+  100% { transform: translateY(760px); opacity: 0; }
+}
+/* 데일리 로그 — 흐림·안개 구름이 옆으로 흐름 */
+@keyframes jrn-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(160vw); }
 }
 @media (prefers-reduced-motion: reduce) {
   .jrn-fx * { animation: none !important; }
