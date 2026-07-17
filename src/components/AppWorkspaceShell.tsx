@@ -476,7 +476,7 @@ function RailSettings({
           <Settings2 className="h-[18px] w-[18px]" strokeWidth={2} />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="right" align="end" sideOffset={10} className="w-64 p-0">
+      <PopoverContent side="right" align="end" sideOffset={10} className="w-72 p-0">
         {/* ── 레일 색 ── */}
         <div className="px-3.5 pb-2.5 pt-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">레일 색</p>
@@ -512,7 +512,7 @@ function RailSettings({
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">표시할 방</p>
             <span className="text-[11px] tabular-nums text-muted-foreground/60">{visibleCount}/{RAIL_WORKSPACES.length}</span>
           </div>
-          <div className="-mx-1 max-h-[280px] space-y-0.5 overflow-y-auto pr-0.5">
+          <div className="-mx-1 max-h-[70vh] space-y-0.5 overflow-y-auto pr-0.5">
             {orderedAll.map((item) => {
               const Icon = item.icon;
               const shown = !hiddenKeys.has(item.key);
