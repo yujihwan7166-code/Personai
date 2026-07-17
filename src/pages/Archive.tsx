@@ -130,7 +130,7 @@ export default function Archive() {
   const defaultCollectionId = view !== 'all' && view !== 'starred' ? view : undefined;
 
   return (
-    <div className="archive-theme flex min-h-dvh bg-[#f8f4ec] text-foreground">
+    <div className="archive-theme flex min-h-dvh bg-[#faf5ea] text-foreground">
       {/* ───────── 좌 사이드바 (lg+) ───────── */}
       <aside className="hidden w-[256px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#f5efe0] px-4 pb-5 pt-4 lg:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (확정 크롬) */}
