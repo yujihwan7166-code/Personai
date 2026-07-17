@@ -11,7 +11,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  Archive, BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
+  BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
   Map as MapIcon, NotebookPen, Pencil, Plane, Star, Trash2, UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
@@ -146,20 +146,17 @@ function WeatherFx({ weather }: { weather: Weather | null }) {
 const dateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-type Tab = 'write' | 'calendar' | 'trips' | 'map' | 'food' | 'stats' | 'flashback' | 'storage';
+type Tab = 'write' | 'calendar' | 'trips' | 'map' | 'food' | 'stats' | 'flashback';
 
 /** 방 사이드바 내비 — 섹션이 곧 메뉴 (컨셉 v2 디자인 적용, 그룹 구성은 유지). */
 const NAV_MAIN: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
-  { id: 'write',    label: '데일리 로그', icon: NotebookPen },
-  { id: 'calendar', label: '캘린더',      icon: CalendarDays },
-  { id: 'trips',    label: '트래블 로그', icon: Plane },
-  { id: 'map',      label: '나의 지도',   icon: MapIcon },
-  { id: 'food',     label: '푸드 로드',   icon: UtensilsCrossed },
-  { id: 'stats',    label: '통계',        icon: BarChart3 },
-];
-const NAV_BOTTOM: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
-  { id: 'flashback', label: '플래시백', icon: History },
-  { id: 'storage',   label: '보관함',   icon: Archive },
+  { id: 'write',     label: '데일리 로그', icon: NotebookPen },
+  { id: 'calendar',  label: '캘린더',      icon: CalendarDays },
+  { id: 'trips',     label: '트래블 로그', icon: Plane },
+  { id: 'map',       label: '나의 지도',   icon: MapIcon },
+  { id: 'food',      label: '푸드 로드',   icon: UtensilsCrossed },
+  { id: 'stats',     label: '통계',        icon: BarChart3 },
+  { id: 'flashback', label: '플래시백',    icon: History },
 ];
 
 /** 내비 항목별 이모지 — 참고 사이드바의 컬러 아이콘 대신 이모티콘으로. */
@@ -171,7 +168,6 @@ const NAV_EMOJI: Record<Tab, string> = {
   food:      '🍜',
   stats:     '📊',
   flashback: '⏳',
-  storage:   '📦',
 };
 
 /** 섹션 머리 — 영문 아이브로우 + 제목 (Diary Room 문법). */
@@ -183,7 +179,6 @@ const SECTION_HEAD: Record<Tab, { eyebrow: string; title: string }> = {
   food:      { eyebrow: 'TASTE ARCHIVE',      title: '푸드 로드' },
   stats:     { eyebrow: 'PATTERNS',           title: '통계' },
   flashback: { eyebrow: 'MEMORY LANE',        title: '플래시백' },
-  storage:   { eyebrow: 'KEEPSAKES',          title: '보관함' },
 };
 
 export default function Journal() {
@@ -347,6 +342,11 @@ export default function Journal() {
       .filter((e) => e.date.slice(5) === md && e.date < todayKey)
       .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   }, [allEntries, todayKey]);
+  /** 별표한 날 — 플래시백 세 번째 섹션(최근 순). */
+  const starredEntries = useMemo(
+    () => allEntries.filter((e) => e.starred).sort((a, b) => b.date.localeCompare(a.date)),
+    [allEntries],
+  );
   /** 하루 기록(먹은 것·간 곳) — 캘린더 마커·보관함 사진용. */
   const dayItems = useDaylogAll();
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
@@ -466,11 +466,6 @@ export default function Journal() {
         <nav className="flex-1 overflow-y-auto" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
-
-        {/* 푸터 — 플래시백 · 보관함 */}
-        <nav className="-mx-3.5 mt-2 border-t border-[hsl(var(--cream-line))] px-3.5 pt-2" aria-label="데일리로그 유틸">
-          {NAV_BOTTOM.map((item) => renderNavRow(item))}
-        </nav>
       </aside>
 
       {/* ── 메인 ── */}
@@ -486,7 +481,7 @@ export default function Journal() {
             >
               <Pencil className="h-3 w-3" /> 글쓰기
             </button>
-            {[...NAV_MAIN, ...NAV_BOTTOM].map((item) => {
+            {NAV_MAIN.map((item) => {
               const active = tab === item.id;
               const Icon = item.icon;
               return (
@@ -509,7 +504,7 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div className="mb-5">
+              <div key={selectedDate} className="mb-5 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
                 <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
                 <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
@@ -517,7 +512,7 @@ export default function Journal() {
                 </div>
               </div>
             ) : (
-              <div className="mb-6">
+              <div key={tab} className="mb-6 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
                 <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
                 <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
               </div>
@@ -526,7 +521,7 @@ export default function Journal() {
 
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
           {tab === 'write' && !detailOpen && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
               {/* 히어로 — 연한 세이지 카드 (확정 크롬 보드) */}
               <div className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[12px] bg-[#e7e3f5] px-8 py-7 dark:bg-[hsl(258_18%_18%)]">
                 <div className="min-w-0 flex-1">
@@ -535,7 +530,7 @@ export default function Journal() {
                   <button
                     type="button"
                     onClick={goWriteToday}
-                    className="mt-[18px] inline-flex h-[42px] items-center gap-1.5 rounded-[8px] px-[18px] text-[14px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+                    className="mt-[18px] inline-flex h-[42px] items-center gap-1.5 rounded-[8px] px-[18px] text-[14px] font-semibold text-white transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.97]"
                     style={{ backgroundColor: '#5a4bc4' }}
                   >
                     <Pencil className="h-[15px] w-[15px]" /> 오늘 기록 쓰기
@@ -595,7 +590,7 @@ export default function Journal() {
                           key={e.id}
                           type="button"
                           onClick={() => openDate(e.date)}
-                          className="group flex w-full items-start gap-4 rounded-[14px] border border-[#e4e0ee] bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cbc3ea] hover:shadow-[0_10px_24px_-16px_rgba(50,40,90,0.3)] dark:border-[hsl(var(--cream-line))] dark:bg-[hsl(var(--cream-card))]"
+                          className="group flex w-full items-start gap-4 rounded-[14px] border border-[#e4e0ee] bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cbc3ea] hover:shadow-[0_10px_24px_-16px_rgba(50,40,90,0.3)] active:scale-[0.99] dark:border-[hsl(var(--cream-line))] dark:bg-[hsl(var(--cream-card))]"
                         >
                           <div className="w-10 shrink-0 text-center">
                             <div className="text-[19px] font-extrabold leading-none tabular-nums text-[hsl(var(--cream-ink))]">{dd.getDate()}</div>
@@ -662,7 +657,7 @@ export default function Journal() {
                     <button type="button" onClick={() => { setSelectedDate(todayKey); setCalAnchor(new Date()); }} className="rounded-full border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 py-1.5 text-[12.5px] text-[hsl(var(--cream-ink))]/80 hover:border-[hsl(var(--cream-accent))]/40">오늘로</button>
                   )}
                   {editing && (
-                    <button type="button" onClick={handleSave} disabled={!body.trim() && !title.trim() && !moodKey && !weather && !photo && tags.length === 0} className="rounded-full bg-[hsl(var(--cream-accent))] px-4 py-1.5 text-[12.5px] font-bold text-white hover:opacity-90 disabled:opacity-40">저장하기</button>
+                    <button type="button" onClick={handleSave} disabled={!body.trim() && !title.trim() && !moodKey && !weather && !photo && tags.length === 0} className="rounded-full bg-[hsl(var(--cream-accent))] px-4 py-1.5 text-[12.5px] font-bold text-white transition-transform hover:opacity-90 active:scale-[0.96] disabled:opacity-40">저장하기</button>
                   )}
                 </div>
               </div>
@@ -937,19 +932,15 @@ export default function Journal() {
                   </p>
                 )}
               </section>
-            </div>
-          )}
-
-          {/* ── 보관함 — 별표한 날 · 사진 전부 ── */}
-          {tab === 'storage' && (
-            <div className="space-y-7 pb-8">
               <section>
-                <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
-                  ⭐ 별표한 날 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{allEntries.filter((e) => e.starred).length}</span>
-                </h3>
-                {allEntries.some((e) => e.starred) ? (
+                <div className="mb-2.5 flex items-center justify-between px-1">
+                  <h3 className="text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
+                    ⭐ 별표한 날 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{starredEntries.length}</span>
+                  </h3>
+                </div>
+                {starredEntries.length > 0 ? (
                   <div className="space-y-2">
-                    {allEntries.filter((e) => e.starred).sort((a, b) => b.date.localeCompare(a.date)).map((e) => (
+                    {starredEntries.map((e) => (
                       <FlashCard key={e.id} entry={e} onOpen={openEntry} />
                     ))}
                   </div>
@@ -958,35 +949,6 @@ export default function Journal() {
                     소중한 날에 별표를 눌러두면 여기 모여요.
                   </p>
                 )}
-              </section>
-              <section>
-                {(() => {
-                  const photoCards = [
-                    ...allEntries.filter((e) => e.images?.[0]).map((e) => ({ key: `j-${e.id}`, src: e.images![0].src, date: e.date, label: e.title?.trim() || '일기 사진' })),
-                    ...dayItems.filter((i) => i.photo).map((i) => ({ key: `d-${i.id}`, src: i.photo!, date: i.date, label: i.text })),
-                  ].sort((a, b) => b.date.localeCompare(a.date));
-                  return (
-                    <>
-                      <h3 className="mb-2.5 px-1 text-[14px] font-bold text-[hsl(var(--cream-ink))]/85">
-                        📷 모든 사진 <span className="tabular-nums font-medium text-[hsl(var(--cream-muted))]/70">{photoCards.length}</span>
-                      </h3>
-                      {photoCards.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
-                          {photoCards.map((p) => (
-                            <button key={p.key} type="button" onClick={() => openEntry(p.date)} title={`${p.date} · ${p.label}`} className="group relative aspect-square overflow-hidden rounded-xl border border-[hsl(var(--cream-line))]">
-                              <img src={p.src} alt={p.label} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
-                              <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/55 to-transparent px-2 pb-1 pt-4 text-left text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">{p.date}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-8 text-center text-[12.5px] text-[hsl(var(--cream-muted))]/70">
-                          일기와 하루 기록에 붙인 사진이 전부 여기 모여요.
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
               </section>
             </div>
           )}
