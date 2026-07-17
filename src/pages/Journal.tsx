@@ -466,7 +466,7 @@ export default function Journal() {
         ...CREAM,
         fontFamily: "'Pretendard Variable', 'Pretendard', -apple-system, sans-serif",
       }}
-      className="flex h-dvh bg-[#f6f4fc] text-[hsl(var(--cream-ink))]"
+      className="flex h-dvh bg-[#faf9fe] text-[hsl(var(--cream-ink))]"
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
       <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#eeecf7] dark:bg-[hsl(var(--cream-panel))] sm:flex">

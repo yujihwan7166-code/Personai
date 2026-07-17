@@ -97,7 +97,7 @@ export default function People() {
   };
 
   return (
-    <div className="people-theme flex h-dvh bg-[#fbf6ec] text-[#23262b]">
+    <div className="people-theme flex h-dvh bg-[#fdf9f2] text-[#23262b]">
       {/* ── 사이드바 — 방 내비 (앰버 페이퍼, 확정 크롬) ── */}
       <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#ece2cc] bg-[#f7efe1] px-3.5 py-5 sm:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 */}
