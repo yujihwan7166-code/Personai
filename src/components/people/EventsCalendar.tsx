@@ -20,7 +20,9 @@ interface Ev { personId: string; name: string; label: string; type: EventType; r
 export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons: Person[]; onOpenPerson: (id: string) => void; onNewPerson: () => void }) {
   const today = todayKey();
   const [anchor, setAnchor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  const [selIso, setSelIso] = useState<string | null>(null); // 선택한 날 (그 날의 경조사 보기)
   const { y, m } = anchor;
+  const goMonth = (next: { y: number; m: number }) => { setSelIso(null); setAnchor(next); };
   const lead = new Date(y, m, 1).getDay();
   const daysIn = new Date(y, m + 1, 0).getDate();
   const prevDaysIn = new Date(y, m, 0).getDate();
@@ -68,6 +70,9 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
     }
     return list.sort((a, b) => a.dday - b.dday).slice(0, 6);
   }, [byMonthDay, today]);
+  // 선택한 날 — 현재 보는 달에 속할 때만 유효.
+  const selDay = selIso && selIso.startsWith(`${y}-${String(m + 1).padStart(2, '0')}`) ? Number(selIso.slice(8, 10)) : null;
+  const selEvents = selDay ? eventsOn(m, selDay) : [];
   const ddayText = (d: number) => (d === 0 ? 'D-day' : `D-${d}`);
   const fmtOcc = (date: string) => {
     const dt = new Date(`${date}T00:00:00`);
@@ -87,9 +92,9 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
         </div>
         <div className="flex items-center gap-2.5">
           <span className="inline-flex h-[38px] items-center overflow-hidden rounded-[8px] border border-[#e9e2d2] bg-white text-[13.5px] font-medium text-[#4b5158]">
-            <button type="button" onClick={() => setAnchor(m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })} aria-label="이전 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronLeft className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => goMonth(m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })} aria-label="이전 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronLeft className="h-3.5 w-3.5" /></button>
             <span className="px-1.5 tabular-nums">{y}년 {m + 1}월</span>
-            <button type="button" onClick={() => setAnchor(m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })} aria-label="다음 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronRight className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => goMonth(m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })} aria-label="다음 달" className="flex h-full w-[34px] items-center justify-center text-[#98917d] transition-colors hover:bg-[#faf7f0]"><ChevronRight className="h-3.5 w-3.5" /></button>
           </span>
           <button type="button" onClick={onNewPerson} className="inline-flex h-[42px] items-center gap-[7px] rounded-[8px] bg-[#b45309] px-[18px] text-[14px] font-semibold text-white transition-colors hover:bg-[#9c4708]">
             <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} /> 경조사 추가
@@ -109,12 +114,17 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
             {cells.map((c, idx) => {
               const dow = idx % 7;
               const isToday = c.iso === today;
+              const isSel = !!c.iso && c.iso === selIso;
               const events = c.other ? [] : eventsOn(m, c.day);
               return (
                 <div
                   key={idx}
-                  className={cn('flex flex-col gap-1.5 overflow-hidden border-b border-r border-[#f0ebdf] px-2.5 py-2', c.other && 'bg-[#faf7f0]')}
-                  style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #b45309' } : undefined}
+                  onClick={c.other ? undefined : () => setSelIso((cur) => (cur === c.iso ? null : c.iso!))}
+                  role={c.other ? undefined : 'button'}
+                  tabIndex={c.other ? undefined : 0}
+                  onKeyDown={c.other ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelIso((cur) => (cur === c.iso ? null : c.iso!)); } }}
+                  className={cn('flex flex-col gap-1.5 overflow-hidden border-b border-r border-[#f0ebdf] px-2.5 py-2 outline-none transition-colors', c.other ? 'bg-[#faf7f0]' : 'cursor-pointer hover:bg-[#fdfaf3]', isSel && !isToday && 'bg-[#fbf1e0]')}
+                  style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #b45309' } : isSel ? { boxShadow: 'inset 0 0 0 1.5px #d6a066' } : undefined}
                 >
                   <span
                     className={cn('inline-flex h-[26px] w-[26px] items-center justify-center rounded-full text-[12.5px] font-semibold tabular-nums', isToday ? 'bg-[#b45309] font-bold text-white' : c.other ? 'text-[#cfc7b4]' : dow === 0 ? 'text-[#c08585]' : dow === 6 ? 'text-[#8a9bc9]' : 'text-[#3f434e]')}
@@ -125,7 +135,7 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
                     <button
                       key={`${ev.personId}-${ev.label}`}
                       type="button"
-                      onClick={() => onOpenPerson(ev.personId)}
+                      onClick={(e) => { e.stopPropagation(); onOpenPerson(ev.personId); }}
                       title={`${ev.name} ${ev.label}`}
                       className="inline-flex h-6 items-center gap-[5px] self-start overflow-hidden whitespace-nowrap rounded-[6px] px-[9px] text-[11.5px] font-semibold text-white transition-[filter] hover:brightness-110"
                       style={{ backgroundColor: TYPE_BG[ev.type] }}
@@ -150,8 +160,41 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
 
         {/* ── 다가오는 경조사 ── */}
         <div className="w-full shrink-0 rounded-[10px] border border-[#e9e2d2] bg-white px-[22px] py-5 lg:w-[380px]">
-          <div className="mb-3.5 text-[15px] font-bold text-[#191c20]">다가오는 경조사</div>
-          {upcoming.length === 0 ? (
+          <div className="mb-3.5 flex items-center justify-between gap-2">
+            <div className="text-[15px] font-bold text-[#191c20]">
+              {selDay ? `${m + 1}월 ${selDay}일 (${WD_SHORT[new Date(y, m, selDay).getDay()]})` : '다가오는 경조사'}
+            </div>
+            {selDay && (
+              <button type="button" onClick={() => setSelIso(null)} className="shrink-0 text-[12.5px] font-semibold text-[#a15008] transition-colors hover:text-[#8f4207]">다가오는 경조사 →</button>
+            )}
+          </div>
+          {selDay ? (
+            selEvents.length > 0 ? (
+              <div className="flex flex-col gap-2.5">
+                {selEvents.map((ev) => (
+                  <button
+                    key={`${ev.personId}-${ev.label}`}
+                    type="button"
+                    onClick={() => onOpenPerson(ev.personId)}
+                    className="flex items-center gap-3 rounded-[10px] border border-[#f0ebdf] bg-[#faf7f0] p-3 text-left transition-colors hover:border-[#e2d3b6]"
+                  >
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: TYPE_BG[ev.type] }}><Cake className="h-[17px] w-[17px]" strokeWidth={1.7} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-semibold text-[#23262b]">{ev.name} {ev.label}</span>
+                      <span className="mt-0.5 block text-[12.5px] text-[#8d949d]">{ev.relation}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[10px] border border-dashed border-[#e2d9c4] bg-[#faf7f0] px-4 py-6 text-center">
+                <p className="text-[13px] text-[#98917d]">이 날은 등록된 경조사가 없어요.</p>
+                <button type="button" onClick={onNewPerson} className="mt-3 inline-flex items-center gap-1.5 rounded-[8px] bg-[#b45309] px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#9c4708]">
+                  <Plus className="h-3.5 w-3.5" /> 이 날 경조사 추가
+                </button>
+              </div>
+            )
+          ) : upcoming.length === 0 ? (
             <p className="rounded-[10px] border border-dashed border-[#e2d9c4] bg-[#faf7f0] px-4 py-6 text-center text-[13px] text-[#98917d]">등록된 생일·기념일이 아직 없어요.</p>
           ) : (
             <div className="flex flex-col gap-2.5">
