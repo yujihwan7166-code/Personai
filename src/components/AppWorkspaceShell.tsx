@@ -18,7 +18,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { notify } from '@/lib/notify';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -87,7 +86,6 @@ const RAIL_THEMES: RailTheme[] = [
   { name: '웜 스톤',    bg: '#d9d3c9', border: '#c7c0b4', icon: '#6d665c', hover: '#e6e1d9', hoverInk: '#2d2926', fallback: '#8a8175' },
   { name: '화이트',     bg: '#ffffff', border: '#e9e7e4', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
 ];
-const RAIL_THEME_KEY = 'rail.theme.v1';
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
@@ -161,19 +159,12 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
     tryOpen();
   }, []);
 
-  /* 레일 색 — 레일 위에서 휠 위/아래로 후보를 돌린다. 선택은 localStorage 유지. */
+  /* 레일 휠 — 레일 위에서 위/아래로 굴리면 인접한 방으로 이동한다 (화면 전환).
+   * 레일 자체(색·순서)는 그대로. 위 = 윗칸 방, 아래 = 아랫칸 방. */
   const railRef = useRef<HTMLElement | null>(null);
-  const [railThemeIdx, setRailThemeIdx] = useState<number>(() => {
-    try {
-      const raw = Number(window.localStorage.getItem(RAIL_THEME_KEY));
-      return Number.isInteger(raw) && raw >= 0 && raw < RAIL_THEMES.length ? raw : 0;
-    } catch {
-      return 0;
-    }
-  });
-  // 리스너를 한 번만 붙이려고 현재 인덱스는 ref 로 읽는다 (매 변경마다 재등록 방지).
-  const railIdxRef = useRef(railThemeIdx);
-  railIdxRef.current = railThemeIdx;
+  // 리스너를 한 번만 붙이려고 현재 방은 ref 로 읽는다 (방 바뀔 때마다 재등록 방지).
+  const currentRef = useRef(current);
+  currentRef.current = current;
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
@@ -182,17 +173,18 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
       if (Math.abs(e.deltaY) < 2) return;
       e.preventDefault(); // 레일 위 휠이 뒤 페이지를 스크롤하지 않게
       const now = Date.now();
-      if (now - lock < 140) return; // 휠 한 틱에 한 칸
+      if (now - lock < 220) return; // 한 틱에 한 방 — 연속 스크롤로 훅 지나가지 않게
+      const idx = RAIL_WORKSPACES.findIndex((i) => i.key === currentRef.current);
+      if (idx < 0) return;
+      const next = idx + (e.deltaY > 0 ? 1 : -1);
+      if (next < 0 || next >= RAIL_WORKSPACES.length) return; // 양 끝에서 멈춤
       lock = now;
-      const next = (railIdxRef.current + (e.deltaY > 0 ? 1 : -1) + RAIL_THEMES.length) % RAIL_THEMES.length;
-      setRailThemeIdx(next);
-      try { window.localStorage.setItem(RAIL_THEME_KEY, String(next)); } catch { /* 저장 실패는 무시 */ }
-      notify.info(`레일 ${next + 1}/${RAIL_THEMES.length} · ${RAIL_THEMES[next].name}`, { duration: 900 });
+      navigate(RAIL_WORKSPACES[next].to);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-  const railTheme = RAIL_THEMES[railThemeIdx];
+  }, [navigate]);
+  const railTheme = RAIL_THEMES[0]; // 웜 잉크 — 색 바꾸려면 인덱스만 교체
   const railVars = {
     '--rail-bg': railTheme.bg,
     '--rail-border': railTheme.border,
@@ -211,7 +203,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         ref={railRef}
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        title={`레일 색: ${railTheme.name} — 휠 위/아래로 바꾸기`}
+        title="휠 위/아래 — 옆 방으로 이동"
         style={railVars}
         className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 sm:flex"
       >
