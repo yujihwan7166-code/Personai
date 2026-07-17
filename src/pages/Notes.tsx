@@ -9,10 +9,11 @@ import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
-  Star, Hash, MoreHorizontal, ArrowLeft, ArrowRight,
+  Star, Hash, MoreHorizontal, ArrowLeft, ArrowRight, RotateCcw,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { NoteEditor } from '@/components/notes/NoteEditor';
 import { BoardEditor } from '@/components/notes/BoardEditor';
 import { SheetEditor } from '@/components/notes/SheetEditor';
@@ -20,6 +21,7 @@ import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
   toggleFavorite, addNoteTag, removeNoteTag,
+  useTrash, restoreNote, purgeNote, emptyTrash,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
 
@@ -41,6 +43,8 @@ const Notes = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null); // 사이드바 태그 필터
   const [tagDraft, setTagDraft] = useState(''); // 노트 메뉴에서 새 태그 입력
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const trash = useTrash();
   const q = query.trim().toLowerCase();
   const noteTagsOf = (n: Note) => n.meta?.tags ?? [];
   const filtered = q
@@ -110,8 +114,12 @@ const Notes = () => {
   };
 
   const handleDeleteNote = (id: string) => {
-    deleteNote(id);
+    deleteNote(id); // 휴지통으로 이동(소프트)
     if (activeId === id) { setActiveId(null); setActiveTabId(null); }
+    notify.info('휴지통으로 옮겼어요', {
+      duration: 5000,
+      action: { label: '되돌리기', onClick: () => restoreNote(id) },
+    });
   };
 
   const handleAddTab = (type: TabType) => {
@@ -293,7 +301,35 @@ const Notes = () => {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-          {q ? (
+          {trashOpen ? (
+            /* ── 휴지통 ── */
+            <div>
+              <div className="mb-1.5 flex items-center gap-1 px-1">
+                <button type="button" onClick={() => setTrashOpen(false)} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  <ArrowLeft className="h-3.5 w-3.5" /> 노트로
+                </button>
+                {trash.length > 0 && (
+                  <button type="button" onClick={() => { if (window.confirm('휴지통을 비울까요? 되돌릴 수 없어요.')) emptyTrash(); }} className="ml-auto rounded-md px-1.5 py-1 text-[11.5px] font-medium text-destructive/80 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                    비우기
+                  </button>
+                )}
+              </div>
+              {trash.length === 0 ? (
+                <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">휴지통이 비어 있어요.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {trash.map((note) => (
+                    <li key={note.id} className="group flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 hover:bg-white/45 dark:hover:bg-white/5">
+                      <FileText className="h-4 w-4 shrink-0 text-[#8894a5]" strokeWidth={1.8} />
+                      <span className="min-w-0 flex-1 truncate text-[13.5px] text-[#4d5563] dark:text-foreground/70">{noteDisplayTitle(note)}</span>
+                      <button type="button" onClick={() => restoreNote(note.id)} title="복원" aria-label="복원" className="shrink-0 rounded p-1 text-muted-foreground/70 opacity-0 transition-opacity hover:text-[#2c4f93] group-hover:opacity-100"><RotateCcw className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => { if (window.confirm('완전히 삭제할까요? 되돌릴 수 없어요.')) purgeNote(note.id); }} title="완전 삭제" aria-label="완전 삭제" className="shrink-0 rounded p-1 text-muted-foreground/70 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : q ? (
             filtered.length === 0 ? (
               <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">검색 결과가 없어요.</p>
             ) : (
@@ -356,6 +392,20 @@ const Notes = () => {
             </div>
           )}
         </div>
+
+        {/* 휴지통 — 사이드바 하단 고정 */}
+        <button
+          type="button"
+          onClick={() => setTrashOpen((v) => !v)}
+          className={cn(
+            'flex shrink-0 items-center gap-2 border-t border-[#dde5f0] px-4 py-2.5 text-left text-[13px] transition-colors dark:border-[hsl(var(--hairline))]',
+            trashOpen ? 'bg-white/60 font-semibold text-[#2c4f93] dark:bg-white/10' : 'text-[#6b7686] hover:bg-white/45 dark:text-muted-foreground dark:hover:bg-white/5',
+          )}
+        >
+          <Trash2 className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+          <span className="flex-1">휴지통</span>
+          {trash.length > 0 && <span className="text-[12px] tabular-nums text-muted-foreground/70">{trash.length}</span>}
+        </button>
       </aside>
 
       {/* 우측 편집 */}

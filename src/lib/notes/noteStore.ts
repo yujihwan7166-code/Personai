@@ -33,6 +33,8 @@ export interface Note {
   favorite: boolean;
   createdAt: number;
   updatedAt: number;
+  /** 휴지통 이동 시각(ms). 있으면 삭제된 상태(복원 가능). */
+  deletedAt?: number;
   meta: { surface: 'memo'; tags: string[] };
 }
 
@@ -102,7 +104,12 @@ function writeAll(notes: Note[]): void {
 }
 
 export function listNotes(): Note[] {
-  return readAll().sort((a, b) => b.updatedAt - a.updatedAt);
+  return readAll().filter((n) => !n.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** 휴지통 — 삭제된 노트(최근 삭제 먼저). */
+export function listTrash(): Note[] {
+  return readAll().filter((n) => n.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 }
 
 export function getNote(id: string): Note | undefined {
@@ -243,8 +250,24 @@ export function moveTabToNote(fromNoteId: string, tabId: string, toNoteId: strin
   writeAll(notes);
 }
 
+/** 삭제 = 휴지통으로 이동(소프트). 완전 삭제는 purgeNote. */
 export function deleteNote(id: string): void {
+  patchNote(id, (n) => ({ ...n, deletedAt: Date.now() }));
+}
+
+/** 휴지통에서 복원. */
+export function restoreNote(id: string): void {
+  patchNote(id, (n) => ({ ...n, deletedAt: undefined }));
+}
+
+/** 완전 삭제(되돌릴 수 없음). */
+export function purgeNote(id: string): void {
   writeAll(readAll().filter((n) => n.id !== id));
+}
+
+/** 휴지통 비우기 — 삭제된 노트 전부 완전 삭제. */
+export function emptyTrash(): void {
+  writeAll(readAll().filter((n) => !n.deletedAt));
 }
 
 /** 노트 목록 미리보기·제목 폴백용 — 첫 메모 탭 텍스트. */
@@ -295,6 +318,22 @@ function getSnapshot(): Note[] {
 
 export function useNotes(): Note[] {
   return useSyncExternalStore(subscribe, getSnapshot, () => cachedSnapshot);
+}
+
+let trashSnapshot: Note[] = [];
+let trashKey = '';
+function getTrashSnapshot(): Note[] {
+  const notes = listTrash();
+  const key = notes.map((n) => `${n.id}:${n.deletedAt}`).join('|');
+  if (key !== trashKey) {
+    trashKey = key;
+    trashSnapshot = notes;
+  }
+  return trashSnapshot;
+}
+
+export function useTrash(): Note[] {
+  return useSyncExternalStore(subscribe, getTrashSnapshot, () => trashSnapshot);
 }
 
 /* ── 폴더 ── */
