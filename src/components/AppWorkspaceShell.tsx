@@ -78,14 +78,27 @@ interface RailTheme {
   fallback: string;
 }
 const RAIL_THEMES: RailTheme[] = [
+  // ── 웜 다크
   { name: '웜 잉크',    bg: '#2d2926', border: '#221f1c', icon: '#b0a89e', hover: '#3d3833', hoverInk: '#ffffff', fallback: '#4f4841' },
+  { name: '잉크 블랙',  bg: '#1c1a18', border: '#121110', icon: '#a49c92', hover: '#2c2926', hoverInk: '#ffffff', fallback: '#413b34' },
   { name: '에스프레소', bg: '#3a352f', border: '#2e2a25', icon: '#b9b2a8', hover: '#4a443c', hoverInk: '#ffffff', fallback: '#5c554b' },
+  { name: '모카',       bg: '#6b5d51', border: '#564a40', icon: '#ddd2c7', hover: '#7c6d60', hoverInk: '#ffffff', fallback: '#8d7d6e' },
+  // ── 그린·올리브
   { name: '포레스트',   bg: '#343d36', border: '#28302a', icon: '#a8b2a8', hover: '#434e45', hoverInk: '#ffffff', fallback: '#55604f' },
+  { name: '올리브',     bg: '#393a2c', border: '#2b2c21', icon: '#b3b49f', hover: '#484a39', hoverInk: '#ffffff', fallback: '#5a5c46' },
+  { name: '딥 틸',      bg: '#25373a', border: '#1b2a2c', icon: '#9db3b5', hover: '#33484b', hoverInk: '#ffffff', fallback: '#456063' },
+  // ── 블루·슬레이트
   { name: '딥 네이비',  bg: '#2b3242', border: '#212736', icon: '#a3adc0', hover: '#3a4356', hoverInk: '#ffffff', fallback: '#4b5568' },
-  { name: '아우버진',   bg: '#362f3b', border: '#2a242e', icon: '#b2a7b8', hover: '#463e4c', hoverInk: '#ffffff', fallback: '#584e5f' },
+  { name: '미드나잇',   bg: '#1d2531', border: '#141a23', icon: '#98a3b4', hover: '#2b3441', hoverInk: '#ffffff', fallback: '#3f4a5a' },
+  { name: '슬레이트',   bg: '#3d4653', border: '#2e3540', icon: '#aab4c2', hover: '#4c5666', hoverInk: '#ffffff', fallback: '#5d687a' },
   { name: '그라파이트', bg: '#52575e', border: '#43474d', icon: '#c3c8ce', hover: '#5e646c', hoverInk: '#ffffff', fallback: '#6b7178' },
-  { name: '웜 스톤',    bg: '#d9d3c9', border: '#c7c0b4', icon: '#6d665c', hover: '#e6e1d9', hoverInk: '#2d2926', fallback: '#8a8175' },
-  { name: '화이트',     bg: '#ffffff', border: '#e9e7e4', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
+  // ── 퍼플·와인
+  { name: '아우버진',   bg: '#362f3b', border: '#2a242e', icon: '#b2a7b8', hover: '#463e4c', hoverInk: '#ffffff', fallback: '#584e5f' },
+  { name: '버건디',     bg: '#3b2a30', border: '#2d1f24', icon: '#bda6ad', hover: '#4c3740', hoverInk: '#ffffff', fallback: '#5e4650' },
+  // ── 라이트 (사이드바와 뭉개지지 않게 border 를 또렷한 헤어라인으로)
+  { name: '웜 스톤',    bg: '#d9d3c9', border: '#c2baab', icon: '#6d665c', hover: '#e6e1d9', hoverInk: '#2d2926', fallback: '#8a8175' },
+  { name: '페이퍼 샌드', bg: '#e9e3d7', border: '#d2c9b8', icon: '#6f675b', hover: '#f2ede4', hoverInk: '#2d2926', fallback: '#8d8375' },
+  { name: '화이트',     bg: '#ffffff', border: '#e2ddd6', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
 ];
 const RAIL_THEME_KEY = 'rail.theme.v1';
 
@@ -240,7 +253,7 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         onMouseEnter={() => { railHoverRef.current = true; }}
         onMouseLeave={() => { railHoverRef.current = false; }}
         style={railVars}
-        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 sm:flex"
+        className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 shadow-[2px_0_8px_rgba(0,0,0,0.06)] sm:flex"
       >
         {/* 홈 — 방 상관없이 고정 홈 아이콘(색 없음). */}
         <NavLink
