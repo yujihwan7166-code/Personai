@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Sparkles, Loader2, X, Settings, Tag,
+  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, X, Settings, Tag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -13,7 +13,6 @@ import { KIND_LABEL, type ArchiveCollection, type ArchiveItem, type ArchiveKind 
 import { archiveStore } from '@/services/archiveStore';
 import { useArchive } from '@/hooks/useArchive';
 import { tokenMatchAll } from '@/lib/textSearch';
-import { aiSemanticSearch } from '@/lib/archive/ai';
 import { ArchiveCard } from '@/components/archive/ArchiveCard';
 import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
 import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
@@ -36,8 +35,6 @@ export default function Archive() {
   const [kind, setKind] = useState<ArchiveKind | null>(null);
   const [mode, setMode] = useState<'list' | 'timeline'>('list');
   const [query, setQuery] = useState('');
-  const [aiResults, setAiResults] = useState<ArchiveItem[] | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // 컬렉션 편집기 — null이면 닫힘, { collection: null } 이면 새로 만들기, { collection } 이면 편집.
@@ -84,37 +81,12 @@ export default function Archive() {
     return list;
   }, [items, view, kind, activeTag]);
 
-  // 검색 적용 (AI 결과 우선, 없으면 키워드)
+  // 검색 적용 — 키워드(제목·메모·태그).
   const visible = useMemo(() => {
     const q = query.trim();
     if (!q) return scoped;
-    if (aiResults) {
-      const ids = new Set(aiResults.map((i) => i.id));
-      return scoped.filter((i) => ids.has(i.id));
-    }
     return scoped.filter((i) => tokenMatchAll(searchable(i), q));
-  }, [scoped, query, aiResults]);
-
-  const runAiSearch = async () => {
-    const q = query.trim();
-    if (!q) return;
-    setAiLoading(true);
-    try {
-      const res = await aiSemanticSearch(q, scoped);
-      setAiResults(res);
-      if (res.length === 0) notify.info('AI가 관련 항목을 못 찾았어요', { description: '키워드로 다시 찾아볼게요' });
-    } catch {
-      setAiResults(null);
-      notify.error('AI 검색을 못 했어요', { description: '키워드 검색으로 대신 보여줄게요' });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const onQueryChange = (v: string) => {
-    setQuery(v);
-    if (aiResults) setAiResults(null); // 질의 바뀌면 AI 결과 무효화 → 키워드로
-  };
+  }, [scoped, query]);
 
   const addCollection = () => setEditor({ collection: null });
 
@@ -252,26 +224,15 @@ export default function Archive() {
               ))}
             </div>
 
-            {/* 통합 검색 */}
+            {/* 검색 */}
             <div className="relative w-[300px] max-w-[46vw]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
-                onChange={(e) => onQueryChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') runAiSearch(); }}
-                placeholder="검색하거나, AI에게 물어보세요"
-                className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-16 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))]"
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="제목·메모·태그 검색"
+                className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))]"
               />
-              <button
-                type="button"
-                onClick={runAiSearch}
-                disabled={aiLoading || !query.trim()}
-                title="AI 시맨틱 검색"
-                className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-[hsl(var(--archive-sepia)/0.12)] px-2 py-1 text-[11px] font-bold text-[hsl(var(--archive-sepia))] transition-opacity hover:opacity-80 disabled:opacity-40"
-              >
-                {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                AI
-              </button>
             </div>
           </div>
         </div>
@@ -305,17 +266,6 @@ export default function Archive() {
             </>
           )}
         </div>
-
-        {/* AI 결과 배너 */}
-        {aiResults && query.trim() && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-[hsl(var(--archive-sepia)/0.08)] px-3 py-2 text-[12.5px] text-[hsl(var(--archive-sepia))]">
-            <Sparkles className="h-3.5 w-3.5" />
-            AI 검색 결과 {aiResults.length}개
-            <button type="button" onClick={() => setAiResults(null)} className="ml-auto flex items-center gap-1 font-semibold hover:underline">
-              <X className="h-3 w-3" /> 지우기
-            </button>
-          </div>
-        )}
 
         {/* 본문 */}
         {visible.length === 0 ? (

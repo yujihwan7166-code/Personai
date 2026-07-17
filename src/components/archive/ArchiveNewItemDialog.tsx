@@ -5,14 +5,13 @@
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Upload, Link2, Loader2, Plus, Sparkles } from 'lucide-react';
+import { X, Upload, Link2, Loader2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { extractDomain, deriveKind, type ArchiveCollection } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { putArchiveBlob, dataUrlToBlob } from '@/lib/archiveBlobStore';
 import { compressImage } from '@/lib/journalImage';
-import { aiClassifyArchiveItem } from '@/lib/archive/ai';
 
 interface Props {
   open: boolean;
@@ -34,7 +33,6 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   const [tagInput, setTagInput] = useState('');
   const [addingCollection, setAddingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -92,25 +90,6 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
     setCollectionId(c.id);
     setNewCollectionName('');
     setAddingCollection(false);
-  };
-
-  const runAiFill = async () => {
-    const content = [title, note, url, attached?.file.name].filter(Boolean).join('\n').trim();
-    if (!content) { notify.info('먼저 내용을 조금 적어주세요'); return; }
-    setAiLoading(true);
-    try {
-      const s = await aiClassifyArchiveItem(content, collections.map((c) => c.name));
-      if (s.title && !title.trim()) setTitle(s.title);
-      if (s.tags.length) setTags((p) => [...new Set([...p, ...s.tags])]);
-      if (s.collectionName) {
-        const c = collections.find((x) => x.name === s.collectionName);
-        if (c) setCollectionId(c.id);
-      }
-    } catch {
-      notify.error('AI 제안을 못 받았어요', { description: '직접 채워서 저장하면 돼요' });
-    } finally {
-      setAiLoading(false);
-    }
   };
 
   const save = async () => {
@@ -195,7 +174,7 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="제목을 입력하세요 (비우면 자동으로 채워요)"
+              placeholder="제목을 입력하세요"
               className="w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2.5 text-[15px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60 focus:border-[hsl(var(--archive-sepia))]"
             />
           </div>
@@ -345,23 +324,13 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
           </div>
         </div>
 
-        {/* 푸터 — AI는 조용한 보조로 (좌하단), 저장이 주인공 */}
-        <div className="flex items-center gap-2 border-t border-[hsl(var(--hairline))] px-5 py-3">
-          <button
-            type="button"
-            onClick={runAiFill}
-            disabled={aiLoading || saving}
-            className="inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-            title="내용을 보고 제목·태그·컬렉션을 제안"
-          >
-            {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            AI로 채우기
-          </button>
+        {/* 푸터 — 저장 */}
+        <div className="flex items-center justify-end gap-2 border-t border-[hsl(var(--hairline))] px-5 py-3">
           <button
             type="button"
             onClick={save}
             disabled={saving}
-            className="ml-auto flex items-center gap-1.5 rounded-lg bg-[hsl(var(--archive-sepia))] px-6 py-2 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-[hsl(var(--archive-sepia))] px-6 py-2 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             저장
