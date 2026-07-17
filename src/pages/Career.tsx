@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { ChevronDown, ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Link2, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
+import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Link2, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -48,10 +48,10 @@ const PERSONA_DESC: Record<CareerPersona, string> = {
 
 /** 해보기 예시 — 신분에 맞는 첫 입력을 클릭 한 번으로. */
 const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
-  highschool: ['교내 수학경시 은상 받음', '학생회 임원 함', '요양원 봉사 30시간 함'],
-  student: ['정처기 땄음', '동아리 회장 됐음', '해커톤 본선 갔음'],
-  jobseeker: ['토익 900 넘김', '스타트업 인턴 수료함', '포트폴리오 사이트 만들었음'],
-  worker: ['결제 오류 잡아서 CS 문의 줄임', '신규 서비스 런칭함', '사내 세미나 발표함'],
+  highschool: ['교내 수학경시대회 은상', '학생회 문화부 임원', '요양원 봉사 30시간'],
+  student: ['정보처리기사 자격증 취득', '웹 개발 동아리 회장', '해커톤 본선 진출'],
+  jobseeker: ['토익 900점', '스타트업 3개월 인턴십 수료', '개인 포트폴리오 웹사이트 제작'],
+  worker: ['결제 오류 원인 분석으로 CS 문의 30% 감소', '신규 서비스 런칭 주도', '사내 기술 세미나 발표'],
 };
 
 /** 문서 타일 — 연한 색상 각각(교정 빨강 중심 웜 팔레트). tint = 배경, accent = 부제/보더 색조(HSL). */
@@ -247,7 +247,6 @@ function BoardLedger() {
   /** 방 뷰 — 스펙 보드(기록) vs 문서 종류별 보관함 (사이드바에서 전환). */
   const [view, setView] = useState<'board' | ComposePurpose>('board');
   const [boardDialogOpen, setBoardDialogOpen] = useState(false); // 새 스펙 보드 만들기
-  const [personaMenuOpen, setPersonaMenuOpen] = useState(false); // 마스트헤드 신분 드롭다운
   const [resumeOpen, setResumeOpen] = useState(false); // 이력서 PDF 미리보기·내보내기
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [writeMode, setWriteMode] = useState<WriteMode>(() => {
@@ -591,7 +590,7 @@ function BoardLedger() {
             </nav>
 
             {/* 문서 — 스펙에서 만들어요 */}
-            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a97386]">문서 · 스펙에서 만들어요</div>
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#a97386]">지원 문서</div>
             <nav className="flex flex-col gap-0.5" aria-label="문서 종류">
               {COMPOSE_PURPOSES.map(({ purpose, label }) => {
                 const active = view === purpose;
@@ -1122,32 +1121,6 @@ function BoardLedger() {
               <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">스펙 보드</span>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setPersonaMenuOpen((v) => !v)}
-                    className="inline-flex h-[34px] items-center gap-[7px] rounded-full border border-[#ecdfe3] bg-white pl-[14px] pr-2 text-[13.5px] font-semibold text-[#8a3550] transition-colors hover:bg-[#fdf9fa]"
-                  >
-                    {PERSONA_LABEL[persona]} <ChevronDown className="h-[13px] w-[13px] text-[#a1888f]" />
-                  </button>
-                  {personaMenuOpen && (
-                    <>
-                      <button type="button" aria-hidden tabIndex={-1} onClick={() => setPersonaMenuOpen(false)} className="fixed inset-0 z-10 cursor-default" />
-                      <div className="absolute left-0 top-[40px] z-20 min-w-[124px] overflow-hidden rounded-[10px] border border-[#ecdfe3] bg-white py-1 shadow-[0_8px_24px_-8px_rgba(120,40,60,0.25)]">
-                        {(Object.keys(PERSONA_LABEL) as CareerPersona[]).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => { careerStore.setProfile({ persona: p }); setPersonaMenuOpen(false); }}
-                            className={cn('block w-full px-[14px] py-1.5 text-left text-[13.5px] transition-colors', p === persona ? 'bg-[#faf1f4] font-semibold text-[#8a3550]' : 'text-[#585055] hover:bg-[#faf1f4]')}
-                          >
-                            {PERSONA_LABEL[p]}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
                 <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
               </div>
             </div>
