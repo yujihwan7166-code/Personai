@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
-  Star, FolderPlus, Folder, MoreHorizontal, Check, Pencil, ArrowLeft, ArrowRight,
+  Star, Hash, MoreHorizontal, ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
@@ -19,8 +19,7 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
-  toggleFavorite, setNoteFolder,
-  useFolders, createFolder, renameFolder, deleteFolder,
+  toggleFavorite, addNoteTag, removeNoteTag,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
 
@@ -39,15 +38,23 @@ const Notes = () => {
   const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [tabMenuFor, setTabMenuFor] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null);
-  const folders = useFolders();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
-  const [folderNameDraft, setFolderNameDraft] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null); // 사이드바 태그 필터
+  const [tagDraft, setTagDraft] = useState(''); // 노트 메뉴에서 새 태그 입력
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const q = query.trim().toLowerCase();
+  const noteTagsOf = (n: Note) => n.meta?.tags ?? [];
   const filtered = q
-    ? notes.filter((n) => `${noteDisplayTitle(n)} ${notePlainText(n)}`.toLowerCase().includes(q))
-    : notes;
+    ? notes.filter((n) => `${noteDisplayTitle(n)} ${notePlainText(n)} ${noteTagsOf(n).join(' ')}`.toLowerCase().includes(q))
+    : activeTag
+      ? notes.filter((n) => noteTagsOf(n).includes(activeTag))
+      : notes;
+
+  /** 전체 노트에서 쓰인 태그 → 빈도순. 사이드바 필터 목록. */
+  const allTags = (() => {
+    const m = new Map<string, number>();
+    for (const n of notes) for (const t of noteTagsOf(n)) m.set(t, (m.get(t) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko'));
+  })();
 
   // 첫 진입 시 최신 노트 자동 선택.
   useEffect(() => {
@@ -146,25 +153,14 @@ const Notes = () => {
     setTabMenuFor(null);
   };
 
-  const toggleFolder = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  const handleNewFolder = () => {
-    const f = createFolder('새 폴더');
-    setExpanded((prev) => new Set(prev).add(f.id));
-    setRenamingFolder(f.id);
-    setFolderNameDraft('새 폴더');
-  };
-  const commitRename = () => {
-    if (renamingFolder) renameFolder(renamingFolder, folderNameDraft);
-    setRenamingFolder(null);
+  /** 메뉴에서 새 태그 추가. */
+  const commitTag = (noteId: string) => {
+    const t = tagDraft.trim();
+    if (t) addNoteTag(noteId, t);
+    setTagDraft('');
   };
 
   const favorites = notes.filter((n) => n.favorite);
-  const unfiled = notes.filter((n) => !n.folderId);
 
   const renderNote = (note: Note) => {
     const activeRow = note.id === activeId;
@@ -204,18 +200,40 @@ const Notes = () => {
                 {note.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
               </button>
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
-              <p className="px-3 pb-0.5 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">폴더 이동</p>
-              <button type="button" onClick={() => { setNoteFolder(note.id, null); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-foreground hover:bg-accent">
-                <span className="flex-1 truncate">미분류</span>
-                {!note.folderId && <Check className="h-3.5 w-3.5 text-primary" />}
-              </button>
-              {folders.map((f) => (
-                <button key={f.id} type="button" onClick={() => { setNoteFolder(note.id, f.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-foreground hover:bg-accent">
-                  <Folder className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="flex-1 truncate">{f.name}</span>
-                  {note.folderId === f.id && <Check className="h-3.5 w-3.5 text-primary" />}
+              <p className="px-3 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">태그</p>
+              {/* 이 노트의 태그 — 클릭 시 제거 */}
+              {noteTagsOf(note).length > 0 && (
+                <div className="flex flex-wrap gap-1 px-3 pb-1.5">
+                  {noteTagsOf(note).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => removeNoteTag(note.id, t)}
+                      className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
+                      title="태그 제거"
+                    >
+                      #{t} <X className="h-2.5 w-2.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 기존 태그 중 이 노트에 없는 것 빠르게 추가 */}
+              {allTags.filter(([t]) => !noteTagsOf(note).includes(t)).slice(0, 5).map(([t]) => (
+                <button key={t} type="button" onClick={() => addNoteTag(note.id, t)} className="flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                  <Hash className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                  <span className="flex-1 truncate">{t}</span>
                 </button>
               ))}
+              {/* 새 태그 입력 */}
+              <div className="px-2.5 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  value={menuFor === note.id ? tagDraft : ''}
+                  onChange={(e) => setTagDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); commitTag(note.id); } }}
+                  placeholder="+ 새 태그 (Enter)"
+                  className="h-7 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2 text-[12px] outline-none placeholder:text-muted-foreground/50 focus:border-primary/50"
+                />
+              </div>
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
               <button type="button" onClick={() => { handleDeleteNote(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-destructive hover:bg-destructive/10">
                 <Trash2 className="h-3.5 w-3.5" />
@@ -253,15 +271,6 @@ const Notes = () => {
               >
                 <Plus className="h-[18px] w-[18px]" strokeWidth={2} />
               </button>
-              <button
-                type="button"
-                onClick={handleNewFolder}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/60 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                title="새 폴더"
-                aria-label="새 폴더"
-              >
-                <FolderPlus className="h-[18px] w-[18px]" strokeWidth={1.9} />
-              </button>
             </div>
           </div>
         </div>
@@ -294,63 +303,56 @@ const Notes = () => {
             <p className="px-2 py-8 text-center text-[12.5px] text-muted-foreground">아직 노트가 없어요. “새 노트”로 시작하세요.</p>
           ) : (
             <div className="space-y-2">
-              {/* 즐겨찾기 */}
-              {favorites.length > 0 && (
+              {/* 태그 필터 — 클릭해서 좁혀 보기 (Apple/Bear 노트식 분류) */}
+              {allTags.length > 0 && (
                 <div>
-                  <p className="px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">즐겨찾기</p>
+                  <p className="px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">태그</p>
+                  <div className="flex flex-wrap gap-1 px-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTag(null)}
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors',
+                        activeTag === null ? 'bg-primary text-primary-foreground' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
+                      )}
+                    >
+                      전체
+                    </button>
+                    {allTags.map(([t, count]) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setActiveTag(activeTag === t ? null : t)}
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors',
+                          activeTag === t ? 'bg-primary text-primary-foreground' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
+                        )}
+                      >
+                        <Hash className="h-3 w-3 opacity-70" />{t}
+                        <span className="tabular-nums opacity-60">{count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 즐겨찾기 — 태그 필터가 없을 때만 상단 강조 */}
+              {activeTag === null && favorites.length > 0 && (
+                <div>
+                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">즐겨찾기</p>
                   <ul className="space-y-0.5">{favorites.map(renderNote)}</ul>
                 </div>
               )}
 
-              {/* 폴더들 */}
-              {folders.length > 0 && <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">폴더</p>}
-              {folders.map((f) => {
-                const open = expanded.has(f.id);
-                const folderNotes = notes.filter((n) => n.folderId === f.id);
-                return (
-                  <div key={f.id}>
-                    <div className="group flex items-center gap-1 rounded-md px-1.5 py-2 hover:bg-accent/60">
-                      <button type="button" onClick={() => toggleFolder(f.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                        <Folder className={cn('h-4 w-4 shrink-0 transition-colors', open ? 'text-primary' : 'text-muted-foreground')} />
-                        {renamingFolder === f.id ? (
-                          <input
-                            autoFocus
-                            value={folderNameDraft}
-                            onChange={(e) => setFolderNameDraft(e.target.value)}
-                            onBlur={commitRename}
-                            onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolder(null); }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1 text-[14px] outline-none"
-                          />
-                        ) : (
-                          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-foreground">{f.name}</span>
-                        )}
-                      </button>
-                      <button type="button" onClick={() => { setRenamingFolder(f.id); setFolderNameDraft(f.name); }} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:text-foreground group-hover:opacity-100" title="이름 변경" aria-label="폴더 이름 변경">
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button type="button" onClick={() => deleteFolder(f.id)} className="shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" title="폴더 삭제" aria-label="폴더 삭제">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                    {open && (
-                      <ul className="ml-2 space-y-0.5 border-l border-foreground/10 pl-1.5">
-                        {folderNotes.length > 0
-                          ? folderNotes.map(renderNote)
-                          : <li className="px-2 py-1.5 text-[11px] text-muted-foreground/60">비어 있음</li>}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* 노트 (미분류) */}
-              {unfiled.length > 0 && (
-                <div>
-                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">노트</p>
-                  <ul className="space-y-0.5">{unfiled.map(renderNote)}</ul>
-                </div>
-              )}
+              {/* 노트 목록 (태그 필터 반영) */}
+              <div>
+                <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">
+                  {activeTag ? `#${activeTag}` : '노트'}
+                </p>
+                <ul className="space-y-0.5">
+                  {(activeTag === null ? notes : filtered).map(renderNote)}
+                </ul>
+              </div>
             </div>
           )}
         </div>

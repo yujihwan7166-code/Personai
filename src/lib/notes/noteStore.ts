@@ -137,9 +137,33 @@ export function toggleFavorite(id: string): void {
   patchNote(id, (n) => ({ ...n, favorite: !n.favorite }));
 }
 
-/** 노트를 폴더로 이동(null=미분류). */
+/** 노트를 폴더로 이동(null=미분류). @deprecated 태그 분류로 대체 — 데이터 보존용으로만 유지. */
 export function setNoteFolder(id: string, folderId: string | null): void {
   patchNote(id, (n) => ({ ...n, folderId }));
+}
+
+/** 태그 정규화 — 앞뒤 공백·선행 # 제거, 최대 24자. */
+function normTag(raw: string): string {
+  return raw.trim().replace(/^#+/, '').trim().slice(0, 24);
+}
+
+/** 노트에 태그 추가(중복·대소문자 무시). */
+export function addNoteTag(id: string, raw: string): void {
+  const tag = normTag(raw);
+  if (!tag) return;
+  patchNote(id, (n) => {
+    const tags = n.meta?.tags ?? [];
+    if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) return n;
+    return { ...n, meta: { ...n.meta, surface: 'memo', tags: [...tags, tag] } };
+  });
+}
+
+/** 노트에서 태그 제거. */
+export function removeNoteTag(id: string, tag: string): void {
+  patchNote(id, (n) => ({
+    ...n,
+    meta: { ...n.meta, surface: 'memo', tags: (n.meta?.tags ?? []).filter((t) => t !== tag) },
+  }));
 }
 
 function patchNote(id: string, fn: (note: Note) => Note): void {
