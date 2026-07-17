@@ -548,7 +548,7 @@ function BoardLedger() {
                         'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                         active
                           ? 'bg-white font-semibold text-[#8a3550] shadow-[0_1px_2px_rgba(120,40,60,0.08)]'
-                          : 'font-medium text-[#585055] hover:bg-white/55',
+                          : 'font-medium text-[#3c383d] hover:bg-white/55',
                       )}
                     >
                       <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📋</span>
@@ -605,7 +605,7 @@ function BoardLedger() {
                       'flex h-[38px] items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                       active
                         ? 'bg-white font-semibold text-[#8a3550] shadow-[0_1px_2px_rgba(120,40,60,0.08)]'
-                        : 'font-medium text-[#585055] hover:bg-white/55',
+                        : 'font-medium text-[#3c383d] hover:bg-white/55',
                     )}
                   >
                     <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📄</span>
