@@ -1201,8 +1201,8 @@ function BoardLedger() {
                 </div>
               </div>
 
-              <button type="button" onClick={() => setEditingName(true)} className="inline-flex h-[30px] shrink-0 items-center gap-1.5 self-start rounded-full bg-[#f1eaec] px-3 text-[12px] font-medium text-[#8a7d82] transition-colors hover:bg-[#ece1e4]">
-                <Pencil className="h-3 w-3" /> 프로필 수정
+              <button type="button" onClick={() => setEditingName(true)} aria-label="프로필 수정" title="프로필 수정" className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center self-start rounded-full bg-[#f1eaec] text-[#8a7d82] transition-colors hover:bg-[#ece1e4]">
+                <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
 
