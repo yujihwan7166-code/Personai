@@ -113,7 +113,7 @@ export default function People() {
         <button
           type="button"
           onClick={newPerson}
-          className="mt-5 flex h-[40px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#b45309] text-[14px] font-bold text-white shadow-[0_1px_2px_rgba(60,40,10,0.12)] transition-colors hover:bg-[#9c4708]"
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#b45309] py-2 text-[14px] font-bold text-white shadow-sm transition-colors hover:bg-[#9c4708]"
         >
           <Plus className="h-4 w-4" strokeWidth={2.2} /> 새 사람
         </button>
