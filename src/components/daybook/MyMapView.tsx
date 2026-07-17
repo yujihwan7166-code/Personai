@@ -104,27 +104,38 @@ export default function MyMapView() {
       </div>
 
       {/* 우 — 탭 + 목록 */}
-      <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] lg:w-[340px]">
-        {/* 탭 */}
-        <div className="flex shrink-0 gap-1 border-b border-[hsl(var(--hairline))] p-2">
-          {TAB_META.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => pickTab(t.id)}
-              className={cn(
-                'flex flex-1 flex-col items-center rounded-xl px-1 py-2 transition-colors',
-                tab === t.id ? 'bg-[hsl(var(--travel-teal))]/12' : 'hover:bg-[hsl(var(--surface-2))]',
-              )}
-            >
-              <span className={cn('text-[19px] font-extrabold leading-none tabular-nums', tab === t.id ? 'text-[hsl(var(--travel-teal))]' : 'text-foreground/70')}>{t.count}</span>
-              <span className={cn('mt-1 text-[11.5px] font-medium', tab === t.id ? 'text-[hsl(var(--travel-teal))]' : 'text-muted-foreground')}>{t.label}</span>
-            </button>
-          ))}
+      <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] shadow-[0_1px_3px_rgba(20,40,40,0.04)] lg:w-[340px]">
+        {/* 탭 — 채운 타일 세그먼트 */}
+        <div className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[hsl(var(--hairline))] p-2">
+          {TAB_META.map((t) => {
+            const on = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => pickTab(t.id)}
+                className={cn(
+                  'flex flex-col items-center rounded-xl px-1 py-2.5 transition-all active:scale-[0.97]',
+                  on ? 'bg-[hsl(var(--travel-teal))] shadow-sm' : 'bg-[hsl(var(--surface-2))]/50 hover:bg-[hsl(var(--surface-2))]',
+                )}
+              >
+                <span className={cn('text-[20px] font-extrabold leading-none tabular-nums', on ? 'text-white' : 'text-foreground/75')}>{t.count}</span>
+                <span className={cn('mt-1 text-[11.5px] font-semibold', on ? 'text-white/90' : 'text-muted-foreground')}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 목록 머리 — 현재 탭 라벨 + 정렬 힌트 */}
+        <div className="flex shrink-0 items-center justify-between px-3.5 pb-1 pt-2.5">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">
+            {tab === 'trips' ? '다녀온 여행' : tab === 'meals' ? '먹은 곳' : '가본 곳'}
+          </span>
+          <span className="text-[11px] text-muted-foreground/55">최근 순</span>
         </div>
 
         {/* 목록 */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {tab === 'trips' ? (
             trips.length === 0 ? (
               <p className="py-10 text-center text-[12.5px] text-muted-foreground">아직 다녀온 여행이 없어요.</p>
@@ -133,18 +144,22 @@ export default function MyMapView() {
                 {trips.map((t) => {
                   const on = selTrip === t.id;
                   const st = tripStatus(t, today);
+                  const chip = st === 'ongoing' ? { label: '여행 중', cls: 'bg-[hsl(var(--travel-teal))]/15 text-[hsl(var(--travel-teal))]' }
+                    : st === 'upcoming' ? { label: '예정', cls: 'bg-amber-500/15 text-amber-600' }
+                    : { label: relDays(t.endDate) || '다녀옴', cls: 'bg-[hsl(var(--foreground)/0.05)] text-muted-foreground' };
                   return (
                     <li key={t.id}>
                       <button
                         type="button"
                         onClick={() => setSelTrip(on ? null : t.id)}
-                        className={cn('w-full rounded-xl px-3 py-2.5 text-left transition-colors', on ? 'bg-[hsl(var(--travel-teal))]/12 ring-1 ring-[hsl(var(--travel-teal))]/30' : 'hover:bg-[hsl(var(--surface-2))]')}
+                        className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-px', on ? 'bg-[hsl(var(--travel-teal))]/12 ring-1 ring-[hsl(var(--travel-teal))]/30' : 'hover:bg-[hsl(var(--surface-2))]')}
                       >
-                        <p className="truncate text-[13.5px] font-semibold text-foreground">{t.title || '제목 없는 여행'}</p>
-                        <p className="mt-0.5 text-[11.5px] text-muted-foreground">
-                          {fmtDate(t.startDate)} ~ {fmtDate(t.endDate)}
-                          {st === 'past' && relDays(t.endDate) ? ` · ${relDays(t.endDate)} 다녀옴` : st === 'ongoing' ? ' · 여행 중' : st === 'upcoming' ? ' · 예정' : ''}
-                        </p>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--travel-teal))]/12 text-[15px]">✈️</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13.5px] font-semibold text-foreground">{t.title || '제목 없는 여행'}</span>
+                          <span className="mt-0.5 block text-[11.5px] text-muted-foreground">{fmtDate(t.startDate)} ~ {fmtDate(t.endDate)}</span>
+                        </span>
+                        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold', chip.cls)}>{chip.label}</span>
                       </button>
                     </li>
                   );
@@ -157,18 +172,20 @@ export default function MyMapView() {
             <ul className="space-y-1">
               {listGroups.map((g) => {
                 const on = selPlace === g.key;
+                const tint = g.mealOnly ? DAY_ITEM_META.meal.tint : 'hsl(183 58% 36%)';
                 return (
                   <li key={g.key}>
                     <button
                       type="button"
                       onClick={() => setSelPlace(on ? null : g.key)}
-                      className={cn('flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors', on ? 'bg-[hsl(var(--travel-teal))]/12 ring-1 ring-[hsl(var(--travel-teal))]/30' : 'hover:bg-[hsl(var(--surface-2))]')}
+                      className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:-translate-y-px', on ? 'bg-[hsl(var(--travel-teal))]/12 ring-1 ring-[hsl(var(--travel-teal))]/30' : 'hover:bg-[hsl(var(--surface-2))]')}
                     >
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: g.mealOnly ? DAY_ITEM_META.meal.tint : 'hsl(183 58% 36%)' }} />
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px]" style={{ backgroundColor: `color-mix(in srgb, ${tint} 14%, transparent)` }}>{g.mealOnly ? '🍽️' : '📍'}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13.5px] font-medium text-foreground">{g.place}</span>
-                        <span className="block text-[11px] text-muted-foreground">기록 {g.visits.length}번 · 최근 {fmtDate(g.lastDate)}</span>
+                        <span className="block truncate text-[13.5px] font-semibold text-foreground">{g.place}</span>
+                        <span className="block text-[11.5px] text-muted-foreground">최근 {fmtDate(g.lastDate)}</span>
                       </span>
+                      <span className="shrink-0 rounded-full bg-[hsl(var(--foreground)/0.05)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{g.visits.length}번</span>
                     </button>
                   </li>
                 );
@@ -180,9 +197,9 @@ export default function MyMapView() {
           <button
             type="button"
             onClick={() => { setSelPlace(null); setSelTrip(null); }}
-            className="shrink-0 border-t border-[hsl(var(--hairline))] py-2 text-center text-[12px] font-medium text-[hsl(var(--travel-teal))] hover:bg-[hsl(var(--surface-2))]"
+            className="flex shrink-0 items-center justify-center gap-1.5 border-t border-[hsl(var(--hairline))] py-2.5 text-center text-[12.5px] font-semibold text-[hsl(var(--travel-teal))] transition-colors hover:bg-[hsl(var(--surface-2))]"
           >
-            전체 지도 보기
+            ↺ 전체 지도 보기
           </button>
         )}
       </aside>
