@@ -8,15 +8,17 @@
 
 export const PEOPLE_CHANGED = 'people:changed';
 
-export type Relation = 'family' | 'friend' | 'work' | 'business' | 'etc';
+export type Relation = 'family' | 'friend' | 'senior' | 'work' | 'business' | 'acquaintance' | 'etc';
 export const RELATION_META: Record<Relation, { label: string }> = {
   family: { label: '가족' },
   friend: { label: '친구' },
+  senior: { label: '선후배' },
   work: { label: '직장' },
   business: { label: '거래처' },
+  acquaintance: { label: '지인' },
   etc: { label: '기타' },
 };
-export const RELATION_ORDER: Relation[] = ['family', 'friend', 'work', 'business', 'etc'];
+export const RELATION_ORDER: Relation[] = ['family', 'friend', 'senior', 'work', 'business', 'acquaintance', 'etc'];
 
 export type Closeness = 'best' | 'close' | 'normal' | 'distant';
 export const CLOSENESS_META: Record<Closeness, { label: string; /** 이 개월수 넘게 연락 없으면 "오랜만이에요" */ pingMonths: number }> = {

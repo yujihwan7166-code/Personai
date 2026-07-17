@@ -173,38 +173,24 @@ export function PersonForm({
             </label>
 
             <div className="min-w-0 flex-1">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) save(); }}
-                placeholder="이름"
-                autoFocus
-                aria-label="이름"
-                className="w-full bg-transparent text-[27px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] outline-none placeholder:text-[#d8c3ad]"
-              />
-              <input
-                value={intro}
-                onChange={(e) => setIntro(e.target.value)}
-                placeholder="한 줄 소개 — 예: 대학 동기 · 등산 모임"
-                aria-label="소개"
-                className="mt-1 w-full border-b border-[#efe4d6] bg-transparent pb-1.5 text-[13px] text-[#6e747d] outline-none transition-colors placeholder:text-[#b9b1a5] focus:border-[#d6a066]"
-              />
-
-              {/* 카드 색 / 사진 */}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-[12px] font-semibold text-[#8a7d82]">카드 색</span>
-                {photo ? (
-                  <>
-                    <span className="text-[12px] text-[#8d949d]">사진이 카드에 표시돼요</span>
-                    <button type="button" onClick={() => setPhoto(undefined)} className="inline-flex items-center gap-0.5 text-[12px] text-[#a89a8e] transition-colors hover:text-rose-500"><X className="h-3 w-3" /> 사진 제거</button>
-                  </>
-                ) : (
-                  <>
+              <div className="flex items-start gap-3">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) save(); }}
+                  placeholder="이름"
+                  autoFocus
+                  aria-label="이름"
+                  className="min-w-0 flex-1 bg-transparent text-[27px] font-bold leading-tight tracking-[-0.01em] text-[#191c20] outline-none placeholder:text-[#d8c3ad]"
+                />
+                {/* 카드 색 — 이름 오른쪽에서 바로 고르기 */}
+                {!photo && (
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-2" title="카드 색">
                     <button
                       type="button"
                       onClick={() => setColor(undefined)}
                       aria-pressed={!color}
-                      className={cn('inline-flex h-[26px] items-center rounded-full border px-3 text-[12px] font-medium transition-colors', !color ? 'border-[#e3cfa2] bg-[#f2e5cf] text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#8a7d82] hover:border-[#e0cba0]')}
+                      className={cn('inline-flex h-[24px] items-center rounded-full border px-2.5 text-[11.5px] font-medium transition-colors', !color ? 'border-[#e3cfa2] bg-[#f2e5cf] text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#8a7d82] hover:border-[#e0cba0]')}
                     >
                       자동
                     </button>
@@ -219,10 +205,24 @@ export function PersonForm({
                         style={{ backgroundColor: c }}
                       />
                     ))}
-                    <span className="text-[12px] text-[#b3a78f]">아바타에 바로 보여요</span>
-                  </>
+                  </div>
                 )}
               </div>
+              <input
+                value={intro}
+                onChange={(e) => setIntro(e.target.value)}
+                placeholder="한 줄 소개 — 예: 대학 동기 · 등산 모임"
+                aria-label="소개"
+                className="mt-1 w-full border-b border-[#efe4d6] bg-transparent pb-1.5 text-[13px] text-[#6e747d] outline-none transition-colors placeholder:text-[#b9b1a5] focus:border-[#d6a066]"
+              />
+
+              {/* 사진이 있을 때 — 색 대신 안내 */}
+              {photo && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[12px] text-[#8d949d]">사진이 카드에 표시돼요</span>
+                  <button type="button" onClick={() => setPhoto(undefined)} className="inline-flex items-center gap-0.5 text-[12px] text-[#a89a8e] transition-colors hover:text-rose-500"><X className="h-3 w-3" /> 사진 제거</button>
+                </div>
+              )}
             </div>
           </div>
 
