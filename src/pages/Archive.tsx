@@ -234,6 +234,15 @@ export default function Archive() {
                 className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))]"
               />
             </div>
+
+            {/* 새 항목 저장 — 우측 진입점 (사이드바 버튼과 동일 동작) */}
+            <button
+              type="button"
+              onClick={openNew}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.97]"
+            >
+              <Plus className="h-4 w-4" /> 새 항목
+            </button>
           </div>
         </div>
 
@@ -273,7 +282,7 @@ export default function Archive() {
         ) : mode === 'timeline' ? (
           <Timeline items={visible} onOpen={(i) => setSelectedId(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
         ) : (
-          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+          <div className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
             {visible.map((it) => (
               <ArchiveCard key={it.id} item={it} onOpen={(i) => setSelectedId(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
             ))}

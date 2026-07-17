@@ -68,7 +68,7 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
   };
 
   return (
-    <aside className="archive-theme sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start border-l border-[hsl(var(--hairline))] bg-card lg:w-[400px]">
+    <aside className="archive-theme sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start border-l border-[hsl(var(--hairline))] bg-card duration-300 animate-in fade-in slide-in-from-right-6 lg:w-[400px]">
         {/* 헤더 */}
         <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-4 py-3">
           <span className="rounded-md bg-[hsl(var(--foreground)/0.06)] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
@@ -92,12 +92,12 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          {/* 이미지 */}
+          {/* 이미지 — 시각 미리보기(맨 위) */}
           {item.kind === 'image' && item.blobRef && (
             <BlobImage blobRef={item.blobRef} alt={item.title} className="max-h-80 w-full rounded-xl" />
           )}
 
-          {/* 제목 */}
+          {/* ① 제목 */}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -105,7 +105,34 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
             className="w-full bg-transparent text-[18px] font-bold tracking-[-0.01em] text-foreground outline-none"
           />
 
-          {/* 링크 */}
+          {/* ② 컬렉션 (저장 창과 동일 위계 — 어디에 넣을지 먼저) */}
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-semibold text-muted-foreground">컬렉션</span>
+            <select
+              value={item.collectionId}
+              onChange={(e) => archiveStore.moveItem(item.id, e.target.value)}
+              className="w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2 text-[13px] text-foreground outline-none focus:border-[hsl(var(--archive-sepia))]"
+            >
+              {collections.map((c) => (
+                <option key={c.id} value={c.id}>{c.emoji ? `${c.emoji} ` : ''}{c.name}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* ③ 내용(메모) */}
+          <div>
+            <span className="mb-1 block text-[12px] font-semibold text-muted-foreground">내용</span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={commitNote}
+              rows={4}
+              placeholder="내용·메모를 남겨보세요"
+              className="w-full resize-y rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-[hsl(var(--archive-sepia))]"
+            />
+          </div>
+
+          {/* ④ 링크 */}
           {item.kind === 'link' && item.url && (
             <a
               href={item.url}
@@ -119,7 +146,7 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
             </a>
           )}
 
-          {/* 파일 */}
+          {/* ⑤ 파일 */}
           {item.kind === 'file' && item.blobRef && (
             <button
               type="button"
@@ -146,20 +173,7 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
             </dl>
           )}
 
-          {/* 메모 */}
-          <div>
-            <span className="mb-1 block text-[12px] font-semibold text-muted-foreground">메모</span>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onBlur={commitNote}
-              rows={4}
-              placeholder="메모를 남겨보세요"
-              className="w-full resize-y rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-[hsl(var(--archive-sepia))]"
-            />
-          </div>
-
-          {/* 태그 */}
+          {/* ⑥ 태그 */}
           <div>
             <span className="mb-1 block text-[12px] font-semibold text-muted-foreground">태그</span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -179,20 +193,6 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
               />
             </div>
           </div>
-
-          {/* 컬렉션 이동 */}
-          <label className="block">
-            <span className="mb-1 block text-[12px] font-semibold text-muted-foreground">컬렉션</span>
-            <select
-              value={item.collectionId}
-              onChange={(e) => archiveStore.moveItem(item.id, e.target.value)}
-              className="w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2 text-[13px] text-foreground outline-none focus:border-[hsl(var(--archive-sepia))]"
-            >
-              {collections.map((c) => (
-                <option key={c.id} value={c.id}>{c.emoji ? `${c.emoji} ` : ''}{c.name}</option>
-              ))}
-            </select>
-          </label>
         </div>
 
         {/* 푸터 — 삭제 */}
