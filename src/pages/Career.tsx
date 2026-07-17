@@ -15,7 +15,7 @@
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { ClipboardList, Copy, Download, ExternalLink, FileDown, FileText, Link2, Loader2, Pencil, Plus, Target, Trash2, X } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileDown, FileText, Link2, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
@@ -551,7 +551,7 @@ function BoardLedger() {
                           : 'font-medium text-[#585055] hover:bg-white/55',
                       )}
                     >
-                      <ClipboardList className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[#9c4160]' : 'text-[#a1888f]')} strokeWidth={1.7} />
+                      <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📋</span>
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
                         <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
@@ -608,7 +608,7 @@ function BoardLedger() {
                         : 'font-medium text-[#585055] hover:bg-white/55',
                     )}
                   >
-                    <FileText className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-[#9c4160]' : 'text-[#a1888f]')} strokeWidth={1.7} />
+                    <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📄</span>
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
                       <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
@@ -625,7 +625,7 @@ function BoardLedger() {
               onClick={() => setRecommendOpen(true)}
               className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] font-medium text-[#585055] transition-colors hover:bg-white/55"
             >
-              <Target className="h-[18px] w-[18px] shrink-0 text-[#a1888f]" strokeWidth={1.7} />
+              <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">🎯</span>
               <span className="flex-1">추천 스펙</span>
             </button>
 
