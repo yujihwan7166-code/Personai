@@ -143,9 +143,23 @@ export function PersonsView({
         </div>
       </div>
 
-      {/* ── 검색 + 관계×친밀도 필터 ── */}
-      <div className="mb-3 flex flex-wrap items-center gap-[9px]">
-        <label className="inline-flex h-[36px] w-[320px] max-w-full items-center gap-2 rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] transition-colors focus-within:border-[#d6a066]">
+      {/* ── 관계×친밀도 필터 (좌) + 검색 (우) ── */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2.5">
+        <div className="flex flex-wrap items-center gap-[9px]">
+          <FilterChip active={relationFilter === 'all'} onClick={() => setRelationFilter('all')}>전체</FilterChip>
+          {RELATION_ORDER.map((r) => (
+            <FilterChip key={r} active={relationFilter === r} onClick={() => setRelationFilter(relationFilter === r ? 'all' : r)}>
+              {RELATION_META[r].label}
+            </FilterChip>
+          ))}
+          <span aria-hidden className="mx-1 h-[18px] w-px bg-[#ddd5c2]" />
+          {CLOSENESS_ORDER.map((c) => (
+            <FilterChip key={c} active={closenessFilter === c} onClick={() => setClosenessFilter(closenessFilter === c ? 'all' : c)}>
+              {CLOSENESS_META[c].label}
+            </FilterChip>
+          ))}
+        </div>
+        <label className="ml-auto inline-flex h-[36px] w-[260px] max-w-full items-center gap-2 rounded-[8px] border border-[#e9e2d2] bg-white px-3.5 text-[13.5px] transition-colors focus-within:border-[#d6a066]">
           <Search className="h-[15px] w-[15px] shrink-0 text-[#b3a98f]" />
           <input
             value={query}
@@ -154,18 +168,6 @@ export function PersonsView({
             className="min-w-0 flex-1 bg-transparent text-[#3f434e] outline-none placeholder:text-[#8d949d]"
           />
         </label>
-        <FilterChip active={relationFilter === 'all'} onClick={() => setRelationFilter('all')}>전체</FilterChip>
-        {RELATION_ORDER.map((r) => (
-          <FilterChip key={r} active={relationFilter === r} onClick={() => setRelationFilter(relationFilter === r ? 'all' : r)}>
-            {RELATION_META[r].label}
-          </FilterChip>
-        ))}
-        <span aria-hidden className="mx-1 h-[18px] w-px bg-[#ddd5c2]" />
-        {CLOSENESS_ORDER.map((c) => (
-          <FilterChip key={c} active={closenessFilter === c} onClick={() => setClosenessFilter(closenessFilter === c ? 'all' : c)}>
-            {CLOSENESS_META[c].label}
-          </FilterChip>
-        ))}
       </div>
 
       {/* ── 카테고리 필터 ── */}
