@@ -145,7 +145,7 @@ export default function Career() {
   const { profile } = useCareerBoard();
 
   return (
-    <div className="career-theme h-dvh bg-[#fdf8fb] text-foreground">
+    <div className="career-theme h-dvh bg-[#fefbfc] text-foreground">
       {profile.persona === '' ? (
         <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-4 pb-20 pt-6">
           <SetupLedger />
@@ -523,7 +523,7 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#efdae0] bg-[#f8ecef] px-3.5 py-5 sm:flex">
+          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#efdae0] bg-[#fbf2f5] px-3.5 py-5 sm:flex">
             {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (리디자인 시안) */}
             <div className="flex items-center gap-[11px] px-1.5">
               <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] leading-none shadow-[0_1px_2px_rgba(120,40,60,0.08)]" role="img" aria-label="마이 커리어">💼</span>
@@ -677,7 +677,7 @@ function BoardLedger() {
         {/* ══════ 우 — 작성대 도크: 문서 만들기 타일 + 커리어 추가 (보관함 열람은 사이드바가 담당)
          * row-start-1 명시 필수 — 도크(2열)가 DOM 에서 먼저 오면 자동 배치 커서가 2열을 지나
          * 뒤따르는 원고(1열)를 둘째 행으로 밀어낸다 (좌측 상단이 비는 버그). ══════ */}
-        <aside className="scrollbar-thin overflow-y-auto bg-[#fdf8fb] lg:col-start-2 lg:row-start-1">
+        <aside className="scrollbar-thin overflow-y-auto bg-[#fefbfc] lg:col-start-2 lg:row-start-1">
             {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 만들기 — 종류 타일 6개 (만든 문서 보기는 사이드바 문서 항목으로) */}
@@ -1116,7 +1116,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fdf8fb] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
+          <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fefbfc] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
             {/* ── 마스트헤드 (리디자인 시안) ── */}
             <div className="mx-auto mb-5 max-w-[900px]">
               <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
