@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 import { HiddenInteractiveMount } from '@/components/HiddenInteractiveMount';
 import { MainModeTabs, type MainModeTabsApi } from '@/components/MainModeTabs';
 import { MAIN_MODE_LABELS, type MainMode } from '@/types/expert';
@@ -86,6 +87,7 @@ const RAIL_THEMES: RailTheme[] = [
   { name: '웜 스톤',    bg: '#d9d3c9', border: '#c7c0b4', icon: '#6d665c', hover: '#e6e1d9', hoverInk: '#2d2926', fallback: '#8a8175' },
   { name: '화이트',     bg: '#ffffff', border: '#e9e7e4', icon: '#9aa1ab', hover: '#f2f1ef', hoverInk: '#23262b', fallback: '#8d949d' },
 ];
+const RAIL_THEME_KEY = 'rail.theme.v1';
 
 /* 왼쪽 세로 레일에 노출할 워크스페이스 (홈은 별도 상단, 메뉴는 별도) — 캘린더/위키/노트/일기. */
 const RAIL_WORKSPACES = WORKSPACE_DESTINATIONS.filter((item) => item.key !== 'home');
@@ -184,7 +186,38 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [navigate]);
-  const railTheme = RAIL_THEMES[0]; // 웜 잉크 — 색 바꾸려면 인덱스만 교체
+
+  /* 레일 색 — 레일에 마우스를 올린 채 키보드 위/아래로 후보를 돌린다. 선택은 localStorage 유지.
+   * 화살표를 전역으로 잡으면 페이지 스크롤·입력 커서가 깨지므로 레일 호버 중일 때만 동작. */
+  const railHoverRef = useRef(false);
+  const [railThemeIdx, setRailThemeIdx] = useState<number>(() => {
+    try {
+      const raw = Number(window.localStorage.getItem(RAIL_THEME_KEY));
+      return Number.isInteger(raw) && raw >= 0 && raw < RAIL_THEMES.length ? raw : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const railIdxRef = useRef(railThemeIdx);
+  railIdxRef.current = railThemeIdx;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      if (!railHoverRef.current) return; // 레일 위에 있을 때만
+      const t = e.target as HTMLElement | null;
+      // 입력 중이면 커서 이동을 뺏지 않는다
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+      e.preventDefault();
+      const next = (railIdxRef.current + (e.key === 'ArrowDown' ? 1 : -1) + RAIL_THEMES.length) % RAIL_THEMES.length;
+      setRailThemeIdx(next);
+      try { window.localStorage.setItem(RAIL_THEME_KEY, String(next)); } catch { /* 저장 실패는 무시 */ }
+      notify.info(`레일 ${next + 1}/${RAIL_THEMES.length} · ${RAIL_THEMES[next].name}`, { duration: 900 });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const railTheme = RAIL_THEMES[railThemeIdx];
   const railVars = {
     '--rail-bg': railTheme.bg,
     '--rail-border': railTheme.border,
@@ -203,7 +236,9 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
         ref={railRef}
         aria-label="워크스페이스 레일"
         data-app-workspace-rail
-        title="휠 위/아래 — 옆 방으로 이동"
+        title={`휠 위/아래 — 옆 방으로 이동 · 키보드 ↑/↓ — 레일 색 (${railTheme.name})`}
+        onMouseEnter={() => { railHoverRef.current = true; }}
+        onMouseLeave={() => { railHoverRef.current = false; }}
         style={railVars}
         className="fixed inset-y-0 left-0 z-[45] hidden w-16 flex-col items-center gap-1 border-r border-[var(--rail-border)] bg-[var(--rail-bg)] py-3.5 sm:flex"
       >
@@ -267,10 +302,17 @@ export function AppWorkspaceShell({ current, children, railExtra }: AppWorkspace
           </>
         )}
 
-        {/* 테마 토글 — 레일 하단 고정. */}
+        {/* 테마 토글 + 현재 레일 색 이름 — 레일 하단 고정. */}
         <div className="mt-auto flex flex-col items-center gap-1">
           <span aria-hidden className="mb-0.5 h-px w-6 bg-[var(--rail-hover)]" />
           <RailThemeToggle />
+          {/* ↑/↓ 로 색 돌릴 때 지금 뭔지 보이게 — 레일 폭(64px)에 맞춰 아주 작게. */}
+          <span
+            className="select-none whitespace-nowrap px-0.5 text-[9px] leading-none text-[var(--rail-icon)] opacity-70"
+            title={`레일 색: ${railTheme.name} — 레일 위에서 ↑/↓`}
+          >
+            {railTheme.name}
+          </span>
         </div>
       </nav>
 
