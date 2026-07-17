@@ -224,7 +224,7 @@ export default function Archive() {
       </aside>
 
       {/* ───────── 메인 ───────── */}
-      <main className="min-w-0 flex-1 px-5 py-6 sm:px-7">
+      <main className={cn('min-w-0 flex-1 px-5 py-6 sm:px-7', selectedItem && 'hidden lg:block')}>
         {/* 마스트헤드 */}
         <div className="mb-4 flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0">

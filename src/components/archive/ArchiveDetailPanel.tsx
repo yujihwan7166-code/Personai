@@ -3,7 +3,6 @@
  * 항목 열람 + 인라인 편집(제목·메모·태그·컬렉션) + 다운로드·삭제·별표.
  */
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Star, Download, ExternalLink, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -68,12 +67,8 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
     onClose();
   };
 
-  const body = (
-    <div className="fixed inset-0 z-[70] flex justify-end bg-black/30" onMouseDown={onClose}>
-      <aside
-        className="archive-theme flex h-full w-full max-w-md flex-col bg-card shadow-2xl animate-in slide-in-from-right duration-200"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+  return (
+    <aside className="archive-theme sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start border-l border-[hsl(var(--hairline))] bg-card lg:w-[400px]">
         {/* 헤더 */}
         <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-4 py-3">
           <span className="rounded-md bg-[hsl(var(--foreground)/0.06)] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
@@ -211,9 +206,6 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
             삭제
           </button>
         </div>
-      </aside>
-    </div>
+    </aside>
   );
-
-  return createPortal(body, document.body);
 }
