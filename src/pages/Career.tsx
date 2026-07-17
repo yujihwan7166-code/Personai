@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useCareerBoard } from '@/hooks/useCareer';
 import { careerStore } from '@/services/careerStore';
-import { aiClassifySpec, aiComposeCareerDoc, aiRecommendSpecs, type ComposePurpose } from '@/lib/career/ai';
+import { aiClassifySpec, aiComposeCareerDoc, type ComposePurpose } from '@/lib/career/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { RESUME_TEMPLATES, ResumeThumb, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
 import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
@@ -1355,7 +1355,7 @@ function BoardLedger() {
       />
       <DocViewDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
-      <RecommendDialog open={recommendOpen} personaLabel={PERSONA_LABEL[persona]} onClose={() => setRecommendOpen(false)} />
+      <RecommendDialog open={recommendOpen} onClose={() => setRecommendOpen(false)} />
       <NewBoardDialog
         open={boardDialogOpen}
         onClose={() => setBoardDialogOpen(false)}
@@ -2157,52 +2157,114 @@ function DocViewDialog({ doc, onClose }: { doc: CareerDoc | null; onClose: () =>
   );
 }
 
-/* ═══════════════ 추천 스펙 다이얼로그 ═══════════════ */
+/* ═══════════════ 추천 스펙 — 규칙 기반 진단 + 신분별 플레이북 ═══════════════ */
 
-function RecommendDialog({ open, personaLabel, onClose }: { open: boolean; personaLabel: string; onClose: () => void }) {
-  const { items, categories } = useCareerBoard();
-  const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState('');
+/** 신분별 커리어 플레이북 — 채워두면 좋은 축과 구체 아이디어. */
+const CAREER_PLAYBOOK: Record<CareerPersona, Array<{ area: string; keywords: string[]; why: string; ideas: string[] }>> = {
+  highschool: [
+    { area: '수상', keywords: ['수상', '대회'], why: '객관적 성과 한 줄이 생활기록부·자소서의 힘이 됩니다.', ideas: ['교내 경시대회 입상', '교외 공모전 참가·수상'] },
+    { area: '봉사', keywords: ['봉사'], why: '꾸준한 봉사는 인성·성실성의 근거가 돼요.', ideas: ['정기 봉사 20시간 이상', '또래 멘토링'] },
+    { area: '동아리·활동', keywords: ['동아리', '활동', '자율'], why: '주도적으로 한 활동은 리더십과 관심 분야를 보여줍니다.', ideas: ['동아리 부장·팀장', '학생회 활동'] },
+    { area: '탐구·독서', keywords: ['독서', '탐구', '진로'], why: '진로와 연결된 탐구는 지원 동기를 탄탄하게 합니다.', ideas: ['진로 관련 도서 3권', '소논문·탐구 보고서'] },
+  ],
+  student: [
+    { area: '자격증', keywords: ['자격', '어학'], why: '직무 관련 자격은 서류에서 즉시 읽히는 신호예요.', ideas: ['정보처리기사', '토익 800+', 'SQLD·컴활'] },
+    { area: '프로젝트', keywords: ['프로젝트', '개발', '포트폴리오'], why: '직접 만들어 본 경험이 면접 대화를 이끕니다.', ideas: ['팀 프로젝트 완주', '개인 토이 프로젝트 배포', '오픈소스 기여'] },
+    { area: '대외활동', keywords: ['대외', '활동', '인턴', '공모전'], why: '학교 밖 경험은 실행력·협업을 보여줘요.', ideas: ['공모전 입상', '인턴십', '부트캠프·학회'] },
+    { area: '어학', keywords: ['어학', '토익', '영어'], why: '어학 점수는 지원 폭을 넓혀줍니다.', ideas: ['토익·오픽·토스', '교환학생·어학연수'] },
+  ],
+  jobseeker: [
+    { area: '직무 프로젝트', keywords: ['프로젝트', '직무', '포트폴리오'], why: '지원 직무와 맞닿은 결과물이 합격을 가릅니다.', ideas: ['직무 관련 사이드 프로젝트', '실무형 과제 수행'] },
+    { area: '인턴·경험', keywords: ['인턴', '경험', '경력'], why: '현업 경험은 즉시 전력감을 증명합니다.', ideas: ['인턴십·계약직', '외주·프리랜스'] },
+    { area: '자격·어학', keywords: ['자격', '어학'], why: '지원 자격 요건을 채워 필터를 통과하세요.', ideas: ['직무 자격증', '어학 점수 갱신'] },
+    { area: '포트폴리오', keywords: ['포트폴리오'], why: '한 번에 실력을 보여주는 대표 산출물이 필요해요.', ideas: ['포트폴리오 웹·PDF 정리', 'GitHub·블로그 정돈'] },
+  ],
+  worker: [
+    { area: '성과 지표', keywords: ['성과', '지표', '실적'], why: '숫자로 말하는 성과가 이직 시장에서 가장 강합니다.', ideas: ['핵심 지표 개선(%·금액)', '비용·시간 절감 사례'] },
+    { area: '리딩·협업', keywords: ['리드', '프로젝트', '협업'], why: '주도·협업 경험은 시니어리티를 증명합니다.', ideas: ['프로젝트 리드', '신규 도입·표준화 주도'] },
+    { area: '전문성', keywords: ['발표', '교육', '자격', '세미나'], why: '깊이의 근거가 되는 학습·발표를 남기세요.', ideas: ['사내외 세미나 발표', '자격·교육 이수'] },
+    { area: '외부 활동', keywords: ['블로그', '오픈소스', '컨퍼런스'], why: '평판·네트워크는 기회를 만듭니다.', ideas: ['기술 블로그·오픈소스', '컨퍼런스 발표'] },
+  ],
+};
 
-  const generate = async () => {
-    setGenerating(true);
-    setResult('');
-    try {
-      const sections = categories.map((category) => ({
-        name: category.name,
-        items: items.filter((item) => item.categoryId === category.id),
-      }));
-      setResult(await aiRecommendSpecs(personaLabel, sections));
-    } catch (err) {
-      notify.error('추천을 불러오지 못했어요', {
-        description: err instanceof Error ? err.message : '잠시 뒤 다시 시도해 주세요.',
-      });
-    } finally {
-      setGenerating(false);
+type Rec = { priority: 1 | 2 | 3; area: string; why: string; ideas: string[] };
+
+function RecommendDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { items, categories, profile } = useCareerBoard();
+  const persona = (profile.persona || 'student') as CareerPersona;
+
+  const dx = useMemo(() => {
+    const total = items.length;
+    const withEvidence = items.filter((i) => i.link).length;
+    const evidencePct = total ? Math.round((withEvidence / total) * 100) : 0;
+    const catName = new Map(categories.map((c) => [c.id, c.name] as const));
+    const emptyCats = categories.filter((c) => !items.some((i) => i.categoryId === c.id));
+    const usedText = items.map((i) => `${catName.get(i.categoryId) ?? ''} ${i.refined}`).join(' ');
+
+    const recs: Rec[] = [];
+    // 1) 비어 있는 칸 — 채우면 바로 좋아짐
+    for (const c of emptyCats.slice(0, 3)) {
+      recs.push({ priority: 1, area: c.name, why: '아직 비어 있는 칸이에요. 첫 기록으로 채워보세요.', ideas: [] });
     }
+    // 2) 신분 플레이북 — 아직 안 다룬 축
+    for (const p of CAREER_PLAYBOOK[persona]) {
+      const covered = p.keywords.some((k) => usedText.includes(k));
+      if (!covered) recs.push({ priority: 2, area: p.area, why: p.why, ideas: p.ideas });
+    }
+    // 3) 증빙 보강
+    if (total >= 2 && evidencePct < 40) {
+      recs.push({ priority: 3, area: '증빙 보강', why: `기록 중 ${evidencePct}%만 증빙 링크가 있어요. 링크를 더하면 문서 신뢰도가 올라가요.`, ideas: [] });
+    }
+    return { total, evidencePct, emptyCount: emptyCats.length, recs: recs.slice(0, 6) };
+  }, [items, categories, persona]);
+
+  const PRIO_META: Record<Rec['priority'], { label: string; cls: string }> = {
+    1: { label: '우선', cls: 'bg-[#f2d7dd] text-[#9c2f47]' },
+    2: { label: '추천', cls: 'bg-[#f2e5cf] text-[#8a5a1a]' },
+    3: { label: '보강', cls: 'bg-[#e4e8ef] text-[#4a5568]' },
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) { setResult(''); onClose(); } }}>
-      <DialogContent className="career-theme max-w-lg">
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="career-theme max-w-xl">
         <DialogHeader>
-          <DialogTitle className="career-serif text-[16px]">추천 스펙</DialogTitle>
+          <DialogTitle className="career-serif text-[16px]">추천 스펙 · 다음에 쌓을 것</DialogTitle>
         </DialogHeader>
-        <p className="text-[12.5px] text-muted-foreground">
-          지금 원고를 보고, 다음에 쌓으면 좋을 스펙을 골라드려요.
-        </p>
-        <button
-          type="button"
-          onClick={() => void generate()}
-          disabled={generating}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-55"
-        >
-          {generating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          {generating ? '고르는 중…' : '추천 받기'}
-        </button>
-        {result && (
-          <div className="max-h-64 overflow-y-auto whitespace-pre-line rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3.5 text-[13px] leading-relaxed">
-            {result}
+        <p className="-mt-1 text-[12.5px] text-muted-foreground">{PERSONA_LABEL[persona]} 기준으로 지금 보드를 진단해 다음 스펙을 골라드려요.</p>
+
+        {/* 진단 요약 */}
+        <div className="grid grid-cols-3 gap-2">
+          {([['기록', `${dx.total}`], ['증빙 비율', `${dx.evidencePct}%`], ['빈 칸', `${dx.emptyCount}`]] as const).map(([label, value]) => (
+            <div key={label} className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-center">
+              <p className="text-[19px] font-extrabold tabular-nums text-[hsl(28_50%_39%)]">{value}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* 추천 목록 */}
+        {dx.recs.length === 0 ? (
+          <div className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4 text-center text-[13px] text-muted-foreground">
+            축들이 고르게 채워져 있어요 👍 지금 기록으로 문서를 만들어보세요.
+          </div>
+        ) : (
+          <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-0.5">
+            {dx.recs.map((r, i) => (
+              <div key={`${r.area}-${i}`} className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3.5">
+                <div className="flex items-center gap-2">
+                  <span className={cn('rounded-full px-2 py-0.5 text-[10.5px] font-bold', PRIO_META[r.priority].cls)}>{PRIO_META[r.priority].label}</span>
+                  <span className="text-[14px] font-bold text-foreground">{r.area}</span>
+                </div>
+                <p className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-muted-foreground">{r.why}</p>
+                {r.ideas.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {r.ideas.map((idea) => (
+                      <span key={idea} className="rounded-full bg-[hsl(28_48%_50%/0.1)] px-2.5 py-1 text-[12px] font-medium text-[hsl(28_50%_39%)]">{idea}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </DialogContent>
