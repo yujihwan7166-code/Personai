@@ -4,7 +4,7 @@
  * 기록 폼=중앙 모달(1번) · 상세=절취 스텁(2번). 저장 localStorage 'ticketbook.v1', 사진 IndexedDB.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Home, Star, Award, BarChart3, Sparkles, Plus, Ticket, X, Compass, Bookmark } from 'lucide-react';
+import { Home, Award, BarChart3, Sparkles, Plus, Ticket, X, Compass, Bookmark } from 'lucide-react';
 import { toast } from 'sonner';
 import { newId } from '@/lib/idGenerator';
 import {
@@ -193,11 +193,15 @@ export default function Tickets() {
         <div style={{ padding: '2px 18px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: '#4d586a', textTransform: 'uppercase' }}>내 기록</div>
         <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall' && nav === 'all'} onClick={() => goWall('all')} />
-          {/* 전체 보기(벽)를 보는 중일 때만, 그 아래로 카테고리 필터가 펼쳐진다 */}
-          {view === 'wall' && TICKET_KINDS.map((k) => (
-            <NavRow key={k} indent emoji={KIND_EMOJI[k]} label={KIND_LABEL[k]} count={catCount(k)} active={nav === k} onClick={() => goWall(k)} />
-          ))}
-          <NavRow icon={<Star size={17} fill={nav === 'starred' && view === 'wall' ? 'currentColor' : 'none'} />} label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={view === 'wall' && nav === 'starred'} onClick={() => goWall('starred')} />
+          {/* 전체 보기(벽)를 보는 중일 때만, 그 아래로 필터(최고의 티켓·카테고리)가 펼쳐진다 */}
+          {view === 'wall' && (
+            <>
+              <NavRow indent emoji="⭐" label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={nav === 'starred'} onClick={() => goWall('starred')} />
+              {TICKET_KINDS.map((k) => (
+                <NavRow key={k} indent emoji={KIND_EMOJI[k]} label={KIND_LABEL[k]} count={catCount(k)} active={nav === k} onClick={() => goWall(k)} />
+              ))}
+            </>
+          )}
           <NavRow icon={<Award size={17} />} label="마일스톤 · 스탬프" active={view === 'vault'} onClick={() => { setView('vault'); top(); }} />
           <NavRow icon={<BarChart3 size={17} />} label="연말결산" active={view === 'recap'} onClick={() => { setView('recap'); setRecapYear(years[0] ?? nowY); top(); }} />
         </div>
