@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import {
   KIND_LABEL, KIND_CREATOR_LABEL, TICKET_KINDS, type TicketEntry, type TicketKind,
 } from '@/lib/tickets/ticketStore';
-import { searchMedia, hasApiFor, type MediaSearchResult } from '@/lib/tickets/search';
+import { searchMedia, canSearch, type MediaSearchResult } from '@/lib/tickets/search';
 import { aiFillEntry } from '@/lib/tickets/aiFill';
 import { putPhoto, getPhotoUrl, deletePhoto, deletePhotos } from '@/lib/tickets/photoStore';
 import { KIND_EMOJI, PLACES, GENRES, DEFAULT_GENRE, gradientFor, todayKeyLocal } from './ticketVisuals';
@@ -103,7 +103,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     if (filled) { setFilled(false); setCreator(''); setYear(''); setGenres([]); setPosterUrl(undefined); }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = v.trim();
-    if (!q || !hasApiFor(kind)) { setResults([]); setSearching(false); return; }
+    if (!q || !canSearch(kind)) { setResults([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
       const rs = await searchMedia(kind, q);
@@ -183,8 +183,8 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     onSave(draft, editingId);
   };
 
-  const searchHint = hasApiFor(kind)
-    ? (kind === 'book' ? '책은 카카오에서 검색돼요' : '영화·드라마는 TMDB에서 검색돼요')
+  const searchHint = canSearch(kind)
+    ? '제목을 치면 표지·정보가 자동으로 붙어요'
     : '이 카테고리는 검색 대신 AI로 채워요';
   const showResults = !filled && !!title.trim() && (searching || results.length > 0);
 

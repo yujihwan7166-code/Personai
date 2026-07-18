@@ -17,11 +17,42 @@ export function __setKeysForTest(tmdb: string | undefined, kakao: string | undef
   tmdbKey = tmdb; kakaoKey = kakao;
 }
 
-/** movie/drama → TMDB, book → 카카오. game/show 는 검색 API 없음(AI 폴백). */
+/** movie/drama → TMDB, book → 카카오 (트렌딩 등 키 필요 경로 판정). */
 export function hasApiFor(kind: TicketKind): boolean {
   if (kind === 'movie' || kind === 'drama') return !!tmdbKey;
   if (kind === 'book') return !!kakaoKey;
   return false;
+}
+
+/** 검색·포스터가 가능한가 — 영화·드라마·책은 키 없어도 iTunes(무료·무키)로 가능. game/show 는 AI. */
+export function canSearch(kind: TicketKind): boolean {
+  return kind === 'movie' || kind === 'drama' || kind === 'book';
+}
+
+/** iTunes 검색 API — 키·가입 불필요(애플 공개). 영화·드라마·책 표지 확보용. */
+async function itunesSearch(kind: TicketKind, q: string): Promise<MediaSearchResult[]> {
+  const media = kind === 'book' ? 'ebook' : kind === 'drama' ? 'tvShow' : 'movie';
+  const entity = kind === 'movie' ? '&entity=movie' : kind === 'drama' ? '&entity=tvSeason' : '';
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&country=kr&media=${media}${entity}&limit=10`);
+    if (!res.ok) return [];
+    const data = await res.json() as { results?: Array<Record<string, unknown>> };
+    return (data.results ?? []).map((r) => {
+      const art = typeof r.artworkUrl100 === 'string' ? r.artworkUrl100.replace('100x100bb', '600x600bb') : undefined;
+      const date = r.releaseDate as string | undefined;
+      const title = String(r.trackName ?? r.collectionName ?? r.artistName ?? '');
+      return {
+        kind,
+        title,
+        creator: kind === 'book' && typeof r.artistName === 'string' ? r.artistName : '',
+        year: typeof date === 'string' ? Number(date.slice(0, 4)) || undefined : undefined,
+        posterUrl: art,
+        genres: typeof r.primaryGenreName === 'string' && r.primaryGenreName ? [r.primaryGenreName] : undefined,
+      } as MediaSearchResult;
+    }).filter((r) => r.title);
+  } catch {
+    return [];
+  }
 }
 
 /** TMDB genre id → 한국어 (movie+tv 통합 공식 목록 고정 사본). */
@@ -35,7 +66,10 @@ const TMDB_GENRES: Record<number, string> = {
 
 export async function searchMedia(kind: TicketKind, query: string): Promise<MediaSearchResult[]> {
   const q = query.trim();
-  if (!q || !hasApiFor(kind)) return [];
+  if (!q || !canSearch(kind)) return [];
+  // 키 없으면 iTunes(무키)로. 키 있으면 더 정확한 TMDB·카카오 사용.
+  if ((kind === 'movie' || kind === 'drama') && !tmdbKey) return itunesSearch(kind, q);
+  if (kind === 'book' && !kakaoKey) return itunesSearch(kind, q);
   try {
     if (kind === 'movie' || kind === 'drama') {
       const res = await fetch(
@@ -81,9 +115,9 @@ export async function searchMedia(kind: TicketKind, query: string): Promise<Medi
   }
 }
 
-/** 포스터 백필 — 제목으로 검색해 첫 결과의 표지 URL. 없거나 키 부재면 undefined. */
+/** 포스터 백필 — 제목으로 검색해 첫 결과의 표지 URL. 키 없어도 iTunes로 시도. */
 export async function fetchPoster(kind: TicketKind, title: string): Promise<string | undefined> {
-  if (!hasApiFor(kind)) return undefined;
+  if (!canSearch(kind)) return undefined;
   const rs = await searchMedia(kind, title);
   return rs.find((r) => r.posterUrl)?.posterUrl;
 }

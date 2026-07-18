@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchMedia, trendingMedia, fetchPoster, hasApiFor, __setKeysForTest } from '@/lib/tickets/search';
+import { searchMedia, trendingMedia, fetchPoster, hasApiFor, canSearch, __setKeysForTest } from '@/lib/tickets/search';
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -21,11 +21,28 @@ describe('hasApiFor', () => {
   });
 });
 
+describe('canSearch', () => {
+  it('영화·드라마·책은 키 없어도 true, 게임·공연은 false', () => {
+    expect(canSearch('movie')).toBe(true);
+    expect(canSearch('drama')).toBe(true);
+    expect(canSearch('book')).toBe(true);
+    expect(canSearch('game')).toBe(false);
+    expect(canSearch('show')).toBe(false);
+  });
+});
+
 describe('searchMedia', () => {
-  it('키 없으면 fetch 없이 빈 배열', async () => {
+  it('검색 불가 카테고리(게임)는 fetch 없이 빈 배열', async () => {
     const spy = vi.spyOn(globalThis, 'fetch');
-    expect(await searchMedia('movie', '기생충')).toEqual([]);
+    expect(await searchMedia('game', '발더스')).toEqual([]);
     expect(spy).not.toHaveBeenCalled();
+  });
+  it('키 없으면 영화는 iTunes로 폴백 매핑한다', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      results: [{ trackName: '기생충', artworkUrl100: 'https://a/100x100bb.jpg', releaseDate: '2019-05-30T00:00:00Z', primaryGenreName: '스릴러' }],
+    })));
+    const r = await searchMedia('movie', '기생충');
+    expect(r[0]).toMatchObject({ kind: 'movie', title: '기생충', year: 2019, posterUrl: 'https://a/600x600bb.jpg', genres: ['스릴러'] });
   });
   it('TMDB 응답을 매핑하고 person은 제외', async () => {
     __setKeysForTest('k', undefined);
@@ -84,11 +101,18 @@ describe('trendingMedia', () => {
 });
 
 describe('fetchPoster', () => {
-  it('키 없으면 undefined', async () => {
-    __setKeysForTest(undefined, undefined);
-    expect(await fetchPoster('movie', '기생충')).toBeUndefined();
+  it('검색 불가 카테고리(게임)는 fetch 없이 undefined', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch');
+    expect(await fetchPoster('game', '발더스')).toBeUndefined();
+    expect(spy).not.toHaveBeenCalled();
   });
-  it('첫 검색 결과의 포스터 URL', async () => {
+  it('키 없으면 iTunes 표지 URL', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      results: [{ trackName: '기생충', artworkUrl100: 'https://a/100x100bb.jpg', releaseDate: '2019-05-30T00:00:00Z' }],
+    })));
+    expect(await fetchPoster('movie', '기생충')).toBe('https://a/600x600bb.jpg');
+  });
+  it('TMDB 키 있으면 TMDB 포스터 URL', async () => {
     __setKeysForTest('k', undefined);
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
       results: [{ media_type: 'movie', title: '기생충', release_date: '2019-05-30', poster_path: '/p.jpg' }],
