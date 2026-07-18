@@ -1,8 +1,37 @@
 /** AI 채움(메타데이터) + AI 온디맨드 추천. 실패는 전부 null — UI가 수동 입력/재시도로 처리. */
 import { quickAi, QUICK_MODEL } from '@/lib/cloudDoc/ai';
 import { KIND_LABEL, type TicketEntry, type TicketKind } from './ticketStore';
+import type { MediaSearchResult } from './search';
 
 export const MIN_ENTRIES_FOR_RECO = 3;
+
+/** 검색 API 없는 카테고리(게임·공연)·검색 0건일 때, 입력한 제목 조각으로 실제 후보들을 뽑아 드롭다운에 준다. */
+export async function aiSuggest(kind: TicketKind, query: string): Promise<MediaSearchResult[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  try {
+    const raw = await quickAi(
+      `너는 ${KIND_LABEL[kind]} 검색 도우미다. 사용자가 입력한 제목 조각과 맞는 실제 존재하는 ${KIND_LABEL[kind]}를 유명한 순으로 최대 6개, JSON만 출력한다: {"items":[{"title":"정확한 제목","creator":"제작/저자/개발사","year":연도숫자,"genres":["장르"]}]}. 실제 작품만, 지어내지 말 것. 다른 말 금지.`,
+      q,
+      { model: QUICK_MODEL, temperature: 0.3, maxTokens: 500 },
+    );
+    const j = extractJson<{ items?: unknown }>(raw);
+    if (!j || !Array.isArray(j.items)) return [];
+    return (j.items as Array<Record<string, unknown>>)
+      .filter((it) => typeof it.title === 'string' && !!it.title)
+      .slice(0, 6)
+      .map((it) => ({
+        kind,
+        source: 'AI' as const,
+        title: String(it.title),
+        creator: typeof it.creator === 'string' ? it.creator : '',
+        year: typeof it.year === 'number' && it.year > 1800 && it.year < 2100 ? it.year : undefined,
+        genres: Array.isArray(it.genres) ? (it.genres as unknown[]).filter((g): g is string => typeof g === 'string' && !!g).slice(0, 3) : undefined,
+      }));
+  } catch {
+    return [];
+  }
+}
 
 function extractJson<T>(text: string): T | null {
   const start = text.indexOf('{');

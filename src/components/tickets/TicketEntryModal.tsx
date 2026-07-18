@@ -10,7 +10,7 @@ import {
   KIND_LABEL, KIND_CREATOR_LABEL, TICKET_KINDS, type TicketEntry, type TicketKind,
 } from '@/lib/tickets/ticketStore';
 import { searchMedia, canSearch, type MediaSearchResult } from '@/lib/tickets/search';
-import { aiFillEntry } from '@/lib/tickets/aiFill';
+import { aiFillEntry, aiSuggest } from '@/lib/tickets/aiFill';
 import { putPhoto, getPhotoUrl, deletePhoto, deletePhotos } from '@/lib/tickets/photoStore';
 import { KIND_EMOJI, PLACES, GENRES, DEFAULT_GENRE, gradientFor, todayKeyLocal } from './ticketVisuals';
 
@@ -103,12 +103,14 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     if (filled) { setFilled(false); setCreator(''); setYear(''); setGenres([]); setPosterUrl(undefined); }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = v.trim();
-    if (!q || !canSearch(kind)) { setResults([]); setSearching(false); return; }
+    if (q.length < 2) { setResults([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
-      const rs = await searchMedia(kind, q);
+      // 검색 가능(영화·드라마·책)은 API 먼저, 0건이면 AI 후보. 게임·공연은 바로 AI 후보.
+      let rs = canSearch(kind) ? await searchMedia(kind, q) : [];
+      if (!rs.length) rs = await aiSuggest(kind, q);
       setResults(rs); setSearching(false);
-    }, 400);
+    }, 450);
   };
 
   const pick = (r: MediaSearchResult) => {
@@ -216,7 +218,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
             {/* 제목 아래 하나로 합친 자동 채우기 안내 — 위치·범위를 여기서 다 말해준다 */}
             <div style={{ minHeight: 30, marginTop: 8, display: 'flex', alignItems: 'center', gap: 9 }}>
               {!title.trim() ? (
-                <span style={{ fontSize: 11.5, color: '#5c6c8c' }}>{canSearch(kind) ? '제목을 치면 표지 · 제작 · 연도 · 장르가 자동으로 붙어요' : '이 카테고리는 검색이 없어요 — 제목 치고 AI로 채워요'}</span>
+                <span style={{ fontSize: 11.5, color: '#5c6c8c' }}>{canSearch(kind) ? '제목을 치면 아래에 후보가 떠요 — 고르면 표지·정보가 채워져요' : '제목을 치면 AI가 후보를 찾아줘요 — 고르면 정보가 채워져요'}</span>
               ) : filled ? (
                 <span style={{ fontSize: 11.5, color: '#7d8798' }}>✓ {KIND_CREATOR_LABEL[kind]} · 연도 · 장르를 채웠어요 <span style={{ color: '#5c6c8c' }}>— 아래에서 고칠 수 있어요</span></span>
               ) : (
@@ -228,7 +230,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
             </div>
             {showResults && (
               <div className="tk-scroll" style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 10, background: '#15213a', border: '1px solid #ffffff1a', borderRadius: 12, overflow: 'hidden', maxHeight: 280, overflowY: 'auto', boxShadow: '0 18px 50px -12px rgba(0,0,0,.8)' }}>
-                {searching && <div style={{ padding: '12px 14px', fontSize: 12.5, color: '#8b95a6' }}>검색 중…</div>}
+                {searching && <div style={{ padding: '12px 14px', fontSize: 12.5, color: '#8b95a6' }}>{canSearch(kind) ? '찾는 중…' : 'AI가 후보를 찾는 중…'}</div>}
                 {!searching && results.map((r, i) => (
                   <button key={`${r.title}${i}`} type="button" onClick={() => pick(r)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'inherit' }}>
                     <div style={{ width: 32, height: 46, borderRadius: 4, flex: 'none', overflow: 'hidden', background: gradientFor(r.title) }}>
@@ -238,7 +240,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
                       <div style={{ fontSize: 13.5, fontWeight: 700 }}>{r.title}</div>
                       <div style={{ fontSize: 11, color: '#8b95a6', marginTop: 1 }}>{[r.creator, r.year, (r.genres ?? [])[0]].filter(Boolean).join(' · ')}</div>
                     </div>
-                    <div style={{ fontFamily: 'var(--tk-mono)', fontSize: 8.5, letterSpacing: '.1em', color: '#5c6c8c', border: '1px solid #2a3854', borderRadius: 5, padding: '2px 6px' }}>{r.kind === 'book' ? 'KAKAO' : 'TMDB'}</div>
+                    <div style={{ fontFamily: 'var(--tk-mono)', fontSize: 8.5, letterSpacing: '.1em', color: r.source === 'AI' ? 'var(--tk-accent)' : '#5c6c8c', border: `1px solid ${r.source === 'AI' ? 'color-mix(in srgb, var(--tk-accent) 40%, transparent)' : '#2a3854'}`, borderRadius: 5, padding: '2px 6px' }}>{r.source ?? 'iTunes'}</div>
                   </button>
                 ))}
               </div>

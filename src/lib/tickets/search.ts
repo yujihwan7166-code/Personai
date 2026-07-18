@@ -1,6 +1,7 @@
 /** TMDB(영화·드라마)·카카오 책 검색. 키 부재·네트워크 실패 시 [] — 호출부가 AI 폴백으로 넘어간다. */
 import type { TicketKind } from './ticketStore';
 
+export type MediaSource = 'TMDB' | 'KAKAO' | 'iTunes' | 'AI';
 export interface MediaSearchResult {
   kind: TicketKind;
   title: string;
@@ -8,6 +9,7 @@ export interface MediaSearchResult {
   year?: number;
   posterUrl?: string;
   genres?: string[];
+  source?: MediaSource;
 }
 
 let tmdbKey = import.meta.env.VITE_TMDB_KEY as string | undefined;
@@ -42,7 +44,7 @@ async function itunesSearch(kind: TicketKind, q: string): Promise<MediaSearchRes
       const date = r.releaseDate as string | undefined;
       const title = String(r.trackName ?? r.collectionName ?? r.artistName ?? '');
       return {
-        kind,
+        kind, source: 'iTunes',
         title,
         creator: kind === 'book' && typeof r.artistName === 'string' ? r.artistName : '',
         year: typeof date === 'string' ? Number(date.slice(0, 4)) || undefined : undefined,
@@ -85,6 +87,7 @@ export async function searchMedia(kind: TicketKind, query: string): Promise<Medi
           const date = (isMovie ? r.release_date : r.first_air_date) as string | undefined;
           return {
             kind: (isMovie ? 'movie' : 'drama') as TicketKind,
+            source: 'TMDB' as MediaSource,
             title: String(isMovie ? r.title : r.name ?? ''),
             creator: '',   // TMDB multi 엔 감독 없음 — AI 보완 또는 수동
             year: date ? Number(date.slice(0, 4)) || undefined : undefined,
@@ -105,6 +108,7 @@ export async function searchMedia(kind: TicketKind, query: string): Promise<Medi
     const data = await res.json() as { documents?: Array<Record<string, unknown>> };
     return (data.documents ?? []).map((d) => ({
       kind: 'book' as TicketKind,
+      source: 'KAKAO' as MediaSource,
       title: String(d.title ?? ''),
       creator: Array.isArray(d.authors) ? (d.authors as string[]).join(', ') : '',
       year: typeof d.datetime === 'string' ? Number(d.datetime.slice(0, 4)) || undefined : undefined,

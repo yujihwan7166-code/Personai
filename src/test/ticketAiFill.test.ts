@@ -5,7 +5,7 @@ vi.mock('@/lib/cloudDoc/ai', () => ({
   QUICK_MODEL: 'test-model',
 }));
 import { quickAi } from '@/lib/cloudDoc/ai';
-import { aiFillEntry, aiRecommend, aiDiscover, MIN_ENTRIES_FOR_RECO } from '@/lib/tickets/aiFill';
+import { aiFillEntry, aiRecommend, aiDiscover, aiSuggest, MIN_ENTRIES_FOR_RECO } from '@/lib/tickets/aiFill';
 import type { TicketEntry } from '@/lib/tickets/ticketStore';
 
 let seq = 0;
@@ -75,5 +75,19 @@ describe('aiDiscover', () => {
   it('깨진 응답이면 빈 배열', async () => {
     vi.mocked(quickAi).mockResolvedValue('음 글쎄요');
     expect(await aiDiscover('book')).toEqual([]);
+  });
+});
+
+describe('aiSuggest', () => {
+  it('2자 미만이면 호출 없이 빈 배열', async () => {
+    expect(await aiSuggest('game', '발')).toEqual([]);
+    expect(quickAi).not.toHaveBeenCalled();
+  });
+  it('후보를 MediaSearchResult 로 매핑(source=AI)', async () => {
+    vi.mocked(quickAi).mockResolvedValue(JSON.stringify({
+      items: [{ title: '발더스 게이트 3', creator: '라리안', year: 2023, genres: ['RPG'] }],
+    }));
+    const r = await aiSuggest('game', '발더스');
+    expect(r[0]).toMatchObject({ kind: 'game', source: 'AI', title: '발더스 게이트 3', creator: '라리안', year: 2023, genres: ['RPG'] });
   });
 });
