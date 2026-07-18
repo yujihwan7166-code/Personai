@@ -26,7 +26,7 @@ import {
 import { TicketEntryModal, type TicketDraft } from '@/components/tickets/TicketEntryModal';
 import { TicketDetailModal } from '@/components/tickets/TicketDetailModal';
 
-type View = 'wall' | 'vault' | 'recap' | 'explore';
+type View = 'wall' | 'vault' | 'recap' | 'explore' | 'watchlist';
 type NavKey = 'all' | 'starred' | TicketKind;
 
 function firstLoad(): TicketStoreData {
@@ -146,9 +146,11 @@ export default function Tickets() {
   const viewTitle = view === 'vault' ? '마일스톤 · 스탬프'
     : view === 'recap' ? '연말결산'
     : view === 'explore' ? '탐색'
+    : view === 'watchlist' ? '찜' + (store.watchlist?.length ? ` · ${store.watchlist.length}` : '')
     : nav === 'all' ? '전체 티켓' : nav === 'starred' ? '최고의 티켓' : KIND_LABEL[nav as TicketKind];
   const viewSub = view === 'vault' ? '모으다 보면 발급되는 기념 티켓과 장르 스탬프. 숙제는 없어요.'
-    : view === 'explore' ? '세상의 인기작을 둘러보고, 보고 싶은 걸 볼 것에 담아두세요.'
+    : view === 'explore' ? '세상의 인기작을 둘러보고, 보고 싶은 걸 찜해두세요.'
+    : view === 'watchlist' ? '아직 안 봤지만 보고 싶어 담아둔 것들. 보고 나면 별점 매겨 티켓으로.'
     : view === 'recap' ? '한 해 동안 무엇을 얼마나 봤는지 돌아봐요.'
     : nav === 'starred' ? '별 다섯 개를 준, 다시 볼 작품들.'
     : nav === 'all' ? '내가 본 모든 것들이 이 벽에 걸려 있어요.'
@@ -177,13 +179,23 @@ export default function Tickets() {
           </button>
         </div>
 
-        <div style={{ padding: '2px 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <NavRow icon={<Compass size={17} />} label="탐색" badge={(store.watchlist?.length ?? 0) > 0 ? String(store.watchlist!.length) : undefined} active={view === 'explore'} onClick={() => { setView('explore'); top(); }} />
+        {/* 안 본 것 찾기 */}
+        <div style={{ padding: '2px 18px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: '#4d586a', textTransform: 'uppercase' }}>볼 것 찾기</div>
+        <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <NavRow icon={<Compass size={17} />} label="탐색" active={view === 'explore'} onClick={() => { setView('explore'); top(); }} />
+          <NavRow icon={<Bookmark size={17} fill={view === 'watchlist' ? 'currentColor' : 'none'} />} label="찜" count={store.watchlist?.length ?? 0} active={view === 'watchlist'} onClick={() => { setView('watchlist'); top(); }} />
+          <NavRow icon={<Sparkles size={17} />} label="다음 뭐 볼까?" badge="AI" dim={entries.length < 3} onClick={() => { if (entries.length < 3) { toast('기록이 3편 이상이면 분석할 수 있어요'); return; } setRecoOpen(true); }} />
+        </div>
+
+        <div style={{ margin: '8px 18px', height: 1, background: '#ffffff10' }} />
+
+        {/* 본 것 저장 */}
+        <div style={{ padding: '2px 18px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: '#4d586a', textTransform: 'uppercase' }}>내 기록</div>
+        <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall' && nav === 'all'} onClick={() => goWall('all')} />
           <NavRow icon={<Star size={17} fill={nav === 'starred' && view === 'wall' ? 'currentColor' : 'none'} />} label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={view === 'wall' && nav === 'starred'} onClick={() => goWall('starred')} />
           <NavRow icon={<Award size={17} />} label="마일스톤 · 스탬프" active={view === 'vault'} onClick={() => { setView('vault'); top(); }} />
           <NavRow icon={<BarChart3 size={17} />} label="연말결산" active={view === 'recap'} onClick={() => { setView('recap'); setRecapYear(years[0] ?? nowY); top(); }} />
-          <NavRow icon={<Sparkles size={17} />} label="다음 뭐 볼까?" badge="AI" dim={entries.length < 3} onClick={() => { if (entries.length < 3) { toast('기록이 3편 이상이면 분석할 수 있어요'); return; } setRecoOpen(true); }} />
         </div>
 
         <div style={{ padding: '14px 18px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -242,8 +254,8 @@ export default function Tickets() {
 
         {/* 콘텐츠 스크롤 */}
         <div ref={mainRef} className="tk-scroll" style={{ flex: 1, overflowY: 'auto', padding: '26px 34px 60px' }}>
-          {view === 'explore' && (
-            <ExploreView entries={entries} watchlist={store.watchlist ?? []} onAddWatch={addWatch} onRemoveWatch={removeWatch} onWatched={(c, wid) => openNew(c, wid)} />
+          {(view === 'explore' || view === 'watchlist') && (
+            <ExploreView mode={view === 'explore' ? 'browse' : 'watch'} entries={entries} watchlist={store.watchlist ?? []} onAddWatch={addWatch} onRemoveWatch={removeWatch} onWatched={(c, wid) => openNew(c, wid)} onGoBrowse={() => { setView('explore'); top(); }} />
           )}
           {view === 'wall' && (
             wallList.length === 0 ? (
@@ -269,7 +281,7 @@ export default function Tickets() {
       {/* 모달들 */}
       <TicketEntryModal open={entryOpen} initial={entryInitial} prefill={entryPrefill} entriesCount={entries.length} onClose={() => { setEntryOpen(false); setPendingWatchId(null); }} onSave={handleSave} />
       <TicketDetailModal entry={detail} allEntries={entries} onClose={() => setDetailId(null)} onEdit={openEdit} onDelete={handleDelete} />
-      {recoOpen && <RecommendModal entries={entries} onClose={() => setRecoOpen(false)} onAdd={(p) => { setRecoOpen(false); openNew(p); }} />}
+      {recoOpen && <RecommendModal entries={entries} watchlist={store.watchlist ?? []} onClose={() => setRecoOpen(false)} onAdd={(p) => { setRecoOpen(false); openNew(p); }} onWish={(p) => addWatch(p)} />}
       {celebrate != null && <CelebrateModal n={celebrate} onVault={() => { setCelebrate(null); setView('vault'); top(); }} onClose={() => setCelebrate(null)} />}
     </div>
   );
@@ -581,15 +593,19 @@ function RecapView({ entries, years, recapYear, setRecapYear, onOpen }: {
 }
 
 /* ══════ AI 추천 ══════ */
-function RecommendModal({ entries, onClose, onAdd }: { entries: TicketEntry[]; onClose: () => void; onAdd: (p: { kind: TicketKind; title: string }) => void }) {
+function RecommendModal({ entries, watchlist, onClose, onAdd, onWish }: {
+  entries: TicketEntry[]; watchlist: WatchlistItem[]; onClose: () => void;
+  onAdd: (p: Candidate) => void; onWish: (p: Candidate) => void;
+}) {
   const [state, setState] = useState<{ st: 'loading' | 'ok' | 'fail'; data?: RecoResult }>({ st: 'loading' });
+  const [wished, setWished] = useState<Set<string>>(() => new Set());
 
   const run = useMemo(() => async () => {
     setState({ st: 'loading' });
     const liked = entries.filter((e) => e.rating >= 4);
-    const r = await aiRecommend(liked);
+    const r = await aiRecommend(liked, watchlist.map((w) => ({ title: w.title, kind: w.kind })));
     setState(r ? { st: 'ok', data: r } : { st: 'fail' });
-  }, [entries]);
+  }, [entries, watchlist]);
 
   useEffect(() => { void run(); }, [run]);
   useEffect(() => {
@@ -604,7 +620,7 @@ function RecommendModal({ entries, onClose, onAdd }: { entries: TicketEntry[]; o
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18.5, fontWeight: 800 }}><Sparkles size={17} color="var(--tk-accent)" /> 다음 뭐 볼까?</div>
-            <div style={{ fontSize: 12, color: '#8b95a6', marginTop: 3 }}>별점 높게 준 티켓들로 취향을 읽었어요 — 카테고리는 넘나들어요</div>
+            <div style={{ fontSize: 12, color: '#8b95a6', marginTop: 3 }}>별점 준 취향 + 찜해둔 것까지 보고 골랐어요 — 카테고리는 넘나들어요</div>
           </div>
           <button type="button" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6e80a1', cursor: 'pointer', background: 'none', border: 'none' }}><X size={16} /></button>
         </div>
@@ -635,7 +651,13 @@ function RecommendModal({ entries, onClose, onAdd }: { entries: TicketEntry[]; o
                     </div>
                     <div style={{ fontSize: 12.5, color: '#9aa7bd', marginTop: 5, lineHeight: 1.5 }}>{p.reason}</div>
                   </div>
-                  <button type="button" onClick={() => onAdd({ kind: p.kind, title: p.title })} style={{ padding: '7px 13px', borderRadius: 999, border: '1px solid color-mix(in srgb, var(--tk-accent) 50%, transparent)', color: 'var(--tk-accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'none', whiteSpace: 'nowrap', flex: 'none' }}>티켓북에 담기</button>
+                  <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
+                    <button type="button" disabled={wished.has(p.title)} onClick={() => { onWish({ kind: p.kind, title: p.title, creator: p.creator }); setWished((s) => new Set(s).add(p.title)); }}
+                      style={{ padding: '7px 12px', borderRadius: 999, border: `1px solid ${wished.has(p.title) ? 'var(--tk-accent)' : 'color-mix(in srgb, var(--tk-accent) 50%, transparent)'}`, background: wished.has(p.title) ? 'color-mix(in srgb, var(--tk-accent) 15%, transparent)' : 'none', color: 'var(--tk-accent)', fontSize: 12, fontWeight: 700, cursor: wished.has(p.title) ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                      {wished.has(p.title) ? '찜함' : '＋ 찜'}
+                    </button>
+                    <button type="button" onClick={() => onAdd({ kind: p.kind, title: p.title, creator: p.creator })} style={{ padding: '7px 12px', borderRadius: 999, border: 'none', background: 'var(--tk-accent)', color: '#231402', fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>봤어요</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -682,12 +704,12 @@ function CelebrateModal({ n, onVault, onClose }: { n: number; onVault: () => voi
 /* ══════ 탐색 (둘러보기 / 볼 것) ══════ */
 type DiscoverState = Candidate[] | 'loading' | 'error';
 
-function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched }: {
+function ExploreView({ mode, entries, watchlist, onAddWatch, onRemoveWatch, onWatched, onGoBrowse }: {
+  mode: 'browse' | 'watch';
   entries: TicketEntry[]; watchlist: WatchlistItem[];
   onAddWatch: (c: Candidate) => void; onRemoveWatch: (id: string) => void;
-  onWatched: (c: Candidate, wid?: string) => void;
+  onWatched: (c: Candidate, wid?: string) => void; onGoBrowse: () => void;
 }) {
-  const [tab, setTab] = useState<'browse' | 'watch'>('browse');
   const [cat, setCat] = useState<TicketKind>('movie');
   const [cache, setCache] = useState<Partial<Record<TicketKind, DiscoverState>>>({});
 
@@ -696,7 +718,7 @@ function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched 
   const watchedTitles = useMemo(() => new Set(watchlist.map((w) => w.title.trim())), [watchlist]);
 
   useEffect(() => {
-    if (tab !== 'browse' || cache[cat]) return;
+    if (mode !== 'browse' || cache[cat]) return;
     let alive = true;
     setCache((c) => ({ ...c, [cat]: 'loading' }));
     (async () => {
@@ -712,7 +734,7 @@ function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched 
       if (alive) setCache((c) => ({ ...c, [cat]: items.length ? items : 'error' }));
     })();
     return () => { alive = false; };
-  }, [tab, cat, cache, seenTitles]);
+  }, [mode, cat, cache, seenTitles]);
 
   const state = cache[cat];
   const chip = (active: boolean): CSSProperties => ({
@@ -723,17 +745,7 @@ function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched 
 
   return (
     <div style={{ animation: 'tk-fadeIn .35s' }}>
-      {/* 세그먼트 탭 */}
-      <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: '#101b30', border: '1px solid #ffffff12', marginBottom: 20 }}>
-        {(['browse', 'watch'] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', border: 'none', background: tab === t ? 'var(--tk-accent)' : 'transparent', color: tab === t ? '#231402' : '#c3ccd9', display: 'flex', alignItems: 'center', gap: 6 }}>
-            {t === 'browse' ? <Compass size={15} /> : <Bookmark size={15} />}
-            {t === 'browse' ? '둘러보기' : `볼 것${watchlist.length ? ` ${watchlist.length}` : ''}`}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'browse' ? (
+      {mode === 'browse' ? (
         <>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
             {TICKET_KINDS.map((k) => (
@@ -766,8 +778,8 @@ function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched 
           <div style={{ padding: '80px 20px', textAlign: 'center', color: '#8b95a6' }}>
             <Bookmark size={40} style={{ opacity: .4, marginBottom: 12 }} />
             <div style={{ fontSize: 17, fontWeight: 800, color: '#c3ccd9' }}>볼 것이 아직 비어 있어요</div>
-            <div style={{ fontSize: 13.5, marginTop: 6 }}>둘러보기에서 마음에 드는 걸 '볼 것에 담기' 해두면 여기 모여요.</div>
-            <button type="button" onClick={() => setTab('browse')} style={{ marginTop: 18, height: 42, padding: '0 20px', borderRadius: 11, background: 'var(--tk-accent)', color: '#231907', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer' }}>둘러보러 가기</button>
+            <div style={{ fontSize: 13.5, marginTop: 6 }}>탐색에서 마음에 드는 걸 '볼 것에 담기' 해두면 여기 모여요.</div>
+            <button type="button" onClick={onGoBrowse} style={{ marginTop: 18, height: 42, padding: '0 20px', borderRadius: 11, background: 'var(--tk-accent)', color: '#231907', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer' }}>탐색하러 가기</button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>

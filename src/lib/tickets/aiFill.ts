@@ -43,21 +43,27 @@ const KIND_FROM_LABEL: Record<string, TicketKind> = {
   영화: 'movie', 드라마: 'drama', 책: 'book', 게임: 'game', 공연: 'show',
 };
 
-export async function aiRecommend(likedEntries: TicketEntry[]): Promise<RecoResult | null> {
+export async function aiRecommend(
+  likedEntries: TicketEntry[],
+  watchlist: { title: string; kind: TicketKind }[] = [],
+): Promise<RecoResult | null> {
   if (likedEntries.length < MIN_ENTRIES_FOR_RECO) return null;
   const catalog = likedEntries.slice(0, 30)
     .map((e) => `- [${KIND_LABEL[e.kind]}] ${e.title}${e.creator ? ` (${e.creator})` : ''} ★${e.rating}${e.oneLiner ? ` — ${e.oneLiner}` : ''}`)
     .join('\n');
+  const wish = watchlist.slice(0, 30).map((w) => `- [${KIND_LABEL[w.kind]}] ${w.title}`).join('\n');
+  const userMsg = `[별점 높게 준 작품]\n${catalog}${wish ? `\n\n[이미 보고 싶어 담아둔 것]\n${wish}` : ''}`;
   try {
     const raw = await quickAi(
-      `너는 취향 분석가다. 사용자가 높게 평가한 작품 목록을 보고 JSON만 출력한다: {"taste":"취향 한 줄(한국어, 40자 이내)","picks":[{"kind":"movie|drama|book|game|show","title":"제목","creator":"만든 이","reason":"추천 이유 한 문장"}]}. picks는 정확히 5개, 목록에 이미 있는 작품 제외, 카테고리를 섞어도 좋다. 다른 말 금지.`,
-      catalog,
+      `너는 취향 분석가다. 사용자가 높게 평가한 작품과 이미 보고 싶어 담아둔 것을 함께 보고 JSON만 출력한다: {"taste":"취향 한 줄(한국어, 40자 이내)","picks":[{"kind":"movie|drama|book|game|show","title":"제목","creator":"만든 이","reason":"추천 이유 한 문장"}]}. picks는 정확히 5개, 위 두 목록에 이미 있는 작품은 제외(담아둔 것도 제외), 카테고리를 섞어도 좋다. 다른 말 금지.`,
+      userMsg,
       { model: QUICK_MODEL, temperature: 0.7, maxTokens: 700 },
     );
     const j = extractJson<{ taste?: unknown; picks?: unknown }>(raw);
     if (!j || typeof j.taste !== 'string' || !Array.isArray(j.picks)) return null;
+    const known = new Set([...likedEntries.map((e) => e.title.trim()), ...watchlist.map((w) => w.title.trim())]);
     const picks = (j.picks as Array<Record<string, unknown>>)
-      .filter((p) => typeof p.title === 'string' && !!p.title)
+      .filter((p) => typeof p.title === 'string' && !!p.title && !known.has((p.title as string).trim()))
       .slice(0, 5)
       .map((p) => {
         const rawKind = typeof p.kind === 'string' ? (KIND_FROM_LABEL[p.kind] ?? p.kind) : 'movie';
