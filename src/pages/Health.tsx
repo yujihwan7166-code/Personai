@@ -147,7 +147,7 @@ export default function Health() {
                 className={cn(
                   'flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] transition-colors',
                   active
-                    ? 'bg-[hsl(var(--health-green))]/16 font-bold text-[hsl(var(--health-green))] ring-1 ring-inset ring-[hsl(var(--health-green))]/15'
+                    ? 'bg-[hsl(var(--health-green))]/24 font-bold text-[hsl(var(--health-green))]'
                     : 'font-medium text-foreground/72 hover:bg-[hsl(var(--health-green))]/6',
                 )}
               >

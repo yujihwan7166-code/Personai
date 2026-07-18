@@ -179,7 +179,7 @@ const Notes = () => {
           onClick={() => setActiveId(note.id)}
           className={cn(
             'group flex h-[38px] w-full items-center gap-2 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
-            activeRow ? 'bg-[#2c4f93]/16 font-semibold text-[#2c4f93] ring-1 ring-inset ring-[#2c4f93]/15 dark:bg-[#2c4f93]/28 dark:text-white dark:ring-white/15' : 'text-[#4d5563] hover:bg-white/45 dark:text-foreground/70 dark:hover:bg-white/5',
+            activeRow ? 'bg-[#2c4f93]/24 font-semibold text-[#2c4f93] dark:bg-[#2c4f93]/32 dark:text-white' : 'text-[#4d5563] hover:bg-white/45 dark:text-foreground/70 dark:hover:bg-white/5',
           )}
         >
           <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#8894a5]')} strokeWidth={1.8} />
