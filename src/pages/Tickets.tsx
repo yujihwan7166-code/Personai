@@ -193,19 +193,13 @@ export default function Tickets() {
         <div style={{ padding: '2px 18px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: '#4d586a', textTransform: 'uppercase' }}>내 기록</div>
         <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall' && nav === 'all'} onClick={() => goWall('all')} />
+          {/* 전체 보기(벽)를 보는 중일 때만, 그 아래로 카테고리 필터가 펼쳐진다 */}
+          {view === 'wall' && TICKET_KINDS.map((k) => (
+            <NavRow key={k} indent emoji={KIND_EMOJI[k]} label={KIND_LABEL[k]} count={catCount(k)} active={nav === k} onClick={() => goWall(k)} />
+          ))}
           <NavRow icon={<Star size={17} fill={nav === 'starred' && view === 'wall' ? 'currentColor' : 'none'} />} label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={view === 'wall' && nav === 'starred'} onClick={() => goWall('starred')} />
           <NavRow icon={<Award size={17} />} label="마일스톤 · 스탬프" active={view === 'vault'} onClick={() => { setView('vault'); top(); }} />
           <NavRow icon={<BarChart3 size={17} />} label="연말결산" active={view === 'recap'} onClick={() => { setView('recap'); setRecapYear(years[0] ?? nowY); top(); }} />
-        </div>
-
-        <div style={{ padding: '14px 18px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.09em', color: '#5f6b7e', textTransform: 'uppercase' }}>카테고리</span>
-          <span style={{ fontSize: 11, color: '#4d586a', fontFamily: 'var(--tk-mono)' }}>{entries.length}</span>
-        </div>
-        <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {TICKET_KINDS.map((k) => (
-            <NavRow key={k} emoji={KIND_EMOJI[k]} label={KIND_LABEL[k]} count={catCount(k)} active={view === 'wall' && nav === k} onClick={() => goWall(k)} />
-          ))}
         </div>
 
         <div style={{ flex: 1, minHeight: 14 }} />
@@ -288,16 +282,17 @@ export default function Tickets() {
 }
 
 /* ══════ 사이드바 행 ══════ */
-function NavRow({ icon, emoji, label, count, badge, active, dim, onClick }: {
-  icon?: React.ReactNode; emoji?: string; label: string; count?: number; badge?: string; active?: boolean; dim?: boolean; onClick: () => void;
+function NavRow({ icon, emoji, label, count, badge, active, dim, indent, onClick }: {
+  icon?: React.ReactNode; emoji?: string; label: string; count?: number; badge?: string; active?: boolean; dim?: boolean; indent?: boolean; onClick: () => void;
 }) {
   return (
     <button type="button" onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 10, height: emoji ? 38 : 40, padding: '0 12px', borderRadius: 9,
-      fontSize: 14, fontWeight: 600, background: active ? 'color-mix(in srgb, var(--tk-accent) 15%, transparent)' : 'transparent',
-      color: active ? 'var(--tk-accent)' : '#c3ccd9', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', opacity: dim ? 0.5 : 1,
+      display: 'flex', alignItems: 'center', gap: indent ? 9 : 10, height: emoji || indent ? 34 : 40, padding: indent ? '0 12px 0 22px' : '0 12px', borderRadius: 9,
+      fontSize: indent ? 13 : 14, fontWeight: active ? 700 : 600, background: active ? 'color-mix(in srgb, var(--tk-accent) 15%, transparent)' : 'transparent',
+      color: active ? 'var(--tk-accent)' : indent ? '#9aa7bd' : '#c3ccd9', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', opacity: dim ? 0.5 : 1,
     }}>
-      {emoji ? <span style={{ width: 20, textAlign: 'center', fontSize: 15 }}>{emoji}</span> : icon}
+      {indent && !active && <span aria-hidden style={{ width: 5, height: 5, borderRadius: 99, background: '#3a4a6b', flex: 'none', marginLeft: 1, marginRight: -2 }} />}
+      {emoji ? <span style={{ width: 18, textAlign: 'center', fontSize: indent ? 14 : 15 }}>{emoji}</span> : icon}
       <span style={{ flex: 1 }}>{label}</span>
       {badge && <span style={{ fontSize: 10, color: 'var(--tk-accent)', fontWeight: 700, border: '1px solid #ffffff1f', borderRadius: 5, padding: '1px 5px' }}>{badge}</span>}
       {count != null && <span style={{ fontSize: 12.5, color: active ? 'var(--tk-accent)' : '#6f7b8e', fontFamily: 'var(--tk-mono)' }}>{count}</span>}
