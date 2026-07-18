@@ -183,9 +183,6 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     onSave(draft, editingId);
   };
 
-  const searchHint = canSearch(kind)
-    ? '제목을 치면 표지·정보가 자동으로 붙어요'
-    : '이 카테고리는 검색 대신 AI로 채워요';
   const showResults = !filled && !!title.trim() && (searching || results.length > 0);
 
   if (!open) return null;
@@ -216,7 +213,19 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
             <Search size={17} style={{ position: 'absolute', left: 15, top: 15, color: '#5c6c8c', pointerEvents: 'none' }} />
             <input autoFocus value={title} onChange={(e) => onTitle(e.target.value)} placeholder="무엇을 봤나요? 제목을 입력해보세요"
               style={{ ...inputStyle, padding: '13px 14px 13px 42px', fontSize: 16, fontWeight: 700, borderRadius: 13 }} />
-            <div style={{ fontSize: 11, color: '#5c6c8c', marginTop: 6 }}>{searchHint}</div>
+            {/* 제목 아래 하나로 합친 자동 채우기 안내 — 위치·범위를 여기서 다 말해준다 */}
+            <div style={{ minHeight: 30, marginTop: 8, display: 'flex', alignItems: 'center', gap: 9 }}>
+              {!title.trim() ? (
+                <span style={{ fontSize: 11.5, color: '#5c6c8c' }}>{canSearch(kind) ? '제목을 치면 표지 · 제작 · 연도 · 장르가 자동으로 붙어요' : '이 카테고리는 검색이 없어요 — 제목 치고 AI로 채워요'}</span>
+              ) : filled ? (
+                <span style={{ fontSize: 11.5, color: '#7d8798' }}>✓ {KIND_CREATOR_LABEL[kind]} · 연도 · 장르를 채웠어요 <span style={{ color: '#5c6c8c' }}>— 아래에서 고칠 수 있어요</span></span>
+              ) : (
+                <>
+                  <button type="button" onClick={runAiFill} disabled={aiBusy} style={{ ...pillBtn, opacity: aiBusy ? 0.7 : 1 }}><Sparkles size={12} /> {aiBusy ? '채우는 중…' : 'AI로 자동 채우기'}</button>
+                  <span style={{ fontSize: 11, color: '#5c6c8c' }}>제목으로 {KIND_CREATOR_LABEL[kind]} · 연도 · 장르를 채워요</span>
+                </>
+              )}
+            </div>
             {showResults && (
               <div className="tk-scroll" style={{ position: 'absolute', top: 52, left: 0, right: 0, zIndex: 10, background: '#15213a', border: '1px solid #ffffff1a', borderRadius: 12, overflow: 'hidden', maxHeight: 280, overflowY: 'auto', boxShadow: '0 18px 50px -12px rgba(0,0,0,.8)' }}>
                 {searching && <div style={{ padding: '12px 14px', fontSize: 12.5, color: '#8b95a6' }}>검색 중…</div>}
@@ -232,12 +241,6 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
                     <div style={{ fontFamily: 'var(--tk-mono)', fontSize: 8.5, letterSpacing: '.1em', color: '#5c6c8c', border: '1px solid #2a3854', borderRadius: 5, padding: '2px 6px' }}>{r.kind === 'book' ? 'KAKAO' : 'TMDB'}</div>
                   </button>
                 ))}
-                {!searching && results.length === 0 && (
-                  <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ fontSize: 12.5, color: '#8b95a6' }}>검색에 없어요 — 대신 AI가 채워드릴까요?</div>
-                    <button type="button" onClick={runAiFill} style={pillBtn}>{aiBusy ? '채우는 중…' : 'AI로 채우기'}</button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -256,11 +259,6 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
                   <input value={year} onChange={(e) => setYear(e.target.value)} placeholder="—" inputMode="numeric" style={{ ...inputStyle, padding: '9px 11px', fontSize: 13.5 }} />
                 </Field>
               </div>
-              <div style={{ marginTop: -6 }}>
-                <button type="button" onClick={runAiFill} style={pillBtn}><Sparkles size={12} /> {aiBusy ? '채우는 중…' : 'AI로 채우기'}</button>
-                <span style={{ fontSize: 10.5, color: '#5c6c8c', marginLeft: 8 }}>게임·공연은 AI가 채워요</span>
-              </div>
-
               <Field label="장르" hint="여러 개 고를 수 있어요">
                 <ChipCloud options={GENRES[kind]} active={genres}
                   onToggle={(g) => setGenres((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : cur.length >= 4 ? cur : [...cur, g]))}
