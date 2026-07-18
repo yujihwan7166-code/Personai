@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchMedia, trendingMedia, hasApiFor, __setKeysForTest } from '@/lib/tickets/search';
+import { searchMedia, trendingMedia, fetchPoster, hasApiFor, __setKeysForTest } from '@/lib/tickets/search';
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -80,5 +80,19 @@ describe('trendingMedia', () => {
     })));
     const r = await trendingMedia('movie');
     expect(r[0]).toMatchObject({ kind: 'movie', title: '위키드', year: 2024, posterUrl: 'https://image.tmdb.org/t/p/w342/w.jpg', genres: ['음악'] });
+  });
+});
+
+describe('fetchPoster', () => {
+  it('키 없으면 undefined', async () => {
+    __setKeysForTest(undefined, undefined);
+    expect(await fetchPoster('movie', '기생충')).toBeUndefined();
+  });
+  it('첫 검색 결과의 포스터 URL', async () => {
+    __setKeysForTest('k', undefined);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      results: [{ media_type: 'movie', title: '기생충', release_date: '2019-05-30', poster_path: '/p.jpg' }],
+    })));
+    expect(await fetchPoster('movie', '기생충')).toBe('https://image.tmdb.org/t/p/w342/p.jpg');
   });
 });

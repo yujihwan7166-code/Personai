@@ -81,6 +81,13 @@ export async function searchMedia(kind: TicketKind, query: string): Promise<Medi
   }
 }
 
+/** 포스터 백필 — 제목으로 검색해 첫 결과의 표지 URL. 없거나 키 부재면 undefined. */
+export async function fetchPoster(kind: TicketKind, title: string): Promise<string | undefined> {
+  if (!hasApiFor(kind)) return undefined;
+  const rs = await searchMedia(kind, title);
+  return rs.find((r) => r.posterUrl)?.posterUrl;
+}
+
 /** 탐색(둘러보기)용 인기·트렌딩 — 영화·드라마만 TMDB 주간 트렌딩. 책·게임·공연은 트렌딩 API가 없어 []. */
 export async function trendingMedia(kind: TicketKind): Promise<MediaSearchResult[]> {
   if (!((kind === 'movie' || kind === 'drama') && tmdbKey)) return [];

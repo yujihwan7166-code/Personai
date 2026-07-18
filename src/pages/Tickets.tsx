@@ -15,7 +15,7 @@ import {
   MILESTONES, MILESTONE_META, earnedMilestones, newlyEarned, stampProgress, yearStats,
 } from '@/lib/tickets/milestones';
 import { aiRecommend, aiDiscover, type RecoResult } from '@/lib/tickets/aiFill';
-import { trendingMedia, hasApiFor, type MediaSearchResult } from '@/lib/tickets/search';
+import { trendingMedia, fetchPoster, hasApiFor, type MediaSearchResult } from '@/lib/tickets/search';
 import { deletePhotos } from '@/lib/tickets/photoStore';
 
 type Candidate = { kind: TicketKind; title: string; creator?: string; year?: number; posterUrl?: string; genres?: string[] };
@@ -50,7 +50,9 @@ export default function Tickets() {
   const [pendingWatchId, setPendingWatchId] = useState<string | null>(null);
   const [recoOpen, setRecoOpen] = useState(false);
   const [celebrate, setCelebrate] = useState<number | null>(null);
+  const [hintDismissed, setHintDismissed] = useState(() => { try { return localStorage.getItem('ticketbook.keyhint') === '1'; } catch { return false; } });
   const mainRef = useRef<HTMLDivElement>(null);
+  const backfilledRef = useRef<Set<string>>(new Set());
 
   const { entries } = store;
   const accent = store.accent ?? DEFAULT_ACCENT;
@@ -63,6 +65,24 @@ export default function Tickets() {
     window.addEventListener(TICKETS_CHANGED, f);
     return () => window.removeEventListener(TICKETS_CHANGED, f);
   }, []);
+
+  // 포스터 자동 백필 — 표지 없는 영화·드라마·책을 제목으로 찾아 채운다(키 있을 때만). 한 번 시도한 항목은 재시도 안 함.
+  useEffect(() => {
+    const targets = entries.filter((e) => !e.posterUrl
+      && (e.kind === 'movie' || e.kind === 'drama' || e.kind === 'book')
+      && hasApiFor(e.kind) && !backfilledRef.current.has(e.id)).slice(0, 10);
+    if (!targets.length) return;
+    let alive = true;
+    (async () => {
+      for (const e of targets) {
+        backfilledRef.current.add(e.id);
+        const url = await fetchPoster(e.kind, e.title);
+        if (!alive) return;
+        if (url) setStore((s) => ({ ...s, entries: s.entries.map((x) => (x.id === e.id ? { ...x, posterUrl: url } : x)) }));
+      }
+    })();
+    return () => { alive = false; };
+  }, [entries]);
 
   const top = () => { if (mainRef.current) mainRef.current.scrollTop = 0; };
 
@@ -254,6 +274,15 @@ export default function Tickets() {
         <div ref={mainRef} className="tk-scroll" style={{ flex: 1, overflowY: 'auto', padding: '26px 34px 60px' }}>
           {(view === 'explore' || view === 'watchlist') && (
             <ExploreView mode={view === 'explore' ? 'browse' : 'watch'} entries={entries} watchlist={store.watchlist ?? []} onAddWatch={addWatch} onRemoveWatch={removeWatch} onWatched={(c, wid) => openNew(c, wid)} onGoBrowse={() => { setView('explore'); top(); }} />
+          )}
+          {view === 'wall' && !hintDismissed && !hasApiFor('movie') && entries.some((e) => !e.posterUrl && (e.kind === 'movie' || e.kind === 'drama' || e.kind === 'book')) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', marginBottom: 20, borderRadius: 12, background: 'color-mix(in srgb, var(--tk-accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--tk-accent) 26%, transparent)' }}>
+              <span style={{ fontSize: 18 }}>🎬</span>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: '#c3ccd9', lineHeight: 1.5 }}>
+                <b style={{ color: 'var(--tk-accent)' }}>TMDB 키</b>를 넣으면 영화·드라마·책 표지가 자동으로 채워져요. <span style={{ color: '#8b95a6' }}>.env.local 에 VITE_TMDB_KEY / VITE_KAKAO_KEY</span>
+              </div>
+              <button type="button" onClick={() => { setHintDismissed(true); try { localStorage.setItem('ticketbook.keyhint', '1'); } catch { /* noop */ } }} style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b95a6', background: 'none', border: 'none', cursor: 'pointer', flex: 'none' }}><X size={15} /></button>
+            </div>
           )}
           {view === 'wall' && (
             wallList.length === 0 ? (
