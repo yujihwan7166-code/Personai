@@ -436,7 +436,7 @@ export default function Journal() {
         className={cn(
           'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14px] transition-colors',
           active
-            ? 'bg-[hsl(var(--cream-accent))]/12 font-semibold text-[hsl(var(--cream-accent))] dark:bg-[hsl(var(--cream-accent))]/22'
+            ? 'bg-[hsl(var(--cream-accent))]/16 font-semibold text-[hsl(var(--cream-accent))] ring-1 ring-inset ring-[hsl(var(--cream-accent))]/30 dark:bg-[hsl(var(--cream-accent))]/22'
             : 'font-medium text-[hsl(var(--cream-ink))]/90 hover:bg-white/45 dark:hover:bg-white/5',
         )}
       >
