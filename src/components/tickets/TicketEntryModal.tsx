@@ -12,7 +12,7 @@ import {
 import { searchMedia, hasApiFor, type MediaSearchResult } from '@/lib/tickets/search';
 import { aiFillEntry } from '@/lib/tickets/aiFill';
 import { putPhoto, getPhotoUrl, deletePhoto, deletePhotos } from '@/lib/tickets/photoStore';
-import { KIND_EMOJI, PLACES, DEFAULT_GENRE, gradientFor, palFor, todayKeyLocal } from './ticketVisuals';
+import { KIND_EMOJI, PLACES, GENRES, DEFAULT_GENRE, gradientFor, palFor, todayKeyLocal } from './ticketVisuals';
 
 export type TicketDraft = Omit<TicketEntry, 'id' | 'createdAt'>;
 
@@ -39,7 +39,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
   const [title, setTitle] = useState('');
   const [creator, setCreator] = useState('');
   const [year, setYear] = useState('');
-  const [genre, setGenre] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
   const [rating, setRating] = useState(0);
   const [watchedAt, setWatchedAt] = useState(todayKeyLocal());
   const [where, setWhere] = useState('');
@@ -63,14 +63,14 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     setErr(''); setResults([]); setAiBusy(false); setSearching(false);
     if (initial) {
       setKind(initial.kind); setTitle(initial.title); setCreator(initial.creator);
-      setYear(initial.year ? String(initial.year) : ''); setGenre((initial.genres ?? []).join(', '));
+      setYear(initial.year ? String(initial.year) : ''); setGenres(initial.genres ?? []);
       setRating(initial.rating); setWatchedAt(initial.watchedAt); setWhere(initial.where ?? '');
       setOneLiner(initial.oneLiner); setLongNote(initial.longNote ?? ''); setQuote((initial.quotes ?? []).join('\n'));
       setPosterUrl(initial.posterUrl); setFilled(true);
       setExpanded(!!(initial.longNote || initial.quotes?.length || initial.photoIds?.length));
     } else {
       setKind(prefill?.kind ?? 'movie'); setTitle(prefill?.title ?? ''); setCreator(prefill?.creator ?? '');
-      setYear(prefill?.year ? String(prefill.year) : ''); setGenre((prefill?.genres ?? []).join(', '));
+      setYear(prefill?.year ? String(prefill.year) : ''); setGenres(prefill?.genres ?? []);
       setRating(0); setWatchedAt(todayKeyLocal()); setWhere(''); setOneLiner('');
       setLongNote(''); setQuote(''); setPosterUrl(prefill?.posterUrl); setFilled(!!prefill?.title); setExpanded(false);
     }
@@ -102,7 +102,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
 
   const onTitle = (v: string) => {
     setTitle(v); setErr('');
-    if (filled) { setFilled(false); setCreator(''); setYear(''); setGenre(''); setPosterUrl(undefined); }
+    if (filled) { setFilled(false); setCreator(''); setYear(''); setGenres([]); setPosterUrl(undefined); }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = v.trim();
     if (!q || !hasApiFor(kind)) { setResults([]); setSearching(false); return; }
@@ -115,7 +115,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
 
   const pick = (r: MediaSearchResult) => {
     setKind(r.kind); setTitle(r.title); setCreator(r.creator);
-    setYear(r.year ? String(r.year) : ''); setGenre((r.genres ?? []).join(', '));
+    setYear(r.year ? String(r.year) : ''); setGenres(r.genres ?? []);
     setPosterUrl(r.posterUrl); setFilled(true); setResults([]);
   };
 
@@ -128,7 +128,7 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     if (r) {
       if (r.creator) setCreator(r.creator);
       if (r.year) setYear(String(r.year));
-      if (r.genres) setGenre(r.genres.join(', '));
+      if (r.genres) setGenres(r.genres);
       setFilled(true);
       toast.success('AI가 정보를 채웠어요 — 틀리면 고쳐주세요');
     } else {
@@ -169,17 +169,17 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
     await deletePhotos(removed);
     const photoIds = [...savedIds, ...newIds];
 
-    const genres = genre.split(',').map((g) => g.trim()).filter(Boolean).slice(0, 4);
+    const pickedGenres = genres.slice(0, 4);
     const quotes = quote.split('\n').map((q) => q.trim()).filter(Boolean);
     const draft: TicketDraft = {
       kind, title: title.trim(), creator: creator.trim() || '미상',
       year: year ? Number(year) || undefined : undefined,
       posterUrl, rating, watchedAt: watchedAt || todayKeyLocal(),
-      where: where || undefined, oneLiner: oneLiner.trim(),
+      where: where.trim() || undefined, oneLiner: oneLiner.trim(),
       longNote: longNote.trim() || undefined,
       quotes: quotes.length ? quotes : undefined,
       rewatch: false,
-      genres: genres.length ? genres : [DEFAULT_GENRE[kind]],
+      genres: pickedGenres.length ? pickedGenres : [DEFAULT_GENRE[kind]],
       photoIds: photoIds.length ? photoIds : undefined,
     };
     onSave(draft, editingId);
@@ -270,15 +270,22 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
                 <input value={year} onChange={(e) => setYear(e.target.value)} placeholder="—" style={{ ...inputStyle, padding: '8px 10px', fontSize: 13 }} />
               </div>
             </div>
-            <div style={{ marginTop: 10 }}>
-              <div style={{ ...labelStyle, marginBottom: 4 }}>장르 <span style={{ fontWeight: 400, color: '#5c6c8c' }}>(쉼표로 여러 개)</span></div>
-              <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="예: SF, 스릴러" style={{ ...inputStyle, padding: '8px 10px', fontSize: 13 }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 11 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
               <button type="button" onClick={runAiFill} style={pillBtn}><Sparkles size={12} /> {aiBusy ? '채우는 중…' : 'AI로 채우기'}</button>
               <div style={{ fontSize: 10.5, color: '#5c6c8c' }}>검색에 안 걸리는 게임·공연은 AI가 채워요</div>
             </div>
           </div>
+        </div>
+
+        {/* 장르 — 여러 개 고르기 (+ 직접 추가) */}
+        <div style={{ marginTop: 16 }}>
+          <div style={labelStyle}>장르 <span style={{ fontWeight: 400, color: '#5c6c8c' }}>· 여러 개 고를 수 있어요</span></div>
+          <ChipCloud
+            options={GENRES[kind]}
+            active={genres}
+            onToggle={(g) => setGenres((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : cur.length >= 4 ? cur : [...cur, g]))}
+            onAdd={(g) => setGenres((cur) => (cur.includes(g) || cur.length >= 4 ? cur : [...cur, g]))}
+          />
         </div>
 
         <div style={{ borderTop: '1.5px dashed #ffffff1a', margin: '18px 0' }} />
@@ -297,11 +304,12 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <div style={labelStyle}>어디서 봤어요?</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {PLACES[kind].map((p) => (
-                <button key={p} type="button" onClick={() => setWhere(where === p ? '' : p)} style={{ ...chip(where === p), fontSize: 12, padding: '6px 12px' }}>{p}</button>
-              ))}
-            </div>
+            <ChipCloud
+              options={PLACES[kind]}
+              active={where ? [where] : []}
+              onToggle={(p) => setWhere(where === p ? '' : p)}
+              onAdd={(p) => setWhere(p)}
+            />
           </div>
         </div>
 
@@ -355,6 +363,28 @@ function chip(active: boolean): React.CSSProperties {
     background: active ? 'var(--tk-accent)' : 'transparent',
     color: active ? '#231402' : '#c3ccd9', userSelect: 'none', fontFamily: 'inherit',
   };
+}
+
+/** 프리셋 칩 + "직접 추가" 입력. active 에 있지만 옵션엔 없는 값(직접 추가분)도 칩으로 노출. */
+function ChipCloud({ options, active, onToggle, onAdd }: {
+  options: string[]; active: string[]; onToggle: (v: string) => void; onAdd: (v: string) => void;
+}) {
+  const [custom, setCustom] = useState('');
+  const all = Array.from(new Set([...options, ...active]));
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+      {all.map((o) => (
+        <button key={o} type="button" onClick={() => onToggle(o)} style={{ ...chip(active.includes(o)), fontSize: 12, padding: '6px 12px' }}>{o}</button>
+      ))}
+      <input
+        value={custom}
+        onChange={(e) => setCustom(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const v = custom.trim(); if (v) { onAdd(v); setCustom(''); } } }}
+        placeholder="+ 직접"
+        style={{ width: 74, background: '#0b131f', border: '1px dashed #3a4a6b', borderRadius: 999, color: '#eef1f6', padding: '6px 12px', fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
+      />
+    </div>
+  );
 }
 const pillBtn: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 999,
