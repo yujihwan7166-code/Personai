@@ -245,7 +245,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
-  { id: 'ticketbook', label: '티켓북 (이름미정)',   desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(215 70% 50%)', axis: '기록', pending: true },
+  { id: 'ticketbook', label: '티켓북',              desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(38 78% 52%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -1067,7 +1067,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2254,6 +2254,9 @@ export function MainModeTabs({
                             } else if (item.id === 'health') {
                               setOpen(false);
                               navigate('/health');
+                            } else if (item.id === 'ticketbook') {
+                              setOpen(false);
+                              navigate('/tickets');
                             } else if (item.id === 'today') {
                               setOpen(false);
                               navigate('/today');

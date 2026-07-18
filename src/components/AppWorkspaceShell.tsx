@@ -15,6 +15,7 @@ import {
   StickyNote,
   Sun,
   Moon,
+  Ticket,
   Settings2,
   Check,
   Eye,
@@ -34,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health';
+export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -56,6 +57,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'archive', label: '아카이브', to: '/archive', icon: Archive },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Library },
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
+  { key: 'tickets', label: '티켓북', to: '/tickets', icon: Ticket },
 ];
 
 /* 레일(그라파이트) 활성 = 방 앰센트 채움 알약 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
@@ -69,6 +71,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   people: '#a15008',   // 인맥노트 — 앰버
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린
+  tickets: '#d97706',  // 티켓북 — 앰버
 };
 
 /** 레일 색 후보 — 레일 위에서 마우스 휠 위/아래로 돌려가며 고른다 (선택은 localStorage 저장).
@@ -105,7 +108,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health'].includes(item.key),
+  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */

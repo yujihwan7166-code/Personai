@@ -761,6 +761,59 @@
     background-color: hsl(var(--archive-sepia) / 0.18);
   }
 
+  .tickets-theme {
+    /* 티켓북 — "불 꺼진 극장". 다른 방(쿨 화이트 캐논)과 달리 앱 라이트/다크와 무관하게
+     * 미드나이트 네이비 단일 다크 톤. 포인트색(--tk-accent)은 사용자가 5종 중 고름(기본 앰버). */
+    --background: 222 47% 9%;
+    --foreground: 220 20% 95%;
+
+    --card: 220 30% 12%;
+    --card-foreground: 220 20% 95%;
+
+    --popover: 220 32% 11%;
+    --popover-foreground: 220 20% 95%;
+
+    --muted: 220 24% 16%;
+    --muted-foreground: 220 12% 62%;
+
+    --accent: 220 24% 17%;
+    --accent-foreground: 220 20% 95%;
+
+    --secondary: 220 24% 16%;
+    --secondary-foreground: 220 14% 78%;
+
+    --border: 220 20% 22%;
+    --input: 220 20% 22%;
+
+    --primary: 38 78% 57%;
+    --primary-foreground: 30 40% 10%;
+
+    --ring: 38 78% 57%;
+    --focus-ring: 38 78% 57%;
+    --focus-offset: 222 47% 9%;
+
+    --hairline: 220 20% 22%;
+    --surface-1: 220 28% 13%;
+    --surface-2: 222 40% 8%;
+    --surface-3: 220 24% 17%;
+
+    --sidebar-background: 220 34% 10%;
+
+    /* 티켓북 전용 — 포인트색(기본 앰버, JS가 --tk-accent 로 덮어씀)·더 깊은 네이비·모노폰트 */
+    --tk-accent: #e6a53f;
+    --tk-navy-deep: #06090f;
+    --tk-mono: 'Space Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  }
+
+  .tickets-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .tickets-theme ::selection {
+    background-color: color-mix(in srgb, var(--tk-accent) 35%, transparent);
+  }
+
   .health-theme {
     /* 건강기록 — 쿨 화이트 캐논 + 방 정체성은 에메랄드 그린 하나로
      * (데일리 로그의 세이지보다 채도 높게 잡아 구분). */
