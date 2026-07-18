@@ -194,7 +194,7 @@ export default function Tickets() {
       <style>{TICKETS_CSS}</style>
 
       {/* ══════ 사이드바 ══════ */}
-      <aside className="tk-scroll hidden lg:flex" style={{ width: 300, flex: 'none', background: '#0f1826', borderRight: '1px solid #ffffff12', flexDirection: 'column', overflowY: 'auto' }}>
+      <aside className="tk-scroll hidden lg:flex" style={{ width: 264, flex: 'none', background: '#0f1826', borderRight: '1px solid #ffffff12', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ padding: '20px 18px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, display: 'grid', placeItems: 'center', background: 'linear-gradient(150deg,#233350,#141d2e)', border: '1px solid #ffffff1a', color: 'var(--tk-accent)' }}><Ticket size={21} /></div>
@@ -262,36 +262,20 @@ export default function Tickets() {
             </div>
           </div>
           {view === 'wall' && (
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <FacetRow label="분류">
-                <Facet on={fCat === 'all'} onClick={() => setFCat('all')}>전체</Facet>
-                {TICKET_KINDS.map((k) => (
-                  <Facet key={k} on={fCat === k} onClick={() => setFCat(fCat === k ? 'all' : k)}>{KIND_EMOJI[k]} {KIND_LABEL[k]}</Facet>
-                ))}
-              </FacetRow>
-              {years.length > 0 && (
-                <FacetRow label="연도">
-                  <Facet on={fYear === 'all'} onClick={() => setFYear('all')}>전체</Facet>
-                  {years.map((y) => (
-                    <Facet key={y} on={fYear === y} onClick={() => setFYear(fYear === y ? 'all' : y)} mono>{y}</Facet>
-                  ))}
-                </FacetRow>
-              )}
-              {presentGenres.length > 0 && (
-                <FacetRow label="장르">
-                  <Facet on={fGenre === 'all'} onClick={() => setFGenre('all')}>전체</Facet>
-                  {presentGenres.slice(0, 14).map((g) => (
-                    <Facet key={g} on={fGenre === g} onClick={() => setFGenre(fGenre === g ? 'all' : g)}>{g}</Facet>
-                  ))}
-                </FacetRow>
-              )}
-              <FacetRow label="별점">
-                <Facet on={fRating === 0} onClick={() => setFRating(0)}>전체</Facet>
-                {([5, 4, 3] as RatingFilter[]).map((r) => (
-                  <Facet key={r} on={fRating === r} onClick={() => setFRating(fRating === r ? 0 : r)} mono>★{r}{r === 5 ? '' : '↑'}</Facet>
-                ))}
-                {filterActive && <button type="button" onClick={resetFilters} style={{ marginLeft: 4, fontSize: 12, fontWeight: 700, color: '#8b95a6', background: 'none', border: 'none', cursor: 'pointer' }}>필터 초기화 ✕</button>}
-              </FacetRow>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <FilterMenu label="분류"
+                value={fCat} options={[{ v: 'all', label: '전체 분류' }, ...TICKET_KINDS.map((k) => ({ v: k, label: `${KIND_EMOJI[k]} ${KIND_LABEL[k]}` }))]}
+                onChange={(v) => setFCat(v as CatFilter)} />
+              <FilterMenu label="연도"
+                value={String(fYear)} options={[{ v: 'all', label: '전체 연도' }, ...years.map((y) => ({ v: String(y), label: String(y) }))]}
+                onChange={(v) => setFYear(v === 'all' ? 'all' : Number(v))} />
+              <FilterMenu label="장르"
+                value={fGenre} options={[{ v: 'all', label: '전체 장르' }, ...presentGenres.map((g) => ({ v: g, label: g }))]}
+                onChange={(v) => setFGenre(v)} />
+              <FilterMenu label="별점"
+                value={String(fRating)} options={[{ v: '0', label: '전체 별점' }, { v: '5', label: '★5' }, { v: '4', label: '★4 이상' }, { v: '3', label: '★3 이상' }]}
+                onChange={(v) => setFRating(Number(v) as RatingFilter)} />
+              {filterActive && <button type="button" onClick={resetFilters} style={{ fontSize: 12.5, fontWeight: 700, color: '#8b95a6', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>초기화 ✕</button>}
             </div>
           )}
         </header>
@@ -368,23 +352,47 @@ function yearChip(active: boolean): CSSProperties {
   };
 }
 
-/** 위 필터 바 — 라벨 + 칩 한 줄. */
-function FacetRow({ label, children }: { label: string; children: React.ReactNode }) {
+/** 위 필터 드롭다운 — 라벨 버튼(선택 시 값·앰버 강조) + 팝오버 옵션. 바깥 클릭으로 닫힘. */
+function FilterMenu({ label, value, options, onChange }: {
+  label: string; value: string; options: { v: string; label: string }[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const allV = options[0]?.v ?? 'all';
+  const active = value !== allV;
+  const current = options.find((o) => o.v === value);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <span style={{ width: 38, flex: 'none', fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: '#5f6b7e', textAlign: 'right' }}>{label}</span>
-      {children}
+    <div style={{ position: 'relative' }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} style={{
+        height: 34, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 12px', borderRadius: 10,
+        fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+        background: active ? 'var(--tk-accent)' : '#101b30',
+        color: active ? '#231402' : '#c3ccd9',
+        border: `1px solid ${active ? 'var(--tk-accent)' : '#ffffff14'}`,
+      }}>
+        {active && current ? current.label : label}
+        <span style={{ fontSize: 9, opacity: .7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+          <div className="tk-scroll" style={{ position: 'absolute', top: 40, left: 0, zIndex: 21, minWidth: 156, maxHeight: 300, overflowY: 'auto', background: '#15213a', border: '1px solid #ffffff1a', borderRadius: 12, padding: 5, boxShadow: '0 18px 44px -12px rgba(0,0,0,.8)' }}>
+            {options.map((o) => {
+              const on = o.v === value;
+              return (
+                <button key={o.v} type="button" onClick={() => { onChange(o.v); setOpen(false); }} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', textAlign: 'left',
+                  padding: '8px 11px', borderRadius: 8, fontSize: 13, fontWeight: on ? 800 : 600, cursor: 'pointer', border: 'none',
+                  background: on ? 'color-mix(in srgb, var(--tk-accent) 16%, transparent)' : 'transparent',
+                  color: on ? 'var(--tk-accent)' : '#c3ccd9',
+                }}>
+                  {o.label}{on && <span style={{ fontSize: 11 }}>✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
-  );
-}
-function Facet({ on, mono, onClick, children }: { on: boolean; mono?: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} style={{
-      height: 28, padding: '0 11px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-      fontFamily: mono ? 'var(--tk-mono)' : 'inherit',
-      background: on ? 'var(--tk-accent)' : '#0b131f', color: on ? '#231907' : '#c3ccd9',
-      border: `1px solid ${on ? 'var(--tk-accent)' : '#ffffff14'}`,
-    }}>{children}</button>
   );
 }
 
