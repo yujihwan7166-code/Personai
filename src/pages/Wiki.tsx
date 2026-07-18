@@ -369,7 +369,7 @@ export default function Wiki() {
 
         {/* 내비 */}
         <div className="mwk-scroll" style={{ flex: 1, overflowY: 'auto', padding: '8px 12px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div className="mwk-row" onClick={goHome} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#4A4132', background: showHome && !q ? '#E9E1D0' : 'transparent' }}>
+          <div className="mwk-row" onClick={goHome} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 9, cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#4A4132', background: showHome && !q ? 'rgba(199,78,41,0.12)' : 'transparent' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5L12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
             홈
           </div>
@@ -378,7 +378,7 @@ export default function Wiki() {
             <>
               <div style={sectionLabel}>고정됨</div>
               {pinnedDocs.map((d) => (
-                <div key={d.id} className="mwk-row" onClick={() => openDoc(d.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13.5, color: '#4A4132', background: d.id === activeId && showDoc ? '#E9E1D0' : 'transparent' }}>
+                <div key={d.id} className="mwk-row" onClick={() => openDoc(d.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13.5, color: '#4A4132', background: d.id === activeId && showDoc ? 'rgba(199,78,41,0.12)' : 'transparent' }}>
                   <StarIcon />
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</span>
                 </div>
