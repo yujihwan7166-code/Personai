@@ -345,7 +345,7 @@ function NavRow({ icon, emoji, label, count, active, onClick, onSettings }: {
         onClick={onClick}
         className={cn('flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-[14px] font-medium transition-colors',
           onSettings && 'pr-8',
-          active ? 'bg-[#d09a49]/24 font-semibold text-[hsl(var(--archive-sepia))] dark:bg-[#d09a49]/24' : 'text-foreground/90 hover:bg-white/45 dark:hover:bg-white/5')}
+          active ? 'bg-[#d09a49]/24 font-semibold text-[hsl(var(--archive-sepia))] ring-1 ring-inset ring-[hsl(var(--archive-sepia))]/35 dark:bg-[#d09a49]/24' : 'text-foreground/90 hover:bg-white/45 dark:hover:bg-white/5')}
       >
         {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
         <span className="min-w-0 flex-1 truncate text-left">{label}</span>

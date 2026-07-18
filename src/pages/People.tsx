@@ -84,7 +84,7 @@ export default function People() {
         className={cn(
           'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
           active
-            ? 'bg-[#ec9440]/24 font-semibold text-[#8f4207]'
+            ? 'bg-[#ec9440]/24 font-semibold text-[#8f4207] ring-1 ring-inset ring-[#a15008]/30'
             : 'font-medium text-[#3f3b32] hover:bg-white/55',
         )}
       >
