@@ -84,8 +84,8 @@ export default function People() {
         className={cn(
           'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
           active
-            ? 'bg-white font-semibold text-[#8f4207] shadow-[0_1px_2px_rgba(60,40,10,0.08)]'
-            : 'font-medium text-[#5a5648] hover:bg-white/55',
+            ? 'bg-[#a15008]/12 font-semibold text-[#8f4207]'
+            : 'font-medium text-[#3f3b32] hover:bg-white/55',
         )}
       >
         <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">{item.emoji}</span>
@@ -145,7 +145,7 @@ export default function People() {
                   onClick={() => { setView(item.id); setOpenId(null); }}
                   className={cn(
                     'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors',
-                    active ? 'border-transparent bg-[#f2e5cf] font-bold text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#5a5648]',
+                    active ? 'border-transparent bg-[#f2e5cf] font-bold text-[#8f4207]' : 'border-[#e9e2d2] bg-white text-[#3f3b32]',
                   )}
                 >
                   <span className="text-[13px] leading-none">{item.emoji}</span> {item.label}
