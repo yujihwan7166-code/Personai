@@ -80,3 +80,27 @@ export async function searchMedia(kind: TicketKind, query: string): Promise<Medi
     return [];
   }
 }
+
+/** 탐색(둘러보기)용 인기·트렌딩 — 영화·드라마만 TMDB 주간 트렌딩. 책·게임·공연은 트렌딩 API가 없어 []. */
+export async function trendingMedia(kind: TicketKind): Promise<MediaSearchResult[]> {
+  if (!((kind === 'movie' || kind === 'drama') && tmdbKey)) return [];
+  const type = kind === 'movie' ? 'movie' : 'tv';
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/trending/${type}/week?api_key=${tmdbKey}&language=ko-KR`);
+    if (!res.ok) return [];
+    const data = await res.json() as { results?: Array<Record<string, unknown>> };
+    return (data.results ?? []).slice(0, 20).map((r) => {
+      const date = (kind === 'movie' ? r.release_date : r.first_air_date) as string | undefined;
+      return {
+        kind,
+        title: String(kind === 'movie' ? r.title : r.name ?? ''),
+        creator: '',
+        year: date ? Number(date.slice(0, 4)) || undefined : undefined,
+        posterUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : undefined,
+        genres: Array.isArray(r.genre_ids) ? (r.genre_ids as number[]).map((g) => TMDB_GENRES[g]).filter(Boolean) : undefined,
+      } as MediaSearchResult;
+    }).filter((r) => r.title);
+  } catch {
+    return [];
+  }
+}

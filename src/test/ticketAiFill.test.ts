@@ -5,7 +5,7 @@ vi.mock('@/lib/cloudDoc/ai', () => ({
   QUICK_MODEL: 'test-model',
 }));
 import { quickAi } from '@/lib/cloudDoc/ai';
-import { aiFillEntry, aiRecommend, MIN_ENTRIES_FOR_RECO } from '@/lib/tickets/aiFill';
+import { aiFillEntry, aiRecommend, aiDiscover, MIN_ENTRIES_FOR_RECO } from '@/lib/tickets/aiFill';
 import type { TicketEntry } from '@/lib/tickets/ticketStore';
 
 let seq = 0;
@@ -57,5 +57,23 @@ describe('aiRecommend', () => {
   it('taste/picks 형식이 깨지면 null', async () => {
     vi.mocked(quickAi).mockResolvedValue('{"nope":1}');
     expect(await aiRecommend([liked('a'), liked('b'), liked('c')])).toBeNull();
+  });
+});
+
+describe('aiDiscover', () => {
+  it('items를 파싱하고 exclude된 제목은 뺀다', async () => {
+    vi.mocked(quickAi).mockResolvedValue(JSON.stringify({
+      items: [
+        { title: '오펜하이머', creator: '놀런', year: 2023, genres: ['드라마'] },
+        { title: '이미봄', creator: 'x', year: 2020 },
+      ],
+    }));
+    const r = await aiDiscover('movie', ['이미봄']);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ kind: 'movie', title: '오펜하이머', year: 2023, genres: ['드라마'] });
+  });
+  it('깨진 응답이면 빈 배열', async () => {
+    vi.mocked(quickAi).mockResolvedValue('음 글쎄요');
+    expect(await aiDiscover('book')).toEqual([]);
   });
 });

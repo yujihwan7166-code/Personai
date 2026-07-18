@@ -4,18 +4,21 @@
  * 기록 폼=중앙 모달(1번) · 상세=절취 스텁(2번). 저장 localStorage 'ticketbook.v1', 사진 IndexedDB.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Home, Star, Award, BarChart3, Sparkles, Plus, Ticket, X } from 'lucide-react';
+import { Home, Star, Award, BarChart3, Sparkles, Plus, Ticket, X, Compass, Bookmark } from 'lucide-react';
 import { toast } from 'sonner';
 import { newId } from '@/lib/idGenerator';
 import {
   loadTickets, saveTickets, TICKETS_CHANGED, DEFAULT_ACCENT, ACCENT_OPTIONS,
-  KIND_LABEL, TICKET_KINDS, type TicketEntry, type TicketKind, type TicketStoreData,
+  KIND_LABEL, TICKET_KINDS, type TicketEntry, type TicketKind, type TicketStoreData, type WatchlistItem,
 } from '@/lib/tickets/ticketStore';
 import {
   MILESTONES, MILESTONE_META, earnedMilestones, newlyEarned, stampProgress, yearStats,
 } from '@/lib/tickets/milestones';
-import { aiRecommend, type RecoResult } from '@/lib/tickets/aiFill';
+import { aiRecommend, aiDiscover, type RecoResult } from '@/lib/tickets/aiFill';
+import { trendingMedia, hasApiFor, type MediaSearchResult } from '@/lib/tickets/search';
 import { deletePhotos } from '@/lib/tickets/photoStore';
+
+type Candidate = { kind: TicketKind; title: string; creator?: string; year?: number; posterUrl?: string; genres?: string[] };
 import {
   seedEntries, gradientFor, palFor, StarMeter, fmtShort, fmtDot, KIND_EMOJI, serialOf,
   todayKeyLocal, TICKETS_CSS,
@@ -23,7 +26,7 @@ import {
 import { TicketEntryModal, type TicketDraft } from '@/components/tickets/TicketEntryModal';
 import { TicketDetailModal } from '@/components/tickets/TicketDetailModal';
 
-type View = 'wall' | 'vault' | 'recap';
+type View = 'wall' | 'vault' | 'recap' | 'explore';
 type NavKey = 'all' | 'starred' | TicketKind;
 
 function firstLoad(): TicketStoreData {
@@ -43,7 +46,8 @@ export default function Tickets() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [entryOpen, setEntryOpen] = useState(false);
   const [entryInitial, setEntryInitial] = useState<TicketEntry | null>(null);
-  const [entryPrefill, setEntryPrefill] = useState<{ kind?: TicketKind; title?: string } | null>(null);
+  const [entryPrefill, setEntryPrefill] = useState<Candidate | null>(null);
+  const [pendingWatchId, setPendingWatchId] = useState<string | null>(null);
   const [recoOpen, setRecoOpen] = useState(false);
   const [celebrate, setCelebrate] = useState<number | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -63,11 +67,18 @@ export default function Tickets() {
   const top = () => { if (mainRef.current) mainRef.current.scrollTop = 0; };
 
   /* ── 액션 ── */
-  const openNew = (prefill?: { kind?: TicketKind; title?: string }) => {
-    setEntryInitial(null); setEntryPrefill(prefill ?? null); setEntryOpen(true);
+  const openNew = (prefill?: Candidate, fromWatchId?: string) => {
+    setEntryInitial(null); setEntryPrefill(prefill ?? null); setPendingWatchId(fromWatchId ?? null); setEntryOpen(true);
   };
-  const openEdit = (e: TicketEntry) => { setDetailId(null); setEntryInitial(e); setEntryPrefill(null); setEntryOpen(true); };
+  const openEdit = (e: TicketEntry) => { setDetailId(null); setEntryInitial(e); setEntryPrefill(null); setPendingWatchId(null); setEntryOpen(true); };
   const openDetail = (id: string) => { setDetailId(id); };
+
+  const addWatch = (c: Candidate) => {
+    const item: WatchlistItem = { ...c, id: newId('wl'), addedAt: Date.now() };
+    setStore((s) => ({ ...s, watchlist: [item, ...(s.watchlist ?? [])] }));
+    toast.success(`'${c.title}' 을(를) 볼 것에 담았어요`);
+  };
+  const removeWatch = (id: string) => setStore((s) => ({ ...s, watchlist: (s.watchlist ?? []).filter((w) => w.id !== id) }));
 
   const handleSave = (draft: TicketDraft, editingId?: string) => {
     setEntryOpen(false);
@@ -80,7 +91,13 @@ export default function Tickets() {
     const prev = entries.length;
     const created: TicketEntry = { ...draft, id: newId('tkt'), createdAt: Date.now() };
     const next = [...entries, created];
-    setStore((s) => ({ ...s, entries: [...s.entries, created] }));
+    const promotedId = pendingWatchId;
+    setPendingWatchId(null);
+    setStore((s) => ({
+      ...s,
+      entries: [...s.entries, created],
+      watchlist: promotedId ? (s.watchlist ?? []).filter((w) => w.id !== promotedId) : s.watchlist,
+    }));
     const earned = newlyEarned(prev, next.length);
     if (earned.length) {
       setCelebrate(earned[earned.length - 1]);
@@ -128,8 +145,10 @@ export default function Tickets() {
 
   const viewTitle = view === 'vault' ? '마일스톤 · 스탬프'
     : view === 'recap' ? '연말결산'
+    : view === 'explore' ? '탐색'
     : nav === 'all' ? '전체 티켓' : nav === 'starred' ? '최고의 티켓' : KIND_LABEL[nav as TicketKind];
   const viewSub = view === 'vault' ? '모으다 보면 발급되는 기념 티켓과 장르 스탬프. 숙제는 없어요.'
+    : view === 'explore' ? '세상의 인기작을 둘러보고, 보고 싶은 걸 볼 것에 담아두세요.'
     : view === 'recap' ? '한 해 동안 무엇을 얼마나 봤는지 돌아봐요.'
     : nav === 'starred' ? '별 다섯 개를 준, 다시 볼 작품들.'
     : nav === 'all' ? '내가 본 모든 것들이 이 벽에 걸려 있어요.'
@@ -159,6 +178,7 @@ export default function Tickets() {
         </div>
 
         <div style={{ padding: '2px 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <NavRow icon={<Compass size={17} />} label="탐색" badge={(store.watchlist?.length ?? 0) > 0 ? String(store.watchlist!.length) : undefined} active={view === 'explore'} onClick={() => { setView('explore'); top(); }} />
           <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall' && nav === 'all'} onClick={() => goWall('all')} />
           <NavRow icon={<Star size={17} fill={nav === 'starred' && view === 'wall' ? 'currentColor' : 'none'} />} label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={view === 'wall' && nav === 'starred'} onClick={() => goWall('starred')} />
           <NavRow icon={<Award size={17} />} label="마일스톤 · 스탬프" active={view === 'vault'} onClick={() => { setView('vault'); top(); }} />
@@ -222,6 +242,9 @@ export default function Tickets() {
 
         {/* 콘텐츠 스크롤 */}
         <div ref={mainRef} className="tk-scroll" style={{ flex: 1, overflowY: 'auto', padding: '26px 34px 60px' }}>
+          {view === 'explore' && (
+            <ExploreView entries={entries} watchlist={store.watchlist ?? []} onAddWatch={addWatch} onRemoveWatch={removeWatch} onWatched={(c, wid) => openNew(c, wid)} />
+          )}
           {view === 'wall' && (
             wallList.length === 0 ? (
               <EmptyWall onNew={() => openNew()} />
@@ -244,7 +267,7 @@ export default function Tickets() {
       </main>
 
       {/* 모달들 */}
-      <TicketEntryModal open={entryOpen} initial={entryInitial} prefill={entryPrefill} entriesCount={entries.length} onClose={() => setEntryOpen(false)} onSave={handleSave} />
+      <TicketEntryModal open={entryOpen} initial={entryInitial} prefill={entryPrefill} entriesCount={entries.length} onClose={() => { setEntryOpen(false); setPendingWatchId(null); }} onSave={handleSave} />
       <TicketDetailModal entry={detail} allEntries={entries} onClose={() => setDetailId(null)} onEdit={openEdit} onDelete={handleDelete} />
       {recoOpen && <RecommendModal entries={entries} onClose={() => setRecoOpen(false)} onAdd={(p) => { setRecoOpen(false); openNew(p); }} />}
       {celebrate != null && <CelebrateModal n={celebrate} onVault={() => { setCelebrate(null); setView('vault'); top(); }} onClose={() => setCelebrate(null)} />}
@@ -652,6 +675,146 @@ function CelebrateModal({ n, onVault, onClose }: { n: number; onVault: () => voi
           <button type="button" onClick={onClose} style={{ padding: '10px 18px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, color: '#8b95a6', cursor: 'pointer', background: 'none', border: 'none' }}>닫기</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ══════ 탐색 (둘러보기 / 볼 것) ══════ */
+type DiscoverState = Candidate[] | 'loading' | 'error';
+
+function ExploreView({ entries, watchlist, onAddWatch, onRemoveWatch, onWatched }: {
+  entries: TicketEntry[]; watchlist: WatchlistItem[];
+  onAddWatch: (c: Candidate) => void; onRemoveWatch: (id: string) => void;
+  onWatched: (c: Candidate, wid?: string) => void;
+}) {
+  const [tab, setTab] = useState<'browse' | 'watch'>('browse');
+  const [cat, setCat] = useState<TicketKind>('movie');
+  const [cache, setCache] = useState<Partial<Record<TicketKind, DiscoverState>>>({});
+
+  const seenTitles = useMemo(() => new Set([...entries, ...watchlist].map((x) => x.title.trim())), [entries, watchlist]);
+  const recordedTitles = useMemo(() => new Set(entries.map((e) => e.title.trim())), [entries]);
+  const watchedTitles = useMemo(() => new Set(watchlist.map((w) => w.title.trim())), [watchlist]);
+
+  useEffect(() => {
+    if (tab !== 'browse' || cache[cat]) return;
+    let alive = true;
+    setCache((c) => ({ ...c, [cat]: 'loading' }));
+    (async () => {
+      let items: Candidate[] = [];
+      if (hasApiFor(cat)) {
+        const t = await trendingMedia(cat);
+        items = t.map((m: MediaSearchResult) => ({ kind: m.kind, title: m.title, creator: m.creator, year: m.year, posterUrl: m.posterUrl, genres: m.genres }));
+      }
+      if (!items.length) {
+        const d = await aiDiscover(cat, [...seenTitles]);
+        items = d.map((x) => ({ kind: x.kind, title: x.title, creator: x.creator, year: x.year, genres: x.genres }));
+      }
+      if (alive) setCache((c) => ({ ...c, [cat]: items.length ? items : 'error' }));
+    })();
+    return () => { alive = false; };
+  }, [tab, cat, cache, seenTitles]);
+
+  const state = cache[cat];
+  const chip = (active: boolean): CSSProperties => ({
+    padding: '7px 14px', borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    border: `1px solid ${active ? 'var(--tk-accent)' : '#2a3854'}`,
+    background: active ? 'var(--tk-accent)' : 'transparent', color: active ? '#231402' : '#c3ccd9', userSelect: 'none',
+  });
+
+  return (
+    <div style={{ animation: 'tk-fadeIn .35s' }}>
+      {/* 세그먼트 탭 */}
+      <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: '#101b30', border: '1px solid #ffffff12', marginBottom: 20 }}>
+        {(['browse', 'watch'] as const).map((t) => (
+          <button key={t} type="button" onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', border: 'none', background: tab === t ? 'var(--tk-accent)' : 'transparent', color: tab === t ? '#231402' : '#c3ccd9', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {t === 'browse' ? <Compass size={15} /> : <Bookmark size={15} />}
+            {t === 'browse' ? '둘러보기' : `볼 것${watchlist.length ? ` ${watchlist.length}` : ''}`}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'browse' ? (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            {TICKET_KINDS.map((k) => (
+              <button key={k} type="button" onClick={() => setCat(k)} style={chip(cat === k)}>{KIND_EMOJI[k]} {KIND_LABEL[k]}</button>
+            ))}
+          </div>
+          {state === 'loading' || !state ? (
+            <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, color: '#8b95a6' }}>
+              <div style={{ display: 'flex', gap: 7 }}>{[0, 1, 2].map((i) => <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--tk-accent)', animation: `tk-blink 1.1s ${i * 0.18}s infinite` }} />)}</div>
+              <div style={{ fontSize: 13 }}>{hasApiFor(cat) ? '인기작을 불러오는 중…' : 'AI가 요즘 볼만한 걸 고르는 중…'}</div>
+            </div>
+          ) : state === 'error' ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: '#8b95a6' }}>
+              <div style={{ fontSize: 38, marginBottom: 10 }}>🎬</div>
+              <div style={{ fontSize: 14 }}>지금은 목록을 불러오지 못했어요.</div>
+              <div style={{ fontSize: 12.5, marginTop: 6 }}>영화·드라마는 TMDB 키를 넣으면 실시간 인기작이 떠요. 다른 카테고리는 AI가 채워요.</div>
+              <button type="button" onClick={() => setCache((c) => ({ ...c, [cat]: undefined }))} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 999, border: '1px solid color-mix(in srgb, var(--tk-accent) 50%, transparent)', color: 'var(--tk-accent)', fontWeight: 700, fontSize: 13, background: 'none', cursor: 'pointer' }}>다시 시도</button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
+              {state.map((c, i) => (
+                <DiscoverCard key={`${c.title}${i}`} cand={c} recorded={recordedTitles.has(c.title.trim())} listed={watchedTitles.has(c.title.trim())}
+                  onAdd={() => onAddWatch(c)} onWatched={() => onWatched(c)} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        watchlist.length === 0 ? (
+          <div style={{ padding: '80px 20px', textAlign: 'center', color: '#8b95a6' }}>
+            <Bookmark size={40} style={{ opacity: .4, marginBottom: 12 }} />
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#c3ccd9' }}>볼 것이 아직 비어 있어요</div>
+            <div style={{ fontSize: 13.5, marginTop: 6 }}>둘러보기에서 마음에 드는 걸 '볼 것에 담기' 해두면 여기 모여요.</div>
+            <button type="button" onClick={() => setTab('browse')} style={{ marginTop: 18, height: 42, padding: '0 20px', borderRadius: 11, background: 'var(--tk-accent)', color: '#231907', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer' }}>둘러보러 가기</button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
+            {watchlist.map((w) => (
+              <DiscoverCard key={w.id} cand={w} recorded={false} listed watchlistMode
+                onAdd={() => onRemoveWatch(w.id)} onWatched={() => onWatched(w, w.id)} />
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function DiscoverCard({ cand, recorded, listed, watchlistMode, onAdd, onWatched }: {
+  cand: Candidate; recorded: boolean; listed: boolean; watchlistMode?: boolean; onAdd: () => void; onWatched: () => void;
+}) {
+  const hasPoster = !!cand.posterUrl;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: recorded ? 0.55 : 1 }}>
+      <div className="tk-lift" style={{ position: 'relative', aspectRatio: '2/3', borderRadius: 12, overflow: 'hidden', boxShadow: '0 10px 26px rgba(0,0,0,.5)' }}>
+        {hasPoster ? (
+          <img src={cand.posterUrl} alt={cand.title} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ position: 'absolute', inset: 0, background: gradientFor(cand.title), color: palFor(cand.title)[2], padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--tk-mono)', fontSize: 8.5, letterSpacing: '.14em', opacity: .75 }}><span>{KIND_EMOJI[cand.kind]}</span><span>{cand.year ?? ''}</span></div>
+            <div style={{ fontWeight: 800, fontSize: 18, lineHeight: 1.16, wordBreak: 'keep-all' }}>{cand.title}</div>
+            <div style={{ fontSize: 10.5, opacity: .8 }}>{cand.creator}</div>
+          </div>
+        )}
+        {recorded && <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 10.5, fontWeight: 700, color: '#231402', background: 'var(--tk-accent)', borderRadius: 999, padding: '2px 8px' }}>기록함</div>}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cand.title}</div>
+        <div style={{ fontSize: 11.5, color: '#8b95a6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[cand.creator, cand.year].filter(Boolean).join(' · ')}</div>
+      </div>
+      {recorded ? (
+        <div style={{ fontSize: 11.5, color: '#6f7b8e', textAlign: 'center', padding: '6px 0' }}>이미 티켓북에 있어요</div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" onClick={onAdd} title={watchlistMode ? '볼 것에서 빼기' : (listed ? '볼 것에 있음' : '볼 것에 담기')}
+            style={{ flex: watchlistMode ? 'none' : 1, width: watchlistMode ? 34 : undefined, height: 34, borderRadius: 9, border: `1px solid ${listed && !watchlistMode ? 'var(--tk-accent)' : '#2a3854'}`, background: listed && !watchlistMode ? 'color-mix(in srgb, var(--tk-accent) 15%, transparent)' : 'transparent', color: listed || watchlistMode ? 'var(--tk-accent)' : '#c3ccd9', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+            {watchlistMode ? <X size={14} /> : <><Bookmark size={13} fill={listed ? 'currentColor' : 'none'} /> {listed ? '담김' : '볼 것'}</>}
+          </button>
+          <button type="button" onClick={onWatched} style={{ flex: 1, height: 34, borderRadius: 9, border: 'none', background: 'var(--tk-accent)', color: '#231402', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>봤어요</button>
+        </div>
+      )}
     </div>
   );
 }

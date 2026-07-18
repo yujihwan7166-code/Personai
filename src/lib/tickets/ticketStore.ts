@@ -34,11 +34,46 @@ export interface TicketEntry {
   createdAt: number;
 }
 
+/** 아직 안 본 "볼 것" 후보 — 별점·기록 없이 담아두는 위시리스트 항목. 보면 TicketEntry 로 승격. */
+export interface WatchlistItem {
+  id: string;
+  kind: TicketKind;
+  title: string;
+  creator?: string;
+  year?: number;
+  posterUrl?: string;
+  genres?: string[];
+  addedAt: number;
+}
+
 export interface TicketStoreData {
   entries: TicketEntry[];
+  watchlist?: WatchlistItem[];
   yearGoal?: { year: number; count: number };
   accent?: string;        // 테마 포인트색 (없으면 기본 앰버)
 }
+
+export function normalizeWatch(raw: unknown, index: number): WatchlistItem | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const title = typeof r.title === 'string' ? r.title.trim() : '';
+  if (!title) return null;
+  return {
+    id: typeof r.id === 'string' && r.id ? r.id : `wl_recovered_${index}_${Date.now().toString(36)}`,
+    kind: TICKET_KINDS.includes(r.kind as TicketKind) ? (r.kind as TicketKind) : 'movie',
+    title,
+    creator: typeof r.creator === 'string' && r.creator ? r.creator : undefined,
+    year: typeof r.year === 'number' && Number.isFinite(r.year) ? r.year : undefined,
+    posterUrl: typeof r.posterUrl === 'string' && r.posterUrl ? r.posterUrl : undefined,
+    genres: strArrayW(r.genres),
+    addedAt: typeof r.addedAt === 'number' ? r.addedAt : Date.now(),
+  };
+}
+const strArrayW = (v: unknown): string[] | undefined => {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.filter((x): x is string => typeof x === 'string' && !!x);
+  return out.length ? out : undefined;
+};
 
 const KEY = 'ticketbook.v1';
 export const TICKETS_CHANGED = 'ticketbook:changed';
@@ -93,7 +128,11 @@ export function loadTickets(): TicketStoreData {
     const yearGoal = g && typeof g.year === 'number' && typeof g.count === 'number' && g.count > 0
       ? { year: g.year, count: g.count } : undefined;
     const accent = typeof d.accent === 'string' && d.accent ? d.accent : undefined;
+    const watchlist = Array.isArray(d.watchlist)
+      ? d.watchlist.map(normalizeWatch).filter((w): w is WatchlistItem => !!w)
+      : undefined;
     const out: TicketStoreData = { entries };
+    if (watchlist && watchlist.length) out.watchlist = watchlist;
     if (yearGoal) out.yearGoal = yearGoal;
     if (accent) out.accent = accent;
     return out;

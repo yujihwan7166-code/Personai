@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { normalizeEntry, loadTickets, saveTickets, type TicketEntry } from '@/lib/tickets/ticketStore';
+import { normalizeEntry, normalizeWatch, loadTickets, saveTickets, type TicketEntry } from '@/lib/tickets/ticketStore';
 
 const base = (over: Partial<TicketEntry> = {}): TicketEntry => ({
   id: 'tkt_a', kind: 'movie', title: '기생충', creator: '봉준호', year: 2019,
@@ -60,5 +60,22 @@ describe('load/save', () => {
   it('count가 0 이하인 yearGoal은 버린다', () => {
     saveTickets({ entries: [], yearGoal: { year: 2026, count: 0 } });
     expect(loadTickets().yearGoal).toBeUndefined();
+  });
+  it('watchlist 왕복 + 빈 배열은 undefined', () => {
+    const wl = { entries: [], watchlist: [{ id: 'w1', kind: 'movie' as const, title: '듄', addedAt: 5 }] };
+    saveTickets(wl);
+    expect(loadTickets().watchlist).toEqual(wl.watchlist);
+    saveTickets({ entries: [], watchlist: [] });
+    expect(loadTickets().watchlist).toBeUndefined();
+  });
+});
+
+describe('normalizeWatch', () => {
+  it('title 없으면 null, 알 수 없는 kind는 movie', () => {
+    expect(normalizeWatch({ title: '' }, 0)).toBeNull();
+    expect(normalizeWatch({ title: '엘든 링', kind: 'zzz' }, 0)!.kind).toBe('movie');
+  });
+  it('id 없으면 복구 id', () => {
+    expect(normalizeWatch({ title: '엘든 링' }, 2)!.id).toMatch(/^wl_recovered_2/);
   });
 });

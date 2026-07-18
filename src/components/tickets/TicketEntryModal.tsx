@@ -19,7 +19,8 @@ export type TicketDraft = Omit<TicketEntry, 'id' | 'createdAt'>;
 interface Props {
   open: boolean;
   initial: TicketEntry | null;              // null = 새 티켓, 있으면 수정
-  prefill?: { kind?: TicketKind; title?: string } | null;   // 추천에서 담기
+  // 추천·탐색·볼 것에서 담기 — 있는 만큼 미리 채움
+  prefill?: { kind?: TicketKind; title?: string; creator?: string; year?: number; posterUrl?: string; genres?: string[] } | null;
   entriesCount: number;                     // 다음 시리얼 미리보기
   onClose: () => void;
   onSave: (draft: TicketDraft, editingId?: string) => void;
@@ -68,9 +69,10 @@ export function TicketEntryModal({ open, initial, prefill, entriesCount, onClose
       setPosterUrl(initial.posterUrl); setFilled(true);
       setExpanded(!!(initial.longNote || initial.quotes?.length || initial.photoIds?.length));
     } else {
-      setKind(prefill?.kind ?? 'movie'); setTitle(prefill?.title ?? ''); setCreator(''); setYear('');
-      setGenre(''); setRating(0); setWatchedAt(todayKeyLocal()); setWhere(''); setOneLiner('');
-      setLongNote(''); setQuote(''); setPosterUrl(undefined); setFilled(!!prefill?.title); setExpanded(false);
+      setKind(prefill?.kind ?? 'movie'); setTitle(prefill?.title ?? ''); setCreator(prefill?.creator ?? '');
+      setYear(prefill?.year ? String(prefill.year) : ''); setGenre((prefill?.genres ?? []).join(', '));
+      setRating(0); setWatchedAt(todayKeyLocal()); setWhere(''); setOneLiner('');
+      setLongNote(''); setQuote(''); setPosterUrl(prefill?.posterUrl); setFilled(!!prefill?.title); setExpanded(false);
     }
   }, [open, initial, prefill]);
 

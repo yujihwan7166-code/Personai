@@ -74,3 +74,31 @@ export async function aiRecommend(likedEntries: TicketEntry[]): Promise<RecoResu
     return null;
   }
 }
+
+export interface DiscoverItem { kind: TicketKind; title: string; creator: string; year?: number; genres?: string[] }
+
+/** 탐색(둘러보기) 폴백 — 트렌딩 API 가 없는 카테고리(책·게임·공연) 또는 키 부재 시 AI 가 인기·화제작을 뽑음. */
+export async function aiDiscover(kind: TicketKind, exclude: string[] = []): Promise<DiscoverItem[]> {
+  try {
+    const raw = await quickAi(
+      `너는 ${KIND_LABEL[kind]} 큐레이터다. 최근 몇 년 사이 화제였거나 평이 좋은 대표 ${KIND_LABEL[kind]} 12개를 JSON만으로 출력한다: {"items":[{"title":"제목","creator":"만든 이","year":연도숫자,"genres":["장르"]}]}. 다양하게, 너무 마이너하지 않게. 다른 말 금지.`,
+      exclude.length ? `이미 아는 작품(제외): ${exclude.slice(0, 40).join(', ')}` : '제외할 작품 없음',
+      { model: QUICK_MODEL, temperature: 0.8, maxTokens: 800 },
+    );
+    const j = extractJson<{ items?: unknown }>(raw);
+    if (!j || !Array.isArray(j.items)) return [];
+    const seen = new Set(exclude.map((t) => t.trim()));
+    return (j.items as Array<Record<string, unknown>>)
+      .filter((it) => typeof it.title === 'string' && !!it.title && !seen.has((it.title as string).trim()))
+      .slice(0, 12)
+      .map((it) => ({
+        kind,
+        title: String(it.title),
+        creator: typeof it.creator === 'string' ? it.creator : '',
+        year: typeof it.year === 'number' && it.year > 1800 && it.year < 2100 ? it.year : undefined,
+        genres: Array.isArray(it.genres) ? (it.genres as unknown[]).filter((g): g is string => typeof g === 'string' && !!g).slice(0, 3) : undefined,
+      }));
+  } catch {
+    return [];
+  }
+}
