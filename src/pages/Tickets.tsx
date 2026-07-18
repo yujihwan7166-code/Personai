@@ -27,7 +27,8 @@ import { TicketEntryModal, type TicketDraft } from '@/components/tickets/TicketE
 import { TicketDetailModal } from '@/components/tickets/TicketDetailModal';
 
 type View = 'wall' | 'vault' | 'recap' | 'explore' | 'watchlist';
-type NavKey = 'all' | 'starred' | TicketKind;
+type CatFilter = 'all' | TicketKind;
+type RatingFilter = 0 | 3 | 4 | 5;   // 최소 별점 (0 = 전체)
 
 function firstLoad(): TicketStoreData {
   const s = loadTickets();
@@ -40,8 +41,10 @@ function firstLoad(): TicketStoreData {
 export default function Tickets() {
   const [store, setStore] = useState<TicketStoreData>(firstLoad);
   const [view, setView] = useState<View>('wall');
-  const [nav, setNav] = useState<NavKey>('all');
-  const [year, setYear] = useState<'all' | number>('all');
+  const [fCat, setFCat] = useState<CatFilter>('all');
+  const [fYear, setFYear] = useState<'all' | number>('all');
+  const [fGenre, setFGenre] = useState<'all' | string>('all');
+  const [fRating, setFRating] = useState<RatingFilter>(0);
   const [recapYear, setRecapYear] = useState<number>(() => new Date().getFullYear());
   const [detailId, setDetailId] = useState<string | null>(null);
   const [entryOpen, setEntryOpen] = useState(false);
@@ -144,18 +147,27 @@ export default function Tickets() {
     () => [...new Set(entries.map((e) => Number(e.watchedAt.slice(0, 4))).filter(Boolean))].sort((a, b) => b - a),
     [entries],
   );
-  const catCount = (k: TicketKind) => entries.filter((e) => e.kind === k).length;
   const yStats = yearStats(entries, nowY);
   const thisMonthKey = todayKeyLocal().slice(0, 7);
   const monthCount = entries.filter((e) => e.watchedAt.startsWith(thisMonthKey)).length;
 
+  // 벽에 존재하는 장르 목록 (빈도순) — 장르 필터 칩용
+  const presentGenres = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of entries) for (const g of e.genres ?? []) m.set(g, (m.get(g) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
+  }, [entries]);
+
   const wallList = useMemo(() => {
     let l = entries.slice();
-    if (nav === 'starred') l = l.filter((e) => e.rating === 5);
-    else if (TICKET_KINDS.includes(nav as TicketKind)) l = l.filter((e) => e.kind === nav);
-    if (year !== 'all') l = l.filter((e) => e.watchedAt.startsWith(`${year}-`));
+    if (fCat !== 'all') l = l.filter((e) => e.kind === fCat);
+    if (fYear !== 'all') l = l.filter((e) => e.watchedAt.startsWith(`${fYear}-`));
+    if (fGenre !== 'all') l = l.filter((e) => (e.genres ?? []).includes(fGenre));
+    if (fRating) l = l.filter((e) => e.rating >= fRating);
     return l.sort((a, b) => (b.watchedAt.localeCompare(a.watchedAt)) || (b.createdAt - a.createdAt));
-  }, [entries, nav, year]);
+  }, [entries, fCat, fYear, fGenre, fRating]);
+  const filterActive = fCat !== 'all' || fYear !== 'all' || fGenre !== 'all' || fRating !== 0;
+  const resetFilters = () => { setFCat('all'); setFYear('all'); setFGenre('all'); setFRating(0); };
 
   const earnedMs = earnedMilestones(entries.length);
   const goalCount = store.yearGoal ? entries.filter((e) => e.watchedAt.startsWith(`${store.yearGoal!.year}-`)).length : 0;
@@ -165,16 +177,15 @@ export default function Tickets() {
     : view === 'recap' ? '연말결산'
     : view === 'explore' ? '탐색'
     : view === 'watchlist' ? '찜' + (store.watchlist?.length ? ` · ${store.watchlist.length}` : '')
-    : nav === 'all' ? '전체 티켓' : nav === 'starred' ? '최고의 티켓' : KIND_LABEL[nav as TicketKind];
+    : fCat === 'all' ? '전체 티켓' : KIND_LABEL[fCat];
   const viewSub = view === 'vault' ? '모으다 보면 발급되는 기념 티켓과 장르 스탬프. 숙제는 없어요.'
     : view === 'explore' ? '세상의 인기작을 둘러보고, 보고 싶은 걸 찜해두세요.'
     : view === 'watchlist' ? '아직 안 봤지만 보고 싶어 담아둔 것들. 보고 나면 별점 매겨 티켓으로.'
     : view === 'recap' ? '한 해 동안 무엇을 얼마나 봤는지 돌아봐요.'
-    : nav === 'starred' ? '별 다섯 개를 준, 다시 볼 작품들.'
-    : nav === 'all' ? '내가 본 모든 것들이 이 벽에 걸려 있어요.'
-    : { movie: '스크린 앞에서 보낸 시간들.', drama: '몰아본 시리즈의 기록.', book: '페이지를 넘긴 흔적들.', game: '끝까지 플레이한 세계들.', show: '그 밤, 그 무대의 기억.' }[nav as TicketKind];
+    : filterActive ? '위 필터로 걸러낸 티켓이에요.'
+    : '내가 본 모든 것들이 이 벽에 걸려 있어요.';
 
-  const goWall = (n: NavKey) => { setNav(n); setView('wall'); setYear('all'); top(); };
+  const goWall = () => { setView('wall'); top(); };
 
   const rootStyle = { '--tk-accent': accent } as CSSProperties;
 
@@ -210,16 +221,7 @@ export default function Tickets() {
         {/* 본 것 저장 */}
         <div style={{ padding: '2px 18px 4px', fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: '#4d586a', textTransform: 'uppercase' }}>내 기록</div>
         <div style={{ padding: '0 12px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall' && nav === 'all'} onClick={() => goWall('all')} />
-          {/* 전체 보기(벽)를 보는 중일 때만, 그 아래로 필터(최고의 티켓·카테고리)가 펼쳐진다 */}
-          {view === 'wall' && (
-            <>
-              <NavRow indent emoji="⭐" label="최고의 티켓" count={entries.filter((e) => e.rating === 5).length} active={nav === 'starred'} onClick={() => goWall('starred')} />
-              {TICKET_KINDS.map((k) => (
-                <NavRow key={k} indent emoji={KIND_EMOJI[k]} label={KIND_LABEL[k]} count={catCount(k)} active={nav === k} onClick={() => goWall(k)} />
-              ))}
-            </>
-          )}
+          <NavRow icon={<Home size={17} />} label="전체 보기" count={entries.length} active={view === 'wall'} onClick={goWall} />
           <NavRow icon={<Award size={17} />} label="마일스톤 · 스탬프" active={view === 'vault'} onClick={() => { setView('vault'); top(); }} />
           <NavRow icon={<BarChart3 size={17} />} label="연말결산" active={view === 'recap'} onClick={() => { setView('recap'); setRecapYear(years[0] ?? nowY); top(); }} />
         </div>
@@ -260,10 +262,36 @@ export default function Tickets() {
             </div>
           </div>
           {view === 'wall' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
-              {(['all', ...years] as ('all' | number)[]).map((y) => (
-                <button key={y} type="button" onClick={() => setYear(y)} style={yearChip(String(year) === String(y))}>{y === 'all' ? '전체' : y}</button>
-              ))}
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <FacetRow label="분류">
+                <Facet on={fCat === 'all'} onClick={() => setFCat('all')}>전체</Facet>
+                {TICKET_KINDS.map((k) => (
+                  <Facet key={k} on={fCat === k} onClick={() => setFCat(fCat === k ? 'all' : k)}>{KIND_EMOJI[k]} {KIND_LABEL[k]}</Facet>
+                ))}
+              </FacetRow>
+              {years.length > 0 && (
+                <FacetRow label="연도">
+                  <Facet on={fYear === 'all'} onClick={() => setFYear('all')}>전체</Facet>
+                  {years.map((y) => (
+                    <Facet key={y} on={fYear === y} onClick={() => setFYear(fYear === y ? 'all' : y)} mono>{y}</Facet>
+                  ))}
+                </FacetRow>
+              )}
+              {presentGenres.length > 0 && (
+                <FacetRow label="장르">
+                  <Facet on={fGenre === 'all'} onClick={() => setFGenre('all')}>전체</Facet>
+                  {presentGenres.slice(0, 14).map((g) => (
+                    <Facet key={g} on={fGenre === g} onClick={() => setFGenre(fGenre === g ? 'all' : g)}>{g}</Facet>
+                  ))}
+                </FacetRow>
+              )}
+              <FacetRow label="별점">
+                <Facet on={fRating === 0} onClick={() => setFRating(0)}>전체</Facet>
+                {([5, 4, 3] as RatingFilter[]).map((r) => (
+                  <Facet key={r} on={fRating === r} onClick={() => setFRating(fRating === r ? 0 : r)} mono>★{r}{r === 5 ? '' : '↑'}</Facet>
+                ))}
+                {filterActive && <button type="button" onClick={resetFilters} style={{ marginLeft: 4, fontSize: 12, fontWeight: 700, color: '#8b95a6', background: 'none', border: 'none', cursor: 'pointer' }}>필터 초기화 ✕</button>}
+              </FacetRow>
             </div>
           )}
         </header>
@@ -338,6 +366,26 @@ function yearChip(active: boolean): CSSProperties {
     background: active ? 'var(--tk-accent)' : '#0b131f', color: active ? '#231907' : '#c3ccd9',
     border: `1px solid ${active ? 'var(--tk-accent)' : '#ffffff1c'}`,
   };
+}
+
+/** 위 필터 바 — 라벨 + 칩 한 줄. */
+function FacetRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <span style={{ width: 38, flex: 'none', fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: '#5f6b7e', textAlign: 'right' }}>{label}</span>
+      {children}
+    </div>
+  );
+}
+function Facet({ on, mono, onClick, children }: { on: boolean; mono?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      height: 28, padding: '0 11px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
+      fontFamily: mono ? 'var(--tk-mono)' : 'inherit',
+      background: on ? 'var(--tk-accent)' : '#0b131f', color: on ? '#231907' : '#c3ccd9',
+      border: `1px solid ${on ? 'var(--tk-accent)' : '#ffffff14'}`,
+    }}>{children}</button>
+  );
 }
 
 /* ══════ 포스터 월 카드 ══════ */
