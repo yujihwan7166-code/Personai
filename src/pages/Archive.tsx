@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, X, Settings, Tag, ChevronDown, Check,
+  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Settings, ChevronDown, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -19,7 +19,6 @@ import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
 import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
 import { ArchiveCollectionEditor } from '@/components/archive/ArchiveCollectionEditor';
 import { ArchiveCollectionManager } from '@/components/archive/ArchiveCollectionManager';
-import { ArchiveAllTagsDialog } from '@/components/archive/ArchiveAllTagsDialog';
 
 type ViewKey = 'all' | 'starred' | string; // string = collectionId
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
@@ -42,7 +41,6 @@ export default function Archive() {
   const [editor, setEditor] = useState<{ collection: ArchiveCollection | null } | null>(null);
   const [managerOpen, setManagerOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [allTagsOpen, setAllTagsOpen] = useState(false);
   const [yearF, setYearF] = useState<string>('all');
   const [panelClosing, setPanelClosing] = useState(false);
   // 상세 열림/닫힘·필터 변경 시 카드가 새 자리로 미끄러지게 (폭은 1프레임 확정, FLIP 글라이드)
@@ -73,7 +71,6 @@ export default function Archive() {
     for (const it of items) for (const t of it.tags) m.set(t, (m.get(t) ?? 0) + 1);
     return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [items]);
-  const topTags = tagEntries.slice(0, 10);
   const allTagNames = useMemo(() => tagEntries.map(([t]) => t), [tagEntries]);
   // 저장 연도 (createdAt ISO) — 연도 필터 옵션
   const years = useMemo(() => [...new Set(items.map((i) => i.createdAt.slice(0, 4)).filter(Boolean))].sort().reverse(), [items]);
@@ -179,41 +176,6 @@ export default function Archive() {
           >
             <Plus className="h-4 w-4" /> 새 컬렉션
           </button>
-
-          {/* 태그 — 상위 10개 + 모든 태그(검색). 위 형태칩과 안 겹치게 사이드바에. */}
-          {topTags.length > 0 && (
-            <div className="mt-4">
-              <div className="mb-1.5 flex items-center gap-1.5 px-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                <Tag className="h-3 w-3" /> 태그
-              </div>
-              <div className="flex flex-wrap gap-1 px-1">
-                {topTags.map(([t, n]) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => withFlip(() => setActiveTag((cur) => (cur === t ? null : t)))}
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium transition-colors',
-                      activeTag === t
-                        ? 'bg-[hsl(var(--archive-sepia))] text-white'
-                        : 'bg-[hsl(var(--surface-2))] text-muted-foreground hover:bg-accent hover:text-foreground',
-                    )}
-                  >
-                    #{t}<span className="text-[10px] opacity-70">{n}</span>
-                  </button>
-                ))}
-              </div>
-              {allTagNames.length > topTags.length && (
-                <button
-                  type="button"
-                  onClick={() => setAllTagsOpen(true)}
-                  className="mt-1.5 px-2.5 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  모든 태그 {allTagNames.length}개 →
-                </button>
-              )}
-            </div>
-          )}
         </nav>
       </aside>
 
@@ -342,15 +304,6 @@ export default function Archive() {
         onClose={() => setManagerOpen(false)}
         collections={collections}
         counts={counts}
-      />
-
-      {/* 모든 태그 — 검색되는 전체 목록 */}
-      <ArchiveAllTagsDialog
-        open={allTagsOpen}
-        onClose={() => setAllTagsOpen(false)}
-        tagEntries={tagEntries}
-        activeTag={activeTag}
-        onPick={(t) => { setActiveTag(t); setAllTagsOpen(false); }}
       />
     </div>
   );
