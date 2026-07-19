@@ -251,9 +251,9 @@ export default function Archive() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => withFlip(() => setQuery(e.target.value))}
                 placeholder="제목·메모·태그 검색"
-                className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))]"
+                className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))] focus:shadow-[0_0_0_3px_hsl(var(--archive-sepia)/0.12)]"
               />
             </div>
 
@@ -294,20 +294,22 @@ export default function Archive() {
           )}
         </div>
 
-        {/* 본문 */}
-        {visible.length === 0 ? (
-          <EmptyState hasItems={items.length > 0} onNew={openNew} />
-        ) : mode === 'timeline' ? (
-          <Timeline items={visible} onOpen={(i) => openDetail(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
-        ) : (
-          <div ref={gridRef} className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
-            {visible.map((it) => (
-              <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
-                <ArchiveCard item={it} onOpen={(i) => openDetail(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* 본문 — 목록↔타임라인 전환은 페이드+리프트로 갈아끼움 */}
+        <div key={mode} className="duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+          {visible.length === 0 ? (
+            <EmptyState hasItems={items.length > 0} onNew={openNew} />
+          ) : mode === 'timeline' ? (
+            <Timeline items={visible} onOpen={(i) => openDetail(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
+          ) : (
+            <div ref={gridRef} className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
+              {visible.map((it) => (
+                <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
+                  <ArchiveCard item={it} onOpen={(i) => openDetail(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* 저장 다이얼로그 */}
@@ -477,7 +479,7 @@ function Timeline({ items, onOpen, onStar, onTagClick }: { items: ArchiveItem[];
 /* ── 빈 상태 ── */
 function EmptyState({ hasItems, onNew }: { hasItems: boolean; onNew: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--hairline))] py-20 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--hairline))] py-20 text-center duration-300 animate-in fade-in-50">
       <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[hsl(var(--archive-sepia)/0.1)] text-[hsl(var(--archive-sepia))]">
         <ArchiveIcon className="h-7 w-7" />
       </span>
