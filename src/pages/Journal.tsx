@@ -125,7 +125,7 @@ const WEATHER_SKY: Record<Weather, string> = {
 function WeatherFx({ weather }: { weather: Weather | null }) {
   const parts = useMemo(() => {
     if (weather === 'snowy') return Array.from({ length: 34 }, (_, i) => ({ left: (i * 37) % 100, delay: (i % 10) * 0.55, dur: 6 + ((i * 7) % 5), size: 8 + ((i * 3) % 7) }));
-    if (weather === 'rainy' || weather === 'stormy') return Array.from({ length: 46 }, (_, i) => ({ left: (i * 23) % 100, delay: (i % 7) * 0.18, dur: 0.7 + ((i * 3) % 4) * 0.1, size: 14 + ((i * 5) % 12) }));
+    if (weather === 'rainy' || weather === 'stormy') return Array.from({ length: 64 }, (_, i) => ({ left: (i * 17) % 100, delay: (i % 9) * 0.14, dur: 0.65 + ((i * 3) % 4) * 0.1, size: 20 + ((i * 5) % 18) }));
     return [];
   }, [weather]);
   const clouds = useMemo(() => {
@@ -136,7 +136,7 @@ function WeatherFx({ weather }: { weather: Weather | null }) {
   if (!weather) return null;
   const isSnow = weather === 'snowy';
   return (
-    <div className="jrn-fx pointer-events-none absolute inset-0 z-[2] overflow-hidden rounded-[inherit]" aria-hidden>
+    <div className="jrn-fx pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]" aria-hidden>
       {clouds.map((c, i) => (
         <span key={`c${i}`} className="absolute rounded-full bg-white blur-2xl" style={{ top: `${c.top}%`, left: '-30%', width: `${c.size}px`, height: `${c.size * 0.5}px`, opacity: c.op, animation: `jrn-drift ${c.dur}s linear ${c.delay}s infinite` }} />
       ))}
@@ -144,7 +144,7 @@ function WeatherFx({ weather }: { weather: Weather | null }) {
         isSnow ? (
           <span key={i} className="absolute top-0 text-white/85" style={{ left: `${p.left}%`, fontSize: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }}>❄</span>
         ) : (
-          <span key={i} className="absolute top-0 w-[1.5px] rounded-full bg-gradient-to-b from-transparent to-sky-200/70" style={{ left: `${p.left}%`, height: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }} />
+          <span key={i} className="absolute top-0 w-[2px] rounded-full bg-gradient-to-b from-transparent via-white/50 to-white/90" style={{ left: `${p.left}%`, height: `${p.size}px`, animation: `jrn-fall ${p.dur}s linear ${p.delay}s infinite` }} />
         )
       ))}
     </div>
@@ -693,13 +693,13 @@ export default function Journal() {
               </div>
 
               {/* 2단 — 좌: 일기(넓게) / 우: 하루 기록 레일. 날씨를 고르면 이 프레임 뒤가 그 날씨 하늘로. */}
-              <div className={cn('relative transition-colors', weather && 'rounded-[30px] p-2.5 sm:p-4')} style={weather ? { background: WEATHER_SKY[weather] } : undefined}>
+              <div className={cn('relative transition-colors', weather && 'rounded-[30px] p-3 sm:p-5')} style={weather ? { background: WEATHER_SKY[weather] } : undefined}>
               <WeatherFx weather={weather} />
               <div className="relative z-[1] items-start gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px]">
               <div className="min-w-0">
               {!editing && current ? (
                 /* 보기 모드 */
-                <div className="relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]">
+                <div className={cn('relative overflow-hidden rounded-[26px] border border-[hsl(var(--cream-line))] p-6 shadow-[0_4px_24px_-16px_hsl(25_30%_20%/0.18)]', weather ? 'bg-[hsl(var(--cream-card))]/78 backdrop-blur-[3px]' : 'bg-[hsl(var(--cream-card))]')}>
                   <div className="flex flex-wrap gap-2">
                     {moodKey && MOOD_BY_KEY[moodKey] && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-accent))]/12 px-3 py-1 text-[12.5px] font-semibold"><span className="text-[15px] leading-none">{MOOD_BY_KEY[moodKey].emoji}</span>{MOOD_BY_KEY[moodKey].label}</span>
@@ -734,7 +734,7 @@ export default function Journal() {
                 </div>
               ) : (
                 /* 에디터 */
-                <div className="relative rounded-[26px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors">
+                <div className={cn('relative rounded-[26px] border border-[hsl(var(--cream-line))] p-7 shadow-[0_6px_28px_-18px_hsl(25_30%_20%/0.2)] transition-colors', weather ? 'bg-[hsl(var(--cream-card))]/78 backdrop-blur-[3px]' : 'bg-[hsl(var(--cream-card))]')}>
                   <div className="grid grid-cols-1 gap-x-7 gap-y-4 sm:grid-cols-[1.35fr_1fr]">
                     {/* 오늘의 기분 */}
                     <div>
