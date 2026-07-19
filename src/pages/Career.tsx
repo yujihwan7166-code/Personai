@@ -233,6 +233,7 @@ function SetupLedger() {
 
 function BoardLedger() {
   const { items, categories, profile, docs, boards, activeBoardId } = useCareerBoard();
+  const activeBoardName = boards.find((b) => b.id === activeBoardId)?.name?.trim() || '';
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
   const [viewDoc, setViewDoc] = useState<CareerDoc | null>(null);
   const [draft, setDraft] = useState('');
@@ -1120,7 +1121,7 @@ function BoardLedger() {
             <div className="mx-auto mb-5 max-w-[900px]">
               <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">스펙 보드</span>
+                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">{activeBoardName ? <><span className="text-[hsl(var(--career-red))]">{activeBoardName}</span>’s 스펙 보드</> : '스펙 보드'}</span>
                 <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
               </div>
             </div>
@@ -1201,9 +1202,6 @@ function BoardLedger() {
                 </div>
               </div>
 
-              <button type="button" onClick={() => setEditingName(true)} aria-label="프로필 수정" title="프로필 수정" className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center self-start rounded-full bg-[#f1eaec] text-[#8a7d82] transition-colors hover:bg-[#ece1e4]">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
             </div>
 
             {/* ── 카테고리 그리드 카드 ── */}
@@ -1225,10 +1223,10 @@ function BoardLedger() {
                     >
                       {/* 카드 헤더 — 번호 + 이름, 아래 헤어라인 (빈 칸이면 삭제 X) */}
                       <div className="flex items-baseline gap-2 border-b border-[#f0e8ea] pb-[9px]">
-                        <span className="text-[11.5px] font-bold text-[#cf9dac]">
+                        <span className="text-[13px] font-bold text-[#cf9dac]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
-                        <h3 className="text-[15px] font-bold text-[#23262b]">{category.name}</h3>
+                        <h3 className="text-[18px] font-bold text-[#23262b]">{category.name}</h3>
                         {sectionItems.length === 0 && (
                           <button
                             type="button"

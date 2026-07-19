@@ -362,25 +362,51 @@ export default function Journal() {
       Math.abs(Date.parse(`${e.date}T00:00`) - Date.parse(`${target}T00:00`)) <
       Math.abs(Date.parse(`${best.date}T00:00`) - Date.parse(`${target}T00:00`)) ? e : best);
   }, [allEntries, todayKey]);
-  /** 아주 처음 기록. */
-  const firstEntry = useMemo(() => {
-    const cand = allEntries.filter(hasText);
-    return cand.length ? cand.reduce((a, b) => (a.date <= b.date ? a : b)) : null;
-  }, [allEntries]);
   /** 사진이 있던 날 — 가장 최근. */
   const photoMemory = useMemo(() => {
     const cand = allEntries.filter((e) => (e.images?.length ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date));
     return cand[0] ?? null;
   }, [allEntries]);
-  /** 가장 길게 쓴 기록. */
-  const longestEntry = useMemo(() => {
-    const cand = allEntries.filter(hasText);
-    return cand.length ? cand.reduce((a, b) => (b.body.length > a.body.length ? b : a)) : null;
+  /** 가장 빛나던 날 — 무드가 제일 긍정적이던 하루(MOODS 앞쪽=긍정, 동률이면 최근). */
+  const brightestEntry = useMemo(() => {
+    const rank = (e: JournalEntry) => { const mk = entryMoodKey(e); return mk ? MOODS.findIndex((m) => m.key === mk) : -1; };
+    const cand = allEntries.filter((e) => hasText(e) && rank(e) >= 0);
+    if (!cand.length) return null;
+    return cand.reduce((best, e) => {
+      const rb = rank(best); const re = rank(e);
+      if (re !== rb) return re < rb ? e : best;
+      return e.date > best.date ? e : best;
+    });
+  }, [allEntries]);
+  /** 비·눈 오던 날 — 하늘이 특별했던 하루(가장 최근). */
+  const rainyMemory = useMemo(() => {
+    const cand = allEntries.filter((e) => hasText(e) && (e.weather === 'rainy' || e.weather === 'stormy' || e.weather === 'snowy'))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    return cand[0] ?? null;
   }, [allEntries]);
   /** 하루 기록(먹은 것·간 곳) — 캘린더 마커·보관함 사진용. */
   const dayItems = useDaylogAll();
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
   const itemDates = useMemo(() => new Set(dayItems.map((i) => i.date)), [dayItems]);
+  /** 이번 달 기록 잔디 — 사이드바 하단 위젯. 기록한 날 = 그 날 기분색으로 채워짐(압박 없음). */
+  const monthGrass = useMemo(() => {
+    const [ty, tm] = todayKey.split('-').map(Number);
+    const y = ty; const m = tm - 1;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const firstDow = new Date(y, m, 1).getDay();
+    const recorded = new Set<string>();
+    for (const e of allEntries) if (e.body.trim() || e.title?.trim() || e.moodKey || e.mood || e.weather || (e.images?.length ?? 0) > 0) recorded.add(e.date);
+    for (const d of itemDates) recorded.add(d);
+    const moodColor = new Map<string, string>();
+    for (const e of allEntries) { const mk = entryMoodKey(e); if (mk && MOOD_BY_KEY[mk] && !moodColor.has(e.date)) moodColor.set(e.date, MOOD_BY_KEY[mk].color); }
+    const cells: ({ key: string; day: number; has: boolean; isToday: boolean; color?: string } | null)[] = [];
+    for (let i = 0; i < firstDow; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = dateKey(new Date(y, m, day));
+      cells.push({ key, day, has: recorded.has(key), isToday: key === todayKey, color: moodColor.get(key) });
+    }
+    return { cells, count: cells.filter((c) => c?.has).length, label: `${m + 1}월` };
+  }, [allEntries, itemDates, todayKey]);
   /** 날짜별 대표 사진 — 피드·캘린더의 사진 우선 렌더용 (일기 사진 → 하루 기록 사진). */
   const photoByDate = useMemo(() => {
     const m = new Map<string, string>();
@@ -496,6 +522,34 @@ export default function Journal() {
         <nav className="flex-1 overflow-y-auto" aria-label="데일리로그 섹션">
           {NAV_MAIN.map((item) => renderNavRow(item))}
         </nav>
+
+        {/* 이번 달 기록 잔디 — 채워지는 재미(빠진 날에 벌점 없음). 기록한 날은 그 날 기분색. */}
+        <div className="mt-3 shrink-0 rounded-[14px] border border-[hsl(var(--cream-line))] bg-white/45 px-3 py-3 dark:bg-white/5">
+          <div className="mb-2 flex items-baseline justify-between px-0.5">
+            <span className="text-[11px] font-bold tracking-[0.03em] text-[#8078a3]">{monthGrass.label} 기록</span>
+            <span className="text-[11px] font-bold tabular-nums text-[hsl(var(--cream-accent))]">{monthGrass.count}일</span>
+          </div>
+          <div className="grid grid-cols-7 gap-[5px]">
+            {monthGrass.cells.map((c, i) => c === null ? (
+              <span key={`e${i}`} aria-hidden />
+            ) : c.has ? (
+              <button
+                key={c.key}
+                type="button"
+                title={`${c.day}일 · 기록 있음`}
+                onClick={() => openEntry(c.key)}
+                className={cn('aspect-square rounded-[4px] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)] transition-transform hover:scale-125', c.isToday && 'ring-2 ring-[hsl(var(--cream-accent))]')}
+                style={{ backgroundColor: c.color ?? 'hsl(var(--cream-accent))' }}
+              />
+            ) : (
+              <span
+                key={c.key}
+                title={`${c.day}일`}
+                className={cn('aspect-square rounded-[4px] bg-[hsl(var(--cream-line))]/45', c.isToday && 'ring-2 ring-[hsl(var(--cream-accent))]/60')}
+              />
+            ))}
+          </div>
+        </div>
       </aside>
 
       {/* ── 메인 ── 특정 날을 연 상태(detailOpen)에서만 날씨 하늘 배경. 데일리 로그 랜딩/목록엔 영향 없음. */}
@@ -948,9 +1002,9 @@ export default function Journal() {
                   { emoji: '🕰️', title: '1년 전 오늘', sub: '작년 이맘때', entry: yearAgo, empty: '작년 오늘의 기록이 없어요' },
                   { emoji: '📅', title: '한 달 전', sub: '한 달 전 이맘때', entry: monthAgo, empty: '한 달 전 기록이 없어요' },
                   { emoji: '🎲', title: '무작위 다시 보기', sub: '아무 날이나 툭', entry: memory, empty: '다시 볼 기록이 없어요', reroll: true },
-                  { emoji: '🌱', title: '아주 처음', sub: '첫 기록', entry: firstEntry, empty: '첫 기록이 곧 쌓여요' },
+                  { emoji: '🌟', title: '가장 빛나던 날', sub: '제일 기분 좋던 하루', entry: brightestEntry, empty: '아직 활짝 웃은 기록이 없어요' },
                   { emoji: '📸', title: '사진이 있던 날', sub: '그 날의 장면', entry: photoMemory, empty: '사진 붙인 날이 아직 없어요' },
-                  { emoji: '✍️', title: '가장 길게 쓴 날', sub: '할 말이 많던 날', entry: longestEntry, empty: '아직 긴 기록이 없어요' },
+                  { emoji: '🌧️', title: '비 오던 날', sub: '하늘이 특별했던 하루', entry: rainyMemory, empty: '비·눈 오던 날 기록이 없어요' },
                 ] as const).map((c) => {
                   const e = c.entry;
                   const peekDate = e ? new Date(`${e.date}T00:00:00`) : null;
