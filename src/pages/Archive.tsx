@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, X, Settings, Tag,
+  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, X, Settings, Tag, ChevronDown, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -42,6 +42,7 @@ export default function Archive() {
   const [managerOpen, setManagerOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [allTagsOpen, setAllTagsOpen] = useState(false);
+  const [yearF, setYearF] = useState<string>('all');
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
   // 삭제된 항목이 선택돼 있으면 닫기
@@ -70,16 +71,19 @@ export default function Archive() {
   }, [items]);
   const topTags = tagEntries.slice(0, 10);
   const allTagNames = useMemo(() => tagEntries.map(([t]) => t), [tagEntries]);
+  // 저장 연도 (createdAt ISO) — 연도 필터 옵션
+  const years = useMemo(() => [...new Set(items.map((i) => i.createdAt.slice(0, 4)).filter(Boolean))].sort().reverse(), [items]);
 
-  // 컬렉션/별표 + 형태 필터
+  // 컬렉션/별표(사이드바) + 형태·태그·연도(상단 필터 바) — 전부 AND
   const scoped = useMemo(() => {
     let list = items;
     if (view === 'starred') list = list.filter((i) => i.starred);
     else if (view !== 'all') list = list.filter((i) => i.collectionId === view);
     if (kind) list = list.filter((i) => i.kind === kind);
     if (activeTag) list = list.filter((i) => i.tags.includes(activeTag));
+    if (yearF !== 'all') list = list.filter((i) => i.createdAt.slice(0, 4) === yearF);
     return list;
-  }, [items, view, kind, activeTag]);
+  }, [items, view, kind, activeTag, yearF]);
 
   // 검색 적용 — 키워드(제목·메모·태그).
   const visible = useMemo(() => {
@@ -255,24 +259,20 @@ export default function Archive() {
           ))}
         </div>
 
-        {/* 형태 칩 (+ 활성 태그 필터 — 구분선으로 축 분리) */}
+        {/* 형태·태그·연도 다축 필터 (드롭다운) — 컬렉션은 사이드바에 */}
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          <KindChip label="전체" active={kind === null} onClick={() => setKind(null)} />
-          {KINDS.map((k) => (
-            <KindChip key={k} label={KIND_LABEL[k]} active={kind === k} onClick={() => setKind(kind === k ? null : k)} />
-          ))}
-          {activeTag && (
-            <>
-              <span aria-hidden className="mx-1 h-5 w-px bg-[hsl(var(--hairline))]" />
-              <button
-                type="button"
-                onClick={() => setActiveTag(null)}
-                className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--archive-sepia))] px-3 py-1.5 text-[13px] font-semibold text-white"
-                title="태그 필터 해제"
-              >
-                #{activeTag} <X className="h-3 w-3" />
-              </button>
-            </>
+          <ArchiveFilterMenu label="형태" value={kind ?? 'all'}
+            options={[{ v: 'all', label: '전체 형태' }, ...KINDS.map((k) => ({ v: k, label: KIND_LABEL[k] }))]}
+            onChange={(v) => setKind(v === 'all' ? null : (v as ArchiveKind))} />
+          <ArchiveFilterMenu label="태그" value={activeTag ?? 'all'}
+            options={[{ v: 'all', label: '전체 태그' }, ...allTagNames.map((t) => ({ v: t, label: `#${t}` }))]}
+            onChange={(v) => setActiveTag(v === 'all' ? null : v)} />
+          <ArchiveFilterMenu label="연도" value={yearF}
+            options={[{ v: 'all', label: '전체 연도' }, ...years.map((y) => ({ v: y, label: y }))]}
+            onChange={setYearF} />
+          {(kind || activeTag || yearF !== 'all') && (
+            <button type="button" onClick={() => { setKind(null); setActiveTag(null); setYearF('all'); }}
+              className="px-1 text-[12.5px] font-semibold text-foreground/45 transition-colors hover:text-foreground/75">초기화 ✕</button>
           )}
         </div>
 
@@ -367,16 +367,47 @@ function NavRow({ icon, emoji, label, count, active, onClick, onSettings }: {
   );
 }
 
-function KindChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+/** 아카이브 상단 다축 필터 드롭다운 — 세피아 톤. 선택 시 값·세피아 채움, 바깥 클릭 닫힘. */
+function ArchiveFilterMenu({ label, value, options, onChange }: {
+  label: string; value: string; options: { v: string; label: string }[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const allV = options[0]?.v ?? 'all';
+  const active = value !== allV;
+  const current = options.find((o) => o.v === value);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn('rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
-        active ? 'border-foreground bg-foreground text-background' : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:bg-accent')}
-    >
-      {label}
-    </button>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn('inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors',
+          active ? 'border-transparent bg-[hsl(var(--archive-sepia))] text-white' : 'border-[hsl(var(--hairline))] bg-card text-foreground/70 hover:border-[hsl(var(--archive-sepia))]/40')}
+      >
+        {active && current ? current.label : label}
+        <ChevronDown className={cn('h-3.5 w-3.5 opacity-70 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute left-0 top-11 z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[16px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]">
+            {options.map((o) => {
+              const on = o.v === value;
+              return (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => { onChange(o.v); setOpen(false); }}
+                  className={cn('flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-[13px] transition-colors',
+                    on ? 'bg-[hsl(var(--archive-sepia))]/12 font-bold text-[hsl(var(--archive-sepia))]' : 'font-medium text-foreground/80 hover:bg-[hsl(var(--surface-2))]')}
+                >
+                  {o.label}{on && <Check className="h-3.5 w-3.5 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
