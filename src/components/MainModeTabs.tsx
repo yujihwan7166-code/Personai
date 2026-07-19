@@ -236,10 +236,8 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'planner',    label: '통합 플래너',        desc: '캘린더·할일·습관·목표 한 화면에', emoji: '📊', icon: BarChart3,  tint: 'hsl(220 70% 55%)', axis: '정리' },
   { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
   { id: 'wiki',       label: '마이위키',           desc: '책을 만들어 깊게 파는 백과사전',   emoji: '📗', icon: LibraryBig, tint: 'hsl(13 57% 42%)',  axis: '정리' },
-  { id: 'studyroom',  label: 'AI 스터디룸',        desc: '자료 분석 · 퀴즈 · 팟캐스트',     emoji: '📚', icon: BookOpen,   tint: 'hsl(38 90% 48%)',  axis: '정리', mode: 'study_main' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
   { id: 'ledger',     label: '가계부 (준비 중)',    desc: '지출·수입·월 결산',               emoji: '💰', icon: PiggyBank,  tint: 'hsl(140 55% 42%)', axis: '정리', pending: true },
-  { id: 'slot-tbd',   label: '(미정)',              desc: '다음에 채울 자리',                emoji: '➕', icon: LayoutGrid, tint: 'hsl(220 8% 55%)',  axis: '정리', pending: true },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
@@ -2342,6 +2340,28 @@ export function MainModeTabs({
                     <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">AI 스튜디오 · 어시스턴트</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3">
+                    {/* AI 스터디룸 — 마이스페이스에서 스튜디오로 이사 (모드 타일) */}
+                    {withFavStar(
+                      { id: 'mode-study_main', label: 'AI 스터디룸', desc: '자료 분석 · 퀴즈 · 팟캐스트', tint: 'hsl(38 90% 48%)', target: { kind: 'mode', mode: 'study_main' } },
+                      <button
+                        type="button"
+                        onClick={() => handleSelect('study_main')}
+                        role="menuitem"
+                        style={{ '--row-tint': 'hsl(38 90% 48%)' } as CSSProperties}
+                        className="group flex w-full items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors hover:bg-[color-mix(in_oklab,var(--row-tint,hsl(var(--foreground)/0.55))_12%,transparent)]"
+                      >
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-110"
+                          style={{ backgroundColor: 'color-mix(in oklab, hsl(38 90% 48%) 12%, transparent)', color: 'hsl(38 90% 48%)' }}
+                        >
+                          <BookOpen className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[12.5px] font-medium leading-tight text-foreground/90">AI 스터디룸</span>
+                          <span className="mt-0.5 block truncate text-[10.5px] text-muted-foreground">자료 분석 · 퀴즈 · 팟캐스트</span>
+                        </span>
+                      </button>,
+                    )}
                     {ASSISTANT_TILES.slice(0, 5).map((tile) => {
                       const Icon = tile.icon;
                       const inner = (
