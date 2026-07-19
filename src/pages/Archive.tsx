@@ -3,7 +3,7 @@
  * 좌: 컬렉션(=양식) 사이드바 · 우: 마스트헤드 + 형태칩 + 통합검색 + masonry/타임라인.
  * 저장 UX: 양식 골라 필드 채우기 (AI 채우기 선택). 검색: 키워드 + AI 시맨틱.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Settings, ChevronDown, Check,
 } from 'lucide-react';
@@ -42,8 +42,12 @@ export default function Archive() {
   const [managerOpen, setManagerOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [yearF, setYearF] = useState<string>('all');
-  const [panelClosing, setPanelClosing] = useState(false);
-  // 상세 열림/닫힘·필터 변경 시 카드가 새 자리로 미끄러지게 (폭은 1프레임 확정, FLIP 글라이드)
+  // 상세 패널: gridOpen = grid 폭 애니메이션(우측 부드럽게 밀림), frozenW = 애니메이션 동안 메이슨리 폭 고정
+  const [gridOpen, setGridOpen] = useState(false);
+  const [frozenW, setFrozenW] = useState<number | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const settleTimer = useRef<number | null>(null);
+  // 필터 변경 시 카드가 새 자리로 미끄러지게 (레이아웃 1프레임 확정 + FLIP 글라이드)
   const { gridRef, capture } = useFlipGrid<HTMLDivElement>();
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
@@ -99,17 +103,28 @@ export default function Archive() {
     setDialogOpen(true);
   };
 
-  /* ── 상세 열기/닫기 — 레이아웃 스냅 직전에 capture, 닫기는 패널 퇴장 후 언마운트 ── */
+  /* ── 상세 열기/닫기 ──
+   * grid-template-columns 를 애니메이션해 패널 폭이 0↔400 으로 열리며 마스트헤드가 부드럽게 밀린다.
+   * 애니메이션 동안 메이슨리는 옛 폭으로 고정(frozenW)해 연속 재배치(찌그러짐)를 막고,
+   * 끝나는 순간 폭 고정 해제 + FLIP 으로 새 자리에 한 번에 미끄러져 정착. */
+  const freezeBody = () => { const w = bodyRef.current?.offsetWidth; if (w) setFrozenW(w); };
+  const settle = () => { capture(); setFrozenW(null); };
   const openDetail = (id: string) => {
-    setPanelClosing(false);
-    if (!selectedId) capture();   // 이미 열려 있으면 레이아웃 불변 — 캡처 불필요
+    if (settleTimer.current) window.clearTimeout(settleTimer.current);
+    if (selectedId) { setSelectedId(id); return; }   // 이미 열림 — 폭 불변, 항목만 교체
+    freezeBody();
     setSelectedId(id);
+    setGridOpen(true);
+    settleTimer.current = window.setTimeout(settle, 320);
   };
   const closeDetail = () => {
-    if (panelClosing) return;
-    setPanelClosing(true);
-    window.setTimeout(() => { capture(); setSelectedId(null); setPanelClosing(false); }, 190);
+    if (!selectedId || !gridOpen) return;
+    if (settleTimer.current) window.clearTimeout(settleTimer.current);
+    freezeBody();
+    setGridOpen(false);
+    settleTimer.current = window.setTimeout(() => { setSelectedId(null); settle(); }, 320);
   };
+  useEffect(() => () => { if (settleTimer.current) window.clearTimeout(settleTimer.current); }, []);
   /** 필터·뷰 변경도 카드 글라이드 대상 — setState 직전 캡처. */
   const withFlip = (fn: () => void) => { capture(); fn(); };
 
@@ -179,8 +194,12 @@ export default function Archive() {
         </nav>
       </aside>
 
-      {/* ───────── 메인 ───────── */}
-      <main className={cn('min-w-0 flex-1 px-5 py-6 sm:px-7', selectedItem && 'hidden lg:block')}>
+      {/* ───────── 메인 + 상세 (grid 폭 애니메이션 → 우측 마스트헤드가 부드럽게 밀림) ───────── */}
+      <div className={cn(
+        'flex min-w-0 flex-1 lg:grid lg:transition-[grid-template-columns] lg:duration-[320ms] lg:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
+        gridOpen ? 'lg:[grid-template-columns:minmax(0,1fr)_400px]' : 'lg:[grid-template-columns:minmax(0,1fr)_0px]',
+      )}>
+      <main className={cn('min-w-0 px-5 py-6 sm:px-7', frozenW != null && 'lg:overflow-hidden', selectedItem && 'hidden lg:block')}>
         {/* 마스트헤드 */}
         <div className="mb-4 flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0">
@@ -256,8 +275,8 @@ export default function Archive() {
           )}
         </div>
 
-        {/* 본문 — 목록↔타임라인 전환은 페이드+리프트로 갈아끼움 */}
-        <div key={mode} className="duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+        {/* 본문 — 목록↔타임라인 전환은 페이드+리프트로 갈아끼움. frozenW = 패널 애니메이션 동안 폭 고정 */}
+        <div key={mode} ref={bodyRef} style={frozenW != null ? { width: frozenW } : undefined} className="duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
           {visible.length === 0 ? (
             <EmptyState hasItems={items.length > 0} onNew={openNew} />
           ) : mode === 'timeline' ? (
@@ -274,6 +293,14 @@ export default function Archive() {
         </div>
       </main>
 
+        {/* 상세 패널 — grid 열림 컬럼이 폭 애니메이션. 애니메이션 중에만 overflow-hidden으로 슬라이드 리빌(끝나면 해제해 sticky 정상) */}
+        {selectedItem && (
+          <div className={cn('w-full lg:w-auto', frozenW != null && 'overflow-hidden')}>
+            <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={closeDetail} />
+          </div>
+        )}
+      </div>
+
       {/* 저장 다이얼로그 */}
       <ArchiveNewItemDialog
         open={dialogOpen}
@@ -282,11 +309,6 @@ export default function Archive() {
         defaultCollectionId={defaultCollectionId}
         allTags={allTagNames}
       />
-
-      {/* 상세 패널 — closing 동안 퇴장 애니메이션 후 언마운트 */}
-      {selectedItem && (
-        <ArchiveDetailPanel item={selectedItem} collections={collections} closing={panelClosing} onClose={closeDetail} />
-      )}
 
       {/* 컬렉션 만들기·편집기 (사이드바 '새 컬렉션') */}
       {editor && (
