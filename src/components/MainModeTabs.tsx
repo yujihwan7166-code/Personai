@@ -177,9 +177,10 @@ export const LIFE_DROPDOWN_ENTRIES: Array<
 /** 드롭다운 노출용 featured 서브셋. */
 export const LIFE_TOOLS_FEATURED = LIFE_TOOLS.filter((t) => t.featured);
 
-/** 단일 라이프 그룹 (재미·건강·생활 통합). 드롭다운과 모달에서 header 에 사용. */
+/** 단일 라이프 그룹 (재미·건강·생활 통합). 드롭다운과 모달에서 header 에 사용.
+ * 이름은 "AI 스튜디오 · 어시스턴트"와 같은 두 단어 문법 — 펀한 탐색 구역임을 말해준다. */
 export const LIFE_GROUP = {
-  label: '라이프스타일',
+  label: '오늘의 발견 · 라이프스타일',
   description: '운세·감정·건강·생활',
 };
 
