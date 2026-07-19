@@ -24,12 +24,24 @@ import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
 
-/* 플럼(자두) 팔레트 — 기존 방들과 겹치지 않는 새 정체성 */
+/* 플럼(자두) 팔레트 — 기존 방들과 겹치지 않는 새 정체성.
+ * 재질 = "서재의 책": 배경은 플럼끼 도는 책상, 문서는 흰 책 페이지 시트, 제목만 세리프(고운바탕). */
 const P = {
-  page: '#fefbfd', paper: '#faf3f8', line: '#eddfe9',
+  page: '#f8f1f6', paper: '#f4e9f0', line: '#eadde6',
   accent: '#8b3d6e', accentDeep: '#7d3560', cta: '#93406f', ctaHover: '#7d3560',
   sub: '#a77b97', ink: '#23262b', muted: '#8d949d',
 };
+/** 위키 시그니처 세리프 — 제목·마스트헤드에만 (본문은 Pretendard 가독 유지). */
+const TF = "'Gowun Batang', 'Pretendard Variable', serif";
+/** 본문 속 문서 링크 = 잉크 밑줄. Plate LinkElement 기본색을 위키 톤으로 덮는다. */
+const WIKI_CSS = `
+.wiki-theme a[href^="wiki://"] {
+  color: #8b3d6e; font-weight: 600;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: rgba(139,61,110,0.4); text-decoration-thickness: 1.5px;
+}
+.wiki-theme a[href^="wiki://"]:hover { text-decoration-color: #8b3d6e; }
+`;
 
 export default function Wiki() {
   const [store, setStore] = useState<WikiStore>(loadWiki);
@@ -148,6 +160,7 @@ export default function Wiki() {
 
   return (
     <div className="wiki-theme flex h-dvh text-[#23262b]" style={{ background: P.page }}>
+      <style>{WIKI_CSS}</style>
       {/* ══════ 사이드바 — 264px 캐논 ══════ */}
       <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r px-3.5 py-5 sm:flex" style={{ background: P.paper, borderColor: P.line }}>
         {/* 락업 */}
@@ -281,14 +294,20 @@ export default function Wiki() {
                 <span className="font-bold" style={{ color: P.accent }}>{active.title || '무제'}</span>
               </div>
 
-              {/* 제목 */}
+              {/* ── 책 페이지 시트 — 제목·메타·본문이 종이 한 장 위에 ── */}
+              <div className="relative mt-3 rounded-[18px] border bg-white px-6 py-6 shadow-[0_14px_34px_-24px_rgba(90,40,70,0.4)] sm:px-9 sm:py-8" style={{ borderColor: P.line }}>
+              {active.pinned && (
+                <span aria-hidden className="absolute right-8 top-0 h-[34px] w-[16px]" style={{ background: P.accent, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%)' }} title="고정된 문서" />
+              )}
+              {/* 제목 — 위키 시그니처 세리프 */}
               <input
                 key={`t-${active.id}`}
                 defaultValue={active.title}
                 onBlur={(e) => patchDoc(active.id, { title: e.target.value.trim() })}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); }}
                 placeholder="문서 제목"
-                className="mt-3 w-full bg-transparent text-[30px] font-bold leading-tight tracking-[-0.015em] outline-none placeholder:text-[#c9b3c1]"
+                className="w-full bg-transparent text-[30px] font-bold leading-tight tracking-[-0.01em] outline-none placeholder:text-[#c9b3c1]"
+                style={{ fontFamily: TF }}
               />
 
               {/* 메타 줄 — 태그 · 상위 이동 · 핀 · 삭제 */}
@@ -334,6 +353,7 @@ export default function Wiki() {
                   apiRef={editorApi}
                 />
               </Suspense>
+              </div>
 
               {/* 하위 문서 */}
               <div className="mt-10">
@@ -380,12 +400,14 @@ export default function Wiki() {
                   <h2 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold tracking-[0.08em]" style={{ color: P.sub }}><Star className="h-3 w-3" /> 고정된 문서</h2>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {pinnedDocs.map((d) => (
-                      <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex min-h-[110px] flex-col rounded-[15px] border bg-white p-4 text-left transition-all hover:-translate-y-1 hover:shadow-[0_14px_28px_-18px_rgba(90,40,70,0.35)]" style={{ borderColor: P.line }}>
+                      <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="relative flex min-h-[110px] flex-col overflow-hidden rounded-[15px] border bg-white p-4 text-left transition-all hover:-translate-y-1 hover:shadow-[0_14px_28px_-18px_rgba(90,40,70,0.35)]" style={{ borderColor: P.line }}>
+                        {/* 책갈피 리본 */}
+                        <span aria-hidden className="absolute right-4 top-0 h-[26px] w-[13px]" style={{ background: colorOf(docs, d.id), clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%)' }} />
                         <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: P.sub }}>
                           <span className="flex h-[17px] w-[17px] items-center justify-center rounded-[5px] text-[10px] font-bold" style={{ background: `${colorOf(docs, d.id)}20`, color: colorOf(docs, d.id) }}>{symOf(docs, d.id)}</span>
                           {ancestorsOf(docs, d.id)[0]?.title ?? '최상위'}
                         </div>
-                        <div className="mt-1.5 text-[16.5px] font-bold leading-snug">{d.title || '무제'}</div>
+                        <div className="mt-1.5 text-[16.5px] font-bold leading-snug" style={{ fontFamily: TF }}>{d.title || '무제'}</div>
                         <div className="mt-auto pt-2 text-[11.5px]" style={{ color: P.muted }}>{fmtRel(d.updated)}</div>
                       </button>
                     ))}
@@ -405,11 +427,12 @@ export default function Wiki() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {roots.map((d) => {
                       const n = childrenOf(docs, d.id).length;
+                      // 책등 — 왼쪽 두꺼운 색 띠
                       return (
-                        <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex items-center gap-3 rounded-[15px] border bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-18px_rgba(90,40,70,0.35)]" style={{ borderColor: P.line }}>
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[15px] font-bold" style={{ background: `${colorOf(docs, d.id)}1c`, color: colorOf(docs, d.id) }}>{symOf(docs, d.id)}</span>
+                        <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex items-center gap-3 rounded-[15px] border bg-white py-4 pl-3.5 pr-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-18px_rgba(90,40,70,0.35)]" style={{ borderColor: P.line, borderLeft: `5px solid ${colorOf(docs, d.id)}` }}>
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[15px] font-bold" style={{ background: `${colorOf(docs, d.id)}1c`, color: colorOf(docs, d.id), fontFamily: TF }}>{symOf(docs, d.id)}</span>
                           <span className="min-w-0">
-                            <span className="block truncate text-[15px] font-bold">{d.title || '무제'}</span>
+                            <span className="block truncate text-[15px] font-bold" style={{ fontFamily: TF }}>{d.title || '무제'}</span>
                             <span className="block text-[11.5px]" style={{ color: P.muted }}>{n ? `하위 ${n}개` : bodyText(d.body).slice(0, 30) || '빈 문서'}</span>
                           </span>
                         </button>
@@ -467,7 +490,7 @@ function Masthead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub
     <div>
       <p className="text-[10.5px] font-bold tracking-[0.22em]" style={{ color: '#b294a6' }}>{eyebrow}</p>
       <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-[27px] font-bold leading-none tracking-[-0.01em] text-[#191c20]">{title}</h1>
+        <h1 className="text-[27px] font-bold leading-none tracking-[-0.01em] text-[#191c20]" style={{ fontFamily: TF }}>{title}</h1>
         <span className="text-[13.5px] text-[#8d949d]">{sub}</span>
       </div>
     </div>
