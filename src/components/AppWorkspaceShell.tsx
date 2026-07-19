@@ -72,6 +72,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린
   tickets: '#d97706',  // 티켓북 — 앰버
+  wiki: '#8b3d6e',     // 마이위키 — 플럼(자두)
 };
 
 /** 레일 색 후보 — 레일 위에서 마우스 휠 위/아래로 돌려가며 고른다 (선택은 localStorage 저장).
