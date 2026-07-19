@@ -43,6 +43,14 @@ const Notes = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null); // 사이드바 태그 필터
   const [tagDraft, setTagDraft] = useState(''); // 노트 메뉴에서 새 태그 입력
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  // 메뉴는 fixed 좌표로 — 사이드바 스크롤 컨테이너에 잘리지 않게 화면 기준으로 띄운다.
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const openNoteMenu = (noteId: string, el: HTMLElement) => {
+    if (menuFor === noteId) { setMenuFor(null); return; }
+    const r = el.getBoundingClientRect();
+    setMenuPos({ x: r.right + 6, y: Math.min(r.top - 4, window.innerHeight - 300) });
+    setMenuFor(noteId);
+  };
   const [trashOpen, setTrashOpen] = useState(false);
   const trash = useTrash();
   const q = query.trim().toLowerCase();
@@ -179,18 +187,18 @@ const Notes = () => {
           onClick={() => setActiveId(note.id)}
           className={cn(
             'group flex h-[38px] w-full items-center gap-2 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
-            activeRow ? 'bg-[#4f86e0]/20 font-semibold text-[#2c4f93] dark:bg-[#4f86e0]/25 dark:text-white' : 'text-[#4d5563] hover:bg-white/45 dark:text-foreground/70 dark:hover:bg-white/5',
+            activeRow ? 'bg-[#4f86e0]/20 font-semibold text-[#2c4f93] dark:bg-[#4f86e0]/25 dark:text-white' : 'text-[#191c20] hover:bg-white/45 dark:text-foreground/90 dark:hover:bg-white/5',
           )}
         >
-          <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#8894a5]')} strokeWidth={1.8} />
+          <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#5f6b7e]')} strokeWidth={1.8} />
           <span className={cn('min-w-0 flex-1 truncate', activeRow ? 'font-semibold text-[#2c4f93]' : '')}>
             {noteDisplayTitle(note)}
           </span>
           <span
             role="button"
             tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuFor(menuFor === note.id ? null : note.id); } }}
+            onClick={(e) => { e.stopPropagation(); openNoteMenu(note.id, e.currentTarget); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); openNoteMenu(note.id, e.currentTarget); } }}
             className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
             title="더보기"
             aria-label="노트 메뉴"
@@ -202,7 +210,7 @@ const Notes = () => {
         {menuFor === note.id && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
-            <div className="absolute left-full top-8 z-30 ml-1 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
+            <div className="fixed z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg" style={{ left: menuPos.x, top: menuPos.y }}>
               <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
                 <Pin className={cn('h-3.5 w-3.5', note.favorite ? 'fill-[#2c4f93]/20 text-[#2c4f93]' : 'text-muted-foreground')} />
                 {note.favorite ? '고정 해제' : '고정'}
