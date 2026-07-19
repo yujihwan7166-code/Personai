@@ -29,8 +29,10 @@ export interface Note {
   items: TabItem[];
   /** 소속 폴더 id — 없으면 null(미분류). */
   folderId: string | null;
-  /** 즐겨찾기. */
+  /** 즐겨찾기(고정). */
   favorite: boolean;
+  /** 고정 섹션 수동 정렬 순서 — 작을수록 위. 없으면 목록 끝. */
+  favOrder?: number;
   createdAt: number;
   updatedAt: number;
   /** 휴지통 이동 시각(ms). 있으면 삭제된 상태(복원 가능). */
@@ -139,9 +141,30 @@ export function createNoteInFolder(folderId: string | null): Note {
   return getNote(note.id) ?? note;
 }
 
-/** 즐겨찾기 토글. */
+/** 즐겨찾기(고정) 토글 — 켤 때는 고정 목록 맨 아래로(favOrder = max+1). */
 export function toggleFavorite(id: string): void {
-  patchNote(id, (n) => ({ ...n, favorite: !n.favorite }));
+  const maxOrder = readAll().filter((n) => n.favorite).reduce((m, n) => Math.max(m, n.favOrder ?? 0), 0);
+  patchNote(id, (n) => (n.favorite
+    ? { ...n, favorite: false, favOrder: undefined }
+    : { ...n, favorite: true, favOrder: maxOrder + 1 }));
+}
+
+/** 고정 목록의 표시 순서 — favOrder(수동) 우선, 없으면 최근 편집순. */
+export function sortedFavorites(notes: Note[]): Note[] {
+  return notes.filter((n) => n.favorite)
+    .sort((a, b) => (a.favOrder ?? Number.MAX_SAFE_INTEGER) - (b.favOrder ?? Number.MAX_SAFE_INTEGER) || b.updatedAt - a.updatedAt);
+}
+
+/** 고정 노트를 위/아래로 한 칸 이동 — 전체 고정 목록의 favOrder 를 0..n-1 로 재부여하며 스왑. */
+export function moveFavorite(id: string, dir: -1 | 1): void {
+  const all = readAll();
+  const favs = sortedFavorites(all.filter((n) => !n.deletedAt));
+  const i = favs.findIndex((n) => n.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= favs.length) return;
+  [favs[i], favs[j]] = [favs[j], favs[i]];
+  const orderOf = new Map(favs.map((n, idx) => [n.id, idx]));
+  writeAll(all.map((n) => (orderOf.has(n.id) ? { ...n, favOrder: orderOf.get(n.id) } : n)));
 }
 
 /** 노트를 폴더로 이동(null=미분류). @deprecated 태그 분류로 대체 — 데이터 보존용으로만 유지. */

@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
-  Pin, Hash, MoreHorizontal, ArrowLeft, ArrowRight, RotateCcw,
+  Pin, Hash, MoreHorizontal, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Pencil, RotateCcw,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
-  toggleFavorite, addNoteTag, removeNoteTag,
+  toggleFavorite, sortedFavorites, moveFavorite, addNoteTag, removeNoteTag,
   useTrash, restoreNote, purgeNote, emptyTrash,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
@@ -39,6 +39,7 @@ const Notes = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [tabMenuFor, setTabMenuFor] = useState<string | null>(null);
+  const [renamingTab, setRenamingTab] = useState<string | null>(null); // 탭 이름 인라인 편집 중
   const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null); // 사이드바 태그 필터
   const [tagDraft, setTagDraft] = useState(''); // 노트 메뉴에서 새 태그 입력
@@ -176,7 +177,7 @@ const Notes = () => {
     setTagDraft('');
   };
 
-  const favorites = notes.filter((n) => n.favorite);
+  const favorites = sortedFavorites(notes);
 
   const renderNote = (note: Note) => {
     const activeRow = note.id === activeId;
@@ -215,6 +216,26 @@ const Notes = () => {
                 <Pin className={cn('h-3.5 w-3.5', note.favorite ? 'fill-[#2c4f93]/20 text-[#2c4f93]' : 'text-muted-foreground')} />
                 {note.favorite ? '고정 해제' : '고정'}
               </button>
+              {note.favorite && (
+                <>
+                  <button
+                    type="button"
+                    disabled={favorites[0]?.id === note.id}
+                    onClick={() => moveFavorite(note.id, -1)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5 text-muted-foreground" /> 위로
+                  </button>
+                  <button
+                    type="button"
+                    disabled={favorites[favorites.length - 1]?.id === note.id}
+                    onClick={() => moveFavorite(note.id, 1)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-35"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" /> 아래로
+                  </button>
+                </>
+              )}
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
               <p className="px-3 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">태그</p>
               {/* 이 노트의 태그 — 클릭 시 제거 */}
@@ -443,10 +464,37 @@ const Notes = () => {
                         on ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      <button type="button" onClick={() => setActiveTabId(tab.id)} className="flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
-                        {tab.name}
-                      </button>
+                      {renamingTab === tab.id ? (
+                        <span className="flex items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          <input
+                            autoFocus
+                            defaultValue={tab.name}
+                            onFocus={(e) => e.currentTarget.select()}
+                            onBlur={(e) => {
+                              const name = e.currentTarget.value.trim();
+                              if (active && name && name !== tab.name) updateTab(active.id, tab.id, { name });
+                              setRenamingTab(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.currentTarget as HTMLInputElement).blur();
+                              if (e.key === 'Escape') setRenamingTab(null);
+                            }}
+                            className="w-[92px] rounded border border-primary/40 bg-background px-1 py-0.5 text-[12.5px] outline-none"
+                          />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTabId(tab.id)}
+                          onDoubleClick={() => setRenamingTab(tab.id)}
+                          title="더블클릭으로 이름 바꾸기"
+                          className="flex items-center gap-1.5"
+                        >
+                          <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          {tab.name}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -565,6 +613,14 @@ const Notes = () => {
               className="fixed z-[9999] w-52 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-xl"
               style={{ left: tabMenuPos.left, top: tabMenuPos.top }}
             >
+              <button
+                type="button"
+                onClick={() => { setRenamingTab(tab.id); setTabMenuFor(null); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> 이름 바꾸기
+              </button>
+              <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
               <button
                 type="button"
                 disabled={i === 0}
