@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, NotebookPen, Search, X,
   FileText, LayoutDashboard, Table as TableIcon, ChevronDown,
-  Star, Hash, MoreHorizontal, ArrowLeft, ArrowRight, RotateCcw,
+  Pin, Hash, MoreHorizontal, ArrowLeft, ArrowRight, RotateCcw,
 } from 'lucide-react';
 import type { Value } from 'platejs';
 import { cn } from '@/lib/utils';
@@ -204,8 +204,8 @@ const Notes = () => {
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
             <div className="absolute left-full top-8 z-30 ml-1 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
               <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
-                <Star className={cn('h-3.5 w-3.5', note.favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground')} />
-                {note.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                <Pin className={cn('h-3.5 w-3.5', note.favorite ? 'fill-[#2c4f93]/20 text-[#2c4f93]' : 'text-muted-foreground')} />
+                {note.favorite ? '고정 해제' : '고정'}
               </button>
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
               <p className="px-3 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">태그</p>
@@ -372,23 +372,25 @@ const Notes = () => {
                 </div>
               )}
 
-              {/* 즐겨찾기 — 태그 필터가 없을 때만 상단 강조 */}
+              {/* 고정 — 태그 필터가 없을 때 상단. 고정된 노트는 여기에만(아래 목록과 중복 없음) */}
               {activeTag === null && favorites.length > 0 && (
                 <div>
-                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">즐겨찾기</p>
+                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">고정</p>
                   <ul className="space-y-0.5">{favorites.map(renderNote)}</ul>
                 </div>
               )}
 
-              {/* 노트 목록 (태그 필터 반영) */}
-              <div>
-                <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">
-                  {activeTag ? `#${activeTag}` : '노트'}
-                </p>
-                <ul className="space-y-0.5">
-                  {(activeTag === null ? notes : filtered).map(renderNote)}
-                </ul>
-              </div>
+              {/* 노트 목록 (태그 필터 반영) — 고정된 노트 제외 */}
+              {(activeTag !== null || notes.some((n) => !n.favorite)) && (
+                <div>
+                  <p className="px-3 pb-1.5 pt-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">
+                    {activeTag ? `#${activeTag}` : '노트'}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {(activeTag === null ? notes.filter((n) => !n.favorite) : filtered).map(renderNote)}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
