@@ -1121,7 +1121,7 @@ function BoardLedger() {
             <div className="mx-auto mb-5 max-w-[900px]">
               <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">{activeBoardName ? <><span className="text-[hsl(var(--career-red))]">{activeBoardName}</span>’s 스펙 보드</> : '스펙 보드'}</span>
+                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">{activeBoardName ? `${activeBoardName}’s 스펙 보드` : '스펙 보드'}</span>
                 <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
               </div>
             </div>

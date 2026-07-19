@@ -33,6 +33,8 @@ export interface Note {
   favorite: boolean;
   /** 고정 섹션 수동 정렬 순서 — 작을수록 위. 없으면 목록 끝. */
   favOrder?: number;
+  /** 노트 문양(이모지) — 없으면 기본 문서 아이콘. */
+  emoji?: string;
   createdAt: number;
   updatedAt: number;
   /** 휴지통 이동 시각(ms). 있으면 삭제된 상태(복원 가능). */
@@ -147,6 +149,11 @@ export function toggleFavorite(id: string): void {
   patchNote(id, (n) => (n.favorite
     ? { ...n, favorite: false, favOrder: undefined }
     : { ...n, favorite: true, favOrder: maxOrder + 1 }));
+}
+
+/** 노트 문양(이모지) 지정 — null 이면 기본 아이콘으로. */
+export function setNoteEmoji(id: string, emoji: string | null): void {
+  patchNote(id, (n) => ({ ...n, emoji: emoji ?? undefined }));
 }
 
 /** 고정 목록의 표시 순서 — favOrder(수동) 우선, 없으면 최근 편집순. */

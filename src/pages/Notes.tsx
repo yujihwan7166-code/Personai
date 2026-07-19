@@ -20,7 +20,7 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
-  toggleFavorite, sortedFavorites, moveFavorite, addNoteTag, removeNoteTag,
+  toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag,
   useTrash, restoreNote, purgeNote, emptyTrash,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
@@ -49,7 +49,7 @@ const Notes = () => {
   const openNoteMenu = (noteId: string, el: HTMLElement) => {
     if (menuFor === noteId) { setMenuFor(null); return; }
     const r = el.getBoundingClientRect();
-    setMenuPos({ x: r.right + 6, y: Math.min(r.top - 4, window.innerHeight - 300) });
+    setMenuPos({ x: r.right + 6, y: Math.max(8, Math.min(r.top - 4, window.innerHeight - 430)) });
     setMenuFor(noteId);
   };
   const [trashOpen, setTrashOpen] = useState(false);
@@ -191,7 +191,11 @@ const Notes = () => {
             activeRow ? 'bg-[#4f86e0]/20 font-semibold text-[#2c4f93] dark:bg-[#4f86e0]/25 dark:text-white' : 'text-[#191c20] hover:bg-white/45 dark:text-foreground/90 dark:hover:bg-white/5',
           )}
         >
-          <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#5f6b7e]')} strokeWidth={1.8} />
+          {note.emoji ? (
+            <span className="w-4 shrink-0 text-center text-[15px] leading-none" aria-hidden>{note.emoji}</span>
+          ) : (
+            <FileText className={cn('h-4 w-4 shrink-0', activeRow ? 'text-[#2c4f93]' : 'text-[#5f6b7e]')} strokeWidth={1.8} />
+          )}
           <span className={cn('min-w-0 flex-1 truncate', activeRow ? 'font-semibold text-[#2c4f93]' : '')}>
             {noteDisplayTitle(note)}
           </span>
@@ -211,8 +215,8 @@ const Notes = () => {
         {menuFor === note.id && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
-            <div className="fixed z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg" style={{ left: menuPos.x, top: menuPos.y }}>
-              <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
+            <div className="fixed z-30 w-48 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-popover py-1.5 shadow-lg" style={{ left: menuPos.x, top: menuPos.y }}>
+              <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-foreground hover:bg-accent">
                 <Pin className={cn('h-3.5 w-3.5', note.favorite ? 'fill-[#2c4f93]/20 text-[#2c4f93]' : 'text-muted-foreground')} />
                 {note.favorite ? '고정 해제' : '고정'}
               </button>
@@ -237,7 +241,28 @@ const Notes = () => {
                 </>
               )}
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
-              <p className="px-3 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">태그</p>
+              {/* 문양 — 노트마다 이모지 지정 */}
+              <p className="px-3.5 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">문양</p>
+              <div className="grid grid-cols-6 gap-0.5 px-2.5 pb-1.5">
+                {['📝', '💡', '📚', '🎯', '💼', '❤️', '⭐', '🧠', '✈️', '🍀', '🏠', '🎮'].map((em) => (
+                  <button
+                    key={em}
+                    type="button"
+                    onClick={() => setNoteEmoji(note.id, em)}
+                    className={cn('flex h-7 w-7 items-center justify-center rounded-md text-[15px] transition-colors hover:bg-accent', note.emoji === em && 'bg-primary/15')}
+                    title="문양 지정"
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+              {note.emoji && (
+                <button type="button" onClick={() => setNoteEmoji(note.id, null)} className="flex w-full items-center gap-2 px-3.5 pb-1 text-left text-[11.5px] text-muted-foreground hover:text-foreground">
+                  기본 아이콘으로
+                </button>
+              )}
+              <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
+              <p className="px-3.5 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">태그</p>
               {/* 이 노트의 태그 — 클릭 시 제거 */}
               {noteTagsOf(note).length > 0 && (
                 <div className="flex flex-wrap gap-1 px-3 pb-1.5">
