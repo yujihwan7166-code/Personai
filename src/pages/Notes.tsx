@@ -202,7 +202,7 @@ const Notes = () => {
         {menuFor === note.id && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
-            <div className="absolute right-2 top-8 z-30 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
+            <div className="absolute left-full top-8 z-30 ml-1 w-40 overflow-hidden rounded-lg border border-[hsl(var(--hairline))] bg-popover py-1 shadow-lg">
               <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] text-foreground hover:bg-accent">
                 <Star className={cn('h-3.5 w-3.5', note.favorite ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground')} />
                 {note.favorite ? '즐겨찾기 해제' : '즐겨찾기'}
