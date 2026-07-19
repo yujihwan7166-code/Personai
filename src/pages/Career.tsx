@@ -604,7 +604,7 @@ function BoardLedger() {
                     className={cn(
                       'flex h-[38px] items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                       active
-                        ? 'bg-white font-semibold text-[#8a3550] shadow-[0_1px_2px_rgba(120,40,60,0.08)]'
+                        ? 'bg-[#8a3550]/[0.12] font-semibold text-[#8a3550] dark:bg-[#8a3550]/25'
                         : 'font-medium text-[#3c383d] hover:bg-white/55',
                     )}
                   >
