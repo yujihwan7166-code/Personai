@@ -58,8 +58,14 @@ export default function TravelHome({ initialTripId }: { initialTripId?: string }
 
   return (
     <div className="pb-8">
-      {/* 스탯 스트립 + 새 여행 */}
-      <div className="mb-5 flex flex-wrap items-center gap-3">
+      {/* 헤더 + 스탯 스트립 + 새 여행 — 한 줄 */}
+      <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+        {/* 헤더 */}
+        <div className="mr-1">
+          <p className="text-[10.5px] font-bold tracking-[0.22em] text-muted-foreground/70">WANDERLUST ARCHIVE</p>
+          <h2 className="mt-1 text-[27px] font-bold leading-none tracking-[-0.01em] text-foreground">트래블 로그</h2>
+        </div>
+        {/* 스탯 스트립 */}
         <div className="flex items-center divide-x divide-[hsl(var(--hairline))] rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] px-1 py-2.5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.12)]">
           {([
             [stats.trips, '여행'],

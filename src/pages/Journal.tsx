@@ -498,13 +498,13 @@ export default function Journal() {
         </nav>
       </aside>
 
-      {/* ── 메인 ── 글쓰기 탭에서 날씨를 고르면 이 영역 전체 배경이 그 날씨 하늘로. */}
+      {/* ── 메인 ── 특정 날을 연 상태(detailOpen)에서만 날씨 하늘 배경. 데일리 로그 랜딩/목록엔 영향 없음. */}
       <main
         ref={mainRef}
         className="relative min-w-0 flex-1 overflow-y-auto transition-colors"
-        style={tab === 'write' && weather ? { background: WEATHER_SKY[weather] } : undefined}
+        style={tab === 'write' && detailOpen && weather ? { background: WEATHER_SKY[weather] } : undefined}
       >
-        {tab === 'write' && <WeatherFx weather={weather} />}
+        {tab === 'write' && detailOpen && <WeatherFx weather={weather} />}
         {/* 화면을 넓게 — 전 섹션 공통 1280 (마소너리·2단 작성·지도 전부 이 폭 기준) */}
         <div className="relative z-[1] mx-auto w-full max-w-[1280px] px-4 pb-7 pt-6 sm:px-8 sm:pt-10">
           {/* 모바일 — 사이드바 대신 가로 스크롤 내비 */}
@@ -546,7 +546,7 @@ export default function Journal() {
                   <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
                 </div>
               </div>
-            ) : (
+            ) : tab === 'trips' ? null : (
               <div className="mb-6">
                 <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
                 <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
@@ -876,7 +876,7 @@ export default function Journal() {
                   ))}
                 </div>
                 {/* 그리드 */}
-                <div className="grid grid-cols-7" style={{ gridAutoRows: 'minmax(78px, 1fr)' }}>
+                <div className="grid grid-cols-7" style={{ gridAutoRows: 'minmax(92px, 1fr)' }}>
                   {cells.map((c, idx) => {
                     const dow = idx % 7;
                     const meta = c.key ? dayMeta.get(c.key) : undefined;
