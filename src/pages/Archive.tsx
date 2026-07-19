@@ -12,6 +12,7 @@ import { notify } from '@/lib/notify';
 import { KIND_LABEL, type ArchiveCollection, type ArchiveItem, type ArchiveKind } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { useArchive } from '@/hooks/useArchive';
+import { useFlipGrid } from '@/hooks/useFlipGrid';
 import { tokenMatchAll } from '@/lib/textSearch';
 import { ArchiveCard } from '@/components/archive/ArchiveCard';
 import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
@@ -43,6 +44,9 @@ export default function Archive() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [allTagsOpen, setAllTagsOpen] = useState(false);
   const [yearF, setYearF] = useState<string>('all');
+  const [panelClosing, setPanelClosing] = useState(false);
+  // 상세 열림/닫힘·필터 변경 시 카드가 새 자리로 미끄러지게 (폭은 1프레임 확정, FLIP 글라이드)
+  const { gridRef, capture } = useFlipGrid<HTMLDivElement>();
 
   const selectedItem = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
   // 삭제된 항목이 선택돼 있으면 닫기
@@ -98,6 +102,20 @@ export default function Archive() {
     setDialogOpen(true);
   };
 
+  /* ── 상세 열기/닫기 — 레이아웃 스냅 직전에 capture, 닫기는 패널 퇴장 후 언마운트 ── */
+  const openDetail = (id: string) => {
+    setPanelClosing(false);
+    if (!selectedId) capture();   // 이미 열려 있으면 레이아웃 불변 — 캡처 불필요
+    setSelectedId(id);
+  };
+  const closeDetail = () => {
+    if (panelClosing) return;
+    setPanelClosing(true);
+    window.setTimeout(() => { capture(); setSelectedId(null); setPanelClosing(false); }, 190);
+  };
+  /** 필터·뷰 변경도 카드 글라이드 대상 — setState 직전 캡처. */
+  const withFlip = (fn: () => void) => { capture(); fn(); };
+
   const viewTitle =
     view === 'all' ? '전체 보기'
     : view === 'starred' ? '별표 모음'
@@ -128,8 +146,8 @@ export default function Archive() {
           <Plus className="h-4 w-4" /> 새 항목 저장
         </button>
 
-        <NavRow icon={<Home className="h-4 w-4" />} label="전체 보기" count={items.length} active={view === 'all'} onClick={() => setView('all')} />
-        <NavRow icon={<Star className="h-4 w-4" />} label="별표 모음" count={starredCount} active={view === 'starred'} onClick={() => setView('starred')} />
+        <NavRow icon={<Home className="h-4 w-4" />} label="전체 보기" count={items.length} active={view === 'all'} onClick={() => withFlip(() => setView('all'))} />
+        <NavRow icon={<Star className="h-4 w-4" />} label="별표 모음" count={starredCount} active={view === 'starred'} onClick={() => withFlip(() => setView('starred'))} />
 
         <div className="mt-5 mb-1 flex items-center justify-between pl-2.5 pr-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">컬렉션</span>
@@ -151,7 +169,7 @@ export default function Archive() {
               label={c.name}
               count={counts.get(c.id) ?? 0}
               active={view === c.id}
-              onClick={() => setView(c.id)}
+              onClick={() => withFlip(() => setView(c.id))}
             />
           ))}
           <button
@@ -173,7 +191,7 @@ export default function Archive() {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setActiveTag((cur) => (cur === t ? null : t))}
+                    onClick={() => withFlip(() => setActiveTag((cur) => (cur === t ? null : t)))}
                     className={cn(
                       'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium transition-colors',
                       activeTag === t
@@ -252,10 +270,10 @@ export default function Archive() {
 
         {/* 모바일 컬렉션 칩 (lg 미만) */}
         <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
-          <MobileChip label="전체" active={view === 'all'} onClick={() => setView('all')} />
-          <MobileChip label="⭐ 별표" active={view === 'starred'} onClick={() => setView('starred')} />
+          <MobileChip label="전체" active={view === 'all'} onClick={() => withFlip(() => setView('all'))} />
+          <MobileChip label="⭐ 별표" active={view === 'starred'} onClick={() => withFlip(() => setView('starred'))} />
           {collections.map((c) => (
-            <MobileChip key={c.id} label={`${c.emoji ?? ''} ${c.name}`.trim()} active={view === c.id} onClick={() => setView(c.id)} />
+            <MobileChip key={c.id} label={`${c.emoji ?? ''} ${c.name}`.trim()} active={view === c.id} onClick={() => withFlip(() => setView(c.id))} />
           ))}
         </div>
 
@@ -263,15 +281,15 @@ export default function Archive() {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <ArchiveFilterMenu label="형태" value={kind ?? 'all'}
             options={[{ v: 'all', label: '전체 형태' }, ...KINDS.map((k) => ({ v: k, label: KIND_LABEL[k] }))]}
-            onChange={(v) => setKind(v === 'all' ? null : (v as ArchiveKind))} />
+            onChange={(v) => withFlip(() => setKind(v === 'all' ? null : (v as ArchiveKind)))} />
           <ArchiveFilterMenu label="태그" value={activeTag ?? 'all'}
             options={[{ v: 'all', label: '전체 태그' }, ...allTagNames.map((t) => ({ v: t, label: `#${t}` }))]}
-            onChange={(v) => setActiveTag(v === 'all' ? null : v)} />
+            onChange={(v) => withFlip(() => setActiveTag(v === 'all' ? null : v))} />
           <ArchiveFilterMenu label="연도" value={yearF}
             options={[{ v: 'all', label: '전체 연도' }, ...years.map((y) => ({ v: y, label: y }))]}
-            onChange={setYearF} />
+            onChange={(v) => withFlip(() => setYearF(v))} />
           {(kind || activeTag || yearF !== 'all') && (
-            <button type="button" onClick={() => { setKind(null); setActiveTag(null); setYearF('all'); }}
+            <button type="button" onClick={() => withFlip(() => { setKind(null); setActiveTag(null); setYearF('all'); })}
               className="px-1 text-[12.5px] font-semibold text-foreground/45 transition-colors hover:text-foreground/75">초기화 ✕</button>
           )}
         </div>
@@ -280,11 +298,13 @@ export default function Archive() {
         {visible.length === 0 ? (
           <EmptyState hasItems={items.length > 0} onNew={openNew} />
         ) : mode === 'timeline' ? (
-          <Timeline items={visible} onOpen={(i) => setSelectedId(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
+          <Timeline items={visible} onOpen={(i) => openDetail(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
         ) : (
-          <div className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
+          <div ref={gridRef} className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
             {visible.map((it) => (
-              <ArchiveCard key={it.id} item={it} onOpen={(i) => setSelectedId(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={setActiveTag} />
+              <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
+                <ArchiveCard item={it} onOpen={(i) => openDetail(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
+              </div>
             ))}
           </div>
         )}
@@ -299,9 +319,9 @@ export default function Archive() {
         allTags={allTagNames}
       />
 
-      {/* 상세 패널 */}
+      {/* 상세 패널 — closing 동안 퇴장 애니메이션 후 언마운트 */}
       {selectedItem && (
-        <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={() => setSelectedId(null)} />
+        <ArchiveDetailPanel item={selectedItem} collections={collections} closing={panelClosing} onClose={closeDetail} />
       )}
 
       {/* 컬렉션 만들기·편집기 (사이드바 '새 컬렉션') */}

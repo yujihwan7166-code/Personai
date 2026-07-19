@@ -15,6 +15,8 @@ import { BlobImage } from './ArchiveCard';
 interface Props {
   item: ArchiveItem;
   collections: ArchiveCollection[];
+  /** true면 퇴장 애니메이션 재생 중 (부모가 애니메이션 후 언마운트). */
+  closing?: boolean;
   onClose: () => void;
 }
 
@@ -22,7 +24,7 @@ function fmtDate(iso: string): string {
   return iso.slice(0, 10).replace(/-/g, '. ');
 }
 
-export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
+export function ArchiveDetailPanel({ item, collections, closing, onClose }: Props) {
   const [title, setTitle] = useState(item.title);
   const [note, setNote] = useState(item.note ?? '');
   const [tagInput, setTagInput] = useState('');
@@ -68,7 +70,7 @@ export function ArchiveDetailPanel({ item, collections, onClose }: Props) {
   };
 
   return (
-    <aside className="archive-theme arch-detail-in sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start overflow-hidden border-l border-[hsl(var(--hairline))] bg-card lg:w-[400px]">
+    <aside className={cn('archive-theme sticky top-0 flex h-dvh w-full shrink-0 flex-col self-start overflow-hidden border-l border-[hsl(var(--hairline))] bg-card lg:w-[400px]', closing ? 'arch-detail-out' : 'arch-detail-in')}>
         {/* 헤더 */}
         <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-4 py-3">
           <span className="rounded-md bg-[hsl(var(--foreground)/0.06)] px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">

@@ -2547,6 +2547,12 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 .arch-detail-in { animation: arch-detail-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* 닫기 — 오른쪽으로 미끄러져 퇴장 (끝나면 부모가 언마운트 + 카드 FLIP 글라이드) */
+@keyframes arch-detail-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(26px); }
+}
+.arch-detail-out { animation: arch-detail-out 190ms cubic-bezier(0.4, 0, 1, 1) both; }
 @media (prefers-reduced-motion: reduce) {
-  .arch-detail-in { animation: none; }
+  .arch-detail-in, .arch-detail-out { animation: none; }
 }
