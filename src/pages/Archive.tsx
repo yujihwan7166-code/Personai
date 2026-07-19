@@ -105,24 +105,30 @@ export default function Archive() {
 
   /* ── 상세 열기/닫기 ──
    * grid-template-columns 를 애니메이션해 패널 폭이 0↔400 으로 열리며 마스트헤드가 부드럽게 밀린다.
-   * 애니메이션 동안 메이슨리는 옛 폭으로 고정(frozenW)해 연속 재배치(찌그러짐)를 막고,
-   * 끝나는 순간 폭 고정 해제 + FLIP 으로 새 자리에 한 번에 미끄러져 정착. */
-  const freezeBody = () => { const w = bodyRef.current?.offsetWidth; if (w) setFrozenW(w); };
-  const settle = () => { capture(); setFrozenW(null); };
+   * 메이슨리는 여는 순간 "최종 폭"으로 즉시 고정 + FLIP 글라이드 → 패널 슬라이드와 카드 이동이
+   * 같은 320ms 에 동시에 일어난다(순차 아님). 끝나면 폭 고정만 해제(자연 폭 = 고정 폭, 점프 없음). */
+  const PANEL_W = 400;
+  const isLg = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  const beginShift = (delta: number) => {
+    const w = bodyRef.current?.offsetWidth;
+    if (!w || !isLg()) return;
+    capture();                      // 옛 위치 스냅샷
+    setFrozenW(w + delta);          // 최종 폭으로 즉시 고정 → FLIP 이 새 자리로 글라이드
+  };
   const openDetail = (id: string) => {
     if (settleTimer.current) window.clearTimeout(settleTimer.current);
     if (selectedId) { setSelectedId(id); return; }   // 이미 열림 — 폭 불변, 항목만 교체
-    freezeBody();
+    beginShift(-PANEL_W);
     setSelectedId(id);
     setGridOpen(true);
-    settleTimer.current = window.setTimeout(settle, 320);
+    settleTimer.current = window.setTimeout(() => setFrozenW(null), 340);
   };
   const closeDetail = () => {
     if (!selectedId || !gridOpen) return;
     if (settleTimer.current) window.clearTimeout(settleTimer.current);
-    freezeBody();
+    beginShift(PANEL_W);
     setGridOpen(false);
-    settleTimer.current = window.setTimeout(() => { setSelectedId(null); settle(); }, 320);
+    settleTimer.current = window.setTimeout(() => { setSelectedId(null); setFrozenW(null); }, 330);
   };
   useEffect(() => () => { if (settleTimer.current) window.clearTimeout(settleTimer.current); }, []);
   /** 필터·뷰 변경도 카드 글라이드 대상 — setState 직전 캡처. */
@@ -296,7 +302,7 @@ export default function Archive() {
         {/* 상세 패널 — grid 열림 컬럼이 폭 애니메이션. 애니메이션 중에만 overflow-hidden으로 슬라이드 리빌(끝나면 해제해 sticky 정상) */}
         {selectedItem && (
           <div className={cn('w-full lg:w-auto', frozenW != null && 'overflow-hidden')}>
-            <ArchiveDetailPanel item={selectedItem} collections={collections} onClose={closeDetail} />
+            <ArchiveDetailPanel item={selectedItem} collections={collections} closing={!gridOpen} onClose={closeDetail} />
           </div>
         )}
       </div>

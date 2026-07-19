@@ -13,11 +13,11 @@ import { PersonDetail } from '@/components/people/PersonDetail';
 import { PersonForm } from '@/components/people/PersonForm';
 import { HomeView } from '@/components/people/HomeView';
 import { ReconnectView } from '@/components/people/ReconnectView';
-import { computeOverdue } from '@/lib/people/overdue';
+import { computeOverdue, lastContactMap, agoContactLabel } from '@/lib/people/overdue';
 import { EventsCalendar } from '@/components/people/EventsCalendar';
 import { GiftLedger } from '@/components/people/GiftLedger';
 import { todayKey } from '@/types/travel';
-import type { Person } from '@/types/people';
+import { avatarColor, type Person } from '@/types/people';
 
 type View = 'today' | 'persons' | 'calendar' | 'gifts' | 'reconnect';
 
@@ -59,6 +59,19 @@ export default function People() {
     () => interactions.filter((x) => x.kind === 'gift_given' || x.kind === 'gift_received').length,
     [interactions],
   );
+  /** 사이드바 하단 "문득, 이 사람" — 안부 주기를 가장 많이 넘긴 사람, 없으면 날짜 시드 무작위 한 명. */
+  const sidebarPick = useMemo(() => {
+    if (!persons.length) return null;
+    const overdue = computeOverdue(persons, interactions, today);
+    const last = lastContactMap(persons, interactions);
+    if (overdue.length) {
+      const p = overdue[0].person;
+      return { person: p, color: p.color ?? avatarColor(p.name), sub: `${agoContactLabel(last.get(p.id)!, today)} — 안부 어때요?` };
+    }
+    const seed = Number(today.replace(/-/g, '')) % persons.length;   // 하루 동안 같은 사람
+    const p = persons[seed];
+    return { person: p, color: p.color ?? avatarColor(p.name), sub: `${agoContactLabel(last.get(p.id)!, today)} · 오늘 문득` };
+  }, [persons, interactions, today]);
   /** 내비 우측 숫자 — "실데이터가 서술어" 문법의 내비 버전. */
   const navCountOf = (id: View): number => {
     if (id === 'persons') return persons.length;
@@ -121,6 +134,29 @@ export default function People() {
         <nav className="flex flex-col gap-0.5" aria-label="인맥노트 섹션">
           {NAV.map(navBtn)}
         </nav>
+
+        {/* 문득, 이 사람 — 사이드바 하단. 가장 오래 못 챙긴 사람(없으면 오늘의 무작위 한 명)을 조용히 띄운다. */}
+        {sidebarPick && (
+          <button
+            type="button"
+            onClick={() => goPerson(sidebarPick.person.id)}
+            className="mt-auto flex w-full items-center gap-3 rounded-[14px] border border-[#ece2cc] bg-white/60 px-3 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-[#d9c69a] hover:shadow-[0_8px_18px_-12px_rgba(120,80,20,0.35)]"
+            title={`${sidebarPick.person.name} 열기`}
+          >
+            {sidebarPick.person.photo ? (
+              <img src={sidebarPick.person.photo} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-bold text-white" style={{ backgroundColor: sidebarPick.color }}>
+                {sidebarPick.person.name.slice(0, 1)}
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block text-[10.5px] font-bold tracking-[0.06em] text-[#a08343]">문득, 이 사람</span>
+              <span className="mt-0.5 block truncate text-[14px] font-bold text-[#23262b]">{sidebarPick.person.name}</span>
+              <span className="block truncate text-[11.5px] text-[#98917d]">{sidebarPick.sub}</span>
+            </span>
+          </button>
+        )}
       </aside>
 
       {/* ── 메인 ── */}
