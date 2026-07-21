@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Star,
-  CalendarDays, Cloud, StickyNote, NotebookPen, Award, Plane, Contact, Archive, BookOpen,
+  CalendarDays, Cloud, StickyNote, NotebookPen, Award, Plane, Contact, Archive, BookOpen, PiggyBank,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -54,6 +54,7 @@ export const HUB_ICONS: Record<string, LucideIcon> = {
   travel: Plane,
   people: Contact,
   archive: Archive,
+  ledger: PiggyBank,
 };
 
 /* ── 즐겨찾기 — useFavoriteModes 공유 스토어 (히어로 칩 줄과 실시간 동기화) ── */

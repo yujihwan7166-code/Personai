@@ -237,7 +237,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'archive',    label: '아카이브',           desc: '서류·링크·사진 보관·정리',        emoji: '🗄️', icon: Archive,    tint: 'hsl(28 48% 40%)',  axis: '정리' },
   { id: 'wiki',       label: '마이위키',           desc: '책을 만들어 깊게 파는 백과사전',   emoji: '📗', icon: LibraryBig, tint: 'hsl(13 57% 42%)',  axis: '정리' },
   { id: 'people',     label: '인맥노트',           desc: '사람 카드 · 경조사 · 관계 흐름',  emoji: '📇', icon: Contact,    tint: 'hsl(16 62% 48%)',  axis: '정리' },
-  { id: 'ledger',     label: '가계부 (준비 중)',    desc: '지출·수입·월 결산',               emoji: '💰', icon: PiggyBank,  tint: 'hsl(140 55% 42%)', axis: '정리', pending: true },
+  { id: 'ledger',     label: '가계부',             desc: 'AI 한 줄 입력 · 예산 · 월 결산',  emoji: '💰', icon: PiggyBank,  tint: 'hsl(222 47% 38%)', axis: '정리' },
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
@@ -1066,7 +1066,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', ledger: '/ledger', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2259,6 +2259,9 @@ export function MainModeTabs({
                             } else if (item.id === 'today') {
                               setOpen(false);
                               navigate('/today');
+                            } else if (item.id === 'ledger') {
+                              setOpen(false);
+                              navigate('/ledger');
                             }
                           }}
                           role="menuitem"

@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   MoreHorizontal,
   NotebookPen,
+  PiggyBank,
   StickyNote,
   Sun,
   Moon,
@@ -35,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets';
+export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets' | 'ledger';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -58,6 +59,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Library },
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
   { key: 'tickets', label: '티켓북', to: '/tickets', icon: Ticket },
+  { key: 'ledger', label: '가계부', to: '/ledger', icon: PiggyBank },
 ];
 
 /* 레일(그라파이트) 활성 = 방 앰센트 채움 알약 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
@@ -73,6 +75,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   health: '#2f9e6e',   // 건강기록 — 그린
   tickets: '#d97706',  // 티켓북 — 앰버
   wiki: '#8b3d6e',     // 마이위키 — 플럼(자두)
+  ledger: '#2d4a7c',   // 가계부 — 딥 네이비 (방 accent와 동일)
 };
 
 /** 레일 색 후보 — 레일 위에서 마우스 휠 위/아래로 돌려가며 고른다 (선택은 localStorage 저장).
@@ -109,7 +112,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets'].includes(item.key),
+  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets', 'ledger'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
