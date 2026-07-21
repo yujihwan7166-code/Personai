@@ -1,7 +1,7 @@
 /**
  * 가계부 내역 — 월별 리스트. 행 클릭=수정, 복제=오늘 날짜로(후잉의 duplicate).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Copy, Search, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LedgerData } from '@/hooks/useLedger';
@@ -13,12 +13,30 @@ const KRW = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 const dowOf = (date: string) => { const [y, m, d] = date.split('-').map(Number); return new Date(y, m - 1, d).getDay(); };
 
-export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; onEdit: (id: string) => void; initialMonth?: string }) {
-  const [month, setMonth] = useState(() => initialMonth ?? monthOf(todayKey()));
+interface EntriesViewProps {
+  data: LedgerData;
+  onEdit: (id: string) => void;
+  initialMonth?: string;
+  /** 히트맵 날짜 탭에서 넘어온 경우 — 해당 날짜 그룹으로 스크롤 + 잠깐 하이라이트. */
+  focusDate?: string | null;
+  onFocusConsumed?: () => void;
+}
+
+export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusConsumed }: EntriesViewProps) {
+  const [month, setMonth] = useState(() => (focusDate ? monthOf(focusDate) : initialMonth ?? monthOf(todayKey())));
   const [filter, setFilter] = useState<EntryType | 'all'>('all');
   const [query, setQuery] = useState('');
+  const [highlight, setHighlight] = useState<string | null>(focusDate ?? null);
+  const focusRef = useRef<HTMLDivElement>(null);
   const { entries, categories } = data;
   const meta = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  useEffect(() => {
+    if (!highlight) return;
+    focusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = window.setTimeout(() => { setHighlight(null); onFocusConsumed?.(); }, 1800);
+    return () => window.clearTimeout(t);
+  }, [highlight, onFocusConsumed]);
 
   const shiftMonth = (delta: number) => {
     const [y, m] = month.split('-').map(Number);
@@ -89,7 +107,8 @@ export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; 
       {byDate.map(([date, items]) => {
         const dayExpense = items.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
         return (
-        <div key={date} className="mb-4">
+        <div key={date} ref={date === highlight ? focusRef : undefined}
+          className={cn('mb-4 rounded-xl transition-shadow duration-700', date === highlight && 'ring-2 ring-[hsl(var(--ledger-navy)/0.45)] ring-offset-2 ring-offset-[hsl(var(--background))]')}>
           <p className="mb-1.5 flex items-baseline text-[12px] font-semibold text-muted-foreground">
             <span>{q ? `${date} ` : `${Number(date.slice(8, 10))}일 `}{WEEKDAY[dowOf(date)]}요일</span>
             {dayExpense > 0 && <span className="ml-auto font-normal tabular-nums">지출 {KRW(dayExpense)}</span>}

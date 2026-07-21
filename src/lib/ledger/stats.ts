@@ -62,9 +62,21 @@ export function dailyExpense(entries: LedgerEntry[], month: string): Record<stri
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
+/** 로컬 YMD 이동 — toISOString 금지. */
+const shiftYmd = (ymdStr: string, days: number): string => {
+  const [y, m, d] = ymdStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
+};
+
+const expenseBetween = (entries: LedgerEntry[], from: string, to: string): number =>
+  entries.reduce((s, e) => (e.type === 'expense' && e.date >= from && e.date <= to ? s + e.amount : s), 0);
+
 /**
- * AI 브리핑(규칙기반) — 담백한 사실형 최대 3줄. 잔소리·칭찬·이모지 금지.
- * 규칙: ① 전월 대비 1.5배↑ & 3만원↑ 급증 카테고리 ② 요일 집중(35%↑, 표본 8건↑) ③ 변동비 페이스 초과.
+ * AI 브리핑(규칙기반) — 담백한 사실형 최대 4줄. 잔소리·칭찬·이모지 금지.
+ * 규칙: ① 전월 대비 1.5배↑ & 3만원↑ 급증 카테고리 ② 주간 비교(±30%↑) ③ 요일 집중(35%↑, 표본 8건↑)
+ *      ④ 변동비 페이스 초과 ⑤ 무지출일(월 5일 경과 후).
  */
 export function buildBriefing(
   entries: LedgerEntry[], month: string, prevMonth: string,
@@ -83,6 +95,15 @@ export function buildBriefing(
     if (ratio >= 1.5 && diff >= 30000 && (!top || diff > top.diff)) top = { id, ratio, diff };
   }
   if (top) lines.push(`${label.get(top.id) ?? top.id}가 지난달의 ${top.ratio.toFixed(1)}배 (${KRW(top.diff)} 증가)`);
+
+  // 주간 비교 — 최근 7일 vs 그 전 7일 (뱅크샐러드 금융비서의 주간 리포트 경량판)
+  const thisWeek = expenseBetween(entries, shiftYmd(todayYmd, -6), todayYmd);
+  const lastWeek = expenseBetween(entries, shiftYmd(todayYmd, -13), shiftYmd(todayYmd, -7));
+  if (lastWeek > 0 && thisWeek > 0) {
+    const r = thisWeek / lastWeek;
+    if (r >= 1.3) lines.push(`최근 7일 지출 ${KRW(thisWeek)} — 지난주보다 ${Math.round((r - 1) * 100)}% 증가`);
+    else if (r <= 0.7) lines.push(`최근 7일 지출 ${KRW(thisWeek)} — 지난주보다 ${Math.round((1 - r) * 100)}% 감소`);
+  }
 
   const exp = entries.filter((e) => inMonth(e, month) && e.type === 'expense');
   if (exp.length >= 8) {
@@ -109,9 +130,19 @@ export function buildBriefing(
     if (pace.over) lines.push(`이 속도면 변동비가 월말 ${KRW(pace.projected)} — 예산 ${KRW(vb)} 초과 예상`);
   }
 
+  // 무지출일 — 월 5일 이상 경과 시에만 (담백한 팩트, 스트릭 아님)
+  if (todayYmd.startsWith(month)) {
+    const elapsed = Number(todayYmd.slice(8, 10));
+    if (elapsed >= 5) {
+      const spentDays = new Set(exp.filter((e) => e.date <= todayYmd).map((e) => e.date)).size;
+      const noSpend = elapsed - spentDays;
+      if (noSpend >= 1) lines.push(`이번 달 무지출일 ${noSpend}일 (${elapsed}일 중)`);
+    }
+  }
+
   if (lines.length === 0) {
     const s = summarizeMonth(entries, month);
     lines.push(s.count > 0 ? `이번 달 ${s.count}건 기록 · 지출 ${KRW(s.expense)}` : '이번 달 기록이 아직 없어요');
   }
-  return lines.slice(0, 3);
+  return lines.slice(0, 4);
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { netWorth, sumByKind, assetProfit, monthlyDividends } from '@/lib/ledger/assetStats';
+import { netWorth, sumByKind, assetProfit, monthlyDividends, totalProfit } from '@/lib/ledger/assetStats';
 import { ledgerStore } from '@/services/ledgerStore';
 import type { LedgerAsset } from '@/types/ledger';
 
@@ -22,6 +22,15 @@ describe('assetStats', () => {
     expect(p?.profit).toBe(80000);
     expect(p?.rate).toBeCloseTo(80000 / 720000);
     expect(assetProfit(a({ value: 100 }))).toBeNull();
+  });
+  it('totalProfit — 평단 있는 투자자산 합산, 없으면 null', () => {
+    const p = totalProfit([
+      a({ kind: 'invest', value: 800000, qty: 10, avgPrice: 72000 }),
+      a({ kind: 'coin', value: 300000, qty: 1, avgPrice: 250000 }),
+      a({ kind: 'invest', value: 999999 }), // 평단 없음 — 제외
+    ]);
+    expect(p?.profit).toBe(80000 + 50000);
+    expect(totalProfit([a({ kind: 'cash', value: 100 })])).toBeNull();
   });
   it('monthlyDividends — 지급 월로 분배', () => {
     const d = monthlyDividends([a({ kind: 'invest', value: 1, annualDividend: 120000, dividendMonths: [3, 6, 9, 12] })]);

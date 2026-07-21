@@ -30,6 +30,19 @@ export function assetProfit(a: LedgerAsset): { profit: number; rate: number } | 
   return { profit, rate: profit / cost };
 }
 
+/** 수량·평단이 있는 투자자산 전체의 합산 손익 — 없으면 null (더리치의 총 수익률). */
+export function totalProfit(assets: LedgerAsset[]): { profit: number; rate: number } | null {
+  let cost = 0, value = 0;
+  for (const a of assets) {
+    if (a.kind !== 'invest' && a.kind !== 'coin') continue;
+    if (!a.qty || !a.avgPrice) continue;
+    cost += a.qty * a.avgPrice;
+    value += a.value;
+  }
+  if (cost <= 0) return null;
+  return { profit: value - cost, rate: (value - cost) / cost };
+}
+
 /** 월별 예상 배당(1~12월 인덱스 0~11) — 연 배당을 지급 월 수로 나눔. */
 export function monthlyDividends(assets: LedgerAsset[]): number[] {
   const out = Array(12).fill(0) as number[];

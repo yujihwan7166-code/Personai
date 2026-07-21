@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
-import { assetProfit, monthlyDividends, netWorth, sumByKind } from '@/lib/ledger/assetStats';
+import { assetProfit, monthlyDividends, netWorth, sumByKind, totalProfit } from '@/lib/ledger/assetStats';
 import { ASSET_KIND_META, type AssetKind, type LedgerAsset } from '@/types/ledger';
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -127,6 +127,17 @@ export function AssetsView({ data }: { data: LedgerData }) {
           <div><p className="text-[12px] text-muted-foreground">순자산</p><p className="text-[22px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(nw.net)}</p></div>
           <div><p className="text-[12px] text-muted-foreground">자산</p><p className="text-[16px] font-semibold tabular-nums">{KRW(nw.assets)}</p></div>
           <div><p className="text-[12px] text-muted-foreground">부채</p><p className="text-[16px] font-semibold tabular-nums">{nw.debt > 0 ? `-${KRW(nw.debt)}` : '없음'}</p></div>
+          {(() => {
+            const tp = totalProfit(assets);
+            return tp && (
+              <div>
+                <p className="text-[12px] text-muted-foreground">투자 손익</p>
+                <p className={cn('text-[16px] font-semibold tabular-nums', tp.profit >= 0 ? 'text-[hsl(var(--ledger-navy))]' : 'text-[hsl(var(--ledger-red))]')}>
+                  {tp.profit >= 0 ? '+' : ''}{KRW(tp.profit)} ({(tp.rate * 100).toFixed(1)}%)
+                </p>
+              </div>
+            );
+          })()}
           <button type="button" onClick={takeSnapshot}
             className="ml-auto flex items-center gap-1.5 rounded-xl bg-[hsl(var(--ledger-navy))] px-3.5 py-2 text-[13px] font-semibold text-white">
             <Camera className="h-3.5 w-3.5" /> {Number(curMonth.slice(5, 7))}월 스냅샷 저장

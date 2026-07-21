@@ -9,7 +9,7 @@ import { todayKey } from '@/services/ledgerStore';
 import {
   buildBriefing, bucketSpent, budgetPace, cardCharge, categoryTotals, dailyExpense, monthOf, summarizeMonth,
 } from '@/lib/ledger/stats';
-import { netWorth } from '@/lib/ledger/assetStats';
+import { monthlyDividends, netWorth } from '@/lib/ledger/assetStats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -242,6 +242,16 @@ export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerDa
           <span className="ml-auto text-[14px] font-bold tabular-nums">{KRW(card)}</span>
           {settings.cardBillingDay && <span className="text-[11.5px] text-muted-foreground">{settings.cardBillingDay}일 결제</span>}
         </div>
+        {(() => {
+          const div = monthlyDividends(data.assets)[mm - 1];
+          return div > 0 && (
+            <div className="mb-2 flex items-center gap-2 text-[13px]">
+              <span className="text-[hsl(var(--ledger-navy))]">₩</span>
+              <span>이번 달 예상 배당</span>
+              <span className="ml-auto tabular-nums font-semibold text-[hsl(var(--ledger-navy))]">+{KRW(div)}</span>
+            </div>
+          );
+        })()}
         {upcoming.length === 0
           ? <p className="text-[12.5px] text-muted-foreground">이번 달 남은 고정지출이 없어요</p>
           : upcoming.map((r) => (

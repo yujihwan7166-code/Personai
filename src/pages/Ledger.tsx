@@ -7,12 +7,13 @@
  * 원칙: 입력이 쉬워야 한다. 죄책감 UI(스트릭·빈 날 경고) 금지. 데이터는 전부 localStorage.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Download, PiggyBank, Plus, Upload } from 'lucide-react';
+import { Download, FileSpreadsheet, PiggyBank, Plus, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLedger } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { monthOf, summarizeMonth } from '@/lib/ledger/stats';
+import { toCsv } from '@/lib/csv';
 import type { ParsedEntry } from '@/lib/ledger/parse';
 import { ChatBar } from '@/components/ledger/ChatBar';
 import { EntryFormDialog } from '@/components/ledger/EntryFormDialog';
@@ -46,6 +47,7 @@ export default function Ledger() {
   const [view, setView] = useState<View>('dashboard');
   const [editId, setEditId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [focusDate, setFocusDate] = useState<string | null>(null); // 히트맵 날짜 탭 → 내역 해당 날짜로
   const fileRef = useRef<HTMLInputElement>(null);
 
   const today = todayKey();
@@ -74,6 +76,26 @@ export default function Ledger() {
     a.click();
     URL.revokeObjectURL(a.href);
   }, []);
+
+  /** 엑셀 호환 CSV — BOM 포함(한글 깨짐 방지). 내역 전체. */
+  const exportCsv = useCallback(() => {
+    const label = new Map(data.categories.map((c) => [c.id, c.label]));
+    const typeLabel = { expense: '지출', income: '수입', transfer: '이체' } as const;
+    const methodLabel = { card: '카드', cash: '현금', account: '계좌이체' } as const;
+    const rows: Array<Array<string | number>> = [
+      ['날짜', '종류', '금액', '카테고리', '메모', '결제수단', '더치페이 총액'],
+      ...data.entries.map((e) => [
+        e.date, typeLabel[e.type], e.amount, label.get(e.categoryId) ?? e.categoryId,
+        e.memo, e.method ? methodLabel[e.method] : '', e.groupTotal ?? '',
+      ]),
+    ];
+    const blob = new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `ledger-${todayKey()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [data.entries, data.categories]);
 
   const importBackup = useCallback(async (file: File) => {
     const ok = ledgerStore.importJson(await file.text());
@@ -139,6 +161,10 @@ export default function Ledger() {
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
             <Download className="h-3.5 w-3.5" /> JSON 백업 내보내기
           </button>
+          <button type="button" onClick={exportCsv}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
+            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV 내보내기 (엑셀)
+          </button>
           <button type="button" onClick={() => fileRef.current?.click()}
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
             <Upload className="h-3.5 w-3.5" /> 백업 가져오기
@@ -159,8 +185,8 @@ export default function Ledger() {
             <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>
           </header>
 
-          {view === 'dashboard' && <DashboardView data={data} onPickDate={() => setView('entries')} onGoAssets={() => setView('assets')} />}
-          {view === 'entries' && <EntriesView data={data} onEdit={openEdit} />}
+          {view === 'dashboard' && <DashboardView data={data} onPickDate={(d) => { setFocusDate(d); setView('entries'); }} onGoAssets={() => setView('assets')} />}
+          {view === 'entries' && <EntriesView data={data} onEdit={openEdit} focusDate={focusDate} onFocusConsumed={() => setFocusDate(null)} />}
           {view === 'budget' && <BudgetView data={data} />}
           {view === 'recurring' && <RecurringView data={data} />}
           {view === 'assets' && <AssetsView data={data} />}
