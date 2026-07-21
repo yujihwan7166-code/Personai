@@ -3,7 +3,7 @@
  * 한 줄 입력(로컬 파서 우선 → LLM 폴백) + 자연어 질의. 저장 직후 결과 칩 탭 → 수정.
  */
 import { useCallback, useRef, useState } from 'react';
-import { ArrowUp, Loader2, X } from 'lucide-react';
+import { ArrowUp, Loader2, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseInput, type ParsedEntry } from '@/lib/ledger/parse';
 import { aiParseEntries, aiQuery } from '@/lib/ledger/ai';
@@ -18,9 +18,10 @@ interface ChatBarProps {
   quickChips: Array<{ label: string; input: string }>; // 원탭 칩 (자주 쓰는 지출)
   onEdit: (id: string) => void;                         // 결과 칩 탭 → 수정 다이얼로그
   onSuggestRecurring: (e: ParsedEntry) => void;         // '매달' 감지 → 고정지출 등록 제안
+  onOpenForm: () => void;                               // 채팅바 옆 상세입력 버튼
 }
 
-export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecurring }: ChatBarProps) {
+export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecurring, onOpenForm }: ChatBarProps) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<LedgerEntry[]>([]); // 방금 저장한 건들 (칩)
@@ -69,8 +70,9 @@ export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecu
   }, [text, busy, entries, categories, saveParsed]);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-[640px]">
+    // sticky — 스크롤과 무관하게 화면 하단부에 상주 (main 은 flex-col, 이 래퍼는 mt-auto)
+    <div className="pointer-events-none sticky bottom-5 z-30 mt-auto flex w-full justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-[780px]">
         {/* 답변 카드 */}
         {answer && (
           <div className="mb-2 rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-4 py-3 shadow-lg">
@@ -114,22 +116,28 @@ export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecu
         {/* 입력바 */}
         <form
           onSubmit={(ev) => { ev.preventDefault(); void submit(); }}
-          className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] py-2 pl-4 pr-2 shadow-xl"
+          className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] py-2.5 pl-5 pr-2.5 shadow-xl"
         >
           <input
             ref={inputRef} value={text} onChange={(ev) => setText(ev.target.value)}
             placeholder='"점심 김밥 4500" 처럼 적거나, "이번 달 카페 얼마?" 라고 물어보세요'
-            className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/70"
+            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/70"
             aria-label="가계부 입력"
           />
           <button
+            type="button" onClick={onOpenForm} title="상세 입력 폼 열기"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[hsl(var(--input))] px-3 text-[13px] text-muted-foreground transition-colors hover:border-[hsl(var(--ledger-navy)/0.5)] hover:text-foreground"
+          >
+            <SlidersHorizontal className="h-4 w-4" /> 상세
+          </button>
+          <button
             type="submit" disabled={busy || !text.trim()} aria-label="입력"
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--ledger-navy))] text-white transition-opacity',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--ledger-navy))] text-white transition-opacity',
               (busy || !text.trim()) && 'opacity-40',
             )}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+            {busy ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowUp className="h-[18px] w-[18px]" />}
           </button>
         </form>
       </div>

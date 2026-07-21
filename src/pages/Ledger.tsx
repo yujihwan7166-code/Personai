@@ -20,18 +20,23 @@ import { DashboardView } from '@/components/ledger/DashboardView';
 import { EntriesView } from '@/components/ledger/EntriesView';
 import { BudgetView } from '@/components/ledger/BudgetView';
 import { RecurringView } from '@/components/ledger/RecurringView';
+import { AssetsView } from '@/components/ledger/AssetsView';
+import { ReportView } from '@/components/ledger/ReportView';
+import { netWorth } from '@/lib/ledger/assetStats';
 
-type View = 'dashboard' | 'entries' | 'budget' | 'recurring';
+type View = 'dashboard' | 'entries' | 'budget' | 'recurring' | 'assets' | 'report';
 
 const NAV: Array<{ id: View; label: string; emoji: string }> = [
   { id: 'dashboard', label: '대시보드', emoji: '🏠' },
   { id: 'entries',   label: '내역',     emoji: '📒' },
   { id: 'budget',    label: '예산',     emoji: '🎯' },
   { id: 'recurring', label: '고정지출', emoji: '🔁' },
+  { id: 'assets',    label: '자산',     emoji: '💎' },
+  { id: 'report',    label: '월 결산',  emoji: '📊' },
 ];
 
 const VIEW_TITLE: Record<View, string> = {
-  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출',
+  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', assets: '자산', report: '월 결산',
 };
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -87,11 +92,15 @@ export default function Ledger() {
       .map(([memo, v]) => ({ label: `${memo} ${v.amount.toLocaleString('ko-KR')}`, input: `${memo} ${v.amount}` }));
   }, [data.entries]);
 
+  const nw = useMemo(() => netWorth(data.assets), [data.assets]);
+
   const subtitle = view === 'dashboard'
     ? <>이번 달 수입 {KRW(sum.income)} · 지출 {KRW(sum.expense)} · 내 기기에만 저장</>
     : view === 'entries' ? `이번 달 ${sum.count}건`
     : view === 'budget' ? '버킷 3개면 충분해요'
-    : `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`;
+    : view === 'recurring' ? `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`
+    : view === 'assets' ? (data.assets.length ? <>순자산 {KRW(nw.net)} · 월말에 갱신하는 장부</> : '실시간 아님 — 월말에 한 번 적는 장부')
+    : `스냅샷 ${data.snapshots.length}개 · 저축률과 순자산의 흐름`;
 
   return (
     <div className="ledger-theme flex h-dvh bg-background text-foreground">
@@ -140,9 +149,9 @@ export default function Ledger() {
         </div>
       </aside>
 
-      {/* ── 본문 ── */}
-      <main className="relative min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[980px] px-5 pt-6 lg:px-8">
+      {/* ── 본문 — flex-col: 채팅바가 sticky(mt-auto)로 화면 하단부에 상주 ── */}
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <div className="mx-auto w-full max-w-[980px] px-5 pt-6 lg:px-8">
           <header className="mb-6">
             <h2 className="text-[27px] font-bold leading-tight">{VIEW_TITLE[view]}</h2>
             <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>
@@ -152,6 +161,8 @@ export default function Ledger() {
           {view === 'entries' && <EntriesView data={data} onEdit={openEdit} />}
           {view === 'budget' && <BudgetView data={data} />}
           {view === 'recurring' && <RecurringView data={data} />}
+          {view === 'assets' && <AssetsView data={data} />}
+          {view === 'report' && <ReportView data={data} />}
         </div>
 
         <ChatBar
@@ -160,6 +171,7 @@ export default function Ledger() {
           quickChips={quickChips}
           onEdit={openEdit}
           onSuggestRecurring={suggestRecurring}
+          onOpenForm={openNew}
         />
       </main>
 
