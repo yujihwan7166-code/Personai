@@ -904,6 +904,97 @@
     background-color: hsl(var(--health-green) / 0.18);
   }
 
+  .ledger-theme {
+    /* 가계부 — 쿨 화이트 캐논 + 방 정체성은 딥 네이비 하나로 (금융·신뢰). */
+    --background: 220 22% 98%;
+    --foreground: 222 20% 16%;
+
+    --card: 220 30% 99%;
+    --card-foreground: 222 20% 16%;
+
+    --popover: 220 30% 99%;
+    --popover-foreground: 222 20% 16%;
+
+    --muted: 220 16% 93%;
+    --muted-foreground: 222 10% 43%;
+
+    --accent: 221 22% 92%;
+    --accent-foreground: 222 20% 16%;
+
+    --secondary: 221 22% 92%;
+    --secondary-foreground: 222 10% 36%;
+
+    --border: 221 16% 85%;
+    --input: 221 16% 85%;
+
+    --primary: 222 20% 16%;
+    --primary-foreground: 220 30% 99%;
+
+    --ring: 222 47% 33%;
+    --focus-ring: 222 50% 36%;
+    --focus-offset: 220 22% 98%;
+
+    --hairline:  221 16% 88%;
+    --surface-1: 220 30% 99%;
+    --surface-2: 220 22% 98%;
+    --surface-3: 221 20% 94%;
+
+    --sidebar-background: 222 26% 97%;
+
+    /* 딥 네이비 — 유일한 강조색 (마크·CTA·활성·차트). 수입=네이비, 지출=먹색, 경고만 소량 레드. */
+    --ledger-navy: 222 47% 33%;
+    --ledger-red: 4 64% 48%;
+  }
+
+  .dark .ledger-theme {
+    --background: 222 22% 8%;
+    --foreground: 220 14% 90%;
+
+    --card: 222 16% 13%;
+    --card-foreground: 220 14% 90%;
+
+    --popover: 222 16% 14%;
+    --popover-foreground: 220 14% 90%;
+
+    --muted: 222 12% 17%;
+    --muted-foreground: 220 8% 62%;
+
+    --accent: 222 12% 19%;
+    --accent-foreground: 220 14% 90%;
+
+    --secondary: 222 12% 17%;
+    --secondary-foreground: 220 10% 75%;
+
+    --border: 222 10% 22%;
+    --input: 222 10% 22%;
+
+    --primary: 220 14% 90%;
+    --primary-foreground: 222 16% 10%;
+
+    --ring: 221 55% 62%;
+    --focus-ring: 221 57% 64%;
+    --focus-offset: 222 22% 8%;
+
+    --hairline:  222 10% 22%;
+    --surface-1: 222 16% 13%;
+    --surface-2: 222 12% 16%;
+    --surface-3: 222 12% 19%;
+
+    --sidebar-background: 222 16% 12%;
+
+    --ledger-navy: 221 55% 62%;
+    --ledger-red: 4 70% 62%;
+  }
+
+  .ledger-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .ledger-theme ::selection {
+    background-color: hsl(var(--ledger-navy) / 0.16);
+  }
+
   .paper-room {
     /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
      * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */
