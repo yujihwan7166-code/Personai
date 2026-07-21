@@ -4,7 +4,7 @@
  * TDZ 주의: state → useCallback → useEffect 순서.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { LEDGER_CHANGED, type LedgerBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
+import { LEDGER_CHANGED, type AssetSnapshot, type LedgerAsset, type LedgerBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 
 export interface LedgerData {
@@ -13,11 +13,13 @@ export interface LedgerData {
   budgets: LedgerBudgets;
   settings: LedgerSettings;
   categories: LedgerCategory[];
+  assets: LedgerAsset[];
+  snapshots: AssetSnapshot[];
 }
 
 export function useLedger(): LedgerData {
   const [data, setData] = useState<LedgerData>(() => ({
-    entries: [], recurring: [], budgets: {}, settings: {}, categories: [],
+    entries: [], recurring: [], budgets: {}, settings: {}, categories: [], assets: [], snapshots: [],
   }));
 
   const refresh = useCallback(() => {
@@ -27,6 +29,8 @@ export function useLedger(): LedgerData {
       budgets: ledgerStore.getBudgets(),
       settings: ledgerStore.getSettings(),
       categories: ledgerStore.listCategories(),
+      assets: ledgerStore.listAssets(),
+      snapshots: ledgerStore.listSnapshots(),
     });
   }, []);
 

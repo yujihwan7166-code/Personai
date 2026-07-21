@@ -6,8 +6,8 @@
 import {
   LEDGER_CHANGED,
   DEFAULT_CATEGORIES,
-  type EntryType, type LedgerBudgets, type LedgerCategory, type LedgerEntry,
-  type LedgerSettings, type PayMethod, type RecurringRule,
+  type AssetKind, type AssetSnapshot, type EntryType, type LedgerAsset, type LedgerBudgets,
+  type LedgerCategory, type LedgerEntry, type LedgerSettings, type PayMethod, type RecurringRule,
 } from '@/types/ledger';
 import { newId } from '@/lib/idGenerator';
 
@@ -17,6 +17,8 @@ const BUDGETS_KEY = 'ledger.budgets.v1';
 const SETTINGS_KEY = 'ledger.settings.v1';
 const DICT_KEY = 'ledger.dict.v1';
 const CATEGORIES_KEY = 'ledger.categories.v1'; // 커스텀 추가분만 저장
+const ASSETS_KEY = 'ledger.assets.v1';
+const SNAPSHOTS_KEY = 'ledger.snapshots.v1';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const nowIso = () => new Date().toISOString();
@@ -60,6 +62,44 @@ function normRule(v: unknown, i: number): RecurringRule | null {
     active: v.active !== false,
     lastPostedMonth: typeof v.lastPostedMonth === 'string' && /^\d{4}-\d{2}$/.test(v.lastPostedMonth) ? v.lastPostedMonth : undefined,
     createdAt: typeof v.createdAt === 'string' ? v.createdAt : nowIso(),
+  };
+}
+
+const ASSET_KINDS: AssetKind[] = ['cash', 'invest', 'coin', 'property', 'debt'];
+
+function normAsset(v: unknown, i: number): LedgerAsset | null {
+  if (!isRecord(v)) return null;
+  const label = typeof v.label === 'string' ? v.label.trim() : '';
+  const value = posInt(v.value) ?? (v.value === 0 ? 0 : null);
+  if (!label || value === null) return null;
+  const posNum = (x: unknown): number | undefined =>
+    typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : undefined;
+  return {
+    id: typeof v.id === 'string' && v.id ? v.id : `la_${i}`,
+    kind: ASSET_KINDS.includes(v.kind as AssetKind) ? (v.kind as AssetKind) : 'cash',
+    label, value,
+    qty: posNum(v.qty),
+    avgPrice: posNum(v.avgPrice),
+    annualDividend: posInt(v.annualDividend) ?? undefined,
+    dividendMonths: Array.isArray(v.dividendMonths)
+      ? v.dividendMonths.filter((m): m is number => typeof m === 'number' && m >= 1 && m <= 12)
+      : undefined,
+    note: typeof v.note === 'string' && v.note.trim() ? v.note : undefined,
+    createdAt: typeof v.createdAt === 'string' ? v.createdAt : nowIso(),
+    updatedAt: typeof v.updatedAt === 'string' ? v.updatedAt : nowIso(),
+  };
+}
+
+function normSnapshot(v: unknown): AssetSnapshot | null {
+  if (!isRecord(v)) return null;
+  if (typeof v.month !== 'string' || !/^\d{4}-\d{2}$/.test(v.month)) return null;
+  const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x) : 0);
+  return {
+    month: v.month,
+    assets: num(v.assets),
+    debt: num(v.debt),
+    net: num(v.net),
+    savedAt: typeof v.savedAt === 'string' ? v.savedAt : nowIso(),
   };
 }
 
@@ -216,6 +256,40 @@ export const ledgerStore = {
     write(CATEGORIES_KEY, [...custom, { id: newId('lc'), label, emoji, bucket, custom: true }]);
   },
 
+  // ── 자산·스냅샷 (2차) ──
+  listAssets(): LedgerAsset[] { return readArr(ASSETS_KEY, normAsset); },
+
+  addAsset(a: Omit<LedgerAsset, 'id' | 'createdAt' | 'updatedAt'>): void {
+    const cur = readArr(ASSETS_KEY, normAsset);
+    const next = normAsset({ ...a, id: newId('la'), createdAt: nowIso(), updatedAt: nowIso() }, 0);
+    if (next) write(ASSETS_KEY, [...cur, next]);
+  },
+
+  updateAsset(id: string, patch: Partial<Omit<LedgerAsset, 'id' | 'createdAt'>>): void {
+    write(ASSETS_KEY, readArr(ASSETS_KEY, normAsset).map((a) =>
+      a.id === id ? { ...a, ...patch, id: a.id, createdAt: a.createdAt, updatedAt: nowIso() } : a));
+  },
+
+  removeAsset(id: string): void {
+    write(ASSETS_KEY, readArr(ASSETS_KEY, normAsset).filter((a) => a.id !== id));
+  },
+
+  listSnapshots(): AssetSnapshot[] {
+    return readArr(SNAPSHOTS_KEY, (v) => normSnapshot(v)).sort((a, b) => a.month.localeCompare(b.month));
+  },
+
+  /** 현재 자산 상태로 해당 월 스냅샷 저장(같은 달은 덮어씀) → 순자산 추이의 점. */
+  upsertSnapshot(month: string): AssetSnapshot | null {
+    if (!/^\d{4}-\d{2}$/.test(month)) return null;
+    const assets = readArr(ASSETS_KEY, normAsset);
+    let plus = 0, minus = 0;
+    for (const a of assets) { if (a.kind === 'debt') minus += a.value; else plus += a.value; }
+    const snap: AssetSnapshot = { month, assets: plus, debt: minus, net: plus - minus, savedAt: nowIso() };
+    const rest = readArr(SNAPSHOTS_KEY, (v) => normSnapshot(v)).filter((s) => s.month !== month);
+    write(SNAPSHOTS_KEY, [...rest, snap]);
+    return snap;
+  },
+
   // ── 백업 ──
   exportJson(): string {
     return JSON.stringify({
@@ -227,6 +301,8 @@ export const ledgerStore = {
       settings: this.getSettings(),
       dict: this.getKeywordDict(),
       categories: this.listCategories().filter((c) => c.custom),
+      assets: readArr(ASSETS_KEY, normAsset),
+      snapshots: readArr(SNAPSHOTS_KEY, (v) => normSnapshot(v)),
     }, null, 2);
   },
 
@@ -241,6 +317,8 @@ export const ledgerStore = {
       write(SETTINGS_KEY, isRecord(data.settings) ? data.settings : {});
       write(DICT_KEY, isRecord(data.dict) ? data.dict : {});
       write(CATEGORIES_KEY, Array.isArray(data.categories) ? data.categories : []);
+      write(ASSETS_KEY, Array.isArray(data.assets) ? data.assets.map(normAsset).filter(Boolean) : []);
+      write(SNAPSHOTS_KEY, Array.isArray(data.snapshots) ? data.snapshots.map((s: unknown) => normSnapshot(s)).filter(Boolean) : []);
       return true;
     } catch { return false; }
   },

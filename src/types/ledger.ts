@@ -73,3 +73,39 @@ export const TYPE_META: Record<EntryType, { label: string; sign: string }> = {
   income:   { label: '수입', sign: '+' },
   transfer: { label: '이체', sign: '→' },
 };
+
+// ── 2차: 자산·순자산 ──
+
+/** 부채(debt)는 value 를 양수로 저장하고 순자산 계산에서만 뺀다. */
+export type AssetKind = 'cash' | 'invest' | 'coin' | 'property' | 'debt';
+
+export const ASSET_KIND_META: Record<AssetKind, { label: string; emoji: string; desc: string }> = {
+  cash:     { label: '현금·예적금', emoji: '💵', desc: '통장 잔고 · 예금 · 적금' },
+  invest:   { label: '주식·ETF·채권', emoji: '📈', desc: '수량·평단 적으면 수익률 계산' },
+  coin:     { label: '코인', emoji: '🪙', desc: '암호화폐' },
+  property: { label: '부동산·차·기타', emoji: '🏢', desc: '실물 자산 — 대략적 시세로' },
+  debt:     { label: '부채', emoji: '📉', desc: '대출·할부 잔액 (순자산에서 차감)' },
+};
+
+export interface LedgerAsset {
+  id: string;
+  kind: AssetKind;
+  label: string;            // 예: "삼성전자", "주택청약", "전세대출"
+  value: number;            // 현재 평가액(원, 항상 양수). 월말 스냅샷 리듬으로 수동 갱신
+  qty?: number;             // 주식·코인 수량 (선택)
+  avgPrice?: number;        // 평단 (선택) — qty 와 함께 있으면 수익률 표시
+  annualDividend?: number;  // 연 배당(원, 선택)
+  dividendMonths?: number[]; // 배당 지급 월 1~12 (선택)
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 월말 스냅샷 — 순자산 추이의 점 하나. 같은 달은 덮어씀. */
+export interface AssetSnapshot {
+  month: string;   // 'YYYY-MM'
+  assets: number;  // 부채 제외 자산 합
+  debt: number;
+  net: number;     // assets - debt
+  savedAt: string; // ISO
+}
