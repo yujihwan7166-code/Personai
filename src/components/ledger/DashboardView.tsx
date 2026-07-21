@@ -9,6 +9,7 @@ import { todayKey } from '@/services/ledgerStore';
 import {
   buildBriefing, bucketSpent, budgetPace, cardCharge, categoryTotals, dailyExpense, monthOf, summarizeMonth,
 } from '@/lib/ledger/stats';
+import { netWorth } from '@/lib/ledger/assetStats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -101,7 +102,25 @@ function Heatmap({ month, daily, onPickDate }: { month: string; daily: Record<st
   );
 }
 
-export function DashboardView({ data, onPickDate }: { data: LedgerData; onPickDate?: (date: string) => void }) {
+/** 순자산 미니 스파크라인 — 스냅샷 기반. */
+function NetWorthSpark({ data }: { data: LedgerData }) {
+  const snaps = data.snapshots;
+  if (snaps.length < 2) return null;
+  const W = 220, H = 44;
+  const vals = snaps.map((s) => s.net);
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const x = (i: number) => (i * W) / (snaps.length - 1);
+  const y = (v: number) => 5 + (1 - (v - min) / span) * (H - 10);
+  const line = snaps.map((s, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(s.net).toFixed(1)}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
+      <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="hsl(var(--ledger-navy))" fillOpacity={0.08} />
+      <path d={line} fill="none" stroke="hsl(var(--ledger-navy))" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerData; onPickDate?: (date: string) => void; onGoAssets?: () => void }) {
   const today = todayKey();
   const month = monthOf(today);
   const prev = prevMonthOf(month);
@@ -148,6 +167,33 @@ export function DashboardView({ data, onPickDate }: { data: LedgerData; onPickDa
           </div>
         </div>
       </Card>
+
+      {/* ⑧ 순자산 — 자산이 있을 때만 */}
+      {data.assets.length > 0 && (() => {
+        const nw = netWorth(data.assets);
+        const snaps = data.snapshots;
+        const diff = snaps.length >= 2 ? nw.net - snaps[0].net : null;
+        return (
+          <Card
+            title="순자산"
+            className="xl:col-span-2"
+            right={onGoAssets && (
+              <button type="button" onClick={onGoAssets} className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">자산 관리 →</button>
+            )}
+          >
+            <div className="flex items-center gap-5">
+              <div className="shrink-0">
+                <p className="text-[20px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(nw.net)}</p>
+                <p className="text-[11.5px] tabular-nums text-muted-foreground">
+                  자산 {KRW(nw.assets)}{nw.debt > 0 && <> · 부채 -{KRW(nw.debt)}</>}
+                  {diff !== null && <span className={cn('ml-1.5', diff >= 0 ? 'text-[hsl(var(--ledger-navy))]' : 'text-[hsl(var(--ledger-red))]')}>{diff >= 0 ? '+' : ''}{KRW(diff)}</span>}
+                </p>
+              </div>
+              <div className="min-w-0 flex-1"><NetWorthSpark data={data} /></div>
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* ⑦ AI 브리핑 */}
       <Card title="브리핑" className="xl:col-span-2">

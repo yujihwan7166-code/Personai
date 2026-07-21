@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Camera, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { assetProfit, monthlyDividends, netWorth, sumByKind } from '@/lib/ledger/assetStats';
@@ -80,6 +81,7 @@ export function AssetsView({ data }: { data: LedgerData }) {
   const { assets, snapshots } = data;
   const [form, setForm] = useState<FormState | null>(null);
   const nw = useMemo(() => netWorth(assets), [assets]);
+  useEscapeKey(() => setForm(null), { enabled: form !== null, evenInInput: true });
   const curMonth = todayKey().slice(0, 7);
   const curSnap = snapshots.find((s) => s.month === curMonth);
 

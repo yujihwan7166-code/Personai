@@ -2,7 +2,7 @@
  * 가계부 내역 — 월별 리스트. 행 클릭=수정, 복제=오늘 날짜로(후잉의 duplicate).
  */
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Search, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
@@ -16,6 +16,7 @@ const dowOf = (date: string) => { const [y, m, d] = date.split('-').map(Number);
 export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; onEdit: (id: string) => void; initialMonth?: string }) {
   const [month, setMonth] = useState(() => initialMonth ?? monthOf(todayKey()));
   const [filter, setFilter] = useState<EntryType | 'all'>('all');
+  const [query, setQuery] = useState('');
   const { entries, categories } = data;
   const meta = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -25,9 +26,17 @@ export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; 
     setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
 
+  /** 검색어가 있으면 월 제한 없이 전체에서 찾는다 — "그 커피 언제 샀더라"용. */
+  const q = query.trim().toLowerCase();
   const list = useMemo(
-    () => entries.filter((e) => e.date.startsWith(month) && (filter === 'all' || e.type === filter)),
-    [entries, month, filter],
+    () => entries.filter((e) => {
+      if (!q && !e.date.startsWith(month)) return false;
+      if (filter !== 'all' && e.type !== filter) return false;
+      if (!q) return true;
+      const cat = meta.get(e.categoryId);
+      return e.memo.toLowerCase().includes(q) || (cat ? cat.label.toLowerCase().includes(q) : false) || e.date.includes(q);
+    }),
+    [entries, month, filter, q, meta],
   );
   const byDate = useMemo(() => {
     const m = new Map<string, typeof list>();
@@ -45,26 +54,45 @@ export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; 
         <span className="ml-auto text-[12.5px] tabular-nums text-muted-foreground">수입 {KRW(sum.income)} · 지출 {KRW(sum.expense)} · 이체 {KRW(sum.transfer)}</span>
       </div>
 
-      <div className="mb-4 flex gap-1.5">
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
         {([['all', '전체'], ['expense', '지출'], ['income', '수입'], ['transfer', '이체']] as const).map(([k, label]) => (
           <button key={k} type="button" onClick={() => setFilter(k)}
             className={cn('rounded-full border px-3 py-1 text-[12.5px] transition-colors',
-              filter === k ? 'border-transparent bg-[hsl(var(--ledger-navy))] text-white' : 'border-[hsl(var(--input))] text-muted-foreground')}>
+              filter === k
+                ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.12)] font-medium text-[hsl(var(--ledger-navy))]'
+                : 'border-[hsl(var(--input))] text-muted-foreground hover:text-foreground')}>
             {label}
           </button>
         ))}
+        <div className="relative ml-auto">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query} onChange={(e) => setQuery(e.target.value)} aria-label="내역 검색"
+            placeholder="메모·카테고리 검색 (전체 기간)"
+            className="w-56 rounded-full border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-1.5 pl-8 pr-7 text-[12.5px] outline-none focus:border-[hsl(var(--ledger-navy))]"
+          />
+          {query && (
+            <button type="button" aria-label="검색 지우기" onClick={() => setQuery('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-[hsl(var(--muted))]"><X className="h-3 w-3" /></button>
+          )}
+        </div>
       </div>
+
+      {q && <p className="mb-3 text-[12px] text-muted-foreground">"{query.trim()}" 검색 결과 {list.length}건 — 전체 기간에서 찾았어요</p>}
 
       {byDate.length === 0 && (
         <p className="py-16 text-center text-[13.5px] text-muted-foreground">
-          이 달 기록이 없어요 — 아래 입력바에 "점심 김밥 4500"처럼 적어보세요
+          {q ? '검색 결과가 없어요' : '이 달 기록이 없어요 — 아래 입력바에 "점심 김밥 4500"처럼 적어보세요'}
         </p>
       )}
 
-      {byDate.map(([date, items]) => (
+      {byDate.map(([date, items]) => {
+        const dayExpense = items.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+        return (
         <div key={date} className="mb-4">
-          <p className="mb-1.5 text-[12px] font-semibold text-muted-foreground">
-            {Number(date.slice(8, 10))}일 {WEEKDAY[dowOf(date)]}요일
+          <p className="mb-1.5 flex items-baseline text-[12px] font-semibold text-muted-foreground">
+            <span>{q ? `${date} ` : `${Number(date.slice(8, 10))}일 `}{WEEKDAY[dowOf(date)]}요일</span>
+            {dayExpense > 0 && <span className="ml-auto font-normal tabular-nums">지출 {KRW(dayExpense)}</span>}
           </p>
           <div className="overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]">
             {items.map((e) => (
@@ -94,7 +122,8 @@ export function EntriesView({ data, onEdit, initialMonth }: { data: LedgerData; 
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

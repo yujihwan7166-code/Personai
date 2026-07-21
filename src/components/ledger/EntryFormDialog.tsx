@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { TYPE_META, type EntryType, type LedgerCategory, type PayMethod } from '@/types/ledger';
 
@@ -24,6 +25,8 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
   const [method, setMethod] = useState<PayMethod | ''>('');
   const [groupTotal, setGroupTotal] = useState('');
   const [origCategory, setOrigCategory] = useState('etc');
+
+  useEscapeKey(onClose, { enabled: open, evenInInput: true });
 
   useEffect(() => {
     if (!open) return;

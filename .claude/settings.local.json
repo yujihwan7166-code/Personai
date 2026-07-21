@@ -21,7 +21,9 @@
       "WebFetch(domain:blog.journey.cloud)",
       "WebFetch(domain:goodiary.interrobangsoft.com)",
       "WebFetch(domain:github.com)",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "WebSearch",
+      "WebFetch(domain:silverbulletstock.com)"
     ]
   }
 }

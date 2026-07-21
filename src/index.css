@@ -995,6 +995,15 @@
     background-color: hsl(var(--ledger-navy) / 0.16);
   }
 
+  /* 채팅바 위로 떠오르는 카드(답변·칩·상세 패널) 공용 등장 모션 */
+  .ledger-rise {
+    animation: ledger-rise 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes ledger-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   .paper-room {
     /* 노트 — 본문(캔버스)은 순수 흰색, 사이드바만 쿨 화이트(--sidebar-background)로 분리.
      * 다른 방(플래너·위키·일기·커리어)의 웜 페이퍼와 달리 노트는 흰 종이. */

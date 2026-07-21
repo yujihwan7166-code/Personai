@@ -121,7 +121,9 @@ export default function Ledger() {
           {NAV.map((n) => (
             <button key={n.id} type="button" onClick={() => setView(n.id)}
               className={cn('flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13.5px] transition-colors',
-                view === n.id ? 'bg-[hsl(var(--ledger-navy))] font-semibold text-white' : 'hover:bg-[hsl(var(--muted))]')}>
+                view === n.id
+                  ? 'bg-[hsl(var(--ledger-navy)/0.12)] font-semibold text-[hsl(var(--ledger-navy))]'
+                  : 'text-muted-foreground hover:bg-[hsl(var(--muted))] hover:text-foreground')}>
               <span className="text-[15px]">{n.emoji}</span>{n.label}
             </button>
           ))}
@@ -157,7 +159,7 @@ export default function Ledger() {
             <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>
           </header>
 
-          {view === 'dashboard' && <DashboardView data={data} onPickDate={() => setView('entries')} />}
+          {view === 'dashboard' && <DashboardView data={data} onPickDate={() => setView('entries')} onGoAssets={() => setView('assets')} />}
           {view === 'entries' && <EntriesView data={data} onEdit={openEdit} />}
           {view === 'budget' && <BudgetView data={data} />}
           {view === 'recurring' && <RecurringView data={data} />}
@@ -171,7 +173,6 @@ export default function Ledger() {
           quickChips={quickChips}
           onEdit={openEdit}
           onSuggestRecurring={suggestRecurring}
-          onOpenForm={openNew}
         />
       </main>
 
