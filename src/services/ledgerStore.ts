@@ -19,6 +19,7 @@ const DICT_KEY = 'ledger.dict.v1';
 const CATEGORIES_KEY = 'ledger.categories.v1'; // 커스텀 추가분만 저장
 const ASSETS_KEY = 'ledger.assets.v1';
 const SNAPSHOTS_KEY = 'ledger.snapshots.v1';
+const META_KEY = 'ledger.meta.v1'; // { lastBackupAt } — 백업 나이 계기판용
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const nowIso = () => new Date().toISOString();
@@ -291,6 +292,13 @@ export const ledgerStore = {
   },
 
   // ── 백업 ──
+  getLastBackupAt(): string | null {
+    const meta = readObj<{ lastBackupAt?: string }>(META_KEY, {});
+    return typeof meta.lastBackupAt === 'string' ? meta.lastBackupAt : null;
+  },
+
+  markBackedUp(): void { write(META_KEY, { lastBackupAt: nowIso() }); },
+
   exportJson(): string {
     return JSON.stringify({
       version: 1,

@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore } from '@/services/ledgerStore';
+import type { EntryType } from '@/types/ledger';
 
 const KRW = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
@@ -15,13 +16,14 @@ export function RecurringView({ data }: { data: LedgerData }) {
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
   const [categoryId, setCategoryId] = useState('subscription');
+  const [type, setType] = useState<EntryType>('expense');
   const [billingDay, setBillingDay] = useState(settings.cardBillingDay ? String(settings.cardBillingDay) : '');
 
   const add = () => {
     const amt = Number(amount.replace(/,/g, ''));
     const d = Number(day);
     if (!label.trim() || !Number.isFinite(amt) || amt <= 0 || !Number.isFinite(d)) return;
-    ledgerStore.addRecurring({ label: label.trim(), amount: Math.round(amt), type: 'expense', categoryId, day: Math.min(28, Math.max(1, Math.round(d))) });
+    ledgerStore.addRecurring({ label: label.trim(), amount: Math.round(amt), type, categoryId: type === 'expense' ? categoryId : 'etc', day: Math.min(28, Math.max(1, Math.round(d))) });
     setLabel(''); setAmount(''); setDay('1');
   };
 
@@ -30,16 +32,29 @@ export function RecurringView({ data }: { data: LedgerData }) {
   return (
     <div className="max-w-[560px] space-y-4 pb-32">
       <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4">
-        <h3 className="mb-3 text-[14px] font-bold">고정지출 추가</h3>
+        <h3 className="mb-3 text-[14px] font-bold">반복 규칙 추가</h3>
+        <div className="mb-2 flex gap-1.5">
+          {([['expense', '고정지출'], ['income', '고정수입 (월급 등)']] as const).map(([t, tl]) => (
+            <button key={t} type="button" onClick={() => setType(t)}
+              className={cn('rounded-lg border px-3 py-1.5 text-[12.5px] transition-colors',
+                type === t
+                  ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.12)] font-semibold text-[hsl(var(--ledger-navy))]'
+                  : 'border-[hsl(var(--input))] text-muted-foreground hover:text-foreground')}>
+              {tl}
+            </button>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-2">
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="이름 (예: 넷플릭스)" className={cn(field, 'min-w-[140px] flex-1')} aria-label="이름" />
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" placeholder="금액" className={cn(field, 'w-28')} aria-label="금액" />
           <select value={day} onChange={(e) => setDay(e.target.value)} className={field} aria-label="결제일">
             {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}일</option>)}
           </select>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={field} aria-label="카테고리">
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
-          </select>
+          {type === 'expense' && (
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={field} aria-label="카테고리">
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+            </select>
+          )}
           <button type="button" onClick={add} className="flex items-center gap-1 rounded-lg bg-[hsl(var(--ledger-navy))] px-3.5 py-2 text-[13px] font-semibold text-white">
             <Plus className="h-3.5 w-3.5" /> 추가
           </button>
@@ -60,9 +75,9 @@ export function RecurringView({ data }: { data: LedgerData }) {
             </button>
             <div className="min-w-0 flex-1">
               <p className={cn('text-[13.5px]', !r.active && 'text-muted-foreground line-through')}>{r.label}</p>
-              <p className="text-[11.5px] text-muted-foreground">매달 {r.day}일 · {categories.find((c) => c.id === r.categoryId)?.label ?? r.categoryId}</p>
+              <p className="text-[11.5px] text-muted-foreground">매달 {r.day}일 · {r.type === 'income' ? '수입' : categories.find((c) => c.id === r.categoryId)?.label ?? r.categoryId}</p>
             </div>
-            <span className="tabular-nums text-[13.5px] font-semibold">{KRW(r.amount)}</span>
+            <span className={cn('tabular-nums text-[13.5px] font-semibold', r.type === 'income' && 'text-[hsl(var(--ledger-navy))]')}>{r.type === 'income' ? '+' : ''}{KRW(r.amount)}</span>
             <button type="button" aria-label="삭제" onClick={() => ledgerStore.removeRecurring(r.id)}
               className="rounded p-1 text-muted-foreground hover:bg-[hsl(var(--ledger-red)/0.1)] hover:text-[hsl(var(--ledger-red))]"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>

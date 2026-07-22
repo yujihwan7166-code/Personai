@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseAmountToken, parseInput } from '@/lib/ledger/parse';
+import { expandInstallment, parseAmountToken, parseBulk, parseInput } from '@/lib/ledger/parse';
 
 const TODAY = new Date(2026, 6, 21); // 2026-07-21 (로컬)
 
@@ -62,5 +62,48 @@ describe('parseInput', () => {
   });
   it('금액 없으면 빈 배열 (AI 폴백 신호)', () => {
     expect(parseInput('어제 뭐 샀더라', { today: TODAY })).toHaveLength(0);
+  });
+  it('할부 감지 — N개월', () => {
+    const r = parseInput('노트북 120만 6개월 할부', { today: TODAY });
+    expect(r[0]).toMatchObject({ amount: 1200000, installmentMonths: 6, memo: '노트북' });
+    const r2 = parseInput('노트북 120만 할부 6개월', { today: TODAY });
+    expect(r2[0].installmentMonths).toBe(6);
+  });
+  it('카드 명세 노이즈 — 일시불·승인 무시', () => {
+    const r = parseInput('07.15 스타벅스 4,500원 일시불', { today: TODAY });
+    expect(r[0]).toMatchObject({ date: '2026-07-15', amount: 4500, memo: '스타벅스' });
+  });
+});
+
+describe('expandInstallment', () => {
+  it('N등분 — 합계 보존, 회차 표기, 매월 진행', () => {
+    const [p] = parseInput('노트북 100만 3개월 할부', { today: TODAY });
+    const rows = expandInstallment(p);
+    expect(rows).toHaveLength(3);
+    expect(rows.reduce((s, r) => s + r.amount, 0)).toBe(1000000);
+    expect(rows[0].memo).toBe('노트북 (1/3)');
+    expect(rows[0].date).toBe('2026-07-21');
+    expect(rows[1].date).toBe('2026-08-21');
+    expect(rows[2].date).toBe('2026-09-21');
+  });
+  it('말일 클램프 — 1/31 시작이면 2월은 말일로', () => {
+    const [p] = parseInput('1/31 가전 90만 3개월 할부', { today: new Date(2026, 0, 31) });
+    const rows = expandInstallment(p);
+    expect(rows[0].date).toBe('2026-01-31');
+    expect(rows[1].date).toBe('2026-02-28');
+    expect(rows[2].date).toBe('2026-03-31');
+  });
+  it('할부 아니면 1건 그대로', () => {
+    const [p] = parseInput('점심 9000', { today: TODAY });
+    expect(expandInstallment(p)).toHaveLength(1);
+  });
+});
+
+describe('parseBulk', () => {
+  it('여러 줄 일괄 — 실패 줄 분리', () => {
+    const r = parseBulk('07.01 스타벅스 4,500원\n07.02 김밥천국 8,000원\n합계 안내문구', { today: TODAY });
+    expect(r.entries).toHaveLength(2);
+    expect(r.entries[0].date).toBe('2026-07-01');
+    expect(r.failed).toEqual(['합계 안내문구']);
   });
 });

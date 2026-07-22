@@ -5,7 +5,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ArrowUp, Loader2, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseInput, type ParsedEntry } from '@/lib/ledger/parse';
+import { expandInstallment, parseInput, type ParsedEntry } from '@/lib/ledger/parse';
 import { InlineEntryForm } from '@/components/ledger/InlineEntryForm';
 import { aiParseEntries, aiQuery } from '@/lib/ledger/ai';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
@@ -37,10 +37,12 @@ export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecu
 
   const saveParsed = useCallback((parsed: ParsedEntry[]) => {
     const recurringOnes = parsed.filter((p) => p.recurring);
-    const saved = ledgerStore.addEntries(parsed.map((p) => ({
+    // "N개월 할부"는 매월 1건씩으로 확장해 저장 (합계 보존)
+    const expanded = parsed.flatMap(expandInstallment);
+    const saved = ledgerStore.addEntries(expanded.map((p) => ({
       type: p.type, amount: p.amount, date: p.date, categoryId: p.categoryId, memo: p.memo, method: p.method,
     })));
-    setAdded(saved);
+    setAdded(saved.slice(0, 6)); // 칩은 6개까지만 (12개월 할부 등)
     recurringOnes.forEach(onSuggestRecurring);
   }, [onSuggestRecurring]);
 

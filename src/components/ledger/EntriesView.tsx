@@ -2,7 +2,7 @@
  * 가계부 내역 — 월별 리스트. 행 클릭=수정, 복제=오늘 날짜로(후잉의 duplicate).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Copy, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardPaste, Copy, Search, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
@@ -20,11 +20,15 @@ interface EntriesViewProps {
   /** 히트맵 날짜 탭에서 넘어온 경우 — 해당 날짜 그룹으로 스크롤 + 잠깐 하이라이트. */
   focusDate?: string | null;
   onFocusConsumed?: () => void;
+  /** 도넛·결산에서 카테고리 클릭으로 넘어온 경우 — 해당 카테고리 필터로 시작. */
+  initialCategory?: string | null;
+  onOpenImport?: () => void;
 }
 
-export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusConsumed }: EntriesViewProps) {
+export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusConsumed, initialCategory, onOpenImport }: EntriesViewProps) {
   const [month, setMonth] = useState(() => (focusDate ? monthOf(focusDate) : initialMonth ?? monthOf(todayKey())));
   const [filter, setFilter] = useState<EntryType | 'all'>('all');
+  const [catFilter, setCatFilter] = useState<string>(initialCategory ?? 'all');
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState<string | null>(focusDate ?? null);
   const focusRef = useRef<HTMLDivElement>(null);
@@ -50,11 +54,12 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
     () => entries.filter((e) => {
       if (!q && !e.date.startsWith(month)) return false;
       if (filter !== 'all' && e.type !== filter) return false;
+      if (catFilter !== 'all' && e.categoryId !== catFilter) return false;
       if (!q) return true;
       const cat = meta.get(e.categoryId);
       return e.memo.toLowerCase().includes(q) || (cat ? cat.label.toLowerCase().includes(q) : false) || e.date.includes(q);
     }),
-    [entries, month, filter, q, meta],
+    [entries, month, filter, catFilter, q, meta],
   );
   const byDate = useMemo(() => {
     const m = new Map<string, typeof list>();
@@ -82,6 +87,23 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
             {label}
           </button>
         ))}
+        <select
+          value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="카테고리 필터"
+          className={cn('rounded-full border px-2.5 py-1 text-[12.5px] outline-none',
+            catFilter !== 'all'
+              ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.12)] font-medium text-[hsl(var(--ledger-navy))]'
+              : 'border-[hsl(var(--input))] bg-[hsl(var(--card))] text-muted-foreground')}
+        >
+          <option value="all">모든 카테고리</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+        {onOpenImport && (
+          <button type="button" onClick={onOpenImport}
+            className="flex items-center gap-1 rounded-full border border-[hsl(var(--input))] px-3 py-1 text-[12.5px] text-muted-foreground transition-colors hover:border-[hsl(var(--ledger-navy)/0.5)] hover:text-foreground"
+            title="카드사·은행 내역을 통째로 붙여넣어 일괄 등록">
+            <ClipboardPaste className="h-3.5 w-3.5" /> 가져오기
+          </button>
+        )}
         <div className="relative ml-auto">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input

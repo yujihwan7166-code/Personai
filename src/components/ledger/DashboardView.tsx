@@ -30,14 +30,14 @@ function Card({ title, right, children, className }: { title: string; right?: Re
   );
 }
 
-/** 카테고리 도넛 — conic 대신 SVG stroke-dasharray. */
-function Donut({ data }: { data: Array<{ label: string; emoji: string; total: number }> }) {
+/** 카테고리 도넛 — conic 대신 SVG stroke-dasharray. 범례 클릭 → 해당 카테고리 내역. */
+function Donut({ data, onPick }: { data: Array<{ id: string | null; label: string; emoji: string; total: number }>; onPick?: (categoryId: string) => void }) {
   const total = data.reduce((s, d) => s + d.total, 0);
   if (total === 0) return <p className="py-6 text-center text-[13px] text-muted-foreground">이번 달 지출이 아직 없어요</p>;
   const COLORS = ['hsl(var(--ledger-navy))', 'hsl(var(--ledger-navy)/0.75)', 'hsl(var(--ledger-navy)/0.55)', 'hsl(var(--ledger-navy)/0.4)', 'hsl(var(--ledger-navy)/0.28)', 'hsl(var(--muted-foreground)/0.3)'];
   const top = data.slice(0, 5);
   const rest = total - top.reduce((s, d) => s + d.total, 0);
-  const segs = [...top, ...(rest > 0 ? [{ label: '그 외', emoji: '', total: rest }] : [])];
+  const segs = [...top, ...(rest > 0 ? [{ id: null, label: '그 외', emoji: '', total: rest }] : [])];
   const C = 2 * Math.PI * 40;
   let acc = 0;
   return (
@@ -55,10 +55,18 @@ function Donut({ data }: { data: Array<{ label: string; emoji: string; total: nu
       </svg>
       <ul className="min-w-0 flex-1 space-y-1">
         {segs.map((s, i) => (
-          <li key={s.label} className="flex items-center gap-2 text-[12.5px]">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-            <span className="truncate">{s.emoji} {s.label}</span>
-            <span className="ml-auto tabular-nums text-muted-foreground">{Math.round((s.total / total) * 100)}%</span>
+          <li key={s.label}>
+            <button
+              type="button" disabled={!s.id || !onPick}
+              onClick={() => { if (s.id && onPick) onPick(s.id); }}
+              title={s.id ? `${s.label} 내역 보기` : undefined}
+              className={cn('flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left text-[12.5px]',
+                s.id && onPick && 'transition-colors hover:bg-[hsl(var(--ledger-navy)/0.07)]')}
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+              <span className="truncate">{s.emoji} {s.label}</span>
+              <span className="ml-auto tabular-nums text-muted-foreground">{Math.round((s.total / total) * 100)}%</span>
+            </button>
           </li>
         ))}
       </ul>
@@ -120,7 +128,14 @@ function NetWorthSpark({ data }: { data: LedgerData }) {
   );
 }
 
-export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerData; onPickDate?: (date: string) => void; onGoAssets?: () => void }) {
+interface DashboardViewProps {
+  data: LedgerData;
+  onPickDate?: (date: string) => void;
+  onGoAssets?: () => void;
+  onPickCategory?: (categoryId: string) => void;
+}
+
+export function DashboardView({ data, onPickDate, onGoAssets, onPickCategory }: DashboardViewProps) {
   const today = todayKey();
   const month = monthOf(today);
   const prev = prevMonthOf(month);
@@ -131,6 +146,7 @@ export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerDa
   const cats = useMemo(() => {
     const meta = new Map(categories.map((c) => [c.id, c]));
     return categoryTotals(entries, month).map((t) => ({
+      id: t.categoryId as string | null,
       label: meta.get(t.categoryId)?.label ?? t.categoryId, emoji: meta.get(t.categoryId)?.emoji ?? '', total: t.total,
     }));
   }, [entries, month, categories]);
@@ -191,6 +207,9 @@ export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerDa
               </div>
               <div className="min-w-0 flex-1"><NetWorthSpark data={data} /></div>
             </div>
+            {dayOfMonth >= 25 && !snaps.some((s) => s.month === month) && (
+              <p className="mt-2 text-[11.5px] text-muted-foreground">월말이에요 — 자산 탭에서 이번 달 스냅샷을 저장하면 순자산 추이에 점이 찍혀요</p>
+            )}
           </Card>
         );
       })()}
@@ -229,7 +248,7 @@ export function DashboardView({ data, onPickDate, onGoAssets }: { data: LedgerDa
       </Card>
 
       {/* ③ 카테고리 도넛 */}
-      <Card title="어디에 썼나"><Donut data={cats} /></Card>
+      <Card title="어디에 썼나"><Donut data={cats} onPick={onPickCategory} /></Card>
 
       {/* ④ 히트맵 캘린더 */}
       <Card title="지출 캘린더"><Heatmap month={month} daily={daily} onPickDate={onPickDate} /></Card>

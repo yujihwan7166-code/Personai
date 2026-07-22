@@ -28,9 +28,9 @@ function Section({ title, children, className }: { title: string; children: Reac
   );
 }
 
-/** 월별 수입/지출 막대 6개월. */
-function MonthlyBars({ data, month }: { data: LedgerData; month: string }) {
-  const months = lastNMonths(month, 6);
+/** 월별 수입/지출 막대 — 6개월/12개월 토글. */
+function MonthlyBars({ data, month, span }: { data: LedgerData; month: string; span: number }) {
+  const months = lastNMonths(month, span);
   const sums = months.map((m) => summarizeMonth(data.entries, m));
   const max = Math.max(1, ...sums.flatMap((s) => [s.income, s.expense]));
   return (
@@ -163,6 +163,7 @@ function YearWrapped({ data, year, onClose }: { data: LedgerData; year: number; 
 
 export function ReportView({ data }: { data: LedgerData }) {
   const [month, setMonth] = useState(() => monthOf(todayKey()));
+  const [barSpan, setBarSpan] = useState<6 | 12>(6);
   const [wrappedYear, setWrappedYear] = useState<number | null>(null);
   const prev = shiftMonthStr(month, -1);
   const label = new Map(data.categories.map((c) => [c.id, `${c.emoji} ${c.label}`]));
@@ -207,7 +208,20 @@ export function ReportView({ data }: { data: LedgerData }) {
       </Section>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Section title="월별 수입·지출 (6개월)"><MonthlyBars data={data} month={month} /></Section>
+        <Section title={`월별 수입·지출 (${barSpan}개월)`}>
+          <div className="mb-2 flex justify-end gap-1">
+            {([6, 12] as const).map((s) => (
+              <button key={s} type="button" onClick={() => setBarSpan(s)}
+                className={cn('rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                  barSpan === s
+                    ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.12)] font-medium text-[hsl(var(--ledger-navy))]'
+                    : 'border-[hsl(var(--input))] text-muted-foreground')}>
+                {s}개월
+              </button>
+            ))}
+          </div>
+          <MonthlyBars data={data} month={month} span={barSpan} />
+        </Section>
         <Section title="순자산 추이"><NetWorthLine data={data} /></Section>
       </div>
 

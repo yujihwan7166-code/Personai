@@ -13,7 +13,8 @@ export interface ParsedEntry {
   categoryId: string;
   memo: string;
   method?: PayMethod;
-  recurring?: boolean; // '매달/매월' — 고정지출 등록 제안
+  recurring?: boolean;        // '매달/매월' — 고정지출 등록 제안
+  installmentMonths?: number; // 'N개월 할부' — 분할 기록
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -101,11 +102,24 @@ export function parseInput(
     if (amount === null || amount <= 0) { words.push(tok); continue; }
 
     // 금액 확정 — 지금까지 모인 단어가 이 건의 메모/속성
+    // 금액 뒤 수식 토큰 소비: 매달(반복) · N개월/할부(분할) · 일시불(카드 명세 노이즈)
     let recurring = false;
-    if (tokens[i + 1] === '매달' || tokens[i + 1] === '매월') { recurring = true; i++; }
+    let installmentMonths: number | undefined;
+    let sawInstallmentWord = false;
+    while (i + 1 < tokens.length) {
+      const nt = tokens[i + 1];
+      if (nt === '매달' || nt === '매월') { recurring = true; i++; continue; }
+      if (nt === '할부') { sawInstallmentWord = true; i++; continue; }
+      if (nt === '일시불') { i++; continue; }
+      const im = nt.match(/^(\d+)개월(?:할부)?$/);
+      if (im) { installmentMonths = Number(im[1]); if (nt.endsWith('할부')) sawInstallmentWord = true; i++; continue; }
+      break;
+    }
+    if (installmentMonths !== undefined && !sawInstallmentWord) installmentMonths = undefined; // "3개월"만으론 확정 안 함
     let method: PayMethod | undefined;
     const memoWords = words.filter((w) => {
       if (METHOD_KW[w]) { method = METHOD_KW[w]; return false; }
+      if (w === '일시불' || w === '승인') return false; // 카드 명세 노이즈
       return true;
     });
     const type: EntryType = memoWords.some((w) => INCOME_KW.some((k) => w.includes(k)))
@@ -121,8 +135,55 @@ export function parseInput(
       memo: memoWords.join(' '),
       method,
       recurring: recurring || undefined,
+      installmentMonths: installmentMonths && installmentMonths > 1 ? installmentMonths : undefined,
     });
     words = [];
   }
   return out;
+}
+
+/**
+ * 할부 분할 — N개월 할부 1건을 매월 1건씩 N건으로 확장. 합계 보존(첫 달이 나머지 흡수),
+ * 회차 표기 "(k/N)", 말일 시작이면 짧은 달은 말일로 클램프.
+ */
+export function expandInstallment(p: ParsedEntry): ParsedEntry[] {
+  const n = p.installmentMonths ?? 1;
+  if (n <= 1) return [{ ...p, installmentMonths: undefined }];
+  const per = Math.floor(p.amount / n);
+  const first = p.amount - per * (n - 1);
+  const [y, m, d] = p.date.split('-').map(Number);
+  return Array.from({ length: n }, (_, k) => {
+    const daysInMonth = new Date(y, m + k, 0).getDate();
+    const date = ymd(new Date(y, m - 1 + k, Math.min(d, daysInMonth)));
+    return {
+      ...p,
+      amount: k === 0 ? first : per,
+      date,
+      memo: `${p.memo || '할부'} (${k + 1}/${n})`,
+      recurring: undefined,
+      installmentMonths: undefined,
+    };
+  });
+}
+
+export interface BulkParseResult {
+  entries: ParsedEntry[];
+  failed: string[]; // 금액을 못 찾은 줄 (합계·안내문 등)
+}
+
+/** 여러 줄 붙여넣기(카드사 이용내역 복사 등) 일괄 파싱 — 줄 단위로 관대하게. */
+export function parseBulk(
+  text: string,
+  opts: { today: Date; keywordDict?: Record<string, string> },
+): BulkParseResult {
+  const entries: ParsedEntry[] = [];
+  const failed: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const parsed = parseInput(line, opts);
+    if (parsed.length > 0) entries.push(...parsed.flatMap(expandInstallment));
+    else failed.push(line);
+  }
+  return { entries, failed };
 }

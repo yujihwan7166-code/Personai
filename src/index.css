@@ -995,6 +995,15 @@
     background-color: hsl(var(--ledger-navy) / 0.16);
   }
 
+  /* 프라이버시 모드 — 금액(tabular-nums)만 블러, 마우스 올리면 그 값만 잠깐 보임 */
+  .ledger-hide-amounts .tabular-nums {
+    filter: blur(5px);
+    transition: filter 0.15s ease;
+  }
+  .ledger-hide-amounts .tabular-nums:hover {
+    filter: none;
+  }
+
   /* 채팅바 위로 떠오르는 카드(답변·칩·상세 패널) 공용 등장 모션 */
   .ledger-rise {
     animation: ledger-rise 0.2s cubic-bezier(0.16, 1, 0.3, 1);
