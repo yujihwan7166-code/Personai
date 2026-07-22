@@ -57,7 +57,7 @@ const App = () => (
               <Route path="/notes" element={<AppWorkspaceShell current="notes"><Notes /></AppWorkspaceShell>} />
               <Route path="/career" element={<AppWorkspaceShell current="career"><Career /></AppWorkspaceShell>} />
               {/* 마이커리어 v2 — 비교용 병행 버전 (메뉴 미노출, 데이터는 v1과 공유) */}
-              <Route path="/career2" element={<AppWorkspaceShell current="career"><Career2 /></AppWorkspaceShell>} />
+              <Route path="/career2" element={<AppWorkspaceShell current="career2"><Career2 /></AppWorkspaceShell>} />
               {/* 트래블 로그는 데일리로그 방의 섹션 — 옛 주소는 리다이렉트 */}
               <Route path="/travel" element={<Navigate to="/journal?view=travel" replace />} />
               <Route path="/people" element={<AppWorkspaceShell current="people"><People /></AppWorkspaceShell>} />

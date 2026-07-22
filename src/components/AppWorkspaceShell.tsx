@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Archive,
+  BadgeCheck,
   HeartPulse,
   Library,
   LayoutDashboard,
@@ -36,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets' | 'ledger';
+export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'career2' | 'people' | 'archive' | 'health' | 'tickets' | 'ledger';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -54,6 +55,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'notes', label: '올인원 노트', to: '/notes', icon: StickyNote },
   { key: 'journal', label: '데일리 로그', to: '/journal', icon: NotebookPen },
   { key: 'career', label: '스펙 보드', to: '/career', icon: FileUser },
+  { key: 'career2', label: '마이커리어 v2', to: '/career2', icon: BadgeCheck },
   { key: 'people', label: '인맥노트', to: '/people', icon: Contact },
   { key: 'archive', label: '아카이브', to: '/archive', icon: Archive },
   { key: 'wiki', label: '마이위키', to: '/wiki', icon: Library },
@@ -70,6 +72,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   notes: '#2c4f93',    // 올인원 노트 — 네이비 블루 (방 accent와 동일)
   journal: '#6d5dd3',  // 데일리 로그 — 퍼플
   career: '#8a3550',   // 스펙 보드 — 로즈/버건디 (방 accent와 동일)
+  career2: '#1e5fd0',  // 마이커리어 v2 — 코발트 블루 (방 accent와 동일)
   people: '#a15008',   // 인맥노트 — 앰버
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린
@@ -112,7 +115,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets', 'ledger'].includes(item.key),
+  ['home', 'today', 'career', 'career2', 'people', 'archive', 'wiki', 'health', 'tickets', 'ledger'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
