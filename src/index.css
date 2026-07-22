@@ -995,6 +995,104 @@
     background-color: hsl(var(--ledger-navy) / 0.16);
   }
 
+  .career2-theme {
+    /* 마이커리어 v2 — 쿨 화이트 캐논 + 코발트 블루 하나 (모던 대시보드, v1 원고 무드와 대비). */
+    --background: 220 24% 98%;
+    --foreground: 222 22% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 22% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 22% 15%;
+
+    --muted: 218 18% 93%;
+    --muted-foreground: 220 10% 43%;
+
+    --accent: 217 30% 93%;
+    --accent-foreground: 222 22% 15%;
+
+    --secondary: 217 30% 93%;
+    --secondary-foreground: 220 10% 36%;
+
+    --border: 218 18% 86%;
+    --input: 218 18% 86%;
+
+    --primary: 222 22% 15%;
+    --primary-foreground: 0 0% 100%;
+
+    --ring: 217 80% 46%;
+    --focus-ring: 217 82% 48%;
+    --focus-offset: 220 24% 98%;
+
+    --hairline:  218 18% 89%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 220 24% 98%;
+    --surface-3: 218 22% 95%;
+
+    --sidebar-background: 218 30% 97%;
+
+    /* 코발트 블루 — 유일한 강조색. */
+    --career2-blue: 217 80% 46%;
+  }
+
+  .dark .career2-theme {
+    --background: 222 24% 8%;
+    --foreground: 218 16% 90%;
+
+    --card: 222 18% 12%;
+    --card-foreground: 218 16% 90%;
+
+    --popover: 222 18% 13%;
+    --popover-foreground: 218 16% 90%;
+
+    --muted: 222 14% 16%;
+    --muted-foreground: 218 10% 62%;
+
+    --accent: 222 14% 18%;
+    --accent-foreground: 218 16% 90%;
+
+    --secondary: 222 14% 16%;
+    --secondary-foreground: 218 12% 75%;
+
+    --border: 222 12% 21%;
+    --input: 222 12% 21%;
+
+    --primary: 218 16% 90%;
+    --primary-foreground: 222 18% 10%;
+
+    --ring: 217 85% 64%;
+    --focus-ring: 217 87% 66%;
+    --focus-offset: 222 24% 8%;
+
+    --hairline:  222 12% 21%;
+    --surface-1: 222 18% 12%;
+    --surface-2: 222 14% 15%;
+    --surface-3: 222 14% 18%;
+
+    --sidebar-background: 222 18% 11%;
+
+    --career2-blue: 217 85% 64%;
+  }
+
+  .career2-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .career2-theme ::selection {
+    background-color: hsl(var(--career2-blue) / 0.16);
+  }
+
+  /* 새 항목이 카드에 꽂힐 때 등장 모션 */
+  .career2-rise {
+    animation: career2-rise 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes career2-rise {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
   /* 프라이버시 모드 — 금액(tabular-nums)만 블러, 마우스 올리면 그 값만 잠깐 보임 */
   .ledger-hide-amounts .tabular-nums {
     filter: blur(5px);
