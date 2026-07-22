@@ -69,7 +69,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   planner: '#3a72b8',  // 통합플래너 — 블루
   notes: '#2c4f93',    // 올인원 노트 — 네이비 블루 (방 accent와 동일)
   journal: '#6d5dd3',  // 데일리 로그 — 퍼플
-  career: '#8a3550',   // 스펙 보드 — 로즈/버건디 (방 accent와 동일)
+  career: '#4f4a43',   // 스펙 보드 — 먹색 (레일 다크 테마에서도 보이게 반 톤 밝힘)
   people: '#a15008',   // 인맥노트 — 앰버
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린

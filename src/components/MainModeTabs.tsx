@@ -241,7 +241,7 @@ export const HUB_TOOLS: HubTool[] = [
   // ── 기록 (직접 쓰기) ──────────────
   { id: 'notes',      label: '올인원 노트',        desc: '노트·화이트보드·시트 한 곳에',    emoji: '🗒️', icon: StickyNote, tint: 'hsl(150 55% 45%)', axis: '기록' },
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
-  { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
+  { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(30 10% 30%)',  axis: '기록' },
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
   { id: 'ticketbook', label: '티켓북',              desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(38 78% 52%)', axis: '기록' },
@@ -337,7 +337,7 @@ export const SPOTLIGHT_ITEMS: Array<{
   { id: 'hub-health',         badge: 'NEW', label: '건강기록',    tint: 'hsl(152 58% 37%)',          target: { kind: 'hub', hubId: 'health' } },
   { id: 'mode-research_main', badge: 'HOT', label: '심층 리서치',  tint: 'hsl(var(--mode-research))', target: { kind: 'mode', mode: 'research_main' } },
   { id: 'mode-multi',         badge: 'NEW', label: '멀티 채팅',    tint: 'hsl(var(--mode-multi))',    target: { kind: 'mode', mode: 'multi' } },
-  { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(6 70% 51%)',            target: { kind: 'hub', hubId: 'career' } },
+  { id: 'hub-career',         badge: 'NEW', label: '이력서 PDF',   tint: 'hsl(30 10% 30%)',            target: { kind: 'hub', hubId: 'career' } },
   { id: 'mode-study_main',    badge: 'HOT', label: 'AI 스터디룸',  tint: 'hsl(var(--mode-study))',    target: { kind: 'mode', mode: 'study_main' } },
   { id: 'mode-voice_main',    badge: 'NEW', label: 'AI 음성 기록',  tint: 'hsl(330 65% 52%)',          target: { kind: 'mode', mode: 'voice_main' } },
 ];
@@ -370,7 +370,7 @@ export const ASSISTANT_TILES: Array<{
   { cardId: 'music-gen',      label: '노래',        desc: '가사·분위기로 작곡',        icon: Music,           tint: 'hsl(265 65% 58%)', placeholder: true },
   { cardId: 'file-convert',   label: '파일 변환',   desc: 'PDF·이미지·문서 변환',      icon: Files,           tint: 'hsl(280 60% 55%)' },
   { cardId: 'translate',      label: '번역',        desc: '맥락 살린 다국어 번역',     icon: Languages,       tint: 'hsl(170 65% 45%)' },
-  { cardId: 'cover-letter',   label: 'AI 자소서',   desc: '경험 → 자기소개서 초안',    icon: FileText,        tint: 'hsl(6 70% 51%)',   placeholder: true },
+  { cardId: 'cover-letter',   label: 'AI 자소서',   desc: '경험 → 자기소개서 초안',    icon: FileText,        tint: 'hsl(30 10% 30%)',   placeholder: true },
   { cardId: 'writing',        label: '글쓰기',      icon: PenLine,         tint: 'hsl(45 80% 50%)',  placeholder: true },
   { cardId: 'summarize',      label: '요약',        icon: BookText,        tint: 'hsl(200 55% 50%)', placeholder: true },
   { cardId: 'spreadsheet',    label: '엑셀·표',     icon: FileSpreadsheet, tint: 'hsl(135 55% 42%)', placeholder: true },

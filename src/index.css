@@ -390,7 +390,7 @@
   .career-theme {
     /* 스펙 보드 — "교정쇄(galley proof)". 중립 스캐폴딩은 플래너와 동일한 쿨 화이트 공식
      * (쿨 페이지 + 웜 근백색 카드 + 웜 차콜 잉크, 2026-07-09 통일 결정).
-     * 방 정체성은 버밀리온 교정 빨강 하나로. */
+     * 방 정체성은 먹색 잉크 하나로 — 강조는 색이 아니라 농담(濃淡). */
     --background: 220 22% 98%;         /* 책상 — 레일·플래너와 동일한 쿨 화이트 */
     --foreground: 30 12% 16%;          /* 따뜻한 진한 차콜 잉크 */
 
@@ -416,8 +416,8 @@
     --primary: 30 12% 16%;
     --primary-foreground: 40 35% 99%;
 
-    --ring: 6 70% 51%;
-    --focus-ring: 6 72% 53%;
+    --ring: 30 10% 24%;
+    --focus-ring: 30 10% 28%;
     --focus-offset: 220 22% 98%;
 
     --hairline:  35 14% 86%;
@@ -425,8 +425,8 @@
     --surface-2: 220 22% 98%;          /* 가라앉은 슬롯(입력) — 책상 톤이 비쳐 보임 */
     --surface-3: 40 22% 93%;
 
-    /* 교정 잉크 버밀리온 — 유일한 강조색. 교정 마크·활성·주요 액션에만. */
-    --career-red: 6 70% 51%;
+    /* 먹색 잉크 — 유일한 강조. 활성·주요 액션은 진한 먹으로만. */
+    --career-ink: 30 10% 24%;
   }
 
   .dark .career-theme {
@@ -455,8 +455,8 @@
     --primary: 40 16% 90%;
     --primary-foreground: 35 8% 10%;
 
-    --ring: 4 68% 58%;
-    --focus-ring: 4 68% 60%;
+    --ring: 40 10% 76%;
+    --focus-ring: 40 10% 78%;
     --focus-offset: 222 24% 7%;
 
     --hairline:  35 7% 22%;
@@ -464,12 +464,12 @@
     --surface-2: 35 7% 16%;    /* 슬롯 */
     --surface-3: 35 7% 19%;
 
-    --career-red: 8 78% 62%;
+    --career-ink: 40 10% 76%;
   }
 
-  /* 텍스트 선택도 교정 잉크로 */
+  /* 텍스트 선택도 먹색으로 */
   .career-theme ::selection {
-    background-color: hsl(var(--career-red) / 0.18);
+    background-color: hsl(var(--career-ink) / 0.18);
   }
 
   .travel-theme {
@@ -1095,8 +1095,8 @@
   }
 
   @keyframes career-line-in {
-    0%   { background-color: hsl(var(--career-red) / 0.10); box-shadow: inset 3px 0 0 hsl(var(--career-red)); }
-    60%  { background-color: hsl(var(--career-red) / 0.05); box-shadow: inset 3px 0 0 hsl(var(--career-red) / 0.6); }
+    0%   { background-color: hsl(var(--career-ink) / 0.10); box-shadow: inset 3px 0 0 hsl(var(--career-ink)); }
+    60%  { background-color: hsl(var(--career-ink) / 0.05); box-shadow: inset 3px 0 0 hsl(var(--career-ink) / 0.6); }
     100% { background-color: transparent; box-shadow: none; }
   }
 
