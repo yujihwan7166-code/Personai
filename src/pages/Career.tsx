@@ -11,7 +11,7 @@
  * (framer layoutId 공유 — 두 창을 가로지르는 시그니처 모션).
  *
  * 종이 위 잉크: 문장 명조(career-serif) · 숫자 모노(career-mono) ·
- * 강조는 먹색(--career-ink) 하나 — 농담으로만 위계. 보조 문구는 한국어만.
+ * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
@@ -56,11 +56,11 @@ const TRY_EXAMPLES: Record<CareerPersona, string[]> = {
 
 /** 문서 타일 — 연한 색상 각각(교정 빨강 중심 웜 팔레트). tint = 배경, accent = 부제/보더 색조(HSL). */
 const COMPOSE_PURPOSES: Array<{ purpose: ComposePurpose; label: string; hint: string; hsl: string }> = [
-  { purpose: '이력서', label: '이력서', hint: '미리보기·PDF', hsl: '30 10% 22%' },
-  { purpose: '자기소개서 초안', label: '자기소개서', hint: '뽑기', hsl: '30 8% 32%' },
-  { purpose: '포트폴리오 요약', label: '포트폴리오', hint: '뽑기', hsl: '30 7% 40%' },
-  { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '30 6% 47%' },
-  { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '30 5% 53%' },
+  { purpose: '이력서', label: '이력서', hint: '미리보기·PDF', hsl: '6 70% 51%' },
+  { purpose: '자기소개서 초안', label: '자기소개서', hint: '뽑기', hsl: '28 78% 50%' },
+  { purpose: '포트폴리오 요약', label: '포트폴리오', hint: '뽑기', hsl: '42 80% 44%' },
+  { purpose: '경력기술서', label: '경력기술서', hint: '뽑기', hsl: '348 60% 54%' },
+  { purpose: '커버레터', label: '커버레터', hint: '뽑기', hsl: '14 70% 54%' },
 ];
 
 /** 섹션당 기본 노출 개수 — 넘어가면 "더 보기"로 펼친다. */
@@ -207,14 +207,14 @@ function SetupLedger() {
               key={persona}
               type="button"
               onClick={() => seed(persona)}
-              className="group border-l-2 border-[hsl(var(--foreground)/0.25)] bg-transparent py-3 pl-4 pr-3 text-left transition-colors hover:border-[hsl(var(--career-ink))]"
+              className="group border-l-2 border-[hsl(var(--foreground)/0.25)] bg-transparent py-3 pl-4 pr-3 text-left transition-colors hover:border-[hsl(var(--career-red))]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="career-serif text-[16px] font-bold">{PERSONA_LABEL[persona]}</p>
                   <p className="mt-0.5 text-[12.5px] text-muted-foreground">{PERSONA_DESC[persona]}</p>
                 </div>
-                <span className="text-[14px] text-[hsl(var(--career-ink))] opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="text-[14px] text-[hsl(var(--career-red))] opacity-0 transition-opacity group-hover:opacity-100">
                   →
                 </span>
               </div>
@@ -487,7 +487,7 @@ function BoardLedger() {
         <MetricText text={item.refined} />
       </span>
       {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#9b9095]">{item.org}</span>}
-      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#c2bcb2]">
+      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#cfb6bf]">
         {item.detail && <FileText className="h-[13px] w-[13px]" strokeWidth={1.7} aria-label="세부 있음" />}
         {item.link && (
           <a
@@ -497,7 +497,7 @@ function BoardLedger() {
             onClick={(e) => e.stopPropagation()}
             aria-label="증빙 링크 열기"
             title={item.link}
-            className="transition-colors hover:text-[#201d19]"
+            className="transition-colors hover:text-[#9c4160]"
           >
             <Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} />
           </a>
@@ -511,7 +511,7 @@ function BoardLedger() {
         onClick={(e) => { e.stopPropagation(); removeItem(item); }}
         aria-label="삭제"
         title="삭제"
-        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#b3aca2] opacity-0 transition-opacity hover:text-[#201d19] group-hover:opacity-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#c9aeb8] opacity-0 transition-opacity hover:text-[#9c4160] group-hover:opacity-100"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -548,14 +548,14 @@ function BoardLedger() {
                       className={cn(
                         'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                         active
-                          ? 'bg-[#3a3733]/[0.12] font-semibold text-[#3a3733] dark:bg-[#3a3733]/25'
+                          ? 'bg-[#8a3550]/[0.12] font-semibold text-[#8a3550] dark:bg-[#8a3550]/25'
                           : 'font-medium text-[#3c383d] hover:bg-white/55',
                       )}
                     >
                       <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📋</span>
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#201d19]' : 'text-[#8b857c]')}>{count}</span>
+                        <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -583,7 +583,7 @@ function BoardLedger() {
               <button
                 type="button"
                 onClick={() => setBoardDialogOpen(true)}
-                className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium text-[#8b857c] transition-colors hover:bg-white/55 hover:text-[#3a3733]"
+                className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium text-[#a1888f] transition-colors hover:bg-white/55 hover:text-[#8a3550]"
               >
                 <Plus className="h-[15px] w-[15px] shrink-0" strokeWidth={1.7} />
                 <span className="flex-1">새 보드</span>
@@ -605,14 +605,14 @@ function BoardLedger() {
                     className={cn(
                       'flex h-[38px] items-center gap-2.5 rounded-[9px] px-3 text-left text-[14.5px] transition-colors',
                       active
-                        ? 'bg-[#3a3733]/[0.12] font-semibold text-[#3a3733] dark:bg-[#3a3733]/25'
+                        ? 'bg-[#8a3550]/[0.12] font-semibold text-[#8a3550] dark:bg-[#8a3550]/25'
                         : 'font-medium text-[#3c383d] hover:bg-white/55',
                     )}
                   >
                     <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📄</span>
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#201d19]' : 'text-[#8b857c]')}>{count}</span>
+                      <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#9c4160]' : 'text-[#a1888f]')}>{count}</span>
                     )}
                   </button>
                 );
@@ -645,7 +645,7 @@ function BoardLedger() {
                   key={b.id}
                   type="button"
                   onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(30_10%_30%/0.12)] font-bold text-[hsl(30_12%_22%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {b.name}
                 </button>
@@ -663,7 +663,7 @@ function BoardLedger() {
                   key={purpose}
                   type="button"
                   onClick={() => setView(purpose)}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(30_10%_30%/0.12)] font-bold text-[hsl(30_12%_22%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {label}
                 </button>
@@ -683,7 +683,7 @@ function BoardLedger() {
             {/* 문서 만들기 — 종류 타일 6개 (만든 문서 보기는 사이드바 문서 항목으로) */}
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               <div className="mb-1 flex items-center gap-2">
-                <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-ink))]">+</span>
+                <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">+</span>
                 <h2 className="text-[16px] font-bold tracking-tight">문서 만들기</h2>
               </div>
               <p className="text-[11.5px] leading-relaxed text-muted-foreground">
@@ -731,7 +731,7 @@ function BoardLedger() {
             <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               {/* 표제 + 모드 토글 (세그먼트) */}
               <div className="flex items-center gap-2">
-                <span className="text-[17px] font-bold leading-none text-[hsl(var(--career-ink))]">+</span>
+                <span className="text-[17px] font-bold leading-none text-[hsl(var(--career-red))]">+</span>
                 <h2 className="career-serif text-[17px] font-bold tracking-tight">커리어 추가</h2>
                 <div className="ml-auto inline-flex rounded-lg bg-[hsl(var(--foreground)/0.05)] p-0.5">
                   {([['ai', 'AI 작성'], ['direct', '직접 작성']] as const).map(([mode, label]) => (
@@ -743,7 +743,7 @@ function BoardLedger() {
                       className={cn(
                         'rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors',
                         writeMode === mode
-                          ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-ink))] shadow-sm'
+                          ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-sm'
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
@@ -774,7 +774,7 @@ function BoardLedger() {
                         className={cn(
                           'career-serif min-h-[68px] w-full resize-none break-keep rounded-lg border bg-[hsl(var(--card))] px-3.5 py-2.5 text-[14.5px] leading-relaxed outline-none transition-all placeholder:text-muted-foreground/50',
                           'border-[hsl(var(--foreground)/0.25)]',
-                          'focus:border-[hsl(var(--career-ink))]',
+                          'focus:border-[hsl(var(--career-red))]',
                         )}
                       />
 
@@ -786,7 +786,7 @@ function BoardLedger() {
                               key={example}
                               type="button"
                               onClick={() => onTryExample(example)}
-                              className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-ink))] hover:decoration-[hsl(var(--career-ink))]"
+                              className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
                             >
                               {example}
                             </button>
@@ -798,7 +798,7 @@ function BoardLedger() {
                         type="button"
                         onClick={() => void requestDraft()}
                         disabled={!draft.trim()}
-                        className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[hsl(var(--career-ink))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-ink)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+                        className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
                       >
                         <span>초안 만들기</span>
                         <span className="career-mono text-[10.5px] font-normal opacity-60">⏎</span>
@@ -807,15 +807,15 @@ function BoardLedger() {
                   ) : phase.step === 'thinking' ? (
                     /* 다듬는 중 — 상자 없이, 적은 문장이 그대로 교정에 들어간 모습 */
                     <div className="flex items-center gap-2 py-3">
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-ink))]" />
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
                       <span className="career-serif min-w-0 flex-1 truncate text-[13.5px] text-muted-foreground">{phase.raw}</span>
-                      <span className="career-mono shrink-0 text-[10.5px] text-[hsl(var(--career-ink))]">교정 중…</span>
+                      <span className="career-mono shrink-0 text-[10.5px] text-[hsl(var(--career-red))]">교정 중…</span>
                     </div>
                   ) : (
                     /* 초안 검토 — 상자 없이 활자만: 원문에 빨간 줄, 고친 문장, 괘선 아래 되묻기 */
                     <div className="pt-1.5">
                       <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-[hsl(var(--hairline))] pb-1.5">
-                        <p className="career-mono text-[11px] font-semibold text-[hsl(var(--career-ink))]">초안</p>
+                        <p className="career-mono text-[11px] font-semibold text-[hsl(var(--career-red))]">초안</p>
                         <span
                           title="이 칸에 들어가요"
                           className="career-mono shrink-0 rounded border border-[hsl(var(--foreground)/0.3)] px-1.5 py-0.5 text-[10px] text-muted-foreground"
@@ -824,7 +824,7 @@ function BoardLedger() {
                         </span>
                       </div>
                       {phase.raw.trim() !== phase.refined.trim() && (
-                        <p className="career-serif text-[12.5px] leading-relaxed text-muted-foreground/70 line-through decoration-[hsl(var(--career-ink)/0.5)]">
+                        <p className="career-serif text-[12.5px] leading-relaxed text-muted-foreground/70 line-through decoration-[hsl(var(--career-red)/0.5)]">
                           {phase.raw}
                         </p>
                       )}
@@ -840,7 +840,7 @@ function BoardLedger() {
                       {!phase.dateFound && (
                         <div className="mt-2.5 border-t border-dashed border-[hsl(var(--hairline))] pt-2.5">
                           <p className="mb-1.5 text-[12px] text-foreground">
-                            <span className="career-mono mr-1 text-[11px] font-semibold text-[hsl(var(--career-ink))]">Q.</span>
+                            <span className="career-mono mr-1 text-[11px] font-semibold text-[hsl(var(--career-red))]">Q.</span>
                             언제쯤이었어요?
                           </p>
                           <input
@@ -848,7 +848,7 @@ function BoardLedger() {
                             value={advDate ? advDate.slice(0, 7) : ''}
                             onChange={(e) => setAdvDate(e.target.value ? `${e.target.value}-01` : '')}
                             aria-label="언제쯤이었어요?"
-                            className="career-mono h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12px] outline-none focus:border-[hsl(var(--career-ink))]"
+                            className="career-mono h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12px] outline-none focus:border-[hsl(var(--career-red))]"
                           />
                           <p className="mt-1 text-[10.5px] text-muted-foreground/70">안 적으면 오늘 날짜로 들어가요.</p>
                         </div>
@@ -857,14 +857,14 @@ function BoardLedger() {
                         <button
                           type="button"
                           onClick={commitDraft}
-                          className="h-9 flex-1 rounded-lg bg-[hsl(var(--career-ink))] text-[12.5px] font-semibold text-white transition-[filter] hover:brightness-[1.06]"
+                          className="h-9 flex-1 rounded-lg bg-[hsl(var(--career-red))] text-[12.5px] font-semibold text-white transition-[filter] hover:brightness-[1.06]"
                         >
                           원고에 넣기
                         </button>
                         <button
                           type="button"
                           onClick={() => void requestDraft(phase.raw)}
-                          className="h-9 rounded-lg border border-[hsl(var(--foreground)/0.35)] px-3 text-[12px] font-medium transition-colors hover:border-[hsl(var(--career-ink))] hover:text-[hsl(var(--career-ink))]"
+                          className="h-9 rounded-lg border border-[hsl(var(--foreground)/0.35)] px-3 text-[12px] font-medium transition-colors hover:border-[hsl(var(--career-red))] hover:text-[hsl(var(--career-red))]"
                         >
                           다시 다듬기
                         </button>
@@ -887,7 +887,7 @@ function BoardLedger() {
                 className={cn(
                   'mt-3 flex items-center overflow-hidden rounded-xl border bg-[hsl(var(--card))] transition-all',
                   'border-[hsl(var(--foreground)/0.2)]',
-                  'focus-within:border-[hsl(var(--career-ink))] focus-within:ring-2 focus-within:ring-[hsl(var(--career-ink)/0.12)]',
+                  'focus-within:border-[hsl(var(--career-red))] focus-within:ring-2 focus-within:ring-[hsl(var(--career-red)/0.12)]',
                 )}
               >
                 <input
@@ -904,7 +904,7 @@ function BoardLedger() {
                   onClick={() => void submitDirect()}
                   disabled={!draft.trim() || busy}
                   aria-label="추가"
-                  className="mr-2.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[hsl(var(--career-ink)/0.12)] text-[16px] leading-none text-[hsl(var(--career-ink))] transition-colors hover:bg-[hsl(var(--career-ink)/0.2)] disabled:opacity-40"
+                  className="mr-2.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[hsl(var(--career-red)/0.12)] text-[16px] leading-none text-[hsl(var(--career-red))] transition-colors hover:bg-[hsl(var(--career-red)/0.2)] disabled:opacity-40"
                 >
                   ↵
                 </button>
@@ -919,7 +919,7 @@ function BoardLedger() {
                       key={example}
                       type="button"
                       onClick={() => onTryExample(example)}
-                      className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-ink))] hover:decoration-[hsl(var(--career-ink))]"
+                      className="text-[12px] text-secondary-foreground underline decoration-[hsl(var(--foreground)/0.3)] underline-offset-4 transition-colors hover:text-[hsl(var(--career-red))] hover:decoration-[hsl(var(--career-red))]"
                     >
                       {example}
                     </button>
@@ -938,7 +938,7 @@ function BoardLedger() {
                       id="career-adv-category"
                       value={advCategory}
                       onChange={(e) => setAdvCategory(e.target.value)}
-                      className="h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13px] outline-none focus:border-[hsl(var(--career-ink))]"
+                      className="h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13px] outline-none focus:border-[hsl(var(--career-red))]"
                     >
                       <option value="auto">자동 분류 (추천)</option>
                       {categories.map((category) => (
@@ -957,7 +957,7 @@ function BoardLedger() {
                       value={advOrg}
                       onChange={(e) => setAdvOrg(e.target.value)}
                       placeholder="발급처·주최 (선택)"
-                      className="h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+                      className="h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
                 </div>
@@ -983,7 +983,7 @@ function BoardLedger() {
                           className={cn(
                             'rounded-md px-3 py-1 text-[11.5px] font-semibold transition-colors',
                             advRange === range
-                              ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-ink))] shadow-sm'
+                              ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-sm'
                               : 'text-muted-foreground hover:text-foreground',
                           )}
                         >
@@ -1000,7 +1000,7 @@ function BoardLedger() {
                       value={advDate}
                       onChange={(e) => setAdvDate(e.target.value)}
                       aria-label="날짜"
-                      className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-ink))]"
+                      className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                     />
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
@@ -1013,7 +1013,7 @@ function BoardLedger() {
                           type="date"
                           value={advDate}
                           onChange={(e) => setAdvDate(e.target.value)}
-                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-ink))]"
+                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
                         />
                       </div>
                       <div>
@@ -1026,7 +1026,7 @@ function BoardLedger() {
                               type="checkbox"
                               checked={advOngoing}
                               onChange={(e) => setAdvOngoing(e.target.checked)}
-                              className="h-3.5 w-3.5 accent-[hsl(var(--career-ink))]"
+                              className="h-3.5 w-3.5 accent-[hsl(var(--career-red))]"
                             />
                             진행 중
                           </label>
@@ -1037,7 +1037,7 @@ function BoardLedger() {
                           value={advOngoing ? '' : advEndDate}
                           onChange={(e) => setAdvEndDate(e.target.value)}
                           disabled={advOngoing}
-                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-ink))] disabled:opacity-45"
+                          className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
                         />
                       </div>
                     </div>
@@ -1052,7 +1052,7 @@ function BoardLedger() {
                     value={advLink}
                     onChange={(e) => setAdvLink(e.target.value)}
                     placeholder="https:// — 포트폴리오·수상 페이지 (선택)"
-                    className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+                    className="career-mono h-11 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <div>
@@ -1065,14 +1065,14 @@ function BoardLedger() {
                     onChange={(e) => setAdvDetail(e.target.value)}
                     rows={3}
                     placeholder="상황 · 내가 한 일 · 결과 (선택)"
-                    className="w-full resize-none rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+                    className="w-full resize-none rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => void submitDirect()}
                   disabled={!draft.trim() || busy}
-                  className="mt-1 h-14 w-full rounded-2xl bg-[hsl(var(--career-ink))] text-[15px] font-bold text-white shadow-[0_10px_24px_-10px_hsl(var(--career-ink)/0.85)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+                  className="mt-1 h-14 w-full rounded-2xl bg-[hsl(var(--career-red))] text-[15px] font-bold text-white shadow-[0_10px_24px_-10px_hsl(var(--career-red)/0.85)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
                 >
                   커리어 저장
                 </button>
@@ -1089,9 +1089,9 @@ function BoardLedger() {
                   >
                     {phase.step === 'thinking' ? (
                       <div className="flex min-w-0 flex-1 items-center gap-2 px-3 text-[13px]">
-                        <Loader2 className="h-3 w-3 shrink-0 animate-spin text-[hsl(var(--career-ink))]" />
+                        <Loader2 className="h-3 w-3 shrink-0 animate-spin text-[hsl(var(--career-red))]" />
                         <span className="career-serif min-w-0 flex-1 truncate text-muted-foreground">{phase.raw}</span>
-                        <span className="shrink-0 text-[10.5px] text-[hsl(var(--career-ink))]">교정 중…</span>
+                        <span className="shrink-0 text-[10.5px] text-[hsl(var(--career-red))]">교정 중…</span>
                       </div>
                     ) : (
                       <motion.div
@@ -1133,7 +1133,7 @@ function BoardLedger() {
                 {profile.photo ? (
                   <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-[#e8e4dd] text-[24px] font-semibold text-[#3a3733]">{(profile.name || '?').slice(0, 1)}</span>
+                  <span className="flex h-full w-full items-center justify-center bg-[#f2dfe5] text-[24px] font-semibold text-[#8a3550]">{(profile.name || '?').slice(0, 1)}</span>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
                 {profile.photo && (
@@ -1153,14 +1153,14 @@ function BoardLedger() {
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingName(false); }}
                       placeholder="이름"
                       aria-label="이름"
-                      className="border-b border-[#a39c92] bg-transparent text-[19px] font-bold leading-tight text-[#191c20] outline-none placeholder:text-[#b3aca2]"
+                      className="border-b border-[#c58fa0] bg-transparent text-[19px] font-bold leading-tight text-[#191c20] outline-none placeholder:text-[#c9aeb8]"
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => setEditingName(true)}
                       title="이름 수정"
-                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#c2bcb2] underline-offset-4 hover:underline', !profile.name && 'text-[#b3aca2]')}
+                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#cfb6bf] underline-offset-4 hover:underline', !profile.name && 'text-[#c9aeb8]')}
                     >
                       {profile.name || '이름 적기'}
                     </button>
@@ -1170,7 +1170,7 @@ function BoardLedger() {
                     onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
                     placeholder={persona === 'worker' ? '결제·정산 도메인 3년차 프론트엔드 개발자' : '웹 개발 동아리를 이끄는 컴퓨터공학 3학년'}
                     aria-label="소개"
-                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#b3aca2]"
+                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#c9aeb8]"
                   />
                 </div>
                 {/* 연락처 — 생년월일 · 이메일 · 전화 · 대표 링크 (인라인 편집) */}
@@ -1186,17 +1186,17 @@ function BoardLedger() {
                       onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
                       placeholder={ph}
                       aria-label={ph}
-                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#b3aca2] focus:text-[#585055]', width)}
+                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#c9aeb8] focus:text-[#585055]', width)}
                     />
                   ))}
-                  <span className="inline-flex items-center gap-1 text-[#3a3733]">
-                    <Link2 className="h-[11px] w-[11px] text-[#201d19]" />
+                  <span className="inline-flex items-center gap-1 text-[#8a3550]">
+                    <Link2 className="h-[11px] w-[11px] text-[#9c4160]" />
                     <input
                       defaultValue={profile.link ?? ''}
                       onBlur={(e) => careerStore.setProfile({ link: e.target.value.trim() || undefined })}
                       placeholder="대표 링크"
                       aria-label="대표 링크"
-                      className="w-[150px] bg-transparent text-[#3a3733] outline-none placeholder:text-[#b3aca2]"
+                      className="w-[150px] bg-transparent text-[#8a3550] outline-none placeholder:text-[#c9aeb8]"
                     />
                   </span>
                 </div>
@@ -1233,7 +1233,7 @@ function BoardLedger() {
                             onClick={() => careerStore.removeCategory(category.id)}
                             aria-label={`${category.name} 칸 삭제`}
                             title="빈 칸 삭제"
-                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#201d19] group-hover/section:text-[#c2bcb2]"
+                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#9c4160] group-hover/section:text-[#cfb6bf]"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1244,7 +1244,7 @@ function BoardLedger() {
                         <button
                           type="button"
                           onClick={() => startAddTo(category.name)}
-                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#b3aca2] transition-colors hover:text-[#201d19]"
+                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#c9aeb8] transition-colors hover:text-[#9c4160]"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           첫 기록 추가
@@ -1272,7 +1272,7 @@ function BoardLedger() {
                             <button
                               type="button"
                               onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 self-start text-[11.5px] text-[#8b857c] underline decoration-[#d8d3ca] underline-offset-4 transition-colors hover:text-[#201d19]"
+                              className="mt-1.5 self-start text-[11.5px] text-[#a1888f] underline decoration-[#e0cdd3] underline-offset-4 transition-colors hover:text-[#9c4160]"
                             >
                               {expandedSections.has(category.id)
                                 ? '접기'
@@ -1305,20 +1305,20 @@ function BoardLedger() {
                           autoFocus
                           placeholder="칸 이름 — 예: 봉사, 출판"
                           aria-label="새 칸 이름"
-                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#b3aca2]"
+                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#c9aeb8]"
                         />
                       </div>
-                      <p className="py-[13px] text-[11.5px] text-[#8b857c]">Enter로 추가 · Esc로 취소</p>
+                      <p className="py-[13px] text-[11.5px] text-[#a1888f]">Enter로 추가 · Esc로 취소</p>
                     </div>
                   )}
               </div>
 
               {/* 푸터 — 카테고리 추가 + 범례 */}
-              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#8b857c]">
-                <button type="button" onClick={() => setAddingCategory(true)} className="inline-flex items-center gap-2 transition-colors hover:text-[#201d19]">
+              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#a1888f]">
+                <button type="button" onClick={() => setAddingCategory(true)} className="inline-flex items-center gap-2 transition-colors hover:text-[#9c4160]">
                   <Plus className="h-3.5 w-3.5" strokeWidth={2} /> 카테고리 추가
                 </button>
-                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#b3aca2]">
+                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#c9aeb8]">
                   <span className="inline-flex items-center gap-1.5"><Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} /> 증빙 있음</span>
                   <span className="inline-flex items-center gap-1.5"><FileText className="h-[13px] w-[13px]" strokeWidth={1.7} /> 문서에 포함</span>
                 </span>
@@ -1389,7 +1389,7 @@ function DocsListView({
   boardNameOf?: (doc: CareerDoc) => string | undefined;
 }) {
   const meta = COMPOSE_PURPOSES.find((c) => c.purpose === purpose);
-  const hsl = meta?.hsl ?? '30 10% 22%';
+  const hsl = meta?.hsl ?? '6 70% 51%';
   return (
     <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       <div className="mx-auto w-full max-w-[1080px] px-4 py-6 sm:px-8">
@@ -1437,7 +1437,7 @@ function DocsListView({
                 {/* 종류 색 밴드 — 사이드바 점과 같은 색 부호 */}
                 <div className="h-1.5" style={{ backgroundColor: `hsl(${hsl} / 0.75)` }} />
                 <div className="px-4 pb-4 pt-3">
-                  <p className="truncate text-[13.5px] font-bold transition-colors group-hover:text-[hsl(var(--career-ink))]">
+                  <p className="truncate text-[13.5px] font-bold transition-colors group-hover:text-[hsl(var(--career-red))]">
                     {doc.request?.trim() || meta?.label || doc.purpose}
                   </p>
                   <p className="mt-0.5 flex items-center gap-1.5">
@@ -1583,7 +1583,7 @@ function ResumeDialog({
                     onClick={() => setPanelTab(k)}
                     className={cn(
                       'rounded-md px-3 py-1 font-semibold transition-colors',
-                      panelTab === k ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-ink))] shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      panelTab === k ? 'bg-[hsl(var(--surface-1))] text-[hsl(var(--career-red))] shadow-sm' : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
                     {label}
@@ -1602,13 +1602,13 @@ function ResumeDialog({
                       defaultValue={profile.email ?? ''}
                       onBlur={(e) => careerStore.setProfile({ email: e.target.value.trim() || undefined })}
                       placeholder="이메일"
-                      className="mb-1.5 h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+                      className="mb-1.5 h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                     <input
                       defaultValue={profile.phone ?? ''}
                       onBlur={(e) => careerStore.setProfile({ phone: e.target.value.trim() || undefined })}
                       placeholder="전화번호"
-                      className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+                      className="h-8 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
                     />
                   </div>
 
@@ -1622,7 +1622,7 @@ function ResumeDialog({
                         {sections.map(({ category, items }) => (
                           <div key={category.id}>
                             <p className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold">
-                              <span className="career-mono text-[10px] text-[hsl(var(--career-ink))]">{category.name}</span>
+                              <span className="career-mono text-[10px] text-[hsl(var(--career-red))]">{category.name}</span>
                             </p>
                             <div className="space-y-0.5">
                               {items.map((item) => (
@@ -1631,7 +1631,7 @@ function ResumeDialog({
                                     type="checkbox"
                                     checked={!excluded.has(item.id)}
                                     onChange={() => toggleItem(item.id)}
-                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[hsl(var(--career-ink))]"
+                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[hsl(var(--career-red))]"
                                   />
                                   <span className={cn('text-[12px] leading-snug', excluded.has(item.id) ? 'text-muted-foreground/50 line-through' : 'text-foreground')}>
                                     {item.refined}
@@ -1656,8 +1656,8 @@ function ResumeDialog({
                       className={cn(
                         'overflow-hidden rounded-lg border text-left transition-all',
                         templateId === t.id
-                          ? 'border-[hsl(var(--career-ink))] ring-2 ring-[hsl(var(--career-ink)/0.22)]'
-                          : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-ink)/0.45)]',
+                          ? 'border-[hsl(var(--career-red))] ring-2 ring-[hsl(var(--career-red)/0.22)]'
+                          : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.45)]',
                       )}
                     >
                       <div className="border-b border-[hsl(var(--hairline))]">
@@ -1668,7 +1668,7 @@ function ResumeDialog({
                           <p className="truncate text-[12px] font-bold leading-tight">{t.name}</p>
                           <p className="truncate text-[10px] text-muted-foreground">{t.desc}</p>
                         </div>
-                        {templateId === t.id && <span className="shrink-0 text-[11px] text-[hsl(var(--career-ink))]">●</span>}
+                        {templateId === t.id && <span className="shrink-0 text-[11px] text-[hsl(var(--career-red))]">●</span>}
                       </div>
                     </button>
                   ))}
@@ -1682,7 +1682,7 @@ function ResumeDialog({
                 type="button"
                 onClick={() => void exportPdf()}
                 disabled={exporting || filtered.length === 0}
-                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[hsl(var(--career-ink))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-ink)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[hsl(var(--career-red))] text-[13px] font-semibold text-white shadow-[0_6px_16px_-8px_hsl(var(--career-red)/0.8)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
               >
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {exporting ? '내보내는 중…' : 'PDF 저장'}
@@ -1808,7 +1808,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               href={item.link}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12.5px] text-[hsl(var(--career-ink))] hover:underline"
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-[hsl(var(--career-red))] hover:underline"
             >
               <ExternalLink className="h-3.5 w-3.5" /> 증빙 링크 열기
             </a>
@@ -1825,7 +1825,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             <button
               type="button"
               onClick={remove}
-              className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-ink))] transition-opacity hover:opacity-75"
+              className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
             >
               <Trash2 className="h-3 w-3" /> 삭제
             </button>
@@ -1848,7 +1848,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             id="career-detail-refined"
             value={refined}
             onChange={(e) => setRefined(e.target.value)}
-            className="career-serif h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-ink))]"
+            className="career-serif h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[14px] font-medium outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -1861,7 +1861,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-ink))]"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1874,7 +1874,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
                   type="checkbox"
                   checked={ongoing}
                   onChange={(e) => setOngoing(e.target.checked)}
-                  className="h-3 w-3 accent-[hsl(var(--career-ink))]"
+                  className="h-3 w-3 accent-[hsl(var(--career-red))]"
                 />
                 진행 중
               </label>
@@ -1885,7 +1885,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={ongoing ? '' : endDate}
               onChange={(e) => setEndDate(e.target.value)}
               disabled={ongoing}
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-ink))] disabled:opacity-45"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none focus:border-[hsl(var(--career-red))] disabled:opacity-45"
             />
           </div>
         </div>
@@ -1899,7 +1899,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={org}
               onChange={(e) => setOrg(e.target.value)}
               placeholder="발급처·주최 (선택)"
-              className="h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+              className="h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[12.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
           <div>
@@ -1911,7 +1911,7 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="https:// (선택)"
-              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+              className="career-mono h-10 w-full rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[11.5px] outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
             />
           </div>
         </div>
@@ -1925,14 +1925,14 @@ function DetailForm({ item, onClose }: { item: SpecItem; onClose: () => void }) 
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={'상황 · 내가 한 일 · 결과를 편하게 적어두세요.\n이력서·자소서로 뽑을 때 AI가 이 내용을 활용해요.'}
-            className="h-32 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-ink))]"
+            className="h-32 w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3 text-[13px] leading-relaxed outline-none focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <div className="flex items-center justify-between pt-1">
           <button
             type="button"
             onClick={remove}
-            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-ink))] transition-opacity hover:opacity-75"
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
           >
             <Trash2 className="h-3 w-3" />
             삭제
@@ -2028,7 +2028,7 @@ function ComposeDialog({ purpose, onClose, onCreated }: { purpose: ComposePurpos
             onChange={(e) => setRequest(e.target.value)}
             rows={2}
             placeholder="예: 프론트엔드 신입 지원 · 협업 경험 강조"
-            className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-ink))]"
+            className="w-full resize-none rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-2.5 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground/45 focus:border-[hsl(var(--career-red))]"
           />
         </div>
         <button
@@ -2126,7 +2126,7 @@ function DocViewDialog({ doc, onClose }: { doc: CareerDoc | null; onClose: () =>
           <button
             type="button"
             onClick={removeDoc}
-            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-ink))] transition-opacity hover:opacity-75"
+            className="inline-flex h-8 items-center gap-1.5 px-2 text-[12px] font-semibold text-[hsl(var(--career-red))] transition-opacity hover:opacity-75"
           >
             <Trash2 className="h-3 w-3" />
             삭제
@@ -2305,7 +2305,7 @@ function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: (
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
             placeholder="예: 취업용 · 대학원용 · 이직용"
             maxLength={30}
-            className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13.5px] outline-none transition-colors focus:border-[hsl(var(--career-ink)/0.55)]"
+            className="h-10 w-full rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 text-[13.5px] outline-none transition-colors focus:border-[hsl(var(--career-red)/0.55)]"
           />
         </div>
 
@@ -2324,11 +2324,11 @@ function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: (
                   className={cn(
                     'rounded-lg border px-3 py-2 text-left transition-colors',
                     on
-                      ? 'border-[hsl(var(--career-ink)/0.6)] bg-[hsl(var(--career-ink)/0.1)]'
-                      : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-ink)/0.4)]',
+                      ? 'border-[hsl(var(--career-red)/0.6)] bg-[hsl(var(--career-red)/0.1)]'
+                      : 'border-[hsl(var(--hairline))] hover:border-[hsl(var(--career-red)/0.4)]',
                   )}
                 >
-                  <span className={cn('block text-[13px] font-bold', on ? 'text-[hsl(var(--career-ink))]' : 'text-foreground/85')}>
+                  <span className={cn('block text-[13px] font-bold', on ? 'text-[hsl(var(--career-red))]' : 'text-foreground/85')}>
                     {PERSONA_LABEL[p]}
                   </span>
                   <span className="career-mono mt-0.5 block truncate text-[10px] text-muted-foreground/70">
@@ -2344,7 +2344,7 @@ function NewBoardDialog({ open, onClose, onCreate }: { open: boolean; onClose: (
           type="button"
           onClick={submit}
           disabled={!name.trim() || !persona}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-[hsl(var(--career-ink))] px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-[hsl(var(--career-red))] px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
         >
           만들기
         </button>
