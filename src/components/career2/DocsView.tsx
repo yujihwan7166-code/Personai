@@ -1,9 +1,10 @@
 /**
- * v2 문서 뷰 — 5종 타일(이력서=미리보기→PDF, 나머지=AI 생성) + 생성된 문서 카드 그리드.
- * 생성 로직은 v1과 동일한 aiComposeCareerDoc·exportElementToPdf 재사용 (데이터 공유).
+ * 발급 — 등록부의 기록으로 서류를 발급한다.
+ * 상단: 발급 가능한 서류 목록(표), 하단: 발급 대장(발급된 서류의 기록).
+ * 생성 로직은 v1과 동일한 aiComposeCareerDoc·exportElementToPdf 재사용.
  */
 import { useMemo, useRef, useState } from 'react';
-import { Copy, Download, FileDown, FileText, Loader2, Trash2, X } from 'lucide-react';
+import { Copy, Download, FileDown, Loader2, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -12,12 +13,12 @@ import { aiComposeCareerDoc, type ComposePurpose } from '@/lib/career/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import type { CareerDoc, CareerProfile, SpecCategory, SpecItem } from '@/types/career';
 
-const PURPOSES: Array<{ purpose: ComposePurpose; hint: string }> = [
-  { purpose: '이력서', hint: '미리보기 → PDF' },
-  { purpose: '자기소개서 초안', hint: 'AI 생성' },
-  { purpose: '포트폴리오 요약', hint: 'AI 생성' },
-  { purpose: '경력기술서', hint: 'AI 생성' },
-  { purpose: '커버레터', hint: 'AI 생성' },
+const PURPOSES: Array<{ purpose: ComposePurpose; desc: string }> = [
+  { purpose: '이력서', desc: '등재 기록 전부를 서식에 얹어 PDF로' },
+  { purpose: '자기소개서 초안', desc: '기록을 근거로 문단 초안을 작성' },
+  { purpose: '포트폴리오 요약', desc: '프로젝트·성과 중심 한 장 요약' },
+  { purpose: '경력기술서', desc: '경력·역할·성과를 항목별로 정리' },
+  { purpose: '커버레터', desc: '지원처에 보내는 짧은 소개 서신' },
 ];
 
 const shortPurpose = (p: string) => p.replace(' 초안', '').replace(' 요약', '');
@@ -40,7 +41,7 @@ interface Props {
 export function DocsView({ profile, categories, items, docs, boardName }: Props) {
   const [generating, setGenerating] = useState<ComposePurpose | null>(null);
   const [request, setRequest] = useState('');
-  const [askPurpose, setAskPurpose] = useState<ComposePurpose | null>(null); // 요청사항 입력 단계
+  const [askPurpose, setAskPurpose] = useState<ComposePurpose | null>(null);
   const [viewer, setViewer] = useState<CareerDoc | null>(null);
   const [resumeOpen, setResumeOpen] = useState(false);
   const resumeRef = useRef<HTMLDivElement>(null);
@@ -63,7 +64,7 @@ export function DocsView({ profile, categories, items, docs, boardName }: Props)
       setRequest('');
       setViewer(doc);
     } catch {
-      notify.error('생성에 실패했어요', { description: '잠시 후 다시 시도해 주세요.' });
+      notify.error('발급에 실패했어요', { description: '잠시 후 다시 시도해 주세요.' });
     } finally {
       setGenerating(null);
     }
@@ -88,121 +89,133 @@ export function DocsView({ profile, categories, items, docs, boardName }: Props)
     URL.revokeObjectURL(a.href);
   };
 
-  const field = 'w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--career2-blue))]';
-
   return (
-    <div className="space-y-5 pb-16">
-      {/* 만들기 타일 */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
-        {PURPOSES.map(({ purpose, hint }) => {
-          const count = docs.filter((d) => d.purpose === purpose).length;
-          const busy = generating === purpose;
-          return (
-            <button
-              key={purpose} type="button" disabled={generating !== null || (!hasSpecs && purpose !== '이력서')}
-              onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setAskPurpose(purpose))}
-              className={cn(
-                'group rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--career2-blue)/0.45)] hover:shadow-md',
-                (generating !== null || (!hasSpecs && purpose !== '이력서')) && 'pointer-events-none opacity-50',
-              )}
-            >
-              <FileText className="mb-2 h-4.5 w-4.5 h-[18px] w-[18px] text-[hsl(var(--career2-blue))]" />
-              <p className="text-[13.5px] font-bold">{shortPurpose(purpose)}</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                {busy ? <><Loader2 className="h-3 w-3 animate-spin" /> 생성 중…</> : <>{hint}{count > 0 && ` · ${count}개`}</>}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-      {!hasSpecs && <p className="text-[12px] text-muted-foreground">스펙을 먼저 쌓으면 AI 문서를 만들 수 있어요 — 이력서 미리보기는 지금도 열려요</p>}
-
-      {/* 보관함 */}
+    <div className="space-y-8">
+      {/* 발급 신청 — 표 형식 */}
       <section>
-        <h3 className="mb-2.5 text-[13px] font-semibold text-muted-foreground">만든 문서 {docs.length > 0 && `(${docs.length})`}</h3>
+        <div className="mb-1 flex items-baseline gap-2.5">
+          <h3 className="text-[13.5px] font-bold tracking-[0.02em]">발급 신청</h3>
+          <span aria-hidden className="h-px flex-1 self-center bg-[hsl(var(--hairline))]" />
+        </div>
+        <ul>
+          {PURPOSES.map(({ purpose, desc }) => {
+            const busy = generating === purpose;
+            const disabled = generating !== null || (!hasSpecs && purpose !== '이력서');
+            return (
+              <li key={purpose} className="flex items-baseline gap-3 border-b border-[hsl(var(--hairline))] py-2 pl-1 last:border-b-0">
+                <span className="w-[92px] shrink-0 text-[13.5px] font-semibold">{shortPurpose(purpose)}</span>
+                <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">{desc}</span>
+                <button
+                  type="button" disabled={disabled}
+                  onClick={() => (purpose === '이력서' ? setResumeOpen(true) : setAskPurpose(purpose))}
+                  className={cn(
+                    'c2-mono shrink-0 border border-[hsl(var(--career2-blue))] px-3 py-0.5 text-[12px] font-semibold text-[hsl(var(--career2-blue))] transition-colors hover:bg-[hsl(var(--career2-blue))] hover:text-white',
+                    disabled && 'pointer-events-none opacity-35',
+                  )}
+                >
+                  {busy ? '처리 중…' : purpose === '이력서' ? '미리보기' : '발급'}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {!hasSpecs && <p className="mt-2 pl-1 text-[12px] text-muted-foreground">등재 기록이 있어야 발급할 수 있습니다 — 이력서 미리보기는 지금도 열립니다</p>}
+      </section>
+
+      {/* 발급 대장 */}
+      <section>
+        <div className="mb-1 flex items-baseline gap-2.5">
+          <h3 className="text-[13.5px] font-bold tracking-[0.02em]">발급 대장</h3>
+          <span className="c2-mono text-[11px] text-muted-foreground">{docs.length}건</span>
+          <span aria-hidden className="h-px flex-1 self-center bg-[hsl(var(--hairline))]" />
+        </div>
         {docs.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-[hsl(var(--input))] py-10 text-center text-[13px] text-muted-foreground">
-            위 타일에서 첫 문서를 만들어보세요 — 만든 문서는 여기 쌓여요
-          </p>
+          <p className="c2-mono py-1.5 pl-1 text-[11.5px] text-muted-foreground/60">발급 이력 없음</p>
         ) : (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+          <ul>
             {docs.map((d) => (
-              <button key={d.id} type="button" onClick={() => setViewer(d)}
-                className="group rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="rounded-full bg-[hsl(var(--career2-blue)/0.1)] px-2 py-0.5 text-[11px] font-semibold text-[hsl(var(--career2-blue))]">{shortPurpose(d.purpose)}</span>
-                  <span className="text-[11px] tabular-nums text-muted-foreground">{d.createdAt.slice(0, 10)}</span>
-                </div>
-                <p className="line-clamp-3 text-[12.5px] leading-relaxed text-muted-foreground">{d.content.replace(/^#+\s*/gm, '').slice(0, 160)}</p>
-                {d.request && <p className="mt-1.5 truncate text-[11px] text-muted-foreground/80">요청: {d.request}</p>}
-              </button>
+              <li key={d.id} className="border-b border-[hsl(var(--hairline))] last:border-b-0">
+                <button type="button" onClick={() => setViewer(d)}
+                  className="grid w-full grid-cols-[96px_92px_1fr_auto] items-baseline gap-x-3 py-2 pl-1 pr-1.5 text-left transition-colors hover:bg-[hsl(var(--career2-blue)/0.05)]">
+                  <span className="c2-mono text-[11.5px] text-muted-foreground">{d.createdAt.slice(0, 10).replaceAll('-', '.')}</span>
+                  <span className="text-[13px] font-semibold">{shortPurpose(d.purpose)}</span>
+                  <span className="min-w-0 truncate text-[12px] text-muted-foreground">{d.request || d.content.replace(/^#+\s*/gm, '').slice(0, 80)}</span>
+                  <span className="c2-mono text-[11.5px] text-[hsl(var(--career2-blue))]">열람</span>
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
 
       {/* 요청사항 입력 */}
       {askPurpose && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => setAskPurpose(null)}>
-          <div className="w-full max-w-[420px] rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--background))] p-5 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-            <h3 className="mb-1 text-[16px] font-bold">{shortPurpose(askPurpose)} 만들기</h3>
-            <p className="mb-3 text-[12px] text-muted-foreground">현재 보드의 스펙 {items.length}건으로 만들어요</p>
-            <textarea value={request} onChange={(e) => setRequest(e.target.value)} rows={3} autoFocus
-              placeholder="지원 직무·강조하고 싶은 점 (선택) — 예: 백엔드 신입, 협업 경험 강조"
-              className={cn(field, 'resize-none')} aria-label="요청사항" />
-            <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setAskPurpose(null)} className="rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-[hsl(var(--muted))]">취소</button>
-              <button type="button" onClick={() => void generate(askPurpose)} className="rounded-xl bg-[hsl(var(--career2-blue))] px-4 py-2 text-[13.5px] font-semibold text-white">생성</button>
+          <div className="c2-doc w-full max-w-[420px] bg-[hsl(var(--card))] p-6" onClick={(ev) => ev.stopPropagation()}>
+            <h3 className="text-[15.5px] font-bold">{shortPurpose(askPurpose)} 발급</h3>
+            <p className="c2-mono mt-0.5 text-[11.5px] text-muted-foreground">등재 기록 {items.length}건 기준</p>
+            <textarea
+              value={request} onChange={(e) => setRequest(e.target.value)} rows={3} autoFocus
+              placeholder="지원 직무·강조점 (선택) — 예: 백엔드 신입, 협업 경험 강조"
+              className="mt-3 w-full resize-none border-b border-[hsl(var(--input))] bg-transparent pb-1.5 text-[13.5px] leading-relaxed outline-none focus:border-[hsl(var(--career2-blue))]"
+              aria-label="요청사항"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setAskPurpose(null)} className="px-3 py-1.5 text-[13px] text-muted-foreground hover:text-foreground">취소</button>
+              <button type="button" onClick={() => void generate(askPurpose)}
+                className="border border-[hsl(var(--career2-blue))] bg-[hsl(var(--career2-blue))] px-4 py-1.5 text-[13px] font-semibold text-white">발급</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 문서 뷰어 */}
+      {/* 열람 */}
       {viewer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" onClick={() => setViewer(null)}>
-          <div className="flex max-h-[85vh] w-full max-w-[600px] flex-col rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--background))] shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-            <div className="flex items-center gap-2 border-b border-[hsl(var(--hairline))] px-5 py-3">
-              <span className="rounded-full bg-[hsl(var(--career2-blue)/0.1)] px-2 py-0.5 text-[11.5px] font-semibold text-[hsl(var(--career2-blue))]">{shortPurpose(viewer.purpose)}</span>
-              <span className="text-[12px] tabular-nums text-muted-foreground">{viewer.createdAt.slice(0, 10)}</span>
-              <div className="ml-auto flex items-center gap-0.5">
+          <div className="c2-doc flex max-h-[85vh] w-full max-w-[600px] flex-col bg-[hsl(var(--card))]" onClick={(ev) => ev.stopPropagation()}>
+            <div className="flex items-baseline gap-3 border-b border-[hsl(var(--hairline))] px-6 py-3">
+              <span className="text-[14px] font-bold">{shortPurpose(viewer.purpose)}</span>
+              <span className="c2-mono text-[11.5px] text-muted-foreground">{viewer.createdAt.slice(0, 10).replaceAll('-', '.')} 발급</span>
+              <div className="ml-auto flex items-center gap-0.5 self-center">
                 <button type="button" title="복사" aria-label="복사"
                   onClick={() => { void navigator.clipboard.writeText(viewer.content); notify.success('복사했어요'); }}
-                  className="rounded p-1.5 text-muted-foreground hover:bg-[hsl(var(--muted))]"><Copy className="h-4 w-4" /></button>
+                  className="p-1.5 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
                 <button type="button" title="파일로 저장 (.md)" aria-label="다운로드" onClick={() => downloadMd(viewer)}
-                  className="rounded p-1.5 text-muted-foreground hover:bg-[hsl(var(--muted))]"><Download className="h-4 w-4" /></button>
-                <button type="button" title="삭제" aria-label="삭제"
+                  className="p-1.5 text-muted-foreground hover:text-foreground"><Download className="h-4 w-4" /></button>
+                <button type="button" title="발급 취소(삭제)" aria-label="삭제"
                   onClick={() => { careerStore.removeDoc(viewer.id); setViewer(null); }}
-                  className="rounded p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
-                <button type="button" aria-label="닫기 (Esc)" onClick={() => setViewer(null)} className="rounded p-1.5 text-muted-foreground hover:bg-[hsl(var(--muted))]"><X className="h-4 w-4" /></button>
+                  className="p-1.5 text-muted-foreground hover:text-[hsl(var(--career2-seal))]"><Trash2 className="h-4 w-4" /></button>
+                <button type="button" aria-label="닫기 (Esc)" onClick={() => setViewer(null)} className="p-1.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
             </div>
-            <div className="overflow-y-auto whitespace-pre-wrap px-5 py-4 text-[13.5px] leading-relaxed">{viewer.content}</div>
+            <div className="overflow-y-auto whitespace-pre-wrap px-6 py-5 text-[13.5px] leading-[1.75]">{viewer.content}</div>
           </div>
         </div>
       )}
 
-      {/* 이력서 미리보기 → PDF */}
+      {/* 이력서 미리보기 → PDF — 등록부와 같은 증서 문법 */}
       {resumeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" onClick={() => setResumeOpen(false)}>
-          <div className="flex max-h-[90vh] w-full max-w-[680px] flex-col rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--background))] shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+          <div className="flex max-h-[90vh] w-full max-w-[700px] flex-col border border-[hsl(var(--border))] bg-[hsl(var(--background))]" onClick={(ev) => ev.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[hsl(var(--hairline))] px-5 py-3">
-              <h3 className="text-[15px] font-bold">이력서 미리보기</h3>
-              <div className="flex items-center gap-1.5">
+              <h3 className="text-[14.5px] font-bold">이력서 미리보기</h3>
+              <div className="flex items-center gap-2">
                 <button type="button" onClick={() => void exportResume()} disabled={exporting}
-                  className={cn('flex items-center gap-1.5 rounded-xl bg-[hsl(var(--career2-blue))] px-3.5 py-1.5 text-[12.5px] font-semibold text-white', exporting && 'opacity-50')}>
+                  className={cn('flex items-center gap-1.5 border border-[hsl(var(--career2-blue))] bg-[hsl(var(--career2-blue))] px-3.5 py-1.5 text-[12.5px] font-semibold text-white', exporting && 'opacity-50')}>
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />} PDF 저장
                 </button>
-                <button type="button" aria-label="닫기 (Esc)" onClick={() => setResumeOpen(false)} className="rounded p-1.5 text-muted-foreground hover:bg-[hsl(var(--muted))]"><X className="h-4 w-4" /></button>
+                <button type="button" aria-label="닫기 (Esc)" onClick={() => setResumeOpen(false)} className="p-1.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
             </div>
-            <div className="overflow-y-auto bg-[hsl(var(--muted)/0.5)] p-5">
-              {/* 인쇄 지면 — PDF 캡처 대상. 색은 잉크(검정+코발트 포인트)만 */}
-              <div ref={resumeRef} className="mx-auto w-full max-w-[600px] bg-white px-10 py-9 text-[#1a1d22]" style={{ fontFamily: "'Pretendard Variable', 'Inter', sans-serif" }}>
-                <div className="border-b-2 pb-4" style={{ borderColor: '#1d4fd8' }}>
-                  <p className="text-[24px] font-bold tracking-tight">{profile.name || '이름을 프로필에 적어주세요'}</p>
-                  {profile.tagline && <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-[#4a5160]">{profile.tagline}</p>}
-                  <p className="mt-2 flex flex-wrap gap-x-3 text-[11px] text-[#4a5160]">
+            <div className="overflow-y-auto bg-[hsl(var(--muted))] p-6">
+              <div ref={resumeRef} className="relative mx-auto w-full max-w-[620px] border border-[#9aa4b5] bg-white px-11 py-10 text-[#1c2129]"
+                style={{ fontFamily: "'Pretendard Variable', 'Inter', sans-serif" }}>
+                <div className="pointer-events-none absolute inset-[5px] border border-[#d8dde6]" aria-hidden />
+                <p className="c2-title text-center text-[26px] tracking-[0.5em] text-[#1c2129]" style={{ marginRight: '-0.5em', fontFamily: "'Nanum Myeongjo','Noto Serif KR',Batang,'바탕',serif", fontWeight: 700 }}>이력서</p>
+                <div className="mt-5 border-t-2 border-[#2b4d9e] pt-4">
+                  <p className="text-[19px] font-bold">{profile.name || '이름 미기재'}</p>
+                  {profile.tagline && <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-[#4a5160]">{profile.tagline}</p>}
+                  <p className="mt-2 flex flex-wrap gap-x-3 text-[10.5px] text-[#4a5160]" style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>
                     {profile.email && <span>{profile.email}</span>}
                     {profile.phone && <span>{profile.phone}</span>}
                     {profile.birth && <span>{profile.birth}</span>}
@@ -211,19 +224,22 @@ export function DocsView({ profile, categories, items, docs, boardName }: Props)
                 </div>
                 {sections.filter((s) => s.items.length > 0).map((s) => (
                   <div key={s.name} className="mt-5" data-avoid-break>
-                    <p className="mb-1.5 text-[13px] font-bold tracking-wide" style={{ color: '#1d4fd8' }}>{s.name}</p>
+                    <div className="mb-1 flex items-baseline gap-2">
+                      <p className="text-[12.5px] font-bold text-[#2b4d9e]">{s.name}</p>
+                      <span className="h-px flex-1 self-center bg-[#e2e6ec]" aria-hidden />
+                    </div>
                     {s.items.map((i) => (
-                      <div key={i.id} className="mb-1.5 flex items-baseline gap-3">
-                        <span className="w-[108px] shrink-0 text-[10.5px] tabular-nums text-[#6a7180]">{periodLabel(i)}</span>
+                      <div key={i.id} className="mb-1 flex items-baseline gap-3">
+                        <span className="w-[104px] shrink-0 text-[10.5px] text-[#6a7180]" style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>{periodLabel(i)}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[12px] leading-snug">{i.refined}</span>
-                          {i.org && <span className="text-[10.5px] text-[#6a7180]">{i.org}</span>}
+                          <span className="block text-[11.5px] leading-snug">{i.refined}</span>
+                          {i.org && <span className="text-[10px] text-[#6a7180]">{i.org}</span>}
                         </span>
                       </div>
                     ))}
                   </div>
                 ))}
-                {items.length === 0 && <p className="mt-6 text-[12px] text-[#6a7180]">아직 기록이 없어요 — 대시보드에서 스펙을 쌓으면 여기 채워져요.</p>}
+                {items.length === 0 && <p className="mt-6 text-[11.5px] text-[#6a7180]">등재된 기록이 없습니다 — 등록부에서 기록을 접수하면 여기 채워집니다.</p>}
               </div>
             </div>
           </div>
