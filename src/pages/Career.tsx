@@ -23,6 +23,7 @@ import { careerStore } from '@/services/careerStore';
 import { aiClassifySpec, aiComposeCareerDoc, type ComposePurpose } from '@/lib/career/ai';
 import { exportElementToPdf, sanitizeFileName } from '@/lib/cloudCommon/pdfExport';
 import { RESUME_TEMPLATES, ResumeThumb, type ResumeTemplateId } from '@/lib/career/resumeTemplates';
+import { PaperThumb, THUMB_BY_PURPOSE } from '@/components/career/PaperThumb';
 import { PERSONA_LABEL, type CareerDoc, type CareerPersona, type CareerProfile, type SpecCategory, type SpecItem } from '@/types/career';
 import {
   Dialog,
@@ -707,6 +708,7 @@ function BoardLedger() {
                       )}
                       style={{ backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
                     >
+                      <PaperThumb kind={THUMB_BY_PURPOSE[purpose] ?? 'note'} hsl={hsl} className="mb-2" />
                       <span className="block text-[13px] font-semibold">{label}</span>
                       <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: `hsl(${hsl} / 0.95)` }}>
                         {hint} →
@@ -722,6 +724,7 @@ function BoardLedger() {
                   className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
                   style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
                 >
+                  <PaperThumb kind="spark" hsl="150 38% 42%" className="mb-2" />
                   <span className="block text-[13px] font-semibold">추천 스펙</span>
                   <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
                 </button>
@@ -1415,7 +1418,8 @@ function DocsListView({
         </div>
 
         {docs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]/60 py-16 text-center">
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]/60 py-14 text-center">
+            <PaperThumb kind={THUMB_BY_PURPOSE[purpose] ?? 'note'} hsl={hsl} size="lg" className="mb-4 shadow-[0_6px_18px_-10px_hsl(var(--foreground)/0.35)]" />
             <p className="text-[13.5px] font-semibold text-foreground/80">
               {purpose === '이력서' ? '이력서는 미리보기에서 서식을 골라 PDF로 저장해요.' : `아직 만든 ${meta?.label ?? purpose}가 없어요.`}
             </p>
