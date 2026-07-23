@@ -102,9 +102,8 @@ const fmtRel = (ts: number) => {
 const fmtDate = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
 const fmtShort = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')}`; };
 
-/** 서가 소품 — 책이 적을 때 빈 칸을 지키는 정물. 책이 늘어나면 하나씩 자리를 내준다.
- *  순서 고정(꽃병→쌓인 책→탁상시계): 새 책을 만들면 마지막 소품부터 사라진다. */
-function ShelfProp({ kind }: { kind: 'vase' | 'stack' | 'clock' }) {
+/** 서가 소품 — 책이 적을 때 빈 칸을 지키는 정물(꽃병). 책이 차면 자리를 내준다. */
+function ShelfProp({ kind }: { kind: 'vase' }) {
   const sh = { filter: 'drop-shadow(0 10px 10px rgba(10,5,0,.4))' } as const;
   if (kind === 'vase') {
     return (
@@ -121,31 +120,9 @@ function ShelfProp({ kind }: { kind: 'vase' | 'stack' | 'clock' }) {
       </svg>
     );
   }
-  if (kind === 'stack') {
-    return (
-      <svg aria-hidden width="96" height="52" viewBox="0 0 96 52" style={sh}>
-        <rect x="10" y="28" width="80" height="20" rx="3" fill="#33465e" />
-        <rect x="10" y="28" width="80" height="4.5" rx="2" fill="#42566f" />
-        <rect x="80" y="30" width="7" height="16" rx="1.5" fill="#f6ecd9" opacity=".85" />
-        <rect x="18" y="6" width="66" height="19" rx="3" fill="#7c5638" />
-        <rect x="18" y="6" width="66" height="4" rx="2" fill="#8d6547" />
-        <rect x="74" y="8" width="6.5" height="15" rx="1.5" fill="#f6ecd9" opacity=".85" />
-      </svg>
-    );
-  }
-  return (
-    <svg aria-hidden width="58" height="76" viewBox="0 0 58 76" style={sh}>
-      <rect x="20" y="62" width="4.5" height="12" rx="2" fill="#6d4a22" transform="rotate(-14 22 68)" />
-      <rect x="33.5" y="62" width="4.5" height="12" rx="2" fill="#6d4a22" transform="rotate(14 36 68)" />
-      <circle cx="29" cy="34" r="27" fill="#8a6a30" />
-      <circle cx="29" cy="34" r="22" fill="#f6ecd9" />
-      <path d="M29 34 V19" stroke="#292217" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M29 34 L40 40" stroke="#292217" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="29" cy="34" r="2.2" fill="#9a4632" />
-    </svg>
-  );
+  return null;
 }
-const SHELF_PROPS: Array<'vase' | 'stack' | 'clock'> = ['vase', 'stack'];
+const SHELF_PROPS: Array<'vase'> = ['vase'];
 
 /** 탁상시계 — 서가의 상주 정물. 진짜 시간이 흐른다 (30초마다 갱신). */
 function DeskClock() {
@@ -353,10 +330,13 @@ export default function Wiki() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* 책등 치수 — 시안 공식을 키움: 크고 잘 읽히게. w = 62+n*4(≤100), h = 248+n*7(≤368) */
+  /* 책등 치수 — 문서가 쌓일수록 두껍고 높아진다. 글자 크기는 제목 길이에 맞춰 자동 축소 */
   const spineOf = (b: WikiBook) => {
     const n = docs.filter((d) => d.book === b.id).length;
-    return { n, w: Math.min(100, Math.round(62 + n * 4)), h: Math.min(368, 248 + n * 7), fs: n >= 6 ? 22 : 20 };
+    const h = Math.min(368, 248 + n * 7);
+    const title = b.title || '무제';
+    const fs = Math.max(13, Math.min(21, Math.floor((h - 132) / Math.max(title.length, 1))));
+    return { n, w: Math.min(100, Math.round(62 + n * 4)), h, fs, title };
   };
   const shelfBooks = books;
   const shelf1 = shelfBooks.slice(0, Math.min(4, shelfBooks.length));
@@ -366,48 +346,71 @@ export default function Wiki() {
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
   const statsLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일 · 책 ${books.length}권 · 문서 ${docs.length}개 · 연결 ${linkTotal}개`;
 
-  /* 고급 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목.
-   * lean=true 면 줄 끝에서 살짝 기울어 쉬는 책 (실제 서가의 숨). */
-  const spine = (b: WikiBook, lean = false) => {
+  /* 양장본 책등 — 헤드밴드(제본 천), 제본 돌기, 금박 괘선, 각인 제목 패널, 청구 배지.
+   * leanOn = 왼쪽 이웃 책의 높이. 주면 발이 오른쪽으로 미끄러지고 몸이 그 책에 기대 쉰다
+   * (빈 서가에서 물리적으로 안정한 유일한 자세 — 반대로 기울면 받칠 게 없어 넘어진다). */
+  const spine = (b: WikiBook, leanOn?: number) => {
     const s = spineOf(b);
+    const gild = 'rgba(233,205,140,'; // 금박
     const btn = (
       <button
-        key={b.id} type="button" onClick={() => openBook(b.id)} title={`${b.title} — 문서 ${s.n}개`}
+        key={b.id} type="button" onClick={() => openBook(b.id)} title={`${s.title} — 문서 ${s.n}개`}
         className="wiki-spine relative flex-none cursor-pointer"
         style={{
           width: s.w, height: s.h,
-          background: `linear-gradient(180deg, color-mix(in srgb, ${b.tint} 88%, #fff) 0%, ${b.tint} 22%, ${b.tint} 78%, color-mix(in srgb, ${b.tint} 78%, #000) 100%)`,
-          borderRadius: '4px 4px 3px 3px',
-          boxShadow: '0 18px 26px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.3)',
+          background: `
+            linear-gradient(90deg, rgba(255,246,228,.28) 0%, rgba(255,246,228,.06) 15%, rgba(0,0,0,0) 48%, rgba(0,0,0,.2) 80%, rgba(0,0,0,.46) 100%),
+            repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, rgba(255,255,255,.022) 3px 6px),
+            linear-gradient(180deg, color-mix(in srgb, ${b.tint} 88%, #fff) 0%, ${b.tint} 20%, ${b.tint} 80%, color-mix(in srgb, ${b.tint} 74%, #000) 100%)`,
+          borderRadius: '4px 5px 5px 4px',
+          boxShadow: '0 18px 26px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.28)',
         }}
       >
-        {/* 가죽 결 + 좌 하이라이트/우 그림자 (책의 굴곡) */}
-        <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(90deg, rgba(255,246,228,.3), rgba(255,246,228,.06) 22%, rgba(0,0,0,0) 60%, rgba(0,0,0,.38)), repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 2px, rgba(255,255,255,.025) 2px 4px)' }} />
-        {/* 제본 돌기 — 위·아래 리지 두 줄씩 */}
-        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] top-[30px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
-        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] bottom-[46px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
-        <span className="relative flex h-full flex-col items-center justify-between px-[7px] pb-[11px] pt-[12px]">
-          {/* 금박 이중 밴드 */}
-          <span aria-hidden className="h-[7px] w-[62%]" style={{ borderTop: '2px solid rgba(233,205,140,.9)', borderBottom: '1px solid rgba(233,205,140,.55)' }} />
+        {/* 헤드밴드 — 위·아래 제본 천 (양장본의 표식) */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-[4px] top-[3px] h-[5px] rounded-[2px]" style={{ background: `repeating-linear-gradient(90deg, ${gild}.85) 0 3px, rgba(122,50,36,.85) 3px 6px)` }} />
+        <span aria-hidden className="pointer-events-none absolute inset-x-[4px] bottom-[3px] h-[5px] rounded-[2px]" style={{ background: `repeating-linear-gradient(90deg, ${gild}.75) 0 3px, rgba(122,50,36,.75) 3px 6px)` }} />
+        {/* 제본 돌기 — 실이 지나간 자리의 융기 */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-[38px] h-[7px]" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.3) 0 2px, rgba(0,0,0,.3) 2px 7px)' }} />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[62px] h-[7px]" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.26) 0 2px, rgba(0,0,0,.28) 2px 7px)' }} />
+
+        <span className="relative flex h-full flex-col items-center px-[6px] pb-[13px] pt-[15px]">
+          {/* 금박 이중 괘선 */}
+          <span aria-hidden className="h-[7px] w-[64%] flex-none" style={{ borderTop: `2px solid ${gild}.92)`, borderBottom: `1px solid ${gild}.5)` }} />
+          {/* 각인 제목 패널 — 눌러 찍은 자리에 금박 글자 */}
           <span
-            className="min-h-0 overflow-hidden [writing-mode:vertical-rl]"
-            style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs - 1, letterSpacing: '.2em', lineHeight: 1.15, color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.3)' }}
+            className="my-[13px] flex min-h-0 w-full flex-1 items-center justify-center rounded-[2px] px-[2px] py-[7px]"
+            style={{ border: `1px solid ${gild}.4)`, background: 'rgba(0,0,0,.13)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,.35)' }}
           >
-            {b.title || '무제'}
+            <span
+              className="max-h-full overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
+              style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs, letterSpacing: '.16em', textOverflow: 'ellipsis', color: '#f7e9c8', textShadow: `0 1px 0 rgba(0,0,0,.55), 0 0 6px ${gild}.25)` }}
+            >
+              {s.title}
+            </span>
           </span>
-          <span className="flex h-[28px] w-[28px] items-center justify-center rounded-full text-[12px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
+          {/* 금박 단선 + 청구 배지 */}
+          <span aria-hidden className="h-px w-[64%] flex-none" style={{ background: `${gild}.7)` }} />
+          <span className="mt-[9px] flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full text-[12px] font-bold" style={{ border: `1.5px solid ${gild}.7)`, background: 'rgba(0,0,0,.14)', color: '#f7e9c8', textShadow: '0 1px 1px rgba(0,0,0,.45)' }}>
             {s.n}
           </span>
         </span>
       </button>
     );
-    if (!lean) return btn;
+    if (!leanOn) return btn;
+    /* 접점 = 이웃 책의 윗모서리. 발이 그만큼(이웃 높이 × sinθ) 오른쪽으로 밀려나야
+       기울인 책의 옆면이 정확히 그 모서리에 닿는다. 선반의 flex 간격 9px 은 빼준다. */
+    const deg = 9;
+    const foot = Math.round(leanOn * Math.sin((deg * Math.PI) / 180)) - 9;
     return (
-      <div key={b.id} className="flex-none" style={{ transform: 'rotate(7deg)', transformOrigin: 'bottom right', marginLeft: 6, marginRight: Math.round(s.h * 0.1) }}>
+      <div key={b.id} className="flex-none" style={{ marginLeft: foot, transform: `rotate(-${deg}deg)`, transformOrigin: 'bottom left' }}>
         {btn}
       </div>
     );
   };
+  /* 줄의 마지막 책만, 그 줄이 꽉 차지 않았고 기댈 이웃이 있을 때 기운다 (이웃 높이를 넘겨준다) */
+  const leanOnOf = (row: WikiBook[], i: number) =>
+    i === row.length - 1 && row.length >= 2 && row.length < 4 ? spineOf(row[i - 1]).h : undefined;
+
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
 
   return (
@@ -740,7 +743,7 @@ export default function Wiki() {
               <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
             </div>
             <div className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
-              {shelf1.map((b, i) => spine(b, shelf1.length > 2 && i === shelf1.length - 1))}
+              {shelf1.map((b, i) => spine(b, leanOnOf(shelf1, i)))}
               {shelf2.length === 0 && (
                 <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
                   className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
@@ -814,7 +817,7 @@ export default function Wiki() {
             {shelf2.length > 0 && (
               <>
                 <div className="relative mt-9 flex items-end gap-[9px] overflow-x-auto px-3.5">
-                  {shelf2.map((b, i) => spine(b, shelf2.length > 2 && i === shelf2.length - 1))}
+                  {shelf2.map((b, i) => spine(b, leanOnOf(shelf2, i)))}
                   <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
                     className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
                     style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
