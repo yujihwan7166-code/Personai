@@ -28,8 +28,8 @@ export function PaperThumb({ kind, hsl, size = 'sm', className }: Props) {
   const lg = size === 'lg';
   const gap = lg ? 'gap-[7px]' : 'gap-[3px]';
   const h = lg ? 'h-[3px]' : 'h-[2px]';
-  const ink = 'hsl(var(--foreground) / 0.17)';
-  const accent = `hsl(${hsl} / 0.85)`;
+  const ink = 'hsl(var(--foreground) / 0.14)';
+  const accent = `hsl(${hsl} / 0.6)`;
 
   /** 한 줄. dark 면 잉크가 진해지고, tint 면 그 종류 색으로 칠한다. */
   const line = (w: string, tone: 'ink' | 'dark' | 'tint' = 'ink', key?: string) => (
@@ -38,7 +38,7 @@ export function PaperThumb({ kind, hsl, size = 'sm', className }: Props) {
       className={cn('block rounded-[1px]', h)}
       style={{
         width: w,
-        backgroundColor: tone === 'tint' ? accent : tone === 'dark' ? 'hsl(var(--foreground) / 0.42)' : ink,
+        backgroundColor: tone === 'tint' ? accent : tone === 'dark' ? 'hsl(var(--foreground) / 0.34)' : ink,
       }}
     />
   );

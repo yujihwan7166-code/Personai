@@ -693,7 +693,7 @@ function BoardLedger() {
                   : '쌓인 기록으로 문서를 만들어보세요. 만든 문서는 왼쪽 사이드바에 쌓여요.'}
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {COMPOSE_PURPOSES.map(({ purpose, label, hint, hsl }) => {
+                {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
                   const disabled = items.length === 0;
                   return (
                     <button
@@ -706,13 +706,10 @@ function BoardLedger() {
                         'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow,opacity]',
                         disabled ? 'cursor-not-allowed opacity-55' : 'hover:brightness-[0.98] hover:shadow-sm',
                       )}
-                      style={{ backgroundColor: `hsl(${hsl} / 0.14)`, borderColor: `hsl(${hsl} / 0.45)` }}
+                      style={{ backgroundColor: `hsl(${hsl} / 0.06)`, borderColor: `hsl(${hsl} / 0.22)` }}
                     >
                       <PaperThumb kind={THUMB_BY_PURPOSE[purpose] ?? 'note'} hsl={hsl} className="mb-2" />
                       <span className="block text-[13px] font-semibold">{label}</span>
-                      <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: `hsl(${hsl} / 0.95)` }}>
-                        {hint} →
-                      </span>
                     </button>
                   );
                 })}
@@ -722,11 +719,10 @@ function BoardLedger() {
                   onClick={() => setRecommendOpen(true)}
                   title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
                   className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
-                  style={{ backgroundColor: 'hsl(150 38% 42% / 0.14)', borderColor: 'hsl(150 38% 42% / 0.45)' }}
+                  style={{ backgroundColor: 'hsl(150 38% 42% / 0.06)', borderColor: 'hsl(150 38% 42% / 0.22)' }}
                 >
                   <PaperThumb kind="spark" hsl="150 38% 42%" className="mb-2" />
                   <span className="block text-[13px] font-semibold">추천 스펙</span>
-                  <span className="career-mono mt-0.5 block text-[10.5px]" style={{ color: 'hsl(150 40% 38%)' }}>받기 →</span>
                 </button>
               </div>
             </section>
