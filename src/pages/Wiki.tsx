@@ -181,6 +181,17 @@ export default function Wiki() {
   );
   const toc = useMemo(() => (active ? tocOf(active.body) : []), [active]);
   const pinnedDocs = useMemo(() => bookDocs.filter((d) => d.pinned), [bookDocs]);
+  const pinnedAll = useMemo(() => docs.filter((d) => d.pinned).slice(0, 6), [docs]);
+  /** 많이 언급된 문서 — 서재 전체 백링크 수 상위. 위키가 자라나는 중심을 보여준다. */
+  const mostLinked = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const d of docs) for (const id of linkedDocIds(d.body)) if (id !== d.id) count.set(id, (count.get(id) ?? 0) + 1);
+    return [...count.entries()]
+      .map(([id, n]) => ({ d: docs.find((x) => x.id === id), n }))
+      .filter((x): x is { d: WikiDoc; n: number } => !!x.d)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 4);
+  }, [docs]);
   const recentDocs = useMemo(
     () => recent.map((id) => docs.find((d) => d.id === id)).filter((d): d is WikiDoc => !!d).slice(0, 6),
     [recent, docs],
@@ -599,24 +610,70 @@ export default function Wiki() {
                 )}
               </section>
 
-              {recentDocs.length > 0 && (
-                <section className="mt-10">
-                  <h2 className="mb-2 text-[12px] font-bold tracking-[0.08em]" style={{ color: P.sub }}>최근 본 문서</h2>
-                  <div className="flex flex-col">
-                    {recentDocs.map((d) => {
+              {/* 고정된 문서 — 서재 전체에서 책갈피 꽂아둔 것들 */}
+              {pinnedAll.length > 0 && (
+                <section className="mt-9">
+                  <h2 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold tracking-[0.08em]" style={{ color: P.sub }}>
+                    <Star className="h-3 w-3" /> 고정된 문서
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {pinnedAll.map((d) => {
                       const b = bookOf.get(d.book);
                       return (
-                        <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex items-center gap-2.5 border-b px-1 py-2.5 text-left transition-colors last:border-0 hover:bg-white/60" style={{ borderColor: P.line }}>
-                          <span aria-hidden className="h-[15px] w-[5px] shrink-0 rounded-[1.5px]" style={{ background: b?.tint ?? P.accent }} />
-                          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{d.title || '무제'}</span>
-                          <span className="shrink-0 text-[11.5px]" style={{ color: P.sub }}>『{b?.title ?? '?'}』</span>
-                          <span className="shrink-0 text-[11.5px]" style={{ color: P.muted }}>{fmtRel(d.updated)}</span>
+                        <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="relative flex min-h-[104px] flex-col overflow-hidden rounded-[15px] border bg-white p-4 text-left transition-shadow hover:shadow-[0_14px_28px_-18px_rgba(90,40,70,0.35)]" style={{ borderColor: P.line }}>
+                          {/* 책갈피 리본 — 그 책의 색 */}
+                          <span aria-hidden className="absolute right-4 top-0 h-[26px] w-[13px]" style={{ background: b?.tint ?? P.accent, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%)' }} />
+                          <span className="text-[11.5px]" style={{ color: P.sub }}>『{b?.title ?? '?'}』</span>
+                          <span className="mt-1 text-[16px] font-bold leading-snug" style={{ fontFamily: TF }}>{d.title || '무제'}</span>
+                          <span className="mt-auto line-clamp-1 pt-2 text-[11.5px]" style={{ color: P.muted }}>{bodyText(d.body).slice(0, 60) || '빈 문서'}</span>
                         </button>
                       );
                     })}
                   </div>
                 </section>
               )}
+
+              <div className="mt-9 grid gap-8 lg:grid-cols-2">
+                {/* 많이 언급된 문서 — 서재의 중심축 */}
+                {mostLinked.length > 0 && (
+                  <section>
+                    <h2 className="mb-2 flex items-center gap-1.5 text-[12px] font-bold tracking-[0.08em]" style={{ color: P.sub }}>
+                      <Link2 className="h-3 w-3" /> 많이 언급된 문서
+                    </h2>
+                    <div className="overflow-hidden rounded-[14px] border bg-white" style={{ borderColor: P.line }}>
+                      {mostLinked.map(({ d, n }) => {
+                        const b = bookOf.get(d.book);
+                        return (
+                          <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex w-full items-center gap-2.5 border-b px-3.5 py-2.5 text-left transition-colors last:border-0 hover:bg-[#faf5f8]" style={{ borderColor: P.line }}>
+                            <span aria-hidden className="h-[15px] w-[5px] shrink-0 rounded-[1.5px]" style={{ background: b?.tint ?? P.accent }} />
+                            <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{d.title || '무제'}</span>
+                            <span className="shrink-0 text-[11px]" style={{ color: P.sub }}>{n}곳에서 언급</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {/* 최근 본 문서 */}
+                {recentDocs.length > 0 && (
+                  <section>
+                    <h2 className="mb-2 text-[12px] font-bold tracking-[0.08em]" style={{ color: P.sub }}>최근 본 문서</h2>
+                    <div className="overflow-hidden rounded-[14px] border bg-white" style={{ borderColor: P.line }}>
+                      {recentDocs.map((d) => {
+                        const b = bookOf.get(d.book);
+                        return (
+                          <button key={d.id} type="button" onClick={() => openDoc(d.id)} className="flex w-full items-center gap-2.5 border-b px-3.5 py-2.5 text-left transition-colors last:border-0 hover:bg-[#faf5f8]" style={{ borderColor: P.line }}>
+                            <span aria-hidden className="h-[15px] w-[5px] shrink-0 rounded-[1.5px]" style={{ background: b?.tint ?? P.accent }} />
+                            <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{d.title || '무제'}</span>
+                            <span className="shrink-0 text-[11.5px]" style={{ color: P.muted }}>{fmtRel(d.updated)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
             </>
           )}
         </div>
