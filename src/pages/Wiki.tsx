@@ -13,9 +13,10 @@ import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
 import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
-  type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
+  type WikiBook, type WikiDoc, type WikiStore,
 } from '@/lib/wiki3/store';
 import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
+import { BUILTIN_TEMPLATES, loadTemplates, saveTemplates, type WikiTemplate } from '@/lib/wiki3/templates';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
@@ -311,6 +312,16 @@ export default function Wiki() {
   const onBodyChange = (id: string, value: Value) => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => patchDoc(id, { body: value }), 500);
+  };
+  /* 템플릿 넣기 — 빈 문서면 그대로, 이미 쓴 게 있으면 아래에 이어 붙인다.
+     편집기는 key 를 바꿔 다시 태워야 새 본문을 물고, 대기 중이던 자동저장은 취소한다. */
+  const [tplStamp, setTplStamp] = useState(0);
+  const applyTemplate = (tplBody: Value) => {
+    if (!active) return;
+    if (saveTimer.current) { window.clearTimeout(saveTimer.current); saveTimer.current = null; }
+    const empty = bodyText(active.body).trim() === '';
+    patchDoc(active.id, { body: empty ? tplBody : ([...active.body, ...tplBody] as Value) });
+    setTplStamp((n) => n + 1);
   };
   const removeDoc = (id: string) => {
     const d = docs.find((x) => x.id === id);
@@ -828,7 +839,7 @@ export default function Wiki() {
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
             {isWide ? (
-            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)${mode === 'read' && active.infobox?.length ? ' 280px' : ''}`, alignItems: 'start' }}>
+            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기, 제목 2개↑) */}
               {mode === 'read' && toc.length >= 2 && (
                 <nav className="sticky top-4" aria-label="목차">
@@ -853,26 +864,18 @@ export default function Wiki() {
                 mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
                 readBodyRef={readBodyRef} editorApi={editorApi}
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
-                openDoc={openDoc} createDoc={createDoc} setPicker={setPicker}
+                openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
               />
-
-              {/* 우 — 인포박스 (읽기) */}
-              {mode === 'read' && active.infobox && active.infobox.length > 0 && (
-                <aside className="sticky top-4">
-                  <Infobox doc={active} book={book} />
-                </aside>
-              )}
             </div>
             ) : (
-            /* 모바일/태블릿 — 1열 (인포박스는 본문 위). isWide 분기로 한쪽만 마운트 */
+            /* 모바일/태블릿 — 1열. isWide 분기로 한쪽만 마운트 */
             <div>
-              {mode === 'read' && active.infobox && active.infobox.length > 0 && <div className="mb-4"><Infobox doc={active} book={book} /></div>}
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
                 mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
                 readBodyRef={readBodyRef} editorApi={editorApi}
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
-                openDoc={openDoc} createDoc={createDoc} setPicker={setPicker}
+                openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
               />
             </div>
             )}
@@ -1267,21 +1270,87 @@ export default function Wiki() {
   );
 }
 
-/* ── 인포박스 (읽기) — 시안 그대로: tint 헤더 + 88px 라벨 그리드 ── */
-function Infobox({ doc, book }: { doc: WikiDoc; book: WikiBook }) {
+/* ── 템플릿 고르기 — 문서 틀을 눌러 넣는다. 기본 10종 + 내가 저장한 것.
+      빈 문서면 그대로 채우고, 이미 쓴 내용이 있으면 아래에 이어 붙인다. ── */
+function TemplatePicker({ docBody, onApply }: { docBody: Value; onApply: (body: Value) => void }) {
+  const [open, setOpen] = useState(false);
+  const [mine, setMine] = useState<WikiTemplate[]>(() => loadTemplates());
+  const hasBody = bodyText(docBody).trim() !== '';
+
+  const saveCurrent = () => {
+    if (!hasBody) { window.alert('먼저 본문을 조금 적어야 템플릿으로 저장할 수 있어요.'); return; }
+    const name = window.prompt('이 문서를 어떤 이름의 템플릿으로 저장할까요?', '');
+    if (!name || !name.trim()) return;
+    const next = [...mine, { id: newId('tpl'), name: name.trim(), hint: '내가 만든 템플릿', body: docBody, custom: true }];
+    setMine(next);
+    saveTemplates(next);
+  };
+  const removeMine = (id: string) => {
+    const t = mine.find((x) => x.id === id);
+    if (!t || !window.confirm(`템플릿 "${t.name}"을 지울까요?`)) return;
+    const next = mine.filter((x) => x.id !== id);
+    setMine(next);
+    saveTemplates(next);
+  };
+
+  const row = (t: WikiTemplate) => (
+    <span key={t.id} className="group relative flex items-center">
+      <button
+        type="button"
+        onClick={() => { onApply(t.body); setOpen(false); }}
+        className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
+      >
+        <span className="block truncate text-[13px] font-semibold" style={{ color: C.ink }}>{t.name}</span>
+        <span className="block truncate text-[11.5px]" style={{ color: C.sub }}>{t.hint}</span>
+      </button>
+      {t.custom && (
+        <button type="button" onClick={() => removeMine(t.id)} aria-label={`${t.name} 템플릿 삭제`}
+          className="absolute right-1.5 rounded p-1 opacity-0 transition-opacity hover:text-rose-500 group-hover:opacity-100" style={{ color: C.muted }}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </span>
+  );
+
   return (
-    <div className="overflow-hidden rounded-xl" style={{ background: C.paper, border: '1px solid rgba(60,47,24,.16)', boxShadow: '0 2px 8px rgba(64,44,18,.06)' }}>
-      <div className="px-4 py-[11px]" style={{ background: book.tint, color: C.cream, fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 15 }}>
-        {doc.title || '무제'}
-      </div>
-      {(doc.infobox ?? []).map((row, i) => (
-        <div key={i} className="grid gap-2.5 px-4 py-2.5" style={{ gridTemplateColumns: '88px 1fr', fontSize: 13, borderTop: i === 0 ? 'none' : `1px solid ${C.line2}` }}>
-          <span style={{ color: C.sub }}>{row.label}</span>
-          <span className="break-words">{row.value}</span>
-        </div>
-      ))}
-      <div className="px-4 pb-3 pt-[9px]" style={{ borderTop: `1px solid ${C.line2}`, fontSize: 11, color: C.muted }}>이 문서의 요약 카드 — 편집에서 채워요</div>
-    </div>
+    <span className="relative inline-flex">
+      <button
+        type="button" onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
+        style={{ borderColor: C.line, background: C.paper, color: C.sub }}
+        title="문서 틀 고르기"
+      >
+        <Plus className="h-3 w-3" /> 템플릿
+      </button>
+
+      {open && (
+        <>
+          <span className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <span
+            className="absolute left-0 top-full z-30 mt-1.5 block max-h-[340px] w-[300px] overflow-y-auto rounded-xl p-1.5"
+            style={{ background: C.paper, border: `1px solid ${C.lineDeep}`, boxShadow: '0 16px 34px -12px rgba(46,28,10,.4)' }}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}
+          >
+            <span className="block px-2.5 pb-1.5 pt-1 text-[11px] font-semibold" style={{ color: C.muted }}>
+              {hasBody ? '지금 내용 아래에 이어 붙여요' : '빈 문서를 이 틀로 채워요'}
+            </span>
+            {BUILTIN_TEMPLATES.map(row)}
+
+            <span className="mt-1.5 block border-t px-2.5 pb-1.5 pt-2 text-[11px] font-semibold" style={{ borderColor: C.line2, color: C.muted }}>내 템플릿</span>
+            {mine.length > 0 ? mine.map(row) : (
+              <span className="block px-2.5 pb-1 text-[12px]" style={{ color: C.sub }}>아직 없어요</span>
+            )}
+            <button
+              type="button" onClick={saveCurrent}
+              className="mt-1 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12.5px] font-semibold transition-colors hover:bg-[rgba(48,95,76,.08)]"
+              style={{ color: C.green }}
+            >
+              <Plus className="h-3.5 w-3.5" /> 이 문서를 템플릿으로 저장
+            </button>
+          </span>
+        </>
+      )}
+    </span>
   );
 }
 
@@ -1377,6 +1446,7 @@ function ParentPicker({ bookDocs, doc, book, onPick }: {
 function DocMain({
   active, book, bookOf, bookDocs, mode, setMode, toc, kids, backlinks,
   readBodyRef, editorApi, patchDoc, removeDoc, onBodyChange, openDoc, createDoc, setPicker,
+  applyTemplate, tplStamp,
 }: {
   active: WikiDoc; book: WikiBook; bookOf: Map<string, WikiBook>; bookDocs: WikiDoc[];
   mode: 'read' | 'edit'; setMode: (m: 'read' | 'edit') => void;
@@ -1389,6 +1459,8 @@ function DocMain({
   openDoc: (id: string, opts?: { edit?: boolean }) => void;
   createDoc: (parent: string | null) => void;
   setPicker: (p: { text: string } | null) => void;
+  applyTemplate: (body: Value) => void;
+  tplStamp: number;
 }) {
   void toc;
   return (
@@ -1461,13 +1533,13 @@ function DocMain({
               <span className="ml-auto" style={{ fontSize: 12, color: C.muted }}>{fmtRel(active.updated)} 저장</span>
             </div>
 
-            <InfoboxEditor rows={active.infobox ?? []} onChange={(rows) => patchDoc(active.id, { infobox: rows.length ? rows : undefined })} />
+            <TemplatePicker docBody={active.body} onApply={applyTemplate} />
 
             <div aria-hidden className="my-5" style={{ borderBottom: '3px double rgba(60,47,24,.25)' }} />
 
             <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>편집기를 여는 중…</p>}>
               <WikiDocEditor
-                key={active.id}
+                key={`${active.id}-${tplStamp}`}
                 initialValue={active.body}
                 onChange={(v) => onBodyChange(active.id, v)}
                 onOpenDoc={openDoc}
@@ -1538,44 +1610,6 @@ function DocMain({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ── 인포박스 편집 ── */
-function InfoboxEditor({ rows, onChange }: { rows: InfoboxRow[]; onChange: (rows: InfoboxRow[]) => void }) {
-  const [open, setOpen] = useState(rows.length > 0);
-  const set = (i: number, patch: Partial<InfoboxRow>) => onChange(rows.map((r, x) => (x === i ? { ...r, ...patch } : r)));
-  return (
-    <div className="mt-3 rounded-xl" style={{ border: `1px solid ${C.line}`, background: 'rgba(60,47,24,.025)' }}>
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3.5 py-2 text-left" style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>
-        {open ? '▾' : '▸'} 인포박스 {rows.length > 0 && <span className="font-semibold opacity-70">{rows.length}행</span>}
-        <span className="ml-auto font-medium opacity-70">읽기 화면 오른쪽에 요약 카드로 떠요</span>
-      </button>
-      {open && (
-        <div className="space-y-1.5 px-3.5 pb-3">
-          {rows.map((r, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <input
-                value={r.label} onChange={(e) => set(i, { label: e.target.value })}
-                placeholder="항목" aria-label={`인포박스 ${i + 1} 항목`}
-                className="w-[88px] rounded-lg px-2 py-1.5 font-semibold outline-none" style={{ border: `1px solid ${C.line}`, background: C.paper, fontSize: 12 }}
-              />
-              <input
-                value={r.value} onChange={(e) => set(i, { value: e.target.value })}
-                placeholder="내용" aria-label={`인포박스 ${i + 1} 내용`}
-                className="min-w-0 flex-1 rounded-lg px-2 py-1.5 outline-none" style={{ border: `1px solid ${C.line}`, background: C.paper, fontSize: 12 }}
-              />
-              <button type="button" onClick={() => onChange(rows.filter((_, x) => x !== i))} aria-label="행 삭제" className="shrink-0 p-1 hover:text-rose-500" style={{ color: C.muted }}>
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-          <button type="button" onClick={() => onChange([...rows, { label: '', value: '' }])} className="flex items-center gap-1 rounded-lg px-2 py-1 font-bold transition-colors hover:bg-white" style={{ color: C.green, fontSize: 12 }}>
-            <Plus className="h-3 w-3" /> 행 추가
-          </button>
-        </div>
-      )}
     </div>
   );
 }

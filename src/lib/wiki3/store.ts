@@ -3,7 +3,7 @@
  *
  * v4 = "서재와 책들": 책(표지 있는 컨테이너) 여러 권 + 책 안의 무한 parent 트리.
  *  - 링크는 본문 링크 노드(url = "wiki://<docId>") — 책 경계 없이 어디로든 (서재 = 한 지식망)
- *  - 문서에 선택적 인포박스(요약 카드) — 위키식 읽기 뷰의 재료
+ *  - 문서 틀은 템플릿으로 (templates.ts) — 인포박스는 폐기됨
  * v3(책 없는 트리)는 1회 자동 이관: 최상위 문서마다 책 한 권을 만들어 그 아래로.
  * v2(분류·플레인 텍스트)는 v3 규칙으로 이관 후 다시 v4 로.
  */
@@ -20,8 +20,6 @@ export interface WikiBook {
   updated: number;
 }
 
-export interface InfoboxRow { label: string; value: string }
-
 export interface WikiDoc {
   id: string;
   book: string;            // 소속 책 id
@@ -31,8 +29,6 @@ export interface WikiDoc {
   pinned: boolean;
   updated: number;
   body: Value;
-  /** 위키식 요약 카드 — 행이 있어야 읽기 뷰에 나타난다. */
-  infobox?: InfoboxRow[];
 }
 
 export interface WikiStore {
@@ -184,15 +180,6 @@ function normalizeDoc(raw: unknown): WikiDoc | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== 'string' || !r.id || typeof r.title !== 'string') return null;
-  const infobox = Array.isArray(r.infobox)
-    ? (r.infobox as unknown[])
-        .map((row) => {
-          if (!row || typeof row !== 'object') return null;
-          const x = row as Record<string, unknown>;
-          return typeof x.label === 'string' && typeof x.value === 'string' ? { label: x.label, value: x.value } : null;
-        })
-        .filter((x): x is InfoboxRow => !!x)
-    : undefined;
   return {
     id: r.id,
     book: typeof r.book === 'string' ? r.book : '',
@@ -202,14 +189,13 @@ function normalizeDoc(raw: unknown): WikiDoc | null {
     pinned: r.pinned === true,
     updated: typeof r.updated === 'number' ? r.updated : Date.now(),
     body: Array.isArray(r.body) && r.body.length ? (r.body as Value) : emptyBody(),
-    infobox: infobox && infobox.length ? infobox : undefined,
   };
 }
 
 function normalizeV3Doc(raw: unknown): V3Doc | null {
   const d = normalizeDoc(raw);
   if (!d) return null;
-  const { book: _book, infobox: _ib, ...rest } = d;
+  const { book: _book, ...rest } = d;
   return rest;
 }
 
@@ -282,13 +268,8 @@ export function buildSeedStore(): WikiStore {
   const docs: WikiDoc[] = [
     {
       id: 'wkseed_start', book: 'bkseed_guide', title: '시작하기', parent: null, tags: ['안내'], pinned: true, updated: now,
-      infobox: [
-        { label: '무엇', value: '책 속에 문서를 쌓는 나만의 위키' },
-        { label: '쓰기', value: '노트처럼 — "/" 로 뭐든 삽입' },
-        { label: '읽기', value: '위키처럼 — 목차·인포박스·백링크' },
-      ],
       body: [
-        _p('이 문서가 바로 읽기 화면이에요. 오른쪽 요약 카드가 인포박스, 위의 차례가 자동 목차입니다.'),
+        _p('이 문서가 바로 읽기 화면이에요. 왼쪽의 차례는 제목 블록에서 자동으로 만들어집니다.'),
         _h2('책과 문서'),
         _p('책 한 권이 하나의 세계예요. 책 안에서 문서는 나란히 놓이기도, 문서 아래 층층이 쌓이기도 합니다.'),
         _li('책장에서 책등을 눌러 책을 펼쳐요'),
@@ -297,18 +278,12 @@ export function buildSeedStore(): WikiStore {
         _h2('문서 잇기'),
         _pl(['편집하다가 텍스트를 드래그하면 "문서로 연결" 버블이 떠요. 책을 넘어서도 이어집니다 — 예를 들면 ', { link: '드립 커피', to: 'wkseed_drip' }, ' 처럼요.']),
         _quote('링크를 따라가면 그 문서의 책이 자동으로 펼쳐져요.'),
-        _h2('인포박스'),
-        _p('편집 화면의 "인포박스"를 펴고 항목·내용을 채우면, 읽기 화면 오른쪽에 요약 카드가 생겨요. 이 문서의 카드처럼요.'),
+        _h2('템플릿'),
+        _p('편집 화면의 [템플릿] 버튼을 누르면 회의록·독서 메모·문제 해결 같은 틀을 골라 넣을 수 있어요. 자주 쓰는 문서는 "이 문서를 템플릿으로"로 저장해 두세요.'),
       ] as Value,
     },
     {
       id: 'wkseed_drip', book: 'bkseed_coffee', title: '드립 커피', parent: null, tags: ['추출'], pinned: false, updated: now - 3600000,
-      infobox: [
-        { label: '분류', value: '푸어 오버 추출' },
-        { label: '도구', value: '드리퍼 · 서버 · 주전자' },
-        { label: '시간', value: '2분 30초 안팎' },
-        { label: '비율', value: '원두 1 : 물 16' },
-      ],
       body: [
         _pl(['뜨거운 물을 천천히 부어 내리는 방식. 맛의 절반은 ', { link: '원두', to: 'wkseed_bean' }, '가 정합니다.']),
         _h2('순서'),
@@ -325,10 +300,6 @@ export function buildSeedStore(): WikiStore {
     },
     {
       id: 'wkseed_bean', book: 'bkseed_coffee', title: '원두', parent: 'wkseed_drip', tags: [], pinned: false, updated: now - 7200000,
-      infobox: [
-        { label: '보관', value: '밀폐 · 실온 · 2주 안에' },
-        { label: '단골', value: '에티오피아 예가체프' },
-      ],
       body: [
         _p('볶은 지 1~3주 사이가 가장 맛있어요. 냉동 보관은 결로 때문에 오히려 손해.'),
         _h2('산지 메모'),
@@ -339,11 +310,6 @@ export function buildSeedStore(): WikiStore {
     },
     {
       id: 'wkseed_kyoto', book: 'bkseed_travel', title: '교토', parent: null, tags: ['일본'], pinned: false, updated: now - 86400000,
-      infobox: [
-        { label: '나라', value: '일본' },
-        { label: '다녀옴', value: '2026년 봄' },
-        { label: '며칠', value: '3박 4일' },
-      ],
       body: [
         _p('오래된 골목과 정원의 도시. 아침 일찍 움직일수록 좋다.'),
         _h2('걸었던 코스'),
