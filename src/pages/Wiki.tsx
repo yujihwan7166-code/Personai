@@ -552,7 +552,7 @@ export default function Wiki() {
       <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto lg:flex" style={{ background: '#efe7d3', borderRight: '1px solid rgba(60,47,24,.14)' }}>
         <div className="px-5 pb-4 pt-6">
           <button type="button" onClick={goShelf} className="block text-left">
-            <div style={{ fontSize: 10.5, letterSpacing: '.26em', color: C.muted }}>MYWIKI</div>
+            <div style={{ fontSize: 11, letterSpacing: '.22em', color: C.sub }}>MYWIKI</div>
             <div className="mt-1" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 23 }}>마이위키</div>
             <div className="mt-0.5" style={{ fontSize: 12, color: C.sub }}>나만의 서재</div>
           </button>
@@ -591,29 +591,32 @@ export default function Wiki() {
             >
               <span className="h-[26px] w-[9px] flex-none rounded-[2px]" style={{ background: book.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
               <span className="min-w-0">
-                <span className="block truncate" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15 }}>{book.title}</span>
-                <span className="block" style={{ fontSize: 11, color: C.sub }}>문서 {bookDocs.length}개</span>
+                <span className="block truncate" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15.5 }}>{book.title}</span>
+                <span className="block" style={{ fontSize: 12, color: C.sub }}>문서 {bookDocs.length}개</span>
               </span>
             </button>
-            <div className="mx-2 mb-1.5 mt-3" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>차례</div>
+            <div className="mx-2 mb-2 mt-4" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>차례</div>
             {sideRows.map(({ d, depth }) => {
               const on = d.id === docId;
               const onPath = sidePath.has(d.id);
+              const top = depth === 0;
               return (
                 <button
                   key={d.id} type="button" onClick={() => openDoc(d.id)}
-                  className={cn('relative flex w-full items-center gap-1.5 rounded-full py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
+                  className={cn('relative flex w-full items-center gap-1.5 rounded-lg py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.07)]')}
                   style={{
-                    paddingLeft: 12 + depth * 13,
+                    paddingLeft: 12 + depth * 16,
                     background: on ? C.ink : undefined,
-                    color: on ? C.bg : onPath ? C.ink : C.body,
-                    fontSize: 13, fontWeight: on || onPath ? 600 : 400,
+                    color: on ? C.bg : C.ink,
+                    fontFamily: top ? SERIF : SANS,
+                    fontSize: top ? 14.5 : 13.5,
+                    fontWeight: on ? 700 : top ? 700 : onPath ? 600 : 500,
                   }}
                 >
-                  {/* 들여쓰기 안내선 — 깊이가 한눈에 */}
-                  {depth > 0 && !on && (
-                    <span aria-hidden className="absolute inset-y-[5px] w-px" style={{ left: 6 + depth * 13, background: 'rgba(60,47,24,.16)' }} />
-                  )}
+                  {/* 층마다 세로선 — 몇 단 안쪽인지 선의 개수로 읽힌다 */}
+                  {!on && Array.from({ length: depth }, (_, k) => (
+                    <span key={k} aria-hidden className="absolute inset-y-0 w-px" style={{ left: 7 + k * 16, background: k === depth - 1 ? 'rgba(60,47,24,.34)' : 'rgba(60,47,24,.16)' }} />
+                  ))}
                   <span className="truncate">{d.title || '무제'}</span>
                   {d.pinned && <Star className="h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
                 </button>
@@ -624,15 +627,15 @@ export default function Wiki() {
             {/* 갈아타기 — 책 안에 있어도 서재의 다른 책은 손 닿는 곳에 */}
             {books.length > 1 && (
               <>
-                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>다른 책</div>
+                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>다른 책</div>
                 {books.filter((b) => b.id !== book.id).map((b) => (
                   <button
                     key={b.id} type="button" onClick={() => openBook(b.id)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
                   >
                     <span className="h-[18px] w-[7px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
-                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, color: C.body }}>{b.title}</span>
-                    <span style={{ fontSize: 12, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{b.title}</span>
+                    <span style={{ fontSize: 12, color: C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
                   </button>
                 ))}
               </>
@@ -641,7 +644,7 @@ export default function Wiki() {
         ) : (
           /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 채움 알약으로) */
           <div className="flex-1 px-3 pb-4">
-            <div className="mx-2 mb-1.5" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>책</div>
+            <div className="mx-2 mb-1.5" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>책</div>
             {books.map((b) => {
               const on = b.id === bookId;
               return (
@@ -652,19 +655,19 @@ export default function Wiki() {
                 >
                   <span className="h-[22px] w-[8px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
                   <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: on ? 700 : 500 }}>{b.title}</span>
-                  <span style={{ fontSize: 11.5, color: on ? 'rgba(244,238,225,.7)' : C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+                  <span style={{ fontSize: 12, color: on ? 'rgba(244,238,225,.75)' : C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
                 </button>
               );
             })}
             {books.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>첫 책을 만들어보세요</p>}
             {recentDocs.length > 0 && (
               <>
-                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>최근 본 문서</div>
+                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>최근 본 문서</div>
                 {recentDocs.map((d) => (
                   <button key={d.id} type="button" onClick={() => openDoc(d.id)}
                     className="flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]">
                     <span className="h-[6px] w-[6px] flex-none rounded-full" style={{ background: bookOf.get(d.book)?.tint ?? C.rust }} />
-                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, color: C.body }}>{d.title || '무제'}</span>
+                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{d.title || '무제'}</span>
                   </button>
                 ))}
               </>
@@ -672,7 +675,7 @@ export default function Wiki() {
           </div>
         )}
 
-        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.1)', fontSize: 12, color: C.muted }}>
+        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.12)', fontSize: 12, color: C.sub }}>
           책 {books.length}권 · 문서 {docs.length}개 · 연결 {linkTotal}개
         </div>
       </aside>
