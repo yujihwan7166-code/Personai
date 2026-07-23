@@ -29,10 +29,10 @@ const C = {
   green: '#305f4c', rust: '#9a4632', cream: '#f6ecd9',
 };
 const SERIF = "'Nanum Myeongjo', 'Noto Serif KR', 'Gowun Batang', serif";
-const SANS = "'Noto Sans KR', 'Pretendard Variable', sans-serif";
+const SANS = "'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif";
 
 const WIKI_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;600;700&display=swap');
 .wiki-theme ::selection { background:#e9d9ac; }
 .wiki-theme a[href^="wiki://"] {
   color:#305f4c; font-weight:600; text-decoration:none;
@@ -450,7 +450,7 @@ export default function Wiki() {
         </section>
       ) : active && book ? (
         /* ══════ 문서 ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[26px] sm:px-8" style={{ maxWidth: 1300 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[40px] sm:px-8" style={{ maxWidth: 1300 }}>
           {/* 빵가루 */}
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
@@ -524,7 +524,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[26px] sm:px-8" style={{ maxWidth: 1120 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1040 }}>
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
@@ -533,14 +533,14 @@ export default function Wiki() {
             <span className="hidden sm:inline" style={{ fontSize: 12, color: C.muted }}>Esc로 돌아가기</span>
           </div>
 
-          <div className="mt-5 grid min-h-[580px] grid-cols-1 md:grid-cols-[320px_1fr]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
+          <div className="mt-7 grid min-h-[520px] grid-cols-1 md:grid-cols-[236px_1fr]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
             {/* 좌 — 표지 */}
-            <div className="relative flex overflow-hidden p-7" style={{ borderRadius: '8px 3px 3px 8px', background: book.tint, color: C.cream }}>
+            <div className="relative flex overflow-hidden p-5" style={{ borderRadius: '8px 3px 3px 8px', background: book.tint, color: C.cream }}>
               <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.38), rgba(0,0,0,0) 14%), linear-gradient(90deg, rgba(255,246,228,.14), rgba(255,246,228,0) 22%), repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
-              <div className="relative flex flex-1 flex-col p-6" style={{ border: '1px solid rgba(244,230,200,.5)', borderRadius: 4 }}>
-                <div style={{ fontSize: 10.5, letterSpacing: '.3em', opacity: .75 }}>MYWIKI</div>
-                <div className="mt-4" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 36, lineHeight: 1.25 }}>{book.title}</div>
-                <div className="mt-2.5" style={{ fontSize: 13, opacity: .85 }}>
+              <div className="relative flex flex-1 flex-col p-5" style={{ border: '1px solid rgba(244,230,200,.5)', borderRadius: 4 }}>
+                <div style={{ fontSize: 10, letterSpacing: '.3em', opacity: .75 }}>MYWIKI</div>
+                <div className="mt-4" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 27, lineHeight: 1.3, letterSpacing: '.02em' }}>{book.title}</div>
+                <div className="mt-2.5" style={{ fontSize: 12.5, opacity: .85 }}>
                   문서 {bookDocs.length}개{book.intro && <> · {book.intro}</>}
                 </div>
                 <div className="flex-1" />
