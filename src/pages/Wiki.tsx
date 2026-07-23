@@ -15,7 +15,7 @@ import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
   type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
 } from '@/lib/wiki3/store';
-import { childrenOf, ancestorsOf, focusView, moveOptions, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
+import { childrenOf, ancestorsOf, moveOptions, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
@@ -343,20 +343,27 @@ export default function Wiki() {
       .reduce((a, d) => a + linkedDocIds(d.body).filter((id) => inside.has(id)).length, 0);
   }, [docs, bookDocs, bookId]);
 
-  /* 사이드바 차례 — 책 안에서는 포커스 트리(부모/형제/자식 3단), 문서 없으면 최상위 목록 */
+  /* 사이드바 차례 — 책 전체 위계를 그대로. 포커스 3단만 보이면 다른 가지로 건너뛸 수가 없다 */
   const sideRows = useMemo(() => {
     if (!bookId) return [] as { d: WikiDoc; depth: number }[];
-    if (!docId) return childrenOf(bookDocs, null).map((d) => ({ d, depth: 0 }));
-    const v = focusView(bookDocs, docId);
     const rows: { d: WikiDoc; depth: number }[] = [];
-    if (v.parent) rows.push({ d: v.parent, depth: 0 });
-    const base = v.parent ? 1 : 0;
-    for (const s of v.siblings) {
-      rows.push({ d: s, depth: base });
-      if (s.id === docId) for (const c of v.children) rows.push({ d: c, depth: base + 1 });
-    }
+    const seen = new Set<string>();
+    const walk = (parent: string | null, depth: number) => {
+      for (const d of childrenOf(bookDocs, parent)) {
+        if (seen.has(d.id)) continue;
+        seen.add(d.id);
+        rows.push({ d, depth });
+        walk(d.id, depth + 1);
+      }
+    };
+    walk(null, 0);
     return rows;
-  }, [bookId, docId, bookDocs]);
+  }, [bookId, bookDocs]);
+  /* 열린 문서의 조상 — 사이드바에서 지금 위치까지의 길을 굵게 */
+  const sidePath = useMemo(
+    () => new Set(docId ? ancestorsOf(bookDocs, docId).map((d) => d.id) : []),
+    [bookDocs, docId],
+  );
 
   const qq = q.trim().toLowerCase();
   const results = useMemo(() => {
@@ -515,12 +522,22 @@ export default function Wiki() {
             <div className="mx-2 mb-1.5 mt-3" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>차례</div>
             {sideRows.map(({ d, depth }) => {
               const on = d.id === docId;
+              const onPath = sidePath.has(d.id);
               return (
                 <button
                   key={d.id} type="button" onClick={() => openDoc(d.id)}
-                  className={cn('flex w-full items-center gap-1.5 rounded-full py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
-                  style={{ paddingLeft: 12 + depth * 14, background: on ? C.ink : undefined, color: on ? C.bg : C.body, fontSize: 13, fontWeight: on ? 600 : 400 }}
+                  className={cn('relative flex w-full items-center gap-1.5 rounded-full py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
+                  style={{
+                    paddingLeft: 12 + depth * 13,
+                    background: on ? C.ink : undefined,
+                    color: on ? C.bg : onPath ? C.ink : C.body,
+                    fontSize: 13, fontWeight: on || onPath ? 600 : 400,
+                  }}
                 >
+                  {/* 들여쓰기 안내선 — 깊이가 한눈에 */}
+                  {depth > 0 && !on && (
+                    <span aria-hidden className="absolute inset-y-[5px] w-px" style={{ left: 6 + depth * 13, background: 'rgba(60,47,24,.16)' }} />
+                  )}
                   <span className="truncate">{d.title || '무제'}</span>
                   {d.pinned && <Star className="h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
                 </button>
