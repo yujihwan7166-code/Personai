@@ -257,6 +257,120 @@ export function saveWiki(store: WikiStore): void {
   } catch { /* quota — 무시 */ }
 }
 
+/* ── 예시 시드 — 빈 서재로 시작하는 첫 사용자에게 기능이 보이는 책 3권.
+ * 1회만 (flag) — 다 지워도 다시 안 깔린다. */
+
+const SEED_FLAG = 'mywiki.v4.seeded';
+
+const _p = (text: string) => ({ type: 'p', children: [{ text }] });
+const _h2 = (text: string) => ({ type: 'h2', children: [{ text }] });
+const _h3 = (text: string) => ({ type: 'h3', children: [{ text }] });
+const _quote = (text: string) => ({ type: 'blockquote', children: [{ text }] });
+const _li = (text: string) => ({ type: 'p', indent: 1, listStyleType: 'disc', children: [{ text }] });
+const _pl = (parts: Array<string | { link: string; to: string }>) => ({
+  type: 'p',
+  children: parts.map((x) => (typeof x === 'string' ? { text: x } : { type: 'a', url: `wiki://${x.to}`, children: [{ text: x.link }] })),
+});
+
+export function buildSeedStore(): WikiStore {
+  const now = Date.now();
+  const books: WikiBook[] = [
+    { id: 'bkseed_guide', title: '위키 사용법', tint: '#8b3d6e', intro: '이 서재를 쓰는 법 — 한 권으로 끝', updated: now },
+    { id: 'bkseed_coffee', title: '커피 노트', tint: '#8a6d3b', intro: '집에서 내리는 커피의 기록', updated: now },
+    { id: 'bkseed_travel', title: '여행', tint: '#31456a', intro: '다녀온 도시들', updated: now },
+  ];
+  const docs: WikiDoc[] = [
+    {
+      id: 'wkseed_start', book: 'bkseed_guide', title: '시작하기', parent: null, tags: ['안내'], pinned: true, updated: now,
+      infobox: [
+        { label: '무엇', value: '책 속에 문서를 쌓는 나만의 위키' },
+        { label: '쓰기', value: '노트처럼 — "/" 로 뭐든 삽입' },
+        { label: '읽기', value: '위키처럼 — 목차·인포박스·백링크' },
+      ],
+      body: [
+        _p('이 문서가 바로 읽기 화면이에요. 오른쪽 요약 카드가 인포박스, 위의 차례가 자동 목차입니다.'),
+        _h2('책과 문서'),
+        _p('책 한 권이 하나의 세계예요. 책 안에서 문서는 나란히 놓이기도, 문서 아래 층층이 쌓이기도 합니다.'),
+        _li('책장에서 책등을 눌러 책을 펼쳐요'),
+        _li('문서 오른쪽 위 [편집]을 누르면 노트처럼 적을 수 있어요'),
+        _li('사이드바 검색은 서재 전체를 뒤져요'),
+        _h2('문서 잇기'),
+        _pl(['편집하다가 텍스트를 드래그하면 "문서로 연결" 버블이 떠요. 책을 넘어서도 이어집니다 — 예를 들면 ', { link: '드립 커피', to: 'wkseed_drip' }, ' 처럼요.']),
+        _quote('링크를 따라가면 그 문서의 책이 자동으로 펼쳐져요.'),
+        _h2('인포박스'),
+        _p('편집 화면의 "인포박스"를 펴고 항목·내용을 채우면, 읽기 화면 오른쪽에 요약 카드가 생겨요. 이 문서의 카드처럼요.'),
+      ] as Value,
+    },
+    {
+      id: 'wkseed_drip', book: 'bkseed_coffee', title: '드립 커피', parent: null, tags: ['추출'], pinned: false, updated: now - 3600000,
+      infobox: [
+        { label: '분류', value: '푸어 오버 추출' },
+        { label: '도구', value: '드리퍼 · 서버 · 주전자' },
+        { label: '시간', value: '2분 30초 안팎' },
+        { label: '비율', value: '원두 1 : 물 16' },
+      ],
+      body: [
+        _pl(['뜨거운 물을 천천히 부어 내리는 방식. 맛의 절반은 ', { link: '원두', to: 'wkseed_bean' }, '가 정합니다.']),
+        _h2('순서'),
+        _li('물 93도 안팎으로 끓이기'),
+        _li('원두 20g을 중간 굵기로 갈기'),
+        _li('뜸 30초 — 원두가 부풀어 오르면 성공'),
+        _li('세 번에 나눠 320g까지 붓기'),
+        _h2('맛이 이상할 때'),
+        _h3('시큼할 때'),
+        _p('추출이 부족한 신호 — 더 가늘게 갈거나 물을 더 천천히.'),
+        _h3('쓸 때'),
+        _p('과추출 — 더 굵게 갈거나 물 온도를 낮춰요.'),
+      ] as Value,
+    },
+    {
+      id: 'wkseed_bean', book: 'bkseed_coffee', title: '원두', parent: 'wkseed_drip', tags: [], pinned: false, updated: now - 7200000,
+      infobox: [
+        { label: '보관', value: '밀폐 · 실온 · 2주 안에' },
+        { label: '단골', value: '에티오피아 예가체프' },
+      ],
+      body: [
+        _p('볶은 지 1~3주 사이가 가장 맛있어요. 냉동 보관은 결로 때문에 오히려 손해.'),
+        _h2('산지 메모'),
+        _li('에티오피아 — 꽃향, 홍차 같은 산미'),
+        _li('콜롬비아 — 균형, 단맛'),
+        _li('브라질 — 고소함, 낮은 산미'),
+      ] as Value,
+    },
+    {
+      id: 'wkseed_kyoto', book: 'bkseed_travel', title: '교토', parent: null, tags: ['일본'], pinned: false, updated: now - 86400000,
+      infobox: [
+        { label: '나라', value: '일본' },
+        { label: '다녀옴', value: '2026년 봄' },
+        { label: '며칠', value: '3박 4일' },
+      ],
+      body: [
+        _p('오래된 골목과 정원의 도시. 아침 일찍 움직일수록 좋다.'),
+        _h2('걸었던 코스'),
+        _li('철학의 길 — 벚꽃 아침 산책'),
+        _li('기요미즈데라 — 해 질 무렵'),
+        _li('니시키 시장 — 점심'),
+        _h2('기억할 것'),
+        _pl(['골목 킷사텐의 드립이 훌륭했다 — 집에서 재현하려고 ', { link: '드립 커피', to: 'wkseed_drip' }, ' 문서를 정리함.']),
+        _quote('다음엔 가을 단풍 때.'),
+      ] as Value,
+    },
+  ];
+  return { books, docs, recent: ['wkseed_start'] };
+}
+
+/** 완전 빈 상태 + 시드 안 깔린 적 있으면 예시 서재를 깐다. */
+export function seedIfEmpty(store: WikiStore): WikiStore {
+  if (store.books.length > 0 || store.docs.length > 0) return store;
+  try {
+    if (localStorage.getItem(SEED_FLAG)) return store;
+    localStorage.setItem(SEED_FLAG, '1');
+    const seeded = buildSeedStore();
+    saveWiki(seeded);
+    return seeded;
+  } catch { return store; }
+}
+
 /* ── 본문 유틸 ── */
 
 /** 본문에서 wiki:// 링크 대상 문서 id 수집 — 백링크 계산용. */

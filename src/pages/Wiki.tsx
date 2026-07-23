@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
 import {
-  loadWiki, saveWiki, emptyBody, linkedDocIds, bodyText, BOOK_PALETTE,
+  loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, BOOK_PALETTE,
   type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
 } from '@/lib/wiki3/store';
 import { childrenOf, ancestorsOf, focusView, moveOptions, deleteWithPromotion } from '@/lib/wiki3/tree';
@@ -37,8 +37,17 @@ const WIKI_CSS = `
 }
 .wiki-theme a[href^="wiki://"]:hover { text-decoration-color: #8b3d6e; }
 .wiki-theme .wiki-spine { transition: transform 180ms ease, box-shadow 180ms ease; }
-.wiki-theme .wiki-spine:hover { transform: translateY(-6px); box-shadow: 0 16px 26px -16px rgba(60,20,45,0.5); }
+.wiki-theme .wiki-spine:hover { transform: translateY(-7px); box-shadow: 0 18px 28px -16px rgba(60,20,45,0.55); }
 @media (prefers-reduced-motion: reduce) { .wiki-theme .wiki-spine, .wiki-theme .wiki-spine:hover { transition: none; transform: none; } }
+
+/* 읽기 뷰 — 제목이 위키의 괘선 문법을 입는다 (편집 뷰는 노트 그대로) */
+.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2 {
+  font-family: 'Gowun Batang', 'Pretendard Variable', serif;
+  border-bottom: 1px solid #eadde6;
+  padding-bottom: 0.3em;
+}
+.wiki-theme .wiki-read h3 { font-family: 'Gowun Batang', 'Pretendard Variable', serif; }
+.wiki-theme .wiki-read blockquote { border-left-color: rgba(139,61,110,0.45); }
 `;
 
 /** 본문 최상위 블록에서 목차 추출 — h1~h3. */
@@ -64,7 +73,7 @@ const fmtRel = (ts: number) => {
 };
 
 export default function Wiki() {
-  const [store, setStore] = useState<WikiStore>(loadWiki);
+  const [store, setStore] = useState<WikiStore>(() => seedIfEmpty(loadWiki()));
   const [bookId, setBookId] = useState<string | null>(null);
   const [docId, setDocId] = useState<string | null>(null);
   const [mode, setMode] = useState<'read' | 'edit'>('read');
@@ -444,10 +453,12 @@ export default function Wiki() {
                     </nav>
                   )}
 
-                  {/* 본문 (읽기 전용 — 편집기와 같은 엔진) */}
-                  <Suspense fallback={<p className="py-10 text-center text-[12.5px]" style={{ color: P.sub }}>문서를 펼치는 중…</p>}>
-                    <WikiDocReader key={`${active.id}-${active.updated}`} value={active.body} onOpenDoc={openDoc} containerRef={readBodyRef} />
-                  </Suspense>
+                  {/* 본문 (읽기 전용 — 편집기와 같은 엔진, 위키 괘선 타이포) */}
+                  <div className="wiki-read">
+                    <Suspense fallback={<p className="py-10 text-center text-[12.5px]" style={{ color: P.sub }}>문서를 펼치는 중…</p>}>
+                      <WikiDocReader key={`${active.id}-${active.updated}`} value={active.body} onOpenDoc={openDoc} containerRef={readBodyRef} />
+                    </Suspense>
+                  </div>
 
                   <div className="clear-both" />
                 </article>
@@ -573,41 +584,14 @@ export default function Wiki() {
             <>
               <Masthead eyebrow="MY LIBRARY" title="마이위키" sub={books.length ? `책 ${books.length}권 · 문서 ${docs.length}개` : '첫 책으로 서재를 열어보세요'} />
 
-              {/* 책장 — 시그니처. 책등이 실제로 꽂혀 있다 */}
+              {/* 책장 — 시그니처. 칸이 있는 실제 서가: 책등 높이는 문서 수를 따르고, 아래엔 청구기호 스티커 */}
               <section className="mt-8">
-                <div className="flex flex-wrap items-end gap-x-2 gap-y-10 rounded-b-[6px] border-b-[10px] px-2 pb-0 pt-2" style={{ borderColor: '#dcc9d5' }}>
-                  {books.map((b) => {
-                    const n = docs.filter((d) => d.book === b.id).length;
-                    return (
-                      <button
-                        key={b.id} type="button" onClick={() => openBook(b.id)}
-                        className="wiki-spine relative flex h-[188px] w-[56px] flex-col items-center overflow-hidden rounded-t-[5px] rounded-b-[2px] pb-2.5 pt-3 text-white"
-                        style={{ background: `linear-gradient(105deg, ${b.tint} 0%, ${b.tint} 78%, rgba(0,0,0,0.18) 100%)` }}
-                        title={b.intro || b.title}
-                      >
-                        {/* 책등 상단 밴드 */}
-                        <span aria-hidden className="absolute inset-x-0 top-0 h-[7px] bg-white/20" />
-                        <span aria-hidden className="absolute inset-x-0 top-[9px] h-px bg-white/30" />
-                        <span
-                          className="mt-2 min-h-0 flex-1 overflow-hidden text-[14.5px] font-bold leading-[1.2] [text-orientation:upright] [writing-mode:vertical-rl]"
-                          style={{ fontFamily: TF }}
-                        >
-                          {b.title || '무제'}
-                        </span>
-                        <span className="mt-1 shrink-0 text-[10px] font-semibold text-white/75">{n}</span>
-                      </button>
-                    );
-                  })}
-                  {/* 새 책 — 비어 있는 자리 */}
-                  <button
-                    type="button" onClick={() => setBookDialog({ book: null })}
-                    className="flex h-[188px] w-[56px] flex-col items-center justify-center gap-1.5 rounded-t-[5px] border border-b-0 border-dashed text-[11px] font-bold transition-colors hover:bg-white/70"
-                    style={{ borderColor: '#d5bccb', color: P.sub }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="[writing-mode:vertical-rl]" style={{ fontFamily: TF }}>새 책</span>
-                  </button>
-                </div>
+                <Bookshelf
+                  books={books}
+                  countOf={(id) => docs.filter((d) => d.book === id).length}
+                  onOpenBook={openBook}
+                  onNewBook={() => setBookDialog({ book: null })}
+                />
                 {books.length === 0 && (
                   <p className="mt-4 text-[12.5px] leading-relaxed" style={{ color: P.muted }}>
                     책 한 권이 하나의 세계예요 — 그 안에 문서를 층층이 쌓고, 책을 넘나들며 연결하세요.
@@ -666,6 +650,74 @@ export default function Wiki() {
   );
 }
 
+/* ── 책장 — 칸(선반)마다 책 8권. 책등 높이 = 문서가 쌓일수록 두꺼운 책 ── */
+function Bookshelf({ books, countOf, onOpenBook, onNewBook }: {
+  books: WikiBook[];
+  countOf: (bookId: string) => number;
+  onOpenBook: (id: string) => void;
+  onNewBook: () => void;
+}) {
+  const PER_SHELF = 8;
+  const shelves: WikiBook[][] = [];
+  for (let i = 0; i < books.length; i += PER_SHELF) shelves.push(books.slice(i, i + PER_SHELF));
+  if (shelves.length === 0) shelves.push([]);
+
+  const spine = (b: WikiBook) => {
+    const n = countOf(b.id);
+    const h = 160 + Math.min(36, n * 5);          // 문서가 쌓일수록 큰 책
+    const w = 50 + Math.min(14, Math.max(0, b.title.length - 2) * 3); // 제목이 길면 조금 두껍게
+    return (
+      <button
+        key={b.id} type="button" onClick={() => onOpenBook(b.id)}
+        className="wiki-spine relative flex flex-col items-center overflow-hidden rounded-t-[5px] rounded-b-[2px] pb-2 pt-3 text-white"
+        style={{
+          height: h, width: w,
+          background: `linear-gradient(105deg, ${b.tint} 0%, ${b.tint} 74%, rgba(0,0,0,0.22) 100%)`,
+          boxShadow: 'inset 2px 0 0 rgba(255,255,255,0.14), 0 6px 12px -8px rgba(60,20,45,0.4)',
+        }}
+        title={b.intro || b.title}
+      >
+        {/* 헤드밴드(제본 띠) */}
+        <span aria-hidden className="absolute inset-x-0 top-0 h-[6px] bg-white/22" />
+        <span aria-hidden className="absolute inset-x-0 top-[8px] h-px bg-white/35" />
+        <span
+          className="mt-2 min-h-0 flex-1 overflow-hidden text-[14px] font-bold leading-[1.2] [text-orientation:upright] [writing-mode:vertical-rl]"
+          style={{ fontFamily: TF, textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}
+        >
+          {b.title || '무제'}
+        </span>
+        {/* 청구기호 스티커 — 도서관의 그 흰 라벨 */}
+        <span aria-hidden className="mt-1.5 flex h-[17px] w-[72%] shrink-0 items-center justify-center rounded-[2px] bg-[#fdfaf7] text-[9.5px] font-bold tracking-wide text-[#5c5560] shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
+          {String(countOf(b.id)).padStart(3, '0')}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div className="rounded-[14px] px-4 pt-5 sm:px-6" style={{ background: 'linear-gradient(180deg, #f3e6ee 0%, #efe0e9 100%)', boxShadow: 'inset 0 2px 10px rgba(90,40,70,0.07)' }}>
+      {shelves.map((row, si) => (
+        <div key={si} className="flex items-end gap-x-2 border-b-[9px] pb-0 pt-3" style={{ borderColor: '#d9c2d0', borderBottomStyle: 'solid' }}>
+          {row.map(spine)}
+          {/* 마지막 칸 끝에 빈 자리 = 새 책 */}
+          {si === shelves.length - 1 && (
+            <button
+              type="button" onClick={onNewBook}
+              className="flex h-[164px] w-[50px] flex-col items-center justify-center gap-1.5 rounded-t-[5px] border border-b-0 border-dashed text-[11px] font-bold transition-colors hover:bg-white/60"
+              style={{ borderColor: '#cdb2c4', color: P.sub }}
+              title="새 책"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="[writing-mode:vertical-rl]" style={{ fontFamily: TF }}>새 책</span>
+            </button>
+          )}
+        </div>
+      ))}
+      <div className="h-4" aria-hidden />
+    </div>
+  );
+}
+
 /* ── 책 차례 화면 — 표지 + 문서 트리 ── */
 function BookHome({ book, docs, allDocs, onOpenDoc, onCreate, onEditBook, goShelf }: {
   book: WikiBook; docs: WikiDoc[]; allDocs: WikiDoc[];
@@ -696,7 +748,9 @@ function BookHome({ book, docs, allDocs, onOpenDoc, onCreate, onEditBook, goShel
 
       {/* 표지 머리 — 미니 책 + 제목 + 소개 */}
       <div className="mt-4 flex items-center gap-5">
-        <span aria-hidden className="flex h-[92px] w-[64px] shrink-0 items-center justify-center rounded-[4px_8px_8px_4px] text-[26px] font-bold text-white shadow-[0_10px_20px_-12px_rgba(60,20,45,0.55)]" style={{ background: book.tint, fontFamily: TF }}>
+        <span aria-hidden className="relative flex h-[92px] w-[64px] shrink-0 items-center justify-center overflow-hidden rounded-[4px_8px_8px_4px] text-[26px] font-bold text-white shadow-[0_10px_20px_-12px_rgba(60,20,45,0.55)]" style={{ background: `linear-gradient(105deg, ${book.tint} 0%, ${book.tint} 80%, rgba(0,0,0,0.18) 100%)`, fontFamily: TF }}>
+          <span className="absolute inset-y-0 left-[7px] w-px bg-white/30" />
+          <span className="absolute inset-y-0 left-0 w-[7px] bg-black/15" />
           {book.title.trim().charAt(0) || '?'}
         </span>
         <div className="min-w-0 flex-1">
