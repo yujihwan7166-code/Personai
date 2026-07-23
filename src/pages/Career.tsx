@@ -687,11 +687,6 @@ function BoardLedger() {
                 <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">+</span>
                 <h2 className="text-[16px] font-bold tracking-tight">문서 만들기</h2>
               </div>
-              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-                {items.length === 0
-                  ? '기록이 쌓이면 문서를 만들 수 있어요.'
-                  : '쌓인 기록으로 문서를 만들어보세요. 만든 문서는 왼쪽 사이드바에 쌓여요.'}
-              </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
                   const disabled = items.length === 0;
