@@ -30,11 +30,12 @@ const C = {
   line: 'rgba(60,47,24,.14)', line2: 'rgba(60,47,24,.09)', lineDeep: 'rgba(60,47,24,.22)',
   green: '#305f4c', rust: '#9a4632', cream: '#f6ecd9',
 };
+/* 세리프는 이제 '물건'에만 — 책등·표지·명패. 화면 글자는 데일리 로그와 같은 Pretendard */
 const SERIF = "'Nanum Myeongjo', 'Noto Serif KR', 'Gowun Batang', serif";
 const SANS = "'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif";
 
 const WIKI_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&display=swap');
 .wiki-theme ::selection { background:#e9d9ac; }
 .wiki-theme a[href^="wiki://"] {
   color:#305f4c; font-weight:600; text-decoration:none;
@@ -83,12 +84,14 @@ const WIKI_CSS = `
   .wiki-theme .wiki-root-drop, .wiki-theme .wiki-row-moved { animation:none; }
 }
 /* 읽기 뷰 본문 — 시안의 위키 타이포 */
-.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2, .wiki-theme .wiki-read h3 { scroll-margin-top: 18px; }
-.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2 {
-  font-family:'Nanum Myeongjo','Noto Serif KR','Gowun Batang',serif; font-weight:700;
-  border-bottom:1px solid rgba(60,47,24,.14); padding-bottom:8px;
+.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2, .wiki-theme .wiki-read h3 {
+  scroll-margin-top: 18px; letter-spacing:-0.012em;
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;
 }
-.wiki-theme .wiki-read h3 { font-family:'Nanum Myeongjo','Noto Serif KR','Gowun Batang',serif; font-weight:700; }
+.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2 {
+  font-weight:700; border-bottom:1px solid rgba(60,47,24,.14); padding-bottom:8px;
+}
+.wiki-theme .wiki-read h3 { font-weight:700; }
 .wiki-theme .wiki-read p { color:#332c21; }
 .wiki-theme .wiki-read blockquote { border-left-color: rgba(154,70,50,.45); }
 `;
@@ -548,126 +551,136 @@ export default function Wiki() {
     <div className="wiki-theme flex h-dvh overflow-hidden" style={{ background: C.bg, fontFamily: SANS, color: C.ink }}>
       <style>{WIKI_CSS}</style>
 
-      {/* ══════ 사이드바 — 크림 톤 (캐논 구조 + 시안 재질) ══════ */}
-      <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto lg:flex" style={{ background: '#efe7d3', borderRight: '1px solid rgba(60,47,24,.14)' }}>
-        <div className="px-5 pb-4 pt-6">
-          <button type="button" onClick={goShelf} className="block text-left">
-            <div style={{ fontSize: 11, letterSpacing: '.22em', color: C.sub }}>MYWIKI</div>
-            <div className="mt-1" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 23 }}>마이위키</div>
-            <div className="mt-0.5" style={{ fontSize: 12, color: C.sub }}>나만의 서재</div>
-          </button>
-          <div className="relative mt-4">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: C.muted }} />
-            <input
-              value={q} onChange={(e) => setQ(e.target.value)}
-              placeholder="서재에서 검색" aria-label="서재 검색"
-              className="h-[34px] w-full rounded-lg pl-8 pr-7 text-[13px] outline-none"
-              style={{ border: '1px solid rgba(60,47,24,.16)', background: C.paper, color: C.ink, fontFamily: SANS }}
-            />
-            {q && (
-              <button type="button" aria-label="검색 지우기" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2" style={{ color: C.muted }}>
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
-            className="mt-3 flex h-[36px] w-full items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#40372a]"
-            style={{ background: C.ink, color: C.bg }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {book ? '새 문서' : '새 책'}
-          </button>
+      {/* ══════ 사이드바 — 데일리 로그 문법 (마크+락업 · 굵은 섹션 라벨 · 38px 행 · 은은한 활성) ══════ */}
+      <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto px-3.5 py-5 lg:flex" style={{ background: '#f3ecdd', borderRight: '1px solid rgba(60,47,24,.14)' }}>
+        <button type="button" onClick={goShelf} className="flex items-center gap-[11px] px-1.5 text-left">
+          <span aria-hidden className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[17px]" style={{ background: '#fff', boxShadow: '0 1px 2px rgba(60,47,24,.12)' }}>📚</span>
+          <span className="min-w-0">
+            <span className="block text-[16px] font-bold leading-tight tracking-[-0.01em]" style={{ color: C.ink }}>마이위키</span>
+            <span className="block truncate text-[12px] leading-tight" style={{ color: C.sub }}>나만의 서재</span>
+          </span>
+        </button>
+
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: C.sub }} />
+          <input
+            value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="서재에서 검색" aria-label="서재 검색"
+            className="h-[38px] w-full rounded-[10px] pl-8 pr-7 text-[13.5px] outline-none"
+            style={{ border: '1px solid rgba(60,47,24,.16)', background: C.paper, color: C.ink, fontFamily: SANS }}
+          />
+          {q && (
+            <button type="button" aria-label="검색 지우기" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2" style={{ color: C.sub }}>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+        <button
+          type="button"
+          onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
+          className="mt-2 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold transition-colors hover:bg-[#40372a]"
+          style={{ background: C.ink, color: '#fff' }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {book ? '새 문서' : '새 책'}
+        </button>
 
         {book ? (
           /* 책 안 — 책을 여는 순간 사이드바가 그 책의 차례로 바뀐다. 문서를 열어도 그대로라 흔들림이 없다 */
-          <div className="flex-1 px-3 pb-4">
-            <button type="button" onClick={goShelf} className="mx-2 mb-2 text-[12px] hover:underline" style={{ color: C.green }}>← 책장으로</button>
+          <div className="mt-1 flex-1">
+            <button type="button" onClick={goShelf} className="mt-[18px] flex h-[30px] w-full items-center gap-1.5 rounded-[9px] px-3 text-left text-[12.5px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.06)]" style={{ color: C.sub }}>
+              ← 책장으로
+            </button>
             <button
               type="button" onClick={() => openBook(book.id)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[rgba(60,47,24,.05)]"
+              className="mt-1 flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
             >
-              <span className="h-[26px] w-[9px] flex-none rounded-[2px]" style={{ background: book.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
+              <span className="h-[28px] w-[9px] flex-none rounded-[2px]" style={{ background: book.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
               <span className="min-w-0">
-                <span className="block truncate" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15.5 }}>{book.title}</span>
-                <span className="block" style={{ fontSize: 12, color: C.sub }}>문서 {bookDocs.length}개</span>
+                <span className="block truncate text-[15px] font-bold tracking-[-0.01em]" style={{ color: C.ink }}>{book.title}</span>
+                <span className="block text-[12px] leading-tight" style={{ color: C.sub }}>문서 {bookDocs.length}개</span>
               </span>
             </button>
-            <div className="mx-2 mb-2 mt-4" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>차례</div>
+
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em]" style={{ color: C.sub }}>차례</div>
             {sideRows.map(({ d, depth }) => {
               const on = d.id === docId;
               const onPath = sidePath.has(d.id);
-              const top = depth === 0;
               return (
                 <button
                   key={d.id} type="button" onClick={() => openDoc(d.id)}
-                  className={cn('relative flex w-full items-center gap-1.5 rounded-lg py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.07)]')}
+                  className={cn(
+                    'relative flex min-h-[34px] w-full items-center gap-1.5 rounded-[9px] py-[7px] pr-3 text-left text-[13.5px] transition-colors',
+                    on ? 'font-semibold' : onPath ? 'font-semibold' : 'font-medium',
+                    !on && 'hover:bg-[rgba(60,47,24,.06)]',
+                  )}
                   style={{
-                    paddingLeft: 12 + depth * 16,
-                    background: on ? C.ink : undefined,
-                    color: on ? C.bg : C.ink,
-                    fontFamily: top ? SERIF : SANS,
-                    fontSize: top ? 14.5 : 13.5,
-                    fontWeight: on ? 700 : top ? 700 : onPath ? 600 : 500,
+                    paddingLeft: 12 + depth * 15,
+                    background: on ? 'rgba(154,70,50,.13)' : undefined,
+                    color: on ? C.rust : C.ink,
                   }}
                 >
                   {/* 층마다 세로선 — 몇 단 안쪽인지 선의 개수로 읽힌다 */}
-                  {!on && Array.from({ length: depth }, (_, k) => (
-                    <span key={k} aria-hidden className="absolute inset-y-0 w-px" style={{ left: 7 + k * 16, background: k === depth - 1 ? 'rgba(60,47,24,.34)' : 'rgba(60,47,24,.16)' }} />
+                  {Array.from({ length: depth }, (_, k) => (
+                    <span key={k} aria-hidden className="absolute inset-y-0 w-px" style={{ left: 7 + k * 15, background: k === depth - 1 ? 'rgba(60,47,24,.3)' : 'rgba(60,47,24,.14)' }} />
                   ))}
                   <span className="truncate">{d.title || '무제'}</span>
                   {d.pinned && <Star className="h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
                 </button>
               );
             })}
-            {sideRows.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>아직 빈 책이에요</p>}
+            {sideRows.length === 0 && <p className="px-3 py-2 text-[12.5px]" style={{ color: C.sub }}>아직 빈 책이에요</p>}
 
             {/* 갈아타기 — 책 안에 있어도 서재의 다른 책은 손 닿는 곳에 */}
             {books.length > 1 && (
               <>
-                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>다른 책</div>
+                <div className="mb-[7px] mt-6 px-3 text-[11.5px] font-semibold tracking-[0.05em]" style={{ color: C.sub }}>다른 책</div>
                 {books.filter((b) => b.id !== book.id).map((b) => (
                   <button
                     key={b.id} type="button" onClick={() => openBook(b.id)}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
+                    className="flex h-[36px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium transition-colors hover:bg-[rgba(60,47,24,.06)]"
+                    style={{ color: C.ink }}
                   >
                     <span className="h-[18px] w-[7px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
-                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{b.title}</span>
-                    <span style={{ fontSize: 12, color: C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
+                    <span className="min-w-0 flex-1 truncate">{b.title}</span>
+                    <span className="text-[12.5px] tabular-nums" style={{ color: C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
                   </button>
                 ))}
               </>
             )}
           </div>
         ) : (
-          /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 채움 알약으로) */
-          <div className="flex-1 px-3 pb-4">
-            <div className="mx-2 mb-1.5" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>책</div>
+          /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 은은한 활성) */
+          <div className="mt-1 flex-1">
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em]" style={{ color: C.sub }}>책</div>
             {books.map((b) => {
               const on = b.id === bookId;
               return (
                 <button
                   key={b.id} type="button" onClick={() => openBook(b.id)}
-                  className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
-                  style={{ background: on ? C.ink : undefined, color: on ? C.bg : undefined }}
+                  className={cn(
+                    'flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] transition-colors',
+                    on ? 'font-semibold' : 'font-medium',
+                    !on && 'hover:bg-[rgba(60,47,24,.06)]',
+                  )}
+                  style={{ background: on ? 'rgba(154,70,50,.13)' : undefined, color: on ? C.rust : C.ink }}
                 >
                   <span className="h-[22px] w-[8px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
-                  <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: on ? 700 : 500 }}>{b.title}</span>
-                  <span style={{ fontSize: 12, color: on ? 'rgba(244,238,225,.75)' : C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
+                  <span className="min-w-0 flex-1 truncate">{b.title}</span>
+                  <span className="text-[12.5px] tabular-nums" style={{ color: on ? C.rust : C.sub }}>{docs.filter((d) => d.book === b.id).length}</span>
                 </button>
               );
             })}
-            {books.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>첫 책을 만들어보세요</p>}
+            {books.length === 0 && <p className="px-3 py-2 text-[12.5px]" style={{ color: C.sub }}>첫 책을 만들어보세요</p>}
             {recentDocs.length > 0 && (
               <>
-                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: C.sub }}>최근 본 문서</div>
+                <div className="mb-[7px] mt-6 px-3 text-[11.5px] font-semibold tracking-[0.05em]" style={{ color: C.sub }}>최근 본 문서</div>
                 {recentDocs.map((d) => (
                   <button key={d.id} type="button" onClick={() => openDoc(d.id)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]">
+                    className="flex h-[34px] w-full items-center gap-2 rounded-[9px] px-3 text-left text-[13.5px] font-medium transition-colors hover:bg-[rgba(60,47,24,.06)]"
+                    style={{ color: C.ink }}>
                     <span className="h-[6px] w-[6px] flex-none rounded-full" style={{ background: bookOf.get(d.book)?.tint ?? C.rust }} />
-                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{d.title || '무제'}</span>
+                    <span className="min-w-0 flex-1 truncate">{d.title || '무제'}</span>
                   </button>
                 ))}
               </>
@@ -675,15 +688,24 @@ export default function Wiki() {
           </div>
         )}
 
-        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.12)', fontSize: 12, color: C.sub }}>
-          책 {books.length}권 · 문서 {docs.length}개 · 연결 {linkTotal}개
+        {/* 하단 위젯 — 서재의 형편 (데일리 로그의 '이번 달 기록' 카드 자리) */}
+        <div className="mt-3 shrink-0 rounded-[14px] px-3 py-3" style={{ border: '1px solid rgba(60,47,24,.14)', background: 'rgba(255,255,255,.5)' }}>
+          <div className="mb-2 px-0.5 text-[11px] font-bold tracking-[0.03em]" style={{ color: C.sub }}>서재</div>
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            {[{ n: books.length, l: '책' }, { n: docs.length, l: '문서' }, { n: linkTotal, l: '연결' }].map((s) => (
+              <div key={s.l}>
+                <div className="text-[16px] font-bold tabular-nums leading-none" style={{ color: C.ink }}>{s.n}</div>
+                <div className="mt-1 text-[11px]" style={{ color: C.sub }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
 
       <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
       {/* 모바일 헤더 — 사이드바 대신 */}
       <div className="flex h-[54px] items-center gap-3 px-4 lg:hidden" style={{ borderBottom: '1px solid rgba(60,47,24,.12)' }}>
-        <button type="button" onClick={goShelf} style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 17 }}>마이위키</button>
+        <button type="button" onClick={goShelf} style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.02em', fontSize: 17 }}>마이위키</button>
         <div className="flex-1" />
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
@@ -701,7 +723,7 @@ export default function Wiki() {
         /* ══════ 검색 결과 ══════ */
         <section className="wiki-rise mx-auto px-5 pb-20 pt-8 sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex items-baseline gap-3.5">
-            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32 }}>'{q.trim()}'</h1>
+            <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>'{q.trim()}'</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{results.length}개의 문서</span>
           </div>
           <div className="mt-5 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
@@ -709,7 +731,7 @@ export default function Wiki() {
               <button key={d.id} type="button" onClick={() => openDoc(d.id)}
                 className="rounded-[10px] p-[18px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_12px_24px_-10px_rgba(64,44,18,.3)]"
                 style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 6px rgba(64,44,18,.06)' }}>
-                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>{d.title || '무제'}</div>
+                <div style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>{d.title || '무제'}</div>
                 <div className="mt-1.5 line-clamp-2" style={{ fontSize: 13, color: C.sub, lineHeight: 1.65 }}>{text.slice(0, 120) || '빈 문서'}</div>
                 <div className="mt-3"><BookChip book={bookOf.get(d.book)} /></div>
               </button>
@@ -841,7 +863,7 @@ export default function Wiki() {
             {/* 우 — 차례 페이지 */}
             <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
-                <h2 className="m-0 flex-none" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20 }}>차례</h2>
+                <h2 className="m-0 flex-none" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.015em', fontSize: 20 }}>차례</h2>
                 <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어 옮기기(문서 위=하위, 사이=그 자리)</span>
                 <button type="button" onClick={() => createDoc(null)} className="flex-none rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
                   + 새 문서
@@ -850,7 +872,7 @@ export default function Wiki() {
               <div className="mt-3.5">
                 {sideRows.length === 0 ? (
                   <div className="py-12 text-center">
-                    <p style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>아직 빈 책이에요</p>
+                    <p style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>아직 빈 책이에요</p>
                     <p className="mt-1.5" style={{ fontSize: 13, color: C.sub }}>첫 문서를 적으면 여기가 차례가 돼요.</p>
                   </div>
                 ) : (
@@ -907,7 +929,7 @@ export default function Wiki() {
                             )}
                             style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
                           >
-                            <span className="min-w-0 max-w-[60%] truncate" style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
+                            <span className="min-w-0 max-w-[60%] truncate" style={{ fontWeight: depth === 0 ? 700 : 500, letterSpacing: depth === 0 ? '-0.012em' : undefined, fontSize: depth === 0 ? 15 : 14 }}>
                               {d.title || '무제'}
                             </span>
                             {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
@@ -954,7 +976,7 @@ export default function Wiki() {
         /* ══════ 서재 홈 (시안) ══════ */
         <section className="wiki-rise mx-auto px-5 pb-20 pt-[72px] sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex flex-wrap items-baseline gap-3.5">
-            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32, letterSpacing: '.02em' }}>나의 서재</h1>
+            <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
           </div>
 
@@ -1067,7 +1089,7 @@ export default function Wiki() {
           {pinnedAll.length > 0 && (
             <div className="mt-11">
               <div className="flex items-baseline gap-2.5">
-                <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>고정된 문서</h2>
+                <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>고정된 문서</h2>
                 <span style={{ fontSize: 12, color: C.sub }}>책갈피로 꽂아둔 {pinnedAll.length}개</span>
               </div>
               <div className="mt-3.5 grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
@@ -1078,7 +1100,7 @@ export default function Wiki() {
                       className="relative rounded-[10px] p-[18px] pb-[15px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_12px_24px_-10px_rgba(64,44,18,.3)]"
                       style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 6px rgba(64,44,18,.06)' }}>
                       <span aria-hidden className="absolute right-5 top-[-5px] h-[56px] w-5" style={{ background: b?.tint ?? C.rust, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%)', boxShadow: '0 3px 5px rgba(0,0,0,.25)' }} />
-                      <div className="pr-9" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>{d.title || '무제'}</div>
+                      <div className="pr-9" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>{d.title || '무제'}</div>
                       <div className="mt-1.5 line-clamp-2" style={{ fontSize: 13, color: C.sub, lineHeight: 1.65 }}>{bodyText(d.body).slice(0, 80) || '빈 문서'}</div>
                       <div className="mt-[13px] flex items-center gap-2">
                         <BookChip book={b} />
@@ -1097,7 +1119,7 @@ export default function Wiki() {
               {mostLinked.length > 0 && (
                 <div className="rounded-xl px-[22px] pb-3 pt-5" style={{ background: C.paper, border: `1px solid ${C.line}` }}>
                   <div className="flex items-baseline gap-2.5 pb-3">
-                    <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>많이 언급된 문서</h2>
+                    <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>많이 언급된 문서</h2>
                     <span style={{ fontSize: 12, color: C.sub }}>서재 전체 백링크 순위 — 이 서재의 중심</span>
                   </div>
                   {mostLinked.map(({ d, n }, i) => {
@@ -1107,7 +1129,7 @@ export default function Wiki() {
                       <button key={d.id} type="button" onClick={() => openDoc(d.id)}
                         className="grid w-full items-center gap-3 rounded-md px-1.5 py-[11px] text-left transition-colors hover:bg-[rgba(60,47,24,.045)]"
                         style={{ gridTemplateColumns: '28px 1fr auto', borderTop: `1px solid ${C.line2}` }}>
-                        <span className="text-center" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 17, color: i === 0 ? C.rust : '#b3a78f' }}>{i + 1}</span>
+                        <span className="text-center" style={{ fontFamily: SANS, fontWeight: 800, fontSize: 17, color: i === 0 ? C.rust : '#b3a78f' }}>{i + 1}</span>
                         <span className="min-w-0">
                           <span className="flex items-center gap-2">
                             <span className="truncate" style={{ fontSize: 14.5, fontWeight: 600 }}>{d.title || '무제'}</span>
@@ -1126,7 +1148,7 @@ export default function Wiki() {
               {recentDocs.length > 0 && (
                 <div className="rounded-xl px-[22px] pb-3 pt-5" style={{ background: C.paper, border: `1px solid ${C.line}` }}>
                   <div className="flex items-baseline gap-2.5 pb-3">
-                    <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>최근 본 문서</h2>
+                    <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>최근 본 문서</h2>
                     <span style={{ fontSize: 12, color: C.sub }}>읽던 자리로 바로 돌아가기</span>
                   </div>
                   {recentDocs.map((d) => (
@@ -1146,7 +1168,7 @@ export default function Wiki() {
 
           {pinnedAll.length === 0 && mostLinked.length === 0 && (
             <div className="mt-11 rounded-xl p-[34px] text-center" style={{ border: '1.5px dashed rgba(60,47,24,.22)' }}>
-              <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>아직 조용한 서재예요</div>
+              <div style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>아직 조용한 서재예요</div>
               <div className="mt-2" style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
                 문서를 고정하거나 읽기 시작하면 이 자리에 모입니다.<br />첫 책을 펼쳐 첫 문서를 써보세요 — 책등이 조금씩 두꺼워질 거예요.
               </div>
@@ -1190,7 +1212,7 @@ export default function Wiki() {
 function Infobox({ doc, book }: { doc: WikiDoc; book: WikiBook }) {
   return (
     <div className="overflow-hidden rounded-xl" style={{ background: C.paper, border: '1px solid rgba(60,47,24,.16)', boxShadow: '0 2px 8px rgba(64,44,18,.06)' }}>
-      <div className="px-4 py-[11px]" style={{ background: book.tint, color: C.cream, fontFamily: SERIF, fontWeight: 700, fontSize: 15 }}>
+      <div className="px-4 py-[11px]" style={{ background: book.tint, color: C.cream, fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 15 }}>
         {doc.title || '무제'}
       </div>
       {(doc.infobox ?? []).map((row, i) => (
@@ -1228,7 +1250,7 @@ function DocMain({
         {mode === 'read' ? (
           <>
             <div className="flex items-start justify-between gap-4">
-              <h1 className="m-0 min-w-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 36, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
+              <h1 className="m-0 min-w-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 34, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
               <button
                 type="button" onClick={() => setMode('edit')}
                 className="mt-2 flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-[7px] text-[12.5px] font-semibold transition-colors hover:bg-[#40372a]"
@@ -1260,7 +1282,7 @@ function DocMain({
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); }}
                 placeholder="문서 제목"
                 className="w-full bg-transparent outline-none"
-                style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32, lineHeight: 1.3, color: C.ink }}
+                style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 31, lineHeight: 1.3, color: C.ink }}
               />
               <button
                 type="button" onClick={() => setMode('read')}
@@ -1321,7 +1343,7 @@ function DocMain({
       {/* 하위 문서 */}
       <div className="mt-[26px]">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>하위 문서</h2>
+          <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>하위 문서</h2>
           {kids.length > 0 && <span style={{ fontSize: 12, color: C.sub }}>{kids.length}개</span>}
         </div>
         <div className="mt-3 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
@@ -1329,7 +1351,7 @@ function DocMain({
             <button key={d.id} type="button" onClick={() => openDoc(d.id)}
               className="rounded-[10px] px-[18px] py-[15px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgba(64,44,18,.28)]"
               style={{ background: C.paper, border: `1px solid ${C.line}` }}>
-              <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 14 }}>{d.title || '무제'}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 14.5 }}>{d.title || '무제'}</div>
               <div className="mt-1.5 line-clamp-1" style={{ fontSize: 13, color: C.sub }}>{bodyText(d.body).slice(0, 70) || '빈 문서'}</div>
             </button>
           ))}
@@ -1344,7 +1366,7 @@ function DocMain({
       {/* 백링크 — 문맥 발췌 카드 (시안) */}
       <div className="mt-[26px]">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>이 문서를 언급한 문서들</h2>
+          <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>이 문서를 언급한 문서들</h2>
           <span style={{ fontSize: 12, color: C.sub }}>서재 전체에서 자동으로 모임</span>
         </div>
         {backlinks.length > 0 ? (
@@ -1357,7 +1379,7 @@ function DocMain({
                   className="rounded-[10px] px-[18px] py-[15px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgba(64,44,18,.28)]"
                   style={{ background: C.paper, border: `1px solid ${C.line}` }}>
                   <div className="flex items-center gap-2">
-                    <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 14 }}>{bl.title || '무제'}</span>
+                    <span style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 14.5 }}>{bl.title || '무제'}</span>
                     <BookChip book={b} />
                   </div>
                   {ex && (
@@ -1475,13 +1497,13 @@ function BookDialog({ book, onClose, onSave, onDelete }: {
             <span className="[writing-mode:vertical-rl]" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 12, letterSpacing: '.16em', color: C.cream }}>{title.trim() || '새 책'}</span>
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>{book ? '책 정보' : '새 책'}</h3>
+            <h3 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>{book ? '책 정보' : '새 책'}</h3>
             <input
               autoFocus={!book}
               value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="책 제목"
               className="mt-2 w-full bg-transparent pb-1 outline-none"
-              style={{ borderBottom: `1px solid ${C.line}`, fontFamily: SERIF, fontWeight: 700, fontSize: 15, color: C.ink }}
+              style={{ borderBottom: `1px solid ${C.line}`, fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 15, color: C.ink }}
             />
             <input
               value={intro} onChange={(e) => setIntro(e.target.value)}
