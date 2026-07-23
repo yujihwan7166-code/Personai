@@ -1116,6 +1116,89 @@
     .career2-theme .c2-seated { animation: none; }
   }
 
+  .career3-theme {
+    /* 마이커리어 v3 — "밤의 기둥". 하루를 닫으며 한 줄 적는 방이라 어두운 캔버스를 고정한다
+     * (테마 토글과 무관 — 티켓북 선례). 빛은 촛불 골드 하나뿐. */
+    --background: 220 16% 6%;
+    --foreground: 40 18% 90%;
+
+    --card: 220 14% 9%;
+    --card-foreground: 40 18% 90%;
+
+    --popover: 220 14% 10%;
+    --popover-foreground: 40 18% 90%;
+
+    --muted: 220 10% 14%;
+    --muted-foreground: 40 8% 62%;      /* 웜 틴트 — 회색으로 죽이지 않는다 */
+
+    --accent: 220 10% 16%;
+    --accent-foreground: 40 18% 90%;
+
+    --secondary: 220 10% 14%;
+    --secondary-foreground: 40 12% 76%;
+
+    --border: 220 9% 20%;
+    --input: 220 9% 20%;
+
+    --primary: 40 18% 90%;
+    --primary-foreground: 220 16% 8%;
+
+    --ring: 36 45% 68%;
+    --focus-ring: 36 48% 70%;
+    --focus-offset: 220 16% 6%;
+
+    --hairline:  220 9% 17%;
+    --surface-1: 220 14% 9%;
+    --surface-2: 220 12% 11%;
+    --surface-3: 220 10% 15%;
+
+    --sidebar-background: 220 14% 8%;
+
+    /* 촛불 골드 — 노드·커서·주요 액션. 이 방의 유일한 빛. */
+    --c3-glow: 36 45% 68%;
+  }
+
+  /* 기둥 — 기록들을 관통하는 한 줄. 위아래 끝은 어둠으로 사라진다. */
+  .career3-theme .c3-column {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--c3-glow) / 0.28) 6%,
+      hsl(var(--c3-glow) / 0.28) 94%,
+      transparent
+    );
+  }
+
+  /* 착지 — 이 화면의 유일한 연출. 새 기록이 기둥 위에 내려앉으며 빛이 번졌다 잦아든다. */
+  .career3-theme .c3-settle {
+    animation: c3-settle 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .career3-theme .c3-settle .c3-node {
+    animation: c3-node-flare 1400ms ease-out;
+  }
+  @keyframes c3-settle {
+    from { opacity: 0; transform: translateY(-10px); filter: blur(3px); }
+    to   { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes c3-node-flare {
+    0%   { box-shadow: 0 0 0 0 hsl(var(--c3-glow) / 0.55), 0 0 14px 4px hsl(var(--c3-glow) / 0.5); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--c3-glow) / 0), 0 0 0 0 hsl(var(--c3-glow) / 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .career3-theme .c3-settle,
+    .career3-theme .c3-settle .c3-node { animation: none; }
+  }
+
+  .career3-theme ::selection {
+    background-color: hsl(var(--c3-glow) / 0.28);
+  }
+
+  .career3-theme :is(button, select, summary, [role='button']):not(:disabled),
+  .career3-theme label:has(input[type='checkbox']) {
+    cursor: pointer;
+  }
+  .career3-theme button:disabled { cursor: not-allowed; }
+
   /* 프라이버시 모드 — 금액(tabular-nums)만 블러, 마우스 올리면 그 값만 잠깐 보임 */
   .ledger-hide-amounts .tabular-nums {
     filter: blur(5px);
