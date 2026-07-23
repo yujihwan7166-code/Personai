@@ -271,8 +271,12 @@ export default function Wiki() {
     [recent, docs],
   );
   const linkTotal = useMemo(() => docs.reduce((a, d) => a + linkedDocIds(d.body).length, 0), [docs]);
-  /* 펼쳐둔 책 — 책장 오른쪽 빈 자리에 눕혀두는 "읽던 문서" (최근 본 것, 없으면 최신 수정) */
-  const lastRead = recentDocs[0] ?? (docs.length ? [...docs].sort((a, b) => b.updated - a.updated)[0] : undefined);
+  /* 지구본 — 서재 한 바퀴: 아무 문서나 펼치기 (위키의 "임의의 문서로") */
+  const openRandom = () => {
+    if (!docs.length) return;
+    const pool = docs.length > 1 && docId ? docs.filter((d) => d.id !== docId) : docs;
+    openDoc(pool[Math.floor(Math.random() * pool.length)].id);
+  };
   const mostLinked = useMemo(() => {
     const count = new Map<string, number>();
     for (const d of docs) for (const id of linkedDocIds(d.body)) if (id !== d.id) count.set(id, (count.get(id) ?? 0) + 1);
@@ -708,34 +712,47 @@ export default function Wiki() {
                 </span>
               ))}
 
-              {/* 펼쳐둔 책 — 읽던 문서가 서가 오른쪽에 펼쳐진 채 놓여 있다. 누르면 이어서 읽기 */}
-              {shelf2.length === 0 && lastRead && (
+              {/* 지구본 — 서가 맨 오른쪽의 대형 정물. 돌리면(클릭) 아무 문서나 펼쳐진다 */}
+              {shelf2.length === 0 && docs.length > 0 && (
                 <button
-                  type="button" onClick={() => openDoc(lastRead.id)} title={`이어서 읽기 — ${lastRead.title || '무제'}`}
-                  className="group ml-auto hidden flex-none self-end pl-6 text-left md:block"
-                  style={{ transform: 'rotate(-1.6deg)' }}
+                  type="button" onClick={openRandom} title="지구본 돌리기 — 아무 문서나 펼치기"
+                  className="group relative ml-auto hidden flex-none self-end pl-5 md:block"
                 >
-                  <span className="block transition-transform duration-200 group-hover:-translate-y-1.5 motion-reduce:transition-none motion-reduce:group-hover:transform-none" style={{ filter: 'drop-shadow(0 16px 16px rgba(10,5,0,.5))' }}>
-                    <span className="grid" style={{ gridTemplateColumns: '158px 158px' }}>
-                      {/* 왼쪽 페이지 */}
-                      <span className="flex h-[172px] flex-col p-4" style={{ background: 'linear-gradient(105deg, #f3ecdb, #fdfaf2 60%)', borderRadius: '7px 2px 2px 7px', border: '1px solid rgba(60,47,24,.2)', borderRight: 'none', boxShadow: 'inset -14px 0 18px -14px rgba(46,28,10,.55)' }}>
-                        <span style={{ fontSize: 9.5, letterSpacing: '.24em', color: C.muted }}>이어서 읽기</span>
-                        <span className="mt-2 line-clamp-2" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 16.5, lineHeight: 1.4, color: C.ink }}>{lastRead.title || '무제'}</span>
-                        <span className="flex-1" />
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-[7px] w-[7px] rounded-full" style={{ background: bookOf.get(lastRead.book)?.tint ?? C.rust }} />
-                          <span className="truncate" style={{ fontSize: 10.5, color: C.sub }}>{bookOf.get(lastRead.book)?.title}</span>
-                        </span>
-                      </span>
-                      {/* 오른쪽 페이지 */}
-                      <span className="flex h-[172px] flex-col p-4" style={{ background: 'linear-gradient(255deg, #f3ecdb, #fdfaf2 60%)', borderRadius: '2px 7px 7px 2px', border: '1px solid rgba(60,47,24,.2)', borderLeft: 'none', boxShadow: 'inset 14px 0 18px -14px rgba(46,28,10,.55)' }}>
-                        <span className="line-clamp-5" style={{ fontSize: 11.5, lineHeight: 1.75, color: C.body }}>{bodyText(lastRead.body).slice(0, 130) || '빈 문서 — 첫 문장을 적어보세요.'}</span>
-                        <span className="flex-1" />
-                        <span className="self-end" style={{ fontSize: 11, fontWeight: 700, color: C.green }}>계속 읽기 →</span>
-                      </span>
-                    </span>
-                    {/* 종이 단면 — 페이지가 쌓인 두께 */}
-                    <span aria-hidden className="block h-[7px]" style={{ margin: '0 3px', borderRadius: '0 0 5px 5px', background: 'repeating-linear-gradient(180deg, #efe6d0 0 1.5px, #d9cdb2 1.5px 3px)', borderTop: '1px solid rgba(60,47,24,.28)' }} />
+                  <svg width="164" height="234" viewBox="0 0 164 234" className="transition-transform duration-300 group-hover:-rotate-3 motion-reduce:transition-none motion-reduce:group-hover:transform-none" style={{ filter: 'drop-shadow(0 16px 16px rgba(10,5,0,.5))', transformOrigin: '50% 90%' }}>
+                    <defs>
+                      <radialGradient id="wikiGlobeSea" cx="38%" cy="32%" r="80%">
+                        <stop offset="0%" stopColor="#4a6076" />
+                        <stop offset="55%" stopColor="#33465e" />
+                        <stop offset="100%" stopColor="#22303f" />
+                      </radialGradient>
+                    </defs>
+                    {/* 받침 — 나무 발 + 기둥 */}
+                    <ellipse cx="82" cy="224" rx="40" ry="8" fill="#5c3414" />
+                    <ellipse cx="82" cy="221" rx="40" ry="8" fill="#7c4425" />
+                    <rect x="77" y="186" width="10" height="34" rx="4" fill="#6d3c1e" />
+                    {/* 자오선 고리 (황동) — 살짝 기운 축 */}
+                    <g transform="rotate(16 82 106)">
+                      <ellipse cx="82" cy="106" rx="74" ry="76" fill="none" stroke="#8a6a30" strokeWidth="7" />
+                      <ellipse cx="82" cy="106" rx="74" ry="76" fill="none" stroke="#b98a2e" strokeWidth="2.5" />
+                      <circle cx="82" cy="27" r="5" fill="#8a6a30" />
+                      <circle cx="82" cy="185" r="5" fill="#8a6a30" />
+                    </g>
+                    {/* 구 — 바다와 대륙 */}
+                    <g transform="rotate(16 82 106)">
+                      <circle cx="82" cy="106" r="64" fill="url(#wikiGlobeSea)" />
+                      <path d="M46 76 q10 -12 24 -8 q12 3 10 14 q-2 9 -14 10 q-16 2 -22 -6 q-3 -5 2 -10 z" fill="#b98a2e" opacity=".85" />
+                      <path d="M96 92 q16 -6 26 4 q8 8 2 18 q-7 10 -20 7 q-12 -3 -14 -14 q-1 -9 6 -15 z" fill="#4a5d3a" opacity=".9" />
+                      <path d="M58 128 q9 -7 19 -2 q9 5 5 14 q-4 9 -15 8 q-11 -1 -13 -10 q-1 -6 4 -10 z" fill="#9a4632" opacity=".8" />
+                      <path d="M104 138 q8 -3 12 3 q3 6 -3 10 q-7 4 -12 -1 q-4 -5 3 -12 z" fill="#b98a2e" opacity=".7" />
+                      {/* 위도선 힌트 */}
+                      <path d="M20 96 q62 -18 124 0" stroke="rgba(246,236,217,.22)" strokeWidth="1.5" fill="none" />
+                      <path d="M22 122 q60 16 120 0" stroke="rgba(246,236,217,.18)" strokeWidth="1.5" fill="none" />
+                      {/* 반사광 */}
+                      <ellipse cx="60" cy="82" rx="20" ry="12" fill="rgba(255,246,228,.14)" transform="rotate(-24 60 82)" />
+                    </g>
+                  </svg>
+                  <span className="pointer-events-none absolute left-1/2 top-full block -translate-x-1/2 whitespace-nowrap pt-[7px] opacity-0 transition-opacity duration-200 group-hover:opacity-100" style={{ fontSize: 10.5, letterSpacing: '.14em', color: 'rgba(244,230,200,.8)' }}>
+                    아무 문서나 펼치기
                   </span>
                 </button>
               )}
