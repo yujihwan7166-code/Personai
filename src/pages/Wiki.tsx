@@ -7,7 +7,7 @@
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
 import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
@@ -15,7 +15,7 @@ import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
   type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
 } from '@/lib/wiki3/store';
-import { childrenOf, ancestorsOf, moveOptions, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
+import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
@@ -1285,6 +1285,94 @@ function Infobox({ doc, book }: { doc: WikiDoc; book: WikiBook }) {
   );
 }
 
+/* ── 위치 고르기 — 이 문서가 책의 어느 자리에 속하는지 차례를 그대로 펼쳐 고른다.
+      드롭다운 목록은 들여쓰기가 뭉개져 위계가 안 보였다. ── */
+function ParentPicker({ bookDocs, doc, book, onPick }: {
+  bookDocs: WikiDoc[]; doc: WikiDoc; book: WikiBook; onPick: (parent: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rows = useMemo(() => {
+    const out: { d: WikiDoc; depth: number; no: string }[] = [];
+    const counters: number[] = [];
+    const seen = new Set<string>();
+    const walk = (parent: string | null, depth: number) => {
+      for (const d of childrenOf(bookDocs, parent)) {
+        if (seen.has(d.id)) continue;
+        seen.add(d.id);
+        counters.length = depth + 1;
+        counters[depth] = (counters[depth] ?? 0) + 1;
+        out.push({ d, depth, no: counters.join('.') });
+        walk(d.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return out;
+  }, [bookDocs]);
+
+  const path = ancestorsOf(bookDocs, doc.id);
+  const label = path.length ? path.map((p) => p.title || '무제').join(' › ') : `${book.title}의 맨 위`;
+
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button" onClick={() => setOpen((o) => !o)}
+        className="flex max-w-[280px] items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
+        style={{ borderColor: C.line, background: C.paper, color: C.sub }}
+        title="이 문서가 놓인 자리 — 눌러서 옮기기"
+      >
+        <span aria-hidden className="h-[10px] w-[3px] flex-none rounded-[1px]" style={{ background: book.tint }} />
+        <span className="truncate">{label}</span>
+        <ChevronDown className="h-3 w-3 flex-none opacity-70" />
+      </button>
+
+      {open && (
+        <>
+          <span className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <span
+            className="absolute left-0 top-full z-30 mt-1.5 block max-h-[300px] w-[320px] overflow-y-auto rounded-xl p-1.5"
+            style={{ background: C.paper, border: `1px solid ${C.lineDeep}`, boxShadow: '0 16px 34px -12px rgba(46,28,10,.4)' }}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}
+          >
+            <span className="block px-2.5 pb-1.5 pt-1 text-[11px] font-semibold" style={{ color: C.muted }}>어디에 둘까요</span>
+            <button
+              type="button" onClick={() => { onPick(null); setOpen(false); }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.06)]"
+              style={{ color: C.ink }}
+            >
+              <span aria-hidden className="h-[14px] w-[5px] flex-none rounded-[1px]" style={{ background: book.tint }} />
+              <span className="flex-1 truncate">{book.title}의 맨 위</span>
+              {doc.parent === null && <Check className="h-3.5 w-3.5 flex-none" style={{ color: C.green }} />}
+            </button>
+
+            {rows.map(({ d, depth, no }) => {
+              const self = d.id === doc.id;
+              const inside = isDescendant(bookDocs, d.id, doc.id);
+              const disabled = self || inside;
+              const current = doc.parent === d.id;
+              return (
+                <button
+                  key={d.id} type="button" disabled={disabled}
+                  onClick={() => { onPick(d.id); setOpen(false); }}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-lg py-[7px] pr-2.5 text-left text-[13px] transition-colors',
+                    disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-[rgba(60,47,24,.06)]',
+                  )}
+                  style={{ paddingLeft: 10 + depth * 12, color: C.ink, fontWeight: current ? 700 : depth === 0 ? 600 : 500 }}
+                  title={self ? '자기 자신 아래로는 옮길 수 없어요' : inside ? '하위 문서 아래로는 옮길 수 없어요' : `${d.title || '무제'} 아래로`}
+                >
+                  <span className="w-[30px] flex-none tabular-nums text-[11px] font-bold" style={{ color: C.muted }}>{no}</span>
+                  <span className="min-w-0 flex-1 truncate">{d.title || '무제'}</span>
+                  {current && <Check className="h-3.5 w-3.5 flex-none" style={{ color: C.green }} />}
+                </button>
+              );
+            })}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
 /* ── 문서 본문 (읽기/편집 공용 셸) ── */
 function DocMain({
   active, book, bookOf, bookDocs, mode, setMode, toc, kids, backlinks,
@@ -1355,18 +1443,10 @@ function DocMain({
             <div className="mt-3 flex flex-wrap items-center gap-2" style={{ fontSize: 12 }}>
               <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
               <span className="opacity-40">·</span>
-              <select
-                value={active.parent ?? ''}
-                onChange={(e) => patchDoc(active.id, { parent: e.target.value || null })}
-                className="rounded-lg px-2 py-1 outline-none"
-                style={{ border: `1px solid ${C.line}`, background: C.paper, color: C.sub, fontSize: 12 }}
-                title="상위 문서로 이동"
-              >
-                <option value="">— 책의 맨 위 —</option>
-                {moveOptions(bookDocs, active.id).map((o) => (
-                  <option key={o.id} value={o.id}>{'  '.repeat(o.depth)}{o.title || '무제'}</option>
-                ))}
-              </select>
+              <ParentPicker
+                bookDocs={bookDocs} doc={active} book={book}
+                onPick={(parent) => patchDoc(active.id, { parent })}
+              />
               <button
                 type="button"
                 onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
