@@ -76,6 +76,20 @@ function tocOf(body: Value): { level: number; text: string }[] {
   return out;
 }
 
+/** lg(1024px) 이상 여부 — 문서 뷰에서 데스크톱/모바일 중 한쪽만 마운트하기 위해.
+ *  둘 다 마운트하면(CSS 숨김) 같은 body 노드를 두 Plate 인스턴스가 공유해
+ *  Slate 경로 맵이 깨진다 ("Unable to find the path for Slate node"). */
+function useIsWide() {
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setWide(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return wide;
+}
+
 const fmtRel = (ts: number) => {
   const d = Date.now() - ts, m = 60000, h = 3600000, day = 86400000;
   if (d < m) return '방금 전';
@@ -112,6 +126,7 @@ export default function Wiki() {
   const mainRef = useRef<HTMLElement>(null);
   const saveTimer = useRef<number | null>(null);
 
+  const isWide = useIsWide();
   const { books, docs, recent } = store;
   const book = bookId ? books.find((b) => b.id === bookId) ?? null : null;
   const bookDocs = useMemo(() => (bookId ? docs.filter((d) => d.book === bookId) : []), [docs, bookId]);
@@ -473,7 +488,8 @@ export default function Wiki() {
             className="mt-[22px] grid items-start justify-center gap-6 lg:gap-9"
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
-            <div className="hidden gap-9 lg:grid" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)${mode === 'read' && active.infobox?.length ? ' 280px' : ''}`, alignItems: 'start' }}>
+            {isWide ? (
+            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)${mode === 'read' && active.infobox?.length ? ' 280px' : ''}`, alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기, 제목 2개↑) */}
               {mode === 'read' && toc.length >= 2 && (
                 <nav className="sticky top-4" aria-label="목차">
@@ -508,9 +524,9 @@ export default function Wiki() {
                 </aside>
               )}
             </div>
-
-            {/* 모바일/태블릿 — 1열 (인포박스는 본문 위) */}
-            <div className="lg:hidden">
+            ) : (
+            /* 모바일/태블릿 — 1열 (인포박스는 본문 위). isWide 분기로 한쪽만 마운트 */
+            <div>
               {mode === 'read' && active.infobox && active.infobox.length > 0 && <div className="mb-4"><Infobox doc={active} book={book} /></div>}
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
@@ -520,6 +536,7 @@ export default function Wiki() {
                 openDoc={openDoc} createDoc={createDoc} setPicker={setPicker}
               />
             </div>
+            )}
           </div>
         </section>
       ) : book ? (
