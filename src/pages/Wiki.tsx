@@ -1316,7 +1316,7 @@ function TemplatePicker({ docBody, onApply }: { docBody: Value; onApply: (body: 
     <span className="relative inline-flex">
       <button
         type="button" onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
+        className="flex h-[30px] items-center gap-1 rounded-full border px-3 text-[12px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
         style={{ borderColor: C.line, background: C.paper, color: C.sub }}
         title="문서 틀 고르기"
       >
@@ -1385,7 +1385,7 @@ function ParentPicker({ bookDocs, doc, book, onPick }: {
     <span className="relative inline-flex">
       <button
         type="button" onClick={() => setOpen((o) => !o)}
-        className="flex max-w-[280px] items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
+        className="flex h-[30px] max-w-[280px] items-center gap-1.5 rounded-full border px-3 text-[12px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.04)]"
         style={{ borderColor: C.line, background: C.paper, color: C.sub }}
         title="이 문서가 놓인 자리 — 눌러서 옮기기"
       >
@@ -1503,39 +1503,50 @@ function DocMain({
                 className="w-full bg-transparent outline-none"
                 style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 31, lineHeight: 1.3, color: C.ink }}
               />
-              <button
-                type="button" onClick={() => setMode('read')}
-                className="mt-2 flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-[7px] text-[12.5px] font-semibold text-white transition-colors"
-                style={{ background: C.green }}
-              >
-                읽기
-              </button>
+              <div className="mt-1 flex shrink-0 items-center gap-2">
+                <span className="hidden sm:inline" style={{ fontSize: 11.5, color: C.muted }}>{fmtRel(active.updated)} 저장됨</span>
+                <button
+                  type="button" onClick={() => setMode('read')}
+                  className="flex items-center gap-1.5 rounded-lg px-3.5 py-[7px] text-[12.5px] font-semibold text-white transition-colors"
+                  style={{ background: C.green }}
+                >
+                  읽기
+                </button>
+              </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2" style={{ fontSize: 12 }}>
-              <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
-              <span className="opacity-40">·</span>
+            {/* 도구 줄 하나 — 왼쪽: 넣기·자리(주요) / 오른쪽: 고정·삭제(부차, 아이콘) */}
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-2">
+              <TemplatePicker docBody={active.body} onApply={applyTemplate} />
               <ParentPicker
                 bookDocs={bookDocs} doc={active} book={book}
                 onPick={(parent) => patchDoc(active.id, { parent })}
               />
-              <button
-                type="button"
-                onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
-                className={cn('flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold transition-colors', active.pinned ? 'border-amber-300 bg-amber-50 text-amber-600' : '')}
-                style={active.pinned ? undefined : { borderColor: C.line, background: C.paper, color: C.muted }}
-              >
-                <Pin className="h-3 w-3" /> {active.pinned ? '고정됨' : '고정'}
-              </button>
-              <button type="button" onClick={() => removeDoc(active.id)} className="flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:border-rose-300 hover:text-rose-500" style={{ borderColor: C.line, background: C.paper, color: C.muted }}>
-                <Trash2 className="h-3 w-3" /> 삭제
-              </button>
-              <span className="ml-auto" style={{ fontSize: 12, color: C.muted }}>{fmtRel(active.updated)} 저장</span>
+              <span aria-hidden className="mx-0.5 h-4 w-px" style={{ background: C.line }} />
+              <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
+              <div className="ml-auto flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
+                  aria-label={active.pinned ? '고정 해제' : '고정'}
+                  title={active.pinned ? '고정됨 — 눌러 해제' : '이 문서 고정'}
+                  className={cn('flex h-[30px] w-[30px] items-center justify-center rounded-lg transition-colors', active.pinned ? 'text-amber-500' : 'hover:bg-[rgba(60,47,24,.06)]')}
+                  style={active.pinned ? { background: 'rgba(245,158,11,.12)' } : { color: C.muted }}
+                >
+                  <Pin className={cn('h-3.5 w-3.5', active.pinned && 'fill-current')} />
+                </button>
+                <button
+                  type="button" onClick={() => removeDoc(active.id)}
+                  aria-label="문서 삭제" title="이 문서 삭제"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-lg transition-colors hover:bg-rose-50 hover:text-rose-500"
+                  style={{ color: C.muted }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
 
-            <TemplatePicker docBody={active.body} onApply={applyTemplate} />
-
-            <div aria-hidden className="my-5" style={{ borderBottom: '3px double rgba(60,47,24,.25)' }} />
+            <div aria-hidden className="mb-1 mt-5" style={{ borderBottom: `1px solid ${C.line}` }} />
 
             <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>편집기를 여는 중…</p>}>
               <WikiDocEditor
@@ -1626,9 +1637,9 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
     <span className="flex flex-wrap items-center gap-1">
       {tags.map((t) => (
         <button key={t} type="button" onClick={() => onChange(tags.filter((x) => x !== t))} title="태그 제거"
-          className="rounded-full px-2 py-0.5 font-semibold transition-colors"
-          style={{ background: 'rgba(48,95,76,.1)', color: C.green, fontSize: 11.5 }}>
-          #{t} ×
+          className="flex h-[24px] items-center rounded-full px-2.5 text-[11.5px] font-semibold transition-colors hover:bg-[rgba(48,95,76,.16)]"
+          style={{ background: 'rgba(48,95,76,.1)', color: C.green }}>
+          #{t} <span className="ml-1 opacity-50">×</span>
         </button>
       ))}
       <input
@@ -1636,9 +1647,9 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add(); } }}
         onBlur={add}
-        placeholder="+ 태그"
-        className="w-[58px] bg-transparent outline-none"
-        style={{ fontSize: 11.5, color: C.ink }}
+        placeholder={tags.length ? '+ 태그' : '# 태그 추가'}
+        className="h-[24px] w-[72px] bg-transparent outline-none"
+        style={{ fontSize: 12, color: C.ink }}
       />
     </span>
   );
