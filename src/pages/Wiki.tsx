@@ -22,9 +22,11 @@ const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then
 const WikiDocReader = lazy(() => import('@/components/wiki3/WikiDocReader').then((m) => ({ default: m.WikiDocReader })));
 
 /* 시안 팔레트 — 그대로 */
+/* 보조색은 시안보다 어둡게 — 원래 값(#7d7260/#a0937d)은 크림 배경에서 4.1:1 / 2.6:1 로
+   본문 대비 기준(4.5:1)에 못 미쳐 글이 흐려 보였다. 아래는 5.7:1 / 4.6:1. */
 const C = {
   bg: '#f4eee1', paper: '#fdfaf2', ink: '#292217', body: '#332c21',
-  sub: '#7d7260', muted: '#a0937d',
+  sub: '#665c4b', muted: '#756a57',
   line: 'rgba(60,47,24,.14)', line2: 'rgba(60,47,24,.09)', lineDeep: 'rgba(60,47,24,.22)',
   green: '#305f4c', rust: '#9a4632', cream: '#f6ecd9',
 };
@@ -197,7 +199,7 @@ function BookChip({ book }: { book?: WikiBook }) {
   return (
     <span className="inline-flex flex-none items-center gap-[5px] rounded-full border px-2 py-[2px]" style={{ borderColor: C.line, background: 'rgba(60,47,24,.03)' }}>
       <span className="h-[7px] w-[7px] rounded-full" style={{ background: book.tint }} />
-      <span className="text-[10.5px]" style={{ color: C.sub }}>{book.title}</span>
+      <span className="text-[11.5px]" style={{ color: C.sub }}>{book.title}</span>
     </span>
   );
 }
@@ -519,7 +521,7 @@ export default function Wiki() {
                 <span className="block" style={{ fontSize: 11, color: C.sub }}>문서 {bookDocs.length}개</span>
               </span>
             </button>
-            <div className="mx-2 mb-1.5 mt-3" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>차례</div>
+            <div className="mx-2 mb-1.5 mt-3" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>차례</div>
             {sideRows.map(({ d, depth }) => {
               const on = d.id === docId;
               const onPath = sidePath.has(d.id);
@@ -548,7 +550,7 @@ export default function Wiki() {
             {/* 갈아타기 — 책 안에 있어도 서재의 다른 책은 손 닿는 곳에 */}
             {books.length > 1 && (
               <>
-                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>다른 책</div>
+                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>다른 책</div>
                 {books.filter((b) => b.id !== book.id).map((b) => (
                   <button
                     key={b.id} type="button" onClick={() => openBook(b.id)}
@@ -556,7 +558,7 @@ export default function Wiki() {
                   >
                     <span className="h-[18px] w-[7px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
                     <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, color: C.body }}>{b.title}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+                    <span style={{ fontSize: 12, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
                   </button>
                 ))}
               </>
@@ -565,7 +567,7 @@ export default function Wiki() {
         ) : (
           /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 채움 알약으로) */
           <div className="flex-1 px-3 pb-4">
-            <div className="mx-2 mb-1.5" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>책</div>
+            <div className="mx-2 mb-1.5" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>책</div>
             {books.map((b) => {
               const on = b.id === bookId;
               return (
@@ -583,7 +585,7 @@ export default function Wiki() {
             {books.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>첫 책을 만들어보세요</p>}
             {recentDocs.length > 0 && (
               <>
-                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>최근 본 문서</div>
+                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 11, letterSpacing: '.1em', color: C.muted }}>최근 본 문서</div>
                 {recentDocs.map((d) => (
                   <button key={d.id} type="button" onClick={() => openDoc(d.id)}
                     className="flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]">
@@ -596,7 +598,7 @@ export default function Wiki() {
           </div>
         )}
 
-        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.1)', fontSize: 11.5, color: C.muted }}>
+        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.1)', fontSize: 12, color: C.muted }}>
           책 {books.length}권 · 문서 {docs.length}개 · 연결 {linkTotal}개
         </div>
       </aside>
@@ -847,7 +849,7 @@ export default function Wiki() {
               </div>
 
               {/* 페이지 밑단 — 이 책의 형편 */}
-              <div className="mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-3" style={{ borderTop: `1px solid ${C.line2}`, fontSize: 11.5, color: C.muted }}>
+              <div className="mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-3" style={{ borderTop: `1px solid ${C.line2}`, fontSize: 12, color: C.muted }}>
                 <span>문서 {bookDocs.length}개</span>
                 {bookDocs.length > 0 && (
                   <>
@@ -1001,7 +1003,7 @@ export default function Wiki() {
                       <div className="mt-1.5 line-clamp-2" style={{ fontSize: 13, color: C.sub, lineHeight: 1.65 }}>{bodyText(d.body).slice(0, 80) || '빈 문서'}</div>
                       <div className="mt-[13px] flex items-center gap-2">
                         <BookChip book={b} />
-                        <span style={{ fontSize: 11.5, color: C.muted }}>{fmtDate(d.updated)} 수정</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{fmtDate(d.updated)} 수정</span>
                       </div>
                     </button>
                   );
@@ -1036,7 +1038,7 @@ export default function Wiki() {
                             <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: b?.tint ?? C.rust }} />
                           </span>
                         </span>
-                        <span className="whitespace-nowrap" style={{ fontSize: 12.5, color: C.sub }}>{n}회 언급</span>
+                        <span className="whitespace-nowrap" style={{ fontSize: 13, color: C.sub }}>{n}회 언급</span>
                       </button>
                     );
                   })}
@@ -1159,12 +1161,12 @@ function DocMain({
             <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
               <BookChip book={book} />
               {active.tags.map((t) => <span key={t} style={{ fontSize: 12, color: C.green, fontWeight: 600 }}>#{t}</span>)}
-              <span style={{ fontSize: 12.5, color: C.muted }}>마지막 수정 {fmtDate(active.updated)}</span>
-              {backlinks.length > 0 && <span style={{ fontSize: 12.5, color: C.muted }}>· 문서 {backlinks.length}개가 이 문서를 언급</span>}
+              <span style={{ fontSize: 13, color: C.muted }}>마지막 수정 {fmtDate(active.updated)}</span>
+              {backlinks.length > 0 && <span style={{ fontSize: 13, color: C.muted }}>· 문서 {backlinks.length}개가 이 문서를 언급</span>}
             </div>
             <div aria-hidden className="mb-1 mt-5" style={{ borderBottom: '3px double rgba(60,47,24,.25)' }} />
             <div className="wiki-read">
-              <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 12.5, color: C.sub }}>문서를 펼치는 중…</p>}>
+              <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>문서를 펼치는 중…</p>}>
                 <WikiDocReader key={`${active.id}-${active.updated}`} value={active.body} onOpenDoc={openDoc} containerRef={readBodyRef} />
               </Suspense>
             </div>
@@ -1216,14 +1218,14 @@ function DocMain({
               <button type="button" onClick={() => removeDoc(active.id)} className="flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold transition-colors hover:border-rose-300 hover:text-rose-500" style={{ borderColor: C.line, background: C.paper, color: C.muted }}>
                 <Trash2 className="h-3 w-3" /> 삭제
               </button>
-              <span className="ml-auto" style={{ fontSize: 11.5, color: C.muted }}>{fmtRel(active.updated)} 저장</span>
+              <span className="ml-auto" style={{ fontSize: 12, color: C.muted }}>{fmtRel(active.updated)} 저장</span>
             </div>
 
             <InfoboxEditor rows={active.infobox ?? []} onChange={(rows) => patchDoc(active.id, { infobox: rows.length ? rows : undefined })} />
 
             <div aria-hidden className="my-5" style={{ borderBottom: '3px double rgba(60,47,24,.25)' }} />
 
-            <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 12.5, color: C.sub }}>편집기를 여는 중…</p>}>
+            <Suspense fallback={<p className="py-10 text-center" style={{ fontSize: 13, color: C.sub }}>편집기를 여는 중…</p>}>
               <WikiDocEditor
                 key={active.id}
                 initialValue={active.body}
@@ -1240,7 +1242,7 @@ function DocMain({
       {/* 하위 문서 */}
       <div className="mt-[26px]">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>하위 문서</h2>
+          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>하위 문서</h2>
           {kids.length > 0 && <span style={{ fontSize: 12, color: C.sub }}>{kids.length}개</span>}
         </div>
         <div className="mt-3 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
@@ -1263,7 +1265,7 @@ function DocMain({
       {/* 백링크 — 문맥 발췌 카드 (시안) */}
       <div className="mt-[26px]">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>이 문서를 언급한 문서들</h2>
+          <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17 }}>이 문서를 언급한 문서들</h2>
           <span style={{ fontSize: 12, color: C.sub }}>서재 전체에서 자동으로 모임</span>
         </div>
         {backlinks.length > 0 ? (
@@ -1291,7 +1293,7 @@ function DocMain({
             })}
           </div>
         ) : (
-          <div className="mt-3 rounded-[10px] px-[22px] py-5" style={{ border: '1.5px dashed rgba(60,47,24,.2)', fontSize: 13, color: C.sub, lineHeight: 1.7 }}>
+          <div className="mt-3 max-w-[62ch] rounded-[10px] px-[22px] py-5" style={{ border: '1.5px dashed rgba(60,47,24,.2)', fontSize: 13.5, color: C.body, lineHeight: 1.75 }}>
             아직 이 문서를 언급한 문서가 없어요. 다른 문서에서 텍스트를 드래그해 "문서로 연결"하면 여기에 모입니다.
           </div>
         )}
@@ -1498,7 +1500,7 @@ function LinkPicker({ docs, books, selfId, initial, onClose, onPick, onCreate }:
               <Plus className="h-4 w-4" /> '{q.trim()}' 새 문서 만들고 연결
             </button>
           )}
-          {!list.length && !q.trim() && <p className="px-3 py-4 text-center" style={{ fontSize: 12.5, color: C.muted }}>문서 제목을 검색해보세요</p>}
+          {!list.length && !q.trim() && <p className="px-3 py-4 text-center" style={{ fontSize: 13, color: C.muted }}>문서 제목을 검색해보세요</p>}
         </div>
       </div>
     </div>
