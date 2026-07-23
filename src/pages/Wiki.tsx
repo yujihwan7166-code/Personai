@@ -498,8 +498,8 @@ export default function Wiki() {
           </button>
         </div>
 
-        {book ? (
-          /* 책 모드 — 지금 펼친 책 + 포커스 차례 */
+        {active && book ? (
+          /* 문서 모드 — 지금 책의 차례. (책 펼침 화면은 가운데가 이미 차례라 여기선 책 목록을 보여준다) */
           <div className="flex-1 px-3 pb-4">
             <button type="button" onClick={goShelf} className="mx-2 mb-2 text-[12px] hover:underline" style={{ color: C.green }}>← 책장으로</button>
             <button
@@ -529,19 +529,23 @@ export default function Wiki() {
             {sideRows.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>아직 빈 책이에요</p>}
           </div>
         ) : (
-          /* 서재 모드 — 책 목록 + 최근 본 문서 */
+          /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 채움 알약으로) */
           <div className="flex-1 px-3 pb-4">
             <div className="mx-2 mb-1.5" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>책</div>
-            {books.map((b) => (
-              <button
-                key={b.id} type="button" onClick={() => openBook(b.id)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
-              >
-                <span className="h-[22px] w-[8px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
-                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500 }}>{b.title}</span>
-                <span style={{ fontSize: 11.5, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
-              </button>
-            ))}
+            {books.map((b) => {
+              const on = b.id === bookId;
+              return (
+                <button
+                  key={b.id} type="button" onClick={() => openBook(b.id)}
+                  className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
+                  style={{ background: on ? C.ink : undefined, color: on ? C.bg : undefined }}
+                >
+                  <span className="h-[22px] w-[8px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
+                  <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: on ? 700 : 500 }}>{b.title}</span>
+                  <span style={{ fontSize: 11.5, color: on ? 'rgba(244,238,225,.7)' : C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+                </button>
+              );
+            })}
             {books.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>첫 책을 만들어보세요</p>}
             {recentDocs.length > 0 && (
               <>
@@ -678,41 +682,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise flex w-full gap-7 px-5 pb-20 pt-[56px] sm:px-8">
-          {/* 왼쪽 — 서가에 남은 책들. 선반이 빈 폭을 가로질러 이어지고, 그 끝에 꺼내온 책이 펼쳐져 있다 */}
-          {books.length > 1 && (
-            <aside className="hidden min-w-0 flex-1 self-end overflow-hidden pb-[2px] 2xl:block">
-              <div className="mb-2.5" style={{ fontSize: 10, letterSpacing: '.2em', color: C.muted }}>서가에 남은 책</div>
-              <div className="flex items-end justify-end gap-[5px]">
-                {books.filter((b) => b.id !== book.id).slice(0, 6).map((b) => {
-                  const n = docs.filter((d) => d.book === b.id).length;
-                  return (
-                    <button
-                      key={b.id} type="button" onClick={() => openBook(b.id)} title={`${b.title} — 문서 ${n}개`}
-                      className="wiki-spine relative flex-none cursor-pointer"
-                      style={{
-                        width: Math.min(30, Math.round(19 + n * 1.6)), height: Math.min(172, 108 + n * 6),
-                        background: `linear-gradient(180deg, color-mix(in srgb, ${b.tint} 86%, #fff), ${b.tint} 24%, ${b.tint} 78%, color-mix(in srgb, ${b.tint} 76%, #000))`,
-                        borderRadius: '2px 3px 3px 2px',
-                        boxShadow: '0 10px 14px -8px rgba(20,11,3,.5), inset 0 -3px 6px rgba(0,0,0,.26)',
-                      }}
-                    >
-                      <span aria-hidden className="absolute inset-x-[3px] top-[7px] h-[4px]" style={{ borderTop: '1.5px solid rgba(233,205,140,.85)', borderBottom: '1px solid rgba(233,205,140,.45)' }} />
-                      <span
-                        className="absolute inset-x-0 bottom-[8px] top-[20px] flex items-center justify-center overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
-                        style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textOverflow: 'ellipsis', color: '#f7e9c8', textShadow: '0 1px 0 rgba(0,0,0,.5)' }}
-                      >
-                        {b.title}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div aria-hidden className="h-[10px] rounded-[2px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 6px 11px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,235,200,.3)' }} />
-            </aside>
-          )}
-
-          <div className="min-w-0" style={{ flex: '0 1 1040px', maxWidth: 1040 }}>
+        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1120 }}>
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
@@ -863,7 +833,6 @@ export default function Wiki() {
                 </button>
               </div>
             </div>
-          </div>
           </div>
         </section>
       ) : (
