@@ -226,6 +226,8 @@ export default function Wiki() {
     [recent, docs],
   );
   const linkTotal = useMemo(() => docs.reduce((a, d) => a + linkedDocIds(d.body).length, 0), [docs]);
+  /* 펼쳐둔 책 — 책장 오른쪽 빈 자리에 눕혀두는 "읽던 문서" (최근 본 것, 없으면 최신 수정) */
+  const lastRead = recentDocs[0] ?? (docs.length ? [...docs].sort((a, b) => b.updated - a.updated)[0] : undefined);
   const mostLinked = useMemo(() => {
     const count = new Map<string, number>();
     for (const d of docs) for (const id of linkedDocIds(d.body)) if (id !== d.id) count.set(id, (count.get(id) ?? 0) + 1);
@@ -652,6 +654,38 @@ export default function Wiki() {
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
                 >+</button>
+              )}
+
+              {/* 펼쳐둔 책 — 읽던 문서가 서가 오른쪽에 펼쳐진 채 놓여 있다. 누르면 이어서 읽기 */}
+              {shelf2.length === 0 && lastRead && (
+                <button
+                  type="button" onClick={() => openDoc(lastRead.id)} title={`이어서 읽기 — ${lastRead.title || '무제'}`}
+                  className="group ml-auto hidden flex-none self-end pl-6 text-left md:block"
+                  style={{ transform: 'rotate(-1.6deg)' }}
+                >
+                  <span className="block transition-transform duration-200 group-hover:-translate-y-1.5 motion-reduce:transition-none motion-reduce:group-hover:transform-none" style={{ filter: 'drop-shadow(0 16px 16px rgba(10,5,0,.5))' }}>
+                    <span className="grid" style={{ gridTemplateColumns: '158px 158px' }}>
+                      {/* 왼쪽 페이지 */}
+                      <span className="flex h-[172px] flex-col p-4" style={{ background: 'linear-gradient(105deg, #f3ecdb, #fdfaf2 60%)', borderRadius: '7px 2px 2px 7px', border: '1px solid rgba(60,47,24,.2)', borderRight: 'none', boxShadow: 'inset -14px 0 18px -14px rgba(46,28,10,.55)' }}>
+                        <span style={{ fontSize: 9.5, letterSpacing: '.24em', color: C.muted }}>이어서 읽기</span>
+                        <span className="mt-2 line-clamp-2" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 16.5, lineHeight: 1.4, color: C.ink }}>{lastRead.title || '무제'}</span>
+                        <span className="flex-1" />
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-[7px] w-[7px] rounded-full" style={{ background: bookOf.get(lastRead.book)?.tint ?? C.rust }} />
+                          <span className="truncate" style={{ fontSize: 10.5, color: C.sub }}>{bookOf.get(lastRead.book)?.title}</span>
+                        </span>
+                      </span>
+                      {/* 오른쪽 페이지 */}
+                      <span className="flex h-[172px] flex-col p-4" style={{ background: 'linear-gradient(255deg, #f3ecdb, #fdfaf2 60%)', borderRadius: '2px 7px 7px 2px', border: '1px solid rgba(60,47,24,.2)', borderLeft: 'none', boxShadow: 'inset 14px 0 18px -14px rgba(46,28,10,.55)' }}>
+                        <span className="line-clamp-5" style={{ fontSize: 11.5, lineHeight: 1.75, color: C.body }}>{bodyText(lastRead.body).slice(0, 130) || '빈 문서 — 첫 문장을 적어보세요.'}</span>
+                        <span className="flex-1" />
+                        <span className="self-end" style={{ fontSize: 11, fontWeight: 700, color: C.green }}>계속 읽기 →</span>
+                      </span>
+                    </span>
+                    {/* 종이 단면 — 페이지가 쌓인 두께 */}
+                    <span aria-hidden className="block h-[7px]" style={{ margin: '0 3px', borderRadius: '0 0 5px 5px', background: 'repeating-linear-gradient(180deg, #efe6d0 0 1.5px, #d9cdb2 1.5px 3px)', borderTop: '1px solid rgba(60,47,24,.28)' }} />
+                  </span>
+                </button>
               )}
             </div>
             {shelfBar}
