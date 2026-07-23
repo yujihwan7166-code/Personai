@@ -346,51 +346,37 @@ export default function Wiki() {
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
   const statsLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일 · 책 ${books.length}권 · 문서 ${docs.length}개 · 연결 ${linkTotal}개`;
 
-  /* 양장본 책등 — 헤드밴드(제본 천), 제본 돌기, 금박 괘선, 각인 제목 패널, 청구 배지.
+  /* 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목.
    * leanOn = 왼쪽 이웃 책의 높이. 주면 발이 오른쪽으로 미끄러지고 몸이 그 책에 기대 쉰다
    * (빈 서가에서 물리적으로 안정한 유일한 자세 — 반대로 기울면 받칠 게 없어 넘어진다). */
   const spine = (b: WikiBook, leanOn?: number) => {
     const s = spineOf(b);
-    const gild = 'rgba(233,205,140,'; // 금박
     const btn = (
       <button
         key={b.id} type="button" onClick={() => openBook(b.id)} title={`${s.title} — 문서 ${s.n}개`}
         className="wiki-spine relative flex-none cursor-pointer"
         style={{
           width: s.w, height: s.h,
-          background: `
-            linear-gradient(90deg, rgba(255,246,228,.28) 0%, rgba(255,246,228,.06) 15%, rgba(0,0,0,0) 48%, rgba(0,0,0,.2) 80%, rgba(0,0,0,.46) 100%),
-            repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, rgba(255,255,255,.022) 3px 6px),
-            linear-gradient(180deg, color-mix(in srgb, ${b.tint} 88%, #fff) 0%, ${b.tint} 20%, ${b.tint} 80%, color-mix(in srgb, ${b.tint} 74%, #000) 100%)`,
-          borderRadius: '4px 5px 5px 4px',
-          boxShadow: '0 18px 26px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.28)',
+          background: `linear-gradient(180deg, color-mix(in srgb, ${b.tint} 88%, #fff) 0%, ${b.tint} 22%, ${b.tint} 78%, color-mix(in srgb, ${b.tint} 78%, #000) 100%)`,
+          borderRadius: '4px 4px 3px 3px',
+          boxShadow: '0 18px 26px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.3)',
         }}
       >
-        {/* 헤드밴드 — 위·아래 제본 천 (양장본의 표식) */}
-        <span aria-hidden className="pointer-events-none absolute inset-x-[4px] top-[3px] h-[5px] rounded-[2px]" style={{ background: `repeating-linear-gradient(90deg, ${gild}.85) 0 3px, rgba(122,50,36,.85) 3px 6px)` }} />
-        <span aria-hidden className="pointer-events-none absolute inset-x-[4px] bottom-[3px] h-[5px] rounded-[2px]" style={{ background: `repeating-linear-gradient(90deg, ${gild}.75) 0 3px, rgba(122,50,36,.75) 3px 6px)` }} />
-        {/* 제본 돌기 — 실이 지나간 자리의 융기 */}
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-[38px] h-[7px]" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.3) 0 2px, rgba(0,0,0,.3) 2px 7px)' }} />
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[62px] h-[7px]" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.26) 0 2px, rgba(0,0,0,.28) 2px 7px)' }} />
-
-        <span className="relative flex h-full flex-col items-center px-[6px] pb-[13px] pt-[15px]">
-          {/* 금박 이중 괘선 */}
-          <span aria-hidden className="h-[7px] w-[64%] flex-none" style={{ borderTop: `2px solid ${gild}.92)`, borderBottom: `1px solid ${gild}.5)` }} />
-          {/* 각인 제목 패널 — 눌러 찍은 자리에 금박 글자 */}
+        {/* 가죽 결 + 좌 하이라이트/우 그림자 (책의 굴곡) */}
+        <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(90deg, rgba(255,246,228,.3), rgba(255,246,228,.06) 22%, rgba(0,0,0,0) 60%, rgba(0,0,0,.38)), repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 2px, rgba(255,255,255,.025) 2px 4px)' }} />
+        {/* 제본 돌기 — 위·아래 리지 */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] top-[30px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
+        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] bottom-[46px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
+        <span className="relative flex h-full flex-col items-center justify-between px-[7px] pb-[11px] pt-[12px]">
+          {/* 금박 이중 밴드 */}
+          <span aria-hidden className="h-[7px] w-[62%] flex-none" style={{ borderTop: '2px solid rgba(233,205,140,.9)', borderBottom: '1px solid rgba(233,205,140,.55)' }} />
           <span
-            className="my-[13px] flex min-h-0 w-full flex-1 items-center justify-center rounded-[2px] px-[2px] py-[7px]"
-            style={{ border: `1px solid ${gild}.4)`, background: 'rgba(0,0,0,.13)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,.35)' }}
+            className="min-h-0 max-h-full overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
+            style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs - 1, letterSpacing: '.2em', lineHeight: 1.15, textOverflow: 'ellipsis', color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.3)' }}
           >
-            <span
-              className="max-h-full overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
-              style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs, letterSpacing: '.16em', textOverflow: 'ellipsis', color: '#f7e9c8', textShadow: `0 1px 0 rgba(0,0,0,.55), 0 0 6px ${gild}.25)` }}
-            >
-              {s.title}
-            </span>
+            {s.title}
           </span>
-          {/* 금박 단선 + 청구 배지 */}
-          <span aria-hidden className="h-px w-[64%] flex-none" style={{ background: `${gild}.7)` }} />
-          <span className="mt-[9px] flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full text-[12px] font-bold" style={{ border: `1.5px solid ${gild}.7)`, background: 'rgba(0,0,0,.14)', color: '#f7e9c8', textShadow: '0 1px 1px rgba(0,0,0,.45)' }}>
+          <span className="flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full text-[12px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
             {s.n}
           </span>
         </span>
@@ -753,26 +739,30 @@ export default function Wiki() {
                 >+</button>
               )}
 
-              {/* 서가 소품 — 빈 칸의 정물. 책이 늘면 순서대로 자리를 내준다.
-                  ml-auto 를 지구본과 나눠 가져 남는 공간이 두 틈으로 고르게 분배 — 죽은 여백 없음 */}
+              {/* 정물들 — 등간격으로 도열하지 않는다. 꽃병과 시계는 한 무리로 붙어 서고,
+                  지구본만 멀찍이. 빈 틈은 1 : 1.9 로 갈려 리듬이 어긋난다 (grow 라 넘치지 않음) */}
+              {shelf2.length === 0 && <span aria-hidden className="hidden flex-[1] md:block" />}
               {shelf2.length === 0 && (
-                <span className="ml-auto hidden flex-none items-end gap-4 self-end pb-[2px] md:flex">
-                  {SHELF_PROPS.slice(0, Math.max(0, 5 - shelfBooks.length)).map((kind) => <ShelfProp key={kind} kind={kind} />)}
+                <span className="hidden flex-none items-end gap-[7px] self-end pb-[2px] md:flex">
+                  {/* 꽃병 — 선반 안쪽에 물러나 있어 조금 작고 그늘지다 */}
+                  {SHELF_PROPS.slice(0, Math.max(0, 5 - shelfBooks.length)).map((kind) => (
+                    <span key={kind} className="block" style={{ transform: 'scale(.94)', transformOrigin: 'bottom center', filter: 'brightness(.9)' }}>
+                      <ShelfProp kind={kind} />
+                    </span>
+                  ))}
+                  {/* 탁상시계 — 앞쪽에, 누가 내려놓은 듯 살짝 비뚜름하게 */}
+                  <span className="hidden lg:block" title="서재의 시계" style={{ transform: 'rotate(3.5deg)', transformOrigin: 'bottom center', marginLeft: -5 }}>
+                    <DeskClock />
+                  </span>
                 </span>
               )}
-
-              {/* 탁상시계 — 상주 정물. 진짜 시간이 흐른다 */}
-              {shelf2.length === 0 && (
-                <span className="ml-auto hidden flex-none self-end pb-[2px] lg:block" title="서재의 시계">
-                  <DeskClock />
-                </span>
-              )}
+              {shelf2.length === 0 && <span aria-hidden className="hidden flex-[1.9] md:block" />}
 
               {/* 지구본 — 서가 맨 오른쪽의 대형 정물. 돌리면(클릭) 아무 문서나 펼쳐진다 */}
               {shelf2.length === 0 && docs.length > 0 && (
                 <button
                   type="button" onClick={openRandom} title="지구본 돌리기 — 아무 문서나 펼치기"
-                  className="group relative ml-auto hidden flex-none self-end pl-2 md:block"
+                  className="group relative hidden flex-none self-end md:block"
                 >
                   <svg width="164" height="234" viewBox="0 0 164 234" className="transition-transform duration-300 group-hover:-rotate-3 motion-reduce:transition-none motion-reduce:group-hover:transform-none" style={{ filter: 'drop-shadow(0 16px 16px rgba(10,5,0,.5))', transformOrigin: '50% 90%' }}>
                     <defs>
