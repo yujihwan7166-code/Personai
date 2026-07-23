@@ -252,10 +252,10 @@ export default function Wiki() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* 책등 치수 — 시안 공식을 키움: 크고 잘 읽히게. w = 52+n*3.5(≤84), h = 216+n*6(≤320) */
+  /* 책등 치수 — 시안 공식을 키움: 크고 잘 읽히게. w = 62+n*4(≤100), h = 248+n*7(≤368) */
   const spineOf = (b: WikiBook) => {
     const n = docs.filter((d) => d.book === b.id).length;
-    return { n, w: Math.min(84, Math.round(52 + n * 3.5)), h: Math.min(320, 216 + n * 6), fs: n >= 6 ? 19 : 17 };
+    return { n, w: Math.min(100, Math.round(62 + n * 4)), h: Math.min(368, 248 + n * 7), fs: n >= 6 ? 22 : 20 };
   };
   const shelfBooks = books;
   const shelf1 = shelfBooks.slice(0, Math.min(4, shelfBooks.length));
@@ -265,10 +265,11 @@ export default function Wiki() {
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
   const statsLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일 · 책 ${books.length}권 · 문서 ${docs.length}개 · 연결 ${linkTotal}개`;
 
-  /* 고급 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목 */
-  const spine = (b: WikiBook) => {
+  /* 고급 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목.
+   * lean=true 면 줄 끝에서 살짝 기울어 쉬는 책 (실제 서가의 숨). */
+  const spine = (b: WikiBook, lean = false) => {
     const s = spineOf(b);
-    return (
+    const btn = (
       <button
         key={b.id} type="button" onClick={() => openBook(b.id)} title={`${b.title} — 문서 ${s.n}개`}
         className="wiki-spine relative flex-none cursor-pointer"
@@ -293,11 +294,17 @@ export default function Wiki() {
           >
             {b.title || '무제'}
           </span>
-          <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-[11.5px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
+          <span className="flex h-[28px] w-[28px] items-center justify-center rounded-full text-[12px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
             {s.n}
           </span>
         </span>
       </button>
+    );
+    if (!lean) return btn;
+    return (
+      <div key={b.id} className="flex-none" style={{ transform: 'rotate(7deg)', transformOrigin: 'bottom right', marginLeft: 6, marginRight: Math.round(s.h * 0.1) }}>
+        {btn}
+      </div>
     );
   };
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
@@ -618,12 +625,12 @@ export default function Wiki() {
           </div>
 
           {/* 나무 책장 */}
-          <div className="mt-6 rounded-[14px] px-5 pb-7 pt-[34px] sm:px-[30px]" style={{ background: 'linear-gradient(180deg,#57391e,#3b2510)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 16px 34px rgba(0,0,0,.38), 0 20px 44px -20px rgba(46,28,10,.5)' }}>
-            <div className="relative flex items-end gap-[7px] overflow-x-auto px-3.5">
-              {shelf1.map(spine)}
+          <div className="mt-6 rounded-[14px] px-5 pb-8 pt-[40px] sm:px-[30px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), inset 14px 0 22px -12px rgba(0,0,0,.55), inset -14px 0 22px -12px rgba(0,0,0,.55), 0 22px 48px -20px rgba(46,28,10,.55)', borderTop: '1px solid rgba(255,225,180,.14)' }}>
+            <div className="relative flex items-end gap-[9px] overflow-x-auto px-3.5">
+              {shelf1.map((b, i) => spine(b, shelf1.length > 2 && i === shelf1.length - 1))}
               {shelf2.length === 0 && (
                 <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                  className="flex h-[232px] w-[56px] flex-none items-center justify-center rounded-[4px] text-[26px] transition-colors"
+                  className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
                   style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
@@ -633,10 +640,10 @@ export default function Wiki() {
             {shelfBar}
             {shelf2.length > 0 && (
               <>
-                <div className="relative mt-9 flex items-end gap-[7px] overflow-x-auto px-3.5">
-                  {shelf2.map(spine)}
+                <div className="relative mt-9 flex items-end gap-[9px] overflow-x-auto px-3.5">
+                  {shelf2.map((b, i) => spine(b, shelf2.length > 2 && i === shelf2.length - 1))}
                   <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                    className="flex h-[232px] w-[56px] flex-none items-center justify-center rounded-[4px] text-[26px] transition-colors"
+                    className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
                     style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
