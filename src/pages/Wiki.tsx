@@ -6,7 +6,7 @@
  * 화면 3장: 서재 홈(책장+고정+언급 순위+최근) / 책 펼침(표지+차례 스프레드) / 문서 읽기(목차|본문|인포박스 3열).
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
@@ -225,6 +225,9 @@ export default function Wiki() {
   const readBodyRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const saveTimer = useRef<number | null>(null);
+  /* 차례 줄들의 DOM — 옮긴 뒤 제자리를 찾아가는 재배치(FLIP)에 쓴다 */
+  const rowEls = useRef(new Map<string, HTMLElement>());
+  const flipFrom = useRef<Map<string, DOMRect> | null>(null);
 
   const isWide = useIsWide();
   const { books, docs, recent } = store;
@@ -495,6 +498,10 @@ export default function Wiki() {
 
   /** 소속(parent)과 차례 순서를 한 번에 옮긴다 — 순서는 docs 배열 위치가 정한다 */
   const moveDoc = (id: string, parent: string | null, before: string | null) => {
+    /* 옮기기 직전 자리를 기억해 둔다 — 목록이 순간이동하지 않고 미끄러져 재배치되도록 */
+    const from = new Map<string, DOMRect>();
+    rowEls.current.forEach((el, key) => { if (el.isConnected) from.set(key, el.getBoundingClientRect()); });
+    flipFrom.current = from;
     setStore((s) => {
       const arr = [...s.docs];
       const from = arr.findIndex((d) => d.id === id);
@@ -508,6 +515,28 @@ export default function Wiki() {
     setJustMoved(id); // 옮겨진 문서가 어디로 갔는지 잠깐 빛난다
     window.setTimeout(() => setJustMoved((v) => (v === id ? null : v)), 900);
   };
+
+  /* 재배치 모션 — 옮긴 직후, 자리가 바뀐 줄들을 옛 자리에서 새 자리로 미끄러뜨린다.
+     드롭 즉시 순간이동하면 "어디로 갔지?"가 되므로, 눈이 따라갈 시간(300ms)을 준다. */
+  useLayoutEffect(() => {
+    const from = flipFrom.current;
+    if (!from) return;
+    flipFrom.current = null;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    /* Web Animations 로 되돌렸다 풀어준다 — 인라인 스타일을 남기지 않아 줄이 어긋난 채 굳지 않는다 */
+    rowEls.current.forEach((el, id) => {
+      const was = from.get(id);
+      if (!was || !el.isConnected) return;
+      const now = el.getBoundingClientRect();
+      const dx = was.left - now.left;
+      const dy = was.top - now.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
+        { duration: 300, easing: 'cubic-bezier(.2,.7,.2,1)' },
+      );
+    });
+  }, [docs]);
 
   /* 줄의 마지막 책만, 그 줄이 꽉 차지 않았고 기댈 이웃이 있을 때 기운다 (이웃 높이를 넘겨준다) */
   const leanOnOf = (row: WikiBook[], i: number) =>
@@ -831,6 +860,7 @@ export default function Wiki() {
                           {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
                           {lineHere && <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />}
                           <div
+                            ref={(el) => { if (el) rowEls.current.set(d.id, el); else rowEls.current.delete(d.id); }}
                             role="button" tabIndex={0} draggable
                             onClick={() => openDoc(d.id)}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
