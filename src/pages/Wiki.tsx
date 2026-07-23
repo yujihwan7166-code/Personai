@@ -7,7 +7,7 @@
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { Pencil, Pin, Plus, Star, Trash2, X } from 'lucide-react';
+import { Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
@@ -15,7 +15,7 @@ import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
   type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
 } from '@/lib/wiki3/store';
-import { childrenOf, ancestorsOf, moveOptions, deleteWithPromotion } from '@/lib/wiki3/tree';
+import { childrenOf, ancestorsOf, focusView, moveOptions, deleteWithPromotion } from '@/lib/wiki3/tree';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
@@ -54,6 +54,7 @@ const WIKI_CSS = `
   .wiki-theme .wiki-rise, .wiki-theme .wiki-page { animation:none; }
 }
 /* 읽기 뷰 본문 — 시안의 위키 타이포 */
+.wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2, .wiki-theme .wiki-read h3 { scroll-margin-top: 18px; }
 .wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2 {
   font-family:'Noto Serif KR','Gowun Batang',serif; font-weight:700;
   border-bottom:1px solid rgba(60,47,24,.14); padding-bottom:8px;
@@ -108,6 +109,7 @@ export default function Wiki() {
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
   const editorApi = useRef<WikiEditorApi | null>(null);
   const readBodyRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const saveTimer = useRef<number | null>(null);
 
   const { books, docs, recent } = store;
@@ -125,14 +127,14 @@ export default function Wiki() {
       const t = e.target as HTMLElement | null;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
       if (picker || bookDialog) return;
-      if (docId) { setDocId(null); setMode('read'); window.scrollTo(0, 0); }
-      else if (bookId) { setBookId(null); window.scrollTo(0, 0); }
+      if (docId) { setDocId(null); setMode('read'); mainRef.current?.scrollTo(0, 0); }
+      else if (bookId) { setBookId(null); mainRef.current?.scrollTo(0, 0); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [docId, bookId, picker, bookDialog]);
 
-  const top = () => window.scrollTo(0, 0);
+  const top = () => mainRef.current?.scrollTo(0, 0);
 
   /* ── 이동 ── */
   const goShelf = () => { setBookId(null); setDocId(null); setQ(''); top(); };
@@ -218,6 +220,21 @@ export default function Wiki() {
       .sort((a, b) => b.n - a.n)
       .slice(0, 5);
   }, [docs]);
+  /* 사이드바 차례 — 책 안에서는 포커스 트리(부모/형제/자식 3단), 문서 없으면 최상위 목록 */
+  const sideRows = useMemo(() => {
+    if (!bookId) return [] as { d: WikiDoc; depth: number }[];
+    if (!docId) return childrenOf(bookDocs, null).map((d) => ({ d, depth: 0 }));
+    const v = focusView(bookDocs, docId);
+    const rows: { d: WikiDoc; depth: number }[] = [];
+    if (v.parent) rows.push({ d: v.parent, depth: 0 });
+    const base = v.parent ? 1 : 0;
+    for (const s of v.siblings) {
+      rows.push({ d: s, depth: base });
+      if (s.id === docId) for (const c of v.children) rows.push({ d: c, depth: base + 1 });
+    }
+    return rows;
+  }, [bookId, docId, bookDocs]);
+
   const qq = q.trim().toLowerCase();
   const results = useMemo(() => {
     if (!qq) return [];
@@ -232,13 +249,13 @@ export default function Wiki() {
     const host = readBodyRef.current;
     if (!host) return;
     const el = host.querySelectorAll('h1, h2, h3')[idx] as HTMLElement | undefined;
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 84, behavior: 'smooth' });
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* 시안 책등 치수: w = 34 + 문서수*3.2, h = min(250, 178 + 문서수*5) */
+  /* 책등 치수 — 시안 공식을 키움: 크고 잘 읽히게. w = 52+n*3.5(≤84), h = 216+n*6(≤320) */
   const spineOf = (b: WikiBook) => {
     const n = docs.filter((d) => d.book === b.id).length;
-    return { n, w: Math.round(34 + n * 3.2), h: Math.min(250, 178 + n * 5), fs: n >= 6 ? 15 : 13.5 };
+    return { n, w: Math.min(84, Math.round(52 + n * 3.5)), h: Math.min(320, 216 + n * 6), fs: n >= 6 ? 19 : 17 };
   };
   const shelfBooks = books;
   const shelf1 = shelfBooks.slice(0, Math.min(4, shelfBooks.length));
@@ -248,6 +265,7 @@ export default function Wiki() {
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
   const statsLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일 · 책 ${books.length}권 · 문서 ${docs.length}개 · 연결 ${linkTotal}개`;
 
+  /* 고급 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목 */
   const spine = (b: WikiBook) => {
     const s = spineOf(b);
     return (
@@ -255,17 +273,27 @@ export default function Wiki() {
         key={b.id} type="button" onClick={() => openBook(b.id)} title={`${b.title} — 문서 ${s.n}개`}
         className="wiki-spine relative flex-none cursor-pointer"
         style={{
-          width: s.w, height: s.h, background: b.tint, borderRadius: '3px 3px 2px 2px',
-          boxShadow: '0 14px 20px -8px rgba(20,11,3,.6), inset 0 -4px 7px rgba(0,0,0,.28)',
+          width: s.w, height: s.h,
+          background: `linear-gradient(180deg, color-mix(in srgb, ${b.tint} 88%, #fff) 0%, ${b.tint} 22%, ${b.tint} 78%, color-mix(in srgb, ${b.tint} 78%, #000) 100%)`,
+          borderRadius: '4px 4px 3px 3px',
+          boxShadow: '0 18px 26px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.3)',
         }}
       >
-        <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(90deg, rgba(255,246,228,.26), rgba(255,246,228,0) 16%, rgba(0,0,0,0) 76%, rgba(0,0,0,.32)), repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
-        <span className="relative flex h-full flex-col items-center justify-between px-[6px] pb-[10px] pt-[13px]">
-          <span aria-hidden className="h-[5px] w-[56%]" style={{ borderTop: '1px solid rgba(244,230,200,.65)', borderBottom: '1px solid rgba(244,230,200,.65)' }} />
-          <span className="[writing-mode:vertical-rl]" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs, letterSpacing: '.16em', color: C.cream, textShadow: '0 1px 2px rgba(0,0,0,.4)' }}>
+        {/* 가죽 결 + 좌 하이라이트/우 그림자 (책의 굴곡) */}
+        <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(90deg, rgba(255,246,228,.3), rgba(255,246,228,.06) 22%, rgba(0,0,0,0) 60%, rgba(0,0,0,.38)), repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 2px, rgba(255,255,255,.025) 2px 4px)' }} />
+        {/* 제본 돌기 — 위·아래 리지 두 줄씩 */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] top-[30px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
+        <span aria-hidden className="pointer-events-none absolute inset-x-[3px] bottom-[46px] h-[3px] rounded-full" style={{ background: 'linear-gradient(180deg, rgba(255,246,228,.28), rgba(0,0,0,.3))' }} />
+        <span className="relative flex h-full flex-col items-center justify-between px-[7px] pb-[11px] pt-[12px]">
+          {/* 금박 이중 밴드 */}
+          <span aria-hidden className="h-[7px] w-[62%]" style={{ borderTop: '2px solid rgba(233,205,140,.9)', borderBottom: '1px solid rgba(233,205,140,.55)' }} />
+          <span
+            className="min-h-0 overflow-hidden [writing-mode:vertical-rl]"
+            style={{ fontFamily: SERIF, fontWeight: 800, fontSize: s.fs, letterSpacing: '.12em', lineHeight: 1.15, color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.35)' }}
+          >
             {b.title || '무제'}
           </span>
-          <span className="flex h-[23px] w-[23px] items-center justify-center rounded-full text-[10.5px] font-bold" style={{ border: '1px solid rgba(244,230,200,.6)', color: C.cream }}>
+          <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-[11.5px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
             {s.n}
           </span>
         </span>
@@ -275,22 +303,23 @@ export default function Wiki() {
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
 
   return (
-    <div className="wiki-theme min-h-dvh" style={{ background: C.bg, fontFamily: SANS, color: C.ink }}>
+    <div className="wiki-theme flex h-dvh overflow-hidden" style={{ background: C.bg, fontFamily: SANS, color: C.ink }}>
       <style>{WIKI_CSS}</style>
 
-      {/* ══════ 스티키 헤더 (시안) ══════ */}
-      <header className="sticky top-0 z-20" style={{ background: 'rgba(244,238,225,.92)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(60,47,24,.12)' }}>
-        <div className="mx-auto flex h-[58px] items-center gap-3.5 px-5 sm:px-8" style={{ maxWidth: 1240 }}>
-          <button type="button" onClick={goShelf} className="flex items-baseline gap-[9px]">
-            <span style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 19 }}>마이위키</span>
-            <span className="hidden sm:inline" style={{ fontSize: 11, color: C.sub, letterSpacing: '.06em' }}>나만의 서재</span>
+      {/* ══════ 사이드바 — 크림 톤 (캐논 구조 + 시안 재질) ══════ */}
+      <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto lg:flex" style={{ background: '#efe7d3', borderRight: '1px solid rgba(60,47,24,.14)' }}>
+        <div className="px-5 pb-4 pt-6">
+          <button type="button" onClick={goShelf} className="block text-left">
+            <div style={{ fontSize: 10.5, letterSpacing: '.26em', color: C.muted }}>MYWIKI</div>
+            <div className="mt-1" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 23 }}>마이위키</div>
+            <div className="mt-0.5" style={{ fontSize: 12, color: C.sub }}>나만의 서재</div>
           </button>
-          <div className="flex-1" />
-          <div className="relative">
+          <div className="relative mt-4">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: C.muted }} />
             <input
               value={q} onChange={(e) => setQ(e.target.value)}
               placeholder="서재에서 검색" aria-label="서재 검색"
-              className="h-[34px] w-[150px] rounded-lg px-3 text-[13px] outline-none transition-all focus:w-[220px] sm:w-[220px]"
+              className="h-[34px] w-full rounded-lg pl-8 pr-7 text-[13px] outline-none"
               style={{ border: '1px solid rgba(60,47,24,.16)', background: C.paper, color: C.ink, fontFamily: SANS }}
             />
             {q && (
@@ -300,14 +329,97 @@ export default function Wiki() {
             )}
           </div>
           <button
-            type="button" onClick={() => setBookDialog({ book: null })}
-            className="flex h-[34px] items-center rounded-lg px-3.5 text-[13px] font-semibold transition-colors hover:bg-[#40372a]"
+            type="button"
+            onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
+            className="mt-3 flex h-[36px] w-full items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#40372a]"
             style={{ background: C.ink, color: C.bg }}
           >
-            + 새 책
+            <Plus className="h-3.5 w-3.5" />
+            {book ? '새 문서' : '새 책'}
           </button>
         </div>
-      </header>
+
+        {book ? (
+          /* 책 모드 — 지금 펼친 책 + 포커스 차례 */
+          <div className="flex-1 px-3 pb-4">
+            <button type="button" onClick={goShelf} className="mx-2 mb-2 text-[12px] hover:underline" style={{ color: C.green }}>← 책장으로</button>
+            <button
+              type="button" onClick={() => openBook(book.id)}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[rgba(60,47,24,.05)]"
+            >
+              <span className="h-[26px] w-[9px] flex-none rounded-[2px]" style={{ background: book.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
+              <span className="min-w-0">
+                <span className="block truncate" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15 }}>{book.title}</span>
+                <span className="block" style={{ fontSize: 11, color: C.sub }}>문서 {bookDocs.length}개</span>
+              </span>
+            </button>
+            <div className="mx-2 mb-1.5 mt-3" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>차례</div>
+            {sideRows.map(({ d, depth }) => {
+              const on = d.id === docId;
+              return (
+                <button
+                  key={d.id} type="button" onClick={() => openDoc(d.id)}
+                  className={cn('flex w-full items-center gap-1.5 rounded-full py-[7px] pr-3 text-left transition-colors', !on && 'hover:bg-[rgba(60,47,24,.06)]')}
+                  style={{ paddingLeft: 12 + depth * 14, background: on ? C.ink : undefined, color: on ? C.bg : C.body, fontSize: 13, fontWeight: on ? 600 : 400 }}
+                >
+                  <span className="truncate">{d.title || '무제'}</span>
+                  {d.pinned && <Star className="h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
+                </button>
+              );
+            })}
+            {sideRows.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>아직 빈 책이에요</p>}
+          </div>
+        ) : (
+          /* 서재 모드 — 책 목록 + 최근 본 문서 */
+          <div className="flex-1 px-3 pb-4">
+            <div className="mx-2 mb-1.5" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>책</div>
+            {books.map((b) => (
+              <button
+                key={b.id} type="button" onClick={() => openBook(b.id)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
+              >
+                <span className="h-[22px] w-[8px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
+                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13.5, fontWeight: 500 }}>{b.title}</span>
+                <span style={{ fontSize: 11.5, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+              </button>
+            ))}
+            {books.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>첫 책을 만들어보세요</p>}
+            {recentDocs.length > 0 && (
+              <>
+                <div className="mx-2 mb-1.5 mt-5" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>최근 본 문서</div>
+                {recentDocs.map((d) => (
+                  <button key={d.id} type="button" onClick={() => openDoc(d.id)}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]">
+                    <span className="h-[6px] w-[6px] flex-none rounded-full" style={{ background: bookOf.get(d.book)?.tint ?? C.rust }} />
+                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, color: C.body }}>{d.title || '무제'}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(60,47,24,.1)', fontSize: 11.5, color: C.muted }}>
+          책 {books.length}권 · 문서 {docs.length}개 · 연결 {linkTotal}개
+        </div>
+      </aside>
+
+      <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
+      {/* 모바일 헤더 — 사이드바 대신 */}
+      <div className="flex h-[54px] items-center gap-3 px-4 lg:hidden" style={{ borderBottom: '1px solid rgba(60,47,24,.12)' }}>
+        <button type="button" onClick={goShelf} style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 17 }}>마이위키</button>
+        <div className="flex-1" />
+        <input
+          value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder="검색" aria-label="서재 검색"
+          className="h-[32px] w-[130px] rounded-lg px-3 text-[13px] outline-none"
+          style={{ border: '1px solid rgba(60,47,24,.16)', background: C.paper, color: C.ink }}
+        />
+        <button type="button" onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
+          className="flex h-[32px] items-center rounded-lg px-3 text-[12.5px] font-semibold" style={{ background: C.ink, color: C.bg }}>
+          {book ? '+ 새 문서' : '+ 새 책'}
+        </button>
+      </div>
 
       {qq ? (
         /* ══════ 검색 결과 ══════ */
@@ -357,7 +469,7 @@ export default function Wiki() {
             <div className="hidden gap-9 lg:grid" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)${mode === 'read' && active.infobox?.length ? ' 280px' : ''}`, alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기, 제목 2개↑) */}
               {mode === 'read' && toc.length >= 2 && (
-                <nav className="sticky top-[84px]" aria-label="목차">
+                <nav className="sticky top-4" aria-label="목차">
                   <div style={{ fontSize: 11, letterSpacing: '.14em', color: C.muted, padding: '0 10px 8px' }}>목차</div>
                   {toc.map((h, i) => (
                     <button
@@ -384,7 +496,7 @@ export default function Wiki() {
 
               {/* 우 — 인포박스 (읽기) */}
               {mode === 'read' && active.infobox && active.infobox.length > 0 && (
-                <aside className="sticky top-[84px]">
+                <aside className="sticky top-4">
                   <Infobox doc={active} book={book} />
                 </aside>
               )}
@@ -511,7 +623,7 @@ export default function Wiki() {
               {shelf1.map(spine)}
               {shelf2.length === 0 && (
                 <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                  className="flex h-[192px] w-[44px] flex-none items-center justify-center rounded-[3px] text-[22px] transition-colors"
+                  className="flex h-[232px] w-[56px] flex-none items-center justify-center rounded-[4px] text-[26px] transition-colors"
                   style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
@@ -524,7 +636,7 @@ export default function Wiki() {
                 <div className="relative mt-9 flex items-end gap-[7px] overflow-x-auto px-3.5">
                   {shelf2.map(spine)}
                   <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                    className="flex h-[192px] w-[44px] flex-none items-center justify-center rounded-[3px] text-[22px] transition-colors"
+                    className="flex h-[232px] w-[56px] flex-none items-center justify-center rounded-[4px] text-[26px] transition-colors"
                     style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
@@ -629,6 +741,7 @@ export default function Wiki() {
           <div className="mt-16 text-center" style={{ fontSize: 12, color: C.muted }}>쓸 때는 노트, 읽을 때는 위키 — 마이위키</div>
         </section>
       )}
+      </main>
 
       {/* 문서 연결 피커 */}
       {picker && active && (
