@@ -678,12 +678,12 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise ml-auto flex gap-7 px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1440 }}>
-          {/* 왼쪽 — 서가에 남은 책들. 한 권을 꺼내 펼쳐둔 옆에 나머지가 그대로 서 있다 */}
+        <section className="wiki-rise flex w-full gap-7 px-5 pb-20 pt-[56px] sm:px-8">
+          {/* 왼쪽 — 서가에 남은 책들. 선반이 빈 폭을 가로질러 이어지고, 그 끝에 꺼내온 책이 펼쳐져 있다 */}
           {books.length > 1 && (
-            <aside className="hidden shrink-0 self-end pb-[2px] xl:block">
-              <div className="mb-2.5" style={{ fontSize: 10, letterSpacing: '.2em', color: C.muted }}>서가</div>
-              <div className="flex items-end gap-[5px]">
+            <aside className="hidden min-w-0 flex-1 self-end overflow-hidden pb-[2px] 2xl:block">
+              <div className="mb-2.5" style={{ fontSize: 10, letterSpacing: '.2em', color: C.muted }}>서가에 남은 책</div>
+              <div className="flex items-end justify-end gap-[5px]">
                 {books.filter((b) => b.id !== book.id).slice(0, 6).map((b) => {
                   const n = docs.filter((d) => d.book === b.id).length;
                   return (
@@ -712,7 +712,7 @@ export default function Wiki() {
             </aside>
           )}
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0" style={{ flex: '0 1 1040px', maxWidth: 1040 }}>
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
