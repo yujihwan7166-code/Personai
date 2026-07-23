@@ -28,11 +28,11 @@ const C = {
   line: 'rgba(60,47,24,.14)', line2: 'rgba(60,47,24,.09)', lineDeep: 'rgba(60,47,24,.22)',
   green: '#305f4c', rust: '#9a4632', cream: '#f6ecd9',
 };
-const SERIF = "'Noto Serif KR', 'Gowun Batang', serif";
+const SERIF = "'Nanum Myeongjo', 'Noto Serif KR', 'Gowun Batang', serif";
 const SANS = "'Noto Sans KR', 'Pretendard Variable', sans-serif";
 
 const WIKI_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap');
 .wiki-theme ::selection { background:#e9d9ac; }
 .wiki-theme a[href^="wiki://"] {
   color:#305f4c; font-weight:600; text-decoration:none;
@@ -56,10 +56,10 @@ const WIKI_CSS = `
 /* 읽기 뷰 본문 — 시안의 위키 타이포 */
 .wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2, .wiki-theme .wiki-read h3 { scroll-margin-top: 18px; }
 .wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2 {
-  font-family:'Noto Serif KR','Gowun Batang',serif; font-weight:700;
+  font-family:'Nanum Myeongjo','Noto Serif KR','Gowun Batang',serif; font-weight:700;
   border-bottom:1px solid rgba(60,47,24,.14); padding-bottom:8px;
 }
-.wiki-theme .wiki-read h3 { font-family:'Noto Serif KR','Gowun Batang',serif; font-weight:700; }
+.wiki-theme .wiki-read h3 { font-family:'Nanum Myeongjo','Noto Serif KR','Gowun Batang',serif; font-weight:700; }
 .wiki-theme .wiki-read p { color:#332c21; }
 .wiki-theme .wiki-read blockquote { border-left-color: rgba(154,70,50,.45); }
 `;
@@ -290,7 +290,7 @@ export default function Wiki() {
           <span aria-hidden className="h-[7px] w-[62%]" style={{ borderTop: '2px solid rgba(233,205,140,.9)', borderBottom: '1px solid rgba(233,205,140,.55)' }} />
           <span
             className="min-h-0 overflow-hidden [writing-mode:vertical-rl]"
-            style={{ fontFamily: SERIF, fontWeight: 800, fontSize: s.fs, letterSpacing: '.12em', lineHeight: 1.15, color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.35)' }}
+            style={{ fontFamily: SERIF, fontWeight: 700, fontSize: s.fs - 1, letterSpacing: '.2em', lineHeight: 1.15, color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.3)' }}
           >
             {b.title || '무제'}
           </span>
@@ -318,7 +318,7 @@ export default function Wiki() {
         <div className="px-5 pb-4 pt-6">
           <button type="button" onClick={goShelf} className="block text-left">
             <div style={{ fontSize: 10.5, letterSpacing: '.26em', color: C.muted }}>MYWIKI</div>
-            <div className="mt-1" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 23 }}>마이위키</div>
+            <div className="mt-1" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 23 }}>마이위키</div>
             <div className="mt-0.5" style={{ fontSize: 12, color: C.sub }}>나만의 서재</div>
           </button>
           <div className="relative mt-4">
@@ -414,7 +414,7 @@ export default function Wiki() {
       <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
       {/* 모바일 헤더 — 사이드바 대신 */}
       <div className="flex h-[54px] items-center gap-3 px-4 lg:hidden" style={{ borderBottom: '1px solid rgba(60,47,24,.12)' }}>
-        <button type="button" onClick={goShelf} style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 17 }}>마이위키</button>
+        <button type="button" onClick={goShelf} style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 17 }}>마이위키</button>
         <div className="flex-1" />
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
@@ -432,7 +432,7 @@ export default function Wiki() {
         /* ══════ 검색 결과 ══════ */
         <section className="wiki-rise mx-auto px-5 pb-20 pt-8 sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex items-baseline gap-3.5">
-            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 32 }}>'{q.trim()}'</h1>
+            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32 }}>'{q.trim()}'</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{results.length}개의 문서</span>
           </div>
           <div className="mt-5 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
@@ -539,7 +539,7 @@ export default function Wiki() {
               <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.38), rgba(0,0,0,0) 14%), linear-gradient(90deg, rgba(255,246,228,.14), rgba(255,246,228,0) 22%), repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
               <div className="relative flex flex-1 flex-col p-6" style={{ border: '1px solid rgba(244,230,200,.5)', borderRadius: 4 }}>
                 <div style={{ fontSize: 10.5, letterSpacing: '.3em', opacity: .75 }}>MYWIKI</div>
-                <div className="mt-4" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 36, lineHeight: 1.25 }}>{book.title}</div>
+                <div className="mt-4" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 36, lineHeight: 1.25 }}>{book.title}</div>
                 <div className="mt-2.5" style={{ fontSize: 13, opacity: .85 }}>
                   문서 {bookDocs.length}개{book.intro && <> · {book.intro}</>}
                 </div>
@@ -618,14 +618,14 @@ export default function Wiki() {
         </section>
       ) : (
         /* ══════ 서재 홈 (시안) ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[38px] sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[72px] sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex flex-wrap items-baseline gap-3.5">
-            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 32 }}>나의 서재</h1>
+            <h1 className="m-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32, letterSpacing: '.02em' }}>나의 서재</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
           </div>
 
           {/* 나무 책장 */}
-          <div className="mt-6 rounded-[14px] px-5 pb-8 pt-[40px] sm:px-[30px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), inset 14px 0 22px -12px rgba(0,0,0,.55), inset -14px 0 22px -12px rgba(0,0,0,.55), 0 22px 48px -20px rgba(46,28,10,.55)', borderTop: '1px solid rgba(255,225,180,.14)' }}>
+          <div className="mt-9 rounded-[14px] px-5 pb-8 pt-[40px] sm:px-[30px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), inset 14px 0 22px -12px rgba(0,0,0,.55), inset -14px 0 22px -12px rgba(0,0,0,.55), 0 22px 48px -20px rgba(46,28,10,.55)', borderTop: '1px solid rgba(255,225,180,.14)' }}>
             <div className="relative flex items-end gap-[9px] overflow-x-auto px-3.5">
               {shelf1.map((b, i) => spine(b, shelf1.length > 2 && i === shelf1.length - 1))}
               {shelf2.length === 0 && (
@@ -699,7 +699,7 @@ export default function Wiki() {
                       <button key={d.id} type="button" onClick={() => openDoc(d.id)}
                         className="grid w-full items-center gap-3 rounded-md px-1.5 py-[11px] text-left transition-colors hover:bg-[rgba(60,47,24,.045)]"
                         style={{ gridTemplateColumns: '28px 1fr auto', borderTop: `1px solid ${C.line2}` }}>
-                        <span className="text-center" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 17, color: i === 0 ? C.rust : '#b3a78f' }}>{i + 1}</span>
+                        <span className="text-center" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 17, color: i === 0 ? C.rust : '#b3a78f' }}>{i + 1}</span>
                         <span className="min-w-0">
                           <span className="flex items-center gap-2">
                             <span className="truncate" style={{ fontSize: 14.5, fontWeight: 600 }}>{d.title || '무제'}</span>
@@ -820,7 +820,7 @@ function DocMain({
         {mode === 'read' ? (
           <>
             <div className="flex items-start justify-between gap-4">
-              <h1 className="m-0 min-w-0" style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 36, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
+              <h1 className="m-0 min-w-0" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 36, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
               <button
                 type="button" onClick={() => setMode('edit')}
                 className="mt-2 flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-[7px] text-[12.5px] font-semibold transition-colors hover:bg-[#40372a]"
@@ -852,7 +852,7 @@ function DocMain({
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); }}
                 placeholder="문서 제목"
                 className="w-full bg-transparent outline-none"
-                style={{ fontFamily: SERIF, fontWeight: 900, fontSize: 32, lineHeight: 1.3, color: C.ink }}
+                style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 32, lineHeight: 1.3, color: C.ink }}
               />
               <button
                 type="button" onClick={() => setMode('read')}
