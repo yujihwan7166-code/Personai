@@ -222,6 +222,7 @@ export default function Wiki() {
   const [picker, setPicker] = useState<{ text: string } | null>(null);
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
   /* 차례에서 끌어 옮기기 — 끄는 문서 / 지금 겨눈 자리 / 방금 옮겨진 문서(잔상) */
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()); // 차례에서 접은 장들
   const [dragDoc, setDragDoc] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<{ mode: 'nest'; id: string } | { mode: 'place'; index: number; depth: number } | null>(null);
   const [justMoved, setJustMoved] = useState<string | null>(null);
@@ -395,6 +396,37 @@ export default function Wiki() {
       return { d, depth, no: counters.join('.') };
     });
   }, [sideRows]);
+
+  /* 각 문서가 거느린 자손 수 — 차례에서 접힌 장이 몇 개를 품고 있는지 보여준다.
+     sideRows 는 전위 순회라 자기보다 깊은 줄이 이어지는 동안이 곧 자기 subtree. */
+  const descCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (let i = 0; i < sideRows.length; i++) {
+      let j = i + 1;
+      let c = 0;
+      while (j < sideRows.length && sideRows[j].depth > sideRows[i].depth) { c++; j++; }
+      m.set(sideRows[i].d.id, c);
+    }
+    return m;
+  }, [sideRows]);
+
+  /* 차례에 실제로 보이는 줄 — 접힌 장의 자손은 감춘다.
+     idx 는 sideRows 에서의 원래 자리(끌어 옮기기 계산이 이 번호를 쓴다). */
+  const tocRows = useMemo(() => {
+    const out: { d: WikiDoc; depth: number; no: string; idx: number }[] = [];
+    let hideBelow = Infinity;
+    numberedRows.forEach((r, idx) => {
+      if (r.depth > hideBelow) return;
+      hideBelow = Infinity;
+      out.push({ ...r, idx });
+      if (collapsed.has(r.d.id) && (descCount.get(r.d.id) ?? 0) > 0) hideBelow = r.depth;
+    });
+    return out;
+  }, [numberedRows, collapsed, descCount]);
+
+  const chapters = useMemo(() => sideRows.filter((r) => r.depth === 0 && (descCount.get(r.d.id) ?? 0) > 0), [sideRows, descCount]);
+  const allCollapsed = chapters.length > 0 && chapters.every((c) => collapsed.has(c.d.id));
+  const toggleAll = () => setCollapsed(allCollapsed ? new Set() : new Set(chapters.map((c) => c.d.id)));
 
   /* 열린 문서의 조상 — 사이드바에서 지금 위치까지의 길을 굵게 */
   const sidePath = useMemo(
@@ -930,7 +962,14 @@ export default function Wiki() {
             <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
                 <h2 className="m-0 flex-none" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.015em', fontSize: 20 }}>차례</h2>
-                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어 옮기기(문서 위=하위, 사이=그 자리)</span>
+                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>
+                  {chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
+                </span>
+                {chapters.length > 0 && (
+                  <button type="button" onClick={toggleAll} className="flex-none rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.05)]" style={{ borderColor: C.line, color: C.sub }}>
+                    {allCollapsed ? '모두 펴기' : '모두 접기'}
+                  </button>
+                )}
                 <button type="button" onClick={() => createDoc(null)} className="flex-none rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
                   + 새 문서
                 </button>
@@ -943,11 +982,14 @@ export default function Wiki() {
                   </div>
                 ) : (
                   <>
-                    {sideRows.map(({ d, depth }, i) => {
+                    {tocRows.map(({ d, depth, no, idx: i }) => {
                       const nesting = dropHint?.mode === 'nest' && dropHint.id === d.id;
                       const lineHere = dropHint?.mode === 'place' && dropHint.index === i;
+                      const chapter = depth === 0;              // 최상위 = 장
+                      const kidsCount = descCount.get(d.id) ?? 0;
+                      const folded = collapsed.has(d.id) && kidsCount > 0;
                       return (
-                        <div key={d.id}>
+                        <div key={d.id} style={chapter ? { marginTop: 6 } : undefined}>
                           {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
                           {lineHere && <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />}
                           <div
@@ -955,7 +997,8 @@ export default function Wiki() {
                             role="button" tabIndex={0} draggable
                             onClick={() => openDoc(d.id)}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
-                            onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setDragDoc(d.id); }}
+                            /* 끌기 시작하면 전부 펼친다 — 감춰진 자리로는 옮길 수 없으니 */
+                            onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setCollapsed(new Set()); setDragDoc(d.id); }}
                             onDragEnd={() => { setDragDoc(null); setDropHint(null); }}
                             onDragOver={(e) => {
                               if (!dragDoc) return;
@@ -987,20 +1030,47 @@ export default function Wiki() {
                             }}
                             title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 옮기기 (문서 위=하위로, 사이=그 자리로)`}
                             className={cn(
-                              'wiki-row flex w-full items-baseline gap-2.5 rounded-md text-left',
+                              'wiki-row flex w-full items-baseline gap-2 rounded-md text-left',
                               dragDoc === d.id && 'wiki-row-drag',
                               nesting && 'wiki-row-drop',
                               justMoved === d.id && 'wiki-row-moved',
                               dragDoc ? 'cursor-grabbing' : 'cursor-grab',
                             )}
-                            style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
+                            style={{
+                              padding: `${chapter ? 9 : 7}px 6px ${chapter ? 9 : 7}px ${6 + depth * 22}px`,
+                              borderTop: chapter ? `1px solid ${C.line2}` : undefined,
+                            }}
                           >
-                            <span className="min-w-0 max-w-[60%] truncate" style={{ fontWeight: depth === 0 ? 700 : 500, letterSpacing: depth === 0 ? '-0.012em' : undefined, fontSize: depth === 0 ? 15 : 14 }}>
+                            {/* 접기 손잡이 — 자손이 있는 줄만. 없으면 자리만 비워 번호가 나란히 선다 */}
+                            {kidsCount > 0 ? (
+                              <button
+                                type="button" aria-label={folded ? `${d.title || '무제'} 펴기` : `${d.title || '무제'} 접기`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCollapsed((s) => { const n = new Set(s); if (n.has(d.id)) n.delete(d.id); else n.add(d.id); return n; });
+                                }}
+                                className="-ml-1 flex h-[18px] w-[18px] flex-none items-center justify-center self-center rounded transition-colors hover:bg-[rgba(60,47,24,.1)]"
+                                style={{ color: C.sub }}
+                              >
+                                <ChevronDown className="h-3.5 w-3.5 transition-transform" style={{ transform: folded ? 'rotate(-90deg)' : undefined }} />
+                              </button>
+                            ) : (
+                              <span aria-hidden className="-ml-1 h-[18px] w-[18px] flex-none" />
+                            )}
+                            {/* 차례 번호 — 스크롤로 넘어가도 자릿수가 깊이를 말해준다 */}
+                            <span className="flex-none self-center tabular-nums" style={{ fontSize: chapter ? 12 : 11.5, fontWeight: 700, color: chapter ? C.sub : C.muted }}>{no}</span>
+                            <span className="min-w-0 max-w-[52%] truncate" style={{ fontWeight: chapter ? 700 : 500, letterSpacing: chapter ? '-0.012em' : undefined, fontSize: chapter ? 15 : 14 }}>
                               {d.title || '무제'}
                             </span>
                             {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
+                            {/* 접힌 장은 몇 개를 품고 있는지 알려준다 */}
+                            {folded && (
+                              <span className="flex-none self-center rounded-full px-1.5 py-px text-[11px] font-semibold" style={{ background: 'rgba(60,47,24,.07)', color: C.sub }}>
+                                +{kidsCount}
+                              </span>
+                            )}
                             <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
-                            <span style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
+                            <span className="flex-none" style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
                           </div>
                           {/* 하위로 품을 때 열리는 자리 */}
                           {nesting && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
