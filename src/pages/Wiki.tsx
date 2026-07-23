@@ -505,8 +505,8 @@ export default function Wiki() {
           </button>
         </div>
 
-        {active && book ? (
-          /* 문서 모드 — 지금 책의 차례. (책 펼침 화면은 가운데가 이미 차례라 여기선 책 목록을 보여준다) */
+        {book ? (
+          /* 책 안 — 책을 여는 순간 사이드바가 그 책의 차례로 바뀐다. 문서를 열어도 그대로라 흔들림이 없다 */
           <div className="flex-1 px-3 pb-4">
             <button type="button" onClick={goShelf} className="mx-2 mb-2 text-[12px] hover:underline" style={{ color: C.green }}>← 책장으로</button>
             <button
@@ -544,6 +544,23 @@ export default function Wiki() {
               );
             })}
             {sideRows.length === 0 && <p className="mx-2 py-2 text-[12px]" style={{ color: C.muted }}>아직 빈 책이에요</p>}
+
+            {/* 갈아타기 — 책 안에 있어도 서재의 다른 책은 손 닿는 곳에 */}
+            {books.length > 1 && (
+              <>
+                <div className="mx-2 mb-1.5 mt-6" style={{ fontSize: 10.5, letterSpacing: '.14em', color: C.muted }}>다른 책</div>
+                {books.filter((b) => b.id !== book.id).map((b) => (
+                  <button
+                    key={b.id} type="button" onClick={() => openBook(b.id)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-[rgba(60,47,24,.06)]"
+                  >
+                    <span className="h-[18px] w-[7px] flex-none rounded-[2px]" style={{ background: b.tint, boxShadow: 'inset -2px 0 3px rgba(0,0,0,.25)' }} />
+                    <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, color: C.body }}>{b.title}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>{docs.filter((d) => d.book === b.id).length}</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         ) : (
           /* 서재·책 펼침 모드 — 서재의 책 목록 (지금 펼친 책은 채움 알약으로) */
