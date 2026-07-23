@@ -3,10 +3,10 @@ import {
   childrenOf, ancestorsOf, rootOf, descendantIdsOf, isDescendant,
   moveOptions, deleteWithPromotion, focusView,
 } from '@/lib/wiki3/tree';
-import { migrateV2ToV3, plainToValue, linkedDocIds, bodyText, emptyBody, type WikiDoc } from '@/lib/wiki3/store';
+import { migrateV2ToV3, migrateV3ToV4, plainToValue, linkedDocIds, bodyText, emptyBody, hashTint, BOOK_PALETTE, type WikiDoc } from '@/lib/wiki3/store';
 
 const doc = (id: string, parent: string | null, over: Partial<WikiDoc> = {}): WikiDoc => ({
-  id, title: id.toUpperCase(), parent, tags: [], pinned: false, updated: 0, body: emptyBody(), ...over,
+  id, book: 'bk', title: id.toUpperCase(), parent, tags: [], pinned: false, updated: 0, body: emptyBody(), ...over,
 });
 
 /* 트리:  r1 ─ a ─ a1 ─ a1x
@@ -107,5 +107,37 @@ describe('v2 → v3 마이그레이션', () => {
   it('깨진 입력이면 null', () => {
     expect(migrateV2ToV3(null)).toBeNull();
     expect(migrateV2ToV3({ docs: 'x' })).toBeNull();
+  });
+});
+
+describe('v3 → v4 마이그레이션 (서재와 책들)', () => {
+  const v3doc = (id: string, parent: string | null) => ({
+    id, title: id.toUpperCase(), parent, tags: [], pinned: false, updated: 1, body: emptyBody(),
+  });
+  /* r1 ─ a ─ a1 / r2 (독립) / lost (고아 — 부모 없음 취급) */
+  const V3 = {
+    docs: [v3doc('r1', null), v3doc('a', 'r1'), v3doc('a1', 'a'), v3doc('r2', null), v3doc('lost', 'ghost')],
+    recent: ['a'],
+  };
+  it('최상위 문서마다 책 한 권 — 자손은 그 책 소속', () => {
+    const s = migrateV3ToV4(V3);
+    expect(s.books.map((b) => b.id).sort()).toEqual(['bk_lost', 'bk_r1', 'bk_r2']);
+    expect(s.docs.find((d) => d.id === 'a')?.book).toBe('bk_r1');
+    expect(s.docs.find((d) => d.id === 'a1')?.book).toBe('bk_r1');
+    expect(s.docs.find((d) => d.id === 'r2')?.book).toBe('bk_r2');
+  });
+  it('뿌리 문서는 책의 최상위로 (parent null), 내부 계층은 보존', () => {
+    const s = migrateV3ToV4(V3);
+    expect(s.docs.find((d) => d.id === 'r1')?.parent).toBeNull();
+    expect(s.docs.find((d) => d.id === 'a')?.parent).toBe('r1');
+    expect(s.docs.find((d) => d.id === 'a1')?.parent).toBe('a');
+  });
+  it('문서·recent 무손실, 책 제목 = 뿌리 제목, 색은 팔레트 내', () => {
+    const s = migrateV3ToV4(V3);
+    expect(s.docs).toHaveLength(V3.docs.length);
+    expect(s.recent).toEqual(['a']);
+    expect(s.books.find((b) => b.id === 'bk_r1')?.title).toBe('R1');
+    for (const b of s.books) expect(BOOK_PALETTE).toContain(b.tint);
+    expect(BOOK_PALETTE).toContain(hashTint('r1'));
   });
 });
