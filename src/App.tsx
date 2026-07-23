@@ -20,8 +20,6 @@ const Planner = lazy(() => import("./pages/Planner"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Career = lazy(() => import("./pages/Career"));
-const Career2 = lazy(() => import("./pages/Career2"));
-const Career3 = lazy(() => import("./pages/Career3"));
 const Wiki = lazy(() => import("./pages/Wiki"));
 const People = lazy(() => import("./pages/People"));
 const Archive = lazy(() => import("./pages/Archive"));
