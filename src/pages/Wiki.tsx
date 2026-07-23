@@ -6,7 +6,7 @@
  * 화면 3장: 서재 홈(책장+고정+언급 순위+최근) / 책 펼침(표지+차례 스프레드) / 문서 읽기(목차|본문|인포박스 3열).
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
-import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
@@ -231,6 +231,9 @@ export default function Wiki() {
   /* 차례 줄들의 DOM — 옮긴 뒤 제자리를 찾아가는 재배치(FLIP)에 쓴다 */
   const rowEls = useRef(new Map<string, HTMLElement>());
   const flipFrom = useRef<Map<string, DOMRect> | null>(null);
+  /* 서가 폭 — 한 줄에 책이 몇 권 들어가는지 계산하려면 실측이 필요하다 */
+  const shelfRef = useRef<HTMLDivElement>(null);
+  const [shelfW, setShelfW] = useState(0);
 
   const isWide = useIsWide();
   const { books, docs, recent } = store;
@@ -413,9 +416,36 @@ export default function Wiki() {
     const fs = Math.max(13, Math.min(21, Math.floor((h - 132) / Math.max(title.length, 1))));
     return { n, w: Math.min(100, Math.round(62 + n * 4)), h, fs, title };
   };
-  const shelfBooks = books;
-  const shelf1 = shelfBooks.slice(0, Math.min(4, shelfBooks.length));
-  const shelf2 = shelfBooks.slice(4);
+  /* 선반 채우기 — 책 수가 아니라 '실제 폭'으로 나눈다.
+     4권 고정으로 자르면 넓은 화면에서 5번째 책 하나만 둘째 줄로 내려가 서가가 텅 빈다. */
+  const SHELF_GAP = 9;
+  const NEW_SLOT = 66;
+  const LEAN_SLACK = 44; // 마지막 책이 기울면 발자국이 그만큼 넓어진다
+  const shelfRows = useMemo(() => {
+    const avail = shelfW - 28; // px-3.5 양쪽
+    const rows: { books: WikiBook[]; used: number }[] = [];
+    let cur: WikiBook[] = [];
+    let used = 0;
+    for (const b of books) {
+      const w = spineOf(b).w + SHELF_GAP;
+      // 중간 줄은 끝까지 채운다 (기울기 여유만 남김)
+      if (avail > 0 && cur.length > 0 && used + w > avail - LEAN_SLACK) {
+        rows.push({ books: cur, used });
+        cur = []; used = 0;
+      }
+      cur.push(b); used += w;
+    }
+    rows.push({ books: cur, used });
+    // 마지막 줄에 '새 책' 자리가 안 들어가면 책 한 권을 다음 줄로 내린다
+    const tail = rows[rows.length - 1];
+    if (avail > 0 && tail.books.length > 1 && tail.used + NEW_SLOT + SHELF_GAP > avail - LEAN_SLACK) {
+      const moved = tail.books.pop()!;
+      tail.used -= spineOf(moved).w + SHELF_GAP;
+      rows.push({ books: [moved], used: spineOf(moved).w + SHELF_GAP });
+    }
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [books, docs, shelfW]);
 
   const today = new Date();
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
@@ -529,6 +559,24 @@ export default function Wiki() {
     window.setTimeout(() => setJustMoved((v) => (v === id ? null : v)), 900);
   };
 
+  /* 서가 폭 — 창 크기·사이드바에 따라 한 줄에 담기는 책 수가 달라진다.
+     렌더마다 실측해 스스로 보정하고(관찰자가 늦거나 안 오는 경우 대비), 리사이즈도 함께 듣는다. */
+  const measureShelf = () => {
+    const el = shelfRef.current;
+    const w = el ? el.getBoundingClientRect().width : 0;
+    setShelfW((prev) => (Math.abs(prev - w) > 1 ? w : prev));
+  };
+  useLayoutEffect(measureShelf);
+  useEffect(() => {
+    const el = shelfRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measureShelf);
+    ro.observe(el);
+    window.addEventListener('resize', measureShelf);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measureShelf); };
+     
+  }, [bookId, docId, qq]);
+
   /* 재배치 모션 — 옮긴 직후, 자리가 바뀐 줄들을 옛 자리에서 새 자리로 미끄러뜨린다.
      드롭 즉시 순간이동하면 "어디로 갔지?"가 되므로, 눈이 따라갈 시간(300ms)을 준다. */
   useLayoutEffect(() => {
@@ -550,10 +598,6 @@ export default function Wiki() {
       );
     });
   }, [docs]);
-
-  /* 줄의 마지막 책만, 그 줄이 꽉 차지 않았고 기댈 이웃이 있을 때 기운다 (이웃 높이를 넘겨준다) */
-  const leanOnOf = (row: WikiBook[], i: number) =>
-    i === row.length - 1 && row.length >= 2 && row.length < 4 ? spineOf(row[i - 1]).h : undefined;
 
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
 
@@ -1011,9 +1055,14 @@ export default function Wiki() {
               <span style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 11, letterSpacing: '.24em', color: '#3a2c10' }}>나의 서재</span>
               <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
             </div>
-            <div className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
-              {shelf1.map((b, i) => spine(b, leanOnOf(shelf1, i)))}
-              {shelf2.length === 0 && (
+            {shelfRows.map((row, ri) => {
+              const last = ri === shelfRows.length - 1;
+              const free = shelfW - 28 - row.used - NEW_SLOT - SHELF_GAP - LEAN_SLACK; // 새 책 자리·기울기를 뺀 남는 폭
+              return (
+            <Fragment key={ri}>
+            <div ref={ri === 0 ? shelfRef : undefined} className="relative flex items-end gap-[9px] overflow-x-clip px-3.5" style={{ marginTop: ri === 0 ? 0 : 36 }}>
+              {row.books.map((b, i) => spine(b, last && free > 90 && i === row.books.length - 1 && row.books.length >= 2 ? spineOf(row.books[i - 1]).h : undefined))}
+              {last && (
                 <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
                   className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
                   style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
@@ -1022,27 +1071,29 @@ export default function Wiki() {
                 >+</button>
               )}
 
-              {/* 정물들 — 등간격으로 도열하지 않는다. 꽃병과 시계는 한 무리로 붙어 서고,
+              {/* 정물들 — 남는 폭이 있을 때만. 등간격으로 도열하지 않고 꽃병·시계는 한 무리,
                   지구본만 멀찍이. 빈 틈은 1 : 1.9 로 갈려 리듬이 어긋난다 (grow 라 넘치지 않음) */}
-              {shelf2.length === 0 && <span aria-hidden className="hidden flex-[1] md:block" />}
-              {shelf2.length === 0 && (
+              {last && free > 300 && <span aria-hidden className="hidden flex-[1] md:block" />}
+              {last && free > 300 && (
                 <span className="hidden flex-none items-end gap-[7px] self-end pb-[2px] md:flex">
                   {/* 꽃병 — 선반 안쪽에 물러나 있어 조금 작고 그늘지다 */}
-                  {SHELF_PROPS.slice(0, Math.max(0, 5 - shelfBooks.length)).map((kind) => (
+                  {SHELF_PROPS.slice(0, free > 520 ? 1 : 0).map((kind) => (
                     <span key={kind} className="block" style={{ transform: 'scale(.94)', transformOrigin: 'bottom center', filter: 'brightness(.9)' }}>
                       <ShelfProp kind={kind} />
                     </span>
                   ))}
                   {/* 탁상시계 — 앞쪽에, 누가 내려놓은 듯 살짝 비뚜름하게 */}
-                  <span className="hidden lg:block" title="서재의 괘종시계" style={{ transform: 'rotate(2deg)', transformOrigin: 'bottom center', marginLeft: -3 }}>
-                    <PendulumClock />
-                  </span>
+                  {free > 420 && (
+                    <span className="hidden lg:block" title="서재의 괘종시계" style={{ transform: 'rotate(2deg)', transformOrigin: 'bottom center', marginLeft: -3 }}>
+                      <PendulumClock />
+                    </span>
+                  )}
                 </span>
               )}
-              {shelf2.length === 0 && <span aria-hidden className="hidden flex-[1.9] md:block" />}
+              {last && free > 300 && <span aria-hidden className="hidden flex-[1.9] md:block" />}
 
               {/* 지구본 — 서가 맨 오른쪽의 대형 정물. 돌리면(클릭) 아무 문서나 펼쳐진다 */}
-              {shelf2.length === 0 && docs.length > 0 && (
+              {last && free > 300 && docs.length > 0 && (
                 <button
                   type="button" onClick={openRandom} title="지구본 돌리기 — 아무 문서나 펼치기"
                   className="group relative hidden flex-none self-end md:block"
@@ -1087,20 +1138,9 @@ export default function Wiki() {
               )}
             </div>
             {shelfBar}
-            {shelf2.length > 0 && (
-              <>
-                <div className="relative mt-9 flex items-end gap-[9px] overflow-x-auto px-3.5">
-                  {shelf2.map((b, i) => spine(b, leanOnOf(shelf2, i)))}
-                  <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                    className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
-                    style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
-                  >+</button>
-                </div>
-                {shelfBar}
-              </>
-            )}
+            </Fragment>
+              );
+            })}
           </div>
           <p className="mx-1 mt-2.5" style={{ fontSize: 12, color: C.muted }}>책등의 두께와 높이는 그 안에 쌓인 문서 수를 따라 자랍니다. 책을 눌러 펼쳐보세요.</p>
 
