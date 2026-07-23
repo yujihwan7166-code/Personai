@@ -145,7 +145,42 @@ function ShelfProp({ kind }: { kind: 'vase' | 'stack' | 'clock' }) {
     </svg>
   );
 }
-const SHELF_PROPS: Array<'vase' | 'stack' | 'clock'> = ['vase', 'stack', 'clock'];
+const SHELF_PROPS: Array<'vase' | 'stack' | 'clock'> = ['vase', 'stack'];
+
+/** 탁상시계 — 서가의 상주 정물. 진짜 시간이 흐른다 (30초마다 갱신). */
+function DeskClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 30000);
+    return () => window.clearInterval(t);
+  }, []);
+  const ha = (now.getHours() % 12) * 30 + now.getMinutes() * 0.5;
+  const ma = now.getMinutes() * 6;
+  return (
+    <svg aria-hidden width="88" height="116" viewBox="0 0 100 132" style={{ filter: 'drop-shadow(0 10px 10px rgba(10,5,0,.4))' }}>
+      {/* 종 + 망치 (빈티지 자명종) */}
+      <circle cx="27" cy="16" r="9" fill="#8a6a30" transform="rotate(-18 27 16)" />
+      <circle cx="73" cy="16" r="9" fill="#8a6a30" transform="rotate(18 73 16)" />
+      <rect x="47.5" y="6" width="5" height="10" rx="2.5" fill="#6d5222" />
+      {/* 다리 */}
+      <rect x="26" y="112" width="6" height="16" rx="3" fill="#6d4a22" transform="rotate(-16 29 120)" />
+      <rect x="68" y="112" width="6" height="16" rx="3" fill="#6d4a22" transform="rotate(16 71 120)" />
+      {/* 몸통 + 문자반 */}
+      <circle cx="50" cy="68" r="46" fill="#8a6a30" />
+      <circle cx="50" cy="68" r="45" fill="none" stroke="#cfa84e" strokeWidth="1.5" />
+      <circle cx="50" cy="68" r="38" fill="#f6ecd9" />
+      {[0, 90, 180, 270].map((a) => (
+        <line key={a} x1="50" y1="34" x2="50" y2="40" stroke="#292217" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${a} 50 68)`} />
+      ))}
+      {[30, 60, 120, 150, 210, 240, 300, 330].map((a) => (
+        <line key={a} x1="50" y1="34.5" x2="50" y2="38" stroke="#a0937d" strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${a} 50 68)`} />
+      ))}
+      <line x1="50" y1="68" x2="50" y2="47" stroke="#292217" strokeWidth="3.5" strokeLinecap="round" transform={`rotate(${ha} 50 68)`} />
+      <line x1="50" y1="68" x2="50" y2="39" stroke="#292217" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${ma} 50 68)`} />
+      <circle cx="50" cy="68" r="3" fill="#9a4632" />
+    </svg>
+  );
+}
 
 /** 책 칩 — 색 점 + 책 이름 (시안 공용 부호). */
 function BookChip({ book }: { book?: WikiBook }) {
@@ -704,7 +739,7 @@ export default function Wiki() {
               <span style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 11, letterSpacing: '.24em', color: '#3a2c10' }}>나의 서재</span>
               <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
             </div>
-            <div className="relative flex items-end gap-[9px] overflow-x-auto px-3.5">
+            <div className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
               {shelf1.map((b, i) => spine(b, shelf1.length > 2 && i === shelf1.length - 1))}
               {shelf2.length === 0 && (
                 <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
@@ -718,8 +753,15 @@ export default function Wiki() {
               {/* 서가 소품 — 빈 칸의 정물. 책이 늘면 순서대로 자리를 내준다.
                   ml-auto 를 지구본과 나눠 가져 남는 공간이 두 틈으로 고르게 분배 — 죽은 여백 없음 */}
               {shelf2.length === 0 && (
-                <span className="ml-auto hidden flex-none items-end gap-7 self-end pb-[2px] pl-3 sm:flex">
+                <span className="ml-auto hidden flex-none items-end gap-4 self-end pb-[2px] md:flex">
                   {SHELF_PROPS.slice(0, Math.max(0, 5 - shelfBooks.length)).map((kind) => <ShelfProp key={kind} kind={kind} />)}
+                </span>
+              )}
+
+              {/* 탁상시계 — 상주 정물. 진짜 시간이 흐른다 */}
+              {shelf2.length === 0 && (
+                <span className="ml-auto hidden flex-none self-end pb-[2px] lg:block" title="서재의 시계">
+                  <DeskClock />
                 </span>
               )}
 
@@ -727,7 +769,7 @@ export default function Wiki() {
               {shelf2.length === 0 && docs.length > 0 && (
                 <button
                   type="button" onClick={openRandom} title="지구본 돌리기 — 아무 문서나 펼치기"
-                  className="group relative ml-auto hidden flex-none self-end pl-5 md:block"
+                  className="group relative ml-auto hidden flex-none self-end pl-2 md:block"
                 >
                   <svg width="164" height="234" viewBox="0 0 164 234" className="transition-transform duration-300 group-hover:-rotate-3 motion-reduce:transition-none motion-reduce:group-hover:transform-none" style={{ filter: 'drop-shadow(0 16px 16px rgba(10,5,0,.5))', transformOrigin: '50% 90%' }}>
                     <defs>
