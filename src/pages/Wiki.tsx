@@ -372,6 +372,16 @@ export default function Wiki() {
     walk(null, 0);
     return rows;
   }, [bookId, bookDocs]);
+  /* 차례 번호 — 1 / 1.1 / 1.1.1. 깊이를 흐린 선 대신 번호가 직접 말한다 */
+  const numberedRows = useMemo(() => {
+    const counters: number[] = [];
+    return sideRows.map(({ d, depth }) => {
+      counters.length = depth + 1;
+      counters[depth] = (counters[depth] ?? 0) + 1;
+      return { d, depth, no: counters.join('.') };
+    });
+  }, [sideRows]);
+
   /* 열린 문서의 조상 — 사이드바에서 지금 위치까지의 길을 굵게 */
   const sidePath = useMemo(
     () => new Set(docId ? ancestorsOf(bookDocs, docId).map((d) => d.id) : []),
@@ -603,29 +613,38 @@ export default function Wiki() {
             </button>
 
             <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em]" style={{ color: C.sub }}>차례</div>
-            {sideRows.map(({ d, depth }) => {
+            {numberedRows.map(({ d, depth, no }) => {
               const on = d.id === docId;
               const onPath = sidePath.has(d.id);
+              const top = depth === 0;
               return (
                 <button
                   key={d.id} type="button" onClick={() => openDoc(d.id)}
                   className={cn(
-                    'relative flex min-h-[34px] w-full items-center gap-1.5 rounded-[9px] py-[7px] pr-3 text-left text-[13.5px] transition-colors',
-                    on ? 'font-semibold' : onPath ? 'font-semibold' : 'font-medium',
+                    'flex min-h-[34px] w-full items-start gap-2 rounded-[9px] py-[7px] pr-3 text-left transition-colors',
                     !on && 'hover:bg-[rgba(60,47,24,.06)]',
                   )}
                   style={{
-                    paddingLeft: 12 + depth * 15,
+                    paddingLeft: 12 + depth * 10,
+                    marginTop: top ? 4 : 0, // 최상위마다 한 숨 — 묶음이 눈에 보이게
                     background: on ? 'rgba(154,70,50,.13)' : undefined,
                     color: on ? C.rust : C.ink,
                   }}
                 >
-                  {/* 층마다 세로선 — 몇 단 안쪽인지 선의 개수로 읽힌다 */}
-                  {Array.from({ length: depth }, (_, k) => (
-                    <span key={k} aria-hidden className="absolute inset-y-0 w-px" style={{ left: 7 + k * 15, background: k === depth - 1 ? 'rgba(60,47,24,.3)' : 'rgba(60,47,24,.14)' }} />
-                  ))}
-                  <span className="truncate">{d.title || '무제'}</span>
-                  {d.pinned && <Star className="h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
+                  {/* 차례 번호 — 자릿수 자체가 몇 단 안쪽인지 말한다 */}
+                  <span
+                    className="shrink-0 tabular-nums"
+                    style={{ fontSize: top ? 12 : 11.5, fontWeight: 700, lineHeight: '20px', color: on ? C.rust : top ? C.sub : C.muted }}
+                  >
+                    {no}
+                  </span>
+                  <span
+                    className="min-w-0 flex-1 truncate"
+                    style={{ fontSize: top ? 14 : 13.5, fontWeight: on || onPath ? 700 : top ? 600 : 500, letterSpacing: top ? '-0.01em' : undefined, lineHeight: '20px' }}
+                  >
+                    {d.title || '무제'}
+                  </span>
+                  {d.pinned && <Star className="mt-[3px] h-3 w-3 flex-none fill-amber-400 text-amber-400" />}
                 </button>
               );
             })}
