@@ -63,6 +63,10 @@ const WIKI_CSS = `
 .wiki-theme .wiki-row-drop { background: rgba(48,95,76,.1); box-shadow: inset 0 0 0 1px rgba(48,95,76,.34); transform: translateX(3px); }
 .wiki-theme .wiki-slot { height:0; opacity:0; border-radius:3px; background:rgba(48,95,76,.14); border-left:2px solid #305f4c; animation: wikiSlotIn .18s cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes wikiSlotIn { to { height:22px; opacity:1; } }
+/* 문서 사이에 놓을 때 — 가로선의 들여쓰기가 곧 들어갈 단계 */
+.wiki-theme .wiki-insert { position:relative; height:2px; margin-right:6px; border-radius:2px; background:#305f4c; transform-origin:left center; animation: wikiInsertIn .14s ease-out both; }
+.wiki-theme .wiki-insert::before { content:''; position:absolute; left:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:#305f4c; }
+@keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-row-moved { animation: wikiMoved .9s ease-out; }
@@ -75,6 +79,7 @@ const WIKI_CSS = `
   .wiki-theme .wiki-row { transition:none; }
   .wiki-theme .wiki-row-drop { transform:none; }
   .wiki-theme .wiki-slot { height:22px; opacity:1; animation:none; }
+  .wiki-theme .wiki-insert { animation:none; }
   .wiki-theme .wiki-root-drop, .wiki-theme .wiki-row-moved { animation:none; }
 }
 /* 읽기 뷰 본문 — 시안의 위키 타이포 */
@@ -214,7 +219,7 @@ export default function Wiki() {
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
   /* 차례에서 끌어 옮기기 — 끄는 문서 / 지금 겨눈 자리 / 방금 옮겨진 문서(잔상) */
   const [dragDoc, setDragDoc] = useState<string | null>(null);
-  const [dropAt, setDropAt] = useState<string | 'root' | null>(null);
+  const [dropHint, setDropHint] = useState<{ mode: 'nest'; id: string } | { mode: 'place'; index: number; depth: number } | null>(null);
   const [justMoved, setJustMoved] = useState<string | null>(null);
   const editorApi = useRef<WikiEditorApi | null>(null);
   const readBodyRef = useRef<HTMLDivElement>(null);
@@ -447,19 +452,59 @@ export default function Wiki() {
       </div>
     );
   };
-  /* 끌어 옮기기 규칙 — 자기 자신·자기 자손에게는 넣을 수 없고(순환), 이미 그 자리면 무반응 */
-  const canDropOn = (target: string | null) => {
+  /* ── 차례에서 끌어 옮기기 ──
+   * 문서 한가운데에 놓으면 그 문서의 하위로, 문서와 문서 사이에 놓으면 그 자리로.
+   * 사이에 놓을 때는 좌우로 움직여 단계를 고른다 — 왼쪽으로 끌수록 상위로 빠져나온다. */
+  const canNestOn = (target: string | null) => {
     if (!dragDoc) return false;
     if (target === dragDoc) return false;
     if (target && isDescendant(bookDocs, target, dragDoc)) return false;
     return (docs.find((d) => d.id === dragDoc)?.parent ?? null) !== target;
   };
-  const dropOn = (target: string | null) => {
-    const id = dragDoc;
-    setDragDoc(null);
-    setDropAt(null);
-    if (!id || !canDropOn(target)) return;
-    patchDoc(id, { parent: target });
+  /** 끌고 있는 문서가 차례에서 차지하는 구간 [start, end) — 자기 안쪽으로는 못 들어간다 */
+  const dragRange = useMemo(() => {
+    if (!dragDoc) return null;
+    const start = sideRows.findIndex((r) => r.d.id === dragDoc);
+    if (start < 0) return null;
+    let end = start + 1;
+    while (end < sideRows.length && sideRows[end].depth > sideRows[start].depth) end++;
+    return { start, end };
+  }, [dragDoc, sideRows]);
+
+  /** 사이(gap)에 놓을 때의 계획 — 커서 x 로 단계를 고르고, 그 단계의 부모와 앞 문서를 찾는다 */
+  const placePlan = (gapIndex: number, x: number) => {
+    if (!dragDoc || !dragRange) return null;
+    const { start, end } = dragRange;
+    if (gapIndex > start && gapIndex < end) return null;
+    let p = gapIndex - 1;
+    if (p >= start && p < end) p = start - 1; // 자기 구간은 건너뛰고 그 위를 기준으로
+    const prev = p >= 0 ? sideRows[p] : null;
+    let nx = gapIndex < sideRows.length ? sideRows[gapIndex] : null;
+    if (nx && nx.d.id === dragDoc) nx = end < sideRows.length ? sideRows[end] : null;
+    const maxD = prev ? prev.depth + 1 : 0; // 위 문서의 자식까지가 최대
+    const minD = nx ? nx.depth : 0;         // 아래 문서보다 얕아질 순 없다
+    const depth = Math.max(minD, Math.min(maxD, Math.round((x - 6) / 22)));
+    let parent: string | null = null;
+    if (depth > 0 && prev) {
+      const chain = [...ancestorsOf(bookDocs, prev.d.id), prev.d]; // chain[k] 의 깊이 = k
+      parent = chain[depth - 1]?.id ?? null;
+    }
+    if (parent && (parent === dragDoc || isDescendant(bookDocs, parent, dragDoc))) return null;
+    return { depth, parent, before: nx?.d.id ?? null };
+  };
+
+  /** 소속(parent)과 차례 순서를 한 번에 옮긴다 — 순서는 docs 배열 위치가 정한다 */
+  const moveDoc = (id: string, parent: string | null, before: string | null) => {
+    setStore((s) => {
+      const arr = [...s.docs];
+      const from = arr.findIndex((d) => d.id === id);
+      if (from < 0) return s;
+      const [moved] = arr.splice(from, 1);
+      let at = before ? arr.findIndex((d) => d.id === before) : -1;
+      if (at < 0) at = arr.length;
+      arr.splice(at, 0, { ...moved, parent, updated: Date.now() });
+      return { ...s, docs: arr };
+    });
     setJustMoved(id); // 옮겨진 문서가 어디로 갔는지 잠깐 빛난다
     window.setTimeout(() => setJustMoved((v) => (v === id ? null : v)), 900);
   };
@@ -765,87 +810,88 @@ export default function Wiki() {
             <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
                 <h2 className="m-0 flex-none" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20 }}>차례</h2>
-                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어서 다른 문서 아래로</span>
+                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어 옮기기(문서 위=하위, 사이=그 자리)</span>
                 <button type="button" onClick={() => createDoc(null)} className="flex-none rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
                   + 새 문서
                 </button>
               </div>
               <div className="mt-3.5">
-                {(() => {
-                  const rows: { d: WikiDoc; depth: number }[] = [];
-                  const walk = (parent: string | null, depth: number, seen: Set<string>) => {
-                    for (const d of childrenOf(bookDocs, parent)) {
-                      if (seen.has(d.id)) continue;
-                      seen.add(d.id);
-                      rows.push({ d, depth });
-                      walk(d.id, depth + 1, seen);
-                    }
-                  };
-                  walk(null, 0, new Set());
-                  if (rows.length === 0) {
-                    return (
-                      <div className="py-12 text-center">
-                        <p style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>아직 빈 책이에요</p>
-                        <p className="mt-1.5" style={{ fontSize: 13, color: C.sub }}>첫 문서를 적으면 여기가 차례가 돼요.</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <>
-                      {/* 끌기 시작하면 열리는 '책의 맨 위' 자리 — 하위에서 빼낼 때 */}
-                      {dragDoc && canDropOn(null) && (
-                        <div
-                          className="wiki-root-drop mb-1.5 rounded-md px-3 py-2 text-center"
-                          style={{
-                            border: `1.5px dashed ${dropAt === 'root' ? C.green : 'rgba(60,47,24,.28)'}`,
-                            background: dropAt === 'root' ? 'rgba(48,95,76,.1)' : 'transparent',
-                            fontSize: 12, color: dropAt === 'root' ? C.green : C.sub, fontWeight: 600,
-                          }}
-                          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropAt('root'); }}
-                          onDragLeave={() => setDropAt((v) => (v === 'root' ? null : v))}
-                          onDrop={(e) => { e.preventDefault(); dropOn(null); }}
-                        >
-                          여기에 놓으면 책의 맨 위로
-                        </div>
-                      )}
-                      {rows.map(({ d, depth }) => {
-                        const target = dropAt === d.id && canDropOn(d.id);
-                        return (
-                          <div key={d.id}>
-                            <div
-                              role="button" tabIndex={0} draggable
-                              onClick={() => openDoc(d.id)}
-                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
-                              onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setDragDoc(d.id); }}
-                              onDragEnd={() => { setDragDoc(null); setDropAt(null); }}
-                              onDragOver={(e) => { if (!canDropOn(d.id)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropAt(d.id); }}
-                              onDragLeave={() => setDropAt((v) => (v === d.id ? null : v))}
-                              onDrop={(e) => { e.preventDefault(); dropOn(d.id); }}
-                              title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 다른 문서 아래로 옮길 수 있어요`}
-                              className={cn(
-                                'wiki-row flex w-full items-baseline gap-2.5 rounded-md text-left',
-                                dragDoc === d.id && 'wiki-row-drag',
-                                target && 'wiki-row-drop',
-                                justMoved === d.id && 'wiki-row-moved',
-                                dragDoc ? 'cursor-grabbing' : 'cursor-grab',
-                              )}
-                              style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
-                            >
-                              <span className="min-w-0 max-w-[60%] truncate" style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
-                                {d.title || '무제'}
-                              </span>
-                              {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
-                              <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
-                              <span style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
-                            </div>
-                            {/* 들어갈 자리 — 한 단 안쪽으로 열린다 */}
-                            {target && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
+                {sideRows.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16 }}>아직 빈 책이에요</p>
+                    <p className="mt-1.5" style={{ fontSize: 13, color: C.sub }}>첫 문서를 적으면 여기가 차례가 돼요.</p>
+                  </div>
+                ) : (
+                  <>
+                    {sideRows.map(({ d, depth }, i) => {
+                      const nesting = dropHint?.mode === 'nest' && dropHint.id === d.id;
+                      const lineHere = dropHint?.mode === 'place' && dropHint.index === i;
+                      return (
+                        <div key={d.id}>
+                          {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
+                          {lineHere && <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />}
+                          <div
+                            role="button" tabIndex={0} draggable
+                            onClick={() => openDoc(d.id)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
+                            onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setDragDoc(d.id); }}
+                            onDragEnd={() => { setDragDoc(null); setDropHint(null); }}
+                            onDragOver={(e) => {
+                              if (!dragDoc) return;
+                              const r = e.currentTarget.getBoundingClientRect();
+                              const rel = (e.clientY - r.top) / r.height;
+                              if (rel > 0.3 && rel < 0.7) { // 한가운데 = 이 문서의 하위로
+                                if (!canNestOn(d.id)) return;
+                                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                                setDropHint({ mode: 'nest', id: d.id });
+                                return;
+                              }
+                              const gap = rel <= 0.3 ? i : i + 1; // 가장자리 = 문서 사이
+                              const plan = placePlan(gap, e.clientX - r.left);
+                              if (!plan) return;
+                              e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                              setDropHint({ mode: 'place', index: gap, depth: plan.depth });
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (!dragDoc) return;
+                              const id = dragDoc;
+                              const r = e.currentTarget.getBoundingClientRect();
+                              const rel = (e.clientY - r.top) / r.height;
+                              const plan = rel > 0.3 && rel < 0.7 ? null : placePlan(rel <= 0.3 ? i : i + 1, e.clientX - r.left);
+                              const nest = rel > 0.3 && rel < 0.7 && canNestOn(d.id);
+                              setDragDoc(null); setDropHint(null);
+                              if (nest) moveDoc(id, d.id, null);
+                              else if (plan) moveDoc(id, plan.parent, plan.before);
+                            }}
+                            title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 옮기기 (문서 위=하위로, 사이=그 자리로)`}
+                            className={cn(
+                              'wiki-row flex w-full items-baseline gap-2.5 rounded-md text-left',
+                              dragDoc === d.id && 'wiki-row-drag',
+                              nesting && 'wiki-row-drop',
+                              justMoved === d.id && 'wiki-row-moved',
+                              dragDoc ? 'cursor-grabbing' : 'cursor-grab',
+                            )}
+                            style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
+                          >
+                            <span className="min-w-0 max-w-[60%] truncate" style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
+                              {d.title || '무제'}
+                            </span>
+                            {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
+                            <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
+                            <span style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
                           </div>
-                        );
-                      })}
-                    </>
-                  );
-                })()}
+                          {/* 하위로 품을 때 열리는 자리 */}
+                          {nesting && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
+                        </div>
+                      );
+                    })}
+                    {/* 맨 끝 자리 */}
+                    {dropHint?.mode === 'place' && dropHint.index === sideRows.length && (
+                      <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />
+                    )}
+                  </>
+                )}
               </div>
 
               {/* 페이지 밑단 — 이 책의 형편 */}
