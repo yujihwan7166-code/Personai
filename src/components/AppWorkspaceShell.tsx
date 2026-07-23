@@ -74,7 +74,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린
   tickets: '#d97706',  // 티켓북 — 앰버
-  wiki: '#8b3d6e',     // 마이위키 — 플럼(자두)
+  wiki: '#9a4632',     // 마이위키 — 서재 러스트 (서재.dc.html 시안 강조색)
   ledger: '#2d4a7c',   // 가계부 — 딥 네이비 (방 accent와 동일)
 };
 

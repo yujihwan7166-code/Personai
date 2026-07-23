@@ -9,8 +9,8 @@
  */
 import type { Value } from 'platejs';
 
-/** 책 표지 팔레트 — 서가에서 등이 구분되는 깊은 색들. */
-export const BOOK_PALETTE = ['#8b3d6e', '#31456a', '#2f5d50', '#8a6d3b', '#7a4988', '#a63a50'];
+/** 책 표지 팔레트 — 서가 시안(마이위키 서재.dc.html)의 책등 색 그대로. */
+export const BOOK_PALETTE = ['#9a4632', '#33465e', '#3f6058', '#b98a2e', '#6d4457', '#7c5638', '#4a5d3a', '#3c3833'];
 
 export interface WikiBook {
   id: string;
@@ -275,9 +275,9 @@ const _pl = (parts: Array<string | { link: string; to: string }>) => ({
 export function buildSeedStore(): WikiStore {
   const now = Date.now();
   const books: WikiBook[] = [
-    { id: 'bkseed_guide', title: '위키 사용법', tint: '#8b3d6e', intro: '이 서재를 쓰는 법 — 한 권으로 끝', updated: now },
-    { id: 'bkseed_coffee', title: '커피 노트', tint: '#8a6d3b', intro: '집에서 내리는 커피의 기록', updated: now },
-    { id: 'bkseed_travel', title: '여행', tint: '#31456a', intro: '다녀온 도시들', updated: now },
+    { id: 'bkseed_guide', title: '위키 사용법', tint: '#3f6058', intro: '이 서재를 쓰는 법 — 한 권으로 끝', updated: now },
+    { id: 'bkseed_coffee', title: '커피 노트', tint: '#9a4632', intro: '집에서 내리는 커피의 기록', updated: now },
+    { id: 'bkseed_travel', title: '여행', tint: '#33465e', intro: '다녀온 도시들', updated: now },
   ];
   const docs: WikiDoc[] = [
     {
@@ -386,6 +386,35 @@ export function linkedDocIds(body: Value): string[] {
   };
   walk(body as unknown[]);
   return [...out];
+}
+
+/**
+ * 백링크 인용 발췌 — 본문에서 target 문서로 가는 링크 주변 문맥을 { 앞 | 링크 텍스트 | 뒤 }로.
+ * 시안의 "…쿠라스에서 마신 한 잔이 [교토] 여행 전체의 향으로…" 하이라이트 재료.
+ */
+export function backlinkExcerpt(body: Value, targetId: string): { pre: string; mid: string; post: string } | null {
+  for (const block of body as Array<{ children?: unknown[] }>) {
+    const kids = block.children;
+    if (!Array.isArray(kids)) continue;
+    for (let i = 0; i < kids.length; i++) {
+      const n = kids[i] as { type?: string; url?: string; children?: Array<{ text?: string }> };
+      if (n?.type === 'a' && n.url === `wiki://${targetId}`) {
+        const textOf = (x: unknown): string => {
+          const node = x as { text?: string; children?: Array<{ text?: string }> };
+          if (typeof node?.text === 'string') return node.text;
+          return (node?.children ?? []).map((c) => c.text ?? '').join('');
+        };
+        const pre = kids.slice(0, i).map(textOf).join('');
+        const post = kids.slice(i + 1).map(textOf).join('');
+        return {
+          pre: pre.length > 34 ? `…${pre.slice(-34)}` : pre,
+          mid: (n.children ?? []).map((c) => c.text ?? '').join('') || '링크',
+          post: post.length > 34 ? `${post.slice(0, 34)}…` : post,
+        };
+      }
+    }
+  }
+  return null;
 }
 
 /** 본문 평문 추출 — 미리보기·검색용. */
