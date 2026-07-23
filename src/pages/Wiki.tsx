@@ -15,7 +15,7 @@ import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
   type WikiBook, type WikiDoc, type WikiStore, type InfoboxRow,
 } from '@/lib/wiki3/store';
-import { childrenOf, ancestorsOf, focusView, moveOptions, deleteWithPromotion } from '@/lib/wiki3/tree';
+import { childrenOf, ancestorsOf, focusView, moveOptions, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
 import type { WikiEditorApi } from '@/components/wiki3/WikiDocEditor';
 
 const WikiDocEditor = lazy(() => import('@/components/wiki3/WikiDocEditor').then((m) => ({ default: m.WikiDocEditor })));
@@ -49,9 +49,31 @@ const WIKI_CSS = `
 @keyframes wikiRiseIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
 .wiki-theme .wiki-rise { animation: wikiRiseIn .4s ease both; }
 .wiki-theme .wiki-page { transform-origin: left center; animation: wikiPageOpen .55s cubic-bezier(.2,.7,.2,1) both; }
+/* 괘종시계 진자 — 3초에 한 번, 눈에 걸리지 않을 만큼만 */
+@keyframes wikiSwing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.wiki-theme .wiki-pendulum { transform-origin: 31px 72px; animation: wikiSwing 3s ease-in-out infinite alternate; }
+
+/* 차례 — 끌어서 하위 문서로 넣기.
+   원본은 흐려지고, 품을 문서만 밝아지며, 그 아래 '들어갈 자리'가 열린다. */
+.wiki-theme .wiki-row { transition: background-color .16s ease, opacity .16s ease, transform .18s cubic-bezier(.2,.7,.2,1); }
+.wiki-theme .wiki-row:hover { background: rgba(60,47,24,.05); }
+.wiki-theme .wiki-row-drag { opacity:.38; }
+.wiki-theme .wiki-row-drop { background: rgba(48,95,76,.1); box-shadow: inset 0 0 0 1px rgba(48,95,76,.34); transform: translateX(3px); }
+.wiki-theme .wiki-slot { height:0; opacity:0; border-radius:3px; background:rgba(48,95,76,.14); border-left:2px solid #305f4c; animation: wikiSlotIn .18s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes wikiSlotIn { to { height:22px; opacity:1; } }
+.wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
+@keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
+.wiki-theme .wiki-row-moved { animation: wikiMoved .9s ease-out; }
+@keyframes wikiMoved { from { background: rgba(48,95,76,.24); } to { background: transparent; } }
+
 @media (prefers-reduced-motion: reduce) {
   .wiki-theme .wiki-spine, .wiki-theme .wiki-spine:hover { transition:none; transform:none !important; }
   .wiki-theme .wiki-rise, .wiki-theme .wiki-page { animation:none; }
+  .wiki-theme .wiki-pendulum { animation:none; }
+  .wiki-theme .wiki-row { transition:none; }
+  .wiki-theme .wiki-row-drop { transform:none; }
+  .wiki-theme .wiki-slot { height:22px; opacity:1; animation:none; }
+  .wiki-theme .wiki-root-drop, .wiki-theme .wiki-row-moved { animation:none; }
 }
 /* 읽기 뷰 본문 — 시안의 위키 타이포 */
 .wiki-theme .wiki-read h1, .wiki-theme .wiki-read h2, .wiki-theme .wiki-read h3 { scroll-margin-top: 18px; }
@@ -124,8 +146,9 @@ function ShelfProp({ kind }: { kind: 'vase' }) {
 }
 const SHELF_PROPS: Array<'vase'> = ['vase'];
 
-/** 탁상시계 — 서가의 상주 정물. 진짜 시간이 흐른다 (30초마다 갱신). */
-function DeskClock() {
+/** 괘종시계 — 옛날 서재의 길쭉한 상주 정물. 진짜 시간이 흐르고(30초 갱신)
+ *  유리문 안 진자가 3초 주기로 천천히 흔들린다 (reduced-motion 이면 멈춘 채). */
+function PendulumClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = window.setInterval(() => setNow(new Date()), 30000);
@@ -134,27 +157,36 @@ function DeskClock() {
   const ha = (now.getHours() % 12) * 30 + now.getMinutes() * 0.5;
   const ma = now.getMinutes() * 6;
   return (
-    <svg aria-hidden width="88" height="116" viewBox="0 0 100 132" style={{ filter: 'drop-shadow(0 10px 10px rgba(10,5,0,.4))' }}>
-      {/* 종 + 망치 (빈티지 자명종) */}
-      <circle cx="27" cy="16" r="9" fill="#8a6a30" transform="rotate(-18 27 16)" />
-      <circle cx="73" cy="16" r="9" fill="#8a6a30" transform="rotate(18 73 16)" />
-      <rect x="47.5" y="6" width="5" height="10" rx="2.5" fill="#6d5222" />
-      {/* 다리 */}
-      <rect x="26" y="112" width="6" height="16" rx="3" fill="#6d4a22" transform="rotate(-16 29 120)" />
-      <rect x="68" y="112" width="6" height="16" rx="3" fill="#6d4a22" transform="rotate(16 71 120)" />
-      {/* 몸통 + 문자반 */}
-      <circle cx="50" cy="68" r="46" fill="#8a6a30" />
-      <circle cx="50" cy="68" r="45" fill="none" stroke="#cfa84e" strokeWidth="1.5" />
-      <circle cx="50" cy="68" r="38" fill="#f6ecd9" />
+    <svg aria-hidden width="62" height="206" viewBox="0 0 62 206" style={{ filter: 'drop-shadow(0 10px 11px rgba(10,5,0,.45))' }}>
+      {/* 받침 */}
+      <rect x="4" y="192" width="54" height="12" rx="2.5" fill="#5c3414" />
+      <rect x="7" y="186" width="48" height="8" rx="2" fill="#7c4425" />
+      {/* 케이스 — 아치형 후드 + 긴 몸통 */}
+      <path d="M31 2 C46 2 55 13 55 26 V188 H7 V26 C7 13 16 2 31 2 z" fill="#6d3f1c" />
+      <path d="M31 5 C44 5 52 15 52 27 V184 H10 V27 C10 15 18 5 31 5 z" fill="#7c4a24" />
+      <rect x="10" y="60" width="42" height="2" fill="#5c3414" opacity=".7" />
+      {/* 문자반 */}
+      <circle cx="31" cy="33" r="20" fill="#8a6a30" />
+      <circle cx="31" cy="33" r="17" fill="#f6ecd9" />
       {[0, 90, 180, 270].map((a) => (
-        <line key={a} x1="50" y1="34" x2="50" y2="40" stroke="#292217" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${a} 50 68)`} />
+        <line key={a} x1="31" y1="19" x2="31" y2="23" stroke="#292217" strokeWidth="2" strokeLinecap="round" transform={`rotate(${a} 31 33)`} />
       ))}
       {[30, 60, 120, 150, 210, 240, 300, 330].map((a) => (
-        <line key={a} x1="50" y1="34.5" x2="50" y2="38" stroke="#a0937d" strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${a} 50 68)`} />
+        <line key={a} x1="31" y1="19.5" x2="31" y2="22" stroke="#a0937d" strokeWidth="1.2" strokeLinecap="round" transform={`rotate(${a} 31 33)`} />
       ))}
-      <line x1="50" y1="68" x2="50" y2="47" stroke="#292217" strokeWidth="3.5" strokeLinecap="round" transform={`rotate(${ha} 50 68)`} />
-      <line x1="50" y1="68" x2="50" y2="39" stroke="#292217" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${ma} 50 68)`} />
-      <circle cx="50" cy="68" r="3" fill="#9a4632" />
+      <line x1="31" y1="33" x2="31" y2="24" stroke="#292217" strokeWidth="2.6" strokeLinecap="round" transform={`rotate(${ha} 31 33)`} />
+      <line x1="31" y1="33" x2="31" y2="20" stroke="#292217" strokeWidth="1.8" strokeLinecap="round" transform={`rotate(${ma} 31 33)`} />
+      <circle cx="31" cy="33" r="2" fill="#9a4632" />
+      {/* 유리문 — 안쪽 어둠 + 진자 */}
+      <rect x="13" y="68" width="36" height="110" rx="3" fill="#2b1a0c" />
+      <g className="wiki-pendulum">
+        <line x1="31" y1="72" x2="31" y2="146" stroke="#b98a2e" strokeWidth="2.4" strokeLinecap="round" />
+        <circle cx="31" cy="152" r="9.5" fill="#cfa84e" />
+        <circle cx="31" cy="152" r="6" fill="#b98a2e" />
+      </g>
+      {/* 유리 반사 */}
+      <path d="M17 72 L30 72 L20 174 L15 174 z" fill="rgba(246,236,217,.09)" />
+      <rect x="13" y="68" width="36" height="110" rx="3" fill="none" stroke="#8a6a30" strokeWidth="2" />
     </svg>
   );
 }
@@ -178,6 +210,10 @@ export default function Wiki() {
   const [q, setQ] = useState('');
   const [picker, setPicker] = useState<{ text: string } | null>(null);
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
+  /* 차례에서 끌어 옮기기 — 끄는 문서 / 지금 겨눈 자리 / 방금 옮겨진 문서(잔상) */
+  const [dragDoc, setDragDoc] = useState<string | null>(null);
+  const [dropAt, setDropAt] = useState<string | 'root' | null>(null);
+  const [justMoved, setJustMoved] = useState<string | null>(null);
   const editorApi = useRef<WikiEditorApi | null>(null);
   const readBodyRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -393,6 +429,23 @@ export default function Wiki() {
       </div>
     );
   };
+  /* 끌어 옮기기 규칙 — 자기 자신·자기 자손에게는 넣을 수 없고(순환), 이미 그 자리면 무반응 */
+  const canDropOn = (target: string | null) => {
+    if (!dragDoc) return false;
+    if (target === dragDoc) return false;
+    if (target && isDescendant(bookDocs, target, dragDoc)) return false;
+    return (docs.find((d) => d.id === dragDoc)?.parent ?? null) !== target;
+  };
+  const dropOn = (target: string | null) => {
+    const id = dragDoc;
+    setDragDoc(null);
+    setDropAt(null);
+    if (!id || !canDropOn(target)) return;
+    patchDoc(id, { parent: target });
+    setJustMoved(id); // 옮겨진 문서가 어디로 갔는지 잠깐 빛난다
+    window.setTimeout(() => setJustMoved((v) => (v === id ? null : v)), 900);
+  };
+
   /* 줄의 마지막 책만, 그 줄이 꽉 차지 않았고 기댈 이웃이 있을 때 기운다 (이웃 높이를 넘겨준다) */
   const leanOnOf = (row: WikiBook[], i: number) =>
     i === row.length - 1 && row.length >= 2 && row.length < 4 ? spineOf(row[i - 1]).h : undefined;
@@ -616,7 +669,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1040 }}>
+        <section className="wiki-rise ml-auto px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1040 }}>
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
@@ -663,7 +716,7 @@ export default function Wiki() {
             <div className="wiki-page p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
                 <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20 }}>차례</h2>
-                <span style={{ fontSize: 12, color: C.sub }}>문서를 눌러 펼치기 · 깊이 제한 없음</span>
+                <span style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어서 다른 문서 아래로</span>
                 <span className="flex-1" />
                 <button type="button" onClick={() => createDoc(null)} className="rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
                   + 새 문서
@@ -689,20 +742,61 @@ export default function Wiki() {
                       </div>
                     );
                   }
-                  return rows.map(({ d, depth }) => (
-                    <button
-                      key={d.id} type="button" onClick={() => openDoc(d.id)}
-                      className="flex w-full items-baseline gap-2.5 rounded-md text-left transition-colors hover:bg-[rgba(60,47,24,.05)]"
-                      style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
-                    >
-                      <span style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
-                        {d.title || '무제'}
-                      </span>
-                      {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
-                      <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
-                      <span style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
-                    </button>
-                  ));
+                  return (
+                    <>
+                      {/* 끌기 시작하면 열리는 '책의 맨 위' 자리 — 하위에서 빼낼 때 */}
+                      {dragDoc && canDropOn(null) && (
+                        <div
+                          className="wiki-root-drop mb-1.5 rounded-md px-3 py-2 text-center"
+                          style={{
+                            border: `1.5px dashed ${dropAt === 'root' ? C.green : 'rgba(60,47,24,.28)'}`,
+                            background: dropAt === 'root' ? 'rgba(48,95,76,.1)' : 'transparent',
+                            fontSize: 12, color: dropAt === 'root' ? C.green : C.sub, fontWeight: 600,
+                          }}
+                          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropAt('root'); }}
+                          onDragLeave={() => setDropAt((v) => (v === 'root' ? null : v))}
+                          onDrop={(e) => { e.preventDefault(); dropOn(null); }}
+                        >
+                          여기에 놓으면 책의 맨 위로
+                        </div>
+                      )}
+                      {rows.map(({ d, depth }) => {
+                        const target = dropAt === d.id && canDropOn(d.id);
+                        return (
+                          <div key={d.id}>
+                            <div
+                              role="button" tabIndex={0} draggable
+                              onClick={() => openDoc(d.id)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
+                              onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setDragDoc(d.id); }}
+                              onDragEnd={() => { setDragDoc(null); setDropAt(null); }}
+                              onDragOver={(e) => { if (!canDropOn(d.id)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropAt(d.id); }}
+                              onDragLeave={() => setDropAt((v) => (v === d.id ? null : v))}
+                              onDrop={(e) => { e.preventDefault(); dropOn(d.id); }}
+                              title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 다른 문서 아래로 옮길 수 있어요`}
+                              className={cn(
+                                'wiki-row flex w-full items-baseline gap-2.5 rounded-md text-left',
+                                dragDoc === d.id && 'wiki-row-drag',
+                                target && 'wiki-row-drop',
+                                justMoved === d.id && 'wiki-row-moved',
+                                dragDoc ? 'cursor-grabbing' : 'cursor-grab',
+                              )}
+                              style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
+                            >
+                              <span style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
+                                {d.title || '무제'}
+                              </span>
+                              {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
+                              <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
+                              <span style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
+                            </div>
+                            {/* 들어갈 자리 — 한 단 안쪽으로 열린다 */}
+                            {target && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
                 })()}
               </div>
             </div>
@@ -751,8 +845,8 @@ export default function Wiki() {
                     </span>
                   ))}
                   {/* 탁상시계 — 앞쪽에, 누가 내려놓은 듯 살짝 비뚜름하게 */}
-                  <span className="hidden lg:block" title="서재의 시계" style={{ transform: 'rotate(3.5deg)', transformOrigin: 'bottom center', marginLeft: -5 }}>
-                    <DeskClock />
+                  <span className="hidden lg:block" title="서재의 괘종시계" style={{ transform: 'rotate(2deg)', transformOrigin: 'bottom center', marginLeft: -3 }}>
+                    <PendulumClock />
                   </span>
                 </span>
               )}
