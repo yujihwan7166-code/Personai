@@ -693,7 +693,17 @@ export default function Wiki() {
           </div>
 
           {/* 나무 책장 */}
-          <div className="mt-9 rounded-[14px] px-5 pb-8 pt-[40px] sm:px-[30px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), inset 14px 0 22px -12px rgba(0,0,0,.55), inset -14px 0 22px -12px rgba(0,0,0,.55), 0 22px 48px -20px rgba(46,28,10,.55)', borderTop: '1px solid rgba(255,225,180,.14)' }}>
+          <div className="relative mt-9 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
+            {/* 가구 골격 — 윗판·옆판이 있어야 빈 여백이 '가구의 두께'로 읽힌다 */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-[30px] rounded-t-[14px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.35)' }} />
+            <div aria-hidden className="absolute bottom-0 left-0 top-[26px] w-[16px] rounded-bl-[14px]" style={{ background: 'linear-gradient(90deg,#8a5a32,#66401e)', boxShadow: 'inset -4px 0 7px rgba(0,0,0,.35)' }} />
+            <div aria-hidden className="absolute bottom-0 right-0 top-[26px] w-[16px] rounded-br-[14px]" style={{ background: 'linear-gradient(270deg,#8a5a32,#66401e)', boxShadow: 'inset 4px 0 7px rgba(0,0,0,.35)' }} />
+            {/* 황동 명패 */}
+            <div className="absolute left-1/2 top-[4px] flex -translate-x-1/2 items-center gap-2 rounded-[4px] px-3.5 py-[2.5px]" style={{ background: 'linear-gradient(180deg,#cfa84e,#8a6a30)', border: '1px solid #6d5222', boxShadow: '0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,240,200,.55)' }}>
+              <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
+              <span style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 11, letterSpacing: '.24em', color: '#3a2c10' }}>나의 서재</span>
+              <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
+            </div>
             <div className="relative flex items-end gap-[9px] overflow-x-auto px-3.5">
               {shelf1.map((b, i) => spine(b, shelf1.length > 2 && i === shelf1.length - 1))}
               {shelf2.length === 0 && (
@@ -705,12 +715,13 @@ export default function Wiki() {
                 >+</button>
               )}
 
-              {/* 서가 소품 — 빈 칸의 정물. 책이 늘면(4권 채워지면) 순서대로 자리를 내준다 */}
-              {shelf2.length === 0 && SHELF_PROPS.slice(0, Math.max(0, 4 - shelfBooks.length)).map((kind) => (
-                <span key={kind} className="hidden flex-none self-end pb-[2px] pl-3 sm:block">
-                  <ShelfProp kind={kind} />
+              {/* 서가 소품 — 빈 칸의 정물. 책이 늘면 순서대로 자리를 내준다.
+                  ml-auto 를 지구본과 나눠 가져 남는 공간이 두 틈으로 고르게 분배 — 죽은 여백 없음 */}
+              {shelf2.length === 0 && (
+                <span className="ml-auto hidden flex-none items-end gap-7 self-end pb-[2px] pl-3 sm:flex">
+                  {SHELF_PROPS.slice(0, Math.max(0, 5 - shelfBooks.length)).map((kind) => <ShelfProp key={kind} kind={kind} />)}
                 </span>
-              ))}
+              )}
 
               {/* 지구본 — 서가 맨 오른쪽의 대형 정물. 돌리면(클릭) 아무 문서나 펼쳐진다 */}
               {shelf2.length === 0 && docs.length > 0 && (
