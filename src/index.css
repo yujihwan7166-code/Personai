@@ -995,6 +995,127 @@
     background-color: hsl(var(--ledger-navy) / 0.16);
   }
 
+  .career2-theme {
+    /* 마이커리어 v2 — Swiss Modernism 2.0 (UI Pro Max: Resume/CV Builder 권장 스타일).
+     * 규칙: 모노크롬 캔버스 + 단일 강조색(월계수 올리브) + 12칼럼 그리드 + 수학적 여백(8px 단위).
+     * 장식·그라데이션·라운드 금지. v1(웜 종이·명조·로즈)과 정면 대비되는 쿨 그로테스크. */
+    --background: 0 0% 99%;
+    --foreground: 240 6% 6%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 6%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 6%;
+
+    --muted: 240 5% 95%;
+    --muted-foreground: 240 4% 42%;
+
+    --accent: 240 5% 93%;
+    --accent-foreground: 240 6% 6%;
+
+    --secondary: 240 5% 93%;
+    --secondary-foreground: 240 4% 34%;
+
+    --border: 240 6% 84%;
+    --input: 240 6% 84%;
+
+    --primary: 240 6% 6%;
+    --primary-foreground: 0 0% 100%;
+
+    --ring: 82 79% 27%;
+    --focus-ring: 82 79% 29%;
+    --focus-offset: 0 0% 99%;
+
+    --hairline:  240 6% 88%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 0 0% 99%;
+    --surface-3: 240 5% 96%;
+
+    --sidebar-background: 0 0% 100%;
+
+    /* 월계수 올리브 — 화면의 유일한 강조색 (성취·달성). Swiss: single accent only. */
+    --c2-laurel: 82 79% 27%;
+  }
+
+  .dark .career2-theme {
+    --background: 240 6% 7%;
+    --foreground: 240 5% 92%;
+
+    --card: 240 5% 10%;
+    --card-foreground: 240 5% 92%;
+
+    --popover: 240 5% 11%;
+    --popover-foreground: 240 5% 92%;
+
+    --muted: 240 4% 15%;
+    --muted-foreground: 240 4% 62%;
+
+    --accent: 240 4% 17%;
+    --accent-foreground: 240 5% 92%;
+
+    --secondary: 240 4% 15%;
+    --secondary-foreground: 240 5% 78%;
+
+    --border: 240 4% 22%;
+    --input: 240 4% 22%;
+
+    --primary: 240 5% 92%;
+    --primary-foreground: 240 6% 8%;
+
+    --ring: 82 70% 58%;
+    --focus-ring: 82 72% 60%;
+    --focus-offset: 240 6% 7%;
+
+    --hairline:  240 4% 20%;
+    --surface-1: 240 5% 10%;
+    --surface-2: 240 5% 12%;
+    --surface-3: 240 4% 16%;
+
+    --sidebar-background: 240 5% 9%;
+
+    --c2-laurel: 82 70% 58%;
+  }
+
+  /* Swiss 데이터 정렬 — 번호·날짜는 등폭. */
+  .career2-theme .c2-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    letter-spacing: 0.01em;
+  }
+
+  /* 아이브로우 — 대문자 트래킹 라벨 (Swiss 위계 신호). */
+  .career2-theme .c2-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+
+  .career2-theme ::selection {
+    background-color: hsl(var(--c2-laurel) / 0.22);
+  }
+
+  /* 누를 수 있는 것은 커서로도 말한다 (Tailwind 3 preflight 미포함분). */
+  .career2-theme :is(button, select, summary, [role='button']):not(:disabled),
+  .career2-theme label:has(input[type='checkbox']) {
+    cursor: pointer;
+  }
+  .career2-theme button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* 새 기록이 대장에 앉을 때 — 강조선이 한 번 스치고 사라진다 (150-300ms 규칙). */
+  .career2-theme .c2-seated {
+    animation: c2-seat 1.6s ease-out;
+  }
+  @keyframes c2-seat {
+    0%   { background-color: hsl(var(--c2-laurel) / 0.14); }
+    100% { background-color: transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .career2-theme .c2-seated { animation: none; }
+  }
+
   /* 프라이버시 모드 — 금액(tabular-nums)만 블러, 마우스 올리면 그 값만 잠깐 보임 */
   .ledger-hide-amounts .tabular-nums {
     filter: blur(5px);
