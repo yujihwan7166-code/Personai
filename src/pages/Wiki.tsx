@@ -102,6 +102,51 @@ const fmtRel = (ts: number) => {
 const fmtDate = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
 const fmtShort = (ts: number) => { const d = new Date(ts); return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')}`; };
 
+/** 서가 소품 — 책이 적을 때 빈 칸을 지키는 정물. 책이 늘어나면 하나씩 자리를 내준다.
+ *  순서 고정(꽃병→쌓인 책→탁상시계): 새 책을 만들면 마지막 소품부터 사라진다. */
+function ShelfProp({ kind }: { kind: 'vase' | 'stack' | 'clock' }) {
+  const sh = { filter: 'drop-shadow(0 10px 10px rgba(10,5,0,.4))' } as const;
+  if (kind === 'vase') {
+    return (
+      <svg aria-hidden width="66" height="128" viewBox="0 0 66 128" style={sh}>
+        <path d="M33 62 C33 40 30 28 27 16" stroke="#4a5d3a" strokeWidth="2.4" fill="none" />
+        <path d="M33 62 C33 44 40 32 46 22" stroke="#55694a" strokeWidth="2.2" fill="none" />
+        <path d="M33 62 C33 48 26 40 18 34" stroke="#43563b" strokeWidth="2" fill="none" />
+        <ellipse cx="26" cy="14" rx="6.5" ry="8" fill="#9a4632" />
+        <ellipse cx="47" cy="20" rx="5.5" ry="7" fill="#b98a2e" />
+        <ellipse cx="16" cy="32" rx="5" ry="6" fill="#6d4457" />
+        <path d="M20 62 h26 l3 14 c1.5 8 3 14 3 22 a19 12 0 0 1 -38 0 c0-8 1.5-14 3-22 z" fill="#a2603a" />
+        <path d="M20 62 h26 l1.2 6 H18.8 z" fill="#8a4f2e" />
+        <ellipse cx="33" cy="120" rx="19" ry="6" fill="#7c4425" />
+      </svg>
+    );
+  }
+  if (kind === 'stack') {
+    return (
+      <svg aria-hidden width="96" height="52" viewBox="0 0 96 52" style={sh}>
+        <rect x="10" y="28" width="80" height="20" rx="3" fill="#33465e" />
+        <rect x="10" y="28" width="80" height="4.5" rx="2" fill="#42566f" />
+        <rect x="80" y="30" width="7" height="16" rx="1.5" fill="#f6ecd9" opacity=".85" />
+        <rect x="18" y="6" width="66" height="19" rx="3" fill="#7c5638" />
+        <rect x="18" y="6" width="66" height="4" rx="2" fill="#8d6547" />
+        <rect x="74" y="8" width="6.5" height="15" rx="1.5" fill="#f6ecd9" opacity=".85" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden width="58" height="76" viewBox="0 0 58 76" style={sh}>
+      <rect x="20" y="62" width="4.5" height="12" rx="2" fill="#6d4a22" transform="rotate(-14 22 68)" />
+      <rect x="33.5" y="62" width="4.5" height="12" rx="2" fill="#6d4a22" transform="rotate(14 36 68)" />
+      <circle cx="29" cy="34" r="27" fill="#8a6a30" />
+      <circle cx="29" cy="34" r="22" fill="#f6ecd9" />
+      <path d="M29 34 V19" stroke="#292217" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M29 34 L40 40" stroke="#292217" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="29" cy="34" r="2.2" fill="#9a4632" />
+    </svg>
+  );
+}
+const SHELF_PROPS: Array<'vase' | 'stack' | 'clock'> = ['vase', 'stack', 'clock'];
+
 /** 책 칩 — 색 점 + 책 이름 (시안 공용 부호). */
 function BookChip({ book }: { book?: WikiBook }) {
   if (!book) return null;
@@ -655,6 +700,13 @@ export default function Wiki() {
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
                 >+</button>
               )}
+
+              {/* 서가 소품 — 빈 칸의 정물. 책이 늘면(4권 채워지면) 순서대로 자리를 내준다 */}
+              {shelf2.length === 0 && SHELF_PROPS.slice(0, Math.max(0, 4 - shelfBooks.length)).map((kind) => (
+                <span key={kind} className="hidden flex-none self-end pb-[2px] pl-3 sm:block">
+                  <ShelfProp kind={kind} />
+                </span>
+              ))}
 
               {/* 펼쳐둔 책 — 읽던 문서가 서가 오른쪽에 펼쳐진 채 놓여 있다. 누르면 이어서 읽기 */}
               {shelf2.length === 0 && lastRead && (
