@@ -334,6 +334,15 @@ export default function Wiki() {
       .sort((a, b) => b.n - a.n)
       .slice(0, 5);
   }, [docs]);
+  /* 지금 책 바깥에서 이 책 안 문서로 들어오는 연결 수 */
+  const inboundLinks = useMemo(() => {
+    if (!bookId) return 0;
+    const inside = new Set(bookDocs.map((d) => d.id));
+    return docs
+      .filter((d) => d.book !== bookId)
+      .reduce((a, d) => a + linkedDocIds(d.body).filter((id) => inside.has(id)).length, 0);
+  }, [docs, bookDocs, bookId]);
+
   /* 사이드바 차례 — 책 안에서는 포커스 트리(부모/형제/자식 3단), 문서 없으면 최상위 목록 */
   const sideRows = useMemo(() => {
     if (!bookId) return [] as { d: WikiDoc; depth: number }[];
@@ -669,7 +678,41 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise ml-auto px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1040 }}>
+        <section className="wiki-rise ml-auto flex gap-7 px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1440 }}>
+          {/* 왼쪽 — 서가에 남은 책들. 한 권을 꺼내 펼쳐둔 옆에 나머지가 그대로 서 있다 */}
+          {books.length > 1 && (
+            <aside className="hidden shrink-0 self-end pb-[2px] xl:block">
+              <div className="mb-2.5" style={{ fontSize: 10, letterSpacing: '.2em', color: C.muted }}>서가</div>
+              <div className="flex items-end gap-[5px]">
+                {books.filter((b) => b.id !== book.id).slice(0, 6).map((b) => {
+                  const n = docs.filter((d) => d.book === b.id).length;
+                  return (
+                    <button
+                      key={b.id} type="button" onClick={() => openBook(b.id)} title={`${b.title} — 문서 ${n}개`}
+                      className="wiki-spine relative flex-none cursor-pointer"
+                      style={{
+                        width: Math.min(30, Math.round(19 + n * 1.6)), height: Math.min(172, 108 + n * 6),
+                        background: `linear-gradient(180deg, color-mix(in srgb, ${b.tint} 86%, #fff), ${b.tint} 24%, ${b.tint} 78%, color-mix(in srgb, ${b.tint} 76%, #000))`,
+                        borderRadius: '2px 3px 3px 2px',
+                        boxShadow: '0 10px 14px -8px rgba(20,11,3,.5), inset 0 -3px 6px rgba(0,0,0,.26)',
+                      }}
+                    >
+                      <span aria-hidden className="absolute inset-x-[3px] top-[7px] h-[4px]" style={{ borderTop: '1.5px solid rgba(233,205,140,.85)', borderBottom: '1px solid rgba(233,205,140,.45)' }} />
+                      <span
+                        className="absolute inset-x-0 bottom-[8px] top-[20px] flex items-center justify-center overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
+                        style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 11, letterSpacing: '.1em', textOverflow: 'ellipsis', color: '#f7e9c8', textShadow: '0 1px 0 rgba(0,0,0,.5)' }}
+                      >
+                        {b.title}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div aria-hidden className="h-[10px] rounded-[2px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 6px 11px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,235,200,.3)' }} />
+            </aside>
+          )}
+
+          <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
@@ -678,7 +721,7 @@ export default function Wiki() {
             <span className="hidden sm:inline" style={{ fontSize: 12, color: C.muted }}>Esc로 돌아가기</span>
           </div>
 
-          <div className="mt-7 grid min-h-[520px] grid-cols-1 md:grid-cols-[236px_1fr]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
+          <div className="mt-7 grid min-h-[520px] grid-cols-1 md:grid-cols-[236px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
             {/* 좌 — 표지 */}
             <div className="relative flex overflow-hidden p-5" style={{ borderRadius: '8px 3px 3px 8px', background: book.tint, color: C.cream }}>
               <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.38), rgba(0,0,0,0) 14%), linear-gradient(90deg, rgba(255,246,228,.14), rgba(255,246,228,0) 22%), repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
@@ -713,12 +756,11 @@ export default function Wiki() {
             </div>
 
             {/* 우 — 차례 페이지 */}
-            <div className="wiki-page p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
+            <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
-                <h2 className="m-0" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20 }}>차례</h2>
-                <span style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어서 다른 문서 아래로</span>
-                <span className="flex-1" />
-                <button type="button" onClick={() => createDoc(null)} className="rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
+                <h2 className="m-0 flex-none" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 20 }}>차례</h2>
+                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>눌러 펼치기 · 끌어서 다른 문서 아래로</span>
+                <button type="button" onClick={() => createDoc(null)} className="flex-none rounded-full px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#40372a]" style={{ background: C.ink, color: C.bg }}>
                   + 새 문서
                 </button>
               </div>
@@ -783,7 +825,7 @@ export default function Wiki() {
                               )}
                               style={{ padding: `8px 6px 8px ${6 + depth * 22}px` }}
                             >
-                              <span style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
+                              <span className="min-w-0 max-w-[60%] truncate" style={{ fontFamily: depth === 0 ? SERIF : SANS, fontWeight: depth === 0 ? 700 : 400, fontSize: depth === 0 ? 15.5 : 14 }}>
                                 {d.title || '무제'}
                               </span>
                               {d.pinned && <Star className="h-3 w-3 shrink-0 self-center fill-amber-400 text-amber-400" />}
@@ -799,7 +841,29 @@ export default function Wiki() {
                   );
                 })()}
               </div>
+
+              {/* 페이지 밑단 — 이 책의 형편 */}
+              <div className="mt-7 flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-3" style={{ borderTop: `1px solid ${C.line2}`, fontSize: 11.5, color: C.muted }}>
+                <span>문서 {bookDocs.length}개</span>
+                {bookDocs.length > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>마지막 수정 {fmtDate(Math.max(...bookDocs.map((d) => d.updated)))}</span>
+                  </>
+                )}
+                {inboundLinks > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>다른 책에서 들어온 연결 {inboundLinks}개</span>
+                  </>
+                )}
+                <span className="flex-1" />
+                <button type="button" onClick={() => setBookDialog({ book })} className="underline-offset-4 hover:underline" style={{ color: C.sub }}>
+                  책 정보
+                </button>
+              </div>
             </div>
+          </div>
           </div>
         </section>
       ) : (
