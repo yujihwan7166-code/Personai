@@ -37,7 +37,7 @@
 
 ```ts
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MYSPACE_ROOMS, readHiddenRooms, setRoomHidden, orderedRooms } from '@/lib/myspace/rooms';
+import { MYSPACE_ROOMS, isRoomUnlocked, readHiddenRooms, setRoomHidden, orderedRooms } from '@/lib/myspace/rooms';
 
 beforeEach(() => { localStorage.clear(); });
 
@@ -56,6 +56,9 @@ describe('MYSPACE_ROOMS 레지스트리', () => {
 });
 
 describe('레일 상태 공유', () => {
+  it('해금 판정 seam — 현재는 전부 무료(true)', () => {
+    for (const r of MYSPACE_ROOMS) expect(isRoomUnlocked(r.id)).toBe(true);
+  });
   it('숨김 토글 라운드트립 — rail.icons.v1 과 동일 키', () => {
     expect(readHiddenRooms().has('ledger')).toBe(false);
     setRoomHidden('ledger', true);
@@ -253,6 +256,16 @@ export function setRoomHidden(id: string, hidden: boolean): void {
   } catch { /* noop */ }
 }
 
+/**
+ * 방 해금 판정 — 미래 결제·구독 시스템이 붙는 유일한 지점.
+ * 지금은 전부 무료(항상 true). 나중에 구매 도입 시 이 함수 하나만
+ * 엔타이틀먼트(서버/로컬)를 읽도록 바꾸면 타일·카탈로그·추가 버튼이 전부 따라온다.
+ * 결제 로직·가격 데이터는 지금 절대 넣지 않는다.
+ */
+export function isRoomUnlocked(_id: string): boolean {
+  return true;
+}
+
 /** rail.order.v1 순서 반영 — 저장 안 된 방은 레지스트리 순서로 뒤에. */
 export function orderedRooms(): MySpaceRoom[] {
   let order: string[] = [];
@@ -419,7 +432,7 @@ return (
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { MYSPACE_ROOMS, type MySpaceRoom } from '@/lib/myspace/rooms';
+import { MYSPACE_ROOMS, isRoomUnlocked, type MySpaceRoom } from '@/lib/myspace/rooms';
 
 interface Props {
   open: boolean;
@@ -448,15 +461,16 @@ function RoomCard({ room, isMine, onToggle }: { room: MySpaceRoom; isMine: boole
           </li>
         ))}
       </ul>
+      {/* 해금 게이트 — 지금은 항상 true. 미래에 여기가 "₩3,000" / "구독" 버튼으로 바뀐다. */}
       <button
-        type="button" onClick={onToggle}
+        type="button" onClick={onToggle} disabled={!isMine && !isRoomUnlocked(room.id)}
         className={cn('rounded-xl border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
           isMine
             ? 'border-[hsl(var(--input))] text-muted-foreground hover:text-foreground'
-            : 'border-transparent text-white')}
+            : 'border-transparent text-white disabled:opacity-45')}
         style={isMine ? undefined : { backgroundColor: room.tint }}
       >
-        {isMine ? '마이스페이스에서 숨기기' : '마이스페이스에 추가'}
+        {isMine ? '마이스페이스에서 숨기기' : isRoomUnlocked(room.id) ? '마이스페이스에 추가' : '준비 중'}
       </button>
     </div>
   );
@@ -683,6 +697,14 @@ export default function MySpace() {
 - [ ] 수동 체크리스트(사용자 dev 서버, preview 자발 실행 금지): 레일 최상단 '마이스페이스' 진입 → 타일에 스니펫 표시 → 카탈로그에서 방 숨기기 → 타일·레일에서 사라짐(레일은 재진입 시 반영) → 다시 추가 → /today 접속 시 /myspace 로 이동 → 즐겨찾기에 있던 '오늘의 나'가 /myspace 로 열림
 - [ ] 메모리 갱신: `zone_myspace_rooms.md` 에 "홈 /myspace (오늘의나 흡수, 레일 상태 공유, 카탈로그=미래 스토어 표면)" 추기
 - [ ] 잔여 커밋
+
+---
+
+## 확장 절차 (앞으로 방을 계속 만들 때)
+
+**새 방 추가** = ① 방 자체 구현(페이지·스토어·테마) ② 기존 등록 7곳 체크리스트([[guardrails-revert-lessons]]) ③ **`MYSPACE_ROOMS` 에 1항목 추가** — 이것만 하면 홈 타일·카탈로그·최근 활동 후보에 자동 등장. 스니펫·points 3개를 그 자리에서 정의.
+
+**구매/구독 도입 시** (결정되면): `isRoomUnlocked()` 하나만 엔타이틀먼트 소스로 교체 → 카탈로그 버튼이 가격 버튼으로, 잠긴 방 타일은 자동 비노출. 그 전까지 가격·결제 코드는 어디에도 없다.
 
 ---
 
