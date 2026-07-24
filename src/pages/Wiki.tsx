@@ -933,11 +933,24 @@ export default function Wiki() {
             <div className="relative flex overflow-hidden p-5" style={{ borderRadius: '8px 3px 3px 8px', background: book.tint, color: C.cream }}>
               <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.38), rgba(0,0,0,0) 14%), linear-gradient(90deg, rgba(255,246,228,.14), rgba(255,246,228,0) 22%), repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
               <div className="relative flex flex-1 flex-col p-5" style={{ border: '1px solid rgba(244,230,200,.5)', borderRadius: 4 }}>
-                <div style={{ fontSize: 10, letterSpacing: '.3em', opacity: .75 }}>MYWIKI</div>
-                <div className="mt-4" style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 27, lineHeight: 1.3, letterSpacing: '.02em' }}>{book.title}</div>
-                <div className="mt-2.5" style={{ fontSize: 12.5, opacity: .85 }}>
-                  문서 {bookDocs.length}개{book.intro && <> · {book.intro}</>}
-                </div>
+                {/* 제목 — 표지에서 바로 고친다 */}
+                <input
+                  value={book.title}
+                  onChange={(e) => saveBook({ id: book.id, title: e.target.value, tint: book.tint, intro: book.intro })}
+                  placeholder="책 제목"
+                  className="mt-1 w-full bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
+                  style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 27, lineHeight: 1.3, letterSpacing: '.02em', color: C.cream }}
+                />
+                {/* 표지 설명 — 눌러서 바로 적는다 (책의 한 줄 소개) */}
+                <textarea
+                  value={book.intro}
+                  onChange={(e) => saveBook({ id: book.id, title: book.title, tint: book.tint, intro: e.target.value })}
+                  placeholder="이 책은 어떤 책인가요? 눌러서 적어보세요"
+                  rows={2}
+                  className="mt-2.5 w-full resize-none bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
+                  style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(244,230,200,.9)' }}
+                  onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; }}
+                />
                 <div className="flex-1" />
                 {(() => {
                   const last = recent.map((id) => bookDocs.find((d) => d.id === id)).find(Boolean) ?? childrenOf(bookDocs, null)[0];
@@ -946,25 +959,37 @@ export default function Wiki() {
                       <div style={{ fontSize: 11, letterSpacing: '.08em', opacity: .7 }}>이어서 읽기</div>
                       <button
                         type="button" onClick={() => openDoc(last.id)}
-                        className="mt-2 rounded-lg px-3.5 py-[11px] text-left transition-colors"
+                        className="mt-2 flex items-center justify-between gap-2 rounded-lg px-3.5 py-[11px] text-left transition-colors"
                         style={{ border: '1px solid rgba(244,230,200,.5)', fontSize: 13.5, fontWeight: 600, background: 'rgba(0,0,0,.14)', color: C.cream }}
                         onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.3)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.14)'; }}
                       >
-                        {last.title || '무제'} →
+                        <span className="min-w-0 truncate">{last.title || '무제'}</span>
+                        <span aria-hidden className="flex-none opacity-80">→</span>
                       </button>
                     </>
-                  ) : null;
+                  ) : (
+                    <button
+                      type="button" onClick={() => createDoc(null)}
+                      className="mt-2 flex items-center gap-1.5 rounded-lg px-3.5 py-[11px] text-left transition-colors"
+                      style={{ border: '1px solid rgba(244,230,200,.5)', fontSize: 13.5, fontWeight: 600, background: 'rgba(0,0,0,.14)', color: C.cream }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.3)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.14)'; }}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> 첫 문서 쓰기
+                    </button>
+                  );
                 })()}
-                <button type="button" onClick={() => setBookDialog({ book })} className="mt-3 self-start text-[11.5px] underline-offset-4 hover:underline" style={{ color: 'rgba(244,230,200,.75)' }}>
-                  책 정보 고치기
+                {/* 표지 색·삭제만 — 제목·소개는 여기서 바로 고치니 다이얼로그는 색·삭제 전용 */}
+                <button type="button" onClick={() => setBookDialog({ book })} className="mt-3 self-start text-[11.5px] underline-offset-4 hover:underline" style={{ color: 'rgba(244,230,200,.7)' }}>
+                  표지 색 · 삭제
                 </button>
               </div>
             </div>
 
             {/* 우 — 차례 페이지 */}
             <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
-              <div className="flex items-baseline gap-3" style={{ borderBottom: `3px double ${C.lineDeep}`, paddingBottom: 10 }}>
+              <div className="flex items-baseline gap-3" style={{ borderBottom: `1px solid ${C.line}`, paddingBottom: 12 }}>
                 <h2 className="m-0 flex-none" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.015em', fontSize: 20 }}>차례</h2>
                 <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>
                   {chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
@@ -1001,7 +1026,7 @@ export default function Wiki() {
                       const kidsCount = descCount.get(d.id) ?? 0;
                       const folded = collapsed.has(d.id) && kidsCount > 0;
                       return (
-                        <div key={d.id} style={chapter ? { marginTop: 6 } : undefined}>
+                        <div key={d.id} style={chapter && i > 0 ? { marginTop: 12 } : undefined}>
                           {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
                           {lineHere && <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />}
                           <div
@@ -1042,16 +1067,13 @@ export default function Wiki() {
                             }}
                             title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 옮기기 (문서 위=하위로, 사이=그 자리로)`}
                             className={cn(
-                              'wiki-row flex w-full items-baseline gap-2 rounded-md text-left',
+                              'wiki-row group flex w-full items-baseline gap-2 rounded-md text-left',
                               dragDoc === d.id && 'wiki-row-drag',
                               nesting && 'wiki-row-drop',
                               justMoved === d.id && 'wiki-row-moved',
                               dragDoc ? 'cursor-grabbing' : 'cursor-grab',
                             )}
-                            style={{
-                              padding: `${chapter ? 9 : 7}px 6px ${chapter ? 9 : 7}px ${6 + depth * 22}px`,
-                              borderTop: chapter ? `1px solid ${C.line2}` : undefined,
-                            }}
+                            style={{ padding: `${chapter ? 8 : 6}px 6px ${chapter ? 8 : 6}px ${6 + depth * 22}px` }}
                           >
                             {/* 접기 손잡이 — 자손이 있는 줄만. 없으면 자리만 비워 번호가 나란히 선다 */}
                             {kidsCount > 0 ? (
@@ -1081,8 +1103,9 @@ export default function Wiki() {
                                 +{kidsCount}
                               </span>
                             )}
-                            <span aria-hidden className="flex-1 -translate-y-[3px]" style={{ borderBottom: '1px dotted rgba(60,47,24,.3)' }} />
-                            <span className="flex-none" style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
+                            {/* 점선 리더는 hover 때만 — 평소엔 선 없이 깔끔하게 */}
+                            <span aria-hidden className="flex-1 -translate-y-[3px] border-b border-dotted border-transparent transition-colors group-hover:border-[rgba(60,47,24,.28)]" />
+                            <span className="flex-none tabular-nums" style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
                           </div>
                           {/* 하위로 품을 때 열리는 자리 */}
                           {nesting && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
