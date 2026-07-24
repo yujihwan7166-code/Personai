@@ -223,6 +223,8 @@ export default function Wiki() {
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
   /* 차례에서 끌어 옮기기 — 끄는 문서 / 지금 겨눈 자리 / 방금 옮겨진 문서(잔상) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set()); // 차례에서 접은 장들
+  const [showNo, setShowNo] = useState(() => localStorage.getItem('mywiki.tocNumbers') !== '0'); // 차례 번호 표시
+  const toggleNumbers = () => setShowNo((v) => { const n = !v; localStorage.setItem('mywiki.tocNumbers', n ? '1' : '0'); return n; });
   const [dragDoc, setDragDoc] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<{ mode: 'nest'; id: string } | { mode: 'place'; index: number; depth: number } | null>(null);
   const [justMoved, setJustMoved] = useState<string | null>(null);
@@ -712,19 +714,21 @@ export default function Wiki() {
                     !on && 'hover:bg-[rgba(60,47,24,.06)]',
                   )}
                   style={{
-                    paddingLeft: 12 + depth * 10,
+                    paddingLeft: 12 + depth * (showNo ? 10 : 14), // 번호 없으면 들여쓰기로 깊이를 더 벌린다
                     marginTop: top ? 4 : 0, // 최상위마다 한 숨 — 묶음이 눈에 보이게
                     background: on ? 'rgba(154,70,50,.13)' : undefined,
                     color: on ? C.rust : C.ink,
                   }}
                 >
                   {/* 차례 번호 — 자릿수 자체가 몇 단 안쪽인지 말한다 */}
-                  <span
-                    className="shrink-0 tabular-nums"
-                    style={{ fontSize: top ? 12 : 11.5, fontWeight: 700, lineHeight: '20px', color: on ? C.rust : top ? C.sub : C.muted }}
-                  >
-                    {no}
-                  </span>
+                  {showNo && (
+                    <span
+                      className="shrink-0 tabular-nums"
+                      style={{ fontSize: top ? 12 : 11.5, fontWeight: 700, lineHeight: '20px', color: on ? C.rust : top ? C.sub : C.muted }}
+                    >
+                      {no}
+                    </span>
+                  )}
                   <span
                     className="min-w-0 flex-1 truncate"
                     style={{ fontSize: top ? 14 : 13.5, fontWeight: on || onPath ? 700 : top ? 600 : 500, letterSpacing: top ? '-0.01em' : undefined, lineHeight: '20px' }}
@@ -965,6 +969,14 @@ export default function Wiki() {
                 <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>
                   {chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
                 </span>
+                <button
+                  type="button" onClick={toggleNumbers}
+                  className="flex-none rounded-full border px-2.5 py-1 text-[11.5px] font-semibold tabular-nums transition-colors"
+                  style={showNo ? { borderColor: 'transparent', background: 'rgba(154,70,50,.13)', color: C.rust } : { borderColor: C.line, color: C.sub }}
+                  title={showNo ? '차례 번호 숨기기' : '차례 번호 보이기'}
+                >
+                  1.1
+                </button>
                 {chapters.length > 0 && (
                   <button type="button" onClick={toggleAll} className="flex-none rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors hover:bg-[rgba(60,47,24,.05)]" style={{ borderColor: C.line, color: C.sub }}>
                     {allCollapsed ? '모두 펴기' : '모두 접기'}
@@ -1058,7 +1070,7 @@ export default function Wiki() {
                               <span aria-hidden className="-ml-1 h-[18px] w-[18px] flex-none" />
                             )}
                             {/* 차례 번호 — 스크롤로 넘어가도 자릿수가 깊이를 말해준다 */}
-                            <span className="flex-none self-center tabular-nums" style={{ fontSize: chapter ? 12 : 11.5, fontWeight: 700, color: chapter ? C.sub : C.muted }}>{no}</span>
+                            {showNo && <span className="flex-none self-center tabular-nums" style={{ fontSize: chapter ? 12 : 11.5, fontWeight: 700, color: chapter ? C.sub : C.muted }}>{no}</span>}
                             <span className="min-w-0 max-w-[52%] truncate" style={{ fontWeight: chapter ? 700 : 500, letterSpacing: chapter ? '-0.012em' : undefined, fontSize: chapter ? 15 : 14 }}>
                               {d.title || '무제'}
                             </span>
