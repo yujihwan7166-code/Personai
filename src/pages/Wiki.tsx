@@ -202,6 +202,25 @@ function PendulumClock() {
   );
 }
 
+/** 표지 소개 — 내용만큼 저절로 자란다(스크롤 없음). */
+function CoverIntro({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const t = ref.current;
+    if (!t) return;
+    t.style.height = 'auto';
+    t.style.height = `${t.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref} value={value} onChange={(e) => onChange(e.target.value)} rows={1}
+      placeholder="이 책은 어떤 책인가요? 눌러서 적어보세요"
+      className="mt-2 w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
+      style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(244,230,200,.9)' }}
+    />
+  );
+}
+
 /** 책 칩 — 색 점 + 책 이름 (시안 공용 부호). */
 function BookChip({ book }: { book?: WikiBook }) {
   if (!book) return null;
@@ -929,40 +948,78 @@ export default function Wiki() {
           </div>
 
           <div className="mt-7 grid min-h-[520px] grid-cols-1 md:grid-cols-[236px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
-            {/* 좌 — 표지 */}
-            <div className="relative flex overflow-hidden p-5" style={{ borderRadius: '8px 3px 3px 8px', background: book.tint, color: C.cream }}>
-              <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.38), rgba(0,0,0,0) 14%), linear-gradient(90deg, rgba(255,246,228,.14), rgba(255,246,228,0) 22%), repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
-              <div className="relative flex flex-1 flex-col p-5" style={{ border: '1px solid rgba(244,230,200,.5)', borderRadius: 4 }}>
+            {/* 좌 — 표지 (색은 진하지 않게: 위는 밝게 열고 아래로만 그늘) */}
+            <div
+              className="relative flex overflow-hidden p-5"
+              style={{
+                borderRadius: '8px 3px 3px 8px', color: C.cream,
+                background: `linear-gradient(158deg, color-mix(in srgb, ${book.tint} 74%, #f3ead4) 0%, ${book.tint} 52%, color-mix(in srgb, ${book.tint} 90%, #2a1608) 100%)`,
+              }}
+            >
+              <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.16), rgba(0,0,0,0) 16%), repeating-linear-gradient(0deg, rgba(0,0,0,.03) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
+              <div className="relative flex flex-1 flex-col p-4" style={{ border: '1px solid rgba(244,230,200,.45)', borderRadius: 4 }}>
                 {/* 제목 — 표지에서 바로 고친다 */}
                 <input
                   value={book.title}
                   onChange={(e) => saveBook({ id: book.id, title: e.target.value, tint: book.tint, intro: book.intro })}
                   placeholder="책 제목"
-                  className="mt-1 w-full bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
-                  style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 27, lineHeight: 1.3, letterSpacing: '.02em', color: C.cream }}
+                  className="w-full bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
+                  style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 25, lineHeight: 1.3, letterSpacing: '.02em', color: C.cream }}
                 />
-                {/* 표지 설명 — 눌러서 바로 적는다 (책의 한 줄 소개) */}
-                <textarea
-                  value={book.intro}
-                  onChange={(e) => saveBook({ id: book.id, title: book.title, tint: book.tint, intro: e.target.value })}
-                  placeholder="이 책은 어떤 책인가요? 눌러서 적어보세요"
-                  rows={2}
-                  className="mt-2.5 w-full resize-none bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
-                  style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(244,230,200,.9)' }}
-                  onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; }}
-                />
+                <CoverIntro value={book.intro} onChange={(v) => saveBook({ id: book.id, title: book.title, tint: book.tint, intro: v })} />
+
+                {/* 이 책 한눈에 — 얇은 칸에 문서·고정·연결 */}
+                <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg py-2 text-center" style={{ background: 'rgba(0,0,0,.12)' }}>
+                  {(() => {
+                    const linkN = bookDocs.reduce((a, d) => a + linkedDocIds(d.body).length, 0);
+                    return [{ n: bookDocs.length, l: '문서' }, { n: bookDocs.filter((d) => d.pinned).length, l: '책갈피' }, { n: linkN, l: '연결' }];
+                  })().map((s) => (
+                    <div key={s.l}>
+                      <div className="tabular-nums" style={{ fontSize: 15, fontWeight: 800, lineHeight: 1 }}>{s.n}</div>
+                      <div className="mt-1" style={{ fontSize: 10, opacity: .72 }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 책갈피 — 이 책에서 별표한 문서가 표지에 꽂힌다 */}
+                {(() => {
+                  const pins = bookDocs.filter((d) => d.pinned).slice(0, 4);
+                  return (
+                    <div className="mt-3.5">
+                      <div className="flex items-center gap-1.5" style={{ fontSize: 10.5, letterSpacing: '.06em', opacity: .72 }}>
+                        <Star className="h-3 w-3 fill-current" /> 책갈피
+                      </div>
+                      {pins.length > 0 ? (
+                        <div className="mt-1.5 space-y-1">
+                          {pins.map((d) => (
+                            <button key={d.id} type="button" onClick={() => openDoc(d.id)}
+                              className="flex w-full items-center gap-1.5 rounded-md px-2 py-[6px] text-left transition-colors"
+                              style={{ background: 'rgba(0,0,0,.13)' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.26)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.13)'; }}>
+                              <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, fontWeight: 500 }}>{d.title || '무제'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-1.5" style={{ fontSize: 11, lineHeight: 1.55, opacity: .6 }}>차례에서 문서에 별표(★)하면 여기 꽂혀요.</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="flex-1" />
                 {(() => {
                   const last = recent.map((id) => bookDocs.find((d) => d.id === id)).find(Boolean) ?? childrenOf(bookDocs, null)[0];
                   return last ? (
                     <>
-                      <div style={{ fontSize: 11, letterSpacing: '.08em', opacity: .7 }}>이어서 읽기</div>
+                      <div style={{ fontSize: 10.5, letterSpacing: '.08em', opacity: .7 }}>이어서 읽기</div>
                       <button
                         type="button" onClick={() => openDoc(last.id)}
-                        className="mt-2 flex items-center justify-between gap-2 rounded-lg px-3.5 py-[11px] text-left transition-colors"
-                        style={{ border: '1px solid rgba(244,230,200,.5)', fontSize: 13.5, fontWeight: 600, background: 'rgba(0,0,0,.14)', color: C.cream }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.3)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.14)'; }}
+                        className="mt-1.5 flex items-center justify-between gap-2 rounded-lg px-3 py-[10px] text-left transition-colors"
+                        style={{ border: '1px solid rgba(244,230,200,.45)', fontSize: 13, fontWeight: 600, background: 'rgba(0,0,0,.16)', color: C.cream }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.32)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.16)'; }}
                       >
                         <span className="min-w-0 truncate">{last.title || '무제'}</span>
                         <span aria-hidden className="flex-none opacity-80">→</span>
@@ -971,17 +1028,17 @@ export default function Wiki() {
                   ) : (
                     <button
                       type="button" onClick={() => createDoc(null)}
-                      className="mt-2 flex items-center gap-1.5 rounded-lg px-3.5 py-[11px] text-left transition-colors"
-                      style={{ border: '1px solid rgba(244,230,200,.5)', fontSize: 13.5, fontWeight: 600, background: 'rgba(0,0,0,.14)', color: C.cream }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.3)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.14)'; }}
+                      className="mt-1.5 flex items-center gap-1.5 rounded-lg px-3 py-[10px] text-left transition-colors"
+                      style={{ border: '1px solid rgba(244,230,200,.45)', fontSize: 13, fontWeight: 600, background: 'rgba(0,0,0,.16)', color: C.cream }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.32)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.16)'; }}
                     >
                       <Plus className="h-3.5 w-3.5" /> 첫 문서 쓰기
                     </button>
                   );
                 })()}
                 {/* 표지 색·삭제만 — 제목·소개는 여기서 바로 고치니 다이얼로그는 색·삭제 전용 */}
-                <button type="button" onClick={() => setBookDialog({ book })} className="mt-3 self-start text-[11.5px] underline-offset-4 hover:underline" style={{ color: 'rgba(244,230,200,.7)' }}>
+                <button type="button" onClick={() => setBookDialog({ book })} className="mt-2.5 self-start text-[11px] underline-offset-4 hover:underline" style={{ color: 'rgba(244,230,200,.65)' }}>
                   표지 색 · 삭제
                 </button>
               </div>
@@ -1103,9 +1160,9 @@ export default function Wiki() {
                                 +{kidsCount}
                               </span>
                             )}
-                            {/* 점선 리더는 hover 때만 — 평소엔 선 없이 깔끔하게 */}
-                            <span aria-hidden className="flex-1 -translate-y-[3px] border-b border-dotted border-transparent transition-colors group-hover:border-[rgba(60,47,24,.28)]" />
-                            <span className="flex-none tabular-nums" style={{ fontSize: 12, color: C.muted }}>{fmtShort(d.updated)}</span>
+                            {/* 리더 — 평소엔 아주 연하게, hover 때 또렷하게 (제목과 날짜를 잇는 안내선) */}
+                            <span aria-hidden className="flex-1 -translate-y-[3px] border-b border-dotted transition-colors group-hover:border-[rgba(60,47,24,.34)]" style={{ borderColor: 'rgba(60,47,24,.13)' }} />
+                            <span className="w-[34px] flex-none text-right tabular-nums transition-colors group-hover:text-[color:var(--wk-ink)]" style={{ fontSize: 11.5, color: C.muted, '--wk-ink': C.body } as React.CSSProperties}>{fmtShort(d.updated)}</span>
                           </div>
                           {/* 하위로 품을 때 열리는 자리 */}
                           {nesting && <div aria-hidden className="wiki-slot" style={{ marginLeft: 6 + (depth + 1) * 22, marginRight: 6 }} />}
