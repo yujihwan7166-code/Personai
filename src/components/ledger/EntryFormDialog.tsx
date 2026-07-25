@@ -2,10 +2,12 @@
  * 가계부 정식 입력/수정 폼 — 채팅이 안 맞을 때 쓰는 상세 폼.
  * entryId 있으면 수정(카테고리 변경 시 키워드 학습), 없으면 신규.
  */
-import { useEffect, useState } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ImagePlus, Loader2, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { compressImage } from '@/lib/journalImage';
+import { notify } from '@/lib/notify';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { TYPE_META, type EntryType, type LedgerCategory, type PayMethod } from '@/types/ledger';
 
@@ -25,8 +27,26 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
   const [method, setMethod] = useState<PayMethod | ''>('');
   const [groupTotal, setGroupTotal] = useState('');
   const [origCategory, setOrigCategory] = useState('etc');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEscapeKey(onClose, { enabled: open, evenInInput: true });
+
+  const onPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { notify.warning('이미지 파일만 넣을 수 있어요'); return; }
+    setPhotoBusy(true);
+    try {
+      const { src } = await compressImage(file);
+      setPhoto(src);
+    } catch {
+      notify.error('사진을 넣지 못했어요');
+    } finally {
+      setPhotoBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -36,10 +56,11 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
         setType(e.type); setAmount(String(e.amount)); setDate(e.date);
         setCategoryId(e.categoryId); setOrigCategory(e.categoryId);
         setMemo(e.memo); setMethod(e.method ?? ''); setGroupTotal(e.groupTotal ? String(e.groupTotal) : '');
+        setPhoto(e.photo ?? null);
       }
     } else {
       setType('expense'); setAmount(''); setDate(todayKey()); setCategoryId('etc');
-      setOrigCategory('etc'); setMemo(''); setMethod(''); setGroupTotal('');
+      setOrigCategory('etc'); setMemo(''); setMethod(''); setGroupTotal(''); setPhoto(null);
     }
   }, [open, entryId]);
 
@@ -53,6 +74,7 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
       type, amount: Math.round(amt), date, categoryId, memo: memo.trim(),
       method: method || undefined,
       groupTotal: Number.isFinite(gt) && gt > amt ? Math.round(gt) : undefined,
+      photo: photo ?? undefined,
     };
     if (entryId) ledgerStore.updateEntry(entryId, payload, { learn: categoryId !== origCategory });
     else ledgerStore.addEntries([payload]);
@@ -62,6 +84,7 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
   const remove = () => { if (entryId) { ledgerStore.removeEntry(entryId); onClose(); } };
 
   const field = 'w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--ledger-navy))]';
+  const labelCls = 'mb-1 block text-[11.5px] font-semibold text-muted-foreground';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4" role="dialog" aria-modal="true" onClick={onClose}>
@@ -81,33 +104,81 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
           ))}
         </div>
 
-        <div className="space-y-2.5">
+        {/* 전엔 라벨 없는 입력칸이 줄줄이 늘어서 무엇을 적는 칸인지 placeholder 로만 알 수 있었다.
+            금액을 주인공으로 세우고 나머지는 라벨을 붙여 위계를 만든다. */}
+        <div className="space-y-3">
           <div className="flex gap-2">
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" placeholder="금액(원)" className={field} aria-label="금액" />
-            <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className={field} aria-label="날짜" />
+            <label className="min-w-0 flex-1">
+              <span className={labelCls}>금액</span>
+              <div className="relative">
+                <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" placeholder="0"
+                  className={cn(field, 'pr-8 text-[19px] font-bold tabular-nums')} aria-label="금액" autoFocus={!entryId} />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">원</span>
+              </div>
+            </label>
+            <label className="w-[148px] shrink-0">
+              <span className={labelCls}>날짜</span>
+              <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className={cn(field, 'h-[42px]')} aria-label="날짜" />
+            </label>
           </div>
-          <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="메모 (예: 김밥천국)" className={field} aria-label="메모" />
+
+          <label className="block">
+            <span className={labelCls}>메모</span>
+            <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: 김밥천국" className={field} aria-label="메모" />
+          </label>
+
           {type === 'expense' && (
-            <div className="flex flex-wrap gap-1">
-              {categories.map((c) => (
-                <button key={c.id} type="button" onClick={() => setCategoryId(c.id)}
-                  className={cn('rounded-full border px-2.5 py-1 text-[12px] transition-colors',
-                    categoryId === c.id ? 'border-transparent bg-[hsl(var(--ledger-navy))] text-white' : 'border-[hsl(var(--input))] text-muted-foreground')}>
-                  {c.emoji} {c.label}
-                </button>
-              ))}
+            <div>
+              <span className={labelCls}>카테고리</span>
+              <div className="flex flex-wrap gap-1">
+                {categories.map((c) => (
+                  <button key={c.id} type="button" onClick={() => setCategoryId(c.id)}
+                    className={cn('rounded-full border px-2.5 py-1 text-[12px] transition-colors',
+                      categoryId === c.id ? 'border-transparent bg-[hsl(var(--ledger-navy))] text-white' : 'border-[hsl(var(--input))] text-muted-foreground hover:text-foreground')}>
+                    {c.emoji} {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+
           <div className="flex gap-2">
-            <select value={method} onChange={(e) => setMethod(e.target.value as PayMethod | '')} className={field} aria-label="결제수단">
-              <option value="">결제수단 (선택)</option>
-              <option value="card">카드</option>
-              <option value="cash">현금</option>
-              <option value="account">계좌이체</option>
-            </select>
+            <label className="min-w-0 flex-1">
+              <span className={labelCls}>결제수단</span>
+              <select value={method} onChange={(e) => setMethod(e.target.value as PayMethod | '')} className={field} aria-label="결제수단">
+                <option value="">선택 안 함</option>
+                <option value="card">카드</option>
+                <option value="cash">현금</option>
+                <option value="account">계좌이체</option>
+              </select>
+            </label>
             {type === 'expense' && (
-              <input value={groupTotal} onChange={(e) => setGroupTotal(e.target.value)} inputMode="numeric"
-                placeholder="더치페이 총액 (선택)" className={field} aria-label="더치페이 총액" title="여럿이 낸 총액 — 위 금액은 내 부담액" />
+              <label className="min-w-0 flex-1">
+                <span className={labelCls}>더치페이 총액</span>
+                <input value={groupTotal} onChange={(e) => setGroupTotal(e.target.value)} inputMode="numeric"
+                  placeholder="여럿이 낸 총액" className={field} aria-label="더치페이 총액" title="위 금액은 내 부담액" />
+              </label>
+            )}
+          </div>
+
+          {/* 영수증 — 금액만 남기면 나중에 "이게 뭐였더라"가 되는 지출이 있다 */}
+          <div>
+            <span className={labelCls}>영수증 사진</span>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
+            {photo ? (
+              <div className="flex items-center gap-2.5 rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] p-2">
+                <img src={photo} alt="영수증" className="h-12 w-12 rounded-md object-cover" />
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="text-[12.5px] font-semibold text-[hsl(var(--ledger-navy))] hover:underline">바꾸기</button>
+                <button type="button" onClick={() => setPhoto(null)} aria-label="사진 제거"
+                  className="ml-auto rounded p-1 text-muted-foreground hover:bg-[hsl(var(--muted))]"><X className="h-3.5 w-3.5" /></button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[hsl(var(--input))] py-2.5 text-[12.5px] text-muted-foreground transition-colors hover:border-[hsl(var(--ledger-navy)/0.5)] hover:text-foreground disabled:opacity-50">
+                {photoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                {photoBusy ? '넣는 중…' : '사진 첨부 (선택)'}
+              </button>
             )}
           </div>
         </div>

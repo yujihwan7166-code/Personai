@@ -241,7 +241,13 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
                       style={{ width: 16, height: 16, flex: '0 0 16px', border: `1.5px solid ${on ? C.navy : '#D6D2C8'}`, borderRadius: 4, background: on ? C.navy : 'transparent', color: '#fff', fontSize: 10, display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0 }}>
                       {on ? '✓' : ''}
                     </button>
-                    <span style={{ width: 30, height: 30, flex: '0 0 30px', borderRadius: 9, background: C.chipBg, display: 'grid', placeItems: 'center', fontSize: 14 }}>{cat?.emoji ?? '📎'}</span>
+                    {/* 영수증을 붙였으면 카테고리 이모지 자리에 그 사진을 세운다 — 붙인 보람이 보이게 */}
+                    {e.photo ? (
+                      <img src={e.photo} alt="" loading="lazy"
+                        style={{ width: 30, height: 30, flex: '0 0 30px', borderRadius: 9, objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ width: 30, height: 30, flex: '0 0 30px', borderRadius: 9, background: C.chipBg, display: 'grid', placeItems: 'center', fontSize: 14 }}>{cat?.emoji ?? '📎'}</span>
+                    )}
                     <button type="button" onClick={() => onEdit(e.id)}
                       style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, border: 'none', background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                       <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

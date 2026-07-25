@@ -17,6 +17,8 @@ export interface LedgerEntry {
   memo: string;
   method?: PayMethod;
   groupTotal?: number;     // 더치페이 총액(참고용, 선택)
+  /** 영수증 사진 — 압축된 dataURL. 금액만 남기면 "이게 뭐였더라"가 되는 지출이 있다. */
+  photo?: string;
   createdAt: string;       // ISO
 }
 

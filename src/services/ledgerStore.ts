@@ -44,6 +44,7 @@ function normEntry(v: unknown, i: number): LedgerEntry | null {
     memo: typeof v.memo === 'string' ? v.memo : '',
     method: isMethod(v.method) ? v.method : undefined,
     groupTotal: posInt(v.groupTotal) ?? undefined,
+    photo: typeof v.photo === 'string' && v.photo ? v.photo : undefined,
     createdAt: typeof v.createdAt === 'string' ? v.createdAt : nowIso(),
   };
 }
