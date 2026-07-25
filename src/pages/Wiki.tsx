@@ -1955,61 +1955,167 @@ function BookDialog({ book, onClose, onSave, onDelete }: {
   );
 }
 
-/* ── 문서 연결 피커 — 서재 전체 검색 ── */
+/* ── 문서 연결 피커 ──
+ * 예전엔 드래그한 글자를 검색어로 미리 박아넣고 열려서, 딱 맞는 제목이 없으면
+ * 결과가 0~1줄만 남고 둘러볼 수가 없었다("검색해보세요"만 덩그러니).
+ * 이제 검색창은 비워두고, 고른 글자는 '추천'을 뽑는 데만 쓴다 —
+ * 열자마자 ①잘 맞는 문서 ②서재의 모든 문서 ③새로 만들어 연결 이 셋이 늘 보인다. */
 function LinkPicker({ docs, books, selfId, initial, onClose, onPick, onCreate }: {
   docs: WikiDoc[]; books: WikiBook[]; selfId: string; initial: string;
   onClose: () => void;
   onPick: (docId: string, title: string) => void;
   onCreate: (title: string) => void;
 }) {
-  const [q, setQ] = useState(initial);
+  const [q, setQ] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
   const bookOf = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
-  const qq = q.trim().toLowerCase();
-  const list = docs
-    .filter((d) => d.id !== selfId && (!qq || d.title.toLowerCase().includes(qq)))
-    .sort((a, b) => b.updated - a.updated)
-    .slice(0, 8);
+  const picked = initial.trim();
+  const newTitle = q.trim() || picked;
+  const pool = useMemo(() => docs.filter((d) => d.id !== selfId), [docs, selfId]);
+
+  /* 고른 글자와 얼마나 맞나 — 제목이 똑같다 > 그 말로 시작한다 > 그 말을 품는다 > 고른 글자 안에 제목이 들어있다 */
+  const suggestions = useMemo(() => {
+    const k = picked.toLowerCase();
+    if (!k) return [];
+    return pool
+      .map((d) => {
+        const t = (d.title || '').trim().toLowerCase();
+        const s = !t ? 0 : t === k ? 100 : t.startsWith(k) ? 80 : t.includes(k) ? 60 : k.includes(t) ? 50 : 0;
+        return { d, s };
+      })
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s || b.d.updated - a.d.updated)
+      .slice(0, 4)
+      .map((x) => x.d);
+  }, [pool, picked]);
+
+  const searching = q.trim().length > 0;
+  const rest = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    const shown = new Set(searching ? [] : suggestions.map((d) => d.id)); // 추천에 이미 선 건 빼고
+    return pool
+      .filter((d) => !shown.has(d.id) && (!qq || (d.title || '무제').toLowerCase().includes(qq)))
+      .sort((a, b) => b.updated - a.updated)
+      .slice(0, 40);
+  }, [pool, q, searching, suggestions]);
+
+  /* 키보드 이동을 위해 한 줄로 편 목록 — 마지막 칸은 늘 '새 문서로 만들고 연결' */
+  const rows = useMemo(() => (searching ? rest : [...suggestions, ...rest]), [searching, suggestions, rest]);
+  const lastIdx = rows.length; // = 새 문서 칸
+  useEffect(() => { setCursor(0); }, [q]);
+
+  const activate = (i: number) => {
+    if (i === lastIdx) { if (newTitle) onCreate(newTitle); return; }
+    const d = rows[i];
+    if (d) onPick(d.id, d.title || newTitle);
+  };
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(lastIdx, c + 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(0, c - 1)); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, lastIdx]);
+
+  // 커서가 보이는 자리 밖으로 나가면 따라 스크롤
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${cursor}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [cursor]);
+
+  /* 컴포넌트가 아니라 그냥 함수다 — 렌더마다 새 컴포넌트 타입이 되면 행이 통째로 remount 되어
+     커서 이동·scrollIntoView 와 부딪힌다. */
+  const row = (d: WikiDoc, i: number, hint?: string) => {
+    const b = bookOf.get(d.book);
+    return (
+      <button
+        key={d.id} type="button" data-idx={i}
+        onClick={() => activate(i)} onMouseEnter={() => setCursor(i)}
+        className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left"
+        style={{ background: cursor === i ? 'rgba(48,95,76,.09)' : 'transparent' }}
+      >
+        <span aria-hidden className="h-[15px] w-[5px] shrink-0 rounded-[1.5px]" style={{ background: b?.tint ?? C.rust }} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate" style={{ fontSize: 13.5, fontWeight: 700 }}>{d.title || '무제'}</span>
+          <span className="block truncate" style={{ fontSize: 11, color: C.muted }}>『{b?.title ?? '?'}』</span>
+        </span>
+        {hint && (
+          <span className="shrink-0 rounded-full px-2 py-[3px]" style={{ fontSize: 10.5, fontWeight: 700, background: 'rgba(48,95,76,.12)', color: C.green }}>{hint}</span>
+        )}
+      </button>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/35 pt-[16vh] backdrop-blur-[2px]" onMouseDown={onClose}>
-      <div className="w-[440px] max-w-[92vw] overflow-hidden rounded-2xl" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 30px 70px -20px rgba(46,28,10,.45)' }} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/35 pt-[13vh] backdrop-blur-[2px]" onMouseDown={onClose}>
+      <div className="flex max-h-[74vh] w-[480px] max-w-[93vw] flex-col overflow-hidden rounded-2xl" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 30px 70px -20px rgba(46,28,10,.45)' }} onMouseDown={(e) => e.stopPropagation()}>
+        {/* 머리 — 무엇을 연결하는 중인지 먼저 보여준다 */}
         <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${C.line}` }}>
-          <input
-            autoFocus value={q} onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                if (list[0]) onPick(list[0].id, list[0].title); else if (q.trim()) onCreate(q.trim());
-              }
-            }}
-            placeholder="연결할 문서 검색 (서재 전체)…"
-            className="w-full bg-transparent outline-none"
-            style={{ fontSize: 14, fontWeight: 600, color: C.ink }}
-          />
-        </div>
-        <div className="max-h-[300px] overflow-y-auto p-1.5">
-          {list.map((d) => {
-            const b = bookOf.get(d.book);
-            return (
-              <button key={d.id} type="button" onClick={() => onPick(d.id, d.title)} className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(48,95,76,.07)]">
-                <span aria-hidden className="h-[15px] w-[5px] shrink-0 rounded-[1.5px]" style={{ background: b?.tint ?? C.rust }} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate" style={{ fontSize: 13.5, fontWeight: 700 }}>{d.title || '무제'}</span>
-                  <span className="block truncate" style={{ fontSize: 11, color: C.muted }}>『{b?.title ?? '?'}』</span>
-                </span>
-              </button>
-            );
-          })}
-          {q.trim() && (
-            <button type="button" onClick={() => onCreate(q.trim())} className="mt-0.5 flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left font-bold transition-colors hover:bg-[rgba(48,95,76,.07)]" style={{ color: C.green, fontSize: 13 }}>
-              <Plus className="h-4 w-4" /> '{q.trim()}' 새 문서 만들고 연결
-            </button>
+          <span style={{ fontSize: 12.5, color: C.sub }}>연결할 곳</span>
+          {picked && (
+            <span className="min-w-0 truncate rounded-md px-2 py-[3px]" style={{ fontSize: 12.5, fontWeight: 700, background: 'rgba(48,95,76,.1)', color: C.green }}>
+              {picked}
+            </span>
           )}
-          {!list.length && !q.trim() && <p className="px-3 py-4 text-center" style={{ fontSize: 13, color: C.muted }}>문서 제목을 검색해보세요</p>}
+          <button type="button" onClick={onClose} aria-label="닫기" className="ml-auto rounded-md p-1" style={{ color: C.muted }}>
+            <X className="h-4 w-4" />
+          </button>
         </div>
+
+        <div className="px-4 py-2.5" style={{ borderBottom: `1px solid ${C.line2}` }}>
+          <div className="flex items-center gap-2 rounded-[9px] px-2.5 py-[7px]" style={{ background: C.bg, border: `1px solid ${C.line}` }}>
+            <Search className="h-3.5 w-3.5 shrink-0" style={{ color: C.muted }} />
+            <input
+              autoFocus value={q} onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); activate(cursor); } }}
+              placeholder="다른 문서 찾기…"
+              className="w-full bg-transparent outline-none"
+              style={{ fontSize: 13.5, color: C.ink }}
+            />
+          </div>
+        </div>
+
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-1.5">
+          {!searching && suggestions.length > 0 && (
+            <>
+              <div className="px-3 pb-1 pt-1.5" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: C.muted }}>잘 맞는 문서</div>
+              {suggestions.map((d, i) => row(d, i, i === 0 ? '추천' : undefined))}
+            </>
+          )}
+          {rest.length > 0 && (
+            <>
+              <div className="px-3 pb-1 pt-2.5" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', color: C.muted }}>
+                {searching ? '검색 결과' : '서재의 모든 문서'}
+              </div>
+              {rest.map((d, i) => row(d, (searching ? 0 : suggestions.length) + i))}
+            </>
+          )}
+          {rows.length === 0 && (
+            <p className="px-3 py-5 text-center" style={{ fontSize: 13, color: C.muted }}>
+              {searching ? '찾는 제목이 없어요 — 아래에서 새로 만들 수 있어요' : '아직 연결할 다른 문서가 없어요'}
+            </p>
+          )}
+        </div>
+
+        {/* 발 — '없으면 만들어서 연결'은 늘 손 닿는 자리에 */}
+        {newTitle && (
+          <div className="p-1.5" style={{ borderTop: `1px solid ${C.line}` }}>
+            <button
+              type="button" data-idx={lastIdx}
+              onClick={() => activate(lastIdx)} onMouseEnter={() => setCursor(lastIdx)}
+              className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left"
+              style={{ background: cursor === lastIdx ? 'rgba(48,95,76,.12)' : 'transparent', color: C.green }}
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate" style={{ fontSize: 13, fontWeight: 700 }}>
+                ‘{newTitle}’ 새 문서로 만들고 연결
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -106,16 +106,31 @@ export function WikiDocEditor({ initialValue, onChange, onOpenDoc, onLinkRequest
         </EditorContainer>
       </Plate>
 
-      {/* 드래그 → 문서 연결 버블 */}
+      {/* 드래그 → 문서 연결 버블.
+          크림 종이 위에 쿨 블랙 알약을 띄우면 이 방 물건이 아닌 것처럼 붕 뜬다 —
+          잉크(#292217)·크림으로 맞추고, 꼬리를 달아 '고른 그 글자'에 붙어 있게 한다. */}
       {bubble && (
-        <button
-          type="button"
-          onMouseDown={(e) => { e.preventDefault(); onLinkRequest(bubble.text); setBubble(null); }}
-          className="absolute z-30 flex -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full bg-[#23262b] px-3 py-1.5 text-[12px] font-bold text-white shadow-[0_8px_20px_-6px_rgba(0,0,0,0.4)] transition-transform hover:scale-105"
-          style={{ left: bubble.x, top: bubble.y - 8 }}
+        <div
+          className="absolute z-30 -translate-x-1/2 -translate-y-full"
+          style={{ left: bubble.x, top: bubble.y - 10 }}
         >
-          <Link2 className="h-3 w-3" /> 문서로 연결
-        </button>
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onLinkRequest(bubble.text); setBubble(null); }}
+            className="flex items-center gap-[7px] rounded-[10px] px-[13px] py-[8px] text-[12.5px] font-bold transition-colors"
+            style={{ background: '#292217', color: '#f6ecd9', boxShadow: '0 12px 26px -10px rgba(41,34,23,.6)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#3d3423'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#292217'; }}
+          >
+            <Link2 className="h-[13px] w-[13px]" style={{ color: '#c9b98f' }} />
+            문서로 연결
+          </button>
+          <span
+            aria-hidden
+            className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2"
+            style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #292217' }}
+          />
+        </div>
       )}
     </div>
   );
