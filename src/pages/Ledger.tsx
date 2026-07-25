@@ -7,12 +7,12 @@
  *
  * 원칙: 입력이 쉬워야 한다. 죄책감 UI(스트릭·빈 날 경고) 금지. 데이터는 전부 localStorage.
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLedger } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
-import { monthOf, summarizeMonth, bucketSpent } from '@/lib/ledger/stats';
-import { toCsv } from '@/lib/csv';
+import { monthOf, bucketSpent } from '@/lib/ledger/stats';
 import type { ParsedEntry } from '@/lib/ledger/parse';
 import { ChatBar } from '@/components/ledger/ChatBar';
 import { EntryFormDialog } from '@/components/ledger/EntryFormDialog';
@@ -62,20 +62,13 @@ export default function Ledger() {
   const [focusDate, setFocusDate] = useState<string | null>(null);
   const [focusCategory, setFocusCategory] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [hideAmounts, setHideAmounts] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('ledger.privacy.v1') === '1');
-  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('ledger.compact.v1') === '1');
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const togglePrivacy = useCallback(() => {
-    setHideAmounts((h) => { window.localStorage.setItem('ledger.privacy.v1', h ? '0' : '1'); return !h; });
-  }, []);
-  const toggleCompact = useCallback(() => {
-    setCompact((c) => { window.localStorage.setItem('ledger.compact.v1', c ? '0' : '1'); return !c; });
-  }, []);
+  /* 금액 숨김·줄 간격 — 켜고 끄는 자리(사이드바 발치)는 걷어냈고 저장된 값만 읽어 쓴다.
+     매일 보는 자리에 1년에 몇 번 만지는 스위치를 두지 않는다. */
+  const hideAmounts = typeof window !== 'undefined' && window.localStorage.getItem('ledger.privacy.v1') === '1';
+  const compact = typeof window !== 'undefined' && window.localStorage.getItem('ledger.compact.v1') === '1';
 
   const today = todayKey();
   const month = monthOf(today);
-  const sum = useMemo(() => summarizeMonth(data.entries, month), [data.entries, month]);
 
   const openEdit = useCallback((id: string) => { setEditId(id); setFormOpen(true); }, []);
   const openNew = useCallback(() => { setEditId(null); setFormOpen(true); }, []);
@@ -95,47 +88,6 @@ export default function Ledger() {
     }
   }, []);
 
-  const exportBackup = useCallback(() => {
-    const blob = new Blob([ledgerStore.exportJson()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `ledger-backup-${todayKey()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    ledgerStore.markBackedUp();
-  }, []);
-
-  /** 백업 나이 — 잔소리가 아니라 계기판. */
-  const backup = useMemo(() => {
-    const at = ledgerStore.getLastBackupAt();
-    if (!at) return data.entries.length > 0 ? { text: '아직 안 함', warn: true } : null;
-    const days = Math.floor((Date.now() - new Date(at).getTime()) / 86400000);
-    return { text: days === 0 ? '오늘 함' : `${days}일 전`, warn: days >= 14 };
-  }, [data.entries]);
-
-  const exportCsv = useCallback(() => {
-    const label = new Map(data.categories.map((c) => [c.id, c.label]));
-    const typeLabel = { expense: '지출', income: '수입', transfer: '이체' } as const;
-    const methodLabel = { card: '카드', cash: '현금', account: '계좌이체' } as const;
-    const rows: Array<Array<string | number>> = [
-      ['날짜', '종류', '금액', '카테고리', '메모', '결제수단', '더치페이 총액'],
-      ...data.entries.map((e) => [
-        e.date, typeLabel[e.type], e.amount, label.get(e.categoryId) ?? e.categoryId,
-        e.memo, e.method ? methodLabel[e.method] : '', e.groupTotal ?? '',
-      ]),
-    ];
-    const blob = new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `ledger-${todayKey()}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, [data.entries, data.categories]);
-
-  const importBackup = useCallback(async (file: File) => {
-    const ok = ledgerStore.importJson(await file.text());
-    toast(ok ? '백업을 불러왔어요' : '백업 파일을 읽지 못했어요 — 내보내기로 만든 JSON 인지 확인해주세요');
-  }, []);
 
   const quickChips = useMemo(() => {
     const cnt = new Map<string, { n: number; amount: number }>();
@@ -160,7 +112,6 @@ export default function Ledger() {
     } as Partial<Record<View, string>>;
   }, [data.entries, data.budgets, data.categories, data.recurring, data.dict, month]);
 
-  const monthDay = `${Number(month.slice(5, 7))}월 ${Number(today.slice(8, 10))}일 기준`;
 
   return (
     <div className={hideAmounts ? 'ledger-hide-amounts' : undefined}
@@ -169,11 +120,20 @@ export default function Ledger() {
       {/* ── 사이드바 (시안 250px) ── */}
       <aside className="hidden lg:flex"
         style={{ width: 250, flex: '0 0 250px', borderRight: `1px solid ${C.lineSoft}`, background: C.side, flexDirection: 'column', padding: '16px 12px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px 14px' }}>
-          <div style={{ width: 38, height: 38, borderRadius: 11, background: '#EDEFF6', display: 'grid', placeItems: 'center', fontSize: 18 }}>🐷</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.13em', color: C.muted2 }}>MY LEDGER</div>
-            <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: '-0.01em' }}>가계부</div>
+        {/* 헤더 — 다른 방(아카이브·마이위키·노트)과 같은 락업:
+            34px 흰 마크 + 굵은 제목 + 부제 한 줄. 영문 아이브로우와 이모지 타일은 여기만 달랐다. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '4px 6px 14px' }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10, background: '#fff', color: C.navy,
+            display: 'grid', placeItems: 'center', boxShadow: '0 1px 2px rgba(27,31,39,0.09)', flexShrink: 0,
+          }}>
+            <Wallet style={{ width: 18, height: 18 }} strokeWidth={1.9} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, color: '#191c20' }}>가계부</div>
+            <div style={{ fontSize: 12, lineHeight: 1.2, color: C.muted2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              내 돈이 어디로 가는지
+            </div>
           </div>
         </div>
 
@@ -206,42 +166,8 @@ export default function Ledger() {
           ))}
         </nav>
 
-        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-          {/* 보기 설정 — 눈에 띄지 않게 맨 아래로 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-            <span style={{ flex: 1, fontSize: 10.5, color: C.muted3 }}>{monthDay}</span>
-            <button type="button" onClick={toggleCompact} title="줄 간격"
-              style={{ height: 24, padding: '0 8px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
-              {compact ? '촘촘' : '보통'}
-            </button>
-            <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
-              style={{ width: 24, height: 24, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 11, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-              {hideAmounts ? '🙈' : '👁'}
-            </button>
-          </div>
-          <div style={{ border: `1px solid ${C.lineSoft}`, borderRadius: 11, background: '#fff', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, fontWeight: 650, color: C.ink3 }}>백업 · 내보내기</span>
-              {backup && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, color: backup.warn ? C.backupInk : C.muted2 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: 999, background: backup.warn ? C.backupDot : C.greenDot }} />
-                  {backup.text}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 5 }}>
-              {([['JSON', exportBackup], ['CSV', exportCsv], ['가져오기', () => fileRef.current?.click()]] as const).map(([t, fn]) => (
-                <button key={t} type="button" onClick={fn}
-                  style={{ flex: 1, height: 27, border: `1px solid ${C.line}`, borderRadius: 7, background: C.cardAlt, fontSize: 11, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#F2F0EA'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = C.cardAlt; }}>{t}</button>
-              ))}
-            </div>
-            <input ref={fileRef} type="file" accept="application/json" className="hidden" aria-label="백업 파일"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBackup(f); e.target.value = ''; }} />
-            <div style={{ fontSize: 10.5, lineHeight: 1.45, color: C.muted2 }}>기기에만 저장돼요. 기기 바꾸기 전 백업.</div>
-          </div>
-        </div>
+        {/* 사이드바 발치의 기준일·밀도·금액숨김·백업 카드 덩어리는 걷어냈다.
+            늘 보이는 자리인데 1년에 몇 번 만지는 것들이 매일 시야를 차지했다. */}
       </aside>
 
       {/* ── 본문 ── */}

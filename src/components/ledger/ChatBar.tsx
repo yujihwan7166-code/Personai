@@ -152,14 +152,19 @@ export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecu
           >
             <SlidersHorizontal className="h-4 w-4" /> 상세
           </button>
+          {/* 비었을 때 40% 투명이면 '버튼이 없는' 것처럼 보인다 —
+              눌리진 않아도 자리와 테두리는 또렷하게 남겨 둔다 */}
           <button
-            type="submit" disabled={busy || !text.trim()} aria-label="입력"
+            type="submit" disabled={busy || !text.trim()} aria-label="기록 추가"
+            title="기록 추가 (Enter)"
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--ledger-navy))] text-white transition-opacity',
-              (busy || !text.trim()) && 'opacity-40',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
+              busy || !text.trim()
+                ? 'cursor-not-allowed border-[hsl(var(--input))] bg-[hsl(var(--muted))] text-muted-foreground'
+                : 'border-transparent bg-[hsl(var(--ledger-navy))] text-white hover:brightness-110',
             )}
           >
-            {busy ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowUp className="h-[18px] w-[18px]" />}
+            {busy ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.4} />}
           </button>
         </form>
       </div>
