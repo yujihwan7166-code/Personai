@@ -168,14 +168,13 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 머리 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, paddingBottom: 2, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.line}`, borderRadius: 9, background: '#fff', padding: 2 }}>
-            <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}
-              style={{ width: 26, height: 26, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>‹</button>
-            <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}
-              style={{ width: 26, height: 26, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>›</button>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* 화살표가 날짜 양옆 — 좌 이전 / 우 다음 */}
+          <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}
+            style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
+          <h1 style={{ margin: 0, minWidth: 62, textAlign: 'center', fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월</h1>
+          <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}
+            style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
           {!isCurrent && (
             <button type="button" onClick={() => setMonth(monthOf(today))}
               style={{ height: 26, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub, cursor: 'pointer' }}>이번 달</button>

@@ -184,21 +184,6 @@ export default function Ledger() {
           <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span><span>상세 입력</span>
         </button>
 
-        {/* 상단바를 없앤 대신 여기로 — 기준일 · 밀도 · 금액 숨김 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, height: 27, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.sub }}>
-            <span style={{ width: 5, height: 5, borderRadius: 999, background: C.greenDot }} />
-            {monthDay}
-          </span>
-          <button type="button" onClick={toggleCompact} title="줄 간격"
-            style={{ height: 27, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
-            {compact ? '촘촘' : '보통'}
-          </button>
-          <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
-            style={{ width: 27, height: 27, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 12, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-            {hideAmounts ? '🙈' : '👁'}
-          </button>
-        </div>
 
         <nav aria-label="가계부 섹션" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18, overflow: 'auto' }}>
           {NAV.map((s) => (
@@ -222,6 +207,18 @@ export default function Ledger() {
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+          {/* 보기 설정 — 눈에 띄지 않게 맨 아래로 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+            <span style={{ flex: 1, fontSize: 10.5, color: C.muted3 }}>{monthDay}</span>
+            <button type="button" onClick={toggleCompact} title="줄 간격"
+              style={{ height: 24, padding: '0 8px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
+              {compact ? '촘촘' : '보통'}
+            </button>
+            <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
+              style={{ width: 24, height: 24, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 11, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+              {hideAmounts ? '🙈' : '👁'}
+            </button>
+          </div>
           <div style={{ border: `1px solid ${C.lineSoft}`, borderRadius: 11, background: '#fff', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: 9 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 12, fontWeight: 650, color: C.ink3 }}>백업 · 내보내기</span>

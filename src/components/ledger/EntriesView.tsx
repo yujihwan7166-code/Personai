@@ -133,17 +133,14 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 40 }}>
       {/* 머리 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>내역</h1>
-          <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>{list.length}건 표시 중 · 전체 {entries.length}건</div>
-        </div>
+        <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>내역</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.line}`, borderRadius: 9, background: '#fff', padding: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button type="button" aria-label="이전 달" onClick={() => shiftMonth(-1)}
-              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>‹</button>
-            <span style={{ fontSize: 13, fontWeight: 700, padding: '0 8px', fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
+              style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
+            <span style={{ minWidth: 72, textAlign: 'center', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
             <button type="button" aria-label="다음 달" onClick={() => shiftMonth(1)}
-              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>›</button>
+              style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
             <span style={{ color: C.green }}>＋{KRW(sum.income)}</span>

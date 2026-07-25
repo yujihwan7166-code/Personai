@@ -195,12 +195,12 @@ export function ReportView({ data, onGoAssets }: { data: LedgerData; onGoAssets?
           <div style={{ fontSize: 12.5, color: TC.muted, fontWeight: 500 }}>{month.replace('-', '. ')} · {sum.count}건 집계</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${TC.line}`, borderRadius: 9, background: '#fff', padding: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonthStr(month, -1))}
-              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: TC.sub, cursor: 'pointer' }}><ChevronLeft className="mx-auto h-4 w-4" /></button>
-            <span style={{ fontSize: 13, fontWeight: 700, padding: '0 8px', fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
+              style={{ width: 28, height: 28, border: `1px solid ${TC.line}`, background: '#fff', borderRadius: 8, color: TC.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><ChevronLeft className="h-4 w-4" /></button>
+            <span style={{ minWidth: 72, textAlign: 'center', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
             <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonthStr(month, 1))}
-              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: TC.sub, cursor: 'pointer' }}><ChevronRight className="mx-auto h-4 w-4" /></button>
+              style={{ width: 28, height: 28, border: `1px solid ${TC.line}`, background: '#fff', borderRadius: 8, color: TC.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><ChevronRight className="h-4 w-4" /></button>
           </div>
           <button type="button" onClick={() => setWrappedYear(Number(month.slice(0, 4)))}
             style={{ height: 32, padding: '0 13px', border: `1px solid ${TC.line}`, borderRadius: 9, background: '#fff', fontSize: 12.5, fontWeight: 600, color: TC.ink3, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
