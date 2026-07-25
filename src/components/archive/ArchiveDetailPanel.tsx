@@ -10,7 +10,8 @@ import { KIND_LABEL, localYmd, type ArchiveCollection, type ArchiveItem } from '
 import { archiveStore } from '@/services/archiveStore';
 import { getArchiveBlob } from '@/lib/archiveBlobStore';
 import { downloadBlob } from '@/lib/blob';
-import { BlobImage } from './ArchiveCard';
+import { formatFileSize } from '@/lib/fileSize';
+import { BlobImage, FileTile } from './ArchiveCard';
 
 interface Props {
   item: ArchiveItem;
@@ -163,18 +164,21 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
             </a>
           )}
 
-          {/* ⑤ 파일 */}
+          {/* ⑤ 파일 — 카드와 같은 첨부 칩 문법, 여기서만 눌러 내려받는다 */}
           {item.kind === 'file' && item.blobRef && (
             <button
               type="button"
               onClick={download}
-              className="flex w-full items-center gap-2 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] px-3 py-2.5 text-left transition-colors hover:bg-accent"
+              className="group/file flex w-full items-center gap-3 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 text-left transition-colors hover:border-[hsl(var(--archive-sepia)/0.32)] hover:bg-[hsl(var(--archive-sepia)/0.06)]"
             >
-              <Download className="h-4 w-4 shrink-0 text-[hsl(var(--archive-sepia))]" />
+              <FileTile fileName={item.fileName ?? item.title} mime={item.mimeType} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-foreground">{item.fileName ?? item.title}</span>
-                {item.size ? <span className="text-[11px] text-muted-foreground">{Math.round(item.size / 1024)} KB · 내려받기</span> : null}
+                <span className="block truncate text-[13px] font-semibold leading-snug text-foreground">{item.fileName ?? item.title}</span>
+                <span className="mt-1 block text-[11.5px] text-muted-foreground">
+                  {item.size ? <span className="tabular-nums">{formatFileSize(item.size)} · </span> : null}내려받기
+                </span>
               </span>
+              <Download className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover/file:text-[hsl(var(--archive-sepia))]" />
             </button>
           )}
 

@@ -27,9 +27,6 @@ type ViewKey = 'all' | 'starred' | string; // string = collectionId
 type SortKey = 'new' | 'old' | 'title';
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
 
-/** 빈 컬렉션이 이만큼 쌓이면 사이드바에서 접는다 (시드 8개가 그대로 남은 초기 상태 대비). */
-const COLLAPSE_EMPTY_AT = 4;
-
 function searchable(it: ArchiveItem): string {
   return [it.title, it.note, it.domain, it.fileName, it.tags.join(' '), it.fields?.map((f) => f.value).join(' ')]
     .filter(Boolean).join(' ');
@@ -54,7 +51,6 @@ export default function Archive() {
   /** 상단 필터 드롭다운은 한 번에 하나만 — 부모가 쥐고 있어야 다른 칩으로 한 번에 넘어간다. */
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const filterBarRef = useRef<HTMLDivElement | null>(null);
-  const [showEmptyCols, setShowEmptyCols] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const dragDepth = useRef(0);
   // 상세 패널: gridOpen = grid 폭 애니메이션(우측 부드럽게 밀림), frozenW = 애니메이션 동안 메이슨리 폭 고정
@@ -208,14 +204,6 @@ export default function Archive() {
     };
   }, [openMenu]);
 
-  /* 시드 8개가 그대로면 사이드바가 '0'으로 도배된다 — 빈 폴더는 접어둔다.
-   * 지금 보고 있는 폴더는 비어 있어도 남긴다(자기 자리를 잃으면 길을 잃으니). */
-  const emptyColIds = useMemo(
-    () => new Set(collections.filter((c) => (counts.get(c.id) ?? 0) === 0 && c.id !== view).map((c) => c.id)),
-    [collections, counts, view],
-  );
-  const collapseEmpty = !showEmptyCols && emptyColIds.size >= COLLAPSE_EMPTY_AT;
-  const navCollections = collapseEmpty ? collections.filter((c) => !emptyColIds.has(c.id)) : collections;
 
   /* ── 상세 열기/닫기 ──
    * grid-template-columns 를 애니메이션해 패널 폭이 0↔400 으로 열리며 마스트헤드가 부드럽게 밀린다.
@@ -310,8 +298,9 @@ export default function Archive() {
             <Settings className="h-3.5 w-3.5" />
           </button>
         </div>
+        {/* 빈 컬렉션도 접지 않고 전부 보여준다 — 목록이 늘 같은 자리에 있어야 넣을 곳을 찾는다 */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto">
-          {navCollections.map((c) => (
+          {collections.map((c) => (
             <NavRow
               key={c.id}
               emoji={c.emoji}
@@ -321,16 +310,6 @@ export default function Archive() {
               onClick={() => withFlip(() => setView(c.id))}
             />
           ))}
-          {emptyColIds.size >= COLLAPSE_EMPTY_AT && (
-            <button
-              type="button"
-              onClick={() => setShowEmptyCols((v) => !v)}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showEmptyCols && 'rotate-180')} />
-              {showEmptyCols ? '빈 컬렉션 접기' : `빈 컬렉션 ${emptyColIds.size}개`}
-            </button>
-          )}
           <button
             type="button"
             onClick={addCollection}
@@ -412,10 +391,12 @@ export default function Archive() {
           ))}
         </div>
 
-        {/* 형태·태그·연도 다축 필터 + 정렬 (드롭다운) — 컬렉션은 사이드바에 */}
+        {/* 형태·태그·연도 다축 필터 + 정렬 — 가계부 내역 필터 바 문법(h32·radius 9·헤어라인 컨트롤).
+            값이 5개로 고정인 '형태'만 펼치지 않고 세그먼트로 늘어놓는다. 컬렉션은 사이드바에. */}
         <div ref={filterBarRef} className="mb-5 flex flex-wrap items-center gap-2">
-          <ArchiveFilterMenu id="kind" openMenu={openMenu} setOpenMenu={setOpenMenu} label="형태" value={kind ?? 'all'}
-            options={[{ v: 'all', label: '전체 형태' }, ...KINDS.map((k) => ({ v: k, label: KIND_LABEL[k] }))]}
+          <ArchiveSegmented
+            value={kind ?? 'all'}
+            options={[{ v: 'all', label: '전체' }, ...KINDS.map((k) => ({ v: k, label: KIND_LABEL[k] }))]}
             onChange={(v) => withFlip(() => setKind(v === 'all' ? null : (v as ArchiveKind)))} />
           <ArchiveFilterMenu id="tag" openMenu={openMenu} setOpenMenu={setOpenMenu} label="태그" value={activeTag ?? 'all'}
             options={[{ v: 'all', label: '전체 태그' }, ...allTagNames.map((t) => ({ v: t, label: `#${t}` }))]}
@@ -423,9 +404,14 @@ export default function Archive() {
           <ArchiveFilterMenu id="year" openMenu={openMenu} setOpenMenu={setOpenMenu} label="연도" value={yearF}
             options={[{ v: 'all', label: '전체 연도' }, ...years.map((y) => ({ v: y, label: y }))]}
             onChange={(v) => withFlip(() => setYearF(v))} />
-          {narrowed && (kind || activeTag || yearF !== 'all') && (
-            <button type="button" onClick={() => withFlip(() => { setKind(null); setActiveTag(null); setYearF('all'); })}
-              className="px-1 text-[12.5px] font-semibold text-foreground/45 transition-colors hover:text-foreground/75">초기화 ✕</button>
+          {(kind || activeTag || yearF !== 'all') && (
+            <button
+              type="button"
+              onClick={() => withFlip(() => { setKind(null); setActiveTag(null); setYearF('all'); })}
+              className="inline-flex h-8 items-center rounded-[9px] border border-[hsl(var(--hairline))] bg-card px-2.5 text-[12.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              초기화
+            </button>
           )}
           {/* 정렬은 필터가 아니라 배열 방식 — 오른쪽 끝에 떼어두고 '초기화'에도 안 걸린다 */}
           <div className="ml-auto">
@@ -515,7 +501,38 @@ function NavRow({ icon, emoji, label, count, active, onClick }: {
 }
 
 /**
- * 아카이브 상단 드롭다운 — 세피아 톤. 열림 상태는 부모가 쥔다(한 번에 하나, 칩 사이 1클릭 전환).
+ * 형태 세그먼트 — 값이 5개로 고정이라 펼칠 이유가 없다. 지금 무엇으로 보고 있는지 한눈에 남는다.
+ * (가계부 내역의 전체/지출/수입/이체 토글과 같은 문법, 채움색만 이 방의 세피아)
+ */
+function ArchiveSegmented({ value, options, onChange }: {
+  value: string; options: { v: string; label: string }[]; onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-[9px] border border-[hsl(var(--hairline))] bg-card p-[3px]">
+      {options.map((o) => {
+        const on = o.v === value;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => onChange(o.v)}
+            aria-pressed={on}
+            className={cn('h-[26px] rounded-[7px] px-[13px] text-[12.5px] transition-colors',
+              on
+                ? 'bg-[hsl(var(--archive-sepia))] font-bold text-white'
+                : 'font-semibold text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground')}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * 아카이브 상단 드롭다운 — 가계부 컨트롤 문법(h32·radius 9·헤어라인·12.5px/600).
+ * 열림 상태는 부모가 쥔다(한 번에 하나, 칩 사이 1클릭 전환).
  * 바깥 클릭·Esc 닫기는 부모의 필터 바 리스너 담당.
  */
 function ArchiveFilterMenu({ id, openMenu, setOpenMenu, label, value, options, onChange, align = 'left' }: {
@@ -539,17 +556,20 @@ function ArchiveFilterMenu({ id, openMenu, setOpenMenu, label, value, options, o
         onClick={() => setOpenMenu(open ? null : id)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={cn('inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors',
-          active ? 'border-transparent bg-[hsl(var(--archive-sepia))] text-white' : 'border-[hsl(var(--hairline))] bg-card text-foreground/70 hover:border-[hsl(var(--archive-sepia))]/40')}
+        className={cn('inline-flex h-8 items-center gap-1.5 rounded-[9px] border px-2.5 text-[12.5px] font-semibold transition-colors',
+          active
+            // 채우지 않고 세피아 윤곽 + 옅은 틴트 — 컨트롤 줄이 조용해야 카드가 앞으로 나온다
+            ? 'border-[hsl(var(--archive-sepia)/0.45)] bg-[hsl(var(--archive-sepia)/0.08)] text-[hsl(var(--archive-sepia))]'
+            : 'border-[hsl(var(--hairline))] bg-card text-muted-foreground hover:text-foreground')}
       >
         {active && current ? current.label : label}
-        <ChevronDown className={cn('h-3.5 w-3.5 opacity-70 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <div
           role="listbox"
           aria-label={label}
-          className={cn('absolute top-11 z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[16px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]',
+          className={cn('absolute top-[38px] z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[12px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]',
             align === 'right' ? 'right-0' : 'left-0')}
         >
           {options.map((o) => {

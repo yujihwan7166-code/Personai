@@ -15,6 +15,7 @@ import {
   type ArchiveItem,
 } from '@/types/archive';
 import { getArchiveUrl } from '@/lib/archiveBlobStore';
+import { formatFileSize, getFileExt } from '@/lib/fileSize';
 
 /**
  * 형태 배지 — 네 형태 모두 같은 세피아 칩.
@@ -27,12 +28,6 @@ function fmtDate(iso: string): string {
   return localYmd(iso).replace(/-/g, '. ');
 }
 
-function fmtSize(bytes: number | undefined): string {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 /** 도메인 첫 글자 색 아바타 (외부 파비콘 의존 없이). */
 function faviconColor(domain: string): string {
@@ -67,6 +62,44 @@ function FileGlyph({ mime }: { mime?: string }) {
   if (mime?.includes('sheet') || mime?.includes('excel')) return <FileSpreadsheet className="h-[18px] w-[18px]" />;
   if (mime?.includes('pdf') || mime?.includes('word') || mime?.includes('document')) return <FileText className="h-[18px] w-[18px]" />;
   return <FileIcon className="h-[18px] w-[18px]" />;
+}
+
+/** 타일에 얹을 확장자 — 4자를 넘으면 글자가 뭉개져 아이콘으로 돌아간다. */
+function tileExt(name: string | undefined): string | undefined {
+  const ext = name ? getFileExt(name) : '';
+  return ext && ext.length <= 4 ? ext.toUpperCase() : undefined;
+}
+
+/**
+ * 파일 타일 — 모서리가 접힌 종이 모양에 확장자를 얹는다.
+ * 확장자별로 색을 나누지 않는 건 형태 배지와 같은 이유(이 방의 강조색은 세피아 하나).
+ * 무엇인지는 글자가 말한다 — 확장자를 못 읽을 때만 아이콘으로 돌아간다.
+ */
+export function FileTile({ fileName, mime, className }: { fileName?: string; mime?: string; className?: string }) {
+  const ext = tileExt(fileName);
+  return (
+    <span className={cn('relative block h-[38px] w-[30px] shrink-0', className)}>
+      {/* 종이 — 오른쪽 위 모서리를 잘라낸다 */}
+      <span
+        className="absolute inset-0 rounded-[6px] bg-[hsl(var(--archive-sepia)/0.13)]"
+        style={{ clipPath: 'polygon(0 0, 66% 0, 100% 26%, 100% 100%, 0 100%)' }}
+      />
+      {/* 접힌 자국 */}
+      <span
+        className="absolute right-0 top-0 h-[26%] w-[34%] bg-[hsl(var(--archive-sepia)/0.28)]"
+        style={{ clipPath: 'polygon(0 0, 100% 100%, 0 100%)' }}
+      />
+      {ext ? (
+        <span className="absolute inset-x-0 bottom-[5px] text-center text-[8px] font-extrabold leading-none text-[hsl(var(--archive-sepia))]">
+          {ext}
+        </span>
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-[hsl(var(--archive-sepia))]">
+          <FileGlyph mime={mime} />
+        </span>
+      )}
+    </span>
+  );
 }
 
 interface Props {
@@ -170,15 +203,16 @@ export function ArchiveCard({ item, onOpen, onToggleStar, onTagClick }: Props) {
           </p>
         )}
 
-        {/* 파일 — 파일 박스 */}
+        {/* 파일 — 첨부 칩.
+            점선 테두리는 '여기 놓으세요'(빈 드롭존)로 읽힌다. 이건 이미 들어와 있는 파일이라 실선. */}
         {item.kind === 'file' && (
-          <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-dashed border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]">
-              <FileGlyph mime={item.mimeType} />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[12.5px] font-semibold text-foreground">{item.fileName ?? item.title}</span>
-              <span className="text-[11px] text-muted-foreground">{fmtSize(item.size)}</span>
+          <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-2.5 transition-colors group-hover:border-[hsl(var(--archive-sepia)/0.32)] group-hover:bg-[hsl(var(--archive-sepia)/0.06)]">
+            <FileTile fileName={item.fileName ?? item.title} mime={item.mimeType} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12.5px] font-semibold leading-snug text-foreground">{item.fileName ?? item.title}</span>
+              {item.size ? (
+                <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">{formatFileSize(item.size)}</span>
+              ) : null}
             </span>
           </div>
         )}
