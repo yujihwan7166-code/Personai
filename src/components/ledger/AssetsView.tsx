@@ -11,6 +11,7 @@ import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { assetProfit, monthlyDividends, netWorth, sumByKind, totalProfit } from '@/lib/ledger/assetStats';
 import { ASSET_KIND_META, type AssetKind, type LedgerAsset } from '@/types/ledger';
+import { C as TC } from './theme';
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 const KINDS: AssetKind[] = ['cash', 'invest', 'coin', 'property', 'debt'];
@@ -120,42 +121,63 @@ export function AssetsView({ data }: { data: LedgerData }) {
   const field = 'w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--ledger-navy))]';
 
   return (
-    <div className="grid grid-cols-1 gap-4 pb-40 xl:grid-cols-2">
-      {/* 순자산 카드 + 스냅샷 */}
-      <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4 xl:col-span-2">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div><p className="text-[12px] text-muted-foreground">순자산</p><p className="text-[22px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(nw.net)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">자산</p><p className="text-[16px] font-semibold tabular-nums">{KRW(nw.assets)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">부채</p><p className="text-[16px] font-semibold tabular-nums">{nw.debt > 0 ? `-${KRW(nw.debt)}` : '없음'}</p></div>
-          {(() => {
-            const tp = totalProfit(assets);
-            return tp && (
-              <div>
-                <p className="text-[12px] text-muted-foreground">투자 손익</p>
-                <p className={cn('text-[16px] font-semibold tabular-nums', tp.profit >= 0 ? 'text-[hsl(var(--ledger-navy))]' : 'text-[hsl(var(--ledger-red))]')}>
-                  {tp.profit >= 0 ? '+' : ''}{KRW(tp.profit)} ({(tp.rate * 100).toFixed(1)}%)
-                </p>
-              </div>
-            );
-          })()}
-          <button type="button" onClick={takeSnapshot}
-            className="ml-auto flex items-center gap-1.5 rounded-xl bg-[hsl(var(--ledger-navy))] px-3.5 py-2 text-[13px] font-semibold text-white">
-            <Camera className="h-3.5 w-3.5" /> {Number(curMonth.slice(5, 7))}월 스냅샷 저장
-          </button>
+    <div className="grid grid-cols-1 gap-[14px] pb-40 xl:grid-cols-2" style={{ maxWidth: 900 }}>
+      {/* 머리 */}
+      <div className="xl:col-span-2" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>자산</h1>
+          <div style={{ fontSize: 12.5, color: TC.muted, fontWeight: 500 }}>
+            스냅샷 {snapshots.length}개
+            {snapshots.length > 0 && ` · 마지막 저장 ${snapshots[snapshots.length - 1].month.replace('-', '. ')}`}
+          </div>
         </div>
-        <p className="mt-2 text-[11.5px] text-muted-foreground">
-          {curSnap
-            ? `이번 달 스냅샷 있음 (순자산 ${KRW(curSnap.net)}) — 평가액을 고친 뒤 다시 누르면 덮어써요`
-            : '월말에 평가액을 갱신하고 스냅샷을 저장하면 월 결산의 순자산 추이가 쌓여요'}
-        </p>
+        <button type="button" onClick={takeSnapshot}
+          style={{ height: 34, padding: '0 14px', border: 'none', borderRadius: 9, background: TC.navy, color: '#fff', fontSize: 12.5, fontWeight: 650, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Camera style={{ width: 13, height: 13 }} /> 이번 달 스냅샷 저장
+        </button>
+      </div>
+
+      {/* 순자산 */}
+      <section className="xl:col-span-2" style={{ border: `1px solid ${TC.line}`, borderRadius: 14, background: TC.card, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 650, color: TC.muted }}>순자산</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{nw.net.toLocaleString('ko-KR')}</span>
+            <span style={{ fontSize: 16, fontWeight: 650, color: TC.ink4 }}>원</span>
+          </div>
+        </div>
+        <div style={{ width: 1, alignSelf: 'stretch', background: TC.lineFaint }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 650, color: TC.muted }}>자산</span>
+          <span style={{ fontSize: 19, fontWeight: 700, color: TC.green, fontVariantNumeric: 'tabular-nums' }}>{nw.assets.toLocaleString('ko-KR')}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 650, color: TC.muted }}>부채</span>
+          <span style={{ fontSize: 19, fontWeight: 700, color: TC.red, fontVariantNumeric: 'tabular-nums' }}>{nw.debt.toLocaleString('ko-KR')}</span>
+        </div>
+        {(() => {
+          const tp = totalProfit(assets);
+          return tp && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 650, color: TC.muted }}>투자 손익</span>
+              <span style={{ fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: tp.profit >= 0 ? TC.green : TC.red }}>
+                {tp.profit >= 0 ? '+' : ''}{KRW(tp.profit)} ({(tp.rate * 100).toFixed(1)}%)
+              </span>
+            </div>
+          );
+        })()}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 11.5, color: TC.muted2, maxWidth: 260 }}>
+          {curSnap ? `이번 달 스냅샷 있음 — 다시 누르면 덮어써요` : '월말에 저장하면 순자산 추이가 쌓여요'}
+        </span>
       </section>
 
-      <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4">
-        <h3 className="mb-3 text-[13px] font-semibold text-muted-foreground">자산 구성</h3>
+      <section style={{ border: `1px solid ${TC.line}`, borderRadius: 14, background: TC.card, padding: '18px 20px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 14.5, fontWeight: 650 }}>자산 구성</h3>
         <KindDonut assets={assets} />
       </section>
-      <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4">
-        <h3 className="mb-3 text-[13px] font-semibold text-muted-foreground">배당 캘린더</h3>
+      <section style={{ border: `1px solid ${TC.line}`, borderRadius: 14, background: TC.card, padding: '18px 20px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 14.5, fontWeight: 650 }}>배당 캘린더</h3>
         <DividendCalendar assets={assets} />
       </section>
 

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { LedgerData } from '@/hooks/useLedger';
 import { todayKey } from '@/services/ledgerStore';
 import { categoryTotals, monthOf, summarizeMonth } from '@/lib/ledger/stats';
+import { C as TC } from './theme';
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
@@ -187,25 +188,40 @@ export function ReportView({ data, onGoAssets }: { data: LedgerData; onGoAssets?
   }, [data.entries, pivotMonths]);
 
   return (
-    <div className="space-y-4 pb-40">
-      <div className="flex items-center gap-3">
-        <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonthStr(month, -1))} className="rounded-lg p-1.5 hover:bg-[hsl(var(--muted))]"><ChevronLeft className="h-4 w-4" /></button>
-        <span className="text-[15px] font-bold tabular-nums">{month.replace('-', '. ')}</span>
-        <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonthStr(month, 1))} className="rounded-lg p-1.5 hover:bg-[hsl(var(--muted))]"><ChevronRight className="h-4 w-4" /></button>
-        <button type="button" onClick={() => setWrappedYear(Number(month.slice(0, 4)))}
-          className="ml-auto flex items-center gap-1.5 rounded-xl border border-[hsl(var(--ledger-navy)/0.35)] px-3 py-1.5 text-[12.5px] font-semibold text-[hsl(var(--ledger-navy))] transition-colors hover:bg-[hsl(var(--ledger-navy)/0.08)]">
-          <Sparkles className="h-3.5 w-3.5" /> {month.slice(0, 4)}년 결산 보기
-        </button>
+    <div className="space-y-[14px] pb-40">
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>월 결산</h1>
+          <div style={{ fontSize: 12.5, color: TC.muted, fontWeight: 500 }}>{month.replace('-', '. ')} · {sum.count}건 집계</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${TC.line}`, borderRadius: 9, background: '#fff', padding: 2 }}>
+            <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonthStr(month, -1))}
+              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: TC.sub, cursor: 'pointer' }}><ChevronLeft className="mx-auto h-4 w-4" /></button>
+            <span style={{ fontSize: 13, fontWeight: 700, padding: '0 8px', fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
+            <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonthStr(month, 1))}
+              style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: TC.sub, cursor: 'pointer' }}><ChevronRight className="mx-auto h-4 w-4" /></button>
+          </div>
+          <button type="button" onClick={() => setWrappedYear(Number(month.slice(0, 4)))}
+            style={{ height: 32, padding: '0 13px', border: `1px solid ${TC.line}`, borderRadius: 9, background: '#fff', fontSize: 12.5, fontWeight: 600, color: TC.ink3, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Sparkles className="h-3.5 w-3.5" /> {month.slice(0, 4)}년 결산
+          </button>
+        </div>
       </div>
 
-      <Section title="이 달의 결산">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div><p className="text-[12px] text-muted-foreground">수입</p><p className="text-[17px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(sum.income)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">지출</p><p className="text-[17px] font-bold tabular-nums">{KRW(sum.expense)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">저축·투자 이체</p><p className="text-[17px] font-bold tabular-nums">{KRW(sum.transfer)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">저축률</p><p className="text-[17px] font-bold tabular-nums">{sum.savedRate !== null ? `${Math.round(sum.savedRate * 100)}%` : '—'}</p></div>
-        </div>
-      </Section>
+      <div style={{ border: `1px solid ${TC.line}`, borderRadius: 14, background: TC.card, padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
+        {([
+          { label: '수입', value: KRW(sum.income), color: TC.green },
+          { label: '지출', value: KRW(sum.expense), color: TC.ink },
+          { label: '저축·투자 이체', value: KRW(sum.transfer), color: TC.ink },
+          { label: '저축률', value: sum.savedRate !== null ? `${Math.round(sum.savedRate * 100)}%` : '—', color: TC.ink },
+        ]).map((k) => (
+          <div key={k.label} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 650, color: TC.muted }}>{k.label}</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{k.value}</span>
+          </div>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Section title={`월별 수입·지출 (${barSpan}개월)`}>
