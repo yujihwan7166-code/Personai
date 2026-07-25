@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ledgerStore } from '@/services/ledgerStore';
+import { parseInput } from '@/lib/ledger/parse';
 
 beforeEach(() => { localStorage.clear(); });
 
@@ -70,5 +71,37 @@ describe('ledgerStore', () => {
     ledgerStore.addEntries([{ type: 'expense', amount: 1, date: '2026-07-01', categoryId: 'etc', memo: '' }]);
     expect(ledgerStore.importJson('not json')).toBe(false);
     expect(ledgerStore.listEntries()).toHaveLength(1);
+  });
+});
+
+describe('분류 규칙(keywordDict)', () => {
+  it('setKeywordRule 저장·덮어쓰기, removeKeywordRule 삭제', () => {
+    ledgerStore.setKeywordRule('스벅', 'cafe');
+    expect(ledgerStore.getKeywordDict()).toEqual({ 스벅: 'cafe' });
+    ledgerStore.setKeywordRule('스벅', 'food');           // 같은 키워드는 하나만
+    expect(ledgerStore.getKeywordDict()).toEqual({ 스벅: 'food' });
+    ledgerStore.removeKeywordRule('스벅');
+    expect(ledgerStore.getKeywordDict()).toEqual({});
+  });
+
+  it('빈 키워드·공백은 무시', () => {
+    ledgerStore.setKeywordRule('   ', 'cafe');
+    ledgerStore.setKeywordRule('택시', '');
+    expect(ledgerStore.getKeywordDict()).toEqual({});
+  });
+
+  it('저장한 규칙이 파서에서 기본 사전보다 먼저 적용된다', () => {
+    // '치킨'은 기본 사전에서 food — 내 규칙으로 leisure 로 덮어쓴다
+    ledgerStore.setKeywordRule('치킨', 'leisure');
+    const [e] = parseInput('치킨 20000', { today: new Date(2026, 6, 21), keywordDict: ledgerStore.getKeywordDict() });
+    expect(e.categoryId).toBe('leisure');
+  });
+
+  it('백업 export/import 로 규칙이 보존된다', () => {
+    ledgerStore.setKeywordRule('스벅', 'cafe');
+    const dump = ledgerStore.exportJson();
+    localStorage.clear();
+    expect(ledgerStore.importJson(dump)).toBe(true);
+    expect(ledgerStore.getKeywordDict()).toEqual({ 스벅: 'cafe' });
   });
 });

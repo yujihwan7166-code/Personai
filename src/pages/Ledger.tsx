@@ -22,23 +22,25 @@ import { EntriesView } from '@/components/ledger/EntriesView';
 import { BudgetView } from '@/components/ledger/BudgetView';
 import { BulkImportDialog } from '@/components/ledger/BulkImportDialog';
 import { RecurringView } from '@/components/ledger/RecurringView';
+import { RulesView } from '@/components/ledger/RulesView';
 import { AssetsView } from '@/components/ledger/AssetsView';
 import { ReportView } from '@/components/ledger/ReportView';
 import { netWorth } from '@/lib/ledger/assetStats';
 
-type View = 'dashboard' | 'entries' | 'budget' | 'recurring' | 'assets' | 'report';
+type View = 'dashboard' | 'entries' | 'budget' | 'recurring' | 'rules' | 'assets' | 'report';
 
 const NAV: Array<{ id: View; label: string; emoji: string }> = [
   { id: 'dashboard', label: '대시보드', emoji: '🏠' },
   { id: 'entries',   label: '내역',     emoji: '📒' },
   { id: 'budget',    label: '예산',     emoji: '🎯' },
   { id: 'recurring', label: '고정지출', emoji: '🔁' },
+  { id: 'rules',     label: '분류 규칙', emoji: '🏷️' },
   { id: 'assets',    label: '자산',     emoji: '💎' },
   { id: 'report',    label: '월 결산',  emoji: '📊' },
 ];
 
 const VIEW_TITLE: Record<View, string> = {
-  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', assets: '자산', report: '월 결산',
+  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', rules: '분류 규칙', assets: '자산', report: '월 결산',
 };
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -148,6 +150,7 @@ export default function Ledger() {
     : view === 'entries' ? `이번 달 ${sum.count}건`
     : view === 'budget' ? '버킷 3개면 충분해요'
     : view === 'recurring' ? `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`
+    : view === 'rules' ? `내 규칙 ${Object.keys(data.dict).length}개 · 기본 분류보다 먼저 적용돼요`
     : view === 'assets' ? (data.assets.length ? <>순자산 {KRW(nw.net)} · 월말에 갱신하는 장부</> : '실시간 아님 — 월말에 한 번 적는 장부')
     : `스냅샷 ${data.snapshots.length}개 · 저축률과 순자산의 흐름`;
 
@@ -254,6 +257,7 @@ export default function Ledger() {
           )}
           {view === 'budget' && <BudgetView data={data} />}
           {view === 'recurring' && <RecurringView data={data} />}
+          {view === 'rules' && <RulesView data={data} />}
           {view === 'assets' && <AssetsView data={data} />}
           {view === 'report' && <ReportView data={data} />}
         </div>

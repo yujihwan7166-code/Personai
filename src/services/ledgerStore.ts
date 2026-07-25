@@ -243,6 +243,23 @@ export const ledgerStore = {
   setSettings(s: LedgerSettings): void { write(SETTINGS_KEY, s); },
   getKeywordDict(): Record<string, string> { return readObj<Record<string, string>>(DICT_KEY, {}); },
 
+  /**
+   * 분류 규칙 하나 저장 — "이 말이 memo 에 있으면 이 카테고리". 파서가 기본 사전보다 먼저 본다.
+   * 같은 키워드는 덮어쓰기(규칙은 하나만). 공백·빈 문자열은 무시.
+   */
+  setKeywordRule(keyword: string, categoryId: string): void {
+    const k = keyword.trim();
+    if (!k || !categoryId) return;
+    write(DICT_KEY, { ...this.getKeywordDict(), [k]: categoryId });
+  },
+
+  removeKeywordRule(keyword: string): void {
+    const dict = this.getKeywordDict();
+    if (!(keyword in dict)) return;
+    delete dict[keyword];
+    write(DICT_KEY, dict);
+  },
+
   listCategories(): LedgerCategory[] {
     const custom = readArr(CATEGORIES_KEY, (v): LedgerCategory | null => {
       if (!isRecord(v) || typeof v.id !== 'string' || typeof v.label !== 'string') return null;

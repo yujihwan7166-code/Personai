@@ -15,11 +15,12 @@ export interface LedgerData {
   categories: LedgerCategory[];
   assets: LedgerAsset[];
   snapshots: AssetSnapshot[];
+  dict: Record<string, string>;   // 분류 규칙 — 키워드 → categoryId
 }
 
 export function useLedger(): LedgerData {
   const [data, setData] = useState<LedgerData>(() => ({
-    entries: [], recurring: [], budgets: {}, settings: {}, categories: [], assets: [], snapshots: [],
+    entries: [], recurring: [], budgets: {}, settings: {}, categories: [], assets: [], snapshots: [], dict: {},
   }));
 
   const refresh = useCallback(() => {
@@ -31,6 +32,7 @@ export function useLedger(): LedgerData {
       categories: ledgerStore.listCategories(),
       assets: ledgerStore.listAssets(),
       snapshots: ledgerStore.listSnapshots(),
+      dict: ledgerStore.getKeywordDict(),
     });
   }, []);
 
