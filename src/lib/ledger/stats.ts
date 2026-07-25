@@ -29,12 +29,20 @@ export function categoryTotals(entries: LedgerEntry[], month: string): Array<{ c
   return [...m.entries()].map(([categoryId, total]) => ({ categoryId, total })).sort((a, b) => b.total - a.total);
 }
 
+/**
+ * 버킷별 이번 달 지출.
+ *
+ * 어느 예산으로 셀지는 ①이 건의 bucketId(건별 지정) ②카테고리의 버킷 순으로 정한다.
+ * 같은 '식비'라도 친구 만나 쓴 밥값만 유흥비로 세는 게 가능해야 해서 건별이 우선한다.
+ * 버킷은 사용자 정의라 키를 미리 알 수 없으므로 나오는 대로 채운다.
+ */
 export function bucketSpent(entries: LedgerEntry[], month: string, categories: LedgerCategory[]): Record<BudgetBucket, number> {
   const bucketOf = new Map(categories.map((c) => [c.id, c.bucket]));
   const out: Record<BudgetBucket, number> = { fixed: 0, variable: 0, irregular: 0 };
   for (const e of entries) {
     if (!inMonth(e, month) || e.type !== 'expense') continue;
-    out[bucketOf.get(e.categoryId) ?? 'variable'] += e.amount;
+    const b = e.bucketId || bucketOf.get(e.categoryId) || 'variable';
+    out[b] = (out[b] ?? 0) + e.amount;
   }
   return out;
 }

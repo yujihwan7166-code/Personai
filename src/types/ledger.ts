@@ -6,7 +6,28 @@ export const LEDGER_CHANGED = 'ledger-changed';
 
 export type EntryType = 'expense' | 'income' | 'transfer';
 export type PayMethod = 'card' | 'cash' | 'account';
-export type BudgetBucket = 'fixed' | 'variable' | 'irregular';
+/**
+ * 예산 버킷 id.
+ *
+ * 예전엔 'fixed' | 'variable' | 'irregular' 세 개로 못 박혀 있었다. 사람마다 나누는 축이
+ * 다른데(유흥비·자기계발·반려동물…) 셋 밖으로 나갈 수가 없었다 → 문자열 id 로 열어두고,
+ * 기본 세 개는 시드로 깐다. 기존 데이터의 'fixed'/'variable'/'irregular' 가 그대로 id 가 된다.
+ */
+export type BudgetBucket = string;
+
+/** 기본 세 버킷의 id — 마이그레이션·폴백에서 참조. */
+export const BUCKET_FIXED = 'fixed';
+export const BUCKET_VARIABLE = 'variable';
+export const BUCKET_IRREGULAR = 'irregular';
+
+export interface LedgerBucket {
+  id: string;
+  label: string;
+  desc: string;
+  order: number;
+  /** 기본 3종은 지울 수 없다(카테고리가 갈 곳이 없어진다). */
+  builtin?: boolean;
+}
 
 export interface LedgerEntry {
   id: string;
@@ -19,6 +40,12 @@ export interface LedgerEntry {
   groupTotal?: number;     // 더치페이 총액(참고용, 선택)
   /** 영수증 사진 — 압축된 dataURL. 금액만 남기면 "이게 뭐였더라"가 되는 지출이 있다. */
   photo?: string;
+  /**
+   * 이 건만 다른 예산으로 — 카테고리가 정한 버킷을 건별로 덮어쓴다.
+   * 같은 '식비'라도 친구 만나 쓴 밥값은 유흥비로 세고 싶을 때가 있다.
+   * 비어 있으면 카테고리의 버킷을 따른다.
+   */
+  bucketId?: string;
   createdAt: string;       // ISO
 }
 
@@ -44,11 +71,17 @@ export const DEFAULT_CATEGORIES: LedgerCategory[] = [
   { id: 'etc',          label: '기타',        emoji: '📎', bucket: 'variable' },
 ];
 
-export const BUCKET_META: Record<BudgetBucket, { label: string; desc: string }> = {
-  fixed:     { label: '고정비',  desc: '구독·월세·통신 등 매달 비슷한 지출' },
-  variable:  { label: '변동비',  desc: '식비·쇼핑·여가 등 이번 달에 조절 가능한 지출' },
-  irregular: { label: '비정기',  desc: '경조사·의료 등 가끔 크게 나가는 지출' },
-};
+/** 시드로 깔리는 기본 버킷 3종. 사용자가 여기에 더 만들 수 있다. */
+export const DEFAULT_BUCKETS: LedgerBucket[] = [
+  { id: BUCKET_FIXED,     label: '고정비', desc: '구독·월세·통신 등 매달 비슷한 지출',        order: 0, builtin: true },
+  { id: BUCKET_VARIABLE,  label: '변동비', desc: '식비·쇼핑·여가 등 이번 달에 조절 가능한 지출', order: 1, builtin: true },
+  { id: BUCKET_IRREGULAR, label: '비정기', desc: '경조사·의료 등 가끔 크게 나가는 지출',       order: 2, builtin: true },
+];
+
+/** @deprecated 버킷이 사용자 정의가 되면서 store 의 목록이 진실이다. 기본 3종 라벨 폴백용으로만. */
+export const BUCKET_META: Record<string, { label: string; desc: string }> = Object.fromEntries(
+  DEFAULT_BUCKETS.map((b) => [b.id, { label: b.label, desc: b.desc }]),
+);
 
 export interface RecurringRule {
   id: string;

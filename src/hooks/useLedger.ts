@@ -4,7 +4,7 @@
  * TDZ 주의: state → useCallback → useEffect 순서.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { LEDGER_CHANGED, type AssetSnapshot, type LedgerAsset, type LedgerBudgets, type LedgerCatBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
+import { LEDGER_CHANGED, type AssetSnapshot, type LedgerAsset, type LedgerBucket, type LedgerBudgets, type LedgerCatBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 
 export interface LedgerData {
@@ -14,6 +14,7 @@ export interface LedgerData {
   catBudgets: LedgerCatBudgets;
   settings: LedgerSettings;
   categories: LedgerCategory[];
+  buckets: LedgerBucket[];
   assets: LedgerAsset[];
   snapshots: AssetSnapshot[];
   dict: Record<string, string>;   // 분류 규칙 — 키워드 → categoryId
@@ -21,7 +22,7 @@ export interface LedgerData {
 
 export function useLedger(): LedgerData {
   const [data, setData] = useState<LedgerData>(() => ({
-    entries: [], recurring: [], budgets: {}, catBudgets: {}, settings: {}, categories: [], assets: [], snapshots: [], dict: {},
+    entries: [], recurring: [], budgets: {}, catBudgets: {}, settings: {}, categories: [], buckets: [], assets: [], snapshots: [], dict: {},
   }));
 
   const refresh = useCallback(() => {
@@ -32,6 +33,7 @@ export function useLedger(): LedgerData {
       catBudgets: ledgerStore.getCatBudgets(),
       settings: ledgerStore.getSettings(),
       categories: ledgerStore.listCategories(),
+      buckets: ledgerStore.listBuckets(),
       assets: ledgerStore.listAssets(),
       snapshots: ledgerStore.listSnapshots(),
       dict: ledgerStore.getKeywordDict(),

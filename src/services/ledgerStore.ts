@@ -5,8 +5,8 @@
  */
 import {
   LEDGER_CHANGED,
-  DEFAULT_CATEGORIES,
-  type AssetKind, type AssetSnapshot, type EntryType, type LedgerAsset, type LedgerBudgets, type LedgerCatBudgets,
+  DEFAULT_CATEGORIES, DEFAULT_BUCKETS, BUCKET_VARIABLE,
+  type AssetKind, type AssetSnapshot, type EntryType, type LedgerAsset, type LedgerBucket, type LedgerBudgets, type LedgerCatBudgets,
   type LedgerCategory, type LedgerEntry, type LedgerSettings, type PayMethod, type RecurringRule,
 } from '@/types/ledger';
 import { newId } from '@/lib/idGenerator';
@@ -18,6 +18,8 @@ const SETTINGS_KEY = 'ledger.settings.v1';
 const DICT_KEY = 'ledger.dict.v1';
 const CATBUDGETS_KEY = 'ledger.catbudgets.v1'; // 카테고리별 한도(선택)
 const CATEGORIES_KEY = 'ledger.categories.v1'; // 커스텀 추가분만 저장
+const BUCKETS_KEY = 'ledger.buckets.v1';       // 사용자가 만든 예산 버킷 (기본 3종 제외)
+const CATBUCKET_KEY = 'ledger.catbucket.v1';   // 카테고리 → 버킷 덮어쓰기 (기본 카테고리도 옮길 수 있게)
 const ASSETS_KEY = 'ledger.assets.v1';
 const SNAPSHOTS_KEY = 'ledger.snapshots.v1';
 const META_KEY = 'ledger.meta.v1'; // { lastBackupAt } — 백업 나이 계기판용
@@ -45,6 +47,7 @@ function normEntry(v: unknown, i: number): LedgerEntry | null {
     method: isMethod(v.method) ? v.method : undefined,
     groupTotal: posInt(v.groupTotal) ?? undefined,
     photo: typeof v.photo === 'string' && v.photo ? v.photo : undefined,
+    bucketId: typeof v.bucketId === 'string' && v.bucketId ? v.bucketId : undefined,
     createdAt: typeof v.createdAt === 'string' ? v.createdAt : nowIso(),
   };
 }
@@ -286,13 +289,86 @@ export const ledgerStore = {
     write(DICT_KEY, dict);
   },
 
+  /* ── 예산 버킷 ── */
+
+  /** 기본 3종 + 사용자가 만든 것. order 오름차순. */
+  listBuckets(): LedgerBucket[] {
+    const custom = readArr(BUCKETS_KEY, (v, i): LedgerBucket | null => {
+      if (!isRecord(v) || typeof v.id !== 'string' || typeof v.label !== 'string' || !v.label.trim()) return null;
+      return {
+        id: v.id, label: v.label.trim(),
+        desc: typeof v.desc === 'string' ? v.desc : '',
+        order: typeof v.order === 'number' && Number.isFinite(v.order) ? v.order : DEFAULT_BUCKETS.length + i,
+      };
+    }).filter((b) => !DEFAULT_BUCKETS.some((d) => d.id === b.id)); // 기본과 id 충돌 방지
+    return [...DEFAULT_BUCKETS, ...custom].sort((a, b) => a.order - b.order);
+  },
+
+  addBucket(label: string, desc: string): LedgerBucket | null {
+    const name = label.trim();
+    if (!name) return null;
+    const all = this.listBuckets();
+    const existing = all.find((b) => b.label.replace(/\s+/g, '') === name.replace(/\s+/g, ''));
+    if (existing) return existing;
+    const created: LedgerBucket = {
+      id: newId('lb'), label: name, desc: desc.trim(),
+      order: all.length ? Math.max(...all.map((b) => b.order)) + 1 : 0,
+    };
+    write(BUCKETS_KEY, [...all.filter((b) => !b.builtin), created]);
+    return created;
+  },
+
+  updateBucket(id: string, patch: { label?: string; desc?: string }): void {
+    if (DEFAULT_BUCKETS.some((d) => d.id === id)) return; // 기본 3종은 이름 고정
+    const custom = this.listBuckets().filter((b) => !b.builtin);
+    const next = custom.map((b) => (b.id === id
+      ? { ...b, ...(patch.label?.trim() ? { label: patch.label.trim() } : {}), ...(patch.desc !== undefined ? { desc: patch.desc.trim() } : {}) }
+      : b));
+    write(BUCKETS_KEY, next);
+  },
+
+  /**
+   * 버킷 삭제 — 기본 3종은 못 지운다.
+   * 이 버킷을 쓰던 카테고리·건별 지정은 '변동비'로 돌려보낸다(갈 곳 없는 지출을 안 만든다).
+   */
+  removeBucket(id: string): void {
+    if (DEFAULT_BUCKETS.some((d) => d.id === id)) return;
+    write(BUCKETS_KEY, this.listBuckets().filter((b) => !b.builtin && b.id !== id));
+    const catMap = readObj<Record<string, string>>(CATBUCKET_KEY, {});
+    for (const [cid, bid] of Object.entries(catMap)) if (bid === id) delete catMap[cid];
+    write(CATBUCKET_KEY, catMap);
+    const entries = readArr(ENTRIES_KEY, normEntry);
+    if (entries.some((e) => e.bucketId === id)) {
+      write(ENTRIES_KEY, entries.map((e) => (e.bucketId === id ? { ...e, bucketId: undefined } : e)));
+    }
+    const budgets = this.getBudgets();
+    if (id in budgets) { delete budgets[id]; write(BUDGETS_KEY, budgets); }
+  },
+
+  /** 카테고리를 어느 예산으로 셀지 — 기본 카테고리도 바꿀 수 있게 덮어쓰기 맵으로 둔다. */
+  setCategoryBucket(categoryId: string, bucketId: string): void {
+    const map = readObj<Record<string, string>>(CATBUCKET_KEY, {});
+    map[categoryId] = bucketId;
+    write(CATBUCKET_KEY, map);
+  },
+
   listCategories(): LedgerCategory[] {
+    const known = new Set(this.listBuckets().map((b) => b.id));
+    const override = readObj<Record<string, string>>(CATBUCKET_KEY, {});
     const custom = readArr(CATEGORIES_KEY, (v): LedgerCategory | null => {
       if (!isRecord(v) || typeof v.id !== 'string' || typeof v.label !== 'string') return null;
-      const bucket = v.bucket === 'fixed' || v.bucket === 'variable' || v.bucket === 'irregular' ? v.bucket : 'variable';
-      return { id: v.id, label: v.label, emoji: typeof v.emoji === 'string' ? v.emoji : '🏷️', bucket, custom: true };
+      const raw = typeof v.bucket === 'string' ? v.bucket : BUCKET_VARIABLE;
+      return {
+        id: v.id, label: v.label, emoji: typeof v.emoji === 'string' ? v.emoji : '🏷️',
+        bucket: known.has(raw) ? raw : BUCKET_VARIABLE, custom: true,
+      };
     });
-    return [...DEFAULT_CATEGORIES, ...custom];
+    // 사라진 버킷을 가리키는 지정은 변동비로 흘려보낸다
+    const apply = (c: LedgerCategory): LedgerCategory => {
+      const o = override[c.id];
+      return o && known.has(o) ? { ...c, bucket: o } : c;
+    };
+    return [...DEFAULT_CATEGORIES.map(apply), ...custom.map(apply)];
   },
 
   /** 같은 이름(공백·대소문자 무시)이 이미 있으면 그 카테고리를 그대로 돌려준다. */

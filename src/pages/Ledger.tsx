@@ -222,7 +222,7 @@ export default function Ledger() {
         </div>
       </div>
 
-      <EntryFormDialog open={formOpen} entryId={editId} categories={data.categories} onClose={() => setFormOpen(false)} />
+      <EntryFormDialog open={formOpen} entryId={editId} categories={data.categories} buckets={data.buckets} onClose={() => setFormOpen(false)} />
       <BulkImportDialog open={importOpen} categories={data.categories} entries={data.entries} onClose={() => setImportOpen(false)} />
     </div>
   );

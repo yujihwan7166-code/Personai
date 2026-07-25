@@ -9,16 +9,17 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { compressImage } from '@/lib/journalImage';
 import { notify } from '@/lib/notify';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
-import { TYPE_META, type EntryType, type LedgerCategory, type PayMethod } from '@/types/ledger';
+import { TYPE_META, type EntryType, type LedgerBucket, type LedgerCategory, type PayMethod } from '@/types/ledger';
 
 interface Props {
   open: boolean;
   entryId: string | null;   // null = 신규
   categories: LedgerCategory[];
+  buckets: LedgerBucket[];
   onClose: () => void;
 }
 
-export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
+export function EntryFormDialog({ open, entryId, categories, buckets, onClose }: Props) {
   const [type, setType] = useState<EntryType>('expense');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayKey());
@@ -29,7 +30,9 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
   const [origCategory, setOrigCategory] = useState('etc');
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [bucketId, setBucketId] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const catBucket = categories.find((c) => c.id === categoryId)?.bucket ?? 'variable';
 
   useEscapeKey(onClose, { enabled: open, evenInInput: true });
 
@@ -56,11 +59,11 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
         setType(e.type); setAmount(String(e.amount)); setDate(e.date);
         setCategoryId(e.categoryId); setOrigCategory(e.categoryId);
         setMemo(e.memo); setMethod(e.method ?? ''); setGroupTotal(e.groupTotal ? String(e.groupTotal) : '');
-        setPhoto(e.photo ?? null);
+        setPhoto(e.photo ?? null); setBucketId(e.bucketId ?? '');
       }
     } else {
       setType('expense'); setAmount(''); setDate(todayKey()); setCategoryId('etc');
-      setOrigCategory('etc'); setMemo(''); setMethod(''); setGroupTotal(''); setPhoto(null);
+      setOrigCategory('etc'); setMemo(''); setMethod(''); setGroupTotal(''); setPhoto(null); setBucketId('');
     }
   }, [open, entryId]);
 
@@ -75,6 +78,7 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
       method: method || undefined,
       groupTotal: Number.isFinite(gt) && gt > amt ? Math.round(gt) : undefined,
       photo: photo ?? undefined,
+      bucketId: bucketId || undefined,
     };
     if (entryId) ledgerStore.updateEntry(entryId, payload, { learn: categoryId !== origCategory });
     else ledgerStore.addEntries([payload]);
@@ -160,6 +164,18 @@ export function EntryFormDialog({ open, entryId, categories, onClose }: Props) {
               </label>
             )}
           </div>
+
+          {/* 이 건만 다른 예산으로 — 같은 '식비'라도 친구 만나 쓴 밥값은 유흥비로 세고 싶을 때가 있다.
+              비워두면 카테고리가 정한 예산을 따른다. */}
+          {type === 'expense' && buckets.length > 0 && (
+            <label className="block">
+              <span className={labelCls}>이 건을 셀 예산</span>
+              <select value={bucketId} onChange={(e) => setBucketId(e.target.value)} className={field} aria-label="이 건을 셀 예산">
+                <option value="">카테고리 기본 ({buckets.find((b) => b.id === catBucket)?.label ?? '변동비'})</option>
+                {buckets.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+              </select>
+            </label>
+          )}
 
           {/* 영수증 — 금액만 남기면 나중에 "이게 뭐였더라"가 되는 지출이 있다 */}
           <div>
