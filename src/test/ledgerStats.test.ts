@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { monthOf, summarizeMonth, categoryTotals, bucketSpent, budgetPace, cardCharge, dailyExpense, buildBriefing } from '@/lib/ledger/stats';
+import { monthOf, summarizeMonth, categoryTotals, bucketSpent, budgetPace, cardCharge, dailyExpense, buildBriefing, budgetBasis, shiftMonth } from '@/lib/ledger/stats';
 import { DEFAULT_CATEGORIES, type LedgerEntry } from '@/types/ledger';
 
 const e = (p: Partial<LedgerEntry>): LedgerEntry => ({
@@ -50,5 +50,56 @@ describe('stats', () => {
   it('buildBriefing — 전월 대비 급증 카테고리 언급', () => {
     const lines = buildBriefing(ENTRIES, '2026-07', '2026-06', DEFAULT_CATEGORIES, {}, '2026-07-21');
     expect(lines.join(' ')).toContain('식비');
+  });
+});
+
+describe('budgetBasis — 예산 근거', () => {
+  const C = DEFAULT_CATEGORIES;
+  it('shiftMonth 는 연도 경계를 넘는다', () => {
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+  });
+
+  it('당월은 평균에서 제외한다 (진행 중이라 왜곡)', () => {
+    const rows = [
+      e({ id: 'a', amount: 300000, date: '2026-04-10', categoryId: 'food' }),
+      e({ id: 'b', amount: 300000, date: '2026-05-10', categoryId: 'food' }),
+      e({ id: 'c', amount: 300000, date: '2026-06-10', categoryId: 'food' }),
+      e({ id: 'd', amount: 10000, date: '2026-07-02', categoryId: 'food' }), // 당월 — 무시돼야
+    ];
+    const b = budgetBasis(rows, '2026-07', C);
+    expect(b.months).toEqual(['2026-04', '2026-05', '2026-06']);
+    expect(b.perBucket.variable.avg).toBe(300000);
+    expect(b.perBucket.variable.recent).toEqual([300000, 300000, 300000]);
+  });
+
+  it('평균 분모는 기록이 있는 달 수 — 2개월만 쓴 사람의 예산을 과소 제안하지 않는다', () => {
+    const rows = [
+      e({ id: 'a', amount: 200000, date: '2026-05-10', categoryId: 'food' }),
+      e({ id: 'b', amount: 400000, date: '2026-06-10', categoryId: 'food' }),
+    ];
+    const b = budgetBasis(rows, '2026-07', C);
+    expect(b.monthsWithData).toBe(2);
+    expect(b.perBucket.variable.avg).toBe(300000); // 600000/2 — 3으로 나누면 200000
+    expect(b.perBucket.variable.max).toBe(400000);
+  });
+
+  it('기록이 없으면 monthsWithData 0 · 평균 0 (0 나눗셈 없음)', () => {
+    const b = budgetBasis([], '2026-07', C);
+    expect(b.monthsWithData).toBe(0);
+    expect(b.perBucket.fixed.avg).toBe(0);
+    expect(b.avgIncome).toBe(0);
+  });
+
+  it('버킷 귀속과 수입 평균', () => {
+    const rows = [
+      e({ id: 'a', type: 'income', amount: 3000000, date: '2026-06-01' }),
+      e({ id: 'b', amount: 50000, date: '2026-06-05', categoryId: 'subscription' }), // fixed
+      e({ id: 'c', amount: 80000, date: '2026-06-07', categoryId: 'event' }),        // irregular
+    ];
+    const b = budgetBasis(rows, '2026-07', C);
+    expect(b.perBucket.fixed.avg).toBe(50000);
+    expect(b.perBucket.irregular.avg).toBe(80000);
+    expect(b.avgIncome).toBe(3000000);
   });
 });

@@ -144,11 +144,12 @@ export default function Ledger() {
   }, [data.entries]);
 
   const nw = useMemo(() => netWorth(data.assets), [data.assets]);
+  const plannedTotal = (data.budgets.fixed ?? 0) + (data.budgets.variable ?? 0) + (data.budgets.irregular ?? 0);
 
   const subtitle = view === 'dashboard'
     ? <>이번 달 수입 {KRW(sum.income)} · 지출 {KRW(sum.expense)} · 내 기기에만 저장</>
     : view === 'entries' ? `이번 달 ${sum.count}건`
-    : view === 'budget' ? '버킷 3개면 충분해요'
+    : view === 'budget' ? (plannedTotal > 0 ? <>합계 {KRW(plannedTotal)} · 지난 실적을 보고 정해요</> : '얼마로 잡을지 지난 실적을 보고 정하는 곳')
     : view === 'recurring' ? `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`
     : view === 'rules' ? `내 규칙 ${Object.keys(data.dict).length}개 · 기본 분류보다 먼저 적용돼요`
     : view === 'assets' ? (data.assets.length ? <>순자산 {KRW(nw.net)} · 월말에 갱신하는 장부</> : '실시간 아님 — 월말에 한 번 적는 장부')

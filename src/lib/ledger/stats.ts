@@ -39,7 +39,50 @@ export function bucketSpent(entries: LedgerEntry[], month: string, categories: L
   return out;
 }
 
-/** 월중 페이스 투영 — "이 속도면 월말 N원". */
+export const shiftMonth = (month: string, delta: number): string => {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+export interface BucketBasis {
+  avg: number;       // 기록이 있는 달 기준 평균 지출
+  max: number;       // 가장 많이 쓴 달
+  recent: number[];  // 과거→최근 순 월별 지출
+}
+
+export interface BudgetBasis {
+  months: string[];        // 기준이 된 달들 (당월 제외 — 진행 중이라 평균을 왜곡)
+  perBucket: Record<BudgetBucket, BucketBasis>;
+  avgIncome: number;
+  monthsWithData: number;  // 0이면 근거 없음 → 제안 숨김
+}
+
+/**
+ * 예산을 '얼마로 잡을지' 정하기 위한 근거 — 최근 n개월 실적.
+ * 당월은 진행 중이라 제외한다. 평균은 기록이 있는 달 수로 나눈다
+ * (2개월만 쓴 사람의 평균을 3으로 나누면 실제보다 낮게 나와 예산을 과소 설정하게 된다).
+ */
+export function budgetBasis(
+  entries: LedgerEntry[], month: string, categories: LedgerCategory[], n = 3,
+): BudgetBasis {
+  const months = Array.from({ length: n }, (_, i) => shiftMonth(month, -(n - i)));
+  const spents = months.map((m) => bucketSpent(entries, m, categories));
+  const monthsWithData = months.filter((m) => entries.some((e) => e.date.startsWith(m))).length;
+  const denom = Math.max(1, monthsWithData);
+  const per = (b: BudgetBucket): BucketBasis => {
+    const recent = spents.map((s) => s[b]);
+    return { avg: recent.reduce((s, v) => s + v, 0) / denom, max: Math.max(0, ...recent), recent };
+  };
+  return {
+    months,
+    perBucket: { fixed: per('fixed'), variable: per('variable'), irregular: per('irregular') },
+    avgIncome: months.reduce((s, m) => s + summarizeMonth(entries, m).income, 0) / denom,
+    monthsWithData,
+  };
+}
+
+/** 월중 페이스 투영 — "이 속도면 월말 N원". 덩어리로 나가는 고정비·비정기에는 쓰지 않는다. */
 export function budgetPace(spent: number, budget: number, dayOfMonth: number, daysInMonth: number) {
   const projected = dayOfMonth > 0 ? Math.round((spent / dayOfMonth) * daysInMonth) : spent;
   return { projected, over: budget > 0 && projected > budget };
