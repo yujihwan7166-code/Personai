@@ -151,9 +151,9 @@ export function toggleFavorite(id: string): void {
     : { ...n, favorite: true, favOrder: maxOrder + 1 }));
 }
 
-/** 노트 문양(이모지) 지정 — null 이면 기본 아이콘으로. */
+/** 노트 문양(이모지) 지정 — null 이면 기본 아이콘으로. 이름표라 순서는 건드리지 않는다. */
 export function setNoteEmoji(id: string, emoji: string | null): void {
-  patchNote(id, (n) => ({ ...n, emoji: emoji ?? undefined }));
+  patchNote(id, (n) => ({ ...n, emoji: emoji ?? undefined }), false);
 }
 
 /** 고정 목록의 표시 순서 — favOrder(수동) 우선, 없으면 최근 편집순. */
@@ -184,7 +184,7 @@ function normTag(raw: string): string {
   return raw.trim().replace(/^#+/, '').trim().slice(0, 24);
 }
 
-/** 노트에 태그 추가(중복·대소문자 무시). */
+/** 노트에 태그 추가(중복·대소문자 무시). 이름표라 순서는 건드리지 않는다. */
 export function addNoteTag(id: string, raw: string): void {
   const tag = normTag(raw);
   if (!tag) return;
@@ -192,22 +192,46 @@ export function addNoteTag(id: string, raw: string): void {
     const tags = n.meta?.tags ?? [];
     if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) return n;
     return { ...n, meta: { ...n.meta, surface: 'memo', tags: [...tags, tag] } };
-  });
+  }, false);
 }
 
-/** 노트에서 태그 제거. */
+/** 노트에서 태그 제거. 이름표라 순서는 건드리지 않는다. */
 export function removeNoteTag(id: string, tag: string): void {
   patchNote(id, (n) => ({
     ...n,
     meta: { ...n.meta, surface: 'memo', tags: (n.meta?.tags ?? []).filter((t) => t !== tag) },
-  }));
+  }), false);
 }
 
-function patchNote(id: string, fn: (note: Note) => Note): void {
+/**
+ * 태그 자체를 없앤다 — 모든 노트에서 걷어낸다.
+ * 노트별 제거만 있으면, 쓰던 태그를 목록에서 치우려고 노트를 하나하나 뒤져야 한다.
+ */
+export function deleteTagEverywhere(raw: string): void {
+  const tag = normTag(raw).toLowerCase();
+  if (!tag) return;
+  const notes = readAll();
+  let hit = false;
+  const next = notes.map((n) => {
+    const tags = n.meta?.tags ?? [];
+    if (!tags.some((t) => t.toLowerCase() === tag)) return n;
+    hit = true;
+    return { ...n, meta: { ...n.meta, surface: 'memo' as const, tags: tags.filter((t) => t.toLowerCase() !== tag) } };
+  });
+  if (hit) writeAll(next);
+}
+
+/**
+ * @param touch 기본 true — updatedAt 을 지금으로 올린다.
+ *   목록이 updatedAt 내림차순이라, 문양·태그처럼 '내용을 고친 게 아니라 이름표를 붙인' 변경까지
+ *   시각을 올리면 노트가 맨 위로 튀어 순서가 뒤집힌다. 그런 변경은 false 로 넘긴다.
+ */
+function patchNote(id: string, fn: (note: Note) => Note, touch = true): void {
   const notes = readAll();
   const idx = notes.findIndex((n) => n.id === id);
   if (idx === -1) return;
-  notes[idx] = { ...fn(notes[idx]), updatedAt: Date.now() };
+  const next = fn(notes[idx]);
+  notes[idx] = touch ? { ...next, updatedAt: Date.now() } : next;
   writeAll(notes);
 }
 

@@ -20,7 +20,7 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
-  toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag,
+  toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag, deleteTagEverywhere,
   useTrash, restoreNote, purgeNote, emptyTrash,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
@@ -177,6 +177,14 @@ const Notes = () => {
     setTagDraft('');
   };
 
+  /** 태그 자체를 없애기 — 여러 노트에 걸쳐 있으니 몇 개에서 빠지는지 알려주고 묻는다. */
+  const deleteTagEverywhere_ = (tag: string) => {
+    const n = notes.filter((x) => (x.meta?.tags ?? []).some((t) => t.toLowerCase() === tag.toLowerCase())).length;
+    if (!window.confirm(`'${tag}' 태그를 없앨까요?\n\n노트 ${n}개에서 태그만 빠지고, 노트는 그대로예요.`)) return;
+    deleteTagEverywhere(tag);
+    notify.success(`'${tag}' 태그를 없앴어요`);
+  };
+
   const favorites = sortedFavorites(notes);
 
   const renderNote = (note: Note) => {
@@ -215,7 +223,8 @@ const Notes = () => {
         {menuFor === note.id && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} aria-hidden />
-            <div className="fixed z-30 w-48 overflow-hidden rounded-xl border border-[hsl(var(--hairline))] bg-popover py-1.5 shadow-lg" style={{ left: menuPos.x, top: menuPos.y }}>
+            {/* 문양 12칸 + 태그 목록 + 입력이 들어가는 창이라 w-48(192px)로는 전부 눌려 있었다 */}
+            <div className="fixed z-30 max-h-[70vh] w-[276px] overflow-y-auto rounded-xl border border-[hsl(var(--hairline))] bg-popover py-2 shadow-xl" style={{ left: menuPos.x, top: menuPos.y }}>
               <button type="button" onClick={() => { toggleFavorite(note.id); setMenuFor(null); }} className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-foreground hover:bg-accent">
                 <Pin className={cn('h-3.5 w-3.5', note.favorite ? 'fill-[#2c4f93]/20 text-[#2c4f93]' : 'text-muted-foreground')} />
                 {note.favorite ? '고정 해제' : '고정'}
@@ -242,14 +251,14 @@ const Notes = () => {
               )}
               <div className="my-1 h-px bg-[hsl(var(--hairline))]" />
               {/* 문양 — 노트마다 이모지 지정 */}
-              <p className="px-3.5 pb-1 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">문양</p>
-              <div className="grid grid-cols-6 gap-0.5 px-2.5 pb-1.5">
+              <p className="px-3.5 pb-1.5 pt-1 text-[10.5px] font-semibold text-muted-foreground/70">문양</p>
+              <div className="grid grid-cols-6 gap-1 px-3 pb-2">
                 {['📝', '💡', '📚', '🎯', '💼', '❤️', '⭐', '🧠', '✈️', '🍀', '🏠', '🎮'].map((em) => (
                   <button
                     key={em}
                     type="button"
                     onClick={() => setNoteEmoji(note.id, em)}
-                    className={cn('flex h-7 w-7 items-center justify-center rounded-md text-[15px] transition-colors hover:bg-accent', note.emoji === em && 'bg-primary/15')}
+                    className={cn('flex h-8 w-8 items-center justify-center rounded-lg text-[17px] transition-colors hover:bg-accent', note.emoji === em && 'bg-primary/15 ring-1 ring-primary/35')}
                     title="문양 지정"
                   >
                     {em}
@@ -280,11 +289,29 @@ const Notes = () => {
                 </div>
               )}
               {/* 기존 태그 중 이 노트에 없는 것 빠르게 추가 */}
-              {allTags.filter(([t]) => !noteTagsOf(note).includes(t)).slice(0, 5).map(([t]) => (
-                <button key={t} type="button" onClick={() => addNoteTag(note.id, t)} className="flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground">
-                  <Hash className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-                  <span className="flex-1 truncate">{t}</span>
-                </button>
+              {/* 왼쪽을 누르면 이 노트에 붙이고, 오른쪽 ✕ 는 태그 자체를 없앤다.
+                  전엔 노트별 제거밖에 없어서, 안 쓰는 태그를 목록에서 치우려면 노트를 하나하나 뒤져야 했다. */}
+              {allTags.filter(([t]) => !noteTagsOf(note).includes(t)).slice(0, 8).map(([t]) => (
+                <div key={t} className="group/tag flex items-center gap-0.5 px-2">
+                  <button
+                    type="button"
+                    onClick={() => addNoteTag(note.id, t)}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    title={`이 노트에 #${t} 붙이기`}
+                  >
+                    <Hash className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                    <span className="min-w-0 flex-1 truncate">{t}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteTagEverywhere_(t)}
+                    className="shrink-0 rounded p-1 text-muted-foreground/45 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover/tag:opacity-100"
+                    title={`'${t}' 태그를 모든 노트에서 지우기`}
+                    aria-label={`${t} 태그 삭제`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
               {/* 새 태그 입력 */}
               <div className="px-2.5 py-1.5" onClick={(e) => e.stopPropagation()}>

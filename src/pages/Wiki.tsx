@@ -505,7 +505,14 @@ export default function Wiki() {
 
   const today = new Date();
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
-  const statsLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일 · 책 ${books.length}권 · 문서 ${docs.length}개 · 연결 ${linkTotal}개`;
+  /* 부제 — 책·문서·연결 수는 좌측 하단 통계 상자에 그대로 있다. 여기까지 숫자를 늘어놓으면
+     같은 말을 두 번 하는 셈이라, 대신 '어디까지 읽었는지'를 말한다. */
+  const lastSeen = recent.map((id) => docs.find((d) => d.id === id)).find(Boolean);
+  const lastSeenBook = lastSeen ? books.find((b) => b.id === lastSeen.book) : undefined;
+  const dateLine = `${today.getMonth() + 1}월 ${today.getDate()}일 ${WEEK[today.getDay()]}요일`;
+  const statsLine = lastSeenBook
+    ? `${dateLine} · 마지막으로 『${lastSeenBook.title || '무제'}』를 펼쳤어요`
+    : `${dateLine} · 아직 펼친 책이 없어요`;
 
   /* 양장본 책등 — 금박 이중 밴드, 제본 돌기(리지), 가죽 결, 또렷한 세리프 제목.
    * leanOn = 왼쪽 이웃 책의 높이. 주면 발이 오른쪽으로 미끄러지고 몸이 그 책에 기대 쉰다
