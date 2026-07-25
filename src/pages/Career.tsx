@@ -1121,13 +1121,14 @@ function BoardLedger() {
             </div>
 
             {/* ── 프로필 카드 ── */}
-            <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] border border-[#ecdfe3] bg-white px-[26px] py-[22px]">
+            {/* 이름 적기 카드 — 아래 카테고리 판과 같은 진한 잉크 테두리로 맞춘다 */}
+            <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] border border-[hsl(var(--foreground)/0.28)] bg-white px-[26px] py-[22px]">
               {/* 아바타 — 사진 있으면 크롭, 없으면 이니셜. 클릭해서 업로드 */}
               <label className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full" title={profile.photo ? '사진 바꾸기' : '사진 추가'}>
                 {profile.photo ? (
                   <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-[#f2dfe5] text-[24px] font-semibold text-[#8a3550]">{(profile.name || '?').slice(0, 1)}</span>
+                  <span className="flex h-full w-full items-center justify-center bg-[hsl(var(--career-red)/0.12)] text-[24px] font-semibold text-[hsl(var(--career-red))]">{(profile.name || '?').slice(0, 1)}</span>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
                 {profile.photo && (
@@ -1147,7 +1148,7 @@ function BoardLedger() {
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingName(false); }}
                       placeholder="이름"
                       aria-label="이름"
-                      className="border-b border-[#c58fa0] bg-transparent text-[19px] font-bold leading-tight text-[#191c20] outline-none placeholder:text-[#c9aeb8]"
+                      className="border-b border-[hsl(var(--career-red)/0.55)] bg-transparent text-[19px] font-bold leading-tight text-[#191c20] outline-none placeholder:text-[hsl(var(--foreground)/0.3)]"
                     />
                   ) : (
                     <button
@@ -1198,8 +1199,10 @@ function BoardLedger() {
 
             </div>
 
-            {/* ── 카테고리 그리드 카드 ── */}
-            <div className="mx-auto max-w-[900px] rounded-[12px] border border-[#ecdfe3] bg-white px-[28px] py-6">
+            {/* ── 카테고리 그리드 카드 ──
+                테두리가 연분홍(#ecdfe3)이라 흰 배경 위에서 카드 경계가 거의 안 보였다 →
+                잉크 계열 진한 선으로 올려 '판' 이 또렷하게 서게 한다 */}
+            <div className="mx-auto max-w-[900px] rounded-[12px] border border-[hsl(var(--foreground)/0.28)] bg-white px-[28px] py-6">
             <div className="grid grid-cols-1 items-start gap-x-14 gap-y-3.5 sm:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
