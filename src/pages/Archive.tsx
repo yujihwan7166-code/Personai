@@ -517,7 +517,8 @@ function ArchiveSegmented({ value, options, onChange }: {
             type="button"
             onClick={() => onChange(o.v)}
             aria-pressed={on}
-            className={cn('h-[26px] rounded-[7px] px-[13px] text-[12.5px] transition-colors',
+            /* 색만 바뀌면 눌린 칸이 '깜빡' 갈아치워진다 — 눌리는 감(scale)까지 함께 */
+            className={cn('h-[26px] rounded-[7px] px-[13px] text-[12.5px] transition-[background-color,color,transform] duration-200 active:scale-[0.96]',
               on
                 ? 'bg-[hsl(var(--archive-sepia))] font-bold text-white'
                 : 'font-semibold text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground')}
@@ -569,7 +570,8 @@ function ArchiveFilterMenu({ id, openMenu, setOpenMenu, label, value, options, o
         <div
           role="listbox"
           aria-label={label}
-          className={cn('absolute top-[38px] z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[12px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]',
+          /* 툭 나타나지 않고 트리거 쪽에서 자라 나오게 — 어디서 열렸는지가 눈에 남는다 */
+          className={cn('absolute top-[38px] z-30 max-h-[300px] min-w-[168px] origin-top overflow-y-auto rounded-[12px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)] duration-150 animate-in fade-in-0 zoom-in-[0.97] slide-in-from-top-1',
             align === 'right' ? 'right-0' : 'left-0')}
         >
           {options.map((o) => {
