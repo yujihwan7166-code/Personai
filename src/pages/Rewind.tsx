@@ -14,9 +14,9 @@ import { Link } from 'react-router-dom';
 import { Film, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRewindEvents } from '@/hooks/useRewind';
-import { buildReel, reelRange, indexMonths, countByRoom, nextRecordedIndex } from '@/lib/rewind/reel';
+import { buildReel, reelRange, indexMonths, nextRecordedIndex } from '@/lib/rewind/reel';
 import {
-  REWIND_ROOMS, REWIND_ROOM_ORDER,
+  REWIND_ROOMS,
   formatFullDate, formatEdgeCode, formatReelCounter, todayYmd,
   type RewindEvent,
 } from '@/lib/rewind/types';
@@ -70,7 +70,8 @@ export default function Rewind() {
     () => events.filter((e) => e.ymd >= range.from && e.ymd <= range.to),
     [events, range],
   );
-  const totals = useMemo(() => countByRoom(shown), [shown]);
+  /** 밀도 막대의 기준 — 가장 빽빽했던 달. 1 이상으로 눌러 0 나누기를 막는다. */
+  const maxMonth = useMemo(() => Math.max(1, ...months.map((m) => m.count)), [months]);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(0);
@@ -280,20 +281,43 @@ export default function Rewind() {
           })}
         </nav>
 
-        {/* 푸터 = 이 릴에 뭐가 담겼나 */}
-        <div className="mt-4 border-t border-[hsl(var(--hairline))] pt-3">
-          <ul className="space-y-[5px]">
-            {REWIND_ROOM_ORDER.map((r) => (
-              <li key={r} className="flex items-center gap-2 text-[12px]">
-                <span aria-hidden className="h-[6px] w-[6px] rounded-full" style={{ background: REWIND_ROOMS[r].dot }} />
-                <Link to={REWIND_ROOMS[r].to} className="flex-1 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                  {REWIND_ROOMS[r].label}
-                </Link>
-                <span className="font-[var(--rw-mono)] tabular-nums text-muted-foreground">{totals[r] || '—'}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* 지나온 달 — 방별 개수 목록을 걷어낸 자리.
+            그 숫자들은 읽어도 할 일이 없었다(그래서 '필요 없다'). 되감기가 잘하는 건
+            '시간을 훑는 것'이니, 어느 달에 삶이 빽빽했는지 보여주고 눌러서 바로 그리로 간다. */}
+        {months.length > 0 && (
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t border-[hsl(var(--hairline))] pt-3">
+            <div className="mb-2 text-[11px] tracking-[0.08em] text-muted-foreground">지나온 달</div>
+            <ul className="space-y-[3px]">
+              {months.map((m) => {
+                const here = frame?.ymd.slice(0, 7) === m.key;
+                return (
+                  <li key={m.key}>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo(m.index)}
+                      title={`${m.label} — 기록 ${m.count}개`}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-md px-1.5 py-[5px] text-left transition-colors',
+                        here ? 'bg-[hsl(var(--rw-glow)/0.14)]' : 'hover:bg-[hsl(var(--surface-3))]',
+                      )}
+                    >
+                      <span className={cn('w-[52px] shrink-0 font-[var(--rw-mono)] text-[11.5px] tabular-nums',
+                        here ? 'text-[hsl(var(--rw-glow))]' : 'text-muted-foreground')}>
+                        {m.label}
+                      </span>
+                      {/* 밀도 막대 — 그 달에 남긴 기록의 양 */}
+                      <span aria-hidden className="h-[5px] min-w-0 flex-1 overflow-hidden rounded-full bg-[hsl(var(--hairline))]">
+                        <span className="block h-full rounded-full"
+                          style={{ width: `${Math.max(6, Math.round((m.count / maxMonth) * 100))}%`, background: 'hsl(var(--rw-glow))', opacity: here ? 1 : 0.5 }} />
+                      </span>
+                      <span className="w-6 shrink-0 text-right font-[var(--rw-mono)] text-[11px] tabular-nums text-muted-foreground">{m.count}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </aside>
 
       {/* ── 본문 ── */}
@@ -402,10 +426,12 @@ export default function Rewind() {
               </div>
             </section>
 
-            {/* ── 게이트 아래 — 펼쳐진 하루 ── */}
+            {/* ── 게이트 아래 — 펼쳐진 하루 ──
+                날짜가 넘어갈 때마다 아래 내용이 툭 갈아치워져 '필름을 돌린다'는 느낌이 끊겼다.
+                key 에 날짜를 물려 칸이 바뀔 때마다 한 번 인화되듯 떠오르게 한다. */}
             <section className="min-h-0 flex-1 overflow-y-auto px-6 pb-14 pt-6 sm:px-8">
               {frame && (
-                <>
+                <div key={frame.ymd} className="rw-develop">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <h2 className="m-0 text-[19px] font-semibold tracking-[-0.01em]">{formatFullDate(frame.ymd)}</h2>
                     <span className="font-[var(--rw-mono)] text-[12px] tabular-nums text-muted-foreground">{frame.ymd}</span>
@@ -427,7 +453,7 @@ export default function Rewind() {
                       {frame.events.map((e) => <EventRow key={e.id} e={e} />)}
                     </ul>
                   )}
-                </>
+                </div>
               )}
             </section>
           </>
