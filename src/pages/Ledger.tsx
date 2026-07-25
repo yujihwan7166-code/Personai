@@ -19,6 +19,7 @@ import { EntryFormDialog } from '@/components/ledger/EntryFormDialog';
 import { DashboardView } from '@/components/ledger/DashboardView';
 import { EntriesView } from '@/components/ledger/EntriesView';
 import { BudgetView } from '@/components/ledger/BudgetView';
+import { CalendarView } from '@/components/ledger/CalendarView';
 import { BulkImportDialog } from '@/components/ledger/BulkImportDialog';
 import { RecurringView } from '@/components/ledger/RecurringView';
 import { RulesView } from '@/components/ledger/RulesView';
@@ -26,13 +27,14 @@ import { AssetsView } from '@/components/ledger/AssetsView';
 import { ReportView } from '@/components/ledger/ReportView';
 import { C } from '@/components/ledger/theme';
 
-type View = 'dashboard' | 'entries' | 'budget' | 'recurring' | 'rules' | 'assets' | 'report';
+type View = 'dashboard' | 'entries' | 'calendar' | 'budget' | 'recurring' | 'rules' | 'assets' | 'report';
 
 /** 시안의 그룹형 내비 — 기록 / 계획 / 분석. */
 const NAV: Array<{ label: string; items: Array<{ id: View; t: string; icon: string }> }> = [
   { label: '기록', items: [
     { id: 'dashboard', t: '대시보드', icon: '🏠' },
     { id: 'entries', t: '내역', icon: '📒' },
+    { id: 'calendar', t: '캘린더', icon: '🗓️' },
   ] },
   { label: '계획', items: [
     { id: 'budget', t: '예산', icon: '🎯' },
@@ -50,7 +52,7 @@ const NAV: Array<{ label: string; items: Array<{ id: View; t: string; icon: stri
  * 컬럼 자체를 이 폭으로 잡고 가운데 두어야 좌우 여백이 같아진다.
  */
 const VIEW_MAX: Record<View, number> = {
-  dashboard: 1280, entries: 1280, report: 1280,
+  dashboard: 1280, entries: 1280, report: 1280, calendar: 1280,
   budget: 940 + 56, assets: 900 + 56, recurring: 860 + 56, rules: 780 + 56,
 };
 
@@ -205,6 +207,7 @@ export default function Ledger() {
               onOpenImport={() => setImportOpen(true)}
             />
           )}
+          {view === 'calendar' && <CalendarView data={data} onEdit={openEdit} />}
           {view === 'budget' && <BudgetView data={data} />}
           {view === 'recurring' && <RecurringView data={data} />}
           {view === 'rules' && <RulesView data={data} />}
