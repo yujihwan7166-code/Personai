@@ -31,14 +31,14 @@ export function BudgetView({ data }: { data: LedgerData }) {
 
   const today = todayKey();
   const month = monthOf(today);
-  const spent = bucketSpent(entries, month, categories);
+  const spent = bucketSpent(entries, month, categories, BUCKETS);
   const [yy, mm] = month.split('-').map(Number);
   const daysInMonth = new Date(yy, mm, 0).getDate();
   const dayOfMonth = Number(today.slice(8, 10));
   const leftDays = Math.max(1, daysInMonth - dayOfMonth + 1);
   const monthPct = Math.round((dayOfMonth / daysInMonth) * 100);
 
-  const basis = useMemo(() => budgetBasis(entries, month, categories), [entries, month, categories]);
+  const basis = useMemo(() => budgetBasis(entries, month, categories, 3, BUCKETS), [entries, month, categories, BUCKETS]);
 
   const commit = (next: Record<string, string>) => {
     const num = (s: string) => { const n = Number((s ?? '').replace(/[^\d]/g, '')); return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined; };
@@ -134,10 +134,10 @@ export function BudgetView({ data }: { data: LedgerData }) {
       {/* 버킷 3행 */}
       {BUCKETS.map((b) => {
         const limit = budgets[b] ?? 0;
-        const used = spent[b];
+        const used = spent[b] ?? 0;
         const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
         const over = limit > 0 && used > limit;
-        const avg = basis.monthsWithData > 0 ? Math.round(basis.perBucket[b].avg / 1000) * 1000 : 0;
+        const avg = basis.monthsWithData > 0 ? Math.round((basis.perBucket[b]?.avg ?? 0) / 1000) * 1000 : 0;
         return (
           <div key={b} className="flex-col sm:flex-row"
             style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.card, padding: '18px 20px', display: 'flex', gap: 22, alignItems: 'flex-start' }}>

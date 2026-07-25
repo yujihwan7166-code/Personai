@@ -1,7 +1,7 @@
 /**
  * 가계부 집계 — 전부 순수 함수. 이체는 지출도 수입도 아닌 제3종(저축률의 분자).
  */
-import type { BudgetBucket, LedgerBudgets, LedgerCategory, LedgerEntry } from '@/types/ledger';
+import { BUCKET_FIXED, BUCKET_IRREGULAR, BUCKET_VARIABLE, type BudgetBucket, type LedgerBudgets, type LedgerCategory, type LedgerEntry } from '@/types/ledger';
 
 export const monthOf = (ymdStr: string) => ymdStr.slice(0, 7);
 const inMonth = (e: LedgerEntry, month: string) => e.date.startsWith(month);
@@ -36,9 +36,16 @@ export function categoryTotals(entries: LedgerEntry[], month: string): Array<{ c
  * 같은 '식비'라도 친구 만나 쓴 밥값만 유흥비로 세는 게 가능해야 해서 건별이 우선한다.
  * 버킷은 사용자 정의라 키를 미리 알 수 없으므로 나오는 대로 채운다.
  */
-export function bucketSpent(entries: LedgerEntry[], month: string, categories: LedgerCategory[]): Record<BudgetBucket, number> {
+export function bucketSpent(
+  entries: LedgerEntry[],
+  month: string,
+  categories: LedgerCategory[],
+  /** 아직 지출이 없는 버킷도 0 으로 자리를 잡아둔다 — 없으면 undefined 가 흘러 NaN 이 된다. */
+  bucketIds?: string[],
+): Record<BudgetBucket, number> {
   const bucketOf = new Map(categories.map((c) => [c.id, c.bucket]));
   const out: Record<BudgetBucket, number> = { fixed: 0, variable: 0, irregular: 0 };
+  for (const id of bucketIds ?? []) if (!(id in out)) out[id] = 0;
   for (const e of entries) {
     if (!inMonth(e, month) || e.type !== 'expense') continue;
     const b = e.bucketId || bucketOf.get(e.categoryId) || 'variable';
@@ -73,18 +80,21 @@ export interface BudgetBasis {
  */
 export function budgetBasis(
   entries: LedgerEntry[], month: string, categories: LedgerCategory[], n = 3,
+  /** 사용자가 만든 버킷까지 근거를 내야 한다 — 안 넘기면 기본 3종만 계산돼 undefined.avg 로 터진다. */
+  bucketIds?: string[],
 ): BudgetBasis {
   const months = Array.from({ length: n }, (_, i) => shiftMonth(month, -(n - i)));
-  const spents = months.map((m) => bucketSpent(entries, m, categories));
+  const ids = [...new Set([BUCKET_FIXED, BUCKET_VARIABLE, BUCKET_IRREGULAR, ...(bucketIds ?? [])])];
+  const spents = months.map((m) => bucketSpent(entries, m, categories, ids));
   const monthsWithData = months.filter((m) => entries.some((e) => e.date.startsWith(m))).length;
   const denom = Math.max(1, monthsWithData);
   const per = (b: BudgetBucket): BucketBasis => {
-    const recent = spents.map((s) => s[b]);
+    const recent = spents.map((s) => s[b] ?? 0);
     return { avg: recent.reduce((s, v) => s + v, 0) / denom, max: Math.max(0, ...recent), recent };
   };
   return {
     months,
-    perBucket: { fixed: per('fixed'), variable: per('variable'), irregular: per('irregular') },
+    perBucket: Object.fromEntries(ids.map((b) => [b, per(b)])),
     avgIncome: months.reduce((s, m) => s + summarizeMonth(entries, m).income, 0) / denom,
     monthsWithData,
   };
