@@ -72,6 +72,18 @@ const WIKI_CSS = `
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
+/* 목차 항목 — 레일 위에 얹힌 한 칸. 호버 시 그 구간만 러스트로 물든다. */
+.wiki-theme .wiki-toc-item {
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+.wiki-theme .wiki-toc-item:hover {
+  background: rgba(60,47,24,.05);
+  border-left-color: #9a4632;
+  color: #292217;
+}
+
 .wiki-theme .wiki-row-moved { animation: wikiMoved .9s ease-out; }
 @keyframes wikiMoved { from { background: rgba(48,95,76,.24); } to { background: transparent; } }
 
@@ -952,11 +964,19 @@ export default function Wiki() {
           </div>
         </section>
       ) : active && book ? (
-        /* ══════ 문서 ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[40px] sm:px-8" style={{ maxWidth: 1300 }}>
-          {/* 빵가루 — 눌리는 칩으로. 긴 제목이 줄을 밀어내지 않게 각 칸을 잘라둔다.
-              왼쪽 '돌아가기'는 트리 위치가 아니라 '왔던 길'이라 따로 세워 구분한다. */}
-          <div className="flex items-center gap-2">
+        /* ══════ 문서 ══════
+           mx-auto 를 걷어 왼쪽으로 붙인다 — 가운데 정렬이던 탓에 사이드바와 목차 사이가
+           크게 비고 본문은 그만큼 좁았다. 폭은 1300 → 1360. */
+        <section className="wiki-rise px-5 pb-20 pt-[40px] sm:px-8" style={{ maxWidth: 1360 }}>
+          {/* 빵가루 — 목차 위가 아니라 본문 위에 선다. 위계는 지금 읽는 글의 것이지
+              옆 칸(목차)의 것이 아니라서, 본문 왼쪽 끝과 줄을 맞춰야 무엇에 대한 위계인지 읽힌다.
+              그래서 아래 본문 그리드와 같은 열 구성을 쓰고 첫 칸은 비워 둔다. */}
+          <div
+            className="grid gap-5"
+            style={{ gridTemplateColumns: isWide && mode === 'read' ? '168px minmax(0,1fr)' : 'minmax(0,1fr)' }}
+          >
+            {isWide && mode === 'read' && <span aria-hidden />}
+            <div className="flex min-w-0 items-center gap-2">
             {backDoc && (
               /* key 에 깊이를 물려 링크를 한 번 더 탈 때마다 등장 모션이 다시 돈다 —
                  화살표만 덩그러니 있으면 빵가루의 일부로 읽혀 지나치게 되므로 '돌아가기'를 글자로 박는다. */
@@ -992,33 +1012,47 @@ export default function Wiki() {
             <span className="hidden shrink-0 sm:inline" style={{ fontSize: 12, color: C.muted }}>
               {backDoc ? 'Esc 로도 돌아가요' : 'Esc로 돌아가기'}
             </span>
+            </div>
           </div>
 
-          {/* 3열: 목차 | 본문 | 인포박스 (시안 docCols) */}
+          {/* 목차 | 본문 — justify-center 를 걷어 왼쪽 기준으로 세운다 */}
           <div
-            className="mt-[22px] grid items-start justify-center gap-6 lg:gap-9"
+            className="mt-[22px] grid items-start gap-6 lg:gap-9"
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
             {isWide ? (
             /* 목차 열은 '있을 때만' 만들면, 제목이 2개 넘는 문서와 아닌 문서 사이를 오갈 때마다
                본문 폭과 위치가 통째로 흔들린다(한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
                열은 늘 자리를 잡아두고 내용만 들고 난다 — 읽기 모드에서 본문은 언제나 같은 자리. */
-            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
+            <div className="grid gap-5" style={{ gridTemplateColumns: `${mode === 'read' ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기, 제목 2개↑). 없으면 빈 열로 자리만 지킨다 */}
               {mode === 'read' && (toc.length >= 2 ? (
+                /* 목차 — 줄마다 끊긴 밑줄만 있어서 허전했다.
+                   이어진 세로 레일 하나에 항목을 걸고, 단계는 들여쓰기가 아니라 글자 굵기·크기로 준다.
+                   레일이 끊기지 않으니 '글의 뼈대'로 읽히고, 짧은 목차도 성글어 보이지 않는다. */
                 <nav className="sticky top-4" aria-label="목차">
-                  <div style={{ fontSize: 11, letterSpacing: '.14em', color: C.muted, padding: '0 10px 8px' }}>목차</div>
-                  {toc.map((h, i) => (
-                    <button
-                      key={i} type="button" onClick={() => scrollToHeading(i)}
-                      className="block w-full text-left transition-colors hover:bg-[rgba(60,47,24,.04)]"
-                      style={{ padding: `7px 10px 7px ${10 + (h.level - 1) * 10}px`, fontSize: 13, color: C.sub, borderLeft: '2px solid rgba(60,47,24,.14)' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderLeftColor = C.rust; e.currentTarget.style.color = C.ink; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderLeftColor = 'rgba(60,47,24,.14)'; e.currentTarget.style.color = C.sub; }}
-                    >
-                      {h.text}
-                    </button>
-                  ))}
+                  <div className="mb-2 flex items-center gap-1.5" style={{ fontSize: 10, letterSpacing: '.14em', color: C.muted }}>
+                    <span aria-hidden style={{ width: 12, height: 1, background: 'rgba(60,47,24,.28)' }} />
+                    목차
+                  </div>
+                  <div style={{ borderLeft: `1px solid ${C.line}` }}>
+                    {toc.map((h, i) => (
+                      <button
+                        key={i} type="button" onClick={() => scrollToHeading(i)}
+                        className="wiki-toc-item block w-full text-left"
+                        style={{
+                          marginLeft: -1,
+                          padding: `5px 8px 5px ${11 + (h.level - 1) * 9}px`,
+                          fontSize: h.level === 1 ? 12.5 : 12,
+                          fontWeight: h.level === 1 ? 700 : 500,
+                          lineHeight: 1.45,
+                          color: h.level === 1 ? C.ink : C.sub,
+                        }}
+                      >
+                        {h.text}
+                      </button>
+                    ))}
+                  </div>
                 </nav>
               ) : <span aria-hidden />)}
 
