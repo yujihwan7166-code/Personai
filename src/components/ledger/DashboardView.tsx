@@ -1,132 +1,20 @@
 /**
- * 가계부 대시보드 — 위젯 그리드. 전부 stats 순수 함수 + 인라인 SVG (차트 라이브러리 없음).
+ * 가계부 대시보드 — 시안 Ledger.dc.html 의 '요약' 화면 그대로.
+ *
+ * 구성: 쓸 수 있는 돈 히어로 + 예산 페이스 / 지출 캘린더 + 어디에 썼나 · 다가오는 돈 · 반복 감지.
+ * 차트 라이브러리 없이 conic-gradient 와 div 만 쓴다.
  */
-import { useMemo, useState, type ReactNode } from 'react';
-import { CalendarClock, CreditCard } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useMemo, useState } from 'react';
 import type { LedgerData } from '@/hooks/useLedger';
 import { todayKey } from '@/services/ledgerStore';
-import {
-  buildBriefing, bucketSpent, budgetPace, cardCharge, categoryTotals, dailyExpense, monthOf, summarizeMonth,
-} from '@/lib/ledger/stats';
-import { monthlyDividends, netWorth } from '@/lib/ledger/assetStats';
+import { ledgerStore } from '@/services/ledgerStore';
+import { bucketSpent, categoryTotals, dailyExpense, monthOf, summarizeMonth, shiftMonth } from '@/lib/ledger/stats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
+import { C, KRW, SLICE_COLORS } from './theme';
+import { toast } from 'sonner';
 
-const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
-const prevMonthOf = (month: string) => {
-  const [y, m] = month.split('-').map(Number);
-  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-};
-
-function Card({ title, right, children, className }: { title: string; right?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <section className={cn('rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4', className)}>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[13px] font-semibold text-muted-foreground">{title}</h3>
-        {right}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** 카테고리 도넛 — conic 대신 SVG stroke-dasharray. 범례 클릭 → 해당 카테고리 내역. */
-function Donut({ data, onPick }: { data: Array<{ id: string | null; label: string; emoji: string; total: number }>; onPick?: (categoryId: string) => void }) {
-  const total = data.reduce((s, d) => s + d.total, 0);
-  if (total === 0) return <p className="py-6 text-center text-[13px] text-muted-foreground">이번 달 지출이 아직 없어요</p>;
-  const COLORS = ['hsl(var(--ledger-navy))', 'hsl(var(--ledger-navy)/0.75)', 'hsl(var(--ledger-navy)/0.55)', 'hsl(var(--ledger-navy)/0.4)', 'hsl(var(--ledger-navy)/0.28)', 'hsl(var(--muted-foreground)/0.3)'];
-  const top = data.slice(0, 5);
-  const rest = total - top.reduce((s, d) => s + d.total, 0);
-  const segs = [...top, ...(rest > 0 ? [{ id: null, label: '그 외', emoji: '', total: rest }] : [])];
-  const C = 2 * Math.PI * 40;
-  let acc = 0;
-  return (
-    <div className="flex items-center gap-4">
-      <svg viewBox="0 0 100 100" className="h-28 w-28 shrink-0">
-        {segs.map((s, i) => {
-          const frac = s.total / total;
-          const el = (
-            <circle key={s.label} cx="50" cy="50" r="40" fill="none" stroke={COLORS[i % COLORS.length]} strokeWidth="14"
-              strokeDasharray={`${frac * C} ${C}`} strokeDashoffset={-acc * C} transform="rotate(-90 50 50)" />
-          );
-          acc += frac;
-          return el;
-        })}
-      </svg>
-      <ul className="min-w-0 flex-1 space-y-1">
-        {segs.map((s, i) => (
-          <li key={s.label}>
-            <button
-              type="button" disabled={!s.id || !onPick}
-              onClick={() => { if (s.id && onPick) onPick(s.id); }}
-              title={s.id ? `${s.label} 내역 보기` : undefined}
-              className={cn('flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left text-[12.5px]',
-                s.id && onPick && 'transition-colors hover:bg-[hsl(var(--ledger-navy)/0.07)]')}
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-              <span className="truncate">{s.emoji} {s.label}</span>
-              <span className="ml-auto tabular-nums text-muted-foreground">{Math.round((s.total / total) * 100)}%</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** 지출 히트맵 캘린더 — 금액 표시 토글. 날짜 탭 → 그날 내역(onPickDate). */
-function Heatmap({ month, daily, onPickDate }: { month: string; daily: Record<string, number>; onPickDate?: (date: string) => void }) {
-  const [showAmount, setShowAmount] = useState(false);
-  const [y, m] = month.split('-').map(Number);
-  const days = new Date(y, m, 0).getDate();
-  const firstDow = new Date(y, m - 1, 1).getDay();
-  const max = Math.max(1, ...Object.values(daily));
-  const cells: Array<number | null> = [...Array(firstDow).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
-  return (
-    <div>
-      <div className="mb-1.5 grid grid-cols-7 gap-1 text-center text-[10.5px] text-muted-foreground">
-        {['일', '월', '화', '수', '목', '금', '토'].map((d) => <span key={d}>{d}</span>)}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((d, i) => {
-          if (d === null) return <span key={`b${i}`} />;
-          const key = `${month}-${String(d).padStart(2, '0')}`;
-          const v = daily[key] ?? 0;
-          const alpha = v === 0 ? 0 : 0.15 + 0.65 * (v / max);
-          return (
-            <button key={key} type="button" title={v ? `${d}일 ${KRW(v)}` : `${d}일`} onClick={() => onPickDate?.(key)}
-              className="flex aspect-square flex-col items-center justify-center rounded-md text-[10px] tabular-nums"
-              style={{ background: v ? `hsl(var(--ledger-navy) / ${alpha.toFixed(2)})` : 'hsl(var(--muted) / 0.6)', color: alpha > 0.5 ? 'white' : undefined }}>
-              <span>{d}</span>
-              {showAmount && v > 0 && <span className="text-[8.5px] leading-none opacity-90">{Math.round(v / 1000)}k</span>}
-            </button>
-          );
-        })}
-      </div>
-      <button type="button" onClick={() => setShowAmount((s) => !s)} className="mt-2 text-[11.5px] text-muted-foreground underline-offset-2 hover:underline">
-        {showAmount ? '금액 숨기기' : '금액 표시'}
-      </button>
-    </div>
-  );
-}
-
-/** 순자산 미니 스파크라인 — 스냅샷 기반. */
-function NetWorthSpark({ data }: { data: LedgerData }) {
-  const snaps = data.snapshots;
-  if (snaps.length < 2) return null;
-  const W = 220, H = 44;
-  const vals = snaps.map((s) => s.net);
-  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
-  const x = (i: number) => (i * W) / (snaps.length - 1);
-  const y = (v: number) => 5 + (1 - (v - min) / span) * (H - 10);
-  const line = snaps.map((s, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(s.net).toFixed(1)}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-      <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="hsl(var(--ledger-navy))" fillOpacity={0.08} />
-      <path d={line} fill="none" stroke="hsl(var(--ledger-navy))" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+const BUCKETS: BudgetBucket[] = ['fixed', 'variable', 'irregular'];
+const SKIP_KEY = 'ledger.suggestSkip.v1';
 
 interface DashboardViewProps {
   data: LedgerData;
@@ -137,153 +25,368 @@ interface DashboardViewProps {
   onGoBudget?: () => void;
 }
 
-export function DashboardView({ data, onPickDate, onGoAssets, onPickCategory, onGoTx, onGoBudget }: DashboardViewProps) {
+const cardStyle: React.CSSProperties = { border: `1px solid ${C.line}`, borderRadius: 14, background: C.card };
+
+export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBudget }: DashboardViewProps) {
   const today = todayKey();
   const month = monthOf(today);
-  const prev = prevMonthOf(month);
-  const { entries, budgets, recurring, settings, categories } = data;
-
-  const sum = useMemo(() => summarizeMonth(entries, month), [entries, month]);
-  const prevSum = useMemo(() => summarizeMonth(entries, prev), [entries, prev]);
-  const cats = useMemo(() => {
-    const meta = new Map(categories.map((c) => [c.id, c]));
-    return categoryTotals(entries, month).map((t) => ({
-      id: t.categoryId as string | null,
-      label: meta.get(t.categoryId)?.label ?? t.categoryId, emoji: meta.get(t.categoryId)?.emoji ?? '', total: t.total,
-    }));
-  }, [entries, month, categories]);
-  const daily = useMemo(() => dailyExpense(entries, month), [entries, month]);
-  const spent = useMemo(() => bucketSpent(entries, month, categories), [entries, month, categories]);
-  const briefing = useMemo(
-    () => buildBriefing(entries, month, prev, categories, budgets, today),
-    [entries, month, prev, categories, budgets, today],
-  );
-  const card = useMemo(() => cardCharge(entries, month), [entries, month]);
+  const prev = shiftMonth(month, -1);
+  const { entries, budgets, recurring, categories } = data;
 
   const [yy, mm] = month.split('-').map(Number);
   const daysInMonth = new Date(yy, mm, 0).getDate();
   const dayOfMonth = Number(today.slice(8, 10));
+  const leftDays = Math.max(1, daysInMonth - dayOfMonth + 1);
+  const monthPct = Math.round((dayOfMonth / daysInMonth) * 100);
 
-  const upcoming = recurring
-    .filter((r) => r.active && r.day >= dayOfMonth)
-    .sort((a, b) => a.day - b.day)
-    .slice(0, 4);
+  const [selDay, setSelDay] = useState(dayOfMonth);
+  const [skipped, setSkipped] = useState<string[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem(SKIP_KEY) ?? '[]'); } catch { return []; }
+  });
 
-  const expenseDiff = prevSum.expense > 0 ? sum.expense - prevSum.expense : null;
+  const sum = useMemo(() => summarizeMonth(entries, month), [entries, month]);
+  const spent = useMemo(() => bucketSpent(entries, month, categories), [entries, month, categories]);
+  const daily = useMemo(() => dailyExpense(entries, month), [entries, month]);
+  const catMeta = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  const budgetTotal = BUCKETS.reduce((s, b) => s + (budgets[b] ?? 0), 0);
+  const spentAll = BUCKETS.reduce((s, b) => s + spent[b], 0);
+
+  /** 아직 안 나간 고정지출 — '쓸 수 있는 돈'에서 미리 빼둔다. */
+  const fixedDue = useMemo(
+    () => recurring.filter((r) => r.active && r.type === 'expense' && r.lastPostedMonth !== month).reduce((s, r) => s + r.amount, 0),
+    [recurring, month],
+  );
+  const freeLeft = Math.max(0, budgetTotal - spentAll - fixedDue);
+  const perDay = Math.floor(freeLeft / leftDays / 100) * 100;
+  const usedPct = budgetTotal > 0 ? Math.round((spentAll / budgetTotal) * 100) : 0;
+
+  /** 변동비가 달력보다 얼마나 앞서가나 — %p. */
+  const varPace = useMemo(() => {
+    const b = budgets.variable;
+    if (!b) return null;
+    const used = Math.round((spent.variable / b) * 100);
+    return used - monthPct;
+  }, [budgets.variable, spent.variable, monthPct]);
+
+  const cats = useMemo(() => {
+    const cur = categoryTotals(entries, month);
+    const pr = new Map(categoryTotals(entries, prev).map((t) => [t.categoryId, t.total]));
+    const total = cur.reduce((s, t) => s + t.total, 0);
+    const top = cur.slice(0, 5);
+    const rest = total - top.reduce((s, t) => s + t.total, 0);
+    const rows = top.map((t) => {
+      const p = pr.get(t.categoryId) ?? 0;
+      const delta = p > 0 ? Math.round(((t.total - p) / p) * 100) : null;
+      return {
+        id: t.categoryId,
+        name: `${catMeta.get(t.categoryId)?.emoji ?? ''} ${catMeta.get(t.categoryId)?.label ?? t.categoryId}`,
+        total: t.total, delta,
+        pct: total > 0 ? Math.round((t.total / total) * 100) : 0,
+      };
+    });
+    if (rest > 0) rows.push({ id: '', name: '그 외', total: rest, delta: null, pct: Math.round((rest / total) * 100) });
+    return { rows, total };
+  }, [entries, month, prev, catMeta]);
+
+  const donut = useMemo(() => {
+    if (cats.total <= 0) return C.track;
+    let acc = 0;
+    const stops = cats.rows.map((r, i) => {
+      const from = (acc / cats.total) * 100;
+      acc += r.total;
+      return `${SLICE_COLORS[i % SLICE_COLORS.length]} ${from.toFixed(1)}% ${((acc / cats.total) * 100).toFixed(1)}%`;
+    });
+    return `conic-gradient(${stops.join(', ')})`;
+  }, [cats]);
+
+  const upcoming = useMemo(
+    () => recurring.filter((r) => r.active && r.type === 'expense' && r.lastPostedMonth !== month)
+      .sort((a, b) => a.day - b.day).slice(0, 4),
+    [recurring, month],
+  );
+  const upcomingTotal = upcoming.reduce((s, r) => s + r.amount, 0);
+
+  /**
+   * 반복 감지 — 같은 메모가 최근 3개월 중 2개월 이상 나오면 고정지출 후보.
+   * 이미 규칙으로 등록됐거나 사용자가 무시한 건 빼고, 금액은 가장 최근 것.
+   */
+  const suggests = useMemo(() => {
+    const months = [month, shiftMonth(month, -1), shiftMonth(month, -2)];
+    const known = new Set(recurring.map((r) => r.label));
+    const bag = new Map<string, { months: Set<string>; amount: number; day: number }>();
+    for (const e of entries) {
+      if (e.type !== 'expense' || !e.memo) continue;
+      const m = e.date.slice(0, 7);
+      if (!months.includes(m)) continue;
+      const cur = bag.get(e.memo) ?? { months: new Set<string>(), amount: e.amount, day: Number(e.date.slice(8, 10)) };
+      cur.months.add(m);
+      bag.set(e.memo, cur);
+    }
+    return [...bag.entries()]
+      .filter(([memo, v]) => v.months.size >= 2 && !known.has(memo) && !skipped.includes(memo))
+      .slice(0, 2)
+      .map(([memo, v]) => ({ memo, amount: v.amount, day: Math.min(28, v.day) }));
+  }, [entries, month, recurring, skipped]);
+
+  const skip = (memo: string) => {
+    const next = [...skipped, memo];
+    setSkipped(next);
+    window.localStorage.setItem(SKIP_KEY, JSON.stringify(next));
+  };
+  const addRecurring = (s: { memo: string; amount: number; day: number }) => {
+    ledgerStore.addRecurring({ label: s.memo, amount: s.amount, type: 'expense', categoryId: 'etc', day: s.day });
+    toast.success(`"${s.memo}" 고정지출로 등록했어요`);
+  };
+
+  // 캘린더
+  const firstDow = new Date(yy, mm - 1, 1).getDay();
+  const cells: Array<number | null> = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const maxDay = Math.max(0, ...Object.values(daily));
+  const noSpendDays = useMemo(() => {
+    let n = 0;
+    for (let d = 1; d <= Math.min(dayOfMonth, daysInMonth); d++) if (!daily[`${month}-${String(d).padStart(2, '0')}`]) n++;
+    return n;
+  }, [daily, dayOfMonth, daysInMonth, month]);
+  const topDay = useMemo(() => {
+    let best = 0, bestD = 0;
+    for (const [k, v] of Object.entries(daily)) if (v > best) { best = v; bestD = Number(k.slice(8, 10)); }
+    return bestD;
+  }, [daily]);
+
+  const selKey = `${month}-${String(selDay).padStart(2, '0')}`;
+  const selItems = entries.filter((e) => e.date === selKey);
+  const selTotal = selItems.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+
+  const hd = { fontSize: 14.5, fontWeight: 650 } as const;
+  const hint = { fontSize: 11.5, fontWeight: 600, color: C.muted2 } as const;
+  const outlineBtn: React.CSSProperties = { height: 32, padding: '0 13px', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 12.5, fontWeight: 600, color: C.ink3, cursor: 'pointer' };
 
   return (
-    <div className="grid grid-cols-1 gap-4 pb-32 xl:grid-cols-2">
-      {/* ① 이번 달 결산 */}
-      <Card title={`${mm}월 결산`} className="xl:col-span-2">
-        <div className="grid grid-cols-3 gap-3">
-          <div><p className="text-[12px] text-muted-foreground">수입</p><p className="text-[20px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(sum.income)}</p></div>
-          <div><p className="text-[12px] text-muted-foreground">지출</p><p className="text-[20px] font-bold tabular-nums">{KRW(sum.expense)}</p>
-            {expenseDiff !== null && <p className={cn('text-[11.5px] tabular-nums', expenseDiff > 0 ? 'text-[hsl(var(--ledger-red))]' : 'text-muted-foreground')}>지난달 대비 {expenseDiff >= 0 ? '+' : ''}{KRW(expenseDiff)}</p>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* 머리 */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, paddingBottom: 2, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월 요약</h1>
+          <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>남은 {leftDays}일 · 기록 {sum.count}건</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" style={outlineBtn} onClick={onGoTx}>내역 보기</button>
+          <button type="button" style={outlineBtn} onClick={onGoBudget}>예산 조정</button>
+        </div>
+      </div>
+
+      {/* 히어로 + 예산 페이스 */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr]" style={{ gap: 14 }}>
+        <div style={{ ...cardStyle, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <div style={{ fontSize: 12, fontWeight: 650, color: C.muted }}>이번 달 쓸 수 있는 돈</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+                <span style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{KRW(freeLeft)}</span>
+                <span style={{ fontSize: 18, fontWeight: 650, color: C.ink4 }}>원</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: C.sub, fontWeight: 550 }}>
+                하루 {KRW(perDay)}원 · 고정 예정 {KRW(fixedDue)}원 빼고
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 2 }}>
+              {varPace !== null && varPace >= 5 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 25, padding: '0 10px', borderRadius: 999, background: C.warnBg, color: C.warnInk, fontSize: 11.5, fontWeight: 650 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: 999, background: C.warnDot }} />
+                  변동비 {varPace}%p 빠름
+                </span>
+              )}
+              <span style={{ fontSize: 11.5, color: C.muted2, fontWeight: 550 }}>한 달의 {monthPct}% 지남</span>
+            </div>
           </div>
-          <div><p className="text-[12px] text-muted-foreground">남은 돈</p><p className={cn('text-[20px] font-bold tabular-nums', sum.net < 0 && 'text-[hsl(var(--ledger-red))]')}>{KRW(sum.net)}</p>
-            {sum.savedRate !== null && sum.transfer > 0 && <p className="text-[11.5px] text-muted-foreground">저축·투자 이체 {Math.round(sum.savedRate * 100)}%</p>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ position: 'relative', height: 10, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, usedPct)}%`, background: C.navy, borderRadius: 999 }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, color: C.muted, flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ color: C.ink3 }}>예산 {usedPct}% 사용 · {KRW(spentAll)}원 / {KRW(budgetTotal)}원</span>
+              <span>남은 예산 {KRW(Math.max(0, budgetTotal - spentAll))}원</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, paddingTop: 14, borderTop: `1px solid ${C.lineFaint}` }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted }}>수입</span>
+              <span style={{ fontSize: 19, fontWeight: 700, color: C.green, fontVariantNumeric: 'tabular-nums' }}>{KRW(sum.income)}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted }}>지출</span>
+              <span style={{ fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{KRW(sum.expense)}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted }}>저축률</span>
+              <span style={{ fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{sum.savedRate !== null ? Math.round(sum.savedRate * 100) : 0}%</span>
+            </div>
           </div>
         </div>
-      </Card>
 
-      {/* ⑧ 순자산 — 자산이 있을 때만 */}
-      {data.assets.length > 0 && (() => {
-        const nw = netWorth(data.assets);
-        const snaps = data.snapshots;
-        const diff = snaps.length >= 2 ? nw.net - snaps[0].net : null;
-        return (
-          <Card
-            title="순자산"
-            className="xl:col-span-2"
-            right={onGoAssets && (
-              <button type="button" onClick={onGoAssets} className="text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">자산 관리 →</button>
-            )}
-          >
-            <div className="flex items-center gap-5">
-              <div className="shrink-0">
-                <p className="text-[20px] font-bold tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(nw.net)}</p>
-                <p className="text-[11.5px] tabular-nums text-muted-foreground">
-                  자산 {KRW(nw.assets)}{nw.debt > 0 && <> · 부채 -{KRW(nw.debt)}</>}
-                  {diff !== null && <span className={cn('ml-1.5', diff >= 0 ? 'text-[hsl(var(--ledger-navy))]' : 'text-[hsl(var(--ledger-red))]')}>{diff >= 0 ? '+' : ''}{KRW(diff)}</span>}
-                </p>
+        <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={hd}>예산 페이스</span>
+            <span style={hint}>버킷 3개</span>
+          </div>
+          {BUCKETS.map((b) => {
+            const limit = budgets[b] ?? 0;
+            const used = spent[b];
+            const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
+            const over = limit > 0 && used > limit;
+            return (
+              <div key={b} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 650, color: C.ink2 }}>{BUCKET_META[b].label}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 650, color: over ? C.red : C.ink3, fontVariantNumeric: 'tabular-nums' }}>
+                    {KRW(Math.max(0, limit - used))} 남음
+                  </span>
+                </div>
+                <div style={{ position: 'relative', height: 7, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, pct)}%`, background: over ? C.red : C.navy, borderRadius: 999 }} />
+                  <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${monthPct}%`, width: 1.5, background: '#C0BCB1' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 550, color: C.muted2, fontVariantNumeric: 'tabular-nums' }}>
+                  <span>{KRW(used)} / {KRW(limit)}원</span>
+                  <span>하루 {KRW(Math.floor(Math.max(0, limit - used) / leftDays / 100) * 100)}원</span>
+                </div>
               </div>
-              <div className="min-w-0 flex-1"><NetWorthSpark data={data} /></div>
-            </div>
-            {dayOfMonth >= 25 && !snaps.some((s) => s.month === month) && (
-              <p className="mt-2 text-[11.5px] text-muted-foreground">월말이에요 — 자산 탭에서 이번 달 스냅샷을 저장하면 순자산 추이에 점이 찍혀요</p>
-            )}
-          </Card>
-        );
-      })()}
-
-      {/* ⑦ AI 브리핑 */}
-      <Card title="브리핑" className="xl:col-span-2">
-        <ul className="space-y-1.5">
-          {briefing.map((line) => <li key={line} className="text-[13.5px] leading-relaxed">· {line}</li>)}
-        </ul>
-      </Card>
-
-      {/* ② 예산 페이스 */}
-      <Card title="예산 페이스">
-        {(['fixed', 'variable', 'irregular'] as BudgetBucket[]).map((b) => {
-          const budget = budgets[b];
-          if (!budget) return null;
-          const s = spent[b];
-          const pace = budgetPace(s, budget, dayOfMonth, daysInMonth);
-          const pct = Math.min(100, Math.round((s / budget) * 100));
-          return (
-            <div key={b} className="mb-3 last:mb-0">
-              <div className="mb-1 flex justify-between text-[12.5px]">
-                <span>{BUCKET_META[b].label}</span>
-                <span className="tabular-nums text-muted-foreground">{KRW(s)} / {KRW(budget)}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
-                <div className={cn('h-full rounded-full', pace.over ? 'bg-[hsl(var(--ledger-red))]' : 'bg-[hsl(var(--ledger-navy))]')} style={{ width: `${pct}%` }} />
-              </div>
-              {pace.over && <p className="mt-1 text-[11.5px] text-[hsl(var(--ledger-red))]">이 속도면 월말 {KRW(pace.projected)}</p>}
-            </div>
-          );
-        })}
-        {!budgets.fixed && !budgets.variable && !budgets.irregular && (
-          <p className="py-4 text-center text-[13px] text-muted-foreground">예산 탭에서 버킷별 월 예산을 정하면 페이스가 표시돼요</p>
-        )}
-      </Card>
-
-      {/* ③ 카테고리 도넛 */}
-      <Card title="어디에 썼나"><Donut data={cats} onPick={onPickCategory} /></Card>
-
-      {/* ④ 히트맵 캘린더 */}
-      <Card title="지출 캘린더"><Heatmap month={month} daily={daily} onPickDate={onPickDate} /></Card>
-
-      {/* ⑤+⑥ 다가오는 고정지출 · 카드 청구 */}
-      <Card title="다가오는 돈">
-        <div className="mb-3 flex items-center gap-2 rounded-xl bg-[hsl(var(--surface-3))] px-3 py-2.5">
-          <CreditCard className="h-4 w-4 shrink-0 text-[hsl(var(--ledger-navy))]" />
-          <span className="text-[13px]">이번 달 카드 사용</span>
-          <span className="ml-auto text-[14px] font-bold tabular-nums">{KRW(card)}</span>
-          {settings.cardBillingDay && <span className="text-[11.5px] text-muted-foreground">{settings.cardBillingDay}일 결제</span>}
+            );
+          })}
         </div>
-        {(() => {
-          const div = monthlyDividends(data.assets)[mm - 1];
-          return div > 0 && (
-            <div className="mb-2 flex items-center gap-2 text-[13px]">
-              <span className="text-[hsl(var(--ledger-navy))]">₩</span>
-              <span>이번 달 예상 배당</span>
-              <span className="ml-auto tabular-nums font-semibold text-[hsl(var(--ledger-navy))]">+{KRW(div)}</span>
+      </div>
+
+      {/* 캘린더 + 우측 열 */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr]" style={{ gap: 14 }}>
+        <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={hd}>지출 캘린더</span>
+            <span style={hint}>무지출 {noSpendDays}일{topDay > 0 && ` · 최다 ${topDay}일`}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+            {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
+              <div key={d} style={{ fontSize: 10.5, fontWeight: 650, color: i === 0 ? C.red : i === 6 ? C.navyMid : C.muted3, textAlign: 'center', paddingBottom: 3 }}>{d}</div>
+            ))}
+            {cells.map((d, i) => {
+              if (d === null) return <span key={`b${i}`} />;
+              const key = `${month}-${String(d).padStart(2, '0')}`;
+              const v = daily[key] ?? 0;
+              const on = d === selDay;
+              return (
+                <button key={key} type="button" onClick={() => setSelDay(d)}
+                  style={{ height: 46, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '4px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: d === dayOfMonth ? 700 : 550, color: d === dayOfMonth ? C.navy : C.muted3, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 650, color: v > 0 ? (v >= maxDay * 0.66 ? C.ink2 : C.sub2) : 'transparent', textAlign: 'right', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
+                    {v > 0 ? `${Math.round(v / 1000)}k` : '·'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ borderTop: `1px solid ${C.lineFaint}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button type="button" onClick={() => onPickDate?.(selKey)}
+                style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12.5, fontWeight: 650, color: C.ink3, cursor: onPickDate ? 'pointer' : 'default' }}>
+                {mm}월 {selDay}일{selItems.length > 0 && ` · ${selItems.length}건`}
+              </button>
+              <span style={{ fontSize: 12.5, fontWeight: 650, fontVariantNumeric: 'tabular-nums' }}>{KRW(selTotal)}원</span>
             </div>
-          );
-        })()}
-        {upcoming.length === 0
-          ? <p className="text-[12.5px] text-muted-foreground">이번 달 남은 고정지출이 없어요</p>
-          : upcoming.map((r) => (
-            <div key={r.id} className="flex items-center gap-2 py-1.5 text-[13px]">
-              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>{r.label}</span>
-              <span className="ml-auto tabular-nums">{KRW(r.amount)}</span>
-              <span className="w-9 text-right text-[11.5px] text-muted-foreground">{r.day}일</span>
+            {selItems.length === 0
+              ? <span style={{ fontSize: 12, color: C.muted2 }}>이 날은 기록이 없어요</span>
+              : selItems.slice(0, 5).map((t) => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 7, background: C.chipBg, display: 'grid', placeItems: 'center', fontSize: 11 }}>{catMeta.get(t.categoryId)?.emoji ?? '📎'}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 550, color: C.ink2, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.memo || '(메모 없음)'}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted2 }}>{catMeta.get(t.categoryId)?.label ?? ''}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 650, color: t.type === 'income' ? C.green : C.ink2, fontVariantNumeric: 'tabular-nums', minWidth: 74, textAlign: 'right' }}>
+                    {t.type === 'income' ? '＋' : '－'}{KRW(t.amount)}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={hd}>어디에 썼나</span>
+              <span style={hint}>전월 대비</span>
             </div>
-          ))}
-      </Card>
+            {cats.total === 0 ? (
+              <p style={{ fontSize: 12.5, color: C.muted2, padding: '18px 0', textAlign: 'center' }}>이번 달 지출이 아직 없어요</p>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <div style={{ position: 'relative', width: 104, height: 104, flex: '0 0 104px', borderRadius: 999, background: donut }}>
+                  <div style={{ position: 'absolute', inset: 22, borderRadius: 999, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 650, color: C.muted3 }}>지출</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{Math.round(cats.total / 10000)}만</span>
+                  </div>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+                  {cats.rows.map((s, i) => (
+                    <button key={s.id || s.name} type="button" disabled={!s.id || !onPickCategory}
+                      onClick={() => s.id && onPickCategory?.(s.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', padding: 0, cursor: s.id && onPickCategory ? 'pointer' : 'default', textAlign: 'left' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: 2, background: SLICE_COLORS[i % SLICE_COLORS.length], flex: '0 0 7px' }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.ink3, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 650, color: s.delta === null ? C.muted3 : s.delta > 0 ? C.red : C.green, fontVariantNumeric: 'tabular-nums' }}>
+                        {s.delta === null ? '' : `${s.delta > 0 ? '+' : ''}${s.delta}%`}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 34, textAlign: 'right' }}>{s.pct}%</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={hd}>다가오는 돈</span>
+              <span style={{ fontSize: 12, fontWeight: 650, color: C.ink3, fontVariantNumeric: 'tabular-nums' }}>{KRW(upcomingTotal)}원</span>
+            </div>
+            {upcoming.length === 0
+              ? <span style={{ fontSize: 12.5, color: C.muted2 }}>이번 달 남은 고정지출이 없어요</span>
+              : upcoming.map((u) => {
+                const dd = u.day - dayOfMonth;
+                const near = dd <= 3;
+                return (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 38, padding: '0 11px', border: `1px solid ${C.lineFaint}`, borderRadius: 9, background: C.cardAlt }}>
+                    <span style={{ fontSize: 12.5 }}>{catMeta.get(u.categoryId)?.emoji ?? '🔁'}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: C.ink2, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.label}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: near ? C.warnInk : C.sub, background: near ? C.warnBg : C.hoverBtn, padding: '3px 6px', borderRadius: 5 }}>
+                      {dd <= 0 ? '오늘' : `D-${dd}`}
+                    </span>
+                    <span style={{ fontSize: 12.5, fontWeight: 650, fontVariantNumeric: 'tabular-nums' }}>{KRW(u.amount)}</span>
+                  </div>
+                );
+              })}
+          </div>
+
+          {suggests.length > 0 && (
+            <div style={{ border: `1px solid ${C.tipLine2}`, borderRadius: 14, background: C.tipBg, padding: '15px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 12.5 }}>🔁</span>
+                <span style={{ fontSize: 13, fontWeight: 650, color: C.tipInk }}>매달 반복되는 지출을 찾았어요</span>
+              </div>
+              {suggests.map((g) => (
+                <div key={g.memo} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: C.ink3, flex: 1, minWidth: 140 }}>
+                    {g.memo} · {KRW(g.amount)}원 · 매월 {g.day}일
+                  </span>
+                  <button type="button" onClick={() => addRecurring(g)}
+                    style={{ height: 27, padding: '0 11px', border: 'none', borderRadius: 7, background: C.navy, color: '#fff', fontSize: 11.5, fontWeight: 650, cursor: 'pointer' }}>고정지출 등록</button>
+                  <button type="button" onClick={() => skip(g.memo)}
+                    style={{ height: 27, padding: '0 9px', border: `1px solid ${C.tipLine}`, borderRadius: 7, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub, cursor: 'pointer' }}>무시</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

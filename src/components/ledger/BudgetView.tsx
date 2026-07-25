@@ -1,259 +1,154 @@
 /**
- * 예산 — "이번 달 얼마로 잡을까?"에 답하는 계획 화면.
- *
- * 확인(지금 얼마 썼나)은 대시보드가 맡고, 여기서는 지난 실적을 근거로 금액을 정한다.
- * 위계: 합계(테두리 없는 큰 숫자 + 배분 막대) > 버킷 3행 > 카테고리 한도(선택).
- * 한 행은 왼쪽 [무엇인가·현황] → 오른쪽 [근거 → 결론(금액)] 으로 읽힌다.
- *
- * 페이스 투영은 변동비에만 — 고정비(월세)·비정기(경조사)는 특정일에 덩어리로 나가
- * 일할 계산이 성립하지 않는다.
+ * 예산 — 시안 Ledger.dc.html '예산' 화면 그대로.
+ * 배분 막대(고정/변동/비정기 3색) + 버킷 3행(진행바 · 달력 마커 · 입력 · 지난달/+5%/천원).
  */
 import { useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
 import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
-import { budgetBasis, bucketSpent, budgetPace, categoryTotals, monthOf } from '@/lib/ledger/stats';
+import { budgetBasis, bucketSpent, monthOf } from '@/lib/ledger/stats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
-import { cn } from '@/lib/utils';
+import { C, KRW } from './theme';
 
-const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 const BUCKETS: BudgetBucket[] = ['fixed', 'variable', 'irregular'];
-
-/** 같은 남색 계열의 명도 차 — 팔레트를 벗어나지 않으면서 세 몫을 구분한다. */
-const TINT: Record<BudgetBucket, string> = {
-  fixed: 'hsl(var(--ledger-navy))',
-  variable: 'hsl(var(--ledger-navy) / 0.58)',
-  irregular: 'hsl(var(--ledger-navy) / 0.28)',
-};
-
-const withCommas = (raw: string) => {
-  const digits = raw.replace(/[^\d]/g, '');
-  return digits ? Number(digits).toLocaleString('ko-KR') : '';
-};
-const toNumber = (raw: string) => {
-  const n = Number(raw.replace(/[^\d]/g, ''));
-  return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
-};
-const roundToThousand = (n: number) => Math.round(n / 1000) * 1000;
-
-const field = 'rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--ledger-navy))]';
+/** 시안 배분 막대 3색. */
+const ALLOC: Record<BudgetBucket, string> = { fixed: C.navy, variable: C.navyMid, irregular: C.navyPale };
 
 export function BudgetView({ data }: { data: LedgerData }) {
-  const { entries, budgets, catBudgets, categories } = data;
+  const { entries, budgets, categories } = data;
   const [draft, setDraft] = useState<Record<BudgetBucket, string>>(() => ({
-    fixed: budgets.fixed ? budgets.fixed.toLocaleString('ko-KR') : '',
-    variable: budgets.variable ? budgets.variable.toLocaleString('ko-KR') : '',
-    irregular: budgets.irregular ? budgets.irregular.toLocaleString('ko-KR') : '',
+    fixed: budgets.fixed ? String(budgets.fixed) : '',
+    variable: budgets.variable ? String(budgets.variable) : '',
+    irregular: budgets.irregular ? String(budgets.irregular) : '',
   }));
-  const [addCat, setAddCat] = useState('');
-  const [addAmount, setAddAmount] = useState('');
 
   const today = todayKey();
   const month = monthOf(today);
   const spent = bucketSpent(entries, month, categories);
-  const [y, m] = month.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
+  const [yy, mm] = month.split('-').map(Number);
+  const daysInMonth = new Date(yy, mm, 0).getDate();
   const dayOfMonth = Number(today.slice(8, 10));
+  const leftDays = Math.max(1, daysInMonth - dayOfMonth + 1);
+  const monthPct = Math.round((dayOfMonth / daysInMonth) * 100);
 
   const basis = useMemo(() => budgetBasis(entries, month, categories), [entries, month, categories]);
-  const catSpent = useMemo(
-    () => new Map(categoryTotals(entries, month).map((t) => [t.categoryId, t.total])),
-    [entries, month],
-  );
-  const catOf = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const commit = (next: Record<BudgetBucket, string>) => {
-    ledgerStore.setBudgets({
-      fixed: toNumber(next.fixed), variable: toNumber(next.variable), irregular: toNumber(next.irregular),
-    });
+    const num = (s: string) => { const n = Number(s.replace(/[^\d]/g, '')); return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined; };
+    ledgerStore.setBudgets({ fixed: num(next.fixed), variable: num(next.variable), irregular: num(next.irregular) });
   };
-  const applySuggestion = (b: BudgetBucket, value: number) => {
-    const next = { ...draft, [b]: value.toLocaleString('ko-KR') };
-    setDraft(next);
-    commit(next);
+  const setValue = (b: BudgetBucket, v: number) => {
+    const next = { ...draft, [b]: String(Math.max(0, Math.round(v))) };
+    setDraft(next); commit(next);
   };
 
   const planned = BUCKETS.reduce((s, b) => s + (budgets[b] ?? 0), 0);
-  const leftover = basis.avgIncome - planned;
-  const hasBasis = basis.monthsWithData > 0;
+  const pctOf = (b: BudgetBucket) => (planned > 0 ? Math.round(((budgets[b] ?? 0) / planned) * 100) : 0);
+  const afterBudget = basis.avgIncome - planned;
 
-  const limits = Object.entries(catBudgets).filter(([id]) => catOf.has(id));
-  const addable = categories.filter((c) => !(c.id in catBudgets));
-
-  const addLimit = () => {
-    const amt = toNumber(addAmount);
-    const id = addCat || addable[0]?.id;
-    if (!id || !amt) return;
-    ledgerStore.setCatBudget(id, amt);
-    setAddCat(''); setAddAmount('');
+  const smallBtn: React.CSSProperties = {
+    height: 28, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff',
+    fontSize: 11, fontWeight: 600, color: C.ink4, cursor: 'pointer',
   };
 
   return (
-    <div className="space-y-6 pb-32">
-      {/* ── 합계 · 배분 ── */}
-      <section>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h3 className="text-[13px] font-medium text-muted-foreground">이번 달 예산 합계</h3>
-          <span className="text-[28px] font-bold leading-none tabular-nums">{planned > 0 ? KRW(planned) : '—'}</span>
-          {basis.avgIncome > 0 && planned > 0 && (
-            <span className="text-[12.5px] text-muted-foreground">
-              평균 수입의 <b className="text-foreground tabular-nums">{Math.round((planned / basis.avgIncome) * 100)}%</b>
-              {leftover >= 0
-                ? <> · 남는 <b className="tabular-nums text-[hsl(var(--ledger-navy))]">{KRW(leftover)}</b>은 저축 몫</>
-                : <> · 수입보다 <b className="tabular-nums text-[hsl(var(--ledger-red))]">{KRW(-leftover)}</b> 많음</>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 940 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>예산</h1>
+          <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>
+            버킷 3개{basis.avgIncome > 0 && planned > 0 && ` · 수입의 ${Math.round((planned / basis.avgIncome) * 100)}%`}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{KRW(planned)}</span>
+          <span style={{ fontSize: 14, fontWeight: 650, color: C.ink4 }}>원</span>
+        </div>
+      </div>
+
+      {/* 배분 */}
+      <div style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 14.5, fontWeight: 650 }}>배분</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted2 }}>
+            {basis.avgIncome > 0 ? `수입 ${KRW(basis.avgIncome)}원 기준` : '수입 기록 없음'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: C.track }}>
+          {BUCKETS.map((b) => <div key={b} style={{ width: `${pctOf(b)}%`, background: ALLOC[b] }} />)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {BUCKETS.map((b) => (
+            <span key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: C.ink3 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 2, background: ALLOC[b] }} />
+              {BUCKET_META[b].label} {pctOf(b)}%
+            </span>
+          ))}
+          <span style={{ flex: 1 }} />
+          {basis.avgIncome > 0 && (
+            <span style={{ fontSize: 12, fontWeight: 650, color: afterBudget >= 0 ? C.green : C.red }}>
+              {afterBudget >= 0 ? `남는 돈 ${KRW(afterBudget)}원` : `수입 초과 ${KRW(-afterBudget)}원`}
             </span>
           )}
         </div>
+      </div>
 
-        {planned > 0 && (
-          <>
-            <div className="mt-3.5 flex h-3 max-w-[760px] gap-1 overflow-hidden rounded-full">
-              {BUCKETS.map((b) => {
-                const v = budgets[b] ?? 0;
-                if (v <= 0) return null;
-                return <div key={b} className="h-full rounded-full" title={`${BUCKET_META[b].label} ${KRW(v)}`}
-                  style={{ width: `${(v / planned) * 100}%`, background: TINT[b] }} />;
-              })}
-            </div>
-            {/* 범례 — 색만으로는 무엇이 무엇인지 알 수 없다 */}
-            <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
-              {BUCKETS.map((b) => {
-                const v = budgets[b] ?? 0;
-                if (v <= 0) return null;
-                return (
-                  <span key={b} className="inline-flex items-center gap-1.5 text-[12px]">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: TINT[b] }} />
-                    {BUCKET_META[b].label}
-                    <b className="tabular-nums">{KRW(v)}</b>
-                    <span className="tabular-nums text-muted-foreground">{Math.round((v / planned) * 100)}%</span>
-                  </span>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* ── 버킷 3행 ── */}
-      <section className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]">
-        {BUCKETS.map((b) => {
-          const budget = budgets[b];
-          const s = spent[b];
-          const bb = basis.perBucket[b];
-          const suggestion = hasBasis && bb.avg > 0 ? roundToThousand(bb.avg) : null;
-          const scale = Math.max(1, ...bb.recent, budget ?? 0);
-          const pace = b === 'variable' && budget ? budgetPace(s, budget, dayOfMonth, daysInMonth) : null;
-
-          return (
-            <div key={b} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-[hsl(var(--hairline))] px-5 py-4 last:border-b-0">
-              <div className="min-w-[180px] flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: TINT[b] }} />
-                  <h3 className="text-[14.5px] font-bold">{BUCKET_META[b].label}</h3>
-                </div>
-                <p className="mt-1 text-[12.5px] tabular-nums">
-                  이번 달 {KRW(s)} 사용
-                  {budget != null && (
-                    budget - s >= 0
-                      ? <span className="text-muted-foreground"> · {KRW(budget - s)} 남음</span>
-                      : <span className="text-[hsl(var(--ledger-red))]"> · {KRW(s - budget)} 초과</span>
-                  )}
-                </p>
-                {pace?.over && (
-                  <p className="mt-0.5 text-[11.5px] tabular-nums text-[hsl(var(--ledger-red))]">이 속도면 월말 {KRW(pace.projected)}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* 근거 — 데이터가 없으면 자리째 비운다(빈 안내문으로 칸을 채우지 않는다) */}
-                {hasBasis && (
-                  <div className="hidden sm:block">
-                    <div className="flex items-end gap-1" style={{ height: 30 }}>
-                      {[...bb.recent, s].map((v, i) => (
-                        <div key={i} title={i === bb.recent.length ? `이번 달 ${KRW(v)}` : `${Number(basis.months[i].slice(5, 7))}월 ${KRW(v)}`}
-                          className="w-2.5 rounded-t"
-                          style={{
-                            height: `${Math.max(3, (v / scale) * 100)}%`,
-                            background: i === bb.recent.length ? 'hsl(var(--ledger-navy))' : 'hsl(var(--ledger-navy) / 0.24)',
-                          }} />
-                      ))}
-                    </div>
-                    <p className="mt-1 text-right text-[10.5px] tabular-nums text-muted-foreground">평균 {KRW(bb.avg)}</p>
-                  </div>
-                )}
-
-                <div className="flex flex-col items-end gap-1.5">
-                  <div className="relative">
-                    <input
-                      value={draft[b]} inputMode="numeric" placeholder="월 예산" aria-label={`${BUCKET_META[b].label} 월 예산`}
-                      onChange={(ev) => setDraft((d) => ({ ...d, [b]: withCommas(ev.target.value) }))}
-                      onBlur={() => commit(draft)}
-                      className="w-40 rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-2 pl-3 pr-7 text-right text-[15px] font-semibold tabular-nums outline-none focus:border-[hsl(var(--ledger-navy))]"
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground">원</span>
-                  </div>
-                  {suggestion !== null && suggestion !== budget && (
-                    <button type="button" onClick={() => applySuggestion(b, suggestion)}
-                      className="rounded-full border border-[hsl(var(--ledger-navy)/0.35)] px-2.5 py-1 text-[11.5px] font-semibold text-[hsl(var(--ledger-navy))] transition-colors hover:bg-[hsl(var(--ledger-navy)/0.08)]">
-                      평균 {KRW(suggestion)}로
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* ── 카테고리 한도(선택) — 버킷만으로 모자랄 때 따로 걸어두는 상한 ── */}
-      <section>
-        <div className="mb-2 flex items-baseline gap-2">
-          <h3 className="text-[13px] font-medium text-muted-foreground">카테고리 한도</h3>
-          <span className="text-[11.5px] text-muted-foreground">필요한 것만 골라서</span>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))]">
-          {limits.map(([id, limit]) => {
-            const c = catOf.get(id)!;
-            const used = catSpent.get(id) ?? 0;
-            const over = used > limit;
-            return (
-              <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[hsl(var(--hairline))] px-5 py-3 last:border-b-0">
-                <span className="min-w-[120px] text-[13.5px]">{c.emoji} {c.label}</span>
-                <div className="h-1.5 min-w-[100px] flex-1 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
-                  <div className={cn('h-full rounded-full', over ? 'bg-[hsl(var(--ledger-red))]' : 'bg-[hsl(var(--ledger-navy))]')}
-                    style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} />
-                </div>
-                <span className={cn('text-[12.5px] tabular-nums', over ? 'text-[hsl(var(--ledger-red))]' : 'text-muted-foreground')}>
-                  {KRW(used)} / {KRW(limit)}
+      {/* 버킷 3행 */}
+      {BUCKETS.map((b) => {
+        const limit = budgets[b] ?? 0;
+        const used = spent[b];
+        const pct = limit > 0 ? Math.round((used / limit) * 100) : 0;
+        const over = limit > 0 && used > limit;
+        const avg = basis.monthsWithData > 0 ? Math.round(basis.perBucket[b].avg / 1000) * 1000 : 0;
+        return (
+          <div key={b} className="flex-col sm:flex-row"
+            style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.card, padding: '18px 20px', display: 'flex', gap: 22, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 15.5, fontWeight: 700 }}>{BUCKET_META[b].label}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted2 }}>
+                  {categories.filter((c) => c.bucket === b).map((c) => c.label).join(' · ')}
                 </span>
-                <button type="button" aria-label={`${c.label} 한도 삭제`} onClick={() => ledgerStore.setCatBudget(id, undefined)}
-                  className="rounded p-1 text-muted-foreground hover:bg-[hsl(var(--ledger-red)/0.1)] hover:text-[hsl(var(--ledger-red))]">
-                  <X className="h-3.5 w-3.5" />
-                </button>
               </div>
-            );
-          })}
-
-          {addable.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 px-5 py-3">
-              <select value={addCat || addable[0].id} onChange={(e) => setAddCat(e.target.value)} aria-label="한도를 걸 카테고리" className={field}>
-                {addable.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
-              </select>
-              <input
-                value={addAmount} inputMode="numeric" placeholder="한도(원)" aria-label="한도 금액"
-                onChange={(e) => setAddAmount(withCommas(e.target.value))}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLimit(); } }}
-                className={cn(field, 'w-36 text-right tabular-nums')}
-              />
-              <button type="button" onClick={addLimit}
-                className="flex items-center gap-1 rounded-lg bg-[hsl(var(--ledger-navy))] px-3.5 py-2 text-[13px] font-semibold text-white">
-                <Plus className="h-3.5 w-3.5" /> 추가
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div style={{ position: 'relative', height: 8, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, pct)}%`, background: over ? C.red : C.navy, borderRadius: 999 }} />
+                  <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${monthPct}%`, width: 1.5, background: '#C0BCB1' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexWrap: 'wrap', gap: 4 }}>
+                  <span style={{ color: C.ink3 }}>{KRW(used)}원 사용 · {pct}%</span>
+                  <span style={{ color: over ? C.red : C.muted }}>
+                    {over ? `${KRW(used - limit)}원 초과` : `${KRW(limit - used)}원 남음`} · 하루 {KRW(Math.floor(Math.max(0, limit - used) / leftDays / 100) * 100)}원
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      </section>
+
+            <div style={{ flex: '0 0 240px', display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 240 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 44, padding: '0 14px', border: `1px solid ${C.lineInput}`, borderRadius: 10, background: C.cardAlt }}>
+                <input
+                  type="number" value={draft[b]} aria-label={`${BUCKET_META[b].label} 월 예산`}
+                  onChange={(e) => setDraft((d) => ({ ...d, [b]: e.target.value }))}
+                  onBlur={() => commit(draft)}
+                  style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 19, fontWeight: 700, textAlign: 'right', color: C.ink, fontVariantNumeric: 'tabular-nums' }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 650, color: C.muted }}>원</span>
+              </div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                <button type="button" disabled={avg <= 0} onClick={() => setValue(b, avg)}
+                  style={{ ...smallBtn, flex: 1, opacity: avg > 0 ? 1 : 0.45, cursor: avg > 0 ? 'pointer' : 'default' }}>
+                  지난달 {avg > 0 ? KRW(avg) : '—'}
+                </button>
+                <button type="button" onClick={() => setValue(b, (limit || avg) * 1.05)} style={{ ...smallBtn, width: 40 }}>+5%</button>
+                <button type="button" onClick={() => setValue(b, Math.round((limit || avg) / 1000) * 1000)} style={{ ...smallBtn, width: 44 }}>천원</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{ fontSize: 12, lineHeight: 1.6, color: C.muted2, padding: '0 2px' }}>
+        입력하면 자동 저장돼요. 지난달 기록을 근거로 제안값을 보여줍니다.
+      </div>
     </div>
   );
 }
