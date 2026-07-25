@@ -973,7 +973,7 @@ export default function Wiki() {
               그래서 아래 본문 그리드와 같은 열 구성을 쓰고 첫 칸은 비워 둔다. */}
           <div
             className="grid gap-5"
-            style={{ gridTemplateColumns: isWide && mode === 'read' ? '168px minmax(0,1fr)' : 'minmax(0,1fr)' }}
+            style={{ gridTemplateColumns: isWide && mode === 'read' ? '140px minmax(0,1fr)' : 'minmax(0,1fr)' }}
           >
             {isWide && mode === 'read' && <span aria-hidden />}
             <div className="flex min-w-0 items-center gap-2">
@@ -1024,7 +1024,7 @@ export default function Wiki() {
             /* 목차 열은 '있을 때만' 만들면, 제목이 2개 넘는 문서와 아닌 문서 사이를 오갈 때마다
                본문 폭과 위치가 통째로 흔들린다(한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
                열은 늘 자리를 잡아두고 내용만 들고 난다 — 읽기 모드에서 본문은 언제나 같은 자리. */
-            <div className="grid gap-5" style={{ gridTemplateColumns: `${mode === 'read' ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
+            <div className="grid gap-5" style={{ gridTemplateColumns: `${mode === 'read' ? '140px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
               {/* 좌 — 목차 (읽기, 제목 2개↑). 없으면 빈 열로 자리만 지킨다 */}
               {mode === 'read' && (toc.length >= 2 ? (
                 /* 목차 — 줄마다 끊긴 밑줄만 있어서 허전했다.
@@ -1908,21 +1908,31 @@ function DocMain({
           <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>하위 문서</h2>
           {kids.length > 0 && <span style={{ fontSize: 12, color: C.sub }}>{kids.length}개</span>}
         </div>
-        <div className="mt-3 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-          {kids.map((d) => (
-            <button key={d.id} type="button" onClick={() => openDoc(d.id)}
-              className="rounded-[10px] px-[18px] py-[15px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgba(64,44,18,.28)]"
-              style={{ background: C.paper, border: `1px solid ${C.line}` }}>
-              <div style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 14.5 }}>{d.title || '무제'}</div>
-              <div className="mt-1.5 line-clamp-1" style={{ fontSize: 13, color: C.sub }}>{bodyText(d.body).slice(0, 70) || '빈 문서'}</div>
-            </button>
-          ))}
+        {/* 하위 문서가 없을 땐 큰 점선 상자를 세우지 않는다 — 아무것도 없는 자리가
+            본문보다 눈에 띄던 이유. 그럴 땐 한 줄짜리 링크로 조용히 둔다. */}
+        {kids.length === 0 ? (
           <button type="button" onClick={() => createDoc(active.id)}
-            className="flex min-h-[64px] items-center justify-center gap-1.5 rounded-[10px] transition-colors hover:bg-[rgba(60,47,24,.03)]"
-            style={{ border: '1.5px dashed rgba(60,47,24,.2)', fontSize: 13, fontWeight: 600, color: C.sub }}>
-            <Plus className="h-3.5 w-3.5" /> 하위 문서
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(60,47,24,.05)]"
+            style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>
+            <Plus className="h-3.5 w-3.5" /> 하위 문서 만들기
           </button>
-        </div>
+        ) : (
+          <div className="mt-3 grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            {kids.map((d) => (
+              <button key={d.id} type="button" onClick={() => openDoc(d.id)}
+                className="rounded-[10px] px-[18px] py-[15px] text-left transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-10px_rgba(64,44,18,.28)]"
+                style={{ background: C.paper, border: `1px solid ${C.line}` }}>
+                <div style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 14.5 }}>{d.title || '무제'}</div>
+                <div className="mt-1.5 line-clamp-1" style={{ fontSize: 13, color: C.sub }}>{bodyText(d.body).slice(0, 70) || '빈 문서'}</div>
+              </button>
+            ))}
+            <button type="button" onClick={() => createDoc(active.id)}
+              className="flex min-h-[64px] items-center justify-center gap-1.5 rounded-[10px] transition-colors hover:bg-[rgba(60,47,24,.03)]"
+              style={{ border: '1.5px dashed rgba(60,47,24,.2)', fontSize: 13, fontWeight: 600, color: C.sub }}>
+              <Plus className="h-3.5 w-3.5" /> 하위 문서
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 백링크 — 문맥 발췌 카드 (시안) */}
