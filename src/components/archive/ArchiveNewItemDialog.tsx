@@ -13,6 +13,13 @@ import { archiveStore } from '@/services/archiveStore';
 import { putArchiveBlob, dataUrlToBlob } from '@/lib/archiveBlobStore';
 import { compressImage } from '@/lib/journalImage';
 
+/** 파일 드롭·URL 붙여넣기로 열 때 미리 채워둘 내용. */
+export interface ArchiveDraft {
+  file?: File;
+  url?: string;
+  note?: string;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -21,9 +28,11 @@ interface Props {
   defaultCollectionId?: string;
   /** 기존 태그 — 자동완성 소스 (중복·유사 태그 방지). */
   allTags?: string[];
+  /** 드롭·붙여넣기로 연 경우의 초안. */
+  draft?: ArchiveDraft;
 }
 
-export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollectionId, allTags }: Props) {
+export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollectionId, allTags, draft }: Props) {
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [url, setUrl] = useState('');
@@ -40,15 +49,29 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
     setAttached((a) => { if (a?.previewUrl) URL.revokeObjectURL(a.previewUrl); return null; });
     setTags([]); setTagInput('');
     setAddingCollection(false); setNewCollectionName('');
-    setAiLoading(false); setSaving(false);
+    setSaving(false);
   };
   const close = () => { reset(); onClose(); };
 
-  // 열릴 때 기본 컬렉션 선택
+  // 열릴 때 기본 컬렉션 선택 + 드롭·붙여넣기 초안 반영
   useEffect(() => {
-    if (open) setCollectionId(defaultCollectionId ?? collections[0]?.id ?? '');
+    if (!open) return;
+    setCollectionId(defaultCollectionId ?? collections[0]?.id ?? '');
+    if (draft?.url) setUrl(draft.url);
+    if (draft?.note) setNote(draft.note);
+    if (draft?.file) {
+      const isImage = draft.file.type.startsWith('image/');
+      setAttached((prev) => {
+        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+        return {
+          file: draft.file as File,
+          isImage,
+          previewUrl: isImage ? URL.createObjectURL(draft.file as File) : undefined,
+        };
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultCollectionId]);
+  }, [open, defaultCollectionId, draft]);
 
   useEffect(() => {
     if (!open) return;

@@ -289,16 +289,6 @@ export const archiveStore = {
     return this.ensureCollection(name, emoji);
   },
 
-  renameCollection(id: string, name: string): void {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const cols = readCollections();
-    const idx = cols.findIndex((c) => c.id === id);
-    if (idx === -1) return;
-    cols[idx] = { ...cols[idx], name: trimmed };
-    safeWrite(null, cols);
-  },
-
   /** 이름·이모지 수정. */
   updateCollection(id: string, patch: { name?: string; emoji?: string }): void {
     const cols = readCollections();
@@ -342,7 +332,7 @@ export const archiveStore = {
     safeWrite(items, cols);
   },
 
-  /** 전체 삭제 (리셋용). */
+  /** 전체 삭제 (리셋용) — IndexedDB 첨부 원본까지 함께 비운다. */
   clear(): void {
     if (typeof window !== 'undefined') {
       try {
@@ -350,6 +340,10 @@ export const archiveStore = {
       } catch {
         /* noop */
       }
+    }
+    // 메타를 지우기 전에 blobRef 를 모아둬야 원본을 찾을 수 있다.
+    for (const ref of readItems().map((e) => e.blobRef).filter(Boolean)) {
+      void deleteArchiveBlob(ref as string);
     }
     safeWrite([], []);
   },

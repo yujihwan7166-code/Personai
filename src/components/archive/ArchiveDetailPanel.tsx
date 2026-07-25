@@ -2,11 +2,11 @@
  * 아카이브 상세 패널 — 우측 슬라이드오버.
  * 항목 열람 + 인라인 편집(제목·메모·태그·컬렉션) + 다운로드·삭제·별표.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Star, Download, ExternalLink, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
-import { KIND_LABEL, type ArchiveCollection, type ArchiveItem } from '@/types/archive';
+import { KIND_LABEL, localYmd, type ArchiveCollection, type ArchiveItem } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { getArchiveBlob } from '@/lib/archiveBlobStore';
 import { downloadBlob } from '@/lib/blob';
@@ -21,7 +21,7 @@ interface Props {
 }
 
 function fmtDate(iso: string): string {
-  return iso.slice(0, 10).replace(/-/g, '. ');
+  return localYmd(iso).replace(/-/g, '. ');
 }
 
 export function ArchiveDetailPanel({ item, collections, closing, onClose }: Props) {
@@ -35,12 +35,6 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
     setNote(item.note ?? '');
   }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const commitTitle = () => {
     const t = title.trim() || '무제';
     if (t !== item.title) archiveStore.updateItem(item.id, { title: t });
@@ -48,6 +42,23 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
   const commitNote = () => {
     if (note !== (item.note ?? '')) archiveStore.updateItem(item.id, { note: note.trim() || undefined });
   };
+
+  /* 제목·메모는 onBlur 커밋이다. 그런데 Esc 는 포커스를 옮기지 않고 패널을 걷어내고,
+   * React 는 언마운트 때 blur 를 쏘지 않는다 → 편집이 조용히 사라진다.
+   * 최신 커밋 함수를 ref 에 담아 Esc·언마운트 직전에 직접 흘려보낸다. */
+  const commitRef = useRef<() => void>(() => {});
+  useEffect(() => { commitRef.current = () => { commitTitle(); commitNote(); }; });
+  useEffect(() => () => commitRef.current(), []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      commitRef.current();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const addTag = (raw: string) => {
     const t = raw.trim().replace(/^#/, '');
     if (!t || item.tags.includes(t)) { setTagInput(''); return; }
@@ -63,7 +74,11 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
     else notify.error('파일을 찾을 수 없어요');
   };
 
+  /* 항목 삭제는 첨부 원본까지 함께 지우고 되돌릴 수 없다 — 반드시 한 번 묻는다.
+   * (컬렉션 관리 삭제와 같은 confirm 패턴) */
   const remove = () => {
+    const attached = item.blobRef ? `\n첨부한 ${item.fileName ?? '파일'}도 함께 지워져요.` : '';
+    if (!confirm(`'${item.title}'을(를) 삭제할까요?${attached}\n\n되돌릴 수 없어요.`)) return;
     archiveStore.removeItem(item.id);
     notify.success('삭제했어요');
     onClose();
@@ -163,7 +178,7 @@ export function ArchiveDetailPanel({ item, collections, closing, onClose }: Prop
             </button>
           )}
 
-          {/* 양식 필드 */}
+          {/* 레거시 추가 필드 — 컬렉션별 양식이 있던 시절 저장된 항목만 (읽기 전용) */}
           {item.fields && item.fields.length > 0 && (
             <dl className="space-y-1.5 rounded-lg bg-[hsl(var(--surface-2))] p-3">
               {item.fields.map((f) => (

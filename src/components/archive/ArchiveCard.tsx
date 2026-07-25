@@ -10,20 +10,21 @@ import { Star, FileText, FileSpreadsheet, File as FileIcon, Play } from 'lucide-
 import { cn } from '@/lib/utils';
 import {
   KIND_LABEL,
+  localYmd,
   youtubeId,
   type ArchiveItem,
 } from '@/types/archive';
 import { getArchiveUrl } from '@/lib/archiveBlobStore';
 
-const KIND_BADGE: Record<ArchiveItem['kind'], string> = {
-  note: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300',
-  image: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
-  file: 'bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]',
-  link: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300',
-};
+/**
+ * 형태 배지 — 네 형태 모두 같은 세피아 칩.
+ * 이 방의 강조색은 세피아 엄버 하나라, 형태별로 색을 나누면(indigo·emerald·sky)
+ * 웜 페이퍼 팔레트가 깨진다. 구분은 글자와 카드 본문(썸네일·파일박스·도메인 줄)이 한다.
+ */
+const KIND_BADGE = 'bg-[hsl(var(--archive-sepia)/0.10)] text-[hsl(var(--archive-sepia))]';
 
 function fmtDate(iso: string): string {
-  return iso.slice(0, 10).replace(/-/g, '. ');
+  return localYmd(iso).replace(/-/g, '. ');
 }
 
 function fmtSize(bytes: number | undefined): string {
@@ -83,7 +84,7 @@ export function ArchiveCard({ item, onOpen, onToggleStar, onTagClick }: Props) {
 
   const Meta = (
     <div className="mb-1.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
-      <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-bold', KIND_BADGE[item.kind])}>
+      <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-bold', KIND_BADGE)}>
         {KIND_LABEL[item.kind]}
       </span>
       <span>{fmtDate(item.createdAt)}</span>
@@ -120,11 +121,18 @@ export function ArchiveCard({ item, onOpen, onToggleStar, onTagClick }: Props) {
     </div>
   );
 
+  /* 루트를 button 으로 두면 안의 별표·태그 버튼이 '버튼 속 버튼'이 된다(중첩 인터랙티브 =
+   * 스크린리더 동작 불확실 + button 콘텐츠 모델 위반). div+role 로 두고 키보드만 직접 태운다. */
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(item)}
-      className="group mb-4 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-card text-left transition-shadow hover:shadow-[0_4px_16px_-6px_hsl(var(--foreground)/0.12)]"
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;      // 안쪽 버튼의 Enter/Space 는 그쪽 몫
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(item); }
+      }}
+      className="group mb-4 block w-full cursor-pointer break-inside-avoid overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-card text-left transition-shadow hover:shadow-[0_4px_16px_-6px_hsl(var(--foreground)/0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--archive-sepia)/0.55)]"
     >
       {/* 이미지 카드 — 상단 썸네일 */}
       {item.kind === 'image' && item.blobRef && (
@@ -195,6 +203,6 @@ export function ArchiveCard({ item, onOpen, onToggleStar, onTagClick }: Props) {
 
         {Tags}
       </div>
-    </button>
+    </div>
   );
 }

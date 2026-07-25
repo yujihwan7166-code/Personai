@@ -173,3 +173,26 @@ export async function pruneArchiveOrphans(activeIds: Iterable<string>): Promise<
   }
   return removed;
 }
+
+/**
+ * 보관 중인 첨부 원본 총 용량(bytes). 읽기 실패 시 0.
+ * getAll() 대신 커서로 훑어 Blob 핸들을 한 번에 하나씩만 붙든다.
+ */
+export async function archiveBlobUsage(): Promise<number> {
+  try {
+    const store = await tx('readonly');
+    return await new Promise<number>((resolve, reject) => {
+      let total = 0;
+      const r = store.openCursor();
+      r.onsuccess = () => {
+        const cur = r.result;
+        if (!cur) { resolve(total); return; }
+        total += (cur.value as StoredBlob).size ?? 0;
+        cur.continue();
+      };
+      r.onerror = () => reject(r.error);
+    });
+  } catch {
+    return 0;
+  }
+}

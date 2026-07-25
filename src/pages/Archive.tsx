@@ -1,27 +1,34 @@
 /**
  * 아카이브 — 내 보관소 방 (/archive).
- * 좌: 컬렉션(=양식) 사이드바 · 우: 마스트헤드 + 형태칩 + 통합검색 + masonry/타임라인.
- * 저장 UX: 양식 골라 필드 채우기 (AI 채우기 선택). 검색: 키워드 + AI 시맨틱.
+ * 좌: 컬렉션(=폴더) 사이드바 · 우: 마스트헤드 + 형태·태그·연도·정렬 + 검색 + masonry/타임라인.
+ * 저장 UX: 단일 폼 — 제목·내용·링크·파일을 채우고 폴더 하나를 고른다. 형태는 첨부물로 자동 판정.
+ * 진입점 3개: 사이드바/상단 '새 항목' 버튼 · 페이지에 파일 드롭 · URL 붙여넣기(Ctrl+V).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Settings, ChevronDown, Check,
+  Archive as ArchiveIcon, Library, Plus, Home, Star, Search, Settings, ChevronDown, Check, Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { notify } from '@/lib/notify';
-import { KIND_LABEL, type ArchiveCollection, type ArchiveItem, type ArchiveKind } from '@/types/archive';
+import {
+  KIND_LABEL, localYm, localYear, looksLikeUrl, currentLocalYm,
+  type ArchiveCollection, type ArchiveItem, type ArchiveKind,
+} from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { useArchive } from '@/hooks/useArchive';
 import { useFlipGrid } from '@/hooks/useFlipGrid';
 import { tokenMatchAll } from '@/lib/textSearch';
 import { ArchiveCard } from '@/components/archive/ArchiveCard';
 import { ArchiveDetailPanel } from '@/components/archive/ArchiveDetailPanel';
-import { ArchiveNewItemDialog } from '@/components/archive/ArchiveNewItemDialog';
+import { ArchiveNewItemDialog, type ArchiveDraft } from '@/components/archive/ArchiveNewItemDialog';
 import { ArchiveCollectionEditor } from '@/components/archive/ArchiveCollectionEditor';
 import { ArchiveCollectionManager } from '@/components/archive/ArchiveCollectionManager';
 
 type ViewKey = 'all' | 'starred' | string; // string = collectionId
+type SortKey = 'new' | 'old' | 'title';
 const KINDS: ArchiveKind[] = ['note', 'image', 'file', 'link'];
+
+/** 빈 컬렉션이 이만큼 쌓이면 사이드바에서 접는다 (시드 8개가 그대로 남은 초기 상태 대비). */
+const COLLAPSE_EMPTY_AT = 4;
 
 function searchable(it: ArchiveItem): string {
   return [it.title, it.note, it.domain, it.fileName, it.tags.join(' '), it.fields?.map((f) => f.value).join(' ')]
@@ -34,14 +41,22 @@ export default function Archive() {
   const [view, setView] = useState<ViewKey>('all');
   const [kind, setKind] = useState<ArchiveKind | null>(null);
   const [mode, setMode] = useState<'list' | 'timeline'>('list');
+  const [sort, setSort] = useState<SortKey>('new');
   const [query, setQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [draft, setDraft] = useState<ArchiveDraft | undefined>(undefined);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // 컬렉션 편집기 — null이면 닫힘, { collection: null } 이면 새로 만들기, { collection } 이면 편집.
   const [editor, setEditor] = useState<{ collection: ArchiveCollection | null } | null>(null);
   const [managerOpen, setManagerOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [yearF, setYearF] = useState<string>('all');
+  /** 상단 필터 드롭다운은 한 번에 하나만 — 부모가 쥐고 있어야 다른 칩으로 한 번에 넘어간다. */
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const filterBarRef = useRef<HTMLDivElement | null>(null);
+  const [showEmptyCols, setShowEmptyCols] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
   // 상세 패널: gridOpen = grid 폭 애니메이션(우측 부드럽게 밀림), frozenW = 애니메이션 동안 메이슨리 폭 고정
   const [gridOpen, setGridOpen] = useState(false);
   const [frozenW, setFrozenW] = useState<number | null>(null);
@@ -64,10 +79,19 @@ export default function Archive() {
   }, [items]);
 
   const starredCount = useMemo(() => items.filter((i) => i.starred).length, [items]);
+
+  /** 사이드바 선택(전체/별표/컬렉션)까지만 적용한 목록 — 마스트헤드가 서술하는 모집단. */
+  const viewItems = useMemo(() => {
+    if (view === 'starred') return items.filter((i) => i.starred);
+    if (view === 'all') return items;
+    return items.filter((i) => i.collectionId === view);
+  }, [items, view]);
+
+  // 저장 시각은 UTC ISO — 로컬 연월로 환산해서 세야 자정 직후 저장분이 지난달로 새지 않는다.
   const monthCount = useMemo(() => {
-    const ym = new Date().toISOString().slice(0, 7);
-    return items.filter((i) => i.createdAt.startsWith(ym)).length;
-  }, [items]);
+    const ym = currentLocalYm();
+    return viewItems.filter((i) => localYm(i.createdAt) === ym).length;
+  }, [viewItems]);
 
   // 태그 빈도 (전체 항목 기준) — 상위 노출 + 전체 목록 + 저장 자동완성 소스
   const tagEntries = useMemo(() => {
@@ -76,32 +100,122 @@ export default function Archive() {
     return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [items]);
   const allTagNames = useMemo(() => tagEntries.map(([t]) => t), [tagEntries]);
-  // 저장 연도 (createdAt ISO) — 연도 필터 옵션
-  const years = useMemo(() => [...new Set(items.map((i) => i.createdAt.slice(0, 4)).filter(Boolean))].sort().reverse(), [items]);
+  // 저장 연도 (로컬 기준) — 연도 필터 옵션
+  const years = useMemo(() => [...new Set(items.map((i) => localYear(i.createdAt)).filter(Boolean))].sort().reverse(), [items]);
 
-  // 컬렉션/별표(사이드바) + 형태·태그·연도(상단 필터 바) — 전부 AND
+  // 형태·태그·연도(상단 필터 바) — 사이드바 선택 위에 전부 AND
   const scoped = useMemo(() => {
-    let list = items;
-    if (view === 'starred') list = list.filter((i) => i.starred);
-    else if (view !== 'all') list = list.filter((i) => i.collectionId === view);
+    let list = viewItems;
     if (kind) list = list.filter((i) => i.kind === kind);
     if (activeTag) list = list.filter((i) => i.tags.includes(activeTag));
-    if (yearF !== 'all') list = list.filter((i) => i.createdAt.slice(0, 4) === yearF);
+    if (yearF !== 'all') list = list.filter((i) => localYear(i.createdAt) === yearF);
     return list;
-  }, [items, view, kind, activeTag, yearF]);
+  }, [viewItems, kind, activeTag, yearF]);
 
-  // 검색 적용 — 키워드(제목·메모·태그).
+  /** 상단 필터·검색으로 좁혀진 상태인가 — 마스트헤드 서술을 바꾼다. */
+  const narrowed = !!kind || !!activeTag || yearF !== 'all' || query.trim().length > 0;
+
+  // 검색(제목·메모·태그·도메인·파일명) → 정렬. store 가 이미 최신순이라 'new' 는 그대로 둔다.
   const visible = useMemo(() => {
     const q = query.trim();
-    if (!q) return scoped;
-    return scoped.filter((i) => tokenMatchAll(searchable(i), q));
-  }, [scoped, query]);
+    const list = q ? scoped.filter((i) => tokenMatchAll(searchable(i), q)) : scoped;
+    if (sort === 'new') return list;
+    const sorted = [...list];
+    if (sort === 'old') sorted.reverse();
+    else sorted.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+    return sorted;
+  }, [scoped, query, sort]);
 
   const addCollection = () => setEditor({ collection: null });
 
-  const openNew = () => {
+  /** 저장창 열기. d 를 주면(드롭·붙여넣기) 첨부·링크가 미리 채워진 채로 열린다. */
+  const openNew = useCallback((d?: ArchiveDraft) => {
+    setDraft(d);
     setDialogOpen(true);
+  }, []);
+  const closeNew = () => { setDialogOpen(false); setDraft(undefined); };
+
+  /* ── 진입점 2·3: 파일 드롭 · URL 붙여넣기 ──
+   * 보관소의 값어치는 넣는 마찰에 비례한다. 버튼까지 가지 않고도 던져 넣을 수 있게. */
+  const overlayBusy = dialogOpen || !!editor || managerOpen;
+
+  useEffect(() => {
+    if (overlayBusy) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      // 입력 중인 붙여넣기는 건드리지 않는다 (검색창·태그 입력 등).
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const file = e.clipboardData?.files?.[0];
+      if (file) { e.preventDefault(); openNew({ file }); return; }
+      const text = e.clipboardData?.getData('text/plain')?.trim();
+      if (text && looksLikeUrl(text)) { e.preventDefault(); openNew({ url: text }); }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [overlayBusy, openNew]);
+
+  const hasFiles = (e: React.DragEvent) => e.dataTransfer?.types?.includes('Files');
+  const onDragEnter = (e: React.DragEvent) => {
+    if (overlayBusy || !hasFiles(e)) return;
+    dragDepth.current += 1;              // 자식 위를 지날 때마다 enter/leave 가 쌍으로 와서 깊이로 센다
+    setDragOver(true);
   };
+  const onDragLeave = () => {
+    if (dragDepth.current === 0) return;
+    dragDepth.current -= 1;
+    if (dragDepth.current === 0) setDragOver(false);
+  };
+  const onDrop = (e: React.DragEvent) => {
+    if (overlayBusy || !hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) openNew({ file });
+  };
+
+  /* 드래그를 창 밖으로 빼면 마지막 dragleave 가 안 오는 브라우저가 있다 —
+   * 오버레이가 눌러붙지 않게 창 단위로 한 번 더 턴다. */
+  useEffect(() => {
+    if (!dragOver) return;
+    // 루트 밖(여백)에 떨어뜨렸을 때 브라우저가 그 파일로 페이지를 갈아치우는 것도 함께 막는다.
+    const swallow = (e: DragEvent) => e.preventDefault();
+    const clear = (e: DragEvent) => { e.preventDefault(); dragDepth.current = 0; setDragOver(false); };
+    window.addEventListener('dragover', swallow);
+    window.addEventListener('drop', clear);
+    window.addEventListener('dragend', clear);
+    return () => {
+      window.removeEventListener('dragover', swallow);
+      window.removeEventListener('drop', clear);
+      window.removeEventListener('dragend', clear);
+    };
+  }, [dragOver]);
+
+  /* 필터 드롭다운 닫기 — 바깥 포인터다운 · Esc.
+   * 예전엔 각 메뉴가 자기 위에 전면 오버레이를 깔아서, 다른 칩을 누르면 첫 클릭이 닫기에만 먹었다.
+   * 열림 상태를 부모가 쥐고 바 안쪽 클릭은 트리거가 직접 처리 → 한 번에 전환된다. */
+  useEffect(() => {
+    if (!openMenu) return;
+    const onDown = (e: PointerEvent) => {
+      if (!filterBarRef.current?.contains(e.target as Node)) setOpenMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenu(null); };
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [openMenu]);
+
+  /* 시드 8개가 그대로면 사이드바가 '0'으로 도배된다 — 빈 폴더는 접어둔다.
+   * 지금 보고 있는 폴더는 비어 있어도 남긴다(자기 자리를 잃으면 길을 잃으니). */
+  const emptyColIds = useMemo(
+    () => new Set(collections.filter((c) => (counts.get(c.id) ?? 0) === 0 && c.id !== view).map((c) => c.id)),
+    [collections, counts, view],
+  );
+  const collapseEmpty = !showEmptyCols && emptyColIds.size >= COLLAPSE_EMPTY_AT;
+  const navCollections = collapseEmpty ? collections.filter((c) => !emptyColIds.has(c.id)) : collections;
 
   /* ── 상세 열기/닫기 ──
    * grid-template-columns 를 애니메이션해 패널 폭이 0↔400 으로 열리며 마스트헤드가 부드럽게 밀린다.
@@ -142,7 +256,24 @@ export default function Archive() {
   const defaultCollectionId = view !== 'all' && view !== 'starred' ? view : undefined;
 
   return (
-    <div className="archive-theme flex min-h-dvh bg-[#fefcf6] text-foreground">
+    <div
+      className="archive-theme relative flex min-h-dvh bg-[#fefcf6] text-foreground"
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => { if (!overlayBusy && hasFiles(e)) e.preventDefault(); }}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {/* 파일을 끌어오는 중 — 페이지 어디에 놓아도 저장창이 열린다 */}
+      {dragOver && !overlayBusy && (
+        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center bg-[hsl(var(--archive-sepia)/0.08)] backdrop-blur-[1px] duration-150 animate-in fade-in-0">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[hsl(var(--archive-sepia)/0.55)] bg-card/95 px-10 py-8 shadow-xl">
+            <Upload className="h-7 w-7 text-[hsl(var(--archive-sepia))]" />
+            <p className="text-[15px] font-bold text-foreground">여기에 놓으면 저장창이 열려요</p>
+            <p className="text-[12.5px] text-muted-foreground">서류·사진·아무 파일이나</p>
+          </div>
+        </div>
+      )}
+
       {/* ───────── 좌 사이드바 (lg+) ───────── */}
       <aside className="hidden w-[264px] shrink-0 flex-col border-r border-[hsl(var(--hairline))] bg-[#faf6ee] px-3.5 py-5 lg:flex">
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (커리어/인맥노트 기준 락업) */}
@@ -158,7 +289,7 @@ export default function Archive() {
 
         <button
           type="button"
-          onClick={openNew}
+          onClick={() => openNew()}
           className="mb-4 flex items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] py-2 text-[14px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> 새 항목 저장
@@ -180,7 +311,7 @@ export default function Archive() {
           </button>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto">
-          {collections.map((c) => (
+          {navCollections.map((c) => (
             <NavRow
               key={c.id}
               emoji={c.emoji}
@@ -190,6 +321,16 @@ export default function Archive() {
               onClick={() => withFlip(() => setView(c.id))}
             />
           ))}
+          {emptyColIds.size >= COLLAPSE_EMPTY_AT && (
+            <button
+              type="button"
+              onClick={() => setShowEmptyCols((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showEmptyCols && 'rotate-180')} />
+              {showEmptyCols ? '빈 컬렉션 접기' : `빈 컬렉션 ${emptyColIds.size}개`}
+            </button>
+          )}
           <button
             type="button"
             onClick={addCollection}
@@ -210,10 +351,15 @@ export default function Archive() {
         <div className="mb-4 flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0">
             <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-foreground">{viewTitle}</h1>
+            {/* 제목이 주어(지금 보는 곳), 부제가 서술어 — 전역 개수가 아니라 이 뷰의 실데이터. */}
             <p className="mt-1 text-[13px] text-muted-foreground">
-              {items.length === 0
-                ? '아직 비어 있어요 — 무엇이든 저장해 보세요'
-                : <>저장한 항목 {items.length}개{monthCount > 0 && <> · 이번 달 +{monthCount}</>}</>}
+              {viewItems.length === 0
+                ? (view === 'all' ? '아직 비어 있어요 — 무엇이든 저장해 보세요'
+                  : view === 'starred' ? '별표한 항목이 아직 없어요'
+                  : '이 컬렉션은 아직 비어 있어요')
+                : narrowed
+                  ? <>{viewItems.length}개 중 {visible.length}개</>
+                  : <>{view === 'starred' ? '별표한 항목' : '보관 중'} {viewItems.length}개{monthCount > 0 && <> · 이번 달 +{monthCount}</>}</>}
             </p>
           </div>
 
@@ -238,7 +384,9 @@ export default function Archive() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
-                onChange={(e) => withFlip(() => setQuery(e.target.value))}
+                /* 타건마다 FLIP 캡처(전 카드 getBoundingClientRect)를 돌리지 않는다 —
+                 * 검색은 목록이 갈리는 것이지 카드가 옮겨 앉는 게 아니라 글라이드 값어치도 적다. */
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="제목·메모·태그 검색"
                 className="w-full rounded-xl border border-[hsl(var(--input))] bg-card py-2 pl-9 pr-3 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted-foreground/70 focus:border-[hsl(var(--archive-sepia))] focus:shadow-[0_0_0_3px_hsl(var(--archive-sepia)/0.12)]"
               />
@@ -247,7 +395,7 @@ export default function Archive() {
             {/* 새 항목 저장 — 우측 진입점 (사이드바 버튼과 동일 동작) */}
             <button
               type="button"
-              onClick={openNew}
+              onClick={() => openNew()}
               className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[hsl(var(--archive-sepia))] px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.97]"
             >
               <Plus className="h-4 w-4" /> 새 항목
@@ -264,38 +412,47 @@ export default function Archive() {
           ))}
         </div>
 
-        {/* 형태·태그·연도 다축 필터 (드롭다운) — 컬렉션은 사이드바에 */}
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <ArchiveFilterMenu label="형태" value={kind ?? 'all'}
+        {/* 형태·태그·연도 다축 필터 + 정렬 (드롭다운) — 컬렉션은 사이드바에 */}
+        <div ref={filterBarRef} className="mb-5 flex flex-wrap items-center gap-2">
+          <ArchiveFilterMenu id="kind" openMenu={openMenu} setOpenMenu={setOpenMenu} label="형태" value={kind ?? 'all'}
             options={[{ v: 'all', label: '전체 형태' }, ...KINDS.map((k) => ({ v: k, label: KIND_LABEL[k] }))]}
             onChange={(v) => withFlip(() => setKind(v === 'all' ? null : (v as ArchiveKind)))} />
-          <ArchiveFilterMenu label="태그" value={activeTag ?? 'all'}
+          <ArchiveFilterMenu id="tag" openMenu={openMenu} setOpenMenu={setOpenMenu} label="태그" value={activeTag ?? 'all'}
             options={[{ v: 'all', label: '전체 태그' }, ...allTagNames.map((t) => ({ v: t, label: `#${t}` }))]}
             onChange={(v) => withFlip(() => setActiveTag(v === 'all' ? null : v))} />
-          <ArchiveFilterMenu label="연도" value={yearF}
+          <ArchiveFilterMenu id="year" openMenu={openMenu} setOpenMenu={setOpenMenu} label="연도" value={yearF}
             options={[{ v: 'all', label: '전체 연도' }, ...years.map((y) => ({ v: y, label: y }))]}
             onChange={(v) => withFlip(() => setYearF(v))} />
-          {(kind || activeTag || yearF !== 'all') && (
+          {narrowed && (kind || activeTag || yearF !== 'all') && (
             <button type="button" onClick={() => withFlip(() => { setKind(null); setActiveTag(null); setYearF('all'); })}
               className="px-1 text-[12.5px] font-semibold text-foreground/45 transition-colors hover:text-foreground/75">초기화 ✕</button>
           )}
+          {/* 정렬은 필터가 아니라 배열 방식 — 오른쪽 끝에 떼어두고 '초기화'에도 안 걸린다 */}
+          <div className="ml-auto">
+            <ArchiveFilterMenu id="sort" openMenu={openMenu} setOpenMenu={setOpenMenu} label="정렬" value={sort} align="right"
+              options={[{ v: 'new', label: '최신순' }, { v: 'old', label: '오래된순' }, { v: 'title', label: '제목순' }]}
+              onChange={(v) => withFlip(() => setSort(v as SortKey))} />
+          </div>
         </div>
 
         {/* 본문 — 목록↔타임라인 전환은 페이드+리프트로 갈아끼움. frozenW = 패널 애니메이션 동안 폭 고정 */}
         <div key={mode} ref={bodyRef} style={frozenW != null ? { width: frozenW } : undefined} className="duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
-          {visible.length === 0 ? (
-            <EmptyState hasItems={items.length > 0} onNew={openNew} />
-          ) : mode === 'timeline' ? (
-            <Timeline items={visible} onOpen={(i) => openDetail(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
-          ) : (
-            <div ref={gridRef} className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
-              {visible.map((it) => (
-                <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
-                  <ArchiveCard item={it} onOpen={(i) => openDetail(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* gridRef 는 두 모드를 함께 감싼다 — 타임라인도 필터를 바꾸면 카드가 글라이드하도록 */}
+          <div ref={gridRef}>
+            {visible.length === 0 ? (
+              <EmptyState hasItems={viewItems.length > 0} onNew={() => openNew()} />
+            ) : mode === 'timeline' ? (
+              <Timeline items={visible} narrow={!!selectedItem} onOpen={(i) => openDetail(i.id)} onStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
+            ) : (
+              <div className={cn('columns-1 gap-4 sm:columns-2', selectedItem ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
+                {visible.map((it) => (
+                  <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
+                    <ArchiveCard item={it} onOpen={(i) => openDetail(i.id)} onToggleStar={(id) => archiveStore.toggleStar(id)} onTagClick={(t) => withFlip(() => setActiveTag(t))} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -310,10 +467,11 @@ export default function Archive() {
       {/* 저장 다이얼로그 */}
       <ArchiveNewItemDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeNew}
         collections={collections}
         defaultCollectionId={defaultCollectionId}
         allTags={allTagNames}
+        draft={draft}
       />
 
       {/* 컬렉션 만들기·편집기 (사이드바 '새 컬렉션') */}
@@ -338,43 +496,39 @@ export default function Archive() {
 }
 
 /* ── 사이드바 행 ── */
-function NavRow({ icon, emoji, label, count, active, onClick, onSettings }: {
-  icon?: React.ReactNode; emoji?: string; label: string; count: number; active: boolean; onClick: () => void; onSettings?: () => void;
+function NavRow({ icon, emoji, label, count, active, onClick }: {
+  icon?: React.ReactNode; emoji?: string; label: string; count: number; active: boolean; onClick: () => void;
 }) {
   return (
-    <div className="group relative">
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn('flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-[14px] font-medium transition-colors',
-          onSettings && 'pr-8',
-          active ? 'bg-[hsl(var(--archive-sepia))]/[0.14] font-semibold text-[hsl(var(--archive-sepia))] dark:bg-[hsl(var(--archive-sepia))]/24' : 'text-foreground/90 hover:bg-white/45 dark:hover:bg-white/5')}
-      >
-        {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
-        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-        <span className={cn('text-[12px] font-semibold transition-opacity', onSettings && 'group-hover:opacity-0',
-          active ? 'text-[hsl(var(--archive-sepia))]' : 'text-muted-foreground/70')}>{count}</span>
-      </button>
-      {onSettings && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onSettings(); }}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
-          title="컬렉션 설정"
-          aria-label={`${label} 설정`}
-        >
-          <Settings className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-[14px] font-medium transition-colors',
+        active ? 'bg-[hsl(var(--archive-sepia))]/[0.14] font-semibold text-[hsl(var(--archive-sepia))] dark:bg-[hsl(var(--archive-sepia))]/24' : 'text-foreground/90 hover:bg-white/45 dark:hover:bg-white/5')}
+    >
+      {emoji ? <span className="w-5 text-center text-[14px]">{emoji}</span> : <span className="w-5 text-center">{icon}</span>}
+      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+      <span className={cn('text-[12px] font-semibold',
+        active ? 'text-[hsl(var(--archive-sepia))]' : 'text-muted-foreground/70')}>{count}</span>
+    </button>
   );
 }
 
-/** 아카이브 상단 다축 필터 드롭다운 — 세피아 톤. 선택 시 값·세피아 채움, 바깥 클릭 닫힘. */
-function ArchiveFilterMenu({ label, value, options, onChange }: {
-  label: string; value: string; options: { v: string; label: string }[]; onChange: (v: string) => void;
+/**
+ * 아카이브 상단 드롭다운 — 세피아 톤. 열림 상태는 부모가 쥔다(한 번에 하나, 칩 사이 1클릭 전환).
+ * 바깥 클릭·Esc 닫기는 부모의 필터 바 리스너 담당.
+ */
+function ArchiveFilterMenu({ id, openMenu, setOpenMenu, label, value, options, onChange, align = 'left' }: {
+  id: string;
+  openMenu: string | null;
+  setOpenMenu: (v: string | null) => void;
+  label: string;
+  value: string;
+  options: { v: string; label: string }[];
+  onChange: (v: string) => void;
+  align?: 'left' | 'right';
 }) {
-  const [open, setOpen] = useState(false);
+  const open = openMenu === id;
   const allV = options[0]?.v ?? 'all';
   const active = value !== allV;
   const current = options.find((o) => o.v === value);
@@ -382,7 +536,9 @@ function ArchiveFilterMenu({ label, value, options, onChange }: {
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpenMenu(open ? null : id)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className={cn('inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors',
           active ? 'border-transparent bg-[hsl(var(--archive-sepia))] text-white' : 'border-[hsl(var(--hairline))] bg-card text-foreground/70 hover:border-[hsl(var(--archive-sepia))]/40')}
       >
@@ -390,25 +546,29 @@ function ArchiveFilterMenu({ label, value, options, onChange }: {
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-70 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute left-0 top-11 z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[16px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]">
-            {options.map((o) => {
-              const on = o.v === value;
-              return (
-                <button
-                  key={o.v}
-                  type="button"
-                  onClick={() => { onChange(o.v); setOpen(false); }}
-                  className={cn('flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-[13px] transition-colors',
-                    on ? 'bg-[hsl(var(--archive-sepia))]/12 font-bold text-[hsl(var(--archive-sepia))]' : 'font-medium text-foreground/80 hover:bg-[hsl(var(--surface-2))]')}
-                >
-                  {o.label}{on && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        </>
+        <div
+          role="listbox"
+          aria-label={label}
+          className={cn('absolute top-11 z-30 max-h-[300px] min-w-[168px] overflow-y-auto rounded-[16px] border border-[hsl(var(--hairline))] bg-card p-1.5 shadow-[0_18px_44px_-16px_rgba(60,45,20,0.32)]',
+            align === 'right' ? 'right-0' : 'left-0')}
+        >
+          {options.map((o) => {
+            const on = o.v === value;
+            return (
+              <button
+                key={o.v}
+                type="button"
+                role="option"
+                aria-selected={on}
+                onClick={() => { onChange(o.v); setOpenMenu(null); }}
+                className={cn('flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-[13px] transition-colors',
+                  on ? 'bg-[hsl(var(--archive-sepia))]/12 font-bold text-[hsl(var(--archive-sepia))]' : 'font-medium text-foreground/80 hover:bg-[hsl(var(--surface-2))]')}
+              >
+                {o.label}{on && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -428,12 +588,17 @@ function MobileChip({ label, active, onClick }: { label: string; active: boolean
 }
 
 /* ── 타임라인 ── */
-function Timeline({ items, onOpen, onStar, onTagClick }: { items: ArchiveItem[]; onOpen: (i: ArchiveItem) => void; onStar: (id: string) => void; onTagClick: (tag: string) => void }) {
+function Timeline({ items, narrow, onOpen, onStar, onTagClick }: {
+  items: ArchiveItem[]; narrow: boolean; onOpen: (i: ArchiveItem) => void; onStar: (id: string) => void; onTagClick: (tag: string) => void;
+}) {
   const groups = useMemo(() => {
     const m = new Map<string, ArchiveItem[]>();
     for (const it of items) {
-      const key = it.createdAt.slice(0, 7);
-      (m.get(key) ?? m.set(key, []).get(key)!).push(it);
+      // 로컬 연월로 묶는다 — ISO 를 그대로 자르면 자정 직후 저장분이 지난달 칸으로 간다.
+      const key = localYm(it.createdAt);
+      let bucket = m.get(key);
+      if (!bucket) { bucket = []; m.set(key, bucket); }
+      bucket.push(it);
     }
     return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [items]);
@@ -445,9 +610,12 @@ function Timeline({ items, onOpen, onStar, onTagClick }: { items: ArchiveItem[];
         return (
           <section key={ym}>
             <h2 className="mb-3 text-[15px] font-bold text-foreground">{y}년 {Number(mo)}월 <span className="ml-1 text-[12px] font-medium text-muted-foreground">{list.length}개</span></h2>
-            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+            {/* 상세가 열리면 목록 모드와 똑같이 열을 하나 줄인다 */}
+            <div className={cn('columns-1 gap-4 sm:columns-2', narrow ? 'lg:columns-2 xl:columns-3' : 'lg:columns-3 xl:columns-4')}>
               {list.map((it) => (
-                <ArchiveCard key={it.id} item={it} onOpen={onOpen} onToggleStar={onStar} onTagClick={onTagClick} />
+                <div key={it.id} data-flip-id={it.id} className="break-inside-avoid">
+                  <ArchiveCard item={it} onOpen={onOpen} onToggleStar={onStar} onTagClick={onTagClick} />
+                </div>
               ))}
             </div>
           </section>
