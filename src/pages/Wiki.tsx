@@ -1668,12 +1668,14 @@ function DocMain({
               />
               <div className="mt-1 flex shrink-0 items-center gap-2">
                 <span className="hidden sm:inline" style={{ fontSize: 11.5, color: C.muted }}>{fmtRel(active.updated)} 저장됨</span>
+                {/* 본문은 이미 자동 저장되지만, 다 쓰고 누르는 버튼의 이름은 '저장'이어야 한다
+                    — 하는 일(편집 끝내고 읽기 화면으로)은 그대로 */}
                 <button
                   type="button" onClick={() => setMode('read')}
                   className="flex items-center gap-1.5 rounded-lg px-3.5 py-[7px] text-[12.5px] font-semibold text-white transition-colors"
                   style={{ background: C.green }}
                 >
-                  읽기
+                  <Check className="h-3.5 w-3.5" /> 저장
                 </button>
               </div>
             </div>
@@ -1834,61 +1836,119 @@ function BookDialog({ book, onClose, onSave, onDelete }: {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   const valid = title.trim().length > 0;
+  const submit = () => { if (valid) onSave({ id: book?.id, title: title.trim(), tint, intro: intro.trim() }); };
+  const field: React.CSSProperties = {
+    background: C.bg, border: `1px solid ${C.line}`, borderRadius: 9,
+    padding: '9px 11px', color: C.ink, width: '100%', outline: 'none',
+  };
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 p-4 backdrop-blur-[2px]" onMouseDown={onClose}>
-      <div className="w-[440px] max-w-[92vw] rounded-2xl p-6" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 30px 70px -20px rgba(46,28,10,.45)' }} onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-4">
-          {/* 책등 미리보기 */}
-          <span aria-hidden className="relative flex h-[110px] w-[34px] shrink-0 items-center justify-center overflow-hidden" style={{ background: tint, borderRadius: '3px 3px 2px 2px', boxShadow: '0 8px 14px -8px rgba(20,11,3,.55)' }}>
-            <span className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(255,246,228,.26), rgba(255,246,228,0) 16%, rgba(0,0,0,0) 76%, rgba(0,0,0,.32))' }} />
-            <span className="[writing-mode:vertical-rl]" style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 12, letterSpacing: '.16em', color: C.cream }}>{title.trim() || '새 책'}</span>
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>{book ? '책 정보' : '새 책'}</h3>
-            <input
-              autoFocus={!book}
-              value={title} onChange={(e) => setTitle(e.target.value)}
-              placeholder="책 제목"
-              className="mt-2 w-full bg-transparent pb-1 outline-none"
-              style={{ borderBottom: `1px solid ${C.line}`, fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 15, color: C.ink }}
-            />
-            <input
-              value={intro} onChange={(e) => setIntro(e.target.value)}
-              placeholder="한 줄 소개 (선택)"
-              className="mt-2 w-full bg-transparent pb-1 outline-none"
-              style={{ borderBottom: `1px solid ${C.line}`, fontSize: 12.5, color: C.ink }}
-            />
-          </div>
+      <div
+        className="w-[540px] max-w-[94vw] overflow-hidden rounded-2xl"
+        style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 30px 70px -20px rgba(46,28,10,.45)' }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* 머리 */}
+        <div className="flex items-center px-5 py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
+          <h3 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>
+            {book ? '책 정보' : '새 책'}
+          </h3>
+          <button type="button" onClick={onClose} aria-label="닫기" className="ml-auto rounded-md p-1 transition-colors" style={{ color: C.muted }}>
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: C.sub }}>책등 색</span>
-          {BOOK_PALETTE.map((c) => (
-            <button
-              key={c} type="button" onClick={() => setTint(c)} aria-label={`색 ${c}`}
-              className={cn('h-6 w-6 rounded-full transition-transform', tint === c && 'scale-110 ring-2 ring-offset-2')}
-              style={{ background: c, ...(tint === c ? { ['--tw-ring-color' as string]: c } : {}) }}
-            />
-          ))}
-        </div>
-
-        <div className="mt-5 flex items-center justify-between">
-          {onDelete ? (
-            <button type="button" onClick={onDelete} className="underline-offset-4 transition-colors hover:text-rose-500 hover:underline" style={{ fontSize: 12.5, fontWeight: 600, color: C.muted }}>
-              책 삭제
-            </button>
-          ) : <span />}
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-full px-4 py-2" style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>취소</button>
-            <button
-              type="button" disabled={!valid}
-              onClick={() => onSave({ id: book?.id, title: title.trim(), tint, intro: intro.trim() })}
-              className={cn('rounded-full px-5 py-2 font-bold transition-colors hover:bg-[#40372a]', !valid && 'opacity-40')}
-              style={{ background: C.ink, color: C.bg, fontSize: 13 }}
+        <div className="flex flex-col gap-5 p-5 sm:flex-row">
+          {/* 왼쪽 — 서가에 꽂힌 모습 그대로 미리보기.
+              작은 색 견본만 보여주면 '무슨 색을 고르는가'가 와닿지 않는다. 진짜 책등을 세워 보여준다. */}
+          <div
+            className="relative flex flex-none items-end justify-center overflow-hidden rounded-xl px-5 pb-0 pt-7 sm:w-[168px]"
+            style={{
+              background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)',
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 14px 30px rgba(0,0,0,.42)',
+            }}
+          >
+            <span
+              className="relative flex flex-col items-center justify-between"
+              style={{
+                width: 58, height: 196,
+                background: `linear-gradient(180deg, color-mix(in srgb, ${tint} 88%, #fff) 0%, ${tint} 22%, ${tint} 78%, color-mix(in srgb, ${tint} 78%, #000) 100%)`,
+                borderRadius: '4px 4px 3px 3px',
+                boxShadow: '0 16px 22px -10px rgba(20,11,3,.62), inset 0 -5px 9px rgba(0,0,0,.3)',
+                padding: '10px 6px 9px',
+              }}
             >
-              {book ? '저장' : '책 만들기'}
-            </button>
+              <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(90deg, rgba(255,246,228,.3), rgba(255,246,228,.06) 22%, rgba(0,0,0,0) 60%, rgba(0,0,0,.38)), repeating-linear-gradient(0deg, rgba(0,0,0,.045) 0 2px, rgba(255,255,255,.025) 2px 4px)' }} />
+              <span aria-hidden className="h-[6px] w-[62%] flex-none" style={{ borderTop: '2px solid rgba(233,205,140,.9)', borderBottom: '1px solid rgba(233,205,140,.55)' }} />
+              <span
+                className="relative min-h-0 max-h-full overflow-hidden whitespace-nowrap [writing-mode:vertical-rl]"
+                style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 14, letterSpacing: '.18em', lineHeight: 1.15, textOverflow: 'ellipsis', color: '#fbf3e2', textShadow: '0 1px 0 rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.3)' }}
+              >
+                {title.trim() || '새 책'}
+              </span>
+              <span aria-hidden className="h-[20px] flex-none" />
+            </span>
+            {/* 선반 널 */}
+            <span aria-hidden className="absolute inset-x-0 bottom-0 h-[11px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 -6px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.35)' }} />
           </div>
+
+          {/* 오른쪽 — 입력 */}
+          <div className="min-w-0 flex-1">
+            <label className="block">
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: C.sub }}>제목</span>
+              <input
+                autoFocus={!book}
+                value={title} onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
+                placeholder="무엇을 담을 책인가요?"
+                className="mt-1.5"
+                style={{ ...field, fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.01em', fontSize: 15 }}
+              />
+            </label>
+
+            <label className="mt-3.5 block">
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: C.sub }}>한 줄 소개 <span style={{ fontWeight: 500, color: C.muted }}>(선택)</span></span>
+              <input
+                value={intro} onChange={(e) => setIntro(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
+                placeholder="나중의 내가 알아볼 만한 한 줄"
+                className="mt-1.5"
+                style={{ ...field, fontSize: 13 }}
+              />
+            </label>
+
+            <div className="mt-3.5">
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: C.sub }}>책등 색</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {BOOK_PALETTE.map((c) => (
+                  <button
+                    key={c} type="button" onClick={() => setTint(c)} aria-label={`책등 색 ${c}`} aria-pressed={tint === c}
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded-full transition-transform hover:scale-110"
+                    style={{ background: c, boxShadow: tint === c ? `0 0 0 2px ${C.paper}, 0 0 0 4px ${c}` : 'inset 0 -2px 4px rgba(0,0,0,.25)' }}
+                  >
+                    {tint === c && <Check className="h-3.5 w-3.5" style={{ color: '#fbf3e2' }} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 발 */}
+        <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderTop: `1px solid ${C.line}` }}>
+          {onDelete && (
+            <button type="button" onClick={onDelete} className="inline-flex items-center gap-1.5 transition-colors hover:text-rose-500" style={{ fontSize: 12.5, fontWeight: 600, color: C.muted }}>
+              <Trash2 className="h-3.5 w-3.5" /> 책 삭제
+            </button>
+          )}
+          <button type="button" onClick={onClose} className="ml-auto rounded-full px-4 py-2" style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>취소</button>
+          <button
+            type="button" disabled={!valid} onClick={submit}
+            className={cn('rounded-full px-5 py-2 font-bold transition-colors hover:bg-[#40372a]', !valid && 'cursor-not-allowed opacity-40')}
+            style={{ background: C.ink, color: C.bg, fontSize: 13 }}
+          >
+            {book ? '저장' : '책 만들기'}
+          </button>
         </div>
       </div>
     </div>
