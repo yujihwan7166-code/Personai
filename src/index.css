@@ -416,8 +416,8 @@
     --primary: 30 12% 16%;
     --primary-foreground: 40 35% 99%;
 
-    --ring: 6 70% 51%;
-    --focus-ring: 6 72% 53%;
+    --ring: 348 44% 36%;
+    --focus-ring: 348 46% 40%;
     --focus-offset: 220 22% 98%;
 
     --hairline:  35 14% 86%;
@@ -459,8 +459,8 @@
     --primary: 40 16% 90%;
     --primary-foreground: 35 8% 10%;
 
-    --ring: 4 68% 58%;
-    --focus-ring: 4 68% 60%;
+    --ring: 348 58% 64%;
+    --focus-ring: 348 58% 66%;
     --focus-offset: 222 24% 7%;
 
     --hairline:  35 7% 22%;
