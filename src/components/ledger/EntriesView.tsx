@@ -186,7 +186,8 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
 
       {/* 벌크바 */}
       {sel.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 14px', borderRadius: 10, background: C.tipInk, color: '#fff', flexWrap: 'wrap' }}>
+        /* 선택은 목록 아래에서 하는데 바가 위에 있으면 스크롤 후 손이 닿지 않는다 — 스티키로 따라다니게 */
+        <div style={{ position: 'sticky', top: 8, zIndex: 15, display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 14px', borderRadius: 10, background: C.tipInk, color: '#fff', flexWrap: 'wrap', boxShadow: '0 6px 20px rgba(27,31,39,0.22)' }}>
           <span style={{ fontSize: 12.5, fontWeight: 650 }}>{sel.length}건 선택</span>
           <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)' }} />
           {([['카테고리 변경', bulkCategory, '#fff'], ['규칙으로 만들기', bulkRule, '#fff'], ['삭제', bulkDelete, '#FFD9D2']] as const).map(([t, fn, col]) => (
