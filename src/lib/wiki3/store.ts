@@ -325,6 +325,180 @@ export function buildSeedStore(): WikiStore {
   return { books, docs, recent: ['wkseed_start'] };
 }
 
+/**
+ * 예시 책 3권 — 이미 쓰고 있는 서재에 '덧붙이는' 용도.
+ *
+ * 시드(buildSeedStore)는 빈 서재에서 1회만 깔려서, 이미 책이 있는 사람은 영영 못 본다.
+ * 이건 언제 눌러도 되도록 id 에 stamp 를 붙여 충돌을 피한다.
+ *
+ * 세 권은 '몸을 굴리는 하루'라는 한 축으로 서로 얽혀 있다 —
+ * 달리기↔잠(회복), 부엌↔달리기(먹을 것), 부엌↔잠(카페인).
+ * 책을 넘나드는 링크가 어떻게 하나의 지식망이 되는지 보이는 게 목적.
+ */
+export function buildExampleBooks(stamp: string = String(Date.now()).slice(-6)): { books: WikiBook[]; docs: WikiDoc[] } {
+  const now = Date.now();
+  const B = (s: string) => `bkex_${s}_${stamp}`;
+  const D = (s: string) => `wkex_${s}_${stamp}`;
+
+  const books: WikiBook[] = [
+    { id: B('run'), title: '달리기', tint: '#3f6058', intro: '천천히, 오래 달리기 위한 기록', updated: now },
+    { id: B('kit'), title: '부엌', tint: '#9a4632', intro: '자주 해먹는 것들', updated: now - 1000 },
+    { id: B('sleep'), title: '잠', tint: '#33465e', intro: '잘 자려고 해본 것들', updated: now - 2000 },
+  ];
+
+  const docs: WikiDoc[] = [
+    /* ── 달리기 ── */
+    {
+      id: D('run_start'), book: B('run'), title: '처음 4주', parent: null, tags: ['기본'], pinned: true, updated: now,
+      body: [
+        _p('숨이 안 찰 만큼 느리게. 이 시기에 빨리 달리면 무릎부터 나간다.'),
+        _h2('주차별로'),
+        _li('1주 — 걷기 5분 / 달리기 1분 × 6회'),
+        _li('2주 — 걷기 4분 / 달리기 2분 × 6회'),
+        _li('3주 — 걷기 3분 / 달리기 3분 × 6회'),
+        _li('4주 — 걷기 2분 / 달리기 5분 × 5회'),
+        _h2('무엇을 먼저 챙기나'),
+        _pl(['장비는 하나면 된다 — ', { link: '신발 고르기', to: D('run_shoes') }, '. 나머지는 있는 옷으로 충분하다.']),
+        _pl(['달리고 나서 몸이 안 돌아온다면 훈련이 아니라 ', { link: '회복과 잠', to: D('sleep_rec') }, ' 문제일 때가 많다.']),
+        _quote('4주를 채우는 게 목표지, 빨라지는 게 목표가 아니다.'),
+      ] as Value,
+    },
+    {
+      id: D('run_shoes'), book: B('run'), title: '신발 고르기', parent: D('run_start'), tags: ['장비'], pinned: false, updated: now - 3600000,
+      body: [
+        _p('발볼과 착지만 맞으면 나머지는 취향이다. 가격은 성능 순서가 아니다.'),
+        _h2('매장에서 확인할 것'),
+        _li('저녁에 신어볼 것 — 발은 하루 동안 붓는다'),
+        _li('엄지 앞에 손가락 하나 만큼 여유'),
+        _li('평소 신는 러닝 양말을 신고 갈 것'),
+        _h2('바꿀 때'),
+        _p('바닥 무늬가 닳아 평평해지면 교체. 보통 600~800km.'),
+      ] as Value,
+    },
+    {
+      id: D('run_pace'), book: B('run'), title: '페이스와 심박', parent: null, tags: [], pinned: false, updated: now - 7200000,
+      body: [
+        _p('속도를 숫자로 보면 욕심이 생긴다. 심박으로 보면 몸이 하는 말이 들린다.'),
+        _h2('대화 테스트'),
+        _p('옆 사람과 문장을 끊지 않고 말할 수 있으면 맞는 속도. 단어로만 대답하게 되면 너무 빠르다.'),
+        _pl(['숫자로 관리하고 싶다면 ', { link: '존2 훈련', to: D('run_z2') }, '을 보라.']),
+      ] as Value,
+    },
+    {
+      id: D('run_z2'), book: B('run'), title: '존2 훈련', parent: D('run_pace'), tags: [], pinned: false, updated: now - 8000000,
+      body: [
+        _p('최대심박의 60~70% 구간. 지루할 만큼 느린 게 정상이다.'),
+        _li('최대심박 어림 = 220 − 나이'),
+        _li('주 달리기의 8할을 이 구간에'),
+        _li('나머지 2할만 빠르게'),
+        _quote('느리게 달린 거리가 빠른 날의 밑천이 된다.'),
+      ] as Value,
+    },
+    {
+      id: D('run_fuel'), book: B('run'), title: '달리기 전에 먹는 것', parent: null, tags: ['먹기'], pinned: false, updated: now - 9000000,
+      body: [
+        _p('아침 공복으로 30분까지는 괜찮다. 그 이상이면 뭔가 넣고 나가는 편이 낫다.'),
+        _pl(['가볍게 먹을 것 — ', { link: '아침 오트밀', to: D('kit_oat') }, '을 절반만.']),
+        _li('출발 60분 전 — 바나나 하나'),
+        _li('출발 20분 전 — 물 200ml'),
+        _li('피할 것 — 기름진 것, 유제품'),
+      ] as Value,
+    },
+
+    /* ── 부엌 ── */
+    {
+      id: D('kit_oat'), book: B('kit'), title: '아침 오트밀', parent: null, tags: ['아침'], pinned: false, updated: now - 10000000,
+      body: [
+        _p('5분이면 되고 설거지는 냄비 하나. 아침을 거르지 않게 된 결정적인 한 그릇.'),
+        _h2('기본'),
+        _li('오트 40g + 물이나 우유 200ml'),
+        _li('약불 3분, 눌어붙지 않게 저어주기'),
+        _li('불 끄고 소금 한 꼬집 — 단맛이 살아난다'),
+        _h2('얹는 것'),
+        _li('바나나 · 견과 · 계핏가루'),
+        _pl(['달리는 날 아침이면 ', { link: '달리기 전에 먹는 것', to: D('run_fuel') }, '을 함께 볼 것.']),
+      ] as Value,
+    },
+    {
+      id: D('kit_caf'), book: B('kit'), title: '카페인', parent: null, tags: [], pinned: false, updated: now - 11000000,
+      body: [
+        _p('끊는 게 아니라 시간을 옮기는 문제였다.'),
+        _h2('반감기'),
+        _p('보통 5~6시간. 오후 3시의 커피 절반이 밤 9시까지 남아 있다는 뜻이다.'),
+        _pl(['몇 시까지가 안전한지는 ', { link: '카페인 끊는 시간', to: D('sleep_caf') }, '에 정리해 두었다.']),
+        _h2('대체'),
+        _li('오후엔 보리차 · 루이보스'),
+        _li('디카페인도 완전히 0은 아니다'),
+      ] as Value,
+    },
+    {
+      id: D('kit_shop'), book: B('kit'), title: '장보기 원칙', parent: null, tags: [], pinned: false, updated: now - 12000000,
+      body: [
+        _p('배고플 때 장을 보면 반은 버리게 된다.'),
+        _li('일주일에 한 번, 목록을 적어서'),
+        _li('채소는 사흘 치만 — 그 이상은 시든다'),
+        _pl([{ link: '냉장고 비우는 주', to: D('kit_empty') }, '를 끼워 넣으면 낭비가 확 준다.']),
+      ] as Value,
+    },
+    {
+      id: D('kit_empty'), book: B('kit'), title: '냉장고 비우는 주', parent: D('kit_shop'), tags: [], pinned: false, updated: now - 13000000,
+      body: [
+        _p('한 달에 한 주는 아무것도 사지 않고 있는 것만 먹는다.'),
+        _li('첫날 — 남은 재료를 전부 적기'),
+        _li('중간 — 국·볶음밥으로 자투리 소진'),
+        _li('끝 — 냉동실 정리, 다음 장보기 목록 자동 완성'),
+        _quote('버리는 음식이 줄면 장보기 목록이 저절로 짧아진다.'),
+      ] as Value,
+    },
+
+    /* ── 잠 ── */
+    {
+      id: D('sleep_base'), book: B('sleep'), title: '잘 자는 기본', parent: null, tags: ['기본'], pinned: true, updated: now - 14000000,
+      body: [
+        _p('여러 가지를 해봤지만 결국 남은 건 세 가지였다.'),
+        _li('같은 시각에 일어나기 — 자는 시각보다 이게 먼저다'),
+        _li('아침에 바깥 빛 보기'),
+        _li('자기 전 90분은 화면 밝기 낮추기'),
+        _pl(['방을 어떻게 만들지는 ', { link: '빛과 온도', to: D('sleep_light') }, '에.']),
+        _pl(['커피를 줄여도 안 되면 ', { link: '카페인 끊는 시간', to: D('sleep_caf') }, '을 다시 볼 것.']),
+      ] as Value,
+    },
+    {
+      id: D('sleep_light'), book: B('sleep'), title: '빛과 온도', parent: D('sleep_base'), tags: [], pinned: false, updated: now - 15000000,
+      body: [
+        _h2('빛'),
+        _li('취침 2시간 전부터 천장등 끄고 스탠드만'),
+        _li('암막 커튼 — 새벽 빛 한 줄이 생각보다 크다'),
+        _h2('온도'),
+        _p('18~20도가 대체로 잘 맞았다. 이불은 두껍게, 공기는 서늘하게.'),
+      ] as Value,
+    },
+    {
+      id: D('sleep_caf'), book: B('sleep'), title: '카페인 끊는 시간', parent: null, tags: [], pinned: false, updated: now - 16000000,
+      body: [
+        _p('11시에 잔다면 오후 2시가 마지노선이었다.'),
+        _pl(['왜 그런지는 ', { link: '카페인', to: D('kit_caf') }, '의 반감기 부분에.']),
+        _li('오전 — 마음껏'),
+        _li('12~14시 — 한 잔까지'),
+        _li('14시 이후 — 디카페인이나 차'),
+      ] as Value,
+    },
+    {
+      id: D('sleep_rec'), book: B('sleep'), title: '회복과 잠', parent: null, tags: [], pinned: false, updated: now - 17000000,
+      body: [
+        _p('운동은 자극이고, 실제로 좋아지는 건 자는 동안이다.'),
+        _pl(['달린 다음 날 다리가 무겁다면 ', { link: '페이스와 심박', to: D('run_pace') }, '을 먼저 의심할 것 — 대개 너무 빨리 달렸다.']),
+        _h2('신호'),
+        _li('아침 안정심박이 평소보다 5 이상 높으면 쉬는 날로'),
+        _li('잠들기까지 오래 걸리면 그날 훈련이 과했다는 뜻'),
+        _pl(['가벼운 날의 아침은 ', { link: '아침 오트밀', to: D('kit_oat') }, ' 정도면 충분하다.']),
+      ] as Value,
+    },
+  ];
+
+  return { books, docs };
+}
+
 /** 완전 빈 상태 + 시드 안 깔린 적 있으면 예시 서재를 깐다. */
 export function seedIfEmpty(store: WikiStore): WikiStore {
   if (store.books.length > 0 || store.docs.length > 0) return store;

@@ -13,6 +13,7 @@ import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
 import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
+  buildExampleBooks,
   type WikiBook, type WikiDoc, type WikiStore,
 } from '@/lib/wiki3/store';
 import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
@@ -74,7 +75,25 @@ const WIKI_CSS = `
 .wiki-theme .wiki-row-moved { animation: wikiMoved .9s ease-out; }
 @keyframes wikiMoved { from { background: rgba(48,95,76,.24); } to { background: transparent; } }
 
+/* 돌아가기 칩 — 링크를 타고 건너온 순간에만 왼쪽에서 밀려들어온다.
+   가만히 놓여 있으면 빵가루의 일부로 읽혀 그냥 지나치기 때문에, 등장 자체가 안내가 된다.
+   뒤이어 한 번 더 흔들어(nudge) 눈길을 준다. */
+.wiki-theme .wiki-back { animation: wikiBackIn .4s cubic-bezier(.22,1,.36,1) both, wikiBackNudge 1.1s ease-in-out .5s 1; }
+@keyframes wikiBackIn {
+  from { opacity:0; transform: translateX(-14px); }
+  to   { opacity:1; transform: none; }
+}
+@keyframes wikiBackNudge {
+  0%, 100% { transform: none; }
+  38%      { transform: translateX(-4px); }
+  62%      { transform: translateX(-1px); }
+}
+.wiki-theme .wiki-back .wiki-back-arrow { transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+.wiki-theme .wiki-back:hover .wiki-back-arrow { transform: translateX(-3px); }
+
 @media (prefers-reduced-motion: reduce) {
+  .wiki-theme .wiki-back { animation:none; }
+  .wiki-theme .wiki-back .wiki-back-arrow, .wiki-theme .wiki-back:hover .wiki-back-arrow { transition:none; transform:none; }
   .wiki-theme .wiki-spine, .wiki-theme .wiki-spine:hover { transition:none; transform:none !important; }
   .wiki-theme .wiki-rise, .wiki-theme .wiki-page { animation:none; }
   .wiki-theme .wiki-pendulum { animation:none; }
@@ -278,8 +297,9 @@ export default function Wiki() {
       const t = e.target as HTMLElement | null;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
       if (picker || bookDialog) return;
-      // 링크를 타고 왔다면 나가기 전에 왔던 길부터 되짚는다
-      if (docId && trail.length) { goBack(); return; }
+      // 링크를 타고 왔다면 나가기 전에 왔던 길부터 되짚는다.
+      // trail.length 가 아니라 backDoc 으로 판단해야 '전부 지워진 발자국'이 Esc 를 삼키지 않는다.
+      if (docId && backDoc) { goBack(); return; }
       if (docId) { setDocId(null); setMode('read'); mainRef.current?.scrollTo(0, 0); }
       else if (bookId) { setBookId(null); mainRef.current?.scrollTo(0, 0); }
     };
@@ -304,16 +324,29 @@ export default function Wiki() {
     setStore((s) => ({ ...s, recent: [id, ...s.recent.filter((r) => r !== id)].slice(0, 10) }));
     setQ(''); top();
   };
-  /** 발자국 한 칸 되짚기 — 왔던 문서로. */
+  /** 발자국 한 칸 되짚기 — 왔던 문서로.
+   *  사이에 지워진 문서가 끼어 있을 수 있으니 살아 있는 칸이 나올 때까지 건너뛴다
+   *  (안 그러면 Esc 를 눌렀는데 아무 일도 안 일어난 것처럼 보인다). */
   const goBack = () => {
-    const prev = trail[trail.length - 1];
-    if (!prev) return;
-    setTrail((t) => t.slice(0, -1));
-    const d = docs.find((x) => x.id === prev);
-    if (!d) return;
-    setBookId(d.book); setDocId(prev); setMode('read'); setQ(''); top();
+    const rest = [...trail];
+    while (rest.length) {
+      const prev = rest.pop()!;
+      const d = docs.find((x) => x.id === prev);
+      if (!d) continue;
+      setTrail(rest);
+      setBookId(d.book); setDocId(prev); setMode('read'); setQ(''); top();
+      return;
+    }
+    setTrail([]);
   };
-  const backDoc = trail.length ? docs.find((x) => x.id === trail[trail.length - 1]) : undefined;
+  /** 되돌아갈 문서 — 지워진 칸은 건너뛴 마지막 생존 발자국. */
+  const backDoc = (() => {
+    for (let i = trail.length - 1; i >= 0; i -= 1) {
+      const d = docs.find((x) => x.id === trail[i]);
+      if (d) return d;
+    }
+    return undefined;
+  })();
 
   /** 빵가루 한 칸 — 컴포넌트가 아니라 함수(렌더마다 새 타입이 되면 불필요한 remount). */
   const crumbBtn = (key: string, label: string, onClick: () => void) => (
@@ -327,6 +360,14 @@ export default function Wiki() {
       {label}
     </button>
   );
+
+  /** 예시 책 3권 덧붙이기 — 시드는 빈 서재에만 1회 깔리므로, 이미 쓰던 사람은 이 길로. */
+  const addExampleBooks = () => {
+    const { books: nb, docs: nd } = buildExampleBooks();
+    setStore((s) => ({ ...s, books: [...s.books, ...nb], docs: [...s.docs, ...nd] }));
+    setShelfPage(0);
+    openBook(nb[0].id);
+  };
 
   /* ── 책 ── */
   const saveBook = (input: { id?: string; title: string; tint: string; intro: string }) => {
@@ -917,15 +958,21 @@ export default function Wiki() {
               왼쪽 '돌아가기'는 트리 위치가 아니라 '왔던 길'이라 따로 세워 구분한다. */}
           <div className="flex items-center gap-2">
             {backDoc && (
+              /* key 에 깊이를 물려 링크를 한 번 더 탈 때마다 등장 모션이 다시 돈다 —
+                 화살표만 덩그러니 있으면 빵가루의 일부로 읽혀 지나치게 되므로 '돌아가기'를 글자로 박는다. */
               <button
-                type="button" onClick={goBack} title="왔던 문서로 돌아가기"
-                className="flex max-w-[220px] shrink-0 items-center gap-1.5 rounded-full py-[5px] pl-2.5 pr-3 transition-colors"
-                style={{ background: 'rgba(48,95,76,.1)', color: C.green, fontSize: 12.5, fontWeight: 700 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.17)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.1)'; }}
+                key={trail.length}
+                type="button" onClick={goBack}
+                title={`'${backDoc.title || '무제'}'(으)로 돌아가기 — Esc`}
+                className="wiki-back flex max-w-[320px] shrink-0 items-center gap-1.5 rounded-full py-[6px] pl-2.5 pr-3.5 transition-colors"
+                style={{ background: 'rgba(48,95,76,.12)', color: C.green, fontSize: 12.5, boxShadow: 'inset 0 0 0 1px rgba(48,95,76,.18)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.2)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.12)'; }}
               >
-                <span aria-hidden>←</span>
-                <span className="min-w-0 truncate">{backDoc.title || '무제'}</span>
+                <span aria-hidden className="wiki-back-arrow">←</span>
+                <span className="shrink-0" style={{ fontWeight: 800 }}>돌아가기</span>
+                <span aria-hidden className="shrink-0" style={{ opacity: .35 }}>·</span>
+                <span className="min-w-0 truncate" style={{ fontWeight: 600, opacity: .85 }}>{backDoc.title || '무제'}</span>
               </button>
             )}
             <div className="flex min-w-0 flex-1 items-center gap-[2px]" style={{ fontSize: 13, color: C.sub }}>
@@ -941,8 +988,9 @@ export default function Wiki() {
               <span className="shrink-0 opacity-50">›</span>
               <span className="min-w-0 truncate px-1.5" style={{ color: C.ink, fontWeight: 600 }}>{active.title || '무제'}</span>
             </div>
+            {/* 칩과 같은 일을 하는 키라는 걸 붙여 말해준다 */}
             <span className="hidden shrink-0 sm:inline" style={{ fontSize: 12, color: C.muted }}>
-              {backDoc ? 'Esc로 되돌아가기' : 'Esc로 돌아가기'}
+              {backDoc ? 'Esc 로도 돌아가요' : 'Esc로 돌아가기'}
             </span>
           </div>
 
@@ -1354,6 +1402,20 @@ export default function Wiki() {
               )}
             </div>
             {shelfBar}
+          </div>
+
+          {/* 예시 책 — 링크로 얽힌 세 권을 한 번에 꽂아 이 방이 어떻게 굴러가는지 보여준다 */}
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button" onClick={addExampleBooks}
+              className="rounded-md px-2 py-1 transition-colors"
+              style={{ fontSize: 12, color: C.muted }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.green; e.currentTarget.style.background = 'rgba(48,95,76,.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = 'transparent'; }}
+              title="달리기·부엌·잠 — 서로 링크로 이어진 예시 책 3권을 서가에 꽂아요"
+            >
+              예시 책 3권 넣어보기
+            </button>
           </div>
 
           {/* 서가 페이지 넘김 — 선반은 한 칸이고 넘치는 책은 다음 장에 꽂힌다 */}
