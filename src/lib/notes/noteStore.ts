@@ -203,13 +203,50 @@ export function removeNoteTag(id: string, tag: string): void {
   }), false);
 }
 
+/* ── 태그 목록 ──
+ * 태그는 원래 노트에 붙어 있을 때만 존재했다. 그래서 '태그를 먼저 만들어 두는 것'이 불가능하고,
+ * 마지막 노트에서 떼면 태그도 같이 증발했다. 따로 만든 태그를 여기 담아 둔다.
+ * (노트에 붙은 태그는 여전히 노트가 진실 — 이건 '빈 태그'를 살려두기 위한 명부다) */
+const TAGS_KEY = 'allinone.notes.tags.v1';
+
+function readTagRegistry(): string[] {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(TAGS_KEY) ?? '[]');
+    return Array.isArray(raw) ? raw.filter((t): t is string => typeof t === 'string' && !!t.trim()) : [];
+  } catch { return []; }
+}
+
+function writeTagRegistry(tags: string[]): void {
+  try { window.localStorage.setItem(TAGS_KEY, JSON.stringify(tags)); } catch { /* 용량 초과 등 */ }
+  window.dispatchEvent(new CustomEvent(CHANGED_EVENT));
+}
+
+/** 따로 만들어 둔 태그(아직 아무 노트에도 안 붙은 것 포함). */
+export function listTagRegistry(): string[] {
+  return readTagRegistry();
+}
+
+/** 태그를 미리 만들어 둔다. 이미 있으면(노트에 붙어 있든 명부에 있든) 아무 일도 안 한다. */
+export function createTag(raw: string): string | null {
+  const tag = normTag(raw);
+  if (!tag) return null;
+  const lower = tag.toLowerCase();
+  const inNotes = readAll().some((n) => (n.meta?.tags ?? []).some((t) => t.toLowerCase() === lower));
+  const reg = readTagRegistry();
+  if (inNotes || reg.some((t) => t.toLowerCase() === lower)) return tag;
+  writeTagRegistry([...reg, tag]);
+  return tag;
+}
+
 /**
- * 태그 자체를 없앤다 — 모든 노트에서 걷어낸다.
+ * 태그 자체를 없앤다 — 모든 노트에서 걷어내고 명부에서도 지운다.
  * 노트별 제거만 있으면, 쓰던 태그를 목록에서 치우려고 노트를 하나하나 뒤져야 한다.
  */
 export function deleteTagEverywhere(raw: string): void {
   const tag = normTag(raw).toLowerCase();
   if (!tag) return;
+  const reg = readTagRegistry();
+  const nextReg = reg.filter((t) => t.toLowerCase() !== tag);
   const notes = readAll();
   let hit = false;
   const next = notes.map((n) => {
@@ -219,6 +256,7 @@ export function deleteTagEverywhere(raw: string): void {
     return { ...n, meta: { ...n.meta, surface: 'memo' as const, tags: tags.filter((t) => t.toLowerCase() !== tag) } };
   });
   if (hit) writeAll(next);
+  if (nextReg.length !== reg.length) writeTagRegistry(nextReg);
 }
 
 /**
@@ -385,6 +423,20 @@ function getSnapshot(): Note[] {
 
 export function useNotes(): Note[] {
   return useSyncExternalStore(subscribe, getSnapshot, () => cachedSnapshot);
+}
+
+/* 태그 명부는 노트와 다른 키에 있어서 노트 스냅샷만 보면 변화를 놓친다 —
+   0건짜리 태그를 만들어도 화면이 안 바뀌는 이유가 된다. 따로 구독한다. */
+let tagsSnapshot: string[] = [];
+let tagsKey = '';
+function getTagsSnapshot(): string[] {
+  const tags = readTagRegistry();
+  const key = tags.join('|');
+  if (key !== tagsKey) { tagsKey = key; tagsSnapshot = tags; }
+  return tagsSnapshot;
+}
+export function useTagRegistry(): string[] {
+  return useSyncExternalStore(subscribe, getTagsSnapshot, () => tagsSnapshot);
 }
 
 let trashSnapshot: Note[] = [];

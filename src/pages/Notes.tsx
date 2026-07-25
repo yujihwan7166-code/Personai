@@ -20,7 +20,8 @@ import { SheetEditor } from '@/components/notes/SheetEditor';
 import {
   useNotes, createNote, updateNoteTitle, updateTab, addTab, removeTab, reorderTab, moveTabToNote, deleteNote,
   noteDisplayTitle, notePlainText, emptyMemoValue,
-  toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag, deleteTagEverywhere,
+  toggleFavorite, sortedFavorites, moveFavorite, setNoteEmoji, addNoteTag, removeNoteTag,
+  deleteTagEverywhere, createTag, useTagRegistry,
   useTrash, restoreNote, purgeNote, emptyTrash,
   type Note, type TabItem, type TabType,
 } from '@/lib/notes/noteStore';
@@ -42,6 +43,9 @@ const Notes = () => {
   const [renamingTab, setRenamingTab] = useState<string | null>(null); // 탭 이름 인라인 편집 중
   const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null); // 사이드바 태그 필터
+  const [makingTag, setMakingTag] = useState(false);               // 태그 만들기 입력 열림
+  const [tagName, setTagName] = useState('');
+  const tagRegistry = useTagRegistry();
   const [tagDraft, setTagDraft] = useState(''); // 노트 메뉴에서 새 태그 입력
   const [menuFor, setMenuFor] = useState<string | null>(null);
   // 메뉴는 fixed 좌표로 — 사이드바 스크롤 컨테이너에 잘리지 않게 화면 기준으로 띄운다.
@@ -63,8 +67,10 @@ const Notes = () => {
       : notes;
 
   /** 전체 노트에서 쓰인 태그 → 빈도순. 사이드바 필터 목록. */
+  /* 노트에 붙은 태그 + 따로 만들어 둔 태그(아직 0건인 것도 자리를 지킨다) */
   const allTags = (() => {
     const m = new Map<string, number>();
+    for (const t of tagRegistry) m.set(t, 0);
     for (const n of notes) for (const t of noteTagsOf(n)) m.set(t, (m.get(t) ?? 0) + 1);
     return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko'));
   })();
@@ -180,8 +186,12 @@ const Notes = () => {
   /** 태그 자체를 없애기 — 여러 노트에 걸쳐 있으니 몇 개에서 빠지는지 알려주고 묻는다. */
   const deleteTagEverywhere_ = (tag: string) => {
     const n = notes.filter((x) => (x.meta?.tags ?? []).some((t) => t.toLowerCase() === tag.toLowerCase())).length;
-    if (!window.confirm(`'${tag}' 태그를 없앨까요?\n\n노트 ${n}개에서 태그만 빠지고, 노트는 그대로예요.`)) return;
+    const msg = n === 0
+      ? `'${tag}' 태그를 없앨까요?\n\n아직 붙은 노트가 없어요.`
+      : `'${tag}' 태그를 없앨까요?\n\n노트 ${n}개에서 태그만 빠지고, 노트는 그대로예요.`;
+    if (!window.confirm(msg)) return;
     deleteTagEverywhere(tag);
+    if (activeTag === tag) setActiveTag(null); // 필터로 걸려 있던 태그가 사라지면 목록이 빈 채로 남는다
     notify.success(`'${tag}' 태그를 없앴어요`);
   };
 
@@ -421,9 +431,40 @@ const Notes = () => {
           ) : (
             <div className="space-y-2">
               {/* 태그 필터 — 클릭해서 좁혀 보기 (Apple/Bear 노트식 분류) */}
-              {allTags.length > 0 && (
+              {(allTags.length > 0 || makingTag) && (
                 <div>
-                  <p className="px-3 pb-1.5 pt-1 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">태그</p>
+                  <div className="flex items-center px-3 pb-1.5 pt-1">
+                    <p className="m-0 text-[11.5px] font-semibold tracking-[0.05em] text-[#7189ab]">태그</p>
+                    <button
+                      type="button"
+                      onClick={() => setMakingTag(true)}
+                      title="태그 만들기"
+                      aria-label="태그 만들기"
+                      className="ml-auto rounded p-0.5 text-[#7189ab] transition-colors hover:bg-white/60 hover:text-foreground dark:hover:bg-white/10"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {/* 태그를 먼저 만들어 두기 — 노트에 붙기 전에도 목록에 자리를 잡는다 */}
+                  {makingTag && (
+                    <div className="px-2 pb-1.5">
+                      <input
+                        autoFocus
+                        value={tagName}
+                        onChange={(e) => setTagName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                            const t = createTag(tagName);
+                            if (t) notify.success(`#${t} 태그를 만들었어요`);
+                            setTagName(''); setMakingTag(false);
+                          } else if (e.key === 'Escape') { setTagName(''); setMakingTag(false); }
+                        }}
+                        onBlur={() => { if (!tagName.trim()) setMakingTag(false); }}
+                        placeholder="태그 이름 + Enter"
+                        className="h-7 w-full rounded-md border border-[hsl(var(--hairline))] bg-background px-2 text-[12px] outline-none placeholder:text-muted-foreground/50 focus:border-primary/50"
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-1 px-2">
                     <button
                       type="button"
@@ -435,19 +476,33 @@ const Notes = () => {
                     >
                       전체
                     </button>
+                    {/* 칩 안에 버튼을 또 넣으면 '버튼 속 버튼'이 된다 — 두 버튼을 나란히 감싼다 */}
                     {allTags.map(([t, count]) => (
-                      <button
+                      <span
                         key={t}
-                        type="button"
-                        onClick={() => setActiveTag(activeTag === t ? null : t)}
                         className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors',
+                          'group/tg inline-flex items-center rounded-full text-[12px] font-medium transition-colors',
                           activeTag === t ? 'bg-primary text-primary-foreground' : 'bg-white text-[#4d5563] hover:bg-white/70 dark:bg-white/10 dark:text-foreground/70',
                         )}
                       >
-                        <Hash className="h-3 w-3 opacity-70" />{t}
-                        <span className="tabular-nums opacity-60">{count}</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTag(activeTag === t ? null : t)}
+                          className="inline-flex items-center gap-1 rounded-l-full py-1 pl-2.5 pr-1.5"
+                        >
+                          <Hash className="h-3 w-3 opacity-70" />{t}
+                          <span className="tabular-nums opacity-60">{count}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTagEverywhere_(t)}
+                          title={`'${t}' 태그 지우기`}
+                          aria-label={`${t} 태그 지우기`}
+                          className="w-0 overflow-hidden rounded-r-full opacity-0 transition-all group-hover/tg:w-[18px] group-hover/tg:pr-1.5 group-hover/tg:opacity-70 hover:!opacity-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
                     ))}
                   </div>
                 </div>
