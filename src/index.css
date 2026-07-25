@@ -814,6 +814,184 @@
     background-color: color-mix(in srgb, var(--tk-accent) 35%, transparent);
   }
 
+  .rewind-theme {
+    /* 되감기 — "라이트테이블 위의 필름". 티켓북처럼 앱 라이트/다크와 무관한 단일 다크지만
+     * 그쪽이 네이비라면 이쪽은 중립 차콜이다. 빛은 게이트 하나에서만 나오고,
+     * 그 차가운 빛(청록) ↔ 따뜻한 필름 베이스(주황빛 갈색)의 대비가 이 방의 전부. */
+    --background: 30 7% 9%;
+    --foreground: 40 10% 91%;
+
+    --card: 30 6% 12%;
+    --card-foreground: 40 10% 91%;
+
+    --popover: 30 7% 11%;
+    --popover-foreground: 40 10% 91%;
+
+    --muted: 30 5% 17%;
+    --muted-foreground: 36 6% 61%;
+
+    --accent: 30 5% 18%;
+    --accent-foreground: 40 10% 91%;
+
+    --secondary: 30 5% 17%;
+    --secondary-foreground: 38 8% 78%;
+
+    --border: 30 5% 22%;
+    --input: 30 5% 22%;
+
+    --primary: 191 50% 50%;
+    --primary-foreground: 195 45% 8%;
+
+    --ring: 191 50% 50%;
+    --focus-ring: 191 52% 54%;
+    --focus-offset: 30 7% 9%;
+
+    --hairline: 30 5% 21%;
+    --surface-1: 30 6% 12%;
+    --surface-2: 28 8% 7%;
+    --surface-3: 30 5% 18%;
+
+    --sidebar-background: 30 7% 10%;
+
+    /* 되감기 전용 — 실제 부품 이름 그대로 */
+    --rw-glow: 191 52% 52%;    /* 라이트테이블 빛: 게이트·활성 알약·강조 */
+    --rw-on-glow: 195 45% 8%;  /* 그 빛 위에 얹는 글자 */
+    --rw-base: 24 30% 24%;     /* 필름 베이스: 네거티브의 주황빛 갈색 */
+    --rw-hole: 28 10% 6%;      /* 스프로킷 구멍 */
+    --rw-deck: 28 8% 7%;       /* 릴이 놓인 판 */
+    --rw-mono: 'Space Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  }
+
+  .rewind-theme :is(h1, h2, h3) {
+    font-family: 'Pretendard Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .rewind-theme ::selection {
+    background-color: hsl(var(--rw-glow) / 0.28);
+  }
+
+  /* ── 필름 스트립 ── */
+  .rewind-theme .rw-track {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    cursor: grab;
+    user-select: none; /* 끌 때 칸 글자가 잡히면 필름이 아니라 텍스트가 딸려온다 */
+  }
+  .rewind-theme .rw-track::-webkit-scrollbar { display: none; }
+  .rewind-theme .rw-track:active { cursor: grabbing; }
+
+  .rewind-theme .rw-rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    /* 트랙의 content box 는 padding-inline: calc(50% - FRAME_W/2) 탓에 딱 한 칸 폭이다.
+     * max-content 로 늘리지 않으면 필름 베이스와 스프로킷 구멍이 첫 칸에만 그려진다. */
+    width: max-content;
+    background-color: hsl(var(--rw-base));
+    /* 필름은 판판하지 않다 — 위아래로 아주 옅은 결 */
+    background-image: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.06), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.28));
+  }
+
+  /* 스프로킷 구멍 — 필름과 함께 흘러야 하므로 레일에 붙는다 */
+  .rewind-theme .rw-rail::before,
+  .rewind-theme .rw-rail::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(90deg,
+      transparent 0 7px, hsl(var(--rw-hole)) 7px 17px, transparent 17px 24px);
+  }
+  .rewind-theme .rw-rail::before { top: 4px; }
+  .rewind-theme .rw-rail::after { bottom: 4px; }
+
+  /* 한 칸 = 하루 */
+  .rewind-theme .rw-frame {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0;
+    border-radius: 2px;
+    background: hsl(28 18% 15%);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55); /* 프레임 라인 */
+    transition: box-shadow 0.16s ease;
+  }
+  .rewind-theme .rw-frame-empty { background: hsl(26 12% 11%); }
+  .rewind-theme .rw-frame-on { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); }
+
+  .rewind-theme .rw-photo { width: 100%; height: 100%; object-fit: cover; }
+
+  .rewind-theme .rw-cap {
+    display: -webkit-box;
+    width: 100%;
+    padding: 7px 7px 14px;
+    overflow: hidden;
+    color: hsl(40 16% 74%);
+    font-size: 10.5px;
+    line-height: 1.35;
+    text-align: left;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .rewind-theme .rw-dots { position: absolute; top: 5px; left: 5px; display: flex; gap: 3px; }
+  .rewind-theme .rw-dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  }
+
+  /* 엣지 코드 — 진짜 필름 가장자리의 각인 */
+  .rewind-theme .rw-edge {
+    position: absolute;
+    bottom: 3px;
+    left: 5px;
+    color: hsl(38 45% 64% / 0.85);
+    font-family: var(--rw-mono);
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+  }
+
+  /* 게이트 밖은 빛이 안 든다 */
+  .rewind-theme .rw-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+      hsl(var(--rw-deck)) 0%,
+      hsl(var(--rw-deck) / 0.84) 15%,
+      hsl(var(--rw-deck) / 0.42) 33%,
+      transparent 45%, transparent 55%,
+      hsl(var(--rw-deck) / 0.42) 67%,
+      hsl(var(--rw-deck) / 0.84) 85%,
+      hsl(var(--rw-deck)) 100%);
+  }
+
+  /* 게이트 — 걸린 칸만 빛을 받는다 */
+  .rewind-theme .rw-gate {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow:
+      0 0 0 1px hsl(var(--rw-glow) / 0.55),
+      0 0 24px 2px hsl(var(--rw-glow) / 0.2);
+  }
+
   .health-theme {
     /* 건강기록 — 쿨 화이트 캐논 + 방 정체성은 에메랄드 그린 하나로
      * (데일리 로그의 세이지보다 채도 높게 잡아 구분). */

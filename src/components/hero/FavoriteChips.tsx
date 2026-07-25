@@ -67,6 +67,7 @@ export function FavoriteChips({
           target.hubId === 'archive' ? '/archive' :
           target.hubId === 'wiki' ? '/wiki' :
           target.hubId === 'ledger' ? '/ledger' :
+          target.hubId === 'rewind' ? '/rewind' :
           target.hubId === 'cloud' ? '/cloud' : null;
         if (route) navigate(route);
         break;

@@ -14,7 +14,7 @@ import {
   FlaskConical, BookOpen, ChevronDown, ChevronRight, MessagesSquare, Telescope,
   Globe, Presentation, Mic, ArrowRight, Users, Wand2, Files,
   Languages, PenLine, BookText, FileSpreadsheet, Music, FileText,
-  BarChart3, StickyNote, BookMarked, Ticket, ShoppingBag, Plane,
+  BarChart3, StickyNote, BookMarked, Ticket, ShoppingBag, Plane, Film,
   Gamepad2, PiggyBank, PartyPopper, Contact, Gem, Bot, LayoutGrid,
   Calculator, Timer, Settings, LogIn, LogOut, User as UserIcon,
   Home, Star, History, Bell, HeartPulse, ReceiptText, Banknote, Building2, BriefcaseBusiness,
@@ -245,6 +245,7 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
   { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
   { id: 'ticketbook', label: '티켓북',              desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(38 78% 52%)', axis: '기록' },
+  { id: 'rewind',     label: '되감기',             desc: '지난 기록을 필름처럼 되감아 보기', emoji: '🎞️', icon: Film,       tint: 'hsl(191 50% 47%)', axis: '기록' },
 ];
 
 export const MODE_ICON: Record<MainMode, LucideIcon> = {
@@ -1066,7 +1067,7 @@ export function MainModeTabs({
     if (t.kind === 'assistant') { handleSelectAssistantTool(t.cardId); return; }
     if (t.kind === 'life') { handleSelectLifeTool(t.toolId); return; }
     if (t.kind === 'player') { handleSelectPlayerTool(t.toolId); return; }
-    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', ledger: '/ledger', cloud: '/cloud' };
+    const route: Record<string, string> = { today: '/today', notes: '/notes', wiki: '/wiki', planner: '/planner', journal: '/journal', career: '/career', travel: '/journal?view=travel', people: '/people', archive: '/archive', health: '/health', ticketbook: '/tickets', ledger: '/ledger', rewind: '/rewind', cloud: '/cloud' };
     const r = route[t.hubId];
     if (r) { setOpen(false); navigate(r); return; }
     // 연결이 없어진 레거시 즐겨찾기(준비중 방 등) — 클릭 시 자동 정리.
@@ -2262,6 +2263,9 @@ export function MainModeTabs({
                             } else if (item.id === 'ledger') {
                               setOpen(false);
                               navigate('/ledger');
+                            } else if (item.id === 'rewind') {
+                              setOpen(false);
+                              navigate('/rewind');
                             }
                           }}
                           role="menuitem"

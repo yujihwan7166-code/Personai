@@ -15,6 +15,13 @@ const MAX_FRAMES = 2200; // 약 6년
 /** 기록이 아직 없어도 릴이 성립하도록 오늘 뒤로 깔아두는 최소 길이. */
 const MIN_SPAN_DAYS = 30;
 
+/**
+ * 미래 기록은 이만큼만 릴에 들인다.
+ * 상한이 없으면 날짜 오타 하나("2033-01-01")가 릴 끝을 몇 년 뒤로 끌고 가고,
+ * MAX_FRAMES 컷이 그 끝에 앵커되면서 **오늘이 릴 밖으로 밀려난다** — 화면이 통째로 빈 칸이 된다.
+ */
+const FUTURE_SLACK_DAYS = 31;
+
 /** 시각 있는 것 먼저(시각 순) → 시각 없는 것(weight 큰 순). */
 const byTimeline = (a: RewindEvent, b: RewindEvent): number => {
   if (a.time && b.time) return a.time.localeCompare(b.time) || b.weight - a.weight;
@@ -41,7 +48,10 @@ export function reelRange(events: RewindEvent[]): ReelRange {
   }
 
   // 오늘은 항상 릴에 있어야 한다 — 되감기는 "지금"에서 출발한다.
-  const to = max > today ? max : today;
+  // 그래서 끝(to)을 오늘+한 달로 묶어 둔다. 아래 MAX_FRAMES 컷이 to 에 앵커되기 때문에,
+  // to 가 멀어지면 from 까지 미래로 끌려가 오늘이 구간 밖으로 나간다.
+  const futureCap = addDays(today, FUTURE_SLACK_DAYS);
+  const to = max <= today ? today : max < futureCap ? max : futureCap;
   let from = min < to ? min : addDays(to, -MIN_SPAN_DAYS);
   if (daysBetween(from, to) > MAX_FRAMES) from = addDays(to, -(MAX_FRAMES - 1));
   if (daysBetween(from, to) < MIN_SPAN_DAYS) from = addDays(to, -MIN_SPAN_DAYS);

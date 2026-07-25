@@ -18,17 +18,26 @@ const CHANGE_EVENTS = [
   DAYLOG_CHANGED, JOURNAL_CHANGED, LEDGER_CHANGED, HEALTH_CHANGED, PEOPLE_CHANGED, TICKETS_CHANGED,
 ];
 
+/** 다른 탭에서 이 키들이 바뀔 때만 릴을 다시 감는다 — storage 이벤트는 테마·레일 순서에도 뜬다. */
+const WATCHED_PREFIXES = [
+  'daylog.', 'journal.entries', 'ledger.entries', 'health.', 'ticketbook.', 'people.',
+];
+
 export function useRewindEvents(): RewindEvent[] {
   const [events, setEvents] = useState<RewindEvent[]>(collectRewindEvents);
 
   useEffect(() => {
     const reload = () => setEvents(collectRewindEvents());
+    // 다른 탭에서 기록했을 때도 릴이 따라온다 — 단 관련 키일 때만.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && !WATCHED_PREFIXES.some((p) => e.key!.startsWith(p))) return;
+      reload();
+    };
     for (const name of CHANGE_EVENTS) window.addEventListener(name, reload);
-    // 다른 탭에서 기록했을 때도 릴이 따라온다.
-    window.addEventListener('storage', reload);
+    window.addEventListener('storage', onStorage);
     return () => {
       for (const name of CHANGE_EVENTS) window.removeEventListener(name, reload);
-      window.removeEventListener('storage', reload);
+      window.removeEventListener('storage', onStorage);
     };
   }, []);
 

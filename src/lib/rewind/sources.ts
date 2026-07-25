@@ -4,6 +4,9 @@
  * 규칙 셋:
  *  1. **읽기만.** 훅(useLedger·useHealth)은 마운트 시 고정지출/시드를 쓰므로 절대 쓰지 않는다.
  *     store 의 list 함수만 직접 부른다.
+ *     ⚠ 단 하나의 예외: daylogStore 의 첫 읽기는 구 `travel.records.v1` → `daylog.items.v1`
+ *     1회 이관을 트리거한다(daylogStore.safeRead). 멱등이고 /journal 이 어차피 하는 일이라
+ *     그대로 두지만, "되감기는 아무것도 안 쓴다"가 문자 그대로는 아니라는 뜻이다.
  *  2. 날짜는 여기서 **로컬 YMD** 로 통일한다. 각 방이 이미 YMD 라 변환은 거의 없지만,
  *     새 출처를 붙일 때 toISOString().slice(0,10) 을 쓰면 KST 가 하루 밀린다.
  *  3. 한 방이 터져도 릴 전체가 죽지 않게 어댑터마다 try/catch — 손상 데이터는 그 방만 비운다.
@@ -23,10 +26,12 @@ import { peopleStore } from '@/services/peopleStore';
 import { INTERACTION_META } from '@/types/people';
 import type { RewindEvent } from './types';
 
-/** 여러 줄 본문에서 첫 줄만 — 필름 칸·타임라인은 한 줄이 전부다. */
+/** 여러 줄 본문에서 첫 줄만 — 필름 칸·타임라인은 한 줄이 전부다.
+ * 마크다운 일기의 첫 줄은 보통 '# 제목' 이라 기호를 걷어내야 활자로 읽힌다. */
 const firstLine = (s: string, max = 90): string => {
   const line = s.split('\n').map((l) => l.trim()).find(Boolean) ?? '';
-  return line.length > max ? `${line.slice(0, max - 1)}…` : line;
+  const clean = line.replace(/^#{1,6}\s+/, '').replace(/^[-*+>]\s+/, '').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 };
 
 const won = (n: number): string => `${n < 0 ? '-' : ''}${Math.abs(n).toLocaleString('ko-KR')}원`;
@@ -35,8 +40,17 @@ const TICKET_GLYPH: Record<TicketKind, string> = {
   movie: '🎬', drama: '📺', book: '📖', game: '🎮', show: '🎭',
 };
 
-/** YYYY-MM-DD 형태인지 — 외부 스토어에서 온 값을 릴에 넣기 전 마지막 방어. */
-const isYmd = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+/**
+ * 실존하는 YYYY-MM-DD 인지 — 외부 스토어에서 온 값을 릴에 넣기 전 마지막 방어.
+ * 모양만 보면 '2026-13-45' 나 '9999-99-99' 가 통과해 릴 구간을 만 년 뒤로 늘린다.
+ * Date 로 되돌려 원래 숫자가 그대로 나오는지까지 본다.
+ */
+const isYmd = (v: unknown): v is string => {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+};
 
 type Adapter = () => RewindEvent[];
 

@@ -27,6 +27,7 @@ const Health = lazy(() => import("./pages/Health"));
 const Tickets = lazy(() => import("./pages/Tickets"));
 const Today = lazy(() => import("./pages/Today"));
 const Ledger = lazy(() => import("./pages/Ledger"));
+const Rewind = lazy(() => import("./pages/Rewind"));
 const Cloud = lazy(() => import("./pages/Cloud"));
 const CloudDocEditor = lazy(() => import("./pages/CloudDocEditor"));
 const CloudSheetEditor = lazy(() => import("./pages/CloudSheetEditor"));
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/tickets" element={<AppWorkspaceShell current="tickets"><Tickets /></AppWorkspaceShell>} />
               <Route path="/today" element={<AppWorkspaceShell current="today"><Today /></AppWorkspaceShell>} />
               <Route path="/ledger" element={<AppWorkspaceShell current="ledger"><Ledger /></AppWorkspaceShell>} />
+              <Route path="/rewind" element={<AppWorkspaceShell current="rewind"><Rewind /></AppWorkspaceShell>} />
               <Route path="/cloud" element={<Cloud />} />
               <Route path="/cloud/doc/:id" element={<CloudDocEditor />} />
               <Route path="/cloud/sheet/:id" element={<CloudSheetEditor />} />

@@ -35,6 +35,7 @@ const WORKSPACE_LABELS: Partial<Record<WorkspaceKey, string>> = {
   health: '건강기록',
   tickets: '티켓북',
   ledger: '가계부',
+  rewind: '되감기',
 };
 
 export function WorkspaceSidebarSwitchButton({

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Archive,
+  Film,
   HeartPulse,
   Library,
   LayoutDashboard,
@@ -36,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets' | 'ledger';
+export type WorkspaceKey = 'today' | 'planner' | 'wiki' | 'journal' | 'career' | 'people' | 'archive' | 'health' | 'tickets' | 'ledger' | 'rewind';
 
 type WorkspaceDestinationKey = WorkspaceKey | 'home' | 'notes';
 
@@ -60,6 +61,7 @@ const WORKSPACE_DESTINATIONS: WorkspaceDestination[] = [
   { key: 'health', label: '건강기록', to: '/health', icon: HeartPulse },
   { key: 'tickets', label: '티켓북', to: '/tickets', icon: Ticket },
   { key: 'ledger', label: '가계부', to: '/ledger', icon: PiggyBank },
+  { key: 'rewind', label: '되감기', to: '/rewind', icon: Film },
 ];
 
 /* 레일(그라파이트) 활성 = 방 앰센트 채움 알약 색 — 방별 개성(공통 뼈대 + 앱 아이덴티티). */
@@ -73,6 +75,7 @@ const RAIL_ACCENT: Partial<Record<WorkspaceDestinationKey, string>> = {
   people: '#a15008',   // 인맥노트 — 앰버
   archive: '#a5642e',  // 아카이브 — 세피아 (인맥노트 앰버와 구분)
   health: '#2f9e6e',   // 건강기록 — 그린
+  rewind: '#3f9fb8',   // 되감기 — 라이트테이블 청록 (필름 베이스의 따뜻한 갈색과 대비되는 빛)
   tickets: '#d97706',  // 티켓북 — 앰버
   wiki: '#9a4632',     // 마이위키 — 서재 러스트 (서재.dc.html 시안 강조색)
   ledger: '#2d4a7c',   // 가계부 — 딥 네이비 (방 accent와 동일)
@@ -112,7 +115,7 @@ const MOBILE_PRIMARY = WORKSPACE_DESTINATIONS.filter((item) =>
   ['planner', 'notes', 'journal'].includes(item.key),
 );
 const MOBILE_MORE = WORKSPACE_DESTINATIONS.filter((item) =>
-  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets', 'ledger'].includes(item.key),
+  ['home', 'today', 'career', 'people', 'archive', 'wiki', 'health', 'tickets', 'ledger', 'rewind'].includes(item.key),
 );
 
 /* 모드 메가메뉴(홈 히어로와 동일) 런처에 노출할 모드 — WorkspaceSidebarSwitchButton 과 동일 세트. */
