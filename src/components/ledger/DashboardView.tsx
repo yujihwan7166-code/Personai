@@ -168,13 +168,20 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 머리 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, paddingBottom: 2, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* 화살표가 날짜 양옆 — 좌 이전 / 우 다음 */}
-          <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}
-            style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
-          <h1 style={{ margin: 0, minWidth: 62, textAlign: 'center', fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월</h1>
-          <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}
-            style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 제목이 먼저, 이동은 그 뒤에 한 덩어리로.
+              화살표가 양옆에서 감싸면 '7월'이 버튼 사이에 낀 값처럼 보여 제목 노릇을 못 한다. */}
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>
+            {mm}월
+            <span style={{ marginLeft: 7, fontSize: 13, fontWeight: 600, color: C.muted2, letterSpacing: 0 }}>{month.slice(0, 4)}</span>
+          </h1>
+          <span style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', overflow: 'hidden' }}>
+            <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}
+              style={{ width: 27, height: 27, border: 'none', background: 'transparent', fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
+            <span aria-hidden style={{ width: 1, height: 15, background: C.line }} />
+            <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}
+              style={{ width: 27, height: 27, border: 'none', background: 'transparent', fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
+          </span>
           {!isCurrent && (
             <button type="button" onClick={() => setMonth(monthOf(today))}
               style={{ height: 26, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub, cursor: 'pointer' }}>이번 달</button>
@@ -191,7 +198,9 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
         <div style={{ ...cardStyle, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              <div style={{ fontSize: 12, fontWeight: 650, color: C.muted }}>이번 달 쓸 수 있는 돈</div>
+              {/* '쓸 수 있는 돈'은 통장 잔고처럼 읽히는데 이 앱은 잔고를 모른다.
+                  실제로는 '예산에서 쓴 것과 남은 고정비를 뺀 값'이므로 그렇게 부른다. */}
+              <div style={{ fontSize: 12, fontWeight: 650, color: C.muted }}>고정비 빼고 이번 달 남은 돈</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
                 <span style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{KRW(freeLeft)}</span>
                 <span style={{ fontSize: 18, fontWeight: 650, color: C.ink4 }}>원</span>
@@ -216,8 +225,10 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
               <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, usedPct)}%`, background: C.navy, borderRadius: 999 }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, color: C.muted, flexWrap: 'wrap', gap: 6 }}>
+              {/* 위 큰 숫자가 이미 '얼마 남았나'에 답한다 — 여기서 또 다른 '남은 예산'을 대면
+                  같은 카드에 남은 돈이 두 개가 되어 서로 부딪힌다. 대신 남은 날을 준다. */}
               <span style={{ color: C.ink3 }}>예산 {usedPct}% 사용 · {KRW(spentAll)}원 / {KRW(budgetTotal)}원</span>
-              <span>남은 예산 {KRW(Math.max(0, budgetTotal - spentAll))}원</span>
+              <span>{isCurrent ? (leftDays > 1 ? `${leftDays}일 남음` : '이번 달 마지막 날') : `${daysInMonth}일`}</span>
             </div>
           </div>
 
@@ -270,7 +281,9 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
       </div>
 
       {/* 캘린더 + 우측 열 */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr]" style={{ gap: 14 }}>
+      {/* 지출 캘린더가 이 화면의 본문이다 — 좌우로 더 주고, 우측(어디에 썼나·다가오는 돈)은
+          도넛과 짧은 목록이라 좁아도 읽힌다. 1.35:1 → 2:1 */}
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr]" style={{ gap: 14 }}>
         <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={hd}>지출 캘린더</span>
@@ -287,7 +300,7 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
               const on = d === selDay;
               return (
                 <button key={key} type="button" onClick={() => setSelDay(d)}
-                  style={{ height: 54, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '4px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ height: 68, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '5px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 10.5, fontWeight: d === dayOfMonth ? 700 : 550, color: d === dayOfMonth ? C.navy : C.muted3, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 650, color: v > 0 ? (v >= maxDay * 0.66 ? C.ink2 : C.sub2) : 'transparent', textAlign: 'right', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
                     {v > 0 ? `${Math.round(v / 1000)}k` : '·'}

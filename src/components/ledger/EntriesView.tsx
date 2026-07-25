@@ -135,12 +135,17 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>내역</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button type="button" aria-label="이전 달" onClick={() => shiftMonth(-1)}
-              style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
-            <span style={{ minWidth: 72, textAlign: 'center', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
-            <button type="button" aria-label="다음 달" onClick={() => shiftMonth(1)}
-              style={{ width: 28, height: 28, border: `1px solid ${C.line}`, background: '#fff', borderRadius: 8, fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
+          {/* 대시보드와 같은 문법 — 값이 먼저, 이동은 한 덩어리로 뒤에.
+              화살표가 양옆을 감싸면 날짜가 버튼 사이에 낀 것처럼 보인다. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{month.replace('-', '. ')}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', overflow: 'hidden' }}>
+              <button type="button" aria-label="이전 달" onClick={() => shiftMonth(-1)}
+                style={{ width: 26, height: 26, border: 'none', background: 'transparent', fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>‹</button>
+              <span aria-hidden style={{ width: 1, height: 14, background: C.line }} />
+              <button type="button" aria-label="다음 달" onClick={() => shiftMonth(1)}
+                style={{ width: 26, height: 26, border: 'none', background: 'transparent', fontSize: 14, color: C.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>›</button>
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
             <span style={{ color: C.green }}>＋{KRW(sum.income)}</span>
