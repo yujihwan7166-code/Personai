@@ -12,24 +12,6 @@
  *
  * 종이 위 잉크: 문장 명조(career-serif) · 숫자 모노(career-mono) ·
  * 강조는 교정 빨강(--career-red) 하나. 보조 문구는 한국어만.
- *
- * ── 색 경계 (2026-07-26) ─────────────────────────────────────────────
- * 원고 열(main #fefbfc · 카드 #ffffff)은 **라이트 고정**이다. 여기엔 리터럴 hex 만 쓴다.
- *   토큰을 쓰면 안 되는 이유: .dark .career-theme 가 --muted-foreground 등을 밝게 재정의하는데
- *   배경은 하드코딩이라 안 바뀐다 → 다크에서 흰 종이 위 2.6:1 로 오히려 나빠진다.
- *   같은 이유로 이 열에는 dark: 변형도 추가하지 않는다.
- * 잉크 램프(흰 배경 대비):
- *   #191c20 17.1  이름·마스트헤드 제목
- *   #23262b 15.2  항목·칸 제목
- *   #7b666c  5.3  값·메타·인터랙티브 라벨·범례
- *   #93848a  3.6  placeholder·빈 이름
- *   #a1888f  3.3  의미 있는 아이콘(SC 1.4.11)
- *   #9c4160  6.3  인장 — 번호·활성·호버 (종이 위 강조는 이 hex, 토큰 아님)
- * 도크·다이얼로그·문서 뷰는 반대다 — --surface-1/--card 위이므로
- *   토큰과 hsl(var(--career-red)) 를 쓴다.
- * 문서 종류 6색(COMPOSE_PURPOSES)은 '종이 색'(틴트·축소판·밴드)까지만.
- *   솔리드 배경·글자 받침 같은 '강조 강도'는 방 강조색 하나가 갖는다.
- * ─────────────────────────────────────────────────────────────────────
  */
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
@@ -253,17 +235,6 @@ function SetupLedger() {
 function BoardLedger() {
   const { items, categories, profile, docs, boards, activeBoardId } = useCareerBoard();
   const activeBoardName = boards.find((b) => b.id === activeBoardId)?.name?.trim() || '';
-
-  /** 이번 달 쌓인 기록 — 로컬 연월 기준. ISO 를 그대로 자르면 KST 자정~09시 기록이 지난달로 샌다. */
-  const monthAdded = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    return items.filter((i) => {
-      const d = new Date(i.createdAt);
-      return !Number.isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
-    }).length;
-  }, [items]);
   const [phase, setPhase] = useState<CapturePhase>({ step: 'idle' });
   const [viewDoc, setViewDoc] = useState<CareerDoc | null>(null);
   const [draft, setDraft] = useState('');
@@ -516,10 +487,8 @@ function BoardLedger() {
       <span className="min-w-0 truncate text-[14px] font-semibold text-[#23262b]">
         <MetricText text={item.refined} />
       </span>
-      {/* shrink-0 + truncate 는 모순이었다 — 폭을 안 내주니 truncate 가 못 걸리고
-          대신 min-w-0 인 제목이 먼저 잘렸다. 좁아지면 기관명이 먼저 줄고 제목이 끝까지 버틴다. */}
-      {item.org && <span className="min-w-0 max-w-[40%] shrink truncate text-[12.5px] text-[#7b666c]">{item.org}</span>}
-      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#a1888f]">
+      {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#9b9095]">{item.org}</span>}
+      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#cfb6bf]">
         {item.detail && <FileText className="h-[13px] w-[13px]" strokeWidth={1.7} aria-label="세부 있음" />}
         {item.link && (
           <a
@@ -534,7 +503,7 @@ function BoardLedger() {
             <Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} />
           </a>
         )}
-        <span className="text-[12.5px] tabular-nums text-[#7b666c] transition-opacity group-hover:opacity-0">
+        <span className="text-[12.5px] tabular-nums text-[#9b9095] transition-opacity group-hover:opacity-0">
           {formatPeriod(item)}
         </span>
       </span>
@@ -543,7 +512,7 @@ function BoardLedger() {
         onClick={(e) => { e.stopPropagation(); removeItem(item); }}
         aria-label="삭제"
         title="삭제"
-        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#a1888f] opacity-0 transition-opacity hover:text-[#9c4160] group-hover:opacity-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#c9aeb8] opacity-0 transition-opacity hover:text-[#9c4160] group-hover:opacity-100"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -677,7 +646,7 @@ function BoardLedger() {
                   key={b.id}
                   type="button"
                   onClick={() => { careerStore.setActiveBoard(b.id); setView('board'); }}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(var(--career-red)/0.14)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === 'board' && activeBoardId === b.id ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {b.name}
                 </button>
@@ -695,7 +664,7 @@ function BoardLedger() {
                   key={purpose}
                   type="button"
                   onClick={() => setView(purpose)}
-                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(var(--career-red)/0.14)] font-bold text-[hsl(var(--career-red))]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
+                  className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12px]', view === purpose ? 'border-transparent bg-[hsl(33_48%_48%/0.14)] font-bold text-[hsl(28_52%_38%)]' : 'border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] text-muted-foreground')}
                 >
                   {label}
                 </button>
@@ -704,7 +673,7 @@ function BoardLedger() {
 
             {view === 'board' ? (
             /* 행 높이 minmax(0,1fr) — 이게 있어야 두 컬럼이 화면을 채우고 각자 스크롤한다 */
-            <div className="flex flex-col lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[minmax(0,1fr)]">
+            <div className="flex flex-col lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_540px] lg:grid-rows-[minmax(0,1fr)]">
 
         {/* ══════ 우 — 작성대 도크: 문서 만들기 타일 + 커리어 추가 (보관함 열람은 사이드바가 담당)
          * row-start-1 명시 필수 — 도크(2열)가 DOM 에서 먼저 오면 자동 배치 커서가 2열을 지나
@@ -713,10 +682,10 @@ function BoardLedger() {
             {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 만들기 — 종류 타일 6개 (만든 문서 보기는 사이드바 문서 항목으로) */}
-            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-4">
+            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-4 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               <div className="mb-1 flex items-center gap-2">
                 <span className="career-mono text-[13px] font-semibold text-[hsl(var(--career-red))]">+</span>
-                <h2 className="text-[15px] font-bold tracking-[-0.01em]">문서 만들기</h2>
+                <h2 className="text-[16px] font-bold tracking-tight">문서 만들기</h2>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {COMPOSE_PURPOSES.map(({ purpose, label, hsl }) => {
@@ -729,8 +698,8 @@ function BoardLedger() {
                       disabled={disabled}
                       title={disabled ? '스펙 보드에 기록이 쌓이면 만들 수 있어요' : undefined}
                       className={cn(
-                        'rounded-xl border px-3 py-2.5 text-left transition-[filter,opacity]',
-                        disabled ? 'cursor-not-allowed opacity-55' : 'hover:brightness-[0.98]',
+                        'rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow,opacity]',
+                        disabled ? 'cursor-not-allowed opacity-55' : 'hover:brightness-[0.98] hover:shadow-sm',
                       )}
                       style={{ backgroundColor: `hsl(${hsl} / 0.06)`, borderColor: `hsl(${hsl} / 0.22)` }}
                     >
@@ -744,7 +713,7 @@ function BoardLedger() {
                   type="button"
                   onClick={() => setRecommendOpen(true)}
                   title="지금 원고를 보고 다음에 쌓을 스펙을 추천해요"
-                  className="rounded-xl border px-3 py-2.5 text-left transition-[filter] hover:brightness-[0.98]"
+                  className="rounded-xl border px-3 py-2.5 text-left transition-[filter,box-shadow] hover:brightness-[0.98] hover:shadow-sm"
                   style={{ backgroundColor: 'hsl(150 38% 42% / 0.06)', borderColor: 'hsl(150 38% 42% / 0.22)' }}
                 >
                   <PaperThumb kind="spark" hsl="150 38% 42%" className="mb-2" />
@@ -753,11 +722,11 @@ function BoardLedger() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-5">
+            <section className="rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] p-5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14),0_1px_2px_hsl(var(--foreground)/0.05)]">
               {/* 표제 + 모드 토글 (세그먼트) */}
               <div className="flex items-center gap-2">
                 <span className="text-[17px] font-bold leading-none text-[hsl(var(--career-red))]">+</span>
-                <h2 className="text-[15px] font-bold tracking-[-0.01em]">커리어 추가</h2>
+                <h2 className="career-serif text-[17px] font-bold tracking-tight">커리어 추가</h2>
                 <div className="ml-auto inline-flex rounded-lg bg-[hsl(var(--foreground)/0.05)] p-0.5">
                   {([['ai', 'AI 작성'], ['direct', '직접 작성']] as const).map(([mode, label]) => (
                     <button
@@ -1097,7 +1066,7 @@ function BoardLedger() {
                   type="button"
                   onClick={() => void submitDirect()}
                   disabled={!draft.trim() || busy}
-                  className="mt-1 h-12 w-full rounded-[10px] bg-[hsl(var(--career-red))] text-[14px] font-bold text-white transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
+                  className="mt-1 h-14 w-full rounded-2xl bg-[hsl(var(--career-red))] text-[15px] font-bold text-white shadow-[0_10px_24px_-10px_hsl(var(--career-red)/0.85)] transition-[filter,opacity] hover:brightness-[1.06] disabled:opacity-45"
                 >
                   커리어 저장
                 </button>
@@ -1142,42 +1111,24 @@ function BoardLedger() {
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
           <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fefbfc] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
-            {/* ── 마스트헤드 — 제목이 주어, 이 보드의 실데이터가 서술어 ──
-                걷어낸 것 셋:
-                ① 'SPEC BOARD' 아이브로우 — 4px 아래 제목의 영어 번역이라 새 정보가 0이었다
-                ② '…’s 스펙 보드' — 한글 보드명('2026 상반기’s 스펙 보드')에서 문장이 깨진다
-                ③ '기록 5 · 증빙 0 · 목표 0' — 평행 카운트 셋이고 새 보드에선 둘이 0이라
-                   "너는 아무것도 없다"를 14px로 반복했다. 세 수치의 정본은 사이드바 발치다. */}
+            {/* ── 마스트헤드 (리디자인 시안) ── */}
             <div className="mx-auto mb-5 max-w-[900px]">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h1 className="m-0 text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">
-                  {boards.length > 1 && activeBoardName ? activeBoardName : '스펙 보드'}
-                </h1>
-                <span className="text-[14px] text-[#7b666c]">
-                  {items.length === 0
-                    ? '아직 비어 있어요 — 이룬 것을 기록해 보세요'
-                    : <>기록 {items.length}개{monthAdded > 0 && <> · 이번 달 +{monthAdded}</>}</>}
-                </span>
+              <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#a97386]">SPEC BOARD</div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">{activeBoardName ? `${activeBoardName}’s 스펙 보드` : '스펙 보드'}</span>
+                <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
               </div>
             </div>
 
             {/* ── 프로필 카드 ── */}
             {/* 이름 적기 카드 — 아래 카테고리 판과 같은 진한 잉크 테두리로 맞춘다 */}
             <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] border border-[hsl(var(--foreground)/0.28)] bg-white px-[26px] py-[22px]">
-              {/* 아바타 — 사진 / 이니셜 / 빈 슬롯 3분기.
-                  빈 카드에서 가장 강한 마크가 24px '?' 였는데, 하필 "이 사람이 누군지 모름"이라는
-                  부정 진술이었다. 이름도 사진도 없으면 '여기 넣으세요' 슬롯으로 바꾼다.
-                  색은 리터럴 hex — 이 카드는 라이트 고정이라 --career-red 토큰을 쓰면
-                  다크에서 밝은 분홍으로 뒤집혀 흰 종이 위에서 무력해진다. */}
+              {/* 아바타 — 사진 있으면 크롭, 없으면 이니셜. 클릭해서 업로드 */}
               <label className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full" title={profile.photo ? '사진 바꾸기' : '사진 추가'}>
                 {profile.photo ? (
                   <img src={profile.photo} alt="증명사진" className="h-full w-full object-cover" />
-                ) : profile.name ? (
-                  <span className="flex h-full w-full items-center justify-center bg-[rgba(156,65,96,0.12)] text-[24px] font-semibold text-[#9c4160]">{profile.name.slice(0, 1)}</span>
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center rounded-full border border-dashed border-[hsl(var(--foreground)/0.28)]">
-                    <Plus className="h-[18px] w-[18px] text-[#a1888f]" strokeWidth={1.7} />
-                  </span>
+                  <span className="flex h-full w-full items-center justify-center bg-[hsl(var(--career-red)/0.12)] text-[24px] font-semibold text-[hsl(var(--career-red))]">{(profile.name || '?').slice(0, 1)}</span>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
                 {profile.photo && (
@@ -1204,7 +1155,7 @@ function BoardLedger() {
                       type="button"
                       onClick={() => setEditingName(true)}
                       title="이름 수정"
-                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#cfb6bf] underline-offset-4 hover:underline', !profile.name && 'font-medium text-[#93848a]')}
+                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#cfb6bf] underline-offset-4 hover:underline', !profile.name && 'text-[#c9aeb8]')}
                     >
                       {profile.name || '이름 적기'}
                     </button>
@@ -1212,13 +1163,13 @@ function BoardLedger() {
                   <input
                     defaultValue={profile.tagline}
                     onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
-                    placeholder={persona === 'worker' ? '예: 결제·정산 도메인 3년차 프론트엔드 개발자' : '예: 웹 개발 동아리를 이끄는 컴퓨터공학 3학년'}
+                    placeholder={persona === 'worker' ? '결제·정산 도메인 3년차 프론트엔드 개발자' : '웹 개발 동아리를 이끄는 컴퓨터공학 3학년'}
                     aria-label="소개"
-                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#7b666c] outline-none placeholder:text-[#93848a]"
+                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#c9aeb8]"
                   />
                 </div>
                 {/* 연락처 — 생년월일 · 이메일 · 전화 · 대표 링크 (인라인 편집) */}
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-[#7b666c]">
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-[#8d949d]">
                   {([
                     ['birth', '생년월일', profile.birth, 'w-[92px]'],
                     ['email', '이메일', profile.email, 'w-[150px]'],
@@ -1230,7 +1181,7 @@ function BoardLedger() {
                       onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
                       placeholder={ph}
                       aria-label={ph}
-                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#93848a] focus:text-[#585055]', width)}
+                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#c9aeb8] focus:text-[#585055]', width)}
                     />
                   ))}
                   <span className="inline-flex items-center gap-1 text-[#8a3550]">
@@ -1240,7 +1191,7 @@ function BoardLedger() {
                       onBlur={(e) => careerStore.setProfile({ link: e.target.value.trim() || undefined })}
                       placeholder="대표 링크"
                       aria-label="대표 링크"
-                      className="w-[150px] bg-transparent text-[#8a3550] outline-none placeholder:text-[#93848a]"
+                      className="w-[150px] bg-transparent text-[#8a3550] outline-none placeholder:text-[#c9aeb8]"
                     />
                   </span>
                 </div>
@@ -1252,7 +1203,7 @@ function BoardLedger() {
                 테두리가 연분홍(#ecdfe3)이라 흰 배경 위에서 카드 경계가 거의 안 보였다 →
                 잉크 계열 진한 선으로 올려 '판' 이 또렷하게 서게 한다 */}
             <div className="mx-auto max-w-[900px] rounded-[12px] border border-[hsl(var(--foreground)/0.28)] bg-white px-[28px] py-6">
-            <div className="grid grid-cols-1 items-start gap-x-14 gap-y-3.5 2xl:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-x-14 gap-y-3.5 sm:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
                       key={category.id}
@@ -1269,7 +1220,7 @@ function BoardLedger() {
                     >
                       {/* 카드 헤더 — 번호 + 이름, 아래 헤어라인 (빈 칸이면 삭제 X) */}
                       <div className="flex items-baseline gap-2 border-b border-[#f0e8ea] pb-[9px]">
-                        <span className="text-[13px] font-bold text-[#9c4160]">
+                        <span className="text-[13px] font-bold text-[#cf9dac]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
                         <h3 className="text-[18px] font-bold text-[#23262b]">{category.name}</h3>
@@ -1279,7 +1230,7 @@ function BoardLedger() {
                             onClick={() => careerStore.removeCategory(category.id)}
                             aria-label={`${category.name} 칸 삭제`}
                             title="빈 칸 삭제"
-                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#9c4160] group-hover/section:text-[#a1888f]"
+                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#9c4160] group-hover/section:text-[#cfb6bf]"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1290,7 +1241,7 @@ function BoardLedger() {
                         <button
                           type="button"
                           onClick={() => startAddTo(category.name)}
-                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#7b666c] transition-colors hover:text-[#9c4160]"
+                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#c9aeb8] transition-colors hover:text-[#9c4160]"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           첫 기록 추가
@@ -1318,7 +1269,7 @@ function BoardLedger() {
                             <button
                               type="button"
                               onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 self-start text-[11.5px] text-[#7b666c] underline decoration-[#7b666c]/40 underline-offset-4 transition-colors hover:text-[#9c4160]"
+                              className="mt-1.5 self-start text-[11.5px] text-[#a1888f] underline decoration-[#e0cdd3] underline-offset-4 transition-colors hover:text-[#9c4160]"
                             >
                               {expandedSections.has(category.id)
                                 ? '접기'
@@ -1334,7 +1285,7 @@ function BoardLedger() {
                   {addingCategory && (
                     <div className="flex flex-col">
                       <div className="flex items-baseline gap-2 border-b border-[#f0e8ea] pb-[9px]">
-                        <span className="text-[11.5px] font-bold text-[#9c4160]">
+                        <span className="text-[11.5px] font-bold text-[#cf9dac]">
                           {String(sections.length + 1).padStart(2, '0')}
                         </span>
                         <input
@@ -1351,20 +1302,20 @@ function BoardLedger() {
                           autoFocus
                           placeholder="칸 이름 — 예: 봉사, 출판"
                           aria-label="새 칸 이름"
-                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#93848a]"
+                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#c9aeb8]"
                         />
                       </div>
-                      <p className="py-[13px] text-[11.5px] text-[#7b666c]">Enter로 추가 · Esc로 취소</p>
+                      <p className="py-[13px] text-[11.5px] text-[#a1888f]">Enter로 추가 · Esc로 취소</p>
                     </div>
                   )}
               </div>
 
               {/* 푸터 — 카테고리 추가 + 범례 */}
-              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#7b666c]">
+              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#a1888f]">
                 <button type="button" onClick={() => setAddingCategory(true)} className="inline-flex items-center gap-2 transition-colors hover:text-[#9c4160]">
                   <Plus className="h-3.5 w-3.5" strokeWidth={2} /> 카테고리 추가
                 </button>
-                <span className="ml-auto flex items-center gap-3.5 text-[12px]">
+                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#c9aeb8]">
                   <span className="inline-flex items-center gap-1.5"><Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} /> 증빙 있음</span>
                   <span className="inline-flex items-center gap-1.5"><FileText className="h-[13px] w-[13px]" strokeWidth={1.7} /> 문서에 포함</span>
                 </span>
@@ -1453,10 +1404,8 @@ function DocsListView({
             onClick={onCreate}
             disabled={!canCreate}
             title={canCreate ? undefined : '스펙 보드에 기록이 쌓이면 만들 수 있어요'}
-            /* 문서 종류 색이 CTA 배경까지 올라가 흰 글자가 6종 중 4종에서 AA 미달이었다
-               (자소서 2.99 · 포트폴리오 2.71 · 커버레터 3.68 · 추천 3.70).
-               종류 색은 '종이 색'까지만, 솔리드 배경은 방 강조색 하나로. */
-            className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--career-red))] px-4 py-2 text-[12.5px] font-bold text-white transition-[filter] hover:brightness-[1.06] disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold text-white shadow-sm transition-[filter] hover:brightness-[1.06] disabled:opacity-40"
+            style={{ backgroundColor: `hsl(${hsl})` }}
           >
             <Plus className="h-3.5 w-3.5" /> 새 {meta?.label ?? purpose} 만들기
           </button>
@@ -1484,9 +1433,7 @@ function DocsListView({
                 className="group overflow-hidden rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] text-left shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.14)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-14px_hsl(var(--foreground)/0.3)]"
               >
                 {/* 종류 색 밴드 — 사이드바 점과 같은 색 부호 */}
-                {/* 이 뷰는 한 종류로 걸러진 카드만 나오므로, 0.75 짜리 같은 줄이 반복되며
-                    정작 아무것도 구분하지 않았다 → 0.45 로 낮춰 강조 자리를 되돌린다 */}
-                <div className="h-1.5" style={{ backgroundColor: `hsl(${hsl} / 0.45)` }} />
+                <div className="h-1.5" style={{ backgroundColor: `hsl(${hsl} / 0.75)` }} />
                 <div className="px-4 pb-4 pt-3">
                   <p className="truncate text-[13.5px] font-bold transition-colors group-hover:text-[hsl(var(--career-red))]">
                     {doc.request?.trim() || meta?.label || doc.purpose}
@@ -2285,7 +2232,7 @@ function RecommendDialog({ open, onClose }: { open: boolean; onClose: () => void
         <div className="grid grid-cols-3 gap-2">
           {([['기록', `${dx.total}`], ['증빙 비율', `${dx.evidencePct}%`], ['빈 칸', `${dx.emptyCount}`]] as const).map(([label, value]) => (
             <div key={label} className="rounded-xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] px-3 py-2.5 text-center">
-              <p className="text-[19px] font-extrabold tabular-nums text-foreground">{value}</p>
+              <p className="text-[19px] font-extrabold tabular-nums text-[hsl(28_50%_39%)]">{value}</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
             </div>
           ))}
@@ -2308,7 +2255,7 @@ function RecommendDialog({ open, onClose }: { open: boolean; onClose: () => void
                 {r.ideas.length > 0 && (
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {r.ideas.map((idea) => (
-                      <span key={idea} className="rounded-full bg-[hsl(var(--career-red)/0.1)] px-2.5 py-1 text-[12px] font-medium text-[hsl(var(--career-red))]">{idea}</span>
+                      <span key={idea} className="rounded-full bg-[hsl(28_48%_50%/0.1)] px-2.5 py-1 text-[12px] font-medium text-[hsl(28_50%_39%)]">{idea}</span>
                     ))}
                   </div>
                 )}
