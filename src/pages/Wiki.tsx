@@ -6,7 +6,7 @@
  * 화면 3장: 서재 홈(책장+고정+언급 순위+최근) / 책 펼침(표지+차례 스프레드) / 문서 읽기(목차|본문|인포박스 3열).
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
-import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
@@ -257,6 +257,8 @@ export default function Wiki() {
   /* 서가 폭 — 한 줄에 책이 몇 권 들어가는지 계산하려면 실측이 필요하다 */
   const shelfRef = useRef<HTMLDivElement>(null);
   const [shelfW, setShelfW] = useState(0);
+  /* 서가 페이지 — 한 선반에 못 담는 책은 다음 장으로 넘긴다 */
+  const [shelfPage, setShelfPage] = useState(0);
 
   const isWide = useIsWide();
   const { books, docs, recent } = store;
@@ -472,44 +474,34 @@ export default function Wiki() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* 책등 치수 — 문서가 쌓일수록 두껍고 높아진다. 글자 크기는 제목 길이에 맞춰 자동 축소 */
+  /* 책등 치수 — 모든 책이 같은 크기다.
+     문서 수를 따라 키우면 서가가 들쭉날쭉해지고, 두께가 곧 위계처럼 읽혀 적게 쓴 책이 초라해진다.
+     책은 책일 뿐 — 글자 크기만 제목 길이에 맞춰 자동 축소한다. */
+  const SPINE_W = 72;
+  const SPINE_H = 268;
   const spineOf = (b: WikiBook) => {
     const n = docs.filter((d) => d.book === b.id).length;
-    const h = Math.min(368, 248 + n * 7);
     const title = b.title || '무제';
-    const fs = Math.max(13, Math.min(21, Math.floor((h - 132) / Math.max(title.length, 1))));
-    return { n, w: Math.min(100, Math.round(62 + n * 4)), h, fs, title };
+    const fs = Math.max(13, Math.min(21, Math.floor((SPINE_H - 132) / Math.max(title.length, 1))));
+    return { n, w: SPINE_W, h: SPINE_H, fs, title };
   };
-  /* 선반 채우기 — 책 수가 아니라 '실제 폭'으로 나눈다.
-     4권 고정으로 자르면 넓은 화면에서 5번째 책 하나만 둘째 줄로 내려가 서가가 텅 빈다. */
+
+  /* 선반은 한 칸뿐 — 넘치는 책은 아랫줄로 흘리지 않고 다음 페이지로 넘긴다.
+     책 크기가 고정이라 한 페이지에 몇 권이 서는지는 서가 폭만으로 정해진다. */
   const SHELF_GAP = 9;
-  const NEW_SLOT = 66;
+  const NEW_SLOT = 72;
   const LEAN_SLACK = 44; // 마지막 책이 기울면 발자국이 그만큼 넓어진다
-  const shelfRows = useMemo(() => {
+  const perPage = useMemo(() => {
     const avail = shelfW - 28; // px-3.5 양쪽
-    const rows: { books: WikiBook[]; used: number }[] = [];
-    let cur: WikiBook[] = [];
-    let used = 0;
-    for (const b of books) {
-      const w = spineOf(b).w + SHELF_GAP;
-      // 중간 줄은 끝까지 채운다 (기울기 여유만 남김)
-      if (avail > 0 && cur.length > 0 && used + w > avail - LEAN_SLACK) {
-        rows.push({ books: cur, used });
-        cur = []; used = 0;
-      }
-      cur.push(b); used += w;
-    }
-    rows.push({ books: cur, used });
-    // 마지막 줄에 '새 책' 자리가 안 들어가면 책 한 권을 다음 줄로 내린다
-    const tail = rows[rows.length - 1];
-    if (avail > 0 && tail.books.length > 1 && tail.used + NEW_SLOT + SHELF_GAP > avail - LEAN_SLACK) {
-      const moved = tail.books.pop()!;
-      tail.used -= spineOf(moved).w + SHELF_GAP;
-      rows.push({ books: [moved], used: spineOf(moved).w + SHELF_GAP });
-    }
-    return rows;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [books, docs, shelfW]);
+    if (avail <= 0) return Math.max(1, books.length); // 실측 전 — 일단 다 그린다
+    const usable = avail - LEAN_SLACK - (NEW_SLOT + SHELF_GAP); // '새 책' 자리는 늘 비워둔다
+    return Math.max(1, Math.floor(usable / (SPINE_W + SHELF_GAP)));
+  }, [shelfW, books.length]);
+  const pageCount = Math.max(1, Math.ceil(books.length / perPage));
+  const page = Math.min(shelfPage, pageCount - 1); // 책이 줄어 페이지가 사라져도 안전하게
+  const pageBooks = books.slice(page * perPage, page * perPage + perPage);
+  /* 이 페이지에서 '새 책' 자리·기울기를 빼고 남는 폭 — 정물(지구본·시계)을 놓을지 판단한다 */
+  const shelfFree = shelfW - 28 - pageBooks.length * (SPINE_W + SHELF_GAP) - NEW_SLOT - SHELF_GAP - LEAN_SLACK;
 
   const today = new Date();
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
@@ -545,9 +537,9 @@ export default function Wiki() {
           >
             {s.title}
           </span>
-          <span className="flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full text-[12px] font-bold" style={{ border: '1.5px solid rgba(233,205,140,.75)', color: '#fbf3e2', textShadow: '0 1px 1px rgba(0,0,0,.4)' }}>
-            {s.n}
-          </span>
+          {/* 아래쪽 여백 — 문서 수 배지가 있던 자리. 제목이 가운데 머물도록 자리만 남긴다
+              (개수는 책등에 새기지 않는다 — 차례·사이드바에 이미 있다) */}
+          <span aria-hidden className="h-[28px] flex-none" />
         </span>
       </button>
     );
@@ -1220,45 +1212,38 @@ export default function Wiki() {
               <span style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 11, letterSpacing: '.24em', color: '#3a2c10' }}>나의 서재</span>
               <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
             </div>
-            {shelfRows.map((row, ri) => {
-              const last = ri === shelfRows.length - 1;
-              const free = shelfW - 28 - row.used - NEW_SLOT - SHELF_GAP - LEAN_SLACK; // 새 책 자리·기울기를 뺀 남는 폭
-              return (
-            <Fragment key={ri}>
-            <div ref={ri === 0 ? shelfRef : undefined} className="relative flex items-end gap-[9px] overflow-x-clip px-3.5" style={{ marginTop: ri === 0 ? 0 : 36 }}>
-              {row.books.map((b, i) => spine(b, last && free > 90 && i === row.books.length - 1 && row.books.length >= 2 ? spineOf(row.books[i - 1]).h : undefined))}
-              {last && (
-                <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
-                  className="flex h-[268px] w-[66px] flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
-                  style={{ border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
-                >+</button>
-              )}
+            <div ref={shelfRef} className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
+              {pageBooks.map((b, i) => spine(b, shelfFree > 90 && i === pageBooks.length - 1 && pageBooks.length >= 2 ? spineOf(pageBooks[i - 1]).h : undefined))}
+              <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
+                className="flex flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
+                style={{ height: SPINE_H, width: NEW_SLOT, border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
+              >+</button>
 
               {/* 정물들 — 남는 폭이 있을 때만. 등간격으로 도열하지 않고 꽃병·시계는 한 무리,
                   지구본만 멀찍이. 빈 틈은 1 : 1.9 로 갈려 리듬이 어긋난다 (grow 라 넘치지 않음) */}
-              {last && free > 300 && <span aria-hidden className="hidden flex-[1] md:block" />}
-              {last && free > 300 && (
+              {shelfFree > 300 && <span aria-hidden className="hidden flex-[1] md:block" />}
+              {shelfFree > 300 && (
                 <span className="hidden flex-none items-end gap-[7px] self-end pb-[2px] md:flex">
                   {/* 꽃병 — 선반 안쪽에 물러나 있어 조금 작고 그늘지다 */}
-                  {SHELF_PROPS.slice(0, free > 520 ? 1 : 0).map((kind) => (
+                  {SHELF_PROPS.slice(0, shelfFree > 520 ? 1 : 0).map((kind) => (
                     <span key={kind} className="block" style={{ transform: 'scale(.94)', transformOrigin: 'bottom center', filter: 'brightness(.9)' }}>
                       <ShelfProp kind={kind} />
                     </span>
                   ))}
                   {/* 탁상시계 — 앞쪽에, 누가 내려놓은 듯 살짝 비뚜름하게 */}
-                  {free > 420 && (
+                  {shelfFree > 420 && (
                     <span className="hidden lg:block" title="서재의 괘종시계" style={{ transform: 'rotate(2deg)', transformOrigin: 'bottom center', marginLeft: -3 }}>
                       <PendulumClock />
                     </span>
                   )}
                 </span>
               )}
-              {last && free > 300 && <span aria-hidden className="hidden flex-[1.9] md:block" />}
+              {shelfFree > 300 && <span aria-hidden className="hidden flex-[1.9] md:block" />}
 
               {/* 지구본 — 서가 맨 오른쪽의 대형 정물. 돌리면(클릭) 아무 문서나 펼쳐진다 */}
-              {last && free > 300 && docs.length > 0 && (
+              {shelfFree > 300 && docs.length > 0 && (
                 <button
                   type="button" onClick={openRandom} title="지구본 돌리기 — 아무 문서나 펼치기"
                   className="group relative hidden flex-none self-end md:block"
@@ -1303,11 +1288,26 @@ export default function Wiki() {
               )}
             </div>
             {shelfBar}
-            </Fragment>
-              );
-            })}
           </div>
-          <p className="mx-1 mt-2.5" style={{ fontSize: 12, color: C.muted }}>책등의 두께와 높이는 그 안에 쌓인 문서 수를 따라 자랍니다. 책을 눌러 펼쳐보세요.</p>
+
+          {/* 서가 페이지 넘김 — 선반은 한 칸이고 넘치는 책은 다음 장에 꽂힌다 */}
+          {pageCount > 1 && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button" onClick={() => setShelfPage(page - 1)} disabled={page === 0} aria-label="이전 선반"
+                className="flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+                style={{ border: `1px solid ${C.line}`, background: C.paper, color: C.sub }}
+              >‹</button>
+              <span style={{ fontFamily: SERIF, fontSize: 12, letterSpacing: '.1em', color: C.sub }}>
+                {page + 1} / {pageCount}
+              </span>
+              <button
+                type="button" onClick={() => setShelfPage(page + 1)} disabled={page >= pageCount - 1} aria-label="다음 선반"
+                className="flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30"
+                style={{ border: `1px solid ${C.line}`, background: C.paper, color: C.sub }}
+              >›</button>
+            </div>
+          )}
 
           {/* 고정된 문서 */}
           {pinnedAll.length > 0 && (
@@ -1316,7 +1316,8 @@ export default function Wiki() {
                 <h2 className="m-0" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 17 }}>고정된 문서</h2>
                 <span style={{ fontSize: 12, color: C.sub }}>책갈피로 꽂아둔 {pinnedAll.length}개</span>
               </div>
-              <div className="mt-3.5 grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+              {/* 한 줄에 3개 고정 — auto-fit 은 개수에 따라 카드 폭이 널뛰어 줄마다 리듬이 달라진다 */}
+              <div className="mt-3.5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {pinnedAll.map((d) => {
                   const b = bookOf.get(d.book);
                   return (
