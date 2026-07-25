@@ -105,3 +105,51 @@ describe('분류 규칙(keywordDict)', () => {
     expect(ledgerStore.getKeywordDict()).toEqual({ 스벅: 'cafe' });
   });
 });
+
+describe('카테고리 만들기·지우기', () => {
+  it('addCategory — 트림·기본 이모지, 같은 이름은 기존 것 반환', () => {
+    const a = ledgerStore.addCategory('  반려동물 ', '', 'variable');
+    expect(a?.label).toBe('반려동물');
+    expect(a?.emoji).toBe('🏷️');
+    expect(a?.custom).toBe(true);
+    const dup = ledgerStore.addCategory('반려 동물', '🐶', 'fixed'); // 공백 무시 비교
+    expect(dup?.id).toBe(a?.id);
+    expect(ledgerStore.listCategories().filter((c) => c.custom)).toHaveLength(1);
+    expect(ledgerStore.addCategory('   ', '🏷️', 'variable')).toBeNull();
+  });
+
+  it('기본 카테고리는 지울 수 없다', () => {
+    expect(ledgerStore.removeCategory('food')).toBeNull();
+    expect(ledgerStore.listCategories().some((c) => c.id === 'food')).toBe(true);
+  });
+
+  it('삭제해도 돈 기록은 사라지지 않고 기타로 옮겨진다', () => {
+    const c = ledgerStore.addCategory('반려동물', '🐶', 'variable')!;
+    ledgerStore.addEntries([
+      { type: 'expense', amount: 30000, date: '2026-07-10', categoryId: c.id, memo: '사료' },
+      { type: 'expense', amount: 5000, date: '2026-07-11', categoryId: 'food', memo: '김밥' },
+    ]);
+    expect(ledgerStore.categoryUsage(c.id)).toBe(1);
+
+    const r = ledgerStore.removeCategory(c.id);
+    expect(r).toEqual({ moved: 1 });
+    const list = ledgerStore.listEntries();
+    expect(list).toHaveLength(2);                                    // 삭제되지 않음
+    const moved = list.find((e) => e.memo === '사료')!;
+    expect(moved.categoryId).toBe('etc');
+    expect(moved.amount).toBe(30000);                                // 금액·날짜 보존
+    expect(moved.date).toBe('2026-07-10');
+    expect(ledgerStore.listCategories().some((x) => x.id === c.id)).toBe(false);
+  });
+
+  it('삭제 시 그 카테고리를 가리키던 분류 규칙·고정지출도 정리된다', () => {
+    const c = ledgerStore.addCategory('반려동물', '🐶', 'variable')!;
+    ledgerStore.setKeywordRule('사료', c.id);
+    ledgerStore.setKeywordRule('스벅', 'cafe');
+    ledgerStore.addRecurring({ label: '펫보험', amount: 20000, type: 'expense', categoryId: c.id, day: 5 });
+
+    ledgerStore.removeCategory(c.id);
+    expect(ledgerStore.getKeywordDict()).toEqual({ 스벅: 'cafe' });   // 가리킬 곳 없는 규칙만 제거
+    expect(ledgerStore.listRecurring()[0].categoryId).toBe('etc');    // 규칙 자체는 보존
+  });
+});

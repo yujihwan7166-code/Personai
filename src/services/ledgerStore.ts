@@ -269,9 +269,49 @@ export const ledgerStore = {
     return [...DEFAULT_CATEGORIES, ...custom];
   },
 
-  addCategory(label: string, emoji: string, bucket: LedgerCategory['bucket']): void {
-    const custom = this.listCategories().filter((c) => c.custom);
-    write(CATEGORIES_KEY, [...custom, { id: newId('lc'), label, emoji, bucket, custom: true }]);
+  /** 같은 이름(공백·대소문자 무시)이 이미 있으면 그 카테고리를 그대로 돌려준다. */
+  addCategory(label: string, emoji: string, bucket: LedgerCategory['bucket']): LedgerCategory | null {
+    const name = label.trim();
+    if (!name) return null;
+    const key = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+    const existing = this.listCategories().find((c) => key(c.label) === key(name));
+    if (existing) return existing;
+    const created: LedgerCategory = {
+      id: newId('lc'), label: name, emoji: emoji.trim() || '🏷️', bucket, custom: true,
+    };
+    write(CATEGORIES_KEY, [...this.listCategories().filter((c) => c.custom), created]);
+    return created;
+  },
+
+  /** 내역에서 이 카테고리를 쓰는 건수 — 삭제 전 영향 범위를 보여주기 위해. */
+  categoryUsage(id: string): number {
+    return readArr(ENTRIES_KEY, normEntry).filter((e) => e.categoryId === id).length;
+  },
+
+  /**
+   * 커스텀 카테고리 삭제. 기본 10종은 지울 수 없다.
+   * 쓰던 내역·고정지출은 지우지 않고 fallback(기본 '기타')으로 옮긴다 — 돈 기록 자체는 절대 잃지 않는다.
+   * 이 카테고리를 가리키던 분류 규칙은 함께 지운다(가리킬 곳이 없어지므로).
+   */
+  removeCategory(id: string, fallbackId = 'etc'): { moved: number } | null {
+    const target = this.listCategories().find((c) => c.id === id);
+    if (!target?.custom) return null;
+
+    const entries = readArr(ENTRIES_KEY, normEntry);
+    const moved = entries.filter((e) => e.categoryId === id).length;
+    if (moved > 0) write(ENTRIES_KEY, entries.map((e) => (e.categoryId === id ? { ...e, categoryId: fallbackId } : e)));
+
+    const rules = readArr(RECURRING_KEY, normRule);
+    if (rules.some((r) => r.categoryId === id)) {
+      write(RECURRING_KEY, rules.map((r) => (r.categoryId === id ? { ...r, categoryId: fallbackId } : r)));
+    }
+
+    const dict = this.getKeywordDict();
+    const kept = Object.fromEntries(Object.entries(dict).filter(([, cid]) => cid !== id));
+    if (Object.keys(kept).length !== Object.keys(dict).length) write(DICT_KEY, kept);
+
+    write(CATEGORIES_KEY, this.listCategories().filter((c) => c.custom && c.id !== id));
+    return { moved };
   },
 
   // ── 자산·스냅샷 (2차) ──

@@ -34,13 +34,13 @@ const NAV: Array<{ id: View; label: string; emoji: string }> = [
   { id: 'entries',   label: '내역',     emoji: '📒' },
   { id: 'budget',    label: '예산',     emoji: '🎯' },
   { id: 'recurring', label: '고정지출', emoji: '🔁' },
-  { id: 'rules',     label: '분류 규칙', emoji: '🏷️' },
+  { id: 'rules',     label: '분류',     emoji: '🏷️' },
   { id: 'assets',    label: '자산',     emoji: '💎' },
   { id: 'report',    label: '월 결산',  emoji: '📊' },
 ];
 
 const VIEW_TITLE: Record<View, string> = {
-  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', rules: '분류 규칙', assets: '자산', report: '월 결산',
+  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', rules: '분류', assets: '자산', report: '월 결산',
 };
 
 const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
@@ -151,7 +151,7 @@ export default function Ledger() {
     : view === 'entries' ? `이번 달 ${sum.count}건`
     : view === 'budget' ? (plannedTotal > 0 ? <>합계 {KRW(plannedTotal)} · 지난 실적을 보고 정해요</> : '얼마로 잡을지 지난 실적을 보고 정하는 곳')
     : view === 'recurring' ? `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`
-    : view === 'rules' ? `내 규칙 ${Object.keys(data.dict).length}개 · 기본 분류보다 먼저 적용돼요`
+    : view === 'rules' ? `카테고리 ${data.categories.length}개 · 내 규칙 ${Object.keys(data.dict).length}개`
     : view === 'assets' ? (data.assets.length ? <>순자산 {KRW(nw.net)} · 월말에 갱신하는 장부</> : '실시간 아님 — 월말에 한 번 적는 장부')
     : `스냅샷 ${data.snapshots.length}개 · 저축률과 순자산의 흐름`;
 

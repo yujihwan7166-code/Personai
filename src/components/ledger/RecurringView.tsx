@@ -30,7 +30,7 @@ export function RecurringView({ data }: { data: LedgerData }) {
   const field = 'rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--ledger-navy))]';
 
   return (
-    <div className="max-w-[560px] space-y-4 pb-32">
+    <div className="space-y-4 pb-32">
       <section className="rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--card))] p-4">
         <h3 className="mb-3 text-[14px] font-bold">반복 규칙 추가</h3>
         <div className="mb-2 flex gap-1.5">
@@ -45,7 +45,7 @@ export function RecurringView({ data }: { data: LedgerData }) {
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="이름 (예: 넷플릭스)" className={cn(field, 'min-w-[140px] flex-1')} aria-label="이름" />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="이름 (예: 넷플릭스)" className={cn(field, 'min-w-[140px] max-w-[240px] flex-1')} aria-label="이름" />
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" placeholder="금액" className={cn(field, 'w-28')} aria-label="금액" />
           <select value={day} onChange={(e) => setDay(e.target.value)} className={field} aria-label="결제일">
             {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}일</option>)}
