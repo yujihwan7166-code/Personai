@@ -63,7 +63,17 @@ export default function MyMapView() {
   const mealPlaces = useMemo(() => groupPlaces(withPlace.filter((i) => i.kind === 'meal')), [withPlace]);
   const today = todayKey();
 
-  const listGroups = tab === 'meals' ? mealPlaces : allPlaces;
+  /* 목록 — 검색 + 정렬. '최근 순'이 못 박힌 안내 문구였는데, 장소가 쌓이면
+     "어디를 제일 자주 갔나"가 더 궁금해진다 → 실제로 눌리는 토글로. */
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState<'recent' | 'often'>('recent');
+  const listGroups = useMemo(() => {
+    const base = tab === 'meals' ? mealPlaces : allPlaces;
+    const kw = q.trim().toLowerCase();
+    const filtered = kw ? base.filter((g) => g.place.toLowerCase().includes(kw)) : base;
+    if (sort === 'recent') return filtered;
+    return [...filtered].sort((a, b) => b.visits.length - a.visits.length || b.lastDate.localeCompare(a.lastDate));
+  }, [tab, mealPlaces, allPlaces, q, sort]);
 
   /** 지도에 넘길 핀 — 선택(포커스)이 있으면 좁혀서 넘겨 자동 줌. */
   const pins = useMemo<TravelMapPin[]>(() => {
@@ -105,8 +115,8 @@ export default function MyMapView() {
 
       {/* 우 — 탭 + 목록 */}
       <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] shadow-[0_1px_3px_rgba(20,40,40,0.04)] lg:w-[340px]">
-        {/* 탭 — 채운 타일 세그먼트 */}
-        <div className="grid shrink-0 grid-cols-3 gap-1.5 border-b border-[hsl(var(--hairline))] p-2">
+        {/* 탭 — 큰 숫자 타일은 통계판처럼 읽히고 세로를 많이 먹었다. 라벨+작은 배지 한 줄로 눌러 자리를 돌려준다 */}
+        <div className="flex shrink-0 gap-1 border-b border-[hsl(var(--hairline))] p-1.5">
           {TAB_META.map((t) => {
             const on = tab === t.id;
             return (
@@ -115,24 +125,44 @@ export default function MyMapView() {
                 type="button"
                 onClick={() => pickTab(t.id)}
                 className={cn(
-                  'flex flex-col items-center rounded-xl px-1 py-2.5 transition-all active:scale-[0.97]',
-                  on ? 'bg-[hsl(var(--travel-teal))] shadow-sm' : 'bg-[hsl(var(--surface-2))]/50 hover:bg-[hsl(var(--surface-2))]',
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-1 py-2 text-[12px] font-semibold transition-colors',
+                  on ? 'bg-[hsl(var(--travel-teal))] text-white' : 'text-muted-foreground hover:bg-[hsl(var(--surface-2))]',
                 )}
               >
-                <span className={cn('text-[20px] font-extrabold leading-none tabular-nums', on ? 'text-white' : 'text-foreground/75')}>{t.count}</span>
-                <span className={cn('mt-1 text-[11.5px] font-semibold', on ? 'text-white/90' : 'text-muted-foreground')}>{t.label}</span>
+                <span className="truncate">{t.label}</span>
+                <span className={cn('shrink-0 rounded-full px-1.5 text-[10.5px] font-bold tabular-nums', on ? 'bg-white/25 text-white' : 'bg-[hsl(var(--foreground)/0.06)] text-muted-foreground')}>{t.count}</span>
               </button>
             );
           })}
         </div>
 
-        {/* 목록 머리 — 현재 탭 라벨 + 정렬 힌트 */}
-        <div className="flex shrink-0 items-center justify-between px-3.5 pb-1 pt-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">
-            {tab === 'trips' ? '다녀온 여행' : tab === 'meals' ? '먹은 곳' : '가본 곳'}
-          </span>
-          <span className="text-[11px] text-muted-foreground/55">최근 순</span>
-        </div>
+        {/* 장소 탭에서만 — 많아지면 찾아야 하고, 정렬은 실제로 눌린다 */}
+        {tab !== 'trips' && (
+          <div className="flex shrink-0 items-center gap-2 px-2.5 pb-1.5 pt-2">
+            {(tab === 'meals' ? mealPlaces : allPlaces).length >= 6 && (
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="장소 찾기"
+                aria-label="장소 찾기"
+                className="h-7 min-w-0 flex-1 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2.5 text-[12px] outline-none placeholder:text-muted-foreground/60 focus:border-[hsl(var(--travel-teal))]/50"
+              />
+            )}
+            <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg bg-[hsl(var(--surface-2))] p-0.5">
+              {([['recent', '최근순'], ['often', '자주 간 순']] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setSort(v)}
+                  className={cn('rounded-[7px] px-2 py-1 text-[11px] font-semibold transition-colors',
+                    sort === v ? 'bg-[hsl(var(--surface-1))] text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 목록 */}
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
@@ -167,7 +197,9 @@ export default function MyMapView() {
               </ul>
             )
           ) : listGroups.length === 0 ? (
-            <p className="py-10 text-center text-[12.5px] text-muted-foreground">{tab === 'meals' ? '먹은 곳 기록이 없어요.' : '가본 곳 기록이 없어요.'}</p>
+            <p className="py-10 text-center text-[12.5px] text-muted-foreground">
+              {q.trim() ? `'${q.trim()}'와 맞는 장소가 없어요.` : tab === 'meals' ? '먹은 곳 기록이 없어요.' : '가본 곳 기록이 없어요.'}
+            </p>
           ) : (
             <ul className="space-y-1">
               {listGroups.map((g) => {
@@ -191,6 +223,13 @@ export default function MyMapView() {
                 );
               })}
             </ul>
+          )}
+
+          {/* 목록이 짧으면 아래가 통째로 비어 고장난 것처럼 보인다 — 조용히 다음 할 일을 일러둔다 */}
+          {listGroups.length > 0 && listGroups.length < 4 && tab !== 'trips' && (
+            <p className="px-3 pb-3 pt-6 text-center text-[11.5px] leading-relaxed text-muted-foreground/60">
+              하루 기록에 장소를 적으면<br />먹은 곳·간 곳이 여기 쌓여요
+            </p>
           )}
         </div>
         {(selPlace || selTrip) && (

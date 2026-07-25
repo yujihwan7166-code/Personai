@@ -923,14 +923,14 @@ export default function Journal() {
                     <button type="button" onClick={() => setCalAnchor(new Date(y, m + 1, 1))} className="flex h-full w-8 items-center justify-center text-[hsl(var(--cream-muted))] hover:bg-[hsl(var(--cream-line))]/40" aria-label="다음 달"><ChevronRight className="h-4 w-4" /></button>
                   </span>
                 </div>
-                {/* 요일 헤더 */}
-                <div className="grid grid-cols-7 border-y border-[hsl(var(--cream-line))]">
+                {/* 요일 헤더 — 격자선은 60% 투명이 아니라 제 색으로. 옅은 헤어라인을 또 흐리면 칸이 안 보인다 */}
+                <div className="grid grid-cols-7 border-y border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-bg))]/50">
                   {['일', '월', '화', '수', '목', '금', '토'].map((w, i) => (
-                    <span key={w} className="border-r border-[hsl(var(--cream-line))]/60 py-2 text-center text-[12px] font-semibold last:border-r-0" style={{ color: i === 0 ? SUN : i === 6 ? SAT : undefined }}>{w}</span>
+                    <span key={w} className="border-r border-[hsl(var(--cream-line))] py-2.5 text-center text-[12.5px] font-bold last:border-r-0" style={{ color: i === 0 ? SUN : i === 6 ? SAT : 'hsl(var(--cream-ink) / 0.72)' }}>{w}</span>
                   ))}
                 </div>
-                {/* 그리드 */}
-                <div className="grid grid-cols-7" style={{ gridAutoRows: 'minmax(92px, 1fr)' }}>
+                {/* 그리드 — 한 칸 92→112px. 메모 한 줄이 날짜에 눌려 잘리던 높이였다 */}
+                <div className="grid grid-cols-7" style={{ gridAutoRows: 'minmax(112px, 1fr)' }}>
                   {cells.map((c, idx) => {
                     const dow = idx % 7;
                     const meta = c.key ? dayMeta.get(c.key) : undefined;
@@ -943,30 +943,31 @@ export default function Journal() {
                         onClick={() => c.key && openDate(c.key)}
                         disabled={!c.key}
                         className={cn(
-                          'flex flex-col gap-1 overflow-hidden border-b border-r border-[hsl(var(--cream-line))]/60 px-2 py-1.5 text-left transition-colors',
+                          'flex flex-col gap-1 overflow-hidden border-b border-r border-[hsl(var(--cream-line))] px-2 py-2 text-left transition-colors',
                           c.other ? 'bg-[hsl(var(--cream-bg)/0.45)]' : 'hover:bg-[hsl(var(--cream-accent))]/[0.06]',
                         )}
                       >
                         <span className="flex items-center justify-between">
                           <span
-                            className={cn('inline-flex h-[24px] min-w-[24px] items-center justify-center rounded-full px-1 text-[12.5px] font-semibold tabular-nums', isToday && 'bg-[hsl(var(--cream-accent))] font-bold text-white')}
-                            style={!isToday ? { color: c.other ? 'hsl(var(--cream-muted) / 0.45)' : dow === 0 ? SUN : dow === 6 ? SAT : 'hsl(var(--cream-ink) / 0.7)' } : undefined}
+                            className={cn('inline-flex h-[25px] min-w-[25px] items-center justify-center rounded-full px-1 text-[13.5px] font-bold tabular-nums', isToday && 'bg-[hsl(var(--cream-accent))] text-white')}
+                            style={!isToday ? { color: c.other ? 'hsl(var(--cream-muted) / 0.5)' : dow === 0 ? SUN : dow === 6 ? SAT : 'hsl(var(--cream-ink) / 0.92)' } : undefined}
                           >
                             {c.day}
                           </span>
-                          {!c.other && meta?.weather && <span className="text-[13px] leading-none">{WEATHER_META[meta.weather].emoji}</span>}
+                          {!c.other && meta?.weather && <span className="text-[14px] leading-none">{WEATHER_META[meta.weather].emoji}</span>}
                         </span>
-                        {mood && <span className="text-[15px] leading-none">{mood.emoji}</span>}
-                        {!c.other && meta?.label && <span className="line-clamp-1 text-[10px] leading-tight text-[hsl(var(--cream-ink))]/55">{meta.label}</span>}
-                        {c.key && itemDates.has(c.key) && <span aria-hidden className="mt-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />}
+                        {mood && <span className="text-[16px] leading-none">{mood.emoji}</span>}
+                        {/* 메모 — 10px/55% 는 사실상 안 보였다. 칸이 높아진 만큼 두 줄까지 */}
+                        {!c.other && meta?.label && <span className="line-clamp-2 text-[11.5px] leading-snug text-[hsl(var(--cream-ink))]/80">{meta.label}</span>}
+                        {c.key && itemDates.has(c.key) && <span aria-hidden className="mt-auto h-[7px] w-[7px] rounded-full bg-[hsl(var(--cream-accent))]" />}
                       </button>
                     );
                   })}
                 </div>
                 {/* 범례 */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] px-5 py-3 text-[11px] text-[hsl(var(--cream-muted))]">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[hsl(var(--cream-line))] px-5 py-3 text-[11.5px] text-[hsl(var(--cream-ink))]/65">
                   {MOODS.map((mo) => <span key={mo.key} className="inline-flex items-center gap-1">{mo.emoji} {mo.label}</span>)}
-                  <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--cream-accent))]/70" />하루 기록 있음</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="h-[7px] w-[7px] rounded-full bg-[hsl(var(--cream-accent))]" />하루 기록 있음</span>
                 </div>
               </div>
             );

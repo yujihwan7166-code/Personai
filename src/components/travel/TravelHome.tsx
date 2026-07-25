@@ -58,30 +58,35 @@ export default function TravelHome({ initialTripId }: { initialTripId?: string }
 
   return (
     <div className="pb-8">
-      {/* 헤더 + 스탯 스트립 + 새 여행 — 한 줄 */}
-      <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        {/* 헤더 */}
+      {/* 헤더 + 스탯 + 새 여행 — 한 줄 */}
+      <div className="mb-6 flex flex-wrap items-end gap-x-5 gap-y-3">
+        {/* 헤더 — 제목이 주어, 아래 숫자가 서술어 */}
         <div className="mr-1">
           <p className="text-[10.5px] font-bold tracking-[0.22em] text-muted-foreground/70">WANDERLUST ARCHIVE</p>
           <h2 className="mt-1 text-[27px] font-bold leading-none tracking-[-0.01em] text-foreground">트래블 로그</h2>
-        </div>
-        {/* 스탯 스트립 */}
-        <div className="flex items-center divide-x divide-[hsl(var(--hairline))] rounded-2xl border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1))] px-1 py-2.5 shadow-[0_2px_12px_-4px_hsl(var(--foreground)/0.12)]">
-          {([
-            [stats.trips, '여행'],
-            [stats.days, '여행한 날'],
-            [stats.places, '여행지'],
-          ] as const).map(([value, label]) => (
-            <div key={label} className="px-5 text-center">
-              <p className="text-[20px] font-extrabold leading-none tabular-nums text-[hsl(var(--travel-teal))]">{value}</p>
-              <p className="mt-1 text-[10.5px] font-semibold text-muted-foreground">{label}</p>
-            </div>
-          ))}
+          {/* 아래에 있을 땐 카드로 세워도 됐지만, 제목 옆으로 올라온 이상 테두리·그림자 진 상자는
+              마스트헤드와 경쟁한다 — 한 줄 서술로 낮춘다 */}
+          <p className="mt-2 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+            {([
+              [stats.trips, '여행'],
+              [stats.days, '여행한 날'],
+              [stats.places, '여행지'],
+            ] as const).map(([value, label], i) => (
+              <span key={label} className="flex items-center gap-2">
+                {i > 0 && <span aria-hidden className="h-2.5 w-px bg-[hsl(var(--hairline))]" />}
+                <span>
+                  <span className="text-[14px] font-extrabold tabular-nums text-[hsl(var(--travel-teal))]">{value}</span>
+                  <span className="ml-1 font-medium">{label}</span>
+                </span>
+              </span>
+            ))}
+          </p>
         </div>
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--travel-teal))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--travel-teal-ink))] shadow-[0_6px_16px_-8px_hsl(var(--travel-teal)/0.8)] transition-[filter] hover:brightness-[1.06]"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold transition-[filter] hover:brightness-[0.97]"
+          style={{ background: 'hsl(258 62% 92%)', color: 'hsl(258 42% 42%)', boxShadow: 'inset 0 0 0 1px hsl(258 45% 82%)' }}
         >
           <Plus className="h-3.5 w-3.5" /> 새 여행
         </button>
