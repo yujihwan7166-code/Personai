@@ -175,6 +175,22 @@ export default function Ledger() {
           <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span><span>상세 입력</span>
         </button>
 
+        {/* 상단바를 없앤 대신 여기로 — 기준일 · 밀도 · 금액 숨김 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, height: 27, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.sub }}>
+            <span style={{ width: 5, height: 5, borderRadius: 999, background: C.greenDot }} />
+            {monthDay}
+          </span>
+          <button type="button" onClick={toggleCompact} title="줄 간격"
+            style={{ height: 27, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 10.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
+            {compact ? '촘촘' : '보통'}
+          </button>
+          <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
+            style={{ width: 27, height: 27, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 12, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+            {hideAmounts ? '🙈' : '👁'}
+          </button>
+        </div>
+
         <nav aria-label="가계부 섹션" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18, overflow: 'auto' }}>
           {NAV.map((s) => (
             <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -224,21 +240,6 @@ export default function Ledger() {
 
       {/* ── 본문 ── */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100dvh', overflowY: 'auto' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, height: 54, flex: '0 0 54px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '0 28px', borderBottom: `1px solid ${C.lineSoft}`, background: 'rgba(246,245,241,0.88)', backdropFilter: 'blur(10px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub }}>
-            <span style={{ width: 5, height: 5, borderRadius: 999, background: C.greenDot }} />
-            {monthDay}
-          </div>
-          <button type="button" onClick={toggleCompact}
-            style={{ height: 30, padding: '0 11px', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
-            {compact ? '촘촘' : '보통'}
-          </button>
-          <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
-            style={{ width: 30, height: 30, border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 13, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-            {hideAmounts ? '🙈' : '👁'}
-          </button>
-        </div>
-
         {/* 모바일 섹션 탭 — 사이드바가 lg 미만에서 숨겨지는 것 보완 */}
         <div className="flex gap-1.5 overflow-x-auto px-5 pt-3 lg:hidden" role="tablist" aria-label="가계부 섹션">
           {NAV.flatMap((s) => s.items).map((it) => {

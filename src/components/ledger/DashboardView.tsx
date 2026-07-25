@@ -29,13 +29,15 @@ const cardStyle: React.CSSProperties = { border: `1px solid ${C.line}`, borderRa
 
 export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBudget }: DashboardViewProps) {
   const today = todayKey();
-  const month = monthOf(today);
+  const [month, setMonth] = useState(() => monthOf(today));
   const prev = shiftMonth(month, -1);
   const { entries, budgets, recurring, categories } = data;
 
   const [yy, mm] = month.split('-').map(Number);
   const daysInMonth = new Date(yy, mm, 0).getDate();
-  const dayOfMonth = Number(today.slice(8, 10));
+  const isCurrent = month === monthOf(today);
+  /** 지난달을 보고 있으면 '오늘'이 없다 — 달이 다 지난 것으로 본다. */
+  const dayOfMonth = isCurrent ? Number(today.slice(8, 10)) : daysInMonth;
   const leftDays = Math.max(1, daysInMonth - dayOfMonth + 1);
   const monthPct = Math.round((dayOfMonth / daysInMonth) * 100);
 
@@ -166,9 +168,18 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 머리 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, paddingBottom: 2, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월 요약</h1>
-          <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>남은 {leftDays}일 · 기록 {sum.count}건</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>{mm}월</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.line}`, borderRadius: 9, background: '#fff', padding: 2 }}>
+            <button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}
+              style={{ width: 26, height: 26, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>‹</button>
+            <button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}
+              style={{ width: 26, height: 26, border: 'none', background: 'transparent', borderRadius: 7, fontSize: 13, color: C.sub, cursor: 'pointer' }}>›</button>
+          </div>
+          {!isCurrent && (
+            <button type="button" onClick={() => setMonth(monthOf(today))}
+              style={{ height: 26, padding: '0 9px', border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub, cursor: 'pointer' }}>이번 달</button>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button type="button" style={outlineBtn} onClick={onGoTx}>내역 보기</button>
@@ -277,7 +288,7 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
               const on = d === selDay;
               return (
                 <button key={key} type="button" onClick={() => setSelDay(d)}
-                  style={{ height: 46, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '4px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ height: 54, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '4px 5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 10.5, fontWeight: d === dayOfMonth ? 700 : 550, color: d === dayOfMonth ? C.navy : C.muted3, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 650, color: v > 0 ? (v >= maxDay * 0.66 ? C.ink2 : C.sub2) : 'transparent', textAlign: 'right', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
                     {v > 0 ? `${Math.round(v / 1000)}k` : '·'}

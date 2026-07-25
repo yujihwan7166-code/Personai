@@ -241,29 +241,55 @@ export function ReportView({ data, onGoAssets }: { data: LedgerData; onGoAssets?
         <Section title="순자산 추이"><NetWorthLine data={data} /></Section>
       </div>
 
-      <Section title={`전월 대비 카테고리 증감 (${Number(prev.slice(5, 7))}월 → ${Number(month.slice(5, 7))}월)`}>
-        {compare.length === 0 ? <p className="py-4 text-center text-[12.5px] text-muted-foreground">비교할 지출이 없어요</p> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px]">
-              <thead><tr className="text-left text-muted-foreground">
-                <th className="py-1.5 font-medium">카테고리</th><th className="text-right font-medium">지난달</th><th className="text-right font-medium">이번 달</th><th className="text-right font-medium">증감</th>
-              </tr></thead>
-              <tbody>
-                {compare.map((r) => (
-                  <tr key={r.id} className="border-t border-[hsl(var(--hairline))]">
-                    <td className="py-1.5">{label.get(r.id) ?? r.id}</td>
-                    <td className="text-right tabular-nums text-muted-foreground">{r.prev ? KRW(r.prev) : '—'}</td>
-                    <td className="text-right tabular-nums">{r.cur ? KRW(r.cur) : '—'}</td>
-                    <td className={cn('text-right tabular-nums', r.diff > 0 ? 'text-[hsl(var(--ledger-red))]' : r.diff < 0 ? 'text-[hsl(var(--ledger-navy))]' : 'text-muted-foreground')}>
-                      {r.diff === 0 ? '—' : `${r.diff > 0 ? '+' : ''}${KRW(r.diff)}`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
+      {/* 카테고리 증감 — 막대 길이가 증감 크기, 색이 방향(늘었나/줄었나) */}
+      <div style={{ border: `1px solid ${TC.line}`, borderRadius: 14, background: TC.card, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px' }}>
+          <span style={{ fontSize: 14.5, fontWeight: 650 }}>카테고리 증감</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: TC.muted2 }}>
+            {Number(prev.slice(5, 7))}월 → {Number(month.slice(5, 7))}월
+          </span>
+        </div>
+        {compare.length === 0 ? (
+          <p style={{ padding: '28px 20px', textAlign: 'center', fontSize: 12.5, color: TC.muted2 }}>비교할 지출이 없어요</p>
+        ) : (() => {
+          const maxDiff = Math.max(1, ...compare.map((r) => Math.abs(r.diff)));
+          return (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 32, padding: '0 20px', background: TC.head, borderTop: `1px solid ${TC.lineFaint}`, borderBottom: `1px solid ${TC.lineFaint}`, fontSize: 11, fontWeight: 700, color: TC.muted3 }}>
+                <span style={{ flex: 1 }}>카테고리</span>
+                <span style={{ width: 92, textAlign: 'right' }}>지난달</span>
+                <span style={{ width: 92, textAlign: 'right' }}>이번 달</span>
+                <span style={{ width: 190, textAlign: 'right' }}>증감</span>
+              </div>
+              {compare.map((r) => {
+                const up = r.diff > 0;
+                const bar = Math.round((Math.abs(r.diff) / maxDiff) * 100);
+                return (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: `1px solid ${TC.lineRow}` }}>
+                    <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, minWidth: 0 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label.get(r.id) ?? r.id}</span>
+                    </span>
+                    <span style={{ width: 92, textAlign: 'right', fontSize: 13, fontWeight: 550, color: TC.muted, fontVariantNumeric: 'tabular-nums' }}>
+                      {r.prev ? r.prev.toLocaleString('ko-KR') : '—'}
+                    </span>
+                    <span style={{ width: 92, textAlign: 'right', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      {r.cur ? r.cur.toLocaleString('ko-KR') : '—'}
+                    </span>
+                    <span style={{ width: 190, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9 }}>
+                      <span style={{ width: 96, height: 6, borderRadius: 999, background: TC.lineFaint, position: 'relative', overflow: 'hidden' }}>
+                        <span style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${bar}%`, background: up ? TC.red : TC.greenDot }} />
+                      </span>
+                      <span style={{ minWidth: 82, textAlign: 'right', fontSize: 13, fontWeight: 700, color: r.diff === 0 ? TC.muted3 : up ? TC.red : TC.green, fontVariantNumeric: 'tabular-nums' }}>
+                        {r.diff === 0 ? '—' : `${up ? '+' : '−'}${Math.abs(r.diff).toLocaleString('ko-KR')}`}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          );
+        })()}
+      </div>
 
       <Section title="카테고리 × 최근 6개월">
         {pivot.cats.length === 0 ? <p className="py-4 text-center text-[12.5px] text-muted-foreground">지출 기록이 쌓이면 표가 채워져요</p> : (
