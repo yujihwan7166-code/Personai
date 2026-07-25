@@ -133,9 +133,11 @@ interface DashboardViewProps {
   onPickDate?: (date: string) => void;
   onGoAssets?: () => void;
   onPickCategory?: (categoryId: string) => void;
+  onGoTx?: () => void;
+  onGoBudget?: () => void;
 }
 
-export function DashboardView({ data, onPickDate, onGoAssets, onPickCategory }: DashboardViewProps) {
+export function DashboardView({ data, onPickDate, onGoAssets, onPickCategory, onGoTx, onGoBudget }: DashboardViewProps) {
   const today = todayKey();
   const month = monthOf(today);
   const prev = prevMonthOf(month);

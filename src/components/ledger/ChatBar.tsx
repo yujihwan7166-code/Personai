@@ -19,9 +19,10 @@ interface ChatBarProps {
   quickChips: Array<{ label: string; input: string }>; // 원탭 칩 (자주 쓰는 지출)
   onEdit: (id: string) => void;                         // 결과 칩 탭 → 수정 다이얼로그
   onSuggestRecurring: (e: ParsedEntry) => void;         // '매달' 감지 → 고정지출 등록 제안
+  onOpenDetail?: () => void;                            // '상세' 버튼 → 상세 입력 다이얼로그
 }
 
-export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecurring }: ChatBarProps) {
+export function ChatBar({ categories, entries, quickChips, onEdit, onSuggestRecurring, onOpenDetail }: ChatBarProps) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<LedgerEntry[]>([]); // 방금 저장한 건들 (칩)

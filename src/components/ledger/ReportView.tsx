@@ -161,7 +161,7 @@ function YearWrapped({ data, year, onClose }: { data: LedgerData; year: number; 
   );
 }
 
-export function ReportView({ data }: { data: LedgerData }) {
+export function ReportView({ data, onGoAssets }: { data: LedgerData; onGoAssets?: () => void }) {
   const [month, setMonth] = useState(() => monthOf(todayKey()));
   const [barSpan, setBarSpan] = useState<6 | 12>(6);
   const [wrappedYear, setWrappedYear] = useState<number | null>(null);

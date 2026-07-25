@@ -23,9 +23,11 @@ interface EntriesViewProps {
   /** 도넛·결산에서 카테고리 클릭으로 넘어온 경우 — 해당 카테고리 필터로 시작. */
   initialCategory?: string | null;
   onOpenImport?: () => void;
+  /** 상단바 밀도 토글 — 행 padding 을 좁힌다. */
+  compact?: boolean;
 }
 
-export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusConsumed, initialCategory, onOpenImport }: EntriesViewProps) {
+export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusConsumed, initialCategory, onOpenImport, compact }: EntriesViewProps) {
   const [month, setMonth] = useState(() => (focusDate ? monthOf(focusDate) : initialMonth ?? monthOf(todayKey())));
   const [filter, setFilter] = useState<EntryType | 'all'>('all');
   const [catFilter, setCatFilter] = useState<string>(initialCategory ?? 'all');

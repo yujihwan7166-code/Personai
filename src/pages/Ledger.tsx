@@ -1,18 +1,17 @@
 /**
  * 가계부 — 내 돈의 기록 (/ledger).
  *
- * 좌: 캐논 사이드바(마크+제목+부제 · 이모지 내비 · 백업 푸터)
- * 우: 마스트헤드(제목 + 실데이터 부제) + 뷰(대시보드·내역·예산·고정지출) + 하단 플로팅 AI 채팅바.
+ * 시안 Ledger.dc.html 을 그대로 옮긴 셸.
+ * 좌: 250px 사이드바(마크+제목 · 상세입력 CTA · 그룹형 내비 · 백업 카드)
+ * 우: 54px 스티키 상단바(기준일·밀도·금액숨김) + 최대 1280px 본문 + 하단 스티키 채팅바.
  *
  * 원칙: 입력이 쉬워야 한다. 죄책감 UI(스트릭·빈 날 경고) 금지. 데이터는 전부 localStorage.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Download, Eye, EyeOff, FileSpreadsheet, PiggyBank, Plus, Upload } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useLedger } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
-import { monthOf, summarizeMonth } from '@/lib/ledger/stats';
+import { monthOf, summarizeMonth, bucketSpent } from '@/lib/ledger/stats';
 import { toCsv } from '@/lib/csv';
 import type { ParsedEntry } from '@/lib/ledger/parse';
 import { ChatBar } from '@/components/ledger/ChatBar';
@@ -25,42 +24,44 @@ import { RecurringView } from '@/components/ledger/RecurringView';
 import { RulesView } from '@/components/ledger/RulesView';
 import { AssetsView } from '@/components/ledger/AssetsView';
 import { ReportView } from '@/components/ledger/ReportView';
-import { netWorth } from '@/lib/ledger/assetStats';
+import { C } from '@/components/ledger/theme';
 
 type View = 'dashboard' | 'entries' | 'budget' | 'recurring' | 'rules' | 'assets' | 'report';
 
-const NAV: Array<{ id: View; label: string; emoji: string }> = [
-  { id: 'dashboard', label: '대시보드', emoji: '🏠' },
-  { id: 'entries',   label: '내역',     emoji: '📒' },
-  { id: 'budget',    label: '예산',     emoji: '🎯' },
-  { id: 'recurring', label: '고정지출', emoji: '🔁' },
-  { id: 'rules',     label: '분류',     emoji: '🏷️' },
-  { id: 'assets',    label: '자산',     emoji: '💎' },
-  { id: 'report',    label: '월 결산',  emoji: '📊' },
+/** 시안의 그룹형 내비 — 기록 / 계획 / 분석. */
+const NAV: Array<{ label: string; items: Array<{ id: View; t: string; icon: string }> }> = [
+  { label: '기록', items: [
+    { id: 'dashboard', t: '대시보드', icon: '🏠' },
+    { id: 'entries', t: '내역', icon: '📒' },
+  ] },
+  { label: '계획', items: [
+    { id: 'budget', t: '예산', icon: '🎯' },
+    { id: 'recurring', t: '고정지출', icon: '🔁' },
+    { id: 'rules', t: '분류 규칙', icon: '🏷️' },
+  ] },
+  { label: '분석', items: [
+    { id: 'assets', t: '자산', icon: '💎' },
+    { id: 'report', t: '월 결산', icon: '📊' },
+  ] },
 ];
-
-const VIEW_TITLE: Record<View, string> = {
-  dashboard: '가계부', entries: '내역', budget: '예산', recurring: '고정지출', rules: '분류', assets: '자산', report: '월 결산',
-};
-
-const KRW = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
 export default function Ledger() {
   const data = useLedger();
   const [view, setView] = useState<View>('dashboard');
   const [editId, setEditId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [focusDate, setFocusDate] = useState<string | null>(null); // 히트맵 날짜 탭 → 내역 해당 날짜로
-  const [focusCategory, setFocusCategory] = useState<string | null>(null); // 도넛 클릭 → 카테고리 필터
+  const [focusDate, setFocusDate] = useState<string | null>(null);
+  const [focusCategory, setFocusCategory] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [hideAmounts, setHideAmounts] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('ledger.privacy.v1') === '1');
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('ledger.compact.v1') === '1');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const togglePrivacy = useCallback(() => {
-    setHideAmounts((h) => {
-      window.localStorage.setItem('ledger.privacy.v1', h ? '0' : '1');
-      return !h;
-    });
+    setHideAmounts((h) => { window.localStorage.setItem('ledger.privacy.v1', h ? '0' : '1'); return !h; });
+  }, []);
+  const toggleCompact = useCallback(() => {
+    setCompact((c) => { window.localStorage.setItem('ledger.compact.v1', c ? '0' : '1'); return !c; });
   }, []);
 
   const today = todayKey();
@@ -70,13 +71,11 @@ export default function Ledger() {
   const openEdit = useCallback((id: string) => { setEditId(id); setFormOpen(true); }, []);
   const openNew = useCallback(() => { setEditId(null); setFormOpen(true); }, []);
 
-  /** 내비로 직접 이동 시 드릴다운 잔여 상태(날짜·카테고리 포커스) 초기화. */
   const selectView = useCallback((v: View) => {
     if (v === 'entries') { setFocusDate(null); setFocusCategory(null); }
     setView(v);
   }, []);
 
-  /** 채팅에서 '매달' 감지 → 고정지출 등록 제안. */
   const suggestRecurring = useCallback((p: ParsedEntry) => {
     if (window.confirm(`"${p.memo || '이 항목'}" ${p.amount.toLocaleString('ko-KR')}원을 매달 ${Number(p.date.slice(8, 10))}일 고정지출로 등록할까요?`)) {
       ledgerStore.addRecurring({
@@ -98,15 +97,13 @@ export default function Ledger() {
   }, []);
 
   /** 백업 나이 — 잔소리가 아니라 계기판. */
-  const backupAge = useMemo(() => {
+  const backup = useMemo(() => {
     const at = ledgerStore.getLastBackupAt();
-    if (!at) return data.entries.length > 0 ? '아직 백업 안 함' : null;
+    if (!at) return data.entries.length > 0 ? { text: '아직 안 함', warn: true } : null;
     const days = Math.floor((Date.now() - new Date(at).getTime()) / 86400000);
-    return days === 0 ? '오늘 백업함' : `마지막 백업 ${days}일 전`;
-    // data.entries 는 백업 직후 재계산 트리거용
+    return { text: days === 0 ? '오늘 함' : `${days}일 전`, warn: days >= 14 };
   }, [data.entries]);
 
-  /** 엑셀 호환 CSV — BOM 포함(한글 깨짐 방지). 내역 전체. */
   const exportCsv = useCallback(() => {
     const label = new Map(data.categories.map((c) => [c.id, c.label]));
     const typeLabel = { expense: '지출', income: '수입', transfer: '이체' } as const;
@@ -131,7 +128,6 @@ export default function Ledger() {
     toast(ok ? '백업을 불러왔어요' : '백업 파일을 읽지 못했어요 — 내보내기로 만든 JSON 인지 확인해주세요');
   }, []);
 
-  /** 원탭 칩 — 최근 기록 중 같은 메모 2회↑ 상위 3개. */
   const quickChips = useMemo(() => {
     const cnt = new Map<string, { n: number; amount: number }>();
     for (const e of data.entries.slice(0, 200)) {
@@ -143,114 +139,133 @@ export default function Ledger() {
       .map(([memo, v]) => ({ label: `${memo} ${v.amount.toLocaleString('ko-KR')}`, input: `${memo} ${v.amount}` }));
   }, [data.entries]);
 
-  const nw = useMemo(() => netWorth(data.assets), [data.assets]);
-  const plannedTotal = (data.budgets.fixed ?? 0) + (data.budgets.variable ?? 0) + (data.budgets.irregular ?? 0);
+  /** 내비 우측 힌트 — 시안: 내역 N건 · 예산 N% · 고정지출 개수 · 규칙 개수. */
+  const hints = useMemo(() => {
+    const planned = (data.budgets.fixed ?? 0) + (data.budgets.variable ?? 0) + (data.budgets.irregular ?? 0);
+    const spentAll = Object.values(bucketSpent(data.entries, month, data.categories)).reduce((s, v) => s + v, 0);
+    return {
+      entries: data.entries.length ? `${data.entries.length}건` : '',
+      budget: planned > 0 ? `${Math.round((spentAll / planned) * 100)}%` : '',
+      recurring: data.recurring.length ? String(data.recurring.length) : '',
+      rules: Object.keys(data.dict).length ? String(Object.keys(data.dict).length) : '',
+    } as Partial<Record<View, string>>;
+  }, [data.entries, data.budgets, data.categories, data.recurring, data.dict, month]);
 
-  const subtitle = view === 'dashboard'
-    ? <>이번 달 수입 {KRW(sum.income)} · 지출 {KRW(sum.expense)} · 내 기기에만 저장</>
-    : view === 'entries' ? `이번 달 ${sum.count}건`
-    : view === 'budget' ? (plannedTotal > 0 ? <>합계 {KRW(plannedTotal)} · 지난 실적을 보고 정해요</> : '얼마로 잡을지 지난 실적을 보고 정하는 곳')
-    : view === 'recurring' ? `규칙 ${data.recurring.filter((r) => r.active).length}개 활성`
-    : view === 'rules' ? `카테고리 ${data.categories.length}개 · 내 규칙 ${Object.keys(data.dict).length}개`
-    : view === 'assets' ? (data.assets.length ? <>순자산 {KRW(nw.net)} · 월말에 갱신하는 장부</> : '실시간 아님 — 월말에 한 번 적는 장부')
-    : `스냅샷 ${data.snapshots.length}개 · 저축률과 순자산의 흐름`;
+  const monthDay = `${Number(month.slice(5, 7))}월 ${Number(today.slice(8, 10))}일 기준`;
 
   return (
-    <div className={cn('ledger-theme flex h-dvh bg-background text-foreground', hideAmounts && 'ledger-hide-amounts')}>
-      {/* ── 사이드바 (캐논) ── */}
-      <aside className="hidden w-[256px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--hairline))] bg-[hsl(var(--sidebar-background))] px-4 pb-5 pt-4 lg:flex">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-[hsl(var(--ledger-navy)/0.25)] bg-[hsl(var(--ledger-navy)/0.12)] text-[hsl(var(--ledger-navy))]">
-            <PiggyBank className="h-6 w-6" strokeWidth={1.9} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">My Ledger</p>
-            <h1 className="truncate text-[17px] font-bold leading-tight">가계부</h1>
-            <p className="truncate text-[11.5px] text-muted-foreground">흐름과 잔고, 내 돈의 기록</p>
+    <div className={hideAmounts ? 'ledger-hide-amounts' : undefined}
+      style={{ display: 'flex', alignItems: 'stretch', minHeight: '100dvh', width: '100%', background: C.bg, color: C.ink }}>
+
+      {/* ── 사이드바 (시안 250px) ── */}
+      <aside className="hidden lg:flex"
+        style={{ width: 250, flex: '0 0 250px', borderRight: `1px solid ${C.lineSoft}`, background: C.side, flexDirection: 'column', padding: '16px 12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px 14px' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: '#EDEFF6', display: 'grid', placeItems: 'center', fontSize: 18 }}>🐷</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.13em', color: C.muted2 }}>MY LEDGER</div>
+            <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: '-0.01em' }}>가계부</div>
           </div>
         </div>
 
-        <nav className="space-y-0.5" aria-label="가계부 섹션">
-          {NAV.map((n) => (
-            <button key={n.id} type="button" onClick={() => selectView(n.id)}
-              className={cn('flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13.5px] transition-colors',
-                view === n.id
-                  ? 'bg-[hsl(var(--ledger-navy)/0.12)] font-semibold text-[hsl(var(--ledger-navy))]'
-                  : 'text-muted-foreground hover:bg-[hsl(var(--muted))] hover:text-foreground')}>
-              <span className="text-[15px]">{n.emoji}</span>{n.label}
-            </button>
+        <button type="button" onClick={openNew}
+          style={{ width: '100%', height: 40, border: 'none', borderRadius: 10, background: C.navy, color: '#fff', fontSize: 13.5, fontWeight: 650, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 1px 2px rgba(27,31,39,0.14)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = C.navyDeep; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = C.navy; }}>
+          <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span><span>상세 입력</span>
+        </button>
+
+        <nav aria-label="가계부 섹션" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18, overflow: 'auto' }}>
+          {NAV.map((s) => (
+            <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.muted3, padding: '0 8px 6px' }}>{s.label}</div>
+              {s.items.map((it) => {
+                const on = view === it.id;
+                return (
+                  <button key={it.id} type="button" onClick={() => selectView(it.id)} aria-current={on ? 'page' : undefined}
+                    style={{ display: 'flex', alignItems: 'center', gap: 9, height: 36, padding: '0 9px', borderRadius: 9, cursor: 'pointer', border: 'none', background: on ? C.navSel : 'transparent', textAlign: 'left' }}
+                    onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = C.hoverSide; }}
+                    onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ fontSize: 13.5, width: 17, textAlign: 'center' }}>{it.icon}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: on ? 700 : 550, color: on ? C.ink : C.navInactive, flex: 1 }}>{it.t}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? C.sub : C.muted3, fontVariantNumeric: 'tabular-nums' }}>{hints[it.id] ?? ''}</span>
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </nav>
 
-        <button type="button" onClick={openNew}
-          className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[hsl(var(--input))] px-3 py-2 text-[13px] text-muted-foreground transition-colors hover:border-[hsl(var(--ledger-navy)/0.5)] hover:text-foreground">
-          <Plus className="h-3.5 w-3.5" /> 상세 입력
-        </button>
-
-        <div className="mt-auto space-y-1 pt-6">
-          <button type="button" onClick={exportBackup}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
-            <Download className="h-3.5 w-3.5" /> JSON 백업 내보내기
-          </button>
-          <button type="button" onClick={exportCsv}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV 내보내기 (엑셀)
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-[hsl(var(--muted))] hover:text-foreground">
-            <Upload className="h-3.5 w-3.5" /> 백업 가져오기
-          </button>
-          <input ref={fileRef} type="file" accept="application/json" className="hidden" aria-label="백업 파일"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBackup(f); e.target.value = ''; }} />
-          <p className="px-2.5 pt-1 text-[10.5px] leading-relaxed text-muted-foreground/80">
-            돈 기록은 내 기기에만 저장돼요 — 기기 변경 전 꼭 백업하세요.
-            {backupAge && <><br /><span className={backupAge === '아직 백업 안 함' ? 'text-[hsl(var(--ledger-red))]' : undefined}>{backupAge}</span></>}
-          </p>
+        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+          <div style={{ border: `1px solid ${C.lineSoft}`, borderRadius: 11, background: '#fff', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, fontWeight: 650, color: C.ink3 }}>백업 · 내보내기</span>
+              {backup && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, color: backup.warn ? C.backupInk : C.muted2 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: 999, background: backup.warn ? C.backupDot : C.greenDot }} />
+                  {backup.text}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {([['JSON', exportBackup], ['CSV', exportCsv], ['가져오기', () => fileRef.current?.click()]] as const).map(([t, fn]) => (
+                <button key={t} type="button" onClick={fn}
+                  style={{ flex: 1, height: 27, border: `1px solid ${C.line}`, borderRadius: 7, background: C.cardAlt, fontSize: 11, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#F2F0EA'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = C.cardAlt; }}>{t}</button>
+              ))}
+            </div>
+            <input ref={fileRef} type="file" accept="application/json" className="hidden" aria-label="백업 파일"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBackup(f); e.target.value = ''; }} />
+            <div style={{ fontSize: 10.5, lineHeight: 1.45, color: C.muted2 }}>기기에만 저장돼요. 기기 바꾸기 전 백업.</div>
+          </div>
         </div>
       </aside>
 
-      {/* ── 본문 — flex-col: 채팅바가 sticky(mt-auto)로 화면 하단부에 상주 ── */}
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <div className="mx-auto w-full max-w-[980px] px-5 pt-6 lg:px-8">
-          <header className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[27px] font-bold leading-tight">{VIEW_TITLE[view]}</h2>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>
-            </div>
-            <button type="button" onClick={togglePrivacy} title={hideAmounts ? '금액 보이기' : '금액 가리기 (주변 시선 차단)'}
-              aria-pressed={hideAmounts}
-              className={cn('mt-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors',
-                hideAmounts
-                  ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.1)] text-[hsl(var(--ledger-navy))]'
-                  : 'border-[hsl(var(--input))] text-muted-foreground hover:text-foreground')}>
-              {hideAmounts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </header>
-
-          {/* 모바일 섹션 탭 — 사이드바가 lg 미만에서 숨겨지는 것 보완 */}
-          <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 lg:hidden" role="tablist" aria-label="가계부 섹션">
-            {NAV.map((n) => (
-              <button key={n.id} type="button" role="tab" aria-selected={view === n.id} onClick={() => selectView(n.id)}
-                className={cn('shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] transition-colors',
-                  view === n.id
-                    ? 'border-[hsl(var(--ledger-navy)/0.4)] bg-[hsl(var(--ledger-navy)/0.12)] font-semibold text-[hsl(var(--ledger-navy))]'
-                    : 'border-[hsl(var(--input))] text-muted-foreground')}>
-                {n.emoji} {n.label}
-              </button>
-            ))}
+      {/* ── 본문 ── */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100dvh', overflowY: 'auto' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, height: 54, flex: '0 0 54px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '0 28px', borderBottom: `1px solid ${C.lineSoft}`, background: 'rgba(246,245,241,0.88)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.sub }}>
+            <span style={{ width: 5, height: 5, borderRadius: 999, background: C.greenDot }} />
+            {monthDay}
           </div>
+          <button type="button" onClick={toggleCompact}
+            style={{ height: 30, padding: '0 11px', border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 11.5, fontWeight: 600, color: C.ink4, cursor: 'pointer' }}>
+            {compact ? '촘촘' : '보통'}
+          </button>
+          <button type="button" onClick={togglePrivacy} title="금액 숨기기" aria-pressed={hideAmounts}
+            style={{ width: 30, height: 30, border: `1px solid ${C.line}`, borderRadius: 8, background: '#fff', fontSize: 13, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+            {hideAmounts ? '🙈' : '👁'}
+          </button>
+        </div>
 
+        {/* 모바일 섹션 탭 — 사이드바가 lg 미만에서 숨겨지는 것 보완 */}
+        <div className="flex gap-1.5 overflow-x-auto px-5 pt-3 lg:hidden" role="tablist" aria-label="가계부 섹션">
+          {NAV.flatMap((s) => s.items).map((it) => {
+            const on = view === it.id;
+            return (
+              <button key={it.id} type="button" role="tab" aria-selected={on} onClick={() => selectView(it.id)}
+                style={{ flexShrink: 0, height: 30, padding: '0 12px', borderRadius: 999, border: `1px solid ${on ? C.navy : C.line}`, background: on ? C.navSel : '#fff', fontSize: 12.5, fontWeight: on ? 700 : 550, color: on ? C.ink : C.navInactive, cursor: 'pointer' }}>
+                {it.icon} {it.t}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ flex: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: '22px 28px 40px', display: 'flex', flexDirection: 'column' }}>
           {view === 'dashboard' && (
             <DashboardView
               data={data}
               onPickDate={(d) => { setFocusDate(d); setView('entries'); }}
               onGoAssets={() => setView('assets')}
               onPickCategory={(c) => { setFocusCategory(c); setView('entries'); }}
+              onGoTx={() => selectView('entries')}
+              onGoBudget={() => setView('budget')}
             />
           )}
           {view === 'entries' && (
             <EntriesView
-              data={data} onEdit={openEdit}
+              data={data} onEdit={openEdit} compact={compact}
               focusDate={focusDate} onFocusConsumed={() => setFocusDate(null)}
               initialCategory={focusCategory}
               onOpenImport={() => setImportOpen(true)}
@@ -260,17 +275,18 @@ export default function Ledger() {
           {view === 'recurring' && <RecurringView data={data} />}
           {view === 'rules' && <RulesView data={data} />}
           {view === 'assets' && <AssetsView data={data} />}
-          {view === 'report' && <ReportView data={data} />}
-        </div>
+          {view === 'report' && <ReportView data={data} onGoAssets={() => setView('assets')} />}
 
-        <ChatBar
-          categories={data.categories}
-          entries={data.entries}
-          quickChips={quickChips}
-          onEdit={openEdit}
-          onSuggestRecurring={suggestRecurring}
-        />
-      </main>
+          <ChatBar
+            categories={data.categories}
+            entries={data.entries}
+            quickChips={quickChips}
+            onEdit={openEdit}
+            onSuggestRecurring={suggestRecurring}
+            onOpenDetail={openNew}
+          />
+        </div>
+      </div>
 
       <EntryFormDialog open={formOpen} entryId={editId} categories={data.categories} onClose={() => setFormOpen(false)} />
       <BulkImportDialog open={importOpen} categories={data.categories} entries={data.entries} onClose={() => setImportOpen(false)} />
