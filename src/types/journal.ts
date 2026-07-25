@@ -68,7 +68,13 @@ export const ACTIVITY_META: Record<string, { label: string; emoji: string }> = O
 /** 본문 형식 — v2 에서 도입. */
 export type BodyFormat = 'plain' | 'markdown';
 
-/** 날씨 — v4 emoji. */
+/**
+ * 날씨 — v4 emoji.
+ *
+ * 타입에는 10종이 그대로 남아 있다(옛 기록이 windy·foggy·rainbow 를 들고 있을 수 있어서).
+ * 다만 고르는 자리에는 {@link WEATHER_PICK} 6종만 내놓는다 — 열 개를 늘어놓으면
+ * 구름/흐림/안개처럼 스스로도 구분 안 되는 칸에서 손이 멈춘다.
+ */
 export type Weather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'stormy' | 'snowy' | 'windy' | 'foggy' | 'rainbow' | 'night';
 
 export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
@@ -83,6 +89,9 @@ export const WEATHER_META: Record<Weather, { label: string; emoji: string }> = {
   rainbow:  { label: '무지개', emoji: '🌈' },
   night:    { label: '밤',     emoji: '🌙' },
 };
+
+/** 실제로 고르게 하는 6종 — 하루의 하늘을 이 정도면 다 부른다. */
+export const WEATHER_PICK: Weather[] = ['sunny', 'cloudy', 'overcast', 'rainy', 'snowy', 'night'];
 
 /** 붙이는 스티커 — 위치는 스티커 레이어 대비 %(0~100). */
 export interface DiarySticker {

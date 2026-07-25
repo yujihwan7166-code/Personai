@@ -21,7 +21,7 @@ import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
 import { quickAi } from '@/lib/cloudDoc/ai';
-import { WEATHER_META, type JournalEntry, type Weather } from '@/types/journal';
+import { WEATHER_META, WEATHER_PICK, type JournalEntry, type Weather } from '@/types/journal';
 import { DayItemsBlock } from '@/components/daybook/DayItemsBlock';
 import type { DayItem } from '@/types/daylog';
 import FoodRoadView from '@/components/daybook/FoodRoadView';
@@ -60,7 +60,10 @@ const MOOD_BY_KEY = Object.fromEntries(MOODS.map((m) => [m.key, m]));
 const LEGACY_MOOD: Record<number, string> = { 5: 'happy', 4: 'calm', 3: 'tired', 2: 'blue', 1: 'angry' };
 const entryMoodKey = (e: JournalEntry): string | null => e.moodKey ?? (e.mood ? LEGACY_MOOD[e.mood] : null);
 
-const WEATHERS: Weather[] = ['sunny', 'cloudy', 'overcast', 'rainy', 'stormy', 'snowy', 'windy', 'foggy', 'rainbow', 'night'];
+/* 고르는 자리엔 6종만 (WEATHER_PICK). 열 개를 늘어놓으면 구름/흐림/안개처럼
+   스스로도 구분 안 되는 칸에서 손이 멈춘다. 옛 기록이 든 나머지 4종은
+   표시(WEATHER_META·하늘 배경)에서는 그대로 살아 있다. */
+const WEATHERS: Weather[] = WEATHER_PICK;
 const COLORS = ['#e0876b', '#e3b45c', '#8faf83', '#7fa9bd', '#a98bb0', '#b98f74'];
 const QUESTIONS = [
   '오늘 가장 감사했던 순간은?',
@@ -107,18 +110,32 @@ const QUESTIONS = [
 const TAGS = ['일상', '감사', '운동', '독서', '여행', '음식', '사람', '생각'];
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** 날씨별 하늘 배경 — 편지지 뒤(프레임)를 그 날씨의 하늘로 물들인다. */
+/**
+ * 날씨별 하늘 — 편지지 뒤(프레임)를 그 날씨의 하늘로 물들인다.
+ *
+ * 전에는 위쪽이 너무 진해서(맑음 #ffe6a6, 밤 #343a5e) 하늘이 아니라 색판처럼 보였다.
+ * 이제 세 정거장 대신 네 정거장으로 천천히 풀고, 맨 위 채도를 낮춰
+ * '위는 하늘빛, 아래는 종이색'으로 자연스럽게 이어지게 한다.
+ */
 const WEATHER_SKY: Record<Weather, string> = {
-  sunny:    'linear-gradient(180deg, #ffe6a6 0%, #fdf0d8 55%, #fbf4e6 100%)',
-  cloudy:   'linear-gradient(180deg, #d6dde6 0%, #e9edf1 60%, #eff2f5 100%)',
-  overcast: 'linear-gradient(180deg, #bcc4ce 0%, #d7dce2 60%, #e5e9ec 100%)',
-  rainy:    'linear-gradient(180deg, #9fb0c2 0%, #c1ccd7 60%, #d6dee5 100%)',
-  stormy:   'linear-gradient(180deg, #6f7a8a 0%, #97a2af 55%, #b3bcc6 100%)',
-  snowy:    'linear-gradient(180deg, #dbe7f2 0%, #eef4fa 60%, #f6faff 100%)',
-  windy:    'linear-gradient(180deg, #cfe0d8 0%, #e5eee9 60%, #eef4f0 100%)',
-  foggy:    'linear-gradient(180deg, #cfd1d3 0%, #e3e5e6 60%, #edeeef 100%)',
-  rainbow:  'linear-gradient(180deg, #ffd9df 0%, #fdeecb 40%, #d7f0dd 70%, #d5e8ff 100%)',
-  night:    'linear-gradient(180deg, #343a5e 0%, #4b5178 55%, #6a7099 100%)',
+  sunny:    'linear-gradient(180deg, #fdeec6 0%, #fdf3dd 34%, #fbf6ea 68%, #fcfbfe 100%)',
+  cloudy:   'linear-gradient(180deg, #dfe6ee 0%, #e9eef4 34%, #f1f4f8 68%, #fcfbfe 100%)',
+  overcast: 'linear-gradient(180deg, #ccd3db 0%, #dde2e8 34%, #eaedf1 68%, #fcfbfe 100%)',
+  rainy:    'linear-gradient(180deg, #bcc9d6 0%, #d2dbe4 34%, #e5ebf0 68%, #fcfbfe 100%)',
+  stormy:   'linear-gradient(180deg, #9aa5b3 0%, #bcc4ce 34%, #dde1e7 68%, #fcfbfe 100%)',
+  snowy:    'linear-gradient(180deg, #e3edf7 0%, #eef4fa 34%, #f5f9fd 68%, #fcfbfe 100%)',
+  windy:    'linear-gradient(180deg, #dbe8e1 0%, #e8f0ea 34%, #f1f6f2 68%, #fcfbfe 100%)',
+  foggy:    'linear-gradient(180deg, #d9dbdd 0%, #e6e8e9 34%, #eff0f1 68%, #fcfbfe 100%)',
+  rainbow:  'linear-gradient(180deg, #fbe2e6 0%, #fbeed6 34%, #e2f0e6 68%, #fcfbfe 100%)',
+  night:    'linear-gradient(180deg, #59608a 0%, #767ca4 34%, #a9adc6 68%, #fcfbfe 100%)',
+};
+
+/** 사이드바용 — 하늘의 맨 윗색만 아주 옅게 깔아 본문과 같은 날씨 아래 있게 한다. */
+const WEATHER_SIDE: Record<Weather, string> = {
+  sunny:    '#fdf7e9', cloudy:   '#eef2f7', overcast: '#e8ecf0',
+  rainy:    '#e4eaf0', stormy:   '#dee2e8', snowy:    '#eff5fb',
+  windy:    '#eaf1ec', foggy:    '#ecedee', rainbow:  '#f7eef0',
+  night:    '#e6e7ef',
 };
 
 /** 날씨 앰비언스 — 편지지 위로 눈/비가 내리고, 흐림·안개는 구름이 흐른다(pointer-events 없음). */
@@ -499,7 +516,12 @@ export default function Journal() {
       className="flex h-dvh bg-[#fcfbfe] text-[hsl(var(--cream-ink))]"
     >
       {/* ── 사이드바 — 참고 디자인 (마크+제목 락업 · 세이지 CTA · 컬러 아이콘 내비 · 은은한 활성). 모바일은 상단 가로 내비 ── */}
-      <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#f6f4fb] px-3.5 py-5 dark:bg-[hsl(var(--cream-panel))] sm:flex">
+      {/* 본문이 그 날 하늘 아래 있는데 사이드바만 딴 날씨면 방이 둘로 갈린다 —
+          하늘의 맨 윗색을 아주 옅게 받아 같은 공기 아래 두되, 색은 부드럽게 갈아탄다. */}
+      <aside
+        className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[hsl(var(--cream-line))] bg-[#f6f4fb] px-3.5 py-5 transition-colors duration-500 dark:bg-[hsl(var(--cream-panel))] sm:flex"
+        style={tab === 'write' && detailOpen && weather ? { backgroundColor: WEATHER_SIDE[weather] } : undefined}
+      >
         {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (커리어/인맥노트 기준) */}
         <div className="flex items-center gap-[11px] px-1.5">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] shadow-[0_1px_2px_rgba(40,30,80,0.09)]" role="img" aria-label="데일리 로그">🌙</span>

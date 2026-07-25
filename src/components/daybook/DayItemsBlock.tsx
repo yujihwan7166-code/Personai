@@ -25,6 +25,15 @@ import { todayKey } from '@/types/travel';
 
 const KIND_ORDER: DayItemKind[] = ['meal', 'place', 'note'];
 
+/** 지금 시각으로 끼니를 어림한다 — 점심에 고정해두면 저녁마다 손이 한 번 더 간다. */
+function guessMealSlot(): MealSlot {
+  const h = new Date().getHours();
+  if (h < 10) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
 async function pickPhoto(file: File | undefined): Promise<string | null> {
   if (!file) return null;
   if (!file.type.startsWith('image/')) {
@@ -44,9 +53,10 @@ export function DayItemsBlock({ date }: { date: string }) {
   const items = useDaylogItems(date);
   const isToday = date === todayKey();
   const [kind, setKind] = useState<DayItemKind>('meal');
-  const [mealSlot, setMealSlot] = useState<MealSlot>('lunch');
+  const [mealSlot, setMealSlot] = useState<MealSlot>(guessMealSlot);
   const [text, setText] = useState('');
   const [place, setPlace] = useState('');
+  const [placeOpen, setPlaceOpen] = useState(false); // 장소는 필요할 때만 펼친다
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -94,59 +104,19 @@ export function DayItemsBlock({ date }: { date: string }) {
         )}
       </div>
 
-      {/* 컴포저 */}
+      {/* 컴포저 — 쓰는 칸이 맨 위.
+          전엔 종류(3칸) → 끼니(4칸) 를 고르고서야 입력에 닿았다. 한 줄 적자고 두 번 고르는 셈이라
+          손이 무거웠다. 이제 바로 적고 Enter, 분류는 아래에서 필요할 때만 손댄다.
+          끼니 기본값도 지금 시각으로 어림해 대개 그대로 맞다. */}
       <div className="border-b border-[hsl(var(--cream-line))]/70 bg-white/45 px-4 py-4">
-        {/* 종류 세그먼트 — 3등분 트랙 */}
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-[hsl(var(--cream-line))]/35 p-1">
-          {KIND_ORDER.map((k) => {
-            const m = DAY_ITEM_META[k];
-            const active = k === kind;
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKind(k)}
-                className={cn(
-                  'flex items-center justify-center gap-1 rounded-lg py-1.5 text-[12px] transition-all',
-                  active ? 'bg-[hsl(var(--cream-card))] font-bold shadow-sm' : 'font-medium text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
-                )}
-                style={active ? { color: m.tint } : undefined}
-              >
-                <span className="text-[13px] leading-none">{m.emoji}</span> {m.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 끼니 선택 */}
-        {kind === 'meal' && (
-          <div className="mt-2 flex gap-1">
-            {MEAL_SLOT_ORDER.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setMealSlot(s)}
-                className={cn(
-                  'flex-1 rounded-lg border py-1 text-[11.5px] transition-colors',
-                  s === mealSlot
-                    ? 'border-[hsl(var(--cream-accent))]/45 bg-[hsl(var(--cream-accent))]/10 font-bold text-[hsl(var(--cream-accent))]'
-                    : 'border-transparent font-medium text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
-                )}
-              >
-                {MEAL_SLOT_LABEL[s]}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* 내용 + 전송 */}
-        <div className="mt-2.5 flex items-center gap-1.5 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] pl-3 pr-1.5 transition-colors focus-within:border-[hsl(var(--cream-accent))]/55">
+        <div className="flex items-center gap-1.5 rounded-xl border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] pl-3 pr-1.5 transition-colors focus-within:border-[hsl(var(--cream-accent))]/55">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit(); }}
             placeholder={kind === 'meal' ? '뭘 먹었나요?' : kind === 'place' ? '어디에 갔나요?' : '남겨둘 한 줄'}
-            className="h-10 min-w-0 flex-1 bg-transparent text-[13px] text-[hsl(var(--cream-ink))]/65 outline-none placeholder:text-[hsl(var(--cream-muted))]/50"
+            className="h-10 min-w-0 flex-1 bg-transparent text-[13.5px] text-[hsl(var(--cream-ink))] outline-none placeholder:text-[hsl(var(--cream-muted))]/60"
           />
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onPhoto(e.target.files?.[0])} />
           <button
@@ -171,17 +141,80 @@ export function DayItemsBlock({ date }: { date: string }) {
           </button>
         </div>
 
-        {/* 장소 (먹은 것·간 곳) */}
-        {kind !== 'note' && (
+        {/* 분류 줄 — 종류 · (먹은 것이면) 끼니 · 장소 토글이 한 줄에 */}
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {KIND_ORDER.map((k) => {
+            const m = DAY_ITEM_META[k];
+            const active = k === kind;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => { setKind(k); if (k === 'note') setPlaceOpen(false); }}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] transition-colors',
+                  active ? 'font-bold' : 'font-medium text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
+                )}
+                style={active ? { color: m.tint, backgroundColor: `color-mix(in srgb, ${m.tint} 12%, transparent)` } : undefined}
+              >
+                <span className="text-[12.5px] leading-none">{m.emoji}</span>{m.label}
+              </button>
+            );
+          })}
+
+          {kind === 'meal' && (
+            <>
+              <span aria-hidden className="mx-0.5 h-3 w-px bg-[hsl(var(--cream-line))]" />
+              {MEAL_SLOT_ORDER.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setMealSlot(s)}
+                  className={cn(
+                    'rounded-full px-2 py-1 text-[11.5px] transition-colors',
+                    s === mealSlot
+                      ? 'bg-[hsl(var(--cream-accent))]/12 font-bold text-[hsl(var(--cream-accent))]'
+                      : 'font-medium text-[hsl(var(--cream-muted))] hover:text-[hsl(var(--cream-ink))]',
+                  )}
+                >
+                  {MEAL_SLOT_LABEL[s]}
+                </button>
+              ))}
+            </>
+          )}
+
+          {kind !== 'note' && !placeOpen && (
+            <button
+              type="button"
+              onClick={() => setPlaceOpen(true)}
+              className="ml-auto inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-medium text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"
+              title="적어두면 나의 지도에 핀이 돼요"
+            >
+              <MapPin className="h-3 w-3" /> 장소
+            </button>
+          )}
+        </div>
+
+        {/* 장소 — 눌렀을 때만. 늘 펼쳐두면 안 쓰는 날에도 한 줄을 차지한다 */}
+        {kind !== 'note' && placeOpen && (
           <div className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-[hsl(var(--cream-line))]/70 bg-[hsl(var(--cream-card))]/60 px-3 transition-colors focus-within:border-[hsl(var(--cream-accent))]/45">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--cream-muted))]/55" />
             <input
+              autoFocus
               value={place}
               onChange={(e) => setPlace(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit(); }}
-              placeholder="장소를 적으면 지도에 핀이 돼요 (선택)"
-              className="h-8 min-w-0 flex-1 bg-transparent text-[12px] text-[hsl(var(--cream-ink))]/60 outline-none placeholder:text-[hsl(var(--cream-muted))]/45"
+              placeholder="어디에서? — 지도에 핀이 돼요"
+              className="h-8 min-w-0 flex-1 bg-transparent text-[12.5px] text-[hsl(var(--cream-ink))]/85 outline-none placeholder:text-[hsl(var(--cream-muted))]/50"
             />
+            <button
+              type="button"
+              onClick={() => { setPlace(''); setPlaceOpen(false); }}
+              aria-label="장소 접기"
+              className="shrink-0 rounded p-1 text-[hsl(var(--cream-muted))]/60 transition-colors hover:text-[hsl(var(--cream-ink))]"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         )}
 
