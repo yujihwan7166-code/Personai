@@ -1000,9 +1000,12 @@ export default function Wiki() {
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
             {isWide ? (
-            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' && toc.length >= 2 ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
-              {/* 좌 — 목차 (읽기, 제목 2개↑) */}
-              {mode === 'read' && toc.length >= 2 && (
+            /* 목차 열은 '있을 때만' 만들면, 제목이 2개 넘는 문서와 아닌 문서 사이를 오갈 때마다
+               본문 폭과 위치가 통째로 흔들린다(한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
+               열은 늘 자리를 잡아두고 내용만 들고 난다 — 읽기 모드에서 본문은 언제나 같은 자리. */
+            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
+              {/* 좌 — 목차 (읽기, 제목 2개↑). 없으면 빈 열로 자리만 지킨다 */}
+              {mode === 'read' && (toc.length >= 2 ? (
                 <nav className="sticky top-4" aria-label="목차">
                   <div style={{ fontSize: 11, letterSpacing: '.14em', color: C.muted, padding: '0 10px 8px' }}>목차</div>
                   {toc.map((h, i) => (
@@ -1017,7 +1020,7 @@ export default function Wiki() {
                     </button>
                   ))}
                 </nav>
-              )}
+              ) : <span aria-hidden />)}
 
               {/* 중앙 — 본문 */}
               <DocMain
