@@ -64,6 +64,9 @@ export interface RecurringRule {
 /** 버킷별 월 예산(원). 미설정 버킷은 undefined. */
 export type LedgerBudgets = Partial<Record<BudgetBucket, number>>;
 
+/** 카테고리별 한도(원) — 선택. 버킷 예산 위에 얹는 세부 한도, categoryId → 금액. */
+export type LedgerCatBudgets = Record<string, number>;
+
 export interface LedgerSettings {
   cardBillingDay?: number; // 카드 결제일 (선택)
 }

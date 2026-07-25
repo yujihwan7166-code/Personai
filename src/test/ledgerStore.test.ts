@@ -153,3 +153,33 @@ describe('카테고리 만들기·지우기', () => {
     expect(ledgerStore.listRecurring()[0].categoryId).toBe('etc');    // 규칙 자체는 보존
   });
 });
+
+describe('카테고리 한도', () => {
+  it('설정·수정·삭제 (0 이하는 삭제로 취급)', () => {
+    ledgerStore.setCatBudget('food', 300000);
+    expect(ledgerStore.getCatBudgets()).toEqual({ food: 300000 });
+    ledgerStore.setCatBudget('food', 250000);
+    expect(ledgerStore.getCatBudgets()).toEqual({ food: 250000 });
+    ledgerStore.setCatBudget('food', 0);
+    expect(ledgerStore.getCatBudgets()).toEqual({});
+    ledgerStore.setCatBudget('cafe', 50000);
+    ledgerStore.setCatBudget('cafe', undefined);
+    expect(ledgerStore.getCatBudgets()).toEqual({});
+  });
+
+  it('카테고리를 지우면 그 한도도 함께 사라진다 (유령 한도 방지)', () => {
+    const c = ledgerStore.addCategory('반려동물', '🐶', 'variable')!;
+    ledgerStore.setCatBudget(c.id, 100000);
+    ledgerStore.setCatBudget('food', 300000);
+    ledgerStore.removeCategory(c.id);
+    expect(ledgerStore.getCatBudgets()).toEqual({ food: 300000 });
+  });
+
+  it('백업 export/import 로 한도가 보존된다', () => {
+    ledgerStore.setCatBudget('food', 300000);
+    const dump = ledgerStore.exportJson();
+    localStorage.clear();
+    expect(ledgerStore.importJson(dump)).toBe(true);
+    expect(ledgerStore.getCatBudgets()).toEqual({ food: 300000 });
+  });
+});

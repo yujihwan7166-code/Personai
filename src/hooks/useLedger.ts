@@ -4,13 +4,14 @@
  * TDZ 주의: state → useCallback → useEffect 순서.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { LEDGER_CHANGED, type AssetSnapshot, type LedgerAsset, type LedgerBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
+import { LEDGER_CHANGED, type AssetSnapshot, type LedgerAsset, type LedgerBudgets, type LedgerCatBudgets, type LedgerCategory, type LedgerEntry, type LedgerSettings, type RecurringRule } from '@/types/ledger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 
 export interface LedgerData {
   entries: LedgerEntry[];
   recurring: RecurringRule[];
   budgets: LedgerBudgets;
+  catBudgets: LedgerCatBudgets;
   settings: LedgerSettings;
   categories: LedgerCategory[];
   assets: LedgerAsset[];
@@ -20,7 +21,7 @@ export interface LedgerData {
 
 export function useLedger(): LedgerData {
   const [data, setData] = useState<LedgerData>(() => ({
-    entries: [], recurring: [], budgets: {}, settings: {}, categories: [], assets: [], snapshots: [], dict: {},
+    entries: [], recurring: [], budgets: {}, catBudgets: {}, settings: {}, categories: [], assets: [], snapshots: [], dict: {},
   }));
 
   const refresh = useCallback(() => {
@@ -28,6 +29,7 @@ export function useLedger(): LedgerData {
       entries: ledgerStore.listEntries(),
       recurring: ledgerStore.listRecurring(),
       budgets: ledgerStore.getBudgets(),
+      catBudgets: ledgerStore.getCatBudgets(),
       settings: ledgerStore.getSettings(),
       categories: ledgerStore.listCategories(),
       assets: ledgerStore.listAssets(),

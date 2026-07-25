@@ -6,7 +6,7 @@
 import {
   LEDGER_CHANGED,
   DEFAULT_CATEGORIES,
-  type AssetKind, type AssetSnapshot, type EntryType, type LedgerAsset, type LedgerBudgets,
+  type AssetKind, type AssetSnapshot, type EntryType, type LedgerAsset, type LedgerBudgets, type LedgerCatBudgets,
   type LedgerCategory, type LedgerEntry, type LedgerSettings, type PayMethod, type RecurringRule,
 } from '@/types/ledger';
 import { newId } from '@/lib/idGenerator';
@@ -16,6 +16,7 @@ const RECURRING_KEY = 'ledger.recurring.v1';
 const BUDGETS_KEY = 'ledger.budgets.v1';
 const SETTINGS_KEY = 'ledger.settings.v1';
 const DICT_KEY = 'ledger.dict.v1';
+const CATBUDGETS_KEY = 'ledger.catbudgets.v1'; // 카테고리별 한도(선택)
 const CATEGORIES_KEY = 'ledger.categories.v1'; // 커스텀 추가분만 저장
 const ASSETS_KEY = 'ledger.assets.v1';
 const SNAPSHOTS_KEY = 'ledger.snapshots.v1';
@@ -239,6 +240,30 @@ export const ledgerStore = {
   // ── 예산·설정·사전·카테고리 ──
   getBudgets(): LedgerBudgets { return readObj<LedgerBudgets>(BUDGETS_KEY, {}); },
   setBudgets(b: LedgerBudgets): void { write(BUDGETS_KEY, b); },
+  /** 카테고리 한도 — 0 이하·숫자 아닌 값은 걸러 읽는다(백업 복원 방어). */
+  getCatBudgets(): LedgerCatBudgets {
+    const raw = readObj<Record<string, unknown>>(CATBUDGETS_KEY, {});
+    const out: LedgerCatBudgets = {};
+    for (const [id, v] of Object.entries(raw)) {
+      const n = posInt(v);
+      if (n !== null) out[id] = n;
+    }
+    return out;
+  },
+
+  /** amount 가 없거나 0 이하면 해당 한도를 지운다. */
+  setCatBudget(categoryId: string, amount?: number): void {
+    if (!categoryId) return;
+    const cur = this.getCatBudgets();
+    if (amount === undefined || !Number.isFinite(amount) || amount <= 0) {
+      if (!(categoryId in cur)) return;
+      delete cur[categoryId];
+    } else {
+      cur[categoryId] = Math.round(amount);
+    }
+    write(CATBUDGETS_KEY, cur);
+  },
+
   getSettings(): LedgerSettings { return readObj<LedgerSettings>(SETTINGS_KEY, {}); },
   setSettings(s: LedgerSettings): void { write(SETTINGS_KEY, s); },
   getKeywordDict(): Record<string, string> { return readObj<Record<string, string>>(DICT_KEY, {}); },
@@ -310,6 +335,8 @@ export const ledgerStore = {
     const kept = Object.fromEntries(Object.entries(dict).filter(([, cid]) => cid !== id));
     if (Object.keys(kept).length !== Object.keys(dict).length) write(DICT_KEY, kept);
 
+    this.setCatBudget(id, undefined); // 가리킬 카테고리가 사라진 한도는 남기지 않는다
+
     write(CATEGORIES_KEY, this.listCategories().filter((c) => c.custom && c.id !== id));
     return { moved };
   },
@@ -363,6 +390,7 @@ export const ledgerStore = {
       entries: readArr(ENTRIES_KEY, normEntry),
       recurring: readArr(RECURRING_KEY, normRule),
       budgets: this.getBudgets(),
+      catBudgets: this.getCatBudgets(),
       settings: this.getSettings(),
       dict: this.getKeywordDict(),
       categories: this.listCategories().filter((c) => c.custom),
@@ -379,6 +407,7 @@ export const ledgerStore = {
       write(ENTRIES_KEY, data.entries.map(normEntry).filter(Boolean));
       write(RECURRING_KEY, Array.isArray(data.recurring) ? data.recurring.map(normRule).filter(Boolean) : []);
       write(BUDGETS_KEY, isRecord(data.budgets) ? data.budgets : {});
+      write(CATBUDGETS_KEY, isRecord(data.catBudgets) ? data.catBudgets : {});
       write(SETTINGS_KEY, isRecord(data.settings) ? data.settings : {});
       write(DICT_KEY, isRecord(data.dict) ? data.dict : {});
       write(CATEGORIES_KEY, Array.isArray(data.categories) ? data.categories : []);
