@@ -90,7 +90,7 @@ export function RulesView({ data }: { data: LedgerData }) {
   const cardBox: React.CSSProperties = { border: `1px solid ${C.line}`, borderRadius: 14, background: C.card };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 780 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>분류 규칙</h1>

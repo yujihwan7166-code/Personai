@@ -45,6 +45,15 @@ const NAV: Array<{ label: string; items: Array<{ id: View; t: string; icon: stri
   ] },
 ];
 
+/**
+ * 뷰별 본문 폭 — 시안 각 화면의 max-width(+좌우 패딩 56).
+ * 컬럼 자체를 이 폭으로 잡고 가운데 두어야 좌우 여백이 같아진다.
+ */
+const VIEW_MAX: Record<View, number> = {
+  dashboard: 1280, entries: 1280, report: 1280,
+  budget: 940 + 56, assets: 900 + 56, recurring: 860 + 56, rules: 780 + 56,
+};
+
 export default function Ledger() {
   const data = useLedger();
   const [view, setView] = useState<View>('dashboard');
@@ -253,7 +262,8 @@ export default function Ledger() {
           })}
         </div>
 
-        <div style={{ flex: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: '22px 28px 40px', display: 'flex', flexDirection: 'column' }}>
+        {/* 폭은 뷰마다 다르지만 컬럼째 가운데 둔다 — 억지로 늘리지 않고 좌우 여백을 같게. */}
+        <div style={{ flex: 1, width: '100%', maxWidth: VIEW_MAX[view], margin: '0 auto', padding: '22px 28px 40px', display: 'flex', flexDirection: 'column' }}>
           {view === 'dashboard' && (
             <DashboardView
               data={data}

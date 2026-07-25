@@ -51,7 +51,7 @@ export function BudgetView({ data }: { data: LedgerData }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 940 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>예산</h1>

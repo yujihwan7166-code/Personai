@@ -121,7 +121,7 @@ export function AssetsView({ data }: { data: LedgerData }) {
   const field = 'w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-[13.5px] outline-none focus:border-[hsl(var(--ledger-navy))]';
 
   return (
-    <div className="grid grid-cols-1 gap-[14px] pb-40 xl:grid-cols-2" style={{ maxWidth: 900 }}>
+    <div className="grid grid-cols-1 gap-[14px] pb-40 xl:grid-cols-2">
       {/* 머리 */}
       <div className="xl:col-span-2" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
