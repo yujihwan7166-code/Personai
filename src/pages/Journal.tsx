@@ -337,53 +337,45 @@ export default function Journal() {
 
   // 파생
   const feed = useMemo(() => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)), [allEntries]);
-  const [memSeed, setMemSeed] = useState(0); // 플래시백 "다른 기록 보기" 리롤
-  const memory = useMemo(() => {
-    void memSeed;
-    const past = allEntries.filter((e) => e.date !== todayKey && (e.body.trim() || e.title?.trim()));
-    return past.length ? past[Math.floor(Math.random() * past.length)] : null;
-  }, [allEntries, todayKey, memSeed]);
-  /** 1년 전 오늘 (가장 최근 해). */
-  const yearAgo = useMemo(() => {
-    const md = todayKey.slice(5);
-    return [...allEntries]
-      .filter((e) => e.date.slice(5) === md && e.date < todayKey)
-      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
-  }, [allEntries, todayKey]);
-  /** 플래시백 6칸 — 각기 다른 '다시 꺼내보는' 규칙으로 한 편의 기록을 고른다. */
+  /* ── 플래시백 ──
+   * 예전엔 규칙 6개가 각각 한 편만 물고 있는 균일 카드 그리드였다. 문제가 셋이었다.
+   *  ① 기록이 적으면 절반이 "없어요"로 죽은 타일이 된다
+   *  ② 규칙마다 딱 한 편 — 더 보고 싶어도 길이 없다
+   *  ③ 균일 라운드 카드 + 호버 리프트 격자 = 이 저장소가 피하기로 한 모양
+   * 그래서 '렌즈'로 바꿨다. 렌즈는 과거를 걸러내는 방식이고, 각 렌즈는 한 편이 아니라
+   * 목록을 문다. 한 번에 한 장을 크게 펼쳐 보여주고 다음 장으로 넘긴다 — 사진첩처럼. */
   const hasText = (e: JournalEntry) => !!(e.body.trim() || e.title?.trim());
-  /** 한 달 전 근처(±4일)에서 가장 가까운 기록. */
-  const monthAgo = useMemo(() => {
+  const [memSeed, setMemSeed] = useState(0); // '아무 날이나' 렌즈 섞기
+  const [lensId, setLensId] = useState<string>('sameday');
+  const [lensStep, setLensStep] = useState(0);
+
+  const lenses = useMemo(() => {
+    const past = allEntries.filter((e) => e.date < todayKey && hasText(e));
+    const byDateDesc = (a: JournalEntry, b: JournalEntry) => b.date.localeCompare(a.date);
+    const md = todayKey.slice(5);
     const [ty, tm, td] = todayKey.split('-').map(Number);
-    const target = dateKey(new Date(ty, tm - 2, td)); // 한 달 전 같은 날
-    const cand = allEntries.filter((e) => hasText(e) && e.date < todayKey);
-    if (!cand.length) return null;
-    return cand.reduce((best, e) =>
-      Math.abs(Date.parse(`${e.date}T00:00`) - Date.parse(`${target}T00:00`)) <
-      Math.abs(Date.parse(`${best.date}T00:00`) - Date.parse(`${target}T00:00`)) ? e : best);
-  }, [allEntries, todayKey]);
-  /** 사진이 있던 날 — 가장 최근. */
-  const photoMemory = useMemo(() => {
-    const cand = allEntries.filter((e) => (e.images?.length ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date));
-    return cand[0] ?? null;
-  }, [allEntries]);
-  /** 가장 빛나던 날 — 무드가 제일 긍정적이던 하루(MOODS 앞쪽=긍정, 동률이면 최근). */
-  const brightestEntry = useMemo(() => {
-    const rank = (e: JournalEntry) => { const mk = entryMoodKey(e); return mk ? MOODS.findIndex((m) => m.key === mk) : -1; };
-    const cand = allEntries.filter((e) => hasText(e) && rank(e) >= 0);
-    if (!cand.length) return null;
-    return cand.reduce((best, e) => {
-      const rb = rank(best); const re = rank(e);
-      if (re !== rb) return re < rb ? e : best;
-      return e.date > best.date ? e : best;
-    });
-  }, [allEntries]);
-  /** 비·눈 오던 날 — 하늘이 특별했던 하루(가장 최근). */
-  const rainyMemory = useMemo(() => {
-    const cand = allEntries.filter((e) => hasText(e) && (e.weather === 'rainy' || e.weather === 'stormy' || e.weather === 'snowy'))
-      .sort((a, b) => b.date.localeCompare(a.date));
-    return cand[0] ?? null;
-  }, [allEntries]);
+    const monthTarget = Date.parse(`${dateKey(new Date(ty, tm - 2, td))}T00:00`);
+    const moodRank = (e: JournalEntry) => { const mk = entryMoodKey(e); return mk ? MOODS.findIndex((m) => m.key === mk) : 99; };
+    // 시드로 섞기 — Math.random 을 쓰면 렌더마다 순서가 바뀌어 '다음 장'이 무의미해진다
+    const shuffled = past.map((e, i) => ({ e, k: Math.sin((i + 1) * 9973 + memSeed * 131) })).sort((a, b) => a.k - b.k).map((x) => x.e);
+    return [
+      { id: 'sameday', emoji: '🕰️', label: '오늘과 같은 날', desc: '해가 바뀐 같은 날짜', entries: past.filter((e) => e.date.slice(5) === md).sort(byDateDesc) },
+      { id: 'monthago', emoji: '📅', label: '한 달 전쯤', desc: '한 달 전 그 무렵', entries: [...past].sort((a, b) => Math.abs(Date.parse(`${a.date}T00:00`) - monthTarget) - Math.abs(Date.parse(`${b.date}T00:00`) - monthTarget)).slice(0, 12) },
+      { id: 'photo', emoji: '📸', label: '사진이 있던 날', desc: '그 날의 장면', entries: past.filter((e) => (e.images?.length ?? 0) > 0).sort(byDateDesc) },
+      { id: 'bright', emoji: '🌟', label: '기분 좋던 날', desc: '활짝 웃었던 하루', entries: past.filter((e) => moodRank(e) <= 1).sort(byDateDesc) },
+      { id: 'weather', emoji: '🌧️', label: '하늘이 특별하던 날', desc: '비·눈 오던 하루', entries: past.filter((e) => e.weather === 'rainy' || e.weather === 'stormy' || e.weather === 'snowy').sort(byDateDesc) },
+      { id: 'random', emoji: '🎲', label: '아무 날이나', desc: '무작위로 툭', entries: shuffled },
+    ];
+  }, [allEntries, todayKey, memSeed]);
+
+  /** 고른 렌즈 — 비어 있으면 기록이 있는 첫 렌즈로 스스로 옮겨 앉는다(빈 화면 방지). */
+  const lens = useMemo(() => {
+    const picked = lenses.find((l) => l.id === lensId);
+    if (picked && picked.entries.length) return picked;
+    return lenses.find((l) => l.entries.length) ?? picked ?? lenses[0];
+  }, [lenses, lensId]);
+  const lensEntry = lens.entries.length ? lens.entries[lensStep % lens.entries.length] : null;
+  const pickLens = (id: string) => { setLensId(id); setLensStep(0); };
   /** 하루 기록(먹은 것·간 곳) — 캘린더 마커·보관함 사진용. */
   const dayItems = useDaylogAll();
   /** 하루 기록이 있는 날짜 전체 (메모 포함) — 캘린더 마커용. */
@@ -994,64 +986,104 @@ export default function Journal() {
           {/* ── 푸드 로드 — 먹은 것 렌즈 ── */}
           {tab === 'food' && <FoodRoadView onOpenDay={openDate} />}
 
-          {/* ── 플래시백 — 1년 전 오늘 · 무작위 다시 보기 ── */}
-          {tab === 'flashback' && (
+          {/* ── 플래시백 — 렌즈로 걸러 한 장씩 펼쳐 보는 회상 ── */}
+          {tab === 'flashback' && (() => {
+            const e = lensEntry;
+            const d = e ? new Date(`${e.date}T00:00:00`) : null;
+            const mk = e ? entryMoodKey(e) : null;
+            const mood = mk ? MOOD_BY_KEY[mk] : undefined;
+            const photo = e?.images?.[0]?.src;
+            const excerpt = e ? (e.body.split('\n').filter((l) => l.trim()).slice(0, 4).join('\n') || e.title?.trim() || '') : '';
+            const total = lens.entries.length;
+            const gap = e && d ? Math.round((Date.parse(`${todayKey}T00:00`) - d.getTime()) / 86400000) : 0;
+            const gapText = gap >= 365 ? `${Math.floor(gap / 365)}년 전` : gap >= 30 ? `${Math.floor(gap / 30)}달 전` : gap <= 1 ? '어제' : `${gap}일 전`;
+            return (
             <div className="pb-8">
-              <p className="mb-4 px-1 text-[13px] text-[hsl(var(--cream-muted))]">눌러서 그 날을 다시 펼쳐보세요 — 오, 이랬었지.</p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {([
-                  { emoji: '🕰️', title: '1년 전 오늘', sub: '작년 이맘때', entry: yearAgo, empty: '작년 오늘의 기록이 없어요' },
-                  { emoji: '📅', title: '한 달 전', sub: '한 달 전 이맘때', entry: monthAgo, empty: '한 달 전 기록이 없어요' },
-                  { emoji: '🎲', title: '무작위 다시 보기', sub: '아무 날이나 툭', entry: memory, empty: '다시 볼 기록이 없어요', reroll: true },
-                  { emoji: '🌟', title: '가장 빛나던 날', sub: '제일 기분 좋던 하루', entry: brightestEntry, empty: '아직 활짝 웃은 기록이 없어요' },
-                  { emoji: '📸', title: '사진이 있던 날', sub: '그 날의 장면', entry: photoMemory, empty: '사진 붙인 날이 아직 없어요' },
-                  { emoji: '🌧️', title: '비 오던 날', sub: '하늘이 특별했던 하루', entry: rainyMemory, empty: '비·눈 오던 날 기록이 없어요' },
-                ] as const).map((c) => {
-                  const e = c.entry;
-                  const peekDate = e ? new Date(`${e.date}T00:00:00`) : null;
-                  const peekText = e ? (e.title?.trim() || e.body.split('\n').find((l) => l.trim())?.trim() || '무제') : '';
+              {/* 렌즈 줄 — 과거를 어떤 방식으로 걸러 볼지. 기록 없는 렌즈는 눌리지 않게(죽은 타일 방지) */}
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {lenses.map((l) => {
+                  const on = l.id === lens.id;
+                  const empty = l.entries.length === 0;
                   return (
                     <button
-                      key={c.title}
+                      key={l.id}
                       type="button"
-                      onClick={() => e && openEntry(e.date)}
-                      disabled={!e}
+                      disabled={empty}
+                      onClick={() => pickLens(l.id)}
+                      title={empty ? `${l.label} — 아직 기록이 없어요` : l.desc}
                       className={cn(
-                        'group relative flex min-h-[150px] flex-col overflow-hidden rounded-[18px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] p-4 text-left transition-all',
-                        e ? 'hover:-translate-y-1 hover:border-[hsl(var(--cream-accent))]/35 hover:shadow-[0_16px_30px_-20px_rgba(60,40,90,0.35)] active:scale-[0.98]' : 'cursor-default opacity-70',
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
+                        on ? 'bg-[hsl(var(--cream-accent))] text-white'
+                          : empty ? 'cursor-not-allowed text-[hsl(var(--cream-muted))]/40'
+                          : 'bg-[hsl(var(--cream-card))] text-[hsl(var(--cream-ink))]/75 hover:bg-[hsl(var(--cream-accent))]/10',
                       )}
+                      style={!on && !empty ? { boxShadow: 'inset 0 0 0 1px hsl(var(--cream-line))' } : undefined}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[20px] leading-none transition-transform group-hover:-rotate-6 group-hover:scale-110" aria-hidden>{c.emoji}</span>
-                        <span className="text-[13.5px] font-bold text-[hsl(var(--cream-ink))]">{c.title}</span>
-                        {c.reroll && e && (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(ev) => { ev.stopPropagation(); setMemSeed((s) => s + 1); }}
-                            onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); setMemSeed((s) => s + 1); } }}
-                            className="ml-auto rounded-full border border-[hsl(var(--cream-line))] px-2 py-0.5 text-[10.5px] text-[hsl(var(--cream-muted))] transition-colors hover:text-[hsl(var(--cream-ink))]"
-                          >
-                            다시 뽑기
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-[11.5px] text-[hsl(var(--cream-muted))]">{c.sub}</p>
-                      {e && peekDate ? (
-                        <div className="mt-auto pt-3">
-                          <div className="text-[11px] font-semibold text-[hsl(var(--cream-accent))]">{peekDate.getFullYear()}. {peekDate.getMonth() + 1}. {peekDate.getDate()} ({WEEKDAY[peekDate.getDay()]})</div>
-                          <div className="mt-0.5 line-clamp-2 break-keep text-[13.5px] font-semibold leading-snug text-[hsl(var(--cream-ink))]">{peekText}</div>
-                          <span className="mt-2 inline-block text-[11px] font-medium text-[hsl(var(--cream-muted))] opacity-0 transition-opacity group-hover:opacity-100">펼쳐보기 →</span>
-                        </div>
-                      ) : (
-                        <div className="mt-auto pt-3 text-[12px] text-[hsl(var(--cream-muted))]/70">{c.empty}</div>
-                      )}
+                      <span aria-hidden>{l.emoji}</span>{l.label}
+                      {!empty && <span className={cn('tabular-nums', on ? 'text-white/70' : 'text-[hsl(var(--cream-muted))]')}>{l.entries.length}</span>}
                     </button>
                   );
                 })}
               </div>
+
+              {e && d ? (
+                <>
+                  {/* 한 장 — 사진첩에서 한 컷 꺼내 든 것처럼 크게 */}
+                  <button
+                    type="button"
+                    onClick={() => openEntry(e.date)}
+                    className="group block w-full overflow-hidden rounded-[20px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] text-left transition-shadow hover:shadow-[0_20px_44px_-28px_rgba(60,40,90,0.45)]"
+                  >
+                    {photo && (
+                      <span className="block h-[220px] w-full overflow-hidden sm:h-[280px]">
+                        <img src={photo} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                      </span>
+                    )}
+                    <span className="block p-5 sm:p-6">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-[12px] font-bold text-[hsl(var(--cream-accent))]">{gapText}</span>
+                        <span className="text-[12px] text-[hsl(var(--cream-muted))]">·</span>
+                        <span className="text-[12px] text-[hsl(var(--cream-muted))]">{d.getFullYear()}. {d.getMonth() + 1}. {d.getDate()} ({WEEKDAY[d.getDay()]})</span>
+                        {mood && <span className="text-[14px] leading-none" title={mood.label}>{mood.emoji}</span>}
+                        {e.weather && <span className="text-[14px] leading-none">{WEATHER_META[e.weather].emoji}</span>}
+                      </span>
+                      {e.title?.trim() && (
+                        <span className="mt-2 block break-keep text-[21px] font-bold leading-snug tracking-[-0.01em] text-[hsl(var(--cream-ink))]">{e.title.trim()}</span>
+                      )}
+                      {excerpt && (
+                        <span className="mt-2 block whitespace-pre-wrap break-keep text-[14px] leading-relaxed text-[hsl(var(--cream-ink))]/75 line-clamp-4">{excerpt}</span>
+                      )}
+                      <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[hsl(var(--cream-accent))]">
+                        그 날 펼치기 <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+                      </span>
+                    </span>
+                  </button>
+
+                  {/* 넘기기 — 렌즈 안에서 몇 번째인지 알려주고 다음 장으로 */}
+                  <div className="mt-3.5 flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => { setLensStep((s) => s + 1); if (lens.id === 'random') setMemSeed((s) => s + 1); }}
+                      disabled={total <= 1}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--cream-card))] px-4 py-2 text-[12.5px] font-bold text-[hsl(var(--cream-ink))]/80 transition-colors hover:bg-[hsl(var(--cream-accent))]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      style={{ boxShadow: 'inset 0 0 0 1px hsl(var(--cream-line))' }}
+                    >
+                      다음 기억 <span aria-hidden>↻</span>
+                    </button>
+                    <span className="text-[12px] tabular-nums text-[hsl(var(--cream-muted))]">
+                      {total > 1 ? `${(lensStep % total) + 1} / ${total}` : '이 렌즈엔 한 장뿐이에요'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-[20px] border border-dashed border-[hsl(var(--cream-line))] px-6 py-16 text-center">
+                  <p className="text-[14px] font-semibold text-[hsl(var(--cream-ink))]">아직 되돌아볼 기록이 없어요</p>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-[hsl(var(--cream-muted))]">하루를 몇 번 적어두면<br />이 자리에서 그 날들이 다시 올라와요</p>
+                </div>
+              )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ── 통계 탭 ── */}
           {tab === 'stats' && <StatsView entries={allEntries} streak={streak} monthCount={monthCount} items={dayItems} />}
