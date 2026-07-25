@@ -7,7 +7,7 @@
  * 기능은 전부 실물: Plate 편집·읽기, 드래그 링크, 인포박스 편집, 백링크 문맥 발췌, mywiki.v4.
  */
 import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
@@ -973,9 +973,9 @@ export default function Wiki() {
               그래서 아래 본문 그리드와 같은 열 구성을 쓰고 첫 칸은 비워 둔다. */}
           <div
             className="grid gap-5"
-            style={{ gridTemplateColumns: isWide && mode === 'read' ? '140px minmax(0,1fr)' : 'minmax(0,1fr)' }}
+            style={{ gridTemplateColumns: isWide ? '140px minmax(0,1fr)' : 'minmax(0,1fr)' }}
           >
-            {isWide && mode === 'read' && <span aria-hidden />}
+            {isWide && <span aria-hidden />}
             <div className="flex min-w-0 items-center gap-2">
             {backDoc && (
               /* key 에 깊이를 물려 링크를 한 번 더 탈 때마다 등장 모션이 다시 돈다 —
@@ -1021,12 +1021,13 @@ export default function Wiki() {
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
             {isWide ? (
-            /* 목차 열은 '있을 때만' 만들면, 제목이 2개 넘는 문서와 아닌 문서 사이를 오갈 때마다
-               본문 폭과 위치가 통째로 흔들린다(한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
-               열은 늘 자리를 잡아두고 내용만 들고 난다 — 읽기 모드에서 본문은 언제나 같은 자리. */
-            <div className="grid gap-5" style={{ gridTemplateColumns: `${mode === 'read' ? '140px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
-              {/* 좌 — 목차 (읽기, 제목 2개↑). 없으면 빈 열로 자리만 지킨다 */}
-              {mode === 'read' && (toc.length >= 2 ? (
+            /* 목차 열은 '있을 때만' 만들면 본문 폭·위치가 통째로 흔들린다
+               (한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
+               흔들리는 경우가 둘이었다 — ①제목 2개 미만인 문서 ②편집 모드.
+               그래서 열은 언제나 자리를 잡아두고 내용만 들고 난다. 읽다가 편집을 눌러도 본문은 제자리. */
+            <div className="grid gap-5" style={{ gridTemplateColumns: '140px minmax(0,1fr)', alignItems: 'start' }}>
+              {/* 좌 — 목차 (읽기 모드, 제목 2개↑). 그 밖에는 빈 열로 자리만 지킨다 */}
+              {mode === 'read' && toc.length >= 2 ? (
                 /* 목차 — 줄마다 끊긴 밑줄만 있어서 허전했다.
                    이어진 세로 레일 하나에 항목을 걸고, 단계는 들여쓰기가 아니라 글자 굵기·크기로 준다.
                    레일이 끊기지 않으니 '글의 뼈대'로 읽히고, 짧은 목차도 성글어 보이지 않는다. */
@@ -1054,7 +1055,7 @@ export default function Wiki() {
                     ))}
                   </div>
                 </nav>
-              ) : <span aria-hidden />)}
+              ) : <span aria-hidden />}
 
               {/* 중앙 — 본문 */}
               <DocMain
@@ -1868,12 +1869,14 @@ function DocMain({
                 <button
                   type="button"
                   onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
-                  aria-label={active.pinned ? '고정 해제' : '고정'}
-                  title={active.pinned ? '고정됨 — 눌러 해제' : '이 문서 고정'}
+                  /* 같은 pinned 를 차례와 표지에서는 별(★ 책갈피)로 보여주는데 여기만 핀이었다.
+                     한 가지 일에 두 가지 기호를 쓰면 다른 기능으로 읽힌다 — 별로 통일. */
+                  aria-label={active.pinned ? '책갈피 빼기' : '책갈피 꽂기'}
+                  title={active.pinned ? '책갈피에 꽂힘 — 눌러 빼기' : '이 문서에 책갈피 꽂기'}
                   className={cn('flex h-[30px] w-[30px] items-center justify-center rounded-lg transition-colors', active.pinned ? 'text-amber-500' : 'hover:bg-[rgba(60,47,24,.06)]')}
                   style={active.pinned ? { background: 'rgba(245,158,11,.12)' } : { color: C.muted }}
                 >
-                  <Pin className={cn('h-3.5 w-3.5', active.pinned && 'fill-current')} />
+                  <Star className={cn('h-3.5 w-3.5', active.pinned && 'fill-current')} />
                 </button>
                 <button
                   type="button" onClick={() => removeDoc(active.id)}
