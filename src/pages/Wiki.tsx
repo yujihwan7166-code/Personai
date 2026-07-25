@@ -239,6 +239,8 @@ export default function Wiki() {
   const [mode, setMode] = useState<'read' | 'edit'>('read');
   const [q, setQ] = useState('');
   const [picker, setPicker] = useState<{ text: string } | null>(null);
+  /* 본문 링크를 타고 건너온 발자국(문서 id) — 되짚어 돌아가기용. 서재·책으로 나가면 비운다. */
+  const [trail, setTrail] = useState<string[]>([]);
   const [bookDialog, setBookDialog] = useState<{ book: WikiBook | null } | null>(null);
   /* 차례에서 끌어 옮기기 — 끄는 문서 / 지금 겨눈 자리 / 방금 옮겨진 문서(잔상) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set()); // 차례에서 접은 장들
@@ -276,25 +278,55 @@ export default function Wiki() {
       const t = e.target as HTMLElement | null;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
       if (picker || bookDialog) return;
+      // 링크를 타고 왔다면 나가기 전에 왔던 길부터 되짚는다
+      if (docId && trail.length) { goBack(); return; }
       if (docId) { setDocId(null); setMode('read'); mainRef.current?.scrollTo(0, 0); }
       else if (bookId) { setBookId(null); mainRef.current?.scrollTo(0, 0); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [docId, bookId, picker, bookDialog]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docId, bookId, picker, bookDialog, trail]);
 
   const top = () => mainRef.current?.scrollTo(0, 0);
 
-  /* ── 이동 ── */
-  const goShelf = () => { setBookId(null); setDocId(null); setQ(''); top(); };
-  const openBook = (id: string) => { setBookId(id); setDocId(null); setQ(''); top(); };
+  /* ── 이동 ──
+   * 빵가루는 '차례에서의 자리'를 보여준다. 그런데 본문 링크는 그 나무를 가로질러 뛰기 때문에,
+   * 링크를 타고 들어가면 빵가루 어디에도 왔던 길이 남지 않는다(= 돌아갈 방법이 없다).
+   * 그래서 문서→문서로 건너뛴 발자국을 따로 쌓아두고 되짚어 준다. */
+  const goShelf = () => { setBookId(null); setDocId(null); setQ(''); setTrail([]); top(); };
+  const openBook = (id: string) => { setBookId(id); setDocId(null); setQ(''); setTrail([]); top(); };
   const openDoc = (id: string, opts: { edit?: boolean } = {}) => {
     const d = docs.find((x) => x.id === id);
     if (!d) return;
+    if (docId && docId !== id) setTrail((t) => [...t.slice(-9), docId]); // 같은 문서 재진입은 안 쌓는다
     setBookId(d.book); setDocId(id); setMode(opts.edit ? 'edit' : 'read');
     setStore((s) => ({ ...s, recent: [id, ...s.recent.filter((r) => r !== id)].slice(0, 10) }));
     setQ(''); top();
   };
+  /** 발자국 한 칸 되짚기 — 왔던 문서로. */
+  const goBack = () => {
+    const prev = trail[trail.length - 1];
+    if (!prev) return;
+    setTrail((t) => t.slice(0, -1));
+    const d = docs.find((x) => x.id === prev);
+    if (!d) return;
+    setBookId(d.book); setDocId(prev); setMode('read'); setQ(''); top();
+  };
+  const backDoc = trail.length ? docs.find((x) => x.id === trail[trail.length - 1]) : undefined;
+
+  /** 빵가루 한 칸 — 컴포넌트가 아니라 함수(렌더마다 새 타입이 되면 불필요한 remount). */
+  const crumbBtn = (key: string, label: string, onClick: () => void) => (
+    <button
+      key={key} type="button" onClick={onClick} title={label}
+      className="max-w-[150px] shrink-0 truncate rounded-md px-1.5 py-[3px] transition-colors"
+      style={{ color: C.green }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.09)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      {label}
+    </button>
+  );
 
   /* ── 책 ── */
   const saveBook = (input: { id?: string; title: string; tint: string; intro: string }) => {
@@ -474,34 +506,45 @@ export default function Wiki() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* 책등 치수 — 모든 책이 같은 크기다.
-     문서 수를 따라 키우면 서가가 들쭉날쭉해지고, 두께가 곧 위계처럼 읽혀 적게 쓴 책이 초라해진다.
-     책은 책일 뿐 — 글자 크기만 제목 길이에 맞춰 자동 축소한다. */
-  const SPINE_W = 72;
-  const SPINE_H = 268;
+  /* 책등 치수 — 안에 쌓인 문서 수를 따라 두껍고 높아진다(서가를 보면 어디에 많이 썼는지 보인다).
+     예전 치수(최대 100×368)보다 한 단계 줄여 서가가 덜 부대끼게 했다.
+     글자 크기는 제목 길이에 맞춰 자동 축소. */
+  const SPINE_H_MAX = 320;
   const spineOf = (b: WikiBook) => {
     const n = docs.filter((d) => d.book === b.id).length;
+    const h = Math.min(SPINE_H_MAX, 232 + n * 6);
     const title = b.title || '무제';
-    const fs = Math.max(13, Math.min(21, Math.floor((SPINE_H - 132) / Math.max(title.length, 1))));
-    return { n, w: SPINE_W, h: SPINE_H, fs, title };
+    const fs = Math.max(13, Math.min(20, Math.floor((h - 128) / Math.max(title.length, 1))));
+    return { n, w: Math.min(88, Math.round(58 + n * 3)), h, fs, title };
   };
 
   /* 선반은 한 칸뿐 — 넘치는 책은 아랫줄로 흘리지 않고 다음 페이지로 넘긴다.
-     책 크기가 고정이라 한 페이지에 몇 권이 서는지는 서가 폭만으로 정해진다. */
+     책마다 두께가 다르니 권수가 아니라 '실제 폭'을 쌓아 가며 장을 가른다. */
   const SHELF_GAP = 9;
   const NEW_SLOT = 72;
   const LEAN_SLACK = 44; // 마지막 책이 기울면 발자국이 그만큼 넓어진다
-  const perPage = useMemo(() => {
+  const pages = useMemo(() => {
     const avail = shelfW - 28; // px-3.5 양쪽
-    if (avail <= 0) return Math.max(1, books.length); // 실측 전 — 일단 다 그린다
+    if (avail <= 0) return [books]; // 실측 전 — 일단 다 그린다
     const usable = avail - LEAN_SLACK - (NEW_SLOT + SHELF_GAP); // '새 책' 자리는 늘 비워둔다
-    return Math.max(1, Math.floor(usable / (SPINE_W + SHELF_GAP)));
-  }, [shelfW, books.length]);
-  const pageCount = Math.max(1, Math.ceil(books.length / perPage));
+    const out: WikiBook[][] = [];
+    let cur: WikiBook[] = [];
+    let used = 0;
+    for (const b of books) {
+      const w = spineOf(b).w + SHELF_GAP;
+      if (cur.length > 0 && used + w > usable) { out.push(cur); cur = []; used = 0; }
+      cur.push(b); used += w;
+    }
+    out.push(cur);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [books, docs, shelfW]);
+  const pageCount = Math.max(1, pages.length);
   const page = Math.min(shelfPage, pageCount - 1); // 책이 줄어 페이지가 사라져도 안전하게
-  const pageBooks = books.slice(page * perPage, page * perPage + perPage);
+  const pageBooks = pages[page] ?? [];
   /* 이 페이지에서 '새 책' 자리·기울기를 빼고 남는 폭 — 정물(지구본·시계)을 놓을지 판단한다 */
-  const shelfFree = shelfW - 28 - pageBooks.length * (SPINE_W + SHELF_GAP) - NEW_SLOT - SHELF_GAP - LEAN_SLACK;
+  const shelfUsed = pageBooks.reduce((a, b) => a + spineOf(b).w + SHELF_GAP, 0);
+  const shelfFree = shelfW - 28 - shelfUsed - NEW_SLOT - SHELF_GAP - LEAN_SLACK;
 
   const today = new Date();
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
@@ -870,21 +913,37 @@ export default function Wiki() {
       ) : active && book ? (
         /* ══════ 문서 ══════ */
         <section className="wiki-rise mx-auto px-5 pb-20 pt-[40px] sm:px-8" style={{ maxWidth: 1300 }}>
-          {/* 빵가루 */}
-          <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
-            <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
-            <span>›</span>
-            <button type="button" onClick={() => openBook(book.id)} className="hover:underline" style={{ color: C.green }}>{book.title}</button>
-            {crumbs.map((c2) => (
-              <span key={c2.id} className="flex items-center gap-[7px]">
-                <span>›</span>
-                <button type="button" onClick={() => openDoc(c2.id)} className="hover:underline" style={{ color: C.green }}>{c2.title || '무제'}</button>
-              </span>
-            ))}
-            <span>›</span>
-            <span style={{ color: C.ink, fontWeight: 600 }}>{active.title || '무제'}</span>
-            <span className="flex-1" />
-            <span className="hidden sm:inline" style={{ fontSize: 12, color: C.muted }}>Esc로 돌아가기</span>
+          {/* 빵가루 — 눌리는 칩으로. 긴 제목이 줄을 밀어내지 않게 각 칸을 잘라둔다.
+              왼쪽 '돌아가기'는 트리 위치가 아니라 '왔던 길'이라 따로 세워 구분한다. */}
+          <div className="flex items-center gap-2">
+            {backDoc && (
+              <button
+                type="button" onClick={goBack} title="왔던 문서로 돌아가기"
+                className="flex max-w-[220px] shrink-0 items-center gap-1.5 rounded-full py-[5px] pl-2.5 pr-3 transition-colors"
+                style={{ background: 'rgba(48,95,76,.1)', color: C.green, fontSize: 12.5, fontWeight: 700 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.17)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(48,95,76,.1)'; }}
+              >
+                <span aria-hidden>←</span>
+                <span className="min-w-0 truncate">{backDoc.title || '무제'}</span>
+              </button>
+            )}
+            <div className="flex min-w-0 flex-1 items-center gap-[2px]" style={{ fontSize: 13, color: C.sub }}>
+              {crumbBtn('shelf', '서재', goShelf)}
+              <span className="shrink-0 opacity-50">›</span>
+              {crumbBtn(book.id, book.title || '무제', () => openBook(book.id))}
+              {crumbs.map((c2) => (
+                <span key={c2.id} className="flex min-w-0 items-center gap-[2px]">
+                  <span className="shrink-0 opacity-50">›</span>
+                  {crumbBtn(c2.id, c2.title || '무제', () => openDoc(c2.id))}
+                </span>
+              ))}
+              <span className="shrink-0 opacity-50">›</span>
+              <span className="min-w-0 truncate px-1.5" style={{ color: C.ink, fontWeight: 600 }}>{active.title || '무제'}</span>
+            </div>
+            <span className="hidden shrink-0 sm:inline" style={{ fontSize: 12, color: C.muted }}>
+              {backDoc ? 'Esc로 되돌아가기' : 'Esc로 돌아가기'}
+            </span>
           </div>
 
           {/* 3열: 목차 | 본문 | 인포박스 (시안 docCols) */}
@@ -1223,7 +1282,7 @@ export default function Wiki() {
               {pageBooks.map((b, i) => spine(b, shelfFree > 90 && i === pageBooks.length - 1 && pageBooks.length >= 2 ? spineOf(pageBooks[i - 1]).h : undefined))}
               <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
                 className="flex flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
-                style={{ height: SPINE_H, width: NEW_SLOT, border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
+                style={{ height: 264, width: NEW_SLOT, border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.38)'; e.currentTarget.style.color = 'rgba(244,230,200,.55)'; }}
               >+</button>
