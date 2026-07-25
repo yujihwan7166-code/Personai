@@ -116,18 +116,6 @@ const WIKI_CSS = `
 .wiki-theme .wiki-read blockquote { border-left-color: rgba(154,70,50,.45); }
 `;
 
-/** 본문 최상위 블록에서 목차 추출 — h1~h3. */
-function tocOf(body: Value): { level: number; text: string }[] {
-  const out: { level: number; text: string }[] = [];
-  for (const node of body as Array<{ type?: string; children?: Array<{ text?: string }> }>) {
-    if (node.type === 'h1' || node.type === 'h2' || node.type === 'h3') {
-      const text = (node.children ?? []).map((c) => c.text ?? '').join('').trim();
-      if (text) out.push({ level: Number(node.type.slice(1)), text });
-    }
-  }
-  return out;
-}
-
 /** lg(1024px) 이상 여부 — 문서 뷰에서 데스크톱/모바일 중 한쪽만 마운트하기 위해.
  *  둘 다 마운트하면(CSS 숨김) 같은 body 노드를 두 Plate 인스턴스가 공유해
  *  Slate 경로 맵이 깨진다 ("Unable to find the path for Slate node"). */
@@ -436,7 +424,6 @@ export default function Wiki() {
     () => (active ? docs.filter((d) => d.id !== active.id && linkedDocIds(d.body).includes(active.id)) : []),
     [docs, active],
   );
-  const toc = useMemo(() => (active ? tocOf(active.body) : []), [active]);
   const pinnedAll = useMemo(() => docs.filter((d) => d.pinned).slice(0, 6), [docs]);
   const recentDocs = useMemo(
     () => recent.map((id) => docs.find((d) => d.id === id)).filter((d): d is WikiDoc => !!d).slice(0, 5),
@@ -539,13 +526,6 @@ export default function Wiki() {
       .sort((a, b) => Number(b.d.title.toLowerCase().includes(qq)) - Number(a.d.title.toLowerCase().includes(qq)))
       .slice(0, 20);
   }, [docs, qq]);
-
-  const scrollToHeading = (idx: number) => {
-    const host = readBodyRef.current;
-    if (!host) return;
-    const el = host.querySelectorAll('h1, h2, h3')[idx] as HTMLElement | undefined;
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   /* 책등 치수 — 안에 쌓인 문서 수를 따라 두껍고 높아진다(서가를 보면 어디에 많이 썼는지 보인다).
      예전 치수(최대 100×368)보다 한 단계 줄여 서가가 덜 부대끼게 했다.
@@ -1000,32 +980,17 @@ export default function Wiki() {
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
           >
             {isWide ? (
-            /* 목차 열은 '있을 때만' 만들면, 제목이 2개 넘는 문서와 아닌 문서 사이를 오갈 때마다
-               본문 폭과 위치가 통째로 흔들린다(한 줄 길이까지 바뀌어 읽는 리듬이 끊긴다).
-               열은 늘 자리를 잡아두고 내용만 들고 난다 — 읽기 모드에서 본문은 언제나 같은 자리. */
-            <div className="grid gap-9" style={{ gridTemplateColumns: `${mode === 'read' ? '168px ' : ''}minmax(0,1fr)`, alignItems: 'start' }}>
-              {/* 좌 — 목차 (읽기, 제목 2개↑). 없으면 빈 열로 자리만 지킨다 */}
-              {mode === 'read' && (toc.length >= 2 ? (
-                <nav className="sticky top-4" aria-label="목차">
-                  <div style={{ fontSize: 11, letterSpacing: '.14em', color: C.muted, padding: '0 10px 8px' }}>목차</div>
-                  {toc.map((h, i) => (
-                    <button
-                      key={i} type="button" onClick={() => scrollToHeading(i)}
-                      className="block w-full text-left transition-colors hover:bg-[rgba(60,47,24,.04)]"
-                      style={{ padding: `7px 10px 7px ${10 + (h.level - 1) * 10}px`, fontSize: 13, color: C.sub, borderLeft: '2px solid rgba(60,47,24,.14)' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderLeftColor = C.rust; e.currentTarget.style.color = C.ink; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderLeftColor = 'rgba(60,47,24,.14)'; e.currentTarget.style.color = C.sub; }}
-                    >
-                      {h.text}
-                    </button>
-                  ))}
-                </nav>
-              ) : <span aria-hidden />)}
-
+            /* 문서 안 제목 목차는 걷어냈다.
+               ① 좌측 사이드바의 '차례'가 이미 책 전체 위계를 보여준다 — 두 번째 내비게이션이었다
+               ② 문서 대부분이 한 화면에 들어와, 스크롤 없이 다 보이는 글의 목차는 장식이다
+                  (조건이 '제목 2개 이상'이었던 것 자체가 대부분 필요 없다는 신호)
+               ③ 책은 차례가 앞에 한 번 있지 페이지마다 붙지 않는다 — 이 방의 은유와도 맞다
+               덕분에 본문은 어느 문서에서든 저절로 같은 자리·같은 폭이 된다. */
+            <div className="grid gap-9" style={{ gridTemplateColumns: 'minmax(0,1fr)', alignItems: 'start' }}>
               {/* 중앙 — 본문 */}
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
-                mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
+                mode={mode} setMode={setMode} kids={kids} backlinks={backlinks}
                 readBodyRef={readBodyRef} editorApi={editorApi}
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
                 openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
@@ -1036,7 +1001,7 @@ export default function Wiki() {
             <div>
               <DocMain
                 active={active} book={book} bookOf={bookOf} bookDocs={bookDocs}
-                mode={mode} setMode={setMode} toc={toc} kids={kids} backlinks={backlinks}
+                mode={mode} setMode={setMode} kids={kids} backlinks={backlinks}
                 readBodyRef={readBodyRef} editorApi={editorApi}
                 patchDoc={patchDoc} removeDoc={removeDoc} onBodyChange={onBodyChange}
                 openDoc={openDoc} createDoc={createDoc} setPicker={setPicker} applyTemplate={applyTemplate} tplStamp={tplStamp}
@@ -1748,13 +1713,13 @@ function ParentPicker({ bookDocs, doc, book, onPick }: {
 
 /* ── 문서 본문 (읽기/편집 공용 셸) ── */
 function DocMain({
-  active, book, bookOf, bookDocs, mode, setMode, toc, kids, backlinks,
+  active, book, bookOf, bookDocs, mode, setMode, kids, backlinks,
   readBodyRef, editorApi, patchDoc, removeDoc, onBodyChange, openDoc, createDoc, setPicker,
   applyTemplate, tplStamp,
 }: {
   active: WikiDoc; book: WikiBook; bookOf: Map<string, WikiBook>; bookDocs: WikiDoc[];
   mode: 'read' | 'edit'; setMode: (m: 'read' | 'edit') => void;
-  toc: { level: number; text: string }[]; kids: WikiDoc[]; backlinks: WikiDoc[];
+  kids: WikiDoc[]; backlinks: WikiDoc[];
   readBodyRef: React.RefObject<HTMLDivElement>;
   editorApi: React.MutableRefObject<WikiEditorApi | null>;
   patchDoc: (id: string, patch: Partial<WikiDoc>) => void;
@@ -1766,7 +1731,6 @@ function DocMain({
   applyTemplate: (body: Value) => void;
   tplStamp: number;
 }) {
-  void toc;
   return (
     <div className="min-w-0">
       <article className="rounded-[14px] p-6 sm:px-[52px] sm:py-11" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 10px rgba(64,44,18,.05)' }}>
