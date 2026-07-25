@@ -360,9 +360,22 @@ function subscribe(cb: () => void): () => void {
 
 let cachedSnapshot: Note[] = [];
 let cachedKey = '';
+/**
+ * 스냅샷 키 — 무엇이 바뀌었는지 판별하는 지문.
+ *
+ * updatedAt 만 보면 안 된다. 문양·태그·고정처럼 '이름표'에 해당하는 변경은
+ * 목록 순서를 흔들지 않으려고 일부러 시각을 올리지 않기 때문에(patchNote touch=false),
+ * updatedAt 만 비교하면 저장은 됐는데 화면은 그대로인 상태가 된다.
+ * 시각을 올리지 않는 필드는 전부 여기 들어와야 한다.
+ */
+function snapshotKey(notes: Note[]): string {
+  return notes
+    .map((n) => `${n.id}:${n.updatedAt}:${n.emoji ?? ''}:${n.favorite ? 1 : 0}:${n.favOrder ?? ''}:${(n.meta?.tags ?? []).join(',')}`)
+    .join('|');
+}
 function getSnapshot(): Note[] {
   const notes = listNotes();
-  const key = notes.map((n) => `${n.id}:${n.updatedAt}`).join('|');
+  const key = snapshotKey(notes);
   if (key !== cachedKey) {
     cachedKey = key;
     cachedSnapshot = notes;
