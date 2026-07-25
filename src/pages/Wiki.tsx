@@ -1044,7 +1044,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1120 }}>
+        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
             <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
             <span>›</span>
@@ -1053,24 +1053,31 @@ export default function Wiki() {
             <span className="hidden sm:inline" style={{ fontSize: 12, color: C.muted }}>Esc로 돌아가기</span>
           </div>
 
-          <div className="mt-7 grid min-h-[520px] grid-cols-1 md:grid-cols-[236px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
+          {/* 표지와 차례는 늘 같은 높이로 붙어 있어야 '펼친 책' 이 유지된다(grid stretch).
+              길어지는 건 차례 쪽이고, 표지는 늘어난 자리를 표지 재질로 두고 적힌 것만 따라 내려온다. */}
+          <div className="mt-7 grid min-h-[560px] grid-cols-1 items-stretch md:grid-cols-[262px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
             {/* 좌 — 표지 (색은 진하지 않게: 위는 밝게 열고 아래로만 그늘) */}
+            {/* overflow-hidden 을 걷었다 — 이게 있으면 안쪽 sticky 가 죽는다.
+                대신 질감 레이어가 모서리를 넘지 않게 반경을 물려받게 했다. */}
             <div
-              className="relative flex overflow-hidden p-5"
+              className="relative flex p-5"
               style={{
                 borderRadius: '8px 3px 3px 8px', color: C.cream,
                 background: `linear-gradient(158deg, color-mix(in srgb, ${book.tint} 74%, #f3ead4) 0%, ${book.tint} 52%, color-mix(in srgb, ${book.tint} 90%, #2a1608) 100%)`,
               }}
             >
-              <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(270deg, rgba(0,0,0,.16), rgba(0,0,0,0) 16%), repeating-linear-gradient(0deg, rgba(0,0,0,.03) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
+              <span aria-hidden className="pointer-events-none absolute inset-0" style={{ borderRadius: 'inherit', background: 'linear-gradient(270deg, rgba(0,0,0,.16), rgba(0,0,0,0) 16%), repeating-linear-gradient(0deg, rgba(0,0,0,.03) 0 2px, rgba(255,255,255,.02) 2px 4px)' }} />
+              {/* 테두리 틀은 표지 끝까지 — 표지는 한 장이니 스프레드가 깨지지 않는다.
+                  적힌 것들만 sticky 로 따라 내려온다: 차례가 길어져도 책갈피·이어서 읽기가 화면 밖으로 밀려나지 않게. */}
               <div className="relative flex flex-1 flex-col p-4" style={{ border: '1px solid rgba(244,230,200,.45)', borderRadius: 4 }}>
+              <div className="sticky top-5 flex flex-col">
                 {/* 제목 — 표지에서 바로 고친다 */}
                 <input
                   value={book.title}
                   onChange={(e) => saveBook({ id: book.id, title: e.target.value, tint: book.tint, intro: book.intro })}
                   placeholder="책 제목"
                   className="w-full bg-transparent outline-none placeholder:text-[rgba(244,230,200,.5)]"
-                  style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 25, lineHeight: 1.3, letterSpacing: '.02em', color: C.cream }}
+                  style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 27, lineHeight: 1.3, letterSpacing: '.02em', color: C.cream }}
                 />
                 <CoverIntro value={book.intro} onChange={(v) => saveBook({ id: book.id, title: book.title, tint: book.tint, intro: v })} />
 
@@ -1114,12 +1121,14 @@ export default function Wiki() {
                   );
                 })()}
 
-                <div className="flex-1" />
+                {/* 예전엔 여기 flex-1 스페이서가 있어서 '이어서 읽기'가 표지 맨 아래로 밀렸다.
+                    차례가 길어질수록 표지가 늘어나고 그만큼 가운데가 텅 비어 고장난 것처럼 보였다.
+                    표지의 아래쪽이 비어 있는 건 책이면 당연하지만, 위아래로 갈라두고 가운데가 빈 건 아니다. */}
                 {(() => {
                   const last = recent.map((id) => bookDocs.find((d) => d.id === id)).find(Boolean) ?? childrenOf(bookDocs, null)[0];
                   return last ? (
                     <>
-                      <div style={{ fontSize: 10.5, letterSpacing: '.08em', opacity: .7 }}>이어서 읽기</div>
+                      <div className="mt-4" style={{ fontSize: 10.5, letterSpacing: '.08em', opacity: .7 }}>이어서 읽기</div>
                       <button
                         type="button" onClick={() => openDoc(last.id)}
                         className="mt-1.5 flex items-center justify-between gap-2 rounded-lg px-3 py-[10px] text-left transition-colors"
@@ -1134,7 +1143,7 @@ export default function Wiki() {
                   ) : (
                     <button
                       type="button" onClick={() => createDoc(null)}
-                      className="mt-1.5 flex items-center gap-1.5 rounded-lg px-3 py-[10px] text-left transition-colors"
+                      className="mt-4 flex items-center gap-1.5 rounded-lg px-3 py-[10px] text-left transition-colors"
                       style={{ border: '1px solid rgba(244,230,200,.45)', fontSize: 13, fontWeight: 600, background: 'rgba(0,0,0,.16)', color: C.cream }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.32)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,.16)'; }}
@@ -1148,10 +1157,11 @@ export default function Wiki() {
                   표지 색 · 삭제
                 </button>
               </div>
+              </div>
             </div>
 
             {/* 우 — 차례 페이지 */}
-            <div className="wiki-page min-w-0 p-6 sm:p-9" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
+            <div className="wiki-page min-w-0 p-7 sm:p-10" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `1px solid ${C.line}`, paddingBottom: 12 }}>
                 <h2 className="m-0 flex-none" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.015em', fontSize: 20 }}>차례</h2>
                 <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>
