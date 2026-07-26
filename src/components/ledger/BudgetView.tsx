@@ -16,6 +16,27 @@ import { C, KRW } from './theme';
 /** 배분 막대 색 — 버킷 수가 정해져 있지 않으므로 순서대로 돌려 쓴다. */
 const ALLOC_RING = [C.navy, C.navyMid, C.navyPale, '#7C8AA6', '#A9B4C6', '#5C6B86'];
 
+/** 요약 숫자 한 칸 — 이름 위, 금액 아래. 셋이 나란히 서야 크기가 서로를 설명한다. */
+function Figure({ label, value, tone, big, note }: { label: string; value: number; tone: string; big?: boolean; note?: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, paddingRight: 4 }}>
+      <span style={{ fontSize: 11.5, fontWeight: 650, color: C.muted2 }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+        <span style={{ fontSize: big ? 30 : 20, fontWeight: 700, letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums', color: tone, lineHeight: 1.1 }}>
+          {KRW(value)}
+        </span>
+        <span style={{ fontSize: big ? 14 : 12, fontWeight: 650, color: tone, opacity: 0.7 }}>원</span>
+      </span>
+      {note && <span style={{ fontSize: 11, fontWeight: 600, color: C.muted2, fontVariantNumeric: 'tabular-nums' }}>{note}</span>}
+    </div>
+  );
+}
+
+/** 숫자 칸 사이 얇은 선 — 셋이 한 문장의 부분이라는 표시 */
+function Sep() {
+  return <span aria-hidden style={{ alignSelf: 'stretch', width: 1, background: C.lineFaint, margin: '2px 12px 2px 8px' }} />;
+}
+
 export function BudgetView({ data }: { data: LedgerData }) {
   const { entries, budgets, categories, buckets } = data;
   const BUCKETS = useMemo(() => buckets.map((b) => b.id), [buckets]);
@@ -57,6 +78,14 @@ export function BudgetView({ data }: { data: LedgerData }) {
   const pctOf = (b: BudgetBucket) => (planned > 0 ? Math.round(((budgets[b] ?? 0) / planned) * 100) : 0);
   const afterBudget = basis.avgIncome - planned;
 
+  /* 전체 진행 — 버킷마다 있던 막대를 합친 것이 아니라, 여기서만 답할 수 있는 질문
+     ('이 속도로 가면 되나')을 답한다. 기준선은 오늘까지 지난 날 비율. */
+  const usedPct = planned > 0 ? Math.round((spentAll / planned) * 100) : 0;
+  const remainAll = planned - spentAll;
+  const dailyAll = Math.floor(Math.max(0, remainAll) / leftDays / 100) * 100;
+  const paceGap = Math.round(spentAll - (planned * dayOfMonth) / daysInMonth); // +면 계획보다 빨리 쓰는 중
+  const paceShown = Math.round(Math.abs(paceGap) / 100) * 100;
+
   const smallBtn: React.CSSProperties = {
     height: 28, border: `1px solid ${C.line}`, borderRadius: 7, background: '#fff',
     fontSize: 11, fontWeight: 600, color: C.ink4, cursor: 'pointer',
@@ -76,10 +105,9 @@ export function BudgetView({ data }: { data: LedgerData }) {
             </div>
           ) : null}
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{KRW(planned)}</span>
-          <span style={{ fontSize: 14, fontWeight: 650, color: C.ink4 }}>원</span>
-        </div>
+        {/* 총액은 머리에서 내려보냈다 — 쓴 돈·남은 돈과 나란히 놓여야 비교가 되고,
+            그 셋이 바로 아래 막대의 눈금이 된다. 머리에 혼자 떠 있을 땐 아무 것과도
+            견줄 수 없는 숫자였다. */}
       </div>
 
       {/* 배분 */}
@@ -92,40 +120,94 @@ export function BudgetView({ data }: { data: LedgerData }) {
             {basis.avgIncome > 0 ? `수입은 기록 있는 최근 ${basis.monthsWithData}달 평균` : '수입 기록 없음'}
           </span>
         </div>
-        {/* 계획 배분 */}
-        <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: C.track }}>
-          {BUCKETS.map((b) => <div key={b} title={`${labelOf.get(b) ?? b} ${pctOf(b)}%`} style={{ width: `${pctOf(b)}%`, background: colorOf(b) }} />)}
+        {/* ① 숫자 셋 — 예산 · 쓴 돈 · 남은 예산. 셋이 나란해야 크기가 서로를 설명한다.
+            예산만 크게 두는 건 그것이 나머지 둘의 분모이기 때문. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 4 }}>
+          <Figure label="이번 달 예산" value={planned} big tone={C.ink} />
+          <Sep />
+          <Figure label="쓴 돈" value={spentAll} tone={C.ink3} />
+          <Sep />
+          <Figure
+            label={remainAll >= 0 ? '남은 예산' : '예산 초과'}
+            value={Math.abs(remainAll)}
+            tone={remainAll >= 0 ? C.green : C.red}
+            note={planned > 0 && remainAll > 0 && dailyAll >= 100 ? `남은 ${leftDays}일 · 하루 ${KRW(dailyAll)}원` : undefined}
+          />
         </div>
 
-        {/* 실제 쓴 배분 — 계획만 보여주면 '계획대로 되고 있나'는 알 수 없다.
-            같은 폭 위에 겹쳐 두면 두 막대의 어긋남이 곧 답이 된다. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <div style={{ display: 'flex', height: 8, borderRadius: 999, overflow: 'hidden', background: C.track }}>
-            {BUCKETS.map((b) => (
-              <div key={b} title={`${labelOf.get(b) ?? b} ${KRW(spent[b] ?? 0)}원`} style={{
-                width: `${spentAll > 0 ? Math.round(((spent[b] ?? 0) / spentAll) * 100) : 0}%`,
-                background: colorOf(b), opacity: 0.55,
+        {/* ② 전체 진행 — 여기서만 답할 수 있는 질문('이 속도면 되나')을 답한다.
+            버킷 카드의 막대는 항목 하나씩이라 합쳐 본 적이 없었다.
+            눈금(오늘)이 채운 길이보다 오른쪽에 있으면 여유, 왼쪽이면 과속. */}
+        {planned > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 2 }}>
+            <div style={{ position: 'relative', height: 14, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
+              <div style={{
+                position: 'absolute', inset: '0 auto 0 0', width: `${Math.min(100, usedPct)}%`,
+                background: remainAll < 0 ? C.red : `linear-gradient(90deg, ${C.navyMid}, ${C.navy})`, borderRadius: 999,
               }} />
+              {/* 오늘까지 지난 날 비율 — 이 자리까지 썼으면 딱 맞는 속도 */}
+              <div title={`오늘 ${dayOfMonth}일 (${monthPct}%)`} style={{
+                position: 'absolute', top: -1, bottom: -1, left: `${monthPct}%`, width: 2,
+                background: C.ink, opacity: 0.5,
+              }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: 11.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ color: C.muted2 }}>
+                {dayOfMonth}/{daysInMonth}일 지남 · 예산의 {usedPct}% 씀
+              </span>
+              {/* 속도 배지 — 금액이 아니라 '기준선과 얼마나 떨어져 있나' 라는 새 사실 */}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px', borderRadius: 999,
+                background: paceGap > 0 ? C.warnBg : C.okBg,
+                border: `1px solid ${paceGap > 0 ? 'transparent' : C.okLine}`,
+                color: paceGap > 0 ? C.warnInk : C.okInk,
+              }}>
+                <span aria-hidden style={{ width: 5, height: 5, borderRadius: 999, background: paceGap > 0 ? C.warnDot : C.greenDot }} />
+                {paceShown < 100
+                  ? '계획한 속도 그대로'
+                  : paceGap > 0 ? `이 시점 계획보다 ${KRW(paceShown)}원 앞섬` : `이 시점 계획보다 ${KRW(paceShown)}원 여유`}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* ③ 항목 배분 — 위 계획, 아래 실제. 두 띠의 어긋남이 '어디에 치우쳤나' 를 말한다.
+            여기 있던 버킷별 한 줄 목록은 걷어냈다 — 아래 버킷 카드와 같은 말이었다.
+            분업: 이 띠는 '비율'만, 아래 카드는 '금액'만. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 4, borderTop: `1px solid ${C.lineFaint}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <span style={{ flex: '0 0 26px', fontSize: 10.5, fontWeight: 700, color: C.muted2 }}>계획</span>
+            <div style={{ flex: 1, display: 'flex', height: 10, borderRadius: 999, overflow: 'hidden', background: C.track }}>
+              {BUCKETS.map((b) => <div key={b} title={`${labelOf.get(b) ?? b} ${pctOf(b)}%`} style={{ width: `${pctOf(b)}%`, background: colorOf(b) }} />)}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: '0 0 26px', fontSize: 10.5, fontWeight: 700, color: C.muted2 }}>실제</span>
+            <div style={{ flex: 1, display: 'flex', height: 10, borderRadius: 999, overflow: 'hidden', background: C.track }}>
+              {BUCKETS.map((b) => (
+                <div key={b} title={`${labelOf.get(b) ?? b} ${KRW(spent[b] ?? 0)}원`} style={{
+                  width: `${spentAll > 0 ? Math.round(((spent[b] ?? 0) / spentAll) * 100) : 0}%`,
+                  background: colorOf(b), opacity: 0.55,
+                }} />
+              ))}
+            </div>
+          </div>
+          {/* 색↔이름 — 아래 카드의 색칩과 짝이지만, 띠만 놓고는 어느 색이 뭔지 알 길이 없었다 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 12px', marginTop: 3, paddingLeft: 34 }}>
+            {BUCKETS.map((b) => (
+              <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: C.muted }}>
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 2, background: colorOf(b) }} />
+                {labelOf.get(b) ?? b}
+              </span>
             ))}
           </div>
-          {/* 버킷 카드마다 서 있는 회색 세로선(월 경과 마커)에 설명이 어디에도 없었다 —
-              새 줄을 만들지 않고 여기 날짜로 흡수한다 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, color: C.muted2 }}>
-            <span>위 계획 · 아래 실제</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {dayOfMonth}/{daysInMonth}일 · {spentAll > 0 ? `${KRW(spentAll)}원 씀` : '아직 지출 없음'}
-            </span>
-          </div>
         </div>
 
-        {/* 여기 있던 버킷별 한 줄 목록은 걷어냈다 — {사용액}/{예산} 이 아래 버킷 카드의
-            캡션·입력칸과 완전히 같은 말이었고, 비중 %는 바로 위 막대 폭과 같은 값이었다.
-            분업: 이 카드는 '비율'만, 아래 카드는 '금액'만. 색↔이름은 카드 제목의 색칩과
-            막대 hover(title)로 남는다. */}
-
         {basis.avgIncome > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, borderTop: `1px solid ${C.lineFaint ?? C.line}`, fontSize: 12, fontWeight: 650, color: afterBudget >= 0 ? C.green : C.red }}>
-            {afterBudget >= 0 ? `수입에서 남는 돈 ${KRW(afterBudget)}원` : `수입 초과 ${KRW(-afterBudget)}원`}
+          /* '남은 예산'(예산−쓴돈)과 헷갈리지 않게 이름을 바꿨다 — 이건 수입에서
+             예산으로 떼지 않고 남긴 몫이다. */
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, borderTop: `1px solid ${C.lineFaint}`, fontSize: 12, fontWeight: 650, color: afterBudget >= 0 ? C.green : C.red }}>
+            {afterBudget >= 0 ? `예산에 안 넣은 수입 ${KRW(afterBudget)}원` : `수입보다 ${KRW(-afterBudget)}원 많이 잡음`}
           </div>
         )}
       </div>
