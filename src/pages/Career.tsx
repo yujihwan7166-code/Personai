@@ -487,8 +487,8 @@ function BoardLedger() {
       <span className="min-w-0 truncate text-[14px] font-semibold text-[#23262b]">
         <MetricText text={item.refined} />
       </span>
-      {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#9b9095]">{item.org}</span>}
-      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#b3c9ce]">
+      {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#6f6a6d]">{item.org}</span>}
+      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#7ba0a8]">
         {item.detail && <FileText className="h-[13px] w-[13px]" strokeWidth={1.7} aria-label="세부 있음" />}
         {item.link && (
           <a
@@ -503,7 +503,7 @@ function BoardLedger() {
             <Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} />
           </a>
         )}
-        <span className="text-[12.5px] tabular-nums text-[#9b9095] transition-opacity group-hover:opacity-0">
+        <span className="text-[12.5px] tabular-nums text-[#6f6a6d] transition-opacity group-hover:opacity-0">
           {formatPeriod(item)}
         </span>
       </span>
@@ -512,7 +512,7 @@ function BoardLedger() {
         onClick={(e) => { e.stopPropagation(); removeItem(item); }}
         aria-label="삭제"
         title="삭제"
-        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#a7bfc5] opacity-0 transition-opacity hover:text-[#1a5a66] group-hover:opacity-100"
+        className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-1 text-[#5c868f] opacity-0 transition-opacity hover:text-[#1a5a66] group-hover:opacity-100"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -530,12 +530,12 @@ function BoardLedger() {
               <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] leading-none shadow-[0_1px_2px_rgba(120,40,60,0.08)]" role="img" aria-label="마이 커리어">💼</span>
               <div className="min-w-0">
                 <div className="text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#191c20]">마이 커리어</div>
-                <div className="truncate text-[12px] leading-tight text-[#5f8f99]">나의 커리어를 담는 작업실</div>
+                <div className="truncate text-[12px] leading-tight text-[#3d6f79]">나의 커리어를 담는 작업실</div>
               </div>
             </div>
 
             {/* 스펙 보드 — 여러 개(활성 보드의 기록으로 문서를 만든다). 추가는 목록 맨 아래 칸. */}
-            <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#5f8f99]">스펙 보드</div>
+            <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#3d6f79]">스펙 보드</div>
             <nav className="flex flex-col gap-0.5" aria-label="스펙 보드 목록">
               {boards.map((b) => {
                 const active = view === 'board' && activeBoardId === b.id;
@@ -556,7 +556,7 @@ function BoardLedger() {
                       <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📋</span>
                       <span className="min-w-0 flex-1 truncate">{b.name}</span>
                       {count > 0 && (
-                        <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#1a5a66]' : 'text-[#87959a]')}>{count}</span>
+                        <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#1a5a66]' : 'text-[#5c696f]')}>{count}</span>
                       )}
                     </button>
                     {boards.length > 1 && (
@@ -572,7 +572,7 @@ function BoardLedger() {
                           }
                         }}
                         aria-label={`${b.name} 보드 삭제`}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#92b6bd] opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#527f89] opacity-0 transition-opacity hover:text-rose-500 focus-visible:opacity-100 group-hover/bd:opacity-100"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -584,7 +584,7 @@ function BoardLedger() {
               <button
                 type="button"
                 onClick={() => setBoardDialogOpen(true)}
-                className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium text-[#87959a] transition-colors hover:bg-white/55 hover:text-[#13525e]"
+                className="flex h-[38px] w-full items-center gap-2.5 rounded-[9px] px-3 text-left text-[13.5px] font-medium text-[#5c696f] transition-colors hover:bg-white/55 hover:text-[#13525e]"
               >
                 <Plus className="h-[15px] w-[15px] shrink-0" strokeWidth={1.7} />
                 <span className="flex-1">새 보드</span>
@@ -592,7 +592,7 @@ function BoardLedger() {
             </nav>
 
             {/* 문서 — 스펙에서 만들어요 */}
-            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#5f8f99]">지원 문서</div>
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#3d6f79]">지원 문서</div>
             <nav className="flex flex-col gap-0.5" aria-label="문서 종류">
               {COMPOSE_PURPOSES.map(({ purpose, label }) => {
                 const active = view === purpose;
@@ -613,7 +613,7 @@ function BoardLedger() {
                     <span className="w-[18px] shrink-0 text-center text-[15px] leading-none">📄</span>
                     <span className="flex-1">{label}</span>
                     {count > 0 && (
-                      <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#1a5a66]' : 'text-[#87959a]')}>{count}</span>
+                      <span className={cn('text-[12.5px] tabular-nums', active ? 'font-semibold text-[#1a5a66]' : 'text-[#5c696f]')}>{count}</span>
                     )}
                   </button>
                 );
@@ -621,7 +621,7 @@ function BoardLedger() {
             </nav>
 
             {/* 다음 스펙 — 추천 스펙(온디맨드 다이얼로그) */}
-            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#5f8f99]">다음 스펙</div>
+            <div className="mb-[7px] mt-[22px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#3d6f79]">다음 스펙</div>
             <button
               type="button"
               onClick={() => setRecommendOpen(true)}
@@ -632,7 +632,7 @@ function BoardLedger() {
             </button>
 
             {/* 푸터 통계 — 기록 · 증빙 · 목표(문서) */}
-            <div className="mt-auto border-t border-[#dae7ea] px-3 pt-3 text-[12px] leading-relaxed text-[#5f8f99]">
+            <div className="mt-auto border-t border-[#dae7ea] px-3 pt-3 text-[12px] leading-relaxed text-[#3d6f79]">
               기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}
             </div>
           </aside>
@@ -1113,17 +1113,17 @@ function BoardLedger() {
           <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fbfdfd] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
             {/* ── 마스트헤드 (리디자인 시안) ── */}
             <div className="mx-auto mb-5 max-w-[900px]">
-              <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#5f8f99]">SPEC BOARD</div>
+              <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#3d6f79]">SPEC BOARD</div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[26px] font-bold tracking-[-0.015em] text-[#191c20]">{activeBoardName ? `${activeBoardName}’s 스펙 보드` : '스펙 보드'}</span>
-                <span className="text-[14px] text-[#8d949d]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
+                <span className="text-[14px] text-[#666d77]">기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}</span>
               </div>
             </div>
 
             {/* ── 프로필 카드 ── */}
             {/* 이름 적기 카드 — 테두리 없이. 쿨 화이트 책상 위 흰 종이라 면 차이만으로 선다.
                 선을 두르면 표가 되어 버리는데, 이건 표가 아니라 원고다. */}
-            <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] bg-white px-[26px] py-[22px]">
+            <div className="mx-auto mb-4 flex max-w-[900px] items-center gap-5 rounded-[12px] bg-white px-[26px] py-[22px] shadow-[0_1px_2px_rgba(28,44,52,.05),0_10px_28px_-20px_rgba(28,44,52,.4)]">
               {/* 아바타 — 사진 있으면 크롭, 없으면 이니셜. 클릭해서 업로드 */}
               <label className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full" title={profile.photo ? '사진 바꾸기' : '사진 추가'}>
                 {profile.photo ? (
@@ -1156,7 +1156,7 @@ function BoardLedger() {
                       type="button"
                       onClick={() => setEditingName(true)}
                       title="이름 수정"
-                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#b3c9ce] underline-offset-4 hover:underline', !profile.name && 'text-[#a7bfc5]')}
+                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#7ba0a8] underline-offset-4 hover:underline', !profile.name && 'text-[#5c868f]')}
                     >
                       {profile.name || '이름 적기'}
                     </button>
@@ -1166,11 +1166,11 @@ function BoardLedger() {
                     onBlur={(e) => careerStore.setProfile({ tagline: e.target.value.trim() })}
                     placeholder={persona === 'worker' ? '결제·정산 도메인 3년차 프론트엔드 개발자' : '웹 개발 동아리를 이끄는 컴퓨터공학 3학년'}
                     aria-label="소개"
-                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#a7bfc5]"
+                    className="min-w-[160px] flex-1 bg-transparent text-[13px] text-[#6e747d] outline-none placeholder:text-[#5c868f]"
                   />
                 </div>
                 {/* 연락처 — 생년월일 · 이메일 · 전화 · 대표 링크 (인라인 편집) */}
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-[#8d949d]">
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-[#666d77]">
                   {([
                     ['birth', '생년월일', profile.birth, 'w-[92px]'],
                     ['email', '이메일', profile.email, 'w-[150px]'],
@@ -1182,7 +1182,7 @@ function BoardLedger() {
                       onBlur={(e) => careerStore.setProfile({ [key]: e.target.value.trim() || undefined } as Partial<CareerProfile>)}
                       placeholder={ph}
                       aria-label={ph}
-                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#a7bfc5] focus:text-[#585055]', width)}
+                      className={cn('bg-transparent tabular-nums outline-none placeholder:text-[#5c868f] focus:text-[#585055]', width)}
                     />
                   ))}
                   <span className="inline-flex items-center gap-1 text-[#13525e]">
@@ -1192,7 +1192,7 @@ function BoardLedger() {
                       onBlur={(e) => careerStore.setProfile({ link: e.target.value.trim() || undefined })}
                       placeholder="대표 링크"
                       aria-label="대표 링크"
-                      className="w-[150px] bg-transparent text-[#13525e] outline-none placeholder:text-[#a7bfc5]"
+                      className="w-[150px] bg-transparent text-[#13525e] outline-none placeholder:text-[#5c868f]"
                     />
                   </span>
                 </div>
@@ -1204,7 +1204,7 @@ function BoardLedger() {
                 한때 연분홍 선이었다가 잉크 선까지 갔는데, 선이 진해질수록 원고가 아니라
                 표처럼 읽혔다. 선을 걷고 흰 종이 면만 남긴다 — 책상이 쿨 화이트라
                 면 차이만으로 판이 뜬다. 안쪽 카테고리 밑줄이 이미 격자 역할을 한다. */}
-            <div className="mx-auto max-w-[900px] rounded-[12px] bg-white px-[28px] py-6">
+            <div className="mx-auto max-w-[900px] rounded-[12px] bg-white px-[28px] py-6 shadow-[0_1px_2px_rgba(28,44,52,.05),0_10px_28px_-20px_rgba(28,44,52,.4)]">
             <div className="grid grid-cols-1 items-start gap-x-14 gap-y-3.5 sm:grid-cols-2">
                   {sections.map(({ category, items: sectionItems }, sectionIndex) => (
                     <section
@@ -1222,7 +1222,7 @@ function BoardLedger() {
                     >
                       {/* 카드 헤더 — 번호 + 이름, 아래 헤어라인 (빈 칸이면 삭제 X) */}
                       <div className="flex items-baseline gap-2 border-b border-[#e8eeef] pb-[9px]">
-                        <span className="text-[13px] font-bold text-[#9dc0c6]">
+                        <span className="text-[13px] font-bold text-[#4f7f89]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
                         <h3 className="text-[18px] font-bold text-[#23262b]">{category.name}</h3>
@@ -1232,7 +1232,7 @@ function BoardLedger() {
                             onClick={() => careerStore.removeCategory(category.id)}
                             aria-label={`${category.name} 칸 삭제`}
                             title="빈 칸 삭제"
-                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#1a5a66] group-hover/section:text-[#b3c9ce]"
+                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#1a5a66] group-hover/section:text-[#7ba0a8]"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1243,7 +1243,7 @@ function BoardLedger() {
                         <button
                           type="button"
                           onClick={() => startAddTo(category.name)}
-                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#a7bfc5] transition-colors hover:text-[#1a5a66]"
+                          className="flex items-center gap-1.5 py-[13px] text-left text-[12.5px] text-[#5c868f] transition-colors hover:text-[#1a5a66]"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           첫 기록 추가
@@ -1271,7 +1271,7 @@ function BoardLedger() {
                             <button
                               type="button"
                               onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 self-start text-[11.5px] text-[#87959a] underline decoration-[#cddadd] underline-offset-4 transition-colors hover:text-[#1a5a66]"
+                              className="mt-1.5 self-start text-[11.5px] text-[#5c696f] underline decoration-[#cddadd] underline-offset-4 transition-colors hover:text-[#1a5a66]"
                             >
                               {expandedSections.has(category.id)
                                 ? '접기'
@@ -1287,7 +1287,7 @@ function BoardLedger() {
                   {addingCategory && (
                     <div className="flex flex-col">
                       <div className="flex items-baseline gap-2 border-b border-[#e8eeef] pb-[9px]">
-                        <span className="text-[11.5px] font-bold text-[#9dc0c6]">
+                        <span className="text-[11.5px] font-bold text-[#4f7f89]">
                           {String(sections.length + 1).padStart(2, '0')}
                         </span>
                         <input
@@ -1304,20 +1304,20 @@ function BoardLedger() {
                           autoFocus
                           placeholder="칸 이름 — 예: 봉사, 출판"
                           aria-label="새 칸 이름"
-                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#a7bfc5]"
+                          className="min-w-0 flex-1 bg-transparent text-[15px] font-bold text-[#23262b] outline-none placeholder:font-normal placeholder:text-[#5c868f]"
                         />
                       </div>
-                      <p className="py-[13px] text-[11.5px] text-[#87959a]">Enter로 추가 · Esc로 취소</p>
+                      <p className="py-[13px] text-[11.5px] text-[#5c696f]">Enter로 추가 · Esc로 취소</p>
                     </div>
                   )}
               </div>
 
               {/* 푸터 — 카테고리 추가 + 범례 */}
-              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#87959a]">
+              <div className="mt-5 flex items-center gap-2 whitespace-nowrap text-[13px] text-[#5c696f]">
                 <button type="button" onClick={() => setAddingCategory(true)} className="inline-flex items-center gap-2 transition-colors hover:text-[#1a5a66]">
                   <Plus className="h-3.5 w-3.5" strokeWidth={2} /> 카테고리 추가
                 </button>
-                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#a7bfc5]">
+                <span className="ml-auto flex items-center gap-3.5 text-[12px] text-[#5c868f]">
                   <span className="inline-flex items-center gap-1.5"><Link2 className="h-[13px] w-[13px]" strokeWidth={1.7} /> 증빙 있음</span>
                   <span className="inline-flex items-center gap-1.5"><FileText className="h-[13px] w-[13px]" strokeWidth={1.7} /> 문서에 포함</span>
                 </span>
