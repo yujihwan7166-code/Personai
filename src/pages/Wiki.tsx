@@ -108,6 +108,10 @@ const WIKI_CSS = `
 }
 .wiki-theme .wiki-shelf-knob:hover { background: linear-gradient(180deg,#e2bd63,#98763a); }
 .wiki-theme .wiki-shelf-knob:active { transform: translateY(-50%) scale(.93); }
+/* 사이드바 스크롤막대 감추기 — 잘린 곳은 가장자리 페이드로 말한다.
+   막대는 크림 종이 위 회색 금속 조각이라 이 방 물건이 아니었다. */
+.wiki-theme .wiki-noscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.wiki-theme .wiki-noscroll::-webkit-scrollbar { width: 0; height: 0; }
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
@@ -901,6 +905,30 @@ export default function Wiki() {
 
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
 
+  /* 사이드바가 위·아래로 잘려 있나 — 잘린 쪽에만 페이드를 띄운다.
+     스크롤·창 크기·내용 길이가 바뀔 때마다 다시 잰다(책 목록이 늘거나 차례가 펼쳐진다). */
+  const sideRef = useRef<HTMLElement | null>(null);
+  const [sideCut, setSideCut] = useState({ top: false, bottom: false });
+  const syncSideCut = () => {
+    const el = sideRef.current;
+    if (!el) return;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight > 2;
+    const top = el.scrollTop > 2;
+    setSideCut((p) => (p.top === top && p.bottom === bottom ? p : { top, bottom }));
+  };
+  useEffect(() => {
+    const el = sideRef.current;
+    if (!el) return;
+    syncSideCut();
+    const ro = new ResizeObserver(syncSideCut);
+    ro.observe(el);
+    // 안쪽 내용이 늘고 주는 것도 잡는다 (책 추가 · 차례 펼침)
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    window.addEventListener('resize', syncSideCut);
+    return () => { ro.disconnect(); window.removeEventListener('resize', syncSideCut); };
+     
+  }, [book?.id, bookDocs.length, allBooks.length, collapsed]);
+
   /* 서재 찾기 — 사이드바에서 본문 머리 오른쪽으로 옮겼다.
      사이드바는 '무엇을 만들까'(새 책·새 문서)와 '어디 있나'(책 목록·차례)를 맡고,
      찾기는 지금 보고 있는 화면의 도구라 그 화면의 머리에 선다.
@@ -931,7 +959,18 @@ export default function Wiki() {
       <style>{WIKI_CSS}</style>
 
       {/* ══════ 사이드바 — 데일리 로그 문법 (마크+락업 · 굵은 섹션 라벨 · 38px 행 · 은은한 활성) ══════ */}
-      <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto px-3.5 py-5 lg:flex" style={{ background: '#f3ecdd', borderRight: '1px solid rgba(60,47,24,.14)' }}>
+      {/* 스크롤막대를 감추고, 대신 위아래 가장자리를 흐리게 해 '여기 더 있다' 를 알린다.
+          막대는 크림 종이 위에 회색 금속 조각이 하나 붙은 꼴이라 이 방 물건이 아니었고,
+          어차피 잡고 끄는 사람도 거의 없다. 페이드는 내용이 실제로 잘려 있을 때만
+          뜬다 — 늘 깔아두면 신호가 아니라 장식이 된다. */}
+      <div className="relative hidden w-[264px] flex-none lg:block" style={{ background: '#f3ecdd', borderRight: '1px solid rgba(60,47,24,.14)' }}>
+        {sideCut.top && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 h-7" style={{ background: 'linear-gradient(180deg,#f3ecdd,rgba(243,236,221,0))' }} />
+        )}
+        {sideCut.bottom && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-9" style={{ background: 'linear-gradient(0deg,#f3ecdd 30%,rgba(243,236,221,0))' }} />
+        )}
+      <aside ref={sideRef} onScroll={syncSideCut} className="wiki-noscroll flex h-full w-full flex-col overflow-y-auto px-3.5 py-5" >
         {/* 머리 — 📚 이모지를 흰 타일에 담아 두었는데, 이 방은 이미 나무 책장과
             가죽 책등이라는 제 물건을 갖고 있다. 남의 그림 대신 그 물건의 조각(책등
             셋)을 세워 서재 문패로 삼는다. */}
@@ -1092,6 +1131,7 @@ export default function Wiki() {
           </div>
         </div>
       </aside>
+      </div>
 
       <main ref={mainRef} className="min-w-0 flex-1 overflow-y-auto">
       {/* 모바일 헤더 — 사이드바 대신 */}
@@ -1547,8 +1587,11 @@ export default function Wiki() {
           </div>
         </section>
       ) : (
-        /* ══════ 서재 홈 (시안) ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[72px] sm:px-8" style={{ maxWidth: 1240 }}>
+        /* ══════ 서재 홈 (시안) ══════
+           위 여백 72 → 34px. 제목이 화면 꼭대기에 홀로 떠 있고 책장은 저 아래
+           있으니 둘이 남남처럼 보였다. 제목·도구·책장이 한 덩이로 붙어야
+           '이 책장의 이름' 으로 읽힌다. */
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[34px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 머리는 말만 한다 — 32px 제목 옆에 배경 있는 조작기를 나란히 세우니
               셋이 같은 높이에서 겨루고 무엇이 이 화면의 주어인지 흐려졌다.
               아카이브가 이미 이렇게 갈라 놓았다: 마스트헤드(제목+서술) → 도구 줄. */}
@@ -1557,10 +1600,11 @@ export default function Wiki() {
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
           </div>
 
-          {/* 도구 줄 — 찾기 · 꽂는 순서. 오른쪽 정렬로 책장 위에 얹는다.
-              책이 한 선반을 넘기면 페이지가 갈려서 '어디 뒀더라' 가 실제로 생긴다. */}
+          {/* 도구 줄 — 꽂는 순서(왼쪽) · 찾기(오른쪽 끝). 책장 바로 위에 얹는다.
+              순서를 이렇게 두는 건 아카이브·인맥노트가 이미 그렇기 때문이다:
+              목록을 '거르는' 것들이 왼쪽에 모이고 검색이 줄의 끝을 맺는다.
+              (책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다) */}
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-            {searchBox}
             {allBooks.length > 1 && (
               <div className="flex items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
                 {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
@@ -1578,6 +1622,7 @@ export default function Wiki() {
                 ))}
               </div>
             )}
+            {searchBox}
           </div>
 
           {/* 나무 책장 */}
