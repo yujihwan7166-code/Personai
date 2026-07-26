@@ -941,21 +941,14 @@ export default function Wiki() {
             </button>
           )}
         </div>
-        {/* 만드는 버튼 — 잉크 검정이었다. 크림 사이드바 위 차가운 검정 판이라
-            이 방 물건이 아닌 것처럼 떠 있었고, 사이드바에서 제일 큰 소리를 냈다.
-            이 방에서 '만들고 잇는' 색은 그린이다(본문 링크·문서로 연결 버블·차례
-            표시선이 전부 이 색). */}
-        <button
-          type="button"
-          onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
-          className="mt-2 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold text-white transition-colors"
-          style={{ background: C.green, boxShadow: '0 1px 2px rgba(24,58,44,.25)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {book ? '새 문서' : '새 책'}
-        </button>
+        {/* 만드는 버튼은 여기 없다 — 두 상태 모두 화면 안에 제 자리의 진입점이
+            이미 있어서 사이드바 것은 같은 말을 두 번 하는 셈이었다.
+              · 서재에선 책장 끝의 빈 슬롯(＋). 단순한 버튼이 아니라 '여기 책을
+                꽂는다' 는 자리 자체라 사이드바 버튼보다 뜻이 분명하다.
+              · 책 안에선 차례 머리의 '＋ 새 문서'. 어느 책에 넣는지가 붙어 있다.
+            좁은 화면엔 사이드바가 아예 없는데도 이 둘로 잘 만들어 왔다 — 그게
+            사이드바 버튼이 없어도 된다는 증거다.
+            (모바일 상단 헤더의 버튼은 그대로 — 거긴 사이드바를 대신하는 자리다) */}
 
         {book ? (
           /* 책 안 — 책을 여는 순간 사이드바가 그 책의 차례로 바뀐다. 문서를 열어도 그대로라 흔들림이 없다 */
