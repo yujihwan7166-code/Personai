@@ -1604,11 +1604,15 @@ export default function Wiki() {
                 예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
                 모두 동급으로 보였다 — 가까이 있는 것끼리 한 무리라는 게 위계의 기본이다.
 
-                순서는 다른 서비스들이 대체로 합의한 대로다(깃허브 이슈·리니어·드라이브):
-                  목록을 좁히는 것(찾기) → 보는 방식을 바꾸는 것(정렬) → 주요 동작(만들기).
-                주요 동작이 줄의 끝을 맺고, 색이 들어간 건 그것 하나뿐이다. */}
+                순서: 고르는 것 → 찾는 것 → 만드는 것.
+                집 안의 다른 방이 이미 다 이 순서다 —
+                  아카이브  [형태·태그·연도] [검색] [새 항목 저장]
+                  인맥노트  [관계·친밀도 칩] [검색]
+                  데일리로그 [전체·이번주·사진] [검색]
+                한동안 위키만 검색이 앞에 있었는데, 그건 '검색을 위로 올리고 정렬을
+                옆에' 를 순서대로 붙이다 생긴 것이지 고른 배치가 아니었다.
+                방마다 순서가 다르면 옮길 때마다 눈이 다시 훑는다. */}
             <div className="flex flex-wrap items-center gap-2">
-              {searchBox}
               {allBooks.length > 1 && (
                 <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
                   {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
@@ -1626,6 +1630,7 @@ export default function Wiki() {
                   ))}
                 </div>
               )}
+              {searchBox}
               {/* 주요 동작 앞의 얇은 선 — 보는 도구와 만드는 동작을 갈라 준다 */}
               <span aria-hidden className="mx-0.5 h-[18px] w-px" style={{ background: 'rgba(60,47,24,.16)' }} />
               <button
