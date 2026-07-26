@@ -69,6 +69,17 @@ const WIKI_CSS = `
 /* 문서 사이에 놓을 때 — 가로선의 들여쓰기가 곧 들어갈 단계 */
 .wiki-theme .wiki-insert { position:relative; height:2px; margin-right:6px; border-radius:2px; background:#305f4c; transform-origin:left center; animation: wikiInsertIn .14s ease-out both; }
 .wiki-theme .wiki-insert::before { content:''; position:absolute; left:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:#305f4c; }
+/* 단계 안내선 — 끌고 있는 동안에만. 가로축이 '단계'라는 걸 눈에 보이게 해준다
+   (전엔 좌우로 움직이면 단계가 바뀐다는 사실 자체가 안 보였다). */
+.wiki-theme .wiki-toc-rails { position:relative; }
+.wiki-theme .wiki-toc-rails::before {
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background: repeating-linear-gradient(90deg,
+    rgba(48,95,76,.16) 0 1px, transparent 1px 22px);
+  background-position-x: 6px;
+  animation: wikiRailsIn .16s ease-out both;
+}
+@keyframes wikiRailsIn { from { opacity:0; } to { opacity:1; } }
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
@@ -253,6 +264,25 @@ function CoverIntro({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 /** 책 칩 — 색 점 + 책 이름 (시안 공용 부호). */
+/**
+ * 놓을 자리 표시 — 선 + 그 자리에 놓았을 때의 번호.
+ * 선만 있으면 들여쓰기를 눈으로 세어야 했다. 번호가 뜨면 '2.1 → 2' 가 바로 읽힌다.
+ */
+function InsertLine({ depth, no }: { depth: number; no: string }) {
+  return (
+    <div aria-hidden className="flex items-center" style={{ marginLeft: 6 + depth * 22 }}>
+      <span style={{
+        flex: 'none', marginRight: 6, borderRadius: 4, padding: '1px 5px',
+        background: '#305f4c', color: '#f6ecd9',
+        fontSize: 10.5, fontWeight: 800, lineHeight: 1.5, fontVariantNumeric: 'tabular-nums',
+      }}>
+        {no}
+      </span>
+      <span className="wiki-insert" style={{ flex: 1 }} />
+    </div>
+  );
+}
+
 function BookChip({ book }: { book?: WikiBook }) {
   if (!book) return null;
   return (
@@ -675,6 +705,52 @@ export default function Wiki() {
     while (end < sideRows.length && sideRows[end].depth > sideRows[start].depth) end++;
     return { start, end };
   }, [dragDoc, sideRows]);
+
+  /**
+   * 단계만 바꾸기 — 자리는 그대로 두고 부모만 갈아끼운다.
+   * 드래그로 단계를 고르려면 행 높이의 위아래 30% 띠 안에서 좌우로 움직여야 해서
+   * '2.1 을 2 로' 같은 흔한 일이 유독 어려웠다. Tab / Shift+Tab 로 한 번에 되게 한다.
+   *
+   * 내리기(Tab): 바로 위 형제의 마지막 자식으로 들어간다 — 위 형제가 없으면 더 내려갈 곳이 없다.
+   * 올리기(Shift+Tab): 부모의 다음 자리로 빠져나온다. 이때 원래 나보다 아래에 있던 형제들은
+   *   그대로 두면 순서가 뒤집히므로, 나는 부모 바로 다음에 꽂는다.
+   */
+  const shiftDepth = (id: string, dir: 1 | -1) => {
+    const doc = bookDocs.find((d) => d.id === id);
+    if (!doc) return;
+    const siblings = childrenOf(bookDocs, doc.parent);
+    const idx = siblings.findIndex((d) => d.id === id);
+    if (dir === 1) {
+      const prev = siblings[idx - 1];
+      if (!prev) return;                       // 맨 위 형제 — 품어줄 형이 없다
+      moveDoc(id, prev.id, null);              // 그 형의 마지막 자식으로
+      return;
+    }
+    if (!doc.parent) return;                   // 이미 최상위
+    const parent = bookDocs.find((d) => d.id === doc.parent);
+    if (!parent) return;
+    const uncles = childrenOf(bookDocs, parent.parent);
+    const after = uncles[uncles.findIndex((d) => d.id === parent.id) + 1];
+    moveDoc(id, parent.parent, after?.id ?? null);
+  };
+
+  /**
+   * 이 자리에 놓으면 번호가 몇이 되나 — 드래그 중 미리보기용.
+   * 사용자는 '2.1 을 2 로' 처럼 번호로 생각하는데, 지금까지는 들여쓰기만 보여주고
+   * 결과 번호를 안 알려줘서 몇 단계인지 세어봐야 했다.
+   */
+  const numberAt = (gapIndex: number, depth: number): string => {
+    const counters: number[] = [];
+    for (let i = 0; i < gapIndex && i < numberedRows.length; i += 1) {
+      const r = numberedRows[i];
+      if (r.d.id === dragDoc) continue;              // 끌고 있는 줄은 목록에서 빠진 셈 치고 센다
+      counters.length = r.depth + 1;
+      counters[r.depth] = (counters[r.depth] ?? 0) + 1;
+    }
+    counters.length = depth + 1;
+    counters[depth] = (counters[depth] ?? 0) + 1;
+    return counters.map((n) => n ?? 1).join('.');
+  };
 
   /** 사이(gap)에 놓을 때의 계획 — 커서 x 로 단계를 고르고, 그 단계의 부모와 앞 문서를 찾는다 */
   const placePlan = (gapIndex: number, x: number) => {
@@ -1202,8 +1278,11 @@ export default function Wiki() {
             <div className="wiki-page min-w-0 p-7 sm:p-10" style={{ background: C.paper, borderRadius: '3px 12px 12px 3px', border: `1px solid ${C.line}`, borderLeft: 'none', boxShadow: 'inset 16px 0 26px -20px rgba(46,28,10,.45)' }}>
               <div className="flex items-baseline gap-3" style={{ borderBottom: `1px solid ${C.line}`, paddingBottom: 12 }}>
                 <h2 className="m-0 flex-none" style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.015em', fontSize: 20 }}>차례</h2>
-                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: C.sub }}>
-                  {chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
+                {/* 끄는 동안에는 안내가 바뀐다 — 가로축이 단계라는 걸 그때 알려줘야 쓸모가 있다 */}
+                <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: dragDoc ? C.green : C.sub, fontWeight: dragDoc ? 600 : undefined }}>
+                  {dragDoc
+                    ? '좌우로 움직여 단계를 고르세요 — 왼쪽일수록 상위'
+                    : chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
                 </span>
                 <button
                   type="button" onClick={toggleNumbers}
@@ -1222,7 +1301,7 @@ export default function Wiki() {
                   + 새 문서
                 </button>
               </div>
-              <div className="mt-3.5">
+              <div className={cn('mt-3.5', dragDoc && 'wiki-toc-rails')}>
                 {sideRows.length === 0 ? (
                   <div className="py-12 text-center">
                     <p style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>아직 빈 책이에요</p>
@@ -1239,12 +1318,21 @@ export default function Wiki() {
                       return (
                         <div key={d.id} style={chapter && i > 0 ? { marginTop: 12 } : undefined}>
                           {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
-                          {lineHere && <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />}
+                          {lineHere && <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />}
                           <div
                             ref={(el) => { if (el) rowEls.current.set(d.id, el); else rowEls.current.delete(d.id); }}
                             role="button" tabIndex={0} draggable
                             onClick={() => openDoc(d.id)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); } }}
+                            /* Tab/Shift+Tab = 단계 내리기/올리기.
+                               드래그로 단계를 바꾸려면 행 위아래 30% 띠 안에서 좌우로 움직여야 해
+                               '2.1 을 2 로' 가 유독 까다로웠다 — 줄에 포커스를 두면 한 번에 된다. */
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); return; }
+                              if (e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+                                e.preventDefault();
+                                shiftDepth(d.id, e.shiftKey ? -1 : 1);
+                              }
+                            }}
                             /* 끌기 시작하면 전부 펼친다 — 감춰진 자리로는 옮길 수 없으니 */
                             onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', d.id); setCollapsed(new Set()); setDragDoc(d.id); }}
                             onDragEnd={() => { setDragDoc(null); setDropHint(null); }}
@@ -1276,7 +1364,7 @@ export default function Wiki() {
                               if (nest) moveDoc(id, d.id, null);
                               else if (plan) moveDoc(id, plan.parent, plan.before);
                             }}
-                            title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 옮기기 (문서 위=하위로, 사이=그 자리로)`}
+                            title={dragDoc ? undefined : `${d.title || '무제'} — 끌어서 옮기기 (문서 위=하위로, 사이=그 자리로) · Tab/Shift+Tab 으로 단계 바꾸기`}
                             className={cn(
                               'wiki-row group flex w-full items-baseline gap-2 rounded-md text-left',
                               dragDoc === d.id && 'wiki-row-drag',
@@ -1325,7 +1413,7 @@ export default function Wiki() {
                     })}
                     {/* 맨 끝 자리 */}
                     {dropHint?.mode === 'place' && dropHint.index === sideRows.length && (
-                      <div aria-hidden className="wiki-insert" style={{ marginLeft: 6 + dropHint.depth * 22 }} />
+                      <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />
                     )}
                   </>
                 )}
