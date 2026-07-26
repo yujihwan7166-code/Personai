@@ -1101,45 +1101,69 @@
   }
 
   .ledger-theme {
-    /* 가계부 — 쿨 화이트 캐논 + 방 정체성은 딥 네이비 하나로 (금융·신뢰). */
-    --background: 220 22% 98%;
-    --foreground: 222 20% 16%;
+    /* 가계부 — 웜 페이퍼 장부 (시안 Ledger.dc.html 실측을 HSL 로 옮긴 값).
+       ① 시맨틱 층: 공용 컴포넌트(다이얼로그·토스트·입력)가 읽는 shadcn 변수.
+       ② 팔레트 층(--lg-*): 가계부 화면이 직접 쓰는 시안 색. theme.ts 가 이 이름을 참조한다.
+       hex 를 컴포넌트에 직접 박으면 방 테마 체계 밖으로 나가 다크모드도 안 따라온다. */
+    --background: 48 22% 95%;
+    --foreground: 220 18% 13%;
 
-    --card: 220 30% 99%;
-    --card-foreground: 222 20% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 18% 13%;
 
-    --popover: 220 30% 99%;
-    --popover-foreground: 222 20% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 18% 13%;
 
-    --muted: 220 16% 93%;
-    --muted-foreground: 222 10% 43%;
+    --muted: 45 20% 92%;
+    --muted-foreground: 223 8% 58%;
 
-    --accent: 221 22% 92%;
-    --accent-foreground: 222 20% 16%;
+    --accent: 44 19% 88%;
+    --accent-foreground: 220 18% 13%;
 
-    --secondary: 221 22% 92%;
-    --secondary-foreground: 222 10% 36%;
+    --secondary: 44 19% 88%;
+    --secondary-foreground: 220 12% 36%;
 
-    --border: 221 16% 85%;
-    --input: 221 16% 85%;
+    --border: 44 17% 87%;
+    --input: 40 15% 84%;
 
-    --primary: 222 20% 16%;
-    --primary-foreground: 220 30% 99%;
+    --primary: 222 30% 28%;
+    --primary-foreground: 0 0% 100%;
 
-    --ring: 222 47% 33%;
-    --focus-ring: 222 50% 36%;
-    --focus-offset: 220 22% 98%;
+    --ring: 222 30% 28%;
+    --focus-ring: 222 30% 28%;
+    --focus-offset: 48 22% 95%;
 
-    --hairline:  221 16% 88%;
-    --surface-1: 220 30% 99%;
-    --surface-2: 220 22% 98%;
-    --surface-3: 221 20% 94%;
+    --hairline:  42 22% 91%;
+    --surface-1: 40 33% 98%;
+    --surface-2: 45 27% 96%;
+    --surface-3: 45 27% 94%;
 
-    --sidebar-background: 222 26% 97%;
+    --sidebar-background: 40 33% 98%;
 
-    /* 딥 네이비 — 유일한 강조색 (마크·CTA·활성·차트). 수입=네이비, 지출=먹색, 경고만 소량 레드. */
-    --ledger-navy: 222 47% 33%;
-    --ledger-red: 4 64% 48%;
+    --ledger-navy: 222 30% 28%;
+    --ledger-red: 8 51% 50%;
+
+    /* ── 팔레트 층 — 시안 실측 ── */
+    --lg-bg: #F6F5F1;        --lg-side: #FCFBF9;      --lg-card: #FFFFFF;
+    --lg-card-alt: #FCFBF9;  --lg-head: #FBFAF7;      --lg-hover: #FCFBF8;
+    --lg-hover-side: #F0EEE8; --lg-hover-btn: #F5F3EE; --lg-hover-btn2: #F3F1EB;
+    --lg-track: #EFEDE7;     --lg-chip: #F4F2EC;
+    --lg-line: #E4E1D9;      --lg-line-soft: #EDEAE3; --lg-line-faint: #F0EEE8;
+    --lg-line-row: #F5F3EE;  --lg-line-input: #DCD8CF; --lg-line-btn: #E9E6DF;
+    --lg-ink: #1B1F27;       --lg-ink2: #262B36;      --lg-ink3: #3B4250;
+    --lg-ink4: #4A5261;      --lg-sub: #6B7280;       --lg-sub2: #7C828F;
+    --lg-muted: #8A8F9C;     --lg-muted2: #9AA0AC;    --lg-muted3: #A5A9B3;
+    --lg-nav-inactive: #5B6273;
+    --lg-navy: #33405E;      --lg-navy-deep: #28334C; --lg-navy-mid: #6E7CA8;
+    --lg-navy-pale: #A9B4CA; --lg-navy-faint: #C7CDDA;
+    --lg-green: #2E7358;     --lg-green-dot: #63A187; --lg-red: #C0503F;
+    --lg-nav-sel: #E7E4DC;
+    --lg-tip-bg: #F7F8FC;    --lg-tip-line: #D9DCE6;  --lg-tip-line2: #DEE1EC;
+    --lg-tip-ink: #2A3450;
+    --lg-warn-bg: #FBF1E4;   --lg-warn-ink: #96622C;  --lg-warn-dot: #C98D4A;
+    --lg-ok-bg: #F6FAF7;     --lg-ok-line: #DFE6E0;   --lg-ok-ink: #2E5C49;
+    --lg-fixed-bg: #EEF1F8;  --lg-fixed-ink: #4A5B85;
+    --lg-backup-ink: #B0763A; --lg-backup-dot: #D9A05B;
   }
 
   .dark .ledger-theme {
@@ -1180,6 +1204,29 @@
 
     --ledger-navy: 221 55% 62%;
     --ledger-red: 4 70% 62%;
+
+    /* 팔레트 층 다크 — 라이트의 웜 페이퍼를 밤의 잉크로 뒤집는다.
+       종이 계열은 어둡게, 글자 계열은 밝게, 강조는 채도를 낮추고 명도를 올린다. */
+    --lg-bg: #14161B;        --lg-side: #191C22;      --lg-card: #1C1F26;
+    --lg-card-alt: #191C22;  --lg-head: #20242C;      --lg-hover: #232730;
+    --lg-hover-side: #262B34; --lg-hover-btn: #262B34; --lg-hover-btn2: #2A2F39;
+    --lg-track: #2A2F39;     --lg-chip: #262B34;
+    --lg-line: #2E333D;      --lg-line-soft: #292E37; --lg-line-faint: #24282F;
+    --lg-line-row: #24282F;  --lg-line-input: #3A404B; --lg-line-btn: #333944;
+    --lg-ink: #E8E9EC;       --lg-ink2: #DDDFE4;      --lg-ink3: #C6CAD2;
+    --lg-ink4: #B2B7C1;      --lg-sub: #989EA9;       --lg-sub2: #8C919C;
+    --lg-muted: #838994;     --lg-muted2: #767C87;    --lg-muted3: #6B7079;
+    --lg-nav-inactive: #9BA1AC;
+    --lg-navy: #8296C8;      --lg-navy-deep: #6E82B4; --lg-navy-mid: #6C7DA8;
+    --lg-navy-pale: #4E5C7C; --lg-navy-faint: #3C465F;
+    --lg-green: #6FBF98;     --lg-green-dot: #5AA783; --lg-red: #E0796A;
+    --lg-nav-sel: #2C313B;
+    --lg-tip-bg: #1F2430;    --lg-tip-line: #363D4E;  --lg-tip-line2: #303747;
+    --lg-tip-ink: #B9C2DA;
+    --lg-warn-bg: #2E2618;   --lg-warn-ink: #D6A96B;  --lg-warn-dot: #C98D4A;
+    --lg-ok-bg: #182420;     --lg-ok-line: #2C3E36;   --lg-ok-ink: #85C4A5;
+    --lg-fixed-bg: #222838;  --lg-fixed-ink: #9FB0D8;
+    --lg-backup-ink: #D2A063; --lg-backup-dot: #D9A05B;
   }
 
   .ledger-theme :is(h1, h2, h3) {
