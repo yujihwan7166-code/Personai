@@ -146,7 +146,7 @@ export default function Career() {
   const { profile } = useCareerBoard();
 
   return (
-    <div className="career-theme h-dvh bg-[#fbfdfd] text-foreground">
+    <div className="career-theme h-dvh bg-[#fafbfb] text-foreground">
       {profile.persona === '' ? (
         <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-4 pb-20 pt-6">
           <SetupLedger />
@@ -480,7 +480,7 @@ function BoardLedger() {
         }
       }}
       className={cn(
-        'group relative flex cursor-pointer items-center gap-[9px] px-0.5 py-[13px] transition-colors hover:bg-[#f5f8f9]',
+        'group relative flex cursor-pointer items-center gap-[9px] px-0.5 py-[13px] transition-colors hover:bg-[#f3f5f6]',
         item.id === recentId && 'career-new-line',
       )}
     >
@@ -488,7 +488,7 @@ function BoardLedger() {
         <MetricText text={item.refined} />
       </span>
       {item.org && <span className="shrink-0 truncate text-[12.5px] text-[#6f6a6d]">{item.org}</span>}
-      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#7ba0a8]">
+      <span className="ml-auto flex shrink-0 items-center gap-[9px] text-[#98a1a5]">
         {item.detail && <FileText className="h-[13px] w-[13px]" strokeWidth={1.7} aria-label="세부 있음" />}
         {item.link && (
           <a
@@ -524,7 +524,7 @@ function BoardLedger() {
       <LayoutGroup>
         {/* ══ 방 사이드바(스펙 보드 | 문서 종류) + 메인 — 기록과 산출물을 구분 (2026-07-13) ══ */}
         <div className="flex h-full">
-          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#dae7ea] bg-[#f6fafa] px-3.5 py-5 sm:flex">
+          <aside className="hidden w-[264px] shrink-0 flex-col overflow-y-auto border-r border-[#dee2e4] bg-[#f5f7f7] px-3.5 py-5 sm:flex">
             {/* 헤더 — 34px 흰 마크 + 제목 + 부제 (리디자인 시안) */}
             <div className="flex items-center gap-[11px] px-1.5">
               <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[17px] leading-none shadow-[0_1px_2px_rgba(120,40,60,0.08)]" role="img" aria-label="마이 커리어">💼</span>
@@ -632,7 +632,7 @@ function BoardLedger() {
             </button>
 
             {/* 푸터 통계 — 기록 · 증빙 · 목표(문서) */}
-            <div className="mt-auto border-t border-[#dae7ea] px-3 pt-3 text-[12px] leading-relaxed text-[#3d6f79]">
+            <div className="mt-auto border-t border-[#dee2e4] px-3 pt-3 text-[12px] leading-relaxed text-[#3d6f79]">
               기록 {items.length} · 증빙 {items.filter((i) => i.link).length} · 목표 {docs.length}
             </div>
           </aside>
@@ -678,7 +678,7 @@ function BoardLedger() {
         {/* ══════ 우 — 작성대 도크: 문서 만들기 타일 + 커리어 추가 (보관함 열람은 사이드바가 담당)
          * row-start-1 명시 필수 — 도크(2열)가 DOM 에서 먼저 오면 자동 배치 커서가 2열을 지나
          * 뒤따르는 원고(1열)를 둘째 행으로 밀어낸다 (좌측 상단이 비는 버그). ══════ */}
-        <aside className="scrollbar-thin overflow-y-auto bg-[#fdfefe] lg:col-start-2 lg:row-start-1">
+        <aside className="scrollbar-thin overflow-y-auto bg-[#fcfdfd] lg:col-start-2 lg:row-start-1">
             {/* 도구 도크 — 페이지 톤 위 흰 카드. 오른쪽 끝에 붙지 않게 우측 여백 넉넉히. */}
             <div className="space-y-4 py-5 pl-4 pr-6 sm:pl-5 sm:pr-8">
             {/* 문서 만들기 — 종류 타일 6개 (만든 문서 보기는 사이드바 문서 항목으로) */}
@@ -1110,7 +1110,7 @@ function BoardLedger() {
           </aside>
 
           {/* ══════ 좌 — 원고 보드 (독립 스크롤). 흰 문서 시트 = 내 이력서 그 자체 ══════ */}
-          <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fbfdfd] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
+          <main className="scrollbar-none min-w-0 overflow-y-auto bg-[#fafbfb] px-4 py-7 sm:px-8 lg:col-start-1 lg:row-start-1 lg:min-h-0">
             {/* ── 마스트헤드 (리디자인 시안) ── */}
             <div className="mx-auto mb-5 max-w-[900px]">
               <div className="mb-[7px] text-[11px] font-bold tracking-[0.14em] text-[#3d6f79]">SPEC BOARD</div>
@@ -1156,7 +1156,7 @@ function BoardLedger() {
                       type="button"
                       onClick={() => setEditingName(true)}
                       title="이름 수정"
-                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#7ba0a8] underline-offset-4 hover:underline', !profile.name && 'text-[#5c868f]')}
+                      className={cn('text-[19px] font-bold leading-tight text-[#191c20] decoration-dotted decoration-[#98a1a5] underline-offset-4 hover:underline', !profile.name && 'text-[#5c868f]')}
                     >
                       {profile.name || '이름 적기'}
                     </button>
@@ -1217,11 +1217,11 @@ function BoardLedger() {
                       onDrop={(e) => onDropToCategory(e, category.id)}
                       className={cn(
                         'group/section flex flex-col rounded-[10px] transition-colors',
-                        dragOverCategory === category.id && 'bg-[#f2f7f8] ring-1 ring-[#bfd6da]',
+                        dragOverCategory === category.id && 'bg-[#f1f3f4] ring-1 ring-[#ccd1d4]',
                       )}
                     >
                       {/* 카드 헤더 — 번호 + 이름, 아래 헤어라인 (빈 칸이면 삭제 X) */}
-                      <div className="flex items-baseline gap-2 border-b border-[#e8eeef] pb-[9px]">
+                      <div className="flex items-baseline gap-2 border-b border-[#e5e7e9] pb-[9px]">
                         <span className="text-[13px] font-bold text-[#4f7f89]">
                           {String(sectionIndex + 1).padStart(2, '0')}
                         </span>
@@ -1232,7 +1232,7 @@ function BoardLedger() {
                             onClick={() => careerStore.removeCategory(category.id)}
                             aria-label={`${category.name} 칸 삭제`}
                             title="빈 칸 삭제"
-                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#1a5a66] group-hover/section:text-[#7ba0a8]"
+                            className="ml-auto p-0.5 text-transparent transition-colors hover:!text-[#1a5a66] group-hover/section:text-[#98a1a5]"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1250,7 +1250,7 @@ function BoardLedger() {
                         </button>
                       ) : (
                         <>
-                          <ul className="divide-y divide-[#f1f5f6]">
+                          <ul className="divide-y divide-[#eef0f1]">
                             <AnimatePresence initial={false}>
                               {(expandedSections.has(category.id) ? sectionItems : sectionItems.slice(0, SECTION_PREVIEW)).map((item) => (
                                 <motion.li
@@ -1271,7 +1271,7 @@ function BoardLedger() {
                             <button
                               type="button"
                               onClick={() => toggleSection(category.id)}
-                              className="mt-1.5 self-start text-[11.5px] text-[#5c696f] underline decoration-[#cddadd] underline-offset-4 transition-colors hover:text-[#1a5a66]"
+                              className="mt-1.5 self-start text-[11.5px] text-[#5c696f] underline decoration-[#d4d8da] underline-offset-4 transition-colors hover:text-[#1a5a66]"
                             >
                               {expandedSections.has(category.id)
                                 ? '접기'
@@ -1286,7 +1286,7 @@ function BoardLedger() {
                   {/* 카테고리 추가 중 — 새 칸(번호 + 이름 입력) */}
                   {addingCategory && (
                     <div className="flex flex-col">
-                      <div className="flex items-baseline gap-2 border-b border-[#e8eeef] pb-[9px]">
+                      <div className="flex items-baseline gap-2 border-b border-[#e5e7e9] pb-[9px]">
                         <span className="text-[11.5px] font-bold text-[#4f7f89]">
                           {String(sections.length + 1).padStart(2, '0')}
                         </span>
@@ -2217,7 +2217,7 @@ function RecommendDialog({ open, onClose }: { open: boolean; onClose: () => void
   }, [items, categories, persona]);
 
   const PRIO_META: Record<Rec['priority'], { label: string; cls: string }> = {
-    1: { label: '우선', cls: 'bg-[#d8e6e9] text-[#11525f]' },
+    1: { label: '우선', cls: 'bg-[#dcdfe1] text-[#11525f]' },
     2: { label: '추천', cls: 'bg-[#f2e5cf] text-[#8a5a1a]' },
     3: { label: '보강', cls: 'bg-[#e4e8ef] text-[#4a5568]' },
   };

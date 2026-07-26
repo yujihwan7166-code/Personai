@@ -347,11 +347,14 @@ export default function Wiki() {
   const [shelfPage, setShelfPage] = useState(0);
 
   const isWide = useIsWide();
-  const { books, docs, recent } = store;
-  const book = bookId ? books.find((b) => b.id === bookId) ?? null : null;
+  const { books: allBooks, docs, recent } = store;
+  /* 책장에 꽂힌 순서 — 책이 열 권을 넘어가면 페이지가 갈리기 시작해서
+     '어디 뒀더라' 가 생긴다. 서재 머리 오른쪽이 비어 있길래 여기 세웠다. */
+  const [shelfSort, setShelfSort] = useState<'made' | 'name' | 'size'>('made');
+  const book = bookId ? allBooks.find((b) => b.id === bookId) ?? null : null;
   const bookDocs = useMemo(() => (bookId ? docs.filter((d) => d.book === bookId) : []), [docs, bookId]);
   const active = docId ? docs.find((d) => d.id === docId) ?? null : null;
-  const bookOf = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
+  const bookOf = useMemo(() => new Map(allBooks.map((b) => [b.id, b])), [allBooks]);
 
   useEffect(() => { saveWiki(store); }, [store]);
 
@@ -636,6 +639,14 @@ export default function Wiki() {
   const SHELF_GAP = 9;
   const NEW_SLOT = 72;
   const LEAN_SLACK = 44; // 마지막 책이 기울면 발자국이 그만큼 넓어진다
+  const books = useMemo(() => {
+    if (shelfSort === 'made') return allBooks;                    // 꽂은 순 = 만든 순
+    const arr = [...allBooks];
+    if (shelfSort === 'name') return arr.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ko'));
+    const n = (id: string) => docs.filter((d) => d.book === id).length;
+    return arr.sort((a, b) => n(b.id) - n(a.id));
+  }, [allBooks, docs, shelfSort]);
+
   const pages = useMemo(() => {
     const avail = shelfW - 28; // px-3.5 양쪽
     if (avail <= 0) return [books]; // 실측 전 — 일단 다 그린다
@@ -884,21 +895,33 @@ export default function Wiki() {
 
       {/* ══════ 사이드바 — 데일리 로그 문법 (마크+락업 · 굵은 섹션 라벨 · 38px 행 · 은은한 활성) ══════ */}
       <aside className="hidden w-[264px] flex-none flex-col overflow-y-auto px-3.5 py-5 lg:flex" style={{ background: '#f3ecdd', borderRight: '1px solid rgba(60,47,24,.14)' }}>
+        {/* 머리 — 📚 이모지를 흰 타일에 담아 두었는데, 이 방은 이미 나무 책장과
+            가죽 책등이라는 제 물건을 갖고 있다. 남의 그림 대신 그 물건의 조각(책등
+            셋)을 세워 서재 문패로 삼는다. */}
         <button type="button" onClick={goShelf} className="flex items-center gap-[11px] px-1.5 text-left">
-          <span aria-hidden className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[17px]" style={{ background: '#fff', boxShadow: '0 1px 2px rgba(60,47,24,.12)' }}>📚</span>
+          <span aria-hidden className="flex h-[34px] w-[34px] shrink-0 items-end justify-center gap-[2px] rounded-[10px] pb-[7px]"
+            style={{ background: 'linear-gradient(180deg,#5c3d20,#3d2410)', boxShadow: '0 1px 2px rgba(60,47,24,.28), inset 0 1px 0 rgba(255,235,200,.18)' }}>
+            <span className="w-[4px] rounded-[1px]" style={{ height: 15, background: '#2f5c4a' }} />
+            <span className="w-[4px] rounded-[1px]" style={{ height: 19, background: '#c8a34a' }} />
+            <span className="w-[4px] rounded-[1px]" style={{ height: 13, background: '#9a4632' }} />
+          </span>
           <span className="min-w-0">
             <span className="block text-[16px] font-bold leading-tight tracking-[-0.01em]" style={{ color: C.ink }}>마이위키</span>
             <span className="block truncate text-[12px] leading-tight" style={{ color: C.sub }}>나만의 서재</span>
           </span>
         </button>
 
+        {/* 검색 — 테두리를 걷고 종이에 파인 홈처럼. 이 자리에서 눈에 띄어야 할 건
+            아래 초록 버튼 하나뿐이라, 도구는 조용히 물러난다. */}
         <div className="relative mt-4">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: C.sub }} />
           <input
             value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="서재에서 검색" aria-label="서재 검색"
-            className="h-[38px] w-full rounded-[10px] pl-8 pr-7 text-[13.5px] outline-none"
-            style={{ border: '1px solid rgba(60,47,24,.16)', background: C.paper, color: C.ink, fontFamily: SANS }}
+            className="h-[36px] w-full rounded-[9px] pl-8 pr-7 text-[13.5px] outline-none transition-shadow"
+            style={{ border: 'none', background: 'rgba(60,47,24,.07)', boxShadow: 'inset 0 1px 2px rgba(60,47,24,.13)', color: C.ink, fontFamily: SANS }}
+            onFocus={(e) => { e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(60,47,24,.13), 0 0 0 2px rgba(48,95,76,.32)'; }}
+            onBlur={(e) => { e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(60,47,24,.13)'; }}
           />
           {q && (
             <button type="button" aria-label="검색 지우기" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2" style={{ color: C.sub }}>
@@ -906,11 +929,17 @@ export default function Wiki() {
             </button>
           )}
         </div>
+        {/* 만드는 버튼 — 잉크 검정이었다. 크림 사이드바 위 차가운 검정 판이라
+            이 방 물건이 아닌 것처럼 떠 있었고, 사이드바에서 제일 큰 소리를 냈다.
+            이 방에서 '만들고 잇는' 색은 그린이다(본문 링크·문서로 연결 버블·차례
+            표시선이 전부 이 색). */}
         <button
           type="button"
           onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
-          className="mt-2 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold transition-colors hover:bg-[#40372a]"
-          style={{ background: C.ink, color: '#fff' }}
+          className="mt-2 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold text-white transition-colors"
+          style={{ background: C.green, boxShadow: '0 1px 2px rgba(24,58,44,.25)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
         >
           <Plus className="h-3.5 w-3.5" />
           {book ? '새 문서' : '새 책'}
@@ -1500,6 +1529,27 @@ export default function Wiki() {
           <div className="flex flex-wrap items-baseline gap-3.5">
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
+            <span className="flex-1" />
+            {/* 꽂는 순서 — 오른쪽이 비어 있어 안내문이라도 넣을까 했지만, 빈자리는
+                말이 아니라 손잡이로 채우는 게 낫다. 책이 한 선반을 넘기면 페이지가
+                갈려서 '어디 뒀더라' 가 실제로 생긴다. */}
+            {allBooks.length > 1 && (
+              <div className="flex items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
+                {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
+                  <button
+                    key={k} type="button"
+                    onClick={() => { setShelfSort(k); setShelfPage(0); }}
+                    aria-pressed={shelfSort === k}
+                    className="rounded-[7px] px-2.5 py-[5px] text-[12px] font-semibold transition-colors"
+                    style={shelfSort === k
+                      ? { background: C.paper, color: C.ink, boxShadow: '0 1px 2px rgba(60,47,24,.14)' }
+                      : { background: 'transparent', color: C.sub }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 나무 책장 */}
