@@ -13,7 +13,7 @@ import { newId } from '@/lib/idGenerator';
 import type { Value } from 'platejs';
 import {
   loadWiki, saveWiki, seedIfEmpty, emptyBody, linkedDocIds, bodyText, backlinkExcerpt, BOOK_PALETTE,
-  buildExampleBooks,
+  buildExampleBooks, buildDrugBook,
   type WikiBook, type WikiDoc, type WikiStore,
 } from '@/lib/wiki3/store';
 import { childrenOf, ancestorsOf, deleteWithPromotion, isDescendant } from '@/lib/wiki3/tree';
@@ -69,17 +69,6 @@ const WIKI_CSS = `
 /* 문서 사이에 놓을 때 — 가로선의 들여쓰기가 곧 들어갈 단계 */
 .wiki-theme .wiki-insert { position:relative; height:2px; margin-right:6px; border-radius:2px; background:#305f4c; transform-origin:left center; animation: wikiInsertIn .14s ease-out both; }
 .wiki-theme .wiki-insert::before { content:''; position:absolute; left:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:#305f4c; }
-/* 단계 안내선 — 끌고 있는 동안에만. 가로축이 '단계'라는 걸 눈에 보이게 해준다
-   (전엔 좌우로 움직이면 단계가 바뀐다는 사실 자체가 안 보였다). */
-.wiki-theme .wiki-toc-rails { position:relative; }
-.wiki-theme .wiki-toc-rails::before {
-  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background: repeating-linear-gradient(90deg,
-    rgba(48,95,76,.16) 0 1px, transparent 1px 22px);
-  background-position-x: 6px;
-  animation: wikiRailsIn .16s ease-out both;
-}
-@keyframes wikiRailsIn { from { opacity:0; } to { opacity:1; } }
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
@@ -406,6 +395,13 @@ export default function Wiki() {
   /** 예시 책 3권 덧붙이기 — 시드는 빈 서재에만 1회 깔리므로, 이미 쓰던 사람은 이 길로. */
   const addExampleBooks = () => {
     const { books: nb, docs: nd } = buildExampleBooks();
+    setStore((s) => ({ ...s, books: [...s.books, ...nb], docs: [...s.docs, ...nd] }));
+    setShelfPage(0);
+    openBook(nb[0].id);
+  };
+
+  const addDrugBook = () => {
+    const { books: nb, docs: nd } = buildDrugBook();
     setStore((s) => ({ ...s, books: [...s.books, ...nb], docs: [...s.docs, ...nd] }));
     setShelfPage(0);
     openBook(nb[0].id);
@@ -763,15 +759,24 @@ export default function Wiki() {
     let nx = gapIndex < sideRows.length ? sideRows[gapIndex] : null;
     if (nx && nx.d.id === dragDoc) nx = end < sideRows.length ? sideRows[end] : null;
     const maxD = prev ? prev.depth + 1 : 0; // 위 문서의 자식까지가 최대
-    const minD = nx ? nx.depth : 0;         // 아래 문서보다 얕아질 순 없다
-    const depth = Math.max(minD, Math.min(maxD, Math.round((x - 6) / 22)));
+    /* 아래 줄보다 얕아져도 된다. 예전엔 아래 줄 깊이를 하한으로 뒀는데, 그러면
+       하위 문서를 최상위로 끌어올리는 길이 사실상 막혔다 — 아래에 손자뻘 줄이
+       한 줄만 있어도 0단계를 고를 수 없었기 때문. 이제 0까지 내려간다. */
+    const depth = Math.max(0, Math.min(maxD, Math.round((x - 6) / 22)));
     let parent: string | null = null;
     if (depth > 0 && prev) {
       const chain = [...ancestorsOf(bookDocs, prev.d.id), prev.d]; // chain[k] 의 깊이 = k
       parent = chain[depth - 1]?.id ?? null;
     }
     if (parent && (parent === dragDoc || isDescendant(bookDocs, parent, dragDoc))) return null;
-    return { depth, parent, before: nx?.d.id ?? null };
+    /* 놓을 자리는 '바로 아래 줄 앞'이 아니라 '같은 부모의 첫 형제 앞'이다.
+       얕은 단계를 고르면 바로 아래 줄은 남의 자식이라 기준이 될 수 없다. */
+    let before: string | null = null;
+    for (let i = gapIndex; i < sideRows.length; i += 1) {
+      if (i >= start && i < end) continue;               // 끌고 있는 제 구간은 건너뛴다
+      if (sideRows[i].d.parent === (parent ?? null)) { before = sideRows[i].d.id; break; }
+    }
+    return { depth, parent, before };
   };
 
   /** 소속(parent)과 차례 순서를 한 번에 옮긴다 — 순서는 docs 배열 위치가 정한다 */
@@ -1281,7 +1286,7 @@ export default function Wiki() {
                 {/* 끄는 동안에는 안내가 바뀐다 — 가로축이 단계라는 걸 그때 알려줘야 쓸모가 있다 */}
                 <span className="min-w-0 flex-1 truncate" style={{ fontSize: 12, color: dragDoc ? C.green : C.sub, fontWeight: dragDoc ? 600 : undefined }}>
                   {dragDoc
-                    ? '좌우로 움직여 단계를 고르세요 — 왼쪽일수록 상위'
+                    ? '왼쪽 끝까지 끌면 최상위 — 옆의 번호가 놓일 자리입니다'
                     : chapters.length > 0 ? '장을 접어 큰 흐름만 볼 수 있어요' : '눌러 펼치기 · 끌어 옮기기'}
                 </span>
                 <button
@@ -1301,7 +1306,7 @@ export default function Wiki() {
                   + 새 문서
                 </button>
               </div>
-              <div className={cn('mt-3.5', dragDoc && 'wiki-toc-rails')}>
+              <div className="mt-3.5">
                 {sideRows.length === 0 ? (
                   <div className="py-12 text-center">
                     <p style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>아직 빈 책이에요</p>
@@ -1340,13 +1345,13 @@ export default function Wiki() {
                               if (!dragDoc) return;
                               const r = e.currentTarget.getBoundingClientRect();
                               const rel = (e.clientY - r.top) / r.height;
-                              if (rel > 0.3 && rel < 0.7) { // 한가운데 = 이 문서의 하위로
+                              if (rel > 0.38 && rel < 0.62) { // 한가운데 = 이 문서의 하위로
                                 if (!canNestOn(d.id)) return;
                                 e.preventDefault(); e.dataTransfer.dropEffect = 'move';
                                 setDropHint({ mode: 'nest', id: d.id });
                                 return;
                               }
-                              const gap = rel <= 0.3 ? i : i + 1; // 가장자리 = 문서 사이
+                              const gap = rel <= 0.38 ? i : i + 1; // 가장자리 = 문서 사이
                               const plan = placePlan(gap, e.clientX - r.left);
                               if (!plan) return;
                               e.preventDefault(); e.dataTransfer.dropEffect = 'move';
@@ -1358,8 +1363,8 @@ export default function Wiki() {
                               const id = dragDoc;
                               const r = e.currentTarget.getBoundingClientRect();
                               const rel = (e.clientY - r.top) / r.height;
-                              const plan = rel > 0.3 && rel < 0.7 ? null : placePlan(rel <= 0.3 ? i : i + 1, e.clientX - r.left);
-                              const nest = rel > 0.3 && rel < 0.7 && canNestOn(d.id);
+                              const plan = rel > 0.38 && rel < 0.62 ? null : placePlan(rel <= 0.38 ? i : i + 1, e.clientX - r.left);
+                              const nest = rel > 0.38 && rel < 0.62 && canNestOn(d.id);
                               setDragDoc(null); setDropHint(null);
                               if (nest) moveDoc(id, d.id, null);
                               else if (plan) moveDoc(id, plan.parent, plan.before);
@@ -1541,7 +1546,17 @@ export default function Wiki() {
           </div>
 
           {/* 예시 책 — 링크로 얽힌 세 권을 한 번에 꽂아 이 방이 어떻게 굴러가는지 보여준다 */}
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-1">
+            <button
+              type="button" onClick={addDrugBook}
+              className="rounded-md px-2 py-1 transition-colors"
+              style={{ fontSize: 12, color: C.muted }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.green; e.currentTarget.style.background = 'rgba(48,95,76,.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = 'transparent'; }}
+              title="약물 — 총론부터 복약지도까지 4단으로 깊은 긴 책 한 권"
+            >
+              긴 책 「약물」 넣어보기
+            </button>
             <button
               type="button" onClick={addExampleBooks}
               className="rounded-md px-2 py-1 transition-colors"
