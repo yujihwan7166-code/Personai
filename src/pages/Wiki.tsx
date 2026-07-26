@@ -1152,7 +1152,7 @@ export default function Wiki() {
 
       {qq ? (
         /* ══════ 검색 결과 ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[84px] sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex items-baseline gap-3.5">
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>'{q.trim()}'</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{results.length}개의 문서</span>
@@ -1174,7 +1174,7 @@ export default function Wiki() {
         /* ══════ 문서 ══════
            mx-auto 를 걷어 왼쪽으로 붙인다 — 가운데 정렬이던 탓에 사이드바와 목차 사이가
            크게 비고 본문은 그만큼 좁았다. 폭은 1300 → 1360. */
-        <section className="wiki-rise px-5 pb-20 pt-[40px] sm:px-8" style={{ maxWidth: 1360 }}>
+        <section className="wiki-rise px-5 pb-20 pt-[84px] sm:px-8" style={{ maxWidth: 1360 }}>
           {/* 빵가루 — 목차 위가 아니라 본문 위에 선다. 위계는 지금 읽는 글의 것이지
               옆 칸(목차)의 것이 아니라서, 본문 왼쪽 끝과 줄을 맞춰야 무엇에 대한 위계인지 읽힌다.
               그래서 아래 본문 그리드와 같은 열 구성을 쓰고 첫 칸은 비워 둔다. */}
@@ -1290,7 +1290,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[84px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 책 첫 화면에선 '서재 › 약물' 이 군더더기다 — 책 이름은 바로 아래 표지에 크게 적혀 있다.
               길 안내 대신 돌아가는 문 하나만 둔다. Esc 도 그대로 듣는다(적어 두진 않는다). */}
           <div className="flex items-center gap-3">
@@ -1590,43 +1590,54 @@ export default function Wiki() {
         /* ══════ 서재 홈 (시안) ══════
            위 여백 52px — 네 화면(검색 결과·문서·책·서재) 모두 같은 값이다.
            화면을 옮길 때 머리가 위아래로 튀면 같은 방이 아닌 것처럼 보인다. */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[84px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 제목 줄이 도구까지 함께 진다 — 찾기 · 꽂는 순서 · 새 책을 오른쪽에 한 덩이로.
               도구를 아랫줄에 따로 두었더니 줄이 하나 더 생겨 제목과 책장이 그만큼
               멀어졌다. 34px 제목과 34px 조작기라 높이가 서로를 밀지 않는다
               (items-center 로 세로 가운데를 맞춘다 — baseline 이면 배경 있는 칸이 뜬다).
               책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다. */}
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-            <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
+            <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 34 }}>나의 서재</h1>
             <span className="min-w-0" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
             <span className="flex-1" />
-            {searchBox}
-            {allBooks.length > 1 && (
-              <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
-                {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
-                  <button
-                    key={k} type="button"
-                    onClick={() => { setShelfSort(k); setShelfPage(0); }}
-                    aria-pressed={shelfSort === k}
-                    className="h-full rounded-[7px] px-2.5 text-[12px] font-semibold transition-colors"
-                    style={shelfSort === k
-                      ? { background: C.paper, color: C.ink, boxShadow: '0 1px 2px rgba(60,47,24,.14)' }
-                      : { background: 'transparent', color: C.sub }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button
-              type="button" onClick={() => setBookDialog({ book: null })}
-              className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] px-3.5 text-[13px] font-bold text-white transition-colors"
-              style={{ background: C.green }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
-            >
-              <Plus className="h-3.5 w-3.5" /> 새 책
-            </button>
+            {/* 도구는 한 덩이로 묶어 안쪽 간격(8px)을 제목–서술 간격(16px)보다 좁게 둔다.
+                예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
+                모두 동급으로 보였다 — 가까이 있는 것끼리 한 무리라는 게 위계의 기본이다.
+
+                순서는 다른 서비스들이 대체로 합의한 대로다(깃허브 이슈·리니어·드라이브):
+                  목록을 좁히는 것(찾기) → 보는 방식을 바꾸는 것(정렬) → 주요 동작(만들기).
+                주요 동작이 줄의 끝을 맺고, 색이 들어간 건 그것 하나뿐이다. */}
+            <div className="flex flex-wrap items-center gap-2">
+              {searchBox}
+              {allBooks.length > 1 && (
+                <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
+                  {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
+                    <button
+                      key={k} type="button"
+                      onClick={() => { setShelfSort(k); setShelfPage(0); }}
+                      aria-pressed={shelfSort === k}
+                      className="h-full rounded-[7px] px-2.5 text-[12px] font-semibold transition-colors"
+                      style={shelfSort === k
+                        ? { background: C.paper, color: C.ink, boxShadow: '0 1px 2px rgba(60,47,24,.14)' }
+                        : { background: 'transparent', color: C.sub }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 주요 동작 앞의 얇은 선 — 보는 도구와 만드는 동작을 갈라 준다 */}
+              <span aria-hidden className="mx-0.5 h-[18px] w-px" style={{ background: 'rgba(60,47,24,.16)' }} />
+              <button
+                type="button" onClick={() => setBookDialog({ book: null })}
+                className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] px-3.5 text-[13px] font-bold text-white transition-colors"
+                style={{ background: C.green }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
+              >
+                <Plus className="h-3.5 w-3.5" /> 새 책
+              </button>
+            </div>
           </div>
 
           {/* 나무 책장 */}
