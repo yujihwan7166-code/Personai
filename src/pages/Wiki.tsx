@@ -1605,11 +1605,14 @@ export default function Wiki() {
               한쪽에 모여야 본문(제목·책장)의 왼쪽 흐름이 끊기지 않는다. */}
           <div className="mb-3.5 flex justify-end">{searchField('w-[280px] max-w-full')}</div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-            <h1 className="m-0 shrink-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 38 }}>나의 서재</h1>
+          {/* items-end + leading-none — 제목과 서술의 '바닥'을 맞춘다.
+              baseline 정렬이면 작은 글씨가 큰 글씨의 기준선에 매달려 위로 떠 보인다.
+              제목 아래에 선을 하나 긋는다 치면, 그 선 바로 위에 둘이 나란히 앉는 모양. */}
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
+            <h1 className="m-0 shrink-0 leading-none" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 42 }}>나의 서재</h1>
             {/* 서술은 자리가 모자라면 줄어든다 — 도구가 아랫줄로 떨어지면 '제목 옆에
                 있는 도구' 라는 뜻이 사라진다. 말은 줄일 수 있어도 손잡이는 못 줄인다. */}
-            <span className="min-w-0 truncate" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
+            <span className="min-w-0 truncate leading-none" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
             <span className="flex-1" />
             {/* 도구는 한 덩이로 묶어 안쪽 간격(8px)을 제목–서술 간격(16px)보다 좁게 둔다.
                 예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
