@@ -32,11 +32,6 @@ function Figure({ label, value, tone, big, note }: { label: string; value: numbe
   );
 }
 
-/** 숫자 칸 사이 얇은 선 — 셋이 한 문장의 부분이라는 표시 */
-function Sep() {
-  return <span aria-hidden style={{ alignSelf: 'stretch', width: 1, background: C.lineFaint, margin: '2px 12px 2px 8px' }} />;
-}
-
 export function BudgetView({ data }: { data: LedgerData }) {
   const { entries, budgets, categories, buckets } = data;
   const BUCKETS = useMemo(() => buckets.map((b) => b.id), [buckets]);
@@ -122,11 +117,9 @@ export function BudgetView({ data }: { data: LedgerData }) {
         </div>
         {/* ① 숫자 셋 — 예산 · 쓴 돈 · 남은 예산. 셋이 나란해야 크기가 서로를 설명한다.
             예산만 크게 두는 건 그것이 나머지 둘의 분모이기 때문. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '8px 30px' }}>
           <Figure label="이번 달 예산" value={planned} big tone={C.ink} />
-          <Sep />
           <Figure label="쓴 돈" value={spentAll} tone={C.ink3} />
-          <Sep />
           <Figure
             label={remainAll >= 0 ? '남은 예산' : '예산 초과'}
             value={Math.abs(remainAll)}
@@ -171,37 +164,23 @@ export function BudgetView({ data }: { data: LedgerData }) {
           </div>
         )}
 
-        {/* ③ 항목 배분 — 위 계획, 아래 실제. 두 띠의 어긋남이 '어디에 치우쳤나' 를 말한다.
-            여기 있던 버킷별 한 줄 목록은 걷어냈다 — 아래 버킷 카드와 같은 말이었다.
-            분업: 이 띠는 '비율'만, 아래 카드는 '금액'만. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 4, borderTop: `1px solid ${C.lineFaint}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{ flex: '0 0 26px', fontSize: 10.5, fontWeight: 700, color: C.muted2 }}>계획</span>
-            <div style={{ flex: 1, display: 'flex', height: 10, borderRadius: 999, overflow: 'hidden', background: C.track }}>
-              {BUCKETS.map((b) => <div key={b} title={`${labelOf.get(b) ?? b} ${pctOf(b)}%`} style={{ width: `${pctOf(b)}%`, background: colorOf(b) }} />)}
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ flex: '0 0 26px', fontSize: 10.5, fontWeight: 700, color: C.muted2 }}>실제</span>
-            <div style={{ flex: 1, display: 'flex', height: 10, borderRadius: 999, overflow: 'hidden', background: C.track }}>
-              {BUCKETS.map((b) => (
-                <div key={b} title={`${labelOf.get(b) ?? b} ${KRW(spent[b] ?? 0)}원`} style={{
-                  width: `${spentAll > 0 ? Math.round(((spent[b] ?? 0) / spentAll) * 100) : 0}%`,
-                  background: colorOf(b), opacity: 0.55,
-                }} />
-              ))}
-            </div>
-          </div>
-          {/* 색↔이름 — 아래 카드의 색칩과 짝이지만, 띠만 놓고는 어느 색이 뭔지 알 길이 없었다 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 12px', marginTop: 3, paddingLeft: 34 }}>
+        {/* ③ 항목 배분 — 막대 대신 글자로. 띠를 두 줄(계획/실제) 깔았더니 위 진행 막대까지
+            작대기가 셋이 되어 어디를 봐야 할지 정해지지 않았다. 비중은 굳이 그림이
+            아니어도 되는 사실이고(숫자가 더 정확하다), 실제 쓴 비중은 아래 버킷 카드가
+            항목마다 이미 막대로 말한다. 색↔이름 짝짓기도 여기서 함께 해결된다. */}
+        {planned > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 14px', paddingTop: 10, borderTop: `1px solid ${C.lineFaint}` }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted2 }}>배분</span>
             {BUCKETS.map((b) => (
-              <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: C.muted }}>
-                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 2, background: colorOf(b) }} />
+              <span key={b} title={`${labelOf.get(b) ?? b} ${KRW(budgets[b] ?? 0)}원`}
+                style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, fontWeight: 600, color: C.ink4 }}>
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 2, background: colorOf(b), alignSelf: 'center' }} />
                 {labelOf.get(b) ?? b}
+                <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: C.muted }}>{pctOf(b)}%</span>
               </span>
             ))}
           </div>
-        </div>
+        )}
 
         {basis.avgIncome > 0 && (
           /* '남은 예산'(예산−쓴돈)과 헷갈리지 않게 이름을 바꿨다 — 이건 수입에서
