@@ -283,10 +283,17 @@ function CoverIntro({ value, onChange }: { value: string; onChange: (v: string) 
 /**
  * 놓을 자리 표시 — 선 + 그 자리에 놓았을 때의 번호.
  * 선만 있으면 들여쓰기를 눈으로 세어야 했다. 번호가 뜨면 '2.1 → 2' 가 바로 읽힌다.
+ *
+ * 흐름 안에 놓으면 안 된다. 예전엔 그냥 줄 위에 끼워 넣었는데, 표시가 뜨는 순간
+ * 아래 줄이 17px 밀려 내려가고 그 자리를 이 표시가 차지했다. 커서 밑이 줄에서
+ * 표시로 바뀌니 dragover 가 줄에 안 닿아 preventDefault 가 안 걸리고, 곧바로
+ * 금지 커서(🚫)가 떴다 — '빼기가 안 된다' 의 정체가 이것이었다.
+ * 자리를 안 먹는 절대 배치 + pointer-events:none 으로 커서 아래를 늘 줄로 둔다.
  */
 function InsertLine({ depth, no }: { depth: number; no: string }) {
   return (
-    <div aria-hidden className="flex items-center" style={{ marginLeft: 6 + depth * 22 }}>
+    <div aria-hidden className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center"
+      style={{ paddingLeft: 6 + depth * 22, paddingRight: 6, transform: 'translateY(-50%)' }}>
       <span style={{
         flex: 'none', marginRight: 6, borderRadius: 4, padding: '1px 5px',
         background: '#305f4c', color: '#f6ecd9',
@@ -789,7 +796,10 @@ export default function Wiki() {
     /* 아래 줄보다 얕아져도 된다. 예전엔 아래 줄 깊이를 하한으로 뒀는데, 그러면
        하위 문서를 최상위로 끌어올리는 길이 사실상 막혔다 — 아래에 손자뻘 줄이
        한 줄만 있어도 0단계를 고를 수 없었기 때문. 이제 0까지 내려간다. */
-    const depth = Math.max(0, Math.min(maxD, Math.round((x - 6) / 22)));
+    /* 기준점을 6 이 아니라 13 으로 잡아 왼쪽으로 기울인다. 0단계 구간이 17px 에서
+       24px 로 넓어진다 — 깊게 넣는 건 줄 한가운데(하위로 품기)로도 되지만,
+       빼는 길은 이 좁은 왼쪽 띠 하나뿐이라 여기에 여유를 준다. */
+    const depth = Math.max(0, Math.min(maxD, Math.round((x - 13) / 22)));
     let parent: string | null = null;
     if (depth > 0 && prev) {
       const chain = [...ancestorsOf(bookDocs, prev.d.id), prev.d]; // chain[k] 의 깊이 = k
@@ -1353,8 +1363,8 @@ export default function Wiki() {
                       const kidsCount = descCount.get(d.id) ?? 0;
                       const folded = collapsed.has(d.id) && kidsCount > 0;
                       return (
-                        <div key={d.id} style={chapter && i > 0 ? { marginTop: 12 } : undefined}>
-                          {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계 */}
+                        <div key={d.id} className="relative" style={chapter && i > 0 ? { marginTop: 12 } : undefined}>
+                          {/* 들어갈 자리 — 가로선의 들여쓰기가 곧 단계. 자리는 안 먹는다(위 주석) */}
                           {lineHere && <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />}
                           <div
                             ref={(el) => { if (el) rowEls.current.set(d.id, el); else rowEls.current.delete(d.id); }}
@@ -1451,9 +1461,11 @@ export default function Wiki() {
                         </div>
                       );
                     })}
-                    {/* 맨 끝 자리 */}
+                    {/* 맨 끝 자리 — 높이 0 인 기준점 위에 얹는다 */}
                     {dropHint?.mode === 'place' && dropHint.index === sideRows.length && (
-                      <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />
+                      <div className="relative h-0">
+                        <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />
+                      </div>
                     )}
                   </>
                 )}
