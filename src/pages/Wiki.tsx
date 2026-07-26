@@ -1356,7 +1356,7 @@ export default function Wiki() {
                             role="button" tabIndex={0} draggable
                             onClick={() => openDoc(d.id)}
                             /* Tab/Shift+Tab = 단계 내리기/올리기.
-                               드래그로 단계를 바꾸려면 행 위아래 30% 띠 안에서 좌우로 움직여야 해
+                               드래그로 단계를 바꾸려면 행 위아래 가장자리 띠 안에서 좌우로 움직여야 해
                                '2.1 을 2 로' 가 유독 까다로웠다 — 줄에 포커스를 두면 한 번에 된다. */
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoc(d.id); return; }
@@ -1414,7 +1414,10 @@ export default function Wiki() {
                                   e.stopPropagation();
                                   setCollapsed((s) => { const n = new Set(s); if (n.has(d.id)) n.delete(d.id); else n.add(d.id); return n; });
                                 }}
-                                className="-ml-1 flex h-[18px] w-[18px] flex-none items-center justify-center self-center rounded transition-colors hover:bg-[rgba(60,47,24,.1)]"
+                                /* 보이는 크기는 18px 그대로 두고 누를 수 있는 범위만 넓힌다.
+                                   위아래는 줄 안쪽 여백까지만(6px) — 더 늘리면 옆줄의
+                                   드래그 띠를 가로챈다. 오른쪽은 번호 코앞에서 멈춘다. */
+                                className="relative -ml-1 flex h-[18px] w-[18px] flex-none items-center justify-center self-center rounded transition-colors after:absolute after:-inset-y-[6px] after:-left-[7px] after:-right-[4px] after:content-[''] hover:bg-[rgba(60,47,24,.1)]"
                                 style={{ color: C.sub }}
                               >
                                 <ChevronDown className="h-3.5 w-3.5 transition-transform" style={{ transform: folded ? 'rotate(-90deg)' : undefined }} />
@@ -1935,18 +1938,20 @@ function DocMain({
   return (
     <div className="min-w-0">
       <article className="wiki-page relative rounded-[14px] p-6 sm:px-[52px] sm:py-11" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 10px rgba(64,44,18,.05)' }}>
+        {/* 책갈피 리본 — 읽을 때든 고칠 때든 같은 자리에 꽂는다.
+            모드 밖에 두었으므로 편집으로 넘어가도 리본이 사라지거나 다시 그려지지 않는다.
+            안 꽂힌 상태는 종이에 스민 자국처럼 흐리게 두고, 이 문서 위에 마우스를
+            올렸을 때만 드러난다 — 늘 보이면 잔소리가 된다. */}
+        <button
+          type="button"
+          onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
+          aria-pressed={active.pinned}
+          aria-label={active.pinned ? '책갈피 빼기' : '책갈피 꽂기'}
+          title={active.pinned ? '책갈피가 꽂혀 있어요 — 눌러서 빼기' : '이 문서에 책갈피 꽂기'}
+          className={cn('wiki-mark', active.pinned && 'wiki-mark-on wiki-mark-drop')}
+        />
         {mode === 'read' ? (
           <>
-            {/* 읽다가 꽂는 리본. 안 꽂힌 상태는 종이에 스민 자국처럼 흐리게 두고,
-                이 문서 위에 마우스를 올렸을 때만 드러난다 — 늘 보이면 잔소리가 된다. */}
-            <button
-              type="button"
-              onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
-              aria-pressed={active.pinned}
-              aria-label={active.pinned ? '책갈피 빼기' : '책갈피 꽂기'}
-              title={active.pinned ? '책갈피가 꽂혀 있어요 — 눌러서 빼기' : '이 문서에 책갈피 꽂기'}
-              className={cn('wiki-mark', active.pinned && 'wiki-mark-on wiki-mark-drop')}
-            />
             <div className="flex items-start justify-between gap-4">
               <h1 className="m-0 min-w-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 34, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
               <button
@@ -2005,8 +2010,8 @@ function DocMain({
               />
               <span aria-hidden className="mx-0.5 h-4 w-px" style={{ background: C.line }} />
               <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
-              {/* 책갈피는 여기 없다 — 읽는 화면의 종이에 직접 꽂는 리본으로 옮겼다.
-                  꽂는 건 읽다가 하는 일이지 고쳐 쓰다가 하는 일이 아니다. */}
+              {/* 책갈피는 여기 없다 — 종이 왼쪽 위의 리본이 그 일을 한다.
+                  편집 중에도 같은 리본을 그대로 누르면 된다. */}
               <div className="ml-auto flex items-center gap-1">
                 <button
                   type="button" onClick={() => removeDoc(active.id)}
