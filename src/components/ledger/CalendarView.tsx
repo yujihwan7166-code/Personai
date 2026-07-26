@@ -11,7 +11,7 @@ import { useMemo, useState } from 'react';
 import type { LedgerData } from '@/hooks/useLedger';
 import { todayKey } from '@/services/ledgerStore';
 import { monthOf, shiftMonth } from '@/lib/ledger/stats';
-import { C, KRW } from './theme';
+import { C, KRW, KRWShort } from './theme';
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -136,7 +136,7 @@ export function CalendarView({ data, onEdit }: { data: LedgerData; onEdit: (id: 
                     }}>{d}</span>
                     {g && (
                       <span style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: C.ink4, fontVariantNumeric: 'tabular-nums' }}>
-                        {Math.round(g.total / 1000)}k
+                        {KRWShort(g.total)}
                       </span>
                     )}
                   </span>

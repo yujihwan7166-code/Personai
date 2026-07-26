@@ -10,7 +10,7 @@ import { todayKey } from '@/services/ledgerStore';
 import { ledgerStore } from '@/services/ledgerStore';
 import { bucketSpent, categoryTotals, dailyExpense, monthOf, summarizeMonth, shiftMonth } from '@/lib/ledger/stats';
 import { BUCKET_META, type BudgetBucket } from '@/types/ledger';
-import { C, KRW, SLICE_COLORS } from './theme';
+import { C, KRW, KRWShort, SLICE_COLORS } from './theme';
 import { toast } from 'sonner';
 
 const BUCKETS: BudgetBucket[] = ['fixed', 'variable', 'irregular'];
@@ -303,7 +303,7 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
                   style={{ height: 68, borderRadius: 8, background: on ? C.navSel : v > 0 ? C.cardAlt : 'transparent', border: `1px solid ${on ? '#CFC9BC' : v > 0 ? C.lineFaint : 'transparent'}`, padding: '5px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 10.5, fontWeight: d === dayOfMonth ? 700 : 550, color: d === dayOfMonth ? C.navy : C.muted3, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 650, color: v > 0 ? (v >= maxDay * 0.66 ? C.ink2 : C.sub2) : 'transparent', textAlign: 'right', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
-                    {v > 0 ? `${Math.round(v / 1000)}k` : '·'}
+                    {v > 0 ? KRWShort(v) : '·'}
                   </span>
                 </button>
               );

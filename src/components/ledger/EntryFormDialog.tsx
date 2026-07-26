@@ -10,6 +10,7 @@ import { compressImage } from '@/lib/journalImage';
 import { notify } from '@/lib/notify';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { TYPE_META, type EntryType, type LedgerBucket, type LedgerCategory, type PayMethod } from '@/types/ledger';
+import { KRW, KRWShort, parseAmount } from './theme';
 
 interface Props {
   open: boolean;
@@ -70,9 +71,9 @@ export function EntryFormDialog({ open, entryId, categories, buckets, onClose }:
   if (!open) return null;
 
   const save = () => {
-    const amt = Number(amount.replace(/,/g, ''));
+    const amt = parseAmount(amount) ?? NaN;
     if (!Number.isFinite(amt) || amt <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-    const gt = Number(groupTotal.replace(/,/g, ''));
+    const gt = parseAmount(groupTotal) ?? NaN;
     const payload = {
       type, amount: Math.round(amt), date, categoryId, memo: memo.trim(),
       method: method || undefined,
@@ -115,9 +116,30 @@ export function EntryFormDialog({ open, entryId, categories, buckets, onClose }:
             <label className="min-w-0 flex-1">
               <span className={labelCls}>금액</span>
               <div className="relative">
-                <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" placeholder="0"
+                {/* '3만' 처럼 말하는 대로 쳐도 되고 30000 처럼 쳐도 된다. 칸을 벗어나는
+                    순간 숫자로 바꿔 콤마를 찍는다 — 0 을 다섯 개 세는 일을 없앤다. */}
+                <input value={amount} onChange={(e) => setAmount(e.target.value)}
+                  onBlur={() => { const n = parseAmount(amount); if (n !== null) setAmount(KRW(n)); }}
+                  inputMode="numeric" placeholder="0 · '3만' 도 돼요"
                   className={cn(field, 'pr-8 text-[19px] font-bold tabular-nums')} aria-label="금액" autoFocus={!entryId} />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">원</span>
+              </div>
+              {/* 빠른 키 — 더하기다(덮어쓰기가 아니라). 4,500 에 +1만 은 14,500.
+                  카페 5천, 밥 1만처럼 자주 나오는 자릿수를 손으로 세지 않게. */}
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {[1000, 5000, 10000, 50000].map((step) => (
+                  <button key={step} type="button"
+                    onClick={() => setAmount(KRW((parseAmount(amount) ?? 0) + step))}
+                    className="rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-[hsl(var(--ledger-navy)/0.4)] hover:text-foreground">
+                    +{KRWShort(step)}
+                  </button>
+                ))}
+                {parseAmount(amount) !== null && (
+                  <button type="button" onClick={() => setAmount('')}
+                    className="rounded-md px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground">
+                    지우기
+                  </button>
+                )}
               </div>
             </label>
             <label className="w-[148px] shrink-0">

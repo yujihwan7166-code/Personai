@@ -71,6 +71,65 @@ export const C = {
 
 export const KRW = (n: number) => Math.round(n).toLocaleString('ko-KR');
 
+/**
+ * 좁은 칸(캘린더 한 칸 등)에 들어가는 짧은 금액.
+ *
+ * 예전엔 `23k` 였다. k 는 천 단위 묶음인데 한국어로 돈을 읽을 땐 만 단위로
+ * 끊는다 — 23k 를 보고 '이만 삼천' 이 나오려면 머릿속에서 한 번 바꿔야 한다.
+ * 만·억으로 끊으면 그 변환이 없다.
+ *
+ *   4,500 → 4,500   (만 미만은 그대로 — 축약할 자릿수가 없다)
+ *  23,000 → 2.3만
+ * 560,000 → 56만    (10만 넘으면 소수점은 노이즈)
+ * 1.6억  → 1.6억
+ */
+export const KRWShort = (n: number): string => {
+  const v = Math.round(Math.abs(n));
+  const sign = n < 0 ? '-' : '';
+  if (v < 10_000) return sign + v.toLocaleString('ko-KR');
+  if (v < 100_000_000) {
+    const man = v / 10_000;
+    // 10만 미만만 소수 한 자리 — 그 위로는 소수점이 정보가 아니라 자리만 먹는다
+    return `${sign}${man < 10 ? String(Math.round(man * 10) / 10) : String(Math.round(man))}만`;
+  }
+  const eok = v / 100_000_000;
+  return `${sign}${eok < 10 ? String(Math.round(eok * 10) / 10) : String(Math.round(eok))}억`;
+};
+
+/**
+ * 사람이 친 것을 금액으로 읽는다.
+ *
+ * 돈을 말할 때 한국어는 만 단위로 끊는다 — "삼만 원", "십오만 원". 그런데 입력칸은
+ * 0 을 다섯 개 세라고 요구했다. 세다 하나 틀리면 3,000 이 30,000 이 된다.
+ * 말하는 대로 칠 수 있게 만·천·억을 받는다.
+ *
+ *   30000  → 30000        1.5만  → 15000
+ *   3만    → 30000        2천    → 2000
+ *   3만5천 → 35000        1억    → 100000000
+ *   1,200원 → 1200        (콤마·공백·'원' 은 무시)
+ *
+ * 못 읽으면 null — 부르는 쪽이 '안 바꾼다' 를 고를 수 있게 0 을 돌려주지 않는다.
+ */
+export function parseAmount(raw: string): number | null {
+  const s = (raw ?? '').replace(/[,\s원]/g, '');
+  if (!s) return null;
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s));
+
+  const UNIT: Record<string, number> = { 억: 100_000_000, 만: 10_000, 천: 1_000, 백: 100 };
+  const re = /(\d+(?:\.\d+)?)([억만천백]?)/g;
+  let total = 0;
+  let matched = false;
+  let cursor = 0;
+  for (let m = re.exec(s); m; m = re.exec(s)) {
+    if (m.index !== cursor) return null;      // 숫자·단위 아닌 글자가 끼면 포기
+    cursor = m.index + m[0].length;
+    matched = true;
+    total += Number(m[1]) * (UNIT[m[2]] ?? 1);
+  }
+  if (!matched || cursor !== s.length) return null;
+  return Math.round(total);
+}
+
 /** 도넛·막대의 카테고리 색 순서 — 남색 계열 명도 사다리. */
 export const SLICE_COLORS = [
   v('navy'), v('navy-mid'), v('navy-pale'), v('navy-faint'), '#DDE1EA', '#EAECF1',

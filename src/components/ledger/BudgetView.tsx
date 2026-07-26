@@ -11,13 +11,13 @@ import type { LedgerData } from '@/hooks/useLedger';
 import { ledgerStore, todayKey } from '@/services/ledgerStore';
 import { budgetBasis, bucketSpent, monthOf } from '@/lib/ledger/stats';
 import type { BudgetBucket } from '@/types/ledger';
-import { C, KRW } from './theme';
+import { C, KRW, parseAmount } from './theme';
 
 /** 배분 막대 색 — 버킷 수가 정해져 있지 않으므로 순서대로 돌려 쓴다. */
 const ALLOC_RING = [C.navy, C.navyMid, C.navyPale, '#7C8AA6', '#A9B4C6', '#5C6B86'];
 
 /** 요약 숫자 한 칸 — 이름 위, 금액 아래. 셋이 나란히 서야 크기가 서로를 설명한다. */
-function Figure({ label, value, tone, big, note }: { label: string; value: number; tone: string; big?: boolean; note?: string }) {
+function Figure({ label, value, tone, big }: { label: string; value: number; tone: string; big?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, paddingRight: 4 }}>
       <span style={{ fontSize: 11.5, fontWeight: 650, color: C.muted2 }}>{label}</span>
@@ -27,7 +27,6 @@ function Figure({ label, value, tone, big, note }: { label: string; value: numbe
         </span>
         <span style={{ fontSize: big ? 14 : 12, fontWeight: 650, color: tone, opacity: 0.7 }}>원</span>
       </span>
-      {note && <span style={{ fontSize: 11, fontWeight: 600, color: C.muted2, fontVariantNumeric: 'tabular-nums' }}>{note}</span>}
     </div>
   );
 }
@@ -60,7 +59,7 @@ export function BudgetView({ data }: { data: LedgerData }) {
   const basis = useMemo(() => budgetBasis(entries, month, categories, 3, BUCKETS), [entries, month, categories, BUCKETS]);
 
   const commit = (next: Record<string, string>) => {
-    const num = (s: string) => { const n = Number((s ?? '').replace(/[^\d]/g, '')); return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined; };
+    const num = (s: string) => { const n = parseAmount(s ?? ''); return n && n > 0 ? n : undefined; };
     ledgerStore.setBudgets(Object.fromEntries(BUCKETS.map((b) => [b, num(next[b])])));
   };
   const setValue = (b: BudgetBucket, v: number) => {
@@ -105,26 +104,23 @@ export function BudgetView({ data }: { data: LedgerData }) {
             견줄 수 없는 숫자였다. */}
       </div>
 
-      {/* 배분 */}
-      <div style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 14.5, fontWeight: 650 }}>배분</span>
-          {/* '수입 N원 기준'은 확정 월수입처럼 읽혔지만 실제로는 당월 제외 · 기록 있는 달 평균이다.
-              금액은 머리가 말하니 여기는 출처를 말한다. */}
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.muted2 }}>
-            {basis.avgIncome > 0 ? `수입은 기록 있는 최근 ${basis.monthsWithData}달 평균` : '수입 기록 없음'}
-          </span>
-        </div>
-        {/* ① 숫자 셋 — 예산 · 쓴 돈 · 남은 예산. 셋이 나란해야 크기가 서로를 설명한다.
-            예산만 크게 두는 건 그것이 나머지 둘의 분모이기 때문. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '8px 30px' }}>
+      {/* 이번 달 요약 — 카드 제목이 없다.
+          '배분'이라는 머리가 붙어 있었는데, 이 카드가 하는 말의 대부분은 배분이
+          아니라 총액·진행이고 배분은 맨 아랫줄 한 줄이다. 제목이 내용과 어긋나면
+          제목이 길잡이가 아니라 소음이 된다. 방 이름(예산)은 이미 머리에 있다.
+          '수입 기록 없음'도 걷었다 — 있지도 않은 것에 대한 안내라 자리만 먹었고,
+          수입이 있을 때의 출처 표시는 실제로 쓰이는 자리(맨 아래)로 내려보냈다. */}
+      <div style={{ border: `1px solid ${C.line}`, borderRadius: 14, background: C.card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 13 }}>
+        {/* ① 숫자 셋 — 예산 · 쓴 돈 · 남은 예산. 아래 막대의 눈금이 되는 값들이라
+            베이스라인을 맞춰 한 줄로 세운다. 예전엔 셋째 칸에만 설명이 한 줄 더
+            달려 줄이 들쭉날쭉했다 — 그 문장은 막대 밑 캡션으로 내려보냈다. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '10px 32px' }}>
           <Figure label="이번 달 예산" value={planned} big tone={C.ink} />
           <Figure label="쓴 돈" value={spentAll} tone={C.ink3} />
           <Figure
             label={remainAll >= 0 ? '남은 예산' : '예산 초과'}
             value={Math.abs(remainAll)}
             tone={remainAll >= 0 ? C.green : C.red}
-            note={planned > 0 && remainAll > 0 && dailyAll >= 100 ? `남은 ${leftDays}일 · 하루 ${KRW(dailyAll)}원` : undefined}
           />
         </div>
 
@@ -145,8 +141,11 @@ export function BudgetView({ data }: { data: LedgerData }) {
               }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: 11.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              {/* '예산의 N% 씀'은 바로 위 막대가 길이로 말한 것과 같은 말이라 뺐다.
+                  대신 남은 예산 아래에 매달려 줄을 흐트러뜨리던 하루치를 여기 붙인다. */}
               <span style={{ color: C.muted2 }}>
-                {dayOfMonth}/{daysInMonth}일 지남 · 예산의 {usedPct}% 씀
+                {daysInMonth - dayOfMonth}일 남음
+                {remainAll > 0 && dailyAll >= 100 ? ` · 하루 ${KRW(dailyAll)}원씩` : ''}
               </span>
               {/* 속도 배지 — 금액이 아니라 '기준선과 얼마나 떨어져 있나' 라는 새 사실 */}
               <span style={{
@@ -184,9 +183,14 @@ export function BudgetView({ data }: { data: LedgerData }) {
 
         {basis.avgIncome > 0 && (
           /* '남은 예산'(예산−쓴돈)과 헷갈리지 않게 이름을 바꿨다 — 이건 수입에서
-             예산으로 떼지 않고 남긴 몫이다. */
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 10, borderTop: `1px solid ${C.lineFaint}`, fontSize: 12, fontWeight: 650, color: afterBudget >= 0 ? C.green : C.red }}>
-            {afterBudget >= 0 ? `예산에 안 넣은 수입 ${KRW(afterBudget)}원` : `수입보다 ${KRW(-afterBudget)}원 많이 잡음`}
+             예산으로 떼지 않고 남긴 몫이다.
+             기준 출처(최근 N달 평균)는 카드 머리가 아니라 여기 붙인다 — 그 숫자를
+             쓰는 유일한 문장이 이 문장이라서. */
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 7, paddingTop: 10, borderTop: `1px solid ${C.lineFaint}` }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: C.muted2 }}>최근 {basis.monthsWithData}달 평균 수입 기준</span>
+            <span style={{ fontSize: 12, fontWeight: 650, color: afterBudget >= 0 ? C.green : C.red }}>
+              {afterBudget >= 0 ? `예산에 안 넣은 수입 ${KRW(afterBudget)}원` : `수입보다 ${KRW(-afterBudget)}원 많이 잡음`}
+            </span>
           </div>
         )}
       </div>
@@ -285,13 +289,21 @@ export function BudgetView({ data }: { data: LedgerData }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 44, padding: '0 14px', border: `1px solid ${C.lineInput}`, borderRadius: 10, background: C.cardAlt }}>
                 {/* type=number 였다 — 화면에서 유일하게 콤마가 없었고, 포커스 상태로 스크롤하면
                     휠이 값을 바꿔버렸다. 자릿수 콤마는 방 관례(내역·자산과 동일). */}
+                {/* 숫자만 받던 칸이었다 — '50만' 을 치면 글자가 씹혀 505 가 됐다.
+                    치는 동안은 그대로 두고(만·천을 칠 수 있게), 칸을 벗어날 때 읽어
+                    콤마 찍은 숫자로 바꾼다. */}
                 <input
                   inputMode="numeric" value={draft[b] ?? ''} aria-label={`${labelOf.get(b) ?? b} 월 예산`}
+                  placeholder="0 · '50만' 도 돼요"
                   onChange={(e) => {
-                    const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 12);
-                    setDraft((d) => ({ ...d, [b]: digits ? Number(digits).toLocaleString('ko-KR') : '' }));
+                    const v = e.target.value.slice(0, 16);
+                    setDraft((d) => ({ ...d, [b]: v }));
                   }}
-                  onBlur={() => commit(draft)}
+                  onBlur={() => {
+                    const n = parseAmount(draft[b] ?? '');
+                    const next = { ...draft, [b]: n === null ? '' : KRW(n) };
+                    setDraft(next); commit(next);
+                  }}
                   style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 19, fontWeight: 700, textAlign: 'right', color: C.ink, fontVariantNumeric: 'tabular-nums' }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 650, color: C.muted }}>원</span>
