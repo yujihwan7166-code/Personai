@@ -1599,9 +1599,11 @@ export default function Wiki() {
 
           {/* 찾기는 제 줄을 갖는다 — 서재 전체를 훑는 일이라 '이 책장을 이렇게 보자'
               (꽂는 순서·새 책)와 층이 다르다. 셋을 한 줄에 늘어놓으면 층이 뭉개진다.
-              폭은 280px — 왼쪽 끝에 짧게 선다. 줄을 다 채우면 검색이 이 화면의
-              머리인 것처럼 커져서, 정작 머리인 '나의 서재' 를 누른다. */}
-          <div className="mb-3.5">{searchField('w-[280px] max-w-full')}</div>
+              폭은 280px, 오른쪽 끝. 줄을 다 채우면 검색이 이 화면의 머리인 것처럼
+              커져서 정작 머리인 '나의 서재' 를 누른다. 오른쪽에 세우는 건 바로 아래
+              [꽂는 순서][＋ 새 책] 과 같은 변에 서기 위해서다 — 도구는 도구끼리
+              한쪽에 모여야 본문(제목·책장)의 왼쪽 흐름이 끊기지 않는다. */}
+          <div className="mb-3.5 flex justify-end">{searchField('w-[280px] max-w-full')}</div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
             <h1 className="m-0 shrink-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 38 }}>나의 서재</h1>
