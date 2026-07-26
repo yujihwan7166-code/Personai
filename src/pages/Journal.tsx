@@ -214,24 +214,12 @@ function entryHaystack(e: JournalEntry): string {
     .filter(Boolean).join(' ');
 }
 
-/** 결과 줄에 보여줄 한 조각 — 찾은 말이 있는 자리를 잘라 온다. */
-function searchSnippet(e: JournalEntry, q: string): string {
-  const body = (e.summary || e.body || '').replace(/\s+/g, ' ').trim();
-  if (!body) return (e.tags ?? []).map((t) => `#${t}`).join(' ');
-  const word = q.trim().split(/\s+/)[0] ?? '';
-  const at = word ? body.toLowerCase().indexOf(word.toLowerCase()) : -1;
-  if (at < 0) return body.slice(0, 46);
-  const from = Math.max(0, at - 12);
-  return `${from > 0 ? '…' : ''}${body.slice(from, from + 46)}`;
-}
-
 export default function Journal() {
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
 
   const [tab, setTab] = useState<Tab>('write');
   const [jq, setJq] = useState('');            // 머리 오른쪽 찾기
-  const [searchOpen, setSearchOpen] = useState(false); // 접힌 알약 ↔ 펼친 입력칸
   const [tripToOpen, setTripToOpen] = useState<string | null>(null);
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
@@ -376,14 +364,6 @@ export default function Journal() {
   // 파생
   const feed = useMemo(() => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)), [allEntries]);
 
-  /* 찾기 — 제목·본문·요약·태그·BGM 을 함께 훑는다.
-     (먹은 것·간 곳은 별도 저장소라 여기선 빼둔다 — 그쪽은 푸드 로드·나의 지도에
-      제 화면이 있다) */
-  const searchHits = useMemo(() => {
-    const q = jq.trim();
-    if (!q) return [];
-    return feed.filter((e) => tokenMatchAll(entryHaystack(e), q)).slice(0, 12);
-  }, [feed, jq]);
   /* ── 플래시백 ──
    * 예전엔 규칙 6개가 각각 한 편만 물고 있는 균일 카드 그리드였다. 문제가 셋이었다.
    *  ① 기록이 적으면 절반이 "없어요"로 죽은 타일이 된다
@@ -521,9 +501,14 @@ export default function Journal() {
   const todayLabelFull = `${nowD.getFullYear()}년 ${nowD.getMonth() + 1}월 ${nowD.getDate()}일 ${WEEKDAY[nowD.getDay()]}요일`;
   const hasTodayEntry = allEntries.some((e) => e.date === todayKey);
   const weekAgoKey = dateKey(new Date(Date.now() - 6 * 86400000));
-  const recentEntries = feed.filter((e) =>
-    recentFilter === 'photo' ? (e.images?.length ?? 0) > 0 : recentFilter === 'week' ? e.date >= weekAgoKey : true,
-  );
+  /* 전체/이번 주/사진 필터 위에 검색어를 AND 로 얹는다 — 검색이 목록을 대체하는
+     게 아니라 좁히는 것이라, 필터를 켜둔 채로 그 안에서 찾을 수 있다. */
+  const recentEntries = useMemo(() => {
+    const q = jq.trim();
+    return feed
+      .filter((e) => (recentFilter === 'photo' ? (e.images?.length ?? 0) > 0 : recentFilter === 'week' ? e.date >= weekAgoKey : true))
+      .filter((e) => (q ? tokenMatchAll(entryHaystack(e), q) : true));
+  }, [feed, recentFilter, weekAgoKey, jq]);
   /** 히어로 — 최근 7일 리듬 스트립: 날짜별 기분·기록 여부 (오늘 강조). */
   const weekStrip = useMemo(() => {
     const [ty, tm, td] = todayKey.split('-').map(Number);
@@ -637,91 +622,22 @@ export default function Journal() {
               );
             })}
           </div>
-          {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김).
-              찾기는 이 줄의 오른쪽 끝에 선다. 사이드바에 뒀을 땐 방 이름 바로 아래라
-              '이 방을 검색' 인지 '메뉴를 검색' 인지 애매했고, 결과가 메뉴를 밀어내
-              어디를 보고 있었는지 잃었다. 여기 두면 지금 보고 있는 화면의 도구로 읽히고
-              결과도 화면 위로 떠서 아무것도 밀지 않는다. */}
+          {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
-            <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-3', tab === 'trips' ? 'mb-4' : tab === 'write' ? 'mb-5' : 'mb-6')}>
-              {tab === 'write' ? (
-                <div key={selectedDate} className="min-w-0 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
-                  <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
-                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
-                    <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
-                  </div>
+            tab === 'write' ? (
+              <div key={selectedDate} className="mb-5 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+                <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
+                <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                  <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
                 </div>
-              ) : tab === 'trips' ? (
-                <span />
-              ) : (
-                <div className="min-w-0">
-                  <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
-                  <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
-                </div>
-              )}
-
-              {/* 찾기 — 평소엔 접힌 알약, 누르면 펼쳐진다.
-                  늘 열어두면 머리에서 제목만큼 넓은 자리를 차지하는데, 검색은 가끔
-                  쓰는 도구다. 결과는 아래로 떠서(absolute) 본문을 밀지 않는다. */}
-              <div className="relative shrink-0">
-                {searchOpen || jq ? (
-                  <>
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8078a3]" />
-                    <input
-                      autoFocus
-                      value={jq}
-                      onChange={(e) => setJq(e.target.value)}
-                      onBlur={() => { if (!jq) setSearchOpen(false); }}
-                      onKeyDown={(e) => { if (e.key === 'Escape') { setJq(''); setSearchOpen(false); (e.target as HTMLInputElement).blur(); } }}
-                      placeholder="기록에서 찾기"
-                      aria-label="기록 검색"
-                      className="h-[38px] w-[240px] rounded-[9px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] pl-[30px] pr-8 text-[13.5px] text-[#191c20] outline-none transition-shadow placeholder:text-[#a19bbb] focus:border-transparent focus:shadow-[0_0_0_2px_hsl(var(--cream-accent)/0.4)] dark:text-[hsl(var(--cream-ink))]"
-                    />
-                    {jq && (
-                      <button type="button" aria-label="검색 지우기" onMouseDown={(e) => e.preventDefault()} onClick={() => { setJq(''); setSearchOpen(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8078a3] hover:text-[#191c20]">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(true)}
-                    className="flex h-[38px] items-center gap-1.5 rounded-[9px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 text-[13.5px] font-medium text-[#6b6493] transition-colors hover:border-[hsl(var(--cream-accent)/0.5)] hover:text-[#191c20]"
-                  >
-                    <Search className="h-3.5 w-3.5" /> 찾기
-                  </button>
-                )}
-
-                {jq.trim() && (
-                  <div className="absolute right-0 top-[44px] z-40 w-[340px] overflow-hidden rounded-[12px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] shadow-[0_18px_40px_-20px_rgba(40,30,80,0.45)]">
-                    {searchHits.length === 0 ? (
-                      <p className="px-4 py-5 text-center text-[12.5px] text-[#8078a3]">찾는 기록이 없어요</p>
-                    ) : (
-                      <ul className="max-h-[52vh] overflow-y-auto p-1.5">
-                        {searchHits.map((e) => (
-                          <li key={e.id}>
-                            <button
-                              type="button"
-                              onMouseDown={(ev) => ev.preventDefault()}
-                              onClick={() => { openEntry(e.date); setJq(''); setSearchOpen(false); }}
-                              className="flex w-full flex-col gap-0.5 rounded-[8px] px-3 py-2 text-left transition-colors hover:bg-[hsl(var(--cream-accent)/0.12)]"
-                            >
-                              <span className="flex items-baseline gap-1.5">
-                                <span className="shrink-0 text-[11px] font-bold tabular-nums text-[hsl(var(--cream-accent))]">{e.date.slice(5).replace('-', '.')}</span>
-                                <span className="min-w-0 truncate text-[13px] font-semibold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{e.title?.trim() || '무제'}</span>
-                              </span>
-                              <span className="truncate text-[11.5px] text-[#8078a3]">{searchSnippet(e, jq)}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
+            ) : tab === 'trips' ? null : (
+              <div className="mb-6">
+                <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
+                <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
+              </div>
+            )
           )}
 
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
@@ -757,9 +673,13 @@ export default function Journal() {
                 </div>
               </div>
 
-              {/* 최근 기록 + 필터 */}
+              {/* 최근 기록 + 필터 + 찾기.
+                  찾기가 여기 있는 이유 — 아카이브·인맥노트도 검색은 도구 줄 오른쪽
+                  끝에 늘 펼쳐진 채로 있고, 결과는 따로 뜨지 않고 그 아래 목록을
+                  좁힌다. 방마다 검색이 다른 모양이면 방을 옮길 때마다 다시 찾게 된다.
+                  덤으로 전체/이번 주/사진 필터와 자연스럽게 겹쳐 걸린다. */}
               <div>
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2.5">
                   <h3 className="text-[17px] font-bold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">최근 기록</h3>
                   <span className="flex-1" />
                   {/* 예시로 갈아 끼우기 — 되돌릴 수 없어서 반드시 한 번 묻는다.
@@ -792,11 +712,34 @@ export default function Journal() {
                       </button>
                     ))}
                   </div>
+                  {/* 찾기 — 아카이브·인맥노트와 같은 모양(늘 열린 칸 + 왼쪽 아이콘) */}
+                  <label className="inline-flex h-[36px] w-[240px] max-w-full items-center gap-2 rounded-[8px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 text-[13.5px] transition-colors focus-within:border-[hsl(var(--cream-accent))]">
+                    <Search className="h-[15px] w-[15px] shrink-0 text-[#a19bbb]" />
+                    <input
+                      value={jq}
+                      onChange={(e) => setJq(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setJq(''); }}
+                      placeholder="제목·본문·태그 검색"
+                      aria-label="기록 검색"
+                      className="min-w-0 flex-1 bg-transparent text-[#191c20] outline-none placeholder:text-[#a19bbb] dark:text-[hsl(var(--cream-ink))]"
+                    />
+                    {jq && (
+                      <button type="button" onClick={() => setJq('')} aria-label="검색어 지우기" className="shrink-0 text-[#a19bbb] transition-colors hover:text-[#191c20]">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </label>
                 </div>
 
                 {recentEntries.length === 0 ? (
                   <div className="rounded-[22px] border border-dashed border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))]/50 py-14 text-center">
-                    <p className="text-[13px] text-[hsl(var(--cream-muted))]">{feed.length === 0 ? '아직 기록이 없어요. 위에서 오늘 하루를 남겨보세요.' : '이 조건에 맞는 기록이 없어요.'}</p>
+                    {/* 검색 중일 땐 무엇으로 찾았는지 되짚어 준다 — '이 조건' 이라고만
+                        하면 필터 때문인지 검색어 때문인지 알 수 없다. */}
+                    <p className="text-[13px] text-[hsl(var(--cream-muted))]">
+                      {feed.length === 0 ? '아직 기록이 없어요. 위에서 오늘 하루를 남겨보세요.'
+                        : jq.trim() ? `‘${jq.trim()}’ 로 찾은 기록이 없어요.`
+                        : '이 조건에 맞는 기록이 없어요.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
