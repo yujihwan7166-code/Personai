@@ -12,6 +12,8 @@ import {
   DEFAULT_COLLECTION_SEEDS,
   FALLBACK_COLLECTION_KEY,
   FALLBACK_COLLECTION_NAME,
+  itemAttachments,
+  type ArchiveAttachment,
   type ArchiveCollection,
   type ArchiveFieldValue,
   type ArchiveItem,
@@ -148,6 +150,7 @@ export interface AddArchiveItemInput {
   domain?: string;
   tags?: string[];
   fields?: ArchiveFieldValue[];
+  attachments?: ArchiveAttachment[];
   blobRef?: string;
   fileName?: string;
   mimeType?: string;
@@ -281,7 +284,9 @@ export const archiveStore = {
   removeItem(id: string): void {
     const all = readItems();
     const target = all.find((e) => e.id === id);
-    if (target?.blobRef) void deleteArchiveBlob(target.blobRef);
+    /* 첨부가 여럿이 된 뒤로 blobRef 하나만 지우면 나머지가 IndexedDB 에 남는다 —
+       화면 어디에서도 못 보는 파일이 용량만 먹는다. 목록 전체를 지운다. */
+    if (target) for (const a of itemAttachments(target)) void deleteArchiveBlob(a.ref);
     safeWrite(all.filter((e) => e.id !== id), null);
   },
 
@@ -342,9 +347,7 @@ export const archiveStore = {
       }
     }
     // 메타를 지우기 전에 blobRef 를 모아둬야 원본을 찾을 수 있다.
-    for (const ref of readItems().map((e) => e.blobRef).filter(Boolean)) {
-      void deleteArchiveBlob(ref as string);
-    }
+    for (const it of readItems()) for (const a of itemAttachments(it)) void deleteArchiveBlob(a.ref);
     safeWrite([], []);
   },
 };

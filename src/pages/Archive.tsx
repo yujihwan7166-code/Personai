@@ -141,8 +141,8 @@ export default function Archive() {
       const t = e.target as HTMLElement | null;
       // 입력 중인 붙여넣기는 건드리지 않는다 (검색창·태그 입력 등).
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      const file = e.clipboardData?.files?.[0];
-      if (file) { e.preventDefault(); openNew({ file }); return; }
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length) { e.preventDefault(); openNew({ files }); return; }
       const text = e.clipboardData?.getData('text/plain')?.trim();
       if (text && looksLikeUrl(text)) { e.preventDefault(); openNew({ url: text }); }
     };
@@ -166,8 +166,8 @@ export default function Archive() {
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file) openNew({ file });
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length) openNew({ files });
   };
 
   /* 드래그를 창 밖으로 빼면 마지막 dragleave 가 안 오는 브라우저가 있다 —
@@ -210,6 +210,9 @@ export default function Archive() {
    * 메이슨리는 여는 순간 "최종 폭"으로 즉시 고정 + FLIP 글라이드 → 패널 슬라이드와 카드 이동이
    * 같은 320ms 에 동시에 일어난다(순차 아님). 끝나면 폭 고정만 해제(자연 폭 = 고정 폭, 점프 없음). */
   const PANEL_W = 400;
+  /* 패널 슬라이드 시간 — index.css 의 .arch-detail-in/out, useFlipGrid 의 DUR 과
+     같은 값이어야 한다. 셋이 어긋나면 한 동작이 두세 사건으로 쪼개져 보인다. */
+  const PANEL_ANIM = 340;
   const isLg = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
   const beginShift = (delta: number) => {
     const w = bodyRef.current?.offsetWidth;
@@ -223,14 +226,16 @@ export default function Archive() {
     beginShift(-PANEL_W);
     setSelectedId(id);
     setGridOpen(true);
-    settleTimer.current = window.setTimeout(() => setFrozenW(null), 340);
+    settleTimer.current = window.setTimeout(() => setFrozenW(null), PANEL_ANIM);
   };
   const closeDetail = () => {
     if (!selectedId || !gridOpen) return;
     if (settleTimer.current) window.clearTimeout(settleTimer.current);
     beginShift(PANEL_W);
     setGridOpen(false);
-    settleTimer.current = window.setTimeout(() => { setSelectedId(null); setFrozenW(null); }, 330);
+    /* 패널 애니메이션이 끝나는 그 프레임에 언마운트한다. 예전엔 패널이 190ms 에
+       사라지고 카드는 330ms 동안 움직여, 그 사이 오른쪽에 흰 구멍이 벌어졌다. */
+    settleTimer.current = window.setTimeout(() => { setSelectedId(null); setFrozenW(null); }, PANEL_ANIM);
   };
   useEffect(() => () => { if (settleTimer.current) window.clearTimeout(settleTimer.current); }, []);
   /** 필터·뷰 변경도 카드 글라이드 대상 — setState 직전 캡처. */

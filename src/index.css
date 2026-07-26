@@ -2905,17 +2905,26 @@
 }
 
 /* 아카이브 상세 패널 — 오른쪽에서 부드럽게 도착(transform만, 레이아웃 재배치 없음) */
+/* 상세 패널 여닫기 — 카드 FLIP(useFlipGrid: 340ms cubic-bezier(.22,1,.36,1))과
+   같은 시계·같은 곡선을 쓴다. 한 동작에 시계가 둘이면 두 사건으로 보인다.
+
+   예전엔 카드가 400px 를 340ms 에 걸쳐 미끄러지는 동안 패널은 26px 만 움직이며
+   320ms 에 흐려 들어왔고(들어올 때), 나갈 땐 190ms 짜리 가속 곡선으로 카드보다
+   한참 먼저 사라져 흰 구멍이 남았다.
+
+   이제 패널은 제 폭만큼(100%) 통째로 밀려 들어오고 밀려 나간다 — 옆으로 밀리는
+   카드와 같은 방향, 같은 속도. 투명도는 건드리지 않는다. 슬라이드오버는 스며드는
+   물건이 아니라 밀려 들어오는 판이다. */
 @keyframes arch-detail-in {
-  from { opacity: 0; transform: translateX(26px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
-.arch-detail-in { animation: arch-detail-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-/* 닫기 — 오른쪽으로 미끄러져 퇴장 (끝나면 부모가 언마운트 + 카드 FLIP 글라이드) */
+.arch-detail-in { animation: arch-detail-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes arch-detail-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(26px); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
 }
-.arch-detail-out { animation: arch-detail-out 190ms cubic-bezier(0.4, 0, 1, 1) both; }
+.arch-detail-out { animation: arch-detail-out 340ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) {
   .arch-detail-in, .arch-detail-out { animation: none; }
 }

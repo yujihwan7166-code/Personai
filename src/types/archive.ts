@@ -36,6 +36,42 @@ export interface ArchiveFieldValue {
   value: string;
 }
 
+/** 첨부 한 개. 항목 하나에 여럿 붙을 수 있다. */
+export interface ArchiveAttachment {
+  /** archiveBlobStore id */
+  ref: string;
+  name: string;
+  mimeType: string;
+  size: number;
+}
+
+/**
+ * 첨부 한계 — 개수와 용량을 함께 건다.
+ *
+ * 개수만 막으면 50MB 짜리 열 개가 들어와 항목 하나가 500MB 가 되고,
+ * 용량만 막으면 1KB 짜리 수백 개가 들어와 상세 패널이 파일 탐색기가 된다.
+ * 둘 다 사람이 셀 수 있는 선에서 끊는다 — 영수증 여러 장·사진 묶음 정도.
+ */
+export const ATTACH_LIMITS = {
+  COUNT: 10,
+  TOTAL_BYTES: 200 * 1024 * 1024, // 항목 하나 합계 200MB
+} as const;
+
+/**
+ * 항목의 첨부 목록. 옛 항목은 blobRef 한 개만 갖고 있으므로 그걸 첫 첨부로 읽는다
+ * — 저장된 데이터를 건드려 옮기지 않는다(마이그레이션은 되돌릴 수 없다).
+ */
+export function itemAttachments(item: Pick<ArchiveItem, 'attachments' | 'blobRef' | 'fileName' | 'mimeType' | 'size'>): ArchiveAttachment[] {
+  if (item.attachments?.length) return item.attachments;
+  if (!item.blobRef) return [];
+  return [{
+    ref: item.blobRef,
+    name: item.fileName ?? '첨부',
+    mimeType: item.mimeType ?? 'application/octet-stream',
+    size: item.size ?? 0,
+  }];
+}
+
 export interface ArchiveItem {
   id: string;
   /** 소속 컬렉션. */
@@ -53,7 +89,10 @@ export interface ArchiveItem {
   tags: string[];
   /** 레거시 추가 필드 — 읽기 전용. {@link ArchiveFieldValue} */
   fields?: ArchiveFieldValue[];
-  /** 파일·이미지 원본 (archiveBlobStore id). */
+  /** 첨부 여럿. 새로 저장되는 항목은 늘 이쪽을 쓴다. {@link itemAttachments} */
+  attachments?: ArchiveAttachment[];
+  /** 첨부 하나만 붙던 시절의 필드 — 읽기 호환용으로 남긴다.
+   *  새 항목도 첫 첨부를 여기에 함께 적어 둔다(카드 썸네일·검색이 이 필드를 본다). */
   blobRef?: string;
   fileName?: string;
   mimeType?: string;

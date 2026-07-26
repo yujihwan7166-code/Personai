@@ -8,14 +8,16 @@ import { createPortal } from 'react-dom';
 import { X, Upload, Link2, Loader2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
-import { extractDomain, deriveKind, type ArchiveCollection } from '@/types/archive';
+import { extractDomain, deriveKind, ATTACH_LIMITS, type ArchiveAttachment, type ArchiveCollection } from '@/types/archive';
 import { archiveStore } from '@/services/archiveStore';
 import { putArchiveBlob, dataUrlToBlob } from '@/lib/archiveBlobStore';
 import { compressImage } from '@/lib/journalImage';
+import { formatFileSize } from '@/lib/fileSize';
 
 /** 파일 드롭·URL 붙여넣기로 열 때 미리 채워둘 내용. */
 export interface ArchiveDraft {
-  file?: File;
+  /** 드롭·붙여넣기로 들어온 파일들 (예전엔 하나였다). */
+  files?: File[];
   url?: string;
   note?: string;
 }
@@ -32,11 +34,20 @@ interface Props {
   draft?: ArchiveDraft;
 }
 
+interface Attached { file: File; isImage: boolean; previewUrl?: string }
+
+function toAttached(file: File): Attached {
+  const isImage = file.type.startsWith('image/');
+  return { file, isImage, previewUrl: isImage ? URL.createObjectURL(file) : undefined };
+}
+
 export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollectionId, allTags, draft }: Props) {
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [url, setUrl] = useState('');
-  const [attached, setAttached] = useState<{ file: File; isImage: boolean; previewUrl?: string } | null>(null);
+  /* 첨부는 여럿. 하나만 받던 시절엔 두 번째 파일을 고르면 첫 파일이 조용히
+     사라졌다 — 영수증 앞뒤, 사진 몇 장처럼 원래 여럿인 것을 담을 수 없었다. */
+  const [attachedList, setAttachedList] = useState<Attached[]>([]);
   const [collectionId, setCollectionId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -46,7 +57,7 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
 
   const reset = () => {
     setTitle(''); setNote(''); setUrl('');
-    setAttached((a) => { if (a?.previewUrl) URL.revokeObjectURL(a.previewUrl); return null; });
+    setAttachedList((list) => { list.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl)); return []; });
     setTags([]); setTagInput('');
     setAddingCollection(false); setNewCollectionName('');
     setSaving(false);
@@ -59,15 +70,10 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
     setCollectionId(defaultCollectionId ?? collections[0]?.id ?? '');
     if (draft?.url) setUrl(draft.url);
     if (draft?.note) setNote(draft.note);
-    if (draft?.file) {
-      const isImage = draft.file.type.startsWith('image/');
-      setAttached((prev) => {
-        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
-        return {
-          file: draft.file as File,
-          isImage,
-          previewUrl: isImage ? URL.createObjectURL(draft.file as File) : undefined,
-        };
+    if (draft?.files?.length) {
+      setAttachedList((prev) => {
+        prev.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl));
+        return (draft.files ?? []).slice(0, ATTACH_LIMITS.COUNT).map(toAttached);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,12 +89,35 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
 
   if (!open) return null;
 
-  const onFilePick = (file?: File) => {
-    if (!file) return;
-    if (attached?.previewUrl) URL.revokeObjectURL(attached.previewUrl);
-    const isImage = file.type.startsWith('image/');
-    setAttached({ file, isImage, previewUrl: isImage ? URL.createObjectURL(file) : undefined });
+  /** 고른 파일들을 목록에 더한다. 개수·합계 용량에서 걸리면 그만큼만 받고 알린다. */
+  const onFilesPick = (files: FileList | File[] | null) => {
+    const picked = Array.from(files ?? []);
+    if (!picked.length) return;
+    setAttachedList((prev) => {
+      const next = [...prev];
+      let total = prev.reduce((s, a) => s + a.file.size, 0);
+      let overCount = 0;
+      let overSize = 0;
+      for (const f of picked) {
+        if (next.length >= ATTACH_LIMITS.COUNT) { overCount += 1; continue; }
+        if (total + f.size > ATTACH_LIMITS.TOTAL_BYTES) { overSize += 1; continue; }
+        next.push(toAttached(f));
+        total += f.size;
+      }
+      if (overCount) notify.info(`첨부는 ${ATTACH_LIMITS.COUNT}개까지예요`, { description: `${overCount}개는 빼고 담았어요` });
+      else if (overSize) notify.info(`한 항목에 ${ATTACH_LIMITS.TOTAL_BYTES / 1024 / 1024}MB 까지예요`, { description: `${overSize}개는 빼고 담았어요` });
+      return next;
+    });
   };
+  const removeAttached = (idx: number) => {
+    setAttachedList((prev) => {
+      const a = prev[idx];
+      if (a?.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const attachedTotal = attachedList.reduce((s, a) => s + a.file.size, 0);
 
   const addTag = (raw: string) => {
     const t = raw.trim().replace(/^#/, '');
@@ -116,32 +145,34 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
   };
 
   const save = async () => {
-    if (!title.trim() && !note.trim() && !url.trim() && !attached) {
+    if (!title.trim() && !note.trim() && !url.trim() && !attachedList.length) {
       notify.info('저장할 내용이 없어요');
       return;
     }
     setSaving(true);
     try {
-      let blobRef: string | undefined;
-      let fileName: string | undefined;
-      let mimeType: string | undefined;
-      let size: number | undefined;
-
-      if (attached) {
-        if (attached.isImage) {
-          const { src } = await compressImage(attached.file);
+      const attachments: ArchiveAttachment[] = [];
+      for (const a of attachedList) {
+        if (a.isImage) {
+          const { src } = await compressImage(a.file);
           const blob = dataUrlToBlob(src);
-          blobRef = await putArchiveBlob(blob, 'image/jpeg');
-          mimeType = 'image/jpeg';
-          fileName = attached.file.name;
-          size = blob.size;
+          attachments.push({ ref: await putArchiveBlob(blob, 'image/jpeg'), name: a.file.name, mimeType: 'image/jpeg', size: blob.size });
         } else {
-          blobRef = await putArchiveBlob(attached.file);
-          mimeType = attached.file.type || 'application/octet-stream';
-          fileName = attached.file.name;
-          size = attached.file.size;
+          attachments.push({
+            ref: await putArchiveBlob(a.file),
+            name: a.file.name,
+            mimeType: a.file.type || 'application/octet-stream',
+            size: a.file.size,
+          });
         }
       }
+      /* 첫 첨부는 옛 단일 필드에도 함께 적는다 — 카드 썸네일·검색이 이 필드를 본다.
+         한쪽만 쓰게 바꾸면 이미 저장된 항목이 안 보이게 된다. */
+      const first = attachments[0];
+      const blobRef = first?.ref;
+      const fileName = first?.name;
+      const mimeType = first?.mimeType;
+      const size = first?.size;
 
       const u = url.trim() || undefined;
       const domain = u ? extractDomain(u) : undefined;
@@ -161,6 +192,7 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
         url: u,
         domain,
         tags,
+        attachments: attachments.length ? attachments : undefined,
         blobRef,
         fileName,
         mimeType,
@@ -283,26 +315,38 @@ export function ArchiveNewItemDialog({ open, onClose, collections, defaultCollec
 
           {/* 파일·사진 */}
           <div>
-            <span className="mb-1.5 block text-[12px] font-semibold text-foreground">
+            <span className="mb-1.5 flex items-baseline gap-2 text-[12px] font-semibold text-foreground">
               파일·사진 <span className="font-normal text-muted-foreground">(선택)</span>
-            </span>
-            {attached ? (
-              <div className="flex items-center gap-3 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5">
-                {attached.isImage && attached.previewUrl ? (
-                  <img src={attached.previewUrl} alt="" className="h-11 w-11 rounded-md object-cover" />
-                ) : (
-                  <span className="flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]"><Upload className="h-5 w-5" /></span>
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-medium text-foreground">{attached.file.name}</span>
-                  <span className="text-[11px] text-muted-foreground">{Math.round(attached.file.size / 1024)} KB</span>
+              {/* 남은 자리는 다 채우기 전엔 말하지 않는다 — 처음부터 '10개까지'라고
+                  적어두면 한 장 넣으려던 사람에게도 한계부터 읽힌다. */}
+              {attachedList.length > 0 && (
+                <span className="ml-auto font-normal tabular-nums text-muted-foreground">
+                  {attachedList.length}/{ATTACH_LIMITS.COUNT} · {formatFileSize(attachedTotal)}
                 </span>
-                <button type="button" onClick={() => onFilePick(undefined)} className="rounded-md p-1 text-muted-foreground hover:bg-accent" aria-label="첨부 제거"><X className="h-4 w-4" /></button>
-              </div>
-            ) : (
+              )}
+            </span>
+            {attachedList.length > 0 && (
+              <ul className="mb-1.5 space-y-1.5">
+                {attachedList.map((a, i) => (
+                  <li key={`${a.file.name}-${i}`} className="flex items-center gap-3 rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] p-2.5">
+                    {a.isImage && a.previewUrl ? (
+                      <img src={a.previewUrl} alt="" className="h-11 w-11 rounded-md object-cover" />
+                    ) : (
+                      <span className="flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--archive-sepia)/0.12)] text-[hsl(var(--archive-sepia))]"><Upload className="h-5 w-5" /></span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12.5px] font-medium text-foreground">{a.file.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{formatFileSize(a.file.size)}</span>
+                    </span>
+                    <button type="button" onClick={() => removeAttached(i)} className="rounded-md p-1 text-muted-foreground hover:bg-accent" aria-label={`${a.file.name} 빼기`}><X className="h-4 w-4" /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {attachedList.length < ATTACH_LIMITS.COUNT && (
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[hsl(var(--input))] bg-[hsl(var(--surface-2))] px-3 py-3 text-[12.5px] text-muted-foreground transition-colors hover:border-[hsl(var(--archive-sepia)/0.5)] hover:text-foreground">
-                <Upload className="h-4 w-4" /> 파일·사진 첨부
-                <input type="file" className="hidden" onChange={(e) => onFilePick(e.target.files?.[0] ?? undefined)} />
+                <Upload className="h-4 w-4" /> {attachedList.length ? '더 붙이기' : '파일·사진 첨부'}
+                <input type="file" multiple className="hidden" onChange={(e) => { onFilesPick(e.target.files); e.target.value = ''; }} />
               </label>
             )}
           </div>
