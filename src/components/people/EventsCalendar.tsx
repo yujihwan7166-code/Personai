@@ -12,10 +12,6 @@ import { RELATION_META, nextOccurrence, type Person } from '@/types/people';
 
 type EventType = 'birthday' | 'anniversary' | 'etc';
 const TYPE_BG: Record<EventType, string> = { birthday: '#b45309', anniversary: '#8a5a3b', etc: '#a2a8b0' };
-/* 칸 안에 놓을 때 쓰는 옅은 짝 — 작은 칩을 진한 면으로 채우면 달력이 아니라
-   경고판이 된다. 색은 왼쪽 막대와 글자만 갖고, 면은 물러난다. */
-const TYPE_SOFT: Record<EventType, string> = { birthday: '#fbeee0', anniversary: '#f3ece5', etc: '#eff1f3' };
-const TYPE_INK: Record<EventType, string> = { birthday: '#8f4207', anniversary: '#6b4630', etc: '#5f666e' };
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 const WD_SHORT = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -109,15 +105,12 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
       <div className="flex flex-col items-stretch gap-6 lg:flex-row">
         {/* ── 캘린더 ── */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-[#e9e2d2] bg-white">
-          {/* 요일 머리 — 칸마다 세로선을 긋고 있었다. 아래 격자와 합쳐지면 달력이
-              아니라 표가 된다. 이 방의 다른 화면은 전부 '크림 위 카드' 문법이라
-              선이 아니라 여백으로 칸을 나눈다. */}
           <div className="grid grid-cols-7 border-b border-[#f0ebdf]">
             {WEEKDAYS.map((w, i) => (
-              <span key={w} className={cn('py-2.5 text-center text-[12px] font-semibold', i === 0 ? 'text-[#c08585]' : i === 6 ? 'text-[#8a9bc9]' : 'text-[#9aa1ab]')}>{w}</span>
+              <span key={w} className={cn('border-r border-[#f5f1e7] py-2.5 text-center text-[12px] font-semibold last:border-r-0', i === 0 ? 'text-[#c08585]' : i === 6 ? 'text-[#8a9bc9]' : 'text-[#9aa1ab]')}>{w}</span>
             ))}
           </div>
-          <div className="grid flex-1 grid-cols-7 gap-px p-1.5" style={{ gridAutoRows: 'minmax(84px, 1fr)' }}>
+          <div className="grid flex-1 grid-cols-7" style={{ gridAutoRows: 'minmax(84px, 1fr)' }}>
             {cells.map((c, idx) => {
               const dow = idx % 7;
               const isToday = c.iso === today;
@@ -130,11 +123,7 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
                   role={c.other ? undefined : 'button'}
                   tabIndex={c.other ? undefined : 0}
                   onKeyDown={c.other ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelIso((cur) => (cur === c.iso ? null : c.iso!)); } }}
-                  className={cn(
-                    'flex flex-col gap-1.5 overflow-hidden rounded-[8px] px-2 py-1.5 outline-none transition-colors',
-                    c.other ? 'opacity-45' : 'cursor-pointer hover:bg-[#fdfaf3]',
-                    isSel && !isToday && 'bg-[#fbf1e0]',
-                  )}
+                  className={cn('flex flex-col gap-1.5 overflow-hidden border-b border-r border-[#f0ebdf] px-2.5 py-2 outline-none transition-colors', c.other ? 'bg-[#faf7f0]' : 'cursor-pointer hover:bg-[#fdfaf3]', isSel && !isToday && 'bg-[#fbf1e0]')}
                   style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #b45309' } : isSel ? { boxShadow: 'inset 0 0 0 1.5px #d6a066' } : undefined}
                 >
                   <span
@@ -148,10 +137,10 @@ export function EventsCalendar({ persons, onOpenPerson, onNewPerson }: { persons
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onOpenPerson(ev.personId); }}
                       title={`${ev.name} ${ev.label}`}
-                      className="flex h-[22px] w-full items-center gap-[6px] overflow-hidden whitespace-nowrap rounded-[5px] pl-[7px] pr-[8px] text-[11.5px] font-semibold transition-[filter] hover:brightness-[0.97]"
-                      style={{ backgroundColor: TYPE_SOFT[ev.type], color: TYPE_INK[ev.type], boxShadow: `inset 2.5px 0 0 ${TYPE_BG[ev.type]}` }}
+                      className="inline-flex h-6 items-center gap-[5px] self-start overflow-hidden whitespace-nowrap rounded-[6px] px-[9px] text-[11.5px] font-semibold text-white transition-[filter] hover:brightness-110"
+                      style={{ backgroundColor: TYPE_BG[ev.type] }}
                     >
-                      <span className="truncate">{ev.name} {ev.label}</span>
+                      <Cake className="h-[11px] w-[11px] shrink-0" /> <span className="truncate">{ev.name} {ev.label}</span>
                     </button>
                   ))}
                   {events.length > 2 && <span className="px-1 text-[10px] text-[#98917d]">외 {events.length - 2}</span>}
