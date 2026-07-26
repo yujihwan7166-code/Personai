@@ -901,6 +901,31 @@ export default function Wiki() {
 
   const shelfBar = <div aria-hidden style={{ height: 15, borderRadius: 3, background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,235,200,.35)' }} />;
 
+  /* 서재 찾기 — 사이드바에서 본문 머리 오른쪽으로 옮겼다.
+     사이드바는 '무엇을 만들까'(새 책·새 문서)와 '어디 있나'(책 목록·차례)를 맡고,
+     찾기는 지금 보고 있는 화면의 도구라 그 화면의 머리에 선다.
+     서재·책·문서 세 화면 모두 머리 오른쪽 끝 같은 자리에 둔다 — 자리가 화면마다
+     옮겨 다니면 매번 눈으로 찾게 된다. 아카이브·인맥노트·데일리 로그와도 같은 문법
+     (늘 펼쳐진 칸 + 왼쪽 돋보기). */
+  const searchBox = (
+    <label className="inline-flex h-[34px] w-[210px] max-w-[46vw] shrink-0 items-center gap-2 rounded-[9px] px-3 text-[13px] transition-shadow"
+      style={{ background: 'rgba(60,47,24,.07)', boxShadow: 'inset 0 1px 2px rgba(60,47,24,.13)' }}>
+      <Search className="h-[15px] w-[15px] shrink-0" style={{ color: C.sub }} />
+      <input
+        value={q} onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Escape') setQ(''); }}
+        placeholder="서재에서 찾기" aria-label="서재 검색"
+        className="min-w-0 flex-1 bg-transparent outline-none"
+        style={{ color: C.ink, fontFamily: SANS }}
+      />
+      {q && (
+        <button type="button" aria-label="검색 지우기" onClick={() => setQ('')} className="shrink-0" style={{ color: C.sub }}>
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </label>
+  );
+
   return (
     <div className="wiki-theme flex h-dvh overflow-hidden" style={{ background: C.bg, fontFamily: SANS, color: C.ink }}>
       <style>{WIKI_CSS}</style>
@@ -923,32 +948,19 @@ export default function Wiki() {
           </span>
         </button>
 
-        {/* 검색 — 테두리를 걷고 종이에 파인 홈처럼. 이 자리에서 눈에 띄어야 할 건
-            아래 초록 버튼 하나뿐이라, 도구는 조용히 물러난다. */}
-        <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: C.sub }} />
-          <input
-            value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="서재에서 검색" aria-label="서재 검색"
-            className="h-[36px] w-full rounded-[9px] pl-8 pr-7 text-[13.5px] outline-none transition-shadow"
-            style={{ border: 'none', background: 'rgba(60,47,24,.07)', boxShadow: 'inset 0 1px 2px rgba(60,47,24,.13)', color: C.ink, fontFamily: SANS }}
-            onFocus={(e) => { e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(60,47,24,.13), 0 0 0 2px rgba(48,95,76,.32)'; }}
-            onBlur={(e) => { e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(60,47,24,.13)'; }}
-          />
-          {q && (
-            <button type="button" aria-label="검색 지우기" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2" style={{ color: C.sub }}>
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        {/* 만드는 버튼은 여기 없다 — 두 상태 모두 화면 안에 제 자리의 진입점이
-            이미 있어서 사이드바 것은 같은 말을 두 번 하는 셈이었다.
-              · 서재에선 책장 끝의 빈 슬롯(＋). 단순한 버튼이 아니라 '여기 책을
-                꽂는다' 는 자리 자체라 사이드바 버튼보다 뜻이 분명하다.
-              · 책 안에선 차례 머리의 '＋ 새 문서'. 어느 책에 넣는지가 붙어 있다.
-            좁은 화면엔 사이드바가 아예 없는데도 이 둘로 잘 만들어 왔다 — 그게
-            사이드바 버튼이 없어도 된다는 증거다.
-            (모바일 상단 헤더의 버튼은 그대로 — 거긴 사이드바를 대신하는 자리다) */}
+        {/* 만들기 — 사이드바가 맡는다. 찾기는 본문 머리로 내보냈다(searchBox).
+            이 방에서 '만들고 잇는' 색은 그린이다(본문 링크·연결 버블·차례 표시선). */}
+        <button
+          type="button"
+          onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
+          className="mt-4 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold text-white transition-colors"
+          style={{ background: C.green, boxShadow: '0 1px 2px rgba(24,58,44,.25)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {book ? '새 문서' : '새 책'}
+        </button>
 
         {book ? (
           /* 책 안 — 책을 여는 순간 사이드바가 그 책의 차례로 바뀐다. 문서를 열어도 그대로라 흔들림이 없다 */
@@ -1161,9 +1173,10 @@ export default function Wiki() {
               <span className="min-w-0 truncate px-1.5" style={{ color: C.ink, fontWeight: 600 }}>{active.title || '무제'}</span>
             </div>
             {/* 칩과 같은 일을 하는 키라는 걸 붙여 말해준다 */}
-            <span className="hidden shrink-0 sm:inline" style={{ fontSize: 12, color: C.muted }}>
+            <span className="hidden shrink-0 lg:inline" style={{ fontSize: 12, color: C.muted }}>
               {backDoc ? 'Esc 로도 돌아가요' : 'Esc로 돌아가기'}
             </span>
+            {searchBox}
             </div>
           </div>
 
@@ -1237,7 +1250,7 @@ export default function Wiki() {
         <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[48px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 책 첫 화면에선 '서재 › 약물' 이 군더더기다 — 책 이름은 바로 아래 표지에 크게 적혀 있다.
               길 안내 대신 돌아가는 문 하나만 둔다. Esc 도 그대로 듣는다(적어 두진 않는다). */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <button
               type="button" onClick={goShelf}
               className="-ml-2 flex items-center gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-[rgba(48,95,76,.08)]"
@@ -1246,6 +1259,8 @@ export default function Wiki() {
               <ChevronDown className="h-3.5 w-3.5" style={{ transform: 'rotate(90deg)' }} />
               서재로 돌아가기
             </button>
+            <span className="flex-1" />
+            {searchBox}
           </div>
 
           {/* 표지와 차례는 늘 같은 높이로 붙어 있어야 '펼친 책' 이 유지된다(grid stretch).
@@ -1535,6 +1550,7 @@ export default function Wiki() {
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
             <span className="flex-1" />
+            {searchBox}
             {/* 꽂는 순서 — 오른쪽이 비어 있어 안내문이라도 넣을까 했지만, 빈자리는
                 말이 아니라 손잡이로 채우는 게 낫다. 책이 한 선반을 넘기면 페이지가
                 갈려서 '어디 뒀더라' 가 실제로 생긴다. */}
