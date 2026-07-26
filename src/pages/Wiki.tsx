@@ -1152,7 +1152,7 @@ export default function Wiki() {
 
       {qq ? (
         /* ══════ 검색 결과 ══════ */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-8 sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
           <div className="flex items-baseline gap-3.5">
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>'{q.trim()}'</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{results.length}개의 문서</span>
@@ -1290,7 +1290,7 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[48px] sm:px-8" style={{ maxWidth: 1240 }}>
+        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 책 첫 화면에선 '서재 › 약물' 이 군더더기다 — 책 이름은 바로 아래 표지에 크게 적혀 있다.
               길 안내 대신 돌아가는 문 하나만 둔다. Esc 도 그대로 듣는다(적어 두진 않는다). */}
           <div className="flex items-center gap-3">
@@ -1588,31 +1588,27 @@ export default function Wiki() {
         </section>
       ) : (
         /* ══════ 서재 홈 (시안) ══════
-           위 여백 72 → 34px. 제목이 화면 꼭대기에 홀로 떠 있고 책장은 저 아래
-           있으니 둘이 남남처럼 보였다. 제목·도구·책장이 한 덩이로 붙어야
-           '이 책장의 이름' 으로 읽힌다. */
-        <section className="wiki-rise mx-auto px-5 pb-20 pt-[34px] sm:px-8" style={{ maxWidth: 1240 }}>
-          {/* 머리는 말만 한다 — 32px 제목 옆에 배경 있는 조작기를 나란히 세우니
-              셋이 같은 높이에서 겨루고 무엇이 이 화면의 주어인지 흐려졌다.
-              아카이브가 이미 이렇게 갈라 놓았다: 마스트헤드(제목+서술) → 도구 줄. */}
-          <div className="flex flex-wrap items-baseline gap-3.5">
+           위 여백 52px — 네 화면(검색 결과·문서·책·서재) 모두 같은 값이다.
+           화면을 옮길 때 머리가 위아래로 튀면 같은 방이 아닌 것처럼 보인다. */
+        <section className="wiki-rise mx-auto px-5 pb-20 pt-[52px] sm:px-8" style={{ maxWidth: 1240 }}>
+          {/* 제목 줄이 도구까지 함께 진다 — 찾기 · 꽂는 순서 · 새 책을 오른쪽에 한 덩이로.
+              도구를 아랫줄에 따로 두었더니 줄이 하나 더 생겨 제목과 책장이 그만큼
+              멀어졌다. 34px 제목과 34px 조작기라 높이가 서로를 밀지 않는다
+              (items-center 로 세로 가운데를 맞춘다 — baseline 이면 배경 있는 칸이 뜬다).
+              책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다. */}
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
-            <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
-          </div>
-
-          {/* 도구 줄 — 꽂는 순서(왼쪽) · 찾기(오른쪽 끝). 책장 바로 위에 얹는다.
-              순서를 이렇게 두는 건 아카이브·인맥노트가 이미 그렇기 때문이다:
-              목록을 '거르는' 것들이 왼쪽에 모이고 검색이 줄의 끝을 맺는다.
-              (책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다) */}
-          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <span className="min-w-0" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
+            <span className="flex-1" />
+            {searchBox}
             {allBooks.length > 1 && (
-              <div className="flex items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
+              <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
                 {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
                   <button
                     key={k} type="button"
                     onClick={() => { setShelfSort(k); setShelfPage(0); }}
                     aria-pressed={shelfSort === k}
-                    className="rounded-[7px] px-2.5 py-[5px] text-[12px] font-semibold transition-colors"
+                    className="h-full rounded-[7px] px-2.5 text-[12px] font-semibold transition-colors"
                     style={shelfSort === k
                       ? { background: C.paper, color: C.ink, boxShadow: '0 1px 2px rgba(60,47,24,.14)' }
                       : { background: 'transparent', color: C.sub }}
@@ -1622,11 +1618,19 @@ export default function Wiki() {
                 ))}
               </div>
             )}
-            {searchBox}
+            <button
+              type="button" onClick={() => setBookDialog({ book: null })}
+              className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] px-3.5 text-[13px] font-bold text-white transition-colors"
+              style={{ background: C.green }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
+            >
+              <Plus className="h-3.5 w-3.5" /> 새 책
+            </button>
           </div>
 
           {/* 나무 책장 */}
-          <div className="relative mt-5 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
+          <div className="relative mt-6 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
             {/* 가구 골격 — 윗판·옆판이 있어야 빈 여백이 '가구의 두께'로 읽힌다 */}
             <div aria-hidden className="absolute inset-x-0 top-0 h-[30px] rounded-t-[14px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.35)' }} />
             <div aria-hidden className="absolute bottom-0 left-0 top-[26px] w-[16px] rounded-bl-[14px]" style={{ background: 'linear-gradient(90deg,#8a5a32,#66401e)', boxShadow: 'inset -4px 0 7px rgba(0,0,0,.35)' }} />
