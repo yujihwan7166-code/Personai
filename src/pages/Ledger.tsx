@@ -116,7 +116,9 @@ export default function Ledger() {
 
 
   return (
-    <div className={hideAmounts ? 'ledger-hide-amounts' : undefined}
+    /* ledger-theme 은 남아 있는 var(--ledger-*) 사용처(자산·결산·채팅바·입력 다이얼로그)의
+       스코프다 — 빼면 그 색들이 정의되지 않은 변수가 된다. */
+    <div className={`ledger-theme${hideAmounts ? ' ledger-hide-amounts' : ''}`}
       style={{ display: 'flex', alignItems: 'stretch', minHeight: '100dvh', width: '100%', background: C.bg, color: C.ink }}>
 
       {/* ── 사이드바 (시안 250px) ── */}
