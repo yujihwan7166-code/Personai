@@ -69,6 +69,33 @@ const WIKI_CSS = `
 /* 문서 사이에 놓을 때 — 가로선의 들여쓰기가 곧 들어갈 단계 */
 .wiki-theme .wiki-insert { position:relative; height:2px; margin-right:6px; border-radius:2px; background:#305f4c; transform-origin:left center; animation: wikiInsertIn .14s ease-out both; }
 .wiki-theme .wiki-insert::before { content:''; position:absolute; left:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:#305f4c; }
+/* 책갈피 — 읽는 화면에서 종이 위쪽에 끼우는 리본.
+   전엔 편집 도구줄의 별이었는데, 책갈피는 읽다가 꽂는 물건이지 고쳐 쓰는 물건이 아니다.
+   위로 9px 삐져나오게 두고 그 부분만 어둡게 해서 종이 뒤에서 넘어온 것처럼 보이게 한다. */
+.wiki-theme .wiki-mark {
+  position:absolute; top:-9px; left:10px; width:18px; height:32px; z-index:2;
+  border:0; padding:0; cursor:pointer; opacity:0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+  background: rgba(60,47,24,.13);
+  transition: height .24s cubic-bezier(.2,.85,.3,1), background .18s, opacity .18s;
+}
+@media (min-width:640px) { .wiki-theme .wiki-mark { left:20px; width:21px; } }
+.wiki-theme .wiki-page:hover .wiki-mark { opacity:.6; }
+.wiki-theme .wiki-mark:hover { opacity:1; height:42px; background: rgba(214,150,40,.5); }
+.wiki-theme .wiki-mark:focus-visible { opacity:1; outline:none; background:#305f4c; }
+.wiki-theme .wiki-mark-on,
+.wiki-theme .wiki-page:hover .wiki-mark-on,
+.wiki-theme .wiki-mark-on:hover {
+  opacity:1; height:60px;
+  background: linear-gradient(180deg,#e2ab3d 0%,#d5952a 46%,#bd7d16 100%);
+  box-shadow: 1px 2px 6px rgba(64,44,18,.24);
+}
+.wiki-theme .wiki-mark-on:hover { background: linear-gradient(180deg,#eab74b 0%,#dc9d31 46%,#c9881f 100%); }
+/* 종이 위로 넘어온 부분 — 그림자에 잠긴 듯이 */
+.wiki-theme .wiki-mark-on::before { content:''; position:absolute; inset:0 0 auto 0; height:9px; background:rgba(0,0,0,.17); }
+.wiki-theme .wiki-mark-drop { animation: wikiMarkDrop .3s cubic-bezier(.2,.9,.3,1); }
+@keyframes wikiMarkDrop { from { transform: translateY(-13px); } 60% { transform: translateY(2px); } to { transform:none; } }
+@media (prefers-reduced-motion: reduce) { .wiki-theme .wiki-mark, .wiki-theme .wiki-mark-drop { transition:none; animation:none; } }
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
@@ -1907,9 +1934,19 @@ function DocMain({
   void toc;
   return (
     <div className="min-w-0">
-      <article className="rounded-[14px] p-6 sm:px-[52px] sm:py-11" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 10px rgba(64,44,18,.05)' }}>
+      <article className="wiki-page relative rounded-[14px] p-6 sm:px-[52px] sm:py-11" style={{ background: C.paper, border: `1px solid ${C.line}`, boxShadow: '0 2px 10px rgba(64,44,18,.05)' }}>
         {mode === 'read' ? (
           <>
+            {/* 읽다가 꽂는 리본. 안 꽂힌 상태는 종이에 스민 자국처럼 흐리게 두고,
+                이 문서 위에 마우스를 올렸을 때만 드러난다 — 늘 보이면 잔소리가 된다. */}
+            <button
+              type="button"
+              onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
+              aria-pressed={active.pinned}
+              aria-label={active.pinned ? '책갈피 빼기' : '책갈피 꽂기'}
+              title={active.pinned ? '책갈피가 꽂혀 있어요 — 눌러서 빼기' : '이 문서에 책갈피 꽂기'}
+              className={cn('wiki-mark', active.pinned && 'wiki-mark-on wiki-mark-drop')}
+            />
             <div className="flex items-start justify-between gap-4">
               <h1 className="m-0 min-w-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 34, lineHeight: 1.3 }}>{active.title || '무제'}</h1>
               <button
@@ -1968,19 +2005,9 @@ function DocMain({
               />
               <span aria-hidden className="mx-0.5 h-4 w-px" style={{ background: C.line }} />
               <TagEditor tags={active.tags} onChange={(tags) => patchDoc(active.id, { tags })} />
+              {/* 책갈피는 여기 없다 — 읽는 화면의 종이에 직접 꽂는 리본으로 옮겼다.
+                  꽂는 건 읽다가 하는 일이지 고쳐 쓰다가 하는 일이 아니다. */}
               <div className="ml-auto flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => patchDoc(active.id, { pinned: !active.pinned })}
-                  /* 같은 pinned 를 차례와 표지에서는 별(★ 책갈피)로 보여주는데 여기만 핀이었다.
-                     한 가지 일에 두 가지 기호를 쓰면 다른 기능으로 읽힌다 — 별로 통일. */
-                  aria-label={active.pinned ? '책갈피 빼기' : '책갈피 꽂기'}
-                  title={active.pinned ? '책갈피에 꽂힘 — 눌러 빼기' : '이 문서에 책갈피 꽂기'}
-                  className={cn('flex h-[30px] w-[30px] items-center justify-center rounded-lg transition-colors', active.pinned ? 'text-amber-500' : 'hover:bg-[rgba(60,47,24,.06)]')}
-                  style={active.pinned ? { background: 'rgba(245,158,11,.12)' } : { color: C.muted }}
-                >
-                  <Star className={cn('h-3.5 w-3.5', active.pinned && 'fill-current')} />
-                </button>
                 <button
                   type="button" onClick={() => removeDoc(active.id)}
                   aria-label="문서 삭제" title="이 문서 삭제"
