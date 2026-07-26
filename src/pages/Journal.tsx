@@ -12,11 +12,13 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSPropertie
 import { useLocation } from 'react-router-dom';
 import {
   BarChart3, CalendarDays, ChevronLeft, ChevronRight, History, ImagePlus,
-  Map as MapIcon, NotebookPen, Pencil, Plane, Star, Trash2, UtensilsCrossed,
+  Map as MapIcon, NotebookPen, Pencil, Plane, Search, Star, Trash2, UtensilsCrossed, X,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tokenMatchAll } from '@/lib/textSearch';
 import { notify } from '@/lib/notify';
+import { replaceJournalWithSample } from '@/lib/journal/sampleData';
 import { useJournal } from '@/hooks/useJournal';
 import { useJournalStreak } from '@/hooks/useJournalStreak';
 import { journalStore } from '@/services/journalStore';
@@ -206,11 +208,29 @@ const SECTION_HEAD: Record<Tab, { eyebrow: string; title: string }> = {
   flashback: { eyebrow: 'MEMORY LANE',        title: '플래시백' },
 };
 
+/** 한 기록에서 검색 대상이 되는 글자를 한 줄로. */
+function entryHaystack(e: JournalEntry): string {
+  return [e.title, e.summary, e.body, e.bgm, (e.tags ?? []).join(' '), (e.activities ?? []).join(' ')]
+    .filter(Boolean).join(' ');
+}
+
+/** 결과 줄에 보여줄 한 조각 — 찾은 말이 있는 자리를 잘라 온다. */
+function searchSnippet(e: JournalEntry, q: string): string {
+  const body = (e.summary || e.body || '').replace(/\s+/g, ' ').trim();
+  if (!body) return (e.tags ?? []).map((t) => `#${t}`).join(' ');
+  const word = q.trim().split(/\s+/)[0] ?? '';
+  const at = word ? body.toLowerCase().indexOf(word.toLowerCase()) : -1;
+  if (at < 0) return body.slice(0, 46);
+  const from = Math.max(0, at - 12);
+  return `${from > 0 ? '…' : ''}${body.slice(from, from + 46)}`;
+}
+
 export default function Journal() {
   const allEntries = useJournal();
   const streak = useJournalStreak(allEntries);
 
   const [tab, setTab] = useState<Tab>('write');
+  const [jq, setJq] = useState('');   // 사이드바 찾기
   const [tripToOpen, setTripToOpen] = useState<string | null>(null);
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
@@ -354,6 +374,15 @@ export default function Journal() {
 
   // 파생
   const feed = useMemo(() => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)), [allEntries]);
+
+  /* 사이드바 찾기 — 제목·본문·요약·태그·BGM 을 함께 훑는다.
+     (먹은 것·간 곳은 별도 저장소라 여기선 빼둔다 — 그쪽은 푸드 로드·나의 지도에
+      제 화면이 있다) */
+  const searchHits = useMemo(() => {
+    const q = jq.trim();
+    if (!q) return [];
+    return feed.filter((e) => tokenMatchAll(entryHaystack(e), q)).slice(0, 12);
+  }, [feed, jq]);
   /* ── 플래시백 ──
    * 예전엔 규칙 6개가 각각 한 편만 물고 있는 균일 카드 그리드였다. 문제가 셋이었다.
    *  ① 기록이 적으면 절반이 "없어요"로 죽은 타일이 된다
@@ -531,6 +560,51 @@ export default function Journal() {
           </div>
         </div>
 
+        {/* 찾기 — 기록이 쌓이면 캘린더를 넘겨 뒤지는 것 말고는 옛 날을 찾을 길이 없었다.
+            제목·본문·태그·간 곳·먹은 것을 함께 훑는다(무엇으로 기억하든 걸리게).
+            결과를 누르면 그 날로 바로 들어간다. */}
+        <div className="relative mt-4 px-1.5">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8078a3]" />
+          <input
+            value={jq}
+            onChange={(e) => setJq(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setJq(''); }}
+            placeholder="기록에서 찾기"
+            aria-label="기록 검색"
+            className="h-[36px] w-full rounded-[9px] border-none bg-[rgba(60,50,100,.07)] pl-[30px] pr-7 text-[13.5px] text-[#191c20] shadow-[inset_0_1px_2px_rgba(40,30,80,.10)] outline-none placeholder:text-[#8078a3] focus:shadow-[inset_0_1px_2px_rgba(40,30,80,.10),0_0_0_2px_hsl(var(--cream-accent)/0.35)] dark:text-[hsl(var(--cream-ink))]"
+          />
+          {jq && (
+            <button type="button" aria-label="검색 지우기" onClick={() => setJq('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8078a3]">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {jq.trim() && (
+          <div className="mt-1.5 px-1.5">
+            {searchHits.length === 0 ? (
+              <p className="px-2 py-3 text-[12.5px] text-[#8078a3]">찾는 기록이 없어요</p>
+            ) : (
+              <ul className="max-h-[46vh] overflow-y-auto rounded-[10px] bg-white/55 p-1 dark:bg-white/5">
+                {searchHits.map((e) => (
+                  <li key={e.id}>
+                    <button
+                      type="button"
+                      onClick={() => { openEntry(e.date); setJq(''); }}
+                      className="flex w-full flex-col gap-0.5 rounded-[8px] px-2.5 py-1.5 text-left transition-colors hover:bg-[hsl(var(--cream-accent)/0.12)]"
+                    >
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="shrink-0 text-[11px] font-bold tabular-nums text-[hsl(var(--cream-accent))]">{e.date.slice(5).replace('-', '.')}</span>
+                        <span className="min-w-0 truncate text-[12.5px] font-semibold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{e.title?.trim() || '무제'}</span>
+                      </span>
+                      <span className="truncate text-[11.5px] text-[#8078a3]">{searchSnippet(e, jq)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* 내비 — 섹션라벨·아이템 px-3 로 위계 정렬 (기준 통일) */}
         <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#8078a3]">메뉴</div>
         <nav className="flex-1 overflow-y-auto" aria-label="데일리로그 섹션">
@@ -659,6 +733,22 @@ export default function Journal() {
               <div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-[17px] font-bold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">최근 기록</h3>
+                  <span className="flex-1" />
+                  {/* 예시로 갈아 끼우기 — 되돌릴 수 없어서 반드시 한 번 묻는다.
+                      조용한 글자 버튼으로 둔다: 자주 쓸 것도 아니고, 실수로 누르면
+                      한 달치가 날아가는 자리라 눈에 먼저 띄면 안 된다. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm('지금까지의 기록을 전부 지우고 예시로 채울까요?\n\n일기 · 먹은 것 · 간 곳 · 여행이 모두 사라집니다.\n되돌릴 수 없어요.')) return;
+                      const r = replaceJournalWithSample();
+                      notify.success(`예시 ${r.entries}일 · 여행 ${r.trips}개를 채웠어요`);
+                    }}
+                    className="rounded-md px-2 py-1 text-[12px] text-[#8078a3] transition-colors hover:bg-[hsl(var(--cream-accent)/0.1)] hover:text-[#23262b]"
+                    title="기존 기록을 지우고 한 달치 예시 + 여행 3개로 채웁니다"
+                  >
+                    예시로 채우기
+                  </button>
                   <div className="flex gap-0.5 rounded-[8px] bg-[#eae7f3] p-0.5 dark:bg-white/10">
                     {([['all', '전체'], ['week', '이번 주'], ['photo', '사진']] as const).map(([k, l]) => (
                       <button
