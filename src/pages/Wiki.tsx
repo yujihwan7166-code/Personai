@@ -96,6 +96,18 @@ const WIKI_CSS = `
 .wiki-theme .wiki-mark-drop { animation: wikiMarkDrop .3s cubic-bezier(.2,.9,.3,1); }
 @keyframes wikiMarkDrop { from { transform: translateY(-13px); } 60% { transform: translateY(2px); } to { transform:none; } }
 @media (prefers-reduced-motion: reduce) { .wiki-theme .wiki-mark, .wiki-theme .wiki-mark-drop { transition:none; animation:none; } }
+/* 선반 넘김 노브 — 가구 옆판에 박힌 황동 손잡이. 끝 선반에선 아예 사라진다
+   (흐릿하게 남겨두면 '눌러도 안 되는 단추' 가 되어 매번 확인하게 된다). */
+.wiki-theme .wiki-shelf-knob {
+  border: 1px solid #6d5222;
+  background: linear-gradient(180deg,#d5ae54,#8a6a30);
+  color: #3a2c10;
+  font-size: 17px; line-height: 1;
+  box-shadow: 0 3px 7px rgba(10,5,0,.45), inset 0 1px 0 rgba(255,242,205,.6);
+  cursor: pointer;
+}
+.wiki-theme .wiki-shelf-knob:hover { background: linear-gradient(180deg,#e2bd63,#98763a); }
+.wiki-theme .wiki-shelf-knob:active { transform: translateY(-50%) scale(.93); }
 @keyframes wikiInsertIn { from { opacity:0; transform: scaleX(.94); } to { opacity:1; transform:none; } }
 .wiki-theme .wiki-root-drop { animation: wikiRootIn .18s ease-out both; }
 @keyframes wikiRootIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform:none; } }
@@ -1640,6 +1652,37 @@ export default function Wiki() {
               )}
             </div>
             {shelfBar}
+
+            {/* 선반 넘김 — 가구 위에 얹는다.
+                예전엔 책장 한참 아래, 그것도 '예시 책 넣어보기' 줄 뒤에 동그란
+                웹 페이지네이션이 떠 있었다. 넘기는 건 웹 페이지가 아니라 이 가구의
+                선반 칸인데, 조작기가 가구에서 떨어져 나와 있으니 무엇을 넘기는
+                단추인지 알 수 없었다.
+                이제 손잡이는 옆판(가구의 기둥) 위에 붙은 황동 노브가 되고,
+                몇 번째 선반인지는 아래 가로대에 박힌 작은 명패가 말한다. */}
+            {pageCount > 1 && (
+              <>
+                <button
+                  type="button" onClick={() => setShelfPage(page - 1)} disabled={page === 0}
+                  aria-label="이전 선반" title="이전 선반"
+                  className="wiki-shelf-knob absolute left-[-13px] top-1/2 z-20 flex h-[30px] w-[30px] -translate-y-1/2 items-center justify-center rounded-full transition-transform disabled:pointer-events-none disabled:opacity-0"
+                >‹</button>
+                <button
+                  type="button" onClick={() => setShelfPage(page + 1)} disabled={page >= pageCount - 1}
+                  aria-label="다음 선반" title="다음 선반"
+                  className="wiki-shelf-knob absolute right-[-13px] top-1/2 z-20 flex h-[30px] w-[30px] -translate-y-1/2 items-center justify-center rounded-full transition-transform disabled:pointer-events-none disabled:opacity-0"
+                >›</button>
+                <div
+                  aria-hidden
+                  className="absolute bottom-[-9px] left-1/2 z-20 flex -translate-x-1/2 items-center gap-[7px] rounded-[3px] px-2.5 py-[2px]"
+                  style={{ background: 'linear-gradient(180deg,#cfa84e,#8a6a30)', border: '1px solid #6d5222', boxShadow: '0 2px 5px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,240,200,.5)' }}
+                >
+                  {Array.from({ length: pageCount }, (_, i) => (
+                    <span key={i} className="h-[5px] w-[5px] rounded-full" style={{ background: i === page ? '#3a2c10' : 'rgba(58,44,16,.28)' }} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* 예시 책 — 링크로 얽힌 세 권을 한 번에 꽂아 이 방이 어떻게 굴러가는지 보여준다 */}
@@ -1665,25 +1708,6 @@ export default function Wiki() {
               예시 책 3권 넣어보기
             </button>
           </div>
-
-          {/* 서가 페이지 넘김 — 선반은 한 칸이고 넘치는 책은 다음 장에 꽂힌다 */}
-          {pageCount > 1 && (
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <button
-                type="button" onClick={() => setShelfPage(page - 1)} disabled={page === 0} aria-label="이전 선반"
-                className="flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30"
-                style={{ border: `1px solid ${C.line}`, background: C.paper, color: C.sub }}
-              >‹</button>
-              <span style={{ fontFamily: SERIF, fontSize: 12, letterSpacing: '.1em', color: C.sub }}>
-                {page + 1} / {pageCount}
-              </span>
-              <button
-                type="button" onClick={() => setShelfPage(page + 1)} disabled={page >= pageCount - 1} aria-label="다음 선반"
-                className="flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30"
-                style={{ border: `1px solid ${C.line}`, background: C.paper, color: C.sub }}
-              >›</button>
-            </div>
-          )}
 
           {/* 고정된 문서 */}
           {pinnedAll.length > 0 && (
