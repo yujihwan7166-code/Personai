@@ -1597,29 +1597,26 @@ export default function Wiki() {
               (items-center 로 세로 가운데를 맞춘다 — baseline 이면 배경 있는 칸이 뜬다).
               책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다. */}
 
-          {/* 찾기는 제 줄을 갖는다 — 서재 전체를 훑는 일이라 '이 책장을 이렇게 보자'
-              (꽂는 순서·새 책)와 층이 다르다. 셋을 한 줄에 늘어놓으면 층이 뭉개진다.
-              폭은 280px, 오른쪽 끝. 줄을 다 채우면 검색이 이 화면의 머리인 것처럼
-              커져서 정작 머리인 '나의 서재' 를 누른다. 오른쪽에 세우는 건 바로 아래
-              [꽂는 순서][＋ 새 책] 과 같은 변에 서기 위해서다 — 도구는 도구끼리
-              한쪽에 모여야 본문(제목·책장)의 왼쪽 흐름이 끊기지 않는다. */}
-          <div className="mb-3.5 flex justify-end">{searchField('w-[280px] max-w-full')}</div>
+          {/* 머리 — 왼쪽은 말(제목·서술), 오른쪽은 도구 두 줄(찾기 / 꽂는 순서·새 책).
+              도구를 제목 위 별도 줄에 띄워 두었더니 화면 꼭대기에 붙어 책장에서 멀었다.
+              이제 오른쪽 칸으로 묶어 바닥을 제목과 맞춘다 — 도구 덩이가 통째로 아래로
+              내려와 책장 곁에 서고, 두 줄 사이는 6px 로 좁혀 한 무리로 읽힌다.
+              (책장은 그대로 — 줄어든 높이만큼 아래 여백을 늘려 자리를 지켰다)
 
-          {/* items-end + leading-none — 제목과 서술의 '바닥'을 맞춘다.
+              items-end + leading-none 은 제목과 서술의 '바닥' 을 맞추기 위한 것.
               baseline 정렬이면 작은 글씨가 큰 글씨의 기준선에 매달려 위로 떠 보인다.
               제목 아래에 선을 하나 긋는다 치면, 그 선 바로 위에 둘이 나란히 앉는 모양. */}
-          <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <h1 className="m-0 shrink-0 leading-none" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 42 }}>나의 서재</h1>
             {/* 서술은 자리가 모자라면 줄어든다 — 도구가 아랫줄로 떨어지면 '제목 옆에
                 있는 도구' 라는 뜻이 사라진다. 말은 줄일 수 있어도 손잡이는 못 줄인다. */}
             <span className="min-w-0 truncate leading-none" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
             <span className="flex-1" />
-            {/* 도구는 한 덩이로 묶어 안쪽 간격(8px)을 제목–서술 간격(16px)보다 좁게 둔다.
-                예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
-                모두 동급으로 보였다 — 가까이 있는 것끼리 한 무리라는 게 위계의 기본이다.
 
-                이 줄엔 '이 책장을 어떻게 볼까'(꽂는 순서)와 '만들기'(새 책)만 남는다.
-                찾기는 위 줄로 올라갔다 — 서재 전체를 훑는 일이라 층이 다르다. */}
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {searchField('w-[280px] max-w-full')}
+            {/* 아래 줄 — '이 책장을 어떻게 볼까'(꽂는 순서)와 '만들기'(새 책).
+                안쪽 간격 8px 로 제목–서술 간격(16px)보다 좁게 두어 한 무리로 묶는다. */}
             <div className="flex shrink-0 items-center gap-2">
               {allBooks.length > 1 && (
                 <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
@@ -1650,10 +1647,12 @@ export default function Wiki() {
                 <Plus className="h-3.5 w-3.5" /> 새 책
               </button>
             </div>
+            </div>
           </div>
 
-          {/* 나무 책장 */}
-          <div className="relative mt-6 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
+          {/* 나무 책장 — mt-10 은 위 머리가 두 줄에서 한 덩이로 줄면서 짧아진 만큼을
+              메워 책장이 있던 자리에 그대로 있게 하는 값이다 */}
+          <div className="relative mt-10 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
             {/* 가구 골격 — 윗판·옆판이 있어야 빈 여백이 '가구의 두께'로 읽힌다 */}
             <div aria-hidden className="absolute inset-x-0 top-0 h-[30px] rounded-t-[14px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.35)' }} />
             <div aria-hidden className="absolute bottom-0 left-0 top-[26px] w-[16px] rounded-bl-[14px]" style={{ background: 'linear-gradient(90deg,#8a5a32,#66401e)', boxShadow: 'inset -4px 0 7px rgba(0,0,0,.35)' }} />
