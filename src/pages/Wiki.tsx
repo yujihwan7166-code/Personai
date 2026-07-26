@@ -935,8 +935,8 @@ export default function Wiki() {
      서재·책·문서 세 화면 모두 머리 오른쪽 끝 같은 자리에 둔다 — 자리가 화면마다
      옮겨 다니면 매번 눈으로 찾게 된다. 아카이브·인맥노트·데일리 로그와도 같은 문법
      (늘 펼쳐진 칸 + 왼쪽 돋보기). */
-  const searchBox = (
-    <label className="inline-flex h-[34px] w-[210px] max-w-[46vw] shrink-0 items-center gap-2 rounded-[9px] px-3 text-[13px] transition-shadow"
+  const searchField = (cls: string) => (
+    <label className={cn('inline-flex h-[34px] items-center gap-2 rounded-[9px] px-3 text-[13px] transition-shadow', cls)}
       style={{ background: 'rgba(60,47,24,.07)', boxShadow: 'inset 0 1px 2px rgba(60,47,24,.13)' }}>
       <Search className="h-[15px] w-[15px] shrink-0" style={{ color: C.sub }} />
       <input
@@ -1219,7 +1219,7 @@ export default function Wiki() {
             <span className="hidden shrink-0 lg:inline" style={{ fontSize: 12, color: C.muted }}>
               {backDoc ? 'Esc 로도 돌아가요' : 'Esc로 돌아가기'}
             </span>
-            {searchBox}
+            {searchField('w-[210px] max-w-[46vw] shrink-0')}
             </div>
           </div>
 
@@ -1303,7 +1303,7 @@ export default function Wiki() {
               서재로 돌아가기
             </button>
             <span className="flex-1" />
-            {searchBox}
+            {searchField('w-[210px] max-w-[46vw] shrink-0')}
           </div>
 
           {/* 표지와 차례는 늘 같은 높이로 붙어 있어야 '펼친 책' 이 유지된다(grid stretch).
@@ -1593,9 +1593,16 @@ export default function Wiki() {
         <section className="wiki-rise mx-auto px-5 pb-20 pt-[84px] sm:px-8" style={{ maxWidth: 1240 }}>
           {/* 제목 줄이 도구까지 함께 진다 — 찾기 · 꽂는 순서 · 새 책을 오른쪽에 한 덩이로.
               도구를 아랫줄에 따로 두었더니 줄이 하나 더 생겨 제목과 책장이 그만큼
-              멀어졌다. 34px 제목과 34px 조작기라 높이가 서로를 밀지 않는다
+              멀어졌다. 38px 제목과 34px 조작기라 높이가 서로를 밀지 않는다
               (items-center 로 세로 가운데를 맞춘다 — baseline 이면 배경 있는 칸이 뜬다).
               책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다. */}
+
+          {/* 찾기는 제 줄을 갖는다 — 서재 전체를 훑는 일이라 '이 책장을 이렇게 보자'
+              (꽂는 순서·새 책)와 층이 다르다. 셋을 한 줄에 늘어놓으면 층이 뭉개진다.
+              폭은 280px — 왼쪽 끝에 짧게 선다. 줄을 다 채우면 검색이 이 화면의
+              머리인 것처럼 커져서, 정작 머리인 '나의 서재' 를 누른다. */}
+          <div className="mb-3.5">{searchField('w-[280px] max-w-full')}</div>
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
             <h1 className="m-0 shrink-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 38 }}>나의 서재</h1>
             {/* 서술은 자리가 모자라면 줄어든다 — 도구가 아랫줄로 떨어지면 '제목 옆에
@@ -1606,14 +1613,8 @@ export default function Wiki() {
                 예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
                 모두 동급으로 보였다 — 가까이 있는 것끼리 한 무리라는 게 위계의 기본이다.
 
-                순서: 고르는 것 → 찾는 것 → 만드는 것.
-                집 안의 다른 방이 이미 다 이 순서다 —
-                  아카이브  [형태·태그·연도] [검색] [새 항목 저장]
-                  인맥노트  [관계·친밀도 칩] [검색]
-                  데일리로그 [전체·이번주·사진] [검색]
-                한동안 위키만 검색이 앞에 있었는데, 그건 '검색을 위로 올리고 정렬을
-                옆에' 를 순서대로 붙이다 생긴 것이지 고른 배치가 아니었다.
-                방마다 순서가 다르면 옮길 때마다 눈이 다시 훑는다. */}
+                이 줄엔 '이 책장을 어떻게 볼까'(꽂는 순서)와 '만들기'(새 책)만 남는다.
+                찾기는 위 줄로 올라갔다 — 서재 전체를 훑는 일이라 층이 다르다. */}
             <div className="flex shrink-0 items-center gap-2">
               {allBooks.length > 1 && (
                 <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
@@ -1632,7 +1633,6 @@ export default function Wiki() {
                   ))}
                 </div>
               )}
-              {searchBox}
               {/* 주요 동작 앞의 얇은 선 — 보는 도구와 만드는 동작을 갈라 준다 */}
               <span aria-hidden className="mx-0.5 h-[18px] w-px" style={{ background: 'rgba(60,47,24,.16)' }} />
               <button
