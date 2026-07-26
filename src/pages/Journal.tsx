@@ -625,12 +625,37 @@ export default function Journal() {
           {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
           {!(tab === 'write' && detailOpen) && (
             tab === 'write' ? (
-              <div key={selectedDate} className="mb-5 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
-                <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
-                <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
-                  <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
+              /* 찾기가 여기 있는 이유 — 마스트헤드는 '이 방 전체' 를 다루는 자리다.
+                 아래 '최근 기록' 줄의 전체/이번 주/사진은 그 목록만의 도구라 거기 남고,
+                 방 전체를 훑는 찾기는 방 이름 옆에 선다. 마이위키도 같은 규칙이다
+                 (서재 머리에 찾기, 책 안 도구는 그 책 줄에). */
+              /* items-end — 제목 덩이는 두 줄(날짜 + 인사말)이라 가운데 정렬하면
+                 검색칸이 그 사이 허공에 뜬다. 아랫줄(인사말)에 발을 맞춰 세운다. */
+              <div key={selectedDate} className="mb-5 flex flex-wrap items-end gap-x-4 gap-y-2.5 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+                <div className="min-w-0">
+                  <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
+                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                    <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
+                  </div>
                 </div>
+                <span className="flex-1" />
+                <label className="mb-[-3px] inline-flex h-[36px] w-[240px] max-w-full shrink-0 items-center gap-2 rounded-[8px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 text-[13.5px] transition-colors focus-within:border-[hsl(var(--cream-accent))]">
+                  <Search className="h-[15px] w-[15px] shrink-0 text-[#a19bbb]" />
+                  <input
+                    value={jq}
+                    onChange={(e) => setJq(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setJq(''); }}
+                    placeholder="제목·본문·태그 검색"
+                    aria-label="기록 검색"
+                    className="min-w-0 flex-1 bg-transparent text-[#191c20] outline-none placeholder:text-[#a19bbb] dark:text-[hsl(var(--cream-ink))]"
+                  />
+                  {jq && (
+                    <button type="button" onClick={() => setJq('')} aria-label="검색어 지우기" className="shrink-0 text-[#a19bbb] transition-colors hover:text-[#191c20]">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </label>
               </div>
             ) : tab === 'trips' ? null : (
               <div className="mb-6">
@@ -712,23 +737,8 @@ export default function Journal() {
                       </button>
                     ))}
                   </div>
-                  {/* 찾기 — 아카이브·인맥노트와 같은 모양(늘 열린 칸 + 왼쪽 아이콘) */}
-                  <label className="inline-flex h-[36px] w-[240px] max-w-full items-center gap-2 rounded-[8px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3 text-[13.5px] transition-colors focus-within:border-[hsl(var(--cream-accent))]">
-                    <Search className="h-[15px] w-[15px] shrink-0 text-[#a19bbb]" />
-                    <input
-                      value={jq}
-                      onChange={(e) => setJq(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Escape') setJq(''); }}
-                      placeholder="제목·본문·태그 검색"
-                      aria-label="기록 검색"
-                      className="min-w-0 flex-1 bg-transparent text-[#191c20] outline-none placeholder:text-[#a19bbb] dark:text-[hsl(var(--cream-ink))]"
-                    />
-                    {jq && (
-                      <button type="button" onClick={() => setJq('')} aria-label="검색어 지우기" className="shrink-0 text-[#a19bbb] transition-colors hover:text-[#191c20]">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </label>
+                  {/* 찾기는 여기 없다 — 방 이름 옆(마스트헤드)으로 올렸다.
+                      이 줄에 남는 건 이 목록만의 도구(전체·이번 주·사진)뿐이다. */}
                 </div>
 
                 {recentEntries.length === 0 ? (

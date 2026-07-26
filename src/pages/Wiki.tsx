@@ -1597,8 +1597,10 @@ export default function Wiki() {
               (items-center 로 세로 가운데를 맞춘다 — baseline 이면 배경 있는 칸이 뜬다).
               책이 한 선반을 넘기면 페이지가 갈려 '어디 뒀더라' 가 실제로 생긴다. */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-            <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 34 }}>나의 서재</h1>
-            <span className="min-w-0" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
+            <h1 className="m-0 shrink-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 38 }}>나의 서재</h1>
+            {/* 서술은 자리가 모자라면 줄어든다 — 도구가 아랫줄로 떨어지면 '제목 옆에
+                있는 도구' 라는 뜻이 사라진다. 말은 줄일 수 있어도 손잡이는 못 줄인다. */}
+            <span className="min-w-0 truncate" style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
             <span className="flex-1" />
             {/* 도구는 한 덩이로 묶어 안쪽 간격(8px)을 제목–서술 간격(16px)보다 좁게 둔다.
                 예전엔 넷이 같은 간격으로 늘어서서 '제목 · 서술 · 검색 · 정렬 · 새 책' 이
@@ -1612,7 +1614,7 @@ export default function Wiki() {
                 한동안 위키만 검색이 앞에 있었는데, 그건 '검색을 위로 올리고 정렬을
                 옆에' 를 순서대로 붙이다 생긴 것이지 고른 배치가 아니었다.
                 방마다 순서가 다르면 옮길 때마다 눈이 다시 훑는다. */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               {allBooks.length > 1 && (
                 <div className="flex h-[34px] items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
                   {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
