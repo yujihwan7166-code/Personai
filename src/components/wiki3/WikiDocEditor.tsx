@@ -107,8 +107,10 @@ export function WikiDocEditor({ initialValue, onChange, onOpenDoc, onLinkRequest
       </Plate>
 
       {/* 드래그 → 문서 연결 버블.
-          크림 종이 위에 쿨 블랙 알약을 띄우면 이 방 물건이 아닌 것처럼 붕 뜬다 —
-          잉크(#292217)·크림으로 맞추고, 꼬리를 달아 '고른 그 글자'에 붙어 있게 한다. */}
+          잉크색(#292217)이었는데, 검정 알약은 '이 글자를 지우려나' 처럼 읽혔다.
+          이 방에서 링크는 늘 그린(#305f4c)이니 링크를 만드는 버튼도 그린이어야
+          누르기 전에 무슨 일이 일어날지 색으로 먼저 알 수 있다.
+          꼬리를 달아 '고른 그 글자'에 붙어 있게 하는 건 그대로. */}
       {bubble && (
         <div
           className="absolute z-30 -translate-x-1/2 -translate-y-full"
@@ -118,17 +120,17 @@ export function WikiDocEditor({ initialValue, onChange, onOpenDoc, onLinkRequest
             type="button"
             onMouseDown={(e) => { e.preventDefault(); onLinkRequest(bubble.text); setBubble(null); }}
             className="flex items-center gap-[7px] rounded-[10px] px-[13px] py-[8px] text-[12.5px] font-bold transition-colors"
-            style={{ background: '#292217', color: '#f6ecd9', boxShadow: '0 12px 26px -10px rgba(41,34,23,.6)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#3d3423'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#292217'; }}
+            style={{ background: '#305f4c', color: '#f3ece0', boxShadow: '0 12px 26px -10px rgba(24,58,44,.55)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#305f4c'; }}
           >
-            <Link2 className="h-[13px] w-[13px]" style={{ color: '#c9b98f' }} />
+            <Link2 className="h-[13px] w-[13px]" style={{ color: '#a6c8b6' }} />
             문서로 연결
           </button>
           <span
             aria-hidden
             className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2"
-            style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #292217' }}
+            style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #305f4c' }}
           />
         </div>
       )}
