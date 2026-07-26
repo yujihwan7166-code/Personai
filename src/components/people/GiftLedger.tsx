@@ -150,8 +150,8 @@ export function GiftLedger({
             </div>
           ) : (
             byMonth.map(([key, list]) => (
-              <div key={key}>
-                <div className="flex items-center gap-2.5 px-[22px] pb-2 pt-3">
+              <div key={key} className="px-[10px] pb-1 last:pb-2">
+                <div className="flex items-center gap-2.5 px-3 pb-2 pt-3">
                   <span className="text-[12px] font-bold tracking-[0.05em] text-[#a08343]">{MONTHS[Number(key.slice(5, 7)) - 1]}{key.slice(0, 4) !== thisYear ? ` ${key.slice(0, 4)}` : ''}</span>
                   <span className="h-px flex-1 bg-[#f0ebdf]" />
                 </div>
@@ -163,7 +163,9 @@ export function GiftLedger({
                       key={x.id}
                       type="button"
                       onClick={() => onOpenPerson(x.personId)}
-                      className="flex w-full items-center gap-3.5 border-b border-[#f3efe4] px-[22px] py-3.5 text-left transition-colors hover:bg-[#faf7f0]"
+                      /* 표 줄(아래 실선)이었다 — 이 방의 다른 화면은 전부 크림 카드
+                         한 장이 한 건이다. 선 대신 카드로 바꿔 문법을 맞춘다. */
+                      className="mb-1.5 flex w-full items-center gap-3.5 rounded-[10px] border border-[#f0ebdf] bg-[#faf7f0] px-3 py-2.5 text-left transition-colors hover:border-[#e2d3b6]"
                     >
                       <span className={cn('inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full', given ? 'bg-[#f2e5cf] text-[#a15008]' : 'bg-[#efeadd] text-[#6b655a]')}>
                         {given ? <ArrowUpRight className="h-4 w-4" strokeWidth={1.7} /> : <ArrowDownLeft className="h-4 w-4" strokeWidth={1.7} />}
@@ -185,17 +187,14 @@ export function GiftLedger({
                     </button>
                   );
                 })}
-                <button type="button" onClick={() => openComposer()} className="flex w-full items-center gap-2.5 border-t border-[#f3efe4] px-[22px] py-3.5 text-left text-[14px] text-[#868d97] transition-colors hover:bg-[#faf7f0]">
-                  <Plus className="h-[15px] w-[15px]" /> 선물 기록 추가
-                </button>
               </div>
             ))
           )}
-          {shown.length === 0 && (
-            <button type="button" onClick={() => openComposer()} className="flex w-full items-center gap-2.5 border-t border-[#f3efe4] px-[22px] py-3.5 text-left text-[14px] text-[#868d97] transition-colors hover:bg-[#faf7f0]">
-              <Plus className="h-[15px] w-[15px]" /> 선물 기록 추가
-            </button>
-          )}
+          {/* 추가 버튼은 하나뿐 — 달 묶음 안에 있어서 7월·6월 두 그룹이면 목록 중간에
+              같은 버튼이 두 번 끼어 있었다. 맨 아래 한 번만. */}
+          <button type="button" onClick={() => openComposer()} className="flex w-full items-center gap-2.5 border-t border-[#f3efe4] px-[22px] py-3.5 text-left text-[14px] text-[#868d97] transition-colors hover:bg-[#faf7f0]">
+            <Plus className="h-[15px] w-[15px]" /> 선물 기록 추가
+          </button>
         </div>
 
         {/* ── 사람별 균형 ── */}
