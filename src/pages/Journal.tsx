@@ -230,7 +230,8 @@ export default function Journal() {
   const streak = useJournalStreak(allEntries);
 
   const [tab, setTab] = useState<Tab>('write');
-  const [jq, setJq] = useState('');   // 사이드바 찾기
+  const [jq, setJq] = useState('');            // 머리 오른쪽 찾기
+  const [searchOpen, setSearchOpen] = useState(false); // 접힌 알약 ↔ 펼친 입력칸
   const [tripToOpen, setTripToOpen] = useState<string | null>(null);
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
@@ -375,7 +376,7 @@ export default function Journal() {
   // 파생
   const feed = useMemo(() => [...allEntries].sort((a, b) => b.date.localeCompare(a.date)), [allEntries]);
 
-  /* 사이드바 찾기 — 제목·본문·요약·태그·BGM 을 함께 훑는다.
+  /* 찾기 — 제목·본문·요약·태그·BGM 을 함께 훑는다.
      (먹은 것·간 곳은 별도 저장소라 여기선 빼둔다 — 그쪽은 푸드 로드·나의 지도에
       제 화면이 있다) */
   const searchHits = useMemo(() => {
@@ -560,50 +561,8 @@ export default function Journal() {
           </div>
         </div>
 
-        {/* 찾기 — 기록이 쌓이면 캘린더를 넘겨 뒤지는 것 말고는 옛 날을 찾을 길이 없었다.
-            제목·본문·태그·간 곳·먹은 것을 함께 훑는다(무엇으로 기억하든 걸리게).
-            결과를 누르면 그 날로 바로 들어간다. */}
-        <div className="relative mt-4 px-1.5">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8078a3]" />
-          <input
-            value={jq}
-            onChange={(e) => setJq(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setJq(''); }}
-            placeholder="기록에서 찾기"
-            aria-label="기록 검색"
-            className="h-[36px] w-full rounded-[9px] border-none bg-[rgba(60,50,100,.07)] pl-[30px] pr-7 text-[13.5px] text-[#191c20] shadow-[inset_0_1px_2px_rgba(40,30,80,.10)] outline-none placeholder:text-[#8078a3] focus:shadow-[inset_0_1px_2px_rgba(40,30,80,.10),0_0_0_2px_hsl(var(--cream-accent)/0.35)] dark:text-[hsl(var(--cream-ink))]"
-          />
-          {jq && (
-            <button type="button" aria-label="검색 지우기" onClick={() => setJq('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8078a3]">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        {jq.trim() && (
-          <div className="mt-1.5 px-1.5">
-            {searchHits.length === 0 ? (
-              <p className="px-2 py-3 text-[12.5px] text-[#8078a3]">찾는 기록이 없어요</p>
-            ) : (
-              <ul className="max-h-[46vh] overflow-y-auto rounded-[10px] bg-white/55 p-1 dark:bg-white/5">
-                {searchHits.map((e) => (
-                  <li key={e.id}>
-                    <button
-                      type="button"
-                      onClick={() => { openEntry(e.date); setJq(''); }}
-                      className="flex w-full flex-col gap-0.5 rounded-[8px] px-2.5 py-1.5 text-left transition-colors hover:bg-[hsl(var(--cream-accent)/0.12)]"
-                    >
-                      <span className="flex items-baseline gap-1.5">
-                        <span className="shrink-0 text-[11px] font-bold tabular-nums text-[hsl(var(--cream-accent))]">{e.date.slice(5).replace('-', '.')}</span>
-                        <span className="min-w-0 truncate text-[12.5px] font-semibold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{e.title?.trim() || '무제'}</span>
-                      </span>
-                      <span className="truncate text-[11.5px] text-[#8078a3]">{searchSnippet(e, jq)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+        {/* 찾기는 여기 없다 — 본문 머리 오른쪽으로 옮겼다. 방 이름 바로 아래에 두니
+            '이 방을 검색' 인지 '메뉴를 검색' 인지 애매했고, 결과가 메뉴를 밀어냈다. */}
 
         {/* 내비 — 섹션라벨·아이템 px-3 로 위계 정렬 (기준 통일) */}
         <div className="mb-[7px] mt-[26px] px-3 text-[11.5px] font-semibold tracking-[0.05em] text-[#8078a3]">메뉴</div>
@@ -678,22 +637,91 @@ export default function Journal() {
               );
             })}
           </div>
-          {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김) */}
+          {/* 섹션 머리 — 기록 탭은 인사말+스탯, 나머지는 아이브로우+제목 (상세에선 숨김).
+              찾기는 이 줄의 오른쪽 끝에 선다. 사이드바에 뒀을 땐 방 이름 바로 아래라
+              '이 방을 검색' 인지 '메뉴를 검색' 인지 애매했고, 결과가 메뉴를 밀어내
+              어디를 보고 있었는지 잃었다. 여기 두면 지금 보고 있는 화면의 도구로 읽히고
+              결과도 화면 위로 떠서 아무것도 밀지 않는다. */}
           {!(tab === 'write' && detailOpen) && (
-            tab === 'write' ? (
-              <div key={selectedDate} className="mb-5 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
-                <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
-                <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
-                  <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
+            <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-3', tab === 'trips' ? 'mb-4' : tab === 'write' ? 'mb-5' : 'mb-6')}>
+              {tab === 'write' ? (
+                <div key={selectedDate} className="min-w-0 duration-300 animate-in fade-in-50 slide-in-from-bottom-2">
+                  <p className="text-[13px] text-[#8d949d]">{todayLabelFull}</p>
+                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 className="text-[26px] font-bold leading-none tracking-[-0.015em] text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{greeting}</h2>
+                    <span className="text-[14px] text-[#8d949d]">{streak > 0 && <>연속 {streak}일 · </>}이번 달 {monthCount}개 기록</span>
+                  </div>
                 </div>
+              ) : tab === 'trips' ? (
+                <span />
+              ) : (
+                <div className="min-w-0">
+                  <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
+                  <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
+                </div>
+              )}
+
+              {/* 찾기 — 평소엔 접힌 알약, 누르면 펼쳐진다.
+                  늘 열어두면 머리에서 제목만큼 넓은 자리를 차지하는데, 검색은 가끔
+                  쓰는 도구다. 결과는 아래로 떠서(absolute) 본문을 밀지 않는다. */}
+              <div className="relative shrink-0">
+                {searchOpen || jq ? (
+                  <>
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8078a3]" />
+                    <input
+                      autoFocus
+                      value={jq}
+                      onChange={(e) => setJq(e.target.value)}
+                      onBlur={() => { if (!jq) setSearchOpen(false); }}
+                      onKeyDown={(e) => { if (e.key === 'Escape') { setJq(''); setSearchOpen(false); (e.target as HTMLInputElement).blur(); } }}
+                      placeholder="기록에서 찾기"
+                      aria-label="기록 검색"
+                      className="h-[38px] w-[240px] rounded-[9px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] pl-[30px] pr-8 text-[13.5px] text-[#191c20] outline-none transition-shadow placeholder:text-[#a19bbb] focus:border-transparent focus:shadow-[0_0_0_2px_hsl(var(--cream-accent)/0.4)] dark:text-[hsl(var(--cream-ink))]"
+                    />
+                    {jq && (
+                      <button type="button" aria-label="검색 지우기" onMouseDown={(e) => e.preventDefault()} onClick={() => { setJq(''); setSearchOpen(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8078a3] hover:text-[#191c20]">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    className="flex h-[38px] items-center gap-1.5 rounded-[9px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] px-3.5 text-[13.5px] font-medium text-[#6b6493] transition-colors hover:border-[hsl(var(--cream-accent)/0.5)] hover:text-[#191c20]"
+                  >
+                    <Search className="h-3.5 w-3.5" /> 찾기
+                  </button>
+                )}
+
+                {jq.trim() && (
+                  <div className="absolute right-0 top-[44px] z-40 w-[340px] overflow-hidden rounded-[12px] border border-[hsl(var(--cream-line))] bg-[hsl(var(--cream-card))] shadow-[0_18px_40px_-20px_rgba(40,30,80,0.45)]">
+                    {searchHits.length === 0 ? (
+                      <p className="px-4 py-5 text-center text-[12.5px] text-[#8078a3]">찾는 기록이 없어요</p>
+                    ) : (
+                      <ul className="max-h-[52vh] overflow-y-auto p-1.5">
+                        {searchHits.map((e) => (
+                          <li key={e.id}>
+                            <button
+                              type="button"
+                              onMouseDown={(ev) => ev.preventDefault()}
+                              onClick={() => { openEntry(e.date); setJq(''); setSearchOpen(false); }}
+                              className="flex w-full flex-col gap-0.5 rounded-[8px] px-3 py-2 text-left transition-colors hover:bg-[hsl(var(--cream-accent)/0.12)]"
+                            >
+                              <span className="flex items-baseline gap-1.5">
+                                <span className="shrink-0 text-[11px] font-bold tabular-nums text-[hsl(var(--cream-accent))]">{e.date.slice(5).replace('-', '.')}</span>
+                                <span className="min-w-0 truncate text-[13px] font-semibold text-[#191c20] dark:text-[hsl(var(--cream-ink))]">{e.title?.trim() || '무제'}</span>
+                              </span>
+                              <span className="truncate text-[11.5px] text-[#8078a3]">{searchSnippet(e, jq)}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : tab === 'trips' ? null : (
-              <div className="mb-6">
-                <p className="text-[10.5px] font-bold tracking-[0.22em] text-[hsl(var(--cream-muted))]/70">{SECTION_HEAD[tab].eyebrow}</p>
-                <h2 className="mt-1.5 text-[27px] font-bold leading-none tracking-[-0.01em]">{SECTION_HEAD[tab].title}</h2>
-              </div>
-            )
+            </div>
           )}
 
           {/* ── 기록 탭: 히어로 + 최근 기록 리스트 ── */}
