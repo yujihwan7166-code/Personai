@@ -950,15 +950,18 @@ export default function Wiki() {
 
         {/* 만들기 — 사이드바가 맡는다. 찾기는 본문 머리로 내보냈다(searchBox).
             이 방에서 '만들고 잇는' 색은 그린이다(본문 링크·연결 버블·차례 표시선). */}
+        {/* 아카이브 '새 항목 저장' · 인맥노트 '새 사람' 과 같은 규격으로 맞췄다 —
+            rounded-xl · py-2 · 14px 볼드 · 흰 글씨 · 방 강조색 · Plus 16px.
+            방마다 조금씩 다른 알약이면 같은 자리의 같은 일인 걸 매번 다시 읽게 된다. */}
         <button
           type="button"
           onClick={() => (book ? createDoc(null) : setBookDialog({ book: null }))}
-          className="mt-4 flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-bold text-white transition-colors"
-          style={{ background: C.green, boxShadow: '0 1px 2px rgba(24,58,44,.25)' }}
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[14px] font-bold text-white shadow-sm transition-colors"
+          style={{ background: C.green }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#3a7159'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = C.green; }}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
           {book ? '새 문서' : '새 책'}
         </button>
 
@@ -1546,14 +1549,18 @@ export default function Wiki() {
       ) : (
         /* ══════ 서재 홈 (시안) ══════ */
         <section className="wiki-rise mx-auto px-5 pb-20 pt-[72px] sm:px-8" style={{ maxWidth: 1240 }}>
+          {/* 머리는 말만 한다 — 32px 제목 옆에 배경 있는 조작기를 나란히 세우니
+              셋이 같은 높이에서 겨루고 무엇이 이 화면의 주어인지 흐려졌다.
+              아카이브가 이미 이렇게 갈라 놓았다: 마스트헤드(제목+서술) → 도구 줄. */}
           <div className="flex flex-wrap items-baseline gap-3.5">
             <h1 className="m-0" style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: '-0.025em', fontSize: 32 }}>나의 서재</h1>
             <span style={{ fontSize: 13, color: C.sub }}>{statsLine}</span>
-            <span className="flex-1" />
+          </div>
+
+          {/* 도구 줄 — 찾기 · 꽂는 순서. 오른쪽 정렬로 책장 위에 얹는다.
+              책이 한 선반을 넘기면 페이지가 갈려서 '어디 뒀더라' 가 실제로 생긴다. */}
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             {searchBox}
-            {/* 꽂는 순서 — 오른쪽이 비어 있어 안내문이라도 넣을까 했지만, 빈자리는
-                말이 아니라 손잡이로 채우는 게 낫다. 책이 한 선반을 넘기면 페이지가
-                갈려서 '어디 뒀더라' 가 실제로 생긴다. */}
             {allBooks.length > 1 && (
               <div className="flex items-center gap-0.5 rounded-[9px] p-0.5" style={{ background: 'rgba(60,47,24,.07)' }}>
                 {([['made', '꽂은 순'], ['name', '이름순'], ['size', '두꺼운 순']] as const).map(([k, label]) => (
@@ -1574,7 +1581,7 @@ export default function Wiki() {
           </div>
 
           {/* 나무 책장 */}
-          <div className="relative mt-9 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
+          <div className="relative mt-5 rounded-[14px] px-6 pb-8 pt-[50px] sm:px-[36px]" style={{ background: 'linear-gradient(180deg,#5c3d20 0%,#4a2f16 45%,#38220e 100%)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.3), inset 0 18px 38px rgba(0,0,0,.42), 0 22px 48px -20px rgba(46,28,10,.55)' }}>
             {/* 가구 골격 — 윗판·옆판이 있어야 빈 여백이 '가구의 두께'로 읽힌다 */}
             <div aria-hidden className="absolute inset-x-0 top-0 h-[30px] rounded-t-[14px]" style={{ background: 'linear-gradient(180deg,#a26c3e,#79491f)', boxShadow: '0 7px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.35)' }} />
             <div aria-hidden className="absolute bottom-0 left-0 top-[26px] w-[16px] rounded-bl-[14px]" style={{ background: 'linear-gradient(90deg,#8a5a32,#66401e)', boxShadow: 'inset -4px 0 7px rgba(0,0,0,.35)' }} />
