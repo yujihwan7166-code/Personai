@@ -1190,18 +1190,23 @@ export default function Wiki() {
         </section>
       ) : book ? (
         /* ══════ 책 펼침 — 표지 + 차례 스프레드 (시안) ══════ */
-        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[56px] sm:px-8" style={{ maxWidth: 1240 }}>
-          <div className="flex items-center gap-[7px]" style={{ fontSize: 13, color: C.sub }}>
-            <button type="button" onClick={goShelf} className="hover:underline" style={{ color: C.green }}>서재</button>
-            <span>›</span>
-            <span style={{ color: C.ink, fontWeight: 600 }}>{book.title}</span>
-            <span className="flex-1" />
-            <span className="hidden sm:inline" style={{ fontSize: 12, color: C.muted }}>Esc로 돌아가기</span>
+        <section className="wiki-rise mx-auto w-full px-5 pb-20 pt-[48px] sm:px-8" style={{ maxWidth: 1240 }}>
+          {/* 책 첫 화면에선 '서재 › 약물' 이 군더더기다 — 책 이름은 바로 아래 표지에 크게 적혀 있다.
+              길 안내 대신 돌아가는 문 하나만 둔다. Esc 도 그대로 듣는다(적어 두진 않는다). */}
+          <div className="flex items-center">
+            <button
+              type="button" onClick={goShelf}
+              className="-ml-2 flex items-center gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-[rgba(48,95,76,.08)]"
+              style={{ fontSize: 13, fontWeight: 600, color: C.green }}
+            >
+              <ChevronDown className="h-3.5 w-3.5" style={{ transform: 'rotate(90deg)' }} />
+              서재로 돌아가기
+            </button>
           </div>
 
           {/* 표지와 차례는 늘 같은 높이로 붙어 있어야 '펼친 책' 이 유지된다(grid stretch).
               길어지는 건 차례 쪽이고, 표지는 늘어난 자리를 표지 재질로 두고 적힌 것만 따라 내려온다. */}
-          <div className="mt-7 grid min-h-[560px] grid-cols-1 items-stretch md:grid-cols-[262px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
+          <div className="mt-6 grid min-h-[560px] grid-cols-1 items-stretch md:grid-cols-[262px_minmax(0,1fr)]" style={{ filter: 'drop-shadow(0 26px 40px rgba(46,28,10,.32))' }}>
             {/* 좌 — 표지 (색은 진하지 않게: 위는 밝게 열고 아래로만 그늘) */}
             {/* overflow-hidden 을 걷었다 — 이게 있으면 안쪽 sticky 가 죽는다.
                 대신 질감 레이어가 모서리를 넘지 않게 반경을 물려받게 했다. */}
