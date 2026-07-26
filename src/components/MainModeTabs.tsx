@@ -243,7 +243,10 @@ export const HUB_TOOLS: HubTool[] = [
   { id: 'journal',    label: '데일리 로그',        desc: '일기 · 먹은 것 · 간 곳 · 여행',   emoji: '📖', icon: BookMarked, tint: 'hsl(146 27% 39%)', axis: '기록' },
   { id: 'career',     label: '마이커리어',         desc: '이룬 것을 이력서로 정리',         emoji: '📄', icon: FileText,   tint: 'hsl(6 70% 51%)',  axis: '기록' },
   { id: 'health',     label: '건강기록',           desc: '수치·복약·진료·증상 기록실',      emoji: '🩺', icon: HeartPulse, tint: 'hsl(152 58% 37%)', axis: '기록' },
-  { id: 'travel',     label: '트래블 로그',        desc: '데일리 로그 속 여행 — 계획·지도', emoji: '✈️', icon: Plane,      tint: 'hsl(183 58% 32%)', axis: '기록' },
+  /* 트래블 로그는 여기 없다 — 데일리 로그 방 안의 섹션이라 방 목록에 또 서면
+     방이 하나 더 있는 것처럼 보인다. 들어가는 문은 데일리 로그 안에 있다.
+     (id 'travel' 자체는 지우지 않는다 — /journal?view=travel 로 가는 다른 길과
+      옛 주소 리다이렉트가 이 키를 쓴다) */
   { id: 'ticketbook', label: '티켓북',              desc: '영화 · 책 · 게임 감상 기록',      emoji: '🎟️', icon: Ticket,     tint: 'hsl(38 78% 52%)', axis: '기록' },
   { id: 'rewind',     label: '되감기',             desc: '지난 기록을 필름처럼 되감아 보기', emoji: '🎞️', icon: Film,       tint: 'hsl(191 50% 47%)', axis: '기록' },
 ];

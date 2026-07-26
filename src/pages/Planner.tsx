@@ -44,6 +44,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   type DragMoveEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core';
 import { PlannerSidebar } from '@/components/planner/PlannerSidebar';
 import { RAIL_EVENT } from '@/components/planner/plannerRailEvents';
@@ -996,8 +997,21 @@ const Planner = () => {
     setActiveDrag((prev) => (prev ? { ...prev, deltaY: e.delta.y } : prev));
   }, []);
 
+  /* 지금 커서가 시간표 위인가 밖인가.
+     한 번의 드래그에 표현이 둘이었다 — 블록은 제자리에서 transform 으로 따라오고,
+     동시에 DragOverlay 카드가 마우스를 따라다녔다. 같은 일정이 화면에 두 번 있으니
+     겹쳐 보이고 어느 쪽이 진짜 놓일 자리인지 알 수 없었다.
+     자리에 따라 하나만 쓴다 — 시간표 위면 블록(위치가 곧 시각이니까),
+     밖이면 카드(시간표 밖으로는 블록이 잘려서 못 나간다). */
+  const [overTimeline, setOverTimeline] = useState(true);
+  const handleDragOverZone = useCallback((e: DragOverEvent) => {
+    const id = String(e.over?.id ?? '');
+    setOverTimeline(id.startsWith('slot-') || id.startsWith('day-'));
+  }, []);
+
   const handleDragCancel = useCallback(() => {
     setActiveDrag(null);
+    setOverTimeline(true);
     dragInitialScrollTop.current = null;
     dragCopyModeRef.current = false;
   }, []);
@@ -1110,6 +1124,7 @@ const Planner = () => {
       ? (rawDropData as PlannerDropData)
       : undefined;
     setActiveDrag(null);
+    setOverTimeline(true);
     // 모든 분기에서 reset 보장 — early return 누락으로 다음 드래그가 잘못된 보정값 사용하는 버그 방지.
     const initialScrollTop = dragInitialScrollTop.current;
     dragInitialScrollTop.current = null;
@@ -1695,6 +1710,7 @@ const Planner = () => {
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
+      onDragOver={handleDragOverZone}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
       autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
@@ -2311,7 +2327,9 @@ const Planner = () => {
           </span>
         </div>
       )}
-      {(activeDrag?.data.kind === 'scheduled-task' || activeDrag?.data.kind === 'scheduled-event') && (() => {
+      {/* 시간표 밖으로 나갔을 때만. 안에서는 블록 자체가 따라가므로 이 카드가 뜨면
+          같은 일정이 화면에 둘이 된다(예전엔 늘 떠서 겹쳐 보였다). */}
+      {!overTimeline && (activeDrag?.data.kind === 'scheduled-task' || activeDrag?.data.kind === 'scheduled-event') && (() => {
         const item = activeDrag.data.kind === 'scheduled-task'
           ? activeDrag.data.task
           : activeDrag.data.event;
@@ -2320,17 +2338,23 @@ const Planner = () => {
         const fmtTime = (iso?: string) => iso
           ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
           : '';
+        /* 시간표 밖으로 나왔다는 건 '시각을 뗀다'는 뜻이다. 그래서 시각을 그냥
+           적어두지 않고 지워진 것처럼 보여주고, 무슨 일이 일어날지 한 줄로 적는다.
+           예전엔 시각만 또렷이 적혀 있어 '여기 놓으면 이 시각이 유지되나' 로 읽혔다. */
         return (
-          <div
-            className="pointer-events-none select-none flex items-center gap-2 rounded-md bg-card border border-primary/45 shadow-[0_8px_24px_-6px_hsl(30_15%_8%/0.25)] px-3 py-2 max-w-[260px] ring-1 ring-primary/15"
-          >
-            <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />
-            <span className="text-[11.5px] tabular-nums text-muted-foreground font-medium shrink-0 whitespace-nowrap">
-              {fmtTime(startAt)}{endAt ? `~${fmtTime(endAt)}` : ''}
-            </span>
-            <span className="text-[12.5px] text-foreground font-medium truncate">
-              {item.title}
-            </span>
+          <div className="pointer-events-none max-w-[260px] select-none rounded-lg border border-foreground/12 bg-background/95 px-3 py-2 shadow-[0_14px_34px_-18px_hsl(var(--foreground)/0.45)] ring-1 ring-foreground/[0.04] backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/45" aria-hidden />
+              <span className="shrink-0 whitespace-nowrap text-[11.5px] font-medium tabular-nums text-muted-foreground/70 line-through">
+                {fmtTime(startAt)}{endAt ? `~${fmtTime(endAt)}` : ''}
+              </span>
+              <span className="truncate text-[12.5px] font-medium text-foreground">
+                {item.title}
+              </span>
+            </div>
+            <div className="mt-1 text-[11px] font-semibold text-primary">
+              놓으면 시각을 떼고 할 일로
+            </div>
           </div>
         );
       })()}

@@ -8,7 +8,7 @@
  * 가상 인스턴스 id (`master@iso`) 도 그대로 받음. 부모 onResize/onDragEnd 에서 detach 분기.
  */
 import { useEffect, useState } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useDndContext, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { formatDurationMinutes } from '@/lib/formatDuration';
@@ -50,6 +50,7 @@ export const DraggableBlock = ({
     id: `block-${item.data.id}`,
     data: dragData,
   });
+  const dndCtx = useDndContext();
 
   // ── 네이티브 pointer-event 기반 resize ──
   const [resizeDeltaPx, setResizeDeltaPx] = useState<number | null>(null);
@@ -193,13 +194,21 @@ export const DraggableBlock = ({
     return `${formatHm(newStart.toISOString())} ~ ${formatHm(newEnd.toISOString())}`;
   })();
 
+  /* 커서가 시간표 밖(대기함·할 일 목록)으로 나갔나.
+     밖에서는 Planner 가 떠다니는 카드를 대신 띄우므로, 여기 블록은 물러나 있어야
+     같은 일정이 화면에 둘로 보이지 않는다. over 가 비었을 땐(칸과 칸 사이) 밖으로
+     치지 않는다 — 그러면 이동 중에 깜빡인다. */
+  const overId = String(dndCtx.over?.id ?? '');
+  const draggedOutside = isDragging && !!overId && !overId.startsWith('slot-') && !overId.startsWith('day-');
+
   const composedStyle: React.CSSProperties = {
     ...style,
     transform: isDragging ? CSS.Translate.toString(adjustedTransform) : undefined,
     // 블록 자체가 따라오게 — opacity 0.5(반투명 ghost) → 0.92 (블록이 그대로 옮겨가는 느낌)
-    opacity: isDragging ? 0.92 : 1,
+    opacity: draggedOutside ? 0.22 : isDragging ? 0.92 : 1,
     height: liveHeight,
     zIndex: isDragging || isResizing ? 30 : 10,
+    transition: isDragging ? 'opacity .12s linear' : undefined,
   };
 
   return (

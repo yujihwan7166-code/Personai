@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, Inbox as InboxIcon, Trash2, Pencil, Flag, Ban, Locate, RotateCw, CalendarDays, X } from 'lucide-react';
+import { useDndContext } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { usePlannerToday } from '@/hooks/planner/usePlannerToday';
 import { taskStore } from '@/services/planner/taskStore';
@@ -153,6 +154,10 @@ export const TodayTimeline = ({
 }: TodayTimelineProps) => {
   const baseDateIso = dateIso ?? new Date().toISOString();
   const itemsRaw = usePlannerToday(baseDateIso);
+  /* 무언가 끌고 있는 중인가 — 끌 때 블록의 손잡이 버튼(미루기·삭제)이 계속 떠 있었다.
+     포인터가 잡혀 있어 hover 가 안 풀리는 탓인데, 끌고 가는 카드 옆에 남의 버튼이
+     따라붙어 겹쳐 보였다. 끄는 동안엔 감춘다. */
+  const { active: dndActive } = useDndContext();
   const [now, setNow] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -947,6 +952,7 @@ export const TodayTimeline = ({
                     className={cn(
                       'absolute right-1.5 top-1.5 z-20 inline-flex items-center gap-0.5 rounded-md bg-background/80 p-0.5',
                       'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100',
+                      dndActive && 'pointer-events-none !opacity-0',
                     )}
                     onClick={(event) => event.stopPropagation()}
                     onDoubleClick={(event) => event.stopPropagation()}
