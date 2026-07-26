@@ -90,7 +90,7 @@ export function BudgetView({ data }: { data: LedgerData }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>예산</h1>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>예산</h1>
           {/* '예산 N개'는 카드를 세면 나오는 수라 서술어 자리를 낭비했다 — 실데이터로 교체 */}
           {planned <= 0 ? (
             <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>아직 잡아둔 예산 없음</div>

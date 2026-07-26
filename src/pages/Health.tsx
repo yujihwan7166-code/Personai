@@ -129,7 +129,7 @@ export default function Health() {
             <HeartPulse className="h-6 w-6" strokeWidth={1.9} />
           </span>
           <div className="min-w-0">
-            <h1 className="text-[24px] font-extrabold leading-tight tracking-[0.01em] text-[hsl(var(--health-green))]">건강기록</h1>
+            <h1 className="text-[27px] font-bold leading-tight tracking-[-0.02em] text-[hsl(var(--health-green))]">건강기록</h1>
             <p className="truncate text-[12.5px] leading-tight text-muted-foreground">내 몸의 기록실</p>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function Health() {
         {/* 마스트헤드 (아카이브 양식) */}
         <div className="mb-5 flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-foreground">{VIEW_TITLE[view]}</h1>
+            <h1 className="text-[27px] font-bold tracking-[-0.02em] text-foreground">{VIEW_TITLE[view]}</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p>
           </div>
           <button

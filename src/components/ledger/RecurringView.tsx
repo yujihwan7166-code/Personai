@@ -49,7 +49,7 @@ export function RecurringView({ data }: { data: LedgerData }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>고정지출</h1>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>고정지출</h1>
           <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>{active.length}개 · 합계 {KRW(fixedSum)}원</div>
         </div>
         <button type="button" onClick={() => setOpen((o) => !o)}

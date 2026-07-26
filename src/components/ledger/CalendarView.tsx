@@ -83,7 +83,7 @@ export function CalendarView({ data, onEdit }: { data: LedgerData; onEdit: (id: 
       {/* 머리 — 대시보드·내역과 같은 월 이동 문법 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>
             {mm}월
             <span style={{ marginLeft: 7, fontSize: 13, fontWeight: 600, color: C.muted2, letterSpacing: 0 }}>{yy}</span>
           </h1>

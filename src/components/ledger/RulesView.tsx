@@ -93,7 +93,7 @@ export function RulesView({ data }: { data: LedgerData }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>분류 규칙</h1>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>분류 규칙</h1>
           <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500 }}>내 규칙 {rules.length}개 · 기본 분류보다 먼저 적용</div>
         </div>
         <button type="button" onClick={() => setShowCats((s) => !s)}

@@ -171,7 +171,7 @@ export function DashboardView({ data, onPickDate, onPickCategory, onGoTx, onGoBu
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* 제목이 먼저, 이동은 그 뒤에 한 덩어리로.
               화살표가 양옆에서 감싸면 '7월'이 버튼 사이에 낀 값처럼 보여 제목 노릇을 못 한다. */}
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>
             {mm}월
             <span style={{ marginLeft: 7, fontSize: 13, fontWeight: 600, color: C.muted2, letterSpacing: 0 }}>{month.slice(0, 4)}</span>
           </h1>

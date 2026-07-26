@@ -125,7 +125,7 @@ export function AssetsView({ data }: { data: LedgerData }) {
       {/* 머리 */}
       <div className="xl:col-span-2" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>자산</h1>
+          <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>자산</h1>
           <div style={{ fontSize: 12.5, color: TC.muted, fontWeight: 500 }}>
             스냅샷 {snapshots.length}개
             {snapshots.length > 0 && ` · 마지막 저장 ${snapshots[snapshots.length - 1].month.replace('-', '. ')}`}

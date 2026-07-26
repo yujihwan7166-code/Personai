@@ -133,7 +133,7 @@ export function EntriesView({ data, onEdit, initialMonth, focusDate, onFocusCons
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 40 }}>
       {/* 머리 */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 25, fontWeight: 700, letterSpacing: '-0.02em' }}>내역</h1>
+        <h1 style={{ margin: 0, fontSize: 27, fontWeight: 700, letterSpacing: '-0.02em' }}>내역</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* 대시보드와 같은 문법 — 값이 먼저, 이동은 한 덩어리로 뒤에.
               화살표가 양옆을 감싸면 날짜가 버튼 사이에 낀 것처럼 보인다. */}

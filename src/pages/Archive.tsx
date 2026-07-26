@@ -329,7 +329,7 @@ export default function Archive() {
         {/* 마스트헤드 */}
         <div className="mb-4 flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <h1 className="text-[24px] font-extrabold tracking-[-0.02em] text-foreground">{viewTitle}</h1>
+            <h1 className="text-[27px] font-bold tracking-[-0.02em] text-foreground">{viewTitle}</h1>
             {/* 제목이 주어(지금 보는 곳), 부제가 서술어 — 전역 개수가 아니라 이 뷰의 실데이터. */}
             <p className="mt-1 text-[13px] text-muted-foreground">
               {viewItems.length === 0
