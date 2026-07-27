@@ -414,7 +414,10 @@ export default function Wiki() {
   const openBook = (id: string) => { setBookId(id); setDocId(null); setQ(''); setTrail([]); top(); };
   const openDoc = (id: string, opts: { edit?: boolean } = {}) => {
     const d = docs.find((x) => x.id === id);
-    if (!d) return;
+    /* 없는 문서로 가는 링크 — 가리키던 문서가 지워지면 본문의 링크는 그대로 남는다.
+       예전엔 조용히 아무 일도 안 일어나서 '눌렀는데 안 되네' 로 끝났다.
+       링크가 죽었다는 걸 말해 준다. */
+    if (!d) { notify.info('가리키던 문서가 없어요', { description: '지워졌거나 다른 곳으로 옮겨졌을 수 있어요.' }); return; }
     if (docId && docId !== id) setTrail((t) => [...t.slice(-9), docId]); // 같은 문서 재진입은 안 쌓는다
     setBookId(d.book); setDocId(id); setMode(opts.edit ? 'edit' : 'read');
     setStore((s) => ({ ...s, recent: [id, ...s.recent.filter((r) => r !== id)].slice(0, 10) }));
@@ -466,12 +469,19 @@ export default function Wiki() {
       ? `지금 서재를 버리고 처음 상태로 되돌릴까요?\n\n책 ${allBooks.length}권 · 문서 ${docs.length}개가 모두 사라집니다.\n되돌릴 수 없어요.`
       : '처음 상태의 다섯 권을 꽂을까요?';
     if (!window.confirm(msg)) return;
+    /* 이 방에서 한 번에 가장 많이 잃는 동작이다 — 확인창 하나로 끝내지 않는다.
+       지우기 직전 서재를 통째로 들고 있다가 알림에서 되돌린다. */
+    const before = store;
     const fresh = resetToStarter();
     setStore(fresh);
     setShelfPage(0);
     setShelfSort('made');
     goShelf();
-    notify.success('처음 상태로 되돌렸어요');
+    notify.success('처음 상태로 되돌렸어요', {
+      duration: 10000,
+      description: before.books.length ? `지운 책 ${before.books.length}권을 되살릴 수 있어요` : undefined,
+      action: { label: '되돌리기', onClick: () => { setStore(before); goShelf(); } },
+    });
   };
 
   /* ── 책 ── */
@@ -485,19 +495,40 @@ export default function Wiki() {
     }
     setBookDialog(null);
   };
+  /**
+   * 책 지우기 — 안의 문서까지. 되돌릴 수 있게 지운 것을 통째로 들고 있다가
+   * 알림의 '되돌리기' 로 그대로 되꽂는다.
+   *
+   * 확인창만으로는 부족하다. 확인창은 '누르기 전' 을 막는 장치라, 이미 누른 사람에게는
+   * 아무 도움이 안 된다. 이 방에서 지우는 것은 책 한 권 · 문서 수십 개다.
+   */
   const removeBook = (id: string) => {
     const b = books.find((x) => x.id === id);
     if (!b) return;
-    const n = docs.filter((d) => d.book === id).length;
-    if (!window.confirm(`『${b.title}』 책을 삭제할까요?${n ? `\n안에 있는 문서 ${n}개도 함께 사라져요.` : ''}`)) return;
+    const gone = docs.filter((d) => d.book === id);
+    if (!window.confirm(`『${b.title}』 책을 삭제할까요?${gone.length ? `\n안에 있는 문서 ${gone.length}개도 함께 사라져요.` : ''}`)) return;
+    const goneIds = new Set(gone.map((d) => d.id));
+    const keptRecent = store.recent;
     setStore((s) => ({
       ...s,
       books: s.books.filter((x) => x.id !== id),
       docs: s.docs.filter((d) => d.book !== id),
-      recent: s.recent.filter((r) => docs.find((d) => d.id === r)?.book !== id),
+      recent: s.recent.filter((r) => !goneIds.has(r)),
     }));
     setBookDialog(null);
     goShelf();
+    notify.success(`『${b.title}』 지웠어요`, {
+      duration: 8000,
+      description: gone.length ? `문서 ${gone.length}개도 함께` : undefined,
+      action: {
+        label: '되돌리기',
+        onClick: () => setStore((s) => ({
+          books: [...s.books, b],
+          docs: [...s.docs, ...gone],
+          recent: keptRecent,
+        })),
+      },
+    });
   };
 
   /* ── 문서 ── */
@@ -525,13 +556,35 @@ export default function Wiki() {
     patchDoc(active.id, { body: empty ? tplBody : ([...active.body, ...tplBody] as Value) });
     setTplStamp((n) => n + 1);
   };
+  /**
+   * 문서 지우기 — 하위 문서는 한 단계 위로 올라간다(deleteWithPromotion).
+   *
+   * 되돌리기는 통째 스냅샷이 아니라 '바뀐 것만' 되돌린다. 지운 문서 하나를 되꽂고,
+   * 위로 올라갔던 자식들의 parent 를 원래대로 돌린다. 통째로 되돌리면 그 사이에
+   * 다른 문서를 고쳤을 때 그 고침까지 지워진다.
+   */
   const removeDoc = (id: string) => {
     const d = docs.find((x) => x.id === id);
     if (!d) return;
-    const kids = childrenOf(bookDocs, id).length;
-    if (!window.confirm(`"${d.title || '무제'}" 문서를 삭제할까요?${kids ? `\n(하위 문서 ${kids}개는 한 단계 위로 올라가요)` : ''}`)) return;
+    const kids = childrenOf(bookDocs, id);
+    if (!window.confirm(`"${d.title || '무제'}" 문서를 삭제할까요?${kids.length ? `\n(하위 문서 ${kids.length}개는 한 단계 위로 올라가요)` : ''}`)) return;
+    const kidIds = new Set(kids.map((k) => k.id));
     setStore((s) => ({ ...s, docs: [...s.docs.filter((x) => x.book !== d.book), ...deleteWithPromotion(s.docs.filter((x) => x.book === d.book), id)], recent: s.recent.filter((r) => r !== id) }));
     if (d.parent) openDoc(d.parent); else setDocId(null);
+    notify.success(`"${d.title || '무제'}" 지웠어요`, {
+      duration: 8000,
+      description: kids.length ? `하위 문서 ${kids.length}개는 한 단계 위로 올라갔어요` : undefined,
+      action: {
+        label: '되돌리기',
+        onClick: () => {
+          setStore((s) => ({
+            ...s,
+            docs: [...s.docs.map((x) => (kidIds.has(x.id) ? { ...x, parent: id } : x)), d],
+          }));
+          openDoc(id);
+        },
+      },
+    });
   };
 
   /* ── 파생 ── */
@@ -719,6 +772,7 @@ export default function Wiki() {
     const btn = (
       <button
         key={b.id} type="button" onClick={() => openBook(b.id)} title={`${s.title} — 문서 ${s.n}개`}
+        role="listitem" aria-label={`${s.title}, 문서 ${s.n}개`}
         className="wiki-spine relative flex-none cursor-pointer"
         style={{
           width: s.w, height: s.h,
@@ -1457,7 +1511,10 @@ export default function Wiki() {
                   + 새 문서
                 </button>
               </div>
-              <div className="mt-3.5">
+              {/* role=tree — 눈으로는 들여쓰기로 위계가 보이지만, 읽어주는 기계에는
+                  그냥 줄의 나열이었다. 트리라고 알려주고 각 줄에 몇 단계인지(level),
+                  자식이 접혀 있는지(expanded)를 붙이면 "3단계, 접힘, 하위 5개" 로 읽힌다. */}
+              <div className="mt-3.5" role="tree" aria-label="이 책의 차례">
                 {sideRows.length === 0 ? (
                   <div className="py-12 text-center">
                     <p style={{ fontFamily: SANS, fontWeight: 700, letterSpacing: '-0.012em', fontSize: 16 }}>아직 빈 책이에요</p>
@@ -1477,7 +1534,10 @@ export default function Wiki() {
                           {lineHere && <InsertLine depth={dropHint.depth} no={numberAt(dropHint.index, dropHint.depth)} />}
                           <div
                             ref={(el) => { if (el) rowEls.current.set(d.id, el); else rowEls.current.delete(d.id); }}
-                            role="button" tabIndex={0} draggable
+                            role="treeitem" tabIndex={0} draggable
+                            aria-level={depth + 1}
+                            aria-selected={d.id === docId}
+                            aria-expanded={kidsCount > 0 ? !folded : undefined}
                             onClick={() => openDoc(d.id)}
                             /* Tab/Shift+Tab = 단계 내리기/올리기.
                                드래그로 단계를 바꾸려면 행 위아래 가장자리 띠 안에서 좌우로 움직여야 해
@@ -1670,9 +1730,9 @@ export default function Wiki() {
               <span style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 11, letterSpacing: '.24em', color: '#3a2c10' }}>나의 서재</span>
               <span aria-hidden className="h-[3px] w-[3px] rounded-full" style={{ background: '#5c4718' }} />
             </div>
-            <div ref={shelfRef} className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
+            <div ref={shelfRef} role="list" aria-label={`${page + 1}번째 선반의 책 ${pageBooks.length}권`} className="relative flex items-end gap-[9px] overflow-x-clip px-3.5">
               {pageBooks.map((b, i) => spine(b, shelfFree > 90 && i === pageBooks.length - 1 && pageBooks.length >= 2 ? spineOf(pageBooks[i - 1]).h : undefined))}
-              <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기"
+              <button type="button" onClick={() => setBookDialog({ book: null })} title="새 책 만들기" aria-label="새 책 만들기"
                 className="flex flex-none items-center justify-center rounded-[4px] text-[28px] transition-colors"
                 style={{ height: 264, width: NEW_SLOT, border: '1.5px dashed rgba(244,230,200,.38)', color: 'rgba(244,230,200,.55)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(244,230,200,.7)'; e.currentTarget.style.color = 'rgba(244,230,200,.9)'; }}
